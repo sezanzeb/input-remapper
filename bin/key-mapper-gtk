@@ -32,7 +32,52 @@ gi.require_version('GLib', '2.0')
 from gi.repository import Gtk
 
 from keymapper.data import get_data_path
+from keymapper.profiles import find_devices, get_presets, get_mappings
 from keymapper.logger import logger, update_verbosity, log_info
+
+
+class SingleKeyMapping:
+    """A single, configurable key mapping."""
+    box = None
+
+    def __init__(self, delete_callback):
+        """Construct a row and add it to the list in the GUI."""
+        self.delete_callback = delete_callback
+        self.put_together()
+
+    def get_widget(self):
+        """Return the widget that wraps all the widgets of the row."""
+        return self.box
+
+    def put_together(self):
+        """Create all GTK widgets."""
+
+        delete_button = Gtk.Button()
+        destroy_icon = Gtk.Image.new_from_icon_name(
+            'window-close', Gtk.IconSize.BUTTON
+        )
+        delete_button.set_image(destroy_icon)
+        delete_button.connect('clicked', self.on_delete_button_clicked)
+
+        key_code = Gtk.Entry()
+        key_code.set_width_chars(4)
+
+        original_key = Gtk.Entry()
+        original_key.set_width_chars(4)
+
+        box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        box.pack_start(delete_button, expand=False, fill=False, padding=0)
+        box.pack_start(key_code, expand=True, fill=True, padding=0)
+        box.pack_start(original_key, expand=True, fill=True, padding=0)
+        box.set_margin_start(10)
+        box.set_margin_end(10)
+        box.show_all()
+        self.box = box
+
+    def on_delete_button_clicked(self, button):
+        """Destroy the row and remove it from the config."""
+        self.box.destroy()
+        self.delete_callback(self)
 
 
 class Window:
@@ -48,6 +93,8 @@ class Window:
         window.show()
         self.window = window
 
+        self.populate_devices()
+
     def get(self, name):
         """Get a widget from the window"""
         return self.builder.get_object(name)
@@ -55,6 +102,38 @@ class Window:
     def on_close(self, *_):
         """Safely close the application."""
         Gtk.main_quit()
+
+    def populate_devices(self):
+        """Make the devices selectable."""
+        devices = find_devices()
+        device_selection = self.get('device_selection')
+        for (id, device) in devices:
+            device_selection.append(device, device)
+
+    def populate_profiles(self):
+        """Show the available profiles for the selected device."""
+
+
+    def on_add_key_clicked(self, button):
+        """Add a mapping to the list of mappings."""
+        single_key_mapping = SingleKeyMapping(self.on_row_removed)
+        self.get('key_list').pack_start(
+            single_key_mapping.get_widget(),
+            expand=False, fill=False, padding=0
+        )
+
+    def on_row_removed(self, mapping):
+        """Stuff to do when a row was removed
+
+        Parameters
+        ----------
+        mapping : SingleKeyMapping
+        """
+        # shrink the window down as much as possible, otherwise it
+        # will increase with each added mapping but won't go back when they
+        # are removed.
+        window = self.get('window')
+        window.resize(window.get_size()[0], 1)
 
 
 if __name__ == '__main__':
