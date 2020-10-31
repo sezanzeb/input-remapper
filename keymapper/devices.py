@@ -32,5 +32,10 @@ def find_devices():
 
 
 def get_presets(device):
-    """Get all configured presets for the device"""
+    """Get all configured presets for the device."""
+    pass
+
+
+def get_mappings(device, preset):
+    """Get all configured buttons of the preset."""
     pass
