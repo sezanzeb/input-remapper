@@ -6,8 +6,10 @@ work.
 
 # TODO
 
-- show a dropdown to select an arbitrary device from `xinput list`
-- show a list that can be extended with a `[+]` button, showing `[keycode, current key for that keycode -> target]`
-- generate a xmodmap.*.whatever file out of that (like for example https://github.com/sezanzeb/colemakDE/blob/master/xmodmap.colemak.de)
-- load that file (`setxkbmap funnystuff; xmodmap xmodmap.asdf.whatever`, `setxkbmap funnystuff -device <id>`).
-- Does it need to be loaded on every startup or every time the device connects? If so, add udev rules
+- [x] show a dropdown to select an arbitrary device from `xinput list`
+- [ ] creating and renaming plugins per device
+- [ ] load xmodmap files from the config path
+- [ ] show a list that can be extended with a `[+]` button, showing `[keycode, current key for that keycode -> target]`
+- [ ] generate a xmodmap.*.whatever file out of that (like for example https://github.com/sezanzeb/colemakDE/blob/master/xmodmap.colemak.de)
+- [ ] load that file (`setxkbmap funnystuff; xmodmap xmodmap.asdf.whatever`, `setxkbmap funnystuff -device <id>`).
+- [ ] Does it need to be loaded on every startup or every time the device connects? If so, add udev rules
