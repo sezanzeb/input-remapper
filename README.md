@@ -8,12 +8,14 @@ work.
     <img src="data/screenshot.png"/>
 </p>
 
-# TODO
+# Roadmap
 
 - [x] show a dropdown to select an arbitrary device from `xinput list`
-- [ ] creating and renaming plugins per device
+- [x] creating plugins per device
+- [ ] renaming plugins
 - [ ] load xmodmap files from the config path
-- [ ] show a list that can be extended with a `[+]` button, showing `[keycode, current key for that keycode -> target]`
+- [x] show a list that can be extended with a `[+]` button
+- [ ] The list shows `[keycode, current key for that keycode -> target]`
 - [ ] generate a xmodmap.*.whatever file out of that (like for example https://github.com/sezanzeb/colemakDE/blob/master/xmodmap.colemak.de)
 - [ ] load that file (`setxkbmap funnystuff; xmodmap xmodmap.asdf.whatever`, `setxkbmap funnystuff -device <id>`).
 - [ ] Does it need to be loaded on every startup or every time the device connects? If so, add udev rules
