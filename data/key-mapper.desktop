@@ -2,7 +2,7 @@
 Type=Application
 Name=key-mapper
 Icon=mouse
-Exec=setxkbmapgtk-gtk
+Exec=key-mapper-gtk
 Terminal=false
 Categories=Settings
-Comment=GTK based GUI for device specific keyboard mappings
+Comment=GUI for device specific keyboard mappings

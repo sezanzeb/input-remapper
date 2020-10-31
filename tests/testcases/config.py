@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
-# key-mapper - GTK based GUI for device specific keyboard mappings
+# key-mapper - GUI for device specific keyboard mappings
 # Copyright (C) 2020 sezanzeb <proxima@hip70890b.de>
 #
 # This file is part of key-mapper.
@@ -21,10 +21,24 @@
 
 import unittest
 
+from keymapper.config import _modify_config
+
 
 class ConfigTest(unittest.TestCase):
-    def test_nothing(self):
-        pass
+    def test_first_line(self):
+        contents = """a=1\n # test=3\n  abc=123"""
+        contents = _modify_config(contents, 'a', 3)
+        self.assertEqual(contents, """a=3\n # test=3\n  abc=123""")
+
+    def test_last_line(self):
+        contents = """a=1\n # test=3\n  abc=123"""
+        contents = _modify_config(contents, 'abc', 'foo')
+        self.assertEqual(contents, """a=1\n # test=3\nabc=foo""")
+
+    def test_new_line(self):
+        contents = """a=1\n # test=3\n  abc=123"""
+        contents = _modify_config(contents, 'test', '1234')
+        self.assertEqual(contents, """a=1\n # test=3\n  abc=123\ntest=1234""")
 
 
 if __name__ == "__main__":

@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
-# key-mapper - GTK based GUI for device specific keyboard mappings
+# key-mapper - GUI for device specific keyboard mappings
 # Copyright (C) 2020 sezanzeb <proxima@hip70890b.de>
 #
 # This file is part of key-mapper.
@@ -31,8 +31,8 @@ gi.require_version('Gtk', '3.0')
 gi.require_version('GLib', '2.0')
 from gi.repository import Gtk, GLib
 
-from setxkbmapgtk.util import find_devices
-from setxkbmapgtk.logger import logger, update_verbosity, log_info
+from keymapper.util import find_devices
+from keymapper.logger import logger, update_verbosity, log_info
 
 
 class Window:
@@ -44,9 +44,13 @@ class Window:
         builder.connect_signals(self)
         self.builder = builder
 
-        window = builder.get_object('setxkbmap-gtk_window')
+        window = builder.get_object('key-mapper-gtk_window')
         window.show()
         self.window = window
+
+    def get(self, name):
+        """Get a widget from the window"""
+        return self.builder.get_object(name)
 
 
 if __name__ == '__main__':

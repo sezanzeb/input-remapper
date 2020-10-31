@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
-# key-mapper - GTK based GUI for device specific keyboard mappings
+# key-mapper - GUI for device specific keyboard mappings
 # Copyright (C) 2020 sezanzeb <proxima@hip70890b.de>
 #
 # This file is part of key-mapper.
