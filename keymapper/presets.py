@@ -41,22 +41,6 @@ def get_xinput_list(type):
     return [line for line in output.decode().split('\n') if line != '']
 
 
-def find_devices():
-    """Get a list of (id, name) for each input device."""
-    # `xinput list`
-    ids = get_xinput_list('id')
-    names = get_xinput_list('name')
-
-    # names contains duplicates and "Virtual"-somethings, filter those
-    known_names = []
-    result = []
-    for (id, name) in zip(ids, names):
-        if name not in known_names and not name.startswith('Virtual'):
-            known_names.append(name)
-            result.append((id, name))
-    return result
-
-
 def get_presets(device):
     """Get all configured presets for the device, sorted by modification date.
 

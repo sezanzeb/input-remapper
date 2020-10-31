@@ -32,7 +32,8 @@ gi.require_version('GLib', '2.0')
 from gi.repository import Gtk
 
 from keymapper.data import get_data_path
-from keymapper.presets import find_devices, get_presets, get_mappings, \
+from keymapper.X import find_devices
+from keymapper.presets import get_presets, get_mappings, \
     find_newest_preset, create_preset
 from keymapper.logger import logger, update_verbosity, log_info
 
@@ -129,7 +130,7 @@ class Window:
     def on_select_device(self, device):
         """List all presets, create one if none exist yet."""
         if isinstance(device, Gtk.ComboBoxText):
-            preset = device.get_active_text()
+            device = device.get_active_text()
 
         device = device.get_active_text()
         presets = get_presets(device)
