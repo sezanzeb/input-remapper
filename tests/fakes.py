@@ -19,23 +19,28 @@
 # along with key-mapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
-"""Helperfunctions to find device ids, names, and to load configs."""
+"""Patch stuff to get reproducible tests."""
 
 
-from keymapper.logger import logger
+from unittest.mock import patch
 
 
-def find_devices():
-    """Get a list of (id, name) for each input device."""
-    # `xinput list`
-    pass
+fake_config_path = '/tmp/keymapper-test-config'
 
 
-def get_presets(device):
-    """Get all configured presets for the device."""
-    pass
+class UseFakes:
+    """Provides fake functionality for alsaaudio and some services."""
+    def __init__(self):
+        self.patches = []
 
+    def patch(self):
+        """Replace the functions with various fakes."""
+        # self.patches.append(patch.object(keymapper, 'foo', self.foo))
+        for p in self.patches:
+            p.__enter__()
 
-def get_mappings(device, preset):
-    """Get all configured buttons of the preset."""
-    pass
+    def restore(self):
+        """Restore functionality."""
+        for p in self.patches:
+            p.__exit__(None, None, None)
+        self.patches = []

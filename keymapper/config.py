@@ -78,6 +78,8 @@ class Config:
 
         Parameters
         ----------
+        device : string
+        preset : string
         path : string or None
             If none, will default to '~/.config/key-mapper/'.
             In that directory, a folder for the device and a file for
