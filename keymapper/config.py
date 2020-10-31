@@ -145,17 +145,10 @@ class Config:
     def get(self, key):
         """Read a value from the configuration or get the default."""
         self.check_mtime()
-        if key not in _defaults:
-            logger.error('Unknown setting %s', key)
-            return None
         return self._config.get(key, _defaults[key])
 
     def set(self, key, value):
-        """Write a setting into memory and ~/.config/key-mapper/config."""
-        if key not in _defaults:
-            logger.error('Unknown setting %s', key)
-            return None
-
+        """Write a setting into memory and ~/.config/key-mapper/."""
         self.check_mtime()
 
         if key in self._config and self._config[key] == value:

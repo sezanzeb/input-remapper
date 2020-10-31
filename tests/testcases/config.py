@@ -56,6 +56,12 @@ class ConfigTest(unittest.TestCase):
         get_config('device2', 'preset3', '/tmp/key-mapper')
         self.assertTrue(os.path.isfile('/tmp/key-mapper/device2/preset3'))
 
+        config.set('key1', 'value')
+        config.set('key2', 123)
+        with open('/tmp/key-mapper/device1/preset1', 'r') as f:
+            contents = f.read()
+            self.assertEqual(contents, 'key1=value\nkey2=123\n')
+
 
 if __name__ == "__main__":
     unittest.main()
