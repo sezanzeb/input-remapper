@@ -36,18 +36,19 @@ from keymapper.profiles import find_devices, get_presets, get_mappings
 from keymapper.logger import logger, update_verbosity, log_info
 
 
+window = None
+
+
 class SingleKeyMapping:
     """A single, configurable key mapping."""
-    box = None
-
     def __init__(self, delete_callback):
         """Construct a row and add it to the list in the GUI."""
         self.delete_callback = delete_callback
         self.put_together()
 
-    def get_widget(self):
+    def get_widgets(self):
         """Return the widget that wraps all the widgets of the row."""
-        return self.box
+        return self.widgets
 
     def put_together(self):
         """Create all GTK widgets."""
@@ -65,24 +66,20 @@ class SingleKeyMapping:
         original_key = Gtk.Entry()
         original_key.set_width_chars(4)
 
-        box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
-        box.pack_start(delete_button, expand=False, fill=False, padding=0)
-        box.pack_start(key_code, expand=True, fill=True, padding=0)
-        box.pack_start(original_key, expand=True, fill=True, padding=0)
-        box.set_margin_start(10)
-        box.set_margin_end(10)
-        box.show_all()
-        self.box = box
+        self.widgets = (delete_button, key_code, original_key)
 
     def on_delete_button_clicked(self, button):
         """Destroy the row and remove it from the config."""
-        self.box.destroy()
+        for widget in self.widgets:
+            widget.destroy()
         self.delete_callback(self)
 
 
 class Window:
     """User Interface."""
     def __init__(self):
+        self.rows = 0
+
         gladefile = os.path.join(get_data_path(), 'key-mapper.glade')
         builder = Gtk.Builder()
         builder.add_from_file(gladefile)
@@ -94,6 +91,7 @@ class Window:
         self.window = window
 
         self.populate_devices()
+        self.on_select_profile('asdf')
 
     def get(self, name):
         """Get a widget from the window"""
@@ -113,14 +111,24 @@ class Window:
     def populate_profiles(self):
         """Show the available profiles for the selected device."""
 
+    def on_select_profile(self, profile):
+        """Show the mappings of the profile"""
+        # prepare one empty input to add stuff, and to get the grid to
+        # the correct column width, otherwise it may jump if the user adds
+        # the first row.
+        self.on_add_key_clicked()
 
-    def on_add_key_clicked(self, button):
+    def on_add_key_clicked(self, button=None):
         """Add a mapping to the list of mappings."""
         single_key_mapping = SingleKeyMapping(self.on_row_removed)
-        self.get('key_list').pack_start(
-            single_key_mapping.get_widget(),
-            expand=False, fill=False, padding=0
-        )
+        key_list = self.get('key_list')
+        key_list.insert_row(1)
+        widgets = single_key_mapping.get_widgets()
+        key_list.attach(widgets[0], 0, 1, 1, 1)
+        key_list.attach(widgets[1], 1, 1, 1, 1)
+        key_list.attach(widgets[2], 2, 1, 1, 1)
+        key_list.show_all()
+        self.rows += 1
 
     def on_row_removed(self, mapping):
         """Stuff to do when a row was removed
@@ -134,7 +142,12 @@ class Window:
         # are removed.
         window = self.get('window')
         window.resize(window.get_size()[0], 1)
-
+        # note, that the grid row still exist, it just shrank down to 0
+        # because there are no contents.
+        self.rows -= 1
+        if self.rows == 0:
+            # add back an empty row
+            self.on_add_key_clicked()
 
 if __name__ == '__main__':
     parser = ArgumentParser()
@@ -148,5 +161,5 @@ if __name__ == '__main__':
     update_verbosity(options.debug)
     log_info()
 
-    Window()
+    window = Window()
     Gtk.main()

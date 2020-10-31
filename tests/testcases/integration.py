@@ -83,11 +83,8 @@ class Integration(unittest.TestCase):
         self.window.window.destroy()
         gtk_iteration()
         self.fakes.restore()
-        if os.path.exists(fake_config_path):
-            os.remove(fake_config_path)
-        config = get_config()
-        config.create_config_file()
-        config.load_config()
+        # TODO iterate over all config files in the fake_path and
+        #   empty them
 
     def test_can_start(self):
         self.assertIsNotNone(self.window)
