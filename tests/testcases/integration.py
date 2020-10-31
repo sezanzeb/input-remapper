@@ -90,6 +90,11 @@ class Integration(unittest.TestCase):
         self.assertIsNotNone(self.window)
         self.assertTrue(self.window.window.get_visible())
 
+    def test_select_device_and_preset(self):
+        self.window.on_select_device('fakeDevice1')
+        self.window.on_select_preset('fakePreset1')
+        # TODO test meaningful stuff here
+
 
 if __name__ == "__main__":
     unittest.main()
