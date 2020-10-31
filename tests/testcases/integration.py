@@ -91,7 +91,7 @@ class Integration(unittest.TestCase):
         self.assertTrue(self.window.window.get_visible())
 
     def test_select_device_and_preset(self):
-        class FakeDropdown:
+        class FakeDropdown(Gtk.ComboBoxText):
             def __init__(self, name):
                 self.name = name
 

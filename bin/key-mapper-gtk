@@ -96,9 +96,9 @@ class Window:
 
         # find an select the newest preset based on file modification dates
         device, preset = find_newest_preset()
-        if device:
+        if device is not None:
             self.on_select_device(device)
-        if preset:
+        if preset is not None:
             self.on_select_preset(preset)
 
     def get(self, name):
@@ -139,7 +139,7 @@ class Window:
         """Create a new preset and select it."""
         new_preset = create_preset(self.selected_device)
         self.get('preset_selection').append(new_preset, new_preset)
-        self.on_select_preset(new_preset)
+        self.get('preset_selection').set_active_id(new_preset)
 
     def on_select_preset(self, preset):
         """Show the mappings of the preset"""
@@ -154,8 +154,6 @@ class Window:
             # don't remove the header
             key_list.remove_row(i + 1)
         self.rows = 0
-
-        self.get('preset_selection').set_active_id(preset)
 
         # TODO show all mapped keys from config
 
