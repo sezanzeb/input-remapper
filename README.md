@@ -17,6 +17,5 @@ work.
 - [ ] load xmodmap files from the config path
 - [x] show a list that can be extended with a `[+]` button
 - [ ] The list shows `[keycode, current key for that keycode -> target]`
-- [ ] generate a xmodmap.*.whatever file out of that (like for example https://github.com/sezanzeb/colemakDE/blob/master/xmodmap.colemak.de)
-- [ ] load that file (`setxkbmap funnystuff; xmodmap xmodmap.asdf.whatever`, `setxkbmap funnystuff -device <id>`).
-- [ ] Does it need to be loaded on every startup or every time the device connects? If so, add udev rules
+- [ ] generate a file for /usr/share/X11/xkb/symbols/ for each preset, (symlink to home .config/?)
+- [ ] load that file with `setxkbmap preset1234 -device 13` (on startup?, udev on mouse connect?)
