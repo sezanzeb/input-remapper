@@ -32,7 +32,8 @@ gi.require_version('GLib', '2.0')
 from gi.repository import Gtk
 
 from keymapper.data import get_data_path
-from keymapper.profiles import find_devices, get_presets, get_mappings
+from keymapper.presets import find_devices, get_presets, get_mappings, \
+    find_newest_preset, create_preset
 from keymapper.logger import logger, update_verbosity, log_info
 
 
@@ -91,7 +92,10 @@ class Window:
         self.window = window
 
         self.populate_devices()
-        self.on_select_profile('asdf')
+
+        # find an select the newest preset based on file modification dates
+        self.on_select_preset(find_newest_preset())
+
 
     def get(self, name):
         """Get a widget from the window"""
@@ -108,11 +112,29 @@ class Window:
         for (id, device) in devices:
             device_selection.append(device, device)
 
-    def populate_profiles(self):
-        """Show the available profiles for the selected device."""
+    def populate_presets(self, device):
+        """Show the available presets for the selected device."""
+        presets = get_presets(device)
+        preset_selection = self.get('preset_selection')
+        for preset in presets:
+            preset_selection.append(preset)
 
-    def on_select_profile(self, profile):
-        """Show the mappings of the profile"""
+    def on_select_device(self, dropdown):
+        """List all presets, create one if none exist yet.
+        """
+        device = dropdown.get_active_text()
+        presets = get_presets(device)
+        if len(presets) == 0:
+            create_preset(device)
+        self.populate_presets(device)
+
+    def on_select_preset(self, preset):
+        """Show the mappings of the preset
+
+        Parameters
+        ----------
+        preset : string
+        """
         # prepare one empty input to add stuff, and to get the grid to
         # the correct column width, otherwise it may jump if the user adds
         # the first row.
@@ -148,6 +170,7 @@ class Window:
         if self.rows == 0:
             # add back an empty row
             self.on_add_key_clicked()
+
 
 if __name__ == '__main__':
     parser = ArgumentParser()

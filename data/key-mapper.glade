@@ -36,6 +36,7 @@
                 <property name="width_request">400</property>
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
+                <signal name="changed" handler="on_select_device" swapped="no"/>
               </object>
               <packing>
                 <property name="expand">True</property>
@@ -62,7 +63,7 @@
           </packing>
         </child>
         <child>
-          <object class="GtkBox" id="profile_settings">
+          <object class="GtkBox" id="preset_settings">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
             <property name="border_width">10</property>
@@ -78,7 +79,7 @@
                     <property name="width_request">50</property>
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="label" translatable="yes">Profile</property>
+                    <property name="label" translatable="yes">preset</property>
                     <property name="width_chars">10</property>
                     <property name="xalign">0</property>
                   </object>
@@ -89,10 +90,11 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkComboBoxText" id="profile_selection">
+                  <object class="GtkComboBoxText" id="preset_selection">
                     <property name="width_request">200</property>
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
+                    <signal name="changed" handler="on_select_preset" swapped="no"/>
                   </object>
                   <packing>
                     <property name="expand">True</property>
@@ -122,7 +124,7 @@
               </packing>
             </child>
             <child>
-              <object class="GtkBox">
+              <object class="GtkBox" id="rename_container">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="spacing">10</property>

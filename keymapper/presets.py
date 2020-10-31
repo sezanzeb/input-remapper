@@ -24,7 +24,9 @@
 
 import os
 import subprocess
+
 from keymapper.logger import logger
+from keymapper.config import get_config
 
 
 def get_xinput_list(type):
@@ -62,7 +64,24 @@ def get_presets(device):
     ----------
     device : string
     """
-    pass
+    print('get_presets not yet implemented')
+    return []
+
+
+def create_preset(device, name=None):
+    """Create an empty preset."""
+    existing_names = get_presets(device)
+    if name is None:
+        name = 'new preset'
+
+    # find a name that is not already taken
+    i = 1
+    while name in existing_names:
+        i += 1
+        name = f'new preset {i}'
+
+    # trigger the creation of a new config file:
+    get_config(device, name)
 
 
 def get_mappings(device, preset):
@@ -74,3 +93,9 @@ def get_mappings(device, preset):
     preset : string
     """
     pass
+
+
+def find_newest_preset():
+    """Get the device and present that was most recently modified."""
+    print('find_newest_preset not yet implemented')
+    return None, None

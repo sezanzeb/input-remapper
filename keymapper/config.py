@@ -34,6 +34,9 @@ _configs = {}
 _defaults = {}
 
 
+# TODO this works on xmodmaps instead of config files
+
+
 def _modify_config(config_contents, key, value):
     """Return a string representing the modified contents of the config file.
 
@@ -173,8 +176,22 @@ class Config:
         return True
 
 
-def get_config(device, preset, path):
-    """Ask for the config. Initialize it if not yet done so.
+def get_config(device, preset, path=None):
+    """Ask for a config object.
+
+    There should not be multiple Config objects for the same preset, so make
+    sure to use this function insted of the Config constructor.
+
+    Creates a config file if it doesn't exist yet.
+
+    Parameters
+    ----------
+    device : string
+    preset : string
+    path : string or None
+        If none, will default to '~/.config/key-mapper/'.
+        In that directory, a folder for the device and a file for
+        the preset will be created.
     """
     # don't initialize it right away in the global scope, to avoid having
     # the wrong logging verbosity.
