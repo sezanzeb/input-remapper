@@ -1,7 +1,4 @@
-# setxkbmap-gtk
-
-This in a very early stage. But due to having all my vacation distributed until the end of the year it will probably
-be easily finished this year.
+# Key Mapper
 
 GUI tool to map input buttons to e.g. change the thumb keys of the razor naga mouse or any keyboard to something
 different. It should not be device specific, any input device supported by Linux plug and play will likely

@@ -1,6 +1,6 @@
 [Desktop Entry]
 Type=Application
-Name=setxkbmap-gtk
+Name=key-mapper
 Icon=mouse
 Exec=setxkbmapgtk-gtk
 Terminal=false
