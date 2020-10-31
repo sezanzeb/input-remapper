@@ -74,6 +74,23 @@ def _modify_config(config_contents, key, value):
     return '\n'.join(split)
 
 
+def get_config_path(device, preset=None, path=None):
+    """Get the path that leads to the coniguration of that preset.
+
+    Parameters
+    ----------
+    device : string
+    preset : string or None
+        If none, will return the folder of the device
+    path : string or None
+        If none, will default to '~/.config/key-mapper/'.
+        In that directory, a folder for the device and a file for
+        the preset will be created.
+    """
+    path = path or os.path.expanduser('~/.config/key-mapper/')
+    return os.path.join(path, device, preset or '')
+
+
 class Config:
     """Read and set config values."""
     def __init__(self, device, preset, path=None):
@@ -88,9 +105,7 @@ class Config:
             In that directory, a folder for the device and a file for
             the preset will be created.
         """
-        if path is None:
-            path = os.path.expanduser('~/.config/key-mapper/')
-        path = os.path.join(path, device, preset)
+        path = get_config_path(device, preset, path)
         logger.debug('Using config file at %s', path)
 
         self.device = device

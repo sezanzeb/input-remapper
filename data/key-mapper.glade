@@ -103,12 +103,13 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkButton" id="add_key1">
+                  <object class="GtkButton" id="create_preset">
                     <property name="label" translatable="yes">Create</property>
                     <property name="width_request">80</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">True</property>
+                    <signal name="clicked" handler="on_create_preset_clicked" swapped="no"/>
                   </object>
                   <packing>
                     <property name="expand">False</property>
