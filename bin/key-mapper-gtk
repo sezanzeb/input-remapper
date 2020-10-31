@@ -120,8 +120,11 @@ class Window:
         """Show the available presets for the selected device."""
         presets = get_presets(self.selected_device)
         preset_selection = self.get('preset_selection')
+        preset_selection.remove_all()
         for preset in presets:
             preset_selection.append(preset, preset)
+        # and select the newest one (on the top)
+        preset_selection.set_active(0)
 
     def on_select_device(self, device):
         """List all presets, create one if none exist yet."""

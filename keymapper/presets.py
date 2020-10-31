@@ -58,13 +58,17 @@ def find_devices():
 
 
 def get_presets(device):
-    """Get all configured presets for the device.
+    """Get all configured presets for the device, sorted by modification date.
 
     Parameters
     ----------
     device : string
     """
-    return os.listdir(get_config_path(device))
+    device_folder = get_config_path(device)
+    logger.debug('Listing presets in %s', device_folder)
+    if not os.path.exists(device_folder):
+        os.makedirs(get_config_path(device_folder))
+    return os.listdir(get_config_path(device_folder))
 
 
 def create_preset(device, name=None):

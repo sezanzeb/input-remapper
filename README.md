@@ -11,8 +11,9 @@ work.
 # Roadmap
 
 - [x] show a dropdown to select an arbitrary device from `xinput list`
-- [x] creating plugins per device
-- [ ] renaming plugins
+- [x] creating presets per device
+- [ ] support X, but make it somewhat easy to add wayland to this tool.
+- [ ] renaming presets
 - [ ] load xmodmap files from the config path
 - [x] show a list that can be extended with a `[+]` button
 - [ ] The list shows `[keycode, current key for that keycode -> target]`
