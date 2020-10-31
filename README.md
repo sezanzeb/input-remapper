@@ -1,5 +1,7 @@
 # Key Mapper
 
+**Doesn't work yet**
+
 GUI tool to map input buttons to e.g. change the macro keys of a mouse or any keyboard to something
 different. It should not be device specific, any input device supported by Linux plug and play will likely
 work.
@@ -14,7 +16,6 @@ work.
 - [x] creating presets per device
 - [ ] support X, but make it somewhat easy to add wayland to this tool.
 - [ ] renaming presets
-- [ ] load xmodmap files from the config path
 - [x] show a list that can be extended with a `[+]` button
 - [ ] The list shows `[keycode, current key for that keycode -> target]`
 - [ ] generate a file for /usr/share/X11/xkb/symbols/ for each preset, (symlink to home .config/?)
