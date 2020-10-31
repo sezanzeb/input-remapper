@@ -27,7 +27,8 @@ import os
 from keymapper.logger import logger
 
 
-_config = None
+# one config file per preset, one folder per device
+_configs = {}
 
 
 _defaults = {}
@@ -72,18 +73,23 @@ def _modify_config(config_contents, key, value):
 
 class Config:
     """Read and set config values."""
-    def __init__(self, path=None):
+    def __init__(self, device, preset, path=None):
         """Initialize the interface to the config file.
 
         Parameters
         ----------
         path : string or None
-            If none, will default to '~/.config/key-mapper/config'
+            If none, will default to '~/.config/key-mapper/'.
+            In that directory, a folder for the device and a file for
+            the preset will be created.
         """
         if path is None:
-            path = os.path.expanduser('~/.config/key-mapper/config')
+            path = os.path.expanduser('~/.config/key-mapper/')
+        path = os.path.join(path, device, preset)
         logger.debug('Using config file at %s', path)
 
+        self.device = device
+        self.preset = preset
         self._path = path
         self._config = {}
         self.mtime = 0
@@ -172,15 +178,16 @@ class Config:
         return True
 
 
-def get_config(*args, **kwargs):
+def get_config(device, preset, path):
     """Ask for the config. Initialize it if not yet done so.
-
-    Will pass any parameters to the config constructor. Only needed in tests
-    to avoid writing the users config.
     """
     # don't initialize it right away in the global scope, to avoid having
     # the wrong logging verbosity.
-    global _config
-    if _config is None:
-        _config = Config(*args, **kwargs)
-    return _config
+    global _configs
+    if _configs.get(device) is None:
+        _configs[device] = {}
+
+    if _configs[device].get(preset) is None:
+        _configs[device][preset] = Config(device, preset, path)
+
+    return _configs[device][preset]

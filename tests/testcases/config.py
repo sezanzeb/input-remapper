@@ -19,9 +19,11 @@
 # along with key-mapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
+import os
 import unittest
 
-from keymapper.config import _modify_config
+from keymapper.logger import update_verbosity
+from keymapper.config import _modify_config, get_config
 
 
 class ConfigTest(unittest.TestCase):
@@ -39,6 +41,20 @@ class ConfigTest(unittest.TestCase):
         contents = """a=1\n # test=3\n  abc=123"""
         contents = _modify_config(contents, 'test', '1234')
         self.assertEqual(contents, """a=1\n # test=3\n  abc=123\ntest=1234""")
+
+    def test_get_config(self):
+        update_verbosity(True)
+
+        config = get_config('device1', 'preset1', '/tmp/key-mapper')
+        self.assertEqual(config.device, 'device1')
+        self.assertEqual(config.preset, 'preset1')
+        self.assertTrue(os.path.isfile('/tmp/key-mapper/device1/preset1'))
+
+        get_config('device1', 'preset2', '/tmp/key-mapper')
+        self.assertTrue(os.path.isfile('/tmp/key-mapper/device1/preset2'))
+
+        get_config('device2', 'preset3', '/tmp/key-mapper')
+        self.assertTrue(os.path.isfile('/tmp/key-mapper/device2/preset3'))
 
 
 if __name__ == "__main__":

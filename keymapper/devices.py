@@ -29,3 +29,8 @@ def find_devices():
     """Get a list of (id, name) for each input device."""
     # `xinput list`
     pass
+
+
+def get_presets(device):
+    """Get all configured presets for the device"""
+    pass
