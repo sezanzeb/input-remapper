@@ -1,6 +1,6 @@
 # Key Mapper
 
-GUI tool to map input buttons to e.g. change the thumb keys of the razor naga mouse or any keyboard to something
+GUI tool to map input buttons to e.g. change the macro keys of a mouse or any keyboard to something
 different. It should not be device specific, any input device supported by Linux plug and play will likely
 work.
 
