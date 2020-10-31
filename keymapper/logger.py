@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
-# key-mapper - GTK based GUI for device specific keyboard mappings
+# key-mapper - GUI for device specific keyboard mappings
 # Copyright (C) 2020 sezanzeb <proxima@hip70890b.de>
 #
 # This file is part of key-mapper.
@@ -66,8 +66,8 @@ logger.setLevel(logging.INFO)
 def log_info():
     """Log version and name to the console"""
     # read values from setup.py
-    version = pkg_resources.require('setxkbmapgtk')[0].version
-    name = pkg_resources.require('setxkbmapgtk')[0].project_name
+    version = pkg_resources.require('key-mapper')[0].version
+    name = pkg_resources.require('key-mapper')[0].project_name
     logger.info('%s %s', version, name)
 
 
@@ -86,7 +86,7 @@ def debug_log_on():
 def add_filehandler():
     """Clear the existing logfile and start logging to it."""
     # jack also logs to ~/.log
-    log_path = os.path.expanduser('~/.log/setxkbmapgtk')
+    log_path = os.path.expanduser('~/.log/key-mapper')
     log_file = os.path.join(log_path, 'log')
 
     if not os.path.exists(log_path):

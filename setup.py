@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
-# key-mapper - GTK based GUI for device specific keyboard mappings
+# key-mapper - GUI for device specific keyboard mappings
 # Copyright (C) 2020 sezanzeb <proxima@hip70890b.de>
 #
 # This file is part of key-mapper.
@@ -23,11 +23,11 @@ import DistUtilsExtra.auto
 
 
 DistUtilsExtra.auto.setup(
-    name='setxkbmapgtk',
+    name='key-mapper',
     version='0.1.0',
-    description='GTK based GUI for device specific keyboard mappings',
+    description='GUI for device specific keyboard mappings',
     license='GPL-3.0',
     data_files=[
-        ('share/applications/', ['data/setxkbmapgtk.desktop']),
+        ('share/applications/', ['data/key-mapper.desktop']),
     ],
 )
