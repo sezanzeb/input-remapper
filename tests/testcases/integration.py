@@ -91,8 +91,15 @@ class Integration(unittest.TestCase):
         self.assertTrue(self.window.window.get_visible())
 
     def test_select_device_and_preset(self):
-        self.window.on_select_device('fakeDevice1')
-        self.window.on_select_preset('fakePreset1')
+        class FakeDropdown:
+            def __init__(self, name):
+                self.name = name
+
+            def get_active_text(self):
+                return self.name
+
+        self.window.on_select_device(FakeDropdown('fakeDevice1'))
+        self.window.on_select_preset(FakeDropdown('fakePreset1'))
         # TODO test meaningful stuff here
 
 

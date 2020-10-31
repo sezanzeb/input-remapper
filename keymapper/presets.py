@@ -26,7 +26,7 @@ import os
 import subprocess
 
 from keymapper.logger import logger
-from keymapper.config import get_config
+from keymapper.config import get_config, get_config_path
 
 
 def get_xinput_list(type):
@@ -64,8 +64,7 @@ def get_presets(device):
     ----------
     device : string
     """
-    print('get_presets not yet implemented')
-    return []
+    return os.listdir(get_config_path(device))
 
 
 def create_preset(device, name=None):
@@ -82,6 +81,7 @@ def create_preset(device, name=None):
 
     # trigger the creation of a new config file:
     get_config(device, name)
+    return name
 
 
 def get_mappings(device, preset):
