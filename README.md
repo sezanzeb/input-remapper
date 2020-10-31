@@ -4,6 +4,10 @@ GUI tool to map input buttons to e.g. change the thumb keys of the razor naga mo
 different. It should not be device specific, any input device supported by Linux plug and play will likely
 work.
 
+<p align="center">
+    <img src="data/screenshot.png"/>
+</p>
+
 # TODO
 
 - [x] show a dropdown to select an arbitrary device from `xinput list`
