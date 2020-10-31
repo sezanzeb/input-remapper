@@ -30,17 +30,7 @@ from keymapper.logger import logger
 _config = None
 
 
-_defaults = {
-    'pcm_input': 'null',
-    'input_use_dsnoop': True,
-    'input_use_softvol': True,
-    'input_plugin': 'hw',
-    'pcm_output': 'null',
-    'output_use_dmix': True,
-    'output_use_softvol': True,
-    'output_channels': 2,
-    'output_plugin': 'hw'
-}
+_defaults = {}
 
 
 def _modify_config(config_contents, key, value):

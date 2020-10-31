@@ -29,9 +29,9 @@ from argparse import ArgumentParser
 import gi
 gi.require_version('Gtk', '3.0')
 gi.require_version('GLib', '2.0')
-from gi.repository import Gtk, GLib
+from gi.repository import Gtk
 
-from keymapper.util import find_devices
+from keymapper.data import get_data_path
 from keymapper.logger import logger, update_verbosity, log_info
 
 
@@ -44,13 +44,17 @@ class Window:
         builder.connect_signals(self)
         self.builder = builder
 
-        window = builder.get_object('key-mapper-gtk_window')
+        window = builder.get_object('window')
         window.show()
         self.window = window
 
     def get(self, name):
         """Get a widget from the window"""
         return self.builder.get_object(name)
+
+    def on_close(self, *_):
+        """Safely close the application."""
+        Gtk.main_quit()
 
 
 if __name__ == '__main__':
