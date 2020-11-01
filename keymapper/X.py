@@ -49,11 +49,59 @@ def load_keymapping():
             key_mapping[search[0]] = search[1]
 
 
-def find_devices():
-    """Return a mapping of {name: [ids]} for each input device.
+def parse_libinput_list():
+    """Get a mapping of {name: [paths]} for `libinput list-devices` devices.
 
-    Evtest listing is really slow, query this only once when the
-    program starts.
+    This is grouped by group, so the "Logitech USB Keyboard" and
+    "Logitech USB Keyboard Consumer Control" are one key (the shorter one),
+    and the paths array for that is therefore 2 entries large.
+    """
+    stdout = subprocess.check_output(['libinput', 'list-devices'])
+    devices = [
+        device for device in stdout.decode().split('\n\n')
+        if device != ''
+    ]
+
+    grouped = {}
+    for device in devices:
+        info = {}
+        for line in device.split('\n'):
+            # example:
+            # "Kernel:           /dev/input/event0"
+            match = re.match(r'(\w+):\s+(.+)', line)
+            if match is None:
+                continue
+            info[match[1]] = match[2]
+
+        name = info['Device']
+        group = info['Group']  # int
+        dev = info['Kernel']  # /dev/input/event#
+
+        if grouped.get(group) is None:
+            grouped[group] = []
+        grouped[group].append((name, dev))
+
+    result = {}
+    for i in grouped:
+        group = grouped[i]
+        names = [entry[0] for entry in group]
+        devs = [entry[1] for entry in group]
+        shortest_name = sorted(names, key=len)[0]
+        result[shortest_name] = devs
+
+    return result
+
+
+def parse_evtest():
+    """Get a mapping of {name: [paths]} for each evtest device.
+
+    evtest is quite slow.
+
+    This is grouped by name, so "Logitech USB Keyboard" and
+    "Logitech USB Keyboard Consumer Control" are two keys in result. Some
+    devices have the same name for each of those entries.
+
+    Use parse_libinput_list instead, which properly groups all of them.
     """
     # It asks for a device afterwads, so just insert garbage into it
     p = subprocess.Popen(
@@ -64,52 +112,45 @@ def find_devices():
     )
     # the list we are looking for is in stderr
     _, evtest = p.communicate()
-
     evtest = [
         line
         for line in evtest.decode().split('\n')
         if line.startswith('/dev')
     ]
-
     logger.debug('evtest devices: \n%s', '\n'.join(evtest))
 
     # evtest also returns a bunch of other devices, like some audio devices,
     # so check this list against `xinput list` to get keyboards and mice
     xinput = get_xinput_list()
-
     logger.debug('xinput devices: \n%s', '\n'.join(xinput))
 
-    devices = {}
-    # there may be multiple entries per device in /dev, because one handles
-    # movement while the other handles extra buttons. Remember all of the
-    # device ids, so that the input mapping can be applied to all matching
-    # ids, one of them is going to be the right one.
+    result = {}
     for line in evtest:
-        match = re.search(r'event(\d+):\s+(.+)', line)
+        match = re.search(r'(/dev/input/event\d+):\s+(.+)', line)
         if match is None:
             continue
 
-        # the id refers to a file in /dev/input, it is different from
-        # the id that `xinput list` can return.
-        id = match[1]
+        # the path refers to a file in /dev/input/event#. Note, that this is
+        # different from the id that `xinput list` can return.
+        path = match[1]
         name = match[2]
-
         if name not in xinput:
             continue
 
-        # there can be
-        # 'Logitech USB Keyboard' and
-        # 'Logitech USB Keyboard Consumer Control'
-        if not devices.get(name):
-            devices[name] = []
-        devices[name].append(id)
+        if not result.get(name):
+            result[name] = []
+        result[name].append(path)
+    return result
 
-    logger.info('Devices: %s', ', '.join(list(devices.keys())))
 
-    return devices
+def find_devices():
+    """Return a mapping of {name: [paths]} for each input device."""
+    result = parse_libinput_list()
+    logger.info('Found %s', ', '.join([f'"{name}"' for name in result]))
+    return result
 
 
 def get_xinput_list():
-    """Run xinput and get the result as list."""
+    """Run xinput and get the resulting device names as list."""
     xinput = subprocess.check_output(['xinput', 'list', f'--name-only'])
     return [line for line in xinput.decode().split('\n') if line != '']

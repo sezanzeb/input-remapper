@@ -10,9 +10,23 @@ work.
     <img src="data/screenshot.png"/>
 </p>
 
+# Running
+
+```
+sudo python3 setup.py install && sudo key-mapper-gtk -d
+```
+
 # Dependencies
 
-`evtest`
+`evtest`, `libinput`
+
+# Tests
+
+sudo is required because some tests actually read /dev stuff.
+
+```
+sudo python3 setup.py install && sudo python3 tests/test.py
+```
 
 # Roadmap
 
