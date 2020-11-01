@@ -114,7 +114,8 @@ class Window:
         """Make the devices selectable."""
         devices = find_devices()
         device_selection = self.get('device_selection')
-        for (id, device) in devices:
+        for device in devices:
+            ids = devices[device]
             device_selection.append(device, device)
 
     def populate_presets(self):
@@ -132,7 +133,6 @@ class Window:
         if isinstance(device, Gtk.ComboBoxText):
             device = device.get_active_text()
 
-        device = device.get_active_text()
         presets = get_presets(device)
         if len(presets) == 0:
             create_preset(device)

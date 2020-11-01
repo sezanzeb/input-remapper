@@ -10,6 +10,10 @@ work.
     <img src="data/screenshot.png"/>
 </p>
 
+# Dependencies
+
+`evtest`
+
 # Roadmap
 
 - [x] show a dropdown to select an arbitrary device from `xinput list`
