@@ -35,7 +35,7 @@ import os
 import re
 import subprocess
 
-from keymapper.paths import CONFIG_PATH, SYMBOLS_PATH, KEYCODES_PATH
+from keymapper.paths import get_home_path, get_usr_path, KEYCODES_PATH
 from keymapper.logger import logger
 from keymapper.data import get_data_path
 from keymapper.presets import get_presets
@@ -78,21 +78,21 @@ def create_setxkbmap_config(device, preset, mappings):
     """
     create_identity_mapping()
 
-    config_path = os.path.join(CONFIG_PATH, device, preset)
+    home_path = get_home_path(device, preset)
     # setxkbmap cannot handle spaces
-    usr_path = os.path.join(SYMBOLS_PATH, device, preset).replace(' ', '_')
+    usr_path = get_usr_path(device, preset)
 
-    if not os.path.exists(config_path):
-        logger.info('Creating config file "%s"', config_path)
-        os.makedirs(os.path.dirname(config_path), exist_ok=True)
-        os.mknod(config_path)
+    if not os.path.exists(home_path):
+        logger.info('Creating config file "%s"', home_path)
+        os.makedirs(os.path.dirname(home_path), exist_ok=True)
+        os.mknod(home_path)
     if not os.path.exists(usr_path):
         logger.info('Creating symlink in "%s"', usr_path)
         os.makedirs(os.path.dirname(usr_path), exist_ok=True)
-        os.symlink(config_path, usr_path)
+        os.symlink(home_path, usr_path)
 
     logger.info('Writing key mappings')
-    with open(config_path, 'w') as f:
+    with open(home_path, 'w') as f:
         f.write(generate_symbols_file_content(device, preset, mappings))
 
 
@@ -143,7 +143,7 @@ def create_identity_mapping():
     for code in range(minimum, maximum + 1):
         xkb_keycodes.append(f'<{code}> = {code};')
 
-    template_path = os.path.join(get_data_path(), 'xkb_keycodes_template')
+    template_path = get_data_path('xkb_keycodes_template')
     with open(template_path, 'r') as template_file:
         template = template_file.read()
 
@@ -183,7 +183,7 @@ def generate_symbols_file_content(device, preset, mappings):
             logger.error(f'Unknown keycode <{code}> for "{character}"')
         xkb_symbols.append(f'key <{code}> {{ [ {character} ] }};')
 
-    template_path = os.path.join(get_data_path(), 'xkb_symbols_template')
+    template_path = get_data_path('xkb_symbols_template')
     with open(template_path, 'r') as template_file:
         template = template_file.read()
 

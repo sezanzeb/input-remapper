@@ -29,11 +29,25 @@ import os
 import subprocess
 
 
+# should not contain spaces
 SYMBOLS_PATH = '/usr/share/X11/xkb/symbols/key-mapper'
-
 KEYCODES_PATH = '/usr/share/X11/xkb/keycodes/key-mapper'
 
 # since this needs to run as sudo,
 # get the home dir of the user who called sudo.
 who = subprocess.check_output('who').decode().split()[0]
 CONFIG_PATH = os.path.join('/home', who, '.config/key-mapper')
+
+
+def get_home_path(device, preset=''):
+    """Get the path to the config file in /usr."""
+    return os.path.join(CONFIG_PATH, device, preset)
+
+
+def get_usr_path(device, preset=''):
+    """Get the path to the config file in /usr."""
+    return os.path.join(
+        SYMBOLS_PATH,
+        device.replace(' ', '_'),
+        preset.replace(' ', '_')
+    )

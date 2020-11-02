@@ -85,7 +85,7 @@ class Window:
         self.selected_preset = None
         self.mappings = []
 
-        gladefile = os.path.join(get_data_path(), 'key-mapper.glade')
+        gladefile = get_data_path('key-mapper.glade')
         builder = Gtk.Builder()
         builder.add_from_file(gladefile)
         builder.connect_signals(self)
@@ -233,7 +233,7 @@ class Window:
         )
 
         # TODO use user defined mapping
-        self.mappings = [(10, 'f')]
+        self.mappings = [(10, 'c')]
 
         create_setxkbmap_config(
             self.selected_device,

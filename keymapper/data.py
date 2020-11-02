@@ -27,7 +27,7 @@ import site
 import pkg_resources
 
 
-def get_data_path():
+def get_data_path(filename=''):
     """Depending on the installation prefix, return the data dir."""
     source_path = pkg_resources.require('keymapper')[0].location
 
@@ -44,4 +44,4 @@ def get_data_path():
         # installed with -e, running from the cloned git source
         data_path = os.path.join(source_path, 'data')
 
-    return data_path
+    return os.path.join(data_path, filename)
