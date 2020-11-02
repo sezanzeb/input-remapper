@@ -25,7 +25,7 @@
 import os
 import glob
 
-from keymapper.paths import CONFIG_PATH
+from keymapper.paths import CONFIG_PATH, get_home_path
 from keymapper.logger import logger
 from keymapper.linux import get_devices
 
@@ -37,7 +37,7 @@ def get_presets(device):
     ----------
     device : string
     """
-    device_folder = os.path.join(CONFIG_PATH, device)
+    device_folder = get_home_path(device)
     if not os.path.exists(device_folder):
         os.makedirs(device_folder)
     presets = [
@@ -75,7 +75,7 @@ def find_newest_preset():
 
     If no device has been configured yet, return arbitrarily.
     """
-    # sort the oldest files to the front
+    # sort the oldest files to the front in order to use pop to get the newest
     paths = sorted(
         glob.glob(os.path.join(CONFIG_PATH, '*/*')),
         key=os.path.getmtime
@@ -85,7 +85,10 @@ def find_newest_preset():
         logger.debug('No presets found.')
         return get_any_preset()
 
-    online_devices = get_devices().keys()
+    online_devices = [
+        device.replace(' ', '_')
+        for device in get_devices().keys()
+    ]
 
     newest_path = None
     while len(paths) > 0:
@@ -100,6 +103,10 @@ def find_newest_preset():
     if newest_path is None:
         logger.debug('None of the configured devices is currently online.')
         return get_any_preset()
+
+    # ui: no underscores, filesystem: no whitespaces
+    device = device and device.replace('_', ' ')
+    preset = preset and preset.replace('_', ' ')
 
     logger.debug('The newest preset is "%s", "%s"', device, preset)
 

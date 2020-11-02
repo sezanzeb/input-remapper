@@ -28,26 +28,36 @@ Is a module so that tests can modify them.
 import os
 import subprocess
 
-
-# should not contain spaces
-SYMBOLS_PATH = '/usr/share/X11/xkb/symbols/key-mapper'
-KEYCODES_PATH = '/usr/share/X11/xkb/keycodes/key-mapper'
-
 # since this needs to run as sudo,
 # get the home dir of the user who called sudo.
 who = subprocess.check_output('who').decode().split()[0]
+
 CONFIG_PATH = os.path.join('/home', who, '.config/key-mapper')
 
+# should not contain spaces
+SYMBOLS_PATH = os.path.join(
+    '/usr/share/X11/xkb/symbols/key-mapper',
+    who.replace(' ', '_')
+)
 
-def get_home_path(device, preset=''):
+# those are the same for every preset and user
+KEYCODES_PATH = '/usr/share/X11/xkb/keycodes/key-mapper'
+
+
+def get_home_path(device, preset=None):
     """Get the path to the config file in /usr."""
-    return os.path.join(CONFIG_PATH, device, preset)
+    if preset is not None:
+        return os.path.join(CONFIG_PATH, device, preset).replace(' ', '_')
+    else:
+        return os.path.join(CONFIG_PATH, device.replace(' ', '_'))
 
 
-def get_usr_path(device, preset=''):
-    """Get the path to the config file in /usr."""
-    return os.path.join(
-        SYMBOLS_PATH,
-        device.replace(' ', '_'),
-        preset.replace(' ', '_')
-    )
+def get_usr_path(device, preset=None):
+    """Get the path to the config file in /usr.
+
+    If preset is omitted, returns the folder for the device.
+    """
+    if preset is not None:
+        return os.path.join(SYMBOLS_PATH, device, preset).replace(' ', '_')
+    else:
+        return os.path.join(SYMBOLS_PATH, device.replace(' ', '_'))
