@@ -38,6 +38,8 @@ import subprocess
 from keymapper.paths import CONFIG_PATH, SYMBOLS_PATH, KEYCODES_PATH
 from keymapper.logger import logger
 from keymapper.data import get_data_path
+from keymapper.presets import get_presets
+from keymapper.linux import get_devices
 
 
 def get_keycode(device, letter):
@@ -45,6 +47,23 @@ def get_keycode(device, letter):
     # TODO I have no idea how to do this
     # in /usr/share/X11/xkb/keycodes the mapping is made
     return ''
+
+
+def create_preset(device, name=None):
+    """Create an empty preset."""
+    existing_names = get_presets(device)
+    if name is None:
+        name = 'new preset'
+
+    # find a name that is not already taken
+    if name in existing_names:
+        i = 2
+        while f'{name} {i}' in existing_names:
+            i += 1
+        name = f'{name} {i}'
+
+    create_setxkbmap_config(device, name, [])
+    return name
 
 
 def create_setxkbmap_config(device, preset, mappings):
@@ -78,13 +97,31 @@ def create_setxkbmap_config(device, preset, mappings):
 
 
 def apply_preset(device, preset):
-    # setxkbmap -layout key-mapper/Razer_Razer_Naga_Trinity/new_preset -keycodes key-mapper -v 10 -device 13
-    # TODO device 12 is from `xinput list` but currently there is no function
-    #   to obtain that. And that cli tool outputs all those extra devices.
-    # 1. get all names in the group (similar to parse_libinput_list)
-    # 2. get all ids from xinput list for each name
-    # 3. apply preset to all of them
-    pass
+    """Apply a preset to the device."""
+    # apply it to every device that hangs on the same usb port, because I
+    # have no idea how to figure out which one of those 3 devices that are
+    # all named after my mouse to use.
+    device_underscored = device.replace(' ', '_')
+    preset_underscored = preset.replace(' ', '_')
+
+    group = get_devices()[device]
+
+    for xinput_name, xinput_id in get_xinput_id_mapping():
+        if xinput_name not in group['devices']:
+            continue
+        layout_name = (
+            'key-mapper'
+            f'/{device_underscored}'
+            f'/{preset_underscored}'
+        )
+        cmd = [
+            'setxkbmap',
+            '-layout', layout_name,
+            '-keycodes', 'key-mapper',
+            '-device', str(xinput_id)
+        ]
+        logger.debug('Running `%s`', ' '.join(cmd))
+        subprocess.run(cmd)
 
 
 def create_identity_mapping():
@@ -133,8 +170,8 @@ def generate_symbols_file_content(device, preset, mappings):
     """
     system_default = 'us'  # TODO get the system default
 
-    # WARNING if the symbols file contains key codes that are not present in
-    # the keycodes file, the whole X session will crash!
+    # If the symbols file contains key codes that are not present in
+    # the keycodes file, THE WHOLE X SESSION WILL CRASH!
     if not os.path.exists(KEYCODES_PATH):
         raise ValueError('Expected the keycodes file to exist.')
     with open(KEYCODES_PATH, 'r') as f:
@@ -159,7 +196,19 @@ def generate_symbols_file_content(device, preset, mappings):
     return result
 
 
-def get_xinput_list():
-    """Run xinput and get the resulting device names as list."""
-    xinput = subprocess.check_output(['xinput', 'list', f'--name-only'])
-    return [line for line in xinput.decode().split('\n') if line != '']
+def get_xinput_id_mapping():
+    """Run xinput and get a list of name, id tuplies.
+
+    The ids are needed for setxkbmap. There might be duplicate names with
+    different ids.
+    """
+    names = subprocess.check_output(
+        ['xinput', 'list', '--name-only']
+    ).decode().split('\n')
+    ids = subprocess.check_output(
+        ['xinput', 'list', '--id-only']
+    ).decode().split('\n')
+
+    names = [name for name in names if name != '']
+    ids = [int(id) for id in ids if id != '']
+    return zip(names, ids)

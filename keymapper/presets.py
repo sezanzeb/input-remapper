@@ -24,50 +24,10 @@
 
 import os
 import glob
-import evdev
 
 from keymapper.paths import CONFIG_PATH
 from keymapper.logger import logger
-from keymapper.X import create_setxkbmap_config
-
-
-_devices = None
-
-
-def get_devices():
-    """Get a mapping of {name: [paths]} for input devices."""
-    # cache the result, this takes a second to complete
-    global _devices
-    if _devices is not None:
-        return _devices
-
-    devices = [evdev.InputDevice(path) for path in evdev.list_devices()]
-
-    # group them together by usb device because there could be stuff like
-    # "Logitech USB Keyboard" and "Logitech USB Keyboard Consumer Control"
-    grouped = {}
-    for device in devices:
-        # only keyboard devices
-        # https://www.kernel.org/doc/html/latest/input/event-codes.html
-        if not evdev.ecodes.EV_KEY in device.capabilities().keys():
-            continue
-
-        usb = device.phys.split('/')[0]
-        if grouped.get(usb) is None:
-            grouped[usb] = []
-        grouped[usb].append((device.name, device.path))
-
-    # now write down all the paths of that group
-    result = {}
-    for group in grouped.values():
-        names = [entry[0] for entry in group]
-        devs = [entry[1] for entry in group]
-        shortest_name = sorted(names, key=len)[0]
-        result[shortest_name] = devs
-
-    _devices = result
-    logger.info('Found %s', ', '.join([f'"{name}"' for name in result]))
-    return result
+from keymapper.linux import get_devices
 
 
 def get_presets(device):
@@ -90,23 +50,6 @@ def get_presets(device):
     # the highest timestamp to the front
     presets.reverse()
     return presets
-
-
-def create_preset(device, name=None):
-    """Create an empty preset."""
-    existing_names = get_presets(device)
-    if name is None:
-        name = 'new preset'
-
-    # find a name that is not already taken
-    if name in existing_names:
-        i = 2
-        while f'{name} {i}' in existing_names:
-            i += 1
-        name = f'{name} {i}'
-
-    create_setxkbmap_config(device, name, [])
-    return name
 
 
 def get_mappings(device, preset):

@@ -32,8 +32,22 @@ paths.CONFIG_PATH = '/tmp/key-mapper-test/.config'
 
 from keymapper import presets
 presets.get_devices = lambda: ({
-    'device 1': ['/dev/input/event10', '/dev/input/event11'],
-    'device 2': ['/dev/input/event3']
+    'device 1': {
+        'paths': [
+            '/dev/input/event10',
+            '/dev/input/event11',
+            '/dev/input/event13'
+        ],
+        'names': [
+            'device 1 something',
+            'device 1',
+            'device 1'
+        ]
+    },
+    'device 2': {
+        'paths': ['/dev/input/event3'],
+        'names': ['device 2']
+    }
 })
 
 from keymapper.logger import update_verbosity
