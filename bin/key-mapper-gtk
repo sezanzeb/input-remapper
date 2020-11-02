@@ -54,7 +54,6 @@ class SingleKeyMapping:
 
     def put_together(self):
         """Create all GTK widgets."""
-
         delete_button = Gtk.Button()
         destroy_icon = Gtk.Image.new_from_icon_name(
             'window-close', Gtk.IconSize.BUTTON
@@ -145,9 +144,24 @@ class Window:
         # and select the newest one (on the top)
         preset_selection.set_active(0)
 
+    def clear_mapping_table(self):
+        """Remove all rows from the mappings table."""
+        key_list = self.get('key_list')
+        for i in range(self.rows):
+            key_list.remove_row(i + 1)
+        self.rows = 0
+
     def update_mappings(self):
         """Construct the mapping from the inputs without saving or applying."""
-        self.mappings = [(10, 'c')]
+        key_list = self.get('key_list')
+        mappings = []
+        for i in range(self.rows):
+            code = key_list.get_child_at(1, i + 1).get_text()
+            character = key_list.get_child_at(2, i + 1).get_text()
+            if code == '' or character == '':
+                continue
+            mappings.append((int(code), character))
+        self.mappings = mappings
 
     def on_save_preset_clicked(self, button):
         """Save changes to a preset to the file system."""
@@ -201,22 +215,15 @@ class Window:
         self.selected_preset = preset
         self.mappings = []
 
-        # prepare one empty input to add stuff, and to get the grid to
-        # the correct column width, otherwise it may jump if the user adds
-        # the first row.
-        key_list = self.get('key_list')
-        for i in range(self.rows):
-            # don't remove the header
-            key_list.remove_row(i + 1)
-        self.rows = 0
-
         # TODO show all mapped keys from config
+        self.clear_mapping_table()
 
         self.on_add_key_clicked()
 
     def on_add_key_clicked(self, button=None):
         """Add a mapping to the list of mappings."""
-        # TODO automatically add a line when no line is empty anymore
+        # TODO automatically add a line when no line is empty anymore,
+        #   making the add button obsolete
         single_key_mapping = SingleKeyMapping(self.on_row_removed)
         key_list = self.get('key_list')
         key_list.insert_row(1)
