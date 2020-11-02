@@ -24,47 +24,69 @@ import unittest
 import shutil
 import time
 
-from keymapper.presets import find_newest_preset
+from keymapper.presets import find_newest_preset, create_preset
 
 
-class PresetsTest(unittest.TestCase):
+tmp = '/tmp/key-mapper-test'
+
+
+class TestCreatePreset(unittest.TestCase):
+    def test_create_preset_1(self):
+        create_preset('device 1')
+        self.assertTrue(os.path.exists(f'{tmp}/symbols/device_1/new_preset'))
+        self.assertTrue(os.path.exists(f'{tmp}/.config/device 1/new preset'))
+
+    def test_create_preset_2(self):
+        create_preset('device 1')
+        create_preset('device 1')
+        self.assertTrue(os.path.exists(f'{tmp}/symbols/device_1/new_preset'))
+        self.assertTrue(os.path.exists(f'{tmp}/.config/device 1/new preset'))
+        self.assertTrue(os.path.exists(f'{tmp}/symbols/device_1/new_preset_2'))
+        self.assertTrue(os.path.exists(f'{tmp}/.config/device 1/new preset 2'))
+
+    def test_create_preset_3(self):
+        create_preset('device 1', 'pre set')
+        create_preset('device 1', 'pre set')
+        self.assertTrue(os.path.exists(f'{tmp}/symbols/device_1/pre_set'))
+        self.assertTrue(os.path.exists(f'{tmp}/.config/device 1/pre set'))
+        self.assertTrue(os.path.exists(f'{tmp}/symbols/device_1/pre_set_2'))
+        self.assertTrue(os.path.exists(f'{tmp}/.config/device 1/pre set 2'))
+
+
+class TestFindPresets(unittest.TestCase):
     def setUp(self):
-        shutil.rmtree('/tmp/key-mapper-test')
+        shutil.rmtree(f'{tmp}')
 
     def test_find_newest_preset_1(self):
-        os.makedirs('/tmp/key-mapper-test/symbols/device_1')
-        os.makedirs('/tmp/key-mapper-test/symbols/device_2')
-        os.mknod('/tmp/key-mapper-test/symbols/device_1/preset_1')
+        print('test_find_newest_preset_1')
+        create_preset('device 1', 'preset 1')
         time.sleep(0.01)
-        os.mknod('/tmp/key-mapper-test/symbols/device_2/preset_2')
-        # since presets are loaded from the path, and devices from the
-        # x command line tools, the presets have the exact same name as
-        # the path whereas devices need their whitespaces removed.
-        self.assertEqual(find_newest_preset(), ('device 2', 'preset_2'))
+        create_preset('device 2', 'preset 2')
+        self.assertEqual(find_newest_preset(), ('device 2', 'preset 2'))
 
     def test_find_newest_preset_2(self):
-        os.makedirs('/tmp/key-mapper-test/symbols/device_1')
+        os.makedirs(f'{tmp}/symbols/device_1')
+        os.makedirs(f'{tmp}/.config/device_1')
         time.sleep(0.01)
-        os.makedirs('/tmp/key-mapper-test/symbols/device_2')
+        os.makedirs(f'{tmp}/symbols/device_2')
+        os.makedirs(f'{tmp}/.config/device_2')
         # takes the first one that the test-fake returns
         self.assertEqual(find_newest_preset(), ('device 1', None))
 
     def test_find_newest_preset_3(self):
-        os.makedirs('/tmp/key-mapper-test/symbols/device_1')
+        os.makedirs(f'{tmp}/symbols/device_1')
+        os.makedirs(f'{tmp}/.config/device_1')
         self.assertEqual(find_newest_preset(), ('device 1', None))
 
     def test_find_newest_preset_4(self):
-        os.makedirs('/tmp/key-mapper-test/symbols/device_1')
-        os.mknod('/tmp/key-mapper-test/symbols/device_1/preset_1')
-        self.assertEqual(find_newest_preset(), ('device 1', 'preset_1'))
+        create_preset('device 1', 'preset 1')
+        self.assertEqual(find_newest_preset(), ('device 1', 'preset 1'))
 
     def test_find_newest_preset_5(self):
-        os.makedirs('/tmp/key-mapper-test/symbols/device_1')
-        os.mknod('/tmp/key-mapper-test/symbols/device_1/preset_1')
+        create_preset('device 1', 'preset 1')
         time.sleep(0.01)
-        os.makedirs('/tmp/key-mapper-test/symbols/unknown_device3')
-        os.mknod('/tmp/key-mapper-test/symbols/unknown_device3/preset_1')
-        self.assertEqual(find_newest_preset(), ('device 1', 'preset_1'))
+        create_preset('unknown device 3', 'preset 3')
+        self.assertEqual(find_newest_preset(), ('device 1', 'preset 1'))
 
     def test_find_newest_preset_6(self):
         # takes the first one that the test-fake returns

@@ -100,9 +100,9 @@ class Window:
         # find an select the newest preset based on file modification dates
         device, preset = find_newest_preset()
         if device is not None:
-            self.on_select_device(device)
+            self.get('device_selection').set_active_id(device)
         if preset is not None:
-            self.on_select_preset(preset)
+            self.get('device_selection').set_active_id(preset)
 
     def get(self, name):
         """Get a widget from the window"""
@@ -117,7 +117,6 @@ class Window:
         devices = find_devices()
         device_selection = self.get('device_selection')
         for device in devices:
-            ids = devices[device]
             device_selection.append(device, device)
 
     def populate_presets(self):
@@ -130,10 +129,11 @@ class Window:
         # and select the newest one (on the top)
         preset_selection.set_active(0)
 
-    def on_select_device(self, device):
+    def on_select_device(self, dropdown):
         """List all presets, create one if none exist yet."""
-        if isinstance(device, Gtk.ComboBoxText):
-            device = device.get_active_text()
+        device = dropdown.get_active_text()
+
+        logger.debug('Selecting device "%s"', device)
 
         self.selected_device = device
         self.selected_preset = None
@@ -142,7 +142,8 @@ class Window:
         presets = get_presets(device)
         if len(presets) == 0:
             create_preset(device)
-
+        else:
+            logger.debug('Presets for "%s": %s', device, ', '.join(presets))
         self.populate_presets()
 
     def on_create_preset_clicked(self, button):
@@ -152,10 +153,10 @@ class Window:
         self.get('preset_selection').set_active_id(new_preset)
         self.update_config()
 
-    def on_select_preset(self, preset):
-        """Show the mappings of the preset"""
-        if isinstance(preset, Gtk.ComboBoxText):
-            preset = preset.get_active_text()
+    def on_select_preset(self, dropdown):
+        """Show the mappings of the preset."""
+        preset = dropdown.get_active_text()
+        logger.debug('Selecting preset "%s"', preset)
 
         self.selected_preset = preset
         self.mappings = []
