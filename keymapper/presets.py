@@ -27,7 +27,7 @@ import glob
 
 from keymapper.paths import CONFIG_PATH
 from keymapper.logger import logger
-from keymapper.X import find_devices, generate_setxkbmap_config
+from keymapper.X import find_devices, create_setxkbmap_config
 
 
 def get_presets(device):
@@ -40,7 +40,15 @@ def get_presets(device):
     device_folder = os.path.join(CONFIG_PATH, device)
     if not os.path.exists(device_folder):
         os.makedirs(device_folder)
-    presets = os.listdir(device_folder)
+    presets = [
+        os.path.basename(path)
+        for path in sorted(
+            glob.glob(os.path.join(device_folder, '*')),
+            key=os.path.getmtime
+        )
+    ]
+    # the highest timestamp to the front
+    presets.reverse()
     return presets
 
 
@@ -51,12 +59,13 @@ def create_preset(device, name=None):
         name = 'new preset'
 
     # find a name that is not already taken
-    i = 1
-    while name in existing_names:
-        i += 1
+    if name in existing_names:
+        i = 2
+        while f'{name} {i}' in existing_names:
+            i += 1
         name = f'{name} {i}'
 
-    generate_setxkbmap_config(device, name, [])
+    create_setxkbmap_config(device, name, [])
     return name
 
 
@@ -83,7 +92,6 @@ def find_newest_preset():
 
     If no device has been configured yet, return arbitrarily.
     """
-
     # sort the oldest files to the front
     paths = sorted(
         glob.glob(os.path.join(CONFIG_PATH, '*/*')),
@@ -109,5 +117,7 @@ def find_newest_preset():
     if newest_path is None:
         logger.debug('None of the configured devices is currently online.')
         return get_any_preset()
+
+    logger.debug('The newest preset is "%s", "%s"', device, preset)
 
     return device, preset

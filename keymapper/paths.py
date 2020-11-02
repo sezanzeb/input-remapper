@@ -31,6 +31,8 @@ import subprocess
 
 SYMBOLS_PATH = '/usr/share/X11/xkb/symbols/key-mapper'
 
+KEYCODES_PATH = '/usr/share/X11/xkb/keycodes/key-mapper'
+
 # since this needs to run as sudo,
 # get the home dir of the user who called sudo.
 who = subprocess.check_output('who').decode().split()[0]
