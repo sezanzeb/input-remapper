@@ -50,6 +50,19 @@ def get_keycode(device, letter):
     return ''
 
 
+def ensure_symlink():
+    """Make sure the symlink exists.
+
+    It provides the configs in /home to X11 in /usr.
+    """
+    if not os.path.exists(SYMBOLS_PATH):
+        # link from /usr/share/X11/xkb/symbols/key-mapper/user to
+        # /home/user/.config/key-mapper
+        logger.info('Linking "%s" to "%s"', SYMBOLS_PATH, CONFIG_PATH)
+        os.makedirs(os.path.dirname(SYMBOLS_PATH), exist_ok=True)
+        os.symlink(CONFIG_PATH, SYMBOLS_PATH, target_is_directory=True)
+
+
 def create_preset(device, name=None):
     """Create an empty preset and return the name."""
     existing_names = get_presets(device)
@@ -64,6 +77,7 @@ def create_preset(device, name=None):
         name = f'{name} {i}'
 
     os.mknod(get_home_path(device, name))
+    ensure_symlink()
     return name
 
 
@@ -95,12 +109,7 @@ def create_setxkbmap_config(device, preset, mappings):
         logger.info('Creating directory "%s"', home_device_path)
         os.makedirs(home_device_path, exist_ok=True)
 
-    if not os.path.exists(SYMBOLS_PATH):
-        # link from /usr/share/X11/xkb/symbols/key-mapper/user to
-        # /home/user/.config/key-mapper
-        logger.info('Linking "%s" to "%s"', SYMBOLS_PATH, CONFIG_PATH)
-        os.makedirs(os.path.dirname(SYMBOLS_PATH), exist_ok=True)
-        os.symlink(CONFIG_PATH, SYMBOLS_PATH, target_is_directory=True)
+    ensure_symlink()
 
     home_preset_path = get_home_path(device, preset)
     if not os.path.exists(home_preset_path):
@@ -136,7 +145,13 @@ def apply_preset(device, preset):
             logger.error('Something else is')"""
 
         symbols = '/usr/share/X11/xkb/symbols/'
-        layout_name = get_usr_path(device, preset)[len(symbols):]
+        layout_path = get_usr_path(device, preset)
+        with open(layout_path, 'r') as f:
+            if f.read() == '':
+                logger.error('Tried to load empty config')
+                return
+
+        layout_name = layout_path[len(symbols):]
         cmd = [
             'setxkbmap',
             '-layout', layout_name,
