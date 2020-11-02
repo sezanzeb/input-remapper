@@ -42,14 +42,21 @@ def get_devices():
         return _devices
 
     devices = [evdev.InputDevice(path) for path in evdev.list_devices()]
+
     # group them together by usb device because there could be stuff like
     # "Logitech USB Keyboard" and "Logitech USB Keyboard Consumer Control"
     grouped = {}
     for device in devices:
+        # only keyboard devices
+        # https://www.kernel.org/doc/html/latest/input/event-codes.html
+        if not evdev.ecodes.EV_KEY in device.capabilities().keys():
+            continue
+
         usb = device.phys.split('/')[0]
         if grouped.get(usb) is None:
             grouped[usb] = []
         grouped[usb].append((device.name, device.path))
+
     # now write down all the paths of that group
     result = {}
     for group in grouped.values():

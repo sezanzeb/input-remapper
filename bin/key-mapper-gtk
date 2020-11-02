@@ -129,7 +129,12 @@ class Window:
         else:
             logger.debug('Presets for "%s": %s', device, ', '.join(presets))
         preset_selection = self.get('preset_selection')
+
+        preset_selection.handler_block_by_func(self.on_select_preset)
+        # otherwise the handler is called with None for each removed preset
         preset_selection.remove_all()
+        preset_selection.handler_unblock_by_func(self.on_select_preset)
+
         for preset in presets:
             preset_selection.append(preset, preset)
         # and select the newest one (on the top)
