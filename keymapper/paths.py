@@ -19,28 +19,19 @@
 # along with key-mapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
-"""Patch stuff to get reproducible tests."""
+"""Path constants to be used.
+
+Is a module so that tests can modify them.
+"""
 
 
-from unittest.mock import patch
+import os
+import subprocess
 
 
-fake_config_path = '/tmp/keymapper-test-config'
+SYMBOLS_PATH = '/usr/share/X11/xkb/symbols/key-mapper'
 
-
-class UseFakes:
-    """Provides fake functionality for alsaaudio and some services."""
-    def __init__(self):
-        self.patches = []
-
-    def patch(self):
-        """Replace the functions with various fakes."""
-        # self.patches.append(patch.object(keymapper, 'foo', self.foo))
-        for p in self.patches:
-            p.__enter__()
-
-    def restore(self):
-        """Restore functionality."""
-        for p in self.patches:
-            p.__exit__(None, None, None)
-        self.patches = []
+# since this needs to run as sudo,
+# get the home dir of the user who called sudo.
+who = subprocess.check_output('who').decode().split()[0]
+CONFIG_PATH = os.path.join('/home', who, '.config/key-mapper')

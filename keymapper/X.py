@@ -19,34 +19,81 @@
 # along with key-mapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
-"""Stuff that interacts with the X Server
+"""Stuff that interacts with the X Server, be it commands or config files.
+
+TODO create a base class to standardize the interface if a different
+  display server should be supported.
 
 Resources:
-https://wiki.archlinux.org/index.php/Keyboard_input
-http://people.uleth.ca/~daniel.odonnell/Blog/custom-keyboard-in-linuxx11
+[1] https://wiki.archlinux.org/index.php/Keyboard_input
+[2] http://people.uleth.ca/~daniel.odonnell/Blog/custom-keyboard-in-linuxx11
+[3] https://www.x.org/releases/X11R7.7/doc/xorg-docs/input/XKB-Enhancing.html
 """
 
 
+import os
 import re
 import subprocess
 
+from keymapper.paths import CONFIG_PATH, SYMBOLS_PATH
 from keymapper.logger import logger
 
 
-# mapping of key to character
-# This depends on the configured keyboard layout.
-# example: AC01: "a A a A ae AE ae".
-key_mapping = {}
+def get_keycode(device, letter):
+    """Get the keycode that is configured for the given letter."""
+    # TODO I have no idea how to do this
+    # in /usr/share/X11/xkb/keycodes the mapping is made
+    return ''
 
 
-def load_keymapping():
-    """Load the current active mapping of keycodes"""
-    # to get ASCII codes: xmodmap -pk
-    output = subprocess.check_output(['xmodmap', '-p']).decode()
-    for line in output.split('\n'):
-        search = re.search(r'(\d+) = (.+)', line)
-        if search is not None:
-            key_mapping[search[0]] = search[1]
+def generate_setxkbmap_config(device, preset, mappings):
+    """Generate a config file for setxkbmap.
+
+    The file is created in ~/.config/key-mapper/<device>/<preset> and
+    a symlink is created in
+    /usr/share/X11/xkb/symbols/key-mapper/<device>/<preset> to point to it
+    """
+    # setxkbmap cannot handle spaces
+    device = device.replace(' ', '_')
+    preset = preset.replace(' ', '_')
+
+    config_path = os.path.join(CONFIG_PATH, device, preset)
+    usr_path = os.path.join(SYMBOLS_PATH, device, preset)
+
+    if not os.path.exists(config_path):
+        logger.info('Creating config file "%s"', config_path)
+        os.makedirs(os.path.dirname(config_path), exist_ok=True)
+        os.mknod(config_path)
+    if not os.path.exists(usr_path):
+        logger.info('Creating symlink in "%s"', usr_path)
+        os.makedirs(os.path.dirname(usr_path), exist_ok=True)
+        os.symlink(config_path, usr_path)
+
+    with open(config_path, 'w') as f:
+        f.write(generate_symbols_file_content(device, preset, mappings))
+
+    logger.debug('Successfully wrote the config file')
+
+
+def generate_symbols_file_content(device, preset, mappings):
+    """Create config contents to be placed in /usr/share/X11/xkb/symbols."""
+    system_default = 'us'  # TODO get the system default
+    result = '\n'.join([
+        'default xkb_symbols "basic" {',
+        '    minimum = 8;',
+        '    maximum = 255;',
+        f'    include "{system_default}"',
+        f'    name[Group1]="{device}/{preset}";',
+        '    key <AE01> { [ 2, 2, 2, 2 ] };',
+        '};',
+    ]) + '\n'
+    for mapping in mappings:
+        key = mapping.key
+        keycode = get_keycode(device, key)
+        target = mapping.target
+        # TODO support NUM block keys and modifiers somehow
+
+    return result
 
 
 def parse_libinput_list():
@@ -95,8 +142,6 @@ def parse_libinput_list():
 def parse_evtest():
     """Get a mapping of {name: [paths]} for each evtest device.
 
-    evtest is quite slow.
-
     This is grouped by name, so "Logitech USB Keyboard" and
     "Logitech USB Keyboard Consumer Control" are two keys in result. Some
     devices have the same name for each of those entries.
@@ -143,14 +188,20 @@ def parse_evtest():
     return result
 
 
-def find_devices():
-    """Return a mapping of {name: [paths]} for each input device."""
-    result = parse_libinput_list()
-    logger.info('Found %s', ', '.join([f'"{name}"' for name in result]))
-    return result
-
-
 def get_xinput_list():
     """Run xinput and get the resulting device names as list."""
     xinput = subprocess.check_output(['xinput', 'list', f'--name-only'])
     return [line for line in xinput.decode().split('\n') if line != '']
+
+
+_devices = None
+
+
+def find_devices():
+    """Return a mapping of {name: [paths]} for each input device."""
+    global _devices
+    # this is expensive, do it only once
+    if _devices is None:
+        _devices = parse_libinput_list()
+        logger.info('Found %s', ', '.join([f'"{name}"' for name in _devices]))
+    return _devices

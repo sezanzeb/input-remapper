@@ -32,7 +32,7 @@ gi.require_version('GLib', '2.0')
 from gi.repository import Gtk
 
 from keymapper.data import get_data_path
-from keymapper.X import find_devices
+from keymapper.X import find_devices, generate_setxkbmap_config
 from keymapper.presets import get_presets, get_mappings, \
     find_newest_preset, create_preset
 from keymapper.logger import logger, update_verbosity, log_info
@@ -82,6 +82,8 @@ class Window:
     def __init__(self):
         self.rows = 0
         self.selected_device = None
+        self.selected_preset = None
+        self.mappings = []
 
         gladefile = os.path.join(get_data_path(), 'key-mapper.glade')
         builder = Gtk.Builder()
@@ -133,10 +135,14 @@ class Window:
         if isinstance(device, Gtk.ComboBoxText):
             device = device.get_active_text()
 
+        self.selected_device = device
+        self.selected_preset = None
+        self.mappings = []
+
         presets = get_presets(device)
         if len(presets) == 0:
             create_preset(device)
-        self.selected_device = device
+
         self.populate_presets()
 
     def on_create_preset_clicked(self, button):
@@ -144,11 +150,15 @@ class Window:
         new_preset = create_preset(self.selected_device)
         self.get('preset_selection').append(new_preset, new_preset)
         self.get('preset_selection').set_active_id(new_preset)
+        self.update_config()
 
     def on_select_preset(self, preset):
         """Show the mappings of the preset"""
         if isinstance(preset, Gtk.ComboBoxText):
             preset = preset.get_active_text()
+
+        self.selected_preset = preset
+        self.mappings = []
 
         # prepare one empty input to add stuff, and to get the grid to
         # the correct column width, otherwise it may jump if the user adds
@@ -182,6 +192,9 @@ class Window:
         ----------
         mapping : SingleKeyMapping
         """
+        # TODO modify self.mappings
+        self.update_config()
+
         # shrink the window down as much as possible, otherwise it
         # will increase with each added mapping but won't go back when they
         # are removed.
@@ -193,6 +206,21 @@ class Window:
         if self.rows == 0:
             # add back an empty row
             self.on_add_key_clicked()
+
+    def update_config(self):
+        if self.selected_device is None or self.selected_preset is None:
+            return
+
+        logger.info(
+            'Updating configs for "%s", "%s"',
+            self.selected_device,
+            self.selected_preset
+        )
+        generate_setxkbmap_config(
+            self.selected_device,
+            self.selected_preset,
+            self.mappings
+        )
 
 
 if __name__ == '__main__':

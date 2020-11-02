@@ -43,8 +43,6 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(contents, """a=1\n # test=3\n  abc=123\ntest=1234""")
 
     def test_get_config(self):
-        update_verbosity(True)
-
         config = get_config('device1', 'preset1', '/tmp/key-mapper')
         self.assertEqual(config.device, 'device1')
         self.assertEqual(config.preset, 'preset1')
