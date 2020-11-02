@@ -18,7 +18,9 @@ sudo python3 setup.py install && sudo key-mapper-gtk -d
 
 # Dependencies
 
-`evtest`, `libinput`
+No idea which one are relevant at the moment
+
+`evtest`, `libinput`, `python-evdev`
 
 # Tests
 
