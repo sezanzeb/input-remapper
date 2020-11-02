@@ -35,7 +35,8 @@ import os
 import re
 import subprocess
 
-from keymapper.paths import get_home_path, get_usr_path, KEYCODES_PATH
+from keymapper.paths import get_home_path, get_usr_path, KEYCODES_PATH, \
+    CONFIG_PATH, SYMBOLS_PATH
 from keymapper.logger import logger
 from keymapper.data import get_data_path
 from keymapper.presets import get_presets
@@ -56,9 +57,9 @@ def create_preset(device, name=None):
         name = 'new preset'
 
     # find a name that is not already taken
-    if name in existing_names:
+    if os.path.exists(get_home_path(device, name)):
         i = 2
-        while f'{name} {i}' in existing_names:
+        while os.path.exists(get_home_path(device, f'{name} {i}')):
             i += 1
         name = f'{name} {i}'
 
@@ -78,21 +79,25 @@ def create_setxkbmap_config(device, preset, mappings):
     """
     create_identity_mapping()
 
-    home_path = get_home_path(device, preset)
-    # setxkbmap cannot handle spaces
-    usr_path = get_usr_path(device, preset)
+    home_device_path = get_home_path(device)
+    if not os.path.exists(home_device_path):
+        logger.info('Creating directory "%s"', home_device_path)
+        os.makedirs(home_device_path, exist_ok=True)
 
-    if not os.path.exists(home_path):
-        logger.info('Creating config file "%s"', home_path)
-        os.makedirs(os.path.dirname(home_path), exist_ok=True)
-        os.mknod(home_path)
-    if not os.path.exists(usr_path):
-        logger.info('Creating symlink in "%s"', usr_path)
-        os.makedirs(os.path.dirname(usr_path), exist_ok=True)
-        os.symlink(home_path, usr_path)
+    if not os.path.exists(SYMBOLS_PATH):
+        # link from /usr/share/X11/xkb/symbols/key-mapper/user to
+        # /home/user/.config/key-mapper
+        logger.info('Linking "%s" to "%s"', SYMBOLS_PATH, CONFIG_PATH)
+        os.makedirs(os.path.dirname(SYMBOLS_PATH), exist_ok=True)
+        os.symlink(CONFIG_PATH, SYMBOLS_PATH, target_is_directory=True)
+
+    home_preset_path = get_home_path(device, preset)
+    if not os.path.exists(home_preset_path):
+        logger.info('Creating config file "%s"', home_preset_path)
+        os.mknod(home_preset_path)
 
     logger.info('Writing key mappings')
-    with open(home_path, 'w') as f:
+    with open(home_preset_path, 'w') as f:
         f.write(generate_symbols_file_content(device, preset, mappings))
 
 
@@ -153,7 +158,8 @@ def create_identity_mapping():
         xkb_keycodes='\n    '.join(xkb_keycodes)
     )
 
-    logger.info('Creating "%s"', KEYCODES_PATH)
+    if not os.path.exists(KEYCODES_PATH):
+        logger.info('Creating "%s"', KEYCODES_PATH)
     with open(KEYCODES_PATH, 'w') as keycodes:
         keycodes.write(result)
 

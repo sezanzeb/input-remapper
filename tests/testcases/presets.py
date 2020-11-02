@@ -39,23 +39,24 @@ class TestCreatePreset(unittest.TestCase):
     def test_create_preset_1(self):
         create_preset('device 1')
         self.assertTrue(os.path.exists(f'{tmp}/symbols/device_1/new_preset'))
-        self.assertTrue(os.path.exists(f'{tmp}/.config/device 1/new preset'))
+        self.assertTrue(os.path.exists(f'{tmp}/.config/device_1/new_preset'))
 
     def test_create_preset_2(self):
         create_preset('device 1')
         create_preset('device 1')
+        print(f'{tmp}/symbols/device_1/new_preset')
         self.assertTrue(os.path.exists(f'{tmp}/symbols/device_1/new_preset'))
-        self.assertTrue(os.path.exists(f'{tmp}/.config/device 1/new preset'))
+        self.assertTrue(os.path.exists(f'{tmp}/.config/device_1/new_preset'))
         self.assertTrue(os.path.exists(f'{tmp}/symbols/device_1/new_preset_2'))
-        self.assertTrue(os.path.exists(f'{tmp}/.config/device 1/new preset 2'))
+        self.assertTrue(os.path.exists(f'{tmp}/.config/device_1/new_preset_2'))
 
     def test_create_preset_3(self):
         create_preset('device 1', 'pre set')
         create_preset('device 1', 'pre set')
         self.assertTrue(os.path.exists(f'{tmp}/symbols/device_1/pre_set'))
-        self.assertTrue(os.path.exists(f'{tmp}/.config/device 1/pre set'))
+        self.assertTrue(os.path.exists(f'{tmp}/.config/device_1/pre_set'))
         self.assertTrue(os.path.exists(f'{tmp}/symbols/device_1/pre_set_2'))
-        self.assertTrue(os.path.exists(f'{tmp}/.config/device 1/pre set 2'))
+        self.assertTrue(os.path.exists(f'{tmp}/.config/device_1/pre_set_2'))
 
 
 class TestFindPresets(unittest.TestCase):
