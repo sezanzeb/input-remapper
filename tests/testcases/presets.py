@@ -24,7 +24,8 @@ import unittest
 import shutil
 import time
 
-from keymapper.presets import find_newest_preset, create_preset, get_devices
+from keymapper.presets import find_newest_preset
+from keymapper.X import create_preset
 
 
 tmp = '/tmp/key-mapper-test'
