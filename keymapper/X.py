@@ -51,7 +51,7 @@ def get_keycode(device, letter):
 
 
 def create_preset(device, name=None):
-    """Create an empty preset."""
+    """Create an empty preset and return the name."""
     existing_names = get_presets(device)
     if name is None:
         name = 'new preset'

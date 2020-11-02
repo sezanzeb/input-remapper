@@ -24,7 +24,7 @@ import unittest
 import shutil
 import time
 
-from keymapper.presets import find_newest_preset
+from keymapper.presets import find_newest_preset, rename_preset
 from keymapper.X import create_preset
 
 
@@ -57,6 +57,16 @@ class TestCreatePreset(unittest.TestCase):
         self.assertTrue(os.path.exists(f'{tmp}/.config/device_1/pre_set'))
         self.assertTrue(os.path.exists(f'{tmp}/symbols/device_1/pre_set_2'))
         self.assertTrue(os.path.exists(f'{tmp}/.config/device_1/pre_set_2'))
+
+
+class TestRenamePreset(unittest.TestCase):
+    def test_rename_preset(self):
+        create_preset('device 1', 'preset 1')
+        create_preset('device 1', 'foobar')
+        rename_preset('device 1', 'preset 1', 'foobar')
+        self.assertFalse(os.path.exists(f'{tmp}/.config/device_1/preset_1'))
+        self.assertTrue(os.path.exists(f'{tmp}/.config/device_1/foobar'))
+        self.assertTrue(os.path.exists(f'{tmp}/.config/device_1/foobar_2'))
 
 
 class TestFindPresets(unittest.TestCase):
@@ -98,6 +108,20 @@ class TestFindPresets(unittest.TestCase):
     def test_find_newest_preset_6(self):
         # takes the first one that the test-fake returns
         self.assertEqual(find_newest_preset(), ('device 1', None))
+
+    def test_find_newest_preset_7(self):
+        self.assertEqual(find_newest_preset('device 1'), ('device 1', None))
+
+    def test_find_newest_preset_8(self):
+        create_preset('device 1', 'preset 1')
+        time.sleep(0.01)
+        create_preset('device 1', 'preset 3')
+        time.sleep(0.01)
+        create_preset('device 2', 'preset 2')
+        self.assertEqual(
+            find_newest_preset('device 1'),
+            ('device 1', 'preset 3')
+        )
 
 
 if __name__ == "__main__":

@@ -49,7 +49,7 @@ def get_presets(device):
     ]
     # the highest timestamp to the front
     presets.reverse()
-    return presets
+    return [preset.replace('_', ' ') for preset in presets]
 
 
 def get_mappings(device, preset):
@@ -65,21 +65,37 @@ def get_mappings(device, preset):
 
 def get_any_preset():
     """Return the first found tuple of (device, preset)."""
-    any_device = list(get_devices().keys())[0]
+    devices = get_devices().keys()
+    if len(devices) == 0:
+        return None, None
+    any_device = list(devices)[0].replace('_', ' ')
     any_preset = (get_presets(any_device) or [None])[0]
+    if any_preset is not None:
+        any_preset = any_preset.replace('_', ' ')
     return any_device, any_preset
 
 
-def find_newest_preset():
+def find_newest_preset(device=None):
     """Get a tuple of (device, preset) that was most recently modified.
 
-    If no device has been configured yet, return arbitrarily.
+    If no device has been configured yet, return an arbitrary device.
+
+    Parameters
+    ----------
+    device : string
+        If set, will return the newest preset for the device or None
     """
     # sort the oldest files to the front in order to use pop to get the newest
-    paths = sorted(
-        glob.glob(os.path.join(CONFIG_PATH, '*/*')),
-        key=os.path.getmtime
-    )
+    if device is None:
+        paths = sorted(
+            glob.glob(os.path.join(CONFIG_PATH, '*/*')),
+            key=os.path.getmtime
+        )
+    else:
+        paths = sorted(
+            glob.glob(os.path.join(get_home_path(device), '*')),
+            key=os.path.getmtime
+        )
 
     if len(paths) == 0:
         logger.debug('No presets found.')
@@ -111,3 +127,35 @@ def find_newest_preset():
     logger.debug('The newest preset is "%s", "%s"', device, preset)
 
     return device, preset
+
+
+def delete_preset(device, preset):
+    """Delete a preset from the file system."""
+    preset_path = get_home_path(device, preset)
+    if not os.path.exists(preset_path):
+        logger.debug('Cannot remove non existing path "%s"', preset_path)
+        return
+
+    logger.info('Removing "%s"', preset_path)
+    os.remove(preset_path)
+
+    device_path = get_home_path(device)
+    if len(os.listdir(device_path)) == 0:
+        logger.debug('Removing empty dir "%s"', device_path)
+        os.remove(device_path)
+
+
+def rename_preset(device, old_preset_name, new_preset_name):
+    """Rename a preset while avoiding name conflicts."""
+    new_preset_name = new_preset_name.strip()
+    # find a name that is not already taken
+    if os.path.exists(get_home_path(device, new_preset_name)):
+        i = 2
+        while os.path.exists(get_home_path(device, f'{new_preset_name} {i}')):
+            i += 1
+        new_preset_name = f'{new_preset_name} {i}'
+    logger.info('Moving "%s" to "%s"', old_preset_name, new_preset_name)
+    os.rename(
+        get_home_path(device, old_preset_name),
+        get_home_path(device, new_preset_name)
+    )

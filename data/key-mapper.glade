@@ -5,7 +5,8 @@
   <object class="GtkEntry">
     <property name="visible">True</property>
     <property name="can_focus">True</property>
-    <property name="text" translatable="yes">a</property>
+    <property name="text" translatable="yes">asdf</property>
+    <property name="xalign">0.5</property>
   </object>
   <object class="GtkWindow" id="window">
     <property name="width_request">450</property>
@@ -101,13 +102,14 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkButton" id="create_preset2">
+                      <object class="GtkButton" id="save_preset">
                         <property name="label">gtk-save</property>
                         <property name="width_request">80</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>
                         <property name="use_stock">True</property>
+                        <signal name="clicked" handler="on_save_preset_clicked" swapped="no"/>
                       </object>
                       <packing>
                         <property name="expand">False</property>
@@ -144,13 +146,14 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkButton" id="create_preset3">
+                      <object class="GtkButton" id="delete_preset">
                         <property name="label">gtk-delete</property>
                         <property name="width_request">80</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>
                         <property name="use_stock">True</property>
+                        <signal name="clicked" handler="on_delete_preset_clicked" swapped="no"/>
                       </object>
                       <packing>
                         <property name="expand">False</property>
@@ -225,7 +228,7 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkEntry">
+                      <object class="GtkEntry" id="preset_name_input">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                       </object>

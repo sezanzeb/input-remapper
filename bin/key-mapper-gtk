@@ -32,7 +32,8 @@ from gi.repository import Gtk
 
 from keymapper.data import get_data_path
 from keymapper.X import create_setxkbmap_config, apply_preset, create_preset
-from keymapper.presets import get_presets, find_newest_preset
+from keymapper.presets import get_presets, find_newest_preset, \
+    delete_preset, rename_preset
 from keymapper.logger import logger, update_verbosity, log_info
 from keymapper.linux import get_devices
 
@@ -98,12 +99,7 @@ class Window:
 
         self.populate_devices()
 
-        # find and select the newest preset based on file modification dates
-        device, preset = find_newest_preset()
-        if device is not None:
-            self.get('device_selection').set_active_id(device)
-        if preset is not None:
-            self.get('device_selection').set_active_id(preset)
+        self.select_newest_preset()
 
     def get(self, name):
         """Get a widget from the window"""
@@ -112,6 +108,14 @@ class Window:
     def on_close(self, *_):
         """Safely close the application."""
         Gtk.main_quit()
+
+    def select_newest_preset(self):
+        """Find and select the newest preset."""
+        device, preset = find_newest_preset()
+        if device is not None:
+            self.get('device_selection').set_active_id(device)
+        if preset is not None:
+            self.get('device_selection').set_active_id(preset)
 
     def populate_devices(self):
         """Make the devices selectable."""
@@ -124,8 +128,9 @@ class Window:
         """Show the available presets for the selected device."""
         device = self.selected_device
         presets = get_presets(device)
+        self.get('preset_name_input').set_text('')
         if len(presets) == 0:
-            create_preset(device)
+            presets = [create_preset(device)]
         else:
             logger.debug('Presets for "%s": %s', device, ', '.join(presets))
         preset_selection = self.get('preset_selection')
@@ -140,7 +145,28 @@ class Window:
         # and select the newest one (on the top)
         preset_selection.set_active(0)
 
+    def update_mappings(self):
+        """Construct the mapping from the inputs without saving or applying."""
+        self.mappings = [(10, 'c')]
+
+    def on_save_preset_clicked(self, button):
+        """Save changes to a preset to the file system."""
+        new_name = self.get('preset_name_input').get_text()
+        if new_name != '' and new_name != self.selected_preset:
+            rename_preset(self.selected_device, self.selected_preset, new_name)
+            self.populate_presets()
+
+        self.update_mappings()
+        self.update_config()
+
+    def on_delete_preset_clicked(self, button):
+        """Delete a preset from the file system."""
+        delete_preset(self.selected_device, self.selected_preset)
+        self.populate_presets()
+
     def on_apply_preset_clicked(self, button):
+        """Apply a preset without saving changes."""
+        self.update_mappings()
         logger.debug(
             'Applying preset "%s" for "%s"',
             self.selected_preset,
@@ -208,9 +234,6 @@ class Window:
         ----------
         mapping : SingleKeyMapping
         """
-        # TODO modify self.mappings
-        self.update_config()
-
         # shrink the window down as much as possible, otherwise it
         # will increase with each added mapping but won't go back when they
         # are removed.
@@ -224,6 +247,7 @@ class Window:
             self.on_add_key_clicked()
 
     def update_config(self):
+        """Write changes to disk"""
         if self.selected_device is None or self.selected_preset is None:
             return
 
@@ -232,9 +256,6 @@ class Window:
             self.selected_device,
             self.selected_preset
         )
-
-        # TODO use user defined mapping
-        self.mappings = [(10, 'c')]
 
         create_setxkbmap_config(
             self.selected_device,
