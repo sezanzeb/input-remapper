@@ -19,7 +19,6 @@
 # along with key-mapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
-import os
 import sys
 import unittest
 from unittest.mock import patch
@@ -27,11 +26,9 @@ from importlib.util import spec_from_loader, module_from_spec
 from importlib.machinery import SourceFileLoader
 
 import gi
+import shutil
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
-
-from fakes import UseFakes, fake_config_path
-from keymapper.config import get_config
 
 
 def gtk_iteration():
@@ -74,17 +71,13 @@ class Integration(unittest.TestCase):
         Gtk.main_quit = lambda: None
 
     def setUp(self):
-        self.fakes = UseFakes()
-        self.fakes.patch()
         self.window = launch()
 
     def tearDown(self):
         self.window.on_close()
         self.window.window.destroy()
         gtk_iteration()
-        self.fakes.restore()
-        # TODO iterate over all config files in the fake_path and
-        #   empty them
+        shutil.rmtree('/tmp/key-mapper-test')
 
     def test_can_start(self):
         self.assertIsNotNone(self.window)

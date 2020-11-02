@@ -49,16 +49,16 @@ def get_keycode(device, letter):
 def generate_setxkbmap_config(device, preset, mappings):
     """Generate a config file for setxkbmap.
 
-    The file is created in ~/.config/key-mapper/<device>/<preset> and
-    a symlink is created in
-    /usr/share/X11/xkb/symbols/key-mapper/<device>/<preset> to point to it
+    The file is created in ~/.config/key-mapper/<device>/<preset> and,
+    in order to find all presets in the home dir to make backing them up
+    more intuitive, a symlink is created in
+    /usr/share/X11/xkb/symbols/key-mapper/<device>/<preset> to point to it.
+    The file in home doesn't have underscore to be more beautiful on the
+    frontend, while the symlink doesn't contain any whitespaces.
     """
-    # setxkbmap cannot handle spaces
-    device = device.replace(' ', '_')
-    preset = preset.replace(' ', '_')
-
     config_path = os.path.join(CONFIG_PATH, device, preset)
-    usr_path = os.path.join(SYMBOLS_PATH, device, preset)
+    # setxkbmap cannot handle spaces
+    usr_path = os.path.join(SYMBOLS_PATH, device, preset).replace(' ', '_')
 
     if not os.path.exists(config_path):
         logger.info('Creating config file "%s"', config_path)
@@ -72,12 +72,11 @@ def generate_setxkbmap_config(device, preset, mappings):
     with open(config_path, 'w') as f:
         f.write(generate_symbols_file_content(device, preset, mappings))
 
-    logger.debug('Successfully wrote the config file')
-
 
 def generate_symbols_file_content(device, preset, mappings):
     """Create config contents to be placed in /usr/share/X11/xkb/symbols."""
     system_default = 'us'  # TODO get the system default
+    # TODO I think I also have to create a file in /usr/share/X11/xkb/keycodes
     result = '\n'.join([
         'default xkb_symbols "basic" {',
         '    minimum = 8;',

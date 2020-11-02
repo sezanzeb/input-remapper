@@ -25,29 +25,21 @@
 import sys
 import unittest
 
+# quickly fake some stuff before any other file gets imported and initialized
 from keymapper import paths
+paths.SYMBOLS_PATH = '/tmp/key-mapper-test/symbols'
+paths.CONFIG_PATH = '/tmp/key-mapper-test/.config'
+
 from keymapper import X
+X.find_devices = lambda: ({
+    'device 1': ['/dev/input/event10', '/dev/input/event11'],
+    'device 2': ['/dev/input/event3']
+})
+
 from keymapper.logger import update_verbosity
 
 
-def create_stubs():
-    """Stub some linux stuff."""
-    paths.SYMBOLS_PATH = '/tmp/key-mapper-test/symbols'
-    paths.CONFIG_PATH = '/tmp/key-mapper-test/.config'
-
-    def find_devices():
-        return {
-            'device 1': ['/dev/input/event10', '/dev/input/event11'],
-            'device 2': ['/dev/input/event3']
-        }
-
-    X.find_devices = find_devices
-
-
 if __name__ == "__main__":
-    # make sure to do this before any other file gets a chance to do imports
-    create_stubs()
-
     update_verbosity(True)
 
     modules = sys.argv[1:]
