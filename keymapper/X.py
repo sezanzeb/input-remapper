@@ -35,8 +35,9 @@ import os
 import re
 import subprocess
 
-from keymapper.paths import CONFIG_PATH, SYMBOLS_PATH
+from keymapper.paths import CONFIG_PATH, SYMBOLS_PATH, KEYCODES_PATH
 from keymapper.logger import logger
+from keymapper.data import get_data_path
 
 
 def get_keycode(device, letter):
@@ -46,7 +47,7 @@ def get_keycode(device, letter):
     return ''
 
 
-def generate_setxkbmap_config(device, preset, mappings):
+def create_setxkbmap_config(device, preset, mappings):
     """Generate a config file for setxkbmap.
 
     The file is created in ~/.config/key-mapper/<device>/<preset> and,
@@ -56,6 +57,8 @@ def generate_setxkbmap_config(device, preset, mappings):
     The file in home doesn't have underscore to be more beautiful on the
     frontend, while the symlink doesn't contain any whitespaces.
     """
+    create_identity_mapping()
+
     config_path = os.path.join(CONFIG_PATH, device, preset)
     # setxkbmap cannot handle spaces
     usr_path = os.path.join(SYMBOLS_PATH, device, preset).replace(' ', '_')
@@ -69,44 +72,89 @@ def generate_setxkbmap_config(device, preset, mappings):
         os.makedirs(os.path.dirname(usr_path), exist_ok=True)
         os.symlink(config_path, usr_path)
 
+    logger.info('Writing key mappings')
     with open(config_path, 'w') as f:
         f.write(generate_symbols_file_content(device, preset, mappings))
-        logger.debug('Wrote key mappings')
 
 
 def apply_preset(device, preset):
-    # setxkbmap key-mapper/Razer_Razer_Naga_Trinity/new_preset -v 10 -device 12
+    # setxkbmap -layout key-mapper/Razer_Razer_Naga_Trinity/new_preset -keycodes key-mapper -v 10 -device 13
     # TODO device 12 is from `xinput list` but currently there is no function
     #   to obtain that. And that cli tool outputs all those extra devices.
     # 1. get all names in the group (similar to parse_libinput_list)
     # 2. get all ids from xinput list for each name
     # 3. apply preset to all of them
+    pass
+
+
+def create_identity_mapping():
+    """Because the concept of "reasonable symbolic names" [3] doesn't apply
+    when mouse buttons are all over the place. Create an identity mapping
+    to make generating "symbols" files easier. Keycode 10 -> "<10>"
+
+    This has the added benefit that keycodes reported by xev can be
+    identified in the symbols file.
+    """
+    # TODO don't create this again if it already exists, as soon as this
+    #   stuff is stable.
+
+    xkb_keycodes = []
+    # the maximum specified in /usr/share/X11/xkb/keycodes is usually 255
+    # and the minimum 8
+    maximum = 255
+    minimum = 8
+    for code in range(minimum, maximum + 1):
+        xkb_keycodes.append(f'<{code}> = {code};')
+
+    template_path = os.path.join(get_data_path(), 'xkb_keycodes_template')
+    with open(template_path, 'r') as template_file:
+        template = template_file.read()
+
+    result = template.format(
+        minimum=minimum,
+        maximum=maximum,
+        xkb_keycodes='\n    '.join(xkb_keycodes)
+    )
+
+    logger.info('Creating "%s"', KEYCODES_PATH)
+    with open(KEYCODES_PATH, 'w') as keycodes:
+        keycodes.write(result)
 
 
 def generate_symbols_file_content(device, preset, mappings):
-    """Create config contents to be placed in /usr/share/X11/xkb/symbols."""
+    """Create config contents to be placed in /usr/share/X11/xkb/symbols.
+
+    Parameters
+    ----------
+    device : string
+    preset : string
+    mappings : array
+        tuples of code, character
+    """
     system_default = 'us'  # TODO get the system default
 
-    # 10 is what the mouse reports
-    result = """
-default xkb_symbols "basic" {{
-    include "us"
-    name[Group1]="{name}";
-    key <AE01> { [ 3 ] };
-}};
+    # WARNING if the symbols file contains key codes that are not present in
+    # the keycodes file, the whole X session will crash!
+    if not os.path.exists(KEYCODES_PATH):
+        raise ValueError('Expected the keycodes file to exist.')
+    with open(KEYCODES_PATH, 'r') as f:
+        keycodes = re.findall(r'<.+?>', f.read())
 
-default xkb_keycodes "basic" {{
-    minimum= 8;
-    maximum= 255;
-    <AE01> =  10;
-}};
-    """
-    result = result.format(name=f'{device}/{preset}')
+    xkb_symbols = []
+    for code, character in mappings:
+        if f'<{code}>' not in keycodes:
+            logger.error(f'Unknown keycode <{code}> for "{character}"')
+        xkb_symbols.append(f'key <{code}> {{ [ {character} ] }};')
 
-    for mapping in mappings:
-        key = mapping.key
-        keycode = get_keycode(device, key)
-        target = mapping.target
+    template_path = os.path.join(get_data_path(), 'xkb_symbols_template')
+    with open(template_path, 'r') as template_file:
+        template = template_file.read()
+
+    result = template.format(
+        name=f'{device}/{preset}',
+        xkb_symbols='\n    '.join(xkb_symbols),
+        system_default=system_default
+    )
 
     return result
 

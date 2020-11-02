@@ -31,6 +31,10 @@ tmp = '/tmp/key-mapper-test'
 
 
 class TestCreatePreset(unittest.TestCase):
+    def setUp(self):
+        if os.path.exists(tmp):
+            shutil.rmtree(tmp)
+
     def test_create_preset_1(self):
         create_preset('device 1')
         self.assertTrue(os.path.exists(f'{tmp}/symbols/device_1/new_preset'))
@@ -55,7 +59,8 @@ class TestCreatePreset(unittest.TestCase):
 
 class TestFindPresets(unittest.TestCase):
     def setUp(self):
-        shutil.rmtree(f'{tmp}')
+        if os.path.exists(tmp):
+            shutil.rmtree(tmp)
 
     def test_find_newest_preset_1(self):
         print('test_find_newest_preset_1')

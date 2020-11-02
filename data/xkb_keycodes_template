@@ -1,0 +1,7 @@
+// keycodes configuration for key-mapper presets
+
+default xkb_keycodes "basic" {{
+    minimum = {minimum};
+    maximum = {maximum};
+    {xkb_keycodes}
+}};

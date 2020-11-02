@@ -32,7 +32,8 @@ gi.require_version('GLib', '2.0')
 from gi.repository import Gtk
 
 from keymapper.data import get_data_path
-from keymapper.X import find_devices, generate_setxkbmap_config
+from keymapper.X import find_devices, create_setxkbmap_config, \
+    create_identity_mapping
 from keymapper.presets import get_presets, get_mappings, \
     find_newest_preset, create_preset
 from keymapper.logger import logger, update_verbosity, log_info
@@ -97,7 +98,7 @@ class Window:
 
         self.populate_devices()
 
-        # find an select the newest preset based on file modification dates
+        # find and select the newest preset based on file modification dates
         device, preset = find_newest_preset()
         if device is not None:
             self.get('device_selection').set_active_id(device)
@@ -121,7 +122,12 @@ class Window:
 
     def populate_presets(self):
         """Show the available presets for the selected device."""
-        presets = get_presets(self.selected_device)
+        device = self.selected_device
+        presets = get_presets(device)
+        if len(presets) == 0:
+            create_preset(device)
+        else:
+            logger.debug('Presets for "%s": %s', device, ', '.join(presets))
         preset_selection = self.get('preset_selection')
         preset_selection.remove_all()
         for preset in presets:
@@ -139,11 +145,6 @@ class Window:
         self.selected_preset = None
         self.mappings = []
 
-        presets = get_presets(device)
-        if len(presets) == 0:
-            create_preset(device)
-        else:
-            logger.debug('Presets for "%s": %s', device, ', '.join(presets))
         self.populate_presets()
 
     def on_create_preset_clicked(self, button):
@@ -217,7 +218,11 @@ class Window:
             self.selected_device,
             self.selected_preset
         )
-        generate_setxkbmap_config(
+
+        # TODO use user defined mapping
+        self.mappings = [(10, 'z')]
+
+        create_setxkbmap_config(
             self.selected_device,
             self.selected_preset,
             self.mappings
