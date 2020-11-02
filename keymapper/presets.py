@@ -24,10 +24,8 @@
 
 import os
 import glob
-import subprocess
-from pathlib import Path
 
-from keymapper.paths import CONFIG_PATH, SYMBOLS_PATH
+from keymapper.paths import CONFIG_PATH
 from keymapper.logger import logger
 from keymapper.X import find_devices, generate_setxkbmap_config
 

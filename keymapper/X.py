@@ -71,31 +71,48 @@ def generate_setxkbmap_config(device, preset, mappings):
 
     with open(config_path, 'w') as f:
         f.write(generate_symbols_file_content(device, preset, mappings))
+        logger.debug('Wrote key mappings')
+
+
+def apply_preset(device, preset):
+    # setxkbmap key-mapper/Razer_Razer_Naga_Trinity/new_preset -v 10 -device 12
+    # TODO device 12 is from `xinput list` but currently there is no function
+    #   to obtain that. And that cli tool outputs all those extra devices.
+    # 1. get all names in the group (similar to parse_libinput_list)
+    # 2. get all ids from xinput list for each name
+    # 3. apply preset to all of them
 
 
 def generate_symbols_file_content(device, preset, mappings):
     """Create config contents to be placed in /usr/share/X11/xkb/symbols."""
     system_default = 'us'  # TODO get the system default
-    # TODO I think I also have to create a file in /usr/share/X11/xkb/keycodes
-    result = '\n'.join([
-        'default xkb_symbols "basic" {',
-        '    minimum = 8;',
-        '    maximum = 255;',
-        f'    include "{system_default}"',
-        f'    name[Group1]="{device}/{preset}";',
-        '    key <AE01> { [ 2, 2, 2, 2 ] };',
-        '};',
-    ]) + '\n'
+
+    # 10 is what the mouse reports
+    result = """
+default xkb_symbols "basic" {{
+    include "us"
+    name[Group1]="{name}";
+    key <AE01> { [ 3 ] };
+}};
+
+default xkb_keycodes "basic" {{
+    minimum= 8;
+    maximum= 255;
+    <AE01> =  10;
+}};
+    """
+    result = result.format(name=f'{device}/{preset}')
+
     for mapping in mappings:
         key = mapping.key
         keycode = get_keycode(device, key)
         target = mapping.target
-        # TODO support NUM block keys and modifiers somehow
 
     return result
 
 
 def parse_libinput_list():
+    # TODO return something meaningful. {name: {paths:, related:}}
     """Get a mapping of {name: [paths]} for `libinput list-devices` devices.
 
     This is grouped by group, so the "Logitech USB Keyboard" and
