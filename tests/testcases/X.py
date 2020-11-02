@@ -19,30 +19,11 @@
 # along with key-mapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
-import os
 import unittest
-
-from keymapper.logger import update_verbosity
-from keymapper.X import parse_libinput_list, parse_evtest
 
 
 class TestX(unittest.TestCase):
-    def check_result(self, result):
-        count = 0
-        for name, paths in result.items():
-            self.assertIsInstance(name, str)
-            self.assertIsInstance(paths, list)
-            for path in paths:
-                self.assertIsInstance(path, str)
-                self.assertTrue(path.startswith('/dev/input/event'))
-                count += 1
-        self.assertGreater(count, 0)
-
-    def test_libinput(self):
-        self.check_result(parse_libinput_list())
-
-    def test_evtest(self):
-        self.check_result(parse_evtest())
+    pass
 
 
 if __name__ == "__main__":

@@ -30,8 +30,8 @@ from keymapper import paths
 paths.SYMBOLS_PATH = '/tmp/key-mapper-test/symbols'
 paths.CONFIG_PATH = '/tmp/key-mapper-test/.config'
 
-from keymapper import X
-X.find_devices = lambda: ({
+from keymapper import presets
+presets.get_devices = lambda: ({
     'device 1': ['/dev/input/event10', '/dev/input/event11'],
     'device 2': ['/dev/input/event3']
 })

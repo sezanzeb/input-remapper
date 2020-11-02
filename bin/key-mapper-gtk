@@ -32,10 +32,10 @@ gi.require_version('GLib', '2.0')
 from gi.repository import Gtk
 
 from keymapper.data import get_data_path
-from keymapper.X import find_devices, create_setxkbmap_config, \
+from keymapper.X import create_setxkbmap_config, \
     create_identity_mapping
 from keymapper.presets import get_presets, get_mappings, \
-    find_newest_preset, create_preset
+    find_newest_preset, create_preset, get_devices
 from keymapper.logger import logger, update_verbosity, log_info
 
 
@@ -115,7 +115,7 @@ class Window:
 
     def populate_devices(self):
         """Make the devices selectable."""
-        devices = find_devices()
+        devices = get_devices()
         device_selection = self.get('device_selection')
         for device in devices:
             device_selection.append(device, device)

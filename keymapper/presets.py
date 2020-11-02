@@ -24,10 +24,43 @@
 
 import os
 import glob
+import evdev
 
 from keymapper.paths import CONFIG_PATH
 from keymapper.logger import logger
-from keymapper.X import find_devices, create_setxkbmap_config
+from keymapper.X import create_setxkbmap_config
+
+
+_devices = None
+
+
+def get_devices():
+    """Get a mapping of {name: [paths]} for input devices."""
+    # cache the result, this takes a second to complete
+    global _devices
+    if _devices is not None:
+        return _devices
+
+    devices = [evdev.InputDevice(path) for path in evdev.list_devices()]
+    # group them together by usb device because there could be stuff like
+    # "Logitech USB Keyboard" and "Logitech USB Keyboard Consumer Control"
+    grouped = {}
+    for device in devices:
+        usb = device.phys.split('/')[0]
+        if grouped.get(usb) is None:
+            grouped[usb] = []
+        grouped[usb].append((device.name, device.path))
+    # now write down all the paths of that group
+    result = {}
+    for group in grouped.values():
+        names = [entry[0] for entry in group]
+        devs = [entry[1] for entry in group]
+        shortest_name = sorted(names, key=len)[0]
+        result[shortest_name] = devs
+
+    _devices = result
+    logger.info('Found %s', ', '.join([f'"{name}"' for name in result]))
+    return result
 
 
 def get_presets(device):
@@ -82,7 +115,7 @@ def get_mappings(device, preset):
 
 def get_any_preset():
     """Return the first found tuple of (device, preset)."""
-    any_device = list(find_devices().keys())[0]
+    any_device = list(get_devices().keys())[0]
     any_preset = (get_presets(any_device) or [None])[0]
     return any_device, any_preset
 
@@ -102,7 +135,7 @@ def find_newest_preset():
         logger.debug('No presets found.')
         return get_any_preset()
 
-    online_devices = find_devices().keys()
+    online_devices = get_devices().keys()
 
     newest_path = None
     while len(paths) > 0:
