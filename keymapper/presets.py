@@ -23,22 +23,14 @@
 
 
 import os
+import glob
 import subprocess
+from pathlib import Path
 
+from keymapper.paths import CONFIG_PATH, SYMBOLS_PATH
 from keymapper.logger import logger
 from keymapper.config import get_config, get_config_path
-
-
-def get_xinput_list(type):
-    """Run xinput and get the result as list.
-
-    Parameters
-    ----------
-    type : string
-        Ine of 'id' or 'name'
-    """
-    output = subprocess.check_output(['xinput', 'list', f'--{type}-only'])
-    return [line for line in output.decode().split('\n') if line != '']
+from keymapper.X import find_devices
 
 
 def get_presets(device):
@@ -48,11 +40,12 @@ def get_presets(device):
     ----------
     device : string
     """
-    device_folder = get_config_path(device)
-    logger.debug('Listing presets in %s', device_folder)
+    device_folder = os.path.join(SYMBOLS_PATH, device.replace(' ', '_'))
     if not os.path.exists(device_folder):
         os.makedirs(get_config_path(device_folder))
-    return os.listdir(get_config_path(device_folder))
+    presets = os.listdir(get_config_path(device_folder))
+    logger.debug('Presets in "%s": %s', device_folder, ', '.join(presets))
+    return presets
 
 
 def create_preset(device, name=None):
@@ -84,6 +77,40 @@ def get_mappings(device, preset):
 
 
 def find_newest_preset():
-    """Get the device and present that was most recently modified."""
-    print('find_newest_preset not yet implemented')
-    return None, None
+    """Get a tuple of (device, preset) that was most recently modified.
+
+    If no device has been configured yet, return arbitrarily.
+    """
+    # sort the oldest files to the front
+    paths = sorted(
+        glob.glob(os.path.join(SYMBOLS_PATH, '*/*')),
+        key=os.path.getmtime
+    )
+
+    # map "vendor_keyboard" to "vendor keyboard"
+    device_mapping = {
+        name.replace(' ', '_'): name
+        for name in find_devices().keys()
+    }
+
+    newest_path = None
+    while len(paths) > 0:
+        # take the newest path
+        path = paths.pop()
+        preset = os.path.split(path)[1]
+        device_underscored = os.path.split(os.path.split(path)[0])[1]
+        if device_mapping.get(device_underscored) is not None:
+            # this device is online
+            newest_path = path
+            break
+
+    if newest_path is None:
+        logger.debug('None of the configured devices is currently online.')
+        # return anything
+        device = list(find_devices().keys())[0]
+        preset = (get_presets(device) or [None])[0]
+        return device, preset
+
+    device = device_mapping.get(device_underscored)
+
+    return device, preset
