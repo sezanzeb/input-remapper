@@ -40,7 +40,7 @@ from keymapper.paths import get_home_path, get_usr_path, KEYCODES_PATH, \
 from keymapper.logger import logger
 from keymapper.data import get_data_path
 from keymapper.presets import get_presets
-from keymapper.linux import get_devices
+from keymapper.linux import get_devices, can_grab
 
 
 def get_keycode(device, letter):
@@ -63,7 +63,7 @@ def create_preset(device, name=None):
             i += 1
         name = f'{name} {i}'
 
-    create_setxkbmap_config(device, name, [])
+    os.mknod(get_home_path(device, name))
     return name
 
 
@@ -76,7 +76,18 @@ def create_setxkbmap_config(device, preset, mappings):
     /usr/share/X11/xkb/symbols/key-mapper/<device>/<preset> to point to it.
     The file in home doesn't have underscore to be more beautiful on the
     frontend, while the symlink doesn't contain any whitespaces.
+
+    Parameters
+    ----------
+    device : string
+    preset : string
+    mappings : list
+        List of (keycode, character) tuples
     """
+    if len(mappings) == 0:
+        logger.debug('Got empty mappings')
+        return None
+
     create_identity_mapping()
 
     home_device_path = get_home_path(device)
@@ -98,27 +109,34 @@ def create_setxkbmap_config(device, preset, mappings):
 
     logger.info('Writing key mappings')
     with open(home_preset_path, 'w') as f:
-        f.write(generate_symbols_file_content(device, preset, mappings))
+        contents = generate_symbols_file_content(device, preset, mappings)
+        if contents is not None:
+            f.write(contents)
 
 
 def apply_preset(device, preset):
     """Apply a preset to the device."""
+    group = get_devices()[device]
+
     # apply it to every device that hangs on the same usb port, because I
     # have no idea how to figure out which one of those 3 devices that are
     # all named after my mouse to use.
-    device_underscored = device.replace(' ', '_')
-    preset_underscored = preset.replace(' ', '_')
-
-    group = get_devices()[device]
-
     for xinput_name, xinput_id in get_xinput_id_mapping():
         if xinput_name not in group['devices']:
+            # only all virtual devices of the same hardware device
             continue
-        layout_name = (
-            'key-mapper'
-            f'/{device_underscored}'
-            f'/{preset_underscored}'
-        )
+
+        """# get the path in /dev for that
+        path = [
+            path for name, path
+            in zip(group['devices'], group['paths'])
+            if name == xinput_name
+        ][0]
+        if not can_grab(path):
+            logger.error('Something else is')"""
+
+        symbols = '/usr/share/X11/xkb/symbols/'
+        layout_name = get_usr_path(device, preset)[len(symbols):]
         cmd = [
             'setxkbmap',
             '-layout', layout_name,
@@ -188,6 +206,9 @@ def generate_symbols_file_content(device, preset, mappings):
         if f'<{code}>' not in keycodes:
             logger.error(f'Unknown keycode <{code}> for "{character}"')
         xkb_symbols.append(f'key <{code}> {{ [ {character} ] }};')
+    if len(xkb_symbols) == 0:
+        logger.error('Failed to populate xkb_symbols')
+        return None
 
     template_path = get_data_path('xkb_symbols_template')
     with open(template_path, 'r') as template_file:
