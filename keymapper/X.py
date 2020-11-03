@@ -220,6 +220,8 @@ def generate_symbols_file_content(device, preset, mappings):
     for code, character in mappings:
         if f'<{code}>' not in keycodes:
             logger.error(f'Unknown keycode <{code}> for "{character}"')
+            # continue, otherwise X would crash when loading
+            continue
         xkb_symbols.append(f'key <{code}> {{ [ {character} ] }};')
     if len(xkb_symbols) == 0:
         logger.error('Failed to populate xkb_symbols')

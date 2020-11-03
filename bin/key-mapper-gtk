@@ -28,7 +28,7 @@ from argparse import ArgumentParser
 import gi
 gi.require_version('Gtk', '3.0')
 gi.require_version('GLib', '2.0')
-from gi.repository import Gtk
+from gi.repository import Gtk, Gdk
 
 from keymapper.data import get_data_path
 from keymapper.X import create_setxkbmap_config, apply_preset, create_preset
@@ -39,6 +39,9 @@ from keymapper.linux import get_devices
 
 
 window = None
+
+
+# TODO check for sudo rights
 
 
 class SingleKeyMapping:
@@ -54,24 +57,27 @@ class SingleKeyMapping:
 
     def put_together(self):
         """Create all GTK widgets."""
-        delete_button = Gtk.Button()
-        destroy_icon = Gtk.Image.new_from_icon_name(
+        delete_button = Gtk.EventBox()
+        delete_button.add(Gtk.Image.new_from_icon_name(
             'window-close', Gtk.IconSize.BUTTON
-        )
-        delete_button.set_image(destroy_icon)
-        delete_button.connect('clicked', self.on_delete_button_clicked)
+        ))
+        delete_button.connect('button-press-event', self.on_delete_button_clicked)
+        delete_button.set_margin_start(5)
+        delete_button.set_margin_end(5)
 
         key_code = Gtk.Entry()
         key_code.set_alignment(0.5)
         key_code.set_width_chars(4)
+        key_code.set_has_frame(False)
 
         original_key = Gtk.Entry()
         original_key.set_alignment(0.5)
         original_key.set_width_chars(4)
+        original_key.set_has_frame(False)
 
-        self.widgets = (delete_button, key_code, original_key)
+        self.widgets = (key_code, original_key, delete_button)
 
-    def on_delete_button_clicked(self, button):
+    def on_delete_button_clicked(self, *args):
         """Destroy the row and remove it from the config."""
         for widget in self.widgets:
             widget.destroy()
@@ -92,13 +98,21 @@ class Window:
         builder.connect_signals(self)
         self.builder = builder
 
-        window = builder.get_object('window')
+        window = self.get('window')
         window.show()
         self.window = window
 
         self.populate_devices()
 
         self.select_newest_preset()
+
+        css_provider = Gtk.CssProvider()
+        css_provider.load_from_path(get_data_path('style.css'))
+        Gtk.StyleContext.add_provider_for_screen(
+            Gdk.Screen.get_default(),
+            css_provider,
+            Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+        )
 
     def get(self, name):
         """Get a widget from the window"""
@@ -216,23 +230,18 @@ class Window:
         self.mappings = []
 
         # TODO show all mapped keys from config
-        self.clear_mapping_table()
-
-        self.on_add_key_clicked()
-
-    def on_add_key_clicked(self, button=None):
-        """Add a mapping to the list of mappings."""
-        # TODO automatically add a line when no line is empty anymore,
-        #   making the add button obsolete
         single_key_mapping = SingleKeyMapping(self.on_row_removed)
         key_list = self.get('key_list')
-        key_list.insert_row(1)
+        row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+        row.set_homogeneous(True)
         widgets = single_key_mapping.get_widgets()
-        key_list.attach(widgets[0], 0, 1, 1, 1)
-        key_list.attach(widgets[1], 1, 1, 1, 1)
-        key_list.attach(widgets[2], 2, 1, 1, 1)
+        row.pack_start(widgets[0], expand=True, fill=True, padding=0)
+        row.pack_start(widgets[1], expand=True, fill=True, padding=0)
+        row.pack_start(widgets[2], expand=True, fill=True, padding=0)
+        key_list.insert(row, -1)
         key_list.show_all()
-        self.rows += 1
+
+        self.clear_mapping_table()
 
     def on_row_removed(self, mapping):
         """Stuff to do when a row was removed
