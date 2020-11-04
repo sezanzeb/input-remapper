@@ -1,6 +1,6 @@
 # Key Mapper
 
-**Doesn't work yet**
+**Almost done**
 
 GUI tool to map input buttons to e.g. change the macro keys of a mouse or any keyboard to something
 different. It should not be device specific, any input device supported by Linux plug and play will likely
@@ -35,8 +35,9 @@ sudo python3 setup.py install && sudo python3 tests/test.py
 - [x] show a dropdown to select an arbitrary device from `xinput list`
 - [x] creating presets per device
 - [x] renaming presets
-- [x] show a list that can be extended with a `[+]` button
-- [ ] The list shows `[keycode, current key for that keycode -> target]`
+- [ ] show a list for mappings `[keycode, current key for that keycode -> target]`
+- [ ] make that list extend itself automatically
+- [ ] read keycodes with something like xev
 - [x] generate a file for /usr/share/X11/xkb/symbols/ for each preset, (symlink to home .config/?)
 - [x] load that file with `setxkbmap`
 - [ ] automatically load the preset (on startup?, udev on mouse connect?)
