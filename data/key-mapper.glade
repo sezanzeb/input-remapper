@@ -2,59 +2,12 @@
 <!-- Generated with glade 3.36.0 -->
 <interface>
   <requires lib="gtk+" version="3.22"/>
-  <object class="GtkEntry">
-    <property name="visible">True</property>
-    <property name="can_focus">True</property>
-    <property name="text" translatable="yes">asdf</property>
-    <property name="xalign">0.5</property>
-  </object>
-  <object class="GtkEntry">
-    <property name="visible">True</property>
-    <property name="can_focus">True</property>
-  </object>
-  <object class="GtkGrid" id="key_list2">
-    <property name="visible">True</property>
-    <property name="can_focus">False</property>
-    <property name="border_width">2</property>
-    <child>
-      <object class="GtkLabel">
-        <property name="visible">True</property>
-        <property name="can_focus">False</property>
-        <property name="margin_top">10</property>
-        <property name="margin_bottom">5</property>
-        <property name="hexpand">True</property>
-        <property name="label" translatable="yes">Key</property>
-        <property name="width_chars">10</property>
-      </object>
-      <packing>
-        <property name="left_attach">0</property>
-        <property name="top_attach">0</property>
-      </packing>
-    </child>
-    <child>
-      <object class="GtkLabel">
-        <property name="visible">True</property>
-        <property name="can_focus">False</property>
-        <property name="margin_top">10</property>
-        <property name="margin_bottom">5</property>
-        <property name="hexpand">True</property>
-        <property name="label" translatable="yes">Mapping</property>
-        <property name="width_chars">10</property>
-      </object>
-      <packing>
-        <property name="left_attach">1</property>
-        <property name="top_attach">0</property>
-      </packing>
-    </child>
-    <style>
-      <class name="button"/>
-    </style>
-  </object>
   <object class="GtkWindow" id="window">
     <property name="width_request">450</property>
     <property name="can_focus">False</property>
     <property name="title" translatable="yes">Key Mapper</property>
     <property name="resizable">False</property>
+    <property name="icon_name">mouse</property>
     <signal name="delete-event" handler="on_close" swapped="no"/>
     <child>
       <object class="GtkBox">

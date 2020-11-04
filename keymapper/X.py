@@ -256,3 +256,16 @@ def get_xinput_id_mapping():
     names = [name for name in names if name != '']
     ids = [int(id) for id in ids if id != '']
     return zip(names, ids)
+
+
+def get_mappings(device, preset):
+    """Parse the X config to get a current mapping.
+
+    Returns tuples of (keycode, character)
+    """
+    with open(get_home_path(device, preset), 'r') as f:
+        # from "key <12> { [ 1 ] };" extract 12 and 1,
+        # avoid lines that start with special characters (might be comments)
+        result = re.findall(r'\n\s+?key <(.+?)>.+?\[\s+(\w+)', f.read())
+        logger.debug('Found %d mappings in this preset', len(result))
+        return result
