@@ -2,4 +2,13 @@ list entry {
     background-color: transparent;
 }
 
+.button_container {
+    padding: 5px;
+    background-color: @content_view_bg;
+}
+
+.button_container > * {
+    background-color: transparent;
+}
+
 /* @theme_bg_color, @theme_fg_color */

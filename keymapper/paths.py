@@ -46,7 +46,9 @@ KEYCODES_PATH = '/usr/share/X11/xkb/keycodes/key-mapper'
 
 def get_home_path(device, preset=None):
     """Get the path to the config file in /usr."""
+    device = device.strip()
     if preset is not None:
+        preset = preset.strip()
         return os.path.join(CONFIG_PATH, device, preset).replace(' ', '_')
     else:
         return os.path.join(CONFIG_PATH, device.replace(' ', '_'))
@@ -57,7 +59,9 @@ def get_usr_path(device, preset=None):
 
     If preset is omitted, returns the folder for the device.
     """
+    device = device.strip()
     if preset is not None:
+        preset = preset.strip()
         return os.path.join(SYMBOLS_PATH, device, preset).replace(' ', '_')
     else:
         return os.path.join(SYMBOLS_PATH, device.replace(' ', '_'))
