@@ -28,7 +28,7 @@ from argparse import ArgumentParser
 import gi
 gi.require_version('Gtk', '3.0')
 gi.require_version('GLib', '2.0')
-from gi.repository import Gtk, Gdk
+from gi.repository import Gtk, Gdk, GLib
 
 from keymapper.data import get_data_path
 from keymapper.X import create_setxkbmap_config, apply_preset, \
@@ -36,7 +36,7 @@ from keymapper.X import create_setxkbmap_config, apply_preset, \
 from keymapper.presets import get_presets, find_newest_preset, \
     delete_preset, rename_preset
 from keymapper.logger import logger, update_verbosity, log_info
-from keymapper.linux import get_devices
+from keymapper.linux import get_devices, KeycodeReader
 
 
 window = None
@@ -45,29 +45,46 @@ window = None
 # TODO check for sudo rights
 
 
+def gtk_iteration():
+    """Iterate while events are pending."""
+    while Gtk.events_pending():
+        Gtk.main_iteration()
+
+
 class SingleKeyMapping:
     """A single, configurable key mapping."""
-    def __init__(self, delete_callback, key_code=None, character=None):
+    def __init__(
+        self, device, delete_callback, keycode_reader,
+        key_code=None, character=None,
+    ):
         """Construct a row and add it to the list in the GUI."""
         self.widget = None
+        self.device = device
         self.delete_callback = delete_callback
+        self.keycode_reader = keycode_reader
         self.put_together(key_code, character)
 
     def get_widget(self):
         """Return the widget that wraps all the widgets of the row."""
         return self.widget
 
-    def get_code(self):
-        return int(self.key_code.get_text())
+    def start_watching_key_codes(self, *args):
+        print('start_watching_key_codes')
+        self.keycode_reader.clear()
+        GLib.timeout_add(100, self.get_newest_keycode)
 
-    def get_character(self):
-        return self.character.get_text()
+    def get_newest_keycode(self):
+        code = self.keycode_reader.read()
+        if code is not None:
+            self.key_code.set_label(str(code))
+        return self.key_code.is_focus()
 
     def put_together(self, key_code, character):
         """Create all GTK widgets."""
         delete_button = Gtk.EventBox()
         delete_button.add(Gtk.Image.new_from_icon_name(
-            'window-close', Gtk.IconSize.BUTTON
+            'window-close',
+            Gtk.IconSize.BUTTON
         ))
         delete_button.connect(
             'button-press-event',
@@ -76,13 +93,19 @@ class SingleKeyMapping:
         delete_button.set_margin_start(5)
         delete_button.set_margin_end(5)
 
-        key_code_input = Gtk.Entry()
-        key_code_input.set_alignment(0.5)
-        key_code_input.set_width_chars(4)
-        key_code_input.set_has_frame(False)
-        key_code_input.set_input_purpose(Gtk.InputPurpose.NUMBER)
+        key_code_input = Gtk.ToggleButton()
         if key_code is not None:
-            key_code_input.set_text(key_code)
+            key_code_input.set_label(key_code)
+        key_code_input.connect(
+            'focus-in-event',
+            self.start_watching_key_codes
+        )
+        # make the togglebutton go back to its normal state when doing
+        # something else in the UI
+        key_code_input.connect(
+            'focus-out-event',
+            lambda *args: key_code_input.set_active(False)
+        )
 
         character_input = Gtk.Entry()
         character_input.set_alignment(0.5)
@@ -117,6 +140,8 @@ class Window:
         self.selected_preset = None
         self.mappings = []
 
+        self.keycode_reader = KeycodeReader(gtk_iteration)
+
         gladefile = get_data_path('key-mapper.glade')
         builder = Gtk.Builder()
         builder.add_from_file(gladefile)
@@ -131,8 +156,11 @@ class Window:
 
         self.select_newest_preset()
 
+        print(1)
         css_provider = Gtk.CssProvider()
+        print(2)
         css_provider.load_from_path(get_data_path('style.css'))
+        print(3)
         Gtk.StyleContext.add_provider_for_screen(
             Gdk.Screen.get_default(),
             css_provider,
@@ -145,6 +173,7 @@ class Window:
 
     def on_close(self, *_):
         """Safely close the application."""
+        self.keycode_reader.stop_reading()
         Gtk.main_quit()
 
     def select_newest_preset(self):
@@ -196,10 +225,20 @@ class Window:
         def read_mapping(row):
             box = row.get_children()[0]
             columns = box.get_children()
-            # TODO test if columns[0] is a number
-            #   and if one of them is empty
+            code = columns[0].get_label()
+
+            # validate
+            character = columns[1].get_text()
+            if code == '' or character == '':
+                return
+            try:
+                code = int(code)
+            except ValueError:
+                return
+
+            # add to mapping
             mappings.append((
-                int(columns[0].get_text()),
+                int(columns[0].get_label()),
                 columns[1].get_text()
             ))
 
@@ -243,6 +282,9 @@ class Window:
         self.mappings = []
 
         self.populate_presets()
+        GLib.idle_add(
+            lambda: self.keycode_reader.start_reading(self.selected_device)
+        )
 
     def on_create_preset_clicked(self, button):
         """Create a new preset and select it."""
@@ -267,8 +309,11 @@ class Window:
         key_list = self.get('key_list')
         for mapping in mappings:
             mapping = SingleKeyMapping(
+                self.selected_device,
                 self.on_row_removed,
-                mapping[0], mapping[1]
+                self.keycode_reader,
+                mapping[0],
+                mapping[1]
             )
             key_list.insert(mapping.get_widget(), -1)
 
@@ -277,7 +322,11 @@ class Window:
         self.add_empty()
 
     def add_empty(self):
-        empty = SingleKeyMapping(self.on_row_removed)
+        empty = SingleKeyMapping(
+            self.selected_device,
+            self.on_row_removed,
+            self.keycode_reader
+        )
         key_list = self.get('key_list')
         key_list.insert(empty.get_widget(), -1)
 
