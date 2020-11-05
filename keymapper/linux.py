@@ -46,15 +46,24 @@ def can_grab(path):
 
 
 class KeycodeReader:
-    def __init__(self, iterate):
-        self.iterate = iterate
-        self.keep_reading = False
-        self.currently_reading = False
-        self.newest_keycode = None
+    """Keeps reading keycodes in the background for the UI to use.
+
+    A new arriving keycode indicates that a button was pressed, so the
+    UI can keep checking for a new keycode on this object and act like the
+    keycode went right to the input box.
+
+    GTK inputs cannot listen on keys that don't write a character, so
+    they have to repeatedly ask for new data (in this solution).
+    """
+    def __init__(self):
+        self.virtual_devices = []
 
     def clear(self):
         """Next time when reading don't return the previous keycode."""
-        self.newest_keycode = None
+        # read all of them to clear the buffer or whatever
+        for virtual_device in self.virtual_devices:
+            while virtual_device.read_one():
+                pass
 
     def start_reading(self, device):
         """Start a loop that keeps reading keycodes.
@@ -63,46 +72,30 @@ class KeycodeReader:
         function that calls this until stop_reading is called from somewhere
         else.
         """
-        # stop the current loop
-        if self.currently_reading:
-            self.stop_reading()
-            while self.currently_reading:
-                self.iterate()
-
         # start the next one
         logger.debug('Starting reading keycodes for %s', device)
-        self.keep_reading = True
-        self.currently_reading = True
 
-        # all the virtual devices of the hardware.
-        # Watch over each one of them
+        # Watch over each one of the potentially multiple devices per hardware
         paths = _devices[device]['paths']
-        virtual_devices = [
+        self.virtual_devices = [
             evdev.InputDevice(path)
             for path in paths[:1]
         ]
 
-        while self.keep_reading:
-            for virtual_device in virtual_devices:
+    def read(self):
+        """Get the newest key or None if none was pressed."""
+        newest_keycode = None
+        for virtual_device in self.virtual_devices:
+            while True:
                 event = virtual_device.read_one()
-                if event is not None and event.type == evdev.ecodes.EV_KEY:
+                if event is None:
+                    break
+                elif event.type == evdev.ecodes.EV_KEY and event.value == 1:
+                    # value: 1 for down, 0 for up, 2 for hold.
                     # this happens to report key codes that are 8 lower
                     # than the ones reported by xev
-                    self.newest_keycode = event.code + 8
-            self.iterate()
-
-        # done
-        logger.debug('Stopped reading keycodes for %s', device)
-        self.currently_reading = False
-
-    def stop_reading(self):
-        """Stop the loop that keeps reading keycodes."""
-        self.keep_reading = False
-        self.newest_keycode = None
-
-    def read(self):
-        """Get the newest key."""
-        return self.newest_keycode
+                    newest_keycode = event.code + 8
+        return newest_keycode
 
 
 def get_devices():

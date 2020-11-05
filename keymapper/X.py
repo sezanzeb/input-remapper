@@ -43,6 +43,62 @@ from keymapper.presets import get_presets
 from keymapper.linux import get_devices, can_grab
 
 
+class Mapping:
+    """Contains and manages mappings.
+
+    The keycode is always unique, multiple keycodes may map to the same
+    character.
+    """
+    def __init__(self):
+        self._mapping = {}
+
+    def __iter__(self):
+        """Iterate over tuples of unique keycodes and their character."""
+        return iter(self._mapping.items())
+
+    def load(self, device, preset):
+        """Parse the X config to replace the current mapping with that one."""
+        with open(get_home_path(device, preset), 'r') as f:
+            # from "key <12> { [ 1 ] };" extract 12 and 1,
+            # avoid lines that start with special characters
+            # (might be comments)
+            result = re.findall(r'\n\s+?key <(.+?)>.+?\[\s+(\w+)', f.read())
+            logger.debug('Found %d mappings in this preset', len(result))
+            self._mapping = {
+                int(keycode): character
+                for keycode, character
+                in result
+            }
+
+    def change(self, previous_keycode, new_keycode, character):
+        """Change a mapping. Return True on success."""
+        if new_keycode and character and new_keycode != previous_keycode:
+            self.add(new_keycode, character)
+            # clear previous mapping of that code, because the line
+            # representing that one will now represent a different one.
+            self.clear(previous_keycode)
+            return True
+        return False
+
+    def clear(self, keycode):
+        """Remove a keycode from the mapping."""
+        print('clear', id(self), keycode, self._mapping.get(keycode))
+        if self._mapping.get(keycode) is not None:
+            del self._mapping[keycode]
+
+    def add(self, keycode, character):
+        """Add a mapping."""
+        if self._mapping.get(keycode) is not None:
+            raise KeyError(
+                f'Keycode {keycode} is already mapped '
+                f'to {self._mapping.get(keycode)}'
+            )
+        self._mapping[keycode] = character
+
+    def get(self, keycode):
+        return self._mapping.get(keycode)
+
+
 def ensure_symlink():
     """Make sure the symlink exists.
 
@@ -181,15 +237,14 @@ def create_identity_mapping():
         keycodes.write(result)
 
 
-def generate_symbols_file_content(device, preset, mappings):
+def generate_symbols_file_content(device, preset, mapping):
     """Create config contents to be placed in /usr/share/X11/xkb/symbols.
 
     Parameters
     ----------
     device : string
     preset : string
-    mappings : array
-        tuples of code, character
+    mapping : Mapping
     """
     system_default = 'us'  # TODO get the system default
 
@@ -201,12 +256,12 @@ def generate_symbols_file_content(device, preset, mappings):
         keycodes = re.findall(r'<.+?>', f.read())
 
     xkb_symbols = []
-    for code, character in mappings:
-        if f'<{code}>' not in keycodes:
-            logger.error(f'Unknown keycode <{code}> for "{character}"')
+    for keycode, character in mapping.iter():
+        if f'<{keycode}>' not in keycodes:
+            logger.error(f'Unknown keycode <{keycode}> for "{character}"')
             # continue, otherwise X would crash when loading
             continue
-        xkb_symbols.append(f'key <{code}> {{ [ {character} ] }};')
+        xkb_symbols.append(f'key <{keycode}> {{ [ {character} ] }};')
     if len(xkb_symbols) == 0:
         logger.error('Failed to populate xkb_symbols')
         return None
@@ -240,16 +295,3 @@ def get_xinput_id_mapping():
     names = [name for name in names if name != '']
     ids = [int(id) for id in ids if id != '']
     return zip(names, ids)
-
-
-def get_mappings(device, preset):
-    """Parse the X config to get a current mapping.
-
-    Returns tuples of (keycode, character)
-    """
-    with open(get_home_path(device, preset), 'r') as f:
-        # from "key <12> { [ 1 ] };" extract 12 and 1,
-        # avoid lines that start with special characters (might be comments)
-        result = re.findall(r'\n\s+?key <(.+?)>.+?\[\s+(\w+)', f.read())
-        logger.debug('Found %d mappings in this preset', len(result))
-        return result

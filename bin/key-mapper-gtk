@@ -32,7 +32,7 @@ from gi.repository import Gtk, Gdk, GLib
 
 from keymapper.data import get_data_path
 from keymapper.X import create_setxkbmap_config, apply_preset, \
-    create_preset, get_mappings
+    create_preset, Mapping
 from keymapper.presets import get_presets, find_newest_preset, \
     delete_preset, rename_preset
 from keymapper.logger import logger, update_verbosity, log_info
@@ -43,6 +43,8 @@ window = None
 
 
 # TODO check for sudo rights
+# TODO NUM1 doesnt work anymore
+# TODO write some tests?
 
 
 def gtk_iteration():
@@ -51,35 +53,54 @@ def gtk_iteration():
         Gtk.main_iteration()
 
 
+keycode_reader = KeycodeReader()
+
+mapping = Mapping()
+
+
 class SingleKeyMapping:
     """A single, configurable key mapping."""
-    def __init__(
-        self, device, delete_callback, keycode_reader,
-        key_code=None, character=None,
-    ):
-        """Construct a row and add it to the list in the GUI."""
+    def __init__(self, device, delete_callback, keycode=None, character=None):
+        """Construct a row widget."""
         self.widget = None
         self.device = device
         self.delete_callback = delete_callback
-        self.keycode_reader = keycode_reader
-        self.put_together(key_code, character)
+        self.put_together(keycode, character)
 
     def get_widget(self):
         """Return the widget that wraps all the widgets of the row."""
         return self.widget
 
-    def start_watching_key_codes(self, *args):
-        print('start_watching_key_codes')
-        self.keycode_reader.clear()
-        GLib.timeout_add(100, self.get_newest_keycode)
+    def get_keycode(self):
+        keycode = self.keycode.get_label()
+        return int(keycode) if keycode else None
+
+    def get_character(self):
+        character = self.character_input.get_text()
+        return character if character else None
+
+    def start_watching_keycodes(self, *args):
+        print('start_watching_keycodes')
+        keycode_reader.clear()
+        GLib.timeout_add(1000 / 30, self.get_newest_keycode)
 
     def get_newest_keycode(self):
-        code = self.keycode_reader.read()
-        if code is not None:
-            self.key_code.set_label(str(code))
-        return self.key_code.is_focus()
+        new_keycode = keycode_reader.read()
+        previous_keycode = self.get_keycode()
+        character = self.get_character()
 
-    def put_together(self, key_code, character):
+        # TODO this is broken af
+        if new_keycode is not None:
+            try:
+                mapping.change(previous_keycode, new_keycode, character)
+                self.keycode.set_label(str(new_keycode))
+            except KeyError as e:
+                # Show error in status bar
+                logger.info(str(e)[1:-1])
+
+        return self.keycode.is_focus()
+
+    def put_together(self, keycode, character):
         """Create all GTK widgets."""
         delete_button = Gtk.EventBox()
         delete_button.add(Gtk.Image.new_from_icon_name(
@@ -93,18 +114,18 @@ class SingleKeyMapping:
         delete_button.set_margin_start(5)
         delete_button.set_margin_end(5)
 
-        key_code_input = Gtk.ToggleButton()
-        if key_code is not None:
-            key_code_input.set_label(key_code)
-        key_code_input.connect(
+        keycode_input = Gtk.ToggleButton()
+        if keycode is not None:
+            keycode_input.set_label(str(keycode))
+        keycode_input.connect(
             'focus-in-event',
-            self.start_watching_key_codes
+            self.start_watching_keycodes
         )
         # make the togglebutton go back to its normal state when doing
         # something else in the UI
-        key_code_input.connect(
+        keycode_input.connect(
             'focus-out-event',
-            lambda *args: key_code_input.set_active(False)
+            lambda *args: keycode_input.set_active(False)
         )
 
         character_input = Gtk.Entry()
@@ -116,7 +137,8 @@ class SingleKeyMapping:
 
         row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
         row.set_homogeneous(True)
-        row.pack_start(key_code_input, expand=True, fill=True, padding=0)
+        row.set_spacing(2)
+        row.pack_start(keycode_input, expand=True, fill=True, padding=0)
         row.pack_start(character_input, expand=True, fill=True, padding=0)
         row.pack_start(delete_button, expand=True, fill=False, padding=0)
 
@@ -126,10 +148,11 @@ class SingleKeyMapping:
 
         self.widget = row
         self.character_input = character_input
-        self.key_code = key_code_input
+        self.keycode = keycode_input
 
     def on_delete_button_clicked(self, *args):
         """Destroy the row and remove it from the config."""
+        mapping.clear()
         self.delete_callback(self)
 
 
@@ -138,9 +161,6 @@ class Window:
     def __init__(self):
         self.selected_device = None
         self.selected_preset = None
-        self.mappings = []
-
-        self.keycode_reader = KeycodeReader(gtk_iteration)
 
         gladefile = get_data_path('key-mapper.glade')
         builder = Gtk.Builder()
@@ -173,7 +193,6 @@ class Window:
 
     def on_close(self, *_):
         """Safely close the application."""
-        self.keycode_reader.stop_reading()
         Gtk.main_quit()
 
     def select_newest_preset(self):
@@ -217,35 +236,6 @@ class Window:
         key_list = self.get('key_list')
         key_list.forall(key_list.remove)
 
-    def update_mappings(self):
-        """Construct the mapping from the inputs without saving or applying."""
-        key_list = self.get('key_list')
-        mappings = []
-
-        def read_mapping(row):
-            box = row.get_children()[0]
-            columns = box.get_children()
-            code = columns[0].get_label()
-
-            # validate
-            character = columns[1].get_text()
-            if code == '' or character == '':
-                return
-            try:
-                code = int(code)
-            except ValueError:
-                return
-
-            # add to mapping
-            mappings.append((
-                int(columns[0].get_label()),
-                columns[1].get_text()
-            ))
-
-        key_list.forall(read_mapping)
-        logger.debug('Constructed mappings: %s', mappings)
-        self.mappings = mappings
-
     def on_save_preset_clicked(self, button):
         """Save changes to a preset to the file system."""
         new_name = self.get('preset_name_input').get_text()
@@ -279,11 +269,10 @@ class Window:
 
         self.selected_device = device
         self.selected_preset = None
-        self.mappings = []
 
         self.populate_presets()
         GLib.idle_add(
-            lambda: self.keycode_reader.start_reading(self.selected_device)
+            lambda: keycode_reader.start_reading(self.selected_device)
         )
 
     def on_create_preset_clicked(self, button):
@@ -301,45 +290,41 @@ class Window:
         logger.debug('Selecting preset "%s"', preset)
 
         self.selected_preset = preset
-        mappings = get_mappings(
+        mapping.load(
             self.selected_device,
             self.selected_preset
         )
 
         key_list = self.get('key_list')
-        for mapping in mappings:
-            mapping = SingleKeyMapping(
-                self.selected_device,
-                self.on_row_removed,
-                self.keycode_reader,
-                mapping[0],
-                mapping[1]
+        for keycode, character in mapping:
+            single_key_mapping = SingleKeyMapping(
+                device=self.selected_device,
+                delete_callback=self.on_row_removed,
+                keycode=keycode,
+                character=character
             )
-            key_list.insert(mapping.get_widget(), -1)
-
-        self.mappings = mappings
+            key_list.insert(single_key_mapping.get_widget(), -1)
 
         self.add_empty()
 
     def add_empty(self):
         empty = SingleKeyMapping(
-            self.selected_device,
-            self.on_row_removed,
-            self.keycode_reader
+            device=self.selected_device,
+            delete_callback=self.on_row_removed
         )
         key_list = self.get('key_list')
         key_list.insert(empty.get_widget(), -1)
 
-    def on_row_removed(self, mapping):
+    def on_row_removed(self, single_key_mapping):
         """Stuff to do when a row was removed
 
         Parameters
         ----------
-        mapping : SingleKeyMapping
+        single_key_mapping : SingleKeyMapping
         """
         key_list = self.get('key_list')
         # https://stackoverflow.com/a/30329591/4417769
-        key_list.remove(mapping.get_widget().get_parent())
+        key_list.remove(single_key_mapping.get_widget().get_parent())
         # shrink the window down as much as possible, otherwise it
         # will increase with each added mapping but won't go back when they
         # are removed.
@@ -360,7 +345,7 @@ class Window:
         create_setxkbmap_config(
             self.selected_device,
             self.selected_preset,
-            self.mappings
+            mapping
         )
 
 
