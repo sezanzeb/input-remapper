@@ -22,8 +22,10 @@
 """Device stuff that is independent from the display server."""
 
 
-import evdev
+import re
 import subprocess
+
+import evdev
 
 from keymapper.logger import logger
 
@@ -41,6 +43,66 @@ def can_grab(path):
     """
     p = subprocess.run(['fuser', '-v', path])
     return p.returncode == 1
+
+
+class KeycodeReader:
+    def __init__(self, iterate):
+        self.iterate = iterate
+        self.keep_reading = False
+        self.currently_reading = False
+        self.newest_keycode = None
+
+    def clear(self):
+        """Next time when reading don't return the previous keycode."""
+        self.newest_keycode = None
+
+    def start_reading(self, device):
+        """Start a loop that keeps reading keycodes.
+
+        This keeps the main loop running, however, it is blocking for the
+        function that calls this until stop_reading is called from somewhere
+        else.
+        """
+        # stop the current loop
+        if self.currently_reading:
+            self.stop_reading()
+            while self.currently_reading:
+                self.iterate()
+
+        # start the next one
+        logger.debug('Starting reading keycodes for %s', device)
+        self.keep_reading = True
+        self.currently_reading = True
+
+        # all the virtual devices of the hardware.
+        # Watch over each one of them
+        paths = _devices[device]['paths']
+        virtual_devices = [
+            evdev.InputDevice(path)
+            for path in paths[:1]
+        ]
+
+        while self.keep_reading:
+            for virtual_device in virtual_devices:
+                event = virtual_device.read_one()
+                if event is not None and event.type == evdev.ecodes.EV_KEY:
+                    # this happens to report key codes that are 8 lower
+                    # than the ones reported by xev
+                    self.newest_keycode = event.code + 8
+            self.iterate()
+
+        # done
+        logger.debug('Stopped reading keycodes for %s', device)
+        self.currently_reading = False
+
+    def stop_reading(self):
+        """Stop the loop that keeps reading keycodes."""
+        self.keep_reading = False
+        self.newest_keycode = None
+
+    def read(self):
+        """Get the newest key."""
+        return self.newest_keycode
 
 
 def get_devices():

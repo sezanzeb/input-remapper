@@ -43,13 +43,6 @@ from keymapper.presets import get_presets
 from keymapper.linux import get_devices, can_grab
 
 
-def get_keycode(device, letter):
-    """Get the keycode that is configured for the given letter."""
-    # TODO I have no idea how to do this
-    # in /usr/share/X11/xkb/keycodes the mapping is made
-    return ''
-
-
 def ensure_symlink():
     """Make sure the symlink exists.
 
@@ -134,15 +127,6 @@ def apply_preset(device, preset):
         if xinput_name not in group['devices']:
             # only all virtual devices of the same hardware device
             continue
-
-        """# get the path in /dev for that
-        path = [
-            path for name, path
-            in zip(group['devices'], group['paths'])
-            if name == xinput_name
-        ][0]
-        if not can_grab(path):
-            logger.error('Something else is')"""
 
         symbols = '/usr/share/X11/xkb/symbols/'
         layout_path = get_usr_path(device, preset)
