@@ -25,13 +25,14 @@
 import sys
 import unittest
 
-# quickly fake some stuff before any other file gets imported and initialized
+# quickly fake some stuff before any other file gets a chance to import
+# the original version
 from keymapper import paths
 paths.SYMBOLS_PATH = '/tmp/key-mapper-test/symbols'
 paths.CONFIG_PATH = '/tmp/key-mapper-test/.config'
 
-from keymapper import presets
-presets.get_devices = lambda: ({
+from keymapper import linux
+linux._devices = {
     'device 1': {
         'paths': [
             '/dev/input/event10',
@@ -48,9 +49,17 @@ presets.get_devices = lambda: ({
         'paths': ['/dev/input/event3'],
         'names': ['device 2']
     }
-})
+}
+linux.get_devices = lambda: linux._devices
 
 from keymapper.logger import update_verbosity
+
+# some class function stubs.
+# can be overwritten in tests as well at any time.
+linux.KeycodeReader.start_reading = lambda *args: None
+linux.KeycodeReader.read = lambda *args: None
+
+tmp = '/tmp/key-mapper-test'
 
 
 if __name__ == "__main__":

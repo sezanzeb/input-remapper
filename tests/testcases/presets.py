@@ -27,8 +27,7 @@ import time
 from keymapper.presets import find_newest_preset, rename_preset
 from keymapper.X import create_preset
 
-
-tmp = '/tmp/key-mapper-test'
+from test import tmp
 
 
 class TestCreatePreset(unittest.TestCase):

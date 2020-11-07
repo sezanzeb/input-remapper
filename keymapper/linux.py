@@ -22,7 +22,6 @@
 """Device stuff that is independent from the display server."""
 
 
-import re
 import subprocess
 
 import evdev
@@ -66,13 +65,11 @@ class KeycodeReader:
                 pass
 
     def start_reading(self, device):
-        """Start a loop that keeps reading keycodes.
+        """Tell the evdev lib to start looking for keycodes.
 
-        This keeps the main loop running, however, it is blocking for the
-        function that calls this until stop_reading is called from somewhere
-        else.
+        If read is called without prior start_reading, no keycodes
+        will be available.
         """
-        # start the next one
         logger.debug('Starting reading keycodes for %s', device)
 
         # Watch over each one of the potentially multiple devices per hardware

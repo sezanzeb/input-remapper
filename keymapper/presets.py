@@ -23,6 +23,7 @@
 
 
 import os
+import time
 import glob
 
 from keymapper.paths import CONFIG_PATH, get_home_path
@@ -159,3 +160,6 @@ def rename_preset(device, old_preset_name, new_preset_name):
         get_home_path(device, old_preset_name),
         get_home_path(device, new_preset_name)
     )
+    # set the modification date to now
+    now = time.time()
+    os.utime(get_home_path(device, new_preset_name), (now, now))
