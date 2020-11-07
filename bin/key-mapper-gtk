@@ -80,25 +80,55 @@ class SingleKeyMapping:
         return character if character else None
 
     def start_watching_keycodes(self, *args):
-        print('start_watching_keycodes')
-        keycode_reader.clear()
-        GLib.timeout_add(1000 / 30, self.get_newest_keycode)
+        """Start to periodically check if a keycode has been pressed.
 
-    def get_newest_keycode(self):
+        This is different from just listening for text input events
+        (as in Gtk.Entry), since keys may not write characters into the form
+        because they are not mapped. Furthermore their keycode is needed,
+        not their mapped character."""
+        keycode_reader.clear()
+
+        def iterate():
+            self.check_newest_keycode()
+            return self.keycode.is_focus()
+
+        GLib.timeout_add(1000 / 30, iterate)
+
+    def check_newest_keycode(self):
+        """Check if a keycode has been pressed and if so, display it."""
         new_keycode = keycode_reader.read()
         previous_keycode = self.get_keycode()
         character = self.get_character()
 
-        # TODO this is broken af
-        if new_keycode is not None:
-            try:
-                mapping.change(previous_keycode, new_keycode, character)
-                self.keycode.set_label(str(new_keycode))
-            except KeyError as e:
-                # Show error in status bar
-                logger.info(str(e)[1:-1])
+        # no input
+        if new_keycode is None:
+            return
 
-        return self.keycode.is_focus()
+        # keycode didn't change, do nothing
+        if new_keycode == previous_keycode:
+            return
+
+        # keycode is already set by some other row
+        if mapping.get(new_keycode) is not None:
+            logger.info('Keycode %s is already mapped', new_keycode)
+            return
+
+        # it's legal to display the keycode
+        self.keycode.set_label(str(new_keycode))
+
+        # the character is empty and therefore the mapping is not complete
+        if character is None:
+            return
+
+        # else, the keycode has changed, the character is set, all good
+        mapping.change(previous_keycode, new_keycode, character)
+
+    def on_character_input_change(self, entry):
+        keycode = self.get_keycode()
+        character = self.get_character()
+
+        if keycode is not None:
+            mapping.change(None, keycode, character)
 
     def put_together(self, keycode, character):
         """Create all GTK widgets."""
@@ -134,6 +164,10 @@ class SingleKeyMapping:
         character_input.set_has_frame(False)
         if character is not None:
             character_input.set_text(character)
+        character_input.connect(
+            'changed',
+            self.on_character_input_change
+        )
 
         row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
         row.set_homogeneous(True)
@@ -176,11 +210,8 @@ class Window:
 
         self.select_newest_preset()
 
-        print(1)
         css_provider = Gtk.CssProvider()
-        print(2)
         css_provider.load_from_path(get_data_path('style.css'))
-        print(3)
         Gtk.StyleContext.add_provider_for_screen(
             Gdk.Screen.get_default(),
             css_provider,
@@ -242,9 +273,7 @@ class Window:
         if new_name != '' and new_name != self.selected_preset:
             rename_preset(self.selected_device, self.selected_preset, new_name)
             self.populate_presets()
-
-        self.update_mappings()
-        self.update_config()
+        self.save_config()
 
     def on_delete_preset_clicked(self, button):
         """Delete a preset from the file system."""
@@ -253,7 +282,6 @@ class Window:
 
     def on_apply_preset_clicked(self, button):
         """Apply a preset without saving changes."""
-        self.update_mappings()
         logger.debug(
             'Applying preset "%s" for "%s"',
             self.selected_preset,
@@ -280,7 +308,7 @@ class Window:
         new_preset = create_preset(self.selected_device)
         self.get('preset_selection').append(new_preset, new_preset)
         self.get('preset_selection').set_active_id(new_preset)
-        self.update_config()
+        self.save_config()
 
     def on_select_preset(self, dropdown):
         """Show the mappings of the preset."""
@@ -331,7 +359,7 @@ class Window:
         window = self.get('window')
         window.resize(window.get_size()[0], 1)
 
-    def update_config(self):
+    def save_config(self):
         """Write changes to disk"""
         if self.selected_device is None or self.selected_preset is None:
             return

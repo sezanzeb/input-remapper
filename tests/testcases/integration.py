@@ -20,6 +20,8 @@
 
 
 import sys
+import time
+import os
 import unittest
 from unittest.mock import patch
 from importlib.util import spec_from_loader, module_from_spec
@@ -29,6 +31,8 @@ import gi
 import shutil
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
+
+from test import tmp
 
 
 def gtk_iteration():
@@ -71,6 +75,8 @@ class Integration(unittest.TestCase):
         Gtk.main_quit = lambda: None
 
     def setUp(self):
+        if os.path.exists(tmp):
+            shutil.rmtree(tmp)
         self.window = launch()
 
     def tearDown(self):
@@ -91,9 +97,43 @@ class Integration(unittest.TestCase):
             def get_active_text(self):
                 return self.name
 
-        self.window.on_select_device(FakeDropdown('fakeDevice1'))
-        self.window.on_select_preset(FakeDropdown('fakePreset1'))
-        # TODO test meaningful stuff here
+        # created on start because the first device is selected and some empty
+        # preset prepared.
+        self.assertTrue(os.path.exists(f'{tmp}/symbols/device_1/new_preset'))
+        self.assertEqual(self.window.selected_device, 'device 1')
+        self.assertEqual(self.window.selected_preset, 'new preset')
+
+        self.window.on_create_preset_clicked(None)
+        gtk_iteration()
+        # until save is clicked, this is still not saved
+        self.assertTrue(os.path.exists(f'{tmp}/symbols/device_1/new_preset'))
+        self.assertTrue(os.path.exists(f'{tmp}/symbols/device_1/new_preset_2'))
+        self.assertEqual(self.window.selected_preset, 'new preset 2')
+
+        self.window.on_select_preset(FakeDropdown('new preset'))
+        gtk_iteration()
+        self.assertEqual(self.window.selected_preset, 'new preset')
+
+        # now try to change the name
+        self.window.get('preset_name_input').set_text('abc 123')
+        gtk_iteration()
+        self.assertEqual(self.window.selected_preset, 'new preset')
+        self.assertFalse(os.path.exists(f'{tmp}/symbols/device_1/abc_123'))
+        self.window.on_save_preset_clicked(None)
+        gtk_iteration()
+        self.assertEqual(self.window.selected_preset, 'abc 123')
+        self.assertTrue(os.path.exists(f'{tmp}/symbols/device_1/abc_123'))
+
+        # TODO test presence of file in {tmp}/keycodes
+
+        self.assertListEqual(
+            sorted(os.listdir(f'{tmp}/symbols')),
+            ['device_1']
+        )
+        self.assertListEqual(
+            sorted(os.listdir(f'{tmp}/symbols/device_1')),
+            ['abc_123', 'new_preset', 'new_preset_2']
+        )
 
 
 if __name__ == "__main__":

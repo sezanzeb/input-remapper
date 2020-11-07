@@ -56,9 +56,22 @@ class Mapping:
         """Iterate over tuples of unique keycodes and their character."""
         return iter(self._mapping.items())
 
+    def __len__(self):
+        return len(self._mapping)
+
     def load(self, device, preset):
         """Parse the X config to replace the current mapping with that one."""
-        with open(get_home_path(device, preset), 'r') as f:
+        path = get_home_path(device, preset)
+
+        if not os.path.exists(path):
+            logger.debug(
+                'Tried to load non existing preset "%s" for %s',
+                preset, device
+            )
+            self._mapping = {}
+            return
+
+        with open(path, 'r') as f:
             # from "key <12> { [ 1 ] };" extract 12 and 1,
             # avoid lines that start with special characters
             # (might be comments)
@@ -71,23 +84,45 @@ class Mapping:
             }
 
     def change(self, previous_keycode, new_keycode, character):
-        """Change a mapping. Return True on success."""
+        """Replace the mapping of a keycode with a different one.
+
+        Return True on success.
+
+        Parameters
+        ----------
+        previous_keycode : int or None
+        new_keycode : int
+        character : string
+        """
+        print('change', previous_keycode, new_keycode, character)
         if new_keycode and character and new_keycode != previous_keycode:
             self.add(new_keycode, character)
-            # clear previous mapping of that code, because the line
-            # representing that one will now represent a different one.
-            self.clear(previous_keycode)
+            if new_keycode != previous_keycode:
+                # clear previous mapping of that code, because the line
+                # representing that one will now represent a different one.
+                self.clear(previous_keycode)
             return True
         return False
 
     def clear(self, keycode):
-        """Remove a keycode from the mapping."""
+        """Remove a keycode from the mapping.
+
+        Parameters
+        ----------
+        keycode : int
+        """
         print('clear', id(self), keycode, self._mapping.get(keycode))
         if self._mapping.get(keycode) is not None:
             del self._mapping[keycode]
 
     def add(self, keycode, character):
-        """Add a mapping."""
+        """Add a mapping for a hardware key to a character.
+
+        Parameters
+        ----------
+        keycode : int
+        character : string
+        """
         if self._mapping.get(keycode) is not None:
             raise KeyError(
                 f'Keycode {keycode} is already mapped '
@@ -96,6 +131,12 @@ class Mapping:
         self._mapping[keycode] = character
 
     def get(self, keycode):
+        """Read the character that is mapped to this keycode.
+
+        Parameters
+        ----------
+        keycode : int
+        """
         return self._mapping.get(keycode)
 
 
@@ -114,7 +155,6 @@ def ensure_symlink():
 
 def create_preset(device, name=None):
     """Create an empty preset and return the name."""
-    existing_names = get_presets(device)
     if name is None:
         name = 'new preset'
 
@@ -125,12 +165,16 @@ def create_preset(device, name=None):
             i += 1
         name = f'{name} {i}'
 
-    os.mknod(get_home_path(device, name))
+    path = get_home_path(device, name)
+    if not os.path.exists(path):
+        logger.info('Creating new file %s', path)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        os.mknod(path)
     ensure_symlink()
     return name
 
 
-def create_setxkbmap_config(device, preset, mappings):
+def create_setxkbmap_config(device, preset, mapping):
     """Generate a config file for setxkbmap.
 
     The file is created in ~/.config/key-mapper/<device>/<preset> and,
@@ -144,10 +188,10 @@ def create_setxkbmap_config(device, preset, mappings):
     ----------
     device : string
     preset : string
-    mappings : list
-        List of (keycode, character) tuples
+    mapping : Mapping
     """
-    if len(mappings) == 0:
+    if len(mapping) == 0:
+        print(mapping._mapping)
         logger.debug('Got empty mappings')
         return None
 
@@ -167,7 +211,7 @@ def create_setxkbmap_config(device, preset, mappings):
 
     logger.info('Writing key mappings')
     with open(home_preset_path, 'w') as f:
-        contents = generate_symbols_file_content(device, preset, mappings)
+        contents = generate_symbols_file_content(device, preset, mapping)
         if contents is not None:
             f.write(contents)
 
@@ -246,6 +290,7 @@ def generate_symbols_file_content(device, preset, mapping):
     preset : string
     mapping : Mapping
     """
+    # TODO test this function
     system_default = 'us'  # TODO get the system default
 
     # If the symbols file contains key codes that are not present in
@@ -256,7 +301,7 @@ def generate_symbols_file_content(device, preset, mapping):
         keycodes = re.findall(r'<.+?>', f.read())
 
     xkb_symbols = []
-    for keycode, character in mapping.iter():
+    for keycode, character in mapping:
         if f'<{keycode}>' not in keycodes:
             logger.error(f'Unknown keycode <{keycode}> for "{character}"')
             # continue, otherwise X would crash when loading
