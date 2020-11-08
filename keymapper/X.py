@@ -94,7 +94,6 @@ class Mapping:
         new_keycode : int
         character : string
         """
-        print('change', previous_keycode, new_keycode, character)
         if new_keycode and character and new_keycode != previous_keycode:
             self._mapping[new_keycode] = character
             if new_keycode != previous_keycode:
@@ -111,7 +110,6 @@ class Mapping:
         ----------
         keycode : int
         """
-        print('clear', id(self), keycode, self._mapping.get(keycode))
         if self._mapping.get(keycode) is not None:
             del self._mapping[keycode]
 
@@ -191,7 +189,6 @@ def create_setxkbmap_config(device, preset, mapping):
     mapping : Mapping
     """
     if len(mapping) == 0:
-        print(mapping._mapping)
         logger.debug('Got empty mappings')
         return None
 

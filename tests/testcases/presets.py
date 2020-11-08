@@ -43,7 +43,6 @@ class TestCreatePreset(unittest.TestCase):
     def test_create_preset_2(self):
         create_preset('device 1')
         create_preset('device 1')
-        print(f'{tmp}/symbols/device_1/new_preset')
         self.assertTrue(os.path.exists(f'{tmp}/symbols/device_1/new_preset'))
         self.assertTrue(os.path.exists(f'{tmp}/.config/device_1/new_preset'))
         self.assertTrue(os.path.exists(f'{tmp}/symbols/device_1/new_preset_2'))
@@ -74,7 +73,6 @@ class TestFindPresets(unittest.TestCase):
             shutil.rmtree(tmp)
 
     def test_find_newest_preset_1(self):
-        print('test_find_newest_preset_1')
         create_preset('device 1', 'preset 1')
         time.sleep(0.01)
         create_preset('device 2', 'preset 2')
