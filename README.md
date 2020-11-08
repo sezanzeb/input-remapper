@@ -36,7 +36,7 @@ sudo python3 setup.py install && python3 tests/test.py
 - [x] show a list for mappings `[keycode -> target]`
 - [x] make that list extend itself automatically
 - [x] read keycodes with something like xev
-- [x] generate a file for /usr/share/X11/xkb/symbols/ for each preset, (symlink to home .config/?)
+- [x] generate a file for /usr/share/X11/xkb/symbols/ for each preset
 - [x] load that file with `setxkbmap`
-- [ ] highlight changes
+- [ ] highlight changes and alert before discarding unsaved changes
 - [ ] automatically load the preset (on startup?, udev on mouse connect?)
