@@ -55,6 +55,7 @@ keycode_reader = KeycodeReader()
 CTX_SAVE = 0
 CTX_APPLY = 1
 CTX_KEYCODE = 2
+CTX_ERROR = 3
 
 
 class SingleKeyMapping:
@@ -288,16 +289,28 @@ class Window:
     def on_save_preset_clicked(self, button):
         """Save changes to a preset to the file system."""
         new_name = self.get('preset_name_input').get_text()
-        self.save_config()
-        if new_name != '' and new_name != self.selected_preset:
-            rename_preset(self.selected_device, self.selected_preset, new_name)
-        # after saving the config, its modification date will be the newest,
-        # so populate_presets will automatically select the right one again.
-        self.populate_presets()
-        self.get('status_bar').push(
-            CTX_SAVE,
-            f'Saved "{self.selected_preset}"'
-        )
+        try:
+            self.save_config()
+            if new_name != '' and new_name != self.selected_preset:
+                rename_preset(
+                    self.selected_device,
+                    self.selected_preset,
+                    new_name
+                )
+            # after saving the config, its modification date will be the
+            # newest, so populate_presets will automatically select the
+            # right one again.
+            self.populate_presets()
+            self.get('status_bar').push(
+                CTX_SAVE,
+                f'Saved "{self.selected_preset}"'
+            )
+        except PermissionError as e:
+            window.get('status_bar').push(
+                CTX_ERROR,
+                'Error: Permission denied!'
+            )
+            logger.error(str(e))
 
     def on_delete_preset_clicked(self, button):
         """Delete a preset from the file system."""
