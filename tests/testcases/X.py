@@ -21,10 +21,50 @@
 
 import unittest
 
+from keymapper.X import Mapping
 
-class TestX(unittest.TestCase):
-    # TODO test the mapping object
-    pass
+
+class TestMapping(unittest.TestCase):
+    def setUp(self):
+        self.mapping = Mapping()
+
+    def test_change(self):
+        # 1 is not assigned yet, just add it
+        self.mapping.change(1, 2, 'a')
+        self.assertIsNone(self.mapping.get(1))
+        self.assertEqual(self.mapping.get(2), 'a')
+        self.assertEqual(len(self.mapping), 1)
+
+        # change 2 to 3 and change a to b
+        self.mapping.change(2, 3, 'b')
+        self.assertIsNone(self.mapping.get(2))
+        self.assertEqual(self.mapping.get(3), 'b')
+        self.assertEqual(len(self.mapping), 1)
+
+        # add 4
+        self.mapping.change(None, 4, 'c')
+        self.assertEqual(self.mapping.get(3), 'b')
+        self.assertEqual(self.mapping.get(4), 'c')
+        self.assertEqual(len(self.mapping), 2)
+
+        # change the mapping of 4 to d
+        self.mapping.change(None, 4, 'd')
+        self.assertEqual(self.mapping.get(4), 'd')
+        self.assertEqual(len(self.mapping), 2)
+
+        # this also works in the same way
+        self.mapping.change(4, 4, 'e')
+        self.assertEqual(self.mapping.get(4), 'e')
+        self.assertEqual(len(self.mapping), 2)
+
+    def test_clear(self):
+        self.mapping.change(None, 10, 'NUM1')
+        self.mapping.change(None, 20, 'NUM2')
+        self.mapping.change(None, 30, 'NUM3')
+        self.mapping.clear(20)
+        self.assertEqual(self.mapping.get(10), 'NUM1')
+        self.assertIsNone(self.mapping.get(20))
+        self.assertEqual(self.mapping.get(30), 'NUM3')
 
 
 if __name__ == "__main__":

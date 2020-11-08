@@ -91,10 +91,11 @@ class Mapping:
         Parameters
         ----------
         previous_keycode : int or None
+            If None, will not remove any previous mapping.
         new_keycode : int
         character : string
         """
-        if new_keycode and character and new_keycode != previous_keycode:
+        if new_keycode and character:
             self._mapping[new_keycode] = character
             if new_keycode != previous_keycode:
                 # clear previous mapping of that code, because the line
@@ -112,21 +113,6 @@ class Mapping:
         """
         if self._mapping.get(keycode) is not None:
             del self._mapping[keycode]
-
-    def add(self, keycode, character):
-        """Add a mapping for a hardware key to a character.
-
-        Parameters
-        ----------
-        keycode : int
-        character : string
-        """
-        if self._mapping.get(keycode) is not None:
-            raise KeyError(
-                f'Keycode {keycode} is already mapped '
-                f'to {self._mapping.get(keycode)}'
-            )
-        self._mapping[keycode] = character
 
     def get(self, keycode):
         """Read the character that is mapped to this keycode.
