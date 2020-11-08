@@ -32,6 +32,8 @@ import shutil
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
 
+from keymapper.X import mapping
+
 from test import tmp
 
 
@@ -88,6 +90,31 @@ class Integration(unittest.TestCase):
     def test_can_start(self):
         self.assertIsNotNone(self.window)
         self.assertTrue(self.window.window.get_visible())
+
+    def test_adds_empty_rows(self):
+        rows = len(self.window.get('key_list').get_children())
+        self.assertEqual(rows, 1)
+
+        mapping.change(None, 13, 'a')
+        time.sleep(0.2)
+        gtk_iteration()
+
+        rows = len(self.window.get('key_list').get_children())
+        self.assertEqual(rows, 2)
+
+    def test_rename_and_save(self):
+        mapping.change(None, 14, 'a')
+        self.assertEqual(self.window.selected_preset, 'new preset')
+        self.window.on_save_preset_clicked(None)
+        self.assertEqual(mapping.get(14), 'a')
+
+        mapping.change(None, 14, 'b')
+        self.window.get('preset_name_input').set_text('asdf')
+        self.window.on_save_preset_clicked(None)
+        self.assertEqual(self.window.selected_preset, 'asdf')
+        self.assertTrue(os.path.exists(f'{tmp}/symbols/device_1/asdf'))
+        self.assertTrue(os.path.exists(f'{tmp}/.config/device_1/asdf'))
+        self.assertEqual(mapping.get(14), 'b')
 
     def test_select_device_and_preset(self):
         class FakeDropdown(Gtk.ComboBoxText):

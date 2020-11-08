@@ -34,7 +34,7 @@ class TestConfig(unittest.TestCase):
     def setUp(self):
         self.mapping = Mapping()
         self.mapping.change(None, 10, 'a')
-        self.mapping.change(None, 11, 'NUM1')
+        self.mapping.change(None, 11, 'KP_1')
         self.mapping.change(None, 12, 3)
         if os.path.exists(tmp):
             shutil.rmtree(tmp)
@@ -59,7 +59,7 @@ class TestConfig(unittest.TestCase):
         with open(get_home_path('device_a', 'preset_b'), 'r') as f:
             content = f.read()
             self.assertIn('key <10> { [ a ] };', content)
-            self.assertIn('key <11> { [ NUM1 ] };', content)
+            self.assertIn('key <11> { [ KP_1 ] };', content)
             self.assertIn('key <12> { [ 3 ] };', content)
 
     def test_generate_content(self):
@@ -80,7 +80,7 @@ class TestConfig(unittest.TestCase):
 
         content = generate_symbols_content('device', 'preset', self.mapping)
         self.assertIn('key <10> { [ a ] };', content)
-        self.assertIn('key <11> { [ NUM1 ] };', content)
+        self.assertIn('key <11> { [ KP_1 ] };', content)
         self.assertIn('key <12> { [ 3 ] };', content)
 
 

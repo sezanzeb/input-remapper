@@ -50,6 +50,7 @@ class Mapping:
     """
     def __init__(self):
         self._mapping = {}
+        self.changed = False
 
     def __iter__(self):
         """Iterate over tuples of unique keycodes and their character."""
@@ -82,6 +83,8 @@ class Mapping:
                 in result
             }
 
+        self.changed = False
+
     def change(self, previous_keycode, new_keycode, character):
         """Replace the mapping of a keycode with a different one.
 
@@ -100,8 +103,8 @@ class Mapping:
                 # clear previous mapping of that code, because the line
                 # representing that one will now represent a different one.
                 self.clear(previous_keycode)
-            return True
-        return False
+            self.changed = True
+        return self.changed
 
     def clear(self, keycode):
         """Remove a keycode from the mapping.
@@ -112,6 +115,7 @@ class Mapping:
         """
         if self._mapping.get(keycode) is not None:
             del self._mapping[keycode]
+            self.changed = True
 
     def get(self, keycode):
         """Read the character that is mapped to this keycode.
@@ -121,6 +125,10 @@ class Mapping:
         keycode : int
         """
         return self._mapping.get(keycode)
+
+
+# one mapping object for the whole application
+mapping = Mapping()
 
 
 def ensure_symlink():
@@ -276,7 +284,6 @@ def generate_symbols_content(device, preset, mapping):
     preset : string
     mapping : Mapping
     """
-    # TODO test this function
     system_default = 'us'  # TODO get the system default
 
     if len(mapping) == 0:

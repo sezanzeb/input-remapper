@@ -32,7 +32,7 @@ from gi.repository import Gtk, Gdk, GLib
 
 from keymapper.data import get_data_path
 from keymapper.X import create_setxkbmap_config, apply_preset, \
-    create_preset, Mapping
+    create_preset, mapping
 from keymapper.presets import get_presets, find_newest_preset, \
     delete_preset, rename_preset
 from keymapper.logger import logger, update_verbosity, log_info
@@ -43,7 +43,6 @@ window = None
 
 
 # TODO check for sudo rights
-# TODO NUM1 doesnt work anymore
 
 
 def gtk_iteration():
@@ -54,7 +53,10 @@ def gtk_iteration():
 
 keycode_reader = KeycodeReader()
 
-mapping = Mapping()
+
+CTX_SAVE = 0
+CTX_APPLY = 1
+CTX_KEYCODE = 2
 
 
 class SingleKeyMapping:
@@ -109,10 +111,13 @@ class SingleKeyMapping:
 
         # keycode is already set by some other row
         if mapping.get(new_keycode) is not None:
-            logger.info('Keycode %s is already mapped', new_keycode)
+            msg = f'Keycode {new_keycode} is already mapped'
+            logger.info(msg)
+            window.get('status_bar').push(CTX_KEYCODE, msg)
             return
 
         # it's legal to display the keycode
+        window.get('status_bar').remove_all(CTX_KEYCODE)
         self.keycode.set_label(str(new_keycode))
 
         # the character is empty and therefore the mapping is not complete
@@ -185,7 +190,9 @@ class SingleKeyMapping:
 
     def on_delete_button_clicked(self, *args):
         """Destroy the row and remove it from the config."""
-        mapping.clear()
+        keycode = self.get_keycode()
+        if keycode is not None:
+            mapping.clear(keycode)
         self.delete_callback(self)
 
 
@@ -194,6 +201,14 @@ class Window:
     def __init__(self):
         self.selected_device = None
         self.selected_preset = None
+
+        css_provider = Gtk.CssProvider()
+        css_provider.load_from_path(get_data_path('style.css'))
+        Gtk.StyleContext.add_provider_for_screen(
+            Gdk.Screen.get_default(),
+            css_provider,
+            Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+        )
 
         gladefile = get_data_path('key-mapper.glade')
         builder = Gtk.Builder()
@@ -209,13 +224,7 @@ class Window:
 
         self.select_newest_preset()
 
-        css_provider = Gtk.CssProvider()
-        css_provider.load_from_path(get_data_path('style.css'))
-        Gtk.StyleContext.add_provider_for_screen(
-            Gdk.Screen.get_default(),
-            css_provider,
-            Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
-        )
+        GLib.timeout_add(100, self.check_add_row)
 
     def get(self, name):
         """Get a widget from the window"""
@@ -224,6 +233,18 @@ class Window:
     def on_close(self, *_):
         """Safely close the application."""
         Gtk.main_quit()
+
+    def check_add_row(self):
+        """Ensure that one empty row is available at all times."""
+        rows = len(self.get('key_list').get_children())
+
+        # verify that all mappings are displayed
+        assert rows >= len(mapping)
+
+        if rows == len(mapping):
+            self.add_empty()
+
+        return True
 
     def select_newest_preset(self):
         """Find and select the newest preset."""
@@ -269,10 +290,16 @@ class Window:
     def on_save_preset_clicked(self, button):
         """Save changes to a preset to the file system."""
         new_name = self.get('preset_name_input').get_text()
+        self.save_config()
         if new_name != '' and new_name != self.selected_preset:
             rename_preset(self.selected_device, self.selected_preset, new_name)
-            self.populate_presets()
-        self.save_config()
+        # after saving the config, its modification date will be the newest,
+        # so populate_presets will automatically select the right one again.
+        self.populate_presets()
+        self.get('status_bar').push(
+            CTX_SAVE,
+            f'Saved "{self.selected_preset}"'
+        )
 
     def on_delete_preset_clicked(self, button):
         """Delete a preset from the file system."""
@@ -287,6 +314,10 @@ class Window:
             self.selected_device
         )
         apply_preset(self.selected_device, self.selected_preset)
+        self.get('status_bar').push(
+            CTX_APPLY,
+            f'Applied "{self.selected_preset}"'
+        )
 
     def on_select_device(self, dropdown):
         """List all presets, create one if none exist yet."""
@@ -368,6 +399,9 @@ class Window:
             self.selected_device,
             self.selected_preset
         )
+
+        print('lkjahsdfkjashdkj')
+        print(list(mapping))
 
         create_setxkbmap_config(
             self.selected_device,

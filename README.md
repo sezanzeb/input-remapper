@@ -24,10 +24,8 @@ No idea which one are relevant at the moment
 
 # Tests
 
-sudo is required because some tests actually read /dev stuff.
-
 ```bash
-sudo python3 setup.py install && sudo python3 tests/test.py
+sudo python3 setup.py install && python3 tests/test.py
 ```
 
 # Roadmap

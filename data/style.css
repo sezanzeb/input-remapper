@@ -1,5 +1,15 @@
 list entry {
     background-color: transparent;
+    border-radius: 4px;
+}
+
+list button:not(:focus) {
+    border-color: transparent;
+    background-color: transparent;
+}
+
+list button {
+    border-color: transparent;
 }
 
 .button_container {
