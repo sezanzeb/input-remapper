@@ -58,6 +58,10 @@ CTX_KEYCODE = 2
 CTX_ERROR = 3
 
 
+# TODO test on wayland
+# TODO reorganize classes and files
+
+
 class SingleKeyMapping:
     """A single, configurable key mapping."""
     def __init__(self, device, delete_callback, keycode=None, character=None):
@@ -454,6 +458,7 @@ if __name__ == '__main__':
     if getpass.getuser() != 'root' and 'unittest' not in sys.modules.keys():
         # TODO add a polkit thing like
         #  https://gitlab.manjaro.org/applications/pamac/-/tree/master/data/polkit
+        #  does this require a dependency?
         logger.error('Needs to run with sudo')
         ErrorDialog(
             'Error',

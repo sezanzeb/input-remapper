@@ -44,7 +44,7 @@ def gtk_iteration():
 
 
 def launch(argv=None, bin_path='bin/key-mapper-gtk'):
-    """Start alsacontrol-gtk with the command line argument array argv."""
+    """Start key-mapper-gtk with the command line argument array argv."""
     print('\nLaunching UI')
     if not argv:
         argv = ['-d']
@@ -63,8 +63,7 @@ def launch(argv=None, bin_path='bin/key-mapper-gtk'):
 class Integration(unittest.TestCase):
     """For tests that use the window.
 
-    Try to modify the configuration and .asoundrc only by calling
-    functions of the window.
+    Try to modify the configuration only by calling functions of the window.
     """
     @classmethod
     def setUpClass(cls):
