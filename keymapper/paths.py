@@ -28,10 +28,12 @@ Is a module so that tests can modify them.
 import os
 import subprocess
 
+
 # since this needs to run as sudo,
 # get the home dir of the user who called sudo.
 who = subprocess.check_output('who').decode().split()[0]
 
+# the path in home, is symlinked with SYMBOLS_PATH
 CONFIG_PATH = os.path.join('/home', who, '.config/key-mapper')
 
 # should not contain spaces
@@ -56,6 +58,8 @@ def get_home_path(device, preset=None):
 
 def get_usr_path(device, preset=None):
     """Get the path to the config file in /usr.
+
+    This folder is a symlink and the files are in ~/.config/key-mapper
 
     If preset is omitted, returns the folder for the device.
     """

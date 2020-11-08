@@ -44,7 +44,6 @@ window = None
 
 # TODO check for sudo rights
 # TODO NUM1 doesnt work anymore
-# TODO write some tests?
 
 
 def gtk_iteration():

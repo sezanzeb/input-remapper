@@ -39,8 +39,7 @@ from keymapper.paths import get_home_path, get_usr_path, KEYCODES_PATH, \
     CONFIG_PATH, SYMBOLS_PATH
 from keymapper.logger import logger
 from keymapper.data import get_data_path
-from keymapper.presets import get_presets
-from keymapper.linux import get_devices, can_grab
+from keymapper.linux import get_devices
 
 
 class Mapping:
@@ -96,7 +95,7 @@ class Mapping:
         character : string
         """
         if new_keycode and character:
-            self._mapping[new_keycode] = character
+            self._mapping[new_keycode] = str(character)
             if new_keycode != previous_keycode:
                 # clear previous mapping of that code, because the line
                 # representing that one will now represent a different one.
@@ -194,7 +193,7 @@ def create_setxkbmap_config(device, preset, mapping):
 
     logger.info('Writing key mappings')
     with open(home_preset_path, 'w') as f:
-        contents = generate_symbols_file_content(device, preset, mapping)
+        contents = generate_symbols_content(device, preset, mapping)
         if contents is not None:
             f.write(contents)
 
@@ -260,12 +259,16 @@ def create_identity_mapping():
 
     if not os.path.exists(KEYCODES_PATH):
         logger.info('Creating "%s"', KEYCODES_PATH)
+        os.makedirs(os.path.dirname(KEYCODES_PATH), exist_ok=True)
+        os.mknod(KEYCODES_PATH)
     with open(KEYCODES_PATH, 'w') as keycodes:
         keycodes.write(result)
 
 
-def generate_symbols_file_content(device, preset, mapping):
+def generate_symbols_content(device, preset, mapping):
     """Create config contents to be placed in /usr/share/X11/xkb/symbols.
+
+    This file contains the mapping of the preset as expected by X.
 
     Parameters
     ----------
@@ -276,15 +279,21 @@ def generate_symbols_file_content(device, preset, mapping):
     # TODO test this function
     system_default = 'us'  # TODO get the system default
 
+    if len(mapping) == 0:
+        raise ValueError('Mapping is empty')
+
     # If the symbols file contains key codes that are not present in
     # the keycodes file, THE WHOLE X SESSION WILL CRASH!
     if not os.path.exists(KEYCODES_PATH):
-        raise ValueError('Expected the keycodes file to exist.')
+        raise FileNotFoundError('Expected the keycodes file to exist')
     with open(KEYCODES_PATH, 'r') as f:
         keycodes = re.findall(r'<.+?>', f.read())
 
     xkb_symbols = []
     for keycode, character in mapping:
+        # since the side effect of a broken config is so severe, make
+        # sure to check the presence of the keycode once again even though
+        # their content is always the same (unless modified by a user).
         if f'<{keycode}>' not in keycodes:
             logger.error(f'Unknown keycode <{keycode}> for "{character}"')
             # continue, otherwise X would crash when loading
