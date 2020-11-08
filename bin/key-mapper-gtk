@@ -438,6 +438,8 @@ if __name__ == '__main__':
     log_info()
 
     if getpass.getuser() != 'root' and 'unittest' not in sys.modules.keys():
+        # TODO
+        # add a polkit thing like https://gitlab.manjaro.org/applications/pamac/-/tree/master/data/polkit
         logger.error('Needs to run with sudo')
         ErrorDialog(
             'Error',
