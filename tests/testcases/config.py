@@ -23,7 +23,7 @@ import os
 import unittest
 import shutil
 
-from keymapper.X import Mapping, generate_symbols_content, \
+from keymapper.X import mapping, generate_symbols_content, \
     create_identity_mapping, create_setxkbmap_config, get_home_path
 from keymapper.paths import KEYCODES_PATH, SYMBOLS_PATH, CONFIG_PATH
 
@@ -32,15 +32,15 @@ from test import tmp
 
 class TestConfig(unittest.TestCase):
     def setUp(self):
-        self.mapping = Mapping()
-        self.mapping.change(None, 10, 'a')
-        self.mapping.change(None, 11, 'KP_1')
-        self.mapping.change(None, 12, 3)
+        mapping.empty()
+        mapping.change(None, 10, 'a')
+        mapping.change(None, 11, 'KP_1')
+        mapping.change(None, 12, 3)
         if os.path.exists(tmp):
             shutil.rmtree(tmp)
 
     def test_create_setxkbmap_config(self):
-        create_setxkbmap_config('device a', 'preset b', self.mapping)
+        create_setxkbmap_config('device a', 'preset b')
 
         self.assertTrue(os.path.exists(os.path.join(
             CONFIG_PATH,
@@ -66,7 +66,7 @@ class TestConfig(unittest.TestCase):
         self.assertRaises(
             FileNotFoundError,
             generate_symbols_content,
-            'device', 'preset', self.mapping
+            'device', 'preset'
         )
 
         # create the identity mapping, because it is required for
@@ -75,10 +75,13 @@ class TestConfig(unittest.TestCase):
         self.assertTrue(os.path.exists(KEYCODES_PATH))
         with open(KEYCODES_PATH, 'r') as f:
             keycodes = f.read()
-            self.assertIn('<8> = 8;', keycodes)
-            self.assertIn('<255> = 255;', keycodes)
+            self.assertNotIn('<9> = 9;', keycodes)
+            self.assertIn('<10> = 10;', keycodes)
+            self.assertIn('<11> = 11;', keycodes)
+            self.assertIn('<12> = 12;', keycodes)
+            self.assertNotIn('<13> = 13;', keycodes)
 
-        content = generate_symbols_content('device', 'preset', self.mapping)
+        content = generate_symbols_content('device', 'preset')
         self.assertIn('key <10> { [ a ] };', content)
         self.assertIn('key <11> { [ KP_1 ] };', content)
         self.assertIn('key <12> { [ 3 ] };', content)
