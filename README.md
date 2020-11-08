@@ -33,9 +33,9 @@ sudo python3 setup.py install && python3 tests/test.py
 - [x] show a dropdown to select an arbitrary device from `xinput list`
 - [x] creating presets per device
 - [x] renaming presets
-- [ ] show a list for mappings `[keycode, current key for that keycode -> target]`
-- [ ] make that list extend itself automatically
-- [ ] read keycodes with something like xev
+- [x] show a list for mappings `[keycode -> target]`
+- [x] make that list extend itself automatically
+- [x] read keycodes with something like xev
 - [x] generate a file for /usr/share/X11/xkb/symbols/ for each preset, (symlink to home .config/?)
 - [x] load that file with `setxkbmap`
 - [ ] automatically load the preset (on startup?, udev on mouse connect?)
