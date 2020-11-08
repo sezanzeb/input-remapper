@@ -114,6 +114,11 @@ class Integration(unittest.TestCase):
         gtk_iteration()
         self.assertEqual(self.window.selected_preset, 'new preset')
 
+        self.assertListEqual(
+            sorted(os.listdir(f'{tmp}/symbols/device_1')),
+            ['new_preset', 'new_preset_2']
+        )
+
         # now try to change the name
         self.window.get('preset_name_input').set_text('abc 123')
         gtk_iteration()
@@ -132,7 +137,7 @@ class Integration(unittest.TestCase):
         )
         self.assertListEqual(
             sorted(os.listdir(f'{tmp}/symbols/device_1')),
-            ['abc_123', 'new_preset', 'new_preset_2']
+            ['abc_123', 'new_preset_2']
         )
 
 

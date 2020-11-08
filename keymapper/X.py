@@ -96,7 +96,7 @@ class Mapping:
         """
         print('change', previous_keycode, new_keycode, character)
         if new_keycode and character and new_keycode != previous_keycode:
-            self.add(new_keycode, character)
+            self._mapping[new_keycode] = character
             if new_keycode != previous_keycode:
                 # clear previous mapping of that code, because the line
                 # representing that one will now represent a different one.
