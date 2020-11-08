@@ -23,6 +23,7 @@ import unittest
 
 
 class TestX(unittest.TestCase):
+    # TODO test the mapping object
     pass
 
 
