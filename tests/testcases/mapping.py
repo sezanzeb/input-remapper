@@ -29,7 +29,7 @@ class TestMapping(unittest.TestCase):
         self.mapping = Mapping()
 
     def test_change(self):
-        # 1 is not assigned yet, just add it
+        # 1 is not assigned yet, ignore it
         self.mapping.change(1, 2, 'a')
         self.assertIsNone(self.mapping.get(1))
         self.assertEqual(self.mapping.get(2), 'a')
@@ -65,6 +65,15 @@ class TestMapping(unittest.TestCase):
         self.assertEqual(self.mapping.get(10), 'NUM1')
         self.assertIsNone(self.mapping.get(20))
         self.assertEqual(self.mapping.get(30), 'NUM3')
+
+    def test_iterate_and_convert(self):
+        self.mapping.change(None, 10, 1)
+        self.mapping.change(None, 20, 2)
+        self.mapping.change(None, 30, 3)
+        self.assertListEqual(
+            list(self.mapping),
+            [(10, '1'), (20, '2'), (30, '3')]
+        )
 
 
 if __name__ == "__main__":

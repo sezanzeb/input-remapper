@@ -26,7 +26,8 @@ import os
 import time
 import glob
 
-from keymapper.paths import CONFIG_PATH, get_home_path
+from keymapper.paths import get_home_path, SYMBOLS_PATH, CONFIG_PATH, \
+    KEYCODES_PATH
 from keymapper.logger import logger
 from keymapper.linux import get_devices
 
@@ -51,17 +52,6 @@ def get_presets(device):
     # the highest timestamp to the front
     presets.reverse()
     return [preset.replace('_', ' ') for preset in presets]
-
-
-def get_mappings(device, preset):
-    """Get all configured buttons of the preset.
-
-    Parameters
-    ----------
-    device : string
-    preset : string
-    """
-    pass
 
 
 def get_any_preset():
@@ -99,7 +89,7 @@ def find_newest_preset(device=None):
         )
 
     if len(paths) == 0:
-        logger.debug('No presets found.')
+        logger.debug('No presets found')
         return get_any_preset()
 
     online_devices = [
@@ -118,7 +108,7 @@ def find_newest_preset(device=None):
             break
 
     if newest_path is None:
-        logger.debug('None of the configured devices is currently online.')
+        logger.debug('None of the configured devices is currently online')
         return get_any_preset()
 
     # ui: no underscores, filesystem: no whitespaces
