@@ -422,7 +422,6 @@ class ErrorDialog:
         builder.get_object('secondary_error_label').set_text(secondary)
         error_dialog.run()
         error_dialog.hide()
-        exit(1)
 
 
 if __name__ == '__main__':
@@ -437,15 +436,15 @@ if __name__ == '__main__':
     update_verbosity(options.debug)
     log_info()
 
+    window = Window()
+
     if getpass.getuser() != 'root' and 'unittest' not in sys.modules.keys():
-        # TODO
-        # add a polkit thing like https://gitlab.manjaro.org/applications/pamac/-/tree/master/data/polkit
+        # TODO add a polkit thing like
+        #  https://gitlab.manjaro.org/applications/pamac/-/tree/master/data/polkit
         logger.error('Needs to run with sudo')
         ErrorDialog(
             'Error',
-            'Key Mapper needs administrator privileges to run.'
+            'Key Mapper needs administrator privileges to run properly.'
         )
-    else:
-        window = Window()
 
     Gtk.main()
