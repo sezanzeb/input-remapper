@@ -120,7 +120,7 @@ def get_devices():
     for device in devices:
         # only keyboard devices
         # https://www.kernel.org/doc/html/latest/input/event-codes.html
-        if not evdev.ecodes.EV_KEY in device.capabilities().keys():
+        if evdev.ecodes.EV_KEY not in device.capabilities().keys():
             continue
 
         usb = device.phys.split('/')[0]

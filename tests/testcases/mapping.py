@@ -27,10 +27,12 @@ from keymapper.X import Mapping
 class TestMapping(unittest.TestCase):
     def setUp(self):
         self.mapping = Mapping()
+        self.assertFalse(self.mapping.changed)
 
     def test_change(self):
         # 1 is not assigned yet, ignore it
         self.mapping.change(1, 2, 'a')
+        self.assertTrue(self.mapping.changed)
         self.assertIsNone(self.mapping.get(1))
         self.assertEqual(self.mapping.get(2), 'a')
         self.assertEqual(len(self.mapping), 1)
@@ -58,13 +60,22 @@ class TestMapping(unittest.TestCase):
         self.assertEqual(len(self.mapping), 2)
 
     def test_clear(self):
-        self.mapping.change(None, 10, 'NUM1')
-        self.mapping.change(None, 20, 'NUM2')
-        self.mapping.change(None, 30, 'NUM3')
+        # does nothing
+        self.mapping.clear(40)
+        self.assertFalse(self.mapping.changed)
+
+        self.mapping._mapping[40] = 'b'
+        self.mapping.clear(40)
+        self.assertTrue(self.mapping.changed)
+
+        self.mapping.change(None, 10, 'KP_1')
+        self.assertTrue(self.mapping.changed)
+        self.mapping.change(None, 20, 'KP_2')
+        self.mapping.change(None, 30, 'KP_3')
         self.mapping.clear(20)
-        self.assertEqual(self.mapping.get(10), 'NUM1')
+        self.assertEqual(self.mapping.get(10), 'KP_1')
         self.assertIsNone(self.mapping.get(20))
-        self.assertEqual(self.mapping.get(30), 'NUM3')
+        self.assertEqual(self.mapping.get(30), 'KP_3')
 
     def test_iterate_and_convert(self):
         self.mapping.change(None, 10, 1)
