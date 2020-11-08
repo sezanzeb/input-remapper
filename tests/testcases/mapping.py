@@ -59,6 +59,15 @@ class TestMapping(unittest.TestCase):
         self.assertEqual(self.mapping.get(4), 'e')
         self.assertEqual(len(self.mapping), 2)
 
+        # and this
+        self.mapping.change('4', '4', 'f')
+        self.assertEqual(self.mapping.get(4), 'f')
+        self.assertEqual(len(self.mapping), 2)
+
+        # non-ints are ignored
+        self.mapping.change('a', 'b', 'c')
+        self.assertEqual(len(self.mapping), 2)
+
     def test_clear(self):
         # does nothing
         self.mapping.clear(40)

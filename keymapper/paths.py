@@ -28,7 +28,8 @@ Is a module so that tests can modify them.
 import os
 
 
-# the path in home, is symlinked with SYMBOLS_PATH
+# the path in home, is symlinked with SYMBOLS_PATH.
+# getlogin gets the user who ran sudo
 CONFIG_PATH = os.path.join('/home', os.getlogin(), '.config/key-mapper')
 
 # should not contain spaces

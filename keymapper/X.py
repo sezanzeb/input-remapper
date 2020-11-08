@@ -99,6 +99,19 @@ class Mapping:
         new_keycode : int
         character : string
         """
+        try:
+            new_keycode = int(new_keycode)
+        except ValueError:
+            logger.error('Cannot use %s as keycode', new_keycode)
+            return False
+
+        if previous_keycode is not None:
+            try:
+                previous_keycode = int(previous_keycode)
+            except ValueError:
+                logger.error('Cannot use %s as keycode', previous_keycode)
+                return False
+
         if new_keycode and character:
             self._mapping[new_keycode] = str(character)
             if new_keycode != previous_keycode:
@@ -106,7 +119,9 @@ class Mapping:
                 # representing that one will now represent a different one.
                 self.clear(previous_keycode)
             self.changed = True
-        return self.changed
+            return True
+
+        return False
 
     def clear(self, keycode):
         """Remove a keycode from the mapping.
