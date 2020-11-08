@@ -40,3 +40,5 @@ sudo python3 setup.py install && python3 tests/test.py
 - [x] load that file with `setxkbmap`
 - [ ] highlight changes and alert before discarding unsaved changes
 - [ ] automatically load the preset (on startup?, udev on mouse connect?)
+- [ ] make it work on wayland
+- [ ] add to the AUR, provide .deb and .appimage files
