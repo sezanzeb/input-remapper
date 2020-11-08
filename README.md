@@ -38,4 +38,5 @@ sudo python3 setup.py install && python3 tests/test.py
 - [x] read keycodes with something like xev
 - [x] generate a file for /usr/share/X11/xkb/symbols/ for each preset, (symlink to home .config/?)
 - [x] load that file with `setxkbmap`
+- [ ] highlight changes
 - [ ] automatically load the preset (on startup?, udev on mouse connect?)
