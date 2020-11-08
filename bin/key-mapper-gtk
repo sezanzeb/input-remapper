@@ -91,7 +91,7 @@ class SingleKeyMapping:
 
         def iterate():
             self.check_newest_keycode()
-            return self.keycode.is_focus()
+            return self.keycode.is_focus() and window.window.is_active()
 
         GLib.timeout_add(1000 / 30, iterate)
 
@@ -400,13 +400,9 @@ class Window:
             self.selected_preset
         )
 
-        print('lkjahsdfkjashdkj')
-        print(list(mapping))
-
         create_setxkbmap_config(
             self.selected_device,
-            self.selected_preset,
-            mapping
+            self.selected_preset
         )
 
 

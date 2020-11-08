@@ -22,7 +22,8 @@
 """Stuff that interacts with the X Server, be it commands or config files.
 
 TODO create a base class to standardize the interface if a different
-  display server should be supported.
+  display server should be supported. Or does wayland use the same
+  config files?
 
 Resources:
 [1] https://wiki.archlinux.org/index.php/Keyboard_input
@@ -33,6 +34,7 @@ Resources:
 
 import os
 import re
+import shutil
 import subprocess
 
 from keymapper.paths import get_home_path, get_usr_path, KEYCODES_PATH, \
@@ -117,6 +119,11 @@ class Mapping:
             del self._mapping[keycode]
             self.changed = True
 
+    def empty(self):
+        """Remove all mappings."""
+        self._mapping = {}
+        self.changed = True
+
     def get(self, keycode):
         """Read the character that is mapped to this keycode.
 
@@ -161,11 +168,19 @@ def create_preset(device, name=None):
         logger.info('Creating new file %s', path)
         os.makedirs(os.path.dirname(path), exist_ok=True)
         os.mknod(path)
+
+    # give those files to the user
+    user = os.getlogin()
+    for root, dirs, files in os.walk(CONFIG_PATH):
+        shutil.chown(root, user, user)
+        for file in files:
+            shutil.chown(os.path.join(root, file), user, user)
+
     ensure_symlink()
     return name
 
 
-def create_setxkbmap_config(device, preset, mapping):
+def create_setxkbmap_config(device, preset):
     """Generate a config file for setxkbmap.
 
     The file is created in ~/.config/key-mapper/<device>/<preset> and,
@@ -179,7 +194,6 @@ def create_setxkbmap_config(device, preset, mapping):
     ----------
     device : string
     preset : string
-    mapping : Mapping
     """
     if len(mapping) == 0:
         logger.debug('Got empty mappings')
@@ -201,7 +215,7 @@ def create_setxkbmap_config(device, preset, mapping):
 
     logger.info('Writing key mappings')
     with open(home_preset_path, 'w') as f:
-        contents = generate_symbols_content(device, preset, mapping)
+        contents = generate_symbols_content(device, preset)
         if contents is not None:
             f.write(contents)
 
@@ -252,8 +266,10 @@ def create_identity_mapping():
     # and the minimum 8
     maximum = 255
     minimum = 8
-    for code in range(minimum, maximum + 1):
-        xkb_keycodes.append(f'<{code}> = {code};')
+    for keycode, _ in mapping:
+        # only those keys that are in the mapping, so that the others
+        # get mappings from the default keyboard.
+        xkb_keycodes.append(f'<{keycode}> = {keycode};')
 
     template_path = get_data_path('xkb_keycodes_template')
     with open(template_path, 'r') as template_file:
@@ -273,7 +289,7 @@ def create_identity_mapping():
         keycodes.write(result)
 
 
-def generate_symbols_content(device, preset, mapping):
+def generate_symbols_content(device, preset):
     """Create config contents to be placed in /usr/share/X11/xkb/symbols.
 
     This file contains the mapping of the preset as expected by X.
@@ -282,7 +298,6 @@ def generate_symbols_content(device, preset, mapping):
     ----------
     device : string
     preset : string
-    mapping : Mapping
     """
     system_default = 'us'  # TODO get the system default
 
@@ -298,9 +313,6 @@ def generate_symbols_content(device, preset, mapping):
 
     xkb_symbols = []
     for keycode, character in mapping:
-        # since the side effect of a broken config is so severe, make
-        # sure to check the presence of the keycode once again even though
-        # their content is always the same (unless modified by a user).
         if f'<{keycode}>' not in keycodes:
             logger.error(f'Unknown keycode <{keycode}> for "{character}"')
             # continue, otherwise X would crash when loading
