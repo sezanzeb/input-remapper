@@ -33,7 +33,7 @@ from gi.repository import Gtk
 
 from keymapper.logger import logger, update_verbosity, log_info
 from keymapper.gtk.error import ErrorDialog
-from keymapper.gtk.window import launch
+from keymapper.gtk.window import Window
 
 
 if __name__ == '__main__':
@@ -48,7 +48,7 @@ if __name__ == '__main__':
     update_verbosity(options.debug)
     log_info()
 
-    window = launch()
+    window = Window()
 
     if getpass.getuser() != 'root' and 'unittest' not in sys.modules.keys():
         # TODO add a polkit thing like

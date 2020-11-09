@@ -163,7 +163,7 @@ class Window:
                 f'Saved "{self.selected_preset}"'
             )
         except PermissionError as e:
-            window.get('status_bar').push(
+            self.get('status_bar').push(
                 CTX_ERROR,
                 'Error: Permission denied!'
             )
@@ -269,16 +269,3 @@ class Window:
             self.selected_device,
             self.selected_preset
         )
-
-
-window = None
-
-
-def launch():
-    """Construct the window and prepare it for other modules to import.
-
-    You still have to run the GTK main loop.
-    """
-    global window
-    window = Window()
-    return window
