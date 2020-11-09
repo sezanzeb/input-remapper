@@ -271,4 +271,14 @@ class Window:
         )
 
 
-window = Window()
+window = None
+
+
+def launch():
+    """Construct the window and prepare it for other modules to import.
+
+    You still have to run the GTK main loop.
+    """
+    global window
+    window = Window()
+    return window

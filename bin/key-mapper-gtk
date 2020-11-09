@@ -19,6 +19,8 @@
 # along with key-mapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
+"""Starts the user interface."""
+
 
 import sys
 import getpass
@@ -30,12 +32,8 @@ gi.require_version('GLib', '2.0')
 from gi.repository import Gtk
 
 from keymapper.logger import logger, update_verbosity, log_info
-from keymapper.gtk.window import Window
 from keymapper.gtk.error import ErrorDialog
-from keymapper.gtk.window import window
-
-
-window = None
+from keymapper.gtk.window import launch
 
 
 if __name__ == '__main__':
@@ -50,7 +48,7 @@ if __name__ == '__main__':
     update_verbosity(options.debug)
     log_info()
 
-    window = Window()
+    window = launch()
 
     if getpass.getuser() != 'root' and 'unittest' not in sys.modules.keys():
         # TODO add a polkit thing like
