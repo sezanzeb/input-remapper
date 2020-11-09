@@ -163,7 +163,7 @@ class Window:
                 f'Saved "{self.selected_preset}"'
             )
         except PermissionError as e:
-            window.get('status_bar').push(
+            self.get('status_bar').push(
                 CTX_ERROR,
                 'Error: Permission denied!'
             )
@@ -269,6 +269,3 @@ class Window:
             self.selected_device,
             self.selected_preset
         )
-
-
-window = Window()
