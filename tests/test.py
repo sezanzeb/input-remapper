@@ -30,7 +30,7 @@ import unittest
 from keymapper import paths
 paths.SYMBOLS_PATH = '/tmp/key-mapper-test/symbols'
 paths.CONFIG_PATH = '/tmp/key-mapper-test/.config'
-paths.KEYCODES_PATH = '/tmp/key-mapper-test/keycodes'
+paths.KEYCODES_PATH = '/tmp/key-mapper-test/keycodes/key-mapper'
 
 
 from keymapper import linux

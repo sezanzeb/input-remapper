@@ -19,7 +19,7 @@
 # along with key-mapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
-"""Query settings."""
+"""Get stuff from /usr/share/key-mapper, depending on the prefix."""
 
 
 import os

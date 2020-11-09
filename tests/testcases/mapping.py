@@ -21,7 +21,7 @@
 
 import unittest
 
-from keymapper.X import Mapping
+from keymapper.mapping import Mapping
 
 
 class TestMapping(unittest.TestCase):

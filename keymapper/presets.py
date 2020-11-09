@@ -19,15 +19,14 @@
 # along with key-mapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
-"""Helperfunctions to find device ids, names, and to load configs."""
+"""Helperfunctions to find device ids, names, and to load presets."""
 
 
 import os
 import time
 import glob
 
-from keymapper.paths import get_home_path, SYMBOLS_PATH, CONFIG_PATH, \
-    KEYCODES_PATH
+from keymapper.paths import get_home_path, CONFIG_PATH
 from keymapper.logger import logger
 from keymapper.linux import get_devices
 
@@ -131,7 +130,7 @@ def delete_preset(device, preset):
     os.remove(preset_path)
 
     device_path = get_home_path(device)
-    if len(os.listdir(device_path)) == 0:
+    if os.path.exists(device_path) and len(os.listdir(device_path)) == 0:
         logger.debug('Removing empty dir "%s"', device_path)
         os.remove(device_path)
 
