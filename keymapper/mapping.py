@@ -19,13 +19,9 @@
 # along with key-mapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
-"""TODO"""
+"""Contains and manages mappings."""
 
 
-import os
-import re
-
-from keymapper.paths import get_home_path
 from keymapper.logger import logger
 
 
@@ -45,34 +41,6 @@ class Mapping:
 
     def __len__(self):
         return len(self._mapping)
-
-    def load(self, device, preset):
-        """Parse the X config to replace the current mapping with that one."""
-        # TODO put that logic out of the mapper to make mapper display server
-        #   agnostic
-        path = get_home_path(device, preset)
-
-        if not os.path.exists(path):
-            logger.debug(
-                'Tried to load non existing preset "%s" for %s',
-                preset, device
-            )
-            self._mapping = {}
-            return
-
-        with open(path, 'r') as f:
-            # from "key <12> { [ 1 ] };" extract 12 and 1,
-            # avoid lines that start with special characters
-            # (might be comments)
-            result = re.findall(r'\n\s+?key <(.+?)>.+?\[\s+(\w+)', f.read())
-            logger.debug('Found %d mappings in this preset', len(result))
-            self._mapping = {
-                int(keycode): character
-                for keycode, character
-                in result
-            }
-
-        self.changed = False
 
     def change(self, previous_keycode, new_keycode, character):
         """Replace the mapping of a keycode with a different one.

@@ -4,7 +4,6 @@
 // /usr/share/X11/xkb/keycodes/key-mapper
 
 default xkb_symbols "basic" {{
-    include "{system_default}"
     name[Group1] = "{name}";
     {xkb_symbols}
 }};

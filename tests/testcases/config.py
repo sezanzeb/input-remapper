@@ -75,11 +75,8 @@ class TestConfig(unittest.TestCase):
         self.assertTrue(os.path.exists(KEYCODES_PATH))
         with open(KEYCODES_PATH, 'r') as f:
             keycodes = f.read()
-            self.assertNotIn('<9> = 9;', keycodes)
-            self.assertIn('<10> = 10;', keycodes)
-            self.assertIn('<11> = 11;', keycodes)
-            self.assertIn('<12> = 12;', keycodes)
-            self.assertNotIn('<13> = 13;', keycodes)
+            self.assertIn('<8> = 8;', keycodes)
+            self.assertIn('<255> = 255;', keycodes)
 
         content = generate_symbols_content('device', 'preset')
         self.assertIn('key <10> { [ a ] };', content)

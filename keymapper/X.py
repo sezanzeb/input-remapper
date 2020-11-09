@@ -102,7 +102,6 @@ def create_setxkbmap_config(device, preset):
     device : string
     preset : string
     """
-    print('create_setxkbmap_config', len(mapping), mapping._mapping)
     if len(mapping) == 0:
         logger.debug('Got empty mappings')
         return None
@@ -175,9 +174,7 @@ def create_identity_mapping():
     # and the minimum 8
     maximum = 255
     minimum = 8
-    for keycode, _ in mapping:
-        # only those keys that are in the mapping, so that the others
-        # get mappings from the default keyboard.
+    for keycode in range(minimum, maximum + 1):
         xkb_keycodes.append(f'<{keycode}> = {keycode};')
 
     template_path = get_data_path('xkb_keycodes_template')
@@ -191,7 +188,7 @@ def create_identity_mapping():
     )
 
     if not os.path.exists(KEYCODES_PATH):
-        logger.info('Creating "%s"', KEYCODES_PATH)
+        logger.debug('Creating "%s"', KEYCODES_PATH)
         os.makedirs(os.path.dirname(KEYCODES_PATH), exist_ok=True)
         os.mknod(KEYCODES_PATH)
     with open(KEYCODES_PATH, 'w') as keycodes:
@@ -208,8 +205,6 @@ def generate_symbols_content(device, preset):
     device : string
     preset : string
     """
-    system_default = 'us'  # TODO get the system default
-
     if len(mapping) == 0:
         raise ValueError('Mapping is empty')
 
@@ -224,7 +219,7 @@ def generate_symbols_content(device, preset):
     for keycode, character in mapping:
         if f'<{keycode}>' not in keycodes:
             logger.error(f'Unknown keycode <{keycode}> for "{character}"')
-            # continue, otherwise X would crash when loading
+            # don't append that one, otherwise X would crash when loading
             continue
         xkb_symbols.append(f'key <{keycode}> {{ [ {character} ] }};')
     if len(xkb_symbols) == 0:
@@ -237,8 +232,7 @@ def generate_symbols_content(device, preset):
 
     result = template.format(
         name=f'{device}/{preset}',
-        xkb_symbols='\n    '.join(xkb_symbols),
-        system_default=system_default
+        xkb_symbols='\n    '.join(xkb_symbols)
     )
 
     return result
@@ -260,3 +254,27 @@ def get_xinput_id_mapping():
     names = [name for name in names if name != '']
     ids = [int(id) for id in ids if id != '']
     return zip(names, ids)
+
+
+def parse_symbols_file(device, preset):
+    """Parse a symbols file and return the keycodes."""
+    path = get_home_path(device, preset)
+
+    if not os.path.exists(path):
+        logger.debug(
+            'Tried to load non existing preset "%s" for %s',
+            preset, device
+        )
+        mapping.empty()
+        mapping.changed = False
+        return
+
+    with open(path, 'r') as f:
+        # from "key <12> { [ 1 ] };" extract 12 and 1,
+        # avoid lines that start with special characters
+        # (might be comments)
+        result = re.findall(r'\n\s+?key <(.+?)>.+?\[\s+(\w+)', f.read())
+        logger.debug('Found %d mappings in this preset', len(result))
+        for keycode, character in result:
+            mapping.changed = False
+            mapping.change(None, int(keycode), character)

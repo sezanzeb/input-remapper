@@ -29,7 +29,7 @@ from gi.repository import Gtk, Gdk, GLib
 
 from keymapper.data import get_data_path
 from keymapper.X import create_setxkbmap_config, apply_preset, \
-    create_preset, mapping
+    create_preset, mapping, parse_symbols_file
 from keymapper.presets import get_presets, find_newest_preset, \
     delete_preset, rename_preset
 from keymapper.logger import logger
@@ -141,6 +141,7 @@ class Window:
         """Remove all rows from the mappings table."""
         key_list = self.get('key_list')
         key_list.forall(key_list.remove)
+        mapping.empty()
 
     def on_save_preset_clicked(self, button):
         """Save changes to a preset to the file system."""
@@ -215,10 +216,7 @@ class Window:
         logger.debug('Selecting preset "%s"', preset)
 
         self.selected_preset = preset
-        mapping.load(
-            self.selected_device,
-            self.selected_preset
-        )
+        parse_symbols_file(self.selected_device, self.selected_preset)
 
         key_list = self.get('key_list')
         for keycode, character in mapping:

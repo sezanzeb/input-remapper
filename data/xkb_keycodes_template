@@ -3,6 +3,5 @@
 default xkb_keycodes "basic" {{
     minimum = {minimum};
     maximum = {maximum};
-    include "evdev"
     {xkb_keycodes}
 }};
