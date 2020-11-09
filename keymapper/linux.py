@@ -19,7 +19,7 @@
 # along with key-mapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
-"""Device stuff that is independent from the display server."""
+"""Device and evdev stuff that is independent from the display server."""
 
 
 import subprocess
@@ -93,6 +93,9 @@ class KeycodeReader:
                     # than the ones reported by xev
                     newest_keycode = event.code + 8
         return newest_keycode
+
+
+keycode_reader = KeycodeReader()
 
 
 def get_devices():

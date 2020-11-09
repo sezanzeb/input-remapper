@@ -19,10 +19,7 @@
 # along with key-mapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
-"""Path constants to be used.
-
-Is a module so that tests can modify them.
-"""
+"""Path constants to be used."""
 
 
 import os

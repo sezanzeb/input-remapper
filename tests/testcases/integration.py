@@ -32,7 +32,7 @@ import shutil
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
 
-from keymapper.X import mapping
+from keymapper.mapping import mapping
 
 from test import tmp
 
@@ -129,9 +129,9 @@ class Integration(unittest.TestCase):
         self.assertEqual(self.window.selected_device, 'device 1')
         self.assertEqual(self.window.selected_preset, 'new preset')
 
+        # create another one
         self.window.on_create_preset_clicked(None)
         gtk_iteration()
-        # until save is clicked, this is still not saved
         self.assertTrue(os.path.exists(f'{tmp}/symbols/device_1/new_preset'))
         self.assertTrue(os.path.exists(f'{tmp}/symbols/device_1/new_preset_2'))
         self.assertEqual(self.window.selected_preset, 'new preset 2')
@@ -150,12 +150,12 @@ class Integration(unittest.TestCase):
         gtk_iteration()
         self.assertEqual(self.window.selected_preset, 'new preset')
         self.assertFalse(os.path.exists(f'{tmp}/symbols/device_1/abc_123'))
+        mapping.change(None, 10, '1')
         self.window.on_save_preset_clicked(None)
+        self.assertTrue(os.path.exists(f'{tmp}/keycodes/key-mapper'))
         gtk_iteration()
         self.assertEqual(self.window.selected_preset, 'abc 123')
         self.assertTrue(os.path.exists(f'{tmp}/symbols/device_1/abc_123'))
-
-        # TODO test presence of file in {tmp}/keycodes
 
         self.assertListEqual(
             sorted(os.listdir(f'{tmp}/symbols')),
