@@ -70,13 +70,18 @@ class KeycodeReader:
         If read is called without prior start_reading, no keycodes
         will be available.
         """
-        logger.debug('Starting reading keycodes for %s', device)
+        paths = _devices[device]['paths']
+
+        logger.debug(
+            'Starting reading keycodes for %s on %s',
+            device,
+            ', '.join(paths)
+        )
 
         # Watch over each one of the potentially multiple devices per hardware
-        paths = _devices[device]['paths']
         self.virtual_devices = [
             evdev.InputDevice(path)
-            for path in paths[:1]
+            for path in paths
         ]
 
     def read(self):
@@ -87,7 +92,7 @@ class KeycodeReader:
                 event = virtual_device.read_one()
                 if event is None:
                     break
-                elif event.type == evdev.ecodes.EV_KEY and event.value == 1:
+                if event.type == evdev.ecodes.EV_KEY and event.value == 1:
                     # value: 1 for down, 0 for up, 2 for hold.
                     # this happens to report key codes that are 8 lower
                     # than the ones reported by xev
