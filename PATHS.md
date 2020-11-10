@@ -4,7 +4,7 @@ Stuff has to be placed in `/usr/share/X11/xkb` to my knowledge. In order to
 be able to make backups of the configs, which would be expected in the
 users home directory, this is symlinked to home where the actual files are.
 
-Every user gets a path within that /usr directory which is very
+Every user gets a path within that `/usr/...` directory which is very
 unconventional, but it works. This way the presets of multiple users
 don't clash.
 
