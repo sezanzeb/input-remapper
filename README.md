@@ -38,6 +38,7 @@ sudo python3 setup.py install && python3 tests/test.py
 - [x] read keycodes with something like xev
 - [x] generate a file for /usr/share/X11/xkb/symbols/ for each preset
 - [x] load that file with `setxkbmap`
+- [x] keep the system defaults for unmapped buttons
 - [ ] highlight changes and alert before discarding unsaved changes
 - [ ] automatically load the preset (on startup?, udev on mouse connect?)
 - [ ] make it work on wayland
