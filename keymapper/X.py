@@ -62,11 +62,16 @@ def ensure_symlink():
     elif not os.path.islink(USERS_SYMBOLS):
         logger.error('Expected %s to be a symlink', USERS_SYMBOLS)
     else:
+        # expected
         logger.debug('Symlink %s exists', USERS_SYMBOLS)
 
 
 def create_preset(device, name=None):
-    """Create an empty preset and return the name."""
+    """Create an empty preset and return the potentially incremented name.
+
+    Automatically avoids file conflicts by adding a number to the name
+    if needed.
+    """
     if name is None:
         name = 'new preset'
 
@@ -137,14 +142,14 @@ def create_setxkbmap_config(device, preset):
 
 def get_preset_name(device, preset=None):
     """Get the name for that preset that is used for the setxkbmap command."""
-    # It's the relative path starting from X11/xkb/symbols and may not
+    # It's the relative path starting from X11/xkb/symbols and must not
     # contain spaces
     name = get_usr_path(device, preset)[len(X11_SYMBOLS) + 1:]
     assert ' ' not in name
     return name
 
 
-DEFAULT_PRESET = get_preset_name('default')
+DEFAULT_SYMBOLS_NAME = get_preset_name('default')
 
 
 def apply_preset(device, preset):
@@ -214,7 +219,7 @@ def create_identity_mapping():
         keycodes.write(result)
 
 
-def generate_symbols(name, include=DEFAULT_PRESET, mapping=custom_mapping):
+def generate_symbols(name, include=DEFAULT_SYMBOLS_NAME, mapping=custom_mapping):
     """Create config contents to be placed in /usr/share/X11/xkb/symbols.
 
     It's the mapping of the preset as expected by X. This function does not
@@ -343,7 +348,7 @@ def create_default_symbols():
     # TODO test that it is included in the config files
     # TODO write test about it being created only if the path doesnt exist
     with open(DEFAULT_SYMBOLS, 'w') as f:
-        contents = generate_symbols(DEFAULT_PRESET, None, defaults)
+        contents = generate_symbols(DEFAULT_SYMBOLS_NAME, None, defaults)
         if contents is not None:
             logger.info('Updating default mappings')
             f.write(contents)
