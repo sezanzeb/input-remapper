@@ -32,7 +32,8 @@ import shutil
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
 
-from keymapper.mapping import mapping
+from keymapper.mapping import custom_mapping
+from keymapper.paths import USERS_SYMBOLS, HOME_PATH, KEYCODES_PATH
 
 from test import tmp
 
@@ -94,7 +95,7 @@ class Integration(unittest.TestCase):
         rows = len(self.window.get('key_list').get_children())
         self.assertEqual(rows, 1)
 
-        mapping.change(None, 13, 'a')
+        custom_mapping.change(None, 13, 'a')
         time.sleep(0.2)
         gtk_iteration()
 
@@ -102,18 +103,18 @@ class Integration(unittest.TestCase):
         self.assertEqual(rows, 2)
 
     def test_rename_and_save(self):
-        mapping.change(None, 14, 'a')
+        custom_mapping.change(None, 14, 'a')
         self.assertEqual(self.window.selected_preset, 'new preset')
         self.window.on_save_preset_clicked(None)
-        self.assertEqual(mapping.get(14), 'a')
+        self.assertEqual(custom_mapping.get(14), 'a')
 
-        mapping.change(None, 14, 'b')
+        custom_mapping.change(None, 14, 'b')
         self.window.get('preset_name_input').set_text('asdf')
         self.window.on_save_preset_clicked(None)
         self.assertEqual(self.window.selected_preset, 'asdf')
-        self.assertTrue(os.path.exists(f'{tmp}/symbols/device_1/asdf'))
-        self.assertTrue(os.path.exists(f'{tmp}/.config/device_1/asdf'))
-        self.assertEqual(mapping.get(14), 'b')
+        self.assertTrue(os.path.exists(f'{USERS_SYMBOLS}/device_1/asdf'))
+        self.assertTrue(os.path.exists(f'{HOME_PATH}/device_1/asdf'))
+        self.assertEqual(custom_mapping.get(14), 'b')
 
     def test_select_device_and_preset(self):
         class FakeDropdown(Gtk.ComboBoxText):
@@ -125,15 +126,15 @@ class Integration(unittest.TestCase):
 
         # created on start because the first device is selected and some empty
         # preset prepared.
-        self.assertTrue(os.path.exists(f'{tmp}/symbols/device_1/new_preset'))
+        self.assertTrue(os.path.exists(f'{USERS_SYMBOLS}/device_1/new_preset'))
         self.assertEqual(self.window.selected_device, 'device 1')
         self.assertEqual(self.window.selected_preset, 'new preset')
 
         # create another one
         self.window.on_create_preset_clicked(None)
         gtk_iteration()
-        self.assertTrue(os.path.exists(f'{tmp}/symbols/device_1/new_preset'))
-        self.assertTrue(os.path.exists(f'{tmp}/symbols/device_1/new_preset_2'))
+        self.assertTrue(os.path.exists(f'{USERS_SYMBOLS}/device_1/new_preset'))
+        self.assertTrue(os.path.exists(f'{USERS_SYMBOLS}/device_1/new_preset_2'))
         self.assertEqual(self.window.selected_preset, 'new preset 2')
 
         self.window.on_select_preset(FakeDropdown('new preset'))
@@ -141,7 +142,7 @@ class Integration(unittest.TestCase):
         self.assertEqual(self.window.selected_preset, 'new preset')
 
         self.assertListEqual(
-            sorted(os.listdir(f'{tmp}/symbols/device_1')),
+            sorted(os.listdir(f'{USERS_SYMBOLS}/device_1')),
             ['new_preset', 'new_preset_2']
         )
 
@@ -149,20 +150,20 @@ class Integration(unittest.TestCase):
         self.window.get('preset_name_input').set_text('abc 123')
         gtk_iteration()
         self.assertEqual(self.window.selected_preset, 'new preset')
-        self.assertFalse(os.path.exists(f'{tmp}/symbols/device_1/abc_123'))
-        mapping.change(None, 10, '1')
+        self.assertFalse(os.path.exists(f'{USERS_SYMBOLS}/device_1/abc_123'))
+        custom_mapping.change(None, 10, '1')
         self.window.on_save_preset_clicked(None)
-        self.assertTrue(os.path.exists(f'{tmp}/keycodes/key-mapper'))
+        self.assertTrue(os.path.exists(KEYCODES_PATH))
         gtk_iteration()
         self.assertEqual(self.window.selected_preset, 'abc 123')
-        self.assertTrue(os.path.exists(f'{tmp}/symbols/device_1/abc_123'))
+        self.assertTrue(os.path.exists(f'{USERS_SYMBOLS}/device_1/abc_123'))
 
         self.assertListEqual(
-            sorted(os.listdir(f'{tmp}/symbols')),
-            ['device_1']
+            sorted(os.listdir(USERS_SYMBOLS)),
+            ['default', 'device_1']
         )
         self.assertListEqual(
-            sorted(os.listdir(f'{tmp}/symbols/device_1')),
+            sorted(os.listdir(f'{USERS_SYMBOLS}/device_1')),
             ['abc_123', 'new_preset_2']
         )
 

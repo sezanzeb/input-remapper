@@ -28,10 +28,11 @@ import unittest
 # quickly fake some stuff before any other file gets a chance to import
 # the original version
 from keymapper import paths
-paths.SYMBOLS_PATH = '/tmp/key-mapper-test/symbols'
-paths.CONFIG_PATH = '/tmp/key-mapper-test/.config'
-paths.KEYCODES_PATH = '/tmp/key-mapper-test/keycodes/key-mapper'
-
+paths.X11_SYMBOLS = '/tmp/key-mapper-test/X11/symbols/key-mapper/user'
+paths.USERS_SYMBOLS = '/tmp/key-mapper-test/X11/symbols/key-mapper/user'
+paths.DEFAULT_SYMBOLS = '/tmp/key-mapper-test/X11/symbols/key-mapper/user/default'
+paths.HOME_PATH = '/tmp/key-mapper-test/user/.config'
+paths.KEYCODES_PATH = '/tmp/key-mapper-test/X11/keycodes/key-mapper'
 
 from keymapper import linux
 linux._devices = {

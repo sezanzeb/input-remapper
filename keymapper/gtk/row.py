@@ -27,7 +27,7 @@ gi.require_version('Gtk', '3.0')
 gi.require_version('GLib', '2.0')
 from gi.repository import Gtk, GLib
 
-from keymapper.mapping import mapping
+from keymapper.mapping import custom_mapping
 from keymapper.logger import logger
 from keymapper.linux import keycode_reader
 
@@ -87,7 +87,7 @@ class Row:
             return
 
         # keycode is already set by some other row
-        if mapping.get(new_keycode) is not None:
+        if custom_mapping.get(new_keycode) is not None:
             msg = f'Keycode {new_keycode} is already mapped'
             logger.info(msg)
             self.window.get('status_bar').push(CTX_KEYCODE, msg)
@@ -102,14 +102,14 @@ class Row:
             return
 
         # else, the keycode has changed, the character is set, all good
-        mapping.change(previous_keycode, new_keycode, character)
+        custom_mapping.change(previous_keycode, new_keycode, character)
 
     def on_character_input_change(self, entry):
         keycode = self.get_keycode()
         character = self.get_character()
 
         if keycode is not None:
-            mapping.change(None, keycode, character)
+            custom_mapping.change(None, keycode, character)
 
     def put_together(self, keycode, character):
         """Create all GTK widgets."""
@@ -169,5 +169,5 @@ class Row:
         """Destroy the row and remove it from the config."""
         keycode = self.get_keycode()
         if keycode is not None:
-            mapping.clear(keycode)
+            custom_mapping.clear(keycode)
         self.delete_callback(self)

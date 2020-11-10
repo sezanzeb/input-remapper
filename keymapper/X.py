@@ -38,11 +38,11 @@ import shutil
 import subprocess
 
 from keymapper.paths import get_home_path, get_usr_path, KEYCODES_PATH, \
-    CONFIG_PATH, SYMBOLS_PATH
+    HOME_PATH, USERS_SYMBOLS, DEFAULT_SYMBOLS, X11_SYMBOLS
 from keymapper.logger import logger
 from keymapper.data import get_data_path
 from keymapper.linux import get_devices
-from keymapper.mapping import mapping
+from keymapper.mapping import custom_mapping, Mapping
 
 
 def ensure_symlink():
@@ -50,12 +50,19 @@ def ensure_symlink():
 
     It provides the configs in /home to X11 in /usr.
     """
-    if not os.path.exists(SYMBOLS_PATH):
+    if not os.path.exists(HOME_PATH):
+        os.makedirs(HOME_PATH, exist_ok=True)
+
+    if not os.path.exists(USERS_SYMBOLS):
         # link from /usr/share/X11/xkb/symbols/key-mapper/user to
         # /home/user/.config/key-mapper
-        logger.info('Linking "%s" to "%s"', SYMBOLS_PATH, CONFIG_PATH)
-        os.makedirs(os.path.dirname(SYMBOLS_PATH), exist_ok=True)
-        os.symlink(CONFIG_PATH, SYMBOLS_PATH, target_is_directory=True)
+        logger.info('Linking "%s" to "%s"', USERS_SYMBOLS, HOME_PATH)
+        os.makedirs(os.path.dirname(USERS_SYMBOLS), exist_ok=True)
+        os.symlink(HOME_PATH, USERS_SYMBOLS, target_is_directory=True)
+    elif not os.path.islink(USERS_SYMBOLS):
+        logger.error('Expected %s to be a symlink', USERS_SYMBOLS)
+    else:
+        logger.debug('Symlink %s exists', USERS_SYMBOLS)
 
 
 def create_preset(device, name=None):
@@ -78,7 +85,7 @@ def create_preset(device, name=None):
 
     # give those files to the user
     user = os.getlogin()
-    for root, dirs, files in os.walk(CONFIG_PATH):
+    for root, dirs, files in os.walk(HOME_PATH):
         shutil.chown(root, user, user)
         for file in files:
             shutil.chown(os.path.join(root, file), user, user)
@@ -102,11 +109,12 @@ def create_setxkbmap_config(device, preset):
     device : string
     preset : string
     """
-    if len(mapping) == 0:
+    if len(custom_mapping) == 0:
         logger.debug('Got empty mappings')
         return None
 
     create_identity_mapping()
+    create_default_symbols()
 
     home_device_path = get_home_path(device)
     if not os.path.exists(home_device_path):
@@ -120,16 +128,28 @@ def create_setxkbmap_config(device, preset):
         logger.info('Creating config file "%s"', home_preset_path)
         os.mknod(home_preset_path)
 
-    logger.info('Writing key mappings')
+    logger.info('Writing key mappings to %s', home_preset_path)
     with open(home_preset_path, 'w') as f:
-        contents = generate_symbols_content(device, preset)
+        contents = generate_symbols(get_preset_name(device, preset))
         if contents is not None:
             f.write(contents)
 
 
+def get_preset_name(device, preset=None):
+    """Get the name for that preset that is used for the setxkbmap command."""
+    # It's the relative path starting from X11/xkb/symbols and may not
+    # contain spaces
+    name = get_usr_path(device, preset)[len(X11_SYMBOLS) + 1:]
+    assert ' ' not in name
+    return name
+
+
+DEFAULT_PRESET = get_preset_name('default')
+
+
 def apply_preset(device, preset):
     """Apply a preset to the device."""
-    logger.info('Applying the preset')
+    logger.info('Applying preset "%s" on device %s', preset, device)
     group = get_devices()[device]
 
     # apply it to every device that hangs on the same usb port, because I
@@ -140,17 +160,15 @@ def apply_preset(device, preset):
             # only all virtual devices of the same hardware device
             continue
 
-        symbols = '/usr/share/X11/xkb/symbols/'
         layout_path = get_usr_path(device, preset)
         with open(layout_path, 'r') as f:
             if f.read() == '':
                 logger.error('Tried to load empty config')
                 return
 
-        layout_name = layout_path[len(symbols):]
         cmd = [
             'setxkbmap',
-            '-layout', layout_name,
+            '-layout', get_preset_name(device, preset),
             '-keycodes', 'key-mapper',
             '-device', str(xinput_id)
         ]
@@ -166,8 +184,9 @@ def create_identity_mapping():
     This has the added benefit that keycodes reported by xev can be
     identified in the symbols file.
     """
-    # TODO don't create this again if it already exists, as soon as this
-    #   stuff is stable.
+    if os.path.exists(KEYCODES_PATH):
+        logger.debug('Found the keycodes file at %s', KEYCODES_PATH)
+        return
 
     xkb_keycodes = []
     # the maximum specified in /usr/share/X11/xkb/keycodes is usually 255
@@ -195,15 +214,23 @@ def create_identity_mapping():
         keycodes.write(result)
 
 
-def generate_symbols_content(device, preset):
+def generate_symbols(name, include=DEFAULT_PRESET, mapping=custom_mapping):
     """Create config contents to be placed in /usr/share/X11/xkb/symbols.
 
-    This file contains the mapping of the preset as expected by X.
+    It's the mapping of the preset as expected by X. This function does not
+    create the file.
 
     Parameters
     ----------
-    device : string
-    preset : string
+    name : string
+        Usually what `get_preset_name` returns
+    include : string or None
+        If another preset should be included. Defaults to the default
+        preset. Use None to avoid including.
+    mapping : Mapping
+        If you need to create a symbols file for some other mapping you can
+        pass it to this parameter. By default the custom mapping will be
+        used that is also displayed in the user interface.
     """
     if len(mapping) == 0:
         raise ValueError('Mapping is empty')
@@ -212,6 +239,7 @@ def generate_symbols_content(device, preset):
     # the keycodes file, THE WHOLE X SESSION WILL CRASH!
     if not os.path.exists(KEYCODES_PATH):
         raise FileNotFoundError('Expected the keycodes file to exist')
+
     with open(KEYCODES_PATH, 'r') as f:
         keycodes = re.findall(r'<.+?>', f.read())
 
@@ -222,6 +250,7 @@ def generate_symbols_content(device, preset):
             # don't append that one, otherwise X would crash when loading
             continue
         xkb_symbols.append(f'key <{keycode}> {{ [ {character} ] }};')
+
     if len(xkb_symbols) == 0:
         logger.error('Failed to populate xkb_symbols')
         return None
@@ -231,8 +260,9 @@ def generate_symbols_content(device, preset):
         template = template_file.read()
 
     result = template.format(
-        name=f'{device}/{preset}',
-        xkb_symbols='\n    '.join(xkb_symbols)
+        name=name,
+        xkb_symbols='\n    '.join(xkb_symbols),
+        include=f'include "{include}"' if include else ''
     )
 
     return result
@@ -257,7 +287,10 @@ def get_xinput_id_mapping():
 
 
 def parse_symbols_file(device, preset):
-    """Parse a symbols file and return the keycodes."""
+    """Parse a symbols file populate the mapping.
+
+    Existing mappings are overwritten if there are conflicts.
+    """
     path = get_home_path(device, preset)
 
     if not os.path.exists(path):
@@ -265,8 +298,8 @@ def parse_symbols_file(device, preset):
             'Tried to load non existing preset "%s" for %s',
             preset, device
         )
-        mapping.empty()
-        mapping.changed = False
+        custom_mapping.empty()
+        custom_mapping.changed = False
         return
 
     with open(path, 'r') as f:
@@ -276,5 +309,41 @@ def parse_symbols_file(device, preset):
         result = re.findall(r'\n\s+?key <(.+?)>.+?\[\s+(\w+)', f.read())
         logger.debug('Found %d mappings in this preset', len(result))
         for keycode, character in result:
-            mapping.changed = False
-            mapping.change(None, int(keycode), character)
+            custom_mapping.changed = False
+            custom_mapping.change(None, int(keycode), character)
+
+
+def create_default_symbols():
+    """Parse the output of xmodmap and create a default symbols file.
+
+    Since xmodmap may print mappings that have already been modified by
+    key-mapper, this should be done only once after the installation.
+
+    This is needed because all our keycode aliases in the symbols files
+    are "<int>", whereas the others are <AB01> and such, so they are not
+    compatible.
+    """
+    if os.path.exists(DEFAULT_SYMBOLS):
+        logger.debug('Found the default mapping at %s', DEFAULT_SYMBOLS)
+        return
+
+    xmodmap = subprocess.check_output(['xmodmap', '-pke']).decode() + '\n'
+    mappings = re.findall(r'(\d+) = (.+)\n', xmodmap)
+    defaults = Mapping()
+    for keycode, characters in mappings:
+        # TODO support an array of values in mapping and test it
+        defaults.change(None, int(keycode), characters.split()[0])
+
+    ensure_symlink()
+
+    if not os.path.exists(DEFAULT_SYMBOLS):
+        logger.info('Creating %s', DEFAULT_SYMBOLS)
+        os.mknod(DEFAULT_SYMBOLS)
+
+    # TODO test that it is included in the config files
+    # TODO write test about it being created only if the path doesnt exist
+    with open(DEFAULT_SYMBOLS, 'w') as f:
+        contents = generate_symbols(DEFAULT_PRESET, None, defaults)
+        if contents is not None:
+            logger.info('Updating default mappings')
+            f.write(contents)

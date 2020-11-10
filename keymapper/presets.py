@@ -26,7 +26,7 @@ import os
 import time
 import glob
 
-from keymapper.paths import get_home_path, CONFIG_PATH
+from keymapper.paths import get_home_path, HOME_PATH
 from keymapper.logger import logger
 from keymapper.linux import get_devices
 
@@ -78,7 +78,7 @@ def find_newest_preset(device=None):
     # sort the oldest files to the front in order to use pop to get the newest
     if device is None:
         paths = sorted(
-            glob.glob(os.path.join(CONFIG_PATH, '*/*')),
+            glob.glob(os.path.join(HOME_PATH, '*/*')),
             key=os.path.getmtime
         )
     else:
@@ -132,7 +132,7 @@ def delete_preset(device, preset):
     device_path = get_home_path(device)
     if os.path.exists(device_path) and len(os.listdir(device_path)) == 0:
         logger.debug('Removing empty dir "%s"', device_path)
-        os.remove(device_path)
+        os.rmdir(device_path)
 
 
 def rename_preset(device, old_preset_name, new_preset_name):

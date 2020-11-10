@@ -22,11 +22,16 @@
 import unittest
 
 from keymapper.linux import get_devices
+from keymapper.paths import USERS_SYMBOLS, X11_SYMBOLS, DEFAULT_SYMBOLS
 
 
 class TestTest(unittest.TestCase):
     def test_stubs(self):
         self.assertIn('device 1', get_devices())
+
+    def test_paths(self):
+        self.assertTrue(USERS_SYMBOLS.startswith(X11_SYMBOLS))
+        self.assertTrue(DEFAULT_SYMBOLS.startswith(X11_SYMBOLS))
 
 
 if __name__ == "__main__":

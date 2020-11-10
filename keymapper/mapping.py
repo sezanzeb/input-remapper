@@ -104,5 +104,6 @@ class Mapping:
         return self._mapping.get(keycode)
 
 
-# one mapping object for the whole application
-mapping = Mapping()
+# one mapping object for the whole application that holds all
+# customizations
+custom_mapping = Mapping()

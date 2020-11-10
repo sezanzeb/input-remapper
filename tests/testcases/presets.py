@@ -26,6 +26,7 @@ import time
 
 from keymapper.presets import find_newest_preset, rename_preset
 from keymapper.X import create_preset
+from keymapper.paths import USERS_SYMBOLS, HOME_PATH
 
 from test import tmp
 
@@ -37,24 +38,24 @@ class TestCreatePreset(unittest.TestCase):
 
     def test_create_preset_1(self):
         create_preset('device 1')
-        self.assertTrue(os.path.exists(f'{tmp}/symbols/device_1/new_preset'))
-        self.assertTrue(os.path.exists(f'{tmp}/.config/device_1/new_preset'))
+        self.assertTrue(os.path.exists(f'{USERS_SYMBOLS}/device_1/new_preset'))
+        self.assertTrue(os.path.exists(f'{HOME_PATH}/device_1/new_preset'))
 
     def test_create_preset_2(self):
         create_preset('device 1')
         create_preset('device 1')
-        self.assertTrue(os.path.exists(f'{tmp}/symbols/device_1/new_preset'))
-        self.assertTrue(os.path.exists(f'{tmp}/.config/device_1/new_preset'))
-        self.assertTrue(os.path.exists(f'{tmp}/symbols/device_1/new_preset_2'))
-        self.assertTrue(os.path.exists(f'{tmp}/.config/device_1/new_preset_2'))
+        self.assertTrue(os.path.exists(f'{USERS_SYMBOLS}/device_1/new_preset'))
+        self.assertTrue(os.path.exists(f'{HOME_PATH}/device_1/new_preset'))
+        self.assertTrue(os.path.exists(f'{USERS_SYMBOLS}/device_1/new_preset_2'))
+        self.assertTrue(os.path.exists(f'{HOME_PATH}/device_1/new_preset_2'))
 
     def test_create_preset_3(self):
         create_preset('device 1', 'pre set')
         create_preset('device 1', 'pre set')
-        self.assertTrue(os.path.exists(f'{tmp}/symbols/device_1/pre_set'))
-        self.assertTrue(os.path.exists(f'{tmp}/.config/device_1/pre_set'))
-        self.assertTrue(os.path.exists(f'{tmp}/symbols/device_1/pre_set_2'))
-        self.assertTrue(os.path.exists(f'{tmp}/.config/device_1/pre_set_2'))
+        self.assertTrue(os.path.exists(f'{USERS_SYMBOLS}/device_1/pre_set'))
+        self.assertTrue(os.path.exists(f'{HOME_PATH}/device_1/pre_set'))
+        self.assertTrue(os.path.exists(f'{USERS_SYMBOLS}/device_1/pre_set_2'))
+        self.assertTrue(os.path.exists(f'{HOME_PATH}/device_1/pre_set_2'))
 
 
 class TestRenamePreset(unittest.TestCase):
@@ -62,9 +63,9 @@ class TestRenamePreset(unittest.TestCase):
         create_preset('device 1', 'preset 1')
         create_preset('device 1', 'foobar')
         rename_preset('device 1', 'preset 1', 'foobar')
-        self.assertFalse(os.path.exists(f'{tmp}/.config/device_1/preset_1'))
-        self.assertTrue(os.path.exists(f'{tmp}/.config/device_1/foobar'))
-        self.assertTrue(os.path.exists(f'{tmp}/.config/device_1/foobar_2'))
+        self.assertFalse(os.path.exists(f'{HOME_PATH}/device_1/preset_1'))
+        self.assertTrue(os.path.exists(f'{HOME_PATH}/device_1/foobar'))
+        self.assertTrue(os.path.exists(f'{HOME_PATH}/device_1/foobar_2'))
 
 
 class TestFindPresets(unittest.TestCase):
@@ -79,17 +80,17 @@ class TestFindPresets(unittest.TestCase):
         self.assertEqual(find_newest_preset(), ('device 2', 'preset 2'))
 
     def test_find_newest_preset_2(self):
-        os.makedirs(f'{tmp}/symbols/device_1')
-        os.makedirs(f'{tmp}/.config/device_1')
+        os.makedirs(f'{USERS_SYMBOLS}/device_1')
+        os.makedirs(f'{HOME_PATH}/device_1')
         time.sleep(0.01)
-        os.makedirs(f'{tmp}/symbols/device_2')
-        os.makedirs(f'{tmp}/.config/device_2')
+        os.makedirs(f'{USERS_SYMBOLS}/device_2')
+        os.makedirs(f'{HOME_PATH}/device_2')
         # takes the first one that the test-fake returns
         self.assertEqual(find_newest_preset(), ('device 1', None))
 
     def test_find_newest_preset_3(self):
-        os.makedirs(f'{tmp}/symbols/device_1')
-        os.makedirs(f'{tmp}/.config/device_1')
+        os.makedirs(f'{USERS_SYMBOLS}/device_1')
+        os.makedirs(f'{HOME_PATH}/device_1')
         self.assertEqual(find_newest_preset(), ('device 1', None))
 
     def test_find_newest_preset_4(self):
