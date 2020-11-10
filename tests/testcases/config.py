@@ -23,19 +23,19 @@ import os
 import unittest
 import shutil
 
-from keymapper.X import mapping, generate_symbols_content, \
+from keymapper.X import custom_mapping, generate_symbols, \
     create_identity_mapping, create_setxkbmap_config, get_home_path
-from keymapper.paths import KEYCODES_PATH, SYMBOLS_PATH, CONFIG_PATH
+from keymapper.paths import KEYCODES_PATH, USERS_SYMBOLS, HOME_PATH
 
 from test import tmp
 
 
 class TestConfig(unittest.TestCase):
     def setUp(self):
-        mapping.empty()
-        mapping.change(None, 10, 'a')
-        mapping.change(None, 11, 'KP_1')
-        mapping.change(None, 12, 3)
+        custom_mapping.empty()
+        custom_mapping.change(None, 10, 'a')
+        custom_mapping.change(None, 11, 'KP_1')
+        custom_mapping.change(None, 12, 3)
         if os.path.exists(tmp):
             shutil.rmtree(tmp)
 
@@ -43,13 +43,13 @@ class TestConfig(unittest.TestCase):
         create_setxkbmap_config('device a', 'preset b')
 
         self.assertTrue(os.path.exists(os.path.join(
-            CONFIG_PATH,
+            HOME_PATH,
             'device_a',
             'preset_b'
         )))
 
         self.assertTrue(os.path.exists(os.path.join(
-            SYMBOLS_PATH,
+            USERS_SYMBOLS,
             'device_a',
             'preset_b'
         )))
@@ -65,12 +65,12 @@ class TestConfig(unittest.TestCase):
     def test_generate_content(self):
         self.assertRaises(
             FileNotFoundError,
-            generate_symbols_content,
+            generate_symbols,
             'device', 'preset'
         )
 
         # create the identity mapping, because it is required for
-        # generate_symbols_content
+        # generate_symbols
         create_identity_mapping()
         self.assertTrue(os.path.exists(KEYCODES_PATH))
         with open(KEYCODES_PATH, 'r') as f:
@@ -78,7 +78,7 @@ class TestConfig(unittest.TestCase):
             self.assertIn('<8> = 8;', keycodes)
             self.assertIn('<255> = 255;', keycodes)
 
-        content = generate_symbols_content('device', 'preset')
+        content = generate_symbols('device/preset')
         self.assertIn('key <10> { [ a ] };', content)
         self.assertIn('key <11> { [ KP_1 ] };', content)
         self.assertIn('key <12> { [ 3 ] };', content)
