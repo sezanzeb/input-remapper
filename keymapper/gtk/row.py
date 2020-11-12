@@ -92,7 +92,6 @@ class Row:
             logger.info(msg)
             self.window.get('status_bar').push(CTX_KEYCODE, msg)
             return
-
         # it's legal to display the keycode
         self.window.get('status_bar').remove_all(CTX_KEYCODE)
         self.keycode.set_label(str(new_keycode))
@@ -100,6 +99,7 @@ class Row:
         # that would overwrite the key with the mouse-button key if
         # the current device is a mouse
         self.window.window.set_focus(self.character_input)
+        self.highlight()
 
         # the character is empty and therefore the mapping is not complete
         if character is None:
@@ -108,9 +108,15 @@ class Row:
         # else, the keycode has changed, the character is set, all good
         custom_mapping.change(previous_keycode, new_keycode, character)
 
+    def highlight(self):
+        """Mark this row as changed."""
+        self.widget.get_style_context().add_class('changed')
+
     def on_character_input_change(self, entry):
         keycode = self.get_keycode()
         character = self.get_character()
+
+        self.highlight()
 
         if keycode is not None:
             custom_mapping.change(None, keycode, character)
@@ -154,16 +160,17 @@ class Row:
             self.on_character_input_change
         )
 
-        row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
-        row.set_homogeneous(True)
-        row.set_spacing(2)
-        row.pack_start(keycode_input, expand=True, fill=True, padding=0)
-        row.pack_start(character_input, expand=True, fill=True, padding=0)
-        row.pack_start(delete_button, expand=True, fill=False, padding=0)
+        box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+        box.set_homogeneous(True)
+        box.set_spacing(2)
+        box.pack_start(keycode_input, expand=True, fill=True, padding=0)
+        box.pack_start(character_input, expand=True, fill=True, padding=0)
+        box.pack_start(delete_button, expand=True, fill=False, padding=0)
+        box.show_all()
 
+        row = Gtk.ListBoxRow()
+        row.add(box)
         row.show_all()
-        # in order to get this object when iterating over the listbox
-        row.logic = self
 
         self.widget = row
         self.character_input = character_input
