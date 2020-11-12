@@ -37,7 +37,7 @@ class Mapping:
 
     def __iter__(self):
         """Iterate over tuples of unique keycodes and their character."""
-        return iter(self._mapping.items())
+        return iter(sorted(self._mapping.items()))
 
     def __len__(self):
         return len(self._mapping)
