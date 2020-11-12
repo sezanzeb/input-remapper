@@ -1,3 +1,7 @@
+.changed {
+    background: @selected_bg_color;
+}
+
 list entry {
     background-color: transparent;
     border-radius: 4px;
@@ -5,20 +9,12 @@ list entry {
 
 list button:not(:focus) {
     border-color: transparent;
-    background-color: transparent;
+    background: transparent;
+    box-shadow: none;
 }
 
 list button {
     border-color: transparent;
-}
-
-.button_container {
-    padding: 5px;
-    background-color: @content_view_bg;
-}
-
-.button_container > * {
-    background-color: transparent;
 }
 
 /* @theme_bg_color, @theme_fg_color */

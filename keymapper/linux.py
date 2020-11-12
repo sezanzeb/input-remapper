@@ -96,6 +96,9 @@ class KeycodeReader:
                     # value: 1 for down, 0 for up, 2 for hold.
                     # this happens to report key codes that are 8 lower
                     # than the ones reported by xev
+                    # TODO check if 280 and above works on wayland and
+                    #  if not, prevent anything > 255. adjust
+                    #  the maximum of keycodes before trying
                     newest_keycode = event.code + 8
         return newest_keycode
 
