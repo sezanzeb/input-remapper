@@ -51,6 +51,24 @@ CTX_ERROR = 3
 # TODO test on wayland
 
 
+def get_selected_row_bg():
+    """Get the background color that a row is going to have when selected."""
+    # ListBoxRows can be selected, but either they are always selectable
+    # via mouse clicks and via code, or not at all. I just want to controll
+    # it over code. So I have to add a class and change the background color
+    # to act like it's selected. For this I need the right color, but
+    # @selected_bg_color doesn't work for every theme. So get it from
+    # some widget (which is deprecated according to the docs, but it works...)
+    row = Gtk.ListBoxRow()
+    row.show_all()
+    context = row.get_style_context()
+    color = context.get_background_color(Gtk.StateFlags.SELECTED)
+    # but this way it can be made only slightly highlighted, which is nice
+    color.alpha /= 4
+    row.destroy()
+    return color.to_string()
+
+
 class Window:
     """User Interface."""
     def __init__(self):
@@ -58,7 +76,15 @@ class Window:
         self.selected_preset = None
 
         css_provider = Gtk.CssProvider()
-        css_provider.load_from_path(get_data_path('style.css'))
+        with open(get_data_path('style.css'), 'r') as f:
+            data = (
+                f.read() +
+                '\n.changed{background-color:' +
+                get_selected_row_bg() +
+                ';}\n'
+            )
+            css_provider.load_from_data(bytes(data, encoding='UTF-8'))
+
         Gtk.StyleContext.add_provider_for_screen(
             Gdk.Screen.get_default(),
             css_provider,
