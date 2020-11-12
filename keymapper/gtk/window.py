@@ -189,6 +189,8 @@ class Window:
 
     def on_select_device(self, dropdown):
         """List all presets, create one if none exist yet."""
+        # TODO unsaved changes dialog
+
         device = dropdown.get_active_text()
 
         logger.debug('Selecting device "%s"', device)
@@ -203,6 +205,8 @@ class Window:
 
     def on_create_preset_clicked(self, button):
         """Create a new preset and select it."""
+        # TODO unsaved changes dialog
+
         new_preset = create_preset(self.selected_device)
         self.get('preset_selection').append(new_preset, new_preset)
         self.get('preset_selection').set_active_id(new_preset)
@@ -210,6 +214,8 @@ class Window:
 
     def on_select_preset(self, dropdown):
         """Show the mappings of the preset."""
+        # TODO unsaved changes dialog
+
         self.clear_mapping_table()
 
         preset = dropdown.get_active_text()
