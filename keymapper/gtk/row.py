@@ -96,6 +96,10 @@ class Row:
         # it's legal to display the keycode
         self.window.get('status_bar').remove_all(CTX_KEYCODE)
         self.keycode.set_label(str(new_keycode))
+        # switch to the character, don't require mouse input because
+        # that would overwrite the key with the mouse-button key if
+        # the current device is a mouse
+        self.window.window.set_focus(self.character_input)
 
         # the character is empty and therefore the mapping is not complete
         if character is None:
