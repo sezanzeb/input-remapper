@@ -279,12 +279,7 @@ class Window:
         """
         key_list = self.get('key_list')
         # https://stackoverflow.com/a/30329591/4417769
-        key_list.remove(single_key_mapping.get_widget().get_parent())
-        # shrink the window down as much as possible, otherwise it
-        # will increase with each added mapping but won't go back when they
-        # are removed.
-        window = self.get('window')
-        window.resize(window.get_size()[0], 1)
+        key_list.remove(single_key_mapping.get_widget())
 
     def save_config(self):
         """Write changes to disk"""
