@@ -483,7 +483,7 @@
               </packing>
             </child>
             <child>
-              <object class="GtkButton" id="apply_defaults">
+              <object class="GtkButton" id="apply_system_layout">
                 <property name="label" translatable="yes">Apply Defaults</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
@@ -494,7 +494,7 @@
                 <property name="margin_bottom">10</property>
                 <property name="border_width">0</property>
                 <property name="image">gtk-redo-icon-2</property>
-                <signal name="clicked" handler="on_apply_defaults_clicked" swapped="no"/>
+                <signal name="clicked" handler="on_apply_system_layout_clicked" swapped="no"/>
               </object>
               <packing>
                 <property name="expand">False</property>
