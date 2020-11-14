@@ -29,8 +29,7 @@ from gi.repository import Gtk, Gdk, GLib
 
 from keymapper.data import get_data_path
 from keymapper.X import create_setxkbmap_config, apply_preset, \
-    create_preset, custom_mapping, parse_symbols_file, setxkbmap, \
-    DEFAULT_SYMBOLS_NAME
+    create_preset, custom_mapping, parse_symbols_file, setxkbmap
 from keymapper.presets import get_presets, find_newest_preset, \
     delete_preset, rename_preset
 from keymapper.logger import logger
@@ -171,9 +170,9 @@ class Window:
         key_list.forall(key_list.remove)
         custom_mapping.empty()
 
-    def on_apply_defaults_clicked(self, button):
-        """Load the mapping that was known to be used before key-mapper."""
-        setxkbmap(self.selected_device, DEFAULT_SYMBOLS_NAME)
+    def on_apply_system_layout_clicked(self, button):
+        """Load the mapping."""
+        setxkbmap(self.selected_device, None)
 
     def on_save_preset_clicked(self, button):
         """Save changes to a preset to the file system."""

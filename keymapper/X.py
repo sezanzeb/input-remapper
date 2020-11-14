@@ -164,22 +164,47 @@ def apply_preset(device, preset):
     setxkbmap(device, layout)
 
 
+def get_system_layout():
+    """Get the system wide configured default keyboard layout."""
+    localectl = subprocess.check_output(
+        ['localectl', 'status']
+    ).decode().split('\n')
+    # example:
+    # System Locale: LANG=en_GB.UTF-8
+    # VC Keymap: tmp
+    # X11 Layout: de
+    # X11 Model: pc105
+    return [
+        line for line in localectl
+        if 'X11 Layout' in line
+    ][0].split(': ')[-1]
+
+
 def setxkbmap(device, layout):
     """Apply a preset to the device.
 
     Parameters
     ----------
     device : string
-    layout : string
-        For example 'de', passed to setxkbmap unmodified
+    layout : string or None
+        For example 'de', passed to setxkbmap unmodified. If None, will
+        load the system default
     """
-    with open(os.path.join(X11_SYMBOLS, layout), 'r') as f:
-        if f.read() == '':
-            logger.error('Tried to load empty config')
+    if layout is not None:
+        path = os.path.join(X11_SYMBOLS, layout)
+        if not os.path.exists(path):
+            logger.error('Symbols %s don\'t exist', path)
             return
+        with open(path, 'r') as f:
+            if f.read() == '':
+                logger.error('Tried to load empty symbols %s', path)
+                return
 
     logger.info('Applying layout "%s" on device %s', layout, device)
     group = get_devices()[device]
+
+    keycodes = None if layout is None else 'key-mapper'
+    layout = layout or get_system_layout()
 
     # apply it to every device that hangs on the same usb port, because I
     # have no idea how to figure out which one of those 3 devices that are
@@ -191,10 +216,13 @@ def setxkbmap(device, layout):
 
         cmd = [
             'setxkbmap',
-            '-layout', layout,
-            '-keycodes', 'key-mapper',
             '-device', str(xinput_id)
         ]
+        if layout is not None:
+            cmd += ['-layout', layout]
+        if keycodes is not None:
+            cmd += ['-keycodes', keycodes]
+
         logger.debug('Running `%s`', ' '.join(cmd))
         subprocess.run(cmd)
 
