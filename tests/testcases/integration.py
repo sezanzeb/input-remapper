@@ -124,6 +124,9 @@ class Integration(unittest.TestCase):
             def get_active_text(self):
                 return self.name
 
+            def get_active_id(self):
+                return self.name
+
         # created on start because the first device is selected and some empty
         # preset prepared.
         self.assertTrue(os.path.exists(f'{USERS_SYMBOLS}/device_1/new_preset'))

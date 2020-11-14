@@ -34,13 +34,16 @@ CONTINUE = True
 GO_BACK = False
 
 
-def unsavedChangesDialog():
+def unsaved_changes_dialog():
+    """Blocks until the user decided about an action."""
     gladefile = get_data_path('key-mapper.glade')
     builder = Gtk.Builder()
     builder.add_from_file(gladefile)
     dialog = builder.get_object('unsaved_changes')
     dialog.show()
-    dialog.run()
+    response = dialog.run()
     dialog.hide()
-    # TODO do something meaningful
-    return GO_BACK
+    if response == Gtk.ResponseType.ACCEPT:
+        return CONTINUE
+    else:
+        return GO_BACK
