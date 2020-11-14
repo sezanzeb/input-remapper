@@ -153,8 +153,32 @@ DEFAULT_SYMBOLS_NAME = get_preset_name('default')
 
 
 def apply_preset(device, preset):
-    """Apply a preset to the device."""
-    logger.info('Applying preset "%s" on device %s', preset, device)
+    """Apply a preset to the device.
+
+    Parameters
+    ----------
+    device : string
+    preset : string
+    """
+    layout = get_preset_name(device, preset)
+    setxkbmap(device, layout)
+
+
+def setxkbmap(device, layout):
+    """Apply a preset to the device.
+
+    Parameters
+    ----------
+    device : string
+    layout : string
+        For example 'de', passed to setxkbmap unmodified
+    """
+    with open(os.path.join(X11_SYMBOLS, layout), 'r') as f:
+        if f.read() == '':
+            logger.error('Tried to load empty config')
+            return
+
+    logger.info('Applying layout "%s" on device %s', layout, device)
     group = get_devices()[device]
 
     # apply it to every device that hangs on the same usb port, because I
@@ -165,15 +189,9 @@ def apply_preset(device, preset):
             # only all virtual devices of the same hardware device
             continue
 
-        layout_path = get_usr_path(device, preset)
-        with open(layout_path, 'r') as f:
-            if f.read() == '':
-                logger.error('Tried to load empty config')
-                return
-
         cmd = [
             'setxkbmap',
-            '-layout', get_preset_name(device, preset),
+            '-layout', layout,
             '-keycodes', 'key-mapper',
             '-device', str(xinput_id)
         ]
@@ -314,8 +332,8 @@ def parse_symbols_file(device, preset):
         result = re.findall(r'\n\s+?key <(.+?)>.+?\[\s+(\w+)', f.read())
         logger.debug('Found %d mappings in this preset', len(result))
         for keycode, character in result:
-            custom_mapping.changed = False
             custom_mapping.change(None, int(keycode), character)
+        custom_mapping.changed = False
 
 
 def create_default_symbols():

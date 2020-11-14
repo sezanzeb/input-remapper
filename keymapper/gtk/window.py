@@ -29,12 +29,14 @@ from gi.repository import Gtk, Gdk, GLib
 
 from keymapper.data import get_data_path
 from keymapper.X import create_setxkbmap_config, apply_preset, \
-    create_preset, custom_mapping, parse_symbols_file
+    create_preset, custom_mapping, parse_symbols_file, setxkbmap, \
+    DEFAULT_SYMBOLS_NAME
 from keymapper.presets import get_presets, find_newest_preset, \
     delete_preset, rename_preset
 from keymapper.logger import logger
 from keymapper.linux import get_devices, keycode_reader
 from keymapper.gtk.row import Row
+from keymapper.gtk.unsaved import unsavedChangesDialog, GO_BACK
 
 
 def gtk_iteration():
@@ -169,6 +171,10 @@ class Window:
         key_list.forall(key_list.remove)
         custom_mapping.empty()
 
+    def on_apply_defaults_clicked(self, button):
+        """Load the mapping that was known to be used before key-mapper."""
+        setxkbmap(self.selected_device, DEFAULT_SYMBOLS_NAME)
+
     def on_save_preset_clicked(self, button):
         """Save changes to a preset to the file system."""
         new_name = self.get('preset_name_input').get_text()
@@ -215,7 +221,9 @@ class Window:
 
     def on_select_device(self, dropdown):
         """List all presets, create one if none exist yet."""
-        # TODO unsaved changes dialog
+        if custom_mapping.changed:
+            if unsavedChangesDialog() == GO_BACK:
+                return
 
         device = dropdown.get_active_text()
 
@@ -231,7 +239,9 @@ class Window:
 
     def on_create_preset_clicked(self, button):
         """Create a new preset and select it."""
-        # TODO unsaved changes dialog
+        if custom_mapping.changed:
+            if unsavedChangesDialog() == GO_BACK:
+                return
 
         new_preset = create_preset(self.selected_device)
         self.get('preset_selection').append(new_preset, new_preset)
@@ -240,7 +250,9 @@ class Window:
 
     def on_select_preset(self, dropdown):
         """Show the mappings of the preset."""
-        # TODO unsaved changes dialog
+        if custom_mapping.changed:
+            if unsavedChangesDialog() == GO_BACK:
+                return
 
         self.clear_mapping_table()
 
@@ -296,3 +308,5 @@ class Window:
             self.selected_device,
             self.selected_preset
         )
+
+        custom_mapping.changed = False
