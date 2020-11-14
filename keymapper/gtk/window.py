@@ -35,7 +35,7 @@ from keymapper.presets import get_presets, find_newest_preset, \
 from keymapper.logger import logger
 from keymapper.linux import get_devices, keycode_reader
 from keymapper.gtk.row import Row
-from keymapper.gtk.unsaved import unsavedChangesDialog, GO_BACK
+from keymapper.gtk.unsaved import unsaved_changes_dialog, GO_BACK
 
 
 def gtk_iteration():
@@ -220,9 +220,12 @@ class Window:
 
     def on_select_device(self, dropdown):
         """List all presets, create one if none exist yet."""
-        if custom_mapping.changed:
-            if unsavedChangesDialog() == GO_BACK:
-                return
+        if dropdown.get_active_id() == self.selected_device:
+            return
+
+        if custom_mapping.changed and unsaved_changes_dialog() == GO_BACK:
+            dropdown.set_active_id(self.selected_device)
+            return
 
         device = dropdown.get_active_text()
 
@@ -239,7 +242,7 @@ class Window:
     def on_create_preset_clicked(self, button):
         """Create a new preset and select it."""
         if custom_mapping.changed:
-            if unsavedChangesDialog() == GO_BACK:
+            if unsaved_changes_dialog() == GO_BACK:
                 return
 
         new_preset = create_preset(self.selected_device)
@@ -249,9 +252,12 @@ class Window:
 
     def on_select_preset(self, dropdown):
         """Show the mappings of the preset."""
-        if custom_mapping.changed:
-            if unsavedChangesDialog() == GO_BACK:
-                return
+        if dropdown.get_active_id() == self.selected_preset:
+            return
+
+        if custom_mapping.changed and unsaved_changes_dialog() == GO_BACK:
+            dropdown.set_active_id(self.selected_preset)
+            return
 
         self.clear_mapping_table()
 
@@ -269,7 +275,7 @@ class Window:
                 keycode=keycode,
                 character=character
             )
-            key_list.insert(single_key_mapping.get_widget(), -1)
+            key_list.insert(single_key_mapping, -1)
 
         self.add_empty()
 
@@ -279,7 +285,7 @@ class Window:
             delete_callback=self.on_row_removed
         )
         key_list = self.get('key_list')
-        key_list.insert(empty.get_widget(), -1)
+        key_list.insert(empty, -1)
 
     def on_row_removed(self, single_key_mapping):
         """Stuff to do when a row was removed
@@ -290,7 +296,7 @@ class Window:
         """
         key_list = self.get('key_list')
         # https://stackoverflow.com/a/30329591/4417769
-        key_list.remove(single_key_mapping.get_widget())
+        key_list.remove(single_key_mapping)
 
     def save_config(self):
         """Write changes to disk"""

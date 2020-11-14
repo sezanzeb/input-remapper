@@ -36,19 +36,17 @@ from keymapper.linux import keycode_reader
 CTX_KEYCODE = 2
 
 
-class Row:
+class Row(Gtk.ListBoxRow):
     """A single, configurable key mapping."""
+    __gtype_name__ = 'ListBoxRow'
+
     def __init__(self, delete_callback, window, keycode=None, character=None):
         """Construct a row widget."""
-        self.widget = None
+        super().__init__()
         self.device = window.selected_device
         self.window = window
         self.delete_callback = delete_callback
         self.put_together(keycode, character)
-
-    def get_widget(self):
-        """Return the widget that wraps all the widgets of the row."""
-        return self.widget
 
     def get_keycode(self):
         keycode = self.keycode.get_label()
@@ -111,7 +109,7 @@ class Row:
 
     def highlight(self):
         """Mark this row as changed."""
-        self.widget.get_style_context().add_class('changed')
+        self.get_style_context().add_class('changed')
 
     def on_character_input_change(self, entry):
         keycode = self.get_keycode()
@@ -169,11 +167,9 @@ class Row:
         box.pack_start(delete_button, expand=True, fill=False, padding=0)
         box.show_all()
 
-        row = Gtk.ListBoxRow()
-        row.add(box)
-        row.show_all()
+        self.add(box)
+        self.show_all()
 
-        self.widget = row
         self.character_input = character_input
         self.keycode = keycode_input
 

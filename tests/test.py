@@ -55,6 +55,10 @@ linux._devices = {
 }
 linux.get_devices = lambda: linux._devices
 
+# don't block tests
+from keymapper.gtk import unsaved
+unsaved.unsaved_changes_dialog = lambda: unsaved.CONTINUE
+
 from keymapper.logger import update_verbosity
 
 # some class function stubs.
@@ -73,7 +77,7 @@ if __name__ == "__main__":
     # in all of the available tests like unittest.main() does...,
     # so provide both options.
     if len(modules) > 0:
-        # for example `tests/test.py ConfigTest.testFirstLine`
+        # for example `tests/test.py integration.Integration.test_can_start`
         testsuite = unittest.defaultTestLoader.loadTestsFromNames(
             [f'testcases.{module}' for module in modules]
         )

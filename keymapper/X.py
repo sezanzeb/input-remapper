@@ -203,8 +203,10 @@ def setxkbmap(device, layout):
     logger.info('Applying layout "%s" on device %s', layout, device)
     group = get_devices()[device]
 
-    keycodes = None if layout is None else 'key-mapper'
-    layout = layout or get_system_layout()
+    if layout is None:
+        cmd = ['setxkbmap', '-layout', get_system_layout()]
+    else:
+        cmd = ['setxkbmap', '-layout', layout, '-keycodes', 'key-mapper']
 
     # apply it to every device that hangs on the same usb port, because I
     # have no idea how to figure out which one of those 3 devices that are
@@ -214,17 +216,9 @@ def setxkbmap(device, layout):
             # only all virtual devices of the same hardware device
             continue
 
-        cmd = [
-            'setxkbmap',
-            '-device', str(xinput_id)
-        ]
-        if layout is not None:
-            cmd += ['-layout', layout]
-        if keycodes is not None:
-            cmd += ['-keycodes', keycodes]
-
-        logger.debug('Running `%s`', ' '.join(cmd))
-        subprocess.run(cmd)
+        device_cmd = cmd + ['-device', str(xinput_id)]
+        logger.debug('Running `%s`', ' '.join(device_cmd))
+        subprocess.run(device_cmd, capture_output=True)
 
 
 def create_identity_mapping():

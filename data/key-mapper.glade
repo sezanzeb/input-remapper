@@ -238,7 +238,8 @@
       </object>
     </child>
     <action-widgets>
-      <action-widget response="-7">go_back</action-widget>
+      <action-widget response="-3">go_back</action-widget>
+      <action-widget response="-6">go_ahead</action-widget>
     </action-widgets>
     <child type="titlebar">
       <placeholder/>
