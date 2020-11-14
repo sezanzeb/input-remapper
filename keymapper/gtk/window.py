@@ -170,6 +170,11 @@ class Window:
         key_list.forall(key_list.remove)
         custom_mapping.empty()
 
+    def unhighlight_all_rows(self):
+        """Remove all rows from the mappings table."""
+        key_list = self.get('key_list')
+        key_list.forall(lambda row: row.unhighlight())
+
     def on_apply_system_layout_clicked(self, button):
         """Load the mapping."""
         setxkbmap(self.selected_device, None)
@@ -315,3 +320,4 @@ class Window:
         )
 
         custom_mapping.changed = False
+        self.unhighlight_all_rows()

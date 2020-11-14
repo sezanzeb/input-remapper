@@ -111,6 +111,10 @@ class Row(Gtk.ListBoxRow):
         """Mark this row as changed."""
         self.get_style_context().add_class('changed')
 
+    def unhighlight(self):
+        """Mark this row as unchanged."""
+        self.get_style_context().remove_class('changed')
+
     def on_character_input_change(self, entry):
         keycode = self.get_keycode()
         character = self.get_character()
