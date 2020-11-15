@@ -256,6 +256,7 @@
     <property name="title" translatable="yes">Key Mapper</property>
     <property name="icon_name">mouse</property>
     <signal name="delete-event" handler="on_close" swapped="no"/>
+    <signal name="key-press-event" handler="on_window_key_press_event" swapped="no"/>
     <child>
       <object class="GtkBox" id="wrapper">
         <property name="visible">True</property>
@@ -558,6 +559,7 @@
                   <object class="GtkLabel" id="keycode">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
+                    <property name="tooltip_text" translatable="yes">This is the keycode you just pressed, and that you see in the mappings to the right.</property>
                     <property name="margin_start">10</property>
                     <property name="margin_end">10</property>
                     <property name="width_chars">4</property>
@@ -705,24 +707,20 @@ Control_R</property>
       <placeholder/>
     </child>
   </object>
-  <object class="GtkDialog" id="loading">
+  <object class="GtkMessageDialog" id="loading">
     <property name="can_focus">False</property>
-    <property name="title" translatable="yes">Key Mapper</property>
-    <property name="modal">True</property>
-    <property name="window_position">center</property>
-    <property name="icon_name">mouse</property>
     <property name="type_hint">dialog</property>
-    <property name="urgency_hint">True</property>
+    <property name="decorated">False</property>
+    <property name="text" translatable="yes">Loading...</property>
     <child internal-child="vbox">
       <object class="GtkBox">
-        <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="orientation">vertical</property>
+        <property name="spacing">2</property>
         <child internal-child="action_area">
           <object class="GtkButtonBox">
-            <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="halign">center</property>
+            <property name="homogeneous">True</property>
             <property name="layout_style">end</property>
             <child>
               <placeholder/>
@@ -733,56 +731,8 @@ Control_R</property>
           </object>
           <packing>
             <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="pack_type">end</property>
+            <property name="fill">False</property>
             <property name="position">0</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkBox">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <child>
-              <object class="GtkImage" id="error-image2">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="yalign">0</property>
-                <property name="xpad">12</property>
-                <property name="ypad">12</property>
-                <property name="icon_name">mouse</property>
-                <property name="icon_size">6</property>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">False</property>
-                <property name="position">0</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkLabel" id="secondary_error_label2">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="margin_left">10</property>
-                <property name="margin_right">10</property>
-                <property name="margin_start">10</property>
-                <property name="margin_end">10</property>
-                <property name="ypad">6</property>
-                <property name="label" translatable="yes">Loading...</property>
-                <property name="use_markup">True</property>
-                <property name="xalign">0</property>
-                <property name="yalign">0.5</property>
-              </object>
-              <packing>
-                <property name="expand">True</property>
-                <property name="fill">True</property>
-                <property name="position">1</property>
-              </packing>
-            </child>
-          </object>
-          <packing>
-            <property name="expand">True</property>
-            <property name="fill">True</property>
-            <property name="position">2</property>
           </packing>
         </child>
       </object>
