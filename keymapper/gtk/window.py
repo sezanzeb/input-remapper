@@ -305,6 +305,7 @@ class Window:
             )
             key_list.insert(single_key_mapping, -1)
 
+        self.get('preset_name_input').set_text('')
         self.add_empty()
 
     def add_empty(self):
