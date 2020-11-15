@@ -34,7 +34,6 @@ from gi.repository import Gtk
 
 from keymapper.mapping import custom_mapping
 from keymapper.paths import USERS_SYMBOLS, HOME_PATH, KEYCODES_PATH
-from keymapper.linux import keycode_reader
 
 from test import tmp
 
@@ -114,7 +113,7 @@ class Integration(unittest.TestCase):
                 self.keycode = keycode
 
             def get_keycode(self):
-                return [False, self.keycode]
+                return [True, self.keycode]
 
         def change_empty_row(keycode, character):
             """Modify the one empty row that always exists."""

@@ -33,7 +33,7 @@ from keymapper.X import create_setxkbmap_config, apply_preset, \
 from keymapper.presets import get_presets, find_newest_preset, \
     delete_preset, rename_preset
 from keymapper.logger import logger
-from keymapper.linux import get_devices, keycode_reader
+from keymapper.linux import get_devices
 from keymapper.gtk.row import Row
 from keymapper.gtk.unsaved import unsaved_changes_dialog, GO_BACK
 
@@ -245,9 +245,6 @@ class Window:
         self.selected_preset = None
 
         self.populate_presets()
-        GLib.idle_add(
-            lambda: keycode_reader.start_reading(self.selected_device)
-        )
 
     def on_create_preset_clicked(self, button):
         """Create a new preset and select it."""

@@ -25,11 +25,10 @@
 import gi
 gi.require_version('Gtk', '3.0')
 gi.require_version('GLib', '2.0')
-from gi.repository import Gtk, GLib
+from gi.repository import Gtk
 
 from keymapper.mapping import custom_mapping
 from keymapper.logger import logger
-from keymapper.linux import keycode_reader
 
 
 CTX_KEYCODE = 2

@@ -381,14 +381,15 @@ def create_default_symbols():
 
     ensure_symlink()
 
+    contents = generate_symbols(DEFAULT_SYMBOLS_NAME, None, defaults)
+
     if not os.path.exists(DEFAULT_SYMBOLS):
         logger.info('Creating %s', DEFAULT_SYMBOLS)
         os.mknod(DEFAULT_SYMBOLS)
 
-    # TODO test that it is included in the config files
-    # TODO write test about it being created only if the path doesnt exist
     with open(DEFAULT_SYMBOLS, 'w') as f:
-        contents = generate_symbols(DEFAULT_SYMBOLS_NAME, None, defaults)
         if contents is not None:
             logger.info('Updating default mappings')
             f.write(contents)
+        else:
+            logger.error('Failed to write default mappings')
