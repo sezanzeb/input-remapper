@@ -30,8 +30,7 @@ import unittest
 from keymapper import paths
 paths.X11_SYMBOLS = '/tmp/key-mapper-test/X11/symbols'
 paths.USERS_SYMBOLS = '/tmp/key-mapper-test/X11/symbols/key-mapper/user'
-paths.DEFAULT_SYMBOLS = '/tmp/key-mapper-test/user/.config/default'
-paths.HOME_PATH = '/tmp/key-mapper-test/user/.config'
+paths.DEFAULT_SYMBOLS = '/tmp/key-mapper-test/X11/symbols/key-mapper/user/default'
 paths.KEYCODES_PATH = '/tmp/key-mapper-test/X11/keycodes/key-mapper'
 
 from keymapper import linux
