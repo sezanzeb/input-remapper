@@ -55,24 +55,26 @@ class Row(Gtk.ListBoxRow):
         character = self.character_input.get_text()
         return character if character else None
 
-    def start_watching_keycodes(self, *args):
-        """Start to periodically check if a keycode has been pressed.
+    def highlight(self):
+        """Mark this row as changed."""
+        self.get_style_context().add_class('changed')
 
-        This is different from just listening for text input events
-        (as in Gtk.Entry), since keys may not write characters into the form
-        because they are not mapped. Furthermore their keycode is needed,
-        not their mapped character."""
-        keycode_reader.clear()
+    def unhighlight(self):
+        """Mark this row as unchanged."""
+        self.get_style_context().remove_class('changed')
 
-        def iterate():
-            self.check_newest_keycode()
-            return self.keycode.is_focus() and self.window.window.is_active()
+    def on_character_input_change(self, entry):
+        keycode = self.get_keycode()
+        character = self.get_character()
 
-        GLib.timeout_add(1000 / 30, iterate)
+        self.highlight()
 
-    def check_newest_keycode(self):
+        if keycode is not None:
+            custom_mapping.change(None, keycode, character)
+
+    def on_key_pressed(self, button, event):
         """Check if a keycode has been pressed and if so, display it."""
-        new_keycode = keycode_reader.read()
+        new_keycode = event.get_keycode()[1]
         previous_keycode = self.get_keycode()
         character = self.get_character()
 
@@ -106,25 +108,8 @@ class Row(Gtk.ListBoxRow):
         # else, the keycode has changed, the character is set, all good
         custom_mapping.change(previous_keycode, new_keycode, character)
 
-    def highlight(self):
-        """Mark this row as changed."""
-        self.get_style_context().add_class('changed')
-
-    def unhighlight(self):
-        """Mark this row as unchanged."""
-        self.get_style_context().remove_class('changed')
-
-    def on_character_input_change(self, entry):
-        keycode = self.get_keycode()
-        character = self.get_character()
-
-        self.highlight()
-
-        if keycode is not None:
-            custom_mapping.change(None, keycode, character)
-
     def put_together(self, keycode, character):
-        """Create all GTK widgets."""
+        """Create all child GTK widgets and connect their signals."""
         delete_button = Gtk.EventBox()
         delete_button.add(Gtk.Image.new_from_icon_name(
             'window-close',
@@ -141,8 +126,8 @@ class Row(Gtk.ListBoxRow):
         if keycode is not None:
             keycode_input.set_label(str(keycode))
         keycode_input.connect(
-            'focus-in-event',
-            self.start_watching_keycodes
+            'key-press-event',
+            self.on_key_pressed
         )
         # make the togglebutton go back to its normal state when doing
         # something else in the UI
