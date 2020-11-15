@@ -20,7 +20,6 @@
 
 
 import os
-import time
 import unittest
 import shutil
 
@@ -128,6 +127,8 @@ class TestConfig(unittest.TestCase):
             # changes {{ to {.
             self.assertNotIn('{{', content)
             self.assertNotIn('}}', content)
+            self.assertIn('{', content)
+            self.assertIn('}', content)
 
 
 if __name__ == "__main__":
