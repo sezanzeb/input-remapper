@@ -30,5 +30,6 @@ DistUtilsExtra.auto.setup(
     data_files=[
         ('share/applications/', ['data/key-mapper.desktop']),
         ('share/key-mapper/', ['data/xkb_symbols_template']),
+        ('share/polkit-1/actions/', ['data/org.key-mapper.policy']),
     ],
 )

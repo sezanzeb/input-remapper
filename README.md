@@ -41,6 +41,6 @@ sudo python3 setup.py install && python3 tests/test.py
 - [x] offer going back to the system default
 - [x] highlight changes and alert before discarding unsaved changes
 - [ ] automatically load the preset when the mouse connects
-- [ ] ask for administrator permissions using polkit
+- [x] ask for administrator permissions using polkit
 - [ ] make it work on wayland
 - [ ] add to the AUR, provide .deb and .appimage files
