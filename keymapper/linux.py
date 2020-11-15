@@ -47,14 +47,8 @@ def can_grab(path):
 class KeycodeReader:
     """Keeps reading keycodes in the background for the UI to use.
 
-    This was written before I figured out there is get_keycode in GLib.
-
-    A new arriving keycode indicates that a button was pressed, so the
-    UI can keep checking for a new keycode on this object and act like the
-    keycode went right to the input box.
-
-    GTK inputs cannot listen on keys that don't write a character, so
-    they have to repeatedly ask for new data (in this solution).
+    When a button was pressed, the newest keycode can be obtained from this
+    object. This was written before I figured out there is get_keycode in Gdk.
     """
     def __init__(self):
         self.virtual_devices = []
@@ -102,7 +96,8 @@ class KeycodeReader:
         return newest_keycode
 
 
-keycode_reader = KeycodeReader()
+# not used anymore since the overlooked get_keycode function is now being used
+# keycode_reader = KeycodeReader()
 
 
 def get_devices():
