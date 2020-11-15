@@ -22,7 +22,7 @@
 import unittest
 
 from keymapper.linux import get_devices
-from keymapper.paths import USERS_SYMBOLS, X11_SYMBOLS, HOME_PATH, \
+from keymapper.paths import USERS_SYMBOLS, X11_SYMBOLS, \
     DEFAULT_SYMBOLS
 
 
@@ -33,9 +33,7 @@ class TestTest(unittest.TestCase):
     def test_paths(self):
         # stuff in /usr
         self.assertTrue(USERS_SYMBOLS.startswith(X11_SYMBOLS))
-
-        # stuff in /home
-        self.assertTrue(DEFAULT_SYMBOLS.startswith(HOME_PATH))
+        self.assertTrue(DEFAULT_SYMBOLS.startswith(X11_SYMBOLS))
 
 
 if __name__ == "__main__":

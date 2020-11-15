@@ -26,8 +26,7 @@ import shutil
 from keymapper.X import custom_mapping, generate_symbols, \
     create_identity_mapping, create_setxkbmap_config, \
     get_preset_name, create_default_symbols
-from keymapper.paths import get_home_path, get_usr_path, KEYCODES_PATH, \
-    HOME_PATH, USERS_SYMBOLS
+from keymapper.paths import get_usr_path, KEYCODES_PATH, USERS_SYMBOLS
 
 from test import tmp
 
@@ -45,12 +44,6 @@ class TestConfig(unittest.TestCase):
         create_setxkbmap_config('device a', 'preset b')
 
         self.assertTrue(os.path.exists(os.path.join(
-            HOME_PATH,
-            'device_a',
-            'preset_b'
-        )))
-
-        self.assertTrue(os.path.exists(os.path.join(
             USERS_SYMBOLS,
             'device_a',
             'preset_b'
@@ -58,7 +51,7 @@ class TestConfig(unittest.TestCase):
 
         self.assertTrue(os.path.exists(KEYCODES_PATH))
 
-        with open(get_home_path('device_a', 'preset_b'), 'r') as f:
+        with open(get_usr_path('device_a', 'preset_b'), 'r') as f:
             content = f.read()
             self.assertIn('key <10> { [ a ] };', content)
             self.assertIn('key <11> { [ KP_1 ] };', content)
@@ -76,11 +69,9 @@ class TestConfig(unittest.TestCase):
         create_identity_mapping()
         create_default_symbols()
 
-        self.assertTrue(os.path.exists(get_home_path('default')))
         self.assertTrue(os.path.exists(get_usr_path('default')))
-        self.assertTrue(os.path.islink(get_usr_path()))
 
-        with open(get_home_path('default'), 'r') as f:
+        with open(get_usr_path('default'), 'r') as f:
             content = f.read()
             self.assertNotIn('include', content)
             # this is pretty much the same on every keyboard

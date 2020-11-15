@@ -24,15 +24,11 @@
 
 import os
 
-
-# the path in home, is symlinked with USERS_SYMBOLS.
-# getlogin gets the user who ran sudo
-HOME_PATH = os.path.join('/home', os.getlogin(), '.config/key-mapper')
-
 # the path that contains ALL symbols, not just ours
 X11_SYMBOLS = '/usr/share/X11/xkb/symbols'
 
 # should not contain spaces
+# getlogin gets the user who ran sudo
 USERS_SYMBOLS = os.path.join(
     '/usr/share/X11/xkb/symbols/key-mapper',
     os.getlogin().replace(' ', '_')
@@ -41,24 +37,6 @@ USERS_SYMBOLS = os.path.join(
 # those are the same for every preset and user, they are needed to make the
 # presets work.
 KEYCODES_PATH = '/usr/share/X11/xkb/keycodes/key-mapper'
-
-
-def get_home_path(device=None, preset=None):
-    """Get the path to the config file in /usr."""
-    if device is None:
-        return HOME_PATH
-
-    device = device.strip()
-
-    if preset is not None:
-        preset = preset.strip()
-        return os.path.join(HOME_PATH, device, preset).replace(' ', '_')
-
-    if device is not None:
-        return os.path.join(HOME_PATH, device.replace(' ', '_'))
-
-
-DEFAULT_SYMBOLS = get_home_path('default')
 
 
 def get_usr_path(device=None, preset=None):
@@ -79,3 +57,6 @@ def get_usr_path(device=None, preset=None):
 
     if device is not None:
         return os.path.join(USERS_SYMBOLS, device.replace(' ', '_'))
+
+
+DEFAULT_SYMBOLS = get_usr_path('default')

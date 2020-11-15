@@ -37,33 +37,12 @@ import re
 import shutil
 import subprocess
 
-from keymapper.paths import get_home_path, get_usr_path, KEYCODES_PATH, \
-    HOME_PATH, USERS_SYMBOLS, DEFAULT_SYMBOLS, X11_SYMBOLS
+from keymapper.paths import get_usr_path, KEYCODES_PATH, \
+    USERS_SYMBOLS, DEFAULT_SYMBOLS, X11_SYMBOLS
 from keymapper.logger import logger
 from keymapper.data import get_data_path
 from keymapper.linux import get_devices
 from keymapper.mapping import custom_mapping, Mapping
-
-
-def ensure_symlink():
-    """Make sure the symlink exists.
-
-    It provides the configs in /home to X11 in /usr.
-    """
-    if not os.path.exists(HOME_PATH):
-        os.makedirs(HOME_PATH, exist_ok=True)
-
-    if not os.path.exists(USERS_SYMBOLS):
-        # link from /usr/share/X11/xkb/symbols/key-mapper/user to
-        # /home/user/.config/key-mapper
-        logger.info('Linking "%s" to "%s"', USERS_SYMBOLS, HOME_PATH)
-        os.makedirs(os.path.dirname(USERS_SYMBOLS), exist_ok=True)
-        os.symlink(HOME_PATH, USERS_SYMBOLS, target_is_directory=True)
-    elif not os.path.islink(USERS_SYMBOLS):
-        logger.error('Expected %s to be a symlink', USERS_SYMBOLS)
-    else:
-        # expected
-        logger.debug('Symlink %s exists', USERS_SYMBOLS)
 
 
 def create_preset(device, name=None):
@@ -76,26 +55,26 @@ def create_preset(device, name=None):
         name = 'new preset'
 
     # find a name that is not already taken
-    if os.path.exists(get_home_path(device, name)):
+    if os.path.exists(get_usr_path(device, name)):
         i = 2
-        while os.path.exists(get_home_path(device, f'{name} {i}')):
+        while os.path.exists(get_usr_path(device, f'{name} {i}')):
             i += 1
         name = f'{name} {i}'
 
-    path = get_home_path(device, name)
+    path = get_usr_path(device, name)
     if not os.path.exists(path):
         logger.info('Creating new file %s', path)
         os.makedirs(os.path.dirname(path), exist_ok=True)
         os.mknod(path)
 
     # give those files to the user
+    # TODO or should they stay root
     user = os.getlogin()
-    for root, dirs, files in os.walk(HOME_PATH):
+    for root, dirs, files in os.walk(USERS_SYMBOLS):
         shutil.chown(root, user, user)
         for file in files:
             shutil.chown(os.path.join(root, file), user, user)
 
-    ensure_symlink()
     return name
 
 
@@ -121,20 +100,18 @@ def create_setxkbmap_config(device, preset):
     create_identity_mapping()
     create_default_symbols()
 
-    home_device_path = get_home_path(device)
-    if not os.path.exists(home_device_path):
-        logger.info('Creating directory "%s"', home_device_path)
-        os.makedirs(home_device_path, exist_ok=True)
+    device_path = get_usr_path(device)
+    if not os.path.exists(device_path):
+        logger.info('Creating directory "%s"', device_path)
+        os.makedirs(device_path, exist_ok=True)
 
-    ensure_symlink()
+    preset_path = get_usr_path(device, preset)
+    if not os.path.exists(preset_path):
+        logger.info('Creating config file "%s"', preset_path)
+        os.mknod(preset_path)
 
-    home_preset_path = get_home_path(device, preset)
-    if not os.path.exists(home_preset_path):
-        logger.info('Creating config file "%s"', home_preset_path)
-        os.mknod(home_preset_path)
-
-    logger.info('Writing key mappings to %s', home_preset_path)
-    with open(home_preset_path, 'w') as f:
+    logger.info('Writing key mappings to %s', preset_path)
+    with open(preset_path, 'w') as f:
         contents = generate_symbols(get_preset_name(device, preset))
         if contents is not None:
             f.write(contents)
@@ -336,7 +313,7 @@ def parse_symbols_file(device, preset):
 
     Existing mappings are overwritten if there are conflicts.
     """
-    path = get_home_path(device, preset)
+    path = get_usr_path(device, preset)
 
     if not os.path.exists(path):
         logger.debug(
@@ -379,12 +356,11 @@ def create_default_symbols():
         # TODO support an array of values in mapping and test it
         defaults.change(None, int(keycode), characters.split()[0])
 
-    ensure_symlink()
-
     contents = generate_symbols(DEFAULT_SYMBOLS_NAME, None, defaults)
 
     if not os.path.exists(DEFAULT_SYMBOLS):
         logger.info('Creating %s', DEFAULT_SYMBOLS)
+        os.makedirs(os.path.dirname(DEFAULT_SYMBOLS), exist_ok=True)
         os.mknod(DEFAULT_SYMBOLS)
 
     with open(DEFAULT_SYMBOLS, 'w') as f:

@@ -33,7 +33,7 @@ gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
 
 from keymapper.mapping import custom_mapping
-from keymapper.paths import USERS_SYMBOLS, HOME_PATH, KEYCODES_PATH
+from keymapper.paths import USERS_SYMBOLS, KEYCODES_PATH
 
 from test import tmp
 
@@ -189,7 +189,6 @@ class Integration(unittest.TestCase):
         self.window.on_save_preset_clicked(None)
         self.assertEqual(self.window.selected_preset, 'asdf')
         self.assertTrue(os.path.exists(f'{USERS_SYMBOLS}/device_1/asdf'))
-        self.assertTrue(os.path.exists(f'{HOME_PATH}/device_1/asdf'))
         self.assertEqual(custom_mapping.get(14), 'b')
 
     def test_select_device_and_preset(self):
@@ -236,7 +235,6 @@ class Integration(unittest.TestCase):
         gtk_iteration()
         self.assertEqual(self.window.selected_preset, 'abc 123')
         self.assertTrue(os.path.exists(f'{USERS_SYMBOLS}/device_1/abc_123'))
-
         self.assertListEqual(
             sorted(os.listdir(USERS_SYMBOLS)),
             ['default', 'device_1']
