@@ -183,6 +183,10 @@ class Window:
     def on_apply_system_layout_clicked(self, button):
         """Load the mapping."""
         setxkbmap(self.selected_device, None)
+        self.get('status_bar').push(
+            CTX_APPLY,
+            f'Applied the system default'
+        )
 
     def on_save_preset_clicked(self, button):
         """Save changes to a preset to the file system."""
