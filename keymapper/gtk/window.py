@@ -35,6 +35,7 @@ from keymapper.presets import get_presets, find_newest_preset, \
 from keymapper.logger import logger
 from keymapper.linux import get_devices
 from keymapper.gtk.row import Row
+from keymapper.gtk.loading import LoadingDialog
 from keymapper.gtk.unsaved import unsaved_changes_dialog, GO_BACK
 
 
@@ -100,13 +101,22 @@ class Window:
 
         window = self.get('window')
         window.show()
+        window.set_sensitive(False)
+        self.get('wrapper').set_opacity(0)
+        loading = LoadingDialog()
         self.window = window
+
+        gtk_iteration()
 
         self.populate_devices()
 
         self.select_newest_preset()
 
         self.timeout = GLib.timeout_add(100, self.check_add_row)
+
+        window.set_sensitive(True)
+        self.get('wrapper').set_opacity(1)
+        loading.close()
 
     def get(self, name):
         """Get a widget from the window"""
