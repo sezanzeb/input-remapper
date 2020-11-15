@@ -47,6 +47,8 @@ def can_grab(path):
 class KeycodeReader:
     """Keeps reading keycodes in the background for the UI to use.
 
+    This was written before I figured out there is get_keycode in GLib.
+
     A new arriving keycode indicates that a button was pressed, so the
     UI can keep checking for a new keycode on this object and act like the
     keycode went right to the input box.
@@ -96,9 +98,6 @@ class KeycodeReader:
                     # value: 1 for down, 0 for up, 2 for hold.
                     # this happens to report key codes that are 8 lower
                     # than the ones reported by xev
-                    # TODO check if 280 and above works on wayland and
-                    #  if not, prevent anything > 255. adjust
-                    #  the maximum of keycodes before trying
                     newest_keycode = event.code + 8
         return newest_keycode
 

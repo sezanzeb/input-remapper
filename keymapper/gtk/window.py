@@ -106,7 +106,7 @@ class Window:
 
         self.select_newest_preset()
 
-        GLib.timeout_add(100, self.check_add_row)
+        self.timeout = GLib.timeout_add(100, self.check_add_row)
 
     def get(self, name):
         """Get a widget from the window"""
@@ -114,6 +114,7 @@ class Window:
 
     def on_close(self, *_):
         """Safely close the application."""
+        GLib.source_remove(self.timeout)
         Gtk.main_quit()
 
     def check_add_row(self):

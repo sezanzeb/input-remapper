@@ -83,8 +83,6 @@ class Integration(unittest.TestCase):
         self.window = launch()
 
     def tearDown(self):
-        # before calling destroy to break everything (happened with
-        # check_add_row), make an iteration to clear all pending events.
         gtk_iteration()
         self.window.on_close()
         self.window.window.destroy()
@@ -111,12 +109,14 @@ class Integration(unittest.TestCase):
 
     def test_rows(self):
         """Comprehensive test for rows."""
-        def read():
-            """Always return a different keycode for each row."""
-            # + 7 because keycodes usually start at 8
-            return len(self.window.get('key_list').get_children()) + 7
+        class FakeEvent:
+            def __init__(self, keycode):
+                self.keycode = keycode
 
-        def change_empty_row(character):
+            def get_keycode(self):
+                return [False, self.keycode]
+
+        def change_empty_row(keycode, character):
             """Modify the one empty row that always exists."""
             # wait for the window to create a new empty row if needed
             time.sleep(0.2)
@@ -129,14 +129,9 @@ class Integration(unittest.TestCase):
             self.assertIsNone(row.keycode.get_label())
             self.assertEqual(row.character_input.get_text(), '')
 
-            # focus the keycode to trigger reading the fake keycode
-            self.window.window.set_focus(row.keycode)
-            time.sleep(0.2)
-            gtk_iteration()
+            row.on_key_pressed(None, FakeEvent(keycode))
 
-            # it should be filled using the `read` patch
-            self.assertEqual(int(row.keycode.get_label()), len(rows) + 7)
-            self.window.window.set_focus(None)
+            self.assertEqual(int(row.keycode.get_label()), keycode)
 
             # set the character to make the new row complete
             row.character_input.set_text(character)
@@ -145,45 +140,44 @@ class Integration(unittest.TestCase):
 
             return row
 
-        with patch.object(keycode_reader, 'read', read):
-            # add two rows by modifiying the one empty row that exists
-            change_empty_row('a')
-            change_empty_row('b')
+        # add two rows by modifiying the one empty row that exists
+        change_empty_row(10, 'a')
+        change_empty_row(11, 'b')
 
-            # one empty row added automatically again
-            time.sleep(0.2)
-            gtk_iteration()
-            # sleep one more time because it's funny to watch the ui
-            # during the test, how rows turn blue and stuff
-            time.sleep(0.2)
-            self.assertEqual(len(self.get_rows()), 3)
+        # one empty row added automatically again
+        time.sleep(0.2)
+        gtk_iteration()
+        # sleep one more time because it's funny to watch the ui
+        # during the test, how rows turn blue and stuff
+        time.sleep(0.2)
+        self.assertEqual(len(self.get_rows()), 3)
 
-            self.assertEqual(custom_mapping.get(8), 'a')
-            self.assertEqual(custom_mapping.get(9), 'b')
-            self.assertTrue(custom_mapping.changed)
+        self.assertEqual(custom_mapping.get(10), 'a')
+        self.assertEqual(custom_mapping.get(11), 'b')
+        self.assertTrue(custom_mapping.changed)
 
-            self.window.on_save_preset_clicked(None)
-            for row in self.get_rows():
-                self.assertNotIn(
-                    'changed',
-                    row.get_style_context().list_classes()
-                )
-            self.assertFalse(custom_mapping.changed)
+        self.window.on_save_preset_clicked(None)
+        for row in self.get_rows():
+            self.assertNotIn(
+                'changed',
+                row.get_style_context().list_classes()
+            )
+        self.assertFalse(custom_mapping.changed)
 
-            # now change the first row and it should turn blue,
-            # but the other should remain unhighlighted
-            row = self.get_rows()[0]
-            row.character_input.set_text('c')
-            self.assertIn('changed', row.get_style_context().list_classes())
-            for row in self.get_rows()[1:]:
-                self.assertNotIn(
-                    'changed',
-                    row.get_style_context().list_classes()
-                )
+        # now change the first row and it should turn blue,
+        # but the other should remain unhighlighted
+        row = self.get_rows()[0]
+        row.character_input.set_text('c')
+        self.assertIn('changed', row.get_style_context().list_classes())
+        for row in self.get_rows()[1:]:
+            self.assertNotIn(
+                'changed',
+                row.get_style_context().list_classes()
+            )
 
-            self.assertEqual(custom_mapping.get(8), 'c')
-            self.assertEqual(custom_mapping.get(9), 'b')
-            self.assertTrue(custom_mapping.changed)
+        self.assertEqual(custom_mapping.get(10), 'c')
+        self.assertEqual(custom_mapping.get(11), 'b')
+        self.assertTrue(custom_mapping.changed)
 
     def test_rename_and_save(self):
         custom_mapping.change(None, 14, 'a')
