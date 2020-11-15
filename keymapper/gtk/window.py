@@ -116,7 +116,7 @@ class Window:
 
         window.set_sensitive(True)
         self.get('wrapper').set_opacity(1)
-        loading.close()
+        loading.destroy()
 
     def get(self, name):
         """Get a widget from the window"""
@@ -189,6 +189,13 @@ class Window:
         """Remove all rows from the mappings table."""
         key_list = self.get('key_list')
         key_list.forall(lambda row: row.unhighlight())
+
+    def on_window_key_press_event(self, window, event):
+        """Write down the pressed key on the UI.
+
+        Helps to understand what the numbers in the mapping are about.
+        """
+        self.get('keycode').set_text(str(event.get_keycode()[1]))
 
     def on_apply_system_layout_clicked(self, button):
         """Load the mapping."""

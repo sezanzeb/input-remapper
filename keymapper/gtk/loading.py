@@ -38,8 +38,9 @@ class LoadingDialog:
         builder = Gtk.Builder()
         builder.add_from_file(gladefile)
         dialog = builder.get_object('loading')
-        dialog.show()
+        dialog.show_all()
         self.dialog = dialog
 
-    def close(self):
+    def destroy(self):
+        """Destroy this dialog."""
         self.dialog.destroy()
