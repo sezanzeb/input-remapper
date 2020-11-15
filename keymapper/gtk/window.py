@@ -118,12 +118,16 @@ class Window:
 
     def check_add_row(self):
         """Ensure that one empty row is available at all times."""
-        rows = len(self.get('key_list').get_children())
+        num_rows = len(self.get('key_list').get_children())
 
         # verify that all mappings are displayed
-        assert rows >= len(custom_mapping)
+        if num_rows < len(custom_mapping):
+            raise AssertionError(
+                f'custom_mapping contains {len(custom_mapping)} rows, '
+                f'but only {num_rows} are displayed'
+            )
 
-        if rows == len(custom_mapping):
+        if num_rows == len(custom_mapping):
             self.add_empty()
 
         return True
