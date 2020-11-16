@@ -34,7 +34,7 @@ Resources:
 
 import os
 import re
-import shutil
+import stat
 import subprocess
 
 from keymapper.paths import get_usr_path, KEYCODES_PATH, \
@@ -67,13 +67,17 @@ def create_preset(device, name=None):
         os.makedirs(os.path.dirname(path), exist_ok=True)
         os.mknod(path)
 
-    # give those files to the user
-    # TODO or should they stay root
+    # add the same permissions as other symbol files, only root may write.
+    os.chmod(path, stat.S_IREAD | stat.S_IWRITE | stat.S_IRGRP | stat.S_IROTH)
+
+    """# give this file and the directories to the user
+    # For now keep them with root to avoid doing too much unconventional
+    # stuff.
     user = os.getlogin()
     for root, dirs, files in os.walk(USERS_SYMBOLS):
         shutil.chown(root, user, user)
         for file in files:
-            shutil.chown(os.path.join(root, file), user, user)
+            shutil.chown(os.path.join(root, file), user, user)"""
 
     return name
 
