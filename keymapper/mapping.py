@@ -52,7 +52,9 @@ class Mapping:
         previous_keycode : int or None
             If None, will not remove any previous mapping.
         new_keycode : int
-        character : string
+        character : string or string[]
+            If an array of strings, will put something like { [ a, A ] };
+            into the symbols file.
         """
         try:
             new_keycode = int(new_keycode)
@@ -66,6 +68,9 @@ class Mapping:
             except ValueError:
                 logger.error('Cannot use %s as keycode', previous_keycode)
                 return False
+
+        if isinstance(character, list):
+            character = ', '.join([str(c) for c in character])
 
         if new_keycode and character:
             self._mapping[new_keycode] = str(character)

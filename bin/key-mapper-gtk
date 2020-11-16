@@ -51,10 +51,6 @@ if __name__ == '__main__':
     window = Window()
 
     if getpass.getuser() != 'root' and 'unittest' not in sys.modules.keys():
-        # TODO add a polkit thing like
-        #  https://gitlab.manjaro.org/applications/pamac/-/tree/master/data/polkit
-        #  https://gitlab.manjaro.org/applications/pamac/-/blob/master/src/daemon.vala#L260
-        #  does this require a dependency?
         logger.error('Needs to run with sudo')
         ErrorDialog(
             'Error',

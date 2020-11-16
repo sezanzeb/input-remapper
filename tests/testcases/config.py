@@ -37,6 +37,7 @@ class TestConfig(unittest.TestCase):
         custom_mapping.change(None, 10, 'a')
         custom_mapping.change(None, 11, 'KP_1')
         custom_mapping.change(None, 12, 3)
+        custom_mapping.change(None, 13, ['a', 'A', 'NoSymbol', 3])
         if os.path.exists(tmp):
             shutil.rmtree(tmp)
 
@@ -74,11 +75,15 @@ class TestConfig(unittest.TestCase):
         with open(get_usr_path('default'), 'r') as f:
             content = f.read()
             self.assertNotIn('include', content)
-            # this is pretty much the same on every keyboard
-            self.assertIn('key <10> { [ 1', content)
-            self.assertIn('key <11> { [ 2', content)
-            self.assertIn('key <12> { [ 3', content)
-            self.assertIn('key <65> { [ space ] };', content)
+            # this is pretty much the same on every keyboard.
+            # The default config should also contain the modified keys, but
+            # since they are different in every country just check for the
+            # comma.
+            self.assertIn('key <10> { [ 1, ', content)
+            self.assertIn('key <11> { [ 2, ', content)
+            self.assertIn('key <12> { [ 3, ', content)
+            self.assertIn('key <13> { [ 4, ', content)
+            self.assertIn('key <65> { [ space, ', content)
 
     def test_get_preset_name(self):
         self.assertEqual(get_preset_name('a', 'b'), 'key-mapper/user/a/b')
@@ -99,6 +104,7 @@ class TestConfig(unittest.TestCase):
         self.assertIn('key <10> { [ a ] };', content)
         self.assertIn('key <11> { [ KP_1 ] };', content)
         self.assertIn('key <12> { [ 3 ] };', content)
+        self.assertIn('key <13> { [ a, A, NoSymbol, 3 ] };', content)
 
     def test_identity_mapping(self):
         create_identity_mapping()
