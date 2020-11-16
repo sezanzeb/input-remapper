@@ -23,13 +23,11 @@
 
 
 import subprocess
+import multiprocessing
 
 import evdev
 
 from keymapper.logger import logger
-
-
-_devices = None
 
 
 def can_grab(path):
@@ -100,7 +98,7 @@ class KeycodeReader:
 # keycode_reader = KeycodeReader()
 
 
-def get_devices():
+def _get_devices(pipe):
     """Group devices and get relevant infos per group.
 
     Returns a list containing mappings of
@@ -112,10 +110,21 @@ def get_devices():
 
     They are grouped by usb port.
     """
-    # cache the result, this takes a second to complete
-    global _devices
-    if _devices is not None:
-        return _devices
+    """
+    evdev.list_devices -> string[] dev/input/event# paths
+    device = evdev.InputDevice(path)
+    device.capabilities().keys() ein array mit evdev.ecodes.EV_KEY oder
+    irgendn stuff der nicht interessiert
+    
+    device.phys -> 
+    
+    device.phys usb-0000:03:00.0-4/input2
+    device.phys usb-0000:03:00.0-4/input1
+    device.phys usb-0000:03:00.0-4/input0
+    device.phys usb-0000:03:00.0-3/input1
+    device.phys usb-0000:03:00.0-3/input1
+    device.phys usb-0000:03:00.0-3/input0
+    """
 
     devices = [evdev.InputDevice(path) for path in evdev.list_devices()]
 
@@ -144,6 +153,18 @@ def get_devices():
             'devices': names
         }
 
-    _devices = result
-    logger.info('Found %s', ', '.join([f'"{name}"' for name in result]))
-    return result
+    pipe.send(result)
+
+
+# populate once for the whole app. Since InputDevice destructors take
+# quite some time, do this in a process that can take as much time as it
+# wants after piping the result.
+pipe = multiprocessing.Pipe()
+multiprocessing.Process(target=_get_devices, args=(pipe[1],)).start()
+# block until devices are available
+_devices = pipe[0].recv()
+logger.info('Found %s', ', '.join([f'"{name}"' for name in _devices]))
+
+
+def get_devices():
+    return _devices

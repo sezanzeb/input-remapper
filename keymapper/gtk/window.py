@@ -23,6 +23,7 @@
 
 
 import gi
+import time
 gi.require_version('Gtk', '3.0')
 gi.require_version('GLib', '2.0')
 from gi.repository import Gtk, Gdk, GLib
@@ -101,11 +102,10 @@ class Window:
 
         window = self.get('window')
         window.show()
-        window.set_sensitive(False)
-        self.get('wrapper').set_opacity(0)
-        loading = LoadingDialog()
         self.window = window
 
+        # if any of the next steps take a bit to complete, have the window
+        # already visible to make it look more responsive.
         gtk_iteration()
 
         self.populate_devices()
@@ -113,10 +113,6 @@ class Window:
         self.select_newest_preset()
 
         self.timeout = GLib.timeout_add(100, self.check_add_row)
-
-        window.set_sensitive(True)
-        self.get('wrapper').set_opacity(1)
-        loading.destroy()
 
     def get(self, name):
         """Get a widget from the window"""
