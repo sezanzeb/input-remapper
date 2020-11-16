@@ -36,7 +36,6 @@ from keymapper.presets import get_presets, find_newest_preset, \
 from keymapper.logger import logger
 from keymapper.linux import get_devices
 from keymapper.gtk.row import Row
-from keymapper.gtk.loading import LoadingDialog
 from keymapper.gtk.unsaved import unsaved_changes_dialog, GO_BACK
 
 

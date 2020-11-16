@@ -25,7 +25,7 @@ import shutil
 
 from keymapper.X import custom_mapping, generate_symbols, \
     create_identity_mapping, create_setxkbmap_config, \
-    get_preset_name, create_default_symbols
+    get_preset_name, create_default_symbols, parse_symbols_file
 from keymapper.paths import get_usr_path, KEYCODES_PATH, USERS_SYMBOLS
 
 from test import tmp
@@ -38,6 +38,8 @@ class TestConfig(unittest.TestCase):
         custom_mapping.change(None, 11, 'KP_1')
         custom_mapping.change(None, 12, 3)
         custom_mapping.change(None, 13, ['a', 'A', 'NoSymbol', 3])
+        self.assertEqual(custom_mapping.get(12), '3')
+        self.assertEqual(custom_mapping.get(13), 'a, A, NoSymbol, 3')
         if os.path.exists(tmp):
             shutil.rmtree(tmp)
 
@@ -57,9 +59,19 @@ class TestConfig(unittest.TestCase):
             self.assertIn('key <10> { [ a ] };', content)
             self.assertIn('key <11> { [ KP_1 ] };', content)
             self.assertIn('key <12> { [ 3 ] };', content)
+            self.assertIn('key <13> { [ a, A, NoSymbol, 3 ] };', content)
 
             self.assertIn('include "key-mapper/user/default"', content)
             self.assertIn(get_preset_name('device_a', 'preset_b'), content)
+
+        # it should be loaded correctly after saving
+        parse_symbols_file('device_a', 'preset_b')
+        self.assertIsNone(custom_mapping.get(9))
+        self.assertEqual(custom_mapping.get(10), 'a')
+        self.assertEqual(custom_mapping.get(11), 'KP_1')
+        self.assertEqual(custom_mapping.get(12), '3')
+        self.assertEqual(custom_mapping.get(13), 'a, A, NoSymbol, 3')
+        self.assertIsNone(custom_mapping.get(14))
 
     def test_default_symbols(self):
         # keycodes are missing
