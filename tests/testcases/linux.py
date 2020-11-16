@@ -25,7 +25,7 @@ from keymapper.linux import GetDevicesProcess
 
 
 class TestLinux(unittest.TestCase):
-    def test_create_preset_1(self):
+    def test_get_devices(self):
         class FakePipe:
             devices = None
 
