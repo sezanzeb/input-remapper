@@ -98,7 +98,62 @@ class KeycodeReader:
 # keycode_reader = KeycodeReader()
 
 
-def _get_devices(pipe):
+_devices = None
+
+
+class GetDevicesProcess(multiprocessing.Process):
+    """Process to get the devices that can be worked with.
+
+    Since InputDevice destructors take quite some time, do this
+    asynchronously so that they can take as much time as they want without
+    slowing down the initialization. To avoid evdevs asyncio stuff spamming
+    errors, do this with multiprocessing and not multithreading.
+    """
+    def __init__(self, pipe):
+        """Construct the process.
+
+        Parameters
+        ----------
+        pipe : multiprocessing.Pipe
+            used to communicate the result
+        """
+        self.pipe = pipe
+        super().__init__()
+
+    def run(self):
+        """Do what get_devices describes."""
+        devices = [evdev.InputDevice(path) for path in evdev.list_devices()]
+
+        # group them together by usb device because there could be stuff like
+        # "Logitech USB Keyboard" and "Logitech USB Keyboard Consumer Control"
+        grouped = {}
+        for device in devices:
+            # only keyboard devices
+            # https://www.kernel.org/doc/html/latest/input/event-codes.html
+            if evdev.ecodes.EV_KEY not in device.capabilities().keys():
+                continue
+
+            usb = device.phys.split('/')[0]
+            if grouped.get(usb) is None:
+                grouped[usb] = []
+            grouped[usb].append((device.name, device.path))
+
+        # now write down all the paths of that group
+        result = {}
+        for group in grouped.values():
+            names = [entry[0] for entry in group]
+            devs = [entry[1] for entry in group]
+            shortest_name = sorted(names, key=len)[0]
+            result[shortest_name] = {
+                'paths': devs,
+                'devices': names
+            }
+
+        self.pipe.send(result)
+        return result
+
+
+def get_devices():
     """Group devices and get relevant infos per group.
 
     Returns a list containing mappings of
@@ -110,61 +165,11 @@ def _get_devices(pipe):
 
     They are grouped by usb port.
     """
-    """
-    evdev.list_devices -> string[] dev/input/event# paths
-    device = evdev.InputDevice(path)
-    device.capabilities().keys() ein array mit evdev.ecodes.EV_KEY oder
-    irgendn stuff der nicht interessiert
-    
-    device.phys -> 
-    
-    device.phys usb-0000:03:00.0-4/input2
-    device.phys usb-0000:03:00.0-4/input1
-    device.phys usb-0000:03:00.0-4/input0
-    device.phys usb-0000:03:00.0-3/input1
-    device.phys usb-0000:03:00.0-3/input1
-    device.phys usb-0000:03:00.0-3/input0
-    """
-
-    devices = [evdev.InputDevice(path) for path in evdev.list_devices()]
-
-    # group them together by usb device because there could be stuff like
-    # "Logitech USB Keyboard" and "Logitech USB Keyboard Consumer Control"
-    grouped = {}
-    for device in devices:
-        # only keyboard devices
-        # https://www.kernel.org/doc/html/latest/input/event-codes.html
-        if evdev.ecodes.EV_KEY not in device.capabilities().keys():
-            continue
-
-        usb = device.phys.split('/')[0]
-        if grouped.get(usb) is None:
-            grouped[usb] = []
-        grouped[usb].append((device.name, device.path))
-
-    # now write down all the paths of that group
-    result = {}
-    for group in grouped.values():
-        names = [entry[0] for entry in group]
-        devs = [entry[1] for entry in group]
-        shortest_name = sorted(names, key=len)[0]
-        result[shortest_name] = {
-            'paths': devs,
-            'devices': names
-        }
-
-    pipe.send(result)
-
-
-# populate once for the whole app. Since InputDevice destructors take
-# quite some time, do this in a process that can take as much time as it
-# wants after piping the result.
-pipe = multiprocessing.Pipe()
-multiprocessing.Process(target=_get_devices, args=(pipe[1],)).start()
-# block until devices are available
-_devices = pipe[0].recv()
-logger.info('Found %s', ', '.join([f'"{name}"' for name in _devices]))
-
-
-def get_devices():
+    global _devices
+    if _devices is None:
+        pipe = multiprocessing.Pipe()
+        GetDevicesProcess(pipe[1]).start()
+        # block until devices are available
+        _devices = pipe[0].recv()
+        logger.info('Found %s', ', '.join([f'"{name}"' for name in _devices]))
     return _devices
