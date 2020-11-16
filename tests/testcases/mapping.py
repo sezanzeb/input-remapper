@@ -64,9 +64,17 @@ class TestMapping(unittest.TestCase):
         self.assertEqual(self.mapping.get(4), 'f')
         self.assertEqual(len(self.mapping), 2)
 
-        # non-ints are ignored
+        # non-int keycodes are ignored
         self.mapping.change('a', 'b', 'c')
         self.assertEqual(len(self.mapping), 2)
+
+    def test_change_multiple(self):
+        self.mapping.change(None, 1, ['a', 'A'])
+        self.assertEqual(self.mapping.get(1), 'a, A')
+
+        self.mapping.change(1, 2, ['b', 'B'])
+        self.assertEqual(self.mapping.get(2), 'b, B')
+        self.assertIsNone(self.mapping.get(1))
 
     def test_clear(self):
         # does nothing

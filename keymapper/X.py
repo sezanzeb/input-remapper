@@ -354,7 +354,7 @@ def create_default_symbols():
     defaults = Mapping()
     for keycode, characters in mappings:
         # TODO support an array of values in mapping and test it
-        defaults.change(None, int(keycode), characters.split()[0])
+        defaults.change(None, int(keycode), characters.split())
 
     contents = generate_symbols(DEFAULT_SYMBOLS_NAME, None, defaults)
 
