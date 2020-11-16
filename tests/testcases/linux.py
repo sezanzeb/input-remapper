@@ -27,13 +27,16 @@ from keymapper.linux import GetDevicesProcess
 class TestLinux(unittest.TestCase):
     def test_create_preset_1(self):
         class FakePipe:
-            def send(self, stuff):
-                pass
+            devices = None
+
+            def send(self, devices):
+                self.devices = devices
 
         # don't actually start the process, just use the `run` function.
         # otherwise the coverage tool can't keep track.
-        devices = GetDevicesProcess(FakePipe()).run()
-        self.assertDictEqual(devices, {
+        pipe = FakePipe()
+        GetDevicesProcess(pipe).run()
+        self.assertDictEqual(pipe.devices, {
             'device 1': {
                 'paths': [
                     '/dev/input/event11',
