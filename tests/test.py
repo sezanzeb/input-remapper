@@ -24,48 +24,97 @@
 
 import sys
 import unittest
-
-# quickly fake some stuff before any other file gets a chance to import
-# the original version
-from keymapper import paths
-paths.X11_SYMBOLS = '/tmp/key-mapper-test/X11/symbols'
-paths.USERS_SYMBOLS = '/tmp/key-mapper-test/X11/symbols/key-mapper/user'
-paths.DEFAULT_SYMBOLS = '/tmp/key-mapper-test/X11/symbols/key-mapper/user/default'
-paths.KEYCODES_PATH = '/tmp/key-mapper-test/X11/keycodes/key-mapper'
-
-from keymapper import linux
-linux._devices = {
-    'device 1': {
-        'paths': [
-            '/dev/input/event10',
-            '/dev/input/event11',
-            '/dev/input/event13'
-        ],
-        'names': [
-            'device 1 something',
-            'device 1',
-            'device 1'
-        ]
-    },
-    'device 2': {
-        'paths': ['/dev/input/event3'],
-        'names': ['device 2']
-    }
-}
-linux.get_devices = lambda: linux._devices
-
-# don't block tests
-from keymapper.gtk import unsaved
-unsaved.unsaved_changes_dialog = lambda: unsaved.CONTINUE
-
 from keymapper.logger import update_verbosity
 
-# some class function stubs.
-# can be overwritten in tests as well at any time.
-linux.KeycodeReader.start_reading = lambda *args: None
-linux.KeycodeReader.read = lambda *args: None
 
 tmp = '/tmp/key-mapper-test'
+
+
+def patch_paths():
+    from keymapper import paths
+    prefix = '/tmp/key-mapper-test/X11/'
+    paths.X11_SYMBOLS = prefix + 'symbols'
+    paths.USERS_SYMBOLS = prefix + 'symbols/key-mapper/user'
+    paths.DEFAULT_SYMBOLS = prefix + 'symbols/key-mapper/user/default'
+    paths.KEYCODES_PATH = prefix + 'keycodes/key-mapper'
+
+
+def patch_linux():
+    from keymapper import linux
+    linux.KeycodeReader.start_reading = lambda *args: None
+    linux.KeycodeReader.read = lambda *args: None
+
+
+def patch_evdev():
+    import evdev
+    # key-mapper is only interested in devices that have EV_KEY, add some
+    # random other stuff to test that they are ignored.
+    fixtures = {
+        # device 1
+        '/dev/input/event11': {
+            'capabilities': {evdev.ecodes.EV_KEY: [], evdev.ecodes.EV_ABS: []},
+            'phys': 'usb-0000:03:00.0-1/input2',
+            'name': 'device 1 foo'
+        },
+        '/dev/input/event10': {
+            'capabilities': {evdev.ecodes.EV_KEY: []},
+            'phys': 'usb-0000:03:00.0-1/input3',
+            'name': 'device 1'
+        },
+        '/dev/input/event13': {
+            'capabilities': {evdev.ecodes.EV_KEY: [], evdev.ecodes.EV_SYN: []},
+            'phys': 'usb-0000:03:00.0-1/input1',
+            'name': 'device 1'
+        },
+        '/dev/input/event14': {
+            'capabilities': {evdev.ecodes.EV_SYN: []},
+            'phys': 'usb-0000:03:00.0-1/input0',
+            'name': 'device 1 qux'
+        },
+
+        # device 2
+        '/dev/input/event20': {
+            'capabilities': {evdev.ecodes.EV_KEY: []},
+            'phys': 'usb-0000:03:00.0-2/input1',
+            'name': 'device 2'
+        },
+
+        # something that is completely ignored
+        '/dev/input/event30': {
+            'capabilities': {evdev.ecodes.EV_SYN: []},
+            'phys': 'usb-0000:03:00.0-3/input1',
+            'name': 'device 3'
+        },
+    }
+
+    def list_devices():
+        return fixtures.keys()
+
+    class InputDevice:
+        def __init__(self, path):
+            self.path = path
+            self.phys = fixtures[path]['phys']
+            self.name = fixtures[path]['name']
+
+        def capabilities(self):
+            return fixtures[self.path]['capabilities']
+
+    evdev.list_devices = list_devices
+    evdev.InputDevice = InputDevice
+
+
+def patch_unsaved():
+    # don't block tests
+    from keymapper.gtk import unsaved
+    unsaved.unsaved_changes_dialog = lambda: unsaved.CONTINUE
+
+
+# quickly fake some stuff before any other file gets a chance to import
+# the original versions
+patch_paths()
+patch_evdev()
+patch_linux()
+patch_unsaved()
 
 
 if __name__ == "__main__":
