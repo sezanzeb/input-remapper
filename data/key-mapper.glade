@@ -290,9 +290,6 @@
                   <object class="GtkComboBoxText" id="device_selection">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <items>
-                      <item translatable="yes"> </item>
-                    </items>
                     <signal name="changed" handler="on_select_device" swapped="no"/>
                   </object>
                   <packing>
@@ -428,9 +425,6 @@
                         <property name="width_request">200</property>
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <items>
-                          <item translatable="yes"> </item>
-                        </items>
                         <signal name="changed" handler="on_select_preset" swapped="no"/>
                       </object>
                       <packing>
