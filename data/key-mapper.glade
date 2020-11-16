@@ -620,10 +620,11 @@
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <property name="tooltip_text" translatable="yes">a-z, A-Z, 0-9
-KP_0 - KP_9
-Shift_L, Shift_R
-Alt_L, Alt_R
-Control_R</property>
+"KP_0" - "KP_9"
+"Shift_L", "Shift_R"
+"Alt_L", "Alt_R"
+"Control_R"
+"a, A"</property>
                     <property name="margin_top">5</property>
                     <property name="margin_bottom">5</property>
                     <property name="label" translatable="yes">Mapping</property>
