@@ -150,7 +150,6 @@ class GetDevicesProcess(multiprocessing.Process):
             }
 
         self.pipe.send(result)
-        return result
 
 
 def get_devices():
