@@ -24,7 +24,8 @@ import unittest
 import shutil
 import time
 
-from keymapper.presets import find_newest_preset, rename_preset
+from keymapper.presets import find_newest_preset, rename_preset, \
+    get_any_preset, delete_preset
 from keymapper.X import create_preset
 from keymapper.paths import USERS_SYMBOLS
 
@@ -37,7 +38,9 @@ class TestCreatePreset(unittest.TestCase):
             shutil.rmtree(tmp)
 
     def test_create_preset_1(self):
+        self.assertEqual(get_any_preset(), ('device 1', None))
         create_preset('device 1')
+        self.assertEqual(get_any_preset(), ('device 1', 'new preset'))
         self.assertTrue(os.path.exists(f'{USERS_SYMBOLS}/device_1/new_preset'))
 
     def test_create_preset_2(self):
@@ -49,18 +52,46 @@ class TestCreatePreset(unittest.TestCase):
     def test_create_preset_3(self):
         create_preset('device 1', 'pre set')
         create_preset('device 1', 'pre set')
+        create_preset('device 1', 'pre set')
         self.assertTrue(os.path.exists(f'{USERS_SYMBOLS}/device_1/pre_set'))
         self.assertTrue(os.path.exists(f'{USERS_SYMBOLS}/device_1/pre_set_2'))
+        self.assertTrue(os.path.exists(f'{USERS_SYMBOLS}/device_1/pre_set_3'))
+
+
+class TestDeletePreset(unittest.TestCase):
+    def setUp(self):
+        if os.path.exists(tmp):
+            shutil.rmtree(tmp)
+
+    def test_delete_preset(self):
+        create_preset('device 1')
+        create_preset('device 1')
+        self.assertTrue(os.path.exists(f'{USERS_SYMBOLS}/device_1/new_preset'))
+        delete_preset('device 1', 'new preset')
+        self.assertFalse(os.path.exists(f'{USERS_SYMBOLS}/device_1/new_preset'))
+        self.assertTrue(os.path.exists(f'{USERS_SYMBOLS}/device_1'))
+        delete_preset('device 1', 'new preset 2')
+        self.assertFalse(os.path.exists(f'{USERS_SYMBOLS}/device_1/new_preset'))
+        self.assertFalse(os.path.exists(f'{USERS_SYMBOLS}/device_1/new_preset_2'))
+        # if no preset in the directory, remove the directory
+        self.assertFalse(os.path.exists(f'{USERS_SYMBOLS}/device_1'))
 
 
 class TestRenamePreset(unittest.TestCase):
+    def setUp(self):
+        if os.path.exists(tmp):
+            shutil.rmtree(tmp)
+
     def test_rename_preset(self):
         create_preset('device 1', 'preset 1')
+        create_preset('device 1', 'preset 2')
         create_preset('device 1', 'foobar')
         rename_preset('device 1', 'preset 1', 'foobar')
+        rename_preset('device 1', 'preset 2', 'foobar')
         self.assertFalse(os.path.exists(f'{USERS_SYMBOLS}/device_1/preset_1'))
         self.assertTrue(os.path.exists(f'{USERS_SYMBOLS}/device_1/foobar'))
         self.assertTrue(os.path.exists(f'{USERS_SYMBOLS}/device_1/foobar_2'))
+        self.assertTrue(os.path.exists(f'{USERS_SYMBOLS}/device_1/foobar_3'))
 
 
 class TestFindPresets(unittest.TestCase):
