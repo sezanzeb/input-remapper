@@ -101,6 +101,8 @@ class Window:
 
         window = self.get('window')
         window.show()
+        # hide everything until stuff is populated
+        self.get('wrapper').set_opacity(0)
         self.window = window
 
         # if any of the next steps take a bit to complete, have the window
@@ -112,6 +114,9 @@ class Window:
         self.select_newest_preset()
 
         self.timeout = GLib.timeout_add(100, self.check_add_row)
+
+        # now show the proper finished content of the window
+        self.get('wrapper').set_opacity(1)
 
     def get(self, name):
         """Get a widget from the window"""
