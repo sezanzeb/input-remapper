@@ -330,11 +330,15 @@ def parse_symbols_file(device, preset):
 
     with open(path, 'r') as f:
         # from "key <12> { [ 1 ] };" extract 12 and 1,
+        # from "key <12> { [ a, A ] };" extract 12 and [a, A]
         # avoid lines that start with special characters
-        # (might be comments)
-        result = re.findall(r'\n\s+?key <(.+?)>.+?\[\s+(\w+)', f.read())
-        logger.debug('Found %d mappings in this preset', len(result))
+        # (might be comments)ś
+        content = f.read()
+        result = re.findall(r'\n\s+?key <(.+?)>.+?\[\s+(.+?)\s+\]', content)
+        logger.debug('Found %d mappings in preset "%s"', len(result), preset)
         for keycode, character in result:
+            if ', ' in character:
+                character = [char.strip() for char in character.split(',')]
             custom_mapping.change(None, int(keycode), character)
         custom_mapping.changed = False
 
