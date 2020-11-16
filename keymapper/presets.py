@@ -75,7 +75,6 @@ def find_newest_preset(device=None):
     device : string
         If set, will return the newest preset for the device or None
     """
-    print('find_newest_preset')
     # sort the oldest files to the front in order to use pop to get the newest
     if device is None:
         paths = sorted(
