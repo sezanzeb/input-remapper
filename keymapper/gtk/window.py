@@ -273,10 +273,16 @@ class Window:
             if unsaved_changes_dialog() == GO_BACK:
                 return
 
-        new_preset = create_preset(self.selected_device)
-        self.get('preset_selection').append(new_preset, new_preset)
-        self.get('preset_selection').set_active_id(new_preset)
-        self.save_config()
+        try:
+            new_preset = create_preset(self.selected_device)
+            self.get('preset_selection').append(new_preset, new_preset)
+            self.get('preset_selection').set_active_id(new_preset)
+        except PermissionError as e:
+            self.get('status_bar').push(
+                CTX_ERROR,
+                'Error: Permission denied!'
+            )
+            logger.error(str(e))
 
     def on_select_preset(self, dropdown):
         """Show the mappings of the preset."""
