@@ -37,12 +37,15 @@ import re
 import stat
 import subprocess
 
-from keymapper.paths import get_usr_path, KEYCODES_PATH, \
-    USERS_SYMBOLS, DEFAULT_SYMBOLS, X11_SYMBOLS
+from keymapper.paths import get_usr_path, KEYCODES_PATH, DEFAULT_SYMBOLS, \
+    X11_SYMBOLS
 from keymapper.logger import logger
 from keymapper.data import get_data_path
 from keymapper.linux import get_devices
 from keymapper.mapping import custom_mapping, Mapping
+
+
+permissions = stat.S_IREAD | stat.S_IWRITE | stat.S_IRGRP | stat.S_IROTH
 
 
 def create_preset(device, name=None):
@@ -68,16 +71,7 @@ def create_preset(device, name=None):
         os.mknod(path)
 
     # add the same permissions as other symbol files, only root may write.
-    os.chmod(path, stat.S_IREAD | stat.S_IWRITE | stat.S_IRGRP | stat.S_IROTH)
-
-    """# give this file and the directories to the user
-    # For now keep them with root to avoid doing too much unconventional
-    # stuff.
-    user = os.getlogin()
-    for root, dirs, files in os.walk(USERS_SYMBOLS):
-        shutil.chown(root, user, user)
-        for file in files:
-            shutil.chown(os.path.join(root, file), user, user)"""
+    os.chmod(path, permissions)
 
     return name
 
@@ -369,6 +363,7 @@ def create_default_symbols():
         logger.info('Creating %s', DEFAULT_SYMBOLS)
         os.makedirs(os.path.dirname(DEFAULT_SYMBOLS), exist_ok=True)
         os.mknod(DEFAULT_SYMBOLS)
+        os.chmod(DEFAULT_SYMBOLS, permissions)
 
     with open(DEFAULT_SYMBOLS, 'w') as f:
         if contents is not None:
