@@ -301,12 +301,12 @@ class Window:
         parse_symbols_file(self.selected_device, self.selected_preset)
 
         key_list = self.get('key_list')
-        for keycode, character in custom_mapping:
+        for keycode, output in custom_mapping:
             single_key_mapping = Row(
                 window=self,
                 delete_callback=self.on_row_removed,
                 keycode=keycode,
-                character=character
+                character=output[1]
             )
             key_list.insert(single_key_mapping, -1)
 
