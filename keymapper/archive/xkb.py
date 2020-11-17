@@ -19,9 +19,10 @@
 # along with key-mapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
-"""Quite some code that is not used anymore, but might be in the future.
+"""Code that is not used anymore, but might be in the future.
 
-Currently it is not needed to create symbols files in xkb. Very sad.
+Currently it is not needed to create symbols files in xkb. Which is a pity
+considering all the work put into this. This stuff is even unittested.
 
 Resources:
 [1] https://wiki.archlinux.org/index.php/Keyboard_input
@@ -198,10 +199,11 @@ def generate_symbols(
 
         # key-mapper will write target_keycode into /dev, while
         # system_keycode should do nothing to avoid a duplicate keystroke.
-        print('writing', system_keycode, target_keycode, character)
         if target_keycode is not None:
             if f'<{target_keycode}>' not in keycodes:
-                logger.error(f'Unknown code <{target_keycode}> for "{character}"')
+                logger.error(
+                    f'Unknown code <{target_keycode}> for "{character}"'
+                )
                 # don't append that one, otherwise X would crash when loading
                 continue
             xkb_symbols.append(

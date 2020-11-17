@@ -26,7 +26,7 @@ import time
 
 from keymapper.presets import find_newest_preset, rename_preset, \
     get_any_preset, delete_preset
-from keymapper.xkb import create_preset
+from keymapper.archive.xkb import create_preset
 from keymapper.paths import USERS_SYMBOLS
 
 from test import tmp
