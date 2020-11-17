@@ -60,3 +60,4 @@ def get_usr_path(device=None, preset=None):
 
 
 DEFAULT_SYMBOLS = get_usr_path('default')
+EMPTY_SYMBOLS = get_usr_path('empty')

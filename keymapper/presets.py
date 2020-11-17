@@ -28,7 +28,7 @@ import glob
 
 from keymapper.paths import get_usr_path, USERS_SYMBOLS
 from keymapper.logger import logger
-from keymapper.linux import get_devices
+from keymapper.getdevices import get_devices
 
 
 def get_presets(device):

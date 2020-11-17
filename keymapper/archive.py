@@ -19,11 +19,9 @@
 # along with key-mapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
-"""Stuff that interacts with the X Server, be it commands or config files.
+"""Quite some code that is not used anymore, but might be in the future.
 
-TODO create a base class to standardize the interface if a different
-  display server should be supported. Or does wayland use the same
-  config files?
+Currently it is not needed to create symbols files in xkb. Very sad.
 
 Resources:
 [1] https://wiki.archlinux.org/index.php/Keyboard_input
@@ -35,18 +33,18 @@ Resources:
 import os
 import re
 import stat
-import subprocess
 
 from keymapper.paths import get_usr_path, KEYCODES_PATH, DEFAULT_SYMBOLS, \
     X11_SYMBOLS
-from keymapper.logger import logger, is_debug
+from keymapper.logger import logger
 from keymapper.data import get_data_path
-from keymapper.linux import get_devices
-from keymapper.mapping import custom_mapping, system_mapping, \
-    Mapping, MIN_KEYCODE, MAX_KEYCODE
+from keymapper.mapping import custom_mapping, system_mapping, Mapping
 
 
 permissions = stat.S_IREAD | stat.S_IWRITE | stat.S_IRGRP | stat.S_IROTH
+
+MAX_KEYCODE = 255
+MIN_KEYCODE = 8
 
 
 def create_preset(device, name=None):
@@ -119,75 +117,7 @@ def get_preset_name(device, preset=None):
 
 
 DEFAULT_SYMBOLS_NAME = get_preset_name('default')
-
-
-def apply_preset(device, preset):
-    """Apply a preset to the device.
-
-    Parameters
-    ----------
-    device : string
-    preset : string
-    """
-    layout = get_preset_name(device, preset)
-    setxkbmap(device, layout)
-
-
-def get_system_layout():
-    """Get the system wide configured default keyboard layout."""
-    localectl = subprocess.check_output(
-        ['localectl', 'status']
-    ).decode().split('\n')
-    # example:
-    # System Locale: LANG=en_GB.UTF-8
-    # VC Keymap: tmp
-    # X11 Layout: de
-    # X11 Model: pc105
-    return [
-        line for line in localectl
-        if 'X11 Layout' in line
-    ][0].split(': ')[-1]
-
-
-def setxkbmap(device, layout):
-    """Apply a preset to the device.
-
-    Parameters
-    ----------
-    device : string
-    layout : string or None
-        For example 'de', passed to setxkbmap unmodified. If None, will
-        load the system default
-    """
-    if layout is not None:
-        path = os.path.join(X11_SYMBOLS, layout)
-        if not os.path.exists(path):
-            logger.error('Symbols %s don\'t exist', path)
-            return
-        with open(path, 'r') as f:
-            if f.read() == '':
-                logger.error('Tried to load empty symbols %s', path)
-                return
-
-    logger.info('Applying layout "%s" on device %s', layout, device)
-    group = get_devices()[device]
-
-    if layout is None:
-        cmd = ['setxkbmap', '-layout', get_system_layout()]
-    else:
-        cmd = ['setxkbmap', '-layout', layout, '-keycodes', 'key-mapper']
-
-    # apply it to every device that hangs on the same usb port, because I
-    # have no idea how to figure out which one of those 3 devices that are
-    # all named after my mouse to use.
-    for xinput_name, xinput_id in get_xinput_id_mapping():
-        if xinput_name not in group['devices']:
-            # only all virtual devices of the same hardware device
-            continue
-
-        device_cmd = cmd + ['-device', str(xinput_id)]
-        logger.debug('Running `%s`', ' '.join(device_cmd))
-        subprocess.run(device_cmd, capture_output=(not is_debug()))
+EMPTY_SYMBOLS_NAME = get_preset_name('empty')
 
 
 def create_identity_mapping():
@@ -197,15 +127,15 @@ def create_identity_mapping():
 
     This has the added benefit that keycodes reported by xev can be
     identified in the symbols file.
+
+    The identity mapping is provided to '-keycodes' of setxkbmap.
     """
     if os.path.exists(KEYCODES_PATH):
         logger.debug('Found the keycodes file at %s', KEYCODES_PATH)
         return
 
     xkb_keycodes = []
-    maximum = MAX_KEYCODE
-    minimum = MIN_KEYCODE
-    for keycode in range(minimum, maximum + 1):
+    for keycode in range(MIN_KEYCODE, MAX_KEYCODE + 1):
         xkb_keycodes.append(f'<{keycode}> = {keycode};')
 
     template_path = get_data_path('xkb_keycodes_template')
@@ -213,8 +143,8 @@ def create_identity_mapping():
         template = template_file.read()
 
     result = template.format(
-        minimum=minimum,
-        maximum=maximum,
+        minimum=MIN_KEYCODE,
+        maximum=MAX_KEYCODE,
         xkb_keycodes='\n    '.join(xkb_keycodes)
     )
 
@@ -229,7 +159,7 @@ def create_identity_mapping():
 
 
 def generate_symbols(
-    name, include=DEFAULT_SYMBOLS_NAME, mapping=custom_mapping
+        name, include=DEFAULT_SYMBOLS_NAME, mapping=custom_mapping
 ):
     """Create config contents to be placed in /usr/share/X11/xkb/symbols.
 
@@ -304,24 +234,6 @@ def generate_symbols(
     return result
 
 
-def get_xinput_id_mapping():
-    """Run xinput and get a list of name, id tuplies.
-
-    The ids are needed for setxkbmap. There might be duplicate names with
-    different ids.
-    """
-    names = subprocess.check_output(
-        ['xinput', 'list', '--name-only']
-    ).decode().split('\n')
-    ids = subprocess.check_output(
-        ['xinput', 'list', '--id-only']
-    ).decode().split('\n')
-
-    names = [name for name in names if name != '']
-    ids = [int(id) for id in ids if id != '']
-    return zip(names, ids)
-
-
 def parse_symbols_file(device, preset):
     """Parse a symbols file populate the mapping.
 
@@ -344,7 +256,8 @@ def parse_symbols_file(device, preset):
         # avoid lines that start with special characters
         # (might be comments)
         # And only find those lines that have a system-keycode written
-        # after them, because I need that one to show in the ui.
+        # after them, because I need that one to show in the ui. (Might
+        # be deprecated.)
         content = f.read()
         result = re.findall(
             r'\n\s+?key <(.+?)>.+?\[\s+(.+?)\s+\]\s+?}; // (\d+)',
@@ -355,29 +268,9 @@ def parse_symbols_file(device, preset):
             custom_mapping.change(
                 previous_keycode=None,
                 new_keycode=system_keycode,
-                character=character,
-                target_keycode=int(target_keycode)
+                character=character
             )
         custom_mapping.changed = False
-
-
-def parse_xmodmap():
-    """Read the output of xmodmap as a Mapping object."""
-    xmodmap = subprocess.check_output(['xmodmap', '-pke']).decode() + '\n'
-    mappings = re.findall(r'(\d+) = (.+)\n', xmodmap)
-    # TODO is this tested?
-    for keycode, characters in mappings:
-        system_mapping.change(
-            previous_keycode=None,
-            new_keycode=int(keycode),
-            character=', '.join(characters.split()),
-            target_keycode=None
-        )
-
-
-# TODO verify that this is the system default and not changed when I
-#  setxkbmap my mouse
-parse_xmodmap()
 
 
 def create_default_symbols():
