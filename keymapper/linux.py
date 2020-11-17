@@ -25,10 +25,12 @@
 import subprocess
 import multiprocessing
 import threading
+import asyncio
 
 import evdev
 
 from keymapper.logger import logger
+from keymapper.mapping import custom_mapping, MAX_KEYCODE, MIN_KEYCODE
 
 
 def can_grab(path):
@@ -52,6 +54,7 @@ class KeycodeReader:
     def __init__(self, device):
         self.device = device
         self.virtual_devices = []
+        self.start_injecting()
 
     def clear(self):
         """Next time when reading don't return the previous keycode."""
@@ -61,21 +64,36 @@ class KeycodeReader:
                 pass
 
     def start_injecting_worker(self, path):
-        """Inject keycodes for one of the virtual devices."""
+        """Inject keycodes for one of the virtual devices.
+
+        This depends on a setxkbmap-loaded symbol file that contains
+        the mappings for keycodes in the range of MIN and MAX_KEYCODE.
+        """
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        # TODO use uinput instead, then register somewhere its existance in
+        #  order to setxkbmap it. Or give it a constant path that is known
+        #  application wide
         device = evdev.InputDevice(path)
-        uinput = evdev.UInput
+        uinput = evdev.UInput()
+
         for event in device.read_loop():
-            if event.type == evdev.ecodes.EV_KEY and event.value == 1:
-                # value: 1 for down, 0 for up, 2 for hold.
-                # this happens to report key codes that are 8 lower
-                # than the ones reported by xev
-                # TODO the mapping writes something starting from 256 to not
-                #  clash with existing mappings of other devices
-                input_keycode = event.code
-                output_keycode = custom_mapping.get_keycode(event.code)
-                output_char = custom_mapping.get_character(event.code)
-                print('output', output_keycode, output_char)
-                uinput.write(evdev.ecodes.EV_KEY, evdev.ecodes.KEY_A)
+            if event.type != evdev.ecodes.EV_KEY:
+                continue
+
+            # this happens to report key codes that are 8 lower
+            # than the ones reported by xev
+            input_keycode = event.code + 8
+            output_keycode = custom_mapping.get_keycode(input_keycode) - 8
+
+            print(input_keycode, output_keycode)
+
+            if output_keycode > MAX_KEYCODE or output_keycode < MIN_KEYCODE:
+                continue
+
+            # value: 1 for down, 0 for up, 2 for hold.
+            device.write(evdev.ecodes.EV_KEY, output_keycode, event.value)
+            device.write(evdev.ecodes.EV_SYN, evdev.ecodes.SYN_REPORT, 0)
 
     def start_injecting(self):
         """Read keycodes and inject the mapped character forever."""
@@ -88,10 +106,11 @@ class KeycodeReader:
         )
 
         # Watch over each one of the potentially multiple devices per hardware
-        virtual_devices = [
-            evdev.InputDevice(path)
-            for path in paths
-        ]
+        for path in paths:
+            threading.Thread(
+                target=self.start_injecting_worker,
+                args=(path,)
+            ).start()
 
     def read(self):
         """Get the newest key or None if none was pressed."""
@@ -109,9 +128,6 @@ class KeycodeReader:
         return newest_keycode
 
 
-# keycode_reader = KeycodeReader()
-
-
 _devices = None
 
 
@@ -122,6 +138,7 @@ class GetDevicesProcess(multiprocessing.Process):
     asynchronously so that they can take as much time as they want without
     slowing down the initialization. To avoid evdevs asyncio stuff spamming
     errors, do this with multiprocessing and not multithreading.
+    TODO to threading, make eventloop
     """
     def __init__(self, pipe):
         """Construct the process.
