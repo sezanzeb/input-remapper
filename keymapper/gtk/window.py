@@ -28,13 +28,13 @@ gi.require_version('GLib', '2.0')
 from gi.repository import Gtk, Gdk, GLib
 
 from keymapper.data import get_data_path
-from keymapper.X import create_setxkbmap_config, apply_preset, \
-    create_preset, custom_mapping, system_mapping, parse_symbols_file, \
-    setxkbmap
+from keymapper.mapping import custom_mapping
 from keymapper.presets import get_presets, find_newest_preset, \
     delete_preset, rename_preset
 from keymapper.logger import logger
-from keymapper.linux import get_devices, KeycodeReader
+from keymapper.linux import KeycodeReader
+from keymapper.cli import setxkbmap
+from keymapper.getdevices import get_devices
 from keymapper.gtk.row import Row
 from keymapper.gtk.unsaved import unsaved_changes_dialog, GO_BACK
 
@@ -164,7 +164,9 @@ class Window:
         presets = get_presets(device)
         self.get('preset_name_input').set_text('')
         if len(presets) == 0:
-            presets = [create_preset(device)]
+            # presets = [create_preset(device)]
+            # TODO create one empty preset
+            presets = []
         else:
             logger.debug('Presets for "%s": %s', device, ', '.join(presets))
         preset_selection = self.get('preset_selection')
@@ -243,12 +245,11 @@ class Window:
             self.selected_preset,
             self.selected_device
         )
-        apply_preset(self.selected_device, self.selected_preset)
         self.get('status_bar').push(
             CTX_APPLY,
             f'Applied "{self.selected_preset}"'
         )
-        keycode_reader = KeycodeReader(self.selected_device)
+        KeycodeReader(self.selected_device)
 
     def on_select_device(self, dropdown):
         """List all presets, create one if none exist yet."""
@@ -275,7 +276,10 @@ class Window:
                 return
 
         try:
-            new_preset = create_preset(self.selected_device)
+            # new_preset = create_preset(self.selected_device)
+            # TODO create a preset file, tell custom_mapping to do so
+            #  or something
+            new_preset = 'new_preset'
             self.get('preset_selection').append(new_preset, new_preset)
             self.get('preset_selection').set_active_id(new_preset)
         except PermissionError as e:
@@ -300,7 +304,7 @@ class Window:
         logger.debug('Selecting preset "%s"', preset)
 
         self.selected_preset = preset
-        parse_symbols_file(self.selected_device, self.selected_preset)
+        # TODO load config into custom_mapping
 
         key_list = self.get('key_list')
         for keycode, output in custom_mapping:
@@ -345,10 +349,7 @@ class Window:
             self.selected_preset
         )
 
-        create_setxkbmap_config(
-            self.selected_device,
-            self.selected_preset
-        )
+        # TODO tell the mapping to dump itself as JSON somewhere
 
         custom_mapping.changed = False
         self.unhighlight_all_rows()

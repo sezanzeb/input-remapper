@@ -22,12 +22,12 @@
 import re
 import unittest
 
-from keymapper.X import get_system_layout
+from keymapper.cli import get_system_layout_locale
 
 
 class Test(unittest.TestCase):
-    def test_get_system_layout(self):
-        layout = get_system_layout()
+    def test_get_system_layout_locale(self):
+        layout = get_system_layout_locale()
         self.assertGreater(len(layout), 0)
         # should be all alphanumeric
         match = re.findall(r'\w+', layout)

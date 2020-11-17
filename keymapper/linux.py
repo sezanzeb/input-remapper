@@ -23,17 +23,16 @@
 
 
 import subprocess
-import multiprocessing
+import time
 import threading
 import asyncio
 
 import evdev
 
 from keymapper.logger import logger
-from keymapper.mapping import custom_mapping, MAX_KEYCODE, MIN_KEYCODE
-
-
-DEVNODE = '/dev/keymapper'
+from keymapper.cli import apply_empty_symbols
+from keymapper.getdevices import get_devices
+from keymapper.mapping import custom_mapping, system_mapping
 
 
 def can_grab(path):
@@ -67,15 +66,14 @@ class KeycodeReader:
                 pass
 
     def start_injecting_worker(self, path):
-        """Inject keycodes for one of the virtual devices.
-
-        This depends on a setxkbmap-loaded symbol file that contains
-        the mappings for keycodes in the range of MIN and MAX_KEYCODE.
-        """
+        """Inject keycodes for one of the virtual devices."""
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         device = evdev.InputDevice(path)
-        keymapper_device = evdev.UInput(devnode=DEVNODE)
+        keymapper_device = evdev.UInput(
+            name='key-mapper',
+            phys='key-mapper-uinput'
+        )
 
         for event in device.read_loop():
             if event.type != evdev.ecodes.EV_KEY:
@@ -85,30 +83,46 @@ class KeycodeReader:
             # than the ones reported by xev and that X expects
             input_keycode = event.code + 8
 
-            if custom_mapping.get_keycode(input_keycode) is None:
-                # unknown keycode, skip
-                continue
+            character = custom_mapping.get_character(input_keycode)
 
-            target_keycode = custom_mapping.get_keycode(input_keycode)
-
-            if target_keycode > MAX_KEYCODE or target_keycode < MIN_KEYCODE:
-                continue
-
-            print('read', input_keycode, 'write', target_keycode, path)
+            if character is None:
+                # unknown keycode, forward it
+                target_keycode = input_keycode
+            else:
+                target_keycode = system_mapping.get_keycode(character)
+                if target_keycode is None:
+                    logger.error(
+                        'Cannot find character %s in xmodmap',
+                        character
+                    )
+                    continue
+                # turns out, if I don't sleep here X/Linux gets confused. Lets
+                # assume a mapping of 10 to z. Without sleep it would always
+                # result in 1z 1z 1z. Even though the empty xkb symbols file
+                # was applied on the mouse! And I really made sure .write was
+                # not called twice. 1 just somewhow sneaks past the symbols.
+                # 0.0005 has many errors. 0.001 has them super rare.
+                # 5ms is still faster than anything on the planet so that's.
+                # fine. I came up with that after randomly poking around in,
+                # frustration. I don't know of any helpful resource that
+                # explains this
+                time.sleep(0.005)
 
             # TODO test for the stuff put into write
-            keymapper_device.write(evdev.ecodes.EV_KEY, target_keycode, event.value)
+            keymapper_device.write(evdev.ecodes.EV_KEY, target_keycode - 8, event.value)
             keymapper_device.syn()
 
     def start_injecting(self):
         """Read keycodes and inject the mapped character forever."""
-        paths = _devices[self.device]['paths']
+        paths = get_devices()[self.device]['paths']
 
         logger.debug(
             'Starting injecting the mapping for %s on %s',
             self.device,
             ', '.join(paths)
         )
+
+        apply_empty_symbols(self.device)
 
         # Watch over each one of the potentially multiple devices per hardware
         for path in paths:
@@ -131,80 +145,3 @@ class KeycodeReader:
                     # than the ones reported by xev
                     newest_keycode = event.code + 8
         return newest_keycode
-
-
-_devices = None
-
-
-class GetDevicesProcess(multiprocessing.Process):
-    """Process to get the devices that can be worked with.
-
-    Since InputDevice destructors take quite some time, do this
-    asynchronously so that they can take as much time as they want without
-    slowing down the initialization. To avoid evdevs asyncio stuff spamming
-    errors, do this with multiprocessing and not multithreading.
-    TODO to threading, make eventloop
-    """
-    def __init__(self, pipe):
-        """Construct the process.
-
-        Parameters
-        ----------
-        pipe : multiprocessing.Pipe
-            used to communicate the result
-        """
-        self.pipe = pipe
-        super().__init__()
-
-    def run(self):
-        """Do what get_devices describes."""
-        devices = [evdev.InputDevice(path) for path in evdev.list_devices()]
-
-        # group them together by usb device because there could be stuff like
-        # "Logitech USB Keyboard" and "Logitech USB Keyboard Consumer Control"
-        grouped = {}
-        for device in devices:
-            # only keyboard devices
-            # https://www.kernel.org/doc/html/latest/input/event-codes.html
-            if evdev.ecodes.EV_KEY not in device.capabilities().keys():
-                continue
-
-            usb = device.phys.split('/')[0]
-            if grouped.get(usb) is None:
-                grouped[usb] = []
-            grouped[usb].append((device.name, device.path))
-
-        # now write down all the paths of that group
-        result = {}
-        for group in grouped.values():
-            names = [entry[0] for entry in group]
-            devs = [entry[1] for entry in group]
-            shortest_name = sorted(names, key=len)[0]
-            result[shortest_name] = {
-                'paths': devs,
-                'devices': names
-            }
-
-        self.pipe.send(result)
-
-
-def get_devices():
-    """Group devices and get relevant infos per group.
-
-    Returns a list containing mappings of
-    {group_name: {paths: [paths], devices: [names]} for input devices.
-
-    For example, group_name could be "Logitech USB Keyboard", devices might
-    contain "Logitech USB Keyboard System Control" and "Logitech USB Keyboard".
-    paths is a list of files in /dev/input that belong to the devices.
-
-    They are grouped by usb port.
-    """
-    global _devices
-    if _devices is None:
-        pipe = multiprocessing.Pipe()
-        GetDevicesProcess(pipe[1]).start()
-        # block until devices are available
-        _devices = pipe[0].recv()
-        logger.info('Found %s', ', '.join([f'"{name}"' for name in _devices]))
-    return _devices

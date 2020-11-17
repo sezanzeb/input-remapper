@@ -1,7 +1,7 @@
 # The problems with overwriting keys
 
-Branches for all that stuff exist to archive it instead of loosing it forever.
-Look for branches called "fifth", "fourth", etc.
+Branches for some of that stuff exist to archive it instead of loosing it
+forever.
 
 **Initial target** You write a symbols file based on your specified mapping,
 and that's pretty much it. There were two mappings: The first one is in the
@@ -13,13 +13,15 @@ and writes 1/! on keycode 10, then you would not be able to write ! by
 pressing that mouse button and that keyboard button at the same time.
 Keycodes may not clash.
 
+This was quite mature, pretty much finished.
+
 **The second idea** was to write special keycodes known only to key-mapper
 (256 - 511) into the input device of your mouse in /dev/input, and map
 those to SHIFT and such, whenever a button is clicked. A mapping would have
 existed to prevent the original keycode 10 from writing a 1. But X/Linux seem
 to ignore anything greater than 255 for regular keyboard events, or even
 crash in some cases. Mouse click buttons can use those high keycodes though,
-but they cannot be remapped, which I guess is another indicator of that.
+but they cannot be remapped.
 
 **The third idea** is to create a new input device that uses 8 - 255, just
 like other layouts, and key-mapper always tries to use the same keycodes for
@@ -39,7 +41,8 @@ SHIFT as already used in the system default. The pipeline is like this:
    
 But this is a rather complicated approach. The mapping of 10 -> 50 would
 have to be stored somewhere as well. It would make the mess of configuration
-files already needed for xkb even worse.
+files already needed for xkb even worse. This idea was not considered for
+long, so no "third" branch exists.
 
 **Fourth idea**: Based on the first idea, instead of using keycodes greater
 than 255, use unused keycodes starting from 255, going down. Issues existed
@@ -52,22 +55,10 @@ linux just completely ignores some keycodes. 140 works, 145 won't, 150 works.
 
 **Fifth idea**: Instead of writing xkb symbol files, just disable all
 mouse buttons with a single symbol file. Key-mapper listens for key events
-in /dev and then writes the mapped keycode into /dev. For example, if 10
-should be mapped to Shift_L, xkb configs would disable key 10 and key-mapper
-would write 50 into /dev, which is Shift_L in xmodmaps output. This sounds
-incredibly simple and makes me throw away tons of code.
-
-
-# The various mappings
-
-There were two mappings: The first one is in the keycodes file and contains
-"<10> = 10", which is super redundant but needed for xkb. The second one
-mapped "<10>" to characters, modifiers, etc. using symbol files in xkb.
-
-
-The third mapping reads the input keycodes from your mouse (also known as
-system_keycode here) and writes a different one into /dev (also known as
-target_keycode here). It is explained above why.
+in /dev and then writes the mapped keycode into a new device in /dev. For
+example, if 10 should be mapped to Shift_L, xkb configs would disable
+key 10 and key-mapper would write 50 into /dev, which is Shift_L in xmodmaps
+output. This sounds incredibly simple and makes me throw away tons of code.
 
 # How I would have liked it to be
 
