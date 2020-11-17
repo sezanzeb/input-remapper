@@ -277,8 +277,8 @@ class Window:
 
         try:
             # new_preset = create_preset(self.selected_device)
-            # TODO create a preset file, tell custom_mapping to do so
-            #  or something
+            # TODO create a preset file, tell custom_mapping to clear itself
+            #  and dump itself into a new file
             new_preset = 'new_preset'
             self.get('preset_selection').append(new_preset, new_preset)
             self.get('preset_selection').set_active_id(new_preset)
@@ -339,7 +339,7 @@ class Window:
         key_list.remove(single_key_mapping)
 
     def save_config(self):
-        """Write changes to disk"""
+        """Write changes to disk."""
         if self.selected_device is None or self.selected_preset is None:
             return
 
@@ -349,7 +349,7 @@ class Window:
             self.selected_preset
         )
 
-        # TODO tell the mapping to dump itself as JSON somewhere
+        custom_mapping.save(self.selected_device, self.selected_preset)
 
         custom_mapping.changed = False
         self.unhighlight_all_rows()
