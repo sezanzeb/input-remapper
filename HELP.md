@@ -5,15 +5,15 @@ keycode 10, and one for your keyboard that is normal and writes 1/! on
 keycode 10, then you would not be able to write ! by pressing that mouse
 button and that keyboard button at the same time. Keycodes may not clash.
 
-The first idea was to write special keycodes known only to key-mapper
-(256 - 511) into an input device in /dev/input, and map those to SHIFT and
-such, whenever a button is clicked. A mapping would have existed to prevent
-the original keycode 10 from writing a 1. But X seems to ignore anything
-greater than 255, or even crash in some cases, for regular keyboard events.
-Mouse buttons can use those though, but they cannot be remapped, which I
-guess is another indicator of that.
+**The first idea** was to write special keycodes known only to key-mapper
+(256 - 511) into the input device of your mouse in /dev/input, and map
+those to SHIFT and such, whenever a button is clicked. A mapping would have
+existed to prevent the original keycode 10 from writing a 1. But X/Linux seem
+to ignore anything greater than 255 for regular keyboard events, or even
+crash in some cases. Mouse click buttons can use those high keycodes though,
+but they cannot be remapped, which I guess is another indicator of that.
 
-The second idea is to create a new input device that uses 8 - 255, just like
+**The second idea** is to create a new input device that uses 8 - 255, just like
 other layouts, and key-mapper always tries to use the same keycodes for
 SHIFT as already used in the system default. The pipeline is like this:
 
@@ -28,6 +28,34 @@ SHIFT as already used in the system default. The pipeline is like this:
    presses the SHIFT down to modify all other future buttons.
 4. X has another config for "mouse" loaded, which prevents any system default
    mapping to print the overwritten key "1" into the session.
+   
+But this is a rather complicated approach. The mapping of 10 -> 50 would
+have to be stored somewhere as well.
+
+**Third idea**: Based on the first idea, instead of using keycodes greater
+than 255, use unused keycodes starting from 255, going down. Issues existed
+when two buttons with the same keycode are pressed at the same time,
+so the goal is to avoid such overlaps. For example, if keycode 10 should be
+mapped to Shift_L. It is impossible to write "!" using this mapped button
+and a second keyboard, except if pressing key 10 triggers key-mapper to write
+key 253 into the /dev device, while mapping key 10 to nothing. Unfortunately
+linux just completely ignores some keycodes. 140 works, 145 won't, 150 works.
+
+So back to the second idea.
+
+# The various mappings
+
+There are three mappings:
+
+The first one is in the keycodes file and contains "<10> = 10", which is
+super redundant but needed for xkb.
+
+The second one maps "<10>" to characters, modifiers, etc. using symbol files
+in xkb.
+
+The third mapping reads the input keycodes from your mouse (also known as
+system_keycode here) and writes a different one into /dev (also known as
+target_keycode here). It is explained above why.
 
 # How I would have liked it to be
 
@@ -39,8 +67,9 @@ config looks like:
 11 = Shift_L
 ```
 
-done. Without crashing X. Without printing generic useless errors. If it was
-that easy, an app to map keys would have already existed.
+done. Without crashing X. Without printing generic useless errors. Without
+colliding with other devices using the same keycodes. If it was that easy,
+an app to map keys would have already existed.
 
 # Folder Structure of Key Mapper in /usr
 

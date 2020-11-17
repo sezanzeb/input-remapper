@@ -26,8 +26,15 @@ from keymapper.logger import logger
 
 
 # if MIN_KEYCODE < 255 and MAX_KEYCODE > 255: X crashes
+# the maximum specified in /usr/share/X11/xkb/keycodes is usually 255
+# and the minimum 8
 MAX_KEYCODE = 255
 MIN_KEYCODE = 8
+
+
+# modes for change:
+GENERATE = -1
+DONTMAP = None
 
 
 def get_input_keycode(keycode):
@@ -35,14 +42,24 @@ def get_input_keycode(keycode):
     return keycode - MIN_KEYCODE
 
 
-def get_target_keycode(character):
-    # see if any modifiers are inside
-    if 'shift' in character.lower():
-        # yes, now try to return what a normal keyboard would have for that
-        # (for shift it would usually be 50)
-        system_keycode = system_mapping.find_keycode(character)
-        if custom_mapping.get_character(system_mapping) is not None:
-            # already taken!
+def get_target_keycode():
+    # see HELP.md
+    for keycode in range(MAX_KEYCODE, MIN_KEYCODE - 1, -1):
+        # starting from the MAX_KEYCODE, find the first keycode that is
+        # unused in both custom_mapping and system_mapping.
+        if not (custom_mapping.has(keycode) or system_mapping.has(keycode)):
+            return keycode
+
+    # no unused keycode found, take the highest keycode that is unused
+    # in the current custom_mapping.
+    for keycode in range(MAX_KEYCODE, MIN_KEYCODE - 1, -1):
+        # starting from the MAX_KEYCODE, find the first keycode that is
+        # unused in both custom_mapping and system_mapping.
+        if not (custom_mapping.has(keycode)):
+            return keycode
+
+    logger.error('All %s keycodes are mapped!', MAX_KEYCODE - MIN_KEYCODE)
+    return None
 
 
 class Mapping:
@@ -52,6 +69,9 @@ class Mapping:
     character.
     """
     def __init__(self):
+        # TODO this is a stupid data structure if there are two keys
+        #  that should be unique individually. system_keycode and
+        #  target_keycode. two _mapping objects maybe?
         self._mapping = {}
         self.changed = False
 
@@ -63,7 +83,7 @@ class Mapping:
         return len(self._mapping)
 
     def find_keycode(self, character, case=False):
-        """For a given character, find the used keycode in the mapping."""
+        """For a given character, find the used keycodes in the mapping."""
         # TODO test
         if not case:
             character = character.lower()
@@ -77,7 +97,7 @@ class Mapping:
             if character in [c.strip() for c in mapped_character.split(',')]:
                 return keycode, mapped_keycode
 
-    def change(self, previous_keycode, new_keycode, character):
+    def change(self, previous_keycode, new_keycode, character, target_keycode):
         """Replace the mapping of a keycode with a different one.
 
         Return True on success.
@@ -85,30 +105,37 @@ class Mapping:
         Parameters
         ----------
         previous_keycode : int or None
-            If None, will not remove any previous mapping.
+            If None, will not remove any previous mapping. If you recently
+            used 10 for new_keycode and want to overwrite that with 11,
+            provide 5 here.
         new_keycode : int
             The source keycode, what the mouse would report without any
             modification.
         character : string or string[]
             If an array of strings, will put something like { [ a, A ] };
             into the symbols file.
+        target_keycode : int or None
+            Which keycode should be used for that key instead. If -1,
+            will figure out a new one. This is for stuff that happens
+            under the hood and the user won't see this unless they open
+            config files. If None, will only map new_keycode to character
+            without any in-between step.
         """
         try:
             new_keycode = int(new_keycode)
+            if target_keycode is not None:
+                target_keycode = int(target_keycode)
+            if previous_keycode is not None:
+                previous_keycode = int(previous_keycode)
         except ValueError:
-            logger.error('Cannot use %s as keycode', new_keycode)
+            logger.error('Can only use numbers as keycodes')
             return False
 
-        if previous_keycode is not None:
-            try:
-                previous_keycode = int(previous_keycode)
-            except ValueError:
-                logger.error('Cannot use %s as keycode', previous_keycode)
-                return False
+        # TODO test
+        if target_keycode == GENERATE:
+            target_keycode = get_target_keycode()
 
         if new_keycode and character:
-            target_keycode = get_target_keycode(character)
-
             self._mapping[new_keycode] = (target_keycode, str(character))
             if new_keycode != previous_keycode:
                 # clear previous mapping of that code, because the line
@@ -118,16 +145,6 @@ class Mapping:
             return True
 
         return False
-
-    def write_from_keymapper_symbols(self, keycode, character):
-        """Write something from a key-mapper symbols file into the mapping."""
-        keycode = int(keycode)
-        if keycode <= 255:
-            logger.error(
-                'Expected keycodes in key-mapper symbols to be > 255 ',
-                f'but got {keycode} for "{character}"'
-            )
-        self._mapping[get_input_keycode(keycode)] = (keycode, character)
 
     def clear(self, keycode):
         """Remove a keycode from the mapping.
@@ -157,6 +174,21 @@ class Mapping:
         keycode : int
         """
         return self._mapping.get(keycode, (None, None))[1]
+
+    def has(self, keycode):
+        """Check if this keycode is going to be a line in the symbols file."""
+        # TODO test
+        if self._mapping.get(keycode) is not None:
+            # the keycode that is disabled, because it is mapped to
+            # something else
+            return True
+
+        for _, (target_keycode, _) in self._mapping.items():
+            if target_keycode == keycode:
+                # the keycode that is actually being mapped
+                return True
+
+        return False
 
 
 # one mapping object for the whole application that holds all

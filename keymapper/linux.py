@@ -71,29 +71,31 @@ class KeycodeReader:
         """
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
-        # TODO use uinput instead, then register somewhere its existance in
-        #  order to setxkbmap it. Or give it a constant path that is known
-        #  application wide
         device = evdev.InputDevice(path)
-        uinput = evdev.UInput()
+        keymapper_device = evdev.UInput()
 
         for event in device.read_loop():
             if event.type != evdev.ecodes.EV_KEY:
                 continue
 
             # this happens to report key codes that are 8 lower
-            # than the ones reported by xev
+            # than the ones reported by xev and that X expects
             input_keycode = event.code + 8
-            output_keycode = custom_mapping.get_keycode(input_keycode) - 8
 
-            print(input_keycode, output_keycode)
-
-            if output_keycode > MAX_KEYCODE or output_keycode < MIN_KEYCODE:
+            if custom_mapping.get_keycode(input_keycode) is None:
+                # unknown keycode, skip
                 continue
 
-            # value: 1 for down, 0 for up, 2 for hold.
-            device.write(evdev.ecodes.EV_KEY, output_keycode, event.value)
-            device.write(evdev.ecodes.EV_SYN, evdev.ecodes.SYN_REPORT, 0)
+            target_keycode = custom_mapping.get_keycode(input_keycode)
+
+            if target_keycode > MAX_KEYCODE or target_keycode < MIN_KEYCODE:
+                continue
+
+            print('read', input_keycode, 'write', target_keycode, path)
+
+            # TODO test for the stuff put into write
+            keymapper_device.write(evdev.ecodes.EV_KEY, target_keycode, event.value)
+            keymapper_device.syn()
 
     def start_injecting(self):
         """Read keycodes and inject the mapped character forever."""

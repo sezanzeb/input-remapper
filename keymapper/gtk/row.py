@@ -27,7 +27,7 @@ gi.require_version('Gtk', '3.0')
 gi.require_version('GLib', '2.0')
 from gi.repository import Gtk
 
-from keymapper.mapping import custom_mapping
+from keymapper.mapping import custom_mapping, DONTMAP, GENERATE
 from keymapper.logger import logger
 
 
@@ -69,7 +69,12 @@ class Row(Gtk.ListBoxRow):
         self.highlight()
 
         if keycode is not None:
-            custom_mapping.change(None, keycode, character)
+            custom_mapping.change(
+                previous_keycode=None,
+                new_keycode=keycode,
+                character=character,
+                target_keycode=GENERATE
+            )
 
     def on_key_pressed(self, button, event):
         """Check if a keycode has been pressed and if so, display it."""
@@ -105,7 +110,12 @@ class Row(Gtk.ListBoxRow):
             return
 
         # else, the keycode has changed, the character is set, all good
-        custom_mapping.change(previous_keycode, new_keycode, character)
+        custom_mapping.change(
+            previous_keycode=previous_keycode,
+            new_keycode=new_keycode,
+            character=character,
+            target_keycode=GENERATE
+        )
 
     def put_together(self, keycode, character):
         """Create all child GTK widgets and connect their signals."""
