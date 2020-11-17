@@ -36,19 +36,16 @@ sudo python3 setup.py install && python3 tests/test.py
 # Roadmap
 
 - [x] show a dropdown to select an arbitrary device from `xinput list`
-- [x] creating presets per device
-- [x] renaming presets
+- [ ] creating presets per device
+- [ ] renaming presets
 - [x] show a list for mappings `[keycode -> target]`
 - [x] read keycodes with evdev
 - [x] make that list extend itself automatically
 - [x] load that file with `setxkbmap` on button press
 - [x] keep the system defaults for unmapped buttons
-- [x] offer going back to the system default
+- [ ] button to stop mapping and using system defaults
 - [x] highlight changes and alert before discarding unsaved changes
 - [ ] automatically load the preset when the mouse connects
 - [x] ask for administrator permissions using polkit
 - [ ] make it work on wayland
 - [ ] add to the AUR, provide .deb and .appimage files
-
-This is incredibly overcomplicated due to various obstacles with xkb. If you
-have questions about the code, feel free to open an issue. See HELP.md
