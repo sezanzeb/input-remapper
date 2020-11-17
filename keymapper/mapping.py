@@ -22,6 +22,8 @@
 """Contains and manages mappings."""
 
 
+import json
+
 from keymapper.logger import logger
 
 
@@ -96,6 +98,14 @@ class Mapping:
         self._mapping = {}
         self.changed = True
 
+    def load(self, device, preset):
+        """Load a dumped JSON from home to overwrite the mappings."""
+        # TODO
+
+    def save(self, device, preset):
+        """Dump as JSON into home."""
+        # TODO
+
     def get_keycode(self, character):
         """Get the keycode for that character."""
         # TODO prepare this with .lower() instead to make it faster
@@ -117,12 +127,6 @@ class Mapping:
         keycode : int
         """
         return self._mapping.get(keycode)
-
-    def has(self, keycode):
-        """Check if this keycode is going to be a line in the symbols file.
-        TODO no symbols files anymore ^
-        """
-        return self._mapping.get(keycode) is not None
 
 
 # one mapping object for the whole application that holds all
