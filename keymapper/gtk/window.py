@@ -29,11 +29,12 @@ from gi.repository import Gtk, Gdk, GLib
 
 from keymapper.data import get_data_path
 from keymapper.X import create_setxkbmap_config, apply_preset, \
-    create_preset, custom_mapping, parse_symbols_file, setxkbmap
+    create_preset, custom_mapping, system_mapping, parse_symbols_file, \
+    setxkbmap
 from keymapper.presets import get_presets, find_newest_preset, \
     delete_preset, rename_preset
 from keymapper.logger import logger
-from keymapper.linux import get_devices
+from keymapper.linux import get_devices, KeycodeReader
 from keymapper.gtk.row import Row
 from keymapper.gtk.unsaved import unsaved_changes_dialog, GO_BACK
 
@@ -247,6 +248,7 @@ class Window:
             CTX_APPLY,
             f'Applied "{self.selected_preset}"'
         )
+        keycode_reader = KeycodeReader(self.selected_device)
 
     def on_select_device(self, dropdown):
         """List all presets, create one if none exist yet."""

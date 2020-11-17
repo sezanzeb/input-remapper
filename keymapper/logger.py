@@ -63,6 +63,10 @@ logger.addHandler(handler)
 logger.setLevel(logging.INFO)
 
 
+def is_debug():
+    return logger.level == logging.DEBUG
+
+
 def log_info():
     """Log version and name to the console"""
     # read values from setup.py

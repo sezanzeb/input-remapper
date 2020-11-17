@@ -39,10 +39,11 @@ import subprocess
 
 from keymapper.paths import get_usr_path, KEYCODES_PATH, DEFAULT_SYMBOLS, \
     X11_SYMBOLS
-from keymapper.logger import logger
+from keymapper.logger import logger, is_debug
 from keymapper.data import get_data_path
 from keymapper.linux import get_devices
-from keymapper.mapping import custom_mapping, Mapping
+from keymapper.mapping import custom_mapping, system_mapping, \
+    Mapping, MIN_KEYCODE, MAX_KEYCODE
 
 
 permissions = stat.S_IREAD | stat.S_IWRITE | stat.S_IRGRP | stat.S_IROTH
@@ -78,13 +79,6 @@ def create_preset(device, name=None):
 
 def create_setxkbmap_config(device, preset):
     """Generate a config file for setxkbmap.
-
-    The file is created in ~/.config/key-mapper/<device>/<preset> and,
-    in order to find all presets in the home dir to make backing them up
-    more intuitive, a symlink is created in
-    /usr/share/X11/xkb/symbols/key-mapper/<device>/<preset> to point to it.
-    The file in home doesn't have underscore to be more beautiful on the
-    frontend, while the symlink doesn't contain any whitespaces.
 
     Parameters
     ----------
@@ -193,7 +187,7 @@ def setxkbmap(device, layout):
 
         device_cmd = cmd + ['-device', str(xinput_id)]
         logger.debug('Running `%s`', ' '.join(device_cmd))
-        subprocess.run(device_cmd, capture_output=True)
+        subprocess.run(device_cmd, capture_output=(not is_debug()))
 
 
 def create_identity_mapping():
@@ -209,10 +203,8 @@ def create_identity_mapping():
         return
 
     xkb_keycodes = []
-    # the maximum specified in /usr/share/X11/xkb/keycodes is usually 255
-    # and the minimum 8
-    maximum = 255
-    minimum = 8
+    maximum = MAX_KEYCODE
+    minimum = MIN_KEYCODE
     for keycode in range(minimum, maximum + 1):
         xkb_keycodes.append(f'<{keycode}> = {keycode};')
 
@@ -230,11 +222,15 @@ def create_identity_mapping():
         logger.debug('Creating "%s"', KEYCODES_PATH)
         os.makedirs(os.path.dirname(KEYCODES_PATH), exist_ok=True)
         os.mknod(KEYCODES_PATH)
+        os.chmod(KEYCODES_PATH, permissions)
+
     with open(KEYCODES_PATH, 'w') as keycodes:
         keycodes.write(result)
 
 
-def generate_symbols(name, include=DEFAULT_SYMBOLS_NAME, mapping=custom_mapping):
+def generate_symbols(
+    name, include=DEFAULT_SYMBOLS_NAME, mapping=custom_mapping
+):
     """Create config contents to be placed in /usr/share/X11/xkb/symbols.
 
     It's the mapping of the preset as expected by X. This function does not
@@ -264,13 +260,32 @@ def generate_symbols(name, include=DEFAULT_SYMBOLS_NAME, mapping=custom_mapping)
         keycodes = re.findall(r'<.+?>', f.read())
 
     xkb_symbols = []
-    for keycode, output in mapping:
-        target_keycode, character = output
-        if f'<{keycode}>' not in keycodes:
-            logger.error(f'Unknown keycode <{keycode}> for "{character}"')
+    for system_keycode, (target_keycode, character) in mapping:
+        if f'<{system_keycode}>' not in keycodes:
+            logger.error(f'Unknown code <{system_keycode}> for "{character}"')
             # don't append that one, otherwise X would crash when loading
             continue
-        xkb_symbols.append(f'key <{keycode}> {{ [ {character} ] }};')
+
+        # key-mapper will write target_keycode into /dev, while
+        # system_keycode should do nothing to avoid a duplicate keystroke.
+        print('writing', system_keycode, target_keycode, character)
+        if target_keycode is not None:
+            if f'<{target_keycode}>' not in keycodes:
+                logger.error(f'Unknown code <{target_keycode}> for "{character}"')
+                # don't append that one, otherwise X would crash when loading
+                continue
+            xkb_symbols.append(
+                f'key <{system_keycode}> {{ [ ] }}; '
+            )
+            xkb_symbols.append(
+                f'key <{target_keycode}> {{ [ {character} ] }}; '
+                f'// {system_keycode}'
+            )
+            continue
+
+        xkb_symbols.append(
+            f'key <{system_keycode}> {{ [ {character} ] }}; '
+        )
 
     if len(xkb_symbols) == 0:
         logger.error('Failed to populate xkb_symbols')
@@ -327,15 +342,42 @@ def parse_symbols_file(device, preset):
         # from "key <12> { [ 1 ] };" extract 12 and 1,
         # from "key <12> { [ a, A ] };" extract 12 and [a, A]
         # avoid lines that start with special characters
-        # (might be comments)ś
+        # (might be comments)
+        # And only find those lines that have a system-keycode written
+        # after them, because I need that one to show in the ui.
         content = f.read()
-        result = re.findall(r'\n\s+?key <(.+?)>.+?\[\s+(.+?)\s+\]', content)
+        result = re.findall(
+            r'\n\s+?key <(.+?)>.+?\[\s+(.+?)\s+\]\s+?}; // (\d+)',
+            content
+        )
         logger.debug('Found %d mappings in preset "%s"', len(result), preset)
-        for keycode, character in result:
-            if ', ' in character:
-                character = [char.strip() for char in character.split(',')]
-            custom_mapping.change(None, int(keycode), character)
+        for target_keycode, character, system_keycode in result:
+            custom_mapping.change(
+                previous_keycode=None,
+                new_keycode=system_keycode,
+                character=character,
+                target_keycode=int(target_keycode)
+            )
         custom_mapping.changed = False
+
+
+def parse_xmodmap():
+    """Read the output of xmodmap as a Mapping object."""
+    xmodmap = subprocess.check_output(['xmodmap', '-pke']).decode() + '\n'
+    mappings = re.findall(r'(\d+) = (.+)\n', xmodmap)
+    # TODO is this tested?
+    for keycode, characters in mappings:
+        system_mapping.change(
+            previous_keycode=None,
+            new_keycode=int(keycode),
+            character=', '.join(characters.split()),
+            target_keycode=None
+        )
+
+
+# TODO verify that this is the system default and not changed when I
+#  setxkbmap my mouse
+parse_xmodmap()
 
 
 def create_default_symbols():
@@ -352,13 +394,7 @@ def create_default_symbols():
         logger.debug('Found the default mapping at %s', DEFAULT_SYMBOLS)
         return
 
-    xmodmap = subprocess.check_output(['xmodmap', '-pke']).decode() + '\n'
-    mappings = re.findall(r'(\d+) = (.+)\n', xmodmap)
-    defaults = Mapping()
-    for keycode, characters in mappings:
-        defaults.change(None, int(keycode), characters.split())
-
-    contents = generate_symbols(DEFAULT_SYMBOLS_NAME, None, defaults)
+    contents = generate_symbols(DEFAULT_SYMBOLS_NAME, None, system_mapping)
 
     if not os.path.exists(DEFAULT_SYMBOLS):
         logger.info('Creating %s', DEFAULT_SYMBOLS)
