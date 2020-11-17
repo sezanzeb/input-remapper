@@ -1,5 +1,8 @@
 # The problems with overwriting keys
 
+Branches for all that stuff exist to archive it instead of loosing it forever.
+Look for branches called "fifth", "fourth", etc.
+
 **Initial target** You write a symbols file based on your specified mapping,
 and that's pretty much it. There were two mappings: The first one is in the
 keycodes file and contains "<10> = 10", which is super redundant but needed
@@ -52,8 +55,7 @@ mouse buttons with a single symbol file. Key-mapper listens for key events
 in /dev and then writes the mapped keycode into /dev. For example, if 10
 should be mapped to Shift_L, xkb configs would disable key 10 and key-mapper
 would write 50 into /dev, which is Shift_L in xmodmaps output. This sounds
-incredibly simple and makes me throw away tons of code. Branches for all that
-stuff exist to archive it instead of loosing it forever.
+incredibly simple and makes me throw away tons of code.
 
 
 # The various mappings
