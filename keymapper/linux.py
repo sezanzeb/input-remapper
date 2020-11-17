@@ -33,6 +33,9 @@ from keymapper.logger import logger
 from keymapper.mapping import custom_mapping, MAX_KEYCODE, MIN_KEYCODE
 
 
+DEVNODE = '/dev/keymapper'
+
+
 def can_grab(path):
     """Can input events from the device be read?
 
@@ -72,7 +75,7 @@ class KeycodeReader:
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         device = evdev.InputDevice(path)
-        keymapper_device = evdev.UInput()
+        keymapper_device = evdev.UInput(devnode=DEVNODE)
 
         for event in device.read_loop():
             if event.type != evdev.ecodes.EV_KEY:
