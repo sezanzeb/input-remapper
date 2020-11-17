@@ -151,8 +151,8 @@ class Integration(unittest.TestCase):
         time.sleep(0.2)
         self.assertEqual(len(self.get_rows()), 3)
 
-        self.assertEqual(custom_mapping.get(10), 'a')
-        self.assertEqual(custom_mapping.get(11), 'b')
+        self.assertEqual(custom_mapping.get_character(10), 'a')
+        self.assertEqual(custom_mapping.get_character(11), 'b')
         self.assertTrue(custom_mapping.changed)
 
         self.window.on_save_preset_clicked(None)
@@ -174,22 +174,22 @@ class Integration(unittest.TestCase):
                 row.get_style_context().list_classes()
             )
 
-        self.assertEqual(custom_mapping.get(10), 'c')
-        self.assertEqual(custom_mapping.get(11), 'b')
+        self.assertEqual(custom_mapping.get_character(10), 'c')
+        self.assertEqual(custom_mapping.get_character(11), 'b')
         self.assertTrue(custom_mapping.changed)
 
     def test_rename_and_save(self):
         custom_mapping.change(None, 14, 'a')
         self.assertEqual(self.window.selected_preset, 'new preset')
         self.window.on_save_preset_clicked(None)
-        self.assertEqual(custom_mapping.get(14), 'a')
+        self.assertEqual(custom_mapping.get_character(14), 'a')
 
         custom_mapping.change(None, 14, 'b')
         self.window.get('preset_name_input').set_text('asdf')
         self.window.on_save_preset_clicked(None)
         self.assertEqual(self.window.selected_preset, 'asdf')
         self.assertTrue(os.path.exists(f'{USERS_SYMBOLS}/device_1/asdf'))
-        self.assertEqual(custom_mapping.get(14), 'b')
+        self.assertEqual(custom_mapping.get_character(14), 'b')
 
     def test_select_device_and_preset(self):
         class FakeDropdown(Gtk.ComboBoxText):

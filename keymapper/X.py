@@ -264,7 +264,8 @@ def generate_symbols(name, include=DEFAULT_SYMBOLS_NAME, mapping=custom_mapping)
         keycodes = re.findall(r'<.+?>', f.read())
 
     xkb_symbols = []
-    for keycode, character in mapping:
+    for keycode, output in mapping:
+        target_keycode, character = output
         if f'<{keycode}>' not in keycodes:
             logger.error(f'Unknown keycode <{keycode}> for "{character}"')
             # don't append that one, otherwise X would crash when loading

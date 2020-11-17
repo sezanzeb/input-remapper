@@ -86,7 +86,7 @@ class Row(Gtk.ListBoxRow):
             return
 
         # keycode is already set by some other row
-        if custom_mapping.get(new_keycode) is not None:
+        if custom_mapping.get_character(new_keycode) is not None:
             msg = f'Keycode {new_keycode} is already mapped'
             logger.info(msg)
             self.window.get('status_bar').push(CTX_KEYCODE, msg)

@@ -33,35 +33,35 @@ class TestMapping(unittest.TestCase):
         # 1 is not assigned yet, ignore it
         self.mapping.change(1, 2, 'a')
         self.assertTrue(self.mapping.changed)
-        self.assertIsNone(self.mapping.get(1))
-        self.assertEqual(self.mapping.get(2), 'a')
+        self.assertIsNone(self.mapping.get_character(1))
+        self.assertEqual(self.mapping.get_character(2), 'a')
         self.assertEqual(len(self.mapping), 1)
 
         # change 2 to 3 and change a to b
         self.mapping.change(2, 3, 'b')
-        self.assertIsNone(self.mapping.get(2))
-        self.assertEqual(self.mapping.get(3), 'b')
+        self.assertIsNone(self.mapping.get_character(2))
+        self.assertEqual(self.mapping.get_character(3), 'b')
         self.assertEqual(len(self.mapping), 1)
 
         # add 4
         self.mapping.change(None, 4, 'c')
-        self.assertEqual(self.mapping.get(3), 'b')
-        self.assertEqual(self.mapping.get(4), 'c')
+        self.assertEqual(self.mapping.get_character(3), 'b')
+        self.assertEqual(self.mapping.get_character(4), 'c')
         self.assertEqual(len(self.mapping), 2)
 
         # change the mapping of 4 to d
         self.mapping.change(None, 4, 'd')
-        self.assertEqual(self.mapping.get(4), 'd')
+        self.assertEqual(self.mapping.get_character(4), 'd')
         self.assertEqual(len(self.mapping), 2)
 
         # this also works in the same way
         self.mapping.change(4, 4, 'e')
-        self.assertEqual(self.mapping.get(4), 'e')
+        self.assertEqual(self.mapping.get_character(4), 'e')
         self.assertEqual(len(self.mapping), 2)
 
         # and this
         self.mapping.change('4', '4', 'f')
-        self.assertEqual(self.mapping.get(4), 'f')
+        self.assertEqual(self.mapping.get_character(4), 'f')
         self.assertEqual(len(self.mapping), 2)
 
         # non-int keycodes are ignored
@@ -70,11 +70,11 @@ class TestMapping(unittest.TestCase):
 
     def test_change_multiple(self):
         self.mapping.change(None, 1, ['a', 'A'])
-        self.assertEqual(self.mapping.get(1), 'a, A')
+        self.assertEqual(self.mapping.get_character(1), 'a, A')
 
         self.mapping.change(1, 2, ['b', 'B'])
-        self.assertEqual(self.mapping.get(2), 'b, B')
-        self.assertIsNone(self.mapping.get(1))
+        self.assertEqual(self.mapping.get_character(2), 'b, B')
+        self.assertIsNone(self.mapping.get_character(1))
 
     def test_clear(self):
         # does nothing
@@ -90,9 +90,9 @@ class TestMapping(unittest.TestCase):
         self.mapping.change(None, 20, 'KP_2')
         self.mapping.change(None, 30, 'KP_3')
         self.mapping.clear(20)
-        self.assertEqual(self.mapping.get(10), 'KP_1')
-        self.assertIsNone(self.mapping.get(20))
-        self.assertEqual(self.mapping.get(30), 'KP_3')
+        self.assertEqual(self.mapping.get_character(10), 'KP_1')
+        self.assertIsNone(self.mapping.get_character(20))
+        self.assertEqual(self.mapping.get_character(30), 'KP_3')
 
     def test_iterate_and_convert(self):
         self.mapping.change(None, 10, 1)
@@ -100,7 +100,7 @@ class TestMapping(unittest.TestCase):
         self.mapping.change(None, 30, 3)
         self.assertListEqual(
             list(self.mapping),
-            [(10, '1'), (20, '2'), (30, '3')]
+            [(10, (266, '1')), (20, (276, '2')), (30, (286, '3'))]
         )
 
 

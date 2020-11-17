@@ -24,6 +24,7 @@
 
 import subprocess
 import multiprocessing
+import threading
 
 import evdev
 
@@ -46,9 +47,10 @@ class KeycodeReader:
     """Keeps reading keycodes in the background for the UI to use.
 
     When a button was pressed, the newest keycode can be obtained from this
-    object. This was written before I figured out there is get_keycode in Gdk.
+    object.
     """
-    def __init__(self):
+    def __init__(self, device):
+        self.device = device
         self.virtual_devices = []
 
     def clear(self):
@@ -58,22 +60,35 @@ class KeycodeReader:
             while virtual_device.read_one():
                 pass
 
-    def start_reading(self, device):
-        """Tell the evdev lib to start looking for keycodes.
+    def start_injecting_worker(self, path):
+        """Inject keycodes for one of the virtual devices."""
+        device = evdev.InputDevice(path)
+        uinput = evdev.UInput
+        for event in device.read_loop():
+            if event.type == evdev.ecodes.EV_KEY and event.value == 1:
+                # value: 1 for down, 0 for up, 2 for hold.
+                # this happens to report key codes that are 8 lower
+                # than the ones reported by xev
+                # TODO the mapping writes something starting from 256 to not
+                #  clash with existing mappings of other devices
+                input_keycode = event.code
+                output_keycode = custom_mapping.get_keycode(event.code)
+                output_char = custom_mapping.get_character(event.code)
+                print('output', output_keycode, output_char)
+                uinput.write(evdev.ecodes.EV_KEY, evdev.ecodes.KEY_A)
 
-        If read is called without prior start_reading, no keycodes
-        will be available.
-        """
-        paths = _devices[device]['paths']
+    def start_injecting(self):
+        """Read keycodes and inject the mapped character forever."""
+        paths = _devices[self.device]['paths']
 
         logger.debug(
-            'Starting reading keycodes for %s on %s',
-            device,
+            'Starting injecting the mapping for %s on %s',
+            self.device,
             ', '.join(paths)
         )
 
         # Watch over each one of the potentially multiple devices per hardware
-        self.virtual_devices = [
+        virtual_devices = [
             evdev.InputDevice(path)
             for path in paths
         ]
@@ -94,7 +109,6 @@ class KeycodeReader:
         return newest_keycode
 
 
-# not used anymore since the overlooked get_keycode function is now being used
 # keycode_reader = KeycodeReader()
 
 

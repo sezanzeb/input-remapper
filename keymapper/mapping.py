@@ -52,6 +52,8 @@ class Mapping:
         previous_keycode : int or None
             If None, will not remove any previous mapping.
         new_keycode : int
+            The source keycode, what the mouse would report without any
+            modification.
         character : string or string[]
             If an array of strings, will put something like { [ a, A ] };
             into the symbols file.
@@ -73,7 +75,16 @@ class Mapping:
             character = ', '.join([str(c) for c in character])
 
         if new_keycode and character:
-            self._mapping[new_keycode] = str(character)
+            target_keycode = new_keycode + 256
+            if target_keycode >= 512:
+                # because key-mappers keycodes file has a maximum of 511,
+                # while all system keycodes have a maximum of 255.
+                # To avoid clashes, keycodes <= 255 should not be injected.
+                raise ValueError(
+                    f'Expected target_keycode {target_keycode} to not '
+                    f'be >= 512. '
+                )
+            self._mapping[new_keycode] = (target_keycode, str(character))
             if new_keycode != previous_keycode:
                 # clear previous mapping of that code, because the line
                 # representing that one will now represent a different one.
@@ -99,14 +110,18 @@ class Mapping:
         self._mapping = {}
         self.changed = True
 
-    def get(self, keycode):
+    def get_keycode(self, keycode):
+        """Read the output keycode that is mapped to this input keycode."""
+        return self._mapping.get(keycode, (None, None))[0]
+
+    def get_character(self, keycode):
         """Read the character that is mapped to this keycode.
 
         Parameters
         ----------
         keycode : int
         """
-        return self._mapping.get(keycode)
+        return self._mapping.get(keycode, (None, None))[1]
 
 
 # one mapping object for the whole application that holds all
