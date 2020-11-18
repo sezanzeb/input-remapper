@@ -25,8 +25,8 @@ import shutil
 
 from keymapper.archive.xkb import custom_mapping, generate_symbols, \
     create_identity_mapping, create_setxkbmap_config, \
-    get_preset_name, create_default_symbols, parse_symbols_file
-from keymapper.paths import get_usr_path, KEYCODES_PATH, USERS_SYMBOLS
+    get_preset_name, create_default_symbols, parse_symbols_file, \
+    get_usr_path, KEYCODES_PATH, USERS_SYMBOLS
 
 from test import tmp
 

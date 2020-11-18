@@ -26,9 +26,23 @@ import os
 import time
 import glob
 
-from keymapper.paths import get_usr_path, USERS_SYMBOLS
+from keymapper.paths import get_config_path
 from keymapper.logger import logger
 from keymapper.getdevices import get_devices
+
+
+def get_available_preset_name(device, preset='new preset'):
+    """Increment the preset name until it is available."""
+    preset = preset.strip()
+
+    # find a name that is not already taken
+    if os.path.exists(get_config_path(device, preset)):
+        i = 2
+        while os.path.exists(get_config_path(device, f'{preset} {i}')):
+            i += 1
+        return f'{preset} {i}'
+
+    return preset
 
 
 def get_presets(device):
@@ -38,7 +52,7 @@ def get_presets(device):
     ----------
     device : string
     """
-    device_folder = get_usr_path(device)
+    device_folder = get_config_path(device)
     if not os.path.exists(device_folder):
         os.makedirs(device_folder)
     presets = [
@@ -78,12 +92,12 @@ def find_newest_preset(device=None):
     # sort the oldest files to the front in order to use pop to get the newest
     if device is None:
         paths = sorted(
-            glob.glob(os.path.join(USERS_SYMBOLS, '*/*')),
+            glob.glob(os.path.join(get_config_path(), '*/*')),
             key=os.path.getmtime
         )
     else:
         paths = sorted(
-            glob.glob(os.path.join(get_usr_path(device), '*')),
+            glob.glob(os.path.join(get_config_path(device), '*')),
             key=os.path.getmtime
         )
 
@@ -121,7 +135,7 @@ def find_newest_preset(device=None):
 
 def delete_preset(device, preset):
     """Delete a preset from the file system."""
-    preset_path = get_usr_path(device, preset)
+    preset_path = get_config_path(device, preset)
     if not os.path.exists(preset_path):
         logger.debug('Cannot remove non existing path "%s"', preset_path)
         return
@@ -129,7 +143,7 @@ def delete_preset(device, preset):
     logger.info('Removing "%s"', preset_path)
     os.remove(preset_path)
 
-    device_path = get_usr_path(device)
+    device_path = get_config_path(device)
     if os.path.exists(device_path) and len(os.listdir(device_path)) == 0:
         logger.debug('Removing empty dir "%s"', device_path)
         os.rmdir(device_path)
@@ -137,18 +151,15 @@ def delete_preset(device, preset):
 
 def rename_preset(device, old_preset_name, new_preset_name):
     """Rename a preset while avoiding name conflicts."""
-    new_preset_name = new_preset_name.strip()
-    # find a name that is not already taken
-    if os.path.exists(get_usr_path(device, new_preset_name)):
-        i = 2
-        while os.path.exists(get_usr_path(device, f'{new_preset_name} {i}')):
-            i += 1
-        new_preset_name = f'{new_preset_name} {i}'
+    if new_preset_name == old_preset_name:
+        return
+
+    new_preset_name = get_available_preset_name(device, new_preset_name)
     logger.info('Moving "%s" to "%s"', old_preset_name, new_preset_name)
     os.rename(
-        get_usr_path(device, old_preset_name),
-        get_usr_path(device, new_preset_name)
+        get_config_path(device, old_preset_name),
+        get_config_path(device, new_preset_name)
     )
     # set the modification date to now
     now = time.time()
-    os.utime(get_usr_path(device, new_preset_name), (now, now))
+    os.utime(get_config_path(device, new_preset_name), (now, now))

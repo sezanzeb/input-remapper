@@ -35,8 +35,6 @@ import os
 import re
 import stat
 
-from keymapper.paths import get_usr_path, KEYCODES_PATH, DEFAULT_SYMBOLS, \
-    X11_SYMBOLS
 from keymapper.logger import logger
 from keymapper.data import get_data_path
 from keymapper.mapping import custom_mapping, system_mapping, Mapping
@@ -46,6 +44,43 @@ permissions = stat.S_IREAD | stat.S_IWRITE | stat.S_IRGRP | stat.S_IROTH
 
 MAX_KEYCODE = 255
 MIN_KEYCODE = 8
+
+# the path that contains ALL symbols, not just ours
+X11_SYMBOLS = '/usr/share/X11/xkb/symbols'
+
+# should not contain spaces
+# getlogin gets the user who ran sudo
+USERS_SYMBOLS = os.path.join(
+    '/usr/share/X11/xkb/symbols/key-mapper',
+    os.getlogin().replace(' ', '_')
+)
+
+# those are the same for every preset and user, they are needed to make the
+# presets work.
+KEYCODES_PATH = '/usr/share/X11/xkb/keycodes/key-mapper'
+
+
+def get_usr_path(device=None, preset=None):
+    """Get the path to the config file in /usr.
+
+    This folder is a symlink and the files are in ~/.config/key-mapper
+
+    If preset is omitted, returns the folder for the device.
+    """
+    if device is None:
+        return USERS_SYMBOLS
+
+    device = device.strip()
+
+    if preset is not None:
+        preset = preset.strip()
+        return os.path.join(USERS_SYMBOLS, device, preset).replace(' ', '_')
+
+    if device is not None:
+        return os.path.join(USERS_SYMBOLS, device.replace(' ', '_'))
+
+
+DEFAULT_SYMBOLS = get_usr_path('default')
 
 
 def create_preset(device, name=None):

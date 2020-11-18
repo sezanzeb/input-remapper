@@ -30,7 +30,7 @@ from gi.repository import Gtk, Gdk, GLib
 from keymapper.data import get_data_path
 from keymapper.mapping import custom_mapping
 from keymapper.presets import get_presets, find_newest_preset, \
-    delete_preset, rename_preset
+    delete_preset, rename_preset, get_available_preset_name
 from keymapper.logger import logger
 from keymapper.linux import KeycodeReader
 from keymapper.cli import setxkbmap
@@ -164,9 +164,9 @@ class Window:
         presets = get_presets(device)
         self.get('preset_name_input').set_text('')
         if len(presets) == 0:
-            # presets = [create_preset(device)]
-            # TODO create one empty preset
-            presets = []
+            new_preset = get_available_preset_name(self.selected_device)
+            custom_mapping.save(self.selected_device, new_preset)
+            presets = [new_preset]
         else:
             logger.debug('Presets for "%s": %s', device, ', '.join(presets))
         preset_selection = self.get('preset_selection')
@@ -276,10 +276,8 @@ class Window:
                 return
 
         try:
-            # new_preset = create_preset(self.selected_device)
-            # TODO create a preset file, tell custom_mapping to clear itself
-            #  and dump itself into a new file
-            new_preset = 'new_preset'
+            new_preset = get_available_preset_name(self.selected_device)
+            custom_mapping.save(self.selected_device, new_preset)
             self.get('preset_selection').append(new_preset, new_preset)
             self.get('preset_selection').set_active_id(new_preset)
         except PermissionError as e:
@@ -304,7 +302,7 @@ class Window:
         logger.debug('Selecting preset "%s"', preset)
 
         self.selected_preset = preset
-        # TODO load config into custom_mapping
+        custom_mapping.load(self.selected_device, self.selected_preset)
 
         key_list = self.get('key_list')
         for keycode, output in custom_mapping:
@@ -312,7 +310,7 @@ class Window:
                 window=self,
                 delete_callback=self.on_row_removed,
                 keycode=keycode,
-                character=output[1]
+                character=output
             )
             key_list.insert(single_key_mapping, -1)
 

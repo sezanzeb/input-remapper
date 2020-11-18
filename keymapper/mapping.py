@@ -22,9 +22,13 @@
 """Contains and manages mappings."""
 
 
+import os
 import json
+import shutil
 
 from keymapper.logger import logger
+from keymapper.paths import get_config_path
+from keymapper.presets import get_available_preset_name
 
 
 class Mapping:
@@ -72,6 +76,10 @@ class Mapping:
             return False
 
         if new_keycode and character:
+            if isinstance(character, list):
+                character = [c.lower() for c in character]
+            else:
+                character = character.lower()
             self._mapping[new_keycode] = character
             if new_keycode != previous_keycode:
                 # clear previous mapping of that code, because the line
@@ -100,21 +108,46 @@ class Mapping:
 
     def load(self, device, preset):
         """Load a dumped JSON from home to overwrite the mappings."""
-        # TODO
+        # TODO test
+        path = get_config_path(device, preset)
+        logger.info('Loading preset from %s', path)
+
+        if not os.path.exists(path):
+            logger.error('Tried to load non-existing preset %s', path)
+            return
+
+        with open(path, 'r') as f:
+            self._mapping = json.load(f)
+
+        self.changed = False
 
     def save(self, device, preset):
         """Dump as JSON into home."""
-        # TODO
+        # TODO test
+        path = get_config_path(device, preset)
+        logger.info('Saving preset to %s', path)
+
+        if not os.path.exists(path):
+            logger.debug('Creating "%s"', path)
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            os.mknod(path)
+            # if this is done with sudo rights, give the file to the user
+            shutil.chown(path, os.getlogin())
+
+        with open(path, 'w') as f:
+            json.dump(self._mapping, f)
+
+        self.changed = False
 
     def get_keycode(self, character):
         """Get the keycode for that character."""
-        # TODO prepare this with .lower() instead to make it faster
         character = character.lower()
         for keycode, mapping in self._mapping.items():
+            # note, that stored mappings are already lowercase
             if isinstance(mapping, list):
-                if character in [c.lower() for c in mapping]:
+                if character in [c for c in mapping]:
                     return keycode
-            elif mapping.lower() == character:
+            elif mapping == character:
                 return int(keycode)
 
         return None
