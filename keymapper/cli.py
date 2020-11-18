@@ -47,7 +47,7 @@ def get_system_layout_locale():
     ][0].split(': ')[-1]
 
 
-def setxkbmap(device, layout):
+def setxkbmap(device, layout=None):
     """Apply a preset to the device.
 
     Parameters
@@ -93,7 +93,11 @@ def apply_empty_symbols(device):
     logger.debug('Applying the empty symbols to %s', device)
     group = get_devices()[device]
 
-    cmd = ['setxkbmap', '-layout', 'key-mapper/empty']
+    cmd = [
+        'setxkbmap',
+        '-layout', 'key-mapper/empty',
+        # '-keycodes', 'key-mapper'
+    ]
 
     # apply it to every device that hangs on the same usb port, because I
     # have no idea how to figure out which one of those 3 devices that are

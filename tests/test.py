@@ -41,8 +41,8 @@ def patch_paths():
 
 def patch_linux():
     from keymapper import linux
-    linux.KeycodeReader.start_reading = lambda *args: None
-    linux.KeycodeReader.read = lambda *args: None
+    linux.KeycodeInjector.start_reading = lambda *args: None
+    linux.KeycodeInjector.read = lambda *args: None
 
 
 def patch_evdev():

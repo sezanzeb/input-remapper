@@ -22,7 +22,9 @@
 """User Interface."""
 
 
+import sys
 import gi
+import time
 gi.require_version('Gtk', '3.0')
 gi.require_version('GLib', '2.0')
 from gi.repository import Gtk, Gdk, GLib
@@ -32,7 +34,7 @@ from keymapper.mapping import custom_mapping
 from keymapper.presets import get_presets, find_newest_preset, \
     delete_preset, rename_preset, get_available_preset_name
 from keymapper.logger import logger
-from keymapper.linux import KeycodeReader
+from keymapper.linux import KeycodeInjector
 from keymapper.cli import setxkbmap
 from keymapper.getdevices import get_devices
 from keymapper.gtk.row import Row
@@ -76,6 +78,7 @@ class Window:
     def __init__(self):
         self.selected_device = None
         self.selected_preset = None
+        self.keycode_reader = None
 
         css_provider = Gtk.CssProvider()
         with open(get_data_path('style.css'), 'r') as f:
@@ -124,6 +127,8 @@ class Window:
 
     def on_close(self, *_):
         """Safely close the application."""
+        if self.keycode_reader is not None:
+            self.keycode_reader.stop_injecting()
         GLib.source_remove(self.timeout)
         Gtk.main_quit()
 
@@ -201,7 +206,9 @@ class Window:
 
     def on_apply_system_layout_clicked(self, button):
         """Load the mapping."""
-        setxkbmap(self.selected_device, None)
+        if self.keycode_reader is not None:
+            self.keycode_reader.stop_injecting()
+        setxkbmap(self.selected_device)
         self.get('status_bar').push(
             CTX_APPLY,
             f'Applied the system default'
@@ -249,7 +256,9 @@ class Window:
             CTX_APPLY,
             f'Applied "{self.selected_preset}"'
         )
-        KeycodeReader(self.selected_device)
+        if self.keycode_reader is not None:
+            self.keycode_reader.stop_injecting()
+        self.keycode_reader = KeycodeInjector(self.selected_device)
 
     def on_select_device(self, dropdown):
         """List all presets, create one if none exist yet."""
