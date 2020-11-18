@@ -61,6 +61,10 @@ class _GetDevicesProcess(multiprocessing.Process):
         # "Logitech USB Keyboard" and "Logitech USB Keyboard Consumer Control"
         grouped = {}
         for device in devices:
+            if device.phys.startswith('key-mapper'):
+                # injector device, not really periphery
+                continue
+
             # only keyboard devices
             # https://www.kernel.org/doc/html/latest/input/event-codes.html
             capabilities = device.capabilities().keys()
@@ -80,7 +84,7 @@ class _GetDevicesProcess(multiprocessing.Process):
             if grouped.get(usb) is None:
                 grouped[usb] = []
 
-            logger.debug('Adding %s', device.path)
+            logger.debug('Found "%s", %s, %s', device.name, device.path, usb)
 
             grouped[usb].append((device.name, device.path))
 

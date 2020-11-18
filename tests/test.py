@@ -114,6 +114,14 @@ def patch_evdev():
             'phys': 'usb-0000:03:00.0-3/input1',
             'name': 'device 3'
         },
+
+        # key-mapper devices are also ignored, another instance of key-mapper
+        # started injecting apparently.
+        '/dev/input/event40': {
+            'capabilities': {evdev.ecodes.EV_KEY: []},
+            'phys': 'key-mapper/input1',
+            'name': 'key-mapper device 2'
+        },
     }
 
     def list_devices():
