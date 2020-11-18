@@ -62,7 +62,12 @@ class _GetDevicesProcess(multiprocessing.Process):
         for device in devices:
             # only keyboard devices
             # https://www.kernel.org/doc/html/latest/input/event-codes.html
-            if evdev.ecodes.EV_KEY not in device.capabilities().keys():
+            capabilities = device.capabilities().keys()
+            if evdev.ecodes.EV_KEY not in capabilities:
+                continue
+
+            if evdev.ecodes.EV_REL in capabilities:
+                # skip devices that control movement
                 continue
 
             usb = device.phys.split('/')[0]

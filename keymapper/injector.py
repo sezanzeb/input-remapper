@@ -109,6 +109,13 @@ class KeycodeInjector:
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         device = evdev.InputDevice(path)
+        """try:
+            # grab to avoid e.g. the disabled keycode of 10 to confuse X,
+            # especially when one of the buttons of your mouse also uses 10
+            device.grab()
+        except IOError:
+            logger.error('Cannot grab %s', path)"""
+
         # foo = evdev.InputDevice('/dev/input/event2')
         keymapper_device = evdev.UInput(
             name=DEV_NAME,
@@ -127,7 +134,7 @@ class KeycodeInjector:
             if event.type != evdev.ecodes.EV_KEY:
                 continue
 
-            if event.code == 2:
+            if event.value == 2:
                 # linux does them itself, no need to trigger them
                 continue
 
@@ -141,7 +148,7 @@ class KeycodeInjector:
                 # unknown keycode, forward it
                 continue
             else:
-                target_keycode = internal_mapping.get_keycode(character)
+                target_keycode = system_mapping.get_keycode(character)
                 if target_keycode is None:
                     logger.error(
                         'Cannot find character %s in the internal mapping',
@@ -158,8 +165,8 @@ class KeycodeInjector:
                 # fine. I came up with that after randomly poking around in,
                 # frustration. I don't know of any helpful resource that
                 # explains this
-                # TODO still needed? if no, add to HELP.md
-            time.sleep(0.015)
+                # TODO still needed? if yes, add to HELP.md
+                time.sleep(0.005)
 
             logger.debug2(
                 'got code:%s value:%s, maps to code:%s char:%s',
