@@ -103,14 +103,30 @@ class KeycodeInjector:
         device = evdev.InputDevice(path)
         try:
             # grab to avoid e.g. the disabled keycode of 10 to confuse X,
-            # especially when one of the buttons of your mouse also uses 10
+            # especially when one of the buttons of your mouse also uses 10.
+            # This also avoids having to load an empty xkb symbols file
+            # to prevent writing any unwanted keys.
             device.grab()
         except IOError:
             logger.error('Cannot grab %s', path)
 
         # copy the capabilities because the keymapper_device is going
-        # to act like the mouse
-        keymapper_device = evdev.UInput.from_device(device)
+        # to act like the device.
+        capabilities = device.capabilities(absinfo=False)
+        # However, make sure that it supports all keycodes, not just some
+        # random ones. That's why I avoid from_device for this
+        capabilities[evdev.ecodes.EV_KEY] = evdev.ecodes.keys.keys()
+
+        # just like what python-evdev does in from_device
+        if evdev.ecodes.EV_SYN in capabilities:
+            del capabilities[evdev.ecodes.EV_SYN]
+        if evdev.ecodes.EV_FF in capabilities:
+            del capabilities[evdev.ecodes.EV_FF]
+
+        keymapper_device = evdev.UInput(
+            name=f'key-mapper {device.name}',
+            events=capabilities
+        )
 
         pipe.send(DEVICE_CREATED)
 
@@ -141,7 +157,7 @@ class KeycodeInjector:
 
             if character is None:
                 # unknown keycode, forward it
-                continue
+                target_keycode = input_keycode
             else:
                 target_keycode = system_mapping.get_keycode(character)
                 if target_keycode is None:
