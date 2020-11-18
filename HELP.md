@@ -17,10 +17,8 @@ This was quite mature, pretty much finished and tested.
 **The second idea** was to write special keycodes known only to key-mapper
 (256 - 511) into the input device of your mouse in /dev/input, and map
 those to SHIFT and such, whenever a button is clicked. A mapping would have
-existed to prevent the original keycode 10 from writing a 1. But Linux seems
-to ignore anything greater than 255 for regular keyboard events (EDIT: I think
-this is because of the device capabilities), or even crash X in some cases when 
-something is wrong with the configuration.
+existed to prevent the original keycode 10 from writing a 1. But this device
+doesn't have the capabilities set for those keycodes, so it won't use them.
 
 **The third idea** is to create a new input device that uses 8 - 255, just
 like other layouts, and key-mapper always tries to use the same keycodes for
@@ -43,16 +41,11 @@ have to be stored somewhere as well. It would make the mess of configuration
 files already needed for xkb even worse. This idea was not considered for
 long, so no "third" branch exists.
 
-**Fourth idea**: Based on the first idea, instead of using keycodes greater
-than 255, use unused keycodes starting from 255, going down. Issues existed
-when two buttons with the same keycode are pressed at the same time,
-so the goal is to avoid such overlaps. For example, if keycode 10 should be
-mapped to Shift_L. It is impossible to write "!" using this mapped button
-and a second keyboard, except if pressing key 10 triggers key-mapper to write
-key 253 into the /dev device, while mapping key 10 to nothing. Unfortunately
-linux just completely ignores some keycodes. 140 works, 145 won't, 150 works.
-EDIT: I think this is because of "capabilities", however, injecting keycodes
-won't work at all anyway, see the fifth idea.
+**Fourth idea**: Based on the second idea, instead of using keycodes greater
+than 255, use unused keycodes starting from 255, going down. For example
+pressing key 10 triggers key-mapper to write key 253 into the /dev device,
+while mapping key 10 to nothing. This has the same problem, the device
+capabilities ignore many of those keycodes. 140 works, 145 won't, 150 works.
 
 **Fifth idea**: Instead of writing xkb symbol files, just disable all
 mouse buttons with a single symbol file. Key-mapper listens for key events
@@ -90,6 +83,7 @@ keycode, use a custom mapping that starts at 255 and just offsets xmodmap
 by 255. The correct capabilities need to exist this time. Everything below
 255 is disabled. This mapping is applied to key-mappers custom /dev node.
 
+It's pretty similar to the second idea.
 
 # How I would have liked it to be
 
