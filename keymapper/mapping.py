@@ -47,17 +47,13 @@ class Mapping:
     def __len__(self):
         return len(self._mapping)
 
-    def change(self, previous_keycode, new_keycode, character):
+    def change(self, new_keycode, character, previous_keycode=None):
         """Replace the mapping of a keycode with a different one.
 
         Return True on success.
 
         Parameters
         ----------
-        previous_keycode : int or None
-            If None, will not remove any previous mapping. If you recently
-            used 10 for new_keycode and want to overwrite that with 11,
-            provide 5 here.
         new_keycode : int
             The source keycode, what the mouse would report without any
             modification.
@@ -65,6 +61,10 @@ class Mapping:
             A single character known to xkb, Examples: KP_1, Shift_L, a, B.
             Can also be an array, which is used for reading the xkbmap output
             completely.
+        previous_keycode : int or None
+            If None, will not remove any previous mapping. If you recently
+            used 10 for new_keycode and want to overwrite that with 11,
+            provide 5 here.
         """
         try:
             new_keycode = int(new_keycode)

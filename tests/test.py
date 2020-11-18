@@ -23,30 +23,32 @@
 
 
 import sys
-import time
 import unittest
 from keymapper.logger import update_verbosity
 
 
 tmp = '/tmp/key-mapper-test'
 uinput_write_history = []
-fake_event_queue = []
+pending_events = {}
 
 
-input_device_events = {}
+def get_events():
+    """Get all events written by the injector."""
+    return uinput_write_history
 
 
 def push_event(device, event):
-    """Emit a fake event for the device.
+    """Emit a fake event for a device.
 
     Parameters
     ----------
     device : string
+        For example 'device 1'
     event : Event
     """
-    if input_device_events.get(device) is None:
-        input_device_events[device] = []
-    input_device_events[device].append(event)
+    if pending_events.get(device) is None:
+        pending_events[device] = []
+    pending_events[device].append(event)
 
 
 class Event:
@@ -134,18 +136,23 @@ def patch_evdev():
             pass
 
         def read_loop(self):
-            while True:
-                pending_events = input_device_events.get(self.name)
-                if pending_events is not None and len(pending_events) > 0:
-                    yield pending_events.pop(0)
-                time.sleep(0.01)
+            """Read all prepared events at once."""
+            if pending_events.get(self.name) is None:
+                return
 
-        def capabilities(self):
+            while len(pending_events[self.name]) > 0:
+                yield pending_events[self.name].pop(0)
+
+        def capabilities(self, absinfo=True):
             return fixtures[self.path]['capabilities']
 
     class UInput:
-        def write(self, *args):
-            uinput_write_history.append(args)
+        def __init__(self, *args, **kwargs):
+            self.fd = 0
+            pass
+
+        def write(self, type, code, value):
+            uinput_write_history.append(Event(type, code, value))
 
         def syn(self):
             pass

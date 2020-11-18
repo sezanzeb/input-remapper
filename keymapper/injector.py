@@ -22,8 +22,9 @@
 """Device and evdev stuff that is independent from the display server."""
 
 
-import subprocess
-import time
+# By using processes instead of threads, the mappings are
+# automatically copied, so that they can be worked with in the ui
+# without breaking the device. And it's possible to terminate processes.
 import multiprocessing
 import asyncio
 
@@ -38,29 +39,13 @@ DEV_NAME = 'key-mapper'
 DEVICE_CREATED = 1
 
 
-def can_grab(path):
-    """Can input events from the device be read?
-
-    Parameters
-    ----------
-    path : string
-        Path in dev, for example '/dev/input/event7'
-    """
-    p = subprocess.run(['fuser', '-v', path])
-    return p.returncode == 1
-
-
 class KeycodeInjector:
     """Keeps injecting keycodes in the background based on the mapping."""
     def __init__(self, device):
+        """Start injecting keycodes based on custom_mapping."""
         self.device = device
         self.virtual_devices = []
         self.processes = []
-        self.start_injecting()
-
-    def start_injecting(self):
-        """Read keycodes and inject the mapped character forever."""
-        self.stop_injecting()
 
         paths = get_devices()[self.device]['paths']
 
@@ -75,7 +60,7 @@ class KeycodeInjector:
             pipe = multiprocessing.Pipe()
             worker = multiprocessing.Process(
                 target=self._start_injecting_worker,
-                args=(path, custom_mapping, pipe[1])
+                args=(path, pipe[1])
             )
             worker.start()
             # wait for the process to notify creation of the new injection
@@ -95,7 +80,7 @@ class KeycodeInjector:
                 process.terminate()
                 self.processes[i] = None
 
-    def _start_injecting_worker(self, path, mapping, pipe):
+    def _start_injecting_worker(self, path, pipe):
         """Inject keycodes for one of the virtual devices."""
         # TODO test
         loop = asyncio.new_event_loop()
@@ -153,7 +138,7 @@ class KeycodeInjector:
             # than the ones reported by xev and that X expects
             input_keycode = event.code + 8
 
-            character = mapping.get_character(input_keycode)
+            character = custom_mapping.get_character(input_keycode)
 
             if character is None:
                 # unknown keycode, forward it

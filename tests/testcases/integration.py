@@ -100,7 +100,7 @@ class Integration(unittest.TestCase):
         rows = len(self.window.get('key_list').get_children())
         self.assertEqual(rows, 1)
 
-        custom_mapping.change(None, 13, 'a')
+        custom_mapping.change(13, 'a', None)
         time.sleep(0.2)
         gtk_iteration()
 
@@ -180,12 +180,12 @@ class Integration(unittest.TestCase):
         self.assertTrue(custom_mapping.changed)
 
     def test_rename_and_save(self):
-        custom_mapping.change(None, 14, 'a')
+        custom_mapping.change(14, 'a', None)
         self.assertEqual(self.window.selected_preset, 'new preset')
         self.window.on_save_preset_clicked(None)
         self.assertEqual(custom_mapping.get_character(14), 'a')
 
-        custom_mapping.change(None, 14, 'b')
+        custom_mapping.change(14, 'b', None)
         self.window.get('preset_name_input').set_text('asdf')
         self.window.on_save_preset_clicked(None)
         self.assertEqual(self.window.selected_preset, 'asdf')
@@ -230,7 +230,7 @@ class Integration(unittest.TestCase):
         gtk_iteration()
         self.assertEqual(self.window.selected_preset, 'new preset')
         self.assertFalse(os.path.exists(f'{CONFIG}/device 1/abc 123'))
-        custom_mapping.change(None, 10, '1')
+        custom_mapping.change(10, '1', None)
         self.window.on_save_preset_clicked(None)
         gtk_iteration()
         self.assertEqual(self.window.selected_preset, 'abc 123')
