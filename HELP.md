@@ -68,7 +68,8 @@ holding down a button that is mapped to shift will (would usually have
 a keycode of 10, now triggers writing 50) write "!!!!!!!!!". Even though
 no symbols are loaded for that button.
 
-This is because the second device that starts writing an event.value of 2 will
+**The Sixth idea** continues with the fourth. The described problem is
+because the second device that starts writing an event.value of 2 will
 take control of what is happening. Following example: (KB = keyboard,
 example devices)
 1. hold a on KB1: `a-1`, `a-2`, `a-2`, `a-2`, ...
