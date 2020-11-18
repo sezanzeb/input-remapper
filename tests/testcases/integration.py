@@ -46,7 +46,6 @@ def gtk_iteration():
 
 def launch(argv=None, bin_path='bin/key-mapper-gtk'):
     """Start key-mapper-gtk with the command line argument array argv."""
-    print('\nLaunching UI')
     if not argv:
         argv = ['-d']
 
