@@ -24,40 +24,14 @@
 
 import os
 
-# the path that contains ALL symbols, not just ours
-X11_SYMBOLS = '/usr/share/X11/xkb/symbols'
-
-# should not contain spaces
-# getlogin gets the user who ran sudo
-USERS_SYMBOLS = os.path.join(
-    '/usr/share/X11/xkb/symbols/key-mapper',
-    os.getlogin().replace(' ', '_')
-)
-
-# those are the same for every preset and user, they are needed to make the
-# presets work.
-KEYCODES_PATH = '/usr/share/X11/xkb/keycodes/key-mapper'
+EMPTY_SYMBOLS = '/usr/share/X11/xkb/symbols/key-mapper-empty'
+CONFIG = os.path.join('/home', os.getlogin(), '.config/key-mapper')
 
 
-def get_usr_path(device=None, preset=None):
-    """Get the path to the config file in /usr.
-
-    This folder is a symlink and the files are in ~/.config/key-mapper
-
-    If preset is omitted, returns the folder for the device.
-    """
+def get_config_path(device=None, preset=None):
+    """Get a path to the stored preset, or to store a preset to."""
     if device is None:
-        return USERS_SYMBOLS
-
-    device = device.strip()
-
-    if preset is not None:
-        preset = preset.strip()
-        return os.path.join(USERS_SYMBOLS, device, preset).replace(' ', '_')
-
-    if device is not None:
-        return os.path.join(USERS_SYMBOLS, device.replace(' ', '_'))
-
-
-DEFAULT_SYMBOLS = get_usr_path('default')
-EMPTY_SYMBOLS = get_usr_path('empty')
+        return CONFIG
+    if preset is None:
+        return os.path.join(CONFIG, device)
+    return os.path.join(CONFIG, device, preset)

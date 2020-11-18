@@ -22,7 +22,7 @@
 import unittest
 
 from keymapper.getdevices import get_devices
-from keymapper.paths import USERS_SYMBOLS, X11_SYMBOLS, \
+from keymapper.archive.xkb import USERS_SYMBOLS, X11_SYMBOLS, \
     DEFAULT_SYMBOLS
 
 

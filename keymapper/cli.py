@@ -26,7 +26,6 @@ import os
 import re
 import subprocess
 
-from keymapper.paths import X11_SYMBOLS
 from keymapper.logger import logger, is_debug
 from keymapper.getdevices import get_devices
 from keymapper.mapping import system_mapping
@@ -59,7 +58,7 @@ def setxkbmap(device, layout):
         load the system default
     """
     if layout is not None:
-        path = os.path.join(X11_SYMBOLS, layout)
+        path = os.path.join('/usr/share/X11/xkb/symbols', layout)
         if not os.path.exists(path):
             logger.error('Symbols %s don\'t exist', path)
             return
