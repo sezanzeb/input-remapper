@@ -54,6 +54,7 @@ class _GetDevicesProcess(multiprocessing.Process):
 
     def run(self):
         """Do what get_devices describes."""
+        logger.debug('Discovering device paths')
         devices = [evdev.InputDevice(path) for path in evdev.list_devices()]
 
         # group them together by usb device because there could be stuff like
@@ -67,12 +68,20 @@ class _GetDevicesProcess(multiprocessing.Process):
                 continue
 
             if evdev.ecodes.EV_REL in capabilities:
-                # skip devices that control movement
+                # skip devices that control movement, because I need to
+                # grab the device and
+                logger.debug(
+                    'Skipping %s to avoid impairing mouse movement',
+                    device.path
+                )
                 continue
 
             usb = device.phys.split('/')[0]
             if grouped.get(usb) is None:
                 grouped[usb] = []
+
+            logger.debug('Adding %s', device.path)
+
             grouped[usb].append((device.name, device.path))
 
         # now write down all the paths of that group

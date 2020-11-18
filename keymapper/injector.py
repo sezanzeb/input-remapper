@@ -30,13 +30,12 @@ import asyncio
 import evdev
 
 from keymapper.logger import logger
-from keymapper.cli import apply_symbols
-from keymapper.getdevices import get_devices, refresh_devices
-from keymapper.state import custom_mapping, internal_mapping, \
-    system_mapping, capabilities
+from keymapper.getdevices import get_devices
+from keymapper.state import custom_mapping, system_mapping
 
 
 DEV_NAME = 'key-mapper'
+DEVICE_CREATED = 1
 
 
 def can_grab(path):
@@ -71,22 +70,18 @@ class KeycodeInjector:
             ', '.join(paths)
         )
 
-        apply_symbols(self.device, name='key-mapper-empty')
-
         # Watch over each one of the potentially multiple devices per hardware
         for path in paths:
+            pipe = multiprocessing.Pipe()
             worker = multiprocessing.Process(
                 target=self._start_injecting_worker,
-                args=(path, custom_mapping)
+                args=(path, custom_mapping, pipe[1])
             )
             worker.start()
+            # wait for the process to notify creation of the new injection
+            # device, to keep the logs in order.
+            pipe[0].recv()
             self.processes.append(worker)
-
-        # it takes a little time for the key-mapper devices to appear
-        time.sleep(0.1)
-
-        refresh_devices()
-        apply_symbols(DEV_NAME, name='key-mapper-dev', keycodes='key-mapper')
 
     def stop_injecting(self):
         """Stop injecting keycodes."""
@@ -100,30 +95,24 @@ class KeycodeInjector:
                 process.terminate()
                 self.processes[i] = None
 
-        # apply the default layout back
-        apply_symbols(self.device)
-
-    def _start_injecting_worker(self, path, mapping):
+    def _start_injecting_worker(self, path, mapping, pipe):
         """Inject keycodes for one of the virtual devices."""
         # TODO test
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         device = evdev.InputDevice(path)
-        """try:
+        try:
             # grab to avoid e.g. the disabled keycode of 10 to confuse X,
             # especially when one of the buttons of your mouse also uses 10
             device.grab()
         except IOError:
-            logger.error('Cannot grab %s', path)"""
+            logger.error('Cannot grab %s', path)
 
-        # foo = evdev.InputDevice('/dev/input/event2')
-        keymapper_device = evdev.UInput(
-            name=DEV_NAME,
-            phys='key-mapper-uinput',
-            events={
-                evdev.ecodes.EV_KEY: [c - 8 for c in capabilities]
-            }
-        )
+        # copy the capabilities because the keymapper_device is going
+        # to act like the mouse
+        keymapper_device = evdev.UInput.from_device(device)
+
+        pipe.send(DEVICE_CREATED)
 
         logger.debug(
             'Started injecting into %s, fd %s',
@@ -132,6 +121,12 @@ class KeycodeInjector:
 
         for event in device.read_loop():
             if event.type != evdev.ecodes.EV_KEY:
+                logger.spam(
+                    'got type:%s code:%s value:%s, forward',
+                    event.type, event.code, event.value
+                )
+                keymapper_device.write(event.type, event.code, event.value)
+                keymapper_device.syn()
                 continue
 
             if event.value == 2:
@@ -155,20 +150,8 @@ class KeycodeInjector:
                         character
                     )
                     continue
-                # turns out, if I don't sleep here X/Linux gets confused. Lets
-                # assume a mapping of 10 to z. Without sleep it would always
-                # result in 1z 1z 1z. Even though the empty xkb symbols file
-                # was applied on the mouse! And I really made sure `write` was
-                # not called twice. '1' just somewhow sneaks past the symbols.
-                # 0.0005 has many errors. 0.001 has them super rare.
-                # 5ms is still faster than anything on the planet so that's.
-                # fine. I came up with that after randomly poking around in,
-                # frustration. I don't know of any helpful resource that
-                # explains this
-                # TODO still needed? if yes, add to HELP.md
-                time.sleep(0.005)
 
-            logger.debug2(
+            logger.spam(
                 'got code:%s value:%s, maps to code:%s char:%s',
                 event.code + 8, event.value, target_keycode, character
             )
@@ -180,18 +163,4 @@ class KeycodeInjector:
                 event.value
             )
 
-            # the second device that starts writing an event.value of 2 will
-            # take ownership of what is happening. Following example:
-            # (KB = keyboard, example devices)
-            # hold a on KB1:
-            #   a-1, a-2, a-2, a-2, ...
-            # hold shift on KB2:
-            #   shift-2, shift-2, shift-2, ...
-            # No a-2 on KB1 happening anymore. The xkb symbols of KB2 will
-            # be used! So if KB2 maps shift+a to b, it will write b, even
-            # though KB1 maps shift+a to c! And if you reverse this, hold
-            # shift on KB2 first and then a on KB1, the xkb mapping of KB1
-            # will take effect and write c!
-
-            # foo.write(evdev.ecodes.EV_SYN, evdev.ecodes.SYN_REPORT, 0)
             keymapper_device.syn()

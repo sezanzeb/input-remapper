@@ -28,7 +28,6 @@ import shutil
 
 from keymapper.logger import logger
 from keymapper.paths import get_config_path
-from keymapper.cli import parse_xmodmap
 
 
 class Mapping:
