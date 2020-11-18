@@ -23,11 +23,48 @@
 
 
 import sys
+import time
 import unittest
 from keymapper.logger import update_verbosity
 
 
 tmp = '/tmp/key-mapper-test'
+uinput_write_history = []
+fake_event_queue = []
+
+
+input_device_events = {}
+
+
+def push_event(device, event):
+    """Emit a fake event for the device.
+
+    Parameters
+    ----------
+    device : string
+    event : Event
+    """
+    if input_device_events.get(device) is None:
+        input_device_events[device] = []
+    input_device_events[device].append(event)
+
+
+class Event:
+    """Event to put into the injector for tests."""
+    def __init__(self, type, code, value):
+        """
+        Paramaters
+        ----------
+        type : int
+            one of evdev.ecodes.EV_*
+        code : int
+            keyboard event code as known to linux. E.g. 2 for the '1' button
+        value : int
+            1 for down, 0 for up, 2 for hold
+        """
+        self.type = type
+        self.code = code
+        self.value = value
 
 
 def patch_paths():
@@ -93,11 +130,29 @@ def patch_evdev():
             self.phys = fixtures[path]['phys']
             self.name = fixtures[path]['name']
 
+        def grab(self):
+            pass
+
+        def read_loop(self):
+            while True:
+                pending_events = input_device_events.get(self.name)
+                if pending_events is not None and len(pending_events) > 0:
+                    yield pending_events.pop(0)
+                time.sleep(0.01)
+
         def capabilities(self):
             return fixtures[self.path]['capabilities']
 
+    class UInput:
+        def write(self, *args):
+            uinput_write_history.append(args)
+
+        def syn(self):
+            pass
+
     evdev.list_devices = list_devices
     evdev.InputDevice = InputDevice
+    evdev.UInput = UInput
 
 
 def patch_unsaved():
