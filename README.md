@@ -49,6 +49,3 @@ sudo python3 setup.py install && python3 tests/test.py
 - [x] ask for administrator permissions using polkit
 - [ ] make it work on wayland
 - [ ] add to the AUR, provide .deb and .appimage files
-
-Before you consider contributing to the evtest injection and xkb mechanics,
-I need you to understand the stuff in HELP.md
