@@ -108,6 +108,7 @@ class KeycodeInjector:
 
         keymapper_device = evdev.UInput(
             name=f'key-mapper {device.name}',
+            phys='key-mapper',
             events=capabilities
         )
 
