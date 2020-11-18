@@ -37,7 +37,8 @@ import stat
 
 from keymapper.logger import logger
 from keymapper.data import get_data_path
-from keymapper.mapping import custom_mapping, system_mapping, Mapping
+from keymapper.state import custom_mapping, internal_mapping
+from keymapper.paths import KEYCODES_PATH
 
 
 permissions = stat.S_IREAD | stat.S_IWRITE | stat.S_IRGRP | stat.S_IROTH
@@ -54,10 +55,6 @@ USERS_SYMBOLS = os.path.join(
     '/usr/share/X11/xkb/symbols/key-mapper',
     os.getlogin().replace(' ', '_')
 )
-
-# those are the same for every preset and user, they are needed to make the
-# presets work.
-KEYCODES_PATH = '/usr/share/X11/xkb/keycodes/key-mapper'
 
 
 def get_usr_path(device=None, preset=None):
@@ -111,6 +108,19 @@ def create_preset(device, name=None):
     return name
 
 
+def get_preset_name(device, preset=None):
+    """Get the name for that preset that is used for the setxkbmap command."""
+    # It's the relative path starting from X11/xkb/symbols and must not
+    # contain spaces
+    name = get_usr_path(device, preset)[len(X11_SYMBOLS) + 1:]
+    assert ' ' not in name
+    return name
+
+
+DEFAULT_SYMBOLS_NAME = get_preset_name('default')
+EMPTY_SYMBOLS_NAME = get_preset_name('empty')
+
+
 def create_setxkbmap_config(device, preset):
     """Generate a config file for setxkbmap.
 
@@ -141,134 +151,6 @@ def create_setxkbmap_config(device, preset):
         contents = generate_symbols(get_preset_name(device, preset))
         if contents is not None:
             f.write(contents)
-
-
-def get_preset_name(device, preset=None):
-    """Get the name for that preset that is used for the setxkbmap command."""
-    # It's the relative path starting from X11/xkb/symbols and must not
-    # contain spaces
-    name = get_usr_path(device, preset)[len(X11_SYMBOLS) + 1:]
-    assert ' ' not in name
-    return name
-
-
-DEFAULT_SYMBOLS_NAME = get_preset_name('default')
-EMPTY_SYMBOLS_NAME = get_preset_name('empty')
-
-
-def create_identity_mapping():
-    """Because the concept of "reasonable symbolic names" [3] doesn't apply
-    when mouse buttons are all over the place. Create an identity mapping
-    to make generating "symbols" files easier. Keycode 10 -> "<10>"
-
-    This has the added benefit that keycodes reported by xev can be
-    identified in the symbols file.
-
-    The identity mapping is provided to '-keycodes' of setxkbmap.
-    """
-    if os.path.exists(KEYCODES_PATH):
-        logger.debug('Found the keycodes file at %s', KEYCODES_PATH)
-        return
-
-    xkb_keycodes = []
-    for keycode in range(MIN_KEYCODE, MAX_KEYCODE + 1):
-        xkb_keycodes.append(f'<{keycode}> = {keycode};')
-
-    template_path = get_data_path('xkb_keycodes_template')
-    with open(template_path, 'r') as template_file:
-        template = template_file.read()
-
-    result = template.format(
-        minimum=MIN_KEYCODE,
-        maximum=MAX_KEYCODE,
-        xkb_keycodes='\n    '.join(xkb_keycodes)
-    )
-
-    if not os.path.exists(KEYCODES_PATH):
-        logger.debug('Creating "%s"', KEYCODES_PATH)
-        os.makedirs(os.path.dirname(KEYCODES_PATH), exist_ok=True)
-        os.mknod(KEYCODES_PATH)
-        os.chmod(KEYCODES_PATH, permissions)
-
-    with open(KEYCODES_PATH, 'w') as keycodes:
-        keycodes.write(result)
-
-
-def generate_symbols(
-        name, include=DEFAULT_SYMBOLS_NAME, mapping=custom_mapping
-):
-    """Create config contents to be placed in /usr/share/X11/xkb/symbols.
-
-    It's the mapping of the preset as expected by X. This function does not
-    create the file.
-
-    Parameters
-    ----------
-    name : string
-        Usually what `get_preset_name` returns
-    include : string or None
-        If another preset should be included. Defaults to the default
-        preset. Use None to avoid including.
-    mapping : Mapping
-        If you need to create a symbols file for some other mapping you can
-        pass it to this parameter. By default the custom mapping will be
-        used that is also displayed in the user interface.
-    """
-    if len(mapping) == 0:
-        raise ValueError('Mapping is empty')
-
-    # If the symbols file contains key codes that are not present in
-    # the keycodes file, THE WHOLE X SESSION WILL CRASH!
-    if not os.path.exists(KEYCODES_PATH):
-        raise FileNotFoundError('Expected the keycodes file to exist')
-
-    with open(KEYCODES_PATH, 'r') as f:
-        keycodes = re.findall(r'<.+?>', f.read())
-
-    xkb_symbols = []
-    for system_keycode, (target_keycode, character) in mapping:
-        if f'<{system_keycode}>' not in keycodes:
-            logger.error(f'Unknown code <{system_keycode}> for "{character}"')
-            # don't append that one, otherwise X would crash when loading
-            continue
-
-        # key-mapper will write target_keycode into /dev, while
-        # system_keycode should do nothing to avoid a duplicate keystroke.
-        if target_keycode is not None:
-            if f'<{target_keycode}>' not in keycodes:
-                logger.error(
-                    f'Unknown code <{target_keycode}> for "{character}"'
-                )
-                # don't append that one, otherwise X would crash when loading
-                continue
-            xkb_symbols.append(
-                f'key <{system_keycode}> {{ [ ] }}; '
-            )
-            xkb_symbols.append(
-                f'key <{target_keycode}> {{ [ {character} ] }}; '
-                f'// {system_keycode}'
-            )
-            continue
-
-        xkb_symbols.append(
-            f'key <{system_keycode}> {{ [ {character} ] }}; '
-        )
-
-    if len(xkb_symbols) == 0:
-        logger.error('Failed to populate xkb_symbols')
-        return None
-
-    template_path = get_data_path('xkb_symbols_template')
-    with open(template_path, 'r') as template_file:
-        template = template_file.read()
-
-    result = template.format(
-        name=name,
-        xkb_symbols='\n    '.join(xkb_symbols),
-        include=f'include "{include}"' if include else ''
-    )
-
-    return result
 
 
 def parse_symbols_file(device, preset):

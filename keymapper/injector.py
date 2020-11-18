@@ -30,9 +30,13 @@ import asyncio
 import evdev
 
 from keymapper.logger import logger
-from keymapper.cli import apply_empty_symbols, setxkbmap
-from keymapper.getdevices import get_devices
-from keymapper.mapping import custom_mapping, system_mapping
+from keymapper.cli import apply_symbols
+from keymapper.getdevices import get_devices, refresh_devices
+from keymapper.state import custom_mapping, internal_mapping, \
+    system_mapping, capabilities
+
+
+DEV_NAME = 'key-mapper'
 
 
 def can_grab(path):
@@ -55,6 +59,50 @@ class KeycodeInjector:
         self.processes = []
         self.start_injecting()
 
+    def start_injecting(self):
+        """Read keycodes and inject the mapped character forever."""
+        self.stop_injecting()
+
+        paths = get_devices()[self.device]['paths']
+
+        logger.info(
+            'Starting injecting the mapping for %s on %s',
+            self.device,
+            ', '.join(paths)
+        )
+
+        apply_symbols(self.device, name='key-mapper-empty')
+
+        # Watch over each one of the potentially multiple devices per hardware
+        for path in paths:
+            worker = multiprocessing.Process(
+                target=self._start_injecting_worker,
+                args=(path, custom_mapping)
+            )
+            worker.start()
+            self.processes.append(worker)
+
+        # it takes a little time for the key-mapper devices to appear
+        time.sleep(0.1)
+
+        refresh_devices()
+        apply_symbols(DEV_NAME, name='key-mapper-dev', keycodes='key-mapper')
+
+    def stop_injecting(self):
+        """Stop injecting keycodes."""
+        # TODO test
+        logger.info('Stopping injecting keycodes')
+        for i, process in enumerate(self.processes):
+            if process is None:
+                continue
+
+            if process.is_alive():
+                process.terminate()
+                self.processes[i] = None
+
+        # apply the default layout back
+        apply_symbols(self.device)
+
     def _start_injecting_worker(self, path, mapping):
         """Inject keycodes for one of the virtual devices."""
         # TODO test
@@ -63,8 +111,11 @@ class KeycodeInjector:
         device = evdev.InputDevice(path)
         # foo = evdev.InputDevice('/dev/input/event2')
         keymapper_device = evdev.UInput(
-            name='key-mapper',
-            phys='key-mapper-uinput'
+            name=DEV_NAME,
+            phys='key-mapper-uinput',
+            events={
+                evdev.ecodes.EV_KEY: [c - 8 for c in capabilities]
+            }
         )
 
         logger.debug(
@@ -76,7 +127,9 @@ class KeycodeInjector:
             if event.type != evdev.ecodes.EV_KEY:
                 continue
 
-            print('got', event.code, event.value, 'from device')
+            if event.code == 2:
+                # linux does them itself, no need to trigger them
+                continue
 
             # this happens to report key codes that are 8 lower
             # than the ones reported by xev and that X expects
@@ -86,13 +139,12 @@ class KeycodeInjector:
 
             if character is None:
                 # unknown keycode, forward it
-                target_keycode = input_keycode
                 continue
             else:
-                target_keycode = system_mapping.get_keycode(character)
+                target_keycode = internal_mapping.get_keycode(character)
                 if target_keycode is None:
                     logger.error(
-                        'Cannot find character %s in xmodmap',
+                        'Cannot find character %s in the internal mapping',
                         character
                     )
                     continue
@@ -106,24 +158,15 @@ class KeycodeInjector:
                 # fine. I came up with that after randomly poking around in,
                 # frustration. I don't know of any helpful resource that
                 # explains this
-                time.sleep(0.01)
-                """if event.value == 2:
-                    print('device simulated up', event.value, 0)
-                    device.write(
-                        evdev.ecodes.EV_KEY,
-                        event.code,
-                        0
-                    )
-                    device.write(evdev.ecodes.EV_SYN, evdev.ecodes.SYN_REPORT, 0)"""
+                # TODO still needed? if no, add to HELP.md
+            time.sleep(0.015)
+
+            logger.debug2(
+                'got code:%s value:%s, maps to code:%s char:%s',
+                event.code + 8, event.value, target_keycode, character
+            )
 
             # TODO test for the stuff put into write
-            """logger.debug(
-                'Injecting %s -> %s -> %s',
-                input_keycode,
-                character,
-                target_keycode,
-            )"""
-            print('km write', target_keycode - 8, event.value)
             keymapper_device.write(
                 evdev.ecodes.EV_KEY,
                 target_keycode - 8,
@@ -145,41 +188,3 @@ class KeycodeInjector:
 
             # foo.write(evdev.ecodes.EV_SYN, evdev.ecodes.SYN_REPORT, 0)
             keymapper_device.syn()
-
-    def start_injecting(self):
-        """Read keycodes and inject the mapped character forever."""
-        self.stop_injecting()
-
-        paths = get_devices()[self.device]['paths']
-
-        logger.info(
-            'Starting injecting the mapping for %s on %s',
-            self.device,
-            ', '.join(paths)
-        )
-
-        apply_empty_symbols(self.device)
-
-        # Watch over each one of the potentially multiple devices per hardware
-        for path in paths:
-            worker = multiprocessing.Process(
-                target=self._start_injecting_worker,
-                args=(path, custom_mapping)
-            )
-            worker.start()
-            self.processes.append(worker)
-
-    def stop_injecting(self):
-        """Stop injecting keycodes."""
-        # TODO test
-        logger.info('Stopping injecting keycodes')
-        for i, process in enumerate(self.processes):
-            if process is None:
-                continue
-
-            if process.is_alive():
-                process.terminate()
-                self.processes[i] = None
-
-        # apply the default layout back
-        setxkbmap(self.device)

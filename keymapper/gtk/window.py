@@ -30,12 +30,12 @@ gi.require_version('GLib', '2.0')
 from gi.repository import Gtk, Gdk, GLib
 
 from keymapper.data import get_data_path
-from keymapper.mapping import custom_mapping
+from keymapper.state import custom_mapping
 from keymapper.presets import get_presets, find_newest_preset, \
     delete_preset, rename_preset, get_available_preset_name
 from keymapper.logger import logger
-from keymapper.linux import KeycodeInjector
-from keymapper.cli import setxkbmap
+from keymapper.injector import KeycodeInjector
+from keymapper.cli import apply_symbols
 from keymapper.getdevices import get_devices
 from keymapper.gtk.row import Row
 from keymapper.gtk.unsaved import unsaved_changes_dialog, GO_BACK
@@ -208,7 +208,7 @@ class Window:
         """Load the mapping."""
         if self.keycode_reader is not None:
             self.keycode_reader.stop_injecting()
-        setxkbmap(self.selected_device)
+        apply_symbols(self.selected_device)
         self.get('status_bar').push(
             CTX_APPLY,
             f'Applied the system default'

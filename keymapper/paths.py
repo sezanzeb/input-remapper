@@ -24,8 +24,14 @@
 
 import os
 
-EMPTY_SYMBOLS = '/usr/share/X11/xkb/symbols/key-mapper-empty'
 CONFIG = os.path.join('/home', os.getlogin(), '.config/key-mapper')
+
+# the "identity mapping"
+KEYCODES_PATH = '/usr/share/X11/xkb/keycodes/key-mapper'
+# to make the device not write its default keys anymore
+EMPTY_SYMBOLS = '/usr/share/X11/xkb/symbols/key-mapper-empty'
+# to make key-mappers own /dev device have keys
+SYMBOLS_PATH = '/usr/share/X11/xkb/symbols/key-mapper-dev'
 
 
 def get_config_path(device=None, preset=None):
