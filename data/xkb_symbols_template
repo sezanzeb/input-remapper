@@ -1,9 +1,0 @@
-// key-mapper symbols config file.
-
-// the corresponding keycodes configuration is in
-// /usr/share/X11/xkb/keycodes/key-mapper
-
-default xkb_symbols "basic" {{
-    name[Group1] = "{name}";
-    {xkb_symbols}
-}};

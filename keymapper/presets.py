@@ -64,7 +64,7 @@ def get_presets(device):
     ]
     # the highest timestamp to the front
     presets.reverse()
-    return [preset.replace('_', ' ') for preset in presets]
+    return presets
 
 
 def get_any_preset():
@@ -72,10 +72,10 @@ def get_any_preset():
     devices = get_devices().keys()
     if len(devices) == 0:
         return None, None
-    any_device = list(devices)[0].replace('_', ' ')
+    any_device = list(devices)[0]
     any_preset = (get_presets(any_device) or [None])[0]
     if any_preset is not None:
-        any_preset = any_preset.replace('_', ' ')
+        any_preset = any_preset
     return any_device, any_preset
 
 
@@ -105,10 +105,7 @@ def find_newest_preset(device=None):
         logger.debug('No presets found')
         return get_any_preset()
 
-    online_devices = [
-        device.replace(' ', '_')
-        for device in get_devices().keys()
-    ]
+    online_devices = get_devices().keys()
 
     newest_path = None
     while len(paths) > 0:
@@ -123,10 +120,6 @@ def find_newest_preset(device=None):
     if newest_path is None:
         logger.debug('None of the configured devices is currently online')
         return get_any_preset()
-
-    # ui: no underscores, filesystem: no whitespaces
-    device = device and device.replace('_', ' ')
-    preset = preset and preset.replace('_', ' ')
 
     logger.debug('The newest preset is "%s", "%s"', device, preset)
 

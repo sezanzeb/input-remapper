@@ -34,15 +34,12 @@ def patch_paths():
     from keymapper import paths
     prefix = '/tmp/key-mapper-test/X11/'
     paths.X11_SYMBOLS = prefix + 'symbols'
-    paths.USERS_SYMBOLS = prefix + 'symbols/key-mapper/user'
+    paths.CONFIG = prefix + 'symbols/key-mapper/user'
     paths.DEFAULT_SYMBOLS = prefix + 'symbols/key-mapper/user/default'
     paths.KEYCODES_PATH = prefix + 'keycodes/key-mapper'
 
 
-def patch_linux():
-    from keymapper import linux
-    linux.KeycodeInjector.start_reading = lambda *args: None
-    linux.KeycodeInjector.read = lambda *args: None
+# TODO patch for the injector or something idk?
 
 
 def patch_evdev():
@@ -113,7 +110,6 @@ def patch_unsaved():
 # the original versions
 patch_paths()
 patch_evdev()
-patch_linux()
 patch_unsaved()
 
 

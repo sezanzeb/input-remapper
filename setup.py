@@ -29,8 +29,6 @@ DistUtilsExtra.auto.setup(
     license='GPL-3.0',
     data_files=[
         ('share/applications/', ['data/key-mapper.desktop']),
-        ('share/key-mapper/', ['data/xkb_symbols_template']),
         ('share/polkit-1/actions/', ['data/org.key-mapper.policy']),
-        ('share/X11/xkb/symbols/', ['data/key-mapper-empty']),
     ],
 )
