@@ -83,7 +83,11 @@ keycode, use a custom mapping that starts at 255 and just offsets xmodmap
 by 255. The correct capabilities need to exist this time. Everything below
 255 is disabled. This mapping is applied to key-mappers custom /dev node.
 
-It's pretty similar to the second idea.
+Each preset uses the same key-mapper-offset-symbol file and the same
+empty-symbol file to disable the keys of the original device. This avoids
+having to manage user defined presets in /usr. But it could be extended to
+support custom xkb symbol files in the future, to e.g. map `10` to 'b', and
+`shift+10` to 'c'.
 
 # How I would have liked it to be
 
