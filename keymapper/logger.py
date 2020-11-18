@@ -27,15 +27,15 @@ import logging
 import pkg_resources
 
 
-def debug2(self, message, *args, **kws):
-    if self.isEnabledFor(DEBUG2):
+def spam(self, message, *args, **kws):
+    if self.isEnabledFor(SPAM):
         # https://stackoverflow.com/a/13638084
-        self._log(DEBUG2, message, args, **kws)
+        self._log(SPAM, message, args, **kws)
 
 
-DEBUG2 = 5
-logging.addLevelName(DEBUG2, "DEBUG2")
-logging.Logger.debug2 = debug2
+SPAM = 5
+logging.addLevelName(SPAM, "SPAM")
+logging.Logger.spam = spam
 
 
 class Formatter(logging.Formatter):
@@ -53,7 +53,7 @@ class Formatter(logging.Formatter):
                 logging.ERROR: 31,
                 logging.FATAL: 31,
                 logging.DEBUG: 36,
-                DEBUG2: 34,
+                SPAM: 34,
                 logging.INFO: 32,
             }.get(record.levelno, 0)
             if debug:
@@ -96,7 +96,7 @@ def log_info():
 def update_verbosity(debug):
     """Set the logging verbosity according to the settings object."""
     if debug:
-        logger.setLevel(DEBUG2)
+        logger.setLevel(SPAM)
     else:
         logger.setLevel(logging.INFO)
 

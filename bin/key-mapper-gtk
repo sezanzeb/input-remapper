@@ -35,7 +35,6 @@ from gi.repository import Gtk
 from keymapper.logger import logger, update_verbosity, log_info
 from keymapper.gtk.error import ErrorDialog
 from keymapper.gtk.window import Window
-from keymapper.state import initialize
 
 
 if __name__ == '__main__':
@@ -49,8 +48,6 @@ if __name__ == '__main__':
     options = parser.parse_args(sys.argv[1:])
     update_verbosity(options.debug)
     log_info()
-
-    initialize()
 
     window = Window()
 
