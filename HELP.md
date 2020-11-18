@@ -83,11 +83,20 @@ keycode, use a custom mapping that starts at 255 and just offsets xmodmap
 by 255. The correct capabilities need to exist this time. Everything below
 255 is disabled. This mapping is applied to key-mappers custom /dev node.
 
-Each preset uses the same key-mapper-offset-symbol file and the same
-empty-symbol file to disable the keys of the original device. This avoids
-having to manage user defined presets in /usr. But it could be extended to
-support custom xkb symbol files in the future, to e.g. map `10` to 'b', and
-`shift+10` to 'c'.
+However, if you try to map Shift to button 10 of your mouse, and use
+mouse-shift + keyboard-1, you need to press keyboard-1 again to do anything.
+I assume this is because:
+- mouse-10 down
+- keymapper says: shift down
+- keyboard-10 down (down again? X/Linux ignores that)
+- keyboard-10 up
+- keyboard-10 down, "!" written
+
+**Seventh, final solution** By grabbing the mouse device (EVIOCGRAB) this
+won't happen. Since this prevents all the keycodes from doing stuff, no
+empty xkb symbols file is needed anymore. I can basically do the fifth idea
+from above.
+
 
 # How I would have liked it to be
 
