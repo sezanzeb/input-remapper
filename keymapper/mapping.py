@@ -28,6 +28,7 @@ import shutil
 
 from keymapper.logger import logger
 from keymapper.paths import get_config_path
+from keymapper.cli import parse_xmodmap
 
 
 class Mapping:
@@ -75,10 +76,6 @@ class Mapping:
             return False
 
         if new_keycode and character:
-            if isinstance(character, list):
-                character = [c.lower() for c in character]
-            else:
-                character = character.lower()
             self._mapping[new_keycode] = character
             if new_keycode != previous_keycode:
                 # clear previous mapping of that code, because the line
@@ -147,11 +144,11 @@ class Mapping:
 
     def get_keycode(self, character):
         """Get the keycode for that character."""
-        character = character.lower()
+        # TODO prepare separate data structure for optimization
         for keycode, mapping in self._mapping.items():
             # note, that stored mappings are already lowercase
-            if isinstance(mapping, list):
-                if character in [c for c in mapping]:
+            if ', ' in mapping:
+                if character in [c.strip() for c in mapping.split(',')]:
                     return keycode
             elif mapping == character:
                 return int(keycode)
@@ -166,11 +163,3 @@ class Mapping:
         keycode : int
         """
         return self._mapping.get(keycode)
-
-
-# one mapping object for the whole application that holds all
-# customizations
-custom_mapping = Mapping()
-
-# one mapping that represents the xmodmap output
-system_mapping = Mapping()

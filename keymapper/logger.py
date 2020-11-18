@@ -27,10 +27,21 @@ import logging
 import pkg_resources
 
 
+def debug2(self, message, *args, **kws):
+    if self.isEnabledFor(DEBUG2):
+        # https://stackoverflow.com/a/13638084
+        self._log(DEBUG2, message, args, **kws)
+
+
+DEBUG2 = 5
+logging.addLevelName(DEBUG2, "DEBUG2")
+logging.Logger.debug2 = debug2
+
+
 class Formatter(logging.Formatter):
     """Overwritten Formatter to print nicer logs."""
     def format(self, record):
-        debug = logger.level == logging.DEBUG
+        debug = logger.level <= logging.DEBUG
         if record.levelno == logging.INFO and not debug:
             # if not launched with --debug, then don't print "INFO:"
             self._style._fmt = '%(message)s'  # noqa
@@ -42,12 +53,18 @@ class Formatter(logging.Formatter):
                 logging.ERROR: 31,
                 logging.FATAL: 31,
                 logging.DEBUG: 36,
+                DEBUG2: 34,
                 logging.INFO: 32,
             }.get(record.levelno, 0)
             if debug:
                 self._style._fmt = (  # noqa
-                    f'\033[{color}m%(levelname)s\033[0m: '
-                    '%(filename)s, line %(lineno)d, %(message)s'
+                    '\033[1m'  # bold
+                    f'\033[{color}m'  # color
+                    f'%(levelname)s'
+                    '\033[0m'  # end style
+                    f'\033[{color}m'  # color
+                    ': %(filename)s, line %(lineno)d, %(message)s'
+                    '\033[0m'  # end style
                 )
             else:
                 self._style._fmt = (  # noqa
@@ -61,10 +78,11 @@ handler = logging.StreamHandler()
 handler.setFormatter(Formatter())
 logger.addHandler(handler)
 logger.setLevel(logging.INFO)
+logging.getLogger('asyncio').setLevel(logging.WARNING)
 
 
 def is_debug():
-    return logger.level == logging.DEBUG
+    return logger.level <= logging.DEBUG
 
 
 def log_info():
@@ -78,7 +96,7 @@ def log_info():
 def update_verbosity(debug):
     """Set the logging verbosity according to the settings object."""
     if debug:
-        logger.setLevel(logging.DEBUG)
+        logger.setLevel(DEBUG2)
     else:
         logger.setLevel(logging.INFO)
 

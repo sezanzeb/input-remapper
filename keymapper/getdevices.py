@@ -32,7 +32,7 @@ from keymapper.logger import logger
 _devices = None
 
 
-class GetDevicesProcess(multiprocessing.Process):
+class _GetDevicesProcess(multiprocessing.Process):
     """Process to get the devices that can be worked with.
 
     Since InputDevice destructors take quite some time, do this
@@ -84,6 +84,13 @@ class GetDevicesProcess(multiprocessing.Process):
         self.pipe.send(result)
 
 
+def refresh_devices():
+    """Get new devices, e.g. new ones created by key-mapper."""
+    global _devices
+    _devices = None
+    return get_devices()
+
+
 def get_devices():
     """Group devices and get relevant infos per group.
 
@@ -99,7 +106,7 @@ def get_devices():
     global _devices
     if _devices is None:
         pipe = multiprocessing.Pipe()
-        GetDevicesProcess(pipe[1]).start()
+        _GetDevicesProcess(pipe[1]).start()
         # block until devices are available
         _devices = pipe[0].recv()
         logger.info('Found %s', ', '.join([f'"{name}"' for name in _devices]))

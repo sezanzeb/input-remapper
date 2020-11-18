@@ -1,0 +1,4 @@
+default
+xkb_symbols "basic" {
+    name[Group1]="key-mapper/empty";
+};

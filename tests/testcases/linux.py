@@ -21,7 +21,7 @@
 
 import unittest
 
-from keymapper.linux import GetDevicesProcess
+from keymapper.injector import GetDevicesProcess
 
 
 class TestLinux(unittest.TestCase):

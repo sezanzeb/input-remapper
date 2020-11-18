@@ -28,7 +28,6 @@ import subprocess
 
 from keymapper.logger import logger, is_debug
 from keymapper.getdevices import get_devices
-from keymapper.mapping import system_mapping
 
 
 def get_system_layout_locale():
@@ -47,37 +46,60 @@ def get_system_layout_locale():
     ][0].split(': ')[-1]
 
 
-def setxkbmap(device, layout=None):
-    """Apply a preset to the device.
+def apply_symbols(device, name=None, keycodes=None):
+    """Apply a symbols configuration to the device.
 
     Parameters
     ----------
     device : string
-    layout : string or None
-        For example 'de', passed to setxkbmap unmodified. If None, will
-        load the system default
+        A device, should be a key of get_devices
+    name : string
+        This is the name of the symbols to apply. For example "de",
+        "key-mapper-empty" or "key-mapper-dev"
+    keycodes : string
+        This is the name of the keycodes file needed for that. If you don't
+        provide the correct one, X will crash. For example "key-mapper",
+        which is the "identity mapping", or "de"
     """
-    if layout is not None:
-        path = os.path.join('/usr/share/X11/xkb/symbols', layout)
-        if not os.path.exists(path):
-            logger.error('Symbols %s don\'t exist', path)
+    if get_devices().get(device) is None:
+        # maybe you should run refresh_devices
+        logger.error('Tried to apply symbols on unknown device "%s"', device)
+        return
+
+    if name is None:
+        name = get_system_layout_locale()
+
+    logger.debug('Applying symbols "%s" to device "%s"', name, device)
+
+    # sanity check one
+    symbols_path = os.path.join('/usr/share/X11/xkb/symbols', name)
+    if not os.path.exists(symbols_path):
+        logger.error('Symbols file "%s" doesn\'t exist', symbols_path)
+        return
+    with open(symbols_path, 'r') as f:
+        if f.read() == '':
+            logger.error('Tried to load empty symbols %s', symbols_path)
             return
-        with open(path, 'r') as f:
+
+    if keycodes is not None:
+        # sanity check two
+        keycodes_path = os.path.join('/usr/share/X11/xkb/keycodes', keycodes)
+        if not os.path.exists(keycodes_path):
+            logger.error('keycodes "%s" don\'t exist', keycodes_path)
+            return
+        with open(keycodes_path, 'r') as f:
             if f.read() == '':
-                logger.error('Tried to load empty symbols %s', path)
+                logger.error('Found empty keycodes "%s"', keycodes_path)
                 return
 
-    logger.info('Applying layout "%s" on device %s', layout, device)
-    group = get_devices()[device]
-
-    if layout is None:
-        cmd = ['setxkbmap', '-layout', get_system_layout_locale()]
-    else:
-        cmd = ['setxkbmap', '-layout', layout, '-keycodes', 'key-mapper']
+    cmd = ['setxkbmap', '-layout', name]
+    if keycodes is not None:
+        cmd += ['-keycodes', keycodes]
 
     # apply it to every device that hangs on the same usb port, because I
     # have no idea how to figure out which one of those 3 devices that are
     # all named after my mouse to use.
+    group = get_devices()[device]
     for xinput_name, xinput_id in get_xinput_id_mapping():
         if xinput_name not in group['devices']:
             # only all virtual devices of the same hardware device
@@ -85,31 +107,10 @@ def setxkbmap(device, layout=None):
 
         device_cmd = cmd + ['-device', str(xinput_id)]
         logger.debug('Running `%s`', ' '.join(device_cmd))
-        subprocess.run(device_cmd, capture_output=(not is_debug()))
-
-
-def apply_empty_symbols(device):
-    """Make the device not write any character anymore."""
-    logger.debug('Applying the empty symbols to %s', device)
-    group = get_devices()[device]
-
-    cmd = [
-        'setxkbmap',
-        '-layout', 'key-mapper/empty',
-        # '-keycodes', 'key-mapper'
-    ]
-
-    # apply it to every device that hangs on the same usb port, because I
-    # have no idea how to figure out which one of those 3 devices that are
-    # all named after my mouse to use.
-    for xinput_name, xinput_id in get_xinput_id_mapping():
-        if xinput_name not in group['devices']:
-            # only all virtual devices of the same hardware device
-            continue
-
-        device_cmd = cmd + ['-device', str(xinput_id)]
-        logger.debug('Running `%s`', ' '.join(device_cmd))
-        subprocess.run(device_cmd, capture_output=(not is_debug()))
+        output = subprocess.run(device_cmd, capture_output=True)
+        output = output.stderr.decode().strip()
+        if output != '':
+            logger.debug2(output)
 
 
 def get_xinput_id_mapping():
@@ -130,19 +131,16 @@ def get_xinput_id_mapping():
     return zip(names, ids)
 
 
-def parse_xmodmap():
-    """Read the output of xmodmap as a Mapping object."""
+def parse_xmodmap(mapping):
+    """Read the output of xmodmap into a mapping."""
     xmodmap = subprocess.check_output(['xmodmap', '-pke']).decode() + '\n'
     mappings = re.findall(r'(\d+) = (.+)\n', xmodmap)
     # TODO is this tested?
     for keycode, characters in mappings:
-        system_mapping.change(
+        # this is the "array" format needed for symbols files
+        character = ', '.join(characters.split())
+        mapping.change(
             previous_keycode=None,
             new_keycode=int(keycode),
-            character=characters.split()
+            character=character
         )
-
-
-# TODO verify that this is the system default and not changed when I
-#  setxkbmap my mouse
-parse_xmodmap()

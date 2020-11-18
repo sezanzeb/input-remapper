@@ -32,7 +32,7 @@ import shutil
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
 
-from keymapper.mapping import custom_mapping
+from keymapper.state import custom_mapping
 from keymapper.paths import CONFIG
 
 from test import tmp
