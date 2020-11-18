@@ -193,4 +193,13 @@ if __name__ == "__main__":
         testsuite = unittest.defaultTestLoader.discover(
             'testcases', pattern='*.py'
         )
-    testrunner = unittest.TextTestRunner(verbosity=1).run(testsuite)
+
+    # add a newline to each "qux (foo.bar)..." output, because the logs
+    # will be on the same line otherwise
+    originalStartTest = unittest.TextTestResult.startTest
+    def startTest(self, test):
+        originalStartTest(self, test)
+        print()
+    unittest.TextTestResult.startTest = startTest
+
+    testrunner = unittest.TextTestRunner(verbosity=2).run(testsuite)
