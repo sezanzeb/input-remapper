@@ -24,7 +24,7 @@ import unittest
 from keymapper.getdevices import _GetDevicesProcess
 
 
-class TestLinux(unittest.TestCase):
+class TestGetDevices(unittest.TestCase):
     def test_get_devices(self):
         class FakePipe:
             devices = None
