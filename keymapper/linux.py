@@ -24,13 +24,13 @@
 
 import subprocess
 import time
-import threading
+import multiprocessing
 import asyncio
 
 import evdev
 
 from keymapper.logger import logger
-from keymapper.cli import apply_empty_symbols
+from keymapper.cli import apply_empty_symbols, setxkbmap
 from keymapper.getdevices import get_devices
 from keymapper.mapping import custom_mapping, system_mapping
 
@@ -47,47 +47,47 @@ def can_grab(path):
     return p.returncode == 1
 
 
-class KeycodeReader:
-    """Keeps reading keycodes in the background for the UI to use.
-
-    When a button was pressed, the newest keycode can be obtained from this
-    object.
-    """
+class KeycodeInjector:
+    """Keeps injecting keycodes in the background based on the mapping."""
     def __init__(self, device):
         self.device = device
         self.virtual_devices = []
+        self.processes = []
         self.start_injecting()
 
-    def clear(self):
-        """Next time when reading don't return the previous keycode."""
-        # read all of them to clear the buffer or whatever
-        for virtual_device in self.virtual_devices:
-            while virtual_device.read_one():
-                pass
-
-    def start_injecting_worker(self, path):
+    def _start_injecting_worker(self, path, mapping):
         """Inject keycodes for one of the virtual devices."""
+        # TODO test
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         device = evdev.InputDevice(path)
+        # foo = evdev.InputDevice('/dev/input/event2')
         keymapper_device = evdev.UInput(
             name='key-mapper',
             phys='key-mapper-uinput'
+        )
+
+        logger.debug(
+            'Started injecting into %s, fd %s',
+            device.path, keymapper_device.fd
         )
 
         for event in device.read_loop():
             if event.type != evdev.ecodes.EV_KEY:
                 continue
 
+            print('got', event.code, event.value, 'from device')
+
             # this happens to report key codes that are 8 lower
             # than the ones reported by xev and that X expects
             input_keycode = event.code + 8
 
-            character = custom_mapping.get_character(input_keycode)
+            character = mapping.get_character(input_keycode)
 
             if character is None:
                 # unknown keycode, forward it
                 target_keycode = input_keycode
+                continue
             else:
                 target_keycode = system_mapping.get_keycode(character)
                 if target_keycode is None:
@@ -99,24 +99,60 @@ class KeycodeReader:
                 # turns out, if I don't sleep here X/Linux gets confused. Lets
                 # assume a mapping of 10 to z. Without sleep it would always
                 # result in 1z 1z 1z. Even though the empty xkb symbols file
-                # was applied on the mouse! And I really made sure .write was
-                # not called twice. 1 just somewhow sneaks past the symbols.
+                # was applied on the mouse! And I really made sure `write` was
+                # not called twice. '1' just somewhow sneaks past the symbols.
                 # 0.0005 has many errors. 0.001 has them super rare.
                 # 5ms is still faster than anything on the planet so that's.
                 # fine. I came up with that after randomly poking around in,
                 # frustration. I don't know of any helpful resource that
                 # explains this
-                time.sleep(0.005)
+                time.sleep(0.01)
+                """if event.value == 2:
+                    print('device simulated up', event.value, 0)
+                    device.write(
+                        evdev.ecodes.EV_KEY,
+                        event.code,
+                        0
+                    )
+                    device.write(evdev.ecodes.EV_SYN, evdev.ecodes.SYN_REPORT, 0)"""
 
             # TODO test for the stuff put into write
-            keymapper_device.write(evdev.ecodes.EV_KEY, target_keycode - 8, event.value)
+            """logger.debug(
+                'Injecting %s -> %s -> %s',
+                input_keycode,
+                character,
+                target_keycode,
+            )"""
+            print('km write', target_keycode - 8, event.value)
+            keymapper_device.write(
+                evdev.ecodes.EV_KEY,
+                target_keycode - 8,
+                event.value
+            )
+
+            # the second device that starts writing an event.value of 2 will
+            # take ownership of what is happening. Following example:
+            # (KB = keyboard, example devices)
+            # hold a on KB1:
+            #   a-1, a-2, a-2, a-2, ...
+            # hold shift on KB2:
+            #   shift-2, shift-2, shift-2, ...
+            # No a-2 on KB1 happening anymore. The xkb symbols of KB2 will
+            # be used! So if KB2 maps shift+a to b, it will write b, even
+            # though KB1 maps shift+a to c! And if you reverse this, hold
+            # shift on KB2 first and then a on KB1, the xkb mapping of KB1
+            # will take effect and write c!
+
+            # foo.write(evdev.ecodes.EV_SYN, evdev.ecodes.SYN_REPORT, 0)
             keymapper_device.syn()
 
     def start_injecting(self):
         """Read keycodes and inject the mapped character forever."""
+        self.stop_injecting()
+
         paths = get_devices()[self.device]['paths']
 
-        logger.debug(
+        logger.info(
             'Starting injecting the mapping for %s on %s',
             self.device,
             ', '.join(paths)
@@ -126,22 +162,24 @@ class KeycodeReader:
 
         # Watch over each one of the potentially multiple devices per hardware
         for path in paths:
-            threading.Thread(
-                target=self.start_injecting_worker,
-                args=(path,)
-            ).start()
+            worker = multiprocessing.Process(
+                target=self._start_injecting_worker,
+                args=(path, custom_mapping)
+            )
+            worker.start()
+            self.processes.append(worker)
 
-    def read(self):
-        """Get the newest key or None if none was pressed."""
-        newest_keycode = None
-        for virtual_device in self.virtual_devices:
-            while True:
-                event = virtual_device.read_one()
-                if event is None:
-                    break
-                if event.type == evdev.ecodes.EV_KEY and event.value == 1:
-                    # value: 1 for down, 0 for up, 2 for hold.
-                    # this happens to report key codes that are 8 lower
-                    # than the ones reported by xev
-                    newest_keycode = event.code + 8
-        return newest_keycode
+    def stop_injecting(self):
+        """Stop injecting keycodes."""
+        # TODO test
+        logger.info('Stopping injecting keycodes')
+        for i, process in enumerate(self.processes):
+            if process is None:
+                continue
+
+            if process.is_alive():
+                process.terminate()
+                self.processes[i] = None
+
+        # apply the default layout back
+        setxkbmap(self.device)

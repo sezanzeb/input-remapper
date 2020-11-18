@@ -23,6 +23,7 @@
 
 
 import sys
+import atexit
 import getpass
 from argparse import ArgumentParser
 
@@ -49,6 +50,12 @@ if __name__ == '__main__':
     log_info()
 
     window = Window()
+
+    def stop_injecting():
+        if window.keycode_reader is not None:
+            window.keycode_reader.stop_injecting()
+
+    atexit.register(stop_injecting)
 
     if getpass.getuser() != 'root' and 'unittest' not in sys.modules.keys():
         logger.error('Needs to run with sudo')

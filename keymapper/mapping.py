@@ -28,7 +28,6 @@ import shutil
 
 from keymapper.logger import logger
 from keymapper.paths import get_config_path
-from keymapper.presets import get_available_preset_name
 
 
 class Mapping:
@@ -117,7 +116,14 @@ class Mapping:
             return
 
         with open(path, 'r') as f:
-            self._mapping = json.load(f)
+            mapping = json.load(f)
+            for keycode, character in mapping.items():
+                try:
+                    keycode = int(keycode)
+                except ValueError:
+                    logger.error('Found non-int keycode: %s', keycode)
+                    continue
+                self._mapping[keycode] = character
 
         self.changed = False
 

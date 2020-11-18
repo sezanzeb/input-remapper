@@ -11,17 +11,16 @@ symbol files in xkb. However, if you had one keyboard layout for your mouse
 that writes SHIFT keys on keycode 10, and one for your keyboard that is normal
 and writes 1/! on keycode 10, then you would not be able to write ! by
 pressing that mouse button and that keyboard button at the same time.
-Keycodes may not clash.
 
-This was quite mature, pretty much finished.
+This was quite mature, pretty much finished and tested.
 
 **The second idea** was to write special keycodes known only to key-mapper
 (256 - 511) into the input device of your mouse in /dev/input, and map
 those to SHIFT and such, whenever a button is clicked. A mapping would have
-existed to prevent the original keycode 10 from writing a 1. But X/Linux seem
-to ignore anything greater than 255 for regular keyboard events, or even
-crash in some cases. Mouse click buttons can use those high keycodes though,
-but they cannot be remapped.
+existed to prevent the original keycode 10 from writing a 1. But Linux seems
+to ignore anything greater than 255 for regular keyboard events (EDIT: I think
+this is because of the device capabilities), or even crash X in some cases when 
+something is wrong with the configuration.
 
 **The third idea** is to create a new input device that uses 8 - 255, just
 like other layouts, and key-mapper always tries to use the same keycodes for
@@ -52,6 +51,8 @@ mapped to Shift_L. It is impossible to write "!" using this mapped button
 and a second keyboard, except if pressing key 10 triggers key-mapper to write
 key 253 into the /dev device, while mapping key 10 to nothing. Unfortunately
 linux just completely ignores some keycodes. 140 works, 145 won't, 150 works.
+EDIT: I think this is because of "capabilities", however, injecting keycodes
+won't work at all anyway, see the fifth idea.
 
 **Fifth idea**: Instead of writing xkb symbol files, just disable all
 mouse buttons with a single symbol file. Key-mapper listens for key events
@@ -59,6 +60,35 @@ in /dev and then writes the mapped keycode into a new device in /dev. For
 example, if 10 should be mapped to Shift_L, xkb configs would disable
 key 10 and key-mapper would write 50 into /dev, which is Shift_L in xmodmaps
 output. This sounds incredibly simple and makes me throw away tons of code.
+This conflicts with the original keycodes though, writing custom keycodes
+into /dev/uinput makes the original keycode not mapped by xbk symbol files,
+and therefore leak through. In the previous example, it would still write '1',
+and then after that the other key. By adding a timeout single keys work, but
+holding down a button that is mapped to shift will (would usually have
+a keycode of 10, now triggers writing 50) write "!!!!!!!!!". Even though
+no symbols are loaded for that button.
+
+This is because the second device that starts writing an event.value of 2 will
+take control of what is happening. Following example: (KB = keyboard,
+example devices)
+1. hold a on KB1: `a-1`, `a-2`, `a-2`, `a-2`, ...
+2. hold shift on KB2: `shift-2`, `shift-2`, `shift-2`, ...
+No a-2 on KB1 happening anymore. The xkb symbols of KB2 will
+be used! So if KB2 maps shift+a to b, it will write b, even
+though KB1 maps shift+a to c! And if you reverse this, hold
+shift on KB2 first and then a on KB1, the xkb mapping of KB1
+will take effect and write c!
+
+Which means in order to prevent "!!!!!!" being written while holding down
+keycode 10 on the mouse, which is supposed to be shift, the 10 of the
+key-mapper /dev node has to be mapped to none as well. But that would
+prevent a key that is mapped to "1", which translates to 10, from working.
+
+That means instead of using the output from xmodmap to determine the correct
+keycode, use a custom mapping that starts at 255 and just offsets xmodmap
+by 255. The correct capabilities need to exist this time. Everything below
+255 is disabled. This mapping is applied to key-mappers custom /dev node.
+
 
 # How I would have liked it to be
 
@@ -73,35 +103,3 @@ config looks like:
 done. Without crashing X. Without printing generic useless errors. Without
 colliding with other devices using the same keycodes. If it was that easy,
 an app to map keys would have already existed.
-
-# Folder Structure of Key Mapper in /usr
-
-Stuff has to be placed in `/usr/share/X11/xkb` to my knowledge.
-
-Every user gets a path within that `/usr/...` directory which is very
-unconventional, but it works. This way the presets of multiple users
-don't clash.
-
-**Presets**
-
-- `/usr/share/X11/xkb/symbols/key-mapper/<user>/<device>/<preset>`
-
-This is how a single preset is stored.
-
-**Defaults**
-
-- `/usr/share/X11/xkb/symbols/key-mapper/<user>/default`
-
-This is where key-mapper stores the defaults. They are generated from the
-parsed output of `xmodmap` and used to keep the unmapped keys at their system
-defaults.
-
-**Keycodes**
-
-- `/usr/share/X11/xkb/keycodes/key-mapper`
-
-Because the concept of "reasonable symbolic names" ([www.x.org](https://www.x.org/releases/X11R7.7/doc/xorg-docs/input/XKB-Enhancing.html))
-doesn't apply when mouse buttons are all over the place, an identity mapping
-to make generating "symbols" files easier/possible exists. A keycode of
-10 will be known as "<10>" in symbols configs. This has the added benefit
-that keycodes reported by xev can be identified in the symbols file.
