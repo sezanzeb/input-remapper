@@ -29,6 +29,22 @@ class TestMapping(unittest.TestCase):
         self.mapping = Mapping()
         self.assertFalse(self.mapping.changed)
 
+    def test_save_load(self):
+        self.mapping.change(10, '1')
+        self.mapping.change(11, '2')
+        self.mapping.change(12, '3')
+        self.mapping.save('device 1', 'test')
+        loaded = Mapping()
+        self.assertEqual(len(loaded), 0)
+        loaded.load('device 1', 'test')
+        self.assertEqual(len(loaded), 3)
+        self.assertEqual(loaded.get_character(10), '1')
+        self.assertEqual(loaded.get_character(11), '2')
+        self.assertEqual(loaded.get_character(12), '3')
+        self.assertEqual(loaded.get_keycode('1'), 10)
+        self.assertEqual(loaded.get_keycode('2'), 11)
+        self.assertEqual(loaded.get_keycode('3'), 12)
+
     def test_change(self):
         # 1 is not assigned yet, ignore it
         self.mapping.change(2, 'a', 1)
@@ -78,19 +94,32 @@ class TestMapping(unittest.TestCase):
         # does nothing
         self.mapping.clear(40)
         self.assertFalse(self.mapping.changed)
+        self.assertEqual(len(self.mapping), 0)
 
         self.mapping._mapping[40] = 'b'
+        self.assertEqual(len(self.mapping), 1)
         self.mapping.clear(40)
+        self.assertEqual(len(self.mapping), 0)
         self.assertTrue(self.mapping.changed)
 
         self.mapping.change(10, 'KP_1', None)
         self.assertTrue(self.mapping.changed)
         self.mapping.change(20, 'KP_2', None)
         self.mapping.change(30, 'KP_3', None)
+        self.assertEqual(len(self.mapping), 3)
         self.mapping.clear(20)
+        self.assertEqual(len(self.mapping), 2)
         self.assertEqual(self.mapping.get_character(10), 'KP_1')
         self.assertIsNone(self.mapping.get_character(20))
         self.assertEqual(self.mapping.get_character(30), 'KP_3')
+
+    def test_empty(self):
+        self.mapping.change(10, '1')
+        self.mapping.change(11, '2')
+        self.mapping.change(12, '3')
+        self.assertEqual(len(self.mapping), 3)
+        self.mapping.empty()
+        self.assertEqual(len(self.mapping), 0)
 
 
 if __name__ == "__main__":

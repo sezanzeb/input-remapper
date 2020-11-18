@@ -71,14 +71,7 @@ class Event:
 
 def patch_paths():
     from keymapper import paths
-    prefix = '/tmp/key-mapper-test/X11/'
-    paths.X11_SYMBOLS = prefix + 'symbols'
-    paths.CONFIG = prefix + 'symbols/key-mapper/user'
-    paths.DEFAULT_SYMBOLS = prefix + 'symbols/key-mapper/user/default'
-    paths.KEYCODES_PATH = prefix + 'keycodes/key-mapper'
-
-
-# TODO patch for the injector or something idk?
+    paths.CONFIG = '/tmp/key-mapper-test/'
 
 
 def patch_evdev():

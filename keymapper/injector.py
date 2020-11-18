@@ -70,7 +70,6 @@ class KeycodeInjector:
 
     def stop_injecting(self):
         """Stop injecting keycodes."""
-        # TODO test
         logger.info('Stopping injecting keycodes')
         for i, process in enumerate(self.processes):
             if process is None:
@@ -82,7 +81,6 @@ class KeycodeInjector:
 
     def _start_injecting_worker(self, path, pipe):
         """Inject keycodes for one of the virtual devices."""
-        # TODO test
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         device = evdev.InputDevice(path)
@@ -157,7 +155,6 @@ class KeycodeInjector:
                 event.code + 8, event.value, target_keycode, character
             )
 
-            # TODO test for the stuff put into write
             keymapper_device.write(
                 evdev.ecodes.EV_KEY,
                 target_keycode - 8,
