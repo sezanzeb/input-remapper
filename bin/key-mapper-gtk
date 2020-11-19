@@ -58,10 +58,10 @@ if __name__ == '__main__':
     atexit.register(stop_injecting)
 
     if getpass.getuser() != 'root' and 'unittest' not in sys.modules.keys():
-        logger.error('Needs to run with sudo')
+        logger.warn('Without sudo, your devices may not be visible')
         ErrorDialog(
-            'Error',
-            'Key Mapper needs administrator privileges to run properly.'
+            'Warning',
+            'Without sudo, your devices may not be visible'
         )
 
     Gtk.main()
