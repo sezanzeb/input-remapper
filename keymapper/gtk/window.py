@@ -124,8 +124,6 @@ class Window:
 
     def on_close(self, *_):
         """Safely close the application."""
-        if self.keycode_reader is not None:
-            self.keycode_reader.stop_injecting()
         GLib.source_remove(self.timeout)
         Gtk.main_quit()
 
@@ -261,7 +259,6 @@ class Window:
                 CTX_ERROR,
                 f'Could not grab device "{self.selected_device}"'
             )
-
 
     def on_select_device(self, dropdown):
         """List all presets, create one if none exist yet."""
