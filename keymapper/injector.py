@@ -190,8 +190,12 @@ class KeycodeInjector:
             worker.start()
             # wait for the process to notify creation of the new injection
             # device, to keep the logs in order.
-            pipe[0].recv()
-            self.processes.append(worker)
+            status = pipe[0].recv()
+            if status != FAILED:
+                self.processes.append(worker)
+
+        if len(self.processes) == 0:
+            raise OSError('Could not grab any device')
 
     def stop_injecting(self):
         """Stop injecting keycodes."""
