@@ -23,7 +23,7 @@ import unittest
 
 import evdev
 
-from keymapper.injector import KeycodeInjector
+from keymapper.injector import _start_injecting_worker
 from keymapper.getdevices import get_devices
 from keymapper.state import custom_mapping, system_mapping
 
@@ -31,12 +31,14 @@ from test import uinput_write_history, Event, pending_events
 
 
 class TestInjector(unittest.TestCase):
-    def setUp(self):
-        self.injector = None
+    @classmethod
+    def setUpClass(cls):
+        cls.injector = None
 
     def tearDown(self):
         if self.injector is not None:
             self.injector.stop_injecting()
+            self.injector = None
 
     def test_injector(self):
         device = get_devices()['device 2']
@@ -64,8 +66,7 @@ class TestInjector(unittest.TestCase):
             def send(self, message):
                 pass
 
-        self.injector = KeycodeInjector('device 2')
-        self.injector._start_injecting_worker(
+        _start_injecting_worker(
             path=device['paths'][0],
             pipe=FakePipe()
         )
