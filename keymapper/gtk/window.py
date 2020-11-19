@@ -254,7 +254,14 @@ class Window:
         )
         if self.keycode_reader is not None:
             self.keycode_reader.stop_injecting()
-        self.keycode_reader = KeycodeInjector(self.selected_device)
+        try:
+            self.keycode_reader = KeycodeInjector(self.selected_device)
+        except OSError:
+            self.get('status_bar').push(
+                CTX_ERROR,
+                f'Could not grab device "{self.selected_device}"'
+            )
+
 
     def on_select_device(self, dropdown):
         """List all presets, create one if none exist yet."""
