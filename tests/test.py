@@ -24,12 +24,63 @@
 
 import sys
 import unittest
+
+import evdev
+
 from keymapper.logger import update_verbosity
 
 
 tmp = '/tmp/key-mapper-test'
 uinput_write_history = []
 pending_events = {}
+
+# key-mapper is only interested in devices that have EV_KEY, add some
+# random other stuff to test that they are ignored.
+fixtures = {
+    # device 1
+    '/dev/input/event11': {
+        'capabilities': {evdev.ecodes.EV_KEY: [], evdev.ecodes.EV_ABS: []},
+        'phys': 'usb-0000:03:00.0-1/input2',
+        'name': 'device 1 foo'
+    },
+    '/dev/input/event10': {
+        'capabilities': {evdev.ecodes.EV_KEY: []},
+        'phys': 'usb-0000:03:00.0-1/input3',
+        'name': 'device 1'
+    },
+    '/dev/input/event13': {
+        'capabilities': {evdev.ecodes.EV_KEY: [], evdev.ecodes.EV_SYN: []},
+        'phys': 'usb-0000:03:00.0-1/input1',
+        'name': 'device 1'
+    },
+    '/dev/input/event14': {
+        'capabilities': {evdev.ecodes.EV_SYN: []},
+        'phys': 'usb-0000:03:00.0-1/input0',
+        'name': 'device 1 qux'
+    },
+
+    # device 2
+    '/dev/input/event20': {
+        'capabilities': {evdev.ecodes.EV_KEY: []},
+        'phys': 'usb-0000:03:00.0-2/input1',
+        'name': 'device 2'
+    },
+
+    # something that is completely ignored
+    '/dev/input/event30': {
+        'capabilities': {evdev.ecodes.EV_SYN: []},
+        'phys': 'usb-0000:03:00.0-3/input1',
+        'name': 'device 3'
+    },
+
+    # key-mapper devices are also ignored, another instance of key-mapper
+    # started injecting apparently.
+    '/dev/input/event40': {
+        'capabilities': {evdev.ecodes.EV_KEY: []},
+        'phys': 'key-mapper/input1',
+        'name': 'key-mapper device 2'
+    },
+}
 
 
 def get_events():
@@ -75,55 +126,6 @@ def patch_paths():
 
 
 def patch_evdev():
-    import evdev
-    # key-mapper is only interested in devices that have EV_KEY, add some
-    # random other stuff to test that they are ignored.
-    fixtures = {
-        # device 1
-        '/dev/input/event11': {
-            'capabilities': {evdev.ecodes.EV_KEY: [], evdev.ecodes.EV_ABS: []},
-            'phys': 'usb-0000:03:00.0-1/input2',
-            'name': 'device 1 foo'
-        },
-        '/dev/input/event10': {
-            'capabilities': {evdev.ecodes.EV_KEY: []},
-            'phys': 'usb-0000:03:00.0-1/input3',
-            'name': 'device 1'
-        },
-        '/dev/input/event13': {
-            'capabilities': {evdev.ecodes.EV_KEY: [], evdev.ecodes.EV_SYN: []},
-            'phys': 'usb-0000:03:00.0-1/input1',
-            'name': 'device 1'
-        },
-        '/dev/input/event14': {
-            'capabilities': {evdev.ecodes.EV_SYN: []},
-            'phys': 'usb-0000:03:00.0-1/input0',
-            'name': 'device 1 qux'
-        },
-
-        # device 2
-        '/dev/input/event20': {
-            'capabilities': {evdev.ecodes.EV_KEY: []},
-            'phys': 'usb-0000:03:00.0-2/input1',
-            'name': 'device 2'
-        },
-
-        # something that is completely ignored
-        '/dev/input/event30': {
-            'capabilities': {evdev.ecodes.EV_SYN: []},
-            'phys': 'usb-0000:03:00.0-3/input1',
-            'name': 'device 3'
-        },
-
-        # key-mapper devices are also ignored, another instance of key-mapper
-        # started injecting apparently.
-        '/dev/input/event40': {
-            'capabilities': {evdev.ecodes.EV_KEY: []},
-            'phys': 'key-mapper/input1',
-            'name': 'key-mapper device 2'
-        },
-    }
-
     def list_devices():
         return fixtures.keys()
 

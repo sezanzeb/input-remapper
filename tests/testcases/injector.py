@@ -23,23 +23,61 @@ import unittest
 
 import evdev
 
-from keymapper.injector import _start_injecting_worker, \
-    is_numlock_on, toggle_numlock, ensure_numlock
+from keymapper.injector import _start_injecting_worker, _grab, \
+    is_numlock_on, toggle_numlock, ensure_numlock, _modify_capabilities
 from keymapper.getdevices import get_devices
 from keymapper.state import custom_mapping, system_mapping
 
-from test import uinput_write_history, Event, pending_events
+from test import uinput_write_history, Event, pending_events, fixtures
 
 
 class TestInjector(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.injector = None
+        cls.grab = evdev.InputDevice.grab
+
+    def setUp(self):
+        self.failed = 0
+
+        def grab_fail_twice(_):
+            if self.failed < 2:
+                self.failed += 1
+                raise OSError()
+
+        evdev.InputDevice.grab = grab_fail_twice
 
     def tearDown(self):
         if self.injector is not None:
             self.injector.stop_injecting()
             self.injector = None
+        evdev.InputDevice.grab = self.grab
+
+    def test_modify_capabilities(self):
+        class FakeDevice:
+            def capabilities(self, absinfo=True):
+                assert absinfo is False
+                return {
+                    evdev.ecodes.EV_SYN: [1, 2, 3],
+                    evdev.ecodes.EV_FF: [1, 2, 3]
+                }
+
+        capabilities = _modify_capabilities(FakeDevice())
+
+        self.assertIn(evdev.ecodes.EV_KEY, capabilities)
+        self.assertIsInstance(capabilities[evdev.ecodes.EV_KEY], list)
+        self.assertIsInstance(capabilities[evdev.ecodes.EV_KEY][0], int)
+
+        self.assertNotIn(evdev.ecodes.EV_SYN, capabilities)
+        self.assertNotIn(evdev.ecodes.EV_FF, capabilities)
+
+    def test_grab(self):
+        # path is from the fixtures
+        path = '/dev/input/event11'
+        device = _grab(path)
+        self.assertEqual(self.failed, 2)
+        # success on the third try
+        device.name = fixtures[path]['name']
 
     def test_numlock(self):
         before = is_numlock_on()
