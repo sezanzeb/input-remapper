@@ -7,10 +7,6 @@ any keyboard to something different. It should not be device specific, any
 input device supported by Linux plug and play that reports keyboard events
 will likely work.
 
-This unfortunately doesn't apply to left/middle/right clicks of mice, or
-the common back/forward thumb buttons, but the keypads of MMO mice seem to
-work. Changing single keys of keyboards also works.
-
 <p align="center">
     <img src="data/screenshot.png"/>
 </p>
