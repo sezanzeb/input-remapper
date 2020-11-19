@@ -23,7 +23,8 @@ import unittest
 
 import evdev
 
-from keymapper.injector import _start_injecting_worker
+from keymapper.injector import _start_injecting_worker, \
+    is_numlock_on, toggle_numlock, ensure_numlock
 from keymapper.getdevices import get_devices
 from keymapper.state import custom_mapping, system_mapping
 
@@ -39,6 +40,24 @@ class TestInjector(unittest.TestCase):
         if self.injector is not None:
             self.injector.stop_injecting()
             self.injector = None
+
+    def test_numlock(self):
+        before = is_numlock_on()
+
+        toggle_numlock()  # should change
+        self.assertEqual(not before, is_numlock_on())
+
+        @ensure_numlock
+        def wrapped():
+            toggle_numlock()
+            return 1234
+
+        wrapped()  # should not change
+        self.assertEqual(not before, is_numlock_on())
+
+        # toggle one more time to restore the previous configuration
+        toggle_numlock()
+        self.assertEqual(before, is_numlock_on())
 
     def test_injector(self):
         device = get_devices()['device 2']
