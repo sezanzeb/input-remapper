@@ -622,8 +622,7 @@
 "KP_0" - "KP_9"
 "Shift_L", "Shift_R"
 "Alt_L", "Alt_R"
-"Control_R"
-"a, A"</property>
+"Control_R"</property>
                     <property name="margin_top">5</property>
                     <property name="margin_bottom">5</property>
                     <property name="label" translatable="yes">Mapping</property>
