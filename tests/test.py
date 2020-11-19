@@ -23,6 +23,7 @@
 
 
 import sys
+import time
 import unittest
 
 import evdev
@@ -145,6 +146,9 @@ def patch_evdev():
 
             while len(pending_events[self.name]) > 0:
                 yield pending_events[self.name].pop(0)
+                # give tests some time to test stuff while the process
+                # is still running
+                time.sleep(0.01)
 
         def capabilities(self, absinfo=True):
             return fixtures[self.path]['capabilities']

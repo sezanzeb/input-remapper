@@ -24,7 +24,8 @@ import unittest
 import evdev
 
 from keymapper.injector import _start_injecting_worker, _grab, \
-    is_numlock_on, toggle_numlock, ensure_numlock, _modify_capabilities
+    is_numlock_on, toggle_numlock, ensure_numlock, _modify_capabilities, \
+    KeycodeInjector
 from keymapper.getdevices import get_devices
 from keymapper.state import custom_mapping, system_mapping
 
@@ -96,6 +97,17 @@ class TestInjector(unittest.TestCase):
         # toggle one more time to restore the previous configuration
         toggle_numlock()
         self.assertEqual(before, is_numlock_on())
+
+    def test_injector_constructor(self):
+        global pending_events
+        # this buys some time to test if the process is alive. 2 (20ms) would
+        # already be enough
+        pending_events['device 2'] = [Event(1, 1, 1)] * 10
+
+        injector2 = KeycodeInjector('device 2')
+        self.assertEqual(len(injector2.processes), 1)
+        self.assertEqual(injector2.processes[0].is_alive(), True)
+        injector2.processes[0].join()
 
     def test_injector(self):
         device = get_devices()['device 2']
