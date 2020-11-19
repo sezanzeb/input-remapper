@@ -1,4 +1,4 @@
-# The problems with overwriting keys
+# Why does key-mapper not use xkb configs?
 
 Branches for some of that stuff exist to archive it instead of loosing it
 forever.
@@ -51,17 +51,18 @@ capabilities ignore many of those keycodes. 140 works, 145 won't, 150 works.
 mouse buttons with a single symbol file. Key-mapper listens for key events
 in /dev and then writes the mapped keycode into a new device in /dev. For
 example, if 10 should be mapped to Shift_L, xkb configs would disable
-key 10 and key-mapper would write 50 into /dev, which is Shift_L in xmodmaps
-output. This sounds incredibly simple and makes me throw away tons of code.
-This conflicts with the original keycodes though, writing custom keycodes
-into /dev/uinput makes the original keycode not mapped by xbk symbol files,
-and therefore leak through. In the previous example, it would still write '1',
-and then after that the other key. By adding a timeout single keys work, but
-holding down a button that is mapped to shift will (would usually have
-a keycode of 10, now triggers writing 50) write "!!!!!!!!!". Even though
-no symbols are loaded for that button.
+key 10 and key-mapper would write 50 into /dev, which is Shift_L in the system
+mapping. This sounds incredibly simple and makes me throw away tons of code.
 
-**The Sixth idea** continues with the fourth. The described problem is
+But somehow writing into the new /dev file makes the original keycode
+not mapped by xbk symbol files, and therefore leak through. In the
+previous example, it would still write '1', and then after that the
+other key. By adding a timeout single keys work, but holding down a
+button that is mapped to shift will (would usually have a keycode of
+10, now triggers writing 50) write "!!!!!!!!!". Even though no symbols
+are loaded for that button.
+
+**The Sixth idea** The described problem is
 because the second device that starts writing an event.value of 2 will
 take control of what is happening. Following example: (KB = keyboard,
 example devices)
@@ -73,12 +74,15 @@ though KB1 maps shift+a to c! And if you reverse this, hold
 shift on KB2 first and then a on KB1, the xkb mapping of KB1
 will take effect and write c!
 
+In the context of the fifth idea, KB1 would be the mouse, KB2 would be
+the new /dev device. The KB1 keycode comes first and is then realized as
+'!' when KB2 comes in and applies a different mapping.
+
 Which means in order to prevent "!!!!!!" being written while holding down
 keycode 10 on the mouse, which is supposed to be shift, the 10 of the
 key-mapper /dev node has to be mapped to none as well. But that would
 prevent a key that is mapped to "1", which translates to 10, from working.
-
-That means instead of using the output from xmodmap to determine the correct
+So instead of using the output from xmodmap to determine the correct
 keycode, use a custom mapping that starts at 255 and just offsets xmodmap
 by 255. The correct capabilities need to exist this time. Everything below
 255 is disabled. This mapping is applied to key-mappers custom /dev node.
@@ -87,15 +91,15 @@ However, if you try to map Shift to button 10 of your mouse, and use
 mouse-shift + keyboard-1, you need to press keyboard-1 again to do anything.
 I assume this is because:
 - mouse-10 down
-- keymapper says: shift down
+- keymapper says: 50 down
+- xkb mapping: 10 is none. 50 is shift.
 - keyboard-10 down (down again? X/Linux ignores that)
 - keyboard-10 up
 - keyboard-10 down, "!" written
 
 **Seventh, final solution** By grabbing the mouse device (EVIOCGRAB) this
 won't happen. Since this prevents all the keycodes from doing stuff, no
-empty xkb symbols file is needed anymore. I can basically do the fifth idea
-from above.
+empty xkb symbols file is needed anymore.
 
 
 # How I would have liked it to be
