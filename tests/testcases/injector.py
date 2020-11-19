@@ -104,10 +104,19 @@ class TestInjector(unittest.TestCase):
         # already be enough
         pending_events['device 2'] = [Event(1, 1, 1)] * 10
 
-        injector2 = KeycodeInjector('device 2')
-        self.assertEqual(len(injector2.processes), 1)
-        self.assertEqual(injector2.processes[0].is_alive(), True)
-        injector2.processes[0].join()
+        injector2 = None
+        try:
+            injector2 = KeycodeInjector('device 2')
+            self.assertEqual(len(injector2.processes), 1)
+            self.assertEqual(injector2.processes[0].is_alive(), True)
+            injector2.processes[0].join()
+        except Exception as e:
+            # make sure to not cause race conditions for other tests
+            # if this test fails
+            if injector2 is not None:
+                for p in injector2.processes:
+                    p.join()
+            raise e
 
     def test_injector(self):
         device = get_devices()['device 2']
