@@ -75,8 +75,9 @@ def _modify_capabilities(device):
     # to act like the device.
     capabilities = device.capabilities(absinfo=False)
     # However, make sure that it supports all keycodes, not just some
-    # random ones. That's why I avoid from_device for this
-    capabilities[evdev.ecodes.EV_KEY] = evdev.ecodes.keys.keys()
+    # random ones, because the mapping could contain anything.
+    # That's why I avoid from_device for this
+    capabilities[evdev.ecodes.EV_KEY] = list(evdev.ecodes.keys.keys())
 
     # just like what python-evdev does in from_device
     if evdev.ecodes.EV_SYN in capabilities:
