@@ -1,4 +1,4 @@
-# The problems with overwriting keys
+# Why does key-mapper not use xkb configs?
 
 Branches for some of that stuff exist to archive it instead of loosing it
 forever.
