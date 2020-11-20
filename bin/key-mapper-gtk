@@ -58,7 +58,7 @@ if __name__ == '__main__':
     atexit.register(stop_injecting)
 
     if getpass.getuser() != 'root' and 'unittest' not in sys.modules.keys():
-        logger.warn('Without sudo, your devices may not be visible')
+        logger.warning('Without sudo, your devices may not be visible')
         ErrorDialog(
             'Warning',
             'Without sudo, your devices may not be visible'
