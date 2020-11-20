@@ -24,6 +24,8 @@
 
 import os
 import json
+import shutil
+import copy
 
 from keymapper.paths import CONFIG
 from keymapper.logger import logger
@@ -33,57 +35,63 @@ CONFIG_PATH = os.path.join(CONFIG, 'config')
 
 # an empty config with basic expected substructures
 INITIAL_CONFIG = {
-    'autoload': [],
+    'autoload': {},
     'map_EV_REL_devices': True
 }
 
-_config = INITIAL_CONFIG.copy()
+
+class _Config:
+    def __init__(self):
+        self._config = {}
+        self.load_config()
+
+    def set_autoload_preset(self, device, preset):
+        """Set a preset to be automatically applied on start."""
+        self._config['autoload'][device] = preset
+
+    def iterate_autoload_presets(self):
+        """get tuples of (device, preset)."""
+        return self._config['autoload'].items()
+
+    def set_modify_movement_devices(self, active):
+        """Set if devices that control movements should also be mapped.
+
+        This causes many movements event to be passed through python code,
+        and if this ever seems to affect the responsiveness of mouse movements,
+        it can be disabled. This is just an optional precaution. Disabling this
+        may make mapping some keys of the device impossible.
+        """
+        self._config['map_EV_REL_devices'] = active
+
+    def may_modify_movement_devices(self):
+        """Get if devices that control movements may be modified as well."""
+        return self._config['map_EV_REL_devices']
+
+    def load_config(self):
+        """Load the config from the file system."""
+        if not os.path.exists(CONFIG_PATH):
+            # has not yet been saved
+            logger.info('Creating initial config')
+            self._config = copy.deepcopy(INITIAL_CONFIG)
+            self.save_config()
+            return
+
+        with open(CONFIG_PATH, 'r') as f:
+            self._config = copy.deepcopy(INITIAL_CONFIG)
+            self._config.update(json.load(f))
+            logger.info('Loaded config from %s', CONFIG_PATH)
+
+    def clear_config(self):
+        """Needed for tests."""
+        self._config = copy.deepcopy(INITIAL_CONFIG)
+
+    def save_config(self):
+        """Save the config to the file system."""
+        with open(CONFIG_PATH, 'w') as f:
+            json.dump(self._config, f, indent=4)
+            logger.info('Saved config to %s', CONFIG_PATH)
+            shutil.chown(CONFIG_PATH, os.getlogin())
+            f.write('\n')
 
 
-def set_autoload_preset(device, preset):
-    """Set a preset to be automatically applied on start."""
-    _config['autoload'].append({
-        'device': device,
-        'preset': preset
-    })
-
-
-def iterate_autoload_presets():
-    """Yield tuples of (device, preset)."""
-    for entry in _config['autoload']:
-        yield entry['device'], entry['preset']
-
-
-def set_modify_movement_devices(active):
-    """Set if devices that control movements should also be mapped.
-
-    This causes many movements event to be passed through python code,
-    and if this ever seems to affect the responsiveness of mouse movements,
-    it can be disabled. This may make mapping some keys of the device
-    impossible.
-    """
-    global _config
-    _config['map_EV_REL_devices'] = active
-
-
-def load_config():
-    """Load the config from the file system."""
-    global _config
-
-    if not os.path.exists(CONFIG_PATH):
-        # has not yet been saved
-        logger.debug('Config file not found')
-        _config = INITIAL_CONFIG.copy()
-        return
-
-    with open(CONFIG_PATH, 'r') as f:
-        _config = INITIAL_CONFIG.copy()
-        _config.update(json.load(f))
-        logger.info('Loaded config from %s', CONFIG_PATH)
-
-
-def save_config():
-    """Save the config to the file system."""
-    with open(CONFIG_PATH, 'w') as f:
-        json.dump(_config, f)
-        logger.info('Saved config to %s', CONFIG_PATH)
+config = _Config()

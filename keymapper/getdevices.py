@@ -27,6 +27,7 @@ import multiprocessing
 import evdev
 
 from keymapper.logger import logger
+from keymapper.config import config
 
 
 _devices = None
@@ -71,17 +72,14 @@ class _GetDevicesProcess(multiprocessing.Process):
             if evdev.ecodes.EV_KEY not in capabilities:
                 continue
 
-            if evdev.ecodes.EV_REL in capabilities:
-                # skip devices that control movement, because I would like
-                # to not affect the mouse movement performance
-                # TODO check for config, is set enable mapping buttons
-                #  of that device as well
-                # TODO speaking of config, add checkbox to automatically load
-                #  a preset. Store a mapping of device: preset somewhere to
-                #  automatically load them. Autoloading presets should be a
-                #  different executable, and controlling stuff in the gui
-                #  should send a dbus message to the different bin to stop
-                #  doing stuff
+            if (
+                not config.may_modify_movement_devices()
+                and evdev.ecodes.EV_REL in capabilities
+            ):
+                # skip devices that control movement to avoid affecting
+                # their performance due to the amount of their events.
+                # TODO add checkbox to automatically load
+                #  a preset on login
                 logger.debug(
                     'Skipping %s to avoid impairing mouse movement',
                     device.path
