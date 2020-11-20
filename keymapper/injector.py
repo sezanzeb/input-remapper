@@ -88,7 +88,7 @@ def _modify_capabilities(device):
     return capabilities
 
 
-def _start_injecting_worker(path, pipe):
+def _start_injecting_worker(path, pipe, mapping):
     """Inject keycodes for one of the virtual devices.
 
     Parameters
@@ -140,7 +140,7 @@ def _start_injecting_worker(path, pipe):
         # than the ones reported by xev and that X expects
         input_keycode = event.code + 8
 
-        character = custom_mapping.get_character(input_keycode)
+        character = mapping.get_character(input_keycode)
 
         if character is None:
             # unknown keycode, forward it
@@ -213,7 +213,7 @@ def ensure_numlock(func):
 class KeycodeInjector:
     """Keeps injecting keycodes in the background based on the mapping."""
     @ensure_numlock
-    def __init__(self, device):
+    def __init__(self, device, mapping=custom_mapping):
         """Start injecting keycodes based on custom_mapping."""
         self.device = device
         self.virtual_devices = []
@@ -232,7 +232,7 @@ class KeycodeInjector:
             pipe = multiprocessing.Pipe()
             worker = multiprocessing.Process(
                 target=_start_injecting_worker,
-                args=(path, pipe[1])
+                args=(path, pipe[1], mapping)
             )
             worker.start()
             # wait for the process to notify creation of the new injection
@@ -249,7 +249,7 @@ class KeycodeInjector:
     @ensure_numlock
     def stop_injecting(self):
         """Stop injecting keycodes."""
-        logger.info('Stopping injecting keycodes')
+        logger.info('Stopping injecting keycodes for device %s', self.device)
         for i, process in enumerate(self.processes):
             if process is None:
                 continue

@@ -25,6 +25,7 @@
 import sys
 import time
 import unittest
+import multiprocessing
 
 import evdev
 
@@ -33,6 +34,8 @@ from keymapper.logger import update_verbosity
 
 tmp = '/tmp/key-mapper-test'
 uinput_write_history = []
+# for tests that makes the injector create its processes
+uinput_write_history_pipe = multiprocessing.Pipe()
 pending_events = {}
 
 # key-mapper is only interested in devices that have EV_KEY, add some
@@ -159,7 +162,9 @@ def patch_evdev():
             pass
 
         def write(self, type, code, value):
-            uinput_write_history.append(Event(type, code, value))
+            event = Event(type, code, value)
+            uinput_write_history.append(event)
+            uinput_write_history_pipe[1].send(event)
 
         def syn(self):
             pass
