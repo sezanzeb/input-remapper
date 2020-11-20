@@ -75,7 +75,7 @@ class Window:
     def __init__(self):
         self.selected_device = None
         self.selected_preset = None
-        self.keycode_reader = None
+        self.keycode_injector = None
 
         css_provider = Gtk.CssProvider()
         with open(get_data_path('style.css'), 'r') as f:
@@ -201,8 +201,8 @@ class Window:
 
     def on_apply_system_layout_clicked(self, button):
         """Load the mapping."""
-        if self.keycode_reader is not None:
-            self.keycode_reader.stop_injecting()
+        if self.keycode_injector is not None:
+            self.keycode_injector.stop_injecting()
         self.get('status_bar').push(
             CTX_APPLY,
             f'Applied the system default'
@@ -250,10 +250,12 @@ class Window:
             CTX_APPLY,
             f'Applied "{self.selected_preset}"'
         )
-        if self.keycode_reader is not None:
-            self.keycode_reader.stop_injecting()
+        # TODO write dbus.py and call apply_preset on that one instead
+        #  which sends a message to key-mapper-service
+        if self.keycode_injector is not None:
+            self.keycode_injector.stop_injecting()
         try:
-            self.keycode_reader = KeycodeInjector(self.selected_device)
+            self.keycode_injector = KeycodeInjector(self.selected_device)
         except OSError:
             self.get('status_bar').push(
                 CTX_ERROR,
