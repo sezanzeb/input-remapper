@@ -19,7 +19,7 @@
 # along with key-mapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
-"""Starts the user interface."""
+"""Starts injecting keycodes based on the configuration."""
 
 
 import sys
@@ -27,14 +27,19 @@ import atexit
 import getpass
 from argparse import ArgumentParser
 
-import gi
-gi.require_version('Gtk', '3.0')
-gi.require_version('GLib', '2.0')
-from gi.repository import Gtk
-
 from keymapper.logger import logger, update_verbosity, log_info
-from keymapper.gtk.error import ErrorDialog
-from keymapper.gtk.window import Window
+from keymapper.config import iterate_autoload_presets
+from keymapper.injector import KeycodeInjector
+from keymapper.mapping import Mapping
+
+
+injectors = {}
+
+
+def stop():
+    """Properly stop the daemon."""
+    for injector in injectors:
+        injector.stop_injecting()
 
 
 if __name__ == '__main__':
@@ -49,19 +54,18 @@ if __name__ == '__main__':
     update_verbosity(options.debug)
     log_info()
 
-    window = Window()
-
-    def stop_injecting():
-        if window.keycode_injector is not None:
-            window.keycode_injector.stop_injecting()
-
-    atexit.register(stop_injecting)
+    atexit.register(stop)
 
     if getpass.getuser() != 'root' and 'unittest' not in sys.modules.keys():
         logger.warn('Without sudo, your devices may not be visible')
-        ErrorDialog(
-            'Warning',
-            'Without sudo, your devices may not be visible'
-        )
 
-    Gtk.main()
+    for device, preset in iterate_autoload_presets():
+        mapping = Mapping()
+        mapping.load(device, preset)
+        # TODO keycode injector needs a mapping param,
+        # TODO the single custom_mapping only for the UI, because the
+        #  service has multiple
+        injectors[device] = KeycodeInjector(device, mapping)
+
+    # TODO Dbus server wait for the UI to request applying a different preset
+    #  or disabling the injection for a specific device.

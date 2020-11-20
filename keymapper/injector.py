@@ -104,7 +104,6 @@ def _start_injecting_worker(path, pipe):
     device = _grab(path)
 
     if device is None:
-        print('lakjdsflakdsjfa')
         pipe.send(FAILED)
         return
 
