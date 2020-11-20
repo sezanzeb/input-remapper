@@ -146,7 +146,8 @@ class TestInjector(unittest.TestCase):
 
         _start_injecting_worker(
             path=device['paths'][0],
-            pipe=FakePipe()
+            pipe=FakePipe(),
+            mapping=custom_mapping
         )
 
         self.assertEqual(uinput_write_history[0].type, evdev.events.EV_KEY)

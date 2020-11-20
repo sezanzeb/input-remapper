@@ -25,21 +25,16 @@
 import sys
 import atexit
 import getpass
+import dbus.mainloop.glib
+from dbus.mainloop.glib import DBusGMainLoop
 from argparse import ArgumentParser
 
+import gi
+gi.require_version('GLib', '2.0')
+from gi.repository import GLib
+
 from keymapper.logger import logger, update_verbosity, log_info
-from keymapper.config import iterate_autoload_presets
-from keymapper.injector import KeycodeInjector
-from keymapper.mapping import Mapping
-
-
-injectors = {}
-
-
-def stop():
-    """Properly stop the daemon."""
-    for injector in injectors:
-        injector.stop_injecting()
+from keymapper.daemon import Daemon
 
 
 if __name__ == '__main__':
@@ -54,18 +49,15 @@ if __name__ == '__main__':
     update_verbosity(options.debug)
     log_info()
 
-    atexit.register(stop)
-
     if getpass.getuser() != 'root' and 'unittest' not in sys.modules.keys():
-        logger.warn('Without sudo, your devices may not be visible')
+        logger.warning('Without sudo, your devices may not be visible')
 
-    for device, preset in iterate_autoload_presets():
-        mapping = Mapping()
-        mapping.load(device, preset)
-        # TODO keycode injector needs a mapping param,
-        # TODO the single custom_mapping only for the UI, because the
-        #  service has multiple
-        injectors[device] = KeycodeInjector(device, mapping)
+    session_bus = dbus.SessionBus(mainloop=DBusGMainLoop())
+    name = dbus.service.BusName('com.keymapper.control', session_bus)
+    daemon = Daemon(session_bus, '/')
 
-    # TODO Dbus server wait for the UI to request applying a different preset
-    #  or disabling the injection for a specific device.
+    atexit.register(daemon.stop)
+
+    logger.info('Daemon running, waiting for dbus messages')
+    mainloop = GLib.MainLoop()
+    mainloop.run()
