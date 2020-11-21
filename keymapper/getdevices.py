@@ -133,5 +133,9 @@ def get_devices():
         _GetDevicesProcess(pipe[1]).start()
         # block until devices are available
         _devices = pipe[0].recv()
-        logger.info('Found %s', ', '.join([f'"{name}"' for name in _devices]))
+        if len(_devices) == 0:
+            logger.error('Did not find any device')
+        else:
+            names = [f'"{name}"' for name in _devices]
+            logger.info('Found %s', ', '.join(names))
     return _devices
