@@ -41,7 +41,7 @@ class Install(DistUtilsExtra.auto.install_auto):
 
         with open(policy_path, 'r') as f:
             contents = f.read()
-            if not '{executable}':
+            if not '{executable}' in contents:
                 # already done previously
                 return
 
