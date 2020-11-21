@@ -14,7 +14,7 @@ will likely work.
 # Running
 
 ```bash
-sudo python3 setup.py install && sudo key-mapper-gtk -d
+sudo python3 setup.py install --prefix /usr && sudo key-mapper-gtk -d
 ```
 
 You can also start it via your applications menu.
