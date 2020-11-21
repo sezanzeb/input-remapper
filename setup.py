@@ -62,7 +62,7 @@ DistUtilsExtra.auto.setup(
     license='GPL-3.0',
     data_files=[
         ('share/applications/', ['data/key-mapper.desktop']),
-        ('share/polkit-1/actions/', ['data/org.key-mapper.policy']),
+        ('/usr/share/polkit-1/actions/', ['data/org.key-mapper.policy']),
     ],
     cmdclass={
         'install': Install
