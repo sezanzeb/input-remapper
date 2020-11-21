@@ -19,7 +19,36 @@
 # along with key-mapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
+import os
+
 import DistUtilsExtra.auto
+
+
+class Install(DistUtilsExtra.auto.install_auto):
+    def run(self):
+        DistUtilsExtra.auto.install_auto.run(self)
+        self.ensure_polkit_prefix()
+
+    def ensure_polkit_prefix(self):
+        """Make sure the policy file uses the right prefix."""
+        policy_path = os.path.join(
+            self.install_data,
+            'share/polkit-1/actions/org.key-mapper.policy'
+        )
+
+        executable = os.path.join(self.install_data, 'bin/key-mapper-gtk')
+        assert os.path.exists(executable)
+
+        with open(policy_path, 'r') as f:
+            contents = f.read()
+            if not '{executable}':
+                # already done previously
+                return
+
+        with open(policy_path, 'w') as f:
+            f.write(contents.format(
+                executable=executable
+            ))
 
 
 DistUtilsExtra.auto.setup(
@@ -31,4 +60,7 @@ DistUtilsExtra.auto.setup(
         ('share/applications/', ['data/key-mapper.desktop']),
         ('share/polkit-1/actions/', ['data/org.key-mapper.policy']),
     ],
+    cmdclass={
+        'install': Install
+    }
 )
