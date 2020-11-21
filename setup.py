@@ -46,6 +46,10 @@ class Install(DistUtilsExtra.auto.install_auto):
                 return
 
         with open(policy_path, 'w') as f:
+            print(
+                f'Inserting the correct path "{executable}" into '
+                'org.key-mapper.policy'
+            )
             f.write(contents.format(
                 executable=executable
             ))
