@@ -137,7 +137,8 @@ class Mapping:
             shutil.chown(path, os.getlogin())
 
         with open(path, 'w') as f:
-            json.dump(self._mapping, f)
+            json.dump(self._mapping, f, indent=4)
+            f.write('\n')
 
         self.changed = False
 
