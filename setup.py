@@ -31,13 +31,10 @@ class Install(DistUtilsExtra.auto.install_auto):
 
     def ensure_polkit_prefix(self):
         """Make sure the policy file uses the right prefix."""
-        policy_path = os.path.join(
-            self.install_data,
-            'share/polkit-1/actions/org.key-mapper.policy'
-        )
-
         executable = os.path.join(self.install_data, 'bin/key-mapper-gtk')
         assert os.path.exists(executable)
+
+        policy_path = '/usr/share/polkit-1/actions/org.key-mapper.policy'
 
         with open(policy_path, 'r') as f:
             contents = f.read()
