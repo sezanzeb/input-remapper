@@ -87,6 +87,11 @@ class _Config:
 
     def save_config(self):
         """Save the config to the file system."""
+        if not os.path.exists(CONFIG_PATH):
+            logger.debug('Creating "%s"', CONFIG_PATH)
+            os.makedirs(os.path.dirname(CONFIG_PATH), exist_ok=True)
+            os.mknod(CONFIG_PATH)
+
         with open(CONFIG_PATH, 'w') as f:
             json.dump(self._config, f, indent=4)
             logger.info('Saved config to %s', CONFIG_PATH)
