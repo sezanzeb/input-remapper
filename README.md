@@ -21,7 +21,9 @@ You can also start it via your applications menu.
 
 # Dependencies
 
-`python-evdev`
+Depending on how those packages are called in your distro:
+
+`python3-distutils-extra` `python3-evdev`
 
 # Tests
 
