@@ -1,11 +1,9 @@
 # Key Mapper
 
-**Almost done**
-
 GUI tool to map input buttons to e.g. change the macro keys of a mouse or
-any keyboard to something different. It should not be device specific, any
-input device supported by Linux plug and play that reports keyboard events
-will likely work.
+any keyboard to something different.
+
+Tested on **X11/Manjaro** and **Wayland/Ubuntu**
 
 <p align="center">
     <img src="data/screenshot.png"/>
@@ -46,6 +44,6 @@ sudo python3 setup.py install && python3 tests/test.py
 - [x] highlight changes and alert before discarding unsaved changes
 - [ ] automatically load the preset when the mouse connects
 - [x] ask for administrator permissions using polkit
-- [ ] make it work on wayland
+- [x] make sure it works on wayland
 - [ ] add to the AUR, provide .deb and .appimage files
 - [ ] support timed macros, maybe using some sort of syntax
