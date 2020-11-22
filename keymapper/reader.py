@@ -25,7 +25,7 @@
 import evdev
 
 from keymapper.logger import logger
-from keymapper.getdevices import get_devices
+from keymapper.getdevices import get_devices, refresh_devices
 
 
 class _KeycodeReader:
@@ -50,25 +50,23 @@ class _KeycodeReader:
 
         If read is called without prior start_reading, no keycodes
         will be available.
-
-        Parameters
-        ----------
-        device : string
-            The name of the device.
         """
-        groups = get_devices(include_keymapper=True)
-        for name, group in groups.items():
+        # make sure this sees up to date devices, including those created
+        # by key-mapper
+        refresh_devices()
+
+        self.virtual_devices = []
+
+        for name, group in get_devices(include_keymapper=True).items():
             # also find stuff like "key-mapper {device}"
             if device not in name:
-                return
-
-            paths = group['paths']
+                continue
 
             # Watch over each one of the potentially multiple devices per
             # hardware
-            self.virtual_devices = [
+            self.virtual_devices += [
                 evdev.InputDevice(path)
-                for path in paths
+                for path in group['paths']
             ]
 
             logger.debug(

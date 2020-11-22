@@ -35,8 +35,7 @@ CONFIG_PATH = os.path.join(CONFIG, 'config')
 
 # an empty config with basic expected substructures
 INITIAL_CONFIG = {
-    'autoload': {},
-    'map_EV_REL_devices': True
+    'autoload': {}
 }
 
 
@@ -52,25 +51,6 @@ class _Config:
     def iterate_autoload_presets(self):
         """get tuples of (device, preset)."""
         return self._config['autoload'].items()
-
-    def set_modify_movement_devices(self, active):
-        """Set if devices that control movements should also be mapped.
-
-        This causes many movements event to be passed through python code,
-        and if this ever seems to affect the responsiveness of mouse movements,
-        it can be disabled. This is just an optional precaution. Disabling this
-        may make mapping some keys of the device impossible.
-        """
-        self._config['map_EV_REL_devices'] = active
-
-    def may_modify_movement_devices(self):
-        """Get if devices that control movements may be modified as well.
-
-        Since movement events happen quite often and fast, I'd like to
-        add the option to disabling mapping those if it affects their
-        performance. TODO figure out which devices to inject to instead?
-        """
-        return self._config['map_EV_REL_devices']
 
     def load_config(self):
         """Load the config from the file system."""

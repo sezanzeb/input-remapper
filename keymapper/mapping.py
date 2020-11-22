@@ -103,7 +103,6 @@ class Mapping:
 
     def load(self, device, preset):
         """Load a dumped JSON from home to overwrite the mappings."""
-        # TODO test
         path = get_config_path(device, preset)
         logger.info('Loading preset from %s', path)
 
@@ -125,7 +124,6 @@ class Mapping:
 
     def save(self, device, preset):
         """Dump as JSON into home."""
-        # TODO test
         path = get_config_path(device, preset)
         logger.info('Saving preset to %s', path)
 

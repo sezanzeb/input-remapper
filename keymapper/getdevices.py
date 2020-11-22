@@ -70,18 +70,6 @@ class _GetDevicesProcess(multiprocessing.Process):
             if evdev.ecodes.EV_KEY not in capabilities:
                 continue
 
-            if (
-                not config.may_modify_movement_devices()
-                and evdev.ecodes.EV_REL in capabilities
-            ):
-                # TODO add checkbox to automatically load
-                #  a preset on login
-                logger.debug(
-                    'Skipping %s to avoid impairing mouse movement',
-                    device.path
-                )
-                continue
-
             usb = device.phys.split('/')[0]
             if grouped.get(usb) is None:
                 grouped[usb] = []
@@ -128,6 +116,10 @@ def get_devices(include_keymapper=False):
     paths is a list of files in /dev/input that belong to the devices.
 
     They are grouped by usb port.
+
+    Since this needs to do some stuff with /dev and spawn processes the
+    result is cached. Use refresh_devices if you need up to date
+    devices.
     """
     global _devices
     if _devices is None:
@@ -144,8 +136,7 @@ def get_devices(include_keymapper=False):
     # filter the result
     result = {}
     for device in _devices.keys():
-        if include_keymapper and device.startswith('key-mapper'):
-            result[device] = _devices[device]
+        if not include_keymapper and device.startswith('key-mapper'):
             continue
 
         result[device] = _devices[device]

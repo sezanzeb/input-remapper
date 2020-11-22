@@ -50,9 +50,6 @@ CTX_APPLY = 1
 CTX_ERROR = 3
 
 
-# TODO test on wayland
-
-
 def get_selected_row_bg():
     """Get the background color that a row is going to have when selected."""
     # ListBoxRows can be selected, but either they are always selectable
@@ -226,6 +223,9 @@ class Window:
             CTX_APPLY,
             f'Applied the system default'
         )
+        # restart reading because after injecting the device landscape
+        # changes a bit
+        keycode_reader.start_reading(self.selected_device)
 
     def on_save_preset_clicked(self, button):
         """Save changes to a preset to the file system."""
@@ -280,6 +280,10 @@ class Window:
                 CTX_ERROR,
                 f'Could not grab device "{self.selected_device}"'
             )
+
+        # restart reading because after injecting the device landscape
+        # changes a bit
+        keycode_reader.start_reading(self.selected_device)
 
     def on_select_device(self, dropdown):
         """List all presets, create one if none exist yet."""
