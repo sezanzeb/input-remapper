@@ -33,10 +33,10 @@ import shutil
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
 
-from keymapper.state import custom_mapping
+from keymapper.state import custom_mapping, system_mapping
 from keymapper.paths import CONFIG
 
-from test import tmp, pending_events, Event
+from test import tmp, pending_events, Event, uinput_write_history_pipe
 
 
 def gtk_iteration():
@@ -83,6 +83,7 @@ class Integration(unittest.TestCase):
         self.window = launch()
 
     def tearDown(self):
+        self.window.on_apply_system_layout_clicked(None)
         gtk_iteration()
         self.window.on_close()
         self.window.window.destroy()
@@ -107,41 +108,42 @@ class Integration(unittest.TestCase):
         rows = len(self.window.get('key_list').get_children())
         self.assertEqual(rows, 2)
 
+    def change_empty_row(self, keycode, character):
+        """Modify the one empty row that always exists."""
+        # wait for the window to create a new empty row if needed
+        time.sleep(0.2)
+        gtk_iteration()
+
+        # find the empty row
+        rows = self.get_rows()
+        row = rows[-1]
+        self.assertNotIn('changed', row.get_style_context().list_classes())
+        self.assertIsNone(row.keycode.get_label())
+        self.assertEqual(row.character_input.get_text(), '')
+
+        self.window.window.set_focus(row.keycode)
+
+        pending_events[self.window.selected_device] = [
+            Event(evdev.events.EV_KEY, keycode - 8, 1)
+        ]
+
+        self.window.on_window_event(None, None)
+
+        self.assertEqual(int(row.keycode.get_label()), keycode)
+
+        # set the character to make the new row complete
+        row.character_input.set_text(character)
+
+        self.assertIn('changed', row.get_style_context().list_classes())
+
+        return row
+
     def test_rows(self):
         """Comprehensive test for rows."""
-        def change_empty_row(keycode, character):
-            """Modify the one empty row that always exists."""
-            # wait for the window to create a new empty row if needed
-            time.sleep(0.2)
-            gtk_iteration()
-
-            # find the empty row
-            rows = self.get_rows()
-            row = rows[-1]
-            self.assertNotIn('changed', row.get_style_context().list_classes())
-            self.assertIsNone(row.keycode.get_label())
-            self.assertEqual(row.character_input.get_text(), '')
-
-            self.window.window.set_focus(row.keycode)
-
-            pending_events[self.window.selected_device] = [
-                Event(evdev.events.EV_KEY, keycode - 8, 1)
-            ]
-
-            self.window.on_window_event(None, None)
-
-            self.assertEqual(int(row.keycode.get_label()), keycode)
-
-            # set the character to make the new row complete
-            row.character_input.set_text(character)
-
-            self.assertIn('changed', row.get_style_context().list_classes())
-
-            return row
 
         # add two rows by modifiying the one empty row that exists
-        change_empty_row(10, 'a')
-        change_empty_row(11, 'b')
+        self.change_empty_row(10, 'a')
+        self.change_empty_row(11, 'b')
 
         # one empty row added automatically again
         time.sleep(0.2)
@@ -242,6 +244,84 @@ class Integration(unittest.TestCase):
             sorted(os.listdir(f'{CONFIG}/device 1')),
             ['abc 123', 'new preset 2']
         )
+
+    def test_start_injecting(self):
+        keycode_from = 9
+        keycode_to = 100
+
+        self.change_empty_row(keycode_from, 'a')
+        system_mapping.empty()
+        system_mapping.change(keycode_to, 'a')
+
+        pending_events['device 2'] = [
+            Event(evdev.events.EV_KEY, keycode_from - 8, 1),
+            Event(evdev.events.EV_KEY, keycode_from - 8, 0)
+        ]
+
+        custom_mapping.save('device 2', 'foo preset')
+
+        self.window.selected_device = 'device 2'
+        self.window.selected_preset = 'foo preset'
+        self.window.on_apply_preset_clicked(None)
+
+        # the integration tests will cause the injection to be started as
+        # processes, as intended. Luckily, recv will block until the events
+        # are handled and pushed.
+
+        # Note, that pushing events to pending_events won't work anymore
+        # from here on because the injector processes memory cannot be
+        # modified from here.
+
+        event = uinput_write_history_pipe[0].recv()
+        self.assertEqual(event.type, evdev.events.EV_KEY)
+        self.assertEqual(event.code, keycode_to - 8)
+        self.assertEqual(event.value, 1)
+
+        event = uinput_write_history_pipe[0].recv()
+        self.assertEqual(event.type, evdev.events.EV_KEY)
+        self.assertEqual(event.code, keycode_to - 8)
+        self.assertEqual(event.value, 0)
+
+    def test_stop_injecting(self):
+        keycode_from = 16
+        keycode_to = 90
+
+        self.change_empty_row(keycode_from, 't')
+        system_mapping.empty()
+        system_mapping.change(keycode_to, 't')
+
+        # not all of those events should be processed, since that takes some
+        # time due to time.sleep in the fakes and the injection is stopped.
+        pending_events['device 2'] = [Event(1, keycode_from - 8, 1)] * 100
+
+        custom_mapping.save('device 2', 'foo preset')
+
+        self.window.selected_device = 'device 2'
+        self.window.selected_preset = 'foo preset'
+        self.window.on_apply_preset_clicked(None)
+
+        pipe = uinput_write_history_pipe[0]
+        # block until the first event is available, indicating that
+        # the injector is ready
+        write_history = [pipe.recv()]
+
+        # stop
+        self.window.on_apply_system_layout_clicked(None)
+
+        # try to receive a few of the events
+        time.sleep(0.2)
+        while pipe.poll():
+            write_history.append(pipe.recv())
+
+        len_before = len(write_history)
+        self.assertLess(len(write_history), 50)
+
+        # since the injector should not be running anymore, no more events
+        # should be received after waiting even more time
+        time.sleep(0.2)
+        while pipe.poll():
+            write_history.append(pipe.recv())
+        self.assertEqual(len(write_history), len_before)
 
 
 if __name__ == "__main__":
