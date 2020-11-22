@@ -35,13 +35,14 @@ sudo python3 setup.py install && python3 tests/test.py
 - [x] creating presets per device
 - [x] renaming presets
 - [x] show a list for mappings `[keycode -> target]`
-- [x] read keycodes with evdev
 - [x] make that list extend itself automatically
-- [x] load that file with `setxkbmap` on button press
+- [x] read keycodes with evdev
+- [x] inject the mapping
 - [x] keep the system defaults for unmapped buttons
 - [x] button to stop mapping and using system defaults
 - [x] highlight changes and alert before discarding unsaved changes
-- [ ] automatically load the preset when the mouse connects
+- [ ] automatically load presets on login for plugged in devices
+- [ ] automatically load presets when devices get plugged in after login
 - [x] ask for administrator permissions using polkit
 - [x] make sure it works on wayland
 - [ ] add to the AUR, provide .deb and .appimage files
