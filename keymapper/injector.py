@@ -64,7 +64,7 @@ def _grab(path):
             logger.debug('Failed attemt to grab %s %d', path, attempts)
 
         if attempts >= 4:
-            logger.error('Cannot grab %s', path)
+            logger.error('Cannot grab %s, it is possibly in use', path)
             return None
 
         # it might take a little time until the device is free if
@@ -124,7 +124,12 @@ def _start_injecting_worker(path, pipe, mapping):
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
 
-    device = _grab(path)
+    try:
+        device = _grab(path)
+    except Exception as e:
+        logger.error(e)
+        pipe.send(FAILED)
+        return
 
     if device is None:
         pipe.send(FAILED)
@@ -151,10 +156,6 @@ def _start_injecting_worker(path, pipe, mapping):
 
     for event in device.read_loop():
         if event.type != evdev.ecodes.EV_KEY:
-            logger.spam(
-                'got type:%s code:%s value:%s, forward',
-                event.type, event.code, event.value
-            )
             keymapper_device.write(event.type, event.code, event.value)
             # this already includes SYN events, so need to syn here again
             continue
@@ -259,7 +260,7 @@ class KeycodeInjector:
             # wait for the process to notify creation of the new injection
             # device, to keep the logs in order.
             status = pipe[0].recv()
-            if status != FAILED:
+            if status == DEVICE_CREATED:
                 self.processes.append(worker)
             else:
                 worker.join()
