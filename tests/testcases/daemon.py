@@ -45,47 +45,26 @@ class TestDaemon(unittest.TestCase):
         evdev.InputDevice.grab = self.grab
 
     def test_daemon(self):
-        custom_mapping.change(9, 'a')
-        # one mapping that is unknown in the system_mapping on purpose
-        custom_mapping.change(10, 'b')
+        keycode_from = 9
+        keycode_to = 100
 
+        custom_mapping.change(keycode_from, 'a')
         system_mapping.empty()
-        a_code = 100
-        system_mapping.change(a_code, 'a')
+        system_mapping.change(keycode_to, 'a')
 
         custom_mapping.save('device 2', 'foo')
         config.set_autoload_preset('device 2', 'foo')
 
         pending_events['device 2'] = [
-            Event(evdev.events.EV_KEY, 1, 0),
-            Event(evdev.events.EV_KEY, 1, 1),
-            # ignored because unknown to the system
-            Event(evdev.events.EV_KEY, 2, 0),
-            Event(evdev.events.EV_KEY, 2, 1),
-            # just pass those over without modifying
-            Event(3124, 3564, 6542),
+            Event(evdev.events.EV_KEY, keycode_from - 8, 0)
         ]
 
         self.daemon = Daemon()
 
-        time.sleep(0.5)
-
-        write_history = []
-        pipe = uinput_write_history_pipe[0]
-        while pipe.poll():
-            write_history.append(pipe.recv())
-
-        self.assertEqual(write_history[0].type, evdev.events.EV_KEY)
-        self.assertEqual(write_history[0].code, a_code - 8)
-        self.assertEqual(write_history[0].value, 0)
-
-        self.assertEqual(write_history[1].type, evdev.events.EV_KEY)
-        self.assertEqual(write_history[1].code, a_code - 8)
-        self.assertEqual(write_history[1].value, 1)
-
-        self.assertEqual(write_history[2].type, 3124)
-        self.assertEqual(write_history[2].code, 3564)
-        self.assertEqual(write_history[2].value, 6542)
+        event = uinput_write_history_pipe[0].recv()
+        self.assertEqual(event.type, evdev.events.EV_KEY)
+        self.assertEqual(event.code, keycode_to - 8)
+        self.assertEqual(event.value, 0)
 
 
 if __name__ == "__main__":
