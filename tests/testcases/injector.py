@@ -53,7 +53,8 @@ class TestInjector(unittest.TestCase):
             self.injector.stop_injecting()
             self.injector = None
         evdev.InputDevice.grab = self.grab
-        pending_events['device 2'] = []
+        if pending_events.get('device 2') is not None:
+            del pending_events['device 2']
 
     def test_modify_capabilities(self):
         class FakeDevice:

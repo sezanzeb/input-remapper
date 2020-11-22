@@ -221,6 +221,7 @@ if __name__ == "__main__":
     originalStartTest = unittest.TextTestResult.startTest
     def startTest(self, test):
         originalStartTest(self, test)
+        print()
     unittest.TextTestResult.startTest = startTest
 
     testrunner = unittest.TextTestRunner(verbosity=2).run(testsuite)

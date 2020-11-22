@@ -36,6 +36,10 @@ CODE_3 = 102
 class TestReader(unittest.TestCase):
     def tearDown(self):
         keycode_reader.clear()
+        if pending_events.get('device 1') is not None:
+            del pending_events['device 1']
+        if pending_events.get('device 2') is not None:
+            del pending_events['device 2']
 
     def test_reading(self):
         keycode_reader.start_reading('device 1')
