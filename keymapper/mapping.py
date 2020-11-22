@@ -104,10 +104,10 @@ class Mapping:
     def load(self, device, preset):
         """Load a dumped JSON from home to overwrite the mappings."""
         path = get_config_path(device, preset)
-        logger.info('Loading preset from %s', path)
+        logger.info('Loading preset from "%s"', path)
 
         if not os.path.exists(path):
-            logger.error('Tried to load non-existing preset %s', path)
+            logger.error('Tried to load non-existing preset "%s"', path)
             return
 
         with open(path, 'r') as f:

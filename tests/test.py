@@ -192,11 +192,22 @@ def patch_unsaved():
     unsaved.unsaved_changes_dialog = lambda: unsaved.CONTINUE
 
 
+def patch_dbus():
+    """Make sure that the dbus interface is just an instance of Daemon.
+
+    Don't talk to an actual daemon if one is running.
+    """
+    import dbus
+    from keymapper.daemon import Daemon
+    dbus.Interface = lambda *args: Daemon()
+
+
 # quickly fake some stuff before any other file gets a chance to import
 # the original versions
 patch_paths()
 patch_evdev()
 patch_unsaved()
+patch_dbus()
 
 
 if __name__ == "__main__":

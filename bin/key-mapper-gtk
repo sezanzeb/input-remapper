@@ -32,9 +32,10 @@ gi.require_version('Gtk', '3.0')
 gi.require_version('GLib', '2.0')
 from gi.repository import Gtk
 
-from keymapper.logger import logger, update_verbosity, log_info
+from keymapper.logger import update_verbosity, log_info
 from keymapper.gtk.error import ErrorDialog
 from keymapper.gtk.window import Window
+from keymapper.daemon import Daemon
 
 
 if __name__ == '__main__':
@@ -49,19 +50,21 @@ if __name__ == '__main__':
     update_verbosity(options.debug)
     log_info()
 
+    if getpass.getuser() != 'root' and 'unittest' not in sys.modules.keys():
+        ErrorDialog(
+            'Error',
+            'Sudo is required to talk to the daemon and discover devices'
+        )
+        raise SystemExit(1)
+
     window = Window()
 
     def stop_injecting():
-        if window.keycode_injector is not None:
-            window.keycode_injector.stop_injecting()
+        if isinstance(window.dbus, Daemon):
+            # it created its own temporary daemon inside the process
+            # because none was running
+            window.dbus.stop()
 
     atexit.register(stop_injecting)
-
-    if getpass.getuser() != 'root' and 'unittest' not in sys.modules.keys():
-        logger.warning('Without sudo, your devices may not be visible')
-        ErrorDialog(
-            'Warning',
-            'Without sudo, your devices may not be visible'
-        )
 
     Gtk.main()
