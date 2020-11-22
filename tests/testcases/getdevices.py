@@ -21,7 +21,7 @@
 
 import unittest
 
-from keymapper.getdevices import _GetDevicesProcess, get_devices
+from keymapper.getdevices import _GetDevices, get_devices
 
 
 class FakePipe:
@@ -36,7 +36,7 @@ class TestGetDevices(unittest.TestCase):
         # don't actually start the process, just use the `run` function.
         # otherwise the coverage tool can't keep track.
         pipe = FakePipe()
-        _GetDevicesProcess(pipe).run()
+        _GetDevices(pipe).run()
         self.assertDictEqual(pipe.devices, {
             'device 1': {
                 'paths': [

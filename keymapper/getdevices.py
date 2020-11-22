@@ -23,7 +23,9 @@
 
 
 import multiprocessing
+import threading
 import time
+import asyncio
 
 import evdev
 
@@ -33,14 +35,12 @@ from keymapper.logger import logger
 _devices = None
 
 
-class _GetDevicesProcess(multiprocessing.Process):
+class _GetDevices(threading.Thread):
     """Process to get the devices that can be worked with.
 
     Since InputDevice destructors take quite some time, do this
     asynchronously so that they can take as much time as they want without
-    slowing down the initialization. To avoid evdevs asyncio stuff spamming
-    errors, do this with multiprocessing and not multithreading.
-    TODO to threading, make eventloop
+    slowing down the initialization.
     """
     def __init__(self, pipe):
         """Construct the process.
@@ -55,6 +55,9 @@ class _GetDevicesProcess(multiprocessing.Process):
 
     def run(self):
         """Do what get_devices describes."""
+        # evdev needs asyncio to work
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
         logger.debug('Discovering device paths')
         devices = [evdev.InputDevice(path) for path in evdev.list_devices()]
 
@@ -62,6 +65,9 @@ class _GetDevicesProcess(multiprocessing.Process):
         # "Logitech USB Keyboard" and "Logitech USB Keyboard Consumer Control"
         grouped = {}
         for device in devices:
+            if device.name == 'Power Button':
+                continue
+
             # only keyboard devices
             # https://www.kernel.org/doc/html/latest/input/event-codes.html
             capabilities = device.capabilities().keys()
@@ -122,7 +128,7 @@ def get_devices(include_keymapper=False):
     global _devices
     if _devices is None:
         pipe = multiprocessing.Pipe()
-        _GetDevicesProcess(pipe[1]).start()
+        _GetDevices(pipe[1]).start()
         # block until devices are available
         _devices = pipe[0].recv()
         if len(_devices) == 0:

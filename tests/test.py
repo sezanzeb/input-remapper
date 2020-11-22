@@ -70,11 +70,16 @@ fixtures = {
         'name': 'device 2'
     },
 
-    # something that is completely ignored
+    # devices that are completely ignored
     '/dev/input/event30': {
         'capabilities': {evdev.ecodes.EV_SYN: []},
         'phys': 'usb-0000:03:00.0-3/input1',
         'name': 'device 3'
+    },
+    '/dev/input/event31': {
+        'capabilities': {evdev.ecodes.EV_SYN: []},
+        'phys': 'usb-0000:03:00.0-4/input1',
+        'name': 'Power Button'
     },
 
     # key-mapper devices are not displayed in the ui, some instance
