@@ -31,10 +31,10 @@ sudo python3 setup.py install && python3 tests/test.py
 
 # Roadmap
 
-- [x] show a dropdown to select an arbitrary device from `xinput list`
+- [x] show a dropdown to select valid devices
 - [x] creating presets per device
 - [x] renaming presets
-- [x] show a list for mappings `[keycode -> target]`
+- [x] show a mapping table
 - [x] make that list extend itself automatically
 - [x] read keycodes with evdev
 - [x] inject the mapping
