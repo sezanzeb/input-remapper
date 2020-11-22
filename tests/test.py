@@ -48,7 +48,7 @@ fixtures = {
         'name': 'device 1 foo'
     },
     '/dev/input/event10': {
-        'capabilities': {evdev.ecodes.EV_KEY: []},
+        'capabilities': {evdev.ecodes.EV_KEY: list(evdev.ecodes.keys.keys())},
         'phys': 'usb-0000:03:00.0-1/input3',
         'name': 'device 1'
     },
@@ -65,7 +65,7 @@ fixtures = {
 
     # device 2
     '/dev/input/event20': {
-        'capabilities': {evdev.ecodes.EV_KEY: []},
+        'capabilities': {evdev.ecodes.EV_KEY: list(evdev.ecodes.keys.keys())},
         'phys': 'usb-0000:03:00.0-2/input1',
         'name': 'device 2'
     },
@@ -77,10 +77,10 @@ fixtures = {
         'name': 'device 3'
     },
 
-    # key-mapper devices are also ignored, another instance of key-mapper
+    # key-mapper devices are also ignored, some instance of key-mapper
     # started injecting apparently.
     '/dev/input/event40': {
-        'capabilities': {evdev.ecodes.EV_KEY: []},
+        'capabilities': {evdev.ecodes.EV_KEY: list(evdev.ecodes.keys.keys())},
         'phys': 'key-mapper/input1',
         'name': 'key-mapper device 2'
     },
@@ -170,6 +170,7 @@ def patch_evdev():
     class UInput:
         def __init__(self, *args, **kwargs):
             self.fd = 0
+            self.device = InputDevice('/dev/input/event40')
             pass
 
         def write(self, type, code, value):

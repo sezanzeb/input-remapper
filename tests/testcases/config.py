@@ -48,11 +48,9 @@ class TestConfig(unittest.TestCase):
     def test_save_load(self):
         config.set_autoload_preset('d1', 'a')
         config.set_autoload_preset('d2', 'b')
-        config.set_modify_movement_devices(True)
         config.save_config()
 
         # ignored after load
-        config.set_modify_movement_devices(False)
         config.set_autoload_preset('d3', 'c')
 
         config.load_config()
@@ -60,7 +58,6 @@ class TestConfig(unittest.TestCase):
             list(config.iterate_autoload_presets()),
             [('d1', 'a'), ('d2', 'b')]
         )
-        self.assertTrue(config.may_modify_movement_devices())
 
 
 if __name__ == "__main__":

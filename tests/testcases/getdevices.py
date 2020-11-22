@@ -22,7 +22,6 @@
 import unittest
 
 from keymapper.getdevices import _GetDevicesProcess
-from keymapper.config import config
 
 
 class FakePipe:
@@ -54,29 +53,6 @@ class TestGetDevices(unittest.TestCase):
             'device 2': {
                'paths': ['/dev/input/event20'],
                'devices': ['device 2']
-            }
-        })
-
-    def test_map_movement_devices(self):
-        pipe = FakePipe()
-        config.set_modify_movement_devices(False)
-        _GetDevicesProcess(pipe).run()
-        self.assertDictEqual(pipe.devices, {
-            'device 1': {
-                'paths': [
-                    '/dev/input/event11',
-                    '/dev/input/event10',
-                    '/dev/input/event13'
-                ],
-                'devices': [
-                    'device 1 foo',
-                    'device 1',
-                    'device 1'
-                ]
-            },
-            'device 2': {
-                'paths': ['/dev/input/event20'],
-                'devices': ['device 2']
             }
         })
 

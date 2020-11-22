@@ -264,9 +264,6 @@ class KeycodeInjector:
         if len(self.processes) == 0:
             raise OSError('Could not grab any device')
 
-        # key-mapper devices were added, freshly scan /dev/input
-        refresh_devices()
-
     @ensure_numlock
     def stop_injecting(self):
         """Stop injecting keycodes."""
@@ -278,5 +275,3 @@ class KeycodeInjector:
             if process.is_alive():
                 process.terminate()
                 self.processes[i] = None
-
-        refresh_devices()
