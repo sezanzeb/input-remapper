@@ -193,12 +193,30 @@ class Window:
         key_list = self.get('key_list')
         key_list.forall(lambda row: row.unhighlight())
 
-    def on_window_key_press_event(self, window, event):
-        """Write down the pressed key on the UI.
+    def on_window_event(self, button, event):
+        """Write down the pressed key in the UI.
 
-        Helps to understand what the numbers in the mapping are about.
+        Works with any mouse and keyboard event.
         """
-        self.get('keycode').set_text(str(event.get_keycode()[1]))
+        # to capture regular keyboard keys or extra-mouse keys
+        keycode = keycode_reader.read()
+
+        if keycode is None:
+            return
+
+        if keycode == 280:
+            # disable mapping the left mouse button because it would break
+            # the mouse. Also it is emitted right when focusing the row
+            # which breaks the current workflow.
+            return
+
+        self.get('keycode').set_text(str(keycode))
+
+        # inform the currently selected row about the new keycode
+        focused = self.window.get_focus()
+        row = focused.get_parent().get_parent()
+        if isinstance(focused, Gtk.ToggleButton) and isinstance(row, Row):
+            row.set_new_keycode(keycode)
 
     def on_apply_system_layout_clicked(self, button):
         """Load the mapping."""
@@ -292,6 +310,7 @@ class Window:
 
         try:
             new_preset = get_available_preset_name(self.selected_device)
+            custom_mapping.empty()
             custom_mapping.save(self.selected_device, new_preset)
             self.get('preset_selection').append(new_preset, new_preset)
             self.get('preset_selection').set_active_id(new_preset)

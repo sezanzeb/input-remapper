@@ -66,7 +66,7 @@ class KeycodeReader:
         ]
 
     def read(self):
-        """Get the newest key or None if none was pressed."""
+        """Get the newest keycode or None if none was pressed."""
         newest_keycode = None
         for virtual_device in self.virtual_devices:
             while True:

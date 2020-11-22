@@ -128,8 +128,7 @@ class Integration(unittest.TestCase):
                 Event(evdev.events.EV_KEY, keycode - 8, 1)
             ]
 
-            time.sleep(0.1)
-            gtk_iteration()
+            self.window.on_window_event(None, None)
 
             self.assertEqual(int(row.keycode.get_label()), keycode)
 
