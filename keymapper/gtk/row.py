@@ -29,7 +29,6 @@ from gi.repository import Gtk, GLib
 
 from keymapper.state import custom_mapping
 from keymapper.logger import logger
-from keymapper.reader import keycode_reader
 
 
 CTX_KEYCODE = 2
@@ -52,10 +51,12 @@ class Row(Gtk.ListBoxRow):
         self.put_together(keycode, character)
 
     def get_keycode(self):
+        """Get the integer keycode from the left column."""
         keycode = self.keycode.get_label()
         return int(keycode) if keycode else None
 
     def get_character(self):
+        """Get the assigned character from the middle column."""
         character = self.character_input.get_text()
         return character if character else None
 
@@ -107,7 +108,7 @@ class Row(Gtk.ListBoxRow):
         """Mark this row as unchanged."""
         self.get_style_context().remove_class('changed')
 
-    def on_character_input_change(self, entry):
+    def on_character_input_change(self, _):
         keycode = self.get_keycode()
         character = self.get_character()
 

@@ -33,6 +33,9 @@ from keymapper.injector import KeycodeInjector
 from keymapper.mapping import Mapping
 
 
+# TODO service file in data for a root daemon
+
+
 def is_service_running():
     """Check if the daemon is running."""
     try:
@@ -50,13 +53,13 @@ def get_dbus_interface():
             'long as the window is open.'
         )
         return Daemon(autoload=False)
-    else:
-        logger.debug('Found the daemon process')
-        bus = dbus.SessionBus()
-        remote_object = bus.get_object('com.keymapper.Control', '/')
-        interface = dbus.Interface(remote_object, 'com.keymapper.Interface')
-        logger.debug('Connected to dbus')
-        return interface
+
+    logger.debug('Found the daemon process')
+    bus = dbus.SessionBus()
+    remote_object = bus.get_object('com.keymapper.Control', '/')
+    interface = dbus.Interface(remote_object, 'com.keymapper.Interface')
+    logger.debug('Connected to dbus')
+    return interface
 
 
 class Daemon(service.Object):
@@ -91,7 +94,7 @@ class Daemon(service.Object):
         self.injectors[device].stop_injecting()
 
     # TODO if ss is the correct signature for multiple parameters, add an
-    #  example to https://gitlab.freedesktop.org/dbus/dbus-python/-/blob/master/doc/tutorial.txt # noqa
+    #  example to https://gitlab.freedesktop.org/dbus/dbus-python/-/blob/master/doc/tutorial.txt # noqa pylint: disable=line-too-long
     @dbus.service.method(
         'com.keymapper.Interface',
         in_signature='ss'

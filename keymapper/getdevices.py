@@ -24,12 +24,10 @@
 
 import multiprocessing
 import time
-import copy
 
 import evdev
 
 from keymapper.logger import logger
-from keymapper.config import config
 
 
 _devices = None

@@ -22,7 +22,6 @@
 """User Interface."""
 
 
-import dbus
 import gi
 gi.require_version('Gtk', '3.0')
 gi.require_version('GLib', '2.0')
@@ -78,9 +77,9 @@ class Window:
         self.selected_preset = None
 
         css_provider = Gtk.CssProvider()
-        with open(get_data_path('style.css'), 'r') as f:
+        with open(get_data_path('style.css'), 'r') as file:
             data = (
-                f.read() +
+                file.read() +
                 '\n.changed{background-color:' +
                 get_selected_row_bg() +
                 ';}\n'
@@ -196,10 +195,10 @@ class Window:
         key_list = self.get('key_list')
         key_list.forall(lambda row: row.unhighlight())
 
-    def on_window_event(self, button, event):
+    def on_window_event(self, *args):
         """Write down the pressed key in the UI.
 
-        Works with any mouse and keyboard event.
+        Triggered from any mouse and keyboard event.
         """
         # to capture regular keyboard keys or extra-mouse keys
         keycode = keycode_reader.read()
@@ -221,7 +220,7 @@ class Window:
         if isinstance(focused, Gtk.ToggleButton) and isinstance(row, Row):
             row.set_new_keycode(keycode)
 
-    def on_apply_system_layout_clicked(self, button):
+    def on_apply_system_layout_clicked(self, _):
         """Load the mapping."""
         self.dbus.stop_injecting(self.selected_device)
         self.get('status_bar').push(
@@ -237,7 +236,7 @@ class Window:
         new_name = self.get('preset_name_input').get_text()
         try:
             self.save_config()
-            if new_name != '' and new_name != self.selected_preset:
+            if new_name not in ['', self.selected_preset]:
                 rename_preset(
                     self.selected_device,
                     self.selected_preset,
@@ -251,19 +250,19 @@ class Window:
                 CTX_SAVE,
                 f'Saved "{self.selected_preset}"'
             )
-        except PermissionError as e:
+        except PermissionError as error:
             self.get('status_bar').push(
                 CTX_ERROR,
                 'Error: Permission denied!'
             )
-            logger.error(str(e))
+            logger.error(str(error))
 
-    def on_delete_preset_clicked(self, button):
+    def on_delete_preset_clicked(self, _):
         """Delete a preset from the file system."""
         delete_preset(self.selected_device, self.selected_preset)
         self.populate_presets()
 
-    def on_apply_preset_clicked(self, button):
+    def on_apply_preset_clicked(self, _):
         """Apply a preset without saving changes."""
         logger.debug(
             'Applying preset "%s" for "%s"',
@@ -310,7 +309,7 @@ class Window:
             lambda: keycode_reader.start_reading(self.selected_device)
         )
 
-    def on_create_preset_clicked(self, button):
+    def on_create_preset_clicked(self, _):
         """Create a new preset and select it."""
         if custom_mapping.changed:
             if unsaved_changes_dialog() == GO_BACK:
@@ -322,12 +321,12 @@ class Window:
             custom_mapping.save(self.selected_device, new_preset)
             self.get('preset_selection').append(new_preset, new_preset)
             self.get('preset_selection').set_active_id(new_preset)
-        except PermissionError as e:
+        except PermissionError as error:
             self.get('status_bar').push(
                 CTX_ERROR,
                 'Error: Permission denied!'
             )
-            logger.error(str(e))
+            logger.error(str(error))
 
     def on_select_preset(self, dropdown):
         """Show the mappings of the preset."""
@@ -360,6 +359,7 @@ class Window:
         self.add_empty()
 
     def add_empty(self):
+        """Add one empty row for a single mapped key."""
         empty = Row(
             window=self,
             delete_callback=self.on_row_removed

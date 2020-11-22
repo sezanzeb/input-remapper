@@ -22,7 +22,6 @@
 """Keeps reading keycodes in the background for the UI to use."""
 
 
-import os
 import evdev
 
 from keymapper.logger import logger
