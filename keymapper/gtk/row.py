@@ -25,10 +25,11 @@
 import gi
 gi.require_version('Gtk', '3.0')
 gi.require_version('GLib', '2.0')
-from gi.repository import Gtk
+from gi.repository import Gtk, GLib
 
 from keymapper.state import custom_mapping
 from keymapper.logger import logger
+from keymapper.reader import keycode_reader
 
 
 CTX_KEYCODE = 2
@@ -44,6 +45,10 @@ class Row(Gtk.ListBoxRow):
         self.device = window.selected_device
         self.window = window
         self.delete_callback = delete_callback
+
+        self.character_input = None
+        self.keycode = None
+
         self.put_together(keycode, character)
 
     def get_keycode(self):
@@ -53,6 +58,57 @@ class Row(Gtk.ListBoxRow):
     def get_character(self):
         character = self.character_input.get_text()
         return character if character else None
+
+    def start_watching_keycodes(self, *args):
+        """Start to periodically check if a keycode has been pressed.
+
+        This also includes e.g. middle mouse buttons, as opposed to
+        get_keycode from gdk events.
+        """
+        keycode_reader.clear()
+
+        def iterate():
+            self.check_newest_keycode()
+            return self.keycode.is_focus() and self.window.window.is_active()
+
+        GLib.timeout_add(1000 / 30, iterate)
+
+    def check_newest_keycode(self):
+        """Check if a keycode has been pressed and if so, display it."""
+        new_keycode = keycode_reader.read()
+        previous_keycode = self.get_keycode()
+        character = self.get_character()
+
+        # no input
+        if new_keycode is None:
+            return
+
+        # keycode didn't change, do nothing
+        if new_keycode == previous_keycode:
+            return
+
+        # keycode is already set by some other row
+        if custom_mapping.get_character(new_keycode) is not None:
+            msg = f'Keycode {new_keycode} is already mapped'
+            logger.info(msg)
+            self.window.get('status_bar').push(CTX_KEYCODE, msg)
+            return
+
+        # it's legal to display the keycode
+        self.window.get('status_bar').remove_all(CTX_KEYCODE)
+        self.keycode.set_label(str(new_keycode))
+        # switch to the character, don't require mouse input because
+        # that would overwrite the key with the mouse-button key if
+        # the current device is a mouse
+        self.window.window.set_focus(self.character_input)
+        self.highlight()
+
+        # the character is empty and therefore the mapping is not complete
+        if character is None:
+            return
+
+        # else, the keycode has changed, the character is set, all good
+        custom_mapping.change(previous_keycode, new_keycode, character)
 
     def highlight(self):
         """Mark this row as changed."""
@@ -75,46 +131,6 @@ class Row(Gtk.ListBoxRow):
                 character=character
             )
 
-    def on_key_pressed(self, button, event):
-        """Check if a keycode has been pressed and if so, display it."""
-        new_keycode = event.get_keycode()[1]
-        previous_keycode = self.get_keycode()
-        character = self.get_character()
-
-        # no input
-        if new_keycode is None:
-            return
-
-        # keycode didn't change, do nothing
-        if new_keycode == previous_keycode:
-            return
-
-        # keycode is already set by some other row
-        if custom_mapping.get_character(new_keycode) is not None:
-            msg = f'Keycode {new_keycode} is already mapped'
-            logger.info(msg)
-            self.window.get('status_bar').push(CTX_KEYCODE, msg)
-            return
-        # it's legal to display the keycode
-        self.window.get('status_bar').remove_all(CTX_KEYCODE)
-        self.keycode.set_label(str(new_keycode))
-        # switch to the character, don't require mouse input because
-        # that would overwrite the key with the mouse-button key if
-        # the current device is a mouse
-        self.window.window.set_focus(self.character_input)
-        self.highlight()
-
-        # the character is empty and therefore the mapping is not complete
-        if character is None:
-            return
-
-        # else, the keycode has changed, the character is set, all good
-        custom_mapping.change(
-            previous_keycode=previous_keycode,
-            new_keycode=new_keycode,
-            character=character
-        )
-
     def put_together(self, keycode, character):
         """Create all child GTK widgets and connect their signals."""
         delete_button = Gtk.EventBox()
@@ -130,12 +146,16 @@ class Row(Gtk.ListBoxRow):
         delete_button.set_margin_end(5)
 
         keycode_input = Gtk.ToggleButton()
+
         if keycode is not None:
             keycode_input.set_label(str(keycode))
+
+        # to capture regular keyboard keys or extra-mouse keys
         keycode_input.connect(
-            'key-press-event',
-            self.on_key_pressed
+            'focus-in-event',
+            self.start_watching_keycodes
         )
+
         # make the togglebutton go back to its normal state when doing
         # something else in the UI
         keycode_input.connect(

@@ -23,6 +23,7 @@ import sys
 import time
 import os
 import unittest
+import evdev
 from unittest.mock import patch
 from importlib.util import spec_from_loader, module_from_spec
 from importlib.machinery import SourceFileLoader
@@ -35,7 +36,7 @@ from gi.repository import Gtk
 from keymapper.state import custom_mapping
 from keymapper.paths import CONFIG
 
-from test import tmp
+from test import tmp, pending_events, Event
 
 
 def gtk_iteration():
@@ -108,13 +109,6 @@ class Integration(unittest.TestCase):
 
     def test_rows(self):
         """Comprehensive test for rows."""
-        class FakeEvent:
-            def __init__(self, keycode):
-                self.keycode = keycode
-
-            def get_keycode(self):
-                return [True, self.keycode]
-
         def change_empty_row(keycode, character):
             """Modify the one empty row that always exists."""
             # wait for the window to create a new empty row if needed
@@ -128,7 +122,14 @@ class Integration(unittest.TestCase):
             self.assertIsNone(row.keycode.get_label())
             self.assertEqual(row.character_input.get_text(), '')
 
-            row.on_key_pressed(None, FakeEvent(keycode))
+            self.window.window.set_focus(row.keycode)
+
+            pending_events[self.window.selected_device] = [
+                Event(evdev.events.EV_KEY, keycode - 8, 1)
+            ]
+
+            time.sleep(0.1)
+            gtk_iteration()
 
             self.assertEqual(int(row.keycode.get_label()), keycode)
 

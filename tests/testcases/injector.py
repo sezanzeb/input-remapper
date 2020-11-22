@@ -131,11 +131,11 @@ class TestInjector(unittest.TestCase):
         # the second arg of those event objects is 8 lower than the
         # keycode used in X and in the mappings
         pending_events['device 2'] = [
-            Event(evdev.events.EV_KEY, 1, 0),
             Event(evdev.events.EV_KEY, 1, 1),
+            Event(evdev.events.EV_KEY, 1, 0),
             # ignored because unknown to the system
-            Event(evdev.events.EV_KEY, 2, 0),
             Event(evdev.events.EV_KEY, 2, 1),
+            Event(evdev.events.EV_KEY, 2, 0),
             # just pass those over without modifying
             Event(3124, 3564, 6542),
         ]
@@ -152,11 +152,11 @@ class TestInjector(unittest.TestCase):
 
         self.assertEqual(uinput_write_history[0].type, evdev.events.EV_KEY)
         self.assertEqual(uinput_write_history[0].code, 92)
-        self.assertEqual(uinput_write_history[0].value, 0)
+        self.assertEqual(uinput_write_history[0].value, 1)
 
         self.assertEqual(uinput_write_history[1].type, evdev.events.EV_KEY)
         self.assertEqual(uinput_write_history[1].code, 92)
-        self.assertEqual(uinput_write_history[1].value, 1)
+        self.assertEqual(uinput_write_history[1].value, 0)
 
         self.assertEqual(uinput_write_history[2].type, 3124)
         self.assertEqual(uinput_write_history[2].code, 3564)

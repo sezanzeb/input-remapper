@@ -115,7 +115,8 @@ class Event:
         type : int
             one of evdev.ecodes.EV_*
         code : int
-            keyboard event code as known to linux. E.g. 2 for the '1' button
+            keyboard event code as known to linux. E.g. 2 for the '1' button,
+            which would be 10 in xkb
         value : int
             1 for down, 0 for up, 2 for hold
         """
@@ -141,6 +142,16 @@ def patch_evdev():
 
         def grab(self):
             pass
+
+        def read_one(self):
+            if pending_events.get(self.name) is None:
+                return None
+
+            if len(pending_events[self.name]) == 0:
+                return None
+
+            event = pending_events[self.name].pop(0)
+            return event
 
         def read_loop(self):
             """Read all prepared events at once."""
@@ -210,7 +221,6 @@ if __name__ == "__main__":
     originalStartTest = unittest.TextTestResult.startTest
     def startTest(self, test):
         originalStartTest(self, test)
-        print()
     unittest.TextTestResult.startTest = startTest
 
     testrunner = unittest.TextTestRunner(verbosity=2).run(testsuite)

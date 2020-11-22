@@ -36,6 +36,7 @@ from keymapper.injector import KeycodeInjector
 from keymapper.getdevices import get_devices
 from keymapper.gtk.row import Row
 from keymapper.gtk.unsaved import unsaved_changes_dialog, GO_BACK
+from keymapper.reader import keycode_reader
 
 
 def gtk_iteration():
@@ -279,6 +280,9 @@ class Window:
         self.selected_preset = None
 
         self.populate_presets()
+        GLib.idle_add(
+            lambda: keycode_reader.start_reading(self.selected_device)
+        )
 
     def on_create_preset_clicked(self, button):
         """Create a new preset and select it."""
