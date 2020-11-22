@@ -51,12 +51,13 @@ class _KeycodeReader:
         If read is called without prior start_reading, no keycodes
         will be available.
         """
-        # make sure this sees up to date devices
+        # make sure this sees up to date devices, including those created
+        # by key-mapper
         refresh_devices()
 
         self.virtual_devices = []
 
-        for name, group in get_devices().items():
+        for name, group in get_devices(include_keymapper=True).items():
             # also find stuff like "key-mapper {device}"
             if device not in name:
                 continue

@@ -64,10 +64,6 @@ class _GetDevicesProcess(multiprocessing.Process):
         # "Logitech USB Keyboard" and "Logitech USB Keyboard Consumer Control"
         grouped = {}
         for device in devices:
-            if device.phys.startswith('key-mapper'):
-                # injector device, not really periphery
-                continue
-
             # only keyboard devices
             # https://www.kernel.org/doc/html/latest/input/event-codes.html
             capabilities = device.capabilities().keys()
@@ -109,7 +105,7 @@ def refresh_devices():
     return get_devices()
 
 
-def get_devices():
+def get_devices(include_keymapper=False):
     """Group devices and get relevant infos per group.
 
     Returns a list containing mappings of
@@ -137,4 +133,12 @@ def get_devices():
             names = [f'"{name}"' for name in _devices]
             logger.info('Found %s', ', '.join(names))
 
-    return _devices
+    # filter the result
+    result = {}
+    for device in _devices.keys():
+        if not include_keymapper and device.startswith('key-mapper'):
+            continue
+
+        result[device] = _devices[device]
+
+    return result

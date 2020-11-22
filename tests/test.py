@@ -77,8 +77,8 @@ fixtures = {
         'name': 'device 3'
     },
 
-    # key-mapper devices are also ignored, some instance of key-mapper
-    # started injecting apparently.
+    # key-mapper devices are not displayed in the ui, some instance
+    # of key-mapper started injecting apparently.
     '/dev/input/event40': {
         'capabilities': {evdev.ecodes.EV_KEY: list(evdev.ecodes.keys.keys())},
         'phys': 'key-mapper/input1',

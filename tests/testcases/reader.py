@@ -60,6 +60,18 @@ class TestReader(unittest.TestCase):
         ]
         self.assertIsNone(keycode_reader.read())
 
+    def test_keymapper_devices(self):
+        # key-mapper creates devices in /dev, which are also used for
+        # reading since the original device is in grab-mode
+        keycode_reader.start_reading('device 2')
+        pending_events['key-mapper device 2'] = [
+            Event(evdev.events.EV_KEY, CODE_1, 1),
+            Event(evdev.events.EV_KEY, CODE_2, 1),
+            Event(evdev.events.EV_KEY, CODE_3, 1)
+        ]
+        self.assertEqual(keycode_reader.read(), CODE_3 + 8)
+        self.assertIsNone(keycode_reader.read())
+
     def test_clear(self):
         keycode_reader.start_reading('device 1')
         pending_events['device 1'] = [

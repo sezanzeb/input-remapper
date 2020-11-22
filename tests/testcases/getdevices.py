@@ -21,7 +21,7 @@
 
 import unittest
 
-from keymapper.getdevices import _GetDevicesProcess
+from keymapper.getdevices import _GetDevicesProcess, get_devices
 
 
 class FakePipe:
@@ -38,6 +38,31 @@ class TestGetDevices(unittest.TestCase):
         pipe = FakePipe()
         _GetDevicesProcess(pipe).run()
         self.assertDictEqual(pipe.devices, {
+            'device 1': {
+                'paths': [
+                    '/dev/input/event11',
+                    '/dev/input/event10',
+                    '/dev/input/event13'
+                ],
+                'devices': [
+                    'device 1 foo',
+                    'device 1',
+                    'device 1'
+                ]
+            },
+            'device 2': {
+               'paths': ['/dev/input/event20'],
+               'devices': ['device 2']
+            },
+            'key-mapper device 2': {
+               'paths': ['/dev/input/event40'],
+               'devices': ['key-mapper device 2']
+            },
+        })
+        self.assertDictEqual(pipe.devices, get_devices(include_keymapper=True))
+
+    def test_get_devices_2(self):
+        self.assertDictEqual(get_devices(), {
             'device 1': {
                 'paths': [
                     '/dev/input/event11',
