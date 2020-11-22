@@ -64,7 +64,12 @@ class _Config:
         self._config['map_EV_REL_devices'] = active
 
     def may_modify_movement_devices(self):
-        """Get if devices that control movements may be modified as well."""
+        """Get if devices that control movements may be modified as well.
+
+        Since movement events happen quite often and fast, I'd like to
+        add the option to disabling mapping those if it affects their
+        performance. TODO figure out which devices to inject to instead?
+        """
         return self._config['map_EV_REL_devices']
 
     def load_config(self):

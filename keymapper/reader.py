@@ -50,20 +50,31 @@ class _KeycodeReader:
 
         If read is called without prior start_reading, no keycodes
         will be available.
+
+        Parameters
+        ----------
+        device : string
+            The name of the device.
         """
-        paths = get_devices()[device]['paths']
+        groups = get_devices(include_keymapper=True)
+        for name, group in groups.items():
+            # also find stuff like "key-mapper {device}"
+            if device not in name:
+                return
 
-        logger.debug(
-            'Starting reading keycodes for %s on %s',
-            device,
-            ', '.join(paths)
-        )
+            paths = group['paths']
 
-        # Watch over each one of the potentially multiple devices per hardware
-        self.virtual_devices = [
-            evdev.InputDevice(path)
-            for path in paths
-        ]
+            # Watch over each one of the potentially multiple devices per
+            # hardware
+            self.virtual_devices = [
+                evdev.InputDevice(path)
+                for path in paths
+            ]
+
+            logger.debug(
+                'Starting reading keycodes from "%s"',
+                '", "'.join([device.name for device in self.virtual_devices])
+            )
 
     def read(self):
         """Get the newest keycode or None if none was pressed."""
@@ -74,12 +85,11 @@ class _KeycodeReader:
                 if event is None:
                     break
 
-                logger.spam(
-                    'got code:%s value:%s',
-                    event.code + 8, event.value
-                )
-
                 if event.type == evdev.ecodes.EV_KEY and event.value == 1:
+                    logger.spam(
+                        'got code:%s value:%s',
+                        event.code + 8, event.value
+                    )
                     # value: 1 for down, 0 for up, 2 for hold.
                     # this happens to report key codes that are 8 lower
                     # than the ones reported by evtest and used in xkb files

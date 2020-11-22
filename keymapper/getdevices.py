@@ -23,6 +23,8 @@
 
 
 import multiprocessing
+import time
+import copy
 
 import evdev
 
@@ -62,10 +64,6 @@ class _GetDevicesProcess(multiprocessing.Process):
         # "Logitech USB Keyboard" and "Logitech USB Keyboard Consumer Control"
         grouped = {}
         for device in devices:
-            if device.phys.startswith('key-mapper'):
-                # injector device, not really periphery
-                continue
-
             # only keyboard devices
             # https://www.kernel.org/doc/html/latest/input/event-codes.html
             capabilities = device.capabilities().keys()
@@ -76,8 +74,6 @@ class _GetDevicesProcess(multiprocessing.Process):
                 not config.may_modify_movement_devices()
                 and evdev.ecodes.EV_REL in capabilities
             ):
-                # skip devices that control movement to avoid affecting
-                # their performance due to the amount of their events.
                 # TODO add checkbox to automatically load
                 #  a preset on login
                 logger.debug(
@@ -90,7 +86,7 @@ class _GetDevicesProcess(multiprocessing.Process):
             if grouped.get(usb) is None:
                 grouped[usb] = []
 
-            logger.debug('Found "%s", %s, %s', device.name, device.path, usb)
+            logger.spam('Found "%s", %s, %s', device.name, device.path, usb)
 
             grouped[usb].append((device.name, device.path))
 
@@ -109,13 +105,19 @@ class _GetDevicesProcess(multiprocessing.Process):
 
 
 def refresh_devices():
-    """Get new devices, e.g. new ones created by key-mapper."""
+    """Get new devices, e.g. new ones created by key-mapper.
+
+    This should be called whenever devices in /dev are added or removed.
+    """
+    # it may take a little bit of time until devices are visible after
+    # changes
+    time.sleep(0.1)
     global _devices
     _devices = None
     return get_devices()
 
 
-def get_devices():
+def get_devices(include_keymapper=False):
     """Group devices and get relevant infos per group.
 
     Returns a list containing mappings of
@@ -138,4 +140,14 @@ def get_devices():
         else:
             names = [f'"{name}"' for name in _devices]
             logger.info('Found %s', ', '.join(names))
-    return _devices
+
+    # filter the result
+    result = {}
+    for device in _devices.keys():
+        if include_keymapper and device.startswith('key-mapper'):
+            result[device] = _devices[device]
+            continue
+
+        result[device] = _devices[device]
+
+    return result
