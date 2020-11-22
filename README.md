@@ -1,7 +1,6 @@
 # Key Mapper
 
-GUI tool to map input buttons to e.g. change the macro keys of a mouse or
-any keyboard to something different.
+GUI tool to change the mapping of your input device buttons.
 
 <p align="center">
     <img src="data/screenshot.png"/>
