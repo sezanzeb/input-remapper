@@ -10,7 +10,7 @@ Tool to change the mapping of your input device buttons.
 
 First, install the package:
 
-```
+```bash
 git clone https://github.com/sezanzeb/key-mapper.git
 cd key-mapper
 sudo python3 setup.py install
