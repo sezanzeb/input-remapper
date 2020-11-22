@@ -36,18 +36,18 @@ class Install(DistUtilsExtra.auto.install_auto):
 
         policy_path = '/usr/share/polkit-1/actions/org.key-mapper.policy'
 
-        with open(policy_path, 'r') as f:
-            contents = f.read()
+        with open(policy_path, 'r') as file:
+            contents = file.read()
             if '{executable}' not in contents:
                 # already done previously
                 return
 
-        with open(policy_path, 'w') as f:
+        with open(policy_path, 'w') as file:
             print(
                 f'Inserting the correct path "{executable}" into '
                 'org.key-mapper.policy'
             )
-            f.write(contents.format(
+            file.write(contents.format(
                 executable=executable
             ))
 

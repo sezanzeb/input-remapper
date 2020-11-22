@@ -110,13 +110,13 @@ class TestInjector(unittest.TestCase):
             self.assertEqual(len(injector2.processes), 1)
             self.assertEqual(injector2.processes[0].is_alive(), True)
             injector2.processes[0].join()
-        except Exception as e:
+        except Exception as error:
             # make sure to not cause race conditions for other tests
             # if this test fails
             if injector2 is not None:
                 for p in injector2.processes:
                     p.join()
-            raise e
+            raise error
 
     def test_injector(self):
         device = get_devices()['device 2']

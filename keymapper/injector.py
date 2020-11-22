@@ -34,7 +34,7 @@ import multiprocessing
 import evdev
 
 from keymapper.logger import logger
-from keymapper.getdevices import get_devices, refresh_devices
+from keymapper.getdevices import get_devices
 from keymapper.state import custom_mapping, system_mapping
 
 
@@ -126,8 +126,8 @@ def _start_injecting_worker(path, pipe, mapping):
 
     try:
         device = _grab(path)
-    except Exception as e:
-        logger.error(e)
+    except Exception as error:
+        logger.error(error)
         pipe.send(FAILED)
         return
 
@@ -200,8 +200,11 @@ def is_numlock_on():
         r'Num Lock:\s+(.+?)\s',
         xset_q
     )
+
     if num_lock_status is not None:
         return num_lock_status[1] == 'on'
+
+    return False
 
 
 def toggle_numlock():
@@ -223,6 +226,7 @@ def toggle_numlock():
 
 
 def ensure_numlock(func):
+    """Decorator to reset the numlock to its initial state afterwards."""
     def wrapped(*args, **kwargs):
         # for some reason, grabbing a device can modify the num lock state.
         # remember it and apply back later

@@ -43,7 +43,8 @@ def unsaved_changes_dialog():
     dialog.show()
     response = dialog.run()
     dialog.hide()
+
     if response == Gtk.ResponseType.ACCEPT:
         return CONTINUE
-    else:
-        return GO_BACK
+
+    return GO_BACK

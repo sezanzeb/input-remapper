@@ -74,8 +74,6 @@ def get_any_preset():
         return None, None
     any_device = list(devices)[0]
     any_preset = (get_presets(any_device) or [None])[0]
-    if any_preset is not None:
-        any_preset = any_preset
     return any_device, any_preset
 
 

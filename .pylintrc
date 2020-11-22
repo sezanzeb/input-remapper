@@ -1,0 +1,5 @@
+[_]
+
+disable=
+    # that is the standard way to import GTK afaik
+    wrong-import-position

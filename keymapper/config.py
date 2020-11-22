@@ -61,9 +61,9 @@ class _Config:
             self.save_config()
             return
 
-        with open(CONFIG_PATH, 'r') as f:
+        with open(CONFIG_PATH, 'r') as file:
             self._config = copy.deepcopy(INITIAL_CONFIG)
-            self._config.update(json.load(f))
+            self._config.update(json.load(file))
             logger.info('Loaded config from %s', CONFIG_PATH)
 
     def clear_config(self):
@@ -77,11 +77,11 @@ class _Config:
             os.makedirs(os.path.dirname(CONFIG_PATH), exist_ok=True)
             os.mknod(CONFIG_PATH)
 
-        with open(CONFIG_PATH, 'w') as f:
-            json.dump(self._config, f, indent=4)
+        with open(CONFIG_PATH, 'w') as file:
+            json.dump(self._config, file, indent=4)
             logger.info('Saved config to %s', CONFIG_PATH)
             shutil.chown(CONFIG_PATH, os.getlogin())
-            f.write('\n')
+            file.write('\n')
 
 
 config = _Config()

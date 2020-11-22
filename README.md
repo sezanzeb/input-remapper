@@ -28,6 +28,7 @@ Depending on how those packages are called in your distro:
 # Tests
 
 ```bash
+pylint keymapper --extension-pkg-whitelist=evdev
 sudo python3 setup.py install && python3 tests/test.py
 ```
 

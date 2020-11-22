@@ -110,8 +110,8 @@ class Mapping:
             logger.error('Tried to load non-existing preset "%s"', path)
             return
 
-        with open(path, 'r') as f:
-            mapping = json.load(f)
+        with open(path, 'r') as file:
+            mapping = json.load(file)
             for keycode, character in mapping.items():
                 try:
                     keycode = int(keycode)
@@ -134,9 +134,9 @@ class Mapping:
             # if this is done with sudo rights, give the file to the user
             shutil.chown(path, os.getlogin())
 
-        with open(path, 'w') as f:
-            json.dump(self._mapping, f, indent=4)
-            f.write('\n')
+        with open(path, 'w') as file:
+            json.dump(self._mapping, file, indent=4)
+            file.write('\n')
 
         self.changed = False
 

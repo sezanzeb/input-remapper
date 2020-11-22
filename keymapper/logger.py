@@ -41,10 +41,11 @@ logging.Logger.spam = spam
 class Formatter(logging.Formatter):
     """Overwritten Formatter to print nicer logs."""
     def format(self, record):
+        """Overwritten format function."""
         debug = logger.level <= logging.DEBUG
         if record.levelno == logging.INFO and not debug:
             # if not launched with --debug, then don't print "INFO:"
-            self._style._fmt = '%(message)s'  # noqa
+            self._style._fmt = '%(message)s'  # pylint: disable=line-too-long
         else:
             # see https://en.wikipedia.org/wiki/ANSI_escape_code#3/4_bit
             # for those numbers
@@ -82,6 +83,7 @@ logging.getLogger('asyncio').setLevel(logging.WARNING)
 
 
 def is_debug():
+    """True, if the logger is currently in DEBUG or SPAM mode."""
     return logger.level <= logging.DEBUG
 
 
@@ -99,10 +101,6 @@ def update_verbosity(debug):
         logger.setLevel(SPAM)
     else:
         logger.setLevel(logging.INFO)
-
-
-def debug_log_on():
-    return logger.level == logging.DEBUG
 
 
 def add_filehandler():
