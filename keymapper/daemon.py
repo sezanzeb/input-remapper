@@ -48,7 +48,7 @@ def is_service_running():
 def get_dbus_interface():
     """Get an interface to start and stop injecting keystrokes."""
     if not is_service_running():
-        logger.error(
+        logger.warning(
             'The daemon is not running, mapping keys only works as '
             'long as the window is open.'
         )
