@@ -28,7 +28,7 @@ from keymapper.logger import logger
 from keymapper.getdevices import get_devices
 
 
-class KeycodeReader:
+class _KeycodeReader:
     """Keeps reading keycodes in the background for the UI to use.
 
     When a button was pressed, the newest keycode can be obtained from this
@@ -73,6 +73,12 @@ class KeycodeReader:
                 event = virtual_device.read_one()
                 if event is None:
                     break
+
+                logger.spam(
+                    'got code:%s value:%s',
+                    event.code + 8, event.value
+                )
+
                 if event.type == evdev.ecodes.EV_KEY and event.value == 1:
                     # value: 1 for down, 0 for up, 2 for hold.
                     # this happens to report key codes that are 8 lower
@@ -81,4 +87,4 @@ class KeycodeReader:
         return newest_keycode
 
 
-keycode_reader = KeycodeReader()
+keycode_reader = _KeycodeReader()

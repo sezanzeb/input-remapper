@@ -53,6 +53,7 @@ class TestInjector(unittest.TestCase):
             self.injector.stop_injecting()
             self.injector = None
         evdev.InputDevice.grab = self.grab
+        pending_events['device 2'] = []
 
     def test_modify_capabilities(self):
         class FakeDevice:
@@ -99,10 +100,9 @@ class TestInjector(unittest.TestCase):
         self.assertEqual(before, is_numlock_on())
 
     def test_injector_constructor(self):
-        global pending_events
         # this buys some time to test if the process is alive. 2 (20ms) would
         # already be enough
-        pending_events['device 2'] = [Event(1, 1, 1)] * 10
+        pending_events['device 2'] = [Event(1, 31, 1)] * 10
 
         injector2 = None
         try:
