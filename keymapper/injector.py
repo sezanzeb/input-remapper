@@ -19,7 +19,7 @@
 # along with key-mapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
-"""Device and evdev stuff that is independent from the display server."""
+"""Keeps injecting keycodes in the background based on the mapping."""
 
 
 import re
@@ -98,6 +98,7 @@ def _start_injecting_worker(path, pipe, mapping):
     pipe : multiprocessing.Pipe
         pipe to send status codes over
     """
+    # evdev needs asyncio to work
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
 
