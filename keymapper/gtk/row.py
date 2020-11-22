@@ -59,23 +59,10 @@ class Row(Gtk.ListBoxRow):
         character = self.character_input.get_text()
         return character if character else None
 
-    def start_watching_keycodes(self, *args):
-        """Start to periodically check if a keycode has been pressed.
-
-        This also includes e.g. middle mouse buttons, as opposed to
-        get_keycode from gdk events.
-        """
-        keycode_reader.clear()
-
-        def iterate():
-            self.check_newest_keycode()
-            return self.keycode.is_focus() and self.window.window.is_active()
-
-        GLib.timeout_add(1000 / 30, iterate)
-
-    def check_newest_keycode(self):
+    def set_new_keycode(self, new_keycode):
         """Check if a keycode has been pressed and if so, display it."""
-        new_keycode = keycode_reader.read()
+        # the newest_keycode is populated since the ui regularly polls it
+        # in order to display it in the status bar.
         previous_keycode = self.get_keycode()
         character = self.get_character()
 
@@ -108,7 +95,7 @@ class Row(Gtk.ListBoxRow):
             return
 
         # else, the keycode has changed, the character is set, all good
-        custom_mapping.change(previous_keycode, new_keycode, character)
+        custom_mapping.change(new_keycode, character, previous_keycode)
 
     def highlight(self):
         """Mark this row as changed."""
@@ -149,12 +136,6 @@ class Row(Gtk.ListBoxRow):
 
         if keycode is not None:
             keycode_input.set_label(str(keycode))
-
-        # to capture regular keyboard keys or extra-mouse keys
-        keycode_input.connect(
-            'focus-in-event',
-            self.start_watching_keycodes
-        )
 
         # make the togglebutton go back to its normal state when doing
         # something else in the UI
