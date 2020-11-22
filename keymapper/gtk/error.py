@@ -28,6 +28,7 @@ gi.require_version('GLib', '2.0')
 from gi.repository import Gtk
 
 from keymapper.data import get_data_path
+from keymapper.logger import logger
 
 
 class ErrorDialog:
@@ -39,6 +40,7 @@ class ErrorDialog:
         primary : string
         secondary : string
         """
+        logger.error(secondary)
         gladefile = get_data_path('key-mapper.glade')
         builder = Gtk.Builder()
         builder.add_from_file(gladefile)

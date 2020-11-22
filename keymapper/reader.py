@@ -22,13 +22,14 @@
 """Keeps reading keycodes in the background for the UI to use."""
 
 
+import os
 import evdev
 
 from keymapper.logger import logger
 from keymapper.getdevices import get_devices, refresh_devices
 
 
-# offset between xkb and linux keycodes
+# offset between xkb and linux keycodes. linux keycodes are lower
 KEYCODE_OFFSET = 8
 
 
@@ -68,10 +69,11 @@ class _KeycodeReader:
 
             # Watch over each one of the potentially multiple devices per
             # hardware
-            self.virtual_devices += [
-                evdev.InputDevice(path)
-                for path in group['paths']
-            ]
+            for path in group['paths']:
+                try:
+                    self.virtual_devices.append(evdev.InputDevice(path))
+                except FileNotFoundError:
+                    continue
 
             logger.debug(
                 'Starting reading keycodes from "%s"',
@@ -83,7 +85,17 @@ class _KeycodeReader:
         newest_keycode = None
         for virtual_device in self.virtual_devices:
             while True:
-                event = virtual_device.read_one()
+                try:
+                    event = virtual_device.read_one()
+                except OSError:
+                    # can happen if a device disappears
+                    logger.debug(
+                        '%s cannot be read anymore',
+                        virtual_device.name
+                    )
+                    self.virtual_devices.remove(virtual_device)
+                    break
+
                 if event is None:
                     break
 

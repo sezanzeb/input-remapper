@@ -22,6 +22,7 @@
 """User Interface."""
 
 
+import dbus
 import gi
 gi.require_version('Gtk', '3.0')
 gi.require_version('GLib', '2.0')
@@ -32,11 +33,11 @@ from keymapper.state import custom_mapping
 from keymapper.presets import get_presets, find_newest_preset, \
     delete_preset, rename_preset, get_available_preset_name
 from keymapper.logger import logger
-from keymapper.injector import KeycodeInjector
 from keymapper.getdevices import get_devices
 from keymapper.gtk.row import Row
 from keymapper.gtk.unsaved import unsaved_changes_dialog, GO_BACK
 from keymapper.reader import keycode_reader
+from keymapper.daemon import get_dbus_interface
 
 
 def gtk_iteration():
@@ -71,9 +72,10 @@ def get_selected_row_bg():
 class Window:
     """User Interface."""
     def __init__(self):
+        self.dbus = get_dbus_interface()
+
         self.selected_device = None
         self.selected_preset = None
-        self.keycode_injector = None
 
         css_provider = Gtk.CssProvider()
         with open(get_data_path('style.css'), 'r') as f:
@@ -166,7 +168,11 @@ class Window:
             custom_mapping.save(self.selected_device, new_preset)
             presets = [new_preset]
         else:
-            logger.debug('Presets for "%s": %s', device, ', '.join(presets))
+            logger.debug(
+                'Presets for "%s": "%s"',
+                device,
+                '", "'.join(presets)
+            )
         preset_selection = self.get('preset_selection')
 
         preset_selection.handler_block_by_func(self.on_select_preset)
@@ -217,8 +223,7 @@ class Window:
 
     def on_apply_system_layout_clicked(self, button):
         """Load the mapping."""
-        if self.keycode_injector is not None:
-            self.keycode_injector.stop_injecting()
+        self.dbus.stop_injecting(self.selected_device)
         self.get('status_bar').push(
             CTX_APPLY,
             f'Applied the system default'
@@ -269,16 +274,15 @@ class Window:
             CTX_APPLY,
             f'Applied "{self.selected_preset}"'
         )
-        # TODO write dbus.py and call apply_preset on that one instead
-        #  which sends a message to key-mapper-service
-        if self.keycode_injector is not None:
-            self.keycode_injector.stop_injecting()
-        try:
-            self.keycode_injector = KeycodeInjector(self.selected_device)
-        except OSError:
+        success = self.dbus.start_injecting(
+            self.selected_device,
+            self.selected_preset
+        )
+
+        if not success:
             self.get('status_bar').push(
                 CTX_ERROR,
-                f'Could not grab device "{self.selected_device}"'
+                'Error: Could not grab devices!'
             )
 
         # restart reading because after injecting the device landscape

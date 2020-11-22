@@ -25,13 +25,13 @@
 import sys
 import atexit
 import getpass
-import dbus.mainloop.glib
-from dbus.mainloop.glib import DBusGMainLoop
 from argparse import ArgumentParser
 
 import gi
 gi.require_version('GLib', '2.0')
 from gi.repository import GLib
+import dbus.mainloop.glib
+from dbus.mainloop.glib import DBusGMainLoop
 
 from keymapper.logger import logger, update_verbosity, log_info
 from keymapper.daemon import Daemon
@@ -53,7 +53,7 @@ if __name__ == '__main__':
         logger.warning('Without sudo, your devices may not be visible')
 
     session_bus = dbus.SessionBus(mainloop=DBusGMainLoop())
-    name = dbus.service.BusName('com.keymapper.control', session_bus)
+    name = dbus.service.BusName('com.keymapper.Control', session_bus)
     daemon = Daemon(session_bus, '/')
 
     atexit.register(daemon.stop)
