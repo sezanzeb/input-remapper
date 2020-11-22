@@ -1,9 +1,6 @@
 # Key Mapper
 
-GUI tool to map input buttons to e.g. change the macro keys of a mouse or
-any keyboard to something different.
-
-Tested on **X11/Manjaro** and **Wayland/Ubuntu**
+Tool to change the mapping of your input device buttons.
 
 <p align="center">
     <img src="data/screenshot.png"/>
@@ -21,7 +18,9 @@ You can also start it via your applications menu.
 
 Depending on how those packages are called in your distro:
 
-`python3-distutils-extra` `python3-evdev`
+`python3-distutils-extra` `python3-evdev` `python3-dbus`
+
+It works with both Wayland and X11.
 
 # Tests
 
