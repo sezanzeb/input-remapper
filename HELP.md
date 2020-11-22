@@ -1,7 +1,7 @@
 # Why does key-mapper not use xkb configs?
 
 Branches for some of that stuff exist to archive it instead of loosing it
-forever.
+forever. Some of this stuff is based on wild guesses.
 
 **Initial target** You write a symbols file based on your specified mapping,
 and that's pretty much it. There were two mappings: The first one is in the
