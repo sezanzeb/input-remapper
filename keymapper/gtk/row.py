@@ -86,8 +86,10 @@ class Row(Gtk.ListBoxRow):
         self.keycode.set_label(str(new_keycode))
         # switch to the character, don't require mouse input because
         # that would overwrite the key with the mouse-button key if
-        # the current device is a mouse
-        self.window.window.set_focus(self.character_input)
+        # the current device is a mouse. idle_add this so that the
+        # keycode event won't write into the character input as well.
+        window = self.window.window
+        GLib.idle_add(lambda: window.set_focus(self.character_input))
         self.highlight()
 
         # the character is empty and therefore the mapping is not complete

@@ -34,13 +34,14 @@ import multiprocessing
 import evdev
 
 from keymapper.logger import logger
-from keymapper.getdevices import get_devices
+from keymapper.getdevices import get_devices, refresh_devices
 from keymapper.state import custom_mapping, system_mapping
 
 
 DEV_NAME = 'key-mapper'
 DEVICE_CREATED = 1
 FAILED = 2
+DEVICE_SKIPPED = 3
 
 
 def _grab(path):
@@ -88,6 +89,24 @@ def _modify_capabilities(device):
     return capabilities
 
 
+def _is_device_mapped(device, mapping):
+    """Check if this device has capabilities that are being mapped.
+
+    Parameters
+    ----------
+    device : evdev.InputDevice
+    mapping : Mapping
+    """
+    capabilities = device.capabilities(absinfo=False)[evdev.ecodes.EV_KEY]
+    needed = False
+    for keycode, _ in custom_mapping:
+        if keycode in capabilities:
+            needed = True
+    if not needed:
+        logger.debug('No need to grab %s', device.path)
+    return needed
+
+
 def _start_injecting_worker(path, pipe, mapping):
     """Inject keycodes for one of the virtual devices.
 
@@ -108,19 +127,21 @@ def _start_injecting_worker(path, pipe, mapping):
         pipe.send(FAILED)
         return
 
-    capabilities = _modify_capabilities(device)
+    if not _is_device_mapped(device, mapping):
+        pipe.send(DEVICE_SKIPPED)
+        return
 
     keymapper_device = evdev.UInput(
         name=f'key-mapper {device.name}',
         phys='key-mapper',
-        events=capabilities
+        events=_modify_capabilities(device)
     )
 
     pipe.send(DEVICE_CREATED)
 
     logger.debug(
         'Started injecting into %s, fd %s',
-        device.path, keymapper_device.fd
+        keymapper_device.device.path, keymapper_device.fd
     )
 
     for event in device.read_loop():
@@ -222,11 +243,7 @@ class KeycodeInjector:
 
         paths = get_devices()[self.device]['paths']
 
-        logger.info(
-            'Starting injecting the mapping for %s on %s',
-            self.device,
-            ', '.join(paths)
-        )
+        logger.info('Starting injecting the mapping for %s', self.device)
 
         # Watch over each one of the potentially multiple devices per hardware
         for path in paths:
@@ -247,6 +264,9 @@ class KeycodeInjector:
         if len(self.processes) == 0:
             raise OSError('Could not grab any device')
 
+        # key-mapper devices were added, freshly scan /dev/input
+        refresh_devices()
+
     @ensure_numlock
     def stop_injecting(self):
         """Stop injecting keycodes."""
@@ -258,3 +278,5 @@ class KeycodeInjector:
             if process.is_alive():
                 process.terminate()
                 self.processes[i] = None
+
+        refresh_devices()
