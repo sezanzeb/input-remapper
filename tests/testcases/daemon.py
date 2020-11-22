@@ -50,7 +50,8 @@ class TestDaemon(unittest.TestCase):
         custom_mapping.change(10, 'b')
 
         system_mapping.empty()
-        system_mapping.change(100, 'a')
+        a_code = 100
+        system_mapping.change(a_code, 'a')
 
         custom_mapping.save('device 2', 'foo')
         config.set_autoload_preset('device 2', 'foo')
@@ -75,11 +76,11 @@ class TestDaemon(unittest.TestCase):
             write_history.append(pipe.recv())
 
         self.assertEqual(write_history[0].type, evdev.events.EV_KEY)
-        self.assertEqual(write_history[0].code, 92)
+        self.assertEqual(write_history[0].code, a_code - 8)
         self.assertEqual(write_history[0].value, 0)
 
         self.assertEqual(write_history[1].type, evdev.events.EV_KEY)
-        self.assertEqual(write_history[1].code, 92)
+        self.assertEqual(write_history[1].code, a_code - 8)
         self.assertEqual(write_history[1].value, 1)
 
         self.assertEqual(write_history[2].type, 3124)
