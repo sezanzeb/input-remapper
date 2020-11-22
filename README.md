@@ -1,6 +1,6 @@
 # Key Mapper
 
-GUI tool to change the mapping of your input device buttons.
+Tool to change the mapping of your input device buttons.
 
 <p align="center">
     <img src="data/screenshot.png"/>
