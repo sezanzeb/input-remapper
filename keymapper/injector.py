@@ -43,6 +43,9 @@ DEVICE_CREATED = 1
 FAILED = 2
 DEVICE_SKIPPED = 3
 
+# offset between xkb and linux keycodes. linux keycodes are lower
+KEYCODE_OFFSET = 8
+
 
 def _grab(path):
     """Try to grab, repeat a few times with time inbetween on failure."""
@@ -99,8 +102,8 @@ def _is_device_mapped(device, mapping):
     """
     capabilities = device.capabilities(absinfo=False)[evdev.ecodes.EV_KEY]
     needed = False
-    for keycode, _ in custom_mapping:
-        if keycode in capabilities:
+    for keycode, _ in mapping:
+        if keycode - KEYCODE_OFFSET in capabilities:
             needed = True
     if not needed:
         logger.debug('No need to grab %s', device.path)
@@ -128,6 +131,8 @@ def _start_injecting_worker(path, pipe, mapping):
         return
 
     if not _is_device_mapped(device, mapping):
+        # skipping reading and checking on events from those devices
+        # may be beneficial for performance.
         pipe.send(DEVICE_SKIPPED)
         return
 
@@ -158,9 +163,7 @@ def _start_injecting_worker(path, pipe, mapping):
             # linux does them itself, no need to trigger them
             continue
 
-        # this happens to report key codes that are 8 lower
-        # than the ones reported by xev and that X expects
-        input_keycode = event.code + 8
+        input_keycode = event.code + KEYCODE_OFFSET
 
         character = mapping.get_character(input_keycode)
 
@@ -178,12 +181,12 @@ def _start_injecting_worker(path, pipe, mapping):
 
         logger.spam(
             'got code:%s value:%s, maps to code:%s char:%s',
-            event.code + 8, event.value, target_keycode, character
+            event.code + KEYCODE_OFFSET, event.value, target_keycode, character
         )
 
         keymapper_device.write(
             evdev.ecodes.EV_KEY,
-            target_keycode - 8,
+            target_keycode - KEYCODE_OFFSET,
             event.value
         )
         keymapper_device.syn()

@@ -28,6 +28,10 @@ from keymapper.logger import logger
 from keymapper.getdevices import get_devices, refresh_devices
 
 
+# offset between xkb and linux keycodes
+KEYCODE_OFFSET = 8
+
+
 class _KeycodeReader:
     """Keeps reading keycodes in the background for the UI to use.
 
@@ -86,12 +90,10 @@ class _KeycodeReader:
                 if event.type == evdev.ecodes.EV_KEY and event.value == 1:
                     logger.spam(
                         'got code:%s value:%s',
-                        event.code + 8, event.value
+                        event.code + KEYCODE_OFFSET, event.value
                     )
                     # value: 1 for down, 0 for up, 2 for hold.
-                    # this happens to report key codes that are 8 lower
-                    # than the ones reported by evtest and used in xkb files
-                    newest_keycode = event.code + 8
+                    newest_keycode = event.code + KEYCODE_OFFSET
         return newest_keycode
 
 
