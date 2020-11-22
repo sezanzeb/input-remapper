@@ -91,7 +91,6 @@ class TestInjector(unittest.TestCase):
         @ensure_numlock
         def wrapped():
             toggle_numlock()
-            return 1234
 
         wrapped()  # should not change
         self.assertEqual(not before, is_numlock_on())
