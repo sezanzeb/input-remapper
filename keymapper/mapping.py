@@ -30,6 +30,22 @@ from keymapper.logger import logger
 from keymapper.paths import get_config_path
 
 
+def update_reverse_mapping(func):
+    """Generate a reverse mapping to optimize reverse lookups.
+
+    If _mapping contains `20: "a, A"`,
+    reverse mapping will contain `"a": 20, "A": 20`
+    """
+    def wrapper(self, *args, **kwargs):
+        func(self, *args, **kwargs)
+
+        self._reverse_mapping = {}
+        for key, value in self._mapping.items():
+            for character in value.split(','):
+                self._reverse_mapping[character.strip()] = key
+    return wrapper
+
+
 class Mapping:
     """Contains and manages mappings.
 
@@ -38,6 +54,14 @@ class Mapping:
     """
     def __init__(self):
         self._mapping = {}
+
+        # Maintain this second mapping in order to optimize get_keycode.
+        # This mapping is not complete, since multiple keycodes can map
+        # to the same character in _mapping which is not possible in
+        # _reverse_mapping! It is based on _reverse_mapping and
+        # reconstructed on changes.
+        self._reverse_mapping = {}
+
         self.changed = False
 
     def __iter__(self):
@@ -47,6 +71,7 @@ class Mapping:
     def __len__(self):
         return len(self._mapping)
 
+    @update_reverse_mapping
     def change(self, new_keycode, character, previous_keycode=None):
         """Replace the mapping of a keycode with a different one.
 
@@ -85,6 +110,7 @@ class Mapping:
 
         return False
 
+    @update_reverse_mapping
     def clear(self, keycode):
         """Remove a keycode from the mapping.
 
@@ -96,11 +122,13 @@ class Mapping:
             del self._mapping[keycode]
             self.changed = True
 
+    @update_reverse_mapping
     def empty(self):
         """Remove all mappings."""
         self._mapping = {}
         self.changed = True
 
+    @update_reverse_mapping
     def load(self, device, preset):
         """Load a dumped JSON from home to overwrite the mappings."""
         path = get_config_path(device, preset)
@@ -141,17 +169,12 @@ class Mapping:
         self.changed = False
 
     def get_keycode(self, character):
-        """Get the keycode for that character."""
-        # TODO prepare separate data structure for optimization
-        for keycode, mapping in self._mapping.items():
-            # note, that stored mappings are already lowercase
-            if ', ' in mapping:
-                if character in [c.strip() for c in mapping.split(',')]:
-                    return keycode
-            elif mapping == character:
-                return int(keycode)
+        """Get the keycode for that character.
 
-        return None
+        If multiple keycodes map to that character, an arbitrary one of
+        those is returned.
+        """
+        return self._reverse_mapping.get(character)
 
     def get_character(self, keycode):
         """Read the character that is mapped to this keycode.
