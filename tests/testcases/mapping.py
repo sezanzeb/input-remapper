@@ -45,6 +45,12 @@ class TestMapping(unittest.TestCase):
         self.assertEqual(loaded.get_keycode('2'), 11)
         self.assertEqual(loaded.get_keycode('3'), 12)
 
+    def test_split(self):
+        # mapping supports the xmodmap/xkb syntax for modified buttons
+        self.mapping.change(10, 'a, A')
+        self.assertEqual(self.mapping.get_keycode('a'), 10)
+        self.assertEqual(self.mapping.get_keycode('A'), 10)
+
     def test_change(self):
         # 1 is not assigned yet, ignore it
         self.mapping.change(2, 'a', 1)

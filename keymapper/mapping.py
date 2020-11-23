@@ -33,8 +33,8 @@ from keymapper.paths import get_config_path
 def update_reverse_mapping(func):
     """Generate a reverse mapping to optimize reverse lookups.
 
-    If _mapping contains `20: "a, A"`,
-    reverse mapping will contain `"a": 20, "A": 20`
+    If _mapping contains `20: "a, A"` (the xkb syntax for modified keys),
+    reverse mapping will contain `"a": 20, "A": 20`.
     """
     def wrapper(self, *args, **kwargs):
         func(self, *args, **kwargs)
