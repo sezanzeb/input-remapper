@@ -54,11 +54,20 @@ def get_dbus_interface():
         )
         return Daemon(autoload=False)
 
-    logger.debug('Found the daemon process')
-    bus = dbus.SessionBus()
-    remote_object = bus.get_object('com.keymapper.Control', '/')
-    interface = dbus.Interface(remote_object, 'com.keymapper.Interface')
-    logger.debug('Connected to dbus')
+    try:
+        logger.debug('Found the daemon process')
+        bus = dbus.SessionBus()
+        remote_object = bus.get_object('com.keymapper.Control', '/')
+        interface = dbus.Interface(remote_object, 'com.keymapper.Interface')
+        logger.debug('Connected to dbus')
+    except Exception as error:
+        logger.error(
+            'Could not connect to the dbus of "key-mapper-service", mapping '
+            'keys only works as long as the window is open.'
+        )
+        logger.error(error)
+        return Daemon(autoload=False)
+
     return interface
 
 
