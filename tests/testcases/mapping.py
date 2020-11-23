@@ -22,12 +22,20 @@
 import unittest
 
 from keymapper.mapping import Mapping
+from keymapper.state import parse_xmodmap
 
 
 class TestMapping(unittest.TestCase):
     def setUp(self):
         self.mapping = Mapping()
         self.assertFalse(self.mapping.changed)
+
+    def test_parse_xmodmap(self):
+        parse_xmodmap(self.mapping)
+        self.assertGreater(len(self.mapping), 100)
+        # keycode 10 is typically mapped to '1'
+        self.assertEqual(self.mapping.get_keycode('1'), 10)
+        self.assertTrue(self.mapping.get_character(10).startswith('1'))
 
     def test_save_load(self):
         self.mapping.change(10, '1')
