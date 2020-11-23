@@ -31,13 +31,18 @@ from keymapper.paths import get_config_path
 
 
 def update_reverse_mapping(func):
-    """Generate a reverse mapping to optimize reverse lookups."""
+    """Generate a reverse mapping to optimize reverse lookups.
+
+    If _mapping contains `20: "a, A"`,
+    reverse mapping will contain `"a": 20, "A": 20`
+    """
     def wrapper(self, *args, **kwargs):
         func(self, *args, **kwargs)
-        self._reverse_mapping = {
-            value: key for key, value
-            in self._mapping.items()
-        }
+
+        self._reverse_mapping = {}
+        for key, value in self._mapping.items():
+            for character in value.split(','):
+                self._reverse_mapping[character.strip()] = key
     return wrapper
 
 
