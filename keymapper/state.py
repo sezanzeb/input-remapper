@@ -33,7 +33,6 @@ def parse_xmodmap(mapping):
     """Read the output of xmodmap into a mapping."""
     xmodmap = subprocess.check_output(['xmodmap', '-pke']).decode() + '\n'
     mappings = re.findall(r'(\d+) = (.+)\n', xmodmap)
-    # TODO is this tested?
     for keycode, characters in mappings:
         # this is the "array" format needed for symbols files
         character = ', '.join(characters.split())
