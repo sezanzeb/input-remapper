@@ -37,6 +37,7 @@ from keymapper.gtk.row import Row
 from keymapper.gtk.unsaved import unsaved_changes_dialog, GO_BACK
 from keymapper.reader import keycode_reader
 from keymapper.daemon import get_dbus_interface
+from keymapper.paths import get_config_path
 
 
 def gtk_iteration():
@@ -275,7 +276,7 @@ class Window:
         )
         success = self.dbus.start_injecting(
             self.selected_device,
-            self.selected_preset
+            get_config_path(self.selected_device, self.selected_preset)
         )
 
         if not success:
@@ -343,7 +344,8 @@ class Window:
         logger.debug('Selecting preset "%s"', preset)
 
         self.selected_preset = preset
-        custom_mapping.load(self.selected_device, self.selected_preset)
+        path = get_config_path(self.selected_device, self.selected_preset)
+        custom_mapping.load(path)
 
         key_list = self.get('key_list')
         for keycode, output in custom_mapping:

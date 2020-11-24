@@ -31,9 +31,16 @@ from keymapper.logger import logger
 from keymapper.config import config
 from keymapper.injector import KeycodeInjector
 from keymapper.mapping import Mapping
+from keymapper.paths import get_config_path
 
 
 # TODO service file in data for a root daemon
+#  - start service as root with .service https://wiki.archlinux.org/index.php/Systemd#Writing_unit_files # noqa
+#  - starting service (root), running key-mapper-gtk (non-root), will the dbus
+#    be found? (Error says dbus not provided by .service files)
+
+
+# TODO the daemon creates an initial config in my home dir. it shouldn't.
 
 
 def is_service_running():
@@ -63,7 +70,8 @@ def get_dbus_interface():
     except Exception as error:
         logger.error(
             'Could not connect to the dbus of "key-mapper-service", mapping '
-            'keys only works as long as the window is open.'
+            'keys only works as long as the window is open. Is one of your '
+            'key-mapper processes not running as root?'
         )
         logger.error(error)
         return Daemon(autoload=False)
@@ -82,7 +90,7 @@ class Daemon(service.Object):
         if autoload:
             for device, preset in config.iterate_autoload_presets():
                 mapping = Mapping()
-                mapping.load(device, preset)
+                mapping.load(get_config_path(device, preset))
                 self.injectors[device] = KeycodeInjector(device, mapping)
 
         super().__init__(*args, **kwargs)
@@ -108,16 +116,25 @@ class Daemon(service.Object):
         'com.keymapper.Interface',
         in_signature='ss'
     )
-    def start_injecting(self, device, preset):
-        """Start injecting the preset for the device.
+    def start_injecting(self, device, path):
+        """Start injecting the preset on the path for the device.
 
         Returns True on success.
+
+        Parameters
+        ----------
+        device : string
+            The name of the device
+        path : string
+            Path to the json file that describes the preset
         """
+        # TODO the integration tests don't seem to test that path actually
+        #  exists
         if self.injectors.get(device) is not None:
             self.injectors[device].stop_injecting()
 
         mapping = Mapping()
-        mapping.load(device, preset)
+        mapping.load(path)
         try:
             self.injectors[device] = KeycodeInjector(device, mapping)
         except OSError:

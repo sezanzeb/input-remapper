@@ -47,21 +47,21 @@ class TestCreatePreset(unittest.TestCase):
         self.assertEqual(get_any_preset(), ('device 1', None))
         create_preset('device 1')
         self.assertEqual(get_any_preset(), ('device 1', 'new preset'))
-        self.assertTrue(os.path.exists(f'{CONFIG}/device 1/new preset'))
+        self.assertTrue(os.path.exists(f'{CONFIG}/device 1/new preset.json'))
 
     def test_create_preset_2(self):
         create_preset('device 1')
         create_preset('device 1')
-        self.assertTrue(os.path.exists(f'{CONFIG}/device 1/new preset'))
-        self.assertTrue(os.path.exists(f'{CONFIG}/device 1/new preset 2'))
+        self.assertTrue(os.path.exists(f'{CONFIG}/device 1/new preset.json'))
+        self.assertTrue(os.path.exists(f'{CONFIG}/device 1/new preset 2.json'))
 
     def test_create_preset_3(self):
         create_preset('device 1', 'pre set')
         create_preset('device 1', 'pre set')
         create_preset('device 1', 'pre set')
-        self.assertTrue(os.path.exists(f'{CONFIG}/device 1/pre set'))
-        self.assertTrue(os.path.exists(f'{CONFIG}/device 1/pre set 2'))
-        self.assertTrue(os.path.exists(f'{CONFIG}/device 1/pre set 3'))
+        self.assertTrue(os.path.exists(f'{CONFIG}/device 1/pre set.json'))
+        self.assertTrue(os.path.exists(f'{CONFIG}/device 1/pre set 2.json'))
+        self.assertTrue(os.path.exists(f'{CONFIG}/device 1/pre set 3.json'))
 
 
 class TestDeletePreset(unittest.TestCase):
@@ -72,13 +72,13 @@ class TestDeletePreset(unittest.TestCase):
     def test_delete_preset(self):
         create_preset('device 1')
         create_preset('device 1')
-        self.assertTrue(os.path.exists(f'{CONFIG}/device 1/new preset'))
+        self.assertTrue(os.path.exists(f'{CONFIG}/device 1/new preset.json'))
         delete_preset('device 1', 'new preset')
-        self.assertFalse(os.path.exists(f'{CONFIG}/device 1/new preset'))
+        self.assertFalse(os.path.exists(f'{CONFIG}/device 1/new preset.json'))
         self.assertTrue(os.path.exists(f'{CONFIG}/device 1'))
         delete_preset('device 1', 'new preset 2')
-        self.assertFalse(os.path.exists(f'{CONFIG}/device 1/new preset'))
-        self.assertFalse(os.path.exists(f'{CONFIG}/device 1/new preset 2'))
+        self.assertFalse(os.path.exists(f'{CONFIG}/device 1/new preset.json'))
+        self.assertFalse(os.path.exists(f'{CONFIG}/device 1/new preset 2.json'))
         # if no preset in the directory, remove the directory
         self.assertFalse(os.path.exists(f'{CONFIG}/device 1'))
 
@@ -94,10 +94,10 @@ class TestRenamePreset(unittest.TestCase):
         create_preset('device 1', 'foobar')
         rename_preset('device 1', 'preset 1', 'foobar')
         rename_preset('device 1', 'preset 2', 'foobar')
-        self.assertFalse(os.path.exists(f'{CONFIG}/device 1/preset 1'))
-        self.assertTrue(os.path.exists(f'{CONFIG}/device 1/foobar'))
-        self.assertTrue(os.path.exists(f'{CONFIG}/device 1/foobar 2'))
-        self.assertTrue(os.path.exists(f'{CONFIG}/device 1/foobar 3'))
+        self.assertFalse(os.path.exists(f'{CONFIG}/device 1/preset 1.json'))
+        self.assertTrue(os.path.exists(f'{CONFIG}/device 1/foobar.json'))
+        self.assertTrue(os.path.exists(f'{CONFIG}/device 1/foobar 2.json'))
+        self.assertTrue(os.path.exists(f'{CONFIG}/device 1/foobar 3.json'))
 
 
 class TestFindPresets(unittest.TestCase):
