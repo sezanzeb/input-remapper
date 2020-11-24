@@ -50,12 +50,12 @@ if __name__ == '__main__':
     update_verbosity(options.debug)
     log_info()
 
-    if getpass.getuser() != 'root' and 'unittest' not in sys.modules.keys():
+    """if getpass.getuser() != 'root' and 'unittest' not in sys.modules.keys():
         ErrorDialog(
             'Error',
             'Sudo is required to talk to the daemon and discover devices'
         )
-        raise SystemExit(1)
+        raise SystemExit(1)"""
 
     window = Window()
 

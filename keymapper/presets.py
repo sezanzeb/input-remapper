@@ -46,7 +46,7 @@ def get_available_preset_name(device, preset='new preset'):
 
 
 def get_presets(device):
-    """Get all configured presets for the device, sorted by modification date.
+    """Get all presets for the device and user, starting with the newest.
 
     Parameters
     ----------
@@ -56,7 +56,7 @@ def get_presets(device):
     if not os.path.exists(device_folder):
         os.makedirs(device_folder)
     presets = [
-        os.path.basename(path)
+        os.path.splitext(os.path.basename(path))[0]
         for path in sorted(
             glob.glob(os.path.join(device_folder, '*')),
             key=os.path.getmtime
@@ -78,7 +78,8 @@ def get_any_preset():
 
 
 def find_newest_preset(device=None):
-    """Get a tuple of (device, preset) that was most recently modified.
+    """Get a tuple of (device, preset) that was most recently modified
+    in the users home directory.
 
     If no device has been configured yet, return an arbitrary device.
 
@@ -119,13 +120,14 @@ def find_newest_preset(device=None):
         logger.debug('None of the configured devices is currently online')
         return get_any_preset()
 
+    preset = os.path.splitext(preset)[0]
     logger.debug('The newest preset is "%s", "%s"', device, preset)
 
     return device, preset
 
 
 def delete_preset(device, preset):
-    """Delete a preset from the file system."""
+    """Delete one of the users presets."""
     preset_path = get_config_path(device, preset)
     if not os.path.exists(preset_path):
         logger.debug('Cannot remove non existing path "%s"', preset_path)
@@ -141,7 +143,7 @@ def delete_preset(device, preset):
 
 
 def rename_preset(device, old_preset_name, new_preset_name):
-    """Rename a preset while avoiding name conflicts."""
+    """Rename one of the users presets while avoiding name conflicts."""
     if new_preset_name == old_preset_name:
         return
 

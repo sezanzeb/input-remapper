@@ -190,7 +190,7 @@ class Integration(unittest.TestCase):
         self.window.get('preset_name_input').set_text('asdf')
         self.window.on_save_preset_clicked(None)
         self.assertEqual(self.window.selected_preset, 'asdf')
-        self.assertTrue(os.path.exists(f'{CONFIG}/device 1/asdf'))
+        self.assertTrue(os.path.exists(f'{CONFIG}/device 1/asdf.json'))
         self.assertEqual(custom_mapping.get_character(14), 'b')
 
     def test_select_device_and_preset(self):
@@ -206,15 +206,15 @@ class Integration(unittest.TestCase):
 
         # created on start because the first device is selected and some empty
         # preset prepared.
-        self.assertTrue(os.path.exists(f'{CONFIG}/device 1/new preset'))
+        self.assertTrue(os.path.exists(f'{CONFIG}/device 1/new preset.json'))
         self.assertEqual(self.window.selected_device, 'device 1')
         self.assertEqual(self.window.selected_preset, 'new preset')
 
         # create another one
         self.window.on_create_preset_clicked(None)
         gtk_iteration()
-        self.assertTrue(os.path.exists(f'{CONFIG}/device 1/new preset'))
-        self.assertTrue(os.path.exists(f'{CONFIG}/device 1/new preset 2'))
+        self.assertTrue(os.path.exists(f'{CONFIG}/device 1/new preset.json'))
+        self.assertTrue(os.path.exists(f'{CONFIG}/device 1/new preset 2.json'))
         self.assertEqual(self.window.selected_preset, 'new preset 2')
 
         self.window.on_select_preset(FakeDropdown('new preset'))
@@ -223,26 +223,26 @@ class Integration(unittest.TestCase):
 
         self.assertListEqual(
             sorted(os.listdir(f'{CONFIG}/device 1')),
-            ['new preset', 'new preset 2']
+            sorted(['new preset.json', 'new preset 2.json'])
         )
 
         # now try to change the name
         self.window.get('preset_name_input').set_text('abc 123')
         gtk_iteration()
         self.assertEqual(self.window.selected_preset, 'new preset')
-        self.assertFalse(os.path.exists(f'{CONFIG}/device 1/abc 123'))
+        self.assertFalse(os.path.exists(f'{CONFIG}/device 1/abc 123.json'))
         custom_mapping.change(10, '1', None)
         self.window.on_save_preset_clicked(None)
         gtk_iteration()
         self.assertEqual(self.window.selected_preset, 'abc 123')
-        self.assertTrue(os.path.exists(f'{CONFIG}/device 1/abc 123'))
+        self.assertTrue(os.path.exists(f'{CONFIG}/device 1/abc 123.json'))
         self.assertListEqual(
             sorted(os.listdir(CONFIG)),
-            ['device 1']
+            sorted(['device 1'])
         )
         self.assertListEqual(
             sorted(os.listdir(f'{CONFIG}/device 1')),
-            ['abc 123', 'new preset 2']
+            sorted(['abc 123.json', 'new preset 2.json'])
         )
 
     def test_start_injecting(self):

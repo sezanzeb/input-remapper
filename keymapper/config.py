@@ -80,7 +80,7 @@ class _Config:
         with open(CONFIG_PATH, 'w') as file:
             json.dump(self._config, file, indent=4)
             logger.info('Saved config to %s', CONFIG_PATH)
-            shutil.chown(CONFIG_PATH, os.getlogin())
+            shutil.chown(CONFIG_PATH, os.getlogin(), os.getlogin())
             file.write('\n')
 
 

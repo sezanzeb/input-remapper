@@ -32,6 +32,14 @@ def get_config_path(device=None, preset=None):
     """Get a path to the stored preset, or to store a preset to."""
     if device is None:
         return CONFIG
+
+    if preset is not None:
+        # the extension of the preset should not be shown in the ui.
+        # currently only .json files are used.
+        assert not preset.endswith('.json')
+        preset = f'{preset}.json'
+
     if preset is None:
         return os.path.join(CONFIG, device)
+
     return os.path.join(CONFIG, device, preset)

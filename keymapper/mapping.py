@@ -129,9 +129,10 @@ class Mapping:
         self.changed = True
 
     @update_reverse_mapping
-    def load(self, device, preset):
-        """Load a dumped JSON from home to overwrite the mappings."""
-        path = get_config_path(device, preset)
+    def load(self, path):
+        """Load a dumped JSON from a path to overwrite the mappings."""
+        # since the daemon needs to load presets and runs as root, it
+        # needs the full path.
         logger.info('Loading preset from "%s"', path)
 
         if not os.path.exists(path):
@@ -140,7 +141,11 @@ class Mapping:
 
         with open(path, 'r') as file:
             mapping = json.load(file)
-            for keycode, character in mapping.items():
+            if mapping.get('mapping') is None:
+                logger.error('Invalid preset config at "%s"', path)
+                return
+
+            for keycode, character in mapping['mapping'].items():
                 try:
                     keycode = int(keycode)
                 except ValueError:
@@ -160,10 +165,14 @@ class Mapping:
             os.makedirs(os.path.dirname(path), exist_ok=True)
             os.mknod(path)
             # if this is done with sudo rights, give the file to the user
-            shutil.chown(path, os.getlogin())
+            shutil.chown(path, os.getlogin(), os.getlogin())
 
         with open(path, 'w') as file:
-            json.dump(self._mapping, file, indent=4)
+            # make sure to keep the option to add metadata if ever needed,
+            # so put the mapping into a special key
+            json.dump({
+                'mapping': self._mapping
+            }, file, indent=4)
             file.write('\n')
 
         self.changed = False
