@@ -23,7 +23,7 @@ import unittest
 
 import evdev
 
-from keymapper.injector import _start_injecting_worker, _grab, \
+from keymapper.dev.injector import _start_injecting_worker, _grab, \
     is_numlock_on, toggle_numlock, ensure_numlock, _modify_capabilities, \
     KeycodeInjector
 from keymapper.getdevices import get_devices

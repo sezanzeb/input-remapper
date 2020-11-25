@@ -33,9 +33,9 @@ gi.require_version('GLib', '2.0')
 from gi.repository import Gtk
 
 from keymapper.logger import update_verbosity, log_info
-from keymapper.gtk.error import ErrorDialog
 from keymapper.gtk.window import Window
 from keymapper.daemon import Daemon
+from keymapper.dev.permissions import can_read_devices
 
 
 if __name__ == '__main__':
@@ -50,12 +50,7 @@ if __name__ == '__main__':
     update_verbosity(options.debug)
     log_info()
 
-    """if getpass.getuser() != 'root' and 'unittest' not in sys.modules.keys():
-        ErrorDialog(
-            'Error',
-            'Sudo is required to talk to the daemon and discover devices'
-        )
-        raise SystemExit(1)"""
+    can_read_devices()
 
     window = Window()
 

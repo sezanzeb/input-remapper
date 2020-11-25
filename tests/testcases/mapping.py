@@ -45,7 +45,7 @@ class TestMapping(unittest.TestCase):
         self.mapping.save('device 1', 'test')
         loaded = Mapping()
         self.assertEqual(len(loaded), 0)
-        loaded.load(get_config_path('device 1', 'test'))
+        loaded.load('device 1', 'test')
         self.assertEqual(len(loaded), 3)
         self.assertEqual(loaded.get_character(10), '1')
         self.assertEqual(loaded.get_character(11), '2')

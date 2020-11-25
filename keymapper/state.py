@@ -19,7 +19,7 @@
 # along with key-mapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
-"""Create some files and objects that are needed for the app to work."""
+"""Create some singleton objects that are needed for the app to work."""
 
 
 import stat

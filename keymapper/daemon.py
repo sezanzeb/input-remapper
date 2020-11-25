@@ -28,17 +28,9 @@ from dbus import service
 import dbus.mainloop.glib
 
 from keymapper.logger import logger
-from keymapper.injector import KeycodeInjector
+from keymapper.dev.injector import KeycodeInjector
 from keymapper.mapping import Mapping
-
-
-# TODO service file in data for a root daemon
-#  - start service as root with .service https://wiki.archlinux.org/index.php/Systemd#Writing_unit_files # noqa
-#  - starting service (root), running key-mapper-gtk (non-root), will the dbus
-#    be found? (Error says dbus not provided by .service files)
-
-
-# TODO the daemon creates an initial config in my home dir. it shouldn't.
+from keymapper.config import config
 
 
 def is_service_running():
@@ -57,7 +49,7 @@ def get_dbus_interface():
             'The daemon "key-mapper-service" is not running, mapping keys '
             'only works as long as the window is open.'
         )
-        return Daemon()
+        return Daemon(autoload=False)
 
     try:
         logger.debug('Found the daemon process')
@@ -68,8 +60,7 @@ def get_dbus_interface():
     except Exception as error:
         logger.error(
             'Could not connect to the dbus of "key-mapper-service", mapping '
-            'keys only works as long as the window is open. Is one of your '
-            'key-mapper processes not running as root?'
+            'keys only works as long as the window is open.'
         )
         logger.error(error)
         return Daemon()
@@ -87,9 +78,14 @@ class Daemon(service.Object):
     continue to do so afterwards, but it can't decide to start injecting
     on its own.
     """
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, autoload=True, **kwargs):
         """Constructs the daemon. You still need to run the GLib mainloop."""
         self.injectors = {}
+        if autoload:
+            for device, preset in config.iterate_autoload_presets():
+                mapping = Mapping()
+                mapping.load(device, preset)
+                self.injectors[device] = KeycodeInjector(device, mapping)
         super().__init__(*args, **kwargs)
 
     @dbus.service.method(
@@ -113,8 +109,8 @@ class Daemon(service.Object):
         'keymapper.Interface',
         in_signature='ss'
     )
-    def start_injecting(self, device, path):
-        """Start injecting the preset on the path for the device.
+    def start_injecting(self, device, preset):
+        """Start injecting the preset for the device.
 
         Returns True on success.
 
@@ -122,16 +118,14 @@ class Daemon(service.Object):
         ----------
         device : string
             The name of the device
-        path : string
-            Path to the json file that describes the preset
+        preset : string
+            The name of the preset
         """
-        # TODO the integration tests don't seem to test that path actually
-        #  exists
         if self.injectors.get(device) is not None:
             self.injectors[device].stop_injecting()
 
         mapping = Mapping()
-        mapping.load(path)
+        mapping.load(device, preset)
         try:
             self.injectors[device] = KeycodeInjector(device, mapping)
         except OSError:

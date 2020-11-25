@@ -224,6 +224,7 @@ if __name__ == "__main__":
     # so provide both options.
     if len(modules) > 0:
         # for example `tests/test.py integration.Integration.test_can_start`
+        # or `tests/test.py integration daemon`
         testsuite = unittest.defaultTestLoader.loadTestsFromNames(
             [f'testcases.{module}' for module in modules]
         )
