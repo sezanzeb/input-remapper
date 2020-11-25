@@ -1,0 +1,12 @@
+# https://wiki.archlinux.org/index.php/Systemd
+
+[Unit]
+Description=Service to inject keycodes without the GUI application
+
+[Service]
+Type=dbus
+BusName=keymapper.Control
+ExecStart=/usr/bin/key-mapper-service -d
+
+[Install]
+WantedBy=default.target

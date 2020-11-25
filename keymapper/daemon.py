@@ -28,10 +28,8 @@ from dbus import service
 import dbus.mainloop.glib
 
 from keymapper.logger import logger
-from keymapper.config import config
 from keymapper.injector import KeycodeInjector
 from keymapper.mapping import Mapping
-from keymapper.paths import get_config_path
 
 
 # TODO service file in data for a root daemon
@@ -59,13 +57,13 @@ def get_dbus_interface():
             'The daemon "key-mapper-service" is not running, mapping keys '
             'only works as long as the window is open.'
         )
-        return Daemon(autoload=False)
+        return Daemon()
 
     try:
         logger.debug('Found the daemon process')
         bus = dbus.SessionBus()
-        remote_object = bus.get_object('com.keymapper.Control', '/')
-        interface = dbus.Interface(remote_object, 'com.keymapper.Interface')
+        remote_object = bus.get_object('keymapper.Control', '/')
+        interface = dbus.Interface(remote_object, 'keymapper.Interface')
         logger.debug('Connected to dbus')
     except Exception as error:
         logger.error(
@@ -74,7 +72,7 @@ def get_dbus_interface():
             'key-mapper processes not running as root?'
         )
         logger.error(error)
-        return Daemon(autoload=False)
+        return Daemon()
 
     return interface
 
@@ -83,20 +81,19 @@ class Daemon(service.Object):
     """Starts injecting keycodes based on the configuration.
 
     Can be talked to either over dbus or by instantiating it.
+
+    The Daemon may not have any knowledge about the logged in user, so it
+    can't read any config files. It has to be told what to do and will
+    continue to do so afterwards, but it can't decide to start injecting
+    on its own.
     """
-    def __init__(self, *args, autoload=True, **kwargs):
+    def __init__(self, *args, **kwargs):
         """Constructs the daemon. You still need to run the GLib mainloop."""
         self.injectors = {}
-        if autoload:
-            for device, preset in config.iterate_autoload_presets():
-                mapping = Mapping()
-                mapping.load(get_config_path(device, preset))
-                self.injectors[device] = KeycodeInjector(device, mapping)
-
         super().__init__(*args, **kwargs)
 
     @dbus.service.method(
-        'com.keymapper.Interface',
+        'keymapper.Interface',
         in_signature='s'
     )
     def stop_injecting(self, device):
@@ -113,7 +110,7 @@ class Daemon(service.Object):
     # TODO if ss is the correct signature for multiple parameters, add an
     #  example to https://gitlab.freedesktop.org/dbus/dbus-python/-/blob/master/doc/tutorial.txt # noqa pylint: disable=line-too-long
     @dbus.service.method(
-        'com.keymapper.Interface',
+        'keymapper.Interface',
         in_signature='ss'
     )
     def start_injecting(self, device, path):
@@ -143,9 +140,9 @@ class Daemon(service.Object):
         return True
 
     @dbus.service.method(
-        'com.keymapper.Interface'
+        'keymapper.Interface'
     )
     def stop(self):
-        """Properly stop the daemon."""
+        """Stop all mapping injections."""
         for injector in self.injectors.values():
             injector.stop_injecting()
