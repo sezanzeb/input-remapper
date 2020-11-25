@@ -44,12 +44,16 @@ class _Config:
         self._config = {}
         self.load_config()
 
-    def set_autoload_preset(self, device, preset):
+    def set_autoload_preset(self, device, preset, load=True):
         """Set a preset to be automatically applied on start."""
         if self._config.get('autoload') is None:
             self._config['autoload'] = {}
 
-        self._config['autoload'][device] = preset
+        if load:
+            self._config['autoload'][device] = preset
+        elif self._config['autoload'].get(device) is not None:
+            # TODO test
+            del self._config['autoload'][device]
 
     def iterate_autoload_presets(self):
         """get tuples of (device, preset)."""
