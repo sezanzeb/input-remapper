@@ -8,25 +8,26 @@ Tool to change the mapping of your input device buttons.
 
 # Running
 
-First, install the package:
+Installation:
 
 ```bash
 git clone https://github.com/sezanzeb/key-mapper.git
 cd key-mapper
 sudo python3 setup.py install
+usermod -a -G input $USER
 ```
 
 To keep injecting the mapping after closing the window, the daemon needs to
-be running:
+be running. If it doesn't already after logging in, you can use:
 
 ```bash
-sudo key-mapper-service -d
+sudo key-mapper-service
 ```
 
 To open the UI to modify the mappings, use:
 
 ```bash
-sudo key-mapper-gtk -d
+sudo key-mapper-gtk
 ```
 
 You can also start it via your applications menu.

@@ -105,7 +105,6 @@ def update_verbosity(debug):
 
 def add_filehandler():
     """Clear the existing logfile and start logging to it."""
-    # jack also logs to ~/.log
     log_path = os.path.expanduser('~/.log/key-mapper')
     log_file = os.path.join(log_path, 'log')
 
@@ -118,4 +117,7 @@ def add_filehandler():
 
     file_handler = logging.FileHandler(log_file)
     file_handler.setFormatter(Formatter())
+
+    logger.info('Logging to "%s"', log_file)
+
     logger.addHandler(file_handler)

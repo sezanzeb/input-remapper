@@ -5,7 +5,7 @@
         >
 <policyconfig>
     <icon_name>mouse</icon_name>
-    <action id="org.key-mapper">
+    <action id="keymapper">
         <description>Run Key Mapper as root</description>
         <message>Authentication is required to discover devices.</message>
         <defaults>

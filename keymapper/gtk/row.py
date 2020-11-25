@@ -132,10 +132,10 @@ class Row(Gtk.ListBoxRow):
             'button-press-event',
             self.on_delete_button_clicked
         )
-        delete_button.set_margin_start(5)
-        delete_button.set_margin_end(5)
+        delete_button.set_size_request(50, -1)
 
         keycode_input = Gtk.ToggleButton()
+        keycode_input.set_size_request(50, -1)
 
         if keycode is not None:
             keycode_input.set_label(str(keycode))
@@ -159,12 +159,13 @@ class Row(Gtk.ListBoxRow):
         )
 
         box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
-        box.set_homogeneous(True)
-        box.set_spacing(2)
-        box.pack_start(keycode_input, expand=True, fill=True, padding=0)
+        box.set_homogeneous(False)
+        box.set_spacing(0)
+        box.pack_start(keycode_input, expand=False, fill=True, padding=0)
         box.pack_start(character_input, expand=True, fill=True, padding=0)
-        box.pack_start(delete_button, expand=True, fill=False, padding=0)
+        box.pack_start(delete_button, expand=False, fill=True, padding=0)
         box.show_all()
+        box.get_style_context().add_class('row-box')
 
         self.add(box)
         self.show_all()

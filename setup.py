@@ -34,7 +34,7 @@ class Install(DistUtilsExtra.auto.install_auto):
         executable = os.path.join(self.install_data, 'bin/key-mapper-gtk')
         assert os.path.exists(executable)
 
-        policy_path = '/usr/share/polkit-1/actions/org.key-mapper.policy'
+        policy_path = '/usr/share/polkit-1/actions/key-mapper.policy'
 
         with open(policy_path, 'r') as file:
             contents = file.read()
@@ -45,7 +45,7 @@ class Install(DistUtilsExtra.auto.install_auto):
         with open(policy_path, 'w') as file:
             print(
                 f'Inserting the correct path "{executable}" into '
-                'org.key-mapper.policy'
+                'keymapper.policy'
             )
             file.write(contents.format(
                 executable=executable
@@ -59,7 +59,9 @@ DistUtilsExtra.auto.setup(
     license='GPL-3.0',
     data_files=[
         ('share/applications/', ['data/key-mapper.desktop']),
-        ('/usr/share/polkit-1/actions/', ['data/org.key-mapper.policy']),
+        ('/usr/share/polkit-1/actions/', ['data/key-mapper.policy']),
+        ('/usr/lib/systemd/system', ['data/key-mapper.service']),
+        ('/etc/xdg/autostart/', ['data/key-mapper-autoload']),
     ],
     cmdclass={
         'install': Install

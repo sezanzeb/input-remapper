@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Key Mapper Service
+Icon=mouse
+Exec=key-mapper-service
+Terminal=false
+Categories=Settings;
+Comment=The Key Mapper service to keep mappings alive after closing the UI

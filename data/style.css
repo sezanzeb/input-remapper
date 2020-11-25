@@ -1,3 +1,11 @@
+row {
+    padding: 0;
+}
+
+.table-header, .row-box {
+    padding: 2px;
+}
+
 .changed {
     background: @selected_bg_color;
 }

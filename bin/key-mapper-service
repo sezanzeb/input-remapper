@@ -33,7 +33,8 @@ from gi.repository import GLib
 import dbus.mainloop.glib
 from dbus.mainloop.glib import DBusGMainLoop
 
-from keymapper.logger import logger, update_verbosity, log_info
+from keymapper.logger import logger, update_verbosity, log_info, \
+    add_filehandler
 from keymapper.daemon import Daemon
 
 
@@ -47,13 +48,14 @@ if __name__ == '__main__':
 
     options = parser.parse_args(sys.argv[1:])
     update_verbosity(options.debug)
+    add_filehandler()
     log_info()
 
     if getpass.getuser() != 'root' and 'unittest' not in sys.modules.keys():
         logger.warning('Without sudo, your devices may not be visible')
 
     session_bus = dbus.SessionBus(mainloop=DBusGMainLoop())
-    name = dbus.service.BusName('com.keymapper.Control', session_bus)
+    name = dbus.service.BusName('keymapper.Control', session_bus)
     daemon = Daemon(session_bus, '/')
 
     atexit.register(daemon.stop)
