@@ -46,28 +46,30 @@ class _Config:
 
     def set_autoload_preset(self, device, preset):
         """Set a preset to be automatically applied on start."""
+        if self._config.get('autoload') is None:
+            self._config['autoload'] = {}
+
         self._config['autoload'][device] = preset
 
     def iterate_autoload_presets(self):
         """get tuples of (device, preset)."""
-        return self._config['autoload'].items()
+        return self._config.get('autoload', {}).items()
 
     def load_config(self):
         """Load the config from the file system."""
+        self.clear_config()
+
         if not os.path.exists(CONFIG_PATH):
-            # has not yet been saved
-            logger.info('Creating initial config')
-            self._config = copy.deepcopy(INITIAL_CONFIG)
-            self.save_config()
+            # treated like an empty config
+            logger.debug('Config file "%s" doesn\'t exist')
             return
 
         with open(CONFIG_PATH, 'r') as file:
-            self._config = copy.deepcopy(INITIAL_CONFIG)
             self._config.update(json.load(file))
-            logger.info('Loaded config from %s', CONFIG_PATH)
+            logger.info('Loaded config from "%s"', CONFIG_PATH)
 
     def clear_config(self):
-        """Needed for tests."""
+        """Reset the configuration to the initial values."""
         self._config = copy.deepcopy(INITIAL_CONFIG)
 
     def save_config(self):
