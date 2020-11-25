@@ -31,6 +31,9 @@ class TestConfig(unittest.TestCase):
         config.save_config()
 
     def test_autoload(self):
+        del config._config['autoload']
+        self.assertEqual(len(config.iterate_autoload_presets()), 0)
+
         config.set_autoload_preset('d1', 'a')
         self.assertEqual(len(config.iterate_autoload_presets()), 1)
 
@@ -46,6 +49,11 @@ class TestConfig(unittest.TestCase):
         )
 
     def test_save_load(self):
+        self.assertEqual(len(config.iterate_autoload_presets()), 0)
+
+        config.load_config()
+        self.assertEqual(len(config.iterate_autoload_presets()), 0)
+
         config.set_autoload_preset('d1', 'a')
         config.set_autoload_preset('d2', 'b')
         config.save_config()
