@@ -37,7 +37,7 @@ from keymapper.gtk.row import Row
 from keymapper.gtk.unsaved import unsaved_changes_dialog, GO_BACK
 from keymapper.dev.reader import keycode_reader
 from keymapper.daemon import get_dbus_interface
-from keymapper.paths import get_config_path
+from keymapper.config import config
 
 
 def gtk_iteration():
@@ -287,6 +287,14 @@ class Window:
         # restart reading because after injecting the device landscape
         # changes a bit
         keycode_reader.start_reading(self.selected_device)
+
+    def on_preset_autoload_switch_activate(self, _, active):
+        """Load the preset automatically next time the user logs in."""
+        device = self.selected_device
+        preset = self.selected_preset
+        # TODO test call this and then check config
+        config.set_autoload_preset(device, preset, active)
+        config.save_config()
 
     def on_select_device(self, dropdown):
         """List all presets, create one if none exist yet."""
