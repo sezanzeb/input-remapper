@@ -35,7 +35,8 @@ def get_config_path(device=None, preset=None):
 
     if preset is not None:
         # the extension of the preset should not be shown in the ui.
-        # currently only .json files are used.
+        # if a .json extension arrives this place, it has not been
+        # stripped away properly prior to this.
         assert not preset.endswith('.json')
         preset = f'{preset}.json'
 

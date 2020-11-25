@@ -129,10 +129,9 @@ class Mapping:
         self.changed = True
 
     @update_reverse_mapping
-    def load(self, path):
-        """Load a dumped JSON from a path to overwrite the mappings."""
-        # since the daemon needs to load presets and runs as root, it
-        # needs the full path.
+    def load(self, device, preset):
+        """Load a dumped JSON from home to overwrite the mappings."""
+        path = get_config_path(device, preset)
         logger.info('Loading preset from "%s"', path)
 
         if not os.path.exists(path):

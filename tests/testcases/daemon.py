@@ -20,7 +20,6 @@
 
 
 import unittest
-import time
 
 import evdev
 
@@ -32,10 +31,9 @@ from test import uinput_write_history_pipe, Event, pending_events
 
 
 class TestDaemon(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.grab = evdev.InputDevice.grab
-        cls.daemon = None
+    def setUp(self):
+        self.grab = evdev.InputDevice.grab
+        self.daemon = None
 
     def tearDown(self):
         # avoid race conditions with other tests, daemon may run processes
@@ -43,6 +41,7 @@ class TestDaemon(unittest.TestCase):
             self.daemon.stop()
             self.daemon = None
         evdev.InputDevice.grab = self.grab
+        config.clear_config()
 
     def test_daemon(self):
         keycode_from = 9

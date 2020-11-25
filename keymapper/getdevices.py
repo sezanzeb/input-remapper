@@ -133,7 +133,11 @@ def get_devices(include_keymapper=False):
         # block until devices are available
         _devices = pipe[0].recv()
         if len(_devices) == 0:
-            logger.error('Did not find any device')
+            logger.error(
+                'Did not find any device. If you added yourself to the '
+                'needed groups (see `ls -l /dev/input`)  already, make sure '
+                'you also logged out and back in.'
+            )
         else:
             names = [f'"{name}"' for name in _devices]
             logger.info('Found %s', ', '.join(names))

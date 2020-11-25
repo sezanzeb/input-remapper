@@ -19,37 +19,7 @@
 # along with key-mapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
-import os
-
 import DistUtilsExtra.auto
-
-
-class Install(DistUtilsExtra.auto.install_auto):
-    def run(self):
-        DistUtilsExtra.auto.install_auto.run(self)
-        self.ensure_polkit_prefix()
-
-    def ensure_polkit_prefix(self):
-        """Make sure the policy file uses the right prefix."""
-        executable = os.path.join(self.install_data, 'bin/key-mapper-gtk')
-        assert os.path.exists(executable)
-
-        policy_path = '/usr/share/polkit-1/actions/key-mapper.policy'
-
-        with open(policy_path, 'r') as file:
-            contents = file.read()
-            if '{executable}' not in contents:
-                # already done previously
-                return
-
-        with open(policy_path, 'w') as file:
-            print(
-                f'Inserting the correct path "{executable}" into '
-                'keymapper.policy'
-            )
-            file.write(contents.format(
-                executable=executable
-            ))
 
 
 DistUtilsExtra.auto.setup(
@@ -59,11 +29,6 @@ DistUtilsExtra.auto.setup(
     license='GPL-3.0',
     data_files=[
         ('share/applications/', ['data/key-mapper.desktop']),
-        ('/usr/share/polkit-1/actions/', ['data/key-mapper.policy']),
-        ('/usr/lib/systemd/system', ['data/key-mapper.service']),
-        ('/etc/xdg/autostart/', ['data/key-mapper-autoload']),
-    ],
-    cmdclass={
-        'install': Install
-    }
+        ('/etc/xdg/autostart/', ['data/key-mapper-service.desktop']),
+    ]
 )

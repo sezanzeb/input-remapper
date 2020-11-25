@@ -23,7 +23,7 @@ import unittest
 
 import evdev
 
-from keymapper.reader import keycode_reader
+from keymapper.dev.reader import keycode_reader
 
 from test import Event, pending_events
 

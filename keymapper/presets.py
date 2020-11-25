@@ -55,12 +55,11 @@ def get_presets(device):
     device_folder = get_config_path(device)
     if not os.path.exists(device_folder):
         os.makedirs(device_folder)
+
+    paths = glob.glob(os.path.join(device_folder, '*.json'))
     presets = [
         os.path.splitext(os.path.basename(path))[0]
-        for path in sorted(
-            glob.glob(os.path.join(device_folder, '*')),
-            key=os.path.getmtime
-        )
+        for path in sorted(paths, key=os.path.getmtime)
     ]
     # the highest timestamp to the front
     presets.reverse()
@@ -91,12 +90,12 @@ def find_newest_preset(device=None):
     # sort the oldest files to the front in order to use pop to get the newest
     if device is None:
         paths = sorted(
-            glob.glob(os.path.join(get_config_path(), '*/*')),
+            glob.glob(os.path.join(get_config_path(), '*/*.json')),
             key=os.path.getmtime
         )
     else:
         paths = sorted(
-            glob.glob(os.path.join(get_config_path(device), '*')),
+            glob.glob(os.path.join(get_config_path(device), '*.json')),
             key=os.path.getmtime
         )
 

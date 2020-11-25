@@ -2,7 +2,7 @@
 Type=Application
 Name=key-mapper
 Icon=mouse
-Exec=pkexec key-mapper-gtk
+Exec=key-mapper-gtk
 Terminal=false
 Categories=Settings
 Comment=GUI for device specific keyboard mappings

@@ -35,7 +35,7 @@ from keymapper.logger import logger
 from keymapper.getdevices import get_devices
 from keymapper.gtk.row import Row
 from keymapper.gtk.unsaved import unsaved_changes_dialog, GO_BACK
-from keymapper.reader import keycode_reader
+from keymapper.dev.reader import keycode_reader
 from keymapper.daemon import get_dbus_interface
 from keymapper.paths import get_config_path
 
@@ -160,19 +160,18 @@ class Window:
 
     def populate_presets(self):
         """Show the available presets for the selected device."""
+        self.get('preset_name_input').set_text('')
+
         device = self.selected_device
         presets = get_presets(device)
-        self.get('preset_name_input').set_text('')
+
         if len(presets) == 0:
             new_preset = get_available_preset_name(self.selected_device)
             custom_mapping.save(self.selected_device, new_preset)
             presets = [new_preset]
         else:
-            logger.debug(
-                'Presets for "%s": "%s"',
-                device,
-                '", "'.join(presets)
-            )
+            logger.debug('"%s" presets: "%s"', device, '", "'.join(presets))
+
         preset_selection = self.get('preset_selection')
 
         preset_selection.handler_block_by_func(self.on_select_preset)
@@ -276,7 +275,7 @@ class Window:
         )
         success = self.dbus.start_injecting(
             self.selected_device,
-            get_config_path(self.selected_device, self.selected_preset)
+            self.selected_preset
         )
 
         if not success:
@@ -344,8 +343,7 @@ class Window:
         logger.debug('Selecting preset "%s"', preset)
 
         self.selected_preset = preset
-        path = get_config_path(self.selected_device, self.selected_preset)
-        custom_mapping.load(path)
+        custom_mapping.load(self.selected_device, self.selected_preset)
 
         key_list = self.get('key_list')
         for keycode, output in custom_mapping:

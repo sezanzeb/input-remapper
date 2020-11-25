@@ -25,7 +25,7 @@ import shutil
 import time
 
 from keymapper.presets import find_newest_preset, rename_preset, \
-    get_any_preset, delete_preset, get_available_preset_name
+    get_any_preset, delete_preset, get_available_preset_name, get_presets
 from keymapper.paths import CONFIG
 from keymapper.state import custom_mapping
 
@@ -105,10 +105,27 @@ class TestFindPresets(unittest.TestCase):
         if os.path.exists(tmp):
             shutil.rmtree(tmp)
 
+    def test_get_presets(self):
+        os.makedirs(os.path.join(CONFIG, '1234'))
+
+        os.mknod(os.path.join(CONFIG, '1234', 'picture.png'))
+        self.assertEqual(len(get_presets('1234')), 0)
+
+        os.mknod(os.path.join(CONFIG, '1234', 'foo bar 1.json'))
+        time.sleep(0.01)
+        os.mknod(os.path.join(CONFIG, '1234', 'foo bar 2.json'))
+        # the newest to the front
+        self.assertListEqual(get_presets('1234'), ['foo bar 2', 'foo bar 1'])
+
     def test_find_newest_preset_1(self):
         create_preset('device 1', 'preset 1')
         time.sleep(0.01)
         create_preset('device 2', 'preset 2')
+
+        # not a preset, ignore
+        time.sleep(0.01)
+        os.mknod(os.path.join(CONFIG, 'device 2', 'picture.png'))
+
         self.assertEqual(find_newest_preset(), ('device 2', 'preset 2'))
 
     def test_find_newest_preset_2(self):
