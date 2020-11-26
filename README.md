@@ -8,10 +8,6 @@
 <img src="data/screenshot.png"/>
 </p>
 
-## Packages
-
-TODO
-
 ## Usage
 
 To open the UI to modify the mappings, use:
