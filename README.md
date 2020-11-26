@@ -8,14 +8,6 @@
 <img src="data/screenshot.png"/>
 </p>
 
-## Table of Contents
-
-- [Packages](#Packages)
-- [Usage](#Packages)
-- [Git Installation](#Git_Installation)
-- [Tests](#Tests)
-- [Roadmap](#Roadmap)
-
 ## Packages
 
 TODO
