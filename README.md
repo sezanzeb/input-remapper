@@ -7,6 +7,7 @@
 <p align="center">
 <img src="data/screenshot.png"/>
 </p>
+<br/>
 
 ## Usage
 
