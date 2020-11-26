@@ -10,11 +10,12 @@
 
 ## Table of Contents
 
-- [Running](#Running)
+- [Dependencies](#Dependencies)
+- [Installation](#Installation)
+- [Tests](#Tests)
+- [Roadmap](#Roadmap)
 
-## Running
-
-Installation:
+## Installation
 
 ```bash
 git clone https://github.com/sezanzeb/key-mapper.git
