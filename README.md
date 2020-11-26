@@ -1,11 +1,11 @@
-# Key Mapper
+<h1 align="center">Key Mapper</p>
 
-![pylint](data/pylint.svg) ![coverage](data/coverage.svg)
+<p align="center">A tool to change the mapping of your input device buttons.</p>
 
-Tool to change the mapping of your input device buttons.
+<p align="center"><img src="data/pylint.svg"/> <img src="data/coverage.svg"/></p>
 
 <p align="center">
-    <img src="data/screenshot.png"/>
+<img src="data/screenshot.png"/>
 </p>
 
 # Running
