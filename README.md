@@ -10,27 +10,17 @@
 
 ## Table of Contents
 
-- [Dependencies](#Dependencies)
-- [Installation](#Installation)
+- [Packages](#Packages)
+- [Usage](#Packages)
+- [Git Installation](#Git_Installation)
 - [Tests](#Tests)
 - [Roadmap](#Roadmap)
 
-## Installation
+## Packages
 
-```bash
-git clone https://github.com/sezanzeb/key-mapper.git
-cd key-mapper
-sudo python3 setup.py install
-usermod -a -G input $USER
-usermod -a -G plugdev $USER
-```
+TODO
 
-To keep injecting the mapping after closing the window, the daemon needs to
-be running. If it doesn't already after logging in, you can use:
-
-```bash
-key-mapper-service
-```
+## Usage
 
 To open the UI to modify the mappings, use:
 
@@ -40,9 +30,25 @@ key-mapper-gtk
 
 You can also start it via your applications menu.
 
-## Dependencies
+To keep injecting the mapping after closing the window, the daemon needs to
+be running. If it doesn't already after logging in, you can use:
 
-Depending on how those packages are called in your distro:
+```bash
+key-mapper-service
+```
+
+## Git Installation
+
+```bash
+git clone https://github.com/sezanzeb/key-mapper.git
+cd key-mapper
+sudo python3 setup.py install
+usermod -a -G input $USER
+usermod -a -G plugdev $USER
+```
+
+Depending on how those packages are called in your distro,
+you need the following dependencies:
 
 `python3-distutils-extra` `python3-evdev` `python3-dbus`
 
