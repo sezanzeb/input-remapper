@@ -109,6 +109,7 @@ class Row(Gtk.ListBoxRow):
         self.get_style_context().remove_class('changed')
 
     def on_character_input_change(self, _):
+        """When the output character for that keycode is typed in."""
         keycode = self.get_keycode()
         character = self.get_character()
 

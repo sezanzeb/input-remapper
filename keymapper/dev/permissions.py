@@ -40,8 +40,10 @@ def can_read_devices():
     def warn(group):
         logger.warning(
             'Some devices may not be visible without being in the '
-            f'"{group}" user group. Try `sudo usermod -a -G {group} $USER` '
-            'and log out and back in.'
+            f'"%s" user group. Try `sudo usermod -a -G %s $USER` '
+            'and log out and back in.',
+            group,
+            group
         )
 
     if not is_root and not is_test:

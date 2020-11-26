@@ -24,6 +24,7 @@
 
 import subprocess
 
+import dbus
 from dbus import service
 import dbus.mainloop.glib
 
@@ -57,7 +58,7 @@ def get_dbus_interface():
         remote_object = bus.get_object('keymapper.Control', '/')
         interface = dbus.Interface(remote_object, 'keymapper.Interface')
         logger.debug('Connected to dbus')
-    except Exception as error:
+    except dbus.exceptions.DBusException as error:
         logger.error(
             'Could not connect to the dbus of "key-mapper-service", mapping '
             'keys only works as long as the window is open.'
@@ -86,7 +87,11 @@ class Daemon(service.Object):
                 print(device, preset)
                 mapping = Mapping()
                 mapping.load(device, preset)
-                self.injectors[device] = KeycodeInjector(device, mapping)
+                try:
+                    injector = KeycodeInjector(device, mapping)
+                    self.injectors[device] = injector
+                except OSError as error:
+                    logger.error(error)
         super().__init__(*args, **kwargs)
 
     @dbus.service.method(

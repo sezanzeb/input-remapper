@@ -27,13 +27,17 @@ import logging
 import pkg_resources
 
 
+SPAM = 5
+
+
 def spam(self, message, *args, **kws):
+    """Log a more-verbose message than debug."""
+    # pylint: disable=protected-access
     if self.isEnabledFor(SPAM):
         # https://stackoverflow.com/a/13638084
         self._log(SPAM, message, args, **kws)
 
 
-SPAM = 5
 logging.addLevelName(SPAM, "SPAM")
 logging.Logger.spam = spam
 
@@ -42,10 +46,11 @@ class Formatter(logging.Formatter):
     """Overwritten Formatter to print nicer logs."""
     def format(self, record):
         """Overwritten format function."""
+        # pylint: disable=protected-access
         debug = logger.level <= logging.DEBUG
         if record.levelno == logging.INFO and not debug:
             # if not launched with --debug, then don't print "INFO:"
-            self._style._fmt = '%(message)s'  # pylint: disable=line-too-long
+            self._style._fmt = '%(message)s'
         else:
             # see https://en.wikipedia.org/wiki/ANSI_escape_code#3/4_bit
             # for those numbers

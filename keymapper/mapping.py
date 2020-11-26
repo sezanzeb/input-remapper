@@ -30,19 +30,11 @@ from keymapper.logger import logger
 from keymapper.paths import get_config_path
 
 
-def update_reverse_mapping(func):
-    """Generate a reverse mapping to optimize reverse lookups.
-
-    If _mapping contains `20: "a, A"` (the xkb syntax for modified keys),
-    reverse mapping will contain `"a": 20, "A": 20`.
-    """
+def keep_reverse_mapping_intact(func):
+    """Decorator for Mapping.update_reverse_mapping."""
     def wrapper(self, *args, **kwargs):
         func(self, *args, **kwargs)
-
-        self._reverse_mapping = {}
-        for key, value in self._mapping.items():
-            for character in value.split(','):
-                self._reverse_mapping[character.strip()] = key
+        self.update_reverse_mapping()
     return wrapper
 
 
@@ -71,7 +63,18 @@ class Mapping:
     def __len__(self):
         return len(self._mapping)
 
-    @update_reverse_mapping
+    def update_reverse_mapping(self):
+        """Generate a reverse mapping to optimize reverse lookups.
+
+        If _mapping contains `20: "a, A"` (the xkb syntax for modified keys),
+        reverse mapping will contain `"a": 20, "A": 20`.
+        """
+        self._reverse_mapping = {}
+        for key, value in self._mapping.items():
+            for character in value.split(','):
+                self._reverse_mapping[character.strip()] = key
+
+    @keep_reverse_mapping_intact
     def change(self, new_keycode, character, previous_keycode=None):
         """Replace the mapping of a keycode with a different one.
 
@@ -110,7 +113,7 @@ class Mapping:
 
         return False
 
-    @update_reverse_mapping
+    @keep_reverse_mapping_intact
     def clear(self, keycode):
         """Remove a keycode from the mapping.
 
@@ -122,13 +125,13 @@ class Mapping:
             del self._mapping[keycode]
             self.changed = True
 
-    @update_reverse_mapping
+    @keep_reverse_mapping_intact
     def empty(self):
         """Remove all mappings."""
         self._mapping = {}
         self.changed = True
 
-    @update_reverse_mapping
+    @keep_reverse_mapping_intact
     def load(self, device, preset):
         """Load a dumped JSON from home to overwrite the mappings."""
         path = get_config_path(device, preset)
