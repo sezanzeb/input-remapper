@@ -22,13 +22,13 @@ To keep injecting the mapping after closing the window, the daemon needs to
 be running. If it doesn't already after logging in, you can use:
 
 ```bash
-sudo key-mapper-service
+key-mapper-service
 ```
 
 To open the UI to modify the mappings, use:
 
 ```bash
-sudo key-mapper-gtk
+key-mapper-gtk
 ```
 
 You can also start it via your applications menu.
