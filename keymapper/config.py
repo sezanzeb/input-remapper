@@ -52,7 +52,6 @@ class _Config:
         if load:
             self._config['autoload'][device] = preset
         elif self._config['autoload'].get(device) is not None:
-            # TODO test
             del self._config['autoload'][device]
 
     def iterate_autoload_presets(self):
@@ -61,7 +60,6 @@ class _Config:
 
     def is_autoloaded(self, device, preset):
         """Should this preset be loaded automatically?"""
-        # TODO test
         autoload_map = self._config.get('autoload')
         if autoload_map is None:
             return False
@@ -70,7 +68,7 @@ class _Config:
         if autoload_preset is None:
             return False
 
-        return True
+        return autoload_preset == preset
 
     def load_config(self):
         """Load the config from the file system."""

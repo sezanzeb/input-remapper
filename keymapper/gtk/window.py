@@ -293,7 +293,6 @@ class Window:
         device = self.selected_device
         preset = self.selected_preset
         # TODO test call this and then check config
-        # TODO new screenshot
         config.set_autoload_preset(device, preset, active)
         config.save_config()
 
