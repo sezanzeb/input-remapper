@@ -8,6 +8,10 @@
 <img src="data/screenshot.png"/>
 </p>
 
+## Table of Contents
+
+- [Running](#Running)
+
 ## Running
 
 Installation:
