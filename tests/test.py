@@ -215,7 +215,7 @@ patch_unsaved()
 patch_dbus()
 
 
-if __name__ == "__main__":
+def main():
     update_verbosity(True)
 
     modules = sys.argv[1:]
@@ -243,3 +243,7 @@ if __name__ == "__main__":
     unittest.TextTestResult.startTest = startTest
 
     testrunner = unittest.TextTestRunner(verbosity=2).run(testsuite)
+
+
+if __name__ == "__main__":
+    main()
