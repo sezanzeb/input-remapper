@@ -1,6 +1,7 @@
 *.glade~
 *.glade#
 .idea
+*.png~
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
