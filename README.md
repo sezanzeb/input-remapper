@@ -2,10 +2,10 @@
 
 <p align="center"><i>A Linux tool to change the mapping of your input device buttons.</i></p>
 
-<p align="center"><img src="data/pylint.svg"/> <img src="data/coverage.svg"/></p>
+<p align="center"><img src="readme/pylint.svg"/> <img src="readme/coverage.svg"/></p>
 
 <p align="center">
-<img src="data/screenshot.png"/>
+<img src="readme/screenshot.png"/>
 </p>
 <br/>
 
