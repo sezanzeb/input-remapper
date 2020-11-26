@@ -1,6 +1,6 @@
 # Key Mapper
-    
-<img src="data/coverage.svg"/>
+
+![pylint](data/pylint.svg) ![coverage](data/coverage.svg)
 
 Tool to change the mapping of your input device buttons.
 
