@@ -80,7 +80,6 @@ class Daemon(service.Object):
     """
     def __init__(self, *args, autoload=True, **kwargs):
         """Constructs the daemon. You still need to run the GLib mainloop."""
-        print(autoload)
         self.injectors = {}
         if autoload:
             for device, preset in config.iterate_autoload_presets():
