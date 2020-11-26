@@ -35,6 +35,7 @@ from gi.repository import Gtk
 
 from keymapper.state import custom_mapping, system_mapping
 from keymapper.paths import CONFIG
+from keymapper.config import config
 
 from test import tmp, pending_events, Event, uinput_write_history_pipe
 
@@ -59,6 +60,17 @@ def launch(argv=None, bin_path='bin/key-mapper-gtk'):
     gtk_iteration()
 
     return module.window
+
+
+class FakeDropdown(Gtk.ComboBoxText):
+    def __init__(self, name):
+        self.name = name
+
+    def get_active_text(self):
+        return self.name
+
+    def get_active_id(self):
+        return self.name
 
 
 class Integration(unittest.TestCase):
@@ -92,6 +104,42 @@ class Integration(unittest.TestCase):
 
     def get_rows(self):
         return self.window.get('key_list').get_children()
+
+    def test_autoload(self):
+        self.window.on_preset_autoload_switch_activate(None, False)
+        self.assertFalse(config.is_autoloaded(
+            self.window.selected_device,
+            self.window.selected_preset
+        ))
+
+        # select a preset for the first device
+        self.window.on_select_device(FakeDropdown('device 1'))
+        self.window.on_preset_autoload_switch_activate(None, True)
+        self.assertTrue(config.is_autoloaded('device 1', 'new preset'))
+        self.assertFalse(config.is_autoloaded('device 2', 'new preset'))
+        self.assertListEqual(
+            list(config.iterate_autoload_presets()),
+            [('device 1', 'new preset')]
+        )
+
+        # select a preset for the second device
+        self.window.on_select_device(FakeDropdown('device 2'))
+        self.window.on_preset_autoload_switch_activate(None, True)
+        self.assertTrue(config.is_autoloaded('device 1', 'new preset'))
+        self.assertTrue(config.is_autoloaded('device 2', 'new preset'))
+        self.assertListEqual(
+            list(config.iterate_autoload_presets()),
+            [('device 1', 'new preset'), ('device 2', 'new preset')]
+        )
+
+        # disable autoloading for the second device
+        self.window.on_preset_autoload_switch_activate(None, False)
+        self.assertTrue(config.is_autoloaded('device 1', 'new preset'))
+        self.assertFalse(config.is_autoloaded('device 2', 'new preset'))
+        self.assertListEqual(
+            list(config.iterate_autoload_presets()),
+            [('device 1', 'new preset')]
+        )
 
     def test_can_start(self):
         self.assertIsNotNone(self.window)
@@ -194,16 +242,6 @@ class Integration(unittest.TestCase):
         self.assertEqual(custom_mapping.get_character(14), 'b')
 
     def test_select_device_and_preset(self):
-        class FakeDropdown(Gtk.ComboBoxText):
-            def __init__(self, name):
-                self.name = name
-
-            def get_active_text(self):
-                return self.name
-
-            def get_active_id(self):
-                return self.name
-
         # created on start because the first device is selected and some empty
         # preset prepared.
         self.assertTrue(os.path.exists(f'{CONFIG}/device 1/new preset.json'))
