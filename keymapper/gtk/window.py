@@ -364,6 +364,12 @@ class Window:
             )
             key_list.insert(single_key_mapping, -1)
 
+        autoload_switch = self.get('preset_autoload_switch')
+        autoload_switch.set_active(config.is_autoloaded(
+            self.selected_device,
+            self.selected_preset
+        ))
+
         self.get('preset_name_input').set_text('')
         self.add_empty()
 

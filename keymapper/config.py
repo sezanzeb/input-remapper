@@ -56,8 +56,21 @@ class _Config:
             del self._config['autoload'][device]
 
     def iterate_autoload_presets(self):
-        """get tuples of (device, preset)."""
+        """Get tuples of (device, preset)."""
         return self._config.get('autoload', {}).items()
+
+    def is_autoloaded(self, device, preset):
+        """Should this preset be loaded automatically?"""
+        # TODO test
+        autoload_map = self._config.get('autoload')
+        if autoload_map is None:
+            return False
+
+        autoload_preset = autoload_map.get(device)
+        if autoload_preset is None:
+            return False
+
+        return True
 
     def load_config(self):
         """Load the config from the file system."""
