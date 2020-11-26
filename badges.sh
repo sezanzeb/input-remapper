@@ -11,7 +11,7 @@ pylint_badge() {
   # https://github.com/jongracecox/anybadge
   pylint_output=$(pylint keymapper --extension-pkg-whitelist=evdev)
   rating=$(echo $pylint_output | grep -Po "rated at .+?/" | grep -Po "\d+.\d+")
-  rm data/pylint.svg
+  rm readme/pylint.svg
   anybadge -l pylint -v $rating -f readme/pylint.svg pylint
   echo "pylint badge created"
 }
