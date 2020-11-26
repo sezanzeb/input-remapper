@@ -8,7 +8,7 @@
 <img src="data/screenshot.png"/>
 </p>
 
-# Running
+## Running
 
 Installation:
 
@@ -35,7 +35,7 @@ key-mapper-gtk
 
 You can also start it via your applications menu.
 
-# Dependencies
+## Dependencies
 
 Depending on how those packages are called in your distro:
 
@@ -43,14 +43,14 @@ Depending on how those packages are called in your distro:
 
 It works with both Wayland and X11.
 
-# Tests
+## Tests
 
 ```bash
 pylint keymapper --extension-pkg-whitelist=evdev
 sudo python3 setup.py install && python3 tests/test.py
 ```
 
-# Roadmap
+## Roadmap
 
 - [x] show a dropdown to select valid devices
 - [x] creating presets per device
