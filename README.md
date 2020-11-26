@@ -1,5 +1,9 @@
 # Key Mapper
 
+<p align="center">
+    <img src="data/coverage.svg"/>
+</p>
+
 Tool to change the mapping of your input device buttons.
 
 <p align="center">
