@@ -1,4 +1,4 @@
-<h1 align="center">Key Mapper</p>
+<h1 align="center">Key Mapper</h1>
 
 <p align="center">A tool to change the mapping of your input device buttons.</p>
 
