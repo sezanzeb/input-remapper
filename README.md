@@ -26,6 +26,19 @@ be running. If it doesn't already after logging in, you can use:
 key-mapper-service
 ```
 
+## Macros
+
+It is possible to write timed macros into the center column:
+- `r(3, k('a').w(10))`: aaa
+- `r(2, k('a').k('-').k('b')`: a-a-b
+- `w(1000).m('SHIFT_L', r(2, k('a'))).w(10, 20).k('b')`: AAb
+
+Documentation:
+- `r` repeats
+- `w` waits in ms (randomly with 2 parameters)
+- `k` writes a keystroke
+- `m` modifies
+
 ## Git Installation
 
 ```bash
