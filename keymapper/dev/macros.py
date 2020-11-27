@@ -33,7 +33,7 @@ all of the configured stuff.
 Examples
 --------
 r(3, k('a').w(10)): 'a' <10ms> 'a' <10ms> 'a'
-r(2, k('a').k('-').k('b'): 'a' '-' 'a' '-' 'b'
+r(2, k('a').k('-')).k('b'): 'a' '-' 'a' '-' 'b'
 w(1000).m('SHIFT_L', r(2, k('a'))).w(10).k('b'): <1s> 'A' 'A' <10ms> 'b'
 """
 
