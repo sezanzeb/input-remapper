@@ -1,6 +1,6 @@
 <h1 align="center">Key Mapper</h1>
 
-<p align="center"><i>A Linux tool to change the mapping of your input device buttons.</i></p>
+<p align="center">A Linux tool to change and program the mapping of your input device buttons.</p>
 
 <p align="center"><img src="readme/pylint.svg"/> <img src="readme/coverage.svg"/></p>
 
