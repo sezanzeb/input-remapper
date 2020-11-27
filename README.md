@@ -40,7 +40,7 @@ Documentation:
 - `m` modifies
 - `.` executes two actions behind each other
 
-For a list of supported keystrokes, check the output of `xmodmap -pke`
+For a list of supported keystrokes and their names, check the output of `xmodmap -pke`
 
 ## Git Installation
 
