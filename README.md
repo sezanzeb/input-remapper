@@ -40,6 +40,8 @@ Documentation:
 - `m` modifies
 - `.` executes two actions behind each other
 
+For a list of supported keystrokes, check the output of `xmodmap -pke`
+
 ## Git Installation
 
 ```bash
