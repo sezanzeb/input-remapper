@@ -1,6 +1,6 @@
 <h1 align="center">Key Mapper</h1>
 
-<p align="center"><i>A Linux tool to change the mapping of your input device buttons.</i></p>
+<p align="center">A Linux tool to change and program the mapping of your input device buttons.</p>
 
 <p align="center"><img src="readme/pylint.svg"/> <img src="readme/coverage.svg"/></p>
 
@@ -29,9 +29,9 @@ key-mapper-service
 ## Macros
 
 It is possible to write timed macros into the center column:
-- `r(3, k("a").w(10))`: aaa
-- `r(2, k("a").k("-").k("b")`: a-a-b
-- `w(1000).m("SHIFT_L", r(2, k("a"))).w(10, 20).k("b")`: AAb
+- `r(3, k("a").w(10))` aaa
+- `r(2, k("a").k("-")).k("b")` a-a-b
+- `w(1000).m("SHIFT_L", r(2, k("a"))).w(10, 20).k("b")` AAb
 
 Documentation:
 - `r` repeats
@@ -39,6 +39,8 @@ Documentation:
 - `k` writes a keystroke
 - `m` modifies
 - `.` executes two actions behind each other
+
+For a list of supported keystrokes and their names, check the output of `xmodmap -pke`
 
 ## Git Installation
 
