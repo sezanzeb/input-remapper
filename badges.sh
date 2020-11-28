@@ -14,6 +14,7 @@ pylint_badge() {
   rating=$(echo $pylint_output | grep -Po "rated at .+?/" | grep -Po "\d+.\d+")
   rm readme/pylint.svg
   anybadge -l pylint -v $rating -f readme/pylint.svg pylint
+  echo $rating
   echo "pylint badge created"
 }
 
