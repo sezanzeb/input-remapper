@@ -51,7 +51,7 @@ class TestMacros(unittest.TestCase):
         ])
 
     def test_3(self):
-        parse('r(3, k(m).w(200))', self.handler).run()
+        parse('r(3, k(m).w(200, 400))', self.handler).run()
         # TODO test passed time
         self.assertListEqual(self.result, [
             ('m', 1), ('m', 0),
