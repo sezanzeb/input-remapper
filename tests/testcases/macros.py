@@ -52,6 +52,7 @@ class TestMacros(unittest.TestCase):
 
     def test_3(self):
         parse('r(3, k(m).w(200))', self.handler).run()
+        # TODO test passed time
         self.assertListEqual(self.result, [
             ('m', 1), ('m', 0),
             ('m', 1), ('m', 0),
@@ -75,6 +76,8 @@ class TestMacros(unittest.TestCase):
         expected += [('w', 0)]
         expected += [('k', 1), ('k', 0)]
         expected *= 2
+        # TODO test passed time
+        # TODO test asyncio
         self.assertListEqual(self.result, expected)
 
     def test_6(self):

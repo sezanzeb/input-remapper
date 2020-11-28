@@ -33,7 +33,8 @@ import evdev
 
 from keymapper.logger import logger
 from keymapper.getdevices import get_devices
-from keymapper.state import custom_mapping, system_mapping
+from keymapper.state import system_mapping
+from keymapper.dev.macros import parse
 
 
 DEV_NAME = 'key-mapper'
@@ -217,6 +218,15 @@ class KeycodeInjector:
 
         loop.run_until_complete(asyncio.gather(*coroutines))
 
+    def _write(self, device, keycode, value):
+        """Actually inject."""
+        device.write(
+            evdev.ecodes.EV_KEY,
+            keycode - KEYCODE_OFFSET,
+            value
+        )
+        device.syn()
+
     async def _injection_loop(self, device, keymapper_device):
         """Inject keycodes for one of the virtual devices.
 
@@ -250,16 +260,24 @@ class KeycodeInjector:
                 # unknown keycode, forward it
                 target_keycode = input_keycode
             elif '(' in character:
-                # must be a macro. Only allow it if the injector is not
-                # running as root.
-                if os.geteuid() == 0:
-                    logger.error(
-                        'Cannot allow running macros as root to avoid '
-                        'injecting arbitrary code'
+                # must be a macro
+                logger.spam(
+                    'got code:%s value:%s, maps to macro %s',
+                    event.code + KEYCODE_OFFSET,
+                    event.value,
+                    character
+                )
+                # TODO prepare this beforehand, not on each keystroke
+                parse(
+                    character,
+                    handler=lambda keycode, value: (
+                        self._write(
+                            keymapper_device,
+                            target_keycode,
+                            event.value
+                        )
                     )
-                    continue
-
-                Macro()
+                ).run()
             else:
                 target_keycode = system_mapping.get_keycode(character)
                 if target_keycode is None:
@@ -277,12 +295,7 @@ class KeycodeInjector:
                 character
             )
 
-            keymapper_device.write(
-                evdev.ecodes.EV_KEY,
-                target_keycode - KEYCODE_OFFSET,
-                event.value
-            )
-            keymapper_device.syn()
+            self._write(keymapper_device, target_keycode, event.value)
 
         # this should only ever happen in tests to avoid blocking them
         # forever, as soon as all events are consumed. In normal operation
