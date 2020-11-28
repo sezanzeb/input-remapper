@@ -103,8 +103,12 @@ class _Macro:
 
     def wait(self, min, max=None):
         """Wait a random time in milliseconds"""
-        # TODO random
-        self.tasks.append(lambda: time.sleep(min / 1000))
+        if max is None:
+            sleeptime = min
+        else:
+            sleeptime = random.random() * (max - min) + min
+
+        self.tasks.append(lambda: time.sleep(sleeptime / 1000))
         return self
 
 
@@ -169,7 +173,6 @@ def _parse_recurse(macro, handler, macro_instance=None, depth=0):
         assert isinstance(macro_instance, _Macro)
 
     macro = macro.strip()
-    logger.spam('%sinput %s', '  ' * depth, macro)
     space = '  ' * depth
 
     # is it another macro?
@@ -254,6 +257,7 @@ def parse(macro, handler):
         macro will write to this function once executed with `.run()`.
     """
     try:
+        logger.spam('input %s', macro)
         return _parse_recurse(macro, handler)
     except Exception as e:
         logger.error('Failed to parse macro "%s": %s', macro, e)
