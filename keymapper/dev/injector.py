@@ -22,6 +22,7 @@
 """Keeps injecting keycodes in the background based on the mapping."""
 
 
+import os
 import re
 import asyncio
 import time
@@ -225,8 +226,6 @@ class KeycodeInjector:
             where to read keycodes from
         keymapper_device : evdev.UInput
             where to write keycodes to
-        mapping : Mapping
-            to figure out which keycodes to write
         """
         logger.debug(
             'Started injecting into %s, fd %s',
@@ -250,6 +249,17 @@ class KeycodeInjector:
             if character is None:
                 # unknown keycode, forward it
                 target_keycode = input_keycode
+            elif '(' in character:
+                # must be a macro. Only allow it if the injector is not
+                # running as root.
+                if os.geteuid() == 0:
+                    logger.error(
+                        'Cannot allow running macros as root to avoid '
+                        'injecting arbitrary code'
+                    )
+                    continue
+
+                Macro()
             else:
                 target_keycode = system_mapping.get_keycode(character)
                 if target_keycode is None:
@@ -273,6 +283,14 @@ class KeycodeInjector:
                 event.value
             )
             keymapper_device.syn()
+
+        # this should only ever happen in tests to avoid blocking them
+        # forever, as soon as all events are consumed. In normal operation
+        # there is no end to the events.
+        logger.error(
+            'The injector for "%s" stopped early',
+            keymapper_device.device.path
+        )
 
     @ensure_numlock
     def stop_injecting(self):
