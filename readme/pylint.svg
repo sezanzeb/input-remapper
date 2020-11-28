@@ -1,23 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="80" height="20">
+<svg xmlns="http://www.w3.org/2000/svg" width="73" height="20">
     <linearGradient id="b" x2="0" y2="100%">
         <stop offset="0" stop-color="#bbb" stop-opacity=".1"/>
         <stop offset="1" stop-opacity=".1"/>
     </linearGradient>
     <mask id="anybadge_1">
-        <rect width="80" height="20" rx="3" fill="#fff"/>
+        <rect width="73" height="20" rx="3" fill="#fff"/>
     </mask>
     <g mask="url(#anybadge_1)">
         <path fill="#555" d="M0 0h44v20H0z"/>
-        <path fill="#4c1" d="M44 0h36v20H44z"/>
-        <path fill="url(#b)" d="M0 0h80v20H0z"/>
+        <path fill="#4c1" d="M44 0h29v20H44z"/>
+        <path fill="url(#b)" d="M0 0h73v20H0z"/>
     </g>
     <g fill="#fff" text-anchor="middle" font-family="DejaVu Sans,Verdana,Geneva,sans-serif" font-size="11">
         <text x="23.0" y="15" fill="#010101" fill-opacity=".3">pylint</text>
         <text x="22.0" y="14">pylint</text>
     </g>
     <g fill="#fff" text-anchor="middle" font-family="DejaVu Sans,Verdana,Geneva,sans-serif" font-size="11">
-        <text x="63.0" y="15" fill="#010101" fill-opacity=".3">9.82</text>
-        <text x="62.0" y="14">9.82</text>
+        <text x="59.5" y="15" fill="#010101" fill-opacity=".3">9.6</text>
+        <text x="58.5" y="14">9.6</text>
     </g>
 </svg>
