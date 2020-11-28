@@ -216,7 +216,7 @@ def _parse_recurse(macro, handler, macro_instance=None, depth=0):
         }
 
         if functions.get(call) is None:
-            logger.error('Unknown function %s', call)
+            raise Exception(f'Unknown function {call}')
 
         # get all the stuff inbetween
         brackets = 0
@@ -231,14 +231,13 @@ def _parse_recurse(macro, handler, macro_instance=None, depth=0):
             if char == ')':
                 brackets -= 1
                 if brackets < 0:
-                    logger.error('There is one ")" too much at %s', position)
-                    return
+                    raise Exception(f'There is one ")" too much at {position}')
                 if brackets == 0:
                     # the closing bracket of the call
                     break
 
         if brackets != 0:
-            logger.error('There are %s closing brackets missing', brackets)
+            raise Exception(f'There are {brackets} closing brackets missing')
 
         inner = macro[2:position - 1]
 
@@ -251,7 +250,7 @@ def _parse_recurse(macro, handler, macro_instance=None, depth=0):
             for param in string_params
         ]
 
-        logger.spam('%scalling %s with %s', space, call, params)
+        logger.spam('%sadd call to %s with %s', space, call, params)
         functions[call](*params)
 
         # is after this another call? Chain it to the macro_instance
@@ -286,7 +285,7 @@ def parse(macro, handler):
         macro will write to this function once executed with `.run()`.
     """
     # whitespaces, tabs, newlines and such don't serve a purpose. make
-    # the log output clearer.
+    # the log output clearer and the parsing easier.
     macro = re.sub(r'\s', '', macro)
     logger.spam('preparing macro %s for later execution', macro)
     try:
