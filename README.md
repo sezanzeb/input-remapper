@@ -44,7 +44,7 @@ For a list of supported keystrokes and their names, check the output of
 `xmodmap -pke`
 
 Maybe you shouldn't use this feature in online PVP though. Might even get
-detected by the game.
+detected by your game.
 
 ## Git Installation
 
@@ -84,6 +84,6 @@ sudo python3 setup.py install && python3 tests/test.py
 - [x] highlight changes and alert before discarding unsaved changes
 - [x] automatically load presets on login for plugged in devices
 - [x] make sure it works on wayland
-- [ ] support timed macros, maybe using some sort of syntax
+- [x] support timed macros, maybe using some sort of syntax
 - [ ] add to the AUR, provide .deb and .appimage files
 - [ ] automatically load presets when devices get plugged in after login

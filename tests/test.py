@@ -217,6 +217,14 @@ def patch_dbus():
     dbus.Interface = lambda *args: Daemon()
 
 
+def clear_write_history():
+    """Empty the history in preparation for the next test."""
+    while len(uinput_write_history) > 0:
+        uinput_write_history.pop()
+    while uinput_write_history_pipe[0].poll():
+        uinput_write_history_pipe[0].recv()
+
+
 # quickly fake some stuff before any other file gets a chance to import
 # the original versions
 patch_paths()

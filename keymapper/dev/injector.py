@@ -225,7 +225,10 @@ class KeycodeInjector:
     def _macro_write(self, character, value, keymapper_device):
         """Handler for macros."""
         keycode = system_mapping.get_keycode(character)
-        logger.spam('macro writes code:%s char:%s', keycode, character)
+        logger.spam(
+            'macro writes code:%s value:%d char:%s',
+            keycode, value, character
+        )
         self._write(keymapper_device, keycode, value)
 
     async def _injection_loop(self, device, keymapper_device):
@@ -271,8 +274,7 @@ class KeycodeInjector:
             if character is None:
                 # unknown keycode, forward it
                 target_keycode = input_keycode
-            elif '(' in character:
-                # must be a macro
+            elif macros.get(input_keycode) is not None:
                 if event.value == 0:
                     continue
 
@@ -283,7 +285,6 @@ class KeycodeInjector:
                     character
                 )
                 macro = macros.get(input_keycode)
-                # TODO test if m(SHIFT_L, k(a)) prints A in injector tests
                 if macro is not None:
                     asyncio.ensure_future(macro.run())
                 continue
