@@ -29,6 +29,8 @@ key-mapper-service
 ## Macros
 
 It is possible to write timed macros into the center column:
+- `k(1)` 1
+- `k(1).w(10).k(2)` 12
 - `r(3, k(a).w(10))` aaa
 - `r(2, k(a).k(-)).k(b)` a-a-b
 - `w(1000).m(SHIFT_L, r(2, k(a))).w(10, 20).k(b)` AAb

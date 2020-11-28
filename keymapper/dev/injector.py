@@ -268,6 +268,7 @@ class KeycodeInjector:
                     character
                 )
                 # TODO prepare this beforehand, not on each keystroke
+                # TODO test if m(SHIFT_L, k(a)) prints A in injector tests
                 parse(
                     character,
                     handler=lambda keycode, value: (
