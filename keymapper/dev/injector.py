@@ -222,6 +222,12 @@ class KeycodeInjector:
         device.write(evdev.ecodes.EV_KEY, keycode - KEYCODE_OFFSET, value)
         device.syn()
 
+    def _macro_write(self, character, value, keymapper_device):
+        """Handler for macros."""
+        keycode = system_mapping.get_keycode(character)
+        logger.spam('macro writes code:%s char:%s', keycode, character)
+        self._write(keymapper_device, keycode, value)
+
     async def _injection_loop(self, device, keymapper_device):
         """Inject keycodes for one of the virtual devices.
 
@@ -240,13 +246,7 @@ class KeycodeInjector:
                 # probably a macro
                 macros[keycode] = parse(
                     output,
-                    lambda char, value: (
-                        self._write(
-                            keymapper_device,
-                            system_mapping.get_keycode(char),
-                            value
-                        )
-                    )
+                    lambda *args: self._macro_write(*args, keymapper_device)
                 )
 
         logger.debug(
