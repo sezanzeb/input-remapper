@@ -36,10 +36,10 @@ It is possible to write timed macros into the center column:
 - `w(1000).m(SHIFT_L, r(2, k(a))).w(10, 20).k(b)` AAb
 
 Documentation:
-- `r` repeats
-- `w` waits in ms (randomly with 2 parameters)
-- `k` writes a keystroke
-- `m` modifies
+- `r` repeats the execution of the second parameter
+- `w` waits in milliseconds (randomly with 2 parameters)
+- `k` writes a single keystroke
+- `m` holds a modifier while executing the second parameter
 - `.` executes two actions behind each other
 
 For a list of supported keystrokes and their names, check the output of `xmodmap -pke`
