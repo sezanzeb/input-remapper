@@ -28,7 +28,8 @@ from keymapper.dev.injector import is_numlock_on, toggle_numlock,\
 from keymapper.state import custom_mapping, system_mapping
 from keymapper.mapping import Mapping
 
-from test import uinput_write_history, Event, pending_events, fixtures
+from test import uinput_write_history, Event, pending_events, fixtures, \
+    clear_write_history
 
 
 class TestInjector(unittest.TestCase):
@@ -54,6 +55,7 @@ class TestInjector(unittest.TestCase):
         evdev.InputDevice.grab = self.grab
         if pending_events.get('device 2') is not None:
             del pending_events['device 2']
+        clear_write_history()
 
     def test_modify_capabilities(self):
         class FakeDevice:
@@ -157,7 +159,7 @@ class TestInjector(unittest.TestCase):
         ]
 
         self.injector = KeycodeInjector('device 2', custom_mapping)
-        # don't start the process for coverage testing purposes
+        # don't start as process for coverage testing purposes
         self.injector._start_injecting()
 
         self.assertEqual(len(uinput_write_history), 7)

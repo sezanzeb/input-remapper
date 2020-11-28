@@ -37,7 +37,8 @@ from keymapper.state import custom_mapping, system_mapping
 from keymapper.paths import CONFIG
 from keymapper.config import config
 
-from test import tmp, pending_events, Event, uinput_write_history_pipe
+from test import tmp, pending_events, Event, uinput_write_history_pipe, \
+    clear_write_history
 
 
 def gtk_iteration():
@@ -101,6 +102,7 @@ class Integration(unittest.TestCase):
         self.window.window.destroy()
         gtk_iteration()
         shutil.rmtree('/tmp/key-mapper-test')
+        clear_write_history()
 
     def get_rows(self):
         return self.window.get('key_list').get_children()
@@ -285,7 +287,7 @@ class Integration(unittest.TestCase):
 
     def test_start_injecting(self):
         keycode_from = 9
-        keycode_to = 100
+        keycode_to = 200
 
         self.change_empty_row(keycode_from, 'a')
         system_mapping.empty()
