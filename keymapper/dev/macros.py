@@ -23,22 +23,19 @@
 
 To keep it short on the UI, the available functions are one-letter long.
 
-The global functions actually perform the stuff and always return macro
-instances that can then be further chained.
-
-the outermost macro (in the examples below the one created by 'r',
+The outermost macro (in the examples below the one created by 'r',
 'r' and 'w') will be started, which triggers a chain reaction to execute
 all of the configured stuff.
 
 Examples
 --------
-r(3, k('a').w(10)): 'a' <10ms> 'a' <10ms> 'a'
-r(2, k('a').k('-')).k('b'): 'a' '-' 'a' '-' 'b'
-w(1000).m('SHIFT_L', r(2, k('a'))).w(10).k('b'): <1s> 'A' 'A' <10ms> 'b'
+r(3, k(a).w(10)): a <10ms> a <10ms> a
+r(2, k(a).k(-)).k(b): a - a - b
+w(1000).m(SHIFT_L, r(2, k(a))).w(10).k(b): <1s> A A <10ms> b
 """
 
 
-import time
+import asyncio
 import re
 import random
 
@@ -60,11 +57,12 @@ class _Macro:
         self.tasks = []
         self.handler = handler
 
-    def run(self):
+    async def run(self):
         """Run the macro."""
         for task in self.tasks:
-            # TODO async, don't block the rest of the application
-            task()
+            coroutine = task()
+            if asyncio.iscoroutine(coroutine):
+                await coroutine
 
     def stop(self):
         """Stop the macro."""
@@ -103,12 +101,15 @@ class _Macro:
 
     def wait(self, min_time, max_time=None):
         """Wait a random time in milliseconds"""
-        if max_time is None:
-            sleeptime = min_time
-        else:
-            sleeptime = random.random() * (max_time - min_time) + min_time
+        async def sleep():
+            if max_time is None:
+                sleeptime = min_time
+            else:
+                sleeptime = random.random() * (max_time - min_time) + min_time
 
-        self.tasks.append(lambda: time.sleep(sleeptime / 1000))
+            await asyncio.sleep(sleeptime / 1000)
+
+        self.tasks.append(sleep)
         return self
 
 
