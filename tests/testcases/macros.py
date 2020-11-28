@@ -41,10 +41,10 @@ class TestMacros(unittest.TestCase):
         self.assertListEqual(self.result, [(1, 1), (1, 0)])
 
     def test_1(self):
-        macro = 'k(1 2).k(a).k(3)'
+        macro = 'k(1).k(a).k(3)'
         self.loop.run_until_complete(parse(macro, self.handler).run())
         self.assertListEqual(self.result, [
-            ('1 2', 1), ('1 2', 0),
+            (1, 1), (1, 0),
             ('a', 1), ('a', 0),
             (3, 1), (3, 0),
         ])
@@ -77,7 +77,7 @@ class TestMacros(unittest.TestCase):
         ])
 
     def test_4(self):
-        macro = '  r(2,\nk(\rr ).k(-\n )).k(m)  '
+        macro = '  r(2,\nk(\nr ).k(-\n )).k(m)  '
         self.loop.run_until_complete(parse(macro, self.handler).run())
         self.assertListEqual(self.result, [
             ('r', 1), ('r', 0),
@@ -89,7 +89,7 @@ class TestMacros(unittest.TestCase):
 
     def test_5(self):
         start = time.time()
-        macro = 'w(200).r(2,m(w,\rr(2,\tk(r))).w(10).k(k))'
+        macro = 'w(200).r(2,m(w,\nr(2,\tk(r))).w(10).k(k))'
         self.loop.run_until_complete(parse(macro, self.handler).run())
 
         num_pauses = 8 + 6 + 4

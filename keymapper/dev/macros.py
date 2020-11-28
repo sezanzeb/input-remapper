@@ -42,9 +42,18 @@ from keymapper.logger import logger
 from keymapper.config import config
 
 
+# for debugging purposes
+MODIFIER = 1
+CHILD_MACRO = 2
+SLEEP = 3
+REPEAT = 4
+KEYSTROKE = 5
+DEBUG = 6
+
+
 class _Macro:
     """Supports chaining and preparing actions."""
-    def __init__(self, handler):
+    def __init__(self, handler, depth):
         """Create a macro instance that can be populated with tasks.
 
         Parameters
@@ -53,13 +62,17 @@ class _Macro:
             A function that accepts keycodes as the first parameter and the
             key-press state as the second. 1 for down and 0 for up. The
             macro will write to this function once executed with `.run()`.
+        depth : int
+            0 for the outermost parent macro, 1 or greater for child macros,
+            like the second argument of repeat.
         """
         self.tasks = []
         self.handler = handler
+        self.depth = depth
 
     async def run(self):
         """Run the macro."""
-        for task in self.tasks:
+        for i, (_, task) in enumerate(self.tasks):
             coroutine = task()
             if asyncio.iscoroutine(coroutine):
                 await coroutine
@@ -76,11 +89,11 @@ class _Macro:
         modifier : str
         macro : _Macro
         """
-        self.tasks.append(lambda: self.handler(modifier, 1))
+        self.tasks.append((MODIFIER, lambda: self.handler(modifier, 1)))
         self.add_keycode_pause()
-        self.tasks.append(macro.run)
+        self.tasks.append((CHILD_MACRO, macro.run))
         self.add_keycode_pause()
-        self.tasks.append(lambda: self.handler(modifier, 0))
+        self.tasks.append((MODIFIER, lambda: self.handler(modifier, 0)))
         self.add_keycode_pause()
         return self
 
@@ -93,7 +106,7 @@ class _Macro:
         macro : _Macro
         """
         for _ in range(repeats):
-            self.tasks.append(macro.run)
+            self.tasks.append((CHILD_MACRO, macro.run))
         return self
 
     def add_keycode_pause(self):
@@ -103,17 +116,17 @@ class _Macro:
         async def sleep():
             await asyncio.sleep(sleeptime)
 
-        self.tasks.append(sleep)
+        self.tasks.append((SLEEP, sleep))
 
     def keycode(self, character):
         """Write the character."""
-        self.tasks.append(lambda: self.handler(character, 1))
-        self.tasks.append(lambda: logger.spam(
+        self.tasks.append((KEYSTROKE, lambda: self.handler(character, 1)))
+        self.tasks.append((DEBUG, lambda: logger.spam(
             'macro writes character %s',
             character
-        ))
+        )))
         self.add_keycode_pause()
-        self.tasks.append(lambda: self.handler(character, 0))
+        self.tasks.append((KEYSTROKE, lambda: self.handler(character, 0)))
         self.add_keycode_pause()
         return self
 
@@ -124,7 +137,7 @@ class _Macro:
         async def sleep():
             await asyncio.sleep(sleeptime)
 
-        self.tasks.append(sleep)
+        self.tasks.append((SLEEP, sleep))
         return self
 
 
@@ -171,7 +184,6 @@ def _parse_recurse(macro, handler, macro_instance=None, depth=0):
     macro_instance : _Macro or None
         A macro instance to add tasks to
     depth : int
-        For logging and debugging purposes
     """
     # to anyone who knows better about compilers and thinks this is horrible:
     # please make a pull request. Because it probably is.
@@ -184,7 +196,7 @@ def _parse_recurse(macro, handler, macro_instance=None, depth=0):
     assert isinstance(depth, int)
 
     if macro_instance is None:
-        macro_instance = _Macro(handler)
+        macro_instance = _Macro(handler, depth)
     else:
         assert isinstance(macro_instance, _Macro)
 
@@ -192,7 +204,7 @@ def _parse_recurse(macro, handler, macro_instance=None, depth=0):
     space = '  ' * depth
 
     # is it another macro?
-    call_match = re.match(r'^(\w+)\(.+?', macro)
+    call_match = re.match(r'^(\w+)\(', macro)
     call = call_match[1] if call_match else None
     if call is not None:
         # available functions in the macro
@@ -204,7 +216,7 @@ def _parse_recurse(macro, handler, macro_instance=None, depth=0):
         }
 
         if functions.get(call) is None:
-            logger.error('Unknown function %s', call)
+            raise Exception(f'Unknown function {call}')
 
         # get all the stuff inbetween
         brackets = 0
@@ -219,14 +231,13 @@ def _parse_recurse(macro, handler, macro_instance=None, depth=0):
             if char == ')':
                 brackets -= 1
                 if brackets < 0:
-                    logger.error('There is one ")" too much at %s', position)
-                    return
+                    raise Exception(f'There is one ")" too much at {position}')
                 if brackets == 0:
                     # the closing bracket of the call
                     break
 
         if brackets != 0:
-            logger.error('There are %s closing brackets missing', brackets)
+            raise Exception(f'There are {brackets} closing brackets missing')
 
         inner = macro[2:position - 1]
 
@@ -239,7 +250,7 @@ def _parse_recurse(macro, handler, macro_instance=None, depth=0):
             for param in string_params
         ]
 
-        logger.spam('%scalling %s with %s', space, call, params)
+        logger.spam('%sadd call to %s with %s', space, call, params)
         functions[call](*params)
 
         # is after this another call? Chain it to the macro_instance
@@ -255,6 +266,7 @@ def _parse_recurse(macro, handler, macro_instance=None, depth=0):
             macro = int(macro)
         except ValueError:
             pass
+        logger.spam('%s%s %s', space, type(macro), macro)
         return macro
 
 
@@ -272,8 +284,11 @@ def parse(macro, handler):
         key-press state as the second. 1 for down and 0 for up. The
         macro will write to this function once executed with `.run()`.
     """
+    # whitespaces, tabs, newlines and such don't serve a purpose. make
+    # the log output clearer and the parsing easier.
+    macro = re.sub(r'\s', '', macro)
+    logger.spam('preparing macro %s for later execution', macro)
     try:
-        logger.spam('input %s', macro)
         return _parse_recurse(macro, handler)
     except Exception as e:
         logger.error('Failed to parse macro "%s": %s', macro, e)
