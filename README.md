@@ -29,11 +29,9 @@ key-mapper-service
 ## Macros
 
 It is possible to write timed macros into the center column:
-- `k(1).k(2)` 12
-- `k(1).w(10).k(2)` 12
-- `r(3, k(a).w(10))` aaa
-- `r(2, k(a).k(-)).k(b)` a-a-b
-- `w(1000).m(SHIFT_L, r(2, k(a))).w(10).k(b)` AAb
+- `k(1).k(2)` 1, 2
+- `r(3, k(a).w(500))` a, a, a with 500ms pause
+- `m(Control_L, k(a).k(x))` CTRL + a, CTRL + x
 
 Documentation:
 - `r` repeats the execution of the second parameter
