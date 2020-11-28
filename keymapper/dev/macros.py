@@ -42,20 +42,23 @@ import time
 import re
 import random
 
-try:
-    from rich.traceback import install
-    install(show_locals=True)
-except ImportError:
-    pass
-
 from keymapper.logger import logger
 
-logger.setLevel(5)
 
 class Macro:
     """Supports chaining and preparing actions."""
-    def __init__(self):
+    def __init__(self, handler):
+        """Create a macro instance that can be populated with tasks.
+
+        Parameters
+        ----------
+        handler : func
+            A function that accepts keycodes as the first parameter and the
+            key-press state as the second. 1 for down and 0 for up. The
+            macro will write to this function once executed with `.run()`.
+        """
         self.tasks = []
+        self.handler = handler
 
     def run(self):
         """Run the macro."""
@@ -75,9 +78,9 @@ class Macro:
         modifier : str
         macro : Macro
         """
-        # TODO press modifier down
+        self.tasks.append(lambda: self.handler(modifier, 1))
         self.tasks.append(macro.run)
-        # TODO release modifier
+        self.tasks.append(lambda: self.handler(modifier, 0))
         return self
 
     def repeat(self, repeats, macro):
@@ -94,8 +97,8 @@ class Macro:
 
     def keycode(self, character):
         """Write the character."""
-        # TODO write character
-        self.tasks.append(lambda: print(character))
+        self.tasks.append(lambda: self.handler(character, 1))
+        self.tasks.append(lambda: self.handler(character, 0))
         return self
 
     def wait(self, min, max=None):
@@ -105,7 +108,7 @@ class Macro:
         return self
 
 
-def parse(macro):
+def parse(macro, handler):
     """parse and generate a Macro that can be run as often as you want.
 
     Parameters
@@ -114,13 +117,13 @@ def parse(macro):
         "r(3, k(a).w(10))"
         "r(2, k(a).k(-)).k(b)"
         "w(1000).m(SHIFT_L, r(2, k(a))).w(10, 20).k(b)"
+    handler : func
+        A function that accepts keycodes as the first parameter and the
+        key-press state as the second. 1 for down and 0 for up. The
+        macro will write to this function once executed with `.run()`.
     """
-    try:
-        return parse_recurse(macro)
-    except Exception as e:
-        logger.error(e)
-    # parsing unsuccessful
-    return None
+    # simpler function prototype and docstring than parse_recurse
+    return parse_recurse(macro, handler)
 
 
 def extract_params(inner):
@@ -154,13 +157,15 @@ def extract_params(inner):
     return params
 
 
-def parse_recurse(macro, macro_instance=None, depth=0):
+def parse_recurse(macro, handler, macro_instance=None, depth=0):
     """Handle a subset of the macro, e.g. one parameter or function call.
 
     Parameters
     ----------
     macro : string
         Just like parse
+    handler : function
+        passed to Macro constructors
     macro_instance : Macro or None
         A macro instance to add tasks to
     depth : int
@@ -170,8 +175,16 @@ def parse_recurse(macro, macro_instance=None, depth=0):
     # please make a pull request. Because it probably is.
     # not using eval for security reasons ofc. And this syntax doesn't need
     # string quotes for its params.
+    # If this gets more complicated than that I'd rather make a macro
+    # editor GUI and store them as json.
+    assert isinstance(macro, str)
+    assert callable(handler)
+    assert isinstance(depth, int)
+
     if macro_instance is None:
-        macro_instance = Macro()
+        macro_instance = Macro(handler)
+    else:
+        assert isinstance(macro_instance, Macro)
 
     macro = macro.strip()
     logger.spam('%sinput %s', '  ' * depth, macro)
@@ -221,7 +234,7 @@ def parse_recurse(macro, macro_instance=None, depth=0):
         logger.spam('%scalls %s with %s', space, call, string_params)
         # evaluate the params
         params = [
-            parse_recurse(param.strip(), None, depth + 1)
+            parse_recurse(param.strip(), handler, None, depth + 1)
             for param in string_params
         ]
 
@@ -232,7 +245,7 @@ def parse_recurse(macro, macro_instance=None, depth=0):
         if len(macro) > position and macro[position] == '.':
             chain = macro[position + 1:]
             logger.spam('%sfollowed by %s', space, chain)
-            parse_recurse(chain, macro_instance, depth)
+            parse_recurse(chain, handler, macro_instance, depth)
 
         return macro_instance
     else:
@@ -242,10 +255,3 @@ def parse_recurse(macro, macro_instance=None, depth=0):
         except ValueError:
             pass
         return macro
-
-
-parse("k(1).k(2).k(3)").run()
-parse("r(1, k(2))").run()
-parse("r(3, k(a).w(10))").run()
-parse("r(2, k(a).k(-)).k(b)").run()
-parse("w(1000).m(SHIFT_L, r(2, k(a))).w(10, 20).k(b)").run()
