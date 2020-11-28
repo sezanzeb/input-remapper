@@ -67,9 +67,14 @@ class Macro:
         self.tasks = []
 
     def run(self):
-        """Run the macro"""
+        """Run the macro."""
         for task in self.tasks:
+            # TODO async, don't block the rest of the application
             task()
+
+    def stop(self):
+        """Stop the macro."""
+        # TODO
 
     def m(self, modifier, macro):
         """Do stuff while a modifier is activated.
@@ -96,12 +101,8 @@ class Macro:
             self.tasks.append(macro.run)
         return self
 
-    def k(self, character, value=None):
-        """Write the character.
-
-        Parameters
-        ----------
-        """
+    def k(self, character):
+        """Write the character."""
         # TODO write character
         self.tasks.append(lambda: print(character))
         return self
@@ -125,3 +126,5 @@ print()
 w(400).m('SHIFT_L', r(2, k('a'))).w(10).k('b').run()
 
 print()
+# prints nothing yet
+k('a').r(3, k('b'))

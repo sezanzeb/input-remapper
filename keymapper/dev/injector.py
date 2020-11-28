@@ -26,9 +26,6 @@ import re
 import asyncio
 import time
 import subprocess
-# By using processes instead of threads, the mappings are
-# automatically copied, so that they can be worked with in the ui
-# without breaking the device. And it's possible to terminate processes.
 import multiprocessing
 
 import evdev
@@ -45,152 +42,6 @@ DEVICE_SKIPPED = 3
 
 # offset between xkb and linux keycodes. linux keycodes are lower
 KEYCODE_OFFSET = 8
-
-
-def _grab(path):
-    """Try to grab, repeat a few times with time inbetween on failure."""
-    attempts = 0
-    while True:
-        device = evdev.InputDevice(path)
-        try:
-            # grab to avoid e.g. the disabled keycode of 10 to confuse
-            # X, especially when one of the buttons of your mouse also
-            # uses 10. This also avoids having to load an empty xkb
-            # symbols file to prevent writing any unwanted keys.
-            device.grab()
-            break
-        except IOError:
-            attempts += 1
-            logger.debug('Failed attemt to grab %s %d', path, attempts)
-
-        if attempts >= 4:
-            logger.error('Cannot grab %s, it is possibly in use', path)
-            return None
-
-        # it might take a little time until the device is free if
-        # it was previously grabbed.
-        time.sleep(0.15)
-    return device
-
-
-def _modify_capabilities(device):
-    """Adds all keycode into a copy of a devices capabilities."""
-    # copy the capabilities because the keymapper_device is going
-    # to act like the device.
-    capabilities = device.capabilities(absinfo=False)
-    # However, make sure that it supports all keycodes, not just some
-    # random ones, because the mapping could contain anything.
-    # That's why I avoid from_device for this
-    capabilities[evdev.ecodes.EV_KEY] = list(evdev.ecodes.keys.keys())
-
-    # just like what python-evdev does in from_device
-    if evdev.ecodes.EV_SYN in capabilities:
-        del capabilities[evdev.ecodes.EV_SYN]
-    if evdev.ecodes.EV_FF in capabilities:
-        del capabilities[evdev.ecodes.EV_FF]
-
-    return capabilities
-
-
-def _is_device_mapped(device, mapping):
-    """Check if this device has capabilities that are being mapped.
-
-    Parameters
-    ----------
-    device : evdev.InputDevice
-    mapping : Mapping
-    """
-    capabilities = device.capabilities(absinfo=False)[evdev.ecodes.EV_KEY]
-    needed = False
-    for keycode, _ in mapping:
-        if keycode - KEYCODE_OFFSET in capabilities:
-            needed = True
-    if not needed:
-        logger.debug('No need to grab %s', device.path)
-    return needed
-
-
-def _start_injecting_worker(path, pipe, mapping):
-    """Inject keycodes for one of the virtual devices.
-
-    Parameters
-    ----------
-    path : string
-        path in /dev to read keycodes from
-    pipe : multiprocessing.Pipe
-        pipe to send status codes over
-    """
-    # evdev needs asyncio to work
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-
-    try:
-        device = _grab(path)
-    except Exception as error:
-        logger.error(error)
-        pipe.send(FAILED)
-        return
-
-    if device is None:
-        pipe.send(FAILED)
-        return
-
-    if not _is_device_mapped(device, mapping):
-        # skipping reading and checking on events from those devices
-        # may be beneficial for performance.
-        pipe.send(DEVICE_SKIPPED)
-        return
-
-    keymapper_device = evdev.UInput(
-        name=f'key-mapper {device.name}',
-        phys='key-mapper',
-        events=_modify_capabilities(device)
-    )
-
-    pipe.send(DEVICE_CREATED)
-
-    logger.debug(
-        'Started injecting into %s, fd %s',
-        keymapper_device.device.path, keymapper_device.fd
-    )
-
-    for event in device.read_loop():
-        if event.type != evdev.ecodes.EV_KEY:
-            keymapper_device.write(event.type, event.code, event.value)
-            # this already includes SYN events, so need to syn here again
-            continue
-
-        if event.value == 2:
-            # linux does them itself, no need to trigger them
-            continue
-
-        input_keycode = event.code + KEYCODE_OFFSET
-
-        character = mapping.get_character(input_keycode)
-
-        if character is None:
-            # unknown keycode, forward it
-            target_keycode = input_keycode
-        else:
-            target_keycode = system_mapping.get_keycode(character)
-            if target_keycode is None:
-                logger.error(
-                    'Cannot find character %s in the internal mapping',
-                    character
-                )
-                continue
-
-        logger.spam(
-            'got code:%s value:%s, maps to code:%s char:%s',
-            event.code + KEYCODE_OFFSET, event.value, target_keycode, character
-        )
-
-        keymapper_device.write(
-            evdev.ecodes.EV_KEY,
-            target_keycode - KEYCODE_OFFSET,
-            event.value
-        )
-        keymapper_device.syn()
 
 
 def is_numlock_on():
@@ -241,13 +92,106 @@ def ensure_numlock(func):
 
 
 class KeycodeInjector:
-    """Keeps injecting keycodes in the background based on the mapping."""
+    """Keeps injecting keycodes in the background based on the mapping.
+
+    Is a process to make it non-blocking for the rest of the code and to
+    make running multiple injector easier. There is one procss per
+    hardware-device that is being mapped.
+    """
     @ensure_numlock
-    def __init__(self, device, mapping=custom_mapping):
-        """Start injecting keycodes based on custom_mapping."""
+    def __init__(self, device, mapping):
+        """Start injecting keycodes based on custom_mapping.
+
+        Parameters
+        ----------
+        device : string
+            the name of the device as available in get_device
+        """
         self.device = device
-        self.virtual_devices = []
-        self.processes = []
+        self.mapping = mapping
+        self._process = None
+
+    def start_injecting(self):
+        """Start injecting keycodes."""
+        self._process = multiprocessing.Process(target=self._start_injecting)
+        self._process.start()
+
+    def _prepare_device(self, path):
+        """Try to grab the device, return if not needed/possible."""
+        device = evdev.InputDevice(path)
+
+        if device is None:
+            return None
+
+        capabilities = device.capabilities(absinfo=False)[evdev.ecodes.EV_KEY]
+
+        needed = False
+        for keycode, _ in self.mapping:
+            if keycode - KEYCODE_OFFSET in capabilities:
+                needed = True
+                break
+
+        if not needed:
+            # skipping reading and checking on events from those devices
+            # may be beneficial for performance.
+            logger.debug('No need to grab %s', device.path)
+            return None
+
+        attempts = 0
+        while True:
+            device = evdev.InputDevice(path)
+            try:
+                # grab to avoid e.g. the disabled keycode of 10 to confuse
+                # X, especially when one of the buttons of your mouse also
+                # uses 10. This also avoids having to load an empty xkb
+                # symbols file to prevent writing any unwanted keys.
+                device.grab()
+                break
+            except IOError:
+                attempts += 1
+                logger.debug('Failed attemt to grab %s %d', path, attempts)
+
+            if attempts >= 4:
+                logger.error('Cannot grab %s, it is possibly in use', path)
+                return None
+
+            # it might take a little time until the device is free if
+            # it was previously grabbed.
+            time.sleep(0.15)
+
+        return device
+
+    def _modify_capabilities(self, input_device):
+        """Adds all keycode into a copy of a devices capabilities.
+
+        Prameters
+        ---------
+        input_device : evdev.InputDevice
+        """
+        # copy the capabilities because the keymapper_device is going
+        # to act like the device.
+        capabilities = input_device.capabilities(absinfo=False)
+        # However, make sure that it supports all keycodes, not just some
+        # random ones, because the mapping could contain anything.
+        # That's why I avoid from_device for this
+        capabilities[evdev.ecodes.EV_KEY] = list(evdev.ecodes.keys.keys())
+
+        # just like what python-evdev does in from_device
+        if evdev.ecodes.EV_SYN in capabilities:
+            del capabilities[evdev.ecodes.EV_SYN]
+        if evdev.ecodes.EV_FF in capabilities:
+            del capabilities[evdev.ecodes.EV_FF]
+
+        return capabilities
+
+    def _start_injecting(self):
+        """The injection worker that keeps injecting until terminated.
+
+        Stuff is non-blocking by using asyncio in order to do multiple things
+        somewhat concurrently.
+        """
+        loop = asyncio.get_event_loop()
+        coroutines = []
 
         paths = get_devices()[self.device]['paths']
 
@@ -255,31 +199,84 @@ class KeycodeInjector:
 
         # Watch over each one of the potentially multiple devices per hardware
         for path in paths:
-            pipe = multiprocessing.Pipe()
-            worker = multiprocessing.Process(
-                target=_start_injecting_worker,
-                args=(path, pipe[1], mapping)
-            )
-            worker.start()
-            # wait for the process to notify creation of the new injection
-            # device, to keep the logs in order.
-            status = pipe[0].recv()
-            if status == DEVICE_CREATED:
-                self.processes.append(worker)
-            else:
-                worker.join()
+            input_device = self._prepare_device(path)
+            if input_device is None:
+                continue
 
-        if len(self.processes) == 0:
+            uinput = evdev.UInput(
+                name=f'key-mapper {input_device.name}',
+                phys='key-mapper',
+                events=self._modify_capabilities(input_device)
+            )
+            coroutine = self._injection_loop(input_device, uinput)
+            coroutines.append(coroutine)
+
+        if len(coroutines) == 0:
             raise OSError('Could not grab any device')
+
+        loop.run_until_complete(asyncio.gather(*coroutines))
+
+    async def _injection_loop(self, device, keymapper_device):
+        """Inject keycodes for one of the virtual devices.
+
+        Parameters
+        ----------
+        device : evdev.InputDevice
+            where to read keycodes from
+        keymapper_device : evdev.UInput
+            where to write keycodes to
+        mapping : Mapping
+            to figure out which keycodes to write
+        """
+        logger.debug(
+            'Started injecting into %s, fd %s',
+            keymapper_device.device.path, keymapper_device.fd
+        )
+
+        async for event in device.async_read_loop():
+            if event.type != evdev.ecodes.EV_KEY:
+                keymapper_device.write(event.type, event.code, event.value)
+                # this already includes SYN events, so need to syn here again
+                continue
+
+            if event.value == 2:
+                # linux does them itself, no need to trigger them
+                continue
+
+            input_keycode = event.code + KEYCODE_OFFSET
+
+            character = self.mapping.get_character(input_keycode)
+
+            if character is None:
+                # unknown keycode, forward it
+                target_keycode = input_keycode
+            else:
+                target_keycode = system_mapping.get_keycode(character)
+                if target_keycode is None:
+                    logger.error(
+                        'Cannot find character %s in the internal mapping',
+                        character
+                    )
+                    continue
+
+            logger.spam(
+                'got code:%s value:%s, maps to code:%s char:%s',
+                event.code + KEYCODE_OFFSET,
+                event.value,
+                target_keycode,
+                character
+            )
+
+            keymapper_device.write(
+                evdev.ecodes.EV_KEY,
+                target_keycode - KEYCODE_OFFSET,
+                event.value
+            )
+            keymapper_device.syn()
 
     @ensure_numlock
     def stop_injecting(self):
         """Stop injecting keycodes."""
         logger.info('Stopping injecting keycodes for device %s', self.device)
-        for i, process in enumerate(self.processes):
-            if process is None:
-                continue
-
-            if process.is_alive():
-                process.terminate()
-                self.processes[i] = None
+        if self._process is not None and self._process.is_alive():
+            self._process.terminate()

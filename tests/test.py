@@ -26,6 +26,7 @@ import sys
 import time
 import unittest
 import multiprocessing
+import asyncio
 
 import evdev
 
@@ -168,6 +169,15 @@ def patch_evdev():
                 # give tests some time to test stuff while the process
                 # is still running
                 time.sleep(0.01)
+
+        async def async_read_loop(self):
+            """Read all prepared events at once."""
+            if pending_events.get(self.name) is None:
+                return
+
+            while len(pending_events[self.name]) > 0:
+                yield pending_events[self.name].pop(0)
+                await asyncio.sleep(0.01)
 
         def capabilities(self, absinfo=True):
             return fixtures[self.path]['capabilities']
