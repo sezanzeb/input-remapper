@@ -121,10 +121,6 @@ class _Macro:
     def keycode(self, character):
         """Write the character."""
         self.tasks.append((KEYSTROKE, lambda: self.handler(character, 1)))
-        self.tasks.append((DEBUG, lambda: logger.spam(
-            'macro writes character %s',
-            character
-        )))
         self.add_keycode_pause()
         self.tasks.append((KEYSTROKE, lambda: self.handler(character, 0)))
         self.add_keycode_pause()

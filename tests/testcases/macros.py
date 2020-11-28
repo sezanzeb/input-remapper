@@ -30,11 +30,14 @@ from keymapper.config import config
 class TestMacros(unittest.TestCase):
     def setUp(self):
         self.result = []
-        self.handler = lambda char, value: self.result.append((char, value))
         self.loop = asyncio.get_event_loop()
 
     def tearDown(self):
         self.result = []
+
+    def handler(self, char, value):
+        """Where macros should write characters to."""
+        self.result.append((char, value))
 
     def test_0(self):
         self.loop.run_until_complete(parse('k(1)', self.handler).run())

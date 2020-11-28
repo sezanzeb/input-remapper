@@ -24,7 +24,7 @@ import unittest
 import evdev
 
 from keymapper.dev.injector import is_numlock_on, toggle_numlock,\
-    ensure_numlock, KeycodeInjector
+    ensure_numlock, KeycodeInjector, KEYCODE_OFFSET
 from keymapper.state import custom_mapping, system_mapping
 from keymapper.mapping import Mapping
 
@@ -127,16 +127,26 @@ class TestInjector(unittest.TestCase):
         self.assertEqual(before, is_numlock_on())
 
     def test_injector(self):
+        custom_mapping.change(8, 'k(q).k(w)')
         custom_mapping.change(9, 'a')
         # one mapping that is unknown in the system_mapping on purpose
         custom_mapping.change(10, 'b')
 
         system_mapping.empty()
-        system_mapping.change(100, 'a')
+        code_a = 100
+        code_q = 101
+        code_w = 102
+        system_mapping.change(code_a, 'a')
+        system_mapping.change(code_q, 'q')
+        system_mapping.change(code_w, 'w')
 
         # the second arg of those event objects is 8 lower than the
         # keycode used in X and in the mappings
         pending_events['device 2'] = [
+            # should execute a macro
+            Event(evdev.events.EV_KEY, 0, 1),
+            Event(evdev.events.EV_KEY, 0, 0),
+            # normal keystroke
             Event(evdev.events.EV_KEY, 1, 1),
             Event(evdev.events.EV_KEY, 1, 0),
             # ignored because unknown to the system
@@ -150,19 +160,41 @@ class TestInjector(unittest.TestCase):
         # don't start the process for coverage testing purposes
         self.injector._start_injecting()
 
-        self.assertEqual(len(uinput_write_history), 3)
+        self.assertEqual(len(uinput_write_history), 7)
 
-        self.assertEqual(uinput_write_history[0].type, evdev.events.EV_KEY)
-        self.assertEqual(uinput_write_history[0].code, 92)
-        self.assertEqual(uinput_write_history[0].value, 1)
+        # convert the write history to some easier to manage list
+        history = [
+            (event.type, event.code, event.value)
+            for event in uinput_write_history
+        ]
 
-        self.assertEqual(uinput_write_history[1].type, evdev.events.EV_KEY)
-        self.assertEqual(uinput_write_history[1].code, 92)
-        self.assertEqual(uinput_write_history[1].value, 0)
+        # since the macro takes a little bit of time to execute, its
+        # keystrokes are all over the place.
+        # just check if they are there and if so, remove them from the list.
+        ev_key = evdev.events.EV_KEY
+        self.assertIn((ev_key, code_q - KEYCODE_OFFSET, 1), history)
+        self.assertIn((ev_key, code_q - KEYCODE_OFFSET, 0), history)
+        self.assertIn((ev_key, code_w - KEYCODE_OFFSET, 1), history)
+        self.assertIn((ev_key, code_w - KEYCODE_OFFSET, 0), history)
+        index_q_1 = history.index((ev_key, code_q - KEYCODE_OFFSET, 1))
+        index_q_0 = history.index((ev_key, code_q - KEYCODE_OFFSET, 0))
+        index_w_1 = history.index((ev_key, code_w - KEYCODE_OFFSET, 1))
+        index_w_0 = history.index((ev_key, code_w - KEYCODE_OFFSET, 0))
+        self.assertGreater(index_q_0, index_q_1)
+        self.assertGreater(index_w_1, index_q_0)
+        self.assertGreater(index_w_0, index_w_1)
+        del history[index_q_1]
+        index_q_0 = history.index((ev_key, code_q - KEYCODE_OFFSET, 0))
+        del history[index_q_0]
+        index_w_1 = history.index((ev_key, code_w - KEYCODE_OFFSET, 1))
+        del history[index_w_1]
+        index_w_0 = history.index((ev_key, code_w - KEYCODE_OFFSET, 0))
+        del history[index_w_0]
 
-        self.assertEqual(uinput_write_history[2].type, 3124)
-        self.assertEqual(uinput_write_history[2].code, 3564)
-        self.assertEqual(uinput_write_history[2].value, 6542)
+        # the rest should be in order.
+        self.assertEqual(history[0], (ev_key, code_a - KEYCODE_OFFSET, 1))
+        self.assertEqual(history[1], (ev_key, code_a - KEYCODE_OFFSET, 0))
+        self.assertEqual(history[2], (3124, 3564, 6542))
 
 
 if __name__ == "__main__":
