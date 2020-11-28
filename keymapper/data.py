@@ -33,7 +33,7 @@ def get_data_path(filename=''):
 
     # depending on where this file is installed to, make sure to use the proper
     # prefix path for data
-    # https://docs.python.org/3/distutils/setupscript.html?highlight=package_data#installing-additional-files # noqa
+    # https://docs.python.org/3/distutils/setupscript.html?highlight=package_data#installing-additional-files # noqa pylint: disable=line-too-long
     if source_path.startswith(site.USER_BASE):
         data_path = os.path.join(site.USER_BASE, 'share/key-mapper')
     elif source_path.startswith('/usr/local/'):

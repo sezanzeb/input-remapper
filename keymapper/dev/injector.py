@@ -274,8 +274,8 @@ class KeycodeInjector:
                     handler=lambda keycode, value: (
                         self._write(
                             keymapper_device,
-                            target_keycode,
-                            event.value
+                            keycode,
+                            value
                         )
                     )
                 ).run()

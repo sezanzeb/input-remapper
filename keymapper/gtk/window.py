@@ -225,7 +225,7 @@ class Window:
         self.dbus.stop_injecting(self.selected_device)
         self.get('status_bar').push(
             CTX_APPLY,
-            f'Applied the system default'
+            'Applied the system default'
         )
         # restart reading because after injecting the device landscape
         # changes a bit
