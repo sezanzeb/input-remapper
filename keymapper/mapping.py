@@ -25,6 +25,7 @@
 import os
 import json
 import shutil
+import copy
 
 from keymapper.logger import logger
 from keymapper.paths import get_config_path
@@ -156,6 +157,15 @@ class Mapping:
                 self._mapping[keycode] = character
 
         self.changed = False
+
+    def clone(self):
+        """Create a copy of the mapping."""
+        # TODO test
+        mapping = Mapping()
+        mapping._mapping = copy.deepcopy(self._mapping)
+        mapping.update_reverse_mapping()
+        mapping.changed = self.changed
+        return Mapping()
 
     def save(self, device, preset):
         """Dump as JSON into home."""

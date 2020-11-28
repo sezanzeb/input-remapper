@@ -84,11 +84,11 @@ class Daemon(service.Object):
         self.injectors = {}
         if autoload:
             for device, preset in config.iterate_autoload_presets():
-                print(device, preset)
                 mapping = Mapping()
                 mapping.load(device, preset)
                 try:
                     injector = KeycodeInjector(device, mapping)
+                    injector.start_injecting()
                     self.injectors[device] = injector
                 except OSError as error:
                     logger.error(error)
@@ -133,7 +133,9 @@ class Daemon(service.Object):
         mapping = Mapping()
         mapping.load(device, preset)
         try:
-            self.injectors[device] = KeycodeInjector(device, mapping)
+            injector = KeycodeInjector(device, mapping)
+            injector.start_injecting()
+            self.injectors[device] = injector
         except OSError:
             return False
 

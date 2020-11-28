@@ -23,11 +23,10 @@ import unittest
 
 import evdev
 
-from keymapper.dev.injector import _start_injecting_worker, _grab, \
-    is_numlock_on, toggle_numlock, ensure_numlock, _modify_capabilities, \
-    KeycodeInjector
-from keymapper.getdevices import get_devices
+from keymapper.dev.injector import is_numlock_on, toggle_numlock,\
+    ensure_numlock, KeycodeInjector
 from keymapper.state import custom_mapping, system_mapping
+from keymapper.mapping import Mapping
 
 from test import uinput_write_history, Event, pending_events, fixtures
 
@@ -65,7 +64,8 @@ class TestInjector(unittest.TestCase):
                     evdev.ecodes.EV_FF: [1, 2, 3]
                 }
 
-        capabilities = _modify_capabilities(FakeDevice())
+        self.injector = KeycodeInjector('foo', Mapping())
+        capabilities = self.injector._modify_capabilities(FakeDevice())
 
         self.assertIn(evdev.ecodes.EV_KEY, capabilities)
         self.assertIsInstance(capabilities[evdev.ecodes.EV_KEY], list)
@@ -76,11 +76,38 @@ class TestInjector(unittest.TestCase):
 
     def test_grab(self):
         # path is from the fixtures
-        path = '/dev/input/event11'
-        device = _grab(path)
+        custom_mapping.change(10, 'a')
+
+        self.injector = KeycodeInjector('device 1', custom_mapping)
+        path = '/dev/input/event10'
+        # this test needs to pass around all other constraints of
+        # _prepare_device
+        device = self.injector._prepare_device(path)
         self.assertEqual(self.failed, 2)
         # success on the third try
         device.name = fixtures[path]['name']
+
+    def test_skip_unused_device(self):
+        # skips a device because its capabilities are not used in the mapping
+        custom_mapping.change(10, 'a')
+        self.injector = KeycodeInjector('device 1', custom_mapping)
+        path = '/dev/input/event11'
+        device = self.injector._prepare_device(path)
+        self.assertEqual(self.failed, 0)
+        self.assertIsNone(device)
+
+    def test_skip_unknown_device(self):
+        # skips a device because its capabilities are not used in the mapping
+        self.injector = KeycodeInjector('device 1', custom_mapping)
+        path = '/dev/input/event11'
+        device = self.injector._prepare_device(path)
+
+        # make sure the test uses a fixture without capabilities
+        capabilities = evdev.InputDevice(path).capabilities()
+        self.assertEqual(len(capabilities[evdev.ecodes.EV_KEY]), 0)
+
+        self.assertEqual(self.failed, 0)
+        self.assertIsNone(device)
 
     def test_numlock(self):
         before = is_numlock_on()
@@ -99,28 +126,7 @@ class TestInjector(unittest.TestCase):
         toggle_numlock()
         self.assertEqual(before, is_numlock_on())
 
-    def test_injector_constructor(self):
-        # this buys some time to test if the process is alive. 2 (20ms) would
-        # already be enough
-        pending_events['device 2'] = [Event(1, 31, 1)] * 10
-
-        injector2 = None
-        try:
-            injector2 = KeycodeInjector('device 2')
-            self.assertEqual(len(injector2.processes), 1)
-            self.assertEqual(injector2.processes[0].is_alive(), True)
-            injector2.processes[0].join()
-        except Exception as error:
-            # make sure to not cause race conditions for other tests
-            # if this test fails
-            if injector2 is not None:
-                for p in injector2.processes:
-                    p.join()
-            raise error
-
     def test_injector(self):
-        device = get_devices()['device 2']
-
         custom_mapping.change(9, 'a')
         # one mapping that is unknown in the system_mapping on purpose
         custom_mapping.change(10, 'b')
@@ -140,15 +146,11 @@ class TestInjector(unittest.TestCase):
             Event(3124, 3564, 6542),
         ]
 
-        class FakePipe:
-            def send(self, message):
-                pass
+        self.injector = KeycodeInjector('device 2', custom_mapping)
+        # don't start the process for coverage testing purposes
+        self.injector._start_injecting()
 
-        _start_injecting_worker(
-            path=device['paths'][0],
-            pipe=FakePipe(),
-            mapping=custom_mapping
-        )
+        self.assertEqual(len(uinput_write_history), 3)
 
         self.assertEqual(uinput_write_history[0].type, evdev.events.EV_KEY)
         self.assertEqual(uinput_write_history[0].code, 92)
