@@ -37,9 +37,9 @@ class TestMacros(unittest.TestCase):
         self.assertListEqual(self.result, [(1, 1), (1, 0)])
 
     def test_1(self):
-        parse('k(1).k(a).k(3)', self.handler).run()
+        parse('k(1 2).k(a).k(3)', self.handler).run()
         self.assertListEqual(self.result, [
-            (1, 1), (1, 0),
+            ('1 2', 1), ('1 2', 0),
             ('a', 1), ('a', 0),
             (3, 1), (3, 0),
         ])

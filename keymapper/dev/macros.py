@@ -101,12 +101,12 @@ class _Macro:
         self.tasks.append(lambda: self.handler(character, 0))
         return self
 
-    def wait(self, min, max=None):
+    def wait(self, min_time, max_time=None):
         """Wait a random time in milliseconds"""
-        if max is None:
-            sleeptime = min
+        if max_time is None:
+            sleeptime = min_time
         else:
-            sleeptime = random.random() * (max - min) + min
+            sleeptime = random.random() * (max_time - min_time) + min_time
 
         self.tasks.append(lambda: time.sleep(sleeptime / 1000))
         return self
@@ -188,7 +188,7 @@ def _parse_recurse(macro, handler, macro_instance=None, depth=0):
         }
 
         if functions.get(call) is None:
-            logger.error(f'Unknown function %s', call)
+            logger.error('Unknown function %s', call)
 
         # get all the stuff inbetween
         brackets = 0
@@ -203,14 +203,14 @@ def _parse_recurse(macro, handler, macro_instance=None, depth=0):
             if char == ')':
                 brackets -= 1
                 if brackets < 0:
-                    logger.error(f'There is one ")" too much at %s', position)
+                    logger.error('There is one ")" too much at %s', position)
                     return
                 if brackets == 0:
                     # the closing bracket of the call
                     break
 
         if brackets != 0:
-            logger.error(f'There are %s closing brackets missing', brackets)
+            logger.error('There are %s closing brackets missing', brackets)
 
         inner = macro[2:position - 1]
 
