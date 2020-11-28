@@ -22,7 +22,6 @@
 """Keeps injecting keycodes in the background based on the mapping."""
 
 
-import os
 import re
 import asyncio
 import time
@@ -220,11 +219,7 @@ class KeycodeInjector:
 
     def _write(self, device, keycode, value):
         """Actually inject."""
-        device.write(
-            evdev.ecodes.EV_KEY,
-            keycode - KEYCODE_OFFSET,
-            value
-        )
+        device.write(evdev.ecodes.EV_KEY, keycode - KEYCODE_OFFSET, value)
         device.syn()
 
     async def _injection_loop(self, device, keymapper_device):
@@ -237,6 +232,23 @@ class KeycodeInjector:
         keymapper_device : evdev.UInput
             where to write keycodes to
         """
+        # Parse all macros beforehand
+        logger.debug('Parsing macros')
+        macros = {}
+        for keycode, output in self.mapping:
+            if '(' in output and ')' in output and len(output) > 4:
+                # probably a macro
+                macros[keycode] = parse(
+                    output,
+                    lambda char, value: (
+                        self._write(
+                            keymapper_device,
+                            system_mapping.get_keycode(char),
+                            value
+                        )
+                    )
+                )
+
         logger.debug(
             'Started injecting into %s, fd %s',
             keymapper_device.device.path, keymapper_device.fd
@@ -261,24 +273,20 @@ class KeycodeInjector:
                 target_keycode = input_keycode
             elif '(' in character:
                 # must be a macro
+                if event.value == 0:
+                    continue
+
                 logger.spam(
                     'got code:%s value:%s, maps to macro %s',
                     event.code + KEYCODE_OFFSET,
                     event.value,
                     character
                 )
-                # TODO prepare this beforehand, not on each keystroke
+                macro = macros.get(input_keycode)
                 # TODO test if m(SHIFT_L, k(a)) prints A in injector tests
-                parse(
-                    character,
-                    handler=lambda keycode, value: (
-                        self._write(
-                            keymapper_device,
-                            keycode,
-                            value
-                        )
-                    )
-                ).run()
+                if macro is not None:
+                    asyncio.ensure_future(macro.run())
+                continue
             else:
                 target_keycode = system_mapping.get_keycode(character)
                 if target_keycode is None:

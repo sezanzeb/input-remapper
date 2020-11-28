@@ -24,6 +24,7 @@ import unittest
 import asyncio
 
 from keymapper.dev.macros import parse, _Macro
+from keymapper.config import config
 
 
 class TestMacros(unittest.TestCase):
@@ -50,19 +51,25 @@ class TestMacros(unittest.TestCase):
     
     def test_2(self):
         start = time.time()
-        macro = 'r(1, k(k))'
+        repeats = 20
+        macro = f'r({repeats}, k(k))'
         self.loop.run_until_complete(parse(macro, self.handler).run())
-        self.assertLess(time.time() - start, 0.1)
-        self.assertListEqual(self.result, [
-            ('k', 1), ('k', 0),
-        ])
+        sleep_time = 2 * repeats * config.get_keystroke_sleep() / 1000
+        self.assertGreater(time.time() - start, sleep_time * 0.9)
+        self.assertLess(time.time() - start, sleep_time * 1.1)
+        self.assertListEqual(self.result, [('k', 1), ('k', 0)] * repeats)
 
     def test_3(self):
         start = time.time()
-        macro = 'r(3, k(m).w(100, 200))'
+        macro = 'r(3, k(m).w(100))'
         self.loop.run_until_complete(parse(macro, self.handler).run())
-        self.assertGreater(time.time() - start, 0.1 * 3)
-        self.assertLess(time.time() - start, 0.21 * 3)
+
+        keystroke_time = 6 * config.get_keystroke_sleep()
+        total_time = keystroke_time + 300
+        total_time /= 1000
+
+        self.assertGreater(time.time() - start, total_time * 0.9)
+        self.assertLess(time.time() - start, total_time * 1.1)
         self.assertListEqual(self.result, [
             ('m', 1), ('m', 0),
             ('m', 1), ('m', 0),
@@ -84,8 +91,14 @@ class TestMacros(unittest.TestCase):
         start = time.time()
         macro = 'w(200).r(2,m(w,\rr(2,\tk(r))).w(10).k(k))'
         self.loop.run_until_complete(parse(macro, self.handler).run())
-        self.assertLess(time.time() - start, 0.23)
-        self.assertGreater(time.time() - start, 0.21)
+
+        num_pauses = 8 + 6 + 4
+        keystroke_time = num_pauses * config.get_keystroke_sleep()
+        wait_time = 220
+        total_time = (keystroke_time + wait_time) / 1000
+
+        self.assertLess(time.time() - start, total_time * 1.1)
+        self.assertGreater(time.time() - start, total_time * 0.9)
         expected = [('w', 1)]
         expected += [('r', 1), ('r', 0)] * 2
         expected += [('w', 0)]

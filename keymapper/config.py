@@ -33,9 +33,13 @@ from keymapper.logger import logger
 
 CONFIG_PATH = os.path.join(CONFIG, 'config')
 
-# an empty config with basic expected substructures
 INITIAL_CONFIG = {
-    'autoload': {}
+    'autoload': {},
+    'macros': {
+        # some time between keystrokes might be required for them to be
+        # detected properly in software.
+        'keystroke_sleep_ms': 10
+    }
 }
 
 
@@ -53,6 +57,11 @@ class _Config:
             self._config['autoload'][device] = preset
         elif self._config['autoload'].get(device) is not None:
             del self._config['autoload'][device]
+
+    def get_keystroke_sleep(self):
+        """Get the seconds of sleep between key down and up events."""
+        macros = self._config.get('macros', {})
+        return macros.get('keystroke_sleep_ms', 10)
 
     def iterate_autoload_presets(self):
         """Get tuples of (device, preset)."""
