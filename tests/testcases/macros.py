@@ -21,24 +21,67 @@
 
 import unittest
 
-from keymapper.dev.macros import Macro, k, m, r, w
+from keymapper.dev.macros import parse
 
 
 class TestMacros(unittest.TestCase):
-    def test_1(self):
-        r(3, k('a').w(200)).run()
+    def setUp(self):
+        self.result = []
+        self.handler = lambda char, value: self.result.append((char, value))
 
+    def tearDown(self):
+        self.result = []
+
+    def test_0(self):
+        parse('k(1)', self.handler).run()
+        self.assertListEqual(self.result, [(1, 1), (1, 0)])
+
+    def test_1(self):
+        parse('k(1).k(a).k(3)', self.handler).run()
+        self.assertListEqual(self.result, [
+            (1, 1), (1, 0),
+            ('a', 1), ('a', 0),
+            (3, 1), (3, 0),
+        ])
+    
     def test_2(self):
-        r(2, k('a').k('-')).k('b').run()
+        parse('r(1, k(k))', self.handler).run()
+        self.assertListEqual(self.result, [
+            ('k', 1), ('k', 0),
+        ])
 
     def test_3(self):
-        w(400).m('SHIFT_L', r(2, k('a'))).w(10).k('b').run()
+        parse('r(3, k(m).w(200))', self.handler).run()
+        self.assertListEqual(self.result, [
+            ('m', 1), ('m', 0),
+            ('m', 1), ('m', 0),
+            ('m', 1), ('m', 0),
+        ])
 
     def test_4(self):
+        parse('  r(2,\nk(\rr ).k(-\n )).k(m)  ', self.handler).run()
+        self.assertListEqual(self.result, [
+            ('r', 1), ('r', 0),
+            ('-', 1), ('-', 0),
+            ('r', 1), ('r', 0),
+            ('-', 1), ('-', 0),
+            ('m', 1), ('m', 0),
+        ])
+
+    def test_5(self):
+        parse('w(400).r(2,m(w,\rr(2,\tk(r))).w(10).k(k))', self.handler).run()
+        expected = [('w', 1)]
+        expected += [('r', 1), ('r', 0)] * 2
+        expected += [('w', 0)]
+        expected += [('k', 1), ('k', 0)]
+        expected *= 2
+        self.assertListEqual(self.result, expected)
+
+    def test_6(self):
         # prints nothing without .run
-        k('a').r(3, k('b'))
+        parse('k(a).r(3, k(b))', self.handler)
+        self.assertListEqual(self.result, [])
 
 
-
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()
