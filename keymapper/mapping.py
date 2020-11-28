@@ -160,12 +160,11 @@ class Mapping:
 
     def clone(self):
         """Create a copy of the mapping."""
-        # TODO test
         mapping = Mapping()
         mapping._mapping = copy.deepcopy(self._mapping)
         mapping.update_reverse_mapping()
         mapping.changed = self.changed
-        return Mapping()
+        return mapping
 
     def save(self, device, preset):
         """Dump as JSON into home."""

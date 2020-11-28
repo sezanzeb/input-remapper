@@ -23,7 +23,6 @@ import unittest
 
 from keymapper.mapping import Mapping
 from keymapper.state import parse_xmodmap
-from keymapper.paths import get_config_path
 
 
 class TestMapping(unittest.TestCase):
@@ -37,6 +36,22 @@ class TestMapping(unittest.TestCase):
         # keycode 10 is typically mapped to '1'
         self.assertEqual(self.mapping.get_keycode('1'), 10)
         self.assertTrue(self.mapping.get_character(10).startswith('1'))
+
+    def test_clone(self):
+        mapping1 = Mapping()
+        mapping1.change(1, 'a')
+        mapping2 = mapping1.clone()
+        mapping1.change(2, 'b')
+
+        self.assertEqual(mapping1.get_character(1), 'a')
+        self.assertEqual(mapping1.get_keycode('a'), 1)
+        self.assertEqual(mapping1.get_character(2), 'b')
+        self.assertEqual(mapping1.get_keycode('b'), 2)
+
+        self.assertEqual(mapping2.get_character(1), 'a')
+        self.assertEqual(mapping2.get_keycode('a'), 1)
+        self.assertIsNone(mapping2.get_character(2))
+        self.assertIsNone(mapping2.get_keycode('b'))
 
     def test_save_load(self):
         self.mapping.change(10, '1')
