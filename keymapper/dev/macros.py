@@ -37,9 +37,9 @@ w(1000).m(SHIFT_L, r(2, k(a))).w(10).k(b): <1s> A A <10ms> b
 
 import asyncio
 import re
-import random
 
 from keymapper.logger import logger
+from keymapper.config import config
 
 
 class _Macro:
@@ -77,8 +77,11 @@ class _Macro:
         macro : _Macro
         """
         self.tasks.append(lambda: self.handler(modifier, 1))
+        self.add_keycode_pause()
         self.tasks.append(macro.run)
+        self.add_keycode_pause()
         self.tasks.append(lambda: self.handler(modifier, 0))
+        self.add_keycode_pause()
         return self
 
     def repeat(self, repeats, macro):
@@ -93,21 +96,33 @@ class _Macro:
             self.tasks.append(macro.run)
         return self
 
+    def add_keycode_pause(self):
+        """To add a pause between keystrokes."""
+        sleeptime = config.get_keystroke_sleep() / 1000
+
+        async def sleep():
+            await asyncio.sleep(sleeptime)
+
+        self.tasks.append(sleep)
+
     def keycode(self, character):
         """Write the character."""
         self.tasks.append(lambda: self.handler(character, 1))
+        self.tasks.append(lambda: logger.spam(
+            'macro writes character %s',
+            character
+        ))
+        self.add_keycode_pause()
         self.tasks.append(lambda: self.handler(character, 0))
+        self.add_keycode_pause()
         return self
 
-    def wait(self, min_time, max_time=None):
-        """Wait a random time in milliseconds"""
-        async def sleep():
-            if max_time is None:
-                sleeptime = min_time
-            else:
-                sleeptime = random.random() * (max_time - min_time) + min_time
+    def wait(self, sleeptime):
+        """Wait time in milliseconds."""
+        sleeptime /= 1000
 
-            await asyncio.sleep(sleeptime / 1000)
+        async def sleep():
+            await asyncio.sleep(sleeptime)
 
         self.tasks.append(sleep)
         return self

@@ -33,16 +33,19 @@ It is possible to write timed macros into the center column:
 - `k(1).w(10).k(2)` 12
 - `r(3, k(a).w(10))` aaa
 - `r(2, k(a).k(-)).k(b)` a-a-b
-- `w(1000).m(SHIFT_L, r(2, k(a))).w(10, 20).k(b)` AAb
+- `w(1000).m(SHIFT_L, r(2, k(a))).w(10).k(b)` AAb
 
 Documentation:
 - `r` repeats the execution of the second parameter
-- `w` waits in milliseconds (randomly with 2 parameters)
+- `w` waits in milliseconds
 - `k` writes a single keystroke
 - `m` holds a modifier while executing the second parameter
 - `.` executes two actions behind each other
 
 For a list of supported keystrokes and their names, check the output of `xmodmap -pke`
+
+Maybe you shouldn't use this feature in online PVP though. Might even get
+detected by the game.
 
 ## Git Installation
 
