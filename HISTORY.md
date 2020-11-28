@@ -104,6 +104,9 @@ empty xkb symbols file is needed anymore.
 
 # How I would have liked it to be
 
+This solution would have made the macro thing and mapping of mouse-clicks
+impossible though.
+
 setxkbmap -layout ~/.config/key-mapper/mouse -device 13
 
 config looks like:
