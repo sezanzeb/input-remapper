@@ -55,7 +55,6 @@ groups
 ```bash
 wget "https://github.com/sezanzeb/key-mapper/releases/download/0.1.0/python3-key-mapper_0.1.0-1_all.deb"
 sudo dpkg -i python3-key-mapper_0.1.0-1_all.deb
-sudo usermod -a -G plugdev,input $USER
 ```
 
 ##### Manjaro/Arch
@@ -69,7 +68,6 @@ pacaur -S key-mapper-git
 ```bash
 git clone https://github.com/sezanzeb/key-mapper.git
 sudo pip install key-mapper
-sudo usermod -a -G plugdev,input $USER
 ```
 
 ## Roadmap
