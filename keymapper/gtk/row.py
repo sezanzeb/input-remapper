@@ -46,13 +46,13 @@ class Row(Gtk.ListBoxRow):
         self.delete_callback = delete_callback
 
         self.character_input = None
-        self.keycode = None
+        self.keycode_input = None
 
         self.put_together(keycode, character)
 
     def get_keycode(self):
         """Get the integer keycode from the left column."""
-        keycode = self.keycode.get_label()
+        keycode = self.keycode_input.get_label()
         return int(keycode) if keycode else None
 
     def get_character(self):
@@ -84,7 +84,7 @@ class Row(Gtk.ListBoxRow):
 
         # it's legal to display the keycode
         self.window.get('status_bar').remove_all(CTX_KEYCODE)
-        self.keycode.set_label(str(new_keycode))
+        self.keycode_input.set_label(str(new_keycode))
         # switch to the character, don't require mouse input because
         # that would overwrite the key with the mouse-button key if
         # the current device is a mouse. idle_add this so that the
@@ -172,11 +172,13 @@ class Row(Gtk.ListBoxRow):
         self.show_all()
 
         self.character_input = character_input
-        self.keycode = keycode_input
+        self.keycode_input = keycode_input
 
     def on_delete_button_clicked(self, *args):
         """Destroy the row and remove it from the config."""
         keycode = self.get_keycode()
         if keycode is not None:
             custom_mapping.clear(keycode)
+        self.character_input.set_text('')
+        self.keycode_input.set_label('')
         self.delete_callback(self)
