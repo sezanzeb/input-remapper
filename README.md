@@ -3,9 +3,7 @@
 <p align="center">A Linux tool to change and program the mapping of your input device buttons.</p>
 
 <p align="center">
-    <a href="#Ubunut/Debian">Ubunut/Debian</a>
-    <a href="#Manjaro/Arch">Manjaro/Arch</a>
-    <a href="#Git">Git</a>
+    <a href="#ubuntudebian">Ubuntu/Debian</a> • <a href="#manjaroarch">Manjaro/Arch</a> • <a href="#git">Git</a>
 </p>
 
 <p align="center"><img src="readme/pylint.svg"/> <img src="readme/coverage.svg"/></p>
@@ -15,22 +13,12 @@
 
 ## Usage
 
-To open the UI to modify the mappings, use:
+After installing, you should log out and back in for the changed user
+groups to take effect and for the background service to start.
 
-```bash
-key-mapper-gtk
-```
-
-You can also start it via your applications menu.
-
-To keep injecting the mapping after closing the window, the daemon needs to
-be running. If it doesn't already after logging in, you can use:
-
-```bash
-key-mapper-service
-```
-
-It works with both Wayland and X11.
+To open the UI to modify the mappings, look into your applications menu
+and search for 'Key Mapper' in settings. You can also start it via 
+`key-mapper-gtk`. It works with both Wayland and X11.
 
 ## Macros
 
@@ -51,36 +39,33 @@ For a list of supported keystrokes and their names, check the output of
 
 ## Installation
 
-#### Ubunut/Debian
+##### Ubuntu/Debian
 
 ```bash
-dpkg -i $(wget TODO)
-usermod -a -G input $USER
-usermod -a -G plugdev $USER
+sudo dpkg -i $(wget TODO)
+sudo usermod -a -G input $USER
+sudo usermod -a -G plugdev $USER
 ```
 
-#### Manjaro/Arch
-
-TODO
+##### Manjaro/Arch
 
 ```bash
 pacaur -S key-mapper-git
 ```
 
-#### Git
+##### Git
 
 ```bash
+# depending on your distro
+sudo apt install python3-setuptools python3-evdev python3-dbus
+sudo pacman -S python-setuptools python-evdev python-dbus
+
 git clone https://github.com/sezanzeb/key-mapper.git
 cd key-mapper
 sudo python3 setup.py install
-usermod -a -G input $USER
-usermod -a -G plugdev $USER
+sudo usermod -a -G input $USER
+sudo usermod -a -G plugdev $USER
 ```
-
-Depending on how those packages are called in your distro,
-you need the following dependencies:
-
-`python3-setuptools` `python3-evdev` `python3-dbus`
 
 ## Tests
 
