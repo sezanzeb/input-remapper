@@ -23,7 +23,6 @@
 
 
 import os
-import sys
 import grp
 import getpass
 
@@ -33,7 +32,6 @@ from keymapper.logger import logger
 def can_read_devices():
     """If the people ever looks into the console, make sure to help them."""
     is_root = getpass.getuser() == 'root'
-    is_test = 'unittest' in sys.modules.keys()
     is_in_input_group = os.getlogin() in grp.getgrnam('input').gr_mem
     is_in_plugdev_group = os.getlogin() in grp.getgrnam('plugdev').gr_mem
 
@@ -46,10 +44,10 @@ def can_read_devices():
             group
         )
 
-    if not is_root and not is_test:
+    if not is_root:
         if not is_in_plugdev_group:
             warn('plugdev')
         if not is_in_input_group:
             warn('input')
 
-    return is_root or is_test or is_in_input_group
+    return is_root or (is_in_input_group and is_in_plugdev_group)
