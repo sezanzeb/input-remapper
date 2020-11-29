@@ -23,9 +23,43 @@
 
 
 import os
+import shutil
+
+from keymapper.logger import logger
 
 
 CONFIG = os.path.join('/home', os.getlogin(), '.config/key-mapper')
+
+
+def touch(path, log=True):
+    """Create an empty file and all its parent dirs, give it to the user."""
+    if os.path.exists(path):
+        return
+
+    if log:
+        logger.info('Creating file "%s"', path)
+
+    mkdir(os.path.dirname(path), log=False)
+
+    os.mknod(path)
+    shutil.chown(path, os.getlogin(), os.getlogin())
+
+
+def mkdir(path, log=True):
+    """Create a folder, give it to the user."""
+    if os.path.exists(path):
+        return
+
+    if log:
+        logger.info('Creating dir "%s"', path)
+
+    # give all newly created folders to the user.
+    # e.g. if .config/key-mapper/mouse/ is created the latter two
+    base = os.path.split(path)[0]
+    mkdir(base, log=False)
+
+    os.makedirs(path)
+    shutil.chown(path, os.getlogin(), os.getlogin())
 
 
 def get_config_path(device=None, preset=None):
