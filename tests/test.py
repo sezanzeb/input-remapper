@@ -22,6 +22,7 @@
 """Sets up key-mapper for the tests and runs them."""
 
 
+import os
 import sys
 import time
 import unittest
@@ -32,6 +33,11 @@ import asyncio
 import evdev
 
 from keymapper.logger import update_verbosity
+
+
+assert not os.getcwd().endswith('tests')
+
+sys.path = [os.path.abspath('.')] + sys.path
 
 
 tmp = '/tmp/key-mapper-test'
