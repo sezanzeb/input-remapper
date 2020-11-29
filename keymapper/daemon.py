@@ -24,6 +24,8 @@
 
 import subprocess
 
+# TODO https://www.freedesktop.org/wiki/Software/DBusBindings/#python
+#  says "New applications should use pydbus"
 import dbus
 from dbus import service
 import dbus.mainloop.glib
