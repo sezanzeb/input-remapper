@@ -60,13 +60,6 @@ cd key-mapper && sudo pip install .
 sudo usermod -a -G plugdev,input $USER
 ```
 
-## Tests
-
-```bash
-pylint keymapper --extension-pkg-whitelist=evdev
-sudo pip install . && python3 tests/test.py
-```
-
 ## Roadmap
 
 - [x] show a dropdown to select valid devices
@@ -84,3 +77,10 @@ sudo pip install . && python3 tests/test.py
 - [x] support timed macros, maybe using some sort of syntax
 - [ ] add to the AUR, provide .deb file
 - [ ] automatically load presets when devices get plugged in after login
+
+## Tests
+
+```bash
+pylint keymapper --extension-pkg-whitelist=evdev
+sudo pip install . && python3 tests/test.py
+```
