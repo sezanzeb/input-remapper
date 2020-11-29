@@ -26,10 +26,21 @@ import os
 import site
 import pkg_resources
 
+from keymapper.logger import logger
+
 
 def get_data_path(filename=''):
     """Depending on the installation prefix, return the data dir."""
-    source_path = pkg_resources.require('key-mapper')[0].location
+    try:
+        source_path = pkg_resources.require('key-mapper')[0].location
+    except pkg_resources.DistributionNotFound as error:
+        # try to check where stuff usually should be
+        logger.debug(error)
+        data_path = '/usr/share/key-mapper'
+        if not os.path.exists(data_path):
+            logger.error('key-mapper data was not properly installed')
+            raise SystemExit(1)
+        return os.path.join('/usr/share/key-mapper', filename)
 
     # depending on where this file is installed to, make sure to use the proper
     # prefix path for data

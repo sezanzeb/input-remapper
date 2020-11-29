@@ -206,7 +206,7 @@ class Window:
         if keycode is None:
             return
 
-        if keycode == 280:
+        if keycode in [280, 333]:
             # disable mapping the left mouse button because it would break
             # the mouse. Also it is emitted right when focusing the row
             # which breaks the current workflow.

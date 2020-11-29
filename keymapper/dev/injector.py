@@ -135,7 +135,7 @@ class KeycodeInjector:
         if not needed:
             # skipping reading and checking on events from those devices
             # may be beneficial for performance.
-            logger.debug('No need to grab %s', device.path)
+            logger.debug('No need to grab %s', path)
             return None
 
         attempts = 0

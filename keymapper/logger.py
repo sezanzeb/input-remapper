@@ -95,9 +95,13 @@ def is_debug():
 def log_info():
     """Log version and name to the console"""
     # read values from setup.py
-    version = pkg_resources.require('key-mapper')[0].version
-    name = pkg_resources.require('key-mapper')[0].project_name
-    logger.info('%s %s', version, name)
+    try:
+        version = pkg_resources.require('key-mapper')[0].version
+        name = pkg_resources.require('key-mapper')[0].project_name
+        logger.info('%s %s', version, name)
+    except pkg_resources.DistributionNotFound as error:
+        logger.info('Could not figure out the version')
+        logger.debug(error)
 
 
 def update_verbosity(debug):
