@@ -15,22 +15,12 @@
 
 ## Usage
 
-To open the UI to modify the mappings, use:
+After installing, you should log out and back in for the changed user
+groups to take effect and for the background service to start.
 
-```bash
-key-mapper-gtk
-```
-
-You can also start it via your applications menu.
-
-To keep injecting the mapping after closing the window, the daemon needs to
-be running. If it doesn't already after logging in, you can use:
-
-```bash
-key-mapper-service
-```
-
-It works with both Wayland and X11.
+To open the UI to modify the mappings, look into your applications menu
+and search for 'Key Mapper' in settings. You can also start it via 
+`key-mapper-gtk`. It works with both Wayland and X11.
 
 ## Macros
 
@@ -60,8 +50,6 @@ usermod -a -G plugdev $USER
 ```
 
 #### Manjaro/Arch
-
-TODO
 
 ```bash
 pacaur -S key-mapper-git
