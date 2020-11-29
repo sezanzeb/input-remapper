@@ -22,6 +22,8 @@
 """Starts injecting keycodes based on the configuration."""
 
 
+import subprocess
+
 import dbus
 from dbus import service
 import dbus.mainloop.glib
@@ -32,8 +34,24 @@ from keymapper.mapping import Mapping
 from keymapper.config import config
 
 
+def is_service_running():
+    """Check if the daemon is running."""
+    try:
+        subprocess.check_output(['pgrep', '-f', 'key-mapper-service'])
+    except subprocess.CalledProcessError:
+        return False
+    return True
+
+
 def get_dbus_interface():
     """Get an interface to start and stop injecting keystrokes."""
+    if not is_service_running():
+        logger.warning(
+            'The daemon "key-mapper-service" is not running, mapping keys '
+            'only works as long as the window is open.'
+        )
+        return Daemon(autoload=False)
+
     try:
         bus = dbus.SessionBus()
         remote_object = bus.get_object('keymapper.Control', '/')
@@ -45,7 +63,7 @@ def get_dbus_interface():
             'keys only works as long as the window is open.'
         )
         logger.debug(error)
-        return Daemon()
+        return Daemon(autoload=False)
 
     return interface
 

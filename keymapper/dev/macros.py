@@ -72,7 +72,7 @@ class _Macro:
 
     async def run(self):
         """Run the macro."""
-        for i, (_, task) in enumerate(self.tasks):
+        for _, task in self.tasks:
             coroutine = task()
             if asyncio.iscoroutine(coroutine):
                 await coroutine
@@ -168,6 +168,30 @@ def _extract_params(inner):
     return params
 
 
+def _count_brackets(macro):
+    """Find where the first opening bracket closes."""
+    brackets = 0
+    position = 0
+    for char in macro:
+        position += 1
+        if char == '(':
+            brackets += 1
+            continue
+
+        if char == ')':
+            brackets -= 1
+            if brackets < 0:
+                raise Exception(f'There is one ")" too much at {position}')
+            if brackets == 0:
+                # the closing bracket of the call
+                break
+
+    if brackets != 0:
+        raise Exception(f'There are {brackets} closing brackets missing')
+
+    return brackets, position
+
+
 def _parse_recurse(macro, handler, macro_instance=None, depth=0):
     """Handle a subset of the macro, e.g. one parameter or function call.
 
@@ -215,25 +239,7 @@ def _parse_recurse(macro, handler, macro_instance=None, depth=0):
             raise Exception(f'Unknown function {call}')
 
         # get all the stuff inbetween
-        brackets = 0
-        position = 0
-        for char in macro:
-            position += 1
-
-            if char == '(':
-                brackets += 1
-                continue
-
-            if char == ')':
-                brackets -= 1
-                if brackets < 0:
-                    raise Exception(f'There is one ")" too much at {position}')
-                if brackets == 0:
-                    # the closing bracket of the call
-                    break
-
-        if brackets != 0:
-            raise Exception(f'There are {brackets} closing brackets missing')
+        brackets, position = _count_brackets(macro)
 
         inner = macro[2:position - 1]
 
@@ -256,14 +262,14 @@ def _parse_recurse(macro, handler, macro_instance=None, depth=0):
             _parse_recurse(chain, handler, macro_instance, depth)
 
         return macro_instance
-    else:
-        # probably a parameter for an outer function
-        try:
-            macro = int(macro)
-        except ValueError:
-            pass
-        logger.spam('%s%s %s', space, type(macro), macro)
-        return macro
+
+    # probably a parameter for an outer function
+    try:
+        macro = int(macro)
+    except ValueError:
+        pass
+    logger.spam('%s%s %s', space, type(macro), macro)
+    return macro
 
 
 def parse(macro, handler):
@@ -286,6 +292,6 @@ def parse(macro, handler):
     logger.spam('preparing macro %s for later execution', macro)
     try:
         return _parse_recurse(macro, handler)
-    except Exception as e:
-        logger.error('Failed to parse macro "%s": %s', macro, e)
+    except Exception as error:
+        logger.error('Failed to parse macro "%s": %s', macro, error)
         return None
