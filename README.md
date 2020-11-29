@@ -56,7 +56,7 @@ pacaur -S key-mapper-git
 
 ```bash
 git clone https://github.com/sezanzeb/key-mapper.git
-cd key-mapper && sudo pip install .
+sudo pip install key-mapper
 sudo usermod -a -G plugdev,input $USER
 ```
 

@@ -2,16 +2,10 @@
 
 build_deb() {
   # https://github.com/phusion/debian-packaging-for-the-modern-developer/tree/master/tutorial-1
-  dist=dist
-  name=key-mapper-0.1.0
-
-  python3 setup.py sdist --dist-dir $dist
-  tar -C $dist -xzf $dist/$name.tar.gz
-  rm $dist/$name.tar.gz
-  cp DEBIAN $dist/$name -r
-  dpkg-deb -b $dist/$name $dist/$name.deb
-  rm $dist/$name -r
-  echo "created $dist/$name.deb"
+  # https://shallowsky.com/blog/programming/python-debian-packages-w-stdeb.html
+  sudo apt install python3-stdeb fakeroot python3-all dh-python
+  python3 setup.py --command-packages=stdeb.command bdist_deb
+  echo "buid_deb done"
 }
 
 build_deb &
