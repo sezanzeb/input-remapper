@@ -19,15 +19,56 @@
 # along with key-mapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
+import os
+import sys
+import multiprocessing
 import unittest
+import time
+from unittest.mock import patch
+from importlib.util import spec_from_loader, module_from_spec
+from importlib.machinery import SourceFileLoader
 
+import dbus
 import evdev
+import gi
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk
 
 from keymapper.state import custom_mapping, system_mapping
 from keymapper.config import config
-from keymapper.daemon import Daemon
+from keymapper.daemon import Daemon, get_dbus_interface
 
 from test import uinput_write_history_pipe, Event, pending_events
+
+
+def gtk_iteration():
+    """Iterate while events are pending."""
+    while Gtk.events_pending():
+        Gtk.main_iteration()
+
+
+class TestDBusDaemon(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.process = multiprocessing.Process(
+            target=os.system,
+            args=('key-mapper-service',)
+        )
+        cls.process.start()
+        time.sleep(0.5)
+        cls.interface = get_dbus_interface()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.interface.stop()
+        time.sleep(0.1)
+        cls.process.terminate()
+        time.sleep(0.1)
+        os.system('pkill -f key-mapper-service')
+        time.sleep(0.1)
+
+    def test_can_connect(self):
+        self.assertIsInstance(self.interface, dbus.Interface)
 
 
 class TestDaemon(unittest.TestCase):
