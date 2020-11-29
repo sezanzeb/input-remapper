@@ -245,7 +245,7 @@ class KeycodeInjector:
         logger.debug('Parsing macros')
         macros = {}
         for keycode, output in self.mapping:
-            if '(' in output and ')' in output and len(output) > 4:
+            if '(' in output and ')' in output and len(output) >= 4:
                 # probably a macro
                 macros[keycode] = parse(
                     output,

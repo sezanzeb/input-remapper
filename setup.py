@@ -19,16 +19,30 @@
 # along with key-mapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
-import DistUtilsExtra.auto
+import glob
+from distutils.core import setup
 
 
-DistUtilsExtra.auto.setup(
+setup(
     name='key-mapper',
     version='0.1.0',
-    description='GUI for device specific keyboard mappings',
+    description='A tool to change the mapping of your input device buttons',
+    author='Sezanzeb',
+    author_email='proxima@hip70890b.de',
+    url='https://github.com/sezanzeb/key-mapper',
     license='GPL-3.0',
+    packages=[
+        'keymapper',
+        'keymapper.dev',
+        'keymapper.gtk'
+    ],
     data_files=[
+        ('share/key-mapper/', glob.glob('data/*')),
         ('share/applications/', ['data/key-mapper.desktop']),
         ('/etc/xdg/autostart/', ['data/key-mapper-service.desktop']),
-    ]
+    ],
+    scripts=[
+        'bin/key-mapper-gtk',
+        'bin/key-mapper-service'
+    ],
 )

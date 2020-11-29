@@ -4,9 +4,7 @@
 
 <p align="center"><img src="readme/pylint.svg"/> <img src="readme/coverage.svg"/></p>
 
-<p align="center">
-<img src="readme/screenshot.png"/>
-</p>
+<p align="center"><img src="readme/screenshot.png"/></p>
 <br/>
 
 ## Usage
@@ -56,7 +54,7 @@ usermod -a -G plugdev $USER
 Depending on how those packages are called in your distro,
 you need the following dependencies:
 
-`python3-distutils-extra` `python3-evdev` `python3-dbus`
+`python3-evdev` `python3-dbus`
 
 It works with both Wayland and X11.
 
