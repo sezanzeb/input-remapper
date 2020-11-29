@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# builds .deb and .appimage files in order to distribute them
 
 build_deb() {
   # https://github.com/phusion/debian-packaging-for-the-modern-developer/tree/master/tutorial-1
@@ -8,15 +9,14 @@ build_deb() {
   python3 setup.py sdist --dist-dir $dist
   tar -C $dist -xzf $dist/$name.tar.gz
   rm $dist/$name.tar.gz
-  cp deb/DEBIAN $dist/$name -r
+  cp DEBIAN $dist/$name -r
   dpkg-deb -b $dist/$name $dist/$name.deb
   rm $dist/$name -r
-  cp $dist/$name.deb deb
-  echo ".deb package created"
+  echo "created $dist/$name.deb"
 }
 
 build_appimage() {
-
+  echo "created $dist/$name.appimage"
 }
 
 

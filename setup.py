@@ -22,9 +22,6 @@
 import glob
 from setuptools import setup
 
-with open('README.md', 'r') as f:
-    long_description = f.read()
-
 setup(
     name='key-mapper',
     version='0.1.0',
@@ -39,14 +36,10 @@ setup(
         'keymapper.gtk'
     ],
     data_files=[
-        ('share/key-mapper/', glob.glob('data/*')),
-        ('share/applications/', ['data/key-mapper.desktop']),
+        ('/usr/share/key-mapper/', glob.glob('data/*')),
+        ('/usr/share/applications/', ['data/key-mapper.desktop']),
         ('/etc/xdg/autostart/', ['data/key-mapper-service.desktop']),
+        ('/usr/bin/', ['bin/key-mapper-gtk']),
+        ('/usr/bin/', ['bin/key-mapper-service']),
     ],
-    scripts=[
-        'bin/key-mapper-gtk',
-        'bin/key-mapper-service'
-    ],
-    long_description=long_description,
-    long_description_content_type='text/markdown'
 )
