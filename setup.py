@@ -20,8 +20,10 @@
 
 
 import glob
-from distutils.core import setup
+from setuptools import setup
 
+with open('README.md', 'r') as f:
+    long_description = f.read()
 
 setup(
     name='key-mapper',
@@ -45,4 +47,6 @@ setup(
         'bin/key-mapper-gtk',
         'bin/key-mapper-service'
     ],
+    long_description=long_description,
+    long_description_content_type='text/markdown'
 )

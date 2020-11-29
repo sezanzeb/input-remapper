@@ -1,3 +1,4 @@
+# for `python3 setup.py sdist`
 recursive-include data *
 include bin/key-mapper-gtk
 include bin/key-mapper-service
