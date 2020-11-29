@@ -31,32 +31,34 @@ from keymapper.logger import logger
 CONFIG = os.path.join('/home', os.getlogin(), '.config/key-mapper')
 
 
-def touch(path):
+def touch(path, log=True):
     """Create an empty file and all its parent dirs, give it to the user."""
     if os.path.exists(path):
         return
 
-    logger.info('Creating file "%s"', path)
+    if log:
+        logger.info('Creating file "%s"', path)
 
-    folder = os.path.dirname(path)
-    if not os.path.exists(folder):
-        os.makedirs(folder, exist_ok=True)
-        # in case this is running as sudo
-        shutil.chown(folder, os.getlogin(), os.getlogin())
+    mkdir(os.path.dirname(path), log=False)
 
     os.mknod(path)
     shutil.chown(path, os.getlogin(), os.getlogin())
 
 
-def mkdir(path):
+def mkdir(path, log=True):
     """Create a folder, give it to the user."""
     if os.path.exists(path):
         return
 
-    logger.info('Creating dir "%s"', path)
+    if log:
+        logger.info('Creating dir "%s"', path)
 
-    os.makedirs(path, exist_ok=True)
-    # in case this is running as sudo
+    # give all newly created folders to the user.
+    # e.g. if .config/key-mapper/mouse/ is created the latter two
+    base = os.path.split(path)[0]
+    mkdir(base, log=False)
+
+    os.makedirs(path)
     shutil.chown(path, os.getlogin(), os.getlogin())
 
 
