@@ -22,8 +22,6 @@
 """Starts injecting keycodes based on the configuration."""
 
 
-import subprocess
-
 import dbus
 from dbus import service
 import dbus.mainloop.glib
@@ -34,36 +32,19 @@ from keymapper.mapping import Mapping
 from keymapper.config import config
 
 
-def is_service_running():
-    """Check if the daemon is running."""
-    try:
-        subprocess.check_output(['pgrep', '-f', 'key-mapper-service'])
-    except subprocess.CalledProcessError:
-        return False
-    return True
-
-
 def get_dbus_interface():
     """Get an interface to start and stop injecting keystrokes."""
-    if not is_service_running():
-        logger.warning(
-            'The daemon "key-mapper-service" is not running, mapping keys '
-            'only works as long as the window is open.'
-        )
-        return Daemon(autoload=False)
-
     try:
-        logger.debug('Found the daemon process')
         bus = dbus.SessionBus()
         remote_object = bus.get_object('keymapper.Control', '/')
         interface = dbus.Interface(remote_object, 'keymapper.Interface')
         logger.debug('Connected to dbus')
     except dbus.exceptions.DBusException as error:
-        logger.error(
+        logger.warning(
             'Could not connect to the dbus of "key-mapper-service", mapping '
             'keys only works as long as the window is open.'
         )
-        logger.error(error)
+        logger.debug(error)
         return Daemon()
 
     return interface
@@ -94,10 +75,7 @@ class Daemon(service.Object):
                     logger.error(error)
         super().__init__(*args, **kwargs)
 
-    @dbus.service.method(
-        'keymapper.Interface',
-        in_signature='s'
-    )
+    @dbus.service.method('keymapper.Interface', in_signature='s')
     def stop_injecting(self, device):
         """Stop injecting the mapping for a single device."""
         if self.injectors.get(device) is None:
@@ -111,10 +89,7 @@ class Daemon(service.Object):
 
     # TODO if ss is the correct signature for multiple parameters, add an
     #  example to https://gitlab.freedesktop.org/dbus/dbus-python/-/blob/master/doc/tutorial.txt # noqa pylint: disable=line-too-long
-    @dbus.service.method(
-        'keymapper.Interface',
-        in_signature='ss'
-    )
+    @dbus.service.method('keymapper.Interface', in_signature='ss')
     def start_injecting(self, device, preset):
         """Start injecting the preset for the device.
 
@@ -141,9 +116,7 @@ class Daemon(service.Object):
 
         return True
 
-    @dbus.service.method(
-        'keymapper.Interface'
-    )
+    @dbus.service.method('keymapper.Interface')
     def stop(self):
         """Stop all mapping injections."""
         for injector in self.injectors.values():

@@ -25,6 +25,7 @@
 import sys
 import time
 import unittest
+import subprocess
 import multiprocessing
 import asyncio
 
@@ -207,16 +208,6 @@ def patch_unsaved():
     unsaved.unsaved_changes_dialog = lambda: unsaved.CONTINUE
 
 
-def patch_dbus():
-    """Make sure that the dbus interface is just an instance of Daemon.
-
-    Don't talk to an actual daemon if one is running.
-    """
-    import dbus
-    from keymapper.daemon import Daemon
-    dbus.Interface = lambda *args: Daemon()
-
-
 def clear_write_history():
     """Empty the history in preparation for the next test."""
     while len(uinput_write_history) > 0:
@@ -225,12 +216,23 @@ def clear_write_history():
         uinput_write_history_pipe[0].recv()
 
 
+def is_service_running():
+    """Check if the daemon is running."""
+    try:
+        subprocess.check_output(['pgrep', '-f', 'key-mapper-service'])
+    except subprocess.CalledProcessError:
+        return
+    # let tests control daemon existance
+    raise Exception('Expected the service not to be running already.')
+
+
+is_service_running()
+
 # quickly fake some stuff before any other file gets a chance to import
 # the original versions
 patch_paths()
 patch_evdev()
 patch_unsaved()
-patch_dbus()
 
 
 def main():
