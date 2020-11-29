@@ -49,12 +49,10 @@ sudo usermod -a -G plugdev,input $USER
 groups
 ```
 
-##### Ubuntu/Debian
+##### Git/pip
 
 ```bash
-wget "https://github.com/sezanzeb/key-mapper/releases/"\
-"download/0.1.0/python3-key-mapper_0.1.0-1_all.deb"
-sudo dpkg -i python3-key-mapper_0.1.0-1_all.deb
+sudo pip install git+https://github.com/sezanzeb/key-mapper.git
 ```
 
 ##### Manjaro/Arch
@@ -63,11 +61,12 @@ sudo dpkg -i python3-key-mapper_0.1.0-1_all.deb
 pacaur -S key-mapper-git
 ```
 
-##### Git/pip
+##### Ubuntu/Debian
 
 ```bash
-git clone https://github.com/sezanzeb/key-mapper.git
-sudo pip install key-mapper
+wget "https://github.com/sezanzeb/key-mapper/releases/"\
+"download/0.1.0/python3-key-mapper_0.1.0-1_all.deb"
+sudo dpkg -i python3-key-mapper_0.1.0-1_all.deb
 ```
 
 ## Roadmap
