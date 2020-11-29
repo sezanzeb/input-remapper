@@ -1,0 +1,6 @@
+Package: key-mapper
+Version: 0.1.0
+Architecture: all
+Maintainer: Sezanzeb <proxima@hip70890b.de>
+Depends: python3, python3-setuptools, python3-evdev, python3-dbus
+Description: A tool to change the mapping of your input device buttons
