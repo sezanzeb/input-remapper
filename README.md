@@ -42,9 +42,9 @@ For a list of supported keystrokes and their names, check the output of
 ##### Ubuntu/Debian
 
 ```bash
-dpkg -i $(wget TODO)
-usermod -a -G input $USER
-usermod -a -G plugdev $USER
+sudo dpkg -i $(wget TODO)
+sudo usermod -a -G input $USER
+sudo usermod -a -G plugdev $USER
 ```
 
 ##### Manjaro/Arch
@@ -56,17 +56,16 @@ pacaur -S key-mapper-git
 ##### Git
 
 ```bash
+# depending on your distro
+sudo apt install python3-setuptools python3-evdev python3-dbus
+sudo pacman -S python-setuptools python-evdev python-dbus
+
 git clone https://github.com/sezanzeb/key-mapper.git
 cd key-mapper
 sudo python3 setup.py install
-usermod -a -G input $USER
-usermod -a -G plugdev $USER
+sudo usermod -a -G input $USER
+sudo usermod -a -G plugdev $USER
 ```
-
-Depending on how those packages are called in your distro,
-you need the following dependencies:
-
-`python3-setuptools` `python3-evdev` `python3-dbus`
 
 ## Tests
 
