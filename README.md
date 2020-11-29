@@ -1,6 +1,6 @@
 <h1 align="center">Key Mapper</h1>
 
-<p align="center">A Linux tool to change and program the mapping of your input device buttons.</p>
+<p align="center">A tool to change and program the mapping of your input device buttons.</p>
 
 <p align="center">
     <a href="#ubuntudebian">Ubuntu/Debian</a> • <a href="#manjaroarch">Manjaro/Arch</a> • <a href="#git">Git</a>
