@@ -122,6 +122,8 @@ class Daemon(service.Object):
         preset : string
             The name of the preset
         """
+        # reload the config, since it may have been changed
+        config.load_config()
         if self.injectors.get(device) is not None:
             self.injectors[device].stop_injecting()
 
