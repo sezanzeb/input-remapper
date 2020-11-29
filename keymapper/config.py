@@ -85,7 +85,7 @@ class _Config:
 
         if not os.path.exists(CONFIG_PATH):
             # treated like an empty config
-            logger.debug('Config file "%s" doesn\'t exist')
+            logger.debug('Config file "%s" doesn\'t exist', CONFIG_PATH)
             return
 
         with open(CONFIG_PATH, 'r') as file:
