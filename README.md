@@ -2,10 +2,6 @@
 
 <p align="center">A tool to change and program the mapping of your input device buttons.</p>
 
-<p align="center">
-    <a href="#installation">Ubuntu/Debian</a> • <a href="#installation">Manjaro/Arch</a> • <a href="#installation">Git/pip</a>
-</p>
-
 <p align="center"><img src="readme/pylint.svg"/> <img src="readme/coverage.svg"/></p>
 
 <p align="center"><img src="readme/screenshot.png"/></p>
@@ -40,8 +36,8 @@ For a list of supported keystrokes and their names, check the output of
 ## Installation
 
 After your installation, independent of the method, you should add yourself
-to the `input` and `plugdev` groups so that you can read keycodes from them.
-You have to start the application via sudo otherwise.
+to the `input` and `plugdev` groups so that you can read information from your
+devices. You have to start the application via sudo otherwise.
 
 ```bash
 sudo usermod -a -G plugdev,input $USER
@@ -86,6 +82,7 @@ sudo dpkg -i python3-key-mapper_0.1.0-1_all.deb
 - [x] support timed macros, maybe using some sort of syntax
 - [x] add to the AUR, provide .deb file
 - [ ] automatically load presets when devices get plugged in after login
+- [ ] support gamepads as keyboard and mouse combi
 
 ## Tests
 
