@@ -42,4 +42,9 @@ setup(
         ('/usr/bin/', ['bin/key-mapper-gtk']),
         ('/usr/bin/', ['bin/key-mapper-service']),
     ],
+    install_requires=[
+        'setuptools',
+        'evdev',
+        'dbus-python'
+    ]
 )
