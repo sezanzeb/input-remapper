@@ -74,7 +74,7 @@ class FakeDropdown(Gtk.ComboBoxText):
         return self.name
 
 
-class Integration(unittest.TestCase):
+class TestIntegration(unittest.TestCase):
     """For tests that use the window.
 
     Try to modify the configuration only by calling functions of the window.
@@ -147,18 +147,38 @@ class Integration(unittest.TestCase):
         self.assertIsNotNone(self.window)
         self.assertTrue(self.window.window.get_visible())
 
-    def test_adds_empty_rows(self):
-        rows = len(self.window.get('key_list').get_children())
-        self.assertEqual(rows, 1)
+    def test_row_simple(self):
+        rows = self.window.get('key_list').get_children()
+        self.assertEqual(len(rows), 1)
 
-        custom_mapping.change(13, 'a', None)
+        row = rows[0]
+
+        row.set_new_keycode(None)
+        self.assertIsNone(row.get_keycode())
+        self.assertEqual(len(custom_mapping), 0)
+        row.set_new_keycode(30)
+        self.assertEqual(len(custom_mapping), 0)
+        self.assertEqual(row.get_keycode(), 30)
+        row.set_new_keycode(30)
+        self.assertEqual(len(custom_mapping), 0)
+        self.assertEqual(row.get_keycode(), 30)
+
         time.sleep(0.2)
         gtk_iteration()
+        self.assertEqual(len(self.window.get('key_list').get_children()), 1)
 
-        rows = len(self.window.get('key_list').get_children())
-        self.assertEqual(rows, 2)
+        row.character_input.set_text('Shift_L')
+        self.assertEqual(len(custom_mapping), 1)
 
-    def change_empty_row(self, keycode, character):
+        time.sleep(0.2)
+        gtk_iteration()
+        self.assertEqual(len(self.window.get('key_list').get_children()), 2)
+
+        self.assertEqual(custom_mapping.get_keycode('Shift_L'), 30)
+        self.assertEqual(row.get_character(), 'Shift_L')
+        self.assertEqual(row.get_keycode(), 30)
+
+    def change_empty_row(self, code, char, code_first=True, success=True):
         """Modify the one empty row that always exists."""
         # wait for the window to create a new empty row if needed
         time.sleep(0.2)
@@ -168,32 +188,53 @@ class Integration(unittest.TestCase):
         rows = self.get_rows()
         row = rows[-1]
         self.assertNotIn('changed', row.get_style_context().list_classes())
-        self.assertIsNone(row.keycode.get_label())
+        self.assertIsNone(row.keycode_input.get_label())
         self.assertEqual(row.character_input.get_text(), '')
 
-        self.window.window.set_focus(row.keycode)
+        if char and not code_first:
+            # set the character to make the new row complete
+            self.assertIsNone(row.get_character())
+            row.character_input.set_text(char)
+            self.assertEqual(row.get_character(), char)
 
-        pending_events[self.window.selected_device] = [
-            Event(evdev.events.EV_KEY, keycode - 8, 1)
-        ]
+        self.window.window.set_focus(row.keycode_input)
 
-        self.window.on_window_event(None, None)
+        if code:
+            # modifies the keycode in the row not by writing into the input,
+            # but by sending an event
+            pending_events[self.window.selected_device] = [
+                Event(evdev.events.EV_KEY, code - 8, 1)
+            ]
+            self.window.on_window_event(None, None)
 
-        self.assertEqual(int(row.keycode.get_label()), keycode)
+            if success:
+                self.assertEqual(row.get_keycode(), code)
+                self.assertIn(
+                    'changed',
+                    row.get_style_context().list_classes()
+                )
 
-        # set the character to make the new row complete
-        row.character_input.set_text(character)
+        if not success:
+            self.assertIsNone(row.get_keycode())
+            self.assertIsNone(row.get_character())
+            self.assertNotIn('changed', row.get_style_context().list_classes())
 
-        self.assertIn('changed', row.get_style_context().list_classes())
+        if char and code_first:
+            # set the character to make the new row complete
+            self.assertIsNone(row.get_character())
+            row.character_input.set_text(char)
+            self.assertEqual(row.get_character(), char)
 
         return row
 
     def test_rows(self):
         """Comprehensive test for rows."""
+        # how many rows there should be in the end
+        num_rows_target = 3
 
         # add two rows by modifiying the one empty row that exists
-        self.change_empty_row(10, 'a')
-        self.change_empty_row(11, 'b')
+        self.change_empty_row(10, 'a', code_first=False)
+        self.change_empty_row(11, 'k(b).k(c)')
 
         # one empty row added automatically again
         time.sleep(0.2)
@@ -201,10 +242,10 @@ class Integration(unittest.TestCase):
         # sleep one more time because it's funny to watch the ui
         # during the test, how rows turn blue and stuff
         time.sleep(0.2)
-        self.assertEqual(len(self.get_rows()), 3)
+        self.assertEqual(len(self.get_rows()), num_rows_target)
 
         self.assertEqual(custom_mapping.get_character(10), 'a')
-        self.assertEqual(custom_mapping.get_character(11), 'b')
+        self.assertEqual(custom_mapping.get_character(11), 'k(b).k(c)')
         self.assertTrue(custom_mapping.changed)
 
         self.window.on_save_preset_clicked(None)
@@ -227,8 +268,53 @@ class Integration(unittest.TestCase):
             )
 
         self.assertEqual(custom_mapping.get_character(10), 'c')
-        self.assertEqual(custom_mapping.get_character(11), 'b')
+        self.assertEqual(custom_mapping.get_character(11), 'k(b).k(c)')
         self.assertTrue(custom_mapping.changed)
+
+        # try to add a duplicate keycode, it should be ignored
+        self.change_empty_row(11, 'd', success=False)
+        self.assertEqual(custom_mapping.get_character(11), 'k(b).k(c)')
+        self.assertIsNone(custom_mapping.get_keycode('d'))
+        # and the number of rows shouldn't change
+        self.assertEqual(len(self.get_rows()), num_rows_target)
+
+    def test_remove_row(self):
+        """Comprehensive test for rows 2."""
+        # sleeps are added to be able to visually follow and debug the test
+        # add two rows by modifiying the one empty row that exists
+        row_1 = self.change_empty_row(10, 'a')
+        row_2 = self.change_empty_row(11, 'b')
+        row_3 = self.change_empty_row(None, 'c')
+
+        # no empty row added because one is unfinished
+        time.sleep(0.2)
+        gtk_iteration()
+        self.assertEqual(len(self.get_rows()), 3)
+
+        self.assertEqual(custom_mapping.get_character(11), 'b')
+        self.assertEqual(custom_mapping.get_keycode('b'), 11)
+
+        def remove(row, code, char, num_rows_after):
+            if code is not None and char is not None:
+                self.assertEqual(custom_mapping.get_character(code), char)
+                self.assertEqual(custom_mapping.get_keycode(char), code)
+            self.assertEqual(row.get_character(), char)
+            self.assertEqual(row.get_keycode(), code)
+            row.on_delete_button_clicked()
+            time.sleep(0.2)
+            gtk_iteration()
+            self.assertIsNone(row.get_keycode())
+            self.assertIsNone(row.get_character())
+            self.assertIsNone(custom_mapping.get_keycode(char))
+            self.assertIsNone(custom_mapping.get_character(code))
+            self.assertEqual(len(self.get_rows()), num_rows_after)
+
+        remove(row_1, 10, 'a', 2)
+        remove(row_2, 11, 'b', 1)
+        # there is no empty row at the moment, so after removing that one,
+        # which is the only row, one empty row will be there. So the number
+        # of rows won't change.
+        remove(row_3, None, 'c', 1)
 
     def test_rename_and_save(self):
         custom_mapping.change(14, 'a', None)
