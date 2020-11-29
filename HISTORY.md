@@ -99,25 +99,27 @@ I assume this is because:
 
 **Seventh, final solution** By grabbing the mouse device (EVIOCGRAB) this
 won't happen. Since this prevents all the keycodes from doing stuff, no
-empty xkb symbols file is needed anymore. If 10 is mapped to a, it will
-figure out the keycode for a in the system configuration (via setxkbmap -pke)
+empty xkb symbols file is needed anymore. If 10 is mapped to 'a', it will
+figure out the keycode for 'a' in the system configuration (via setxkbmap -pke)
 and write it into a new device that has proper capabilities. So no xkb
 configurations are needed at all anymore.
 
 
 # How I would have liked it to be
 
-This solution would have made the macro thing and mapping of mouse-clicks
-impossible though.
+This solution would have made the macro thing impossible though
 
 setxkbmap -layout ~/.config/key-mapper/mouse -device 13
 
 config looks like:
 ```
-10 = a, A
+10 = a A
 11 = Shift_L
+282 = b  # middle mouse
 ```
 
 done. Without crashing X. Without printing generic useless errors. Without
-colliding with other devices using the same keycodes. If it was that easy,
-an app to map keys would have already existed.
+colliding with other devices using the same keycodes. Xkb also can't map 282
+afaik. If it was that easy, an app to map keys would have already existed.
+
+The current solution supports a config like that in json format.
