@@ -56,10 +56,6 @@ pacaur -S key-mapper-git
 ##### Git
 
 ```bash
-# depending on your distro
-sudo apt install python3-setuptools python3-evdev python3-dbus
-sudo pacman -S python-setuptools python-evdev python-dbus
-
 git clone https://github.com/sezanzeb/key-mapper.git
 cd key-mapper
 sudo python3 setup.py install
