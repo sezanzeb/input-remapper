@@ -43,8 +43,7 @@ For a list of supported keystrokes and their names, check the output of
 
 ```bash
 sudo dpkg -i $(wget TODO)
-sudo usermod -a -G input $USER
-sudo usermod -a -G plugdev $USER
+sudo usermod -a -G plugdev,input $USER
 ```
 
 ##### Manjaro/Arch
@@ -57,10 +56,8 @@ pacaur -S key-mapper-git
 
 ```bash
 git clone https://github.com/sezanzeb/key-mapper.git
-cd key-mapper
-sudo python3 setup.py install
-sudo usermod -a -G input $USER
-sudo usermod -a -G plugdev $USER
+cd key-mapper && sudo python3 setup.py install
+sudo usermod -a -G plugdev,input $USER
 ```
 
 ## Tests
