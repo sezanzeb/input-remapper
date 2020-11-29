@@ -56,7 +56,7 @@ pacaur -S key-mapper-git
 
 ```bash
 git clone https://github.com/sezanzeb/key-mapper.git
-cd key-mapper && sudo python3 setup.py install
+cd key-mapper && sudo pip install .
 sudo usermod -a -G plugdev,input $USER
 ```
 
@@ -64,7 +64,7 @@ sudo usermod -a -G plugdev,input $USER
 
 ```bash
 pylint keymapper --extension-pkg-whitelist=evdev
-sudo python3 setup.py install && python3 tests/test.py
+sudo pip install . && python3 tests/test.py
 ```
 
 ## Roadmap
