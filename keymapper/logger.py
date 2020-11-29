@@ -30,12 +30,12 @@ import pkg_resources
 SPAM = 5
 
 
-def spam(self, message, *args, **kws):
+def spam(self, message, *args, **kwargs):
     """Log a more-verbose message than debug."""
     # pylint: disable=protected-access
     if self.isEnabledFor(SPAM):
         # https://stackoverflow.com/a/13638084
-        self._log(SPAM, message, args, **kws)
+        self._log(SPAM, message, args, **kwargs)
 
 
 logging.addLevelName(SPAM, "SPAM")
@@ -47,7 +47,7 @@ class Formatter(logging.Formatter):
     def format(self, record):
         """Overwritten format function."""
         # pylint: disable=protected-access
-        debug = logger.level <= logging.DEBUG
+        debug = is_debug()
         if record.levelno == logging.INFO and not debug:
             # if not launched with --debug, then don't print "INFO:"
             self._style._fmt = '%(message)s'
@@ -108,9 +108,9 @@ def update_verbosity(debug):
         logger.setLevel(logging.INFO)
 
 
-def add_filehandler():
+def add_filehandler(path='~/.log/key-mapper'):
     """Clear the existing logfile and start logging to it."""
-    log_path = os.path.expanduser('~/.log/key-mapper')
+    log_path = os.path.expanduser(path)
     log_file = os.path.join(log_path, 'log')
 
     if not os.path.exists(log_path):
@@ -126,3 +126,5 @@ def add_filehandler():
     logger.info('Logging to "%s"', log_file)
 
     logger.addHandler(file_handler)
+
+    return os.path.join(log_path, log_file)
