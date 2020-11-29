@@ -35,6 +35,15 @@ from keymapper.logger import logger
 _devices = None
 
 
+if not hasattr(evdev.InputDevice, 'path'):
+    # for evdev < 1.0.0 patch the path property
+    @property
+    def path(device):
+        return device.fn
+
+    evdev.InputDevice.path = path
+
+
 class _GetDevices(threading.Thread):
     """Process to get the devices that can be worked with.
 
