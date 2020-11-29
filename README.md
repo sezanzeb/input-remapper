@@ -3,9 +3,7 @@
 <p align="center">A Linux tool to change and program the mapping of your input device buttons.</p>
 
 <p align="center">
-    <a href="#Ubunut/Debian">Ubunut/Debian</a>
-    <a href="#Manjaro/Arch">Manjaro/Arch</a>
-    <a href="#Git">Git</a>
+    <a href="#ubuntudebian">Ubuntu/Debian</a> • <a href="#manjaroarch">Manjaro/Arch</a> • <a href="#git">Git</a>
 </p>
 
 <p align="center"><img src="readme/pylint.svg"/> <img src="readme/coverage.svg"/></p>
@@ -41,7 +39,7 @@ For a list of supported keystrokes and their names, check the output of
 
 ## Installation
 
-#### Ubunut/Debian
+##### Ubuntu/Debian
 
 ```bash
 dpkg -i $(wget TODO)
@@ -49,13 +47,13 @@ usermod -a -G input $USER
 usermod -a -G plugdev $USER
 ```
 
-#### Manjaro/Arch
+##### Manjaro/Arch
 
 ```bash
 pacaur -S key-mapper-git
 ```
 
-#### Git
+##### Git
 
 ```bash
 git clone https://github.com/sezanzeb/key-mapper.git
