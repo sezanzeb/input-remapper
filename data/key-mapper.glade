@@ -2,6 +2,16 @@
 <!-- Generated with glade 3.36.0 -->
 <interface>
   <requires lib="gtk+" version="3.22"/>
+  <object class="GtkImage" id="check-icon">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="icon_name">dialog-ok</property>
+  </object>
+  <object class="GtkImage" id="delete-icon">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="icon_name">edit-delete</property>
+  </object>
   <object class="GtkDialog" id="error_dialog">
     <property name="can_focus">False</property>
     <property name="title" translatable="yes">Key Mapper</property>
@@ -315,6 +325,7 @@
                 <property name="tooltip_text" translatable="yes">To give your keys back their original mapping.</property>
                 <property name="halign">end</property>
                 <property name="image">gtk-redo-icon-2</property>
+                <property name="always_show_image">True</property>
                 <signal name="clicked" handler="on_apply_system_layout_clicked" swapped="no"/>
               </object>
               <packing>
@@ -364,13 +375,14 @@
                         <property name="spacing">10</property>
                         <child>
                           <object class="GtkButton" id="apply_preset">
-                            <property name="label">gtk-apply</property>
+                            <property name="label">Apply</property>
                             <property name="width_request">80</property>
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="receives_default">True</property>
                             <property name="tooltip_text" translatable="yes">Presets need to be saved before they can be applied</property>
-                            <property name="use_stock">True</property>
+                            <property name="image">check-icon</property>
+                            <property name="always_show_image">True</property>
                             <signal name="clicked" handler="on_apply_preset_clicked" swapped="no"/>
                           </object>
                           <packing>
@@ -387,6 +399,7 @@
                             <property name="can_focus">True</property>
                             <property name="receives_default">True</property>
                             <property name="image">save-icon</property>
+                            <property name="always_show_image">True</property>
                             <signal name="clicked" handler="on_save_preset_clicked" swapped="no"/>
                           </object>
                           <packing>
@@ -403,6 +416,7 @@
                             <property name="can_focus">True</property>
                             <property name="receives_default">True</property>
                             <property name="image">new-icon</property>
+                            <property name="always_show_image">True</property>
                             <signal name="clicked" handler="on_create_preset_clicked" swapped="no"/>
                           </object>
                           <packing>
@@ -413,12 +427,13 @@
                         </child>
                         <child>
                           <object class="GtkButton" id="delete_preset">
-                            <property name="label">gtk-delete</property>
+                            <property name="label">Delete</property>
                             <property name="width_request">80</property>
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="receives_default">True</property>
-                            <property name="use_stock">True</property>
+                            <property name="image">delete-icon</property>
+                            <property name="always_show_image">True</property>
                             <signal name="clicked" handler="on_delete_preset_clicked" swapped="no"/>
                           </object>
                           <packing>
