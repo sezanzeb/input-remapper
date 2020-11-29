@@ -85,7 +85,7 @@ sudo dpkg -i python3-key-mapper_0.1.0-1_all.deb
 - [x] automatically load presets on login for plugged in devices
 - [x] make sure it works on wayland
 - [x] support timed macros, maybe using some sort of syntax
-- [ ] add to the AUR, provide .deb file
+- [x] add to the AUR, provide .deb file
 - [ ] automatically load presets when devices get plugged in after login
 
 ## Tests
