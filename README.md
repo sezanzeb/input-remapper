@@ -45,8 +45,7 @@ You have to start the application via sudo otherwise.
 
 ```bash
 sudo usermod -a -G plugdev,input $USER
-# log out and back in or restart,
-# the two groups should be visible with:
+# log out and back in or restart, the two groups should be visible with:
 groups
 ```
 
