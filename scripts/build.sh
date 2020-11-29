@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-# builds .deb and .appimage files in order to distribute them
 
 build_deb() {
   # https://github.com/phusion/debian-packaging-for-the-modern-developer/tree/master/tutorial-1
@@ -15,12 +14,7 @@ build_deb() {
   echo "created $dist/$name.deb"
 }
 
-build_appimage() {
-  echo "created $dist/$name.appimage"
-}
-
-
 build_deb &
-build_appimage &
+# add more build targets here
 
 wait

@@ -2,6 +2,12 @@
 
 <p align="center">A Linux tool to change and program the mapping of your input device buttons.</p>
 
+<p align="center">
+    <a href="#Ubunut/Debian">Ubunut/Debian</a>
+    <a href="#Manjaro/Arch">Manjaro/Arch</a>
+    <a href="#Git">Git</a>
+</p>
+
 <p align="center"><img src="readme/pylint.svg"/> <img src="readme/coverage.svg"/></p>
 
 <p align="center"><img src="readme/screenshot.png"/></p>
@@ -24,6 +30,8 @@ be running. If it doesn't already after logging in, you can use:
 key-mapper-service
 ```
 
+It works with both Wayland and X11.
+
 ## Macros
 
 It is possible to write timed macros into the center column:
@@ -41,7 +49,25 @@ Documentation:
 For a list of supported keystrokes and their names, check the output of
 `xmodmap -pke`
 
-## Git Installation
+## Installation
+
+#### Ubunut/Debian
+
+```bash
+dpkg -i $(wget TODO)
+usermod -a -G input $USER
+usermod -a -G plugdev $USER
+```
+
+#### Manjaro/Arch
+
+TODO
+
+```bash
+pacaur -S key-mapper-git
+```
+
+#### Git
 
 ```bash
 git clone https://github.com/sezanzeb/key-mapper.git
@@ -54,9 +80,7 @@ usermod -a -G plugdev $USER
 Depending on how those packages are called in your distro,
 you need the following dependencies:
 
-`python3-evdev` `python3-dbus`
-
-It works with both Wayland and X11.
+`python3-setuptools` `python3-evdev` `python3-dbus`
 
 ## Tests
 
@@ -80,5 +104,5 @@ sudo python3 setup.py install && python3 tests/test.py
 - [x] automatically load presets on login for plugged in devices
 - [x] make sure it works on wayland
 - [x] support timed macros, maybe using some sort of syntax
-- [ ] add to the AUR, provide .deb and .appimage files
+- [ ] add to the AUR, provide .deb file
 - [ ] automatically load presets when devices get plugged in after login
