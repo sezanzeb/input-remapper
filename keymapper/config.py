@@ -27,7 +27,7 @@ import json
 import shutil
 import copy
 
-from keymapper.paths import CONFIG
+from keymapper.paths import CONFIG, touch
 from keymapper.logger import logger
 
 
@@ -98,10 +98,7 @@ class _Config:
 
     def save_config(self):
         """Save the config to the file system."""
-        if not os.path.exists(CONFIG_PATH):
-            logger.debug('Creating "%s"', CONFIG_PATH)
-            os.makedirs(os.path.dirname(CONFIG_PATH), exist_ok=True)
-            os.mknod(CONFIG_PATH)
+        touch(CONFIG_PATH)
 
         with open(CONFIG_PATH, 'w') as file:
             json.dump(self._config, file, indent=4)

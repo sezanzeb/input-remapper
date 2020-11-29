@@ -23,9 +23,41 @@
 
 
 import os
+import shutil
+
+from keymapper.logger import logger
 
 
 CONFIG = os.path.join('/home', os.getlogin(), '.config/key-mapper')
+
+
+def touch(path):
+    """Create an empty file and all its parent dirs, give it to the user."""
+    if os.path.exists(path):
+        return
+
+    logger.info('Creating file "%s"', path)
+
+    folder = os.path.dirname(path)
+    if not os.path.exists(folder):
+        os.makedirs(folder, exist_ok=True)
+        # in case this is running as sudo
+        shutil.chown(folder, os.getlogin(), os.getlogin())
+
+    os.mknod(path)
+    shutil.chown(path, os.getlogin(), os.getlogin())
+
+
+def mkdir(path):
+    """Create a folder, give it to the user."""
+    if os.path.exists(path):
+        return
+
+    logger.info('Creating dir "%s"', path)
+
+    os.makedirs(path, exist_ok=True)
+    # in case this is running as sudo
+    shutil.chown(path, os.getlogin(), os.getlogin())
 
 
 def get_config_path(device=None, preset=None):

@@ -26,7 +26,7 @@ import os
 import time
 import glob
 
-from keymapper.paths import get_config_path
+from keymapper.paths import get_config_path, mkdir
 from keymapper.logger import logger
 from keymapper.getdevices import get_devices
 
@@ -53,8 +53,7 @@ def get_presets(device):
     device : string
     """
     device_folder = get_config_path(device)
-    if not os.path.exists(device_folder):
-        os.makedirs(device_folder)
+    mkdir(device_folder)
 
     paths = glob.glob(os.path.join(device_folder, '*.json'))
     presets = [

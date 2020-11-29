@@ -113,8 +113,7 @@ def add_filehandler(path='~/.log/key-mapper'):
     log_path = os.path.expanduser(path)
     log_file = os.path.join(log_path, 'log')
 
-    if not os.path.exists(log_path):
-        os.makedirs(log_path)
+    os.makedirs(log_path, exist_ok=True)
 
     if os.path.exists(log_file):
         # keep the log path small, start from scratch each time

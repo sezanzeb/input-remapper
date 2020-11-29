@@ -24,11 +24,10 @@
 
 import os
 import json
-import shutil
 import copy
 
 from keymapper.logger import logger
-from keymapper.paths import get_config_path
+from keymapper.paths import get_config_path, touch
 
 
 def keep_reverse_mapping_intact(func):
@@ -171,12 +170,7 @@ class Mapping:
         path = get_config_path(device, preset)
         logger.info('Saving preset to %s', path)
 
-        if not os.path.exists(path):
-            logger.debug('Creating "%s"', path)
-            os.makedirs(os.path.dirname(path), exist_ok=True)
-            os.mknod(path)
-            # if this is done with sudo rights, give the file to the user
-            shutil.chown(path, os.getlogin(), os.getlogin())
+        touch(path)
 
         with open(path, 'w') as file:
             # make sure to keep the option to add metadata if ever needed,
