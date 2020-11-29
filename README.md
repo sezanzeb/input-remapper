@@ -3,7 +3,7 @@
 <p align="center">A tool to change and program the mapping of your input device buttons.</p>
 
 <p align="center">
-    <a href="#ubuntudebian">Ubuntu/Debian</a> • <a href="#manjaroarch">Manjaro/Arch</a> • <a href="#git">Git</a>
+    <a href="#installation">Ubuntu/Debian</a> • <a href="#installation">Manjaro/Arch</a> • <a href="#installation">Git</a>
 </p>
 
 <p align="center"><img src="readme/pylint.svg"/> <img src="readme/coverage.svg"/></p>
