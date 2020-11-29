@@ -20,7 +20,7 @@ and search for 'Key Mapper' in settings. You can also start it via
 If stuff doesn't work, check the output of `key-mapper-gtk -d` and feel free
 to open up an issue here.
 
-## Macros
+##### Macros
 
 It is possible to write timed macros into the center column:
 - `k(1).k(2)` 1, 2
