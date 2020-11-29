@@ -42,7 +42,7 @@ For a list of supported keystrokes and their names, check the output of
 ##### Ubuntu/Debian
 
 ```bash
-wget https://github.com/sezanzeb/key-mapper/releases/download/0.1.0/python3-key-mapper_0.1.0-1_all.deb
+wget "https://github.com/sezanzeb/key-mapper/releases/download/0.1.0/python3-key-mapper_0.1.0-1_all.deb"
 sudo dpkg -i python3-key-mapper_0.1.0-1_all.deb
 sudo usermod -a -G plugdev,input $USER
 # log out and back in or restart,
