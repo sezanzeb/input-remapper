@@ -13,12 +13,12 @@
 
 ## Usage
 
-After installing, you should log out and back in for the changed user
-groups to take effect and for the background service to start.
-
 To open the UI to modify the mappings, look into your applications menu
 and search for 'Key Mapper' in settings. You can also start it via 
 `key-mapper-gtk`. It works with both Wayland and X11.
+
+If stuff doesn't work, check the output of `key-mapper-gtk -d` and feel free
+to open up an issue here.
 
 ## Macros
 
@@ -44,6 +44,9 @@ For a list of supported keystrokes and their names, check the output of
 ```bash
 sudo dpkg -i $(wget TODO)
 sudo usermod -a -G plugdev,input $USER
+# log out and back in or restart,
+# the two groups should be visible with:
+groups
 ```
 
 ##### Manjaro/Arch
@@ -58,6 +61,9 @@ pacaur -S key-mapper-git
 git clone https://github.com/sezanzeb/key-mapper.git
 sudo pip install key-mapper
 sudo usermod -a -G plugdev,input $USER
+# log out and back in or restart,
+# the two groups should be visible with:
+groups
 ```
 
 ## Roadmap
