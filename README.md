@@ -43,9 +43,6 @@ Documentation:
 For a list of supported keystrokes and their names, check the output of
 `xmodmap -pke`
 
-Maybe you shouldn't use this feature in online PVP though. Might even get
-detected by your game.
-
 ## Git Installation
 
 ```bash
