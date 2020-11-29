@@ -1,6 +1,6 @@
 <h1 align="center">Key Mapper</h1>
 
-<p align="center">A Linux tool to change and program the mapping of your input device buttons.</p>
+<p align="center">A tool to change and program the mapping of your input device buttons.</p>
 
 <p align="center">
     <a href="#ubuntudebian">Ubuntu/Debian</a> • <a href="#manjaroarch">Manjaro/Arch</a> • <a href="#git">Git</a>
@@ -60,13 +60,6 @@ sudo pip install key-mapper
 sudo usermod -a -G plugdev,input $USER
 ```
 
-## Tests
-
-```bash
-pylint keymapper --extension-pkg-whitelist=evdev
-sudo pip install . && python3 tests/test.py
-```
-
 ## Roadmap
 
 - [x] show a dropdown to select valid devices
@@ -84,3 +77,10 @@ sudo pip install . && python3 tests/test.py
 - [x] support timed macros, maybe using some sort of syntax
 - [ ] add to the AUR, provide .deb file
 - [ ] automatically load presets when devices get plugged in after login
+
+## Tests
+
+```bash
+pylint keymapper --extension-pkg-whitelist=evdev
+sudo pip install . && python3 tests/test.py
+```
