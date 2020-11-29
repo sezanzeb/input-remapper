@@ -3,7 +3,7 @@
 <p align="center">A tool to change and program the mapping of your input device buttons.</p>
 
 <p align="center">
-    <a href="#installation">Ubuntu/Debian</a> • <a href="#installation">Manjaro/Arch</a> • <a href="#installation">Git</a>
+    <a href="#installation">Ubuntu/Debian</a> • <a href="#installation">Manjaro/Arch</a> • <a href="#installation">Git/pip</a>
 </p>
 
 <p align="center"><img src="readme/pylint.svg"/> <img src="readme/coverage.svg"/></p>
@@ -20,7 +20,7 @@ and search for 'Key Mapper' in settings. You can also start it via
 If stuff doesn't work, check the output of `key-mapper-gtk -d` and feel free
 to open up an issue here.
 
-## Macros
+##### Macros
 
 It is possible to write timed macros into the center column:
 - `k(1).k(2)` 1, 2
@@ -49,12 +49,10 @@ sudo usermod -a -G plugdev,input $USER
 groups
 ```
 
-##### Ubuntu/Debian
+##### Git/pip
 
 ```bash
-wget "https://github.com/sezanzeb/key-mapper/releases/"\
-"download/0.1.0/python3-key-mapper_0.1.0-1_all.deb"
-sudo dpkg -i python3-key-mapper_0.1.0-1_all.deb
+sudo pip install git+https://github.com/sezanzeb/key-mapper.git
 ```
 
 ##### Manjaro/Arch
@@ -63,11 +61,12 @@ sudo dpkg -i python3-key-mapper_0.1.0-1_all.deb
 pacaur -S key-mapper-git
 ```
 
-##### Git
+##### Ubuntu/Debian
 
 ```bash
-git clone https://github.com/sezanzeb/key-mapper.git
-sudo pip install key-mapper
+wget "https://github.com/sezanzeb/key-mapper/releases/"\
+"download/0.1.0/python3-key-mapper_0.1.0-1_all.deb"
+sudo dpkg -i python3-key-mapper_0.1.0-1_all.deb
 ```
 
 ## Roadmap
