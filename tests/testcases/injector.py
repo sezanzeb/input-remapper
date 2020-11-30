@@ -20,6 +20,7 @@
 
 
 import unittest
+import time
 
 import evdev
 
@@ -30,7 +31,7 @@ from keymapper.state import custom_mapping, system_mapping, \
 from keymapper.mapping import Mapping
 
 from test import uinput_write_history, Event, pending_events, fixtures, \
-    clear_write_history
+    clear_write_history, EVENT_READ_TIMEOUT, uinput_write_history_pipe
 
 
 class TestInjector(unittest.TestCase):
@@ -67,12 +68,20 @@ class TestInjector(unittest.TestCase):
                     evdev.ecodes.EV_FF: [1, 2, 3]
                 }
 
-        self.injector = KeycodeInjector('foo', Mapping())
+        mapping = Mapping()
+        mapping.change(
+            new_keycode=80,
+            character='a'
+        )
+
+        maps_to = system_mapping['a'] - KEYCODE_OFFSET
+
+        self.injector = KeycodeInjector('foo', mapping)
         capabilities = self.injector._modify_capabilities(FakeDevice())
 
         self.assertIn(evdev.ecodes.EV_KEY, capabilities)
-        self.assertIsInstance(capabilities[evdev.ecodes.EV_KEY], list)
-        self.assertIsInstance(capabilities[evdev.ecodes.EV_KEY][0], int)
+        keys = capabilities[evdev.ecodes.EV_KEY]
+        self.assertEqual(keys[0], maps_to)
 
         self.assertNotIn(evdev.ecodes.EV_SYN, capabilities)
         self.assertNotIn(evdev.ecodes.EV_FF, capabilities)
@@ -160,16 +169,18 @@ class TestInjector(unittest.TestCase):
         ]
 
         self.injector = KeycodeInjector('device 2', custom_mapping)
-        # don't start as process for coverage testing purposes
-        self.injector._start_injecting()
+        self.injector.start_injecting()
 
-        self.assertEqual(len(uinput_write_history), 7)
+        uinput_write_history_pipe[0].poll(timeout=1)
+        time.sleep(EVENT_READ_TIMEOUT * 10)
 
         # convert the write history to some easier to manage list
-        history = [
-            (event.type, event.code, event.value)
-            for event in uinput_write_history
-        ]
+        history = []
+        while uinput_write_history_pipe[0].poll():
+            event = uinput_write_history_pipe[0].recv()
+            history.append((event.type, event.code, event.value))
+
+        self.assertEqual(len(history), 7)
 
         # since the macro takes a little bit of time to execute, its
         # keystrokes are all over the place.

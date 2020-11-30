@@ -39,6 +39,10 @@ assert not os.getcwd().endswith('tests')
 
 sys.path = [os.path.abspath('.')] + sys.path
 
+# give tests some time to test stuff while the process
+# is still running
+EVENT_READ_TIMEOUT = 0.01
+
 
 tmp = '/tmp/key-mapper-test'
 uinput_write_history = []
@@ -143,9 +147,31 @@ def patch_paths():
     paths.CONFIG = '/tmp/key-mapper-test/'
 
 
+def patch_select():
+    # goes hand in hand with patch_evdev, which makes InputDevices return
+    # their names for `.fd`.
+    # rlist contains device names therefore, so select.select returns the
+    # name of the device for which events are pending.
+    import select
+
+    def new_select(rlist, *args):
+        return ([
+            device for device in rlist
+            if len(pending_events.get(device, [])) > 0
+        ],)
+
+    select.select = new_select
+
+
 def patch_evdev():
     def list_devices():
         return fixtures.keys()
+
+    """
+    rlist = {device.fd: device for device in self.virtual_devices}
+    while True:
+        ready = select.select(rlist, [], [])[0]
+    """
 
     class InputDevice:
         # expose as existing attribute, otherwise the patch for
@@ -156,9 +182,18 @@ def patch_evdev():
             self.path = path
             self.phys = fixtures[path]['phys']
             self.name = fixtures[path]['name']
+            self.fd = self.name
 
         def grab(self):
             pass
+
+        def read(self):
+            ret = pending_events.get(self.name, [])
+            if ret is not None:
+                # consume all of them
+                pending_events[self.name] = []
+
+            return ret
 
         def read_one(self):
             if pending_events.get(self.name) is None:
@@ -177,9 +212,7 @@ def patch_evdev():
 
             while len(pending_events[self.name]) > 0:
                 yield pending_events[self.name].pop(0)
-                # give tests some time to test stuff while the process
-                # is still running
-                time.sleep(0.01)
+                time.sleep(EVENT_READ_TIMEOUT)
 
         async def async_read_loop(self):
             """Read all prepared events at once."""
@@ -243,6 +276,7 @@ is_service_running()
 patch_paths()
 patch_evdev()
 patch_unsaved()
+patch_select()
 
 
 def main():

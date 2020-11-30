@@ -38,6 +38,7 @@ from keymapper.state import custom_mapping, system_mapping, \
     clear_system_mapping
 from keymapper.paths import CONFIG, get_config_path
 from keymapper.config import config
+from keymapper.dev.reader import keycode_reader
 
 from test import tmp, pending_events, Event, uinput_write_history_pipe, \
     clear_write_history
@@ -222,11 +223,9 @@ class TestIntegration(unittest.TestCase):
         if code:
             # modifies the keycode in the row not by writing into the input,
             # but by sending an event
-            pending_events[self.window.selected_device] = [
-                Event(evdev.events.EV_KEY, code - 8, 1)
-            ]
-            self.window.on_window_event(None, None)
-
+            keycode_reader._pipe[1].send(code)
+            time.sleep(0.1)
+            gtk_iteration()
             if success:
                 self.assertEqual(row.get_keycode(), code)
                 self.assertIn(

@@ -33,8 +33,6 @@ class FakePipe:
 
 class TestGetDevices(unittest.TestCase):
     def test_get_devices(self):
-        # don't actually start the process, just use the `run` function.
-        # otherwise the coverage tool can't keep track.
         pipe = FakePipe()
         _GetDevices(pipe).run()
         self.assertDictEqual(pipe.devices, {

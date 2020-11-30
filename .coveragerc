@@ -1,0 +1,5 @@
+[run]
+branch = True
+source = /usr/lib/python3.8/site-packages/keymapper
+# concurrency = multiprocessing
+

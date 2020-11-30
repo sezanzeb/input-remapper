@@ -52,7 +52,8 @@ def populate_system_mapping():
 
 def clear_system_mapping():
     """Remove all mapped keys. Only needed for tests."""
-    for key in system_mapping:
+    keys = list(system_mapping.keys())
+    for key in keys:
         del system_mapping[key]
 
 

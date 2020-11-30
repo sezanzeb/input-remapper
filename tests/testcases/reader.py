@@ -22,10 +22,11 @@
 import unittest
 
 import evdev
+import time
 
 from keymapper.dev.reader import keycode_reader
 
-from test import Event, pending_events
+from test import Event, pending_events, EVENT_READ_TIMEOUT
 
 
 CODE_1 = 100
@@ -34,60 +35,70 @@ CODE_3 = 102
 
 
 class TestReader(unittest.TestCase):
+    def setUp(self):
+        # verify that tearDown properly cleared the reader
+        self.assertIsNone(keycode_reader.read())
+
     def tearDown(self):
-        keycode_reader.clear()
-        if pending_events.get('device 1') is not None:
-            del pending_events['device 1']
-        if pending_events.get('device 2') is not None:
-            del pending_events['device 2']
+        keycode_reader.stop_reading()
+        keys = list(pending_events.keys())
+        for key in keys:
+            del pending_events[key]
 
     def test_reading(self):
-        keycode_reader.start_reading('device 1')
         pending_events['device 1'] = [
             Event(evdev.events.EV_KEY, CODE_1, 1),
             Event(evdev.events.EV_KEY, CODE_2, 1),
             Event(evdev.events.EV_KEY, CODE_3, 1)
         ]
+        keycode_reader.start_reading('device 1')
+        time.sleep(EVENT_READ_TIMEOUT * 5)
         self.assertEqual(keycode_reader.read(), CODE_3 + 8)
         self.assertIsNone(keycode_reader.read())
 
-    def test_specific_device(self):
-        keycode_reader.start_reading('device 2')
+    def test_wrong_device(self):
         pending_events['device 1'] = [
             Event(evdev.events.EV_KEY, CODE_1, 1),
             Event(evdev.events.EV_KEY, CODE_2, 1),
             Event(evdev.events.EV_KEY, CODE_3, 1)
         ]
+        keycode_reader.start_reading('device 2')
+        time.sleep(EVENT_READ_TIMEOUT * 5)
         self.assertIsNone(keycode_reader.read())
 
     def test_keymapper_devices(self):
-        # key-mapper creates devices in /dev, which are also used for
-        # reading since the original device is in grab-mode
-        keycode_reader.start_reading('device 2')
+        # In order to show pressed keycodes on the ui while the device is
+        # grabbed, read from that as well.
         pending_events['key-mapper device 2'] = [
             Event(evdev.events.EV_KEY, CODE_1, 1),
             Event(evdev.events.EV_KEY, CODE_2, 1),
             Event(evdev.events.EV_KEY, CODE_3, 1)
         ]
+        keycode_reader.start_reading('device 2')
+        time.sleep(EVENT_READ_TIMEOUT * 5)
         self.assertEqual(keycode_reader.read(), CODE_3 + 8)
         self.assertIsNone(keycode_reader.read())
 
     def test_clear(self):
-        keycode_reader.start_reading('device 1')
         pending_events['device 1'] = [
             Event(evdev.events.EV_KEY, CODE_1, 1),
             Event(evdev.events.EV_KEY, CODE_2, 1),
             Event(evdev.events.EV_KEY, CODE_3, 1)
         ]
+        keycode_reader.start_reading('device 1')
+        time.sleep(EVENT_READ_TIMEOUT * 5)
         keycode_reader.clear()
         self.assertIsNone(keycode_reader.read())
 
     def test_switch_device(self):
-        keycode_reader.start_reading('device 2')
         pending_events['device 2'] = [Event(evdev.events.EV_KEY, CODE_1, 1)]
+        pending_events['device 1'] = [Event(evdev.events.EV_KEY, CODE_3, 1)]
+
+        keycode_reader.start_reading('device 2')
+        time.sleep(EVENT_READ_TIMEOUT * 5)
 
         keycode_reader.start_reading('device 1')
-        pending_events['device 1'] = [Event(evdev.events.EV_KEY, CODE_3, 1)]
+        time.sleep(EVENT_READ_TIMEOUT * 5)
 
         self.assertEqual(keycode_reader.read(), CODE_3 + 8)
         self.assertIsNone(keycode_reader.read())

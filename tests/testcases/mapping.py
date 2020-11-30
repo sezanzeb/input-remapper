@@ -31,11 +31,10 @@ class TestMapping(unittest.TestCase):
         self.assertFalse(self.mapping.changed)
 
     def test_populate_system_mapping(self):
-        populate_system_mapping(self.mapping)
-        self.assertGreater(len(self.mapping), 100)
+        mapping = populate_system_mapping()
+        self.assertGreater(len(mapping), 100)
         # keycode 10 is typically mapped to '1'
-        self.assertEqual(self.mapping.get_keycode('1'), 10)
-        self.assertTrue(self.mapping.get_character(10).startswith('1'))
+        self.assertEqual(mapping['1'], 10)
 
     def test_clone(self):
         mapping1 = Mapping()
