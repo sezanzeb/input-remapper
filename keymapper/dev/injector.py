@@ -293,23 +293,68 @@ class KeycodeInjector:
             keymapper_device.device.path, keymapper_device.fd
         )
 
+        newest_abs_event = None
+        abs_x = None
+        abs_y = None
+
+        # events only take ints, so a movement of 0.3 needs to add up to
+        # 1.2 to affect the cursor.
+        pending_x_rel = 0
+        pending_y_rel = 0
+
+        async def spam_mouse_movements():
+            while True:
+                # TODO get absinfo beforehand
+                max_value = 32767
+
+                if abs_y is not None and abs_x is not None:
+                    speed = (abs_x ** 2 + abs_y ** 2) ** 0.5
+                    max_speed = ((max_value ** 2) * 2) ** 0.5
+                    non_linearity = 2
+                    factor = (speed / max_speed) ** non_linearity
+                    rel_x = abs_x / max_value * factor * 40
+                    rel_y = abs_y / max_value * factor * 40
+
+                    pending_x_rel = rel_x
+                    pending_y_rel = rel_y
+                    rel_x = int(pending_x_rel)
+                    rel_y = int(pending_y_rel)
+                    pending_x_rel -= rel_x
+                    pending_y_rel -= rel_y
+
+                    print('factor', factor)
+                    print('speed', speed)
+                    print(rel_x, rel_y)
+
+                    self._write(
+                        keymapper_device,
+                        evdev.ecodes.EV_REL,
+                        evdev.ecodes.ABS_Y,
+                        rel_y
+                    )
+
+                    self._write(
+                        keymapper_device,
+                        evdev.ecodes.EV_REL,
+                        evdev.ecodes.ABS_X,
+                        rel_x
+                    )
+
+                await asyncio.sleep(1 / 60)
+
+        asyncio.ensure_future(spam_mouse_movements())
+
         async for event in device.async_read_loop():
             if self.map_abs_to_rel() and event.type == evdev.ecodes.EV_ABS:
                 if event.code not in [evdev.ecodes.ABS_X, evdev.ecodes.ABS_Y]:
                     continue
-                # TODO somehow the injector has to keep injecting EV_REL
-                #  codes with the most recent value to keep the mouse moving
-                # code 0:X, 1:Y
-                # TODO get absinfo beforehand
-                value = event.value // 2000
-                if value == 0:
-                    continue
-                self._write(
-                    keymapper_device,
-                    evdev.ecodes.EV_REL,
-                    event.code,
-                    value
-                )
+
+                if event.code == evdev.ecodes.ABS_X:
+                    abs_x = event.value
+
+                if event.code == evdev.ecodes.ABS_Y:
+                    abs_y = event.value
+
                 continue
 
             if event.type != evdev.ecodes.EV_KEY:
