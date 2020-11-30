@@ -23,6 +23,8 @@
 
 
 import evdev
+import select
+import multiprocessing
 
 from keymapper.logger import logger
 from keymapper.getdevices import get_devices, refresh_devices
@@ -41,20 +43,37 @@ class _KeycodeReader:
     """
     def __init__(self):
         self.virtual_devices = []
+        self._pipe = None
+        self._process = None
+
+    def __del__(self):
+        self.stop_reading()
+
+    def stop_reading(self):
+        # TODO something like this for the injector?
+        if self._process is not None:
+            logger.debug('Terminating reader process')
+            self._process.terminate()
+            self._process = None
+
+        if self._pipe is not None:
+            logger.debug('Closing reader pipe')
+            self._pipe.close()
+            self._pipe = None
 
     def clear(self):
         """Next time when reading don't return the previous keycode."""
-        # read all of them to clear the buffer or whatever
-        for virtual_device in self.virtual_devices:
-            while virtual_device.read_one():
-                pass
+        # just call read to clear the pipe
+        self.read()
 
-    def start_reading(self, device):
+    def start_reading(self, device_name):
         """Tell the evdev lib to start looking for keycodes.
 
         If read is called without prior start_reading, no keycodes
         will be available.
         """
+        self.stop_reading()
+
         # make sure this sees up to date devices, including those created
         # by key-mapper
         refresh_devices()
@@ -63,48 +82,72 @@ class _KeycodeReader:
 
         for name, group in get_devices(include_keymapper=True).items():
             # also find stuff like "key-mapper {device}"
-            if device not in name:
+            if device_name not in name:
                 continue
 
             # Watch over each one of the potentially multiple devices per
             # hardware
             for path in group['paths']:
                 try:
-                    self.virtual_devices.append(evdev.InputDevice(path))
+                    device = evdev.InputDevice(path)
                 except FileNotFoundError:
                     continue
+
+                if evdev.ecodes.EV_KEY in device.capabilities():
+                    self.virtual_devices.append(device)
 
             logger.debug(
                 'Starting reading keycodes from "%s"',
                 '", "'.join([device.name for device in self.virtual_devices])
             )
 
+        pipe = multiprocessing.Pipe()
+        self._process = multiprocessing.Process(
+            target=self._read_worker,
+            args=(pipe[1],)
+        )
+        self._process.start()
+        self._pipe = pipe[0]
+
+    def _consume_event(self, event, pipe):
+        """Write the event code into the pipe if it is a key-down press."""
+        # value: 1 for down, 0 for up, 2 for hold.
+        if event.type == evdev.ecodes.EV_KEY and event.value == 1:
+            logger.spam(
+                'got code:%s value:%s',
+                event.code + KEYCODE_OFFSET, event.value
+            )
+            pipe.send(event.code + KEYCODE_OFFSET)
+
+    def _read_worker(self, pipe):
+        """Process that reads keycodes and buffers them into a pipe."""
+        # using a process that blocks instead of read_one made it easier
+        # to debug via the logs, because the UI was not polling properly
+        # at some point which caused logs for events not to be written.
+        rlist = {device.fd: device for device in self.virtual_devices}
+        while True:
+            ready = select.select(rlist, [], [])[0]
+            for fd in ready:
+                try:
+                    for event in rlist[fd].read():
+                        self._consume_event(event, pipe)
+                except OSError:
+                    logger.debug(
+                        'Device "%s" disappeared from the reader',
+                        rlist[fd].path
+                    )
+                    del rlist[fd]
+
     def read(self):
         """Get the newest keycode or None if none was pressed."""
+        if self._pipe is None:
+            logger.debug('No pipe available to read from')
+            return None
+
         newest_keycode = None
-        for virtual_device in self.virtual_devices:
-            while True:
-                try:
-                    event = virtual_device.read_one()
-                except OSError:
-                    # can happen if a device disappears
-                    logger.debug(
-                        '%s cannot be read anymore',
-                        virtual_device.name
-                    )
-                    self.virtual_devices.remove(virtual_device)
-                    break
+        while self._pipe.poll():
+            newest_keycode = self._pipe.recv()
 
-                if event is None:
-                    break
-
-                if event.type == evdev.ecodes.EV_KEY and event.value == 1:
-                    logger.spam(
-                        'got code:%s value:%s',
-                        event.code + KEYCODE_OFFSET, event.value
-                    )
-                    # value: 1 for down, 0 for up, 2 for hold.
-                    newest_keycode = event.code + KEYCODE_OFFSET
         return newest_keycode
 
 

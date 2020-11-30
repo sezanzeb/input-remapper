@@ -148,6 +148,10 @@ def patch_evdev():
         return fixtures.keys()
 
     class InputDevice:
+        # expose as existing attribute, otherwise the patch for
+        # evdev < 1.0.0 will crash the test
+        path = None
+
         def __init__(self, path):
             self.path = path
             self.phys = fixtures[path]['phys']
