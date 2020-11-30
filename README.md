@@ -30,8 +30,18 @@ Documentation:
 - `m` holds a modifier while executing the second parameter
 - `.` executes two actions behind each other
 
+##### Names
+
 For a list of supported keystrokes and their names, check the output of
 `xmodmap -pke`
+
+- Alphanumeric `a` to `z` and `0` to `9`
+- Modifiers `Alt_L` `Control_L` `Control_R` `Shift_L` `Shift_R`
+
+If you can't find what you need, consult [linux/input-event-codes.h](https://github.com/torvalds/linux/blob/master/include/uapi/linux/input-event-codes.h)
+
+- Mouse buttons `BTN_LEFT` `BTN_RIGHT` `BTN_MIDDLE` `BTN_SIDE`
+- Macro special keys `KEY_MACRO1` `KEY_MACRO2` ...
 
 ## Installation
 

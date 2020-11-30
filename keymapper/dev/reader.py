@@ -28,10 +28,7 @@ import multiprocessing
 
 from keymapper.logger import logger
 from keymapper.getdevices import get_devices, refresh_devices
-
-
-# offset between xkb and linux keycodes. linux keycodes are lower
-KEYCODE_OFFSET = 8
+from keymapper.state import KEYCODE_OFFSET
 
 
 class _KeycodeReader:
