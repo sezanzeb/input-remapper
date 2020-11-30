@@ -184,6 +184,16 @@ def patch_evdev():
             self.name = fixtures[path]['name']
             self.fd = self.name
 
+            def absinfo(axis):
+                return {
+                    evdev.ecodes.EV_ABS: evdev.AbsInfo(
+                        value=None, min=None, fuzz=None, flat=None,
+                        resolution=None, max=2**15
+                    )
+                }[axis]
+
+            self.absinfo = absinfo
+
         def grab(self):
             pass
 
