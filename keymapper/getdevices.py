@@ -28,6 +28,7 @@ import time
 import asyncio
 
 import evdev
+from evdev.ecodes import EV_KEY, EV_ABS
 
 from keymapper.logger import logger
 
@@ -81,7 +82,7 @@ class _GetDevices(threading.Thread):
             # only keyboard devices
             # https://www.kernel.org/doc/html/latest/input/event-codes.html
             capabilities = device.capabilities().keys()
-            if evdev.ecodes.EV_KEY not in capabilities:
+            if EV_KEY not in capabilities and EV_ABS not in capabilities:
                 continue
 
             usb = device.phys.split('/')[0]

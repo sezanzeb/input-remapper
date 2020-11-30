@@ -43,6 +43,8 @@ sys.path = [os.path.abspath('.')] + sys.path
 # is still running
 EVENT_READ_TIMEOUT = 0.01
 
+MAX_ABS = 2 ** 15
+
 
 tmp = '/tmp/key-mapper-test'
 uinput_write_history = []
@@ -55,7 +57,7 @@ pending_events = {}
 fixtures = {
     # device 1
     '/dev/input/event11': {
-        'capabilities': {evdev.ecodes.EV_KEY: [], evdev.ecodes.EV_ABS: []},
+        'capabilities': {evdev.ecodes.EV_KEY: [], evdev.ecodes.EV_REL: []},
         'phys': 'usb-0000:03:00.0-1/input2',
         'name': 'device 1 foo'
     },
@@ -82,12 +84,13 @@ fixtures = {
         'name': 'device 2'
     },
 
-    # devices that are completely ignored
     '/dev/input/event30': {
-        'capabilities': {evdev.ecodes.EV_SYN: []},
+        'capabilities': {evdev.ecodes.EV_SYN: [], evdev.ecodes.EV_ABS: [0, 1]},
         'phys': 'usb-0000:03:00.0-3/input1',
-        'name': 'device 3'
+        'name': 'gamepad'
     },
+
+    # device that is completely ignored
     '/dev/input/event31': {
         'capabilities': {evdev.ecodes.EV_SYN: []},
         'phys': 'usb-0000:03:00.0-4/input1',
@@ -188,7 +191,7 @@ def patch_evdev():
                 return {
                     evdev.ecodes.EV_ABS: evdev.AbsInfo(
                         value=None, min=None, fuzz=None, flat=None,
-                        resolution=None, max=2**15
+                        resolution=None, max=MAX_ABS
                     )
                 }[axis]
 
@@ -239,10 +242,12 @@ def patch_evdev():
     class UInput:
         def __init__(self, *args, **kwargs):
             self.fd = 0
+            self.write_count = 0
             self.device = InputDevice('/dev/input/event40')
             pass
 
         def write(self, type, code, value):
+            self.write_count += 1
             event = Event(type, code, value)
             uinput_write_history.append(event)
             uinput_write_history_pipe[1].send(event)

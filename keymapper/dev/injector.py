@@ -29,6 +29,7 @@ import subprocess
 import multiprocessing
 
 import evdev
+from evdev.ecodes import EV_KEY, EV_ABS, EV_REL
 
 from keymapper.logger import logger
 from keymapper.config import config
@@ -69,9 +70,9 @@ def toggle_numlock():
             name=f'key-mapper numlock-control',
             phys='key-mapper',
         )
-        device.write(evdev.ecodes.EV_KEY, evdev.ecodes.KEY_NUMLOCK, 1)
+        device.write(EV_KEY, evdev.ecodes.KEY_NUMLOCK, 1)
         device.syn()
-        device.write(evdev.ecodes.EV_KEY, evdev.ecodes.KEY_NUMLOCK, 0)
+        device.write(EV_KEY, evdev.ecodes.KEY_NUMLOCK, 0)
         device.syn()
 
 
@@ -129,12 +130,14 @@ class KeycodeInjector:
         capabilities = device.capabilities(absinfo=False)
 
         needed = False
-        for keycode, _ in self.mapping:
-            if keycode - KEYCODE_OFFSET in capabilities[evdev.ecodes.EV_KEY]:
-                needed = True
-                break
-        # TODO only if map ABS to REL keep ABS devics
-        if capabilities.get(evdev.ecodes.EV_REL) is not None:
+        if capabilities.get(EV_KEY) is not None:
+            for keycode, _ in self.mapping:
+                if keycode - KEYCODE_OFFSET in capabilities[EV_KEY]:
+                    needed = True
+                    break
+
+        can_do_abs = evdev.ecodes.ABS_X in capabilities.get(EV_ABS, [])
+        if self.map_abs_to_rel() and can_do_abs:
             needed = True
 
         if not needed:
@@ -155,14 +158,14 @@ class KeycodeInjector:
                 break
             except IOError:
                 attempts += 1
+                # it might take a little time until the device is free if
+                # it was previously grabbed.
                 logger.debug('Failed attemts to grab %s: %d', path, attempts)
 
             if attempts >= 4:
                 logger.error('Cannot grab %s, it is possibly in use', path)
                 return None
 
-            # it might take a little time until the device is free if
-            # it was previously grabbed.
             time.sleep(0.15)
 
         return device
@@ -240,13 +243,29 @@ class KeycodeInjector:
                 events=self._modify_capabilities(input_device)
             )
 
-            coroutine = self._injection_loop(input_device, uinput)
+            # keycode injection
+            coroutine = self._keycode_loop(input_device, uinput)
             coroutines.append(coroutine)
 
+            # mouse movement injection
+            if self.map_abs_to_rel():
+                self.abs_x = 0
+                self.abs_y = 0
+                # events only take ints, so a movement of 0.3 needs to add
+                # up to 1.2 to affect the cursor.
+                self.pending_x_rel = 0
+                self.pending_y_rel = 0
+                coroutine = self._movement_loop(input_device, uinput)
+                coroutines.append(coroutine)
+
         if len(coroutines) == 0:
-            raise OSError('Could not grab any device')
+            logger.error('Did not grab any device')
+            return
 
         loop.run_until_complete(asyncio.gather(*coroutines))
+
+        if len(coroutines) > 0:
+            logger.debug('asyncio coroutines ended')
 
     def _write(self, device, type, keycode, value):
         """Actually inject."""
@@ -262,15 +281,20 @@ class KeycodeInjector:
         )
         self._write(
             keymapper_device,
-            evdev.ecodes.EV_KEY,
+            EV_KEY,
             keycode - KEYCODE_OFFSET,
             value
         )
 
-    async def spam_mouse_movements(self, keymapper_device, input_device):
+    async def _movement_loop(self, input_device, keymapper_device):
         """Keep writing mouse movements based on the gamepad stick position."""
-        max_value = input_device.absinfo(evdev.ecodes.EV_ABS).max
+        logger.info('Mapping gamepad to mouse movements')
+        max_value = input_device.absinfo(EV_ABS).max
         max_speed = ((max_value ** 2) * 2) ** 0.5
+
+        pointer_speed = config.get('gamepad.pointer_speed', 80)
+        non_linearity = config.get('gamepad.non_linearity', 4)
+
         while True:
             # this is part of the spawned process, so terminating that one
             # will also stop this loop
@@ -279,7 +303,6 @@ class KeycodeInjector:
             abs_y = self.abs_y
             abs_x = self.abs_x
 
-            non_linearity = config.get('gamepad.non_linearity', 4)
             if non_linearity != 1:
                 # to make small movements smaller for more precision
                 speed = (abs_x ** 2 + abs_y ** 2) ** 0.5
@@ -287,8 +310,8 @@ class KeycodeInjector:
             else:
                 factor = 1
 
-            rel_x = abs_x * factor * 80 / max_value
-            rel_y = abs_y * factor * 80 / max_value
+            rel_x = abs_x * factor * pointer_speed / max_value
+            rel_y = abs_y * factor * pointer_speed / max_value
 
             self.pending_x_rel += rel_x
             self.pending_y_rel += rel_y
@@ -300,7 +323,7 @@ class KeycodeInjector:
             if rel_y != 0:
                 self._write(
                     keymapper_device,
-                    evdev.ecodes.EV_REL,
+                    EV_REL,
                     evdev.ecodes.ABS_Y,
                     rel_y
                 )
@@ -308,12 +331,12 @@ class KeycodeInjector:
             if rel_x != 0:
                 self._write(
                     keymapper_device,
-                    evdev.ecodes.EV_REL,
+                    EV_REL,
                     evdev.ecodes.ABS_X,
                     rel_x
                 )
 
-    async def _injection_loop(self, device, keymapper_device):
+    async def _keycode_loop(self, device, keymapper_device):
         """Inject keycodes for one of the virtual devices.
 
         Parameters
@@ -339,20 +362,8 @@ class KeycodeInjector:
             keymapper_device.device.path, keymapper_device.fd
         )
 
-        if self.map_abs_to_rel():
-            self.abs_x = 0
-            self.abs_y = 0
-            # events only take ints, so a movement of 0.3 needs to add up to
-            # 1.2 to affect the cursor.
-            self.pending_x_rel = 0
-            self.pending_y_rel = 0
-            asyncio.ensure_future(self.spam_mouse_movements(
-                keymapper_device,
-                device
-            ))
-
         async for event in device.async_read_loop():
-            if self.map_abs_to_rel() and event.type == evdev.ecodes.EV_ABS:
+            if self.map_abs_to_rel() and event.type == EV_ABS:
                 if event.code not in [evdev.ecodes.ABS_X, evdev.ecodes.ABS_Y]:
                     continue
                 if event.code == evdev.ecodes.ABS_X:
@@ -361,7 +372,7 @@ class KeycodeInjector:
                     self.abs_y = event.value
                 continue
 
-            if event.type != evdev.ecodes.EV_KEY:
+            if event.type != EV_KEY:
                 keymapper_device.write(event.type, event.code, event.value)
                 # this already includes SYN events, so need to syn here again
                 continue
@@ -426,6 +437,6 @@ class KeycodeInjector:
     @ensure_numlock
     def stop_injecting(self):
         """Stop injecting keycodes."""
-        logger.info('Stopping injecting keycodes for device %s', self.device)
+        logger.info('Stopping injecting keycodes for device "%s"', self.device)
         if self._process is not None and self._process.is_alive():
             self._process.terminate()

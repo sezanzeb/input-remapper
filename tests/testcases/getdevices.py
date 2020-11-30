@@ -52,6 +52,10 @@ class TestGetDevices(unittest.TestCase):
                'paths': ['/dev/input/event20'],
                'devices': ['device 2']
             },
+            'gamepad': {
+                'paths': ['/dev/input/event30'],
+                'devices': ['gamepad']
+            },
             'key-mapper device 2': {
                'paths': ['/dev/input/event40'],
                'devices': ['key-mapper device 2']
@@ -76,7 +80,11 @@ class TestGetDevices(unittest.TestCase):
             'device 2': {
                'paths': ['/dev/input/event20'],
                'devices': ['device 2']
-            }
+            },
+            'gamepad': {
+                'paths': ['/dev/input/event30'],
+                'devices': ['gamepad']
+            },
         })
 
 
