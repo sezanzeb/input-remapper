@@ -111,7 +111,7 @@ class _Macro:
 
     def add_keycode_pause(self):
         """To add a pause between keystrokes."""
-        sleeptime = config.get_keystroke_sleep() / 1000
+        sleeptime = config.get('macros.keystroke_sleep_ms', 10) / 1000
 
         async def sleep():
             await asyncio.sleep(sleeptime)

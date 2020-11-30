@@ -57,7 +57,8 @@ class TestMacros(unittest.TestCase):
         repeats = 20
         macro = f'r({repeats}, k(k))'
         self.loop.run_until_complete(parse(macro, self.handler).run())
-        sleep_time = 2 * repeats * config.get_keystroke_sleep() / 1000
+        keystroke_sleep = config.get('macros.keystroke_sleep_ms', 10)
+        sleep_time = 2 * repeats * keystroke_sleep / 1000
         self.assertGreater(time.time() - start, sleep_time * 0.9)
         self.assertLess(time.time() - start, sleep_time * 1.1)
         self.assertListEqual(self.result, [('k', 1), ('k', 0)] * repeats)
@@ -67,7 +68,7 @@ class TestMacros(unittest.TestCase):
         macro = 'r(3, k(m).w(100))'
         self.loop.run_until_complete(parse(macro, self.handler).run())
 
-        keystroke_time = 6 * config.get_keystroke_sleep()
+        keystroke_time = 6 * config.get('macros.keystroke_sleep_ms', 10)
         total_time = keystroke_time + 300
         total_time /= 1000
 
@@ -96,7 +97,7 @@ class TestMacros(unittest.TestCase):
         self.loop.run_until_complete(parse(macro, self.handler).run())
 
         num_pauses = 8 + 6 + 4
-        keystroke_time = num_pauses * config.get_keystroke_sleep()
+        keystroke_time = num_pauses * config.get('macros.keystroke_sleep_ms', 10)
         wait_time = 220
         total_time = (keystroke_time + wait_time) / 1000
 

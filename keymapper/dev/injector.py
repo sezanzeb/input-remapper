@@ -31,6 +31,7 @@ import multiprocessing
 import evdev
 
 from keymapper.logger import logger
+from keymapper.config import config
 from keymapper.getdevices import get_devices
 from keymapper.state import system_mapping, KEYCODE_OFFSET
 from keymapper.dev.macros import parse
@@ -266,6 +267,51 @@ class KeycodeInjector:
             value
         )
 
+    async def spam_mouse_movements(self, keymapper_device):
+        """Keep writing mouse movements based on the gamepad stick position."""
+        # TODO get absinfo beforehand
+        max_value = 32767
+        max_speed = ((max_value ** 2) * 2) ** 0.5
+        while True:
+            await asyncio.sleep(1 / 60)
+
+            abs_y = self.abs_y
+            abs_x = self.abs_x
+
+            non_linearity = config.get('gamepad.non_linearity', 4)
+            if non_linearity != 1:
+                # to make small movements smaller for more precision
+                speed = (abs_x ** 2 + abs_y ** 2) ** 0.5
+                factor = (speed / max_speed) ** non_linearity
+            else:
+                factor = 1
+
+            rel_x = abs_x * factor * 80 / max_value
+            rel_y = abs_y * factor * 80 / max_value
+
+            self.pending_x_rel += rel_x
+            self.pending_y_rel += rel_y
+            rel_x = int(self.pending_x_rel)
+            rel_y = int(self.pending_y_rel)
+            self.pending_x_rel -= rel_x
+            self.pending_y_rel -= rel_y
+
+            if rel_y != 0:
+                self._write(
+                    keymapper_device,
+                    evdev.ecodes.EV_REL,
+                    evdev.ecodes.ABS_Y,
+                    rel_y
+                )
+
+            if rel_x != 0:
+                self._write(
+                    keymapper_device,
+                    evdev.ecodes.EV_REL,
+                    evdev.ecodes.ABS_X,
+                    rel_x
+                )
+
     async def _injection_loop(self, device, keymapper_device):
         """Inject keycodes for one of the virtual devices.
 
@@ -301,46 +347,7 @@ class KeycodeInjector:
         self.pending_x_rel = 0
         self.pending_y_rel = 0
 
-        async def spam_mouse_movements():
-            # TODO get absinfo beforehand
-            max_value = 32767
-            max_speed = ((max_value ** 2) * 2) ** 0.5
-            while True:
-                await asyncio.sleep(1 / 60)
-
-                abs_y = self.abs_y
-                abs_x = self.abs_x
-
-                # to make small movements smaller for more precision
-                speed = (abs_x ** 2 + abs_y ** 2) ** 0.5
-                non_linearity = 4
-                factor = (speed / max_speed) ** non_linearity
-
-                rel_x = abs_x * factor * 80 / max_value
-                rel_y = abs_y * factor * 80 / max_value
-
-                self.pending_x_rel += rel_x
-                self.pending_y_rel += rel_y
-                rel_x = int(self.pending_x_rel)
-                rel_y = int(self.pending_y_rel)
-                self.pending_x_rel -= rel_x
-                self.pending_y_rel -= rel_y
-
-                self._write(
-                    keymapper_device,
-                    evdev.ecodes.EV_REL,
-                    evdev.ecodes.ABS_Y,
-                    rel_y
-                )
-
-                self._write(
-                    keymapper_device,
-                    evdev.ecodes.EV_REL,
-                    evdev.ecodes.ABS_X,
-                    rel_x
-                )
-
-        asyncio.ensure_future(spam_mouse_movements())
+        asyncio.ensure_future(self.spam_mouse_movements(keymapper_device))
 
         async for event in device.async_read_loop():
             if self.map_abs_to_rel() and event.type == evdev.ecodes.EV_ABS:

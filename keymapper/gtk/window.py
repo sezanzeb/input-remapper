@@ -129,6 +129,7 @@ class Window:
         """Safely close the application."""
         for timeout in self.timeouts:
             GLib.source_remove(timeout)
+            self.timeouts = []
         keycode_reader.stop_reading()
         Gtk.main_quit()
 
@@ -301,7 +302,7 @@ class Window:
         """Load the preset automatically next time the user logs in."""
         device = self.selected_device
         preset = self.selected_preset
-        config.set_autoload_preset(device, preset, active)
+        config.set_autoload_preset(device, preset if active else None)
         config.save_config()
 
     def on_select_device(self, dropdown):

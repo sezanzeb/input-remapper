@@ -30,6 +30,20 @@ class TestConfig(unittest.TestCase):
         self.assertEqual(len(config.iterate_autoload_presets()), 0)
         config.save_config()
 
+    def test_basic(self):
+        config.set('a', 1)
+        self.assertEqual(config.get('a'), 1)
+
+        config.remove('a')
+        config.set('a.b', 2)
+        self.assertEqual(config.get('a.b'), 2)
+        self.assertEqual(config._config['a']['b'], 2)
+
+        config.remove('a.b')
+        config.set('a.b.c', 3)
+        self.assertEqual(config.get('a.b.c'), 3)
+        self.assertEqual(config._config['a']['b']['c'], 3)
+
     def test_autoload(self):
         del config._config['autoload']
         self.assertEqual(len(config.iterate_autoload_presets()), 0)
@@ -41,7 +55,7 @@ class TestConfig(unittest.TestCase):
         self.assertTrue(config.is_autoloaded('d1', 'a'))
         self.assertFalse(config.is_autoloaded('d2', 'b'))
 
-        config.set_autoload_preset('d2', 'b', True)
+        config.set_autoload_preset('d2', 'b')
         self.assertEqual(len(config.iterate_autoload_presets()), 2)
         self.assertTrue(config.is_autoloaded('d1', 'a'))
         self.assertTrue(config.is_autoloaded('d2', 'b'))
@@ -56,7 +70,7 @@ class TestConfig(unittest.TestCase):
             [('d1', 'a'), ('d2', 'c')]
         )
 
-        config.set_autoload_preset('d2', 'foo', False)
+        config.set_autoload_preset('d2', None)
         self.assertTrue(config.is_autoloaded('d1', 'a'))
         self.assertFalse(config.is_autoloaded('d2', 'b'))
         self.assertFalse(config.is_autoloaded('d2', 'c'))
