@@ -55,7 +55,7 @@ class _KeycodeReader:
 
         if self._pipe is not None:
             logger.debug('Closing reader pipe')
-            self._pipe.close()
+            self._pipe[0].close()
             self._pipe = None
 
     def clear(self):
@@ -104,7 +104,7 @@ class _KeycodeReader:
             args=(pipe[1],)
         )
         self._process.start()
-        self._pipe = pipe[0]
+        self._pipe = pipe
 
     def _consume_event(self, event, pipe):
         """Write the event code into the pipe if it is a key-down press."""
@@ -142,8 +142,8 @@ class _KeycodeReader:
             return None
 
         newest_keycode = None
-        while self._pipe.poll():
-            newest_keycode = self._pipe.recv()
+        while self._pipe[0].poll():
+            newest_keycode = self._pipe[0].recv()
 
         return newest_keycode
 

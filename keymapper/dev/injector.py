@@ -154,7 +154,7 @@ class KeycodeInjector:
                 break
             except IOError:
                 attempts += 1
-                logger.debug('Failed attemt to grab %s %d', path, attempts)
+                logger.debug('Failed attemts to grab %s: %d', path, attempts)
 
             if attempts >= 4:
                 logger.error('Cannot grab %s, it is possibly in use', path)
@@ -182,7 +182,11 @@ class KeycodeInjector:
         # copy the capabilities because the keymapper_device is going
         # to act like the device.
         capabilities = input_device.capabilities(absinfo=False)
+
         # Furthermore, support all injected keycodes
+        if len(self.mapping) > 0 and capabilities.get(ecodes.EV_KEY) is None:
+            capabilities[ecodes.EV_KEY] = []
+
         for _, character in self.mapping:
             keycode = system_mapping.get(character)
             if keycode is not None:
@@ -257,8 +261,8 @@ class KeycodeInjector:
         )
         self._write(
             keymapper_device,
-            evdev.ecodes.EV_KEY - KEYCODE_OFFSET,
-            keycode,
+            evdev.ecodes.EV_KEY,
+            keycode - KEYCODE_OFFSET,
             value
         )
 
@@ -294,17 +298,12 @@ class KeycodeInjector:
                 if event.code not in [evdev.ecodes.ABS_X, evdev.ecodes.ABS_Y]:
                     continue
                 # TODO somehow the injector has to keep injecting EV_REL
-                #  codes to keep the mouse moving
+                #  codes with the most recent value to keep the mouse moving
                 # code 0:X, 1:Y
                 # TODO get absinfo beforehand
                 value = event.value // 2000
                 if value == 0:
                     continue
-                print(
-                    evdev.ecodes.EV_REL,
-                    event.code,
-                    value
-                )
                 self._write(
                     keymapper_device,
                     evdev.ecodes.EV_REL,
@@ -346,21 +345,21 @@ class KeycodeInjector:
             else:
                 # TODO compile int-int mapping instead of going this route.
                 #  I think that makes the reverse mapping obsolete.
-                target_keycode = system_mapping[character]
+                target_keycode = system_mapping.get(character)
                 if target_keycode is None:
                     logger.error(
-                        'Cannot find character %s in the internal mapping',
+                        'Don\'t know what %s maps to',
                         character
                     )
                     continue
 
-            logger.spam(
-                'got code:%s value:%s, maps to code:%s char:%s',
-                event.code + KEYCODE_OFFSET,
-                event.value,
-                target_keycode,
-                character
-            )
+                logger.spam(
+                    'got code:%s value:%s, maps to code:%s char:%s',
+                    event.code + KEYCODE_OFFSET,
+                    event.value,
+                    target_keycode,
+                    character
+                )
 
             self._write(
                 keymapper_device,
