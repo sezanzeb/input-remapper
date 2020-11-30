@@ -267,12 +267,13 @@ class KeycodeInjector:
             value
         )
 
-    async def spam_mouse_movements(self, keymapper_device):
+    async def spam_mouse_movements(self, keymapper_device, input_device):
         """Keep writing mouse movements based on the gamepad stick position."""
-        # TODO get absinfo beforehand
-        max_value = 32767
+        max_value = input_device.absinfo(evdev.ecodes.EV_ABS).max
         max_speed = ((max_value ** 2) * 2) ** 0.5
         while True:
+            # this is part of the spawned process, so terminating that one
+            # will also stop this loop
             await asyncio.sleep(1 / 60)
 
             abs_y = self.abs_y
@@ -322,7 +323,6 @@ class KeycodeInjector:
         keymapper_device : evdev.UInput
             where to write keycodes to
         """
-        # TODO this function is too long
         # Parse all macros beforehand
         logger.debug('Parsing macros')
         macros = {}
@@ -339,27 +339,26 @@ class KeycodeInjector:
             keymapper_device.device.path, keymapper_device.fd
         )
 
-        self.abs_x = 0
-        self.abs_y = 0
-
-        # events only take ints, so a movement of 0.3 needs to add up to
-        # 1.2 to affect the cursor.
-        self.pending_x_rel = 0
-        self.pending_y_rel = 0
-
-        asyncio.ensure_future(self.spam_mouse_movements(keymapper_device))
+        if self.map_abs_to_rel():
+            self.abs_x = 0
+            self.abs_y = 0
+            # events only take ints, so a movement of 0.3 needs to add up to
+            # 1.2 to affect the cursor.
+            self.pending_x_rel = 0
+            self.pending_y_rel = 0
+            asyncio.ensure_future(self.spam_mouse_movements(
+                keymapper_device,
+                device
+            ))
 
         async for event in device.async_read_loop():
             if self.map_abs_to_rel() and event.type == evdev.ecodes.EV_ABS:
                 if event.code not in [evdev.ecodes.ABS_X, evdev.ecodes.ABS_Y]:
                     continue
-
                 if event.code == evdev.ecodes.ABS_X:
                     self.abs_x = event.value
-
                 if event.code == evdev.ecodes.ABS_Y:
                     self.abs_y = event.value
-
                 continue
 
             if event.type != evdev.ecodes.EV_KEY:
@@ -372,7 +371,6 @@ class KeycodeInjector:
                 continue
 
             input_keycode = event.code + KEYCODE_OFFSET
-
             character = self.mapping.get_character(input_keycode)
 
             if character is None:
@@ -381,7 +379,6 @@ class KeycodeInjector:
             elif macros.get(input_keycode) is not None:
                 if event.value == 0:
                     continue
-
                 logger.spam(
                     'got code:%s value:%s, maps to macro %s',
                     event.code + KEYCODE_OFFSET,
