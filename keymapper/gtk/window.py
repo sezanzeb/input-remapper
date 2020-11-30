@@ -113,7 +113,10 @@ class Window:
 
         self.select_newest_preset()
 
-        self.timeout = GLib.timeout_add(100, self.check_add_row)
+        self.timeouts = [
+            GLib.timeout_add(100, self.check_add_row),
+            GLib.timeout_add(1000 / 30, self.consume_newest_keycode)
+        ]
 
         # now show the proper finished content of the window
         self.get('vertical-wrapper').set_opacity(1)
@@ -124,7 +127,9 @@ class Window:
 
     def on_close(self, *_):
         """Safely close the application."""
-        GLib.source_remove(self.timeout)
+        for timeout in self.timeouts:
+            GLib.source_remove(timeout)
+        keycode_reader.stop_reading()
         Gtk.main_quit()
 
     def check_add_row(self):
@@ -159,7 +164,10 @@ class Window:
             device_selection.append(device, device)
 
     def populate_presets(self):
-        """Show the available presets for the selected device."""
+        """Show the available presets for the selected device.
+
+        This will destroy unsaved changes in the custom_mapping.
+        """
         self.get('preset_name_input').set_text('')
 
         device = self.selected_device
@@ -167,6 +175,7 @@ class Window:
 
         if len(presets) == 0:
             new_preset = get_available_preset_name(self.selected_device)
+            custom_mapping.empty()
             custom_mapping.save(self.selected_device, new_preset)
             presets = [new_preset]
         else:
@@ -195,22 +204,20 @@ class Window:
         key_list = self.get('key_list')
         key_list.forall(lambda row: row.unhighlight())
 
-    def on_window_event(self, *args):
-        """Write down the pressed key in the UI.
-
-        Triggered from any mouse and keyboard event.
-        """
-        # to capture regular keyboard keys or extra-mouse keys
+    def consume_newest_keycode(self):
+        """To capture events from keyboard, mice and gamepads."""
+        # the "event" event of Gtk.Window wouldn't trigger on gamepad
+        # events, so it became a GLib timeout
         keycode = keycode_reader.read()
 
         if keycode is None:
-            return
+            return True
 
         if keycode in [280, 333]:
             # disable mapping the left mouse button because it would break
             # the mouse. Also it is emitted right when focusing the row
             # which breaks the current workflow.
-            return
+            return True
 
         self.get('keycode').set_text(str(keycode))
 
@@ -219,6 +226,8 @@ class Window:
         row = focused.get_parent().get_parent()
         if isinstance(focused, Gtk.ToggleButton) and isinstance(row, Row):
             row.set_new_keycode(keycode)
+
+        return True
 
     def on_apply_system_layout_clicked(self, _):
         """Load the mapping."""

@@ -277,7 +277,6 @@
     <property name="default_height">350</property>
     <property name="icon_name">mouse</property>
     <signal name="delete-event" handler="on_close" swapped="no"/>
-    <signal name="event" handler="on_window_event" swapped="no"/>
     <child>
       <object class="GtkBox" id="vertical-wrapper">
         <property name="visible">True</property>

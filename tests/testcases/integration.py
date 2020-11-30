@@ -24,6 +24,7 @@ import time
 import os
 import unittest
 import evdev
+import json
 from unittest.mock import patch
 from importlib.util import spec_from_loader, module_from_spec
 from importlib.machinery import SourceFileLoader
@@ -34,7 +35,7 @@ gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
 
 from keymapper.state import custom_mapping, system_mapping
-from keymapper.paths import CONFIG
+from keymapper.paths import CONFIG, get_config_path
 from keymapper.config import config
 
 from test import tmp, pending_events, Event, uinput_write_history_pipe, \
@@ -142,6 +143,24 @@ class TestIntegration(unittest.TestCase):
             list(config.iterate_autoload_presets()),
             [('device 1', 'new preset')]
         )
+
+    def test_select_device(self):
+        # creates a new empty preset when no preset exists for the device
+        self.window.on_select_device(FakeDropdown('device 1'))
+        custom_mapping.change(50, 'q')
+        custom_mapping.change(51, 'u')
+        custom_mapping.change(52, 'x')
+        self.assertEqual(len(custom_mapping), 3)
+        self.window.on_select_device(FakeDropdown('device 2'))
+        self.assertEqual(len(custom_mapping), 0)
+        # it creates the file for that right away. It may have been possible
+        # to write it such that it doesn't (its empty anyway), but it does,
+        # so use that to test it in more detail.
+        path = get_config_path('device 2', 'new preset')
+        self.assertTrue(os.path.exists(path))
+        with open(path, 'r') as file:
+            preset = json.load(file)
+            self.assertEqual(len(preset['mapping']), 0)
 
     def test_can_start(self):
         self.assertIsNotNone(self.window)
