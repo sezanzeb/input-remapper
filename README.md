@@ -36,8 +36,8 @@ For a list of supported keystrokes and their names, check the output of
 ## Installation
 
 After your installation, independent of the method, you should add yourself
-to the `input` and `plugdev` groups so that you can read keycodes from them.
-You have to start the application via sudo otherwise.
+to the `input` and `plugdev` groups so that you can read information from your
+devices. You have to start the application via sudo otherwise.
 
 ```bash
 sudo usermod -a -G plugdev,input $USER
