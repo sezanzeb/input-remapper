@@ -23,15 +23,18 @@ import unittest
 import time
 
 import evdev
+from evdev.ecodes import EV_REL, EV_KEY, EV_ABS
 
 from keymapper.dev.injector import is_numlock_on, toggle_numlock,\
     ensure_numlock, KeycodeInjector
 from keymapper.state import custom_mapping, system_mapping, \
     clear_system_mapping, KEYCODE_OFFSET
 from keymapper.mapping import Mapping
+from keymapper.config import config
 
 from test import uinput_write_history, Event, pending_events, fixtures, \
-    clear_write_history, EVENT_READ_TIMEOUT, uinput_write_history_pipe
+    clear_write_history, EVENT_READ_TIMEOUT, uinput_write_history_pipe, \
+    MAX_ABS
 
 
 class TestInjector(unittest.TestCase):
@@ -79,8 +82,8 @@ class TestInjector(unittest.TestCase):
         self.injector = KeycodeInjector('foo', mapping)
         capabilities = self.injector._modify_capabilities(FakeDevice())
 
-        self.assertIn(evdev.ecodes.EV_KEY, capabilities)
-        keys = capabilities[evdev.ecodes.EV_KEY]
+        self.assertIn(EV_KEY, capabilities)
+        keys = capabilities[EV_KEY]
         self.assertEqual(keys[0], maps_to)
 
         self.assertNotIn(evdev.ecodes.EV_SYN, capabilities)
@@ -114,10 +117,12 @@ class TestInjector(unittest.TestCase):
         path = '/dev/input/event11'
         device = self.injector._prepare_device(path)
 
-        # make sure the test uses a fixture without capabilities
+        # make sure the test uses a fixture without interesting capabilities
         capabilities = evdev.InputDevice(path).capabilities()
-        self.assertEqual(len(capabilities[evdev.ecodes.EV_KEY]), 0)
+        self.assertEqual(len(capabilities.get(EV_KEY, [])), 0)
+        self.assertEqual(len(capabilities.get(EV_ABS, [])), 0)
 
+        # skips the device alltogether, so no grab attempts fail
         self.assertEqual(self.failed, 0)
         self.assertIsNone(device)
 
@@ -141,7 +146,55 @@ class TestInjector(unittest.TestCase):
     def test_abs_to_rel(self):
         # maps gamepad joystick events to mouse events
         # TODO enable this somewhere so that map_abs_to_rel returns true
-        pass
+        #  in the .json file of the mapping.
+        config.set('gamepad.non_linearity', 1)
+        pointer_speed = 80
+        config.set('gamepad.pointer_speed', pointer_speed)
+
+        # same for ABS, 0 for x, 1 for y
+        rel_x = evdev.ecodes.REL_X
+        rel_y = evdev.ecodes.REL_Y
+
+        # they need to sum up before something is written
+        divisor = 10
+        x = MAX_ABS / pointer_speed / divisor
+        y = MAX_ABS / pointer_speed / divisor
+        pending_events['gamepad'] = [
+            Event(EV_ABS, rel_x, x),
+            Event(EV_ABS, rel_y, y),
+            Event(EV_ABS, rel_x, -x),
+            Event(EV_ABS, rel_y, -y),
+        ]
+
+        self.injector = KeycodeInjector('gamepad', custom_mapping)
+        self.injector.start_injecting()
+
+        # wait for the injector to start sending, at most 1s
+        uinput_write_history_pipe[0].poll(1)
+
+        # wait a bit more for it to sum up
+        sleep = 0.5
+        time.sleep(sleep)
+
+        # convert the write history to some easier to manage list
+        history = []
+        while uinput_write_history_pipe[0].poll():
+            event = uinput_write_history_pipe[0].recv()
+            history.append((event.type, event.code, event.value))
+
+        # movement is written at 60hz and it takes `divisor` steps to
+        # move 1px. take it times 2 for both x and y events.
+        self.assertGreater(len(history), 60 * sleep * 0.9 * 2 / divisor)
+        self.assertLess(len(history), 60 * sleep * 1.1 * 2 / divisor)
+
+        # those may be in arbitrary order, the injector happens to write
+        # y first
+        self.assertEqual(history[-1][0], EV_REL)
+        self.assertEqual(history[-1][1], rel_x)
+        self.assertAlmostEqual(history[-1][2], -1)
+        self.assertEqual(history[-2][0], EV_REL)
+        self.assertEqual(history[-2][1], rel_y)
+        self.assertAlmostEqual(history[-2][2], -1)
 
     def test_injector(self):
         custom_mapping.change(8, 'k(q).k(w)')
@@ -161,14 +214,14 @@ class TestInjector(unittest.TestCase):
         # keycode used in X and in the mappings
         pending_events['device 2'] = [
             # should execute a macro
-            Event(evdev.events.EV_KEY, 0, 1),
-            Event(evdev.events.EV_KEY, 0, 0),
+            Event(EV_KEY, 0, 1),
+            Event(EV_KEY, 0, 0),
             # normal keystroke
-            Event(evdev.events.EV_KEY, 1, 1),
-            Event(evdev.events.EV_KEY, 1, 0),
+            Event(EV_KEY, 1, 1),
+            Event(EV_KEY, 1, 0),
             # ignored because unknown to the system
-            Event(evdev.events.EV_KEY, 2, 1),
-            Event(evdev.events.EV_KEY, 2, 0),
+            Event(EV_KEY, 2, 1),
+            Event(EV_KEY, 2, 0),
             # just pass those over without modifying
             Event(3124, 3564, 6542),
         ]
@@ -192,7 +245,7 @@ class TestInjector(unittest.TestCase):
         # since the macro takes a little bit of time to execute, its
         # keystrokes are all over the place.
         # just check if they are there and if so, remove them from the list.
-        ev_key = evdev.events.EV_KEY
+        ev_key = EV_KEY
         self.assertIn((ev_key, code_q - KEYCODE_OFFSET, 1), history)
         self.assertIn((ev_key, code_q - KEYCODE_OFFSET, 0), history)
         self.assertIn((ev_key, code_w - KEYCODE_OFFSET, 1), history)

@@ -41,7 +41,8 @@ INITIAL_CONFIG = {
         'keystroke_sleep_ms': 10
     },
     'gamepad': {
-        'non_linearity': 4
+        'non_linearity': 4,
+        'pointer_speed': 80
     }
 }
 

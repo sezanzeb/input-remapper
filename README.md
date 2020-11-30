@@ -99,5 +99,6 @@ sudo dpkg -i python3-key-mapper_0.1.0-1_all.deb
 
 ```bash
 pylint keymapper --extension-pkg-whitelist=evdev
-sudo pip install . && python3 tests/test.py
+sudo pip install . && coverage run tests/test.py
+coverage combine && coverage report -m
 ```
