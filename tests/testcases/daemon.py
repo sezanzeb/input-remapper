@@ -34,7 +34,8 @@ import gi
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
 
-from keymapper.state import custom_mapping, system_mapping
+from keymapper.state import custom_mapping, system_mapping, \
+    clear_system_mapping
 from keymapper.config import config
 from keymapper.daemon import Daemon, get_dbus_interface
 
@@ -89,8 +90,8 @@ class TestDaemon(unittest.TestCase):
         keycode_to = 100
 
         custom_mapping.change(keycode_from, 'a')
-        system_mapping.empty()
-        system_mapping.change(keycode_to, 'a')
+        clear_system_mapping()
+        system_mapping['a'] = keycode_to
 
         custom_mapping.save('device 2', 'foo')
         config.set_autoload_preset('device 2', 'foo')

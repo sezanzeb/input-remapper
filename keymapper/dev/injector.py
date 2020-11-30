@@ -32,7 +32,7 @@ import evdev
 
 from keymapper.logger import logger
 from keymapper.getdevices import get_devices
-from keymapper.state import system_mapping
+from keymapper.state import system_mapping, KEYCODE_OFFSET
 from keymapper.dev.macros import parse
 
 
@@ -40,9 +40,6 @@ DEV_NAME = 'key-mapper'
 DEVICE_CREATED = 1
 FAILED = 2
 DEVICE_SKIPPED = 3
-
-# offset between xkb and linux keycodes. linux keycodes are lower
-KEYCODE_OFFSET = 8
 
 
 def is_numlock_on():
@@ -112,6 +109,10 @@ class KeycodeInjector:
         self.mapping = mapping
         self._process = None
 
+    def __del__(self):
+        if self._process is not None:
+            self._process.terminate()
+
     def start_injecting(self):
         """Start injecting keycodes."""
         self._process = multiprocessing.Process(target=self._start_injecting)
@@ -124,13 +125,16 @@ class KeycodeInjector:
         if device is None:
             return None
 
-        capabilities = device.capabilities(absinfo=False)[evdev.ecodes.EV_KEY]
+        capabilities = device.capabilities(absinfo=False)
 
         needed = False
         for keycode, _ in self.mapping:
-            if keycode - KEYCODE_OFFSET in capabilities:
+            if keycode - KEYCODE_OFFSET in capabilities[evdev.ecodes.EV_KEY]:
                 needed = True
                 break
+        # TODO only if map ABS to REL keep ABS devics
+        if capabilities.get(evdev.ecodes.EV_REL) is not None:
+            needed = True
 
         if not needed:
             # skipping reading and checking on events from those devices
@@ -162,6 +166,10 @@ class KeycodeInjector:
 
         return device
 
+    def map_abs_to_rel(self):
+        # TODO offer configuration via the UI if a gamepad is elected
+        return True
+
     def _modify_capabilities(self, input_device):
         """Adds all keycode into a copy of a devices capabilities.
 
@@ -169,19 +177,32 @@ class KeycodeInjector:
         ---------
         input_device : evdev.InputDevice
         """
+        ecodes = evdev.ecodes
+
         # copy the capabilities because the keymapper_device is going
         # to act like the device.
         capabilities = input_device.capabilities(absinfo=False)
-        # However, make sure that it supports all keycodes, not just some
-        # random ones, because the mapping could contain anything.
-        # That's why I avoid from_device for this
-        capabilities[evdev.ecodes.EV_KEY] = list(evdev.ecodes.keys.keys())
+        # Furthermore, support all injected keycodes
+        for _, character in self.mapping:
+            keycode = system_mapping.get(character)
+            if keycode is not None:
+                capabilities[ecodes.EV_KEY].append(keycode - KEYCODE_OFFSET)
+
+        if self.map_abs_to_rel():
+            if capabilities.get(ecodes.EV_ABS):
+                del capabilities[ecodes.EV_ABS]
+            capabilities[ecodes.EV_REL] = [
+                evdev.ecodes.REL_X,
+                evdev.ecodes.REL_Y,
+                # for my system to recognize it as mouse, WHEEL is also needed:
+                evdev.ecodes.REL_WHEEL,
+            ]
 
         # just like what python-evdev does in from_device
-        if evdev.ecodes.EV_SYN in capabilities:
-            del capabilities[evdev.ecodes.EV_SYN]
-        if evdev.ecodes.EV_FF in capabilities:
-            del capabilities[evdev.ecodes.EV_FF]
+        if ecodes.EV_SYN in capabilities:
+            del capabilities[ecodes.EV_SYN]
+        if ecodes.EV_FF in capabilities:
+            del capabilities[ecodes.EV_FF]
 
         return capabilities
 
@@ -191,24 +212,29 @@ class KeycodeInjector:
         Stuff is non-blocking by using asyncio in order to do multiple things
         somewhat concurrently.
         """
+        # TODO do select.select insted of async_read_loop
         loop = asyncio.get_event_loop()
         coroutines = []
 
-        paths = get_devices()[self.device]['paths']
-
         logger.info('Starting injecting the mapping for %s', self.device)
 
+        paths = get_devices()[self.device]['paths']
+        devices = [self._prepare_device(path) for path in paths]
+
         # Watch over each one of the potentially multiple devices per hardware
-        for path in paths:
-            input_device = self._prepare_device(path)
+        for input_device in devices:
             if input_device is None:
                 continue
 
+            # certain capabilities can have side effects apparently. with an
+            # EV_ABS capability, EV_REL won't move the mouse pointer anymore.
+            # so don't merge all InputDevices into one UInput device.
             uinput = evdev.UInput(
-                name=f'key-mapper {input_device.name}',
+                name=f'key-mapper {self.device}',
                 phys='key-mapper',
                 events=self._modify_capabilities(input_device)
             )
+
             coroutine = self._injection_loop(input_device, uinput)
             coroutines.append(coroutine)
 
@@ -217,19 +243,24 @@ class KeycodeInjector:
 
         loop.run_until_complete(asyncio.gather(*coroutines))
 
-    def _write(self, device, keycode, value):
+    def _write(self, device, type, keycode, value):
         """Actually inject."""
-        device.write(evdev.ecodes.EV_KEY, keycode - KEYCODE_OFFSET, value)
+        device.write(type, keycode, value)
         device.syn()
 
     def _macro_write(self, character, value, keymapper_device):
         """Handler for macros."""
-        keycode = system_mapping.get_keycode(character)
+        keycode = system_mapping[character]
         logger.spam(
             'macro writes code:%s value:%d char:%s',
             keycode, value, character
         )
-        self._write(keymapper_device, keycode, value)
+        self._write(
+            keymapper_device,
+            evdev.ecodes.EV_KEY - KEYCODE_OFFSET,
+            keycode,
+            value
+        )
 
     async def _injection_loop(self, device, keymapper_device):
         """Inject keycodes for one of the virtual devices.
@@ -241,6 +272,7 @@ class KeycodeInjector:
         keymapper_device : evdev.UInput
             where to write keycodes to
         """
+        # TODO this function is too long
         # Parse all macros beforehand
         logger.debug('Parsing macros')
         macros = {}
@@ -258,6 +290,29 @@ class KeycodeInjector:
         )
 
         async for event in device.async_read_loop():
+            if self.map_abs_to_rel() and event.type == evdev.ecodes.EV_ABS:
+                if event.code not in [evdev.ecodes.ABS_X, evdev.ecodes.ABS_Y]:
+                    continue
+                # TODO somehow the injector has to keep injecting EV_REL
+                #  codes to keep the mouse moving
+                # code 0:X, 1:Y
+                # TODO get absinfo beforehand
+                value = event.value // 2000
+                if value == 0:
+                    continue
+                print(
+                    evdev.ecodes.EV_REL,
+                    event.code,
+                    value
+                )
+                self._write(
+                    keymapper_device,
+                    evdev.ecodes.EV_REL,
+                    event.code,
+                    value
+                )
+                continue
+
             if event.type != evdev.ecodes.EV_KEY:
                 keymapper_device.write(event.type, event.code, event.value)
                 # this already includes SYN events, so need to syn here again
@@ -289,7 +344,9 @@ class KeycodeInjector:
                     asyncio.ensure_future(macro.run())
                 continue
             else:
-                target_keycode = system_mapping.get_keycode(character)
+                # TODO compile int-int mapping instead of going this route.
+                #  I think that makes the reverse mapping obsolete.
+                target_keycode = system_mapping[character]
                 if target_keycode is None:
                     logger.error(
                         'Cannot find character %s in the internal mapping',
@@ -305,7 +362,12 @@ class KeycodeInjector:
                 character
             )
 
-            self._write(keymapper_device, target_keycode, event.value)
+            self._write(
+                keymapper_device,
+                event.type,
+                target_keycode - KEYCODE_OFFSET,
+                event.value
+            )
 
         # this should only ever happen in tests to avoid blocking them
         # forever, as soon as all events are consumed. In normal operation

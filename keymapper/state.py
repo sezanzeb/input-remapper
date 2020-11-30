@@ -25,22 +25,35 @@
 import stat
 import re
 import subprocess
+import evdev
 
 from keymapper.mapping import Mapping
 
 
-def parse_xmodmap(mapping):
-    """Read the output of xmodmap into a mapping."""
+# offset between xkb and linux keycodes. linux keycodes are lower
+KEYCODE_OFFSET = 8
+
+
+def populate_system_mapping():
+    """Get a mapping of all available names to their keycodes."""
+    mapping = {}
+
     xmodmap = subprocess.check_output(['xmodmap', '-pke']).decode() + '\n'
     mappings = re.findall(r'(\d+) = (.+)\n', xmodmap)
-    for keycode, characters in mappings:
-        # this is the "array" format needed for symbols files
-        character = ', '.join(characters.split())
-        mapping.change(
-            previous_keycode=None,
-            new_keycode=int(keycode),
-            character=character
-        )
+    for keycode, names in mappings:
+        for name in names.split():
+            mapping[name] = int(keycode)
+
+    for name, ecode in evdev.ecodes.ecodes.items():
+        mapping[name] = ecode + KEYCODE_OFFSET
+
+    return mapping
+
+
+def clear_system_mapping():
+    """Remove all mapped keys. Only needed for tests."""
+    for key in system_mapping:
+        del system_mapping[key]
 
 
 # one mapping object for the whole application that holds all
@@ -48,8 +61,7 @@ def parse_xmodmap(mapping):
 custom_mapping = Mapping()
 
 # this mapping represents the xmodmap output, which stays constant
-system_mapping = Mapping()
-parse_xmodmap(system_mapping)
+system_mapping = populate_system_mapping()
 
 # permissions for files created in /usr
 _PERMISSIONS = stat.S_IREAD | stat.S_IWRITE | stat.S_IRGRP | stat.S_IROTH

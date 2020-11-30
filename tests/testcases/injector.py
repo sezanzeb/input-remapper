@@ -24,8 +24,9 @@ import unittest
 import evdev
 
 from keymapper.dev.injector import is_numlock_on, toggle_numlock,\
-    ensure_numlock, KeycodeInjector, KEYCODE_OFFSET
-from keymapper.state import custom_mapping, system_mapping
+    ensure_numlock, KeycodeInjector
+from keymapper.state import custom_mapping, system_mapping, \
+    clear_system_mapping, KEYCODE_OFFSET
 from keymapper.mapping import Mapping
 
 from test import uinput_write_history, Event, pending_events, fixtures, \
@@ -134,13 +135,13 @@ class TestInjector(unittest.TestCase):
         # one mapping that is unknown in the system_mapping on purpose
         custom_mapping.change(10, 'b')
 
-        system_mapping.empty()
+        clear_system_mapping()
         code_a = 100
         code_q = 101
         code_w = 102
-        system_mapping.change(code_a, 'a')
-        system_mapping.change(code_q, 'q')
-        system_mapping.change(code_w, 'w')
+        system_mapping['a'] = code_a
+        system_mapping['q'] = code_q
+        system_mapping['w'] = code_w
 
         # the second arg of those event objects is 8 lower than the
         # keycode used in X and in the mappings
