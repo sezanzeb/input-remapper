@@ -138,6 +138,11 @@ class TestInjector(unittest.TestCase):
         toggle_numlock()
         self.assertEqual(before, is_numlock_on())
 
+    def test_abs_to_rel(self):
+        # maps gamepad joystick events to mouse events
+        # TODO enable this somewhere so that map_abs_to_rel returns true
+        pass
+
     def test_injector(self):
         custom_mapping.change(8, 'k(q).k(w)')
         custom_mapping.change(9, 'a')
