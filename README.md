@@ -82,6 +82,7 @@ sudo dpkg -i python3-key-mapper_0.1.0-1_all.deb
 - [x] support timed macros, maybe using some sort of syntax
 - [x] add to the AUR, provide .deb file
 - [ ] automatically load presets when devices get plugged in after login
+- [ ] support gamepads as keyboard and mouse combi
 
 ## Tests
 
