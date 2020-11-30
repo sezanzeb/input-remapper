@@ -56,6 +56,8 @@ class Mapping:
 
         self.changed = False
 
+        self.config = {}
+
     def __iter__(self):
         """Iterate over tuples of unique keycodes and their character."""
         return iter(sorted(self._mapping.items()))
@@ -142,18 +144,24 @@ class Mapping:
             return
 
         with open(path, 'r') as file:
-            mapping = json.load(file)
-            if mapping.get('mapping') is None:
+            preset_dict = json.load(file)
+            if preset_dict.get('mapping') is None:
                 logger.error('Invalid preset config at "%s"', path)
                 return
 
-            for keycode, character in mapping['mapping'].items():
+            for keycode, character in preset_dict['mapping'].items():
                 try:
                     keycode = int(keycode)
                 except ValueError:
                     logger.error('Found non-int keycode: %s', keycode)
                     continue
                 self._mapping[keycode] = character
+
+            for key in preset_dict:
+                if key == 'mapping':
+                    continue
+                # TODO test self.config
+                self.config[key] = preset_dict[key]
 
         self.changed = False
 
@@ -175,9 +183,10 @@ class Mapping:
         with open(path, 'w') as file:
             # make sure to keep the option to add metadata if ever needed,
             # so put the mapping into a special key
-            json.dump({
-                'mapping': self._mapping
-            }, file, indent=4)
+            preset_dict = {'mapping': self._mapping}
+            # TODO test self.config
+            preset_dict.update(self.config)
+            json.dump(preset_dict, file, indent=4)
             file.write('\n')
 
         self.changed = False
