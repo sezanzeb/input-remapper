@@ -39,6 +39,9 @@ INITIAL_CONFIG = {
         # some time between keystrokes might be required for them to be
         # detected properly in software.
         'keystroke_sleep_ms': 10
+    },
+    'gamepad': {
+        'non_linearity': 4
     }
 }
 
@@ -48,20 +51,74 @@ class _Config:
         self._config = {}
         self.load_config()
 
-    def set_autoload_preset(self, device, preset, load=True):
-        """Set a preset to be automatically applied on start."""
-        if self._config.get('autoload') is None:
-            self._config['autoload'] = {}
+    def _resolve(self, path, func):
+        """Call func for the given config value."""
+        chunks = path.split('.')
+        child = self._config
+        while True:
+            chunk = chunks.pop(0)
+            parent = child
+            child = child.get(chunk)
+            if len(chunks) == 0:
+                # child is the value _resolve is looking for
+                return func(parent, child, chunk)
+            else:
+                # child is another object
+                if child is None:
+                    parent[chunk] = {}
+                    child = parent[chunk]
 
-        if load:
-            self._config['autoload'][device] = preset
-        elif self._config['autoload'].get(device) is not None:
-            del self._config['autoload'][device]
+    def remove(self, path):
+        """Remove a config key.
 
-    def get_keystroke_sleep(self):
-        """Get the seconds of sleep between key down and up events."""
-        macros = self._config.get('macros', {})
-        return macros.get('keystroke_sleep_ms', 10)
+        Parameters
+        ----------
+        path : string
+            For example 'macros.keystroke_sleep_ms'
+        """
+        def do(parent, child, chunk):
+            if child is not None:
+                del parent[chunk]
+
+        self._resolve(path, do)
+
+    def set(self, path, value):
+        """Set a config key.
+
+        Parameters
+        ----------
+        path : string
+            For example 'macros.keystroke_sleep_ms'
+        value : any
+        """
+        def do(parent, child, chunk):
+            parent[chunk] = value
+
+        self._resolve(path, do)
+
+    def get(self, path, default=None):
+        """Get a config value.
+
+        Parameters
+        ----------
+        path : string
+            For example 'macros.keystroke_sleep_ms'
+        """
+        return self._resolve(path, lambda parent, child, chunk: child)
+
+    def set_autoload_preset(self, device, preset):
+        """Set a preset to be automatically applied on start.
+
+        Parameters
+        ----------
+        device : string
+        preset : string or None
+            if None, don't autoload something for this device
+        """
+        if preset is not None:
+            self.set(f'autoload.{device}', preset)
+        else:
+            self.remove(f'autoload.{device}')
 
     def iterate_autoload_presets(self):
         """Get tuples of (device, preset)."""
@@ -69,15 +126,7 @@ class _Config:
 
     def is_autoloaded(self, device, preset):
         """Should this preset be loaded automatically?"""
-        autoload_map = self._config.get('autoload')
-        if autoload_map is None:
-            return False
-
-        autoload_preset = autoload_map.get(device)
-        if autoload_preset is None:
-            return False
-
-        return autoload_preset == preset
+        return self.get(f'autoload.{device}') == preset
 
     def load_config(self):
         """Load the config from the file system."""

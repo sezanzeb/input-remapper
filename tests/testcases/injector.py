@@ -180,6 +180,8 @@ class TestInjector(unittest.TestCase):
             event = uinput_write_history_pipe[0].recv()
             history.append((event.type, event.code, event.value))
 
+        # 4 events for the macro
+        # 3 for non-macros
         self.assertEqual(len(history), 7)
 
         # since the macro takes a little bit of time to execute, its
