@@ -60,12 +60,13 @@ if __name__ == '__main__':
 
     window = Window()
 
-    def stop_injecting():
+    def stop():
         if isinstance(window.dbus, Daemon):
             # it created its own temporary daemon inside the process
             # because none was running
             window.dbus.stop()
+        window.on_close()
 
-    atexit.register(stop_injecting)
+    atexit.register(stop)
 
     Gtk.main()
