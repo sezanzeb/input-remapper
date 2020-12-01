@@ -3,8 +3,8 @@
 coverage_badge() {
   # https://github.com/dbrgn/coverage-badge
   coverage run tests/test.py
-  python3 -m coverage_badge > readme/coverage.svg
   coverage combine
+  python3 -m coverage_badge > readme/coverage.svg
   coverage report -m
   echo "coverage badge created"
 }
