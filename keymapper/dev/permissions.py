@@ -27,13 +27,14 @@ import grp
 import getpass
 
 from keymapper.logger import logger
+from keymapper.paths import USER
 
 
 def can_read_devices():
     """If the people ever looks into the console, make sure to help them."""
     is_root = getpass.getuser() == 'root'
-    is_in_input_group = os.getlogin() in grp.getgrnam('input').gr_mem
-    is_in_plugdev_group = os.getlogin() in grp.getgrnam('plugdev').gr_mem
+    is_in_input_group = USER in grp.getgrnam('input').gr_mem
+    is_in_plugdev_group = USER in grp.getgrnam('plugdev').gr_mem
 
     def warn(group):
         logger.warning(

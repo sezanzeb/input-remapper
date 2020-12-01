@@ -24,6 +24,7 @@ import grp
 import unittest
 
 from keymapper.dev.permissions import can_read_devices
+from keymapper.paths import USER
 
 
 class TestPermissions(unittest.TestCase):
@@ -44,7 +45,7 @@ class TestPermissions(unittest.TestCase):
     def test_can_access(self):
         class Grnam:
             def __init__(self, group):
-                self.gr_mem = [os.getlogin()]
+                self.gr_mem = [USER]
 
         grp.getgrnam = Grnam
         self.assertTrue(can_read_devices())
