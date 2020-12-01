@@ -70,6 +70,7 @@ def get_selected_row_bg():
 
 
 # TODO show if the preset is being injected
+#  apply button -> stop button. makes "Apply Defaults" obsolete
 
 
 class Window:
