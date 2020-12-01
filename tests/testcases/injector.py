@@ -220,7 +220,7 @@ class TestInjector(unittest.TestCase):
         self.assertAlmostEqual(history[-2][2], -1)
 
     def test_injector(self):
-        custom_mapping.change(8, 'k(q).k(w)')
+        custom_mapping.change(8, 'k(KEY_Q).k(w)')
         custom_mapping.change(9, 'a')
         # one mapping that is unknown in the system_mapping on purpose
         custom_mapping.change(10, 'b')
@@ -230,7 +230,7 @@ class TestInjector(unittest.TestCase):
         code_q = 101
         code_w = 102
         system_mapping['a'] = code_a
-        system_mapping['q'] = code_q
+        system_mapping['KEY_Q'] = code_q
         system_mapping['w'] = code_w
 
         # the second arg of those event objects is 8 lower than the

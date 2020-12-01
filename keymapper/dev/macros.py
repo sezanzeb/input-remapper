@@ -31,7 +31,7 @@ Examples
 --------
 r(3, k(a).w(10)): a <10ms> a <10ms> a
 r(2, k(a).k(-)).k(b): a - a - b
-w(1000).m(SHIFT_L, r(2, k(a))).w(10).k(b): <1s> A A <10ms> b
+w(1000).m(Shift_L, r(2, k(a))).w(10).k(b): <1s> A A <10ms> b
 """
 
 
@@ -280,7 +280,7 @@ def parse(macro, handler):
     macro : string
         "r(3, k(a).w(10))"
         "r(2, k(a).k(-)).k(b)"
-        "w(1000).m(SHIFT_L, r(2, k(a))).w(10, 20).k(b)"
+        "w(1000).m(Shift_L, r(2, k(a))).w(10, 20).k(b)"
     handler : func
         A function that accepts keycodes as the first parameter and the
         key-press state as the second. 1 for down and 0 for up. The
