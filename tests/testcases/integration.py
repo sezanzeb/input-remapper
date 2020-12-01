@@ -186,14 +186,14 @@ class TestIntegration(unittest.TestCase):
         self.assertEqual(len(custom_mapping), 0)
         self.assertEqual(row.get_keycode(), 30)
 
-        time.sleep(0.2)
+        time.sleep(0.1)
         gtk_iteration()
         self.assertEqual(len(self.window.get('key_list').get_children()), 1)
 
         row.character_input.set_text('Shift_L')
         self.assertEqual(len(custom_mapping), 1)
 
-        time.sleep(0.2)
+        time.sleep(0.1)
         gtk_iteration()
         self.assertEqual(len(self.window.get('key_list').get_children()), 2)
 
@@ -204,7 +204,7 @@ class TestIntegration(unittest.TestCase):
     def change_empty_row(self, code, char, code_first=True, success=True):
         """Modify the one empty row that always exists."""
         # wait for the window to create a new empty row if needed
-        time.sleep(0.2)
+        time.sleep(0.1)
         gtk_iteration()
 
         # find the empty row
@@ -258,11 +258,11 @@ class TestIntegration(unittest.TestCase):
         self.change_empty_row(11, 'k(b).k(c)')
 
         # one empty row added automatically again
-        time.sleep(0.2)
+        time.sleep(0.1)
         gtk_iteration()
         # sleep one more time because it's funny to watch the ui
         # during the test, how rows turn blue and stuff
-        time.sleep(0.2)
+        time.sleep(0.1)
         self.assertEqual(len(self.get_rows()), num_rows_target)
 
         self.assertEqual(custom_mapping.get_character(10), 'a')
