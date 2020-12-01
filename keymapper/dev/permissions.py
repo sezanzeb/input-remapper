@@ -22,7 +22,6 @@
 """To check if access to devices in /dev is possible."""
 
 
-import os
 import grp
 import getpass
 

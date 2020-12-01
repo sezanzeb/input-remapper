@@ -63,11 +63,11 @@ class _Config:
             if len(chunks) == 0:
                 # child is the value _resolve is looking for
                 return func(parent, child, chunk)
-            else:
-                # child is another object
-                if child is None:
-                    parent[chunk] = {}
-                    child = parent[chunk]
+
+            # child is another object
+            if child is None:
+                parent[chunk] = {}
+                child = parent[chunk]
 
     def remove(self, path):
         """Remove a config key.
@@ -104,8 +104,12 @@ class _Config:
         ----------
         path : string
             For example 'macros.keystroke_sleep_ms'
+        default : any
+            If the configured value is not available or None, return this
+            instead
         """
-        return self._resolve(path, lambda parent, child, chunk: child)
+        resolved = self._resolve(path, lambda parent, child, chunk: child)
+        return resolved if resolved is not None else default
 
     def set_autoload_preset(self, device, preset):
         """Set a preset to be automatically applied on start.

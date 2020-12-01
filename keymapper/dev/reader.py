@@ -22,9 +22,11 @@
 """Keeps reading keycodes in the background for the UI to use."""
 
 
-import evdev
+import sys
 import select
 import multiprocessing
+
+import evdev
 
 from keymapper.logger import logger
 from keymapper.getdevices import get_devices, refresh_devices
@@ -104,7 +106,7 @@ class _KeycodeReader:
         # value: 1 for down, 0 for up, 2 for hold.
         if self._pipe[1].closed:
             logger.debug('Pipe closed, reader stops.')
-            exit(0)
+            sys.exit(0)
 
         if event.type == evdev.ecodes.EV_KEY and event.value == 1:
             logger.spam(

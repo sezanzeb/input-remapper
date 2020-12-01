@@ -2,7 +2,7 @@
 
 coverage_badge() {
   # https://github.com/dbrgn/coverage-badge
-  coverage run --branch --source=/usr/lib/python3.8/site-packages/keymapper tests/test.py
+  coverage run tests/test.py
   python3 -m coverage_badge > readme/coverage.svg
   coverage combine
   coverage report -m

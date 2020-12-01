@@ -31,6 +31,9 @@ class TestConfig(unittest.TestCase):
         config.save_config()
 
     def test_basic(self):
+        self.assertEqual(config.get('a'), None)
+        self.assertEqual(config.get('a', 'foo'), 'foo')
+
         config.set('a', 1)
         self.assertEqual(config.get('a'), 1)
 

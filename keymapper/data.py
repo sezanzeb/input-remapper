@@ -22,6 +22,7 @@
 """Get stuff from /usr/share/key-mapper, depending on the prefix."""
 
 
+import sys
 import os
 import site
 import pkg_resources
@@ -39,7 +40,7 @@ def get_data_path(filename=''):
         data_path = '/usr/share/key-mapper'
         if not os.path.exists(data_path):
             logger.error('key-mapper data was not properly installed')
-            raise SystemExit(1)
+            sys.exit(1)
         return os.path.join('/usr/share/key-mapper', filename)
 
     # depending on where this file is installed to, make sure to use the proper

@@ -189,7 +189,7 @@ def _count_brackets(macro):
     if brackets != 0:
         raise Exception(f'There are {brackets} closing brackets missing')
 
-    return brackets, position
+    return position
 
 
 def _parse_recurse(macro, handler, macro_instance=None, depth=0):
@@ -239,7 +239,7 @@ def _parse_recurse(macro, handler, macro_instance=None, depth=0):
             raise Exception(f'Unknown function {call}')
 
         # get all the stuff inbetween
-        brackets, position = _count_brackets(macro)
+        position = _count_brackets(macro)
 
         inner = macro[2:position - 1]
 
