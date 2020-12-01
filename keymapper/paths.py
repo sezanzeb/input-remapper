@@ -28,7 +28,17 @@ import shutil
 from keymapper.logger import logger
 
 
-CONFIG = os.path.join('/home', os.getlogin(), '.config/key-mapper')
+
+# try to find the user who called sudo
+try:
+  USER = os.getlogin()
+except OSError:
+  # failed in some ubuntu installations
+  USER = os.environ['USER']
+  if USER == 'root':
+    USER = os.envron.get('SUDO_USER', USER)
+
+CONFIG = os.path.join('/home', USER, '.config/key-mapper')
 
 
 def touch(path, log=True):
@@ -42,7 +52,7 @@ def touch(path, log=True):
     mkdir(os.path.dirname(path), log=False)
 
     os.mknod(path)
-    shutil.chown(path, os.getlogin(), os.getlogin())
+    shutil.chown(path, USER, USER)
 
 
 def mkdir(path, log=True):
@@ -59,7 +69,7 @@ def mkdir(path, log=True):
     mkdir(base, log=False)
 
     os.makedirs(path)
-    shutil.chown(path, os.getlogin(), os.getlogin())
+    shutil.chown(path, USER, USER)
 
 
 def get_config_path(device=None, preset=None):
