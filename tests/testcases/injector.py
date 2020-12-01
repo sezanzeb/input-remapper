@@ -84,7 +84,7 @@ class TestInjector(unittest.TestCase):
         fake_device = FakeDevice()
         capabilities = self.injector._modify_capabilities(
             fake_device,
-            map_ABS=False
+            map_ev_abs=False
         )
 
         self.assertIn(EV_KEY, capabilities)
@@ -102,8 +102,8 @@ class TestInjector(unittest.TestCase):
         path = '/dev/input/event10'
         # this test needs to pass around all other constraints of
         # _prepare_device
-        device, map_ABS = self.injector._prepare_device(path)
-        self.assertFalse(map_ABS)
+        device, map_ev_abs = self.injector._prepare_device(path)
+        self.assertFalse(map_ev_abs)
         self.assertEqual(self.failed, 2)
         # success on the third try
         device.name = fixtures[path]['name']
@@ -112,10 +112,10 @@ class TestInjector(unittest.TestCase):
         self.injector = KeycodeInjector('gamepad', custom_mapping)
 
         path = '/dev/input/event30'
-        device, map_ABS = self.injector._prepare_device(path)
-        self.assertTrue(map_ABS)
+        device, map_ev_abs = self.injector._prepare_device(path)
+        self.assertTrue(map_ev_abs)
 
-        capabilities = self.injector._modify_capabilities(device, map_ABS)
+        capabilities = self.injector._modify_capabilities(device, map_ev_abs)
         self.assertNotIn(evdev.ecodes.EV_ABS, capabilities)
         self.assertIn(evdev.ecodes.EV_REL, capabilities)
 
@@ -124,8 +124,8 @@ class TestInjector(unittest.TestCase):
         custom_mapping.change(10, 'a')
         self.injector = KeycodeInjector('device 1', custom_mapping)
         path = '/dev/input/event11'
-        device, map_ABS = self.injector._prepare_device(path)
-        self.assertFalse(map_ABS)
+        device, map_ev_abs = self.injector._prepare_device(path)
+        self.assertFalse(map_ev_abs)
         self.assertEqual(self.failed, 0)
         self.assertIsNone(device)
 
@@ -163,7 +163,7 @@ class TestInjector(unittest.TestCase):
 
     def test_abs_to_rel(self):
         # maps gamepad joystick events to mouse events
-        # TODO enable this somewhere so that map_ABS returns true
+        # TODO enable this somewhere so that map_ev_abs returns true
         #  in the .json file of the mapping.
         config.set('gamepad.non_linearity', 1)
         pointer_speed = 80

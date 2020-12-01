@@ -110,6 +110,12 @@ class KeycodeInjector:
         self._process = None
         self._msg_pipe = multiprocessing.Pipe()
 
+        # some EV_ABS mapping stuff
+        self.abs_x = 0
+        self.abs_y = 0
+        self.pending_x_rel = 0
+        self.pending_y_rel = 0
+
     def start_injecting(self):
         """Start injecting keycodes."""
         self._process = multiprocessing.Process(target=self._start_injecting)
@@ -136,8 +142,8 @@ class KeycodeInjector:
                     needed = True
                     break
 
-        map_ABS = self.map_ABS(device)
-        if map_ABS:
+        map_ev_abs = self.map_ev_abs(device)
+        if map_ev_abs:
             needed = True
 
         if not needed:
@@ -168,20 +174,20 @@ class KeycodeInjector:
 
             time.sleep(0.15)
 
-        return device, map_ABS
+        return device, map_ev_abs
 
-    def map_ABS(self, device):
+    def map_ev_abs(self, device):
         # TODO offer configuration via the UI if a gamepad is elected
         capabilities = device.capabilities(absinfo=False)
         return evdev.ecodes.ABS_X in capabilities.get(EV_ABS, [])
 
-    def _modify_capabilities(self, input_device, map_ABS):
+    def _modify_capabilities(self, input_device, map_ev_abs):
         """Adds all keycode into a copy of a devices capabilities.
 
         Prameters
         ---------
         input_device : evdev.InputDevice
-        map_ABS : bool
+        map_ev_abs : bool
             if ABS capabilities should be removed in favor of REL
         """
         ecodes = evdev.ecodes
@@ -199,7 +205,7 @@ class KeycodeInjector:
             if keycode is not None:
                 capabilities[ecodes.EV_KEY].append(keycode - KEYCODE_OFFSET)
 
-        if map_ABS:
+        if map_ev_abs:
             del capabilities[ecodes.EV_ABS]
             capabilities[ecodes.EV_REL] = [
                 evdev.ecodes.REL_X,
@@ -246,7 +252,7 @@ class KeycodeInjector:
 
         # Watch over each one of the potentially multiple devices per hardware
         for path in paths:
-            input_device, map_ABS = self._prepare_device(path)
+            input_device, map_ev_abs = self._prepare_device(path)
             if input_device is None:
                 continue
 
@@ -256,17 +262,17 @@ class KeycodeInjector:
             uinput = evdev.UInput(
                 name=f'{DEV_NAME} {self.device}',
                 phys=DEV_NAME,
-                events=self._modify_capabilities(input_device, map_ABS)
+                events=self._modify_capabilities(input_device, map_ev_abs)
             )
 
             # TODO separate file
             # keycode injection
-            coroutine = self._keycode_loop(input_device, uinput, map_ABS)
+            coroutine = self._keycode_loop(input_device, uinput, map_ev_abs)
             coroutines.append(coroutine)
 
             # TODO separate file
             # mouse movement injection
-            if map_ABS:
+            if map_ev_abs:
                 self.abs_x = 0
                 self.abs_y = 0
                 # events only take ints, so a movement of 0.3 needs to add
@@ -291,9 +297,9 @@ class KeycodeInjector:
         if len(coroutines) > 0:
             logger.debug('asyncio coroutines ended')
 
-    def _write(self, device, type, keycode, value):
+    def _write(self, device, ev_type, keycode, value):
         """Actually inject."""
-        device.write(type, keycode, value)
+        device.write(ev_type, keycode, value)
         device.syn()
 
     def _macro_write(self, character, value, keymapper_device):
@@ -360,7 +366,7 @@ class KeycodeInjector:
                     rel_x
                 )
 
-    async def _keycode_loop(self, device, keymapper_device, map_ABS):
+    async def _keycode_loop(self, device, keymapper_device, map_ev_abs):
         """Inject keycodes for one of the virtual devices.
 
         Parameters
@@ -369,8 +375,8 @@ class KeycodeInjector:
             where to read keycodes from
         keymapper_device : evdev.UInput
             where to write keycodes to
-        map_ABS : bool
-            the value of map_ABS() for the original device
+        map_ev_abs : bool
+            the value of map_ev_abs() for the original device
         """
         # Parse all macros beforehand
         logger.debug('Parsing macros')
@@ -389,7 +395,7 @@ class KeycodeInjector:
         )
 
         async for event in device.async_read_loop():
-            if map_ABS and event.type == EV_ABS:
+            if map_ev_abs and event.type == EV_ABS:
                 if event.code not in [evdev.ecodes.ABS_X, evdev.ecodes.ABS_Y]:
                     continue
                 if event.code == evdev.ecodes.ABS_X:
