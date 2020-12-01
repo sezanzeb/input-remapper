@@ -59,7 +59,8 @@ groups
 ##### Git/pip
 
 ```bash
-sudo pip install git+https://github.com/sezanzeb/key-mapper.git
+git clone https://github.com/sezanzeb/key-mapper.git
+cd key-mapper && sudo python3 setup.py install
 ```
 
 ##### Manjaro/Arch
@@ -93,12 +94,12 @@ sudo dpkg -i python3-key-mapper_0.1.0-1_all.deb
 - [x] support timed macros, maybe using some sort of syntax
 - [x] add to the AUR, provide .deb file
 - [ ] automatically load presets when devices get plugged in after login
-- [ ] support gamepads as keyboard and mouse combi
+- [ ] support gamepads as keyboard and mouse combi (partially done)
 
 ## Tests
 
 ```bash
 pylint keymapper --extension-pkg-whitelist=evdev
-sudo pip install . && coverage run tests/test.py
+sudo pip install -e . && coverage run tests/test.py
 coverage combine && coverage report -m
 ```

@@ -27,7 +27,7 @@ import json
 import shutil
 import copy
 
-from keymapper.paths import CONFIG, touch
+from keymapper.paths import CONFIG, USER, touch
 from keymapper.logger import logger
 
 

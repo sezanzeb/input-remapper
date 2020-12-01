@@ -158,10 +158,18 @@ def patch_select():
     import select
 
     def new_select(rlist, *args):
-        return ([
-            device for device in rlist
-            if len(pending_events.get(device, [])) > 0
-        ],)
+        ret = []
+        for thing in rlist:
+            if hasattr(thing, 'poll') and thing.poll():
+                # the reader receives msgs through pipes. If there is one
+                # ready, provide the pipe
+                ret.append(thing)
+                continue
+
+            if len(pending_events.get(thing, [])) > 0:
+                ret.append(thing)
+
+        return [ret, [], []]
 
     select.select = new_select
 

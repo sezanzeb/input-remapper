@@ -50,8 +50,10 @@ def gtk_iteration():
         Gtk.main_iteration()
 
 
-def launch(argv=None, bin_path='/bin/key-mapper-gtk'):
+def launch(argv=None):
     """Start key-mapper-gtk with the command line argument array argv."""
+    bin_path = os.path.join(os.getcwd(), 'bin', 'key-mapper-gtk')
+
     if not argv:
         argv = ['-d']
 

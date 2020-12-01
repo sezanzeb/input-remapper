@@ -62,6 +62,13 @@ class Formatter(logging.Formatter):
                 SPAM: 34,
                 logging.INFO: 32,
             }.get(record.levelno, 0)
+
+            # if this runs in a separate process, write down the pid
+            # to debug exit codes and such
+            pid = ''
+            if os.getpid() != logger.main_pid:
+                pid = f'pid {os.getpid()}, '
+
             if debug:
                 self._style._fmt = (  # noqa
                     '\033[1m'  # bold
@@ -69,7 +76,7 @@ class Formatter(logging.Formatter):
                     f'%(levelname)s'
                     '\033[0m'  # end style
                     f'\033[{color}m'  # color
-                    ': %(filename)s, line %(lineno)d, %(message)s'
+                    f': {pid}%(filename)s, line %(lineno)d, %(message)s'
                     '\033[0m'  # end style
                 )
             else:
@@ -85,6 +92,7 @@ handler.setFormatter(Formatter())
 logger.addHandler(handler)
 logger.setLevel(logging.INFO)
 logging.getLogger('asyncio').setLevel(logging.WARNING)
+logger.main_pid = os.getpid()
 
 
 def is_debug():
