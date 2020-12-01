@@ -58,8 +58,9 @@ class TestInjector(unittest.TestCase):
             self.injector.stop_injecting()
             self.injector = None
         evdev.InputDevice.grab = self.grab
-        if pending_events.get('device 2') is not None:
-            del pending_events['device 2']
+        keys = list(pending_events.keys())
+        for key in keys:
+            del pending_events[key]
         clear_write_history()
 
     def test_modify_capabilities(self):
@@ -80,7 +81,11 @@ class TestInjector(unittest.TestCase):
         maps_to = system_mapping['a'] - KEYCODE_OFFSET
 
         self.injector = KeycodeInjector('foo', mapping)
-        capabilities = self.injector._modify_capabilities(FakeDevice())
+        fake_device = FakeDevice()
+        capabilities = self.injector._modify_capabilities(
+            fake_device,
+            map_ABS=False
+        )
 
         self.assertIn(EV_KEY, capabilities)
         keys = capabilities[EV_KEY]
@@ -97,17 +102,30 @@ class TestInjector(unittest.TestCase):
         path = '/dev/input/event10'
         # this test needs to pass around all other constraints of
         # _prepare_device
-        device = self.injector._prepare_device(path)
+        device, map_ABS = self.injector._prepare_device(path)
+        self.assertFalse(map_ABS)
         self.assertEqual(self.failed, 2)
         # success on the third try
         device.name = fixtures[path]['name']
+
+    def test_gamepad_capabilities(self):
+        self.injector = KeycodeInjector('gamepad', custom_mapping)
+
+        path = '/dev/input/event30'
+        device, map_ABS = self.injector._prepare_device(path)
+        self.assertTrue(map_ABS)
+
+        capabilities = self.injector._modify_capabilities(device, map_ABS)
+        self.assertNotIn(evdev.ecodes.EV_ABS, capabilities)
+        self.assertIn(evdev.ecodes.EV_REL, capabilities)
 
     def test_skip_unused_device(self):
         # skips a device because its capabilities are not used in the mapping
         custom_mapping.change(10, 'a')
         self.injector = KeycodeInjector('device 1', custom_mapping)
         path = '/dev/input/event11'
-        device = self.injector._prepare_device(path)
+        device, map_ABS = self.injector._prepare_device(path)
+        self.assertFalse(map_ABS)
         self.assertEqual(self.failed, 0)
         self.assertIsNone(device)
 
@@ -115,7 +133,7 @@ class TestInjector(unittest.TestCase):
         # skips a device because its capabilities are not used in the mapping
         self.injector = KeycodeInjector('device 1', custom_mapping)
         path = '/dev/input/event11'
-        device = self.injector._prepare_device(path)
+        device, _ = self.injector._prepare_device(path)
 
         # make sure the test uses a fixture without interesting capabilities
         capabilities = evdev.InputDevice(path).capabilities()
@@ -145,7 +163,7 @@ class TestInjector(unittest.TestCase):
 
     def test_abs_to_rel(self):
         # maps gamepad joystick events to mouse events
-        # TODO enable this somewhere so that map_abs_to_rel returns true
+        # TODO enable this somewhere so that map_ABS returns true
         #  in the .json file of the mapping.
         config.set('gamepad.non_linearity', 1)
         pointer_speed = 80
@@ -181,6 +199,11 @@ class TestInjector(unittest.TestCase):
         while uinput_write_history_pipe[0].poll():
             event = uinput_write_history_pipe[0].recv()
             history.append((event.type, event.code, event.value))
+
+        if history[0][0] == EV_ABS:
+            raise AssertionError(
+                'The injector probably just forwarded them unchanged'
+            )
 
         # movement is written at 60hz and it takes `divisor` steps to
         # move 1px. take it times 2 for both x and y events.

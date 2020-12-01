@@ -138,8 +138,14 @@ class Daemon(service.Object):
 
         return True
 
-    @dbus.service.method('keymapper.Interface')
-    def stop(self):
-        """Stop all mapping injections."""
+    @dbus.service.method('keymapper.Interface', in_signature='b')
+    def stop(self, terminate=False):
+        """Stop all injections and end the service.
+
+        Raises dbus.exceptions.DBusException in your main process.
+        """
         for injector in self.injectors.values():
             injector.stop_injecting()
+
+        if terminate:
+            exit(0)

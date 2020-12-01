@@ -52,6 +52,10 @@ class TestReader(unittest.TestCase):
             Event(evdev.events.EV_KEY, CODE_3, 1)
         ]
         keycode_reader.start_reading('device 1')
+
+        # sending anything arbitrary does not stop the pipe
+        keycode_reader._pipe[0].send(1234)
+
         time.sleep(EVENT_READ_TIMEOUT * 5)
         self.assertEqual(keycode_reader.read(), CODE_3 + 8)
         self.assertIsNone(keycode_reader.read())
@@ -67,8 +71,10 @@ class TestReader(unittest.TestCase):
         self.assertIsNone(keycode_reader.read())
 
     def test_keymapper_devices(self):
-        # In order to show pressed keycodes on the ui while the device is
-        # grabbed, read from that as well.
+        # Don't read from keymapper devices, their keycodes are not
+        # representative for the original key. As long as this is not
+        # intentionally programmed it won't even do that. But it was at some
+        # point.
         pending_events['key-mapper device 2'] = [
             Event(evdev.events.EV_KEY, CODE_1, 1),
             Event(evdev.events.EV_KEY, CODE_2, 1),
@@ -76,7 +82,6 @@ class TestReader(unittest.TestCase):
         ]
         keycode_reader.start_reading('device 2')
         time.sleep(EVENT_READ_TIMEOUT * 5)
-        self.assertEqual(keycode_reader.read(), CODE_3 + 8)
         self.assertIsNone(keycode_reader.read())
 
     def test_clear(self):

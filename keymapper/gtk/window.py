@@ -69,6 +69,9 @@ def get_selected_row_bg():
     return color.to_string()
 
 
+# TODO show if the preset is being injected
+
+
 class Window:
     """User Interface."""
     def __init__(self):

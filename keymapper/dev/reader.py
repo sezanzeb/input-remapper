@@ -31,6 +31,9 @@ from keymapper.getdevices import get_devices, refresh_devices
 from keymapper.state import KEYCODE_OFFSET
 
 
+CLOSE = 1
+
+
 class _KeycodeReader:
     """Keeps reading keycodes in the background for the UI to use.
 
@@ -47,15 +50,9 @@ class _KeycodeReader:
         self.stop_reading()
 
     def stop_reading(self):
-        # TODO something like this for the injector?
-        if self._process is not None:
-            logger.debug('Terminating reader process')
-            self._process.terminate()
-            self._process = None
-
         if self._pipe is not None:
-            logger.debug('Closing reader pipe')
-            self._pipe[0].close()
+            logger.debug('Sending close msg to reader')
+            self._pipe[0].send(CLOSE)
             self._pipe = None
 
     def clear(self):
@@ -77,8 +74,7 @@ class _KeycodeReader:
 
         self.virtual_devices = []
 
-        for name, group in get_devices(include_keymapper=True).items():
-            # also find stuff like "key-mapper {device}"
+        for name, group in get_devices().items():
             if device_name not in name:
                 continue
 
@@ -99,35 +95,46 @@ class _KeycodeReader:
             )
 
         pipe = multiprocessing.Pipe()
-        self._process = multiprocessing.Process(
-            target=self._read_worker,
-            args=(pipe[1],)
-        )
-        self._process.start()
         self._pipe = pipe
+        self._process = multiprocessing.Process(target=self._read_worker)
+        self._process.start()
 
-    def _consume_event(self, event, pipe):
+    def _consume_event(self, event):
         """Write the event code into the pipe if it is a key-down press."""
         # value: 1 for down, 0 for up, 2 for hold.
+        if self._pipe[1].closed:
+            logger.debug('Pipe closed, reader stops.')
+            exit(0)
+
         if event.type == evdev.ecodes.EV_KEY and event.value == 1:
             logger.spam(
                 'got code:%s value:%s',
                 event.code + KEYCODE_OFFSET, event.value
             )
-            pipe.send(event.code + KEYCODE_OFFSET)
+            self._pipe[1].send(event.code + KEYCODE_OFFSET)
 
-    def _read_worker(self, pipe):
+    def _read_worker(self):
         """Process that reads keycodes and buffers them into a pipe."""
         # using a process that blocks instead of read_one made it easier
         # to debug via the logs, because the UI was not polling properly
         # at some point which caused logs for events not to be written.
         rlist = {device.fd: device for device in self.virtual_devices}
+        rlist[self._pipe[1]] = self._pipe[1]
+
         while True:
             ready = select.select(rlist, [], [])[0]
             for fd in ready:
+                readable = rlist[fd]
+                if isinstance(readable, multiprocessing.connection.Connection):
+                    msg = readable.recv()
+                    if msg == CLOSE:
+                        logger.debug('Reader stopped')
+                        return
+                    continue
+
                 try:
                     for event in rlist[fd].read():
-                        self._consume_event(event, pipe)
+                        self._consume_event(event)
                 except OSError:
                     logger.debug(
                         'Device "%s" disappeared from the reader',

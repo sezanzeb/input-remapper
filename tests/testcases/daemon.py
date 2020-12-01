@@ -20,13 +20,9 @@
 
 
 import os
-import sys
 import multiprocessing
 import unittest
 import time
-from unittest.mock import patch
-from importlib.util import spec_from_loader, module_from_spec
-from importlib.machinery import SourceFileLoader
 
 import dbus
 import evdev
@@ -61,12 +57,10 @@ class TestDBusDaemon(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        cls.interface.stop()
-        time.sleep(0.1)
-        cls.process.terminate()
-        time.sleep(0.1)
-        os.system('pkill -f key-mapper-service')
-        time.sleep(0.1)
+        try:
+            cls.interface.stop(True)
+        except dbus.exceptions.DBusException:
+            pass
 
     def test_can_connect(self):
         self.assertIsInstance(self.interface, dbus.Interface)
