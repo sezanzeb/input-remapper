@@ -32,8 +32,20 @@ from keymapper.logger import logger
 from keymapper.config import config
 
 
+# other events for ABS include buttons
+JOYSTICK = [
+    evdev.ecodes.ABS_X,
+    evdev.ecodes.ABS_Y,
+    evdev.ecodes.ABS_Z,
+    evdev.ecodes.ABS_RX,
+    evdev.ecodes.ABS_RY,
+    evdev.ecodes.ABS_RZ,
+]
+
+
 def _write(device, ev_type, keycode, value):
     """Inject."""
+    print('move mouse', ev_type, keycode, value)
     device.write(ev_type, keycode, value)
     device.syn()
 

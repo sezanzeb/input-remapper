@@ -107,3 +107,5 @@ pylint keymapper --extension-pkg-whitelist=evdev
 sudo pip install . && coverage run tests/test.py
 coverage combine && coverage report -m
 ```
+
+To read events, `evtest` is very helpful.

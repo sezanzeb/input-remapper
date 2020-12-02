@@ -31,6 +31,7 @@ import evdev
 from keymapper.logger import logger
 from keymapper.getdevices import get_devices, refresh_devices
 from keymapper.state import KEYCODE_OFFSET
+from keymapper.dev.keycode_mapper import should_map_event_as_btn
 
 
 CLOSE = 1
@@ -108,10 +109,14 @@ class _KeycodeReader:
             logger.debug('Pipe closed, reader stops.')
             sys.exit(0)
 
-        if event.type == evdev.ecodes.EV_KEY and event.value == 1:
+        # TODO write a test to map event `type 3 (EV_ABS), code 16
+        #  (ABS_HAT0X), value 0` to a button
+        if should_map_event_as_btn(event):
             logger.spam(
-                'got code:%s value:%s',
-                event.code + KEYCODE_OFFSET, event.value
+                'got code:%s value:%s type:%s',
+                event.code + KEYCODE_OFFSET,
+                event.value,
+                evdev.ecodes.EV[event.type]
             )
             self._pipe[1].send((event.type, event.code + KEYCODE_OFFSET))
 
@@ -148,7 +153,7 @@ class _KeycodeReader:
         """Get the newest tuple of event type, keycode or None."""
         if self._pipe is None:
             logger.debug('No pipe available to read from')
-            return None
+            return (None, None)
 
         newest_event = (None, None)
         while self._pipe[0].poll():

@@ -76,7 +76,9 @@ class Row(Gtk.ListBoxRow):
         """Check if a keycode has been pressed and if so, display it."""
         # the newest_keycode is populated since the ui regularly polls it
         # in order to display it in the status bar.
-        previous_keycode = self.get_keycode()
+        key = self.get_keycode()
+        previous_keycode = key[1] if key else None
+
         character = self.get_character()
 
         # no input
@@ -158,7 +160,7 @@ class Row(Gtk.ListBoxRow):
         keycode_input.set_size_request(50, -1)
 
         if keycode is not None:
-            keycode_input.set_label(f'{ev_type},{keycode})')
+            keycode_input.set_label(f'{ev_type},{keycode}')
 
         # make the togglebutton go back to its normal state when doing
         # something else in the UI
