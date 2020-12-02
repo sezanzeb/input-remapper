@@ -111,7 +111,7 @@ class _KeycodeReader:
 
         # TODO write a test to map event `type 3 (EV_ABS), code 16
         #  (ABS_HAT0X), value 0` to a button
-        if should_map_event_as_btn(event):
+        if should_map_event_as_btn(event.type, event.code):
             logger.spam(
                 'got code:%s value:%s type:%s',
                 event.code + KEYCODE_OFFSET,
