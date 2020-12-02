@@ -669,7 +669,7 @@
                         <property name="width_request">130</property>
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="tooltip_text" translatable="yes">Click on a cell below and hit a key on your device. If you have your preset active, the reported keycodes may be wrong.</property>
+                        <property name="tooltip_text" translatable="yes">Click on a cell below and hit a key on your device. Click the "Apply Defaults" beforehand.</property>
                         <property name="margin_top">5</property>
                         <property name="margin_bottom">5</property>
                         <property name="label" translatable="yes">Key</property>
