@@ -59,7 +59,8 @@ class Mapping:
         Parameters
         ----------
         ev_type : int
-            one of evdev.events. The original event
+            one of evdev.events, taken from the original source event.
+            Everything will be mapped to EV_KEY.
         new_keycode : int
             The source keycode, what the mouse would report without any
             modification. xkb keycode.

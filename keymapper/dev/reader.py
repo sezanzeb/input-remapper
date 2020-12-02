@@ -113,7 +113,7 @@ class _KeycodeReader:
                 'got code:%s value:%s',
                 event.code + KEYCODE_OFFSET, event.value
             )
-            self._pipe[1].send(event.code + KEYCODE_OFFSET)
+            self._pipe[1].send((event.type, event.code + KEYCODE_OFFSET))
 
     def _read_worker(self):
         """Process that reads keycodes and buffers them into a pipe."""
@@ -145,16 +145,16 @@ class _KeycodeReader:
                     del rlist[fd]
 
     def read(self):
-        """Get the newest keycode or None if none was pressed."""
+        """Get the newest tuple of event type, keycode or None."""
         if self._pipe is None:
             logger.debug('No pipe available to read from')
             return None
 
-        newest_keycode = None
+        newest_event = (None, None)
         while self._pipe[0].poll():
-            newest_keycode = self._pipe[0].recv()
+            newest_event = self._pipe[0].recv()
 
-        return newest_keycode
+        return newest_event
 
 
 keycode_reader = _KeycodeReader()
