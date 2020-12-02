@@ -27,6 +27,8 @@ gi.require_version('Gtk', '3.0')
 gi.require_version('GLib', '2.0')
 from gi.repository import Gtk, GLib
 
+from evdev.ecodes import EV_KEY
+
 from keymapper.state import custom_mapping
 from keymapper.logger import logger
 
@@ -76,7 +78,7 @@ class Row(Gtk.ListBoxRow):
             return
 
         # keycode is already set by some other row
-        if custom_mapping.get_character(new_keycode) is not None:
+        if custom_mapping.get_character(EV_KEY, new_keycode) is not None:
             msg = f'Keycode {new_keycode} is already mapped'
             logger.info(msg)
             self.window.get('status_bar').push(CTX_KEYCODE, msg)
@@ -98,7 +100,7 @@ class Row(Gtk.ListBoxRow):
             return
 
         # else, the keycode has changed, the character is set, all good
-        custom_mapping.change(new_keycode, character, previous_keycode)
+        custom_mapping.change(EV_KEY, new_keycode, character, previous_keycode)
 
     def highlight(self):
         """Mark this row as changed."""
@@ -116,7 +118,7 @@ class Row(Gtk.ListBoxRow):
         self.highlight()
 
         if keycode is not None:
-            custom_mapping.change(
+            custom_mapping.change(EV_KEY,
                 previous_keycode=None,
                 new_keycode=keycode,
                 character=character
@@ -178,7 +180,7 @@ class Row(Gtk.ListBoxRow):
         """Destroy the row and remove it from the config."""
         keycode = self.get_keycode()
         if keycode is not None:
-            custom_mapping.clear(keycode)
+            custom_mapping.clear(EV_KEY, keycode)
         self.character_input.set_text('')
         self.keycode_input.set_label('')
         self.delete_callback(self)

@@ -76,7 +76,7 @@ class TestInjector(unittest.TestCase):
                 }
 
         mapping = Mapping()
-        mapping.change(
+        mapping.change(EV_KEY,
             new_keycode=80,
             character='a'
         )
@@ -99,7 +99,7 @@ class TestInjector(unittest.TestCase):
 
     def test_grab(self):
         # path is from the fixtures
-        custom_mapping.change(10, 'a')
+        custom_mapping.change(EV_KEY, 10, 'a')
 
         self.injector = KeycodeInjector('device 1', custom_mapping)
         path = '/dev/input/event10'
@@ -124,7 +124,7 @@ class TestInjector(unittest.TestCase):
 
     def test_skip_unused_device(self):
         # skips a device because its capabilities are not used in the mapping
-        custom_mapping.change(10, 'a')
+        custom_mapping.change(EV_KEY, 10, 'a')
         self.injector = KeycodeInjector('device 1', custom_mapping)
         path = '/dev/input/event11'
         device, map_ev_abs = self.injector._prepare_device(path)
@@ -166,11 +166,9 @@ class TestInjector(unittest.TestCase):
 
     def test_abs_to_rel(self):
         # maps gamepad joystick events to mouse events
-        # TODO enable this somewhere so that map_ev_abs returns true
-        #  in the .json file of the mapping.
-        config.set('gamepad.non_linearity', 1)
+        config.set('gamepad.joystick.non_linearity', 1)
         pointer_speed = 80
-        config.set('gamepad.pointer_speed', pointer_speed)
+        config.set('gamepad.joystick.pointer_speed', pointer_speed)
 
         # same for ABS, 0 for x, 1 for y
         rel_x = evdev.ecodes.REL_X
@@ -286,11 +284,11 @@ class TestInjector(unittest.TestCase):
         self.assertIn(('b', 0), history)
 
     def test_injector(self):
-        custom_mapping.change(8, 'k(KEY_Q).k(w)')
-        custom_mapping.change(9, 'a')
+        custom_mapping.change(EV_KEY, 8, 'k(KEY_Q).k(w)')
+        custom_mapping.change(EV_KEY, 9, 'a')
         # one mapping that is unknown in the system_mapping on purpose
         input_b = 10
-        custom_mapping.change(input_b, 'b')
+        custom_mapping.change(EV_KEY, input_b, 'b')
 
         clear_system_mapping()
         code_a = 100

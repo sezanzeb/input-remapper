@@ -25,6 +25,7 @@
 import os
 import json
 import copy
+import evdev
 
 from keymapper.logger import logger
 from keymapper.paths import get_config_path, touch
@@ -50,16 +51,18 @@ class Mapping:
     def __len__(self):
         return len(self._mapping)
 
-    def change(self, new_keycode, character, previous_keycode=None):
+    def change(self, ev_type, new_keycode, character, previous_keycode=None):
         """Replace the mapping of a keycode with a different one.
 
         Return True on success.
 
         Parameters
         ----------
+        ev_type : int
+            one of evdev.events. The original event
         new_keycode : int
             The source keycode, what the mouse would report without any
-            modification.
+            modification. xkb keycode.
         character : string or string[]
             A single character known to xkb, Examples: KP_1, Shift_L, a, B.
             Can also be an array, which is used for reading the xkbmap output
@@ -67,7 +70,7 @@ class Mapping:
         previous_keycode : int or None
             If None, will not remove any previous mapping. If you recently
             used 10 for new_keycode and want to overwrite that with 11,
-            provide 5 here.
+            provide 5 here. xkb keycode.
         """
         try:
             new_keycode = int(new_keycode)
@@ -78,25 +81,28 @@ class Mapping:
             return False
 
         if new_keycode and character:
-            self._mapping[new_keycode] = character
+            self._mapping[(ev_type, new_keycode)] = character
             if new_keycode != previous_keycode:
                 # clear previous mapping of that code, because the line
                 # representing that one will now represent a different one.
-                self.clear(previous_keycode)
+                self.clear(ev_type, previous_keycode)
             self.changed = True
             return True
 
         return False
 
-    def clear(self, keycode):
+    def clear(self, ev_type, keycode):
         """Remove a keycode from the mapping.
 
         Parameters
         ----------
         keycode : int
+            the xkb keycode
+        ev_type : int
+            one of evdev.events
         """
-        if self._mapping.get(keycode) is not None:
-            del self._mapping[keycode]
+        if self._mapping.get((ev_type, keycode)) is not None:
+            del self._mapping[(ev_type, keycode)]
             self.changed = True
 
     def empty(self):
@@ -119,13 +125,23 @@ class Mapping:
                 logger.error('Invalid preset config at "%s"', path)
                 return
 
-            for keycode, character in preset_dict['mapping'].items():
+            for key, character in preset_dict['mapping'].items():
+                if ',' not in key:
+                    logger.error('Found invalid key: "%s"', key)
+                    continue
+
+                ev_type, keycode = key.split(',')
                 try:
                     keycode = int(keycode)
                 except ValueError:
-                    logger.error('Found non-int keycode: %s', keycode)
+                    logger.error('Found non-int keycode: "%s"', keycode)
                     continue
-                self._mapping[keycode] = character
+                try:
+                    ev_type = int(ev_type)
+                except ValueError:
+                    logger.error('Found non-int ev_type: "%s"', ev_type)
+                    continue
+                self._mapping[(ev_type, keycode)] = character
 
             # add any metadata of the mapping
             for key in preset_dict:
@@ -152,18 +168,27 @@ class Mapping:
         with open(path, 'w') as file:
             # make sure to keep the option to add metadata if ever needed,
             # so put the mapping into a special key
-            preset_dict = {'mapping': self._mapping}
+            json_ready_mapping = {}
+            # tuple keys are not possible in json
+            for key, value in self._mapping.items():
+                new_key = f'{key[0]},{key[1]}'
+                json_ready_mapping[new_key] = value
+
+            preset_dict = {'mapping': json_ready_mapping}
             preset_dict.update(self.config)
             json.dump(preset_dict, file, indent=4)
             file.write('\n')
 
         self.changed = False
 
-    def get_character(self, keycode):
+    def get_character(self, ev_type, keycode):
         """Read the character that is mapped to this keycode.
 
         Parameters
         ----------
         keycode : int
+        ev_type : int
+            one of evdev.events. codes may be the same for various
+            event types.
         """
-        return self._mapping.get(keycode)
+        return self._mapping.get((ev_type, keycode))

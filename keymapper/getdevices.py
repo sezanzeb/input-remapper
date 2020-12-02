@@ -83,6 +83,7 @@ class _GetDevices(threading.Thread):
             # https://www.kernel.org/doc/html/latest/input/event-codes.html
             capabilities = device.capabilities().keys()
             if EV_KEY not in capabilities and EV_ABS not in capabilities:
+                # or gamepads, because they can be mapped like a keyboard
                 continue
 
             usb = device.phys.split('/')[0]
