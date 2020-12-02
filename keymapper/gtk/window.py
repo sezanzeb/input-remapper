@@ -36,7 +36,7 @@ from keymapper.presets import get_presets, find_newest_preset, \
     delete_preset, rename_preset, get_available_preset_name
 from keymapper.logger import logger
 from keymapper.getdevices import get_devices
-from keymapper.gtk.row import Row
+from keymapper.gtk.row import Row, to_string
 from keymapper.gtk.unsaved import unsaved_changes_dialog, GO_BACK
 from keymapper.dev.reader import keycode_reader
 from keymapper.daemon import get_dbus_interface
@@ -70,10 +70,6 @@ def get_selected_row_bg():
     color.alpha /= 4
     row.destroy()
     return color.to_string()
-
-
-# TODO show if the preset is being injected
-#  apply button -> stop button. makes "Apply Defaults" obsolete
 
 
 class Window:
@@ -232,11 +228,18 @@ class Window:
             # which breaks the current workflow.
             return True
 
-        self.get('keycode').set_text(f'{ev_type},{keycode}')
+        self.get('keycode').set_text(to_string(ev_type, keycode))
 
         # inform the currently selected row about the new keycode
         focused = self.window.get_focus()
-        row = focused.get_parent().get_parent()
+        if focused is None:
+            return True
+
+        box = focused.get_parent()
+        if box is None:
+            return True
+
+        row = box.get_parent()
         if isinstance(focused, Gtk.ToggleButton) and isinstance(row, Row):
             row.set_new_keycode(ev_type, keycode)
 
@@ -324,6 +327,10 @@ class Window:
         if custom_mapping.changed and unsaved_changes_dialog() == GO_BACK:
             dropdown.set_active_id(self.selected_device)
             return
+
+        # selecting a device will also automatically select a different
+        # preset. Prevent another unsaved-changes dialog to pop up
+        custom_mapping.changed = False
 
         device = dropdown.get_active_text()
 
