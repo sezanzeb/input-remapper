@@ -37,7 +37,21 @@ from keymapper.logger import update_verbosity
 
 assert not os.getcwd().endswith('tests')
 
-sys.path = [os.path.abspath('.')] + sys.path
+
+def is_service_running():
+    """Check if the daemon is running."""
+    try:
+        subprocess.check_output(['pgrep', '-f', 'key-mapper-service'])
+    except subprocess.CalledProcessError:
+        return
+    # let tests control daemon existance
+    raise Exception('Expected the service not to be running already.')
+
+
+is_service_running()
+
+# make sure the "tests" module visible
+sys.path.append(os.getcwd())
 
 # give tests some time to test stuff while the process
 # is still running
@@ -178,12 +192,6 @@ def patch_evdev():
     def list_devices():
         return fixtures.keys()
 
-    """
-    rlist = {device.fd: device for device in self.virtual_devices}
-    while True:
-        ready = select.select(rlist, [], [])[0]
-    """
-
     class InputDevice:
         # expose as existing attribute, otherwise the patch for
         # evdev < 1.0.0 will crash the test
@@ -281,19 +289,6 @@ def clear_write_history():
     while uinput_write_history_pipe[0].poll():
         uinput_write_history_pipe[0].recv()
 
-
-def is_service_running():
-    """Check if the daemon is running."""
-    try:
-        subprocess.check_output(['pgrep', '-f', 'key-mapper-service'])
-    except subprocess.CalledProcessError:
-        return
-    # let tests control daemon existance
-    raise Exception('Expected the service not to be running already.')
-
-
-is_service_running()
-
 # quickly fake some stuff before any other file gets a chance to import
 # the original versions
 patch_paths()
@@ -321,15 +316,17 @@ def main():
             'testcases', pattern='*.py'
         )
 
-    # add a newline to each "qux (foo.bar)..." output, because the logs
-    # will be on the same line otherwise
-    originalStartTest = unittest.TextTestResult.startTest
-    def startTest(self, test):
-        originalStartTest(self, test)
-        print()
-    unittest.TextTestResult.startTest = startTest
+    # add a newline to each "qux (foo.bar)..." output before each test,
+    # because the first log will be on the same line otherwise
+    original_start_test = unittest.TextTestResult.startTest
 
-    testrunner = unittest.TextTestRunner(verbosity=2).run(testsuite)
+    def start_test(self, test):
+        original_start_test(self, test)
+        print()
+
+    unittest.TextTestResult.startTest = start_test
+
+    unittest.TextTestRunner(verbosity=2).run(testsuite)
 
 
 if __name__ == "__main__":

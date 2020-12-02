@@ -29,7 +29,7 @@ from keymapper.presets import find_newest_preset, rename_preset, \
 from keymapper.paths import CONFIG
 from keymapper.state import custom_mapping
 
-from test import tmp
+from tests.test import tmp
 
 
 def create_preset(device, name='new preset'):

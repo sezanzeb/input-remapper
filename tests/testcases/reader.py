@@ -26,7 +26,7 @@ import time
 
 from keymapper.dev.reader import keycode_reader
 
-from test import Event, pending_events, EVENT_READ_TIMEOUT
+from tests.test import Event, pending_events, EVENT_READ_TIMEOUT
 
 
 CODE_1 = 100

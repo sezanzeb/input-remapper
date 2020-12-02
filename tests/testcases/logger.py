@@ -27,7 +27,7 @@ import logging
 from keymapper.logger import logger, add_filehandler, update_verbosity, \
     log_info
 
-from test import tmp
+from tests.test import tmp
 
 
 class TestLogger(unittest.TestCase):

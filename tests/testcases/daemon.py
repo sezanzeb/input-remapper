@@ -24,7 +24,6 @@ import multiprocessing
 import unittest
 import time
 
-import dbus
 import evdev
 import gi
 gi.require_version('Gtk', '3.0')
@@ -33,9 +32,9 @@ from gi.repository import Gtk
 from keymapper.state import custom_mapping, system_mapping, \
     clear_system_mapping
 from keymapper.config import config
-from keymapper.daemon import Daemon, get_dbus_interface
+from keymapper.daemon import Daemon, get_dbus_interface, BUS_NAME
 
-from test import uinput_write_history_pipe, Event, pending_events
+from tests.test import uinput_write_history_pipe, Event, pending_events
 
 
 def gtk_iteration():
@@ -49,7 +48,7 @@ class TestDBusDaemon(unittest.TestCase):
     def setUpClass(cls):
         cls.process = multiprocessing.Process(
             target=os.system,
-            args=('key-mapper-service',)
+            args=('key-mapper-service -d',)
         )
         cls.process.start()
         time.sleep(0.5)
@@ -57,13 +56,13 @@ class TestDBusDaemon(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        try:
-            cls.interface.stop(True)
-        except dbus.exceptions.DBusException:
-            pass
+        cls.interface.stop(True)
 
     def test_can_connect(self):
-        self.assertIsInstance(self.interface, dbus.Interface)
+        # it's a remote dbus object
+        self.assertEqual(self.interface._bus_name, BUS_NAME)
+        self.assertFalse(isinstance(self.interface, Daemon))
+        self.assertEqual(self.interface.hello('foo'), 'foo')
 
 
 class TestDaemon(unittest.TestCase):

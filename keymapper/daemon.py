@@ -19,21 +19,23 @@
 # along with key-mapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
-"""Starts injecting keycodes based on the configuration."""
+"""Starts injecting keycodes based on the configuration.
+
+https://github.com/LEW21/pydbus/tree/cc407c8b1d25b7e28a6d661a29f9e661b1c9b964/examples/clientserver  # noqa pylint: disable=line-too-long
+"""
 
 
 import subprocess
 
-# TODO https://www.freedesktop.org/wiki/Software/DBusBindings/#python
-#  says "New applications should use pydbus"
-import dbus
-from dbus import service
-import dbus.mainloop.glib
+from pydbus import SessionBus
 
 from keymapper.logger import logger
 from keymapper.dev.injector import KeycodeInjector
 from keymapper.mapping import Mapping
 from keymapper.config import config
+
+
+BUS_NAME = 'keymapper.Control'
 
 
 def is_service_running():
@@ -54,23 +56,13 @@ def get_dbus_interface():
         )
         return Daemon(autoload=False)
 
-    try:
-        bus = dbus.SessionBus()
-        remote_object = bus.get_object('keymapper.Control', '/')
-        interface = dbus.Interface(remote_object, 'keymapper.Interface')
-        logger.debug('Connected to dbus')
-    except dbus.exceptions.DBusException as error:
-        logger.warning(
-            'Could not connect to the dbus of "key-mapper-service", mapping '
-            'keys only works as long as the window is open.'
-        )
-        logger.debug(error)
-        return Daemon(autoload=False)
+    bus = SessionBus()
+    interface = bus.get(BUS_NAME)
 
     return interface
 
 
-class Daemon(service.Object):
+class Daemon:
     """Starts injecting keycodes based on the configuration.
 
     Can be talked to either over dbus or by instantiating it.
@@ -80,9 +72,34 @@ class Daemon(service.Object):
     continue to do so afterwards, but it can't decide to start injecting
     on its own.
     """
-    def __init__(self, *args, autoload=True, **kwargs):
+
+    dbus = f"""
+        <node>
+            <interface name='{BUS_NAME}'>
+                <method name='stop_injecting'>
+                    <arg type='s' name='device' direction='in'/>
+                </method>
+                <method name='start_injecting'>
+                    <arg type='s' name='device' direction='in'/>
+                    <arg type='s' name='preset' direction='in'/>
+                    <arg type='b' name='response' direction='out'/>
+                </method>
+                <method name='stop'>
+                    <arg type='b' name='terminate' direction='in'/>
+                </method>
+                <method name='hello'>
+                    <arg type='s' name='out' direction='in'/>
+                    <arg type='s' name='response' direction='out'/>
+                </method>
+            </interface>
+        </node>
+    """
+
+    def __init__(self, autoload=True, loop=None):
         """Constructs the daemon. You still need to run the GLib mainloop."""
+        logger.debug('Creating daemon')
         self.injectors = {}
+        self.loop = loop
         if autoload:
             for device, preset in config.iterate_autoload_presets():
                 mapping = Mapping()
@@ -93,9 +110,7 @@ class Daemon(service.Object):
                     self.injectors[device] = injector
                 except OSError as error:
                     logger.error(error)
-        super().__init__(*args, **kwargs)
 
-    @dbus.service.method('keymapper.Interface', in_signature='s')
     def stop_injecting(self, device):
         """Stop injecting the mapping for a single device."""
         if self.injectors.get(device) is None:
@@ -107,9 +122,6 @@ class Daemon(service.Object):
 
         self.injectors[device].stop_injecting()
 
-    # TODO if ss is the correct signature for multiple parameters, add an
-    #  example to https://gitlab.freedesktop.org/dbus/dbus-python/-/blob/master/doc/tutorial.txt # noqa pylint: disable=line-too-long
-    @dbus.service.method('keymapper.Interface', in_signature='ss')
     def start_injecting(self, device, preset):
         """Start injecting the preset for the device.
 
@@ -138,7 +150,6 @@ class Daemon(service.Object):
 
         return True
 
-    @dbus.service.method('keymapper.Interface', in_signature='b')
     def stop(self, terminate=False):
         """Stop all injections and end the service.
 
@@ -147,5 +158,10 @@ class Daemon(service.Object):
         for injector in self.injectors.values():
             injector.stop_injecting()
 
-        if terminate:
-            exit(0)
+        if terminate and self.loop:
+            logger.debug('Daemon stops')
+            self.loop.quit()
+
+    def hello(self, out):
+        """Used for tests."""
+        return out
