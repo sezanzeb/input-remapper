@@ -38,7 +38,7 @@ CODE_3 = 102
 class TestReader(unittest.TestCase):
     def setUp(self):
         # verify that tearDown properly cleared the reader
-        self.assertIsNone(keycode_reader.read())
+        self.assertEqual(keycode_reader.read(), (None, None))
 
     def tearDown(self):
         keycode_reader.stop_reading()

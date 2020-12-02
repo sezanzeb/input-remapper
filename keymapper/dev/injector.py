@@ -212,17 +212,19 @@ class KeycodeInjector:
 
         if abs_to_rel:
             del capabilities[ecodes.EV_ABS]
+            # those are the requirements to recognize it as mouse
+            # on my system. REL_X and REL_Y are of course required to
+            # accept the events that the mouse-movement-mapper writes.
             capabilities[ecodes.EV_REL] = [
                 evdev.ecodes.REL_X,
                 evdev.ecodes.REL_Y,
-                # for my system to recognize it as mouse, WHEEL is also needed:
                 evdev.ecodes.REL_WHEEL,
             ]
             if capabilities.get(ecodes.EV_KEY) is None:
                 capabilities[ecodes.EV_KEY] = []
-            # for reasons I don't know, it is required to have a capability
-            # for any keyboard key present to enable mouse movements.
-            # TODO test
+            # for reasons I don't know, it is also required to have
+            # any keyboard button in capabilities.
+            # TODO test that this is always present when abs_to_rel
             capabilities[ecodes.EV_KEY].append(ecodes.KEY_0)
 
         # just like what python-evdev does in from_device

@@ -153,7 +153,7 @@ class _KeycodeReader:
         """Get the newest tuple of event type, keycode or None."""
         if self._pipe is None:
             logger.debug('No pipe available to read from')
-            return (None, None)
+            return None, None
 
         newest_event = (None, None)
         while self._pipe[0].poll():

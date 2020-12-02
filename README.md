@@ -47,7 +47,8 @@ If you can't find what you need, consult
 ##### Gamepads
 
 Tested with the XBOX 360 Gamepad. Joystick movements will be translated
-to mouse movements and buttons can be mapped to keycodes or macros.
+to mouse movements and buttons can be mapped to keycodes or macros. This is
+only partially done though.
 
 ## Installation
 

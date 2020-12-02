@@ -45,9 +45,6 @@ INITIAL_CONFIG = {
             'non_linearity': 4,
             'pointer_speed': 80,
         },
-        'triggers': {
-            'button_threshold': 0.5
-        },
     }
 }
 
