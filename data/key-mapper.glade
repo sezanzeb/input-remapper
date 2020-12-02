@@ -271,7 +271,7 @@
     <property name="icon_name">document-save</property>
   </object>
   <object class="GtkWindow" id="window">
-    <property name="width_request">-1</property>
+    <property name="width_request">700</property>
     <property name="can_focus">False</property>
     <property name="title" translatable="yes">Key Mapper</property>
     <property name="default_height">350</property>
@@ -666,7 +666,7 @@
                     <property name="can_focus">False</property>
                     <child>
                       <object class="GtkLabel">
-                        <property name="width_request">50</property>
+                        <property name="width_request">130</property>
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="tooltip_text" translatable="yes">Click on a cell below and hit a key on your device. If you have your preset active, the reported keycodes may be wrong.</property>

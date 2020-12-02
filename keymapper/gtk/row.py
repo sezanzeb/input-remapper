@@ -22,6 +22,8 @@
 """A single, configurable key mapping."""
 
 
+import evdev
+
 import gi
 gi.require_version('Gtk', '3.0')
 gi.require_version('GLib', '2.0')
@@ -37,6 +39,18 @@ CTX_KEYCODE = 2
 # TODO display the constant name instead of numbers.
 #  displaying the event type won't be needed anymore then.
 #  and the whole offset thing probably drops away
+
+
+def to_string(ev_type, code):
+    """A nice to show description of the pressed key."""
+    # TODO test
+    try:
+        name = evdev.ecodes.bytype[ev_type][code]
+        if isinstance(name, list):
+            name = name[0]
+        return name.replace('KEY_', '')
+    except KeyError:
+        return 'unknown'
 
 
 class Row(Gtk.ListBoxRow):
@@ -56,7 +70,10 @@ class Row(Gtk.ListBoxRow):
         self.character_input = None
         self.keycode_input = None
 
-        self.put_together(ev_type, keycode, character)
+        self.ev_type = ev_type
+        self.keycode = keycode
+
+        self.put_together(character)
 
     def get_keycode(self):
         """Get a tuple of event_type and keycode from the left column.
@@ -67,8 +84,7 @@ class Row(Gtk.ListBoxRow):
         if not keycode:
             return None
 
-        ev_type, keycode = keycode.split(',')
-        return int(ev_type), int(keycode)
+        return self.ev_type, self.keycode
 
     def get_character(self):
         """Get the assigned character from the middle column."""
@@ -101,7 +117,9 @@ class Row(Gtk.ListBoxRow):
 
         # it's legal to display the keycode
         self.window.get('status_bar').remove_all(CTX_KEYCODE)
-        self.keycode_input.set_label(f'{ev_type},{new_keycode}')
+        self.keycode_input.set_label(to_string(ev_type, new_keycode))
+        self.ev_type = ev_type
+        self.keycode = new_keycode
         # switch to the character, don't require mouse input because
         # that would overwrite the key with the mouse-button key if
         # the current device is a mouse. idle_add this so that the
@@ -146,7 +164,7 @@ class Row(Gtk.ListBoxRow):
                 previous_keycode=None
             )
 
-    def put_together(self, ev_type, keycode, character):
+    def put_together(self, character):
         """Create all child GTK widgets and connect their signals."""
         delete_button = Gtk.EventBox()
         delete_button.add(Gtk.Image.new_from_icon_name(
@@ -160,10 +178,10 @@ class Row(Gtk.ListBoxRow):
         delete_button.set_size_request(50, -1)
 
         keycode_input = Gtk.ToggleButton()
-        keycode_input.set_size_request(50, -1)
+        keycode_input.set_size_request(130, -1)
 
-        if keycode is not None:
-            keycode_input.set_label(f'{ev_type},{keycode}')
+        if self.keycode is not None:
+            keycode_input.set_label(to_string(self.ev_type, self.keycode))
 
         # make the togglebutton go back to its normal state when doing
         # something else in the UI
