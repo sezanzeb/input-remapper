@@ -79,6 +79,10 @@ class Daemon:
                 <method name='stop_injecting'>
                     <arg type='s' name='device' direction='in'/>
                 </method>
+                <method name='is_injecting'>
+                    <arg type='s' name='device' direction='in'/>
+                    <arg type='b' name='response' direction='out'/>
+                </method>
                 <method name='start_injecting'>
                     <arg type='s' name='device' direction='in'/>
                     <arg type='s' name='preset' direction='in'/>
@@ -121,6 +125,11 @@ class Daemon:
             return
 
         self.injectors[device].stop_injecting()
+        del self.injectors[device]
+
+    def is_injecting(self, device):
+        """Is this device being mapped?"""
+        return device in self.injectors
 
     def start_injecting(self, device, preset):
         """Start injecting the preset for the device.

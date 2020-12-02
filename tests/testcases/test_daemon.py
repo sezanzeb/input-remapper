@@ -79,25 +79,58 @@ class TestDaemon(unittest.TestCase):
         config.clear_config()
 
     def test_daemon(self):
-        keycode_from = 9
-        keycode_to = 100
+        keycode_from_1 = 9
+        keycode_to_1 = 100
+        keycode_from_2 = 12
+        keycode_to_2 = 100
 
-        custom_mapping.change(keycode_from, 'a')
+        custom_mapping.change(keycode_from_1, 'a')
+        custom_mapping.change(keycode_from_2, 'b')
         clear_system_mapping()
-        system_mapping['a'] = keycode_to
+        system_mapping['a'] = keycode_to_1
+        system_mapping['b'] = keycode_to_2
 
-        custom_mapping.save('device 2', 'foo')
-        config.set_autoload_preset('device 2', 'foo')
+        preset = 'foo'
+
+        custom_mapping.save('device 2', preset)
+        config.set_autoload_preset('device 2', preset)
 
         pending_events['device 2'] = [
-            Event(evdev.events.EV_KEY, keycode_from - 8, 0)
+            Event(evdev.events.EV_KEY, keycode_from_1 - 8, 0),
         ]
 
         self.daemon = Daemon()
+        # starts mapping right after creation
+
+        self.assertTrue(self.daemon.is_injecting('device 2'))
+        self.assertFalse(self.daemon.is_injecting('device 1'))
 
         event = uinput_write_history_pipe[0].recv()
         self.assertEqual(event.type, evdev.events.EV_KEY)
-        self.assertEqual(event.code, keycode_to - 8)
+        self.assertEqual(event.code, keycode_to_1 - 8)
+        self.assertEqual(event.value, 0)
+
+        self.daemon.stop_injecting('device 2')
+        self.assertFalse(self.daemon.is_injecting('device 2'))
+
+        pending_events['device 2'] = [
+            Event(evdev.events.EV_KEY, keycode_from_2 - 8, 1),
+            Event(evdev.events.EV_KEY, keycode_from_2 - 8, 0),
+        ]
+
+        time.sleep(0.2)
+        self.assertFalse(uinput_write_history_pipe[0].poll())
+
+        self.daemon.start_injecting('device 2', preset)
+
+        event = uinput_write_history_pipe[0].recv()
+        self.assertEqual(event.type, evdev.events.EV_KEY)
+        self.assertEqual(event.code, keycode_to_2 - 8)
+        self.assertEqual(event.value, 1)
+
+        event = uinput_write_history_pipe[0].recv()
+        self.assertEqual(event.type, evdev.events.EV_KEY)
+        self.assertEqual(event.code, keycode_to_2 - 8)
         self.assertEqual(event.value, 0)
 
 

@@ -241,9 +241,7 @@ class Window:
             CTX_APPLY,
             'Applied the system default'
         )
-        # restart reading because after injecting the device landscape
-        # changes a bit
-        keycode_reader.start_reading(self.selected_device)
+        GLib.timeout_add(10, self.show_device_mapping_status)
 
     def on_save_preset_clicked(self, button):
         """Save changes to a preset to the file system."""
@@ -301,6 +299,7 @@ class Window:
         # restart reading because after injecting the device landscape
         # changes a bit
         keycode_reader.start_reading(self.selected_device)
+        GLib.timeout_add(10, self.show_device_mapping_status)
 
     def on_preset_autoload_switch_activate(self, _, active):
         """Load the preset automatically next time the user logs in."""
@@ -326,9 +325,17 @@ class Window:
         self.selected_preset = None
 
         self.populate_presets()
-        GLib.idle_add(
-            lambda: keycode_reader.start_reading(self.selected_device)
-        )
+        GLib.idle_add(lambda: keycode_reader.start_reading(device))
+
+        self.show_device_mapping_status()
+
+    def show_device_mapping_status(self):
+        """Figure out if this device is currently under keymappers control."""
+        if self.dbus.is_injecting(self.selected_device):
+            logger.info('This device is currently mapped.')
+            self.get('apply_system_layout').set_opacity(1)
+        else:
+            self.get('apply_system_layout').set_opacity(0.4)
 
     def on_create_preset_clicked(self, _):
         """Create a new preset and select it."""
