@@ -25,49 +25,34 @@
 import asyncio
 
 from keymapper.logger import logger
-from keymapper.state import system_mapping, KEYCODE_OFFSET
+from keymapper.state import KEYCODE_OFFSET
 
 
-def handle_keycode(mapping, macros, event, uinput):
+def handle_keycode(code_code_mapping, macros, event, uinput):
     """Write the mapped keycode."""
-    input_keycode = event.code + KEYCODE_OFFSET
-    character = mapping.get_character(input_keycode)
+    input_keycode = event.code
 
-    if character is None:
-        # unknown keycode, forward it
-        target_keycode = input_keycode
-    elif macros.get(input_keycode) is not None:
-        if event.value == 0:
-            return
+    if input_keycode in macros:
+        macro = macros[input_keycode]
         logger.spam(
             'got code:%s value:%s, maps to macro %s',
             event.code + KEYCODE_OFFSET,
             event.value,
-            character
+            macro.code
         )
-        macro = macros.get(input_keycode)
-        if macro is not None:
-            asyncio.ensure_future(macro.run())
+        asyncio.ensure_future(macro.run())
         return
-    else:
-        # TODO compile int-int mapping instead of going this route.
-        #  I think that makes the reverse mapping obsolete.
-        #  It already is actually.
-        target_keycode = system_mapping.get(character)
-        if target_keycode is None:
-            logger.error(
-                'Don\'t know what %s maps to',
-                character
-            )
-            return
 
+    if input_keycode in code_code_mapping:
+        target_keycode = code_code_mapping[input_keycode]
         logger.spam(
-            'got code:%s value:%s, maps to code:%s char:%s',
+            'got code:%s value:%s, maps to code:%s',
             event.code + KEYCODE_OFFSET,
             event.value,
-            target_keycode,
-            character
+            target_keycode
         )
+    else:
+        target_keycode = input_keycode
 
-    uinput.write(event.type, target_keycode - KEYCODE_OFFSET, event.value)
+    uinput.write(event.type, target_keycode, event.value)
     uinput.syn()

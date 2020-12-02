@@ -53,7 +53,7 @@ DEBUG = 6
 
 class _Macro:
     """Supports chaining and preparing actions."""
-    def __init__(self, handler, depth):
+    def __init__(self, handler, depth, code):
         """Create a macro instance that can be populated with tasks.
 
         Parameters
@@ -65,10 +65,13 @@ class _Macro:
         depth : int
             0 for the outermost parent macro, 1 or greater for child macros,
             like the second argument of repeat.
+        code : string
+            The original parsed code, for logging purposes.
         """
         self.tasks = []
         self.handler = handler
         self.depth = depth
+        self.code = code
 
     async def run(self):
         """Run the macro."""
@@ -216,7 +219,7 @@ def _parse_recurse(macro, handler, macro_instance=None, depth=0):
     assert isinstance(depth, int)
 
     if macro_instance is None:
-        macro_instance = _Macro(handler, depth)
+        macro_instance = _Macro(handler, depth, macro)
     else:
         assert isinstance(macro_instance, _Macro)
 
