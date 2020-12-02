@@ -28,6 +28,7 @@ import evdev
 
 from keymapper.logger import logger
 from keymapper.state import KEYCODE_OFFSET
+from keymapper.dev.ev_abs_mapper import JOYSTICK
 
 
 def should_map_event_as_btn(type, code):
@@ -47,8 +48,7 @@ def should_map_event_as_btn(type, code):
     if type == evdev.events.EV_KEY:
         return True
 
-    if type == evdev.events.EV_ABS and code > 5:
-        # 1 - 5 seem to be joystick events
+    if type == evdev.events.EV_ABS and code not in JOYSTICK:
         return True
 
     return False
@@ -110,6 +110,5 @@ def handle_keycode(code_code_mapping, macros, event, uinput):
         target_keycode = input_keycode
         target_type = input_type
 
-    print('write', target_type, target_keycode, event.value)
     uinput.write(target_type, target_keycode, event.value)
     uinput.syn()

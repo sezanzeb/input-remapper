@@ -36,10 +36,8 @@ from keymapper.config import config
 JOYSTICK = [
     evdev.ecodes.ABS_X,
     evdev.ecodes.ABS_Y,
-    evdev.ecodes.ABS_Z,
     evdev.ecodes.ABS_RX,
     evdev.ecodes.ABS_RY,
-    evdev.ecodes.ABS_RZ,
 ]
 
 
