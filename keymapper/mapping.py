@@ -63,15 +63,14 @@ class Mapping:
             Everything will be mapped to EV_KEY.
         new_keycode : int
             The source keycode, what the mouse would report without any
-            modification. xkb keycode.
+            modification.
         character : string or string[]
-            A single character known to xkb, Examples: KP_1, Shift_L, a, B.
-            Can also be an array, which is used for reading the xkbmap output
-            completely.
+            A single character known to xkb or linux.
+            Examples: KP_1, Shift_L, a, B, BTN_LEFT.
         previous_keycode : int or None
             If None, will not remove any previous mapping. If you recently
             used 10 for new_keycode and want to overwrite that with 11,
-            provide 5 here. xkb keycode.
+            provide 5 here.
         """
         try:
             new_keycode = int(new_keycode)
@@ -98,7 +97,6 @@ class Mapping:
         Parameters
         ----------
         keycode : int
-            the xkb keycode
         ev_type : int
             one of evdev.events
         """

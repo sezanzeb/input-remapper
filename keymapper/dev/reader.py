@@ -30,7 +30,6 @@ import evdev
 
 from keymapper.logger import logger
 from keymapper.getdevices import get_devices, refresh_devices
-from keymapper.state import KEYCODE_OFFSET
 from keymapper.dev.keycode_mapper import should_map_event_as_btn
 
 
@@ -114,11 +113,11 @@ class _KeycodeReader:
         if should_map_event_as_btn(event.type, event.code):
             logger.spam(
                 'got code:%s value:%s type:%s',
-                event.code + KEYCODE_OFFSET,
+                event.code,
                 event.value,
                 evdev.ecodes.EV[event.type]
             )
-            self._pipe[1].send((event.type, event.code + KEYCODE_OFFSET))
+            self._pipe[1].send((event.type, event.code))
 
     def _read_worker(self):
         """Process that reads keycodes and buffers them into a pipe."""

@@ -149,8 +149,7 @@ class Event:
         type : int
             one of evdev.ecodes.EV_*
         code : int
-            keyboard event code as known to linux. E.g. 2 for the '1' button,
-            which would be 10 in xkb
+            keyboard event code as known to linux. E.g. 2 for the '1' button
         value : int
             1 for down, 0 for up, 2 for hold
         """

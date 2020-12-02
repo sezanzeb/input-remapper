@@ -30,8 +30,8 @@ import evdev
 from keymapper.mapping import Mapping
 
 
-# offset between xkb and linux keycodes. linux keycodes are lower
-KEYCODE_OFFSET = 8
+# xkb uses keycodes that are 8 higher than those from evdev
+XKB_KEYCODE_OFFSET = 8
 
 
 def populate_system_mapping():
@@ -42,10 +42,10 @@ def populate_system_mapping():
     mappings = re.findall(r'(\d+) = (.+)\n', xmodmap)
     for keycode, names in mappings:
         for name in names.split():
-            mapping[name] = int(keycode)
+            mapping[name] = int(keycode) - XKB_KEYCODE_OFFSET
 
     for name, ecode in evdev.ecodes.ecodes.items():
-        mapping[name] = ecode + KEYCODE_OFFSET
+        mapping[name] = ecode
 
     return mapping
 

@@ -35,10 +35,8 @@ class TestMapping(unittest.TestCase):
         # not actually a mapping object, just a dict
         mapping = populate_system_mapping()
         self.assertGreater(len(mapping), 100)
-        # xkb keycode 10 is typically mapped to '1'
-        self.assertEqual(mapping['1'], 10)
-        # linux keycodes are properly increased to the xkb keycodes
-        self.assertEqual(mapping['KEY_1'], 10)
+        self.assertEqual(mapping['1'], 2)
+        self.assertEqual(mapping['KEY_1'], 2)
         self.assertEqual(mapping['KEY_LEFTSHIFT'], mapping['Shift_L'])
 
     def test_clone(self):
