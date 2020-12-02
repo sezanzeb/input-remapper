@@ -59,8 +59,7 @@ groups
 ##### Git/pip
 
 ```bash
-git clone https://github.com/sezanzeb/key-mapper.git
-cd key-mapper && sudo python3 setup.py install
+sudo pip install git+https://github.com/sezanzeb/key-mapper.git
 ```
 
 ##### Manjaro/Arch
@@ -100,6 +99,6 @@ sudo dpkg -i python3-key-mapper_0.1.0-1_all.deb
 
 ```bash
 pylint keymapper --extension-pkg-whitelist=evdev
-sudo pip install -e . && coverage run tests/test.py
+sudo pip install . && coverage run tests/test.py
 coverage combine && coverage report -m
 ```

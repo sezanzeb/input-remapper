@@ -45,6 +45,6 @@ setup(
     install_requires=[
         'setuptools',
         'evdev',
-        'dbus-python'
+        'pydbus'
     ]
 )

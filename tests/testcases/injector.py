@@ -32,7 +32,7 @@ from keymapper.state import custom_mapping, system_mapping, \
 from keymapper.mapping import Mapping
 from keymapper.config import config
 
-from test import uinput_write_history, Event, pending_events, fixtures, \
+from tests.test import uinput_write_history, Event, pending_events, fixtures, \
     clear_write_history, EVENT_READ_TIMEOUT, uinput_write_history_pipe, \
     MAX_ABS
 

@@ -29,12 +29,11 @@ from argparse import ArgumentParser
 import gi
 gi.require_version('GLib', '2.0')
 from gi.repository import GLib
-import dbus.mainloop.glib
-from dbus.mainloop.glib import DBusGMainLoop
+from pydbus import SessionBus
 
-from keymapper.logger import logger, update_verbosity, log_info, \
+from keymapper.logger import update_verbosity, log_info, \
     add_filehandler
-from keymapper.daemon import Daemon
+from keymapper.daemon import Daemon, BUS_NAME
 from keymapper.dev.permissions import can_read_devices
 
 
@@ -60,12 +59,11 @@ if __name__ == '__main__':
 
     can_read_devices()
 
-    session_bus = dbus.SessionBus(mainloop=DBusGMainLoop())
-    name = dbus.service.BusName('keymapper.Control', session_bus)
-    daemon = Daemon(session_bus, '/')
+    bus = SessionBus()
+    loop = GLib.MainLoop()
+    daemon = Daemon(True, loop)
+    bus.publish(BUS_NAME, daemon)
 
-    atexit.register(daemon.stop)
+    atexit.register(lambda: daemon.stop(True))
 
-    logger.info('Daemon running, waiting for dbus messages')
-    mainloop = GLib.MainLoop()
-    mainloop.run()
+    loop.run()

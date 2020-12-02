@@ -40,7 +40,7 @@ from keymapper.paths import CONFIG, get_config_path
 from keymapper.config import config
 from keymapper.dev.reader import keycode_reader
 
-from test import tmp, pending_events, Event, uinput_write_history_pipe, \
+from tests.test import tmp, pending_events, Event, uinput_write_history_pipe, \
     clear_write_history
 
 
