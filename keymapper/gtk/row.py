@@ -36,11 +36,6 @@ from keymapper.logger import logger
 CTX_KEYCODE = 2
 
 
-# TODO display the constant name instead of numbers.
-#  displaying the event type won't be needed anymore then.
-#  and the whole offset thing probably drops away
-
-
 def to_string(ev_type, code):
     """A nice to show description of the pressed key."""
     # TODO test
