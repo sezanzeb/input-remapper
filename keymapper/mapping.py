@@ -127,6 +127,7 @@ class Mapping:
                     continue
                 self._mapping[keycode] = character
 
+            # add any metadata of the mapping
             for key in preset_dict:
                 if key == 'mapping':
                     continue
