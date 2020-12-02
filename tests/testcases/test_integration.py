@@ -112,6 +112,11 @@ class TestIntegration(unittest.TestCase):
     def get_rows(self):
         return self.window.get('key_list').get_children()
 
+    def test_show_device_mapping_status(self):
+        # this function may not return True, otherwise the timeout
+        # runs forever
+        self.assertFalse(self.window.show_device_mapping_status())
+
     def test_autoload(self):
         self.window.on_preset_autoload_switch_activate(None, False)
         self.assertFalse(config.is_autoloaded(
