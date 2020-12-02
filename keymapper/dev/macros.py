@@ -80,10 +80,6 @@ class _Macro:
             if asyncio.iscoroutine(coroutine):
                 await coroutine
 
-    def stop(self):
-        """Stop the macro."""
-        # TODO
-
     def modify(self, modifier, macro):
         """Do stuff while a modifier is activated.
 
