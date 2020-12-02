@@ -131,7 +131,6 @@ class Mapping:
             for key in preset_dict:
                 if key == 'mapping':
                     continue
-                # TODO test self.config
                 self.config[key] = preset_dict[key]
 
         self.changed = False
@@ -154,7 +153,6 @@ class Mapping:
             # make sure to keep the option to add metadata if ever needed,
             # so put the mapping into a special key
             preset_dict = {'mapping': self._mapping}
-            # TODO test self.config
             preset_dict.update(self.config)
             json.dump(preset_dict, file, indent=4)
             file.write('\n')
