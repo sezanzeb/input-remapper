@@ -33,7 +33,7 @@ from evdev.ecodes import EV_KEY, EV_ABS
 
 from keymapper.logger import logger
 from keymapper.getdevices import get_devices
-from keymapper.state import system_mapping, KEYCODE_OFFSET
+from keymapper.state import system_mapping
 from keymapper.dev.keycode_mapper import handle_keycode, \
     should_map_event_as_btn
 from keymapper.dev.ev_abs_mapper import ev_abs_mapper, JOYSTICK
@@ -144,7 +144,7 @@ class KeycodeInjector:
         needed = False
         for (ev_type, keycode), _ in self.mapping:
             # TODO test ev_type
-            if keycode - KEYCODE_OFFSET in capabilities.get(ev_type, []):
+            if keycode in capabilities.get(ev_type, []):
                 needed = True
                 break
 
@@ -208,7 +208,7 @@ class KeycodeInjector:
 
             keycode = system_mapping.get(character)
             if keycode is not None:
-                capabilities[EV_KEY].append(keycode - KEYCODE_OFFSET)
+                capabilities[EV_KEY].append(keycode)
 
         if abs_to_rel:
             del capabilities[ecodes.EV_ABS]
@@ -315,7 +315,7 @@ class KeycodeInjector:
             'macro writes code:%s value:%d char:%s',
             keycode, value, character
         )
-        uinput.write(EV_KEY, keycode - KEYCODE_OFFSET, value)
+        uinput.write(EV_KEY, keycode, value)
         uinput.syn()
 
     async def _keycode_loop(self, device, uinput, abs_to_rel):
@@ -340,8 +340,6 @@ class KeycodeInjector:
         logger.debug('Parsing macros')
         macros = {}
         for (ev_type, keycode), output in self.mapping:
-            keycode -= KEYCODE_OFFSET
-
             if '(' in output and ')' in output and len(output) >= 4:
                 # probably a macro
                 macros[keycode] = parse(
@@ -355,7 +353,7 @@ class KeycodeInjector:
                 logger.error('Don\'t know what %s is', output)
                 continue
 
-            code_code_mapping[keycode] = target_keycode - KEYCODE_OFFSET
+            code_code_mapping[keycode] = target_keycode
 
         logger.debug(
             'Started injecting into %s, fd %s',

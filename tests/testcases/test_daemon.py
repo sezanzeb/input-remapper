@@ -31,7 +31,7 @@ gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
 
 from keymapper.state import custom_mapping, system_mapping, \
-    clear_system_mapping, KEYCODE_OFFSET
+    clear_system_mapping
 from keymapper.config import config
 from keymapper.daemon import Daemon, get_dbus_interface, BUS_NAME
 
@@ -97,7 +97,7 @@ class TestDaemon(unittest.TestCase):
         config.set_autoload_preset('device 2', preset)
 
         pending_events['device 2'] = [
-            Event(evdev.events.EV_KEY, keycode_from_1 - KEYCODE_OFFSET, 0),
+            Event(evdev.events.EV_KEY, keycode_from_1, 0),
         ]
 
         self.daemon = Daemon()
@@ -108,15 +108,15 @@ class TestDaemon(unittest.TestCase):
 
         event = uinput_write_history_pipe[0].recv()
         self.assertEqual(event.type, evdev.events.EV_KEY)
-        self.assertEqual(event.code, keycode_to_1 - KEYCODE_OFFSET)
+        self.assertEqual(event.code, keycode_to_1)
         self.assertEqual(event.value, 0)
 
         self.daemon.stop_injecting('device 2')
         self.assertFalse(self.daemon.is_injecting('device 2'))
 
         pending_events['device 2'] = [
-            Event(evdev.events.EV_KEY, keycode_from_2 - KEYCODE_OFFSET, 1),
-            Event(evdev.events.EV_KEY, keycode_from_2 - KEYCODE_OFFSET, 0),
+            Event(evdev.events.EV_KEY, keycode_from_2, 1),
+            Event(evdev.events.EV_KEY, keycode_from_2, 0),
         ]
 
         time.sleep(0.2)
@@ -126,12 +126,12 @@ class TestDaemon(unittest.TestCase):
 
         event = uinput_write_history_pipe[0].recv()
         self.assertEqual(event.type, evdev.events.EV_KEY)
-        self.assertEqual(event.code, keycode_to_2 - KEYCODE_OFFSET)
+        self.assertEqual(event.code, keycode_to_2)
         self.assertEqual(event.value, 1)
 
         event = uinput_write_history_pipe[0].recv()
         self.assertEqual(event.type, evdev.events.EV_KEY)
-        self.assertEqual(event.code, keycode_to_2 - KEYCODE_OFFSET)
+        self.assertEqual(event.code, keycode_to_2)
         self.assertEqual(event.value, 0)
 
 

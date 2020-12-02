@@ -30,12 +30,12 @@ from keymapper.dev.injector import is_numlock_on, toggle_numlock,\
     ensure_numlock, KeycodeInjector
 from keymapper.dev.keycode_mapper import handle_keycode
 from keymapper.state import custom_mapping, system_mapping, \
-    clear_system_mapping, KEYCODE_OFFSET
+    clear_system_mapping
 from keymapper.mapping import Mapping
 from keymapper.config import config
 from keymapper.dev.macros import parse
 
-from tests.test import uinput_write_history, Event, pending_events, fixtures, \
+from tests.test import Event, pending_events, fixtures, \
     clear_write_history, EVENT_READ_TIMEOUT, uinput_write_history_pipe, \
     MAX_ABS
 
@@ -81,7 +81,7 @@ class TestInjector(unittest.TestCase):
             character='a'
         )
 
-        maps_to = system_mapping['a'] - KEYCODE_OFFSET
+        maps_to = system_mapping['a']
 
         self.injector = KeycodeInjector('foo', mapping)
         fake_device = FakeDevice()
@@ -302,14 +302,14 @@ class TestInjector(unittest.TestCase):
         # keycode used in X and in the mappings
         pending_events['device 2'] = [
             # should execute a macro
-            Event(EV_KEY, 0, 1),
-            Event(EV_KEY, 0, 0),
+            Event(EV_KEY, 8, 1),
+            Event(EV_KEY, 8, 0),
             # normal keystroke
-            Event(EV_KEY, 1, 1),
-            Event(EV_KEY, 1, 0),
+            Event(EV_KEY, 9, 1),
+            Event(EV_KEY, 9, 0),
             # just pass those over without modifying
-            Event(EV_KEY, 2, 1),
-            Event(EV_KEY, 2, 0),
+            Event(EV_KEY, 10, 1),
+            Event(EV_KEY, 10, 0),
             Event(3124, 3564, 6542),
         ]
 
@@ -334,30 +334,30 @@ class TestInjector(unittest.TestCase):
         # keystrokes are all over the place.
         # just check if they are there and if so, remove them from the list.
         ev_key = EV_KEY
-        self.assertIn((ev_key, code_q - KEYCODE_OFFSET, 1), history)
-        self.assertIn((ev_key, code_q - KEYCODE_OFFSET, 0), history)
-        self.assertIn((ev_key, code_w - KEYCODE_OFFSET, 1), history)
-        self.assertIn((ev_key, code_w - KEYCODE_OFFSET, 0), history)
-        index_q_1 = history.index((ev_key, code_q - KEYCODE_OFFSET, 1))
-        index_q_0 = history.index((ev_key, code_q - KEYCODE_OFFSET, 0))
-        index_w_1 = history.index((ev_key, code_w - KEYCODE_OFFSET, 1))
-        index_w_0 = history.index((ev_key, code_w - KEYCODE_OFFSET, 0))
+        self.assertIn((ev_key, code_q, 1), history)
+        self.assertIn((ev_key, code_q, 0), history)
+        self.assertIn((ev_key, code_w, 1), history)
+        self.assertIn((ev_key, code_w, 0), history)
+        index_q_1 = history.index((ev_key, code_q, 1))
+        index_q_0 = history.index((ev_key, code_q, 0))
+        index_w_1 = history.index((ev_key, code_w, 1))
+        index_w_0 = history.index((ev_key, code_w, 0))
         self.assertGreater(index_q_0, index_q_1)
         self.assertGreater(index_w_1, index_q_0)
         self.assertGreater(index_w_0, index_w_1)
         del history[index_q_1]
-        index_q_0 = history.index((ev_key, code_q - KEYCODE_OFFSET, 0))
+        index_q_0 = history.index((ev_key, code_q, 0))
         del history[index_q_0]
-        index_w_1 = history.index((ev_key, code_w - KEYCODE_OFFSET, 1))
+        index_w_1 = history.index((ev_key, code_w, 1))
         del history[index_w_1]
-        index_w_0 = history.index((ev_key, code_w - KEYCODE_OFFSET, 0))
+        index_w_0 = history.index((ev_key, code_w, 0))
         del history[index_w_0]
 
         # the rest should be in order.
-        self.assertEqual(history[0], (ev_key, code_a - KEYCODE_OFFSET, 1))
-        self.assertEqual(history[1], (ev_key, code_a - KEYCODE_OFFSET, 0))
-        self.assertEqual(history[2], (ev_key, input_b - KEYCODE_OFFSET, 1))
-        self.assertEqual(history[3], (ev_key, input_b - KEYCODE_OFFSET, 0))
+        self.assertEqual(history[0], (ev_key, code_a, 1))
+        self.assertEqual(history[1], (ev_key, code_a, 0))
+        self.assertEqual(history[2], (ev_key, input_b, 1))
+        self.assertEqual(history[3], (ev_key, input_b, 0))
         self.assertEqual(history[4], (3124, 3564, 6542))
 
 

@@ -36,7 +36,7 @@ gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
 
 from keymapper.state import custom_mapping, system_mapping, \
-    clear_system_mapping, KEYCODE_OFFSET
+    clear_system_mapping
 from keymapper.paths import CONFIG, get_config_path
 from keymapper.config import config
 from keymapper.dev.reader import keycode_reader
@@ -408,8 +408,8 @@ class TestIntegration(unittest.TestCase):
         system_mapping['a'] = keycode_to
 
         pending_events['device 2'] = [
-            Event(evdev.events.EV_KEY, keycode_from - KEYCODE_OFFSET, 1),
-            Event(evdev.events.EV_KEY, keycode_from - KEYCODE_OFFSET, 0)
+            Event(evdev.events.EV_KEY, keycode_from, 1),
+            Event(evdev.events.EV_KEY, keycode_from, 0)
         ]
 
         custom_mapping.save('device 2', 'foo preset')
@@ -428,12 +428,12 @@ class TestIntegration(unittest.TestCase):
 
         event = uinput_write_history_pipe[0].recv()
         self.assertEqual(event.type, evdev.events.EV_KEY)
-        self.assertEqual(event.code, keycode_to - KEYCODE_OFFSET)
+        self.assertEqual(event.code, keycode_to)
         self.assertEqual(event.value, 1)
 
         event = uinput_write_history_pipe[0].recv()
         self.assertEqual(event.type, evdev.events.EV_KEY)
-        self.assertEqual(event.code, keycode_to - KEYCODE_OFFSET)
+        self.assertEqual(event.code, keycode_to)
         self.assertEqual(event.value, 0)
 
     def test_stop_injecting(self):
@@ -446,7 +446,7 @@ class TestIntegration(unittest.TestCase):
 
         # not all of those events should be processed, since that takes some
         # time due to time.sleep in the fakes and the injection is stopped.
-        pending_events['device 2'] = [Event(1, keycode_from - KEYCODE_OFFSET, 1)] * 100
+        pending_events['device 2'] = [Event(1, keycode_from, 1)] * 100
 
         custom_mapping.save('device 2', 'foo preset')
 

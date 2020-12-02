@@ -27,7 +27,6 @@ import asyncio
 import evdev
 
 from keymapper.logger import logger
-from keymapper.state import KEYCODE_OFFSET
 from keymapper.dev.ev_abs_mapper import JOYSTICK
 
 
@@ -60,8 +59,7 @@ def handle_keycode(code_code_mapping, macros, event, uinput):
     Parameters
     ----------
     code_code_mapping : dict
-        mapping of linux-keycode to linux-keycode. No need to substract
-        anything before writing to the device.
+        mapping of linux-keycode to linux-keycode.
     macros : dict
         mapping of linux-keycode to _Macro objects
     """
@@ -72,10 +70,6 @@ def handle_keycode(code_code_mapping, macros, event, uinput):
     input_keycode = event.code
     input_type = event.type
 
-    # for logging purposes. It should log the same keycode as xev and gtk,
-    # which is also displayed in the UI.
-    xkb_keycode = input_keycode + KEYCODE_OFFSET
-
     if input_keycode in macros:
         if event.value != 1:
             # only key-down events trigger macros
@@ -84,7 +78,7 @@ def handle_keycode(code_code_mapping, macros, event, uinput):
         macro = macros[input_keycode]
         logger.spam(
             'got code:%s value:%s, maps to macro %s',
-            xkb_keycode,
+            input_keycode,
             event.value,
             macro.code
         )
@@ -96,15 +90,15 @@ def handle_keycode(code_code_mapping, macros, event, uinput):
         target_type = evdev.events.EV_KEY
         logger.spam(
             'got code:%s value:%s event:%s, maps to EV_KEY:%s',
-            xkb_keycode,
+            input_keycode,
             event.value,
             evdev.ecodes.EV[event.type],
-            target_keycode + KEYCODE_OFFSET
+            target_keycode
         )
     else:
         logger.spam(
             'got unmapped code:%s value:%s',
-            xkb_keycode,
+            input_keycode,
             event.value,
         )
         target_keycode = input_keycode
