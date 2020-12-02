@@ -25,7 +25,6 @@
 import os
 import json
 import copy
-import evdev
 
 from keymapper.logger import logger
 from keymapper.paths import get_config_path, touch
@@ -51,41 +50,60 @@ class Mapping:
     def __len__(self):
         return len(self._mapping)
 
-    def change(self, ev_type, new_keycode, character, previous_keycode=None):
+    def change(self, new, character, previous=(None, None)):
         """Replace the mapping of a keycode with a different one.
 
         Return True on success.
 
         Parameters
         ----------
-        ev_type : int
-            one of evdev.events, taken from the original source event.
-            Everything will be mapped to EV_KEY.
-        new_keycode : int
-            The source keycode, what the mouse would report without any
+        new : int, int
+            0: type, one of evdev.events, taken from the original source
+            event. Everything will be mapped to EV_KEY.
+            1: The source keycode, what the mouse would report without any
             modification.
         character : string or string[]
             A single character known to xkb or linux.
             Examples: KP_1, Shift_L, a, B, BTN_LEFT.
-        previous_keycode : int or None
+        previous : int, int
             If None, will not remove any previous mapping. If you recently
             used 10 for new_keycode and want to overwrite that with 11,
             provide 5 here.
         """
+        new_type, new_keycode = new
+        prev_type, prev_keycode = previous
+
+        # either both of them are None, or both integers
+        if prev_keycode is None and prev_keycode != prev_type:
+            logger.error('Got (%s, %s) for previous', prev_type, prev_keycode)
+        if new_keycode is None and prev_keycode != new_type:
+            logger.error('Got (%s, %s) for new', new_type, new_keycode)
+
         try:
             new_keycode = int(new_keycode)
-            if previous_keycode is not None:
-                previous_keycode = int(previous_keycode)
+            new_type = int(new_type)
+            if prev_keycode is not None:
+                prev_keycode = int(prev_keycode)
+            if prev_type is not None:
+                prev_type = int(prev_type)
         except ValueError:
-            logger.error('Can only use numbers as keycodes')
+            logger.error('Can only use numbers in the tuples')
             return False
 
         if new_keycode and character:
-            self._mapping[(ev_type, new_keycode)] = character
-            if new_keycode != previous_keycode:
+            logger.debug(
+                'type:%s, code:%s will map to %s, replacing type:%s, code:%s',
+                new_type, new_keycode, character, prev_type, prev_keycode
+            )
+            self._mapping[(new_type, new_keycode)] = character
+            code_changed = new_keycode != prev_keycode
+            if code_changed and prev_keycode is not None:
                 # clear previous mapping of that code, because the line
                 # representing that one will now represent a different one.
-                self.clear(ev_type, previous_keycode)
+                # TODO test that None won't reach the clear function.
+                # TODO test that overwriting an entry with a different type
+                #  works
+                self.clear(prev_type, prev_keycode)
             self.changed = True
             return True
 
@@ -100,7 +118,16 @@ class Mapping:
         ev_type : int
             one of evdev.events
         """
+        assert keycode is not None
+        assert ev_type is not None
+        assert isinstance(ev_type, int)
+        assert isinstance(keycode, int)
+
         if self._mapping.get((ev_type, keycode)) is not None:
+            logger.debug(
+                'type:%s, code:%s will be cleared',
+                ev_type, keycode
+            )
             del self._mapping[(ev_type, keycode)]
             self.changed = True
 
