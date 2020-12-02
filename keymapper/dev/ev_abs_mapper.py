@@ -23,6 +23,7 @@
 
 
 import asyncio
+import time
 
 import evdev
 from evdev.ecodes import EV_ABS, EV_REL
@@ -60,10 +61,7 @@ async def ev_abs_mapper(abs_state, input_device, keymapper_device):
     non_linearity = config.get('gamepad.non_linearity', 4)
 
     while True:
-        # this is part of the spawned process, so terminating that one
-        # will also stop this loop
-        await asyncio.sleep(1 / 60)
-
+        start = time.time()
         abs_x, abs_y = abs_state
 
         if non_linearity != 1:
@@ -98,3 +96,7 @@ async def ev_abs_mapper(abs_state, input_device, keymapper_device):
                 evdev.ecodes.ABS_X,
                 rel_x
             )
+
+        # try to do this as close to 60hz as possible
+        time_taken = time.time() - start
+        await asyncio.sleep(max(0.0, (1 / 60) - time_taken))
