@@ -197,7 +197,7 @@ class TestIntegration(unittest.TestCase):
         gtk_iteration()
         self.assertEqual(len(self.window.get('key_list').get_children()), 2)
 
-        self.assertEqual(custom_mapping.get_keycode('Shift_L'), 30)
+        self.assertEqual(custom_mapping.get_character(30), 'Shift_L')
         self.assertEqual(row.get_character(), 'Shift_L')
         self.assertEqual(row.get_keycode(), 30)
 
@@ -295,7 +295,6 @@ class TestIntegration(unittest.TestCase):
         # try to add a duplicate keycode, it should be ignored
         self.change_empty_row(11, 'd', success=False)
         self.assertEqual(custom_mapping.get_character(11), 'k(b).k(c)')
-        self.assertIsNone(custom_mapping.get_keycode('d'))
         # and the number of rows shouldn't change
         self.assertEqual(len(self.get_rows()), num_rows_target)
 
@@ -313,12 +312,10 @@ class TestIntegration(unittest.TestCase):
         self.assertEqual(len(self.get_rows()), 3)
 
         self.assertEqual(custom_mapping.get_character(11), 'b')
-        self.assertEqual(custom_mapping.get_keycode('b'), 11)
 
         def remove(row, code, char, num_rows_after):
             if code is not None and char is not None:
                 self.assertEqual(custom_mapping.get_character(code), char)
-                self.assertEqual(custom_mapping.get_keycode(char), code)
             self.assertEqual(row.get_character(), char)
             self.assertEqual(row.get_keycode(), code)
             row.on_delete_button_clicked()
@@ -326,7 +323,6 @@ class TestIntegration(unittest.TestCase):
             gtk_iteration()
             self.assertIsNone(row.get_keycode())
             self.assertIsNone(row.get_character())
-            self.assertIsNone(custom_mapping.get_keycode(char))
             self.assertIsNone(custom_mapping.get_character(code))
             self.assertEqual(len(self.get_rows()), num_rows_after)
 
