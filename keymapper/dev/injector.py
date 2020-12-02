@@ -321,6 +321,8 @@ class KeycodeInjector:
         logger.debug('Parsing macros')
         macros = {}
         for keycode, output in self.mapping:
+            keycode -= KEYCODE_OFFSET
+
             if '(' in output and ')' in output and len(output) >= 4:
                 # probably a macro
                 macros[keycode] = parse(
@@ -332,7 +334,9 @@ class KeycodeInjector:
             target_keycode = system_mapping.get(output)
             if target_keycode is None:
                 logger.error('Don\'t know what %s is', output)
-                return
+                continue
+
+            code_code_mapping[keycode] = target_keycode - KEYCODE_OFFSET
 
         logger.debug(
             'Started injecting into %s, fd %s',
