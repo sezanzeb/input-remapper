@@ -46,14 +46,10 @@ class TestMapping(unittest.TestCase):
         mapping1.change(2, 'b')
 
         self.assertEqual(mapping1.get_character(1), 'a')
-        self.assertEqual(mapping1.get_keycode('a'), 1)
         self.assertEqual(mapping1.get_character(2), 'b')
-        self.assertEqual(mapping1.get_keycode('b'), 2)
 
         self.assertEqual(mapping2.get_character(1), 'a')
-        self.assertEqual(mapping2.get_keycode('a'), 1)
         self.assertIsNone(mapping2.get_character(2))
-        self.assertIsNone(mapping2.get_keycode('b'))
 
     def test_save_load(self):
         self.mapping.change(10, '1')
@@ -67,15 +63,6 @@ class TestMapping(unittest.TestCase):
         self.assertEqual(loaded.get_character(10), '1')
         self.assertEqual(loaded.get_character(11), '2')
         self.assertEqual(loaded.get_character(12), '3')
-        self.assertEqual(loaded.get_keycode('1'), 10)
-        self.assertEqual(loaded.get_keycode('2'), 11)
-        self.assertEqual(loaded.get_keycode('3'), 12)
-
-    def test_split(self):
-        # mapping supports the xmodmap/xkb syntax for modified buttons
-        self.mapping.change(10, 'a, A')
-        self.assertEqual(self.mapping.get_keycode('a'), 10)
-        self.assertEqual(self.mapping.get_keycode('A'), 10)
 
     def test_change(self):
         # 1 is not assigned yet, ignore it
@@ -83,39 +70,33 @@ class TestMapping(unittest.TestCase):
         self.assertTrue(self.mapping.changed)
         self.assertIsNone(self.mapping.get_character(1))
         self.assertEqual(self.mapping.get_character(2), 'a')
-        self.assertEqual(self.mapping.get_keycode('a'), 2)
         self.assertEqual(len(self.mapping), 1)
 
         # change 2 to 3 and change a to b
         self.mapping.change(3, 'b', 2)
         self.assertIsNone(self.mapping.get_character(2))
         self.assertEqual(self.mapping.get_character(3), 'b')
-        self.assertEqual(self.mapping.get_keycode('b'), 3)
         self.assertEqual(len(self.mapping), 1)
 
         # add 4
         self.mapping.change(4, 'c', None)
         self.assertEqual(self.mapping.get_character(3), 'b')
         self.assertEqual(self.mapping.get_character(4), 'c')
-        self.assertEqual(self.mapping.get_keycode('c'), 4)
         self.assertEqual(len(self.mapping), 2)
 
         # change the mapping of 4 to d
         self.mapping.change(4, 'd', None)
         self.assertEqual(self.mapping.get_character(4), 'd')
-        self.assertEqual(self.mapping.get_keycode('d'), 4)
         self.assertEqual(len(self.mapping), 2)
 
         # this also works in the same way
         self.mapping.change(4, 'e', 4)
         self.assertEqual(self.mapping.get_character(4), 'e')
-        self.assertEqual(self.mapping.get_keycode('e'), 4)
         self.assertEqual(len(self.mapping), 2)
 
         # and this
         self.mapping.change('4', 'f', '4')
         self.assertEqual(self.mapping.get_character(4), 'f')
-        self.assertEqual(self.mapping.get_keycode('f'), 4)
         self.assertEqual(len(self.mapping), 2)
 
         # non-int keycodes are ignored

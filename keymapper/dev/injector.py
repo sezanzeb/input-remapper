@@ -435,6 +435,7 @@ class KeycodeInjector:
             else:
                 # TODO compile int-int mapping instead of going this route.
                 #  I think that makes the reverse mapping obsolete.
+                #  It already is actually.
                 target_keycode = system_mapping.get(character)
                 if target_keycode is None:
                     logger.error(

@@ -30,14 +30,6 @@ from keymapper.logger import logger
 from keymapper.paths import get_config_path, touch
 
 
-def keep_reverse_mapping_intact(func):
-    """Decorator for Mapping.update_reverse_mapping."""
-    def wrapper(self, *args, **kwargs):
-        func(self, *args, **kwargs)
-        self.update_reverse_mapping()
-    return wrapper
-
-
 class Mapping:
     """Contains and manages mappings.
 
@@ -46,13 +38,6 @@ class Mapping:
     """
     def __init__(self):
         self._mapping = {}
-
-        # Maintain this second mapping in order to optimize get_keycode.
-        # This mapping is not complete, since multiple keycodes can map
-        # to the same character in _mapping which is not possible in
-        # _reverse_mapping! It is based on _reverse_mapping and
-        # reconstructed on changes.
-        self._reverse_mapping = {}
 
         self.changed = False
 
@@ -65,18 +50,6 @@ class Mapping:
     def __len__(self):
         return len(self._mapping)
 
-    def update_reverse_mapping(self):
-        """Generate a reverse mapping to optimize reverse lookups.
-
-        If _mapping contains `20: "a, A"` (the xkb syntax for modified keys),
-        reverse mapping will contain `"a": 20, "A": 20`.
-        """
-        self._reverse_mapping = {}
-        for key, value in self._mapping.items():
-            for character in value.split(','):
-                self._reverse_mapping[character.strip()] = key
-
-    @keep_reverse_mapping_intact
     def change(self, new_keycode, character, previous_keycode=None):
         """Replace the mapping of a keycode with a different one.
 
@@ -115,7 +88,6 @@ class Mapping:
 
         return False
 
-    @keep_reverse_mapping_intact
     def clear(self, keycode):
         """Remove a keycode from the mapping.
 
@@ -127,13 +99,11 @@ class Mapping:
             del self._mapping[keycode]
             self.changed = True
 
-    @keep_reverse_mapping_intact
     def empty(self):
         """Remove all mappings."""
         self._mapping = {}
         self.changed = True
 
-    @keep_reverse_mapping_intact
     def load(self, device, preset):
         """Load a dumped JSON from home to overwrite the mappings."""
         path = get_config_path(device, preset)
@@ -169,7 +139,6 @@ class Mapping:
         """Create a copy of the mapping."""
         mapping = Mapping()
         mapping._mapping = copy.deepcopy(self._mapping)
-        mapping.update_reverse_mapping()
         mapping.changed = self.changed
         return mapping
 
@@ -190,14 +159,6 @@ class Mapping:
             file.write('\n')
 
         self.changed = False
-
-    def get_keycode(self, character):
-        """Get the keycode for that character.
-
-        If multiple keycodes map to that character, an arbitrary one of
-        those is returned.
-        """
-        return self._reverse_mapping.get(character)
 
     def get_character(self, keycode):
         """Read the character that is mapped to this keycode.
