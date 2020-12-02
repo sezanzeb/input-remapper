@@ -19,6 +19,7 @@
 # along with key-mapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
+import asyncio
 import unittest
 import time
 
@@ -27,10 +28,12 @@ from evdev.ecodes import EV_REL, EV_KEY, EV_ABS
 
 from keymapper.dev.injector import is_numlock_on, toggle_numlock,\
     ensure_numlock, KeycodeInjector
+from keymapper.dev.keycode_mapper import handle_keycode
 from keymapper.state import custom_mapping, system_mapping, \
     clear_system_mapping, KEYCODE_OFFSET
 from keymapper.mapping import Mapping
 from keymapper.config import config
+from keymapper.dev.macros import parse
 
 from tests.test import uinput_write_history, Event, pending_events, fixtures, \
     clear_write_history, EVENT_READ_TIMEOUT, uinput_write_history_pipe, \
@@ -219,11 +222,75 @@ class TestInjector(unittest.TestCase):
         self.assertEqual(history[-2][1], rel_y)
         self.assertAlmostEqual(history[-2][2], -1)
 
+    def test_handle_keycode(self):
+        code_code_mapping = {
+            1: 101,
+            2: 102
+        }
+
+        history = []
+
+        class UInput:
+            def write(self, type, code, value):
+                history.append((type, code, value))
+
+            def syn(self):
+                pass
+
+        uinput = UInput()
+
+        EV_KEY = evdev.ecodes.EV_KEY
+
+        handle_keycode(code_code_mapping, {}, Event(EV_KEY, 1, 1), uinput)
+        handle_keycode(code_code_mapping, {}, Event(EV_KEY, 3, 1), uinput)
+        handle_keycode(code_code_mapping, {}, Event(EV_KEY, 2, 1), uinput)
+
+        self.assertEqual(len(history), 3)
+        self.assertEqual(history[0], (EV_KEY, 101, 1))
+        self.assertEqual(history[1], (EV_KEY, 3, 1))
+        self.assertEqual(history[2], (EV_KEY, 102, 1))
+
+    def test_handle_keycode_macro(self):
+        history = []
+
+        macro_mapping = {
+            1: parse('k(a)', lambda *args: history.append(args)),
+            2: parse('r(5, k(b))', lambda *args: history.append(args))
+        }
+
+        code_a = 100
+        code_b = 101
+        system_mapping['a'] = code_a
+        system_mapping['b'] = code_b
+        clear_system_mapping()
+
+        EV_KEY = evdev.ecodes.EV_KEY
+
+        handle_keycode({}, macro_mapping, Event(EV_KEY, 1, 1), None)
+        handle_keycode({}, macro_mapping, Event(EV_KEY, 2, 1), None)
+
+        loop = asyncio.get_event_loop()
+
+        sleeptime = config.get('macros.keystroke_sleep_ms', 10) * 12
+
+        async def sleep():
+            await asyncio.sleep(sleeptime / 1000 + 0.1)
+
+        loop.run_until_complete(sleep())
+
+        # 6 keycodes written, with down and up events
+        self.assertEqual(len(history), 12)
+        self.assertIn(('a', 1), history)
+        self.assertIn(('a', 0), history)
+        self.assertIn(('b', 1), history)
+        self.assertIn(('b', 0), history)
+
     def test_injector(self):
         custom_mapping.change(8, 'k(KEY_Q).k(w)')
         custom_mapping.change(9, 'a')
         # one mapping that is unknown in the system_mapping on purpose
-        custom_mapping.change(10, 'b')
+        input_b = 10
+        custom_mapping.change(input_b, 'b')
 
         clear_system_mapping()
         code_a = 100
@@ -242,10 +309,9 @@ class TestInjector(unittest.TestCase):
             # normal keystroke
             Event(EV_KEY, 1, 1),
             Event(EV_KEY, 1, 0),
-            # ignored because unknown to the system
+            # just pass those over without modifying
             Event(EV_KEY, 2, 1),
             Event(EV_KEY, 2, 0),
-            # just pass those over without modifying
             Event(3124, 3564, 6542),
         ]
 
@@ -262,8 +328,9 @@ class TestInjector(unittest.TestCase):
             history.append((event.type, event.code, event.value))
 
         # 4 events for the macro
-        # 3 for non-macros
-        self.assertEqual(len(history), 7)
+        # 2 for mapped keys
+        # 3 for forwarded events
+        self.assertEqual(len(history), 9)
 
         # since the macro takes a little bit of time to execute, its
         # keystrokes are all over the place.
@@ -291,7 +358,9 @@ class TestInjector(unittest.TestCase):
         # the rest should be in order.
         self.assertEqual(history[0], (ev_key, code_a - KEYCODE_OFFSET, 1))
         self.assertEqual(history[1], (ev_key, code_a - KEYCODE_OFFSET, 0))
-        self.assertEqual(history[2], (3124, 3564, 6542))
+        self.assertEqual(history[2], (ev_key, input_b - KEYCODE_OFFSET, 1))
+        self.assertEqual(history[3], (ev_key, input_b - KEYCODE_OFFSET, 0))
+        self.assertEqual(history[4], (3124, 3564, 6542))
 
 
 if __name__ == "__main__":
