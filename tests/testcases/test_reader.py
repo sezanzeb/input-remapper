@@ -21,11 +21,11 @@
 
 import unittest
 
-import evdev
 from evdev.events import EV_KEY
 import time
 
 from keymapper.dev.reader import keycode_reader
+from keymapper.state import KEYCODE_OFFSET
 
 from tests.test import Event, pending_events, EVENT_READ_TIMEOUT
 
@@ -58,7 +58,7 @@ class TestReader(unittest.TestCase):
         keycode_reader._pipe[0].send((EV_KEY, 1234))
 
         time.sleep(EVENT_READ_TIMEOUT * 5)
-        self.assertEqual(keycode_reader.read(), (EV_KEY, CODE_3 + 8))
+        self.assertEqual(keycode_reader.read(), (EV_KEY, CODE_3 + KEYCODE_OFFSET))
         self.assertEqual(keycode_reader.read(), (None, None))
 
     def test_wrong_device(self):
@@ -106,7 +106,7 @@ class TestReader(unittest.TestCase):
         keycode_reader.start_reading('device 1')
         time.sleep(EVENT_READ_TIMEOUT * 5)
 
-        self.assertEqual(keycode_reader.read(), (EV_KEY, CODE_3 + 8))
+        self.assertEqual(keycode_reader.read(), (EV_KEY, CODE_3 + KEYCODE_OFFSET))
         self.assertEqual(keycode_reader.read(), (None, None))
 
 
