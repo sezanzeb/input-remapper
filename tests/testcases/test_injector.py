@@ -87,7 +87,7 @@ class TestInjector(unittest.TestCase):
         fake_device = FakeDevice()
         capabilities = self.injector._modify_capabilities(
             fake_device,
-            map_ev_abs=False
+            abs_to_rel=False
         )
 
         self.assertIn(EV_KEY, capabilities)
@@ -105,8 +105,8 @@ class TestInjector(unittest.TestCase):
         path = '/dev/input/event10'
         # this test needs to pass around all other constraints of
         # _prepare_device
-        device, map_ev_abs = self.injector._prepare_device(path)
-        self.assertFalse(map_ev_abs)
+        device, abs_to_rel = self.injector._prepare_device(path)
+        self.assertFalse(abs_to_rel)
         self.assertEqual(self.failed, 2)
         # success on the third try
         device.name = fixtures[path]['name']
@@ -115,10 +115,10 @@ class TestInjector(unittest.TestCase):
         self.injector = KeycodeInjector('gamepad', custom_mapping)
 
         path = '/dev/input/event30'
-        device, map_ev_abs = self.injector._prepare_device(path)
-        self.assertTrue(map_ev_abs)
+        device, abs_to_rel = self.injector._prepare_device(path)
+        self.assertTrue(abs_to_rel)
 
-        capabilities = self.injector._modify_capabilities(device, map_ev_abs)
+        capabilities = self.injector._modify_capabilities(device, abs_to_rel)
         self.assertNotIn(evdev.ecodes.EV_ABS, capabilities)
         self.assertIn(evdev.ecodes.EV_REL, capabilities)
 
@@ -127,8 +127,8 @@ class TestInjector(unittest.TestCase):
         custom_mapping.change(EV_KEY, 10, 'a')
         self.injector = KeycodeInjector('device 1', custom_mapping)
         path = '/dev/input/event11'
-        device, map_ev_abs = self.injector._prepare_device(path)
-        self.assertFalse(map_ev_abs)
+        device, abs_to_rel = self.injector._prepare_device(path)
+        self.assertFalse(abs_to_rel)
         self.assertEqual(self.failed, 0)
         self.assertIsNone(device)
 

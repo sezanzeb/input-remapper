@@ -34,8 +34,9 @@ from evdev.ecodes import EV_KEY, EV_ABS
 from keymapper.logger import logger
 from keymapper.getdevices import get_devices
 from keymapper.state import system_mapping, KEYCODE_OFFSET
-from keymapper.dev.keycode_mapper import handle_keycode
-from keymapper.dev.ev_abs_mapper import ev_abs_mapper
+from keymapper.dev.keycode_mapper import handle_keycode, \
+    should_map_event_as_btn
+from keymapper.dev.ev_abs_mapper import ev_abs_mapper, JOYSTICK
 from keymapper.dev.macros import parse
 
 
@@ -119,7 +120,7 @@ class KeycodeInjector:
         self._process = multiprocessing.Process(target=self._start_injecting)
         self._process.start()
 
-    def map_ev_to_abs(self, capabilities):
+    def map_abs_to_rel(self, capabilities):
         """Check if joystick movements can and should be mapped."""
         # mapping buttons only works without ABS events in the capabilities,
         # possibly due to some intentional constraints in the os. So always
@@ -141,16 +142,15 @@ class KeycodeInjector:
         capabilities = device.capabilities(absinfo=False)
 
         needed = False
-        if capabilities.get(EV_KEY) is not None:
-            for (ev_type, keycode), _ in self.mapping:
-                # TEST ev_type
-                if keycode - KEYCODE_OFFSET in capabilities.get(ev_type, []):
-                    needed = True
-                    break
+        for (ev_type, keycode), _ in self.mapping:
+            # TODO test ev_type
+            if keycode - KEYCODE_OFFSET in capabilities.get(ev_type, []):
+                needed = True
+                break
 
-        map_ev_abs = self.map_ev_to_abs(capabilities)
+        abs_to_rel = self.map_abs_to_rel(capabilities)
 
-        if map_ev_abs:
+        if abs_to_rel:
             needed = True
 
         if not needed:
@@ -181,15 +181,15 @@ class KeycodeInjector:
 
             time.sleep(0.15)
 
-        return device, map_ev_abs
+        return device, abs_to_rel
 
-    def _modify_capabilities(self, input_device, map_ev_abs):
+    def _modify_capabilities(self, input_device, abs_to_rel):
         """Adds all keycode into a copy of a devices capabilities.
 
         Prameters
         ---------
         input_device : evdev.InputDevice
-        map_ev_abs : bool
+        abs_to_rel : bool
             if ABS capabilities should be removed in favor of REL
         """
         ecodes = evdev.ecodes
@@ -207,7 +207,7 @@ class KeycodeInjector:
             if keycode is not None:
                 capabilities[ev_type].append(keycode - KEYCODE_OFFSET)
 
-        if map_ev_abs:
+        if abs_to_rel:
             del capabilities[ecodes.EV_ABS]
             capabilities[ecodes.EV_REL] = [
                 evdev.ecodes.REL_X,
@@ -221,6 +221,8 @@ class KeycodeInjector:
             del capabilities[ecodes.EV_SYN]
         if ecodes.EV_FF in capabilities:
             del capabilities[ecodes.EV_FF]
+
+        print(capabilities)
 
         return capabilities
 
@@ -254,7 +256,7 @@ class KeycodeInjector:
 
         # Watch over each one of the potentially multiple devices per hardware
         for path in paths:
-            input_device, map_ev_abs = self._prepare_device(path)
+            input_device, abs_to_rel = self._prepare_device(path)
             if input_device is None:
                 continue
 
@@ -264,15 +266,15 @@ class KeycodeInjector:
             uinput = evdev.UInput(
                 name=f'{DEV_NAME} {self.device}',
                 phys=DEV_NAME,
-                events=self._modify_capabilities(input_device, map_ev_abs)
+                events=self._modify_capabilities(input_device, abs_to_rel)
             )
 
             # keycode injection
-            coroutine = self._keycode_loop(input_device, uinput, map_ev_abs)
+            coroutine = self._keycode_loop(input_device, uinput, abs_to_rel)
             coroutines.append(coroutine)
 
             # mouse movement injection
-            if map_ev_abs:
+            if abs_to_rel:
                 self.abs_state[0] = 0
                 self.abs_state[1] = 0
                 coroutine = ev_abs_mapper(
@@ -307,7 +309,7 @@ class KeycodeInjector:
         uinput.write(EV_KEY, keycode - KEYCODE_OFFSET, value)
         uinput.syn()
 
-    async def _keycode_loop(self, device, uinput, map_ev_abs):
+    async def _keycode_loop(self, device, uinput, abs_to_rel):
         """Inject keycodes for one of the virtual devices.
 
         Can be stopped by stopping the asyncio loop.
@@ -318,7 +320,7 @@ class KeycodeInjector:
             where to read keycodes from
         uinput : evdev.UInput
             where to write keycodes to
-        map_ev_abs : bool
+        abs_to_rel : bool
             if joystick events should be mapped to mouse movements
         """
         # efficiently figure out the target keycode without taking
@@ -352,7 +354,7 @@ class KeycodeInjector:
         )
 
         async for event in device.async_read_loop():
-            if map_ev_abs and event.type == EV_ABS:
+            if abs_to_rel and event.type == EV_ABS and event.code in JOYSTICK:
                 if event.code not in [evdev.ecodes.ABS_X, evdev.ecodes.ABS_Y]:
                     continue
                 if event.code == evdev.ecodes.ABS_X:
@@ -361,16 +363,14 @@ class KeycodeInjector:
                     self.abs_state[1] = event.value
                 continue
 
-            if event.type != EV_KEY:
-                uinput.write(event.type, event.code, event.value)
-                # this already includes SYN events, so need to syn here again
+            if should_map_event_as_btn(event):
+                handle_keycode(code_code_mapping, macros, event, uinput)
                 continue
 
-            if event.value == 2:
-                # linux does them itself, no need to trigger them
-                continue
-
-            handle_keycode(code_code_mapping, macros, event, uinput)
+            # forward the rest
+            uinput.write(event.type, event.code, event.value)
+            # this already includes SYN events, so need to syn here again
+            continue
 
         # this should only ever happen in tests to avoid blocking them
         # forever, as soon as all events are consumed. In normal operation

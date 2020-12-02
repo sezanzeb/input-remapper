@@ -24,12 +24,35 @@
 
 import asyncio
 
+import evdev
+
 from keymapper.logger import logger
 from keymapper.state import KEYCODE_OFFSET
 
 
+def should_map_event_as_btn(event):
+    """Does this event describe a button.
+
+    Especially important for gamepad events, some of the buttons
+    require special rules.
+
+    Parameters
+    ----------
+    event : evdev.events.InputEvent
+    """
+    # TODO test
+    if event.type == evdev.events.EV_KEY:
+        return True
+
+    if event.type == evdev.events.EV_ABS and event.code > 5:
+        # 1 - 5 seem to be joystick events
+        return True
+
+    return False
+
+
 def handle_keycode(code_code_mapping, macros, event, uinput):
-    """Write the mapped keycode.
+    """Write the mapped keycode or forward unmapped ones.
 
     Parameters
     ----------
@@ -39,6 +62,10 @@ def handle_keycode(code_code_mapping, macros, event, uinput):
     macros : dict
         mapping of linux-keycode to _Macro objects
     """
+    if event.value == 2:
+        # button-hold event
+        return
+
     input_keycode = event.code
 
     # for logging purposes. It should log the same keycode as xev and gtk,
@@ -63,9 +90,10 @@ def handle_keycode(code_code_mapping, macros, event, uinput):
     if input_keycode in code_code_mapping:
         target_keycode = code_code_mapping[input_keycode]
         logger.spam(
-            'got code:%s value:%s, maps to code:%s',
+            'got code:%s value:%s event:%s, maps to code:%s',
             xkb_keycode,
             event.value,
+            evdev.ecodes.EV[event.type],
             target_keycode + KEYCODE_OFFSET
         )
     else:
@@ -76,5 +104,6 @@ def handle_keycode(code_code_mapping, macros, event, uinput):
         )
         target_keycode = input_keycode
 
+    print('write', event.type, target_keycode, event.value)
     uinput.write(event.type, target_keycode, event.value)
     uinput.syn()
