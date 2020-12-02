@@ -35,7 +35,7 @@ except OSError:
     # failed in some ubuntu installations
     USER = os.environ['USER']
     if USER == 'root':
-        USER = os.envron.get('SUDO_USER', USER)
+        USER = os.environ.get('SUDO_USER', USER)
 
 CONFIG = os.path.join('/home', USER, '.config/key-mapper')
 
