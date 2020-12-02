@@ -182,15 +182,15 @@ class TestIntegration(unittest.TestCase):
 
         row = rows[0]
 
-        row.set_new_keycode(None)
+        row.set_new_keycode(None, None)
         self.assertIsNone(row.get_keycode())
         self.assertEqual(len(custom_mapping), 0)
-        row.set_new_keycode(30)
+        row.set_new_keycode(EV_KEY, 30)
         self.assertEqual(len(custom_mapping), 0)
-        self.assertEqual(row.get_keycode(), 30)
-        row.set_new_keycode(30)
+        self.assertEqual(row.get_keycode(), (EV_KEY, 30))
+        row.set_new_keycode(EV_KEY, 30)
         self.assertEqual(len(custom_mapping), 0)
-        self.assertEqual(row.get_keycode(), 30)
+        self.assertEqual(row.get_keycode(), (EV_KEY, 30))
 
         time.sleep(0.1)
         gtk_iteration()
@@ -205,10 +205,11 @@ class TestIntegration(unittest.TestCase):
 
         self.assertEqual(custom_mapping.get_character(EV_KEY, 30), 'Shift_L')
         self.assertEqual(row.get_character(), 'Shift_L')
-        self.assertEqual(row.get_keycode(), 30)
+        self.assertEqual(row.get_keycode(), (EV_KEY, 30))
 
     def change_empty_row(self, code, char, code_first=True, success=True):
         """Modify the one empty row that always exists."""
+        # this is not a test, it's a utility function for other tests.
         # wait for the window to create a new empty row if needed
         time.sleep(0.1)
         gtk_iteration()
@@ -231,11 +232,11 @@ class TestIntegration(unittest.TestCase):
         if code:
             # modifies the keycode in the row not by writing into the input,
             # but by sending an event
-            keycode_reader._pipe[1].send(code)
+            keycode_reader._pipe[1].send((EV_KEY, code))
             time.sleep(0.1)
             gtk_iteration()
             if success:
-                self.assertEqual(row.get_keycode(), code)
+                self.assertEqual(row.get_keycode(), (EV_KEY, code))
                 self.assertIn(
                     'changed',
                     row.get_style_context().list_classes()
@@ -322,8 +323,12 @@ class TestIntegration(unittest.TestCase):
         def remove(row, code, char, num_rows_after):
             if code is not None and char is not None:
                 self.assertEqual(custom_mapping.get_character(EV_KEY, code), char)
+
             self.assertEqual(row.get_character(), char)
-            self.assertEqual(row.get_keycode(), code)
+            if code is None:
+                self.assertIsNone(row.get_keycode())
+            else:
+                self.assertEqual(row.get_keycode(), (EV_KEY, code))
             row.on_delete_button_clicked()
             time.sleep(0.2)
             gtk_iteration()

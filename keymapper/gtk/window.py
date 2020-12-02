@@ -22,6 +22,8 @@
 """User Interface."""
 
 
+from evdev.ecodes import EV_KEY
+
 import gi
 gi.require_version('Gtk', '3.0')
 gi.require_version('GLib', '2.0')
@@ -213,24 +215,24 @@ class Window:
         """To capture events from keyboard, mice and gamepads."""
         # the "event" event of Gtk.Window wouldn't trigger on gamepad
         # events, so it became a GLib timeout
-        keycode = keycode_reader.read()
+        ev_type, keycode = keycode_reader.read()
 
-        if keycode is None:
+        if keycode is None or ev_type is None:
             return True
 
-        if keycode in [280, 333]:
+        if ev_type == EV_KEY and keycode in [280, 333]:
             # disable mapping the left mouse button because it would break
             # the mouse. Also it is emitted right when focusing the row
             # which breaks the current workflow.
             return True
 
-        self.get('keycode').set_text(str(keycode))
+        self.get('keycode').set_text(f'{ev_type},{keycode}')
 
         # inform the currently selected row about the new keycode
         focused = self.window.get_focus()
         row = focused.get_parent().get_parent()
         if isinstance(focused, Gtk.ToggleButton) and isinstance(row, Row):
-            row.set_new_keycode(keycode)
+            row.set_new_keycode(ev_type, keycode)
 
         return True
 
@@ -374,10 +376,11 @@ class Window:
         custom_mapping.load(self.selected_device, self.selected_preset)
 
         key_list = self.get('key_list')
-        for (_, keycode), output in custom_mapping:
+        for (ev_type, keycode), output in custom_mapping:
             single_key_mapping = Row(
                 window=self,
                 delete_callback=self.on_row_removed,
+                ev_type=ev_type,
                 keycode=keycode,
                 character=output
             )

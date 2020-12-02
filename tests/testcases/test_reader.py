@@ -22,6 +22,7 @@
 import unittest
 
 import evdev
+from evdev.events import EV_KEY
 import time
 
 from keymapper.dev.reader import keycode_reader
@@ -47,28 +48,28 @@ class TestReader(unittest.TestCase):
 
     def test_reading(self):
         pending_events['device 1'] = [
-            Event(evdev.events.EV_KEY, CODE_1, 1),
-            Event(evdev.events.EV_KEY, CODE_2, 1),
-            Event(evdev.events.EV_KEY, CODE_3, 1)
+            Event(EV_KEY, CODE_1, 1),
+            Event(EV_KEY, CODE_2, 1),
+            Event(EV_KEY, CODE_3, 1)
         ]
         keycode_reader.start_reading('device 1')
 
         # sending anything arbitrary does not stop the pipe
-        keycode_reader._pipe[0].send(1234)
+        keycode_reader._pipe[0].send((EV_KEY, 1234))
 
         time.sleep(EVENT_READ_TIMEOUT * 5)
-        self.assertEqual(keycode_reader.read(), CODE_3 + 8)
-        self.assertIsNone(keycode_reader.read())
+        self.assertEqual(keycode_reader.read(), (EV_KEY, CODE_3 + 8))
+        self.assertEqual(keycode_reader.read(), (None, None))
 
     def test_wrong_device(self):
         pending_events['device 1'] = [
-            Event(evdev.events.EV_KEY, CODE_1, 1),
-            Event(evdev.events.EV_KEY, CODE_2, 1),
-            Event(evdev.events.EV_KEY, CODE_3, 1)
+            Event(EV_KEY, CODE_1, 1),
+            Event(EV_KEY, CODE_2, 1),
+            Event(EV_KEY, CODE_3, 1)
         ]
         keycode_reader.start_reading('device 2')
         time.sleep(EVENT_READ_TIMEOUT * 5)
-        self.assertIsNone(keycode_reader.read())
+        self.assertEqual(keycode_reader.read(), (None, None))
 
     def test_keymapper_devices(self):
         # Don't read from keymapper devices, their keycodes are not
@@ -76,28 +77,28 @@ class TestReader(unittest.TestCase):
         # intentionally programmed it won't even do that. But it was at some
         # point.
         pending_events['key-mapper device 2'] = [
-            Event(evdev.events.EV_KEY, CODE_1, 1),
-            Event(evdev.events.EV_KEY, CODE_2, 1),
-            Event(evdev.events.EV_KEY, CODE_3, 1)
+            Event(EV_KEY, CODE_1, 1),
+            Event(EV_KEY, CODE_2, 1),
+            Event(EV_KEY, CODE_3, 1)
         ]
         keycode_reader.start_reading('device 2')
         time.sleep(EVENT_READ_TIMEOUT * 5)
-        self.assertIsNone(keycode_reader.read())
+        self.assertEqual(keycode_reader.read(), (None, None))
 
     def test_clear(self):
         pending_events['device 1'] = [
-            Event(evdev.events.EV_KEY, CODE_1, 1),
-            Event(evdev.events.EV_KEY, CODE_2, 1),
-            Event(evdev.events.EV_KEY, CODE_3, 1)
+            Event(EV_KEY, CODE_1, 1),
+            Event(EV_KEY, CODE_2, 1),
+            Event(EV_KEY, CODE_3, 1)
         ]
         keycode_reader.start_reading('device 1')
         time.sleep(EVENT_READ_TIMEOUT * 5)
         keycode_reader.clear()
-        self.assertIsNone(keycode_reader.read())
+        self.assertEqual(keycode_reader.read(), (None, None))
 
     def test_switch_device(self):
-        pending_events['device 2'] = [Event(evdev.events.EV_KEY, CODE_1, 1)]
-        pending_events['device 1'] = [Event(evdev.events.EV_KEY, CODE_3, 1)]
+        pending_events['device 2'] = [Event(EV_KEY, CODE_1, 1)]
+        pending_events['device 1'] = [Event(EV_KEY, CODE_3, 1)]
 
         keycode_reader.start_reading('device 2')
         time.sleep(EVENT_READ_TIMEOUT * 5)
@@ -105,8 +106,8 @@ class TestReader(unittest.TestCase):
         keycode_reader.start_reading('device 1')
         time.sleep(EVENT_READ_TIMEOUT * 5)
 
-        self.assertEqual(keycode_reader.read(), CODE_3 + 8)
-        self.assertIsNone(keycode_reader.read())
+        self.assertEqual(keycode_reader.read(), (EV_KEY, CODE_3 + 8))
+        self.assertEqual(keycode_reader.read(), (None, None))
 
 
 if __name__ == "__main__":
