@@ -44,6 +44,11 @@ If you can't find what you need, consult
 - Mouse buttons `BTN_LEFT` `BTN_RIGHT` `BTN_MIDDLE` `BTN_SIDE`
 - Macro special keys `KEY_MACRO1` `KEY_MACRO2` ...
 
+##### Gamepads
+
+Tested with the XBOX 360 Gamepad. Joystick movements will be translated
+to mouse movements and buttons can be mapped to keycodes or macros.
+
 ## Installation
 
 After your installation, independent of the method, you should add yourself
