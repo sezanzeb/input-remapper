@@ -30,9 +30,15 @@ class TestConfig(unittest.TestCase):
         self.assertEqual(len(config.iterate_autoload_presets()), 0)
         config.save_config()
 
+    def test_get_default(self):
+        config._config = {}
+        self.assertEqual(config.get('gamepad.joystick.non_linearity'), 4)
+
+        config.set('gamepad.joystick.non_linearity', 3)
+        self.assertEqual(config.get('gamepad.joystick.non_linearity'), 3)
+
     def test_basic(self):
         self.assertEqual(config.get('a'), None)
-        self.assertEqual(config.get('a', 'foo'), 'foo')
 
         config.set('a', 1)
         self.assertEqual(config.get('a'), 1)

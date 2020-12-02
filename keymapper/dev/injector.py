@@ -119,6 +119,13 @@ class KeycodeInjector:
         self._process = multiprocessing.Process(target=self._start_injecting)
         self._process.start()
 
+    def map_ev_to_abs(self, capabilities):
+        """Check if joystick movements can and should be mapped."""
+        # mapping buttons only works without ABS events in the capabilities,
+        # possibly due to some intentional constraints in the os. So always
+        # do this without the option to configure, if it is possible.
+        return evdev.ecodes.ABS_X in capabilities.get(EV_ABS, [])
+
     def _prepare_device(self, path):
         """Try to grab the device, return if not needed/possible.
 
@@ -135,12 +142,13 @@ class KeycodeInjector:
 
         needed = False
         if capabilities.get(EV_KEY) is not None:
-            for keycode, _ in self.mapping:
-                if keycode - KEYCODE_OFFSET in capabilities[EV_KEY]:
+            for (ev_type, keycode), _ in self.mapping:
+                # TEST ev_type
+                if keycode - KEYCODE_OFFSET in capabilities.get(ev_type, []):
                     needed = True
                     break
 
-        map_ev_abs = evdev.ecodes.ABS_X in capabilities.get(EV_ABS, [])
+        map_ev_abs = self.map_ev_to_abs(capabilities)
 
         if map_ev_abs:
             needed = True
@@ -194,10 +202,10 @@ class KeycodeInjector:
         if len(self.mapping) > 0 and capabilities.get(ecodes.EV_KEY) is None:
             capabilities[ecodes.EV_KEY] = []
 
-        for _, character in self.mapping:
+        for (ev_type, _), character in self.mapping:
             keycode = system_mapping.get(character)
             if keycode is not None:
-                capabilities[ecodes.EV_KEY].append(keycode - KEYCODE_OFFSET)
+                capabilities[ev_type].append(keycode - KEYCODE_OFFSET)
 
         if map_ev_abs:
             del capabilities[ecodes.EV_ABS]
@@ -320,7 +328,7 @@ class KeycodeInjector:
         # Parse all macros beforehand
         logger.debug('Parsing macros')
         macros = {}
-        for keycode, output in self.mapping:
+        for (ev_type, keycode), output in self.mapping:
             keycode -= KEYCODE_OFFSET
 
             if '(' in output and ')' in output and len(output) >= 4:

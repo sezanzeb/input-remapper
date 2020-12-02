@@ -41,8 +41,13 @@ INITIAL_CONFIG = {
         'keystroke_sleep_ms': 10
     },
     'gamepad': {
-        'non_linearity': 4,
-        'pointer_speed': 80
+        'joystick': {
+            'non_linearity': 4,
+            'pointer_speed': 80,
+        },
+        'triggers': {
+            'button_threshold': 0.5
+        },
     }
 }
 
@@ -52,10 +57,15 @@ class _Config:
         self._config = {}
         self.load_config()
 
-    def _resolve(self, path, func):
+    def _resolve(self, path, func, config=None):
         """Call func for the given config value."""
         chunks = path.split('.')
-        child = self._config
+
+        if config is None:
+            child = self._config
+        else:
+            child = config
+
         while True:
             chunk = chunks.pop(0)
             parent = child
@@ -97,19 +107,27 @@ class _Config:
 
         self._resolve(path, do)
 
-    def get(self, path, default=None):
-        """Get a config value.
+    def get(self, path, log_unknown=True):
+        """Get a config value. If not set, return the default
 
         Parameters
         ----------
         path : string
             For example 'macros.keystroke_sleep_ms'
-        default : any
-            If the configured value is not available or None, return this
-            instead
+        log_unknown : bool
+            If True, write an error.
         """
-        resolved = self._resolve(path, lambda parent, child, chunk: child)
-        return resolved if resolved is not None else default
+        def do(parent, child, chunk):
+            return child
+
+        resolved = self._resolve(path, do)
+        if resolved is None:
+            resolved = self._resolve(path, do, INITIAL_CONFIG)
+
+        if resolved is None and log_unknown:
+            logger.error('Unknown config key "%s"', path)
+
+        return resolved
 
     def set_autoload_preset(self, device, preset):
         """Set a preset to be automatically applied on start.
@@ -118,7 +136,7 @@ class _Config:
         ----------
         device : string
         preset : string or None
-            if None, don't autoload something for this device
+            if None, don't autoload something for this device.
         """
         if preset is not None:
             self.set(f'autoload.{device}', preset)
@@ -131,7 +149,7 @@ class _Config:
 
     def is_autoloaded(self, device, preset):
         """Should this preset be loaded automatically?"""
-        return self.get(f'autoload.{device}') == preset
+        return self.get(f'autoload.{device}', '') == preset
 
     def load_config(self):
         """Load the config from the file system."""
@@ -139,7 +157,9 @@ class _Config:
 
         if not os.path.exists(CONFIG_PATH):
             # treated like an empty config
-            logger.debug('Config file "%s" doesn\'t exist', CONFIG_PATH)
+            logger.debug('Config "%s" doesn\'t exist yet', CONFIG_PATH)
+            self.clear_config()
+            self.save_config()
             return
 
         with open(CONFIG_PATH, 'r') as file:

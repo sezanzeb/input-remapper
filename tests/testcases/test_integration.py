@@ -24,6 +24,7 @@ import time
 import os
 import unittest
 import evdev
+from evdev.events import EV_KEY
 import json
 from unittest.mock import patch
 from importlib.util import spec_from_loader, module_from_spec
@@ -156,9 +157,9 @@ class TestIntegration(unittest.TestCase):
     def test_select_device(self):
         # creates a new empty preset when no preset exists for the device
         self.window.on_select_device(FakeDropdown('device 1'))
-        custom_mapping.change(50, 'q')
-        custom_mapping.change(51, 'u')
-        custom_mapping.change(52, 'x')
+        custom_mapping.change(EV_KEY, 50, 'q')
+        custom_mapping.change(EV_KEY, 51, 'u')
+        custom_mapping.change(EV_KEY, 52, 'x')
         self.assertEqual(len(custom_mapping), 3)
         self.window.on_select_device(FakeDropdown('device 2'))
         self.assertEqual(len(custom_mapping), 0)
@@ -202,7 +203,7 @@ class TestIntegration(unittest.TestCase):
         gtk_iteration()
         self.assertEqual(len(self.window.get('key_list').get_children()), 2)
 
-        self.assertEqual(custom_mapping.get_character(30), 'Shift_L')
+        self.assertEqual(custom_mapping.get_character(EV_KEY, 30), 'Shift_L')
         self.assertEqual(row.get_character(), 'Shift_L')
         self.assertEqual(row.get_keycode(), 30)
 
@@ -270,8 +271,8 @@ class TestIntegration(unittest.TestCase):
         time.sleep(0.1)
         self.assertEqual(len(self.get_rows()), num_rows_target)
 
-        self.assertEqual(custom_mapping.get_character(10), 'a')
-        self.assertEqual(custom_mapping.get_character(11), 'k(b).k(c)')
+        self.assertEqual(custom_mapping.get_character(EV_KEY, 10), 'a')
+        self.assertEqual(custom_mapping.get_character(EV_KEY, 11), 'k(b).k(c)')
         self.assertTrue(custom_mapping.changed)
 
         self.window.on_save_preset_clicked(None)
@@ -293,13 +294,13 @@ class TestIntegration(unittest.TestCase):
                 row.get_style_context().list_classes()
             )
 
-        self.assertEqual(custom_mapping.get_character(10), 'c')
-        self.assertEqual(custom_mapping.get_character(11), 'k(b).k(c)')
+        self.assertEqual(custom_mapping.get_character(EV_KEY, 10), 'c')
+        self.assertEqual(custom_mapping.get_character(EV_KEY, 11), 'k(b).k(c)')
         self.assertTrue(custom_mapping.changed)
 
         # try to add a duplicate keycode, it should be ignored
         self.change_empty_row(11, 'd', success=False)
-        self.assertEqual(custom_mapping.get_character(11), 'k(b).k(c)')
+        self.assertEqual(custom_mapping.get_character(EV_KEY, 11), 'k(b).k(c)')
         # and the number of rows shouldn't change
         self.assertEqual(len(self.get_rows()), num_rows_target)
 
@@ -316,11 +317,11 @@ class TestIntegration(unittest.TestCase):
         gtk_iteration()
         self.assertEqual(len(self.get_rows()), 3)
 
-        self.assertEqual(custom_mapping.get_character(11), 'b')
+        self.assertEqual(custom_mapping.get_character(EV_KEY, 11), 'b')
 
         def remove(row, code, char, num_rows_after):
             if code is not None and char is not None:
-                self.assertEqual(custom_mapping.get_character(code), char)
+                self.assertEqual(custom_mapping.get_character(EV_KEY, code), char)
             self.assertEqual(row.get_character(), char)
             self.assertEqual(row.get_keycode(), code)
             row.on_delete_button_clicked()
@@ -328,7 +329,7 @@ class TestIntegration(unittest.TestCase):
             gtk_iteration()
             self.assertIsNone(row.get_keycode())
             self.assertIsNone(row.get_character())
-            self.assertIsNone(custom_mapping.get_character(code))
+            self.assertIsNone(custom_mapping.get_character(EV_KEY, code))
             self.assertEqual(len(self.get_rows()), num_rows_after)
 
         remove(row_1, 10, 'a', 2)
@@ -339,17 +340,17 @@ class TestIntegration(unittest.TestCase):
         remove(row_3, None, 'c', 1)
 
     def test_rename_and_save(self):
-        custom_mapping.change(14, 'a', None)
+        custom_mapping.change(EV_KEY, 14, 'a', None)
         self.assertEqual(self.window.selected_preset, 'new preset')
         self.window.on_save_preset_clicked(None)
-        self.assertEqual(custom_mapping.get_character(14), 'a')
+        self.assertEqual(custom_mapping.get_character(EV_KEY, 14), 'a')
 
-        custom_mapping.change(14, 'b', None)
+        custom_mapping.change(EV_KEY, 14, 'b', None)
         self.window.get('preset_name_input').set_text('asdf')
         self.window.on_save_preset_clicked(None)
         self.assertEqual(self.window.selected_preset, 'asdf')
         self.assertTrue(os.path.exists(f'{CONFIG}/device 1/asdf.json'))
-        self.assertEqual(custom_mapping.get_character(14), 'b')
+        self.assertEqual(custom_mapping.get_character(EV_KEY, 14), 'b')
 
     def test_select_device_and_preset(self):
         # created on start because the first device is selected and some empty
@@ -379,7 +380,7 @@ class TestIntegration(unittest.TestCase):
         gtk_iteration()
         self.assertEqual(self.window.selected_preset, 'new preset')
         self.assertFalse(os.path.exists(f'{CONFIG}/device 1/abc 123.json'))
-        custom_mapping.change(10, '1', None)
+        custom_mapping.change(EV_KEY, 10, '1', None)
         self.window.on_save_preset_clicked(None)
         gtk_iteration()
         self.assertEqual(self.window.selected_preset, 'abc 123')

@@ -57,8 +57,8 @@ async def ev_abs_mapper(abs_state, input_device, keymapper_device):
     max_value = input_device.absinfo(EV_ABS).max
     max_speed = ((max_value ** 2) * 2) ** 0.5
 
-    pointer_speed = config.get('gamepad.pointer_speed', 80)
-    non_linearity = config.get('gamepad.non_linearity', 4)
+    pointer_speed = config.get('gamepad.joystick.pointer_speed')
+    non_linearity = config.get('gamepad.joystick.non_linearity')
 
     while True:
         start = time.time()

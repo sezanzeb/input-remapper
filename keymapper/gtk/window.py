@@ -374,7 +374,7 @@ class Window:
         custom_mapping.load(self.selected_device, self.selected_preset)
 
         key_list = self.get('key_list')
-        for keycode, output in custom_mapping:
+        for (_, keycode), output in custom_mapping:
             single_key_mapping = Row(
                 window=self,
                 delete_callback=self.on_row_removed,
