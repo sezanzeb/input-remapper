@@ -157,9 +157,9 @@ class TestIntegration(unittest.TestCase):
     def test_select_device(self):
         # creates a new empty preset when no preset exists for the device
         self.window.on_select_device(FakeDropdown('device 1'))
-        custom_mapping.change(EV_KEY, 50, 'q')
-        custom_mapping.change(EV_KEY, 51, 'u')
-        custom_mapping.change(EV_KEY, 52, 'x')
+        custom_mapping.change((EV_KEY, 50), 'q')
+        custom_mapping.change((EV_KEY, 51), 'u')
+        custom_mapping.change((EV_KEY, 52), 'x')
         self.assertEqual(len(custom_mapping), 3)
         self.window.on_select_device(FakeDropdown('device 2'))
         self.assertEqual(len(custom_mapping), 0)
@@ -345,12 +345,12 @@ class TestIntegration(unittest.TestCase):
         remove(row_3, None, 'c', 1)
 
     def test_rename_and_save(self):
-        custom_mapping.change(EV_KEY, 14, 'a', None)
+        custom_mapping.change((EV_KEY, 14), 'a', (None, None))
         self.assertEqual(self.window.selected_preset, 'new preset')
         self.window.on_save_preset_clicked(None)
         self.assertEqual(custom_mapping.get_character(EV_KEY, 14), 'a')
 
-        custom_mapping.change(EV_KEY, 14, 'b', None)
+        custom_mapping.change((EV_KEY, 14), 'b', (None, None))
         self.window.get('preset_name_input').set_text('asdf')
         self.window.on_save_preset_clicked(None)
         self.assertEqual(self.window.selected_preset, 'asdf')
@@ -385,7 +385,7 @@ class TestIntegration(unittest.TestCase):
         gtk_iteration()
         self.assertEqual(self.window.selected_preset, 'new preset')
         self.assertFalse(os.path.exists(f'{CONFIG}/device 1/abc 123.json'))
-        custom_mapping.change(EV_KEY, 10, '1', None)
+        custom_mapping.change((EV_KEY, 10), '1', (None, None))
         self.window.on_save_preset_clicked(None)
         gtk_iteration()
         self.assertEqual(self.window.selected_preset, 'abc 123')

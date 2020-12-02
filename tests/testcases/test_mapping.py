@@ -41,9 +41,9 @@ class TestMapping(unittest.TestCase):
 
     def test_clone(self):
         mapping1 = Mapping()
-        mapping1.change(EV_KEY, 1, 'a')
+        mapping1.change((EV_KEY, 1), 'a')
         mapping2 = mapping1.clone()
-        mapping1.change(EV_KEY, 2, 'b')
+        mapping1.change((EV_KEY, 2), 'b')
 
         self.assertEqual(mapping1.get_character(EV_KEY, 1), 'a')
         self.assertEqual(mapping1.get_character(EV_KEY, 2), 'b')
@@ -52,9 +52,9 @@ class TestMapping(unittest.TestCase):
         self.assertIsNone(mapping2.get_character(EV_KEY, 2))
 
     def test_save_load(self):
-        self.mapping.change(EV_KEY, 10, '1')
-        self.mapping.change(EV_KEY, 11, '2')
-        self.mapping.change(EV_KEY, 12, '3')
+        self.mapping.change((EV_KEY, 10), '1')
+        self.mapping.change((EV_KEY, 11), '2')
+        self.mapping.change((EV_KEY, 12), '3')
         self.mapping.config['foo'] = 'bar'
         self.mapping.save('device 1', 'test')
 
@@ -70,41 +70,42 @@ class TestMapping(unittest.TestCase):
 
     def test_change(self):
         # 1 is not assigned yet, ignore it
-        self.mapping.change(EV_KEY, 2, 'a', 1)
+        self.mapping.change((EV_KEY, 2), 'a', (EV_KEY, 1))
         self.assertTrue(self.mapping.changed)
         self.assertIsNone(self.mapping.get_character(EV_KEY, 1))
         self.assertEqual(self.mapping.get_character(EV_KEY, 2), 'a')
         self.assertEqual(len(self.mapping), 1)
 
         # change 2 to 3 and change a to b
-        self.mapping.change(EV_KEY, 3, 'b', 2)
+        self.mapping.change((EV_KEY, 3), 'b', (EV_KEY, 2))
         self.assertIsNone(self.mapping.get_character(EV_KEY, 2))
         self.assertEqual(self.mapping.get_character(EV_KEY, 3), 'b')
         self.assertEqual(len(self.mapping), 1)
 
         # add 4
-        self.mapping.change(EV_KEY, 4, 'c', None)
+        self.mapping.change((EV_KEY, 4), 'c', (None, None))
         self.assertEqual(self.mapping.get_character(EV_KEY, 3), 'b')
         self.assertEqual(self.mapping.get_character(EV_KEY, 4), 'c')
         self.assertEqual(len(self.mapping), 2)
 
         # change the mapping of 4 to d
-        self.mapping.change(EV_KEY, 4, 'd', None)
+        self.mapping.change((EV_KEY, 4), 'd', (None, None))
         self.assertEqual(self.mapping.get_character(EV_KEY, 4), 'd')
         self.assertEqual(len(self.mapping), 2)
 
         # this also works in the same way
-        self.mapping.change(EV_KEY, 4, 'e', 4)
+        self.mapping.change((EV_KEY, 4), 'e', (EV_KEY, 4))
         self.assertEqual(self.mapping.get_character(EV_KEY, 4), 'e')
         self.assertEqual(len(self.mapping), 2)
 
         # and this
-        self.mapping.change(EV_KEY, '4', 'f', '4')
+        self.mapping.change((EV_KEY, '4'), 'f', (str(EV_KEY), '4'))
         self.assertEqual(self.mapping.get_character(EV_KEY, 4), 'f')
         self.assertEqual(len(self.mapping), 2)
 
         # non-int keycodes are ignored
-        self.mapping.change(EV_KEY, 'b', 'c', 'a')
+        # TODO what about non-int types?
+        self.mapping.change((EV_KEY, 'b'), 'c', (EV_KEY, 'a'))
         self.assertEqual(len(self.mapping), 2)
 
     def test_clear(self):
@@ -119,10 +120,10 @@ class TestMapping(unittest.TestCase):
         self.assertEqual(len(self.mapping), 0)
         self.assertTrue(self.mapping.changed)
 
-        self.mapping.change(EV_KEY, 10, 'KP_1', None)
+        self.mapping.change((EV_KEY, 10), 'KP_1', (None, None))
         self.assertTrue(self.mapping.changed)
-        self.mapping.change(EV_KEY, 20, 'KP_2', None)
-        self.mapping.change(EV_KEY, 30, 'KP_3', None)
+        self.mapping.change((EV_KEY, 20), 'KP_2', (None, None))
+        self.mapping.change((EV_KEY, 30), 'KP_3', (None, None))
         self.assertEqual(len(self.mapping), 3)
         self.mapping.clear(EV_KEY, 20)
         self.assertEqual(len(self.mapping), 2)
@@ -131,9 +132,9 @@ class TestMapping(unittest.TestCase):
         self.assertEqual(self.mapping.get_character(EV_KEY, 30), 'KP_3')
 
     def test_empty(self):
-        self.mapping.change(EV_KEY, 10, '1')
-        self.mapping.change(EV_KEY, 11, '2')
-        self.mapping.change(EV_KEY, 12, '3')
+        self.mapping.change((EV_KEY, 10), '1')
+        self.mapping.change((EV_KEY, 11), '2')
+        self.mapping.change((EV_KEY, 12), '3')
         self.assertEqual(len(self.mapping), 3)
         self.mapping.empty()
         self.assertEqual(len(self.mapping), 0)

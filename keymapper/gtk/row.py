@@ -91,6 +91,7 @@ class Row(Gtk.ListBoxRow):
         # the newest_keycode is populated since the ui regularly polls it
         # in order to display it in the status bar.
         key = self.get_keycode()
+        previous_type = key[0] if key else None
         previous_keycode = key[1] if key else None
 
         character = self.get_character()
@@ -104,8 +105,10 @@ class Row(Gtk.ListBoxRow):
             return
 
         # keycode is already set by some other row
-        if custom_mapping.get_character(ev_type, new_keycode) is not None:
-            msg = f'Keycode {new_keycode} is already mapped'
+        existing = custom_mapping.get_character(ev_type, new_keycode)
+        if existing is not None:
+            name = to_string(ev_type, new_keycode)
+            msg = f'"{name}" already mapped to {existing}"'
             logger.info(msg)
             self.window.get('status_bar').push(CTX_KEYCODE, msg)
             return
@@ -129,10 +132,9 @@ class Row(Gtk.ListBoxRow):
 
         # else, the keycode has changed, the character is set, all good
         custom_mapping.change(
-            ev_type=ev_type,
-            new_keycode=new_keycode,
+            new=(ev_type, new_keycode),
             character=character,
-            previous_keycode=previous_keycode
+            previous=(previous_type, previous_keycode)
         )
 
     def highlight(self):
@@ -153,10 +155,9 @@ class Row(Gtk.ListBoxRow):
         if key is not None:
             ev_type, keycode = key
             custom_mapping.change(
-                ev_type=ev_type,
-                new_keycode=keycode,
+                new=(ev_type, keycode),
                 character=character,
-                previous_keycode=None
+                previous=(None, None)
             )
 
     def put_together(self, character):

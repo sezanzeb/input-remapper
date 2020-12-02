@@ -85,8 +85,8 @@ class TestDaemon(unittest.TestCase):
         keycode_from_2 = 12
         keycode_to_2 = 100
 
-        custom_mapping.change(EV_KEY, keycode_from_1, 'a')
-        custom_mapping.change(EV_KEY, keycode_from_2, 'b')
+        custom_mapping.change((EV_KEY, keycode_from_1), 'a')
+        custom_mapping.change((EV_KEY, keycode_from_2), 'b')
         clear_system_mapping()
         system_mapping['a'] = keycode_to_1
         system_mapping['b'] = keycode_to_2

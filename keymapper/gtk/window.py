@@ -140,11 +140,13 @@ class Window:
         """Ensure that one empty row is available at all times."""
         num_rows = len(self.get('key_list').get_children())
 
-        # verify that all mappings are displayed
-        if num_rows < len(custom_mapping):
+        # verify that all mappings are displayed. One of them
+        # is possible the empty row
+        num_maps = len(custom_mapping)
+        if num_rows < num_maps or num_rows > num_maps + 1:
             raise AssertionError(
                 f'custom_mapping contains {len(custom_mapping)} rows, '
-                f'but only {num_rows} are displayed'
+                f'but {num_rows} are displayed'
             )
 
         if num_rows == len(custom_mapping):

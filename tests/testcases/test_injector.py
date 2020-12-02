@@ -76,10 +76,7 @@ class TestInjector(unittest.TestCase):
                 }
 
         mapping = Mapping()
-        mapping.change(EV_KEY,
-            new_keycode=80,
-            character='a'
-        )
+        mapping.change((EV_KEY, 80), 'a')
 
         maps_to = system_mapping['a']
 
@@ -99,7 +96,7 @@ class TestInjector(unittest.TestCase):
 
     def test_grab(self):
         # path is from the fixtures
-        custom_mapping.change(EV_KEY, 10, 'a')
+        custom_mapping.change((EV_KEY, 10), 'a')
 
         self.injector = KeycodeInjector('device 1', custom_mapping)
         path = '/dev/input/event10'
@@ -124,7 +121,7 @@ class TestInjector(unittest.TestCase):
 
     def test_skip_unused_device(self):
         # skips a device because its capabilities are not used in the mapping
-        custom_mapping.change(EV_KEY, 10, 'a')
+        custom_mapping.change((EV_KEY, 10), 'a')
         self.injector = KeycodeInjector('device 1', custom_mapping)
         path = '/dev/input/event11'
         device, abs_to_rel = self.injector._prepare_device(path)
@@ -284,11 +281,11 @@ class TestInjector(unittest.TestCase):
         self.assertIn(('b', 0), history)
 
     def test_injector(self):
-        custom_mapping.change(EV_KEY, 8, 'k(KEY_Q).k(w)')
-        custom_mapping.change(EV_KEY, 9, 'a')
+        custom_mapping.change((EV_KEY, 8), 'k(KEY_Q).k(w)')
+        custom_mapping.change((EV_KEY, 9), 'a')
         # one mapping that is unknown in the system_mapping on purpose
         input_b = 10
-        custom_mapping.change(EV_KEY, input_b, 'b')
+        custom_mapping.change((EV_KEY, input_b), 'b')
 
         clear_system_mapping()
         code_a = 100
