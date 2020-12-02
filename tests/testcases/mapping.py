@@ -55,14 +55,18 @@ class TestMapping(unittest.TestCase):
         self.mapping.change(10, '1')
         self.mapping.change(11, '2')
         self.mapping.change(12, '3')
+        self.mapping.config['foo'] = 'bar'
         self.mapping.save('device 1', 'test')
+
         loaded = Mapping()
         self.assertEqual(len(loaded), 0)
         loaded.load('device 1', 'test')
+
         self.assertEqual(len(loaded), 3)
         self.assertEqual(loaded.get_character(10), '1')
         self.assertEqual(loaded.get_character(11), '2')
         self.assertEqual(loaded.get_character(12), '3')
+        self.assertEqual(loaded.config['foo'], 'bar')
 
     def test_change(self):
         # 1 is not assigned yet, ignore it
