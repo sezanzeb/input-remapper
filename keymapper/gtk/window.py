@@ -22,6 +22,7 @@
 """User Interface."""
 
 
+import evdev
 from evdev.ecodes import EV_KEY
 
 import gi
@@ -220,7 +221,12 @@ class Window:
         if keycode is None or ev_type is None:
             return True
 
-        if ev_type == EV_KEY and keycode in [280, 333]:
+        click_events = [
+            evdev.ecodes.BTN_LEFT,
+            evdev.ecodes.BTN_TOOL_DOUBLETAP
+        ]
+
+        if ev_type == EV_KEY and keycode in click_events:
             # disable mapping the left mouse button because it would break
             # the mouse. Also it is emitted right when focusing the row
             # which breaks the current workflow.
