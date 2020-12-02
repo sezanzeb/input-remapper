@@ -302,6 +302,8 @@ class KeycodeInjector:
     async def _keycode_loop(self, device, uinput, map_ev_abs):
         """Inject keycodes for one of the virtual devices.
 
+        Can be stopped by stopping the asyncio loop.
+
         Parameters
         ----------
         device : evdev.InputDevice
@@ -311,6 +313,10 @@ class KeycodeInjector:
         map_ev_abs : bool
             if joystick events should be mapped to mouse movements
         """
+        # efficiently figure out the target keycode without taking
+        # extra steps.
+        code_code_mapping = {}
+
         # Parse all macros beforehand
         logger.debug('Parsing macros')
         macros = {}
@@ -321,6 +327,12 @@ class KeycodeInjector:
                     output,
                     lambda *args: self._macro_write(*args, uinput)
                 )
+                continue
+
+            target_keycode = system_mapping.get(output)
+            if target_keycode is None:
+                logger.error('Don\'t know what %s is', output)
+                return
 
         logger.debug(
             'Started injecting into %s, fd %s',
@@ -346,7 +358,7 @@ class KeycodeInjector:
                 # linux does them itself, no need to trigger them
                 continue
 
-            handle_keycode(self.mapping, macros, event, uinput)
+            handle_keycode(code_code_mapping, macros, event, uinput)
 
         # this should only ever happen in tests to avoid blocking them
         # forever, as soon as all events are consumed. In normal operation

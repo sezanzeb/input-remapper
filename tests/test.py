@@ -305,8 +305,9 @@ def main():
     # in all of the available tests like unittest.main() does...,
     # so provide both options.
     if len(modules) > 0:
-        # for example `tests/test.py integration.Integration.test_can_start`
-        # or `tests/test.py integration daemon`
+        # for example
+        # `tests/test.py test_integration.TestIntegration.test_can_start`
+        # or `tests/test.py test_integration test_daemon`
         testsuite = unittest.defaultTestLoader.loadTestsFromNames(
             [f'testcases.{module}' for module in modules]
         )
