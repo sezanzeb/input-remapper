@@ -45,7 +45,6 @@ JOYSTICK = [
 
 def _write(device, ev_type, keycode, value):
     """Inject."""
-    print('move mouse', ev_type, keycode, value)
     device.write(ev_type, keycode, value)
     device.syn()
 

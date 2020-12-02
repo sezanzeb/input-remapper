@@ -27,13 +27,16 @@ gi.require_version('Gtk', '3.0')
 gi.require_version('GLib', '2.0')
 from gi.repository import Gtk, GLib
 
-from evdev.ecodes import EV_KEY
-
 from keymapper.state import custom_mapping
 from keymapper.logger import logger
 
 
 CTX_KEYCODE = 2
+
+
+# TODO display the constant name instead of numbers.
+#  displaying the event type won't be needed anymore then.
+#  and the whole offset thing probably drops away
 
 
 class Row(Gtk.ListBoxRow):

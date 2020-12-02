@@ -202,10 +202,13 @@ class KeycodeInjector:
         if len(self.mapping) > 0 and capabilities.get(ecodes.EV_KEY) is None:
             capabilities[ecodes.EV_KEY] = []
 
-        for (ev_type, _), character in self.mapping:
+        for (ev_type, keycode), character in self.mapping:
+            if not should_map_event_as_btn(ev_type, keycode):
+                continue
+
             keycode = system_mapping.get(character)
             if keycode is not None:
-                capabilities[ev_type].append(keycode - KEYCODE_OFFSET)
+                capabilities[EV_KEY].append(keycode - KEYCODE_OFFSET)
 
         if abs_to_rel:
             del capabilities[ecodes.EV_ABS]
@@ -215,14 +218,18 @@ class KeycodeInjector:
                 # for my system to recognize it as mouse, WHEEL is also needed:
                 evdev.ecodes.REL_WHEEL,
             ]
+            if capabilities.get(ecodes.EV_KEY) is None:
+                capabilities[ecodes.EV_KEY] = []
+            # for reasons I don't know, it is required to have a capability
+            # for any keyboard key present to enable mouse movements.
+            # TODO test
+            capabilities[ecodes.EV_KEY].append(ecodes.KEY_0)
 
         # just like what python-evdev does in from_device
         if ecodes.EV_SYN in capabilities:
             del capabilities[ecodes.EV_SYN]
         if ecodes.EV_FF in capabilities:
             del capabilities[ecodes.EV_FF]
-
-        print(capabilities)
 
         return capabilities
 
@@ -363,7 +370,7 @@ class KeycodeInjector:
                     self.abs_state[1] = event.value
                 continue
 
-            if should_map_event_as_btn(event):
+            if should_map_event_as_btn(event.type, event.code):
                 handle_keycode(code_code_mapping, macros, event, uinput)
                 continue
 
