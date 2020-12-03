@@ -55,14 +55,13 @@ def get_data_path(filename=''):
     candidates = [
         os.path.join(site.USER_BASE, 'share/key-mapper'),
         '/usr/local/share/key-mapper',
-        '/usr/share/key-mapper',
-        os.path.join(source_path, 'data')
+        '/usr/share/key-mapper'
     ]
 
+    print('source_path', source_path)
     if '/site-packages' not in source_path:
-        print('shitcrap', source_path)
         # probably installed with -e, running from the cloned git source
-        data_path = candidates[3]
+        data_path = os.path.join(source_path, 'data')
     else:
         # try any of the options
         for candidate in candidates:
