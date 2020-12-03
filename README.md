@@ -62,12 +62,6 @@ sudo usermod -a -G plugdev,input $USER
 groups
 ```
 
-##### Git/pip
-
-```bash
-sudo pip install git+https://github.com/sezanzeb/key-mapper.git
-```
-
 ##### Manjaro/Arch
 
 ```bash
@@ -80,6 +74,16 @@ pacaur -S key-mapper-git
 wget "https://github.com/sezanzeb/key-mapper/releases/"\
 "download/0.1.0/python3-key-mapper_0.1.0-1_all.deb"
 sudo dpkg -i python3-key-mapper_0.1.0-1_all.deb
+```
+
+##### Git/pip
+
+```bash
+# you may need to use --force to overwrite an existing source installation
+sudo pip install git+https://github.com/sezanzeb/key-mapper.git
+# or
+git clone https://github.com/sezanzeb/key-mapper.git
+cd key-mapper && sudo python3 setup.py install
 ```
 
 ## Roadmap
