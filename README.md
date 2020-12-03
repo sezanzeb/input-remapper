@@ -110,7 +110,7 @@ cd key-mapper && sudo python3 setup.py install
 - [x] support timed macros, maybe using some sort of syntax
 - [x] add to the AUR, provide .deb file
 - [x] basic support for gamepads as keyboard and mouse combi
-- [ ] provide more freedom in configuring gamepads
+- [ ] map D-Pad and Joystick directions as buttons, joystick purpose via config
 - [ ] automatically load presets when devices get plugged in after login
 
 ## Tests
