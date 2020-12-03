@@ -47,6 +47,7 @@ class _KeycodeReader:
         self.virtual_devices = []
         self._pipe = None
         self._process = None
+        self.fail_counter = 0
 
     def __del__(self):
         self.stop_reading()
@@ -149,7 +150,10 @@ class _KeycodeReader:
     def read(self):
         """Get the newest tuple of event type, keycode or None."""
         if self._pipe is None:
-            logger.debug('No pipe available to read from')
+            self.fail_counter += 1
+            if self.fail_counter % 10 == 0:
+                # spam less
+                logger.debug('No pipe available to read from')
             return None, None
 
         newest_event = (None, None)
