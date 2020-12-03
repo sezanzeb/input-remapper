@@ -26,7 +26,7 @@ import asyncio
 import time
 
 import evdev
-from evdev.ecodes import EV_ABS, EV_REL
+from evdev.ecodes import EV_ABS, EV_REL, REL_X, REL_Y, REL_WHEEL, REL_HWHEEL
 
 from keymapper.logger import logger
 from keymapper.config import config
@@ -40,11 +40,27 @@ JOYSTICK = [
     evdev.ecodes.ABS_RY,
 ]
 
+# miniscule movements on the joystick should not trigger a mouse wheel event
+WHEEL_THRESHOLD = 0.3
+
 
 def _write(device, ev_type, keycode, value):
     """Inject."""
     device.write(ev_type, keycode, value)
     device.syn()
+
+
+def accumulate(pending, current):
+    """Since devices can't do float values, stuff has to be accumulated.
+
+    If pending is 0.6 and current is 0.5, return 0.1 and 1.
+    Because 1 may move 1px, and 0.1px is rememberd for the next value in
+    pending.
+    """
+    pending += current
+    current = int(pending)
+    pending -= current
+    return pending, current
 
 
 async def ev_abs_mapper(abs_state, input_device, keymapper_device):
@@ -59,8 +75,11 @@ async def ev_abs_mapper(abs_state, input_device, keymapper_device):
     """
     # events only take ints, so a movement of 0.3 needs to add
     # up to 1.2 to affect the cursor.
+    #
     pending_x_rel = 0
     pending_y_rel = 0
+    pending_rx_rel = 0
+    pending_ry_rel = 0
 
     logger.info('Mapping gamepad to mouse movements')
     max_value = input_device.absinfo(EV_ABS).max
@@ -71,7 +90,7 @@ async def ev_abs_mapper(abs_state, input_device, keymapper_device):
 
     while True:
         start = time.time()
-        abs_x, abs_y = abs_state
+        abs_x, abs_y, abs_rx, abs_ry = abs_state
 
         if non_linearity != 1:
             # to make small movements smaller for more precision
@@ -80,31 +99,26 @@ async def ev_abs_mapper(abs_state, input_device, keymapper_device):
         else:
             factor = 1
 
+        # mouse movements
         rel_x = abs_x * factor * pointer_speed / max_value
         rel_y = abs_y * factor * pointer_speed / max_value
-
-        pending_x_rel += rel_x
-        pending_y_rel += rel_y
-        rel_x = int(pending_x_rel)
-        rel_y = int(pending_y_rel)
-        pending_x_rel -= rel_x
-        pending_y_rel -= rel_y
-
-        if rel_y != 0:
-            _write(
-                keymapper_device,
-                EV_REL,
-                evdev.ecodes.ABS_Y,
-                rel_y
-            )
-
+        pending_x_rel, rel_x = accumulate(pending_x_rel, rel_x)
+        pending_y_rel, rel_y = accumulate(pending_y_rel, rel_y)
         if rel_x != 0:
-            _write(
-                keymapper_device,
-                EV_REL,
-                evdev.ecodes.ABS_X,
-                rel_x
-            )
+            _write(keymapper_device, EV_REL, REL_X, rel_x)
+        if rel_y != 0:
+            _write(keymapper_device, EV_REL, REL_Y, rel_y)
+
+        # wheel movements
+        float_rel_rx = abs_rx / max_value
+        pending_rx_rel, rel_rx = accumulate(pending_rx_rel, float_rel_rx)
+        if abs(float_rel_rx) > WHEEL_THRESHOLD:
+            _write(keymapper_device, EV_REL, REL_HWHEEL, -rel_rx)
+
+        float_rel_ry = abs_ry / max_value
+        pending_ry_rel, rel_ry = accumulate(pending_ry_rel, float_rel_ry)
+        if abs(float_rel_ry) > WHEEL_THRESHOLD:
+            _write(keymapper_device, EV_REL, REL_WHEEL, -rel_ry)
 
         # try to do this as close to 60hz as possible
         time_taken = time.time() - start

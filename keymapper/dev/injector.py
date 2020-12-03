@@ -29,7 +29,7 @@ import subprocess
 import multiprocessing
 
 import evdev
-from evdev.ecodes import EV_KEY, EV_ABS
+from evdev.ecodes import EV_KEY, EV_ABS, EV_REL
 
 from keymapper.logger import logger
 from keymapper.getdevices import get_devices
@@ -103,7 +103,7 @@ class KeycodeInjector:
         self._msg_pipe = multiprocessing.Pipe()
 
         # some EV_ABS mapping stuff
-        self.abs_state = [0, 0]
+        self.abs_state = [0, 0, 0, 0]
 
     def start_injecting(self):
         """Start injecting keycodes."""
@@ -204,7 +204,7 @@ class KeycodeInjector:
             # those are the requirements to recognize it as mouse
             # on my system. REL_X and REL_Y are of course required to
             # accept the events that the mouse-movement-mapper writes.
-            capabilities[ecodes.EV_REL] = [
+            capabilities[EV_REL] = [
                 evdev.ecodes.REL_X,
                 evdev.ecodes.REL_Y,
                 evdev.ecodes.REL_WHEEL,
@@ -352,8 +352,12 @@ class KeycodeInjector:
             if abs_to_rel and event.type == EV_ABS and event.code in JOYSTICK:
                 if event.code == evdev.ecodes.ABS_X:
                     self.abs_state[0] = event.value
-                if event.code == evdev.ecodes.ABS_Y:
+                elif event.code == evdev.ecodes.ABS_Y:
                     self.abs_state[1] = event.value
+                elif event.code == evdev.ecodes.ABS_RX:
+                    self.abs_state[2] = event.value
+                elif event.code == evdev.ecodes.ABS_RY:
+                    self.abs_state[3] = event.value
                 continue
 
             if should_map_event_as_btn(event.type, event.code):
