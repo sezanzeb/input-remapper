@@ -62,23 +62,31 @@ def get_data_path(filename=''):
     ]
 
     global logged
+
     data_path = None
-    # python3.8/dist-packages python3.7/site-packages, /usr/share, /usr/local/share, endless options
+    # python3.8/dist-packages python3.7/site-packages, /usr/share,
+    # /usr/local/share, endless options
     if '-packages' not in source_path and 'python' not in source_path:
         # probably installed with -e, running from the cloned git source
         data_path = os.path.join(source_path, 'data')
-    else:
+        if not os.path.exists(data_path):
+            if not logged:
+                logger.debug('Editabe, but data missing at "%s"', data_path)
+            data_path = None
+
+    if data_path is None:
         # try any of the options
         for candidate in candidates:
             if os.path.exists(candidate):
                 data_path = candidate
                 break
+
         if data_path is None:
-          logger.error('Could not find the application data')
-          sys.exit(1)
+            logger.error('Could not find the application data')
+            sys.exit(1)
 
     if not logged:
         logger.debug('Found data at "%s"', data_path)
-    logged = True
+        logged = True
 
     return os.path.join(data_path, filename)
