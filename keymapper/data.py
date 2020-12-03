@@ -31,7 +31,12 @@ from keymapper.logger import logger
 
 
 def get_data_path(filename=''):
-    """Depending on the installation prefix, return the data dir."""
+    """Depending on the installation prefix, return the data dir.
+
+    Since it is a nightmare to get stuff installed with pip across
+    distros this is somewhat complicated. Ubuntu wants to use /usr/local
+    for data_files, but not everything can be placed there.
+    """
     try:
         source_path = pkg_resources.require('key-mapper')[0].location
     except pkg_resources.DistributionNotFound as error:
@@ -46,14 +51,23 @@ def get_data_path(filename=''):
     # depending on where this file is installed to, make sure to use the proper
     # prefix path for data
     # https://docs.python.org/3/distutils/setupscript.html?highlight=package_data#installing-additional-files # noqa pylint: disable=line-too-long
-    if source_path.startswith(site.USER_BASE):
-        data_path = os.path.join(site.USER_BASE, 'share/key-mapper')
-    elif source_path.startswith('/usr/local/'):
-        data_path = '/usr/local/share/key-mapper'
-    elif source_path.startswith('/usr/'):
-        data_path = '/usr/share/key-mapper'
-    else:
-        # installed with -e, running from the cloned git source
+
+    candidates = [
+        os.path.join(site.USER_BASE, 'share/key-mapper'),
+        '/usr/local/share/key-mapper',
+        '/usr/share/key-mapper'
+    ]
+
+    print('source_path', source_path)
+    if '/site-packages' not in source_path:
+        # probably installed with -e, running from the cloned git source
         data_path = os.path.join(source_path, 'data')
+    else:
+        # try any of the options
+        for candidate in candidates:
+            if os.path.exists(candidate):
+                data_path = candidate
+                break
+        logger.error('Could not find the application data')
 
     return os.path.join(data_path, filename)
