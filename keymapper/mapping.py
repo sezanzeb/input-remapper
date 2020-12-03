@@ -86,7 +86,7 @@ class Mapping:
                 prev_keycode = int(prev_keycode)
             if prev_type is not None:
                 prev_type = int(prev_type)
-        except ValueError:
+        except (TypeError, ValueError):
             logger.error('Can only use numbers in the tuples')
             return False
 
@@ -100,9 +100,6 @@ class Mapping:
             if code_changed and prev_keycode is not None:
                 # clear previous mapping of that code, because the line
                 # representing that one will now represent a different one.
-                # TODO test that None won't reach the clear function.
-                # TODO test that overwriting an entry with a different type
-                #  works
                 self.clear(prev_type, prev_keycode)
             self.changed = True
             return True

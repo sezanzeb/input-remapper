@@ -25,6 +25,7 @@
 import os
 import sys
 import time
+import copy
 import unittest
 import subprocess
 import multiprocessing
@@ -99,7 +100,16 @@ fixtures = {
     },
 
     '/dev/input/event30': {
-        'capabilities': {evdev.ecodes.EV_SYN: [], evdev.ecodes.EV_ABS: [0, 1]},
+        # this device is expected to not have EV_KEY capabilities in tests
+        # yet. Only when the injector is running EV_KEY stuff is added
+        'capabilities': {
+            evdev.ecodes.EV_SYN: [],
+            evdev.ecodes.EV_ABS: [
+                evdev.ecodes.ABS_X,
+                evdev.ecodes.ABS_Y,
+                evdev.ecodes.ABS_HAT0X
+            ]
+        },
         'phys': 'usb-0000:03:00.0-3/input1',
         'name': 'gamepad'
     },
@@ -252,7 +262,7 @@ def patch_evdev():
                 await asyncio.sleep(0.01)
 
         def capabilities(self, absinfo=True):
-            return fixtures[self.path]['capabilities']
+            return copy.deepcopy(fixtures[self.path]['capabilities'])
 
     class UInput:
         def __init__(self, *args, **kwargs):
@@ -287,6 +297,7 @@ def clear_write_history():
         uinput_write_history.pop()
     while uinput_write_history_pipe[0].poll():
         uinput_write_history_pipe[0].recv()
+
 
 # quickly fake some stuff before any other file gets a chance to import
 # the original versions

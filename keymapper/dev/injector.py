@@ -143,7 +143,6 @@ class KeycodeInjector:
 
         needed = False
         for (ev_type, keycode), _ in self.mapping:
-            # TODO test ev_type
             if keycode in capabilities.get(ev_type, []):
                 needed = True
                 break
@@ -161,13 +160,13 @@ class KeycodeInjector:
 
         attempts = 0
         while True:
-            device = evdev.InputDevice(path)
             try:
                 # grab to avoid e.g. the disabled keycode of 10 to confuse
                 # X, especially when one of the buttons of your mouse also
                 # uses 10. This also avoids having to load an empty xkb
                 # symbols file to prevent writing any unwanted keys.
                 device.grab()
+                logger.debug('Grab %s', path)
                 break
             except IOError:
                 attempts += 1
@@ -224,7 +223,6 @@ class KeycodeInjector:
                 capabilities[ecodes.EV_KEY] = []
             # for reasons I don't know, it is also required to have
             # any keyboard button in capabilities.
-            # TODO test that this is always present when abs_to_rel
             capabilities[ecodes.EV_KEY].append(ecodes.KEY_0)
 
         # just like what python-evdev does in from_device

@@ -24,7 +24,7 @@ import unittest
 import time
 
 import evdev
-from evdev.ecodes import EV_REL, EV_KEY, EV_ABS
+from evdev.ecodes import EV_REL, EV_KEY, EV_ABS, ABS_HAT0X
 
 from keymapper.dev.injector import is_numlock_on, toggle_numlock,\
     ensure_numlock, KeycodeInjector
@@ -65,6 +65,7 @@ class TestInjector(unittest.TestCase):
         for key in keys:
             del pending_events[key]
         clear_write_history()
+        custom_mapping.empty()
 
     def test_modify_capabilities(self):
         class FakeDevice:
@@ -108,6 +109,15 @@ class TestInjector(unittest.TestCase):
         # success on the third try
         device.name = fixtures[path]['name']
 
+    def test_prepare_device_1(self):
+        # according to the fixtures, /dev/input/event30 can do ABS_HAT0X
+        custom_mapping.change((EV_ABS, ABS_HAT0X), 'a')
+        self.injector = KeycodeInjector('foobar', custom_mapping)
+
+        _prepare_device = self.injector._prepare_device
+        self.assertIsNone(_prepare_device('/dev/input/event10')[0])
+        self.assertIsNotNone(_prepare_device('/dev/input/event30')[0])
+
     def test_gamepad_capabilities(self):
         self.injector = KeycodeInjector('gamepad', custom_mapping)
 
@@ -118,6 +128,11 @@ class TestInjector(unittest.TestCase):
         capabilities = self.injector._modify_capabilities(device, abs_to_rel)
         self.assertNotIn(evdev.ecodes.EV_ABS, capabilities)
         self.assertIn(evdev.ecodes.EV_REL, capabilities)
+
+        # for some reason, having any EV_KEY capability is needed to
+        # be able to control the mouse
+        self.assertIn(evdev.ecodes.EV_KEY, capabilities)
+        self.assertEqual(len(capabilities[evdev.ecodes.EV_KEY]), 1)
 
     def test_skip_unused_device(self):
         # skips a device because its capabilities are not used in the mapping
@@ -282,7 +297,7 @@ class TestInjector(unittest.TestCase):
 
     def test_injector(self):
         custom_mapping.change((EV_KEY, 8), 'k(KEY_Q).k(w)')
-        custom_mapping.change((EV_KEY, 9), 'a')
+        custom_mapping.change((EV_ABS, ABS_HAT0X), 'a')
         # one mapping that is unknown in the system_mapping on purpose
         input_b = 10
         custom_mapping.change((EV_KEY, input_b), 'b')
@@ -301,9 +316,9 @@ class TestInjector(unittest.TestCase):
             # should execute a macro
             Event(EV_KEY, 8, 1),
             Event(EV_KEY, 8, 0),
-            # normal keystroke
-            Event(EV_KEY, 9, 1),
-            Event(EV_KEY, 9, 0),
+            # normal keystrokes
+            Event(EV_ABS, ABS_HAT0X, 1),
+            Event(EV_ABS, ABS_HAT0X, 0),
             # just pass those over without modifying
             Event(EV_KEY, 10, 1),
             Event(EV_KEY, 10, 0),
