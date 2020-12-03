@@ -41,8 +41,13 @@ def populate_system_mapping():
     xmodmap = subprocess.check_output(['xmodmap', '-pke']).decode() + '\n'
     mappings = re.findall(r'(\d+) = (.+)\n', xmodmap)
     for keycode, names in mappings:
-        for name in names.split():
-            mapping[name] = int(keycode) - XKB_KEYCODE_OFFSET
+        # there might be multiple, like:
+        # keycode  64 = Alt_L Meta_L Alt_L Meta_L
+        # keycode 204 = NoSymbol Alt_L NoSymbol Alt_L
+        # only the first column is relevant. The others can be achieved
+        # by using a modifier button and the mapped key
+        name = names.split()[0]
+        mapping[name] = int(keycode) - XKB_KEYCODE_OFFSET
 
     for name, ecode in evdev.ecodes.ecodes.items():
         mapping[name] = ecode

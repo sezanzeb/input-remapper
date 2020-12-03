@@ -37,7 +37,12 @@ class TestMapping(unittest.TestCase):
         self.assertGreater(len(mapping), 100)
         self.assertEqual(mapping['1'], 2)
         self.assertEqual(mapping['KEY_1'], 2)
-        self.assertEqual(mapping['KEY_LEFTSHIFT'], mapping['Shift_L'])
+
+        self.assertEqual(mapping['Alt_L'], 56)
+        self.assertEqual(mapping['KEY_LEFTALT'], 56)
+
+        self.assertEqual(mapping['KEY_LEFTSHIFT'], 42)
+        self.assertEqual(mapping['Shift_L'], 42)
 
     def test_clone(self):
         mapping1 = Mapping()
