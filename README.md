@@ -79,10 +79,14 @@ sudo dpkg -i python3-key-mapper_0.1.0-1_all.deb
 
 ##### Git/pip
 
+Depending on your distro, maybe you need to use both methods with --force
+to get all your files properly in place and overwrite a previous installation
+of key-mapper.
+
 ```bash
-# you may need to use --force to overwrite an existing source installation
+# method 1
 sudo pip install git+https://github.com/sezanzeb/key-mapper.git
-# or
+# method 2
 git clone https://github.com/sezanzeb/key-mapper.git
 cd key-mapper && sudo python3 setup.py install
 ```
