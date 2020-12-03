@@ -109,7 +109,8 @@ cd key-mapper && sudo python3 setup.py install
 - [x] make sure it works on wayland
 - [x] support timed macros, maybe using some sort of syntax
 - [x] add to the AUR, provide .deb file
-- [x] support gamepads as keyboard and mouse combi
+- [x] basic support for gamepads as keyboard and mouse combi
+- [ ] provide more freedom in configuring gamepads
 - [ ] automatically load presets when devices get plugged in after login
 
 ## Tests
