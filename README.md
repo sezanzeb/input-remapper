@@ -47,9 +47,11 @@ If you can't find what you need, consult
 
 ##### Gamepads
 
-Tested with the XBOX 360 Gamepad. Joystick movements will be translated
-to mouse movements. Buttons can be mapped to keycodes or macros. D-Pad
-only works as two buttons - horizontal and vertical.
+Tested with the XBOX 360 Gamepad.
+- Joystick movements will be translated to mouse movements
+- The second joystick acts as a mouse wheel
+- Buttons can be mapped to keycodes or macros
+- D-Pad only works as two buttons - horizontal and vertical
 
 ## Installation
 
