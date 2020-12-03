@@ -39,6 +39,7 @@ setup(
         ('/usr/share/key-mapper/', glob.glob('data/*')),
         ('/usr/share/applications/', ['data/key-mapper.desktop']),
         ('/etc/xdg/autostart/', ['data/key-mapper-service.desktop']),
+        # manjaro installs the executables with pip, ubuntu doesn't.
         ('/usr/bin/', ['bin/key-mapper-gtk']),
         ('/usr/bin/', ['bin/key-mapper-service']),
     ],
