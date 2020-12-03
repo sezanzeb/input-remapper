@@ -38,7 +38,6 @@ CTX_KEYCODE = 2
 
 def to_string(ev_type, code):
     """A nice to show description of the pressed key."""
-    # TODO test
     try:
         name = evdev.ecodes.bytype[ev_type][code]
         if isinstance(name, list):

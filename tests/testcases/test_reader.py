@@ -21,7 +21,7 @@
 
 import unittest
 
-from evdev.events import EV_KEY
+from evdev.ecodes import EV_KEY, EV_ABS, ABS_HAT0X
 import time
 
 from keymapper.dev.reader import keycode_reader
@@ -32,6 +32,17 @@ from tests.test import Event, pending_events, EVENT_READ_TIMEOUT
 CODE_1 = 100
 CODE_2 = 101
 CODE_3 = 102
+
+
+def wait(func, timeout=1.0):
+    """Wait for func to return True."""
+    iterations = 0
+    sleepytime = 0.1
+    while not func():
+        time.sleep(sleepytime)
+        iterations += 1
+        if iterations * sleepytime > timeout:
+            break
 
 
 class TestReader(unittest.TestCase):
@@ -45,10 +56,10 @@ class TestReader(unittest.TestCase):
         for key in keys:
             del pending_events[key]
 
-    def test_reading(self):
+    def test_reading_1(self):
         pending_events['device 1'] = [
             Event(EV_KEY, CODE_1, 1),
-            Event(EV_KEY, CODE_2, 1),
+            Event(EV_ABS, ABS_HAT0X, 1),
             Event(EV_KEY, CODE_3, 1)
         ]
         keycode_reader.start_reading('device 1')
@@ -56,8 +67,16 @@ class TestReader(unittest.TestCase):
         # sending anything arbitrary does not stop the pipe
         keycode_reader._pipe[0].send((EV_KEY, 1234))
 
-        time.sleep(EVENT_READ_TIMEOUT * 5)
+        wait(keycode_reader._pipe[0].poll, 0.5)
+
         self.assertEqual(keycode_reader.read(), (EV_KEY, CODE_3))
+        self.assertEqual(keycode_reader.read(), (None, None))
+
+    def test_reading_2(self):
+        pending_events['device 1'] = [Event(EV_ABS, ABS_HAT0X, 1)]
+        keycode_reader.start_reading('device 1')
+        wait(keycode_reader._pipe[0].poll, 0.5)
+        self.assertEqual(keycode_reader.read(), (EV_ABS, ABS_HAT0X))
         self.assertEqual(keycode_reader.read(), (None, None))
 
     def test_wrong_device(self):

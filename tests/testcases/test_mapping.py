@@ -20,7 +20,7 @@
 
 
 import unittest
-from evdev.events import EV_KEY
+from evdev.events import EV_KEY, EV_ABS
 
 from keymapper.mapping import Mapping
 from keymapper.state import populate_system_mapping
@@ -81,15 +81,15 @@ class TestMapping(unittest.TestCase):
         self.assertEqual(self.mapping.get_character(EV_KEY, 2), 'a')
         self.assertEqual(len(self.mapping), 1)
 
-        # change 2 to 3 and change a to b
-        self.mapping.change((EV_KEY, 3), 'b', (EV_KEY, 2))
+        # change KEY 2 to ABS 16 and change a to b
+        self.mapping.change((EV_ABS, 16), 'b', (EV_KEY, 2))
         self.assertIsNone(self.mapping.get_character(EV_KEY, 2))
-        self.assertEqual(self.mapping.get_character(EV_KEY, 3), 'b')
+        self.assertEqual(self.mapping.get_character(EV_ABS, 16), 'b')
         self.assertEqual(len(self.mapping), 1)
 
         # add 4
         self.mapping.change((EV_KEY, 4), 'c', (None, None))
-        self.assertEqual(self.mapping.get_character(EV_KEY, 3), 'b')
+        self.assertEqual(self.mapping.get_character(EV_ABS, 16), 'b')
         self.assertEqual(self.mapping.get_character(EV_KEY, 4), 'c')
         self.assertEqual(len(self.mapping), 2)
 
@@ -109,9 +109,22 @@ class TestMapping(unittest.TestCase):
         self.assertEqual(len(self.mapping), 2)
 
         # non-int keycodes are ignored
-        # TODO what about non-int types?
         self.mapping.change((EV_KEY, 'b'), 'c', (EV_KEY, 'a'))
+        self.mapping.change((EV_KEY, 'b'), 'c')
+        self.mapping.change(('foo', 1), 'c', ('foo', 2))
+        self.mapping.change(('foo', 1), 'c')
         self.assertEqual(len(self.mapping), 2)
+
+    def test_change_2(self):
+        self.mapping.change((EV_KEY, 2), 'a')
+
+        self.mapping.change((None, 2), 'b', (EV_KEY, 2))
+        self.assertEqual(self.mapping.get_character(EV_KEY, 2), 'a')
+
+        self.mapping.change((EV_KEY, None), 'c', (EV_KEY, 2))
+        self.assertEqual(self.mapping.get_character(EV_KEY, 2), 'a')
+
+        self.assertEqual(len(self.mapping), 1)
 
     def test_clear(self):
         # does nothing

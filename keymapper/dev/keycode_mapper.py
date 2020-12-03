@@ -43,7 +43,6 @@ def should_map_event_as_btn(type, code):
     code : int
         linux keycode
     """
-    # TODO test
     if type == evdev.events.EV_KEY:
         return True
 

@@ -40,6 +40,7 @@ from keymapper.state import custom_mapping, system_mapping, \
 from keymapper.paths import CONFIG, get_config_path
 from keymapper.config import config
 from keymapper.dev.reader import keycode_reader
+from keymapper.gtk.row import to_string
 
 from tests.test import tmp, pending_events, Event, uinput_write_history_pipe, \
     clear_write_history
@@ -176,6 +177,11 @@ class TestIntegration(unittest.TestCase):
         self.assertIsNotNone(self.window)
         self.assertTrue(self.window.window.get_visible())
 
+    def test_row_keycode_to_string(self):
+        # not an integration test, but I have all the row tests here already
+        self.assertEqual(to_string(EV_KEY, 10), '9')
+        self.assertEqual(to_string(EV_KEY, 39), 'SEMICOLON')
+
     def test_row_simple(self):
         rows = self.window.get('key_list').get_children()
         self.assertEqual(len(rows), 1)
@@ -185,9 +191,15 @@ class TestIntegration(unittest.TestCase):
         row.set_new_keycode(None, None)
         self.assertIsNone(row.get_keycode())
         self.assertEqual(len(custom_mapping), 0)
+        self.assertEqual(row.keycode_input.get_label(), None)
+
         row.set_new_keycode(EV_KEY, 30)
         self.assertEqual(len(custom_mapping), 0)
         self.assertEqual(row.get_keycode(), (EV_KEY, 30))
+        # this is KEY_A in linux/input-event-codes.h,
+        # but KEY_ is removed from the text
+        self.assertEqual(row.keycode_input.get_label(), 'A')
+
         row.set_new_keycode(EV_KEY, 30)
         self.assertEqual(len(custom_mapping), 0)
         self.assertEqual(row.get_keycode(), (EV_KEY, 30))
@@ -208,8 +220,20 @@ class TestIntegration(unittest.TestCase):
         self.assertEqual(row.get_keycode(), (EV_KEY, 30))
 
     def change_empty_row(self, code, char, code_first=True, success=True):
-        """Modify the one empty row that always exists."""
-        # this is not a test, it's a utility function for other tests.
+        """Modify the one empty row that always exists.
+
+        Utility function for other tests.
+
+        Parameters
+        ----------
+        code_first : boolean
+            If True, the code is entered and then the character.
+            If False, the character is entered first.
+        success : boolean
+            If this change on the empty row is going to result in a change
+            in the mapping eventually. False if this change is going to
+            cause a duplicate.
+        """
         # wait for the window to create a new empty row if needed
         time.sleep(0.1)
         gtk_iteration()
