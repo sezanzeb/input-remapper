@@ -64,16 +64,7 @@ def toggle_numlock():
         subprocess.check_output(['numlockx', 'toggle'])
     except FileNotFoundError:
         # doesn't seem to be installed everywhere
-        logger.debug('numlockx not found, trying to inject a keycode')
-        # and this doesn't always work.
-        device = evdev.UInput(
-            name=f'{DEV_NAME} numlock-control',
-            phys=DEV_NAME,
-        )
-        device.write(EV_KEY, evdev.ecodes.KEY_NUMLOCK, 1)
-        device.syn()
-        device.write(EV_KEY, evdev.ecodes.KEY_NUMLOCK, 0)
-        device.syn()
+        logger.debug('numlockx not found')
 
 
 def ensure_numlock(func):
@@ -98,7 +89,6 @@ class KeycodeInjector:
     make running multiple injector easier. There is one procss per
     hardware-device that is being mapped.
     """
-    @ensure_numlock
     def __init__(self, device, mapping):
         """Start injecting keycodes based on custom_mapping.
 
@@ -134,9 +124,9 @@ class KeycodeInjector:
         because the capabilities of the returned device are changed
         so this cannot be checked later anymore.
         """
-        device = evdev.InputDevice(path)
-
-        if device is None:
+        try:
+            device = evdev.InputDevice(path)
+        except FileNotFoundError:
             return None, False
 
         capabilities = device.capabilities(absinfo=False)
@@ -360,8 +350,6 @@ class KeycodeInjector:
 
         async for event in device.async_read_loop():
             if abs_to_rel and event.type == EV_ABS and event.code in JOYSTICK:
-                if event.code not in [evdev.ecodes.ABS_X, evdev.ecodes.ABS_Y]:
-                    continue
                 if event.code == evdev.ecodes.ABS_X:
                     self.abs_state[0] = event.value
                 if event.code == evdev.ecodes.ABS_Y:

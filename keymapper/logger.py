@@ -23,6 +23,7 @@
 
 
 import os
+import time
 import logging
 import pkg_resources
 
@@ -40,6 +41,8 @@ def spam(self, message, *args, **kwargs):
 
 logging.addLevelName(SPAM, "SPAM")
 logging.Logger.spam = spam
+
+start = time.time()
 
 
 class Formatter(logging.Formatter):
