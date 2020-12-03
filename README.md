@@ -42,7 +42,7 @@ If you can't find what you need, consult
 [linux/input-event-codes.h](https://github.com/torvalds/linux/blob/master/include/uapi/linux/input-event-codes.h)
 for KEY and BTN names
 
-- Mouse buttons `BTN_LEFT` `BTN_RIGHT` `BTN_MIDDLE` `BTN_SIDE`
+- Mouse buttons `BTN_LEFT` `BTN_RIGHT` `BTN_MIDDLE` `BTN_SIDE` ...
 - Multimedia keys `KEY_NEXTSONG` `KEY_PLAYPAUSE` ...
 - Macro special keys `KEY_MACRO1` `KEY_MACRO2` ...
 
@@ -110,7 +110,8 @@ cd key-mapper && sudo python3 setup.py install
 - [x] make sure it works on wayland
 - [x] support timed macros, maybe using some sort of syntax
 - [x] add to the AUR, provide .deb file
-- [x] support gamepads as keyboard and mouse combi
+- [x] basic support for gamepads as keyboard and mouse combi
+- [ ] map D-Pad and Joystick directions as buttons, joystick purpose via config
 - [ ] automatically load presets when devices get plugged in after login
 
 ## Tests
