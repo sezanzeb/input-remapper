@@ -207,10 +207,14 @@ def patch_evdev():
         path = None
 
         def __init__(self, path):
+            if path not in fixtures:
+                raise FileNotFoundError()
+
             self.path = path
             self.phys = fixtures[path]['phys']
             self.name = fixtures[path]['name']
             self.fd = self.name
+            self.capa = copy.deepcopy(fixtures[self.path]['capabilities'])
 
             def absinfo(axis):
                 return {
@@ -262,7 +266,7 @@ def patch_evdev():
                 await asyncio.sleep(0.01)
 
         def capabilities(self, absinfo=True):
-            return copy.deepcopy(fixtures[self.path]['capabilities'])
+            return self.capa
 
     class UInput:
         def __init__(self, *args, **kwargs):

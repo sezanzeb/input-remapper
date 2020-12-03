@@ -26,7 +26,7 @@ import time
 import evdev
 from evdev.ecodes import EV_REL, EV_KEY, EV_ABS, ABS_HAT0X
 
-from keymapper.dev.injector import is_numlock_on, toggle_numlock,\
+from keymapper.dev.injector import is_numlock_on, toggle_numlock, \
     ensure_numlock, KeycodeInjector
 from keymapper.dev.keycode_mapper import handle_keycode
 from keymapper.state import custom_mapping, system_mapping, \
@@ -48,9 +48,10 @@ class TestInjector(unittest.TestCase):
 
     def setUp(self):
         self.failed = 0
+        self.make_it_fail = 2
 
         def grab_fail_twice(_):
-            if self.failed < 2:
+            if self.failed < self.make_it_fail:
                 self.failed += 1
                 raise OSError()
 
@@ -79,6 +80,9 @@ class TestInjector(unittest.TestCase):
         mapping = Mapping()
         mapping.change((EV_KEY, 80), 'a')
 
+        # going to be ignored
+        mapping.change((EV_REL, 1234), 'b')
+
         maps_to = system_mapping['a']
 
         self.injector = KeycodeInjector('foo', mapping)
@@ -94,6 +98,7 @@ class TestInjector(unittest.TestCase):
 
         self.assertNotIn(evdev.ecodes.EV_SYN, capabilities)
         self.assertNotIn(evdev.ecodes.EV_FF, capabilities)
+        self.assertNotIn(evdev.ecodes.EV_REL, capabilities)
 
     def test_grab(self):
         # path is from the fixtures
@@ -109,6 +114,23 @@ class TestInjector(unittest.TestCase):
         # success on the third try
         device.name = fixtures[path]['name']
 
+    def test_fail_grab(self):
+        self.make_it_fail = 10
+        custom_mapping.change((EV_KEY, 10), 'a')
+
+        self.injector = KeycodeInjector('device 1', custom_mapping)
+        path = '/dev/input/event10'
+        device, abs_to_rel = self.injector._prepare_device(path)
+        self.assertFalse(abs_to_rel)
+        self.assertGreaterEqual(self.failed, 1)
+        self.assertIsNone(device)
+
+        self.injector.start_injecting()
+        # since none can be grabbed, the process will terminate. But that
+        # actually takes quite some time.
+        time.sleep(1.5)
+        self.assertFalse(self.injector._process.is_alive())
+
     def test_prepare_device_1(self):
         # according to the fixtures, /dev/input/event30 can do ABS_HAT0X
         custom_mapping.change((EV_ABS, ABS_HAT0X), 'a')
@@ -117,6 +139,13 @@ class TestInjector(unittest.TestCase):
         _prepare_device = self.injector._prepare_device
         self.assertIsNone(_prepare_device('/dev/input/event10')[0])
         self.assertIsNotNone(_prepare_device('/dev/input/event30')[0])
+
+    def test_prepare_device_non_existing(self):
+        custom_mapping.change((EV_ABS, ABS_HAT0X), 'a')
+        self.injector = KeycodeInjector('foobar', custom_mapping)
+
+        _prepare_device = self.injector._prepare_device
+        self.assertIsNone(_prepare_device('/dev/input/event1234')[0])
 
     def test_gamepad_capabilities(self):
         self.injector = KeycodeInjector('gamepad', custom_mapping)
@@ -166,10 +195,17 @@ class TestInjector(unittest.TestCase):
         self.assertEqual(not before, is_numlock_on())
 
         @ensure_numlock
-        def wrapped():
+        def wrapped_1():
             toggle_numlock()
 
-        wrapped()  # should not change
+        @ensure_numlock
+        def wrapped_2():
+            pass
+
+        # should not change
+        wrapped_1()
+        self.assertEqual(not before, is_numlock_on())
+        wrapped_2()
         self.assertEqual(not before, is_numlock_on())
 
         # toggle one more time to restore the previous configuration
@@ -331,6 +367,10 @@ class TestInjector(unittest.TestCase):
         uinput_write_history_pipe[0].poll(timeout=1)
         time.sleep(EVENT_READ_TIMEOUT * 10)
 
+        # sending anything arbitrary does not stop the process
+        # (is_alive checked later after some time)
+        self.injector._msg_pipe[1].send(1234)
+
         # convert the write history to some easier to manage list
         history = []
         while uinput_write_history_pipe[0].poll():
@@ -371,6 +411,9 @@ class TestInjector(unittest.TestCase):
         self.assertEqual(history[2], (ev_key, input_b, 1))
         self.assertEqual(history[3], (ev_key, input_b, 0))
         self.assertEqual(history[4], (3124, 3564, 6542))
+
+        time.sleep(0.1)
+        self.assertTrue(self.injector._process.is_alive())
 
 
 if __name__ == "__main__":
