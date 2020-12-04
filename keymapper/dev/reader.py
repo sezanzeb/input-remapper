@@ -53,6 +53,7 @@ class _KeycodeReader:
         self.stop_reading()
 
     def stop_reading(self):
+        """Stop reading keycodes."""
         if self._pipe is not None:
             logger.debug('Sending close msg to reader')
             self._pipe[0].send(CLOSE)

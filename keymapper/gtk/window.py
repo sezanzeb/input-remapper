@@ -23,9 +23,7 @@
 
 
 import evdev
-import sys
 from evdev.ecodes import EV_KEY
-
 import gi
 gi.require_version('Gtk', '3.0')
 gi.require_version('GLib', '2.0')
@@ -114,8 +112,8 @@ class Window:
         # already visible (without content) to make it look more responsive.
         gtk_iteration()
 
-        ok, _, is_input, is_plugdev, can_write = can_read_devices()
-        if not ok:
+        permitted, _, is_input, is_plugdev, can_write = can_read_devices()
+        if not permitted:
             missing_groups = []
             if not is_input:
                 missing_groups.append('input')
@@ -131,7 +129,7 @@ class Window:
             elif not can_write:
                 self.get('status_bar').push(
                     CTX_ERROR,
-                    f'Insufficient permissions on /dev/uinput'
+                    'Insufficient permissions on /dev/uinput'
                 )
 
         self.populate_devices()

@@ -26,7 +26,6 @@ https://github.com/LEW21/pydbus/tree/cc407c8b1d25b7e28a6d661a29f9e661b1c9b964/ex
 
 
 import subprocess
-import sys
 
 from pydbus import SessionBus
 

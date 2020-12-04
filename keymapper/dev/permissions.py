@@ -33,8 +33,8 @@ from keymapper.paths import USER
 def can_read_devices():
     """If the people ever looks into the console, make sure to help them."""
     is_root = getpass.getuser() == 'root'
-    is_in_input_group = USER in grp.getgrnam('input').gr_mem
-    is_in_plugdev_group = USER in grp.getgrnam('plugdev').gr_mem
+    is_input = USER in grp.getgrnam('input').gr_mem
+    is_plugdev = USER in grp.getgrnam('plugdev').gr_mem
 
     # ubuntu. funnily, individual devices in /dev/input/ have write permitted.
     can_write = os.access('/dev/uinput', os.W_OK)
@@ -50,9 +50,9 @@ def can_read_devices():
         )
 
     if not is_root:
-        if not is_in_plugdev_group:
+        if not is_plugdev:
             warn('plugdev')
-        if not is_in_input_group:
+        if not is_input:
             warn('input')
         if not can_write:
             logger.error(
@@ -62,6 +62,6 @@ def can_read_devices():
                 {USER}
             )
 
-    ok = (is_root or (is_in_input_group and is_in_plugdev_group)) and can_write
+    permitted = (is_root or (is_input and is_plugdev)) and can_write
 
-    return ok, is_root, is_in_input_group, is_in_plugdev_group, can_write
+    return permitted, is_root, is_input, is_plugdev, can_write
