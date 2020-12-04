@@ -50,4 +50,6 @@ def can_read_devices():
         if not is_in_input_group:
             warn('input')
 
-    return is_root or (is_in_input_group and is_in_plugdev_group)
+    ok = is_root or (is_in_input_group and is_in_plugdev_group)
+
+    return ok, is_root, is_in_input_group, is_in_plugdev_group

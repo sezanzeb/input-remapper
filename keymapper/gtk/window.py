@@ -42,6 +42,7 @@ from keymapper.gtk.unsaved import unsaved_changes_dialog, GO_BACK
 from keymapper.dev.reader import keycode_reader
 from keymapper.daemon import get_dbus_interface
 from keymapper.config import config
+from keymapper.dev.permissions import can_read_devices
 
 
 def gtk_iteration():
@@ -110,8 +111,23 @@ class Window:
         self.window = window
 
         # if any of the next steps take a bit to complete, have the window
-        # already visible to make it look more responsive.
+        # already visible (without content) to make it look more responsive.
         gtk_iteration()
+
+        ok, _, is_input, is_plugdev = can_read_devices()
+        if not ok:
+            missing_groups = []
+            if not is_input:
+                missing_groups.append('input')
+            if not is_plugdev:
+                missing_groups.append('plugdev')
+
+            if len(missing_groups) > 0:
+                self.get('status_bar').push(
+                    CTX_ERROR,
+                    f'You are not in the {" and ".join(missing_groups)} '
+                    f'group{"s" if len(missing_groups) > 0 else ""}'
+                )
 
         self.populate_devices()
 
