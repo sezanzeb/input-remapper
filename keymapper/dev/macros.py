@@ -154,7 +154,13 @@ class _Macro:
                 f'a macro, but got "{macro}"'
             )
 
-        repeats = int(repeats)
+        try:
+            repeats = int(repeats)
+        except ValueError:
+            raise ValueError(
+                'Expected the first param for repeat to be '
+                f'a number, but got "{repeats}"'
+            )
 
         for _ in range(repeats):
             self.tasks.append((CHILD_MACRO, macro))
@@ -187,7 +193,14 @@ class _Macro:
 
     def wait(self, sleeptime):
         """Wait time in milliseconds."""
-        sleeptime = int(sleeptime)
+        try:
+            sleeptime = int(sleeptime)
+        except ValueError:
+            raise ValueError(
+                'Expected the param for wait to be '
+                f'a number, but got "{sleeptime}"'
+            )
+
         sleeptime /= 1000
 
         async def sleep():
@@ -214,22 +227,29 @@ def _extract_params(inner):
             brackets += 1
         if char == ')':
             brackets -= 1
-        if (char == ',') and brackets == 0:
+        if char == ',' and brackets == 0:
             # , potentially starts another parameter, but only if
             # the current brackets are all closed.
             params.append(inner[start:position].strip())
             # skip the comma
             start = position + 1
 
-    if brackets == 0 and start != len(inner):
-        # one last parameter
-        params.append(inner[start:].strip())
+    # one last parameter
+    params.append(inner[start:].strip())
 
     return params
 
 
 def _count_brackets(macro):
     """Find where the first opening bracket closes."""
+    openings = macro.count('(')
+    closings = macro.count(')')
+    if openings != closings:
+        raise Exception(
+            f'You entered {openings} opening and {closings} '
+            'closing brackets'
+        )
+
     brackets = 0
     position = 0
     for char in macro:
@@ -240,14 +260,9 @@ def _count_brackets(macro):
 
         if char == ')':
             brackets -= 1
-            if brackets < 0:
-                raise Exception(f'There is one ")" too much at {position}')
             if brackets == 0:
                 # the closing bracket of the call
                 break
-
-    if brackets != 0:
-        raise Exception(f'There are {brackets} closing brackets missing')
 
     return position
 
@@ -284,12 +299,13 @@ def _parse_recurse(macro, macro_instance=None, depth=0):
     call_match = re.match(r'^(\w+)\(', macro)
     call = call_match[1] if call_match else None
     if call is not None:
-        # available functions in the macro
+        # available functions in the macro and the number of their
+        # parameters
         functions = {
-            'm': macro_instance.modify,
-            'r': macro_instance.repeat,
-            'k': macro_instance.keycode,
-            'w': macro_instance.wait
+            'm': (macro_instance.modify, 2),
+            'r': (macro_instance.repeat, 2),
+            'k': (macro_instance.keycode, 1),
+            'w': (macro_instance.wait, 1)
         }
 
         if functions.get(call) is None:
@@ -310,7 +326,14 @@ def _parse_recurse(macro, macro_instance=None, depth=0):
         ]
 
         logger.spam('%sadd call to %s with %s', space, call, params)
-        functions[call](*params)
+
+        if len(params) != functions[call][1]:
+            raise ValueError(
+                f'{call} takes {functions[call][1]}, not {len(params)} '
+                'parameters'
+            )
+
+        functions[call][0](*params)
 
         # is after this another call? Chain it to the macro_instance
         if len(macro) > position and macro[position] == '.':
@@ -349,6 +372,11 @@ def parse(macro):
     # whitespaces, tabs, newlines and such don't serve a purpose. make
     # the log output clearer and the parsing easier.
     macro = re.sub(r'\s', '', macro)
+
+    if '"' in macro or "'" in macro:
+        logger.info('Quotation marks in macros are not needed')
+        macro = macro.replace('"', '').replace("'", '')
+
     logger.spam('preparing macro %s for later execution', macro)
     try:
         return _parse_recurse(macro)

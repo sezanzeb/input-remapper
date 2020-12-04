@@ -23,7 +23,7 @@ import time
 import unittest
 import asyncio
 
-from keymapper.dev.macros import parse, _Macro
+from keymapper.dev.macros import parse, _Macro, _extract_params
 from keymapper.config import config
 from keymapper.state import system_mapping
 
@@ -39,6 +39,29 @@ class TestMacros(unittest.TestCase):
     def handler(self, code, value):
         """Where macros should write codes to."""
         self.result.append((code, value))
+
+    def test_extract_params(self):
+        def expect(raw, expectation):
+            self.assertListEqual(_extract_params(raw), expectation)
+
+        expect('a', ['a'])
+        expect('a,b', ['a', 'b'])
+        expect('a,b,c', ['a', 'b', 'c'])
+
+        expect('k(a)', ['k(a)'])
+        expect('k(a).k(b), k(a)', ['k(a).k(b)', 'k(a)'])
+        expect('k(a), k(a).k(b)', ['k(a)', 'k(a).k(b)'])
+
+        expect('r(1, k(a))', ['r(1, k(a))'])
+        expect('r(1, k(a)), r(1, k(b))', ['r(1, k(a))', 'r(1, k(b))'])
+        expect(
+            'r(1, k(a)), r(1, k(b)), r(1, k(c))',
+            ['r(1, k(a))', 'r(1, k(b))', 'r(1, k(c))']
+        )
+
+        expect('', [''])
+        expect(',', ['', ''])
+        expect(',,', ['', '', ''])
 
     def test_set_handler(self):
         macro = parse('r(1, r(1, k(1)))')
