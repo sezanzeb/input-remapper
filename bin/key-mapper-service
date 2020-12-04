@@ -32,7 +32,7 @@ from gi.repository import GLib
 from pydbus import SessionBus
 
 from keymapper.logger import update_verbosity, log_info, \
-    add_filehandler
+    add_filehandler, logger
 from keymapper.daemon import Daemon, BUS_NAME
 from keymapper.dev.permissions import can_read_devices
 
@@ -61,8 +61,15 @@ if __name__ == '__main__':
 
     bus = SessionBus()
     loop = GLib.MainLoop()
-    daemon = Daemon(True, loop)
-    bus.publish(BUS_NAME, daemon)
+    daemon = Daemon(loop)
+
+    try:
+        bus.publish(BUS_NAME, daemon)
+    except RuntimeError:
+        logger.error('The service is already running')
+        sys.exit(1)
+
+    daemon.autoload()
 
     atexit.register(lambda: daemon.stop(True))
 

@@ -101,7 +101,7 @@ class TestDaemon(unittest.TestCase):
         ]
 
         self.daemon = Daemon()
-        # starts mapping right after creation
+        self.daemon.autoload()
 
         self.assertTrue(self.daemon.is_injecting('device 2'))
         self.assertFalse(self.daemon.is_injecting('device 1'))
