@@ -114,6 +114,8 @@ def log_info():
         logger.info('Could not figure out the version')
         logger.debug(error)
 
+    logger.debug('pid %s', os.getpid())
+
 
 def update_verbosity(debug):
     """Set the logging verbosity according to the settings object."""
