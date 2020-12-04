@@ -56,8 +56,6 @@ if __name__ == '__main__':
     update_verbosity(options.debug)
     log_info()
 
-    can_read_devices()
-
     window = Window()
 
     def stop():
