@@ -40,6 +40,7 @@ check the output of `xmodmap -pke`
 
 If you can't find what you need, consult
 [linux/input-event-codes.h](https://github.com/torvalds/linux/blob/master/include/uapi/linux/input-event-codes.h)
+for KEY and BTN names
 
 - Mouse buttons `BTN_LEFT` `BTN_RIGHT` `BTN_MIDDLE` `BTN_SIDE`
 - Multimedia keys `KEY_NEXTSONG` `KEY_PLAYPAUSE` ...

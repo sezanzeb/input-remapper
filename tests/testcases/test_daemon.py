@@ -30,8 +30,7 @@ import gi
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
 
-from keymapper.state import custom_mapping, system_mapping, \
-    clear_system_mapping
+from keymapper.state import custom_mapping, system_mapping
 from keymapper.config import config
 from keymapper.daemon import Daemon, get_dbus_interface, BUS_NAME
 
@@ -78,6 +77,7 @@ class TestDaemon(unittest.TestCase):
             self.daemon = None
         evdev.InputDevice.grab = self.grab
         config.clear_config()
+        system_mapping.populate()
 
     def test_daemon(self):
         keycode_from_1 = 9
@@ -87,9 +87,9 @@ class TestDaemon(unittest.TestCase):
 
         custom_mapping.change((EV_KEY, keycode_from_1), 'a')
         custom_mapping.change((EV_KEY, keycode_from_2), 'b')
-        clear_system_mapping()
-        system_mapping['a'] = keycode_to_1
-        system_mapping['b'] = keycode_to_2
+        system_mapping.clear()
+        system_mapping._set('a', keycode_to_1)
+        system_mapping._set('b', keycode_to_2)
 
         preset = 'foo'
 

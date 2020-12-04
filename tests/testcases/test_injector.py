@@ -29,8 +29,7 @@ from evdev.ecodes import EV_REL, EV_KEY, EV_ABS, ABS_HAT0X
 from keymapper.dev.injector import is_numlock_on, toggle_numlock, \
     ensure_numlock, KeycodeInjector
 from keymapper.dev.keycode_mapper import handle_keycode
-from keymapper.state import custom_mapping, system_mapping, \
-    clear_system_mapping
+from keymapper.state import custom_mapping, system_mapping
 from keymapper.mapping import Mapping
 from keymapper.config import config
 from keymapper.dev.macros import parse
@@ -67,6 +66,7 @@ class TestInjector(unittest.TestCase):
             del pending_events[key]
         clear_write_history()
         custom_mapping.empty()
+        system_mapping.populate()
 
     def test_modify_capabilities(self):
         class FakeDevice:
@@ -80,21 +80,34 @@ class TestInjector(unittest.TestCase):
         mapping = Mapping()
         mapping.change((EV_KEY, 80), 'a')
 
-        # going to be ignored
+        macro_code = 'r(2, m(sHiFt_l, r(2, k(1).k(2))))'
+        macro = parse(macro_code)
+
+        mapping.change((EV_KEY, 60), macro_code)
+
+        # going to be ignored, because EV_REL cannot be mapped, that's
+        # mouse movements.
         mapping.change((EV_REL, 1234), 'b')
 
-        maps_to = system_mapping['a']
+        a = system_mapping.get('a')
+        shift_l = system_mapping.get('ShIfT_L')
+        one = system_mapping.get(1)
+        two = system_mapping.get('2')
 
         self.injector = KeycodeInjector('foo', mapping)
         fake_device = FakeDevice()
         capabilities = self.injector._modify_capabilities(
+            {60: macro},
             fake_device,
             abs_to_rel=False
         )
 
         self.assertIn(EV_KEY, capabilities)
         keys = capabilities[EV_KEY]
-        self.assertEqual(keys[0], maps_to)
+        self.assertIn(a, keys)
+        self.assertIn(one, keys)
+        self.assertIn(two, keys)
+        self.assertIn(shift_l, keys)
 
         self.assertNotIn(evdev.ecodes.EV_SYN, capabilities)
         self.assertNotIn(evdev.ecodes.EV_FF, capabilities)
@@ -154,7 +167,11 @@ class TestInjector(unittest.TestCase):
         device, abs_to_rel = self.injector._prepare_device(path)
         self.assertTrue(abs_to_rel)
 
-        capabilities = self.injector._modify_capabilities(device, abs_to_rel)
+        capabilities = self.injector._modify_capabilities(
+            {},
+            device,
+            abs_to_rel
+        )
         self.assertNotIn(evdev.ecodes.EV_ABS, capabilities)
         self.assertIn(evdev.ecodes.EV_REL, capabilities)
 
@@ -269,7 +286,7 @@ class TestInjector(unittest.TestCase):
         self.assertAlmostEqual(history[-2][2], -1)
 
     def test_handle_keycode(self):
-        code_code_mapping = {
+        _code_to_code = {
             1: 101,
             2: 102
         }
@@ -287,9 +304,9 @@ class TestInjector(unittest.TestCase):
 
         EV_KEY = evdev.ecodes.EV_KEY
 
-        handle_keycode(code_code_mapping, {}, Event(EV_KEY, 1, 1), uinput)
-        handle_keycode(code_code_mapping, {}, Event(EV_KEY, 3, 1), uinput)
-        handle_keycode(code_code_mapping, {}, Event(EV_KEY, 2, 1), uinput)
+        handle_keycode(_code_to_code, {}, Event(EV_KEY, 1, 1), uinput)
+        handle_keycode(_code_to_code, {}, Event(EV_KEY, 3, 1), uinput)
+        handle_keycode(_code_to_code, {}, Event(EV_KEY, 2, 1), uinput)
 
         self.assertEqual(len(history), 3)
         self.assertEqual(history[0], (EV_KEY, 101, 1))
@@ -299,18 +316,19 @@ class TestInjector(unittest.TestCase):
     def test_handle_keycode_macro(self):
         history = []
 
-        macro_mapping = {
-            1: parse('k(a)', lambda *args: history.append(args)),
-            2: parse('r(5, k(b))', lambda *args: history.append(args))
-        }
-
         code_a = 100
         code_b = 101
-        system_mapping['a'] = code_a
-        system_mapping['b'] = code_b
-        clear_system_mapping()
+        system_mapping.clear()
+        system_mapping._set('a', code_a)
+        system_mapping._set('b', code_b)
 
-        EV_KEY = evdev.ecodes.EV_KEY
+        macro_mapping = {
+            1: parse('k(a)'),
+            2: parse('r(5, k(b))')
+        }
+
+        macro_mapping[1].set_handler(lambda *args: history.append(args))
+        macro_mapping[2].set_handler(lambda *args: history.append(args))
 
         handle_keycode({}, macro_mapping, Event(EV_KEY, 1, 1), None)
         handle_keycode({}, macro_mapping, Event(EV_KEY, 2, 1), None)
@@ -326,10 +344,10 @@ class TestInjector(unittest.TestCase):
 
         # 6 keycodes written, with down and up events
         self.assertEqual(len(history), 12)
-        self.assertIn(('a', 1), history)
-        self.assertIn(('a', 0), history)
-        self.assertIn(('b', 1), history)
-        self.assertIn(('b', 0), history)
+        self.assertIn((code_a, 1), history)
+        self.assertIn((code_a, 0), history)
+        self.assertIn((code_b, 1), history)
+        self.assertIn((code_b, 0), history)
 
     def test_injector(self):
         custom_mapping.change((EV_KEY, 8), 'k(KEY_Q).k(w)')
@@ -338,13 +356,13 @@ class TestInjector(unittest.TestCase):
         input_b = 10
         custom_mapping.change((EV_KEY, input_b), 'b')
 
-        clear_system_mapping()
+        system_mapping.clear()
         code_a = 100
         code_q = 101
         code_w = 102
-        system_mapping['a'] = code_a
-        system_mapping['KEY_Q'] = code_q
-        system_mapping['w'] = code_w
+        system_mapping._set('a', code_a)
+        system_mapping._set('key_q', code_q)
+        system_mapping._set('w', code_w)
 
         # the second arg of those event objects is 8 lower than the
         # keycode used in X and in the mappings

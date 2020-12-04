@@ -40,9 +40,9 @@ import re
 
 from keymapper.logger import logger
 from keymapper.config import config
+from keymapper.state import system_mapping
 
 
-# for debugging purposes
 MODIFIER = 1
 CHILD_MACRO = 2
 SLEEP = 3
@@ -51,17 +51,19 @@ KEYSTROKE = 5
 DEBUG = 6
 
 
+def is_this_a_macro(output):
+    """Figure out if this is a macro."""
+    if '(' in output and ')' in output and len(output) >= 4:
+        return True
+
+
 class _Macro:
     """Supports chaining and preparing actions."""
-    def __init__(self, handler, depth, code):
+    def __init__(self, depth, code):
         """Create a macro instance that can be populated with tasks.
 
         Parameters
         ----------
-        handler : func
-            A function that accepts keycodes as the first parameter and the
-            key-press state as the second. 1 for down and 0 for up. The
-            macro will write to this function once executed with `.run()`.
         depth : int
             0 for the outermost parent macro, 1 or greater for child macros,
             like the second argument of repeat.
@@ -69,13 +71,42 @@ class _Macro:
             The original parsed code, for logging purposes.
         """
         self.tasks = []
-        self.handler = handler
+        self.handler = lambda *args: logger.error('No handler set')
         self.depth = depth
         self.code = code
 
+        # all required capabilities, without those of child macros
+        self.capabilities = set()
+
+    def get_capabilities(self):
+        """Resolve all capabilities of the macro and those of its children."""
+        capabilities = self.capabilities.copy()
+        for task_type, task in self.tasks:
+            if task_type == CHILD_MACRO:
+                capabilities.update(task.get_capabilities())
+        return capabilities
+
+    def set_handler(self, handler):
+        """Set the handler function.
+
+        Parameters
+        ----------
+        handler : func
+            A function that accepts keycodes as the first parameter and the
+            key-press state as the second. 1 for down and 0 for up. The
+            macro will write to this function once executed with `.run()`.
+        """
+        self.handler = handler
+        for task_type, task in self.tasks:
+            if task_type == CHILD_MACRO:
+                task.set_handler(handler)
+
     async def run(self):
         """Run the macro."""
-        for _, task in self.tasks:
+        for task_type, task in self.tasks:
+            if task_type == CHILD_MACRO:
+                task = task.run
+
             coroutine = task()
             if asyncio.iscoroutine(coroutine):
                 await coroutine
@@ -88,11 +119,19 @@ class _Macro:
         modifier : str
         macro : _Macro
         """
-        self.tasks.append((MODIFIER, lambda: self.handler(modifier, 1)))
+        modifier = str(modifier)
+        code = system_mapping.get(modifier)
+
+        if code is None:
+            raise KeyError(f'Unknown modifier "{modifier}"')
+
+        self.capabilities.add(code)
+
+        self.tasks.append((MODIFIER, lambda: self.handler(code, 1)))
         self.add_keycode_pause()
-        self.tasks.append((CHILD_MACRO, macro.run))
+        self.tasks.append((CHILD_MACRO, macro))
         self.add_keycode_pause()
-        self.tasks.append((MODIFIER, lambda: self.handler(modifier, 0)))
+        self.tasks.append((MODIFIER, lambda: self.handler(code, 0)))
         self.add_keycode_pause()
         return self
 
@@ -104,8 +143,9 @@ class _Macro:
         repeats : int
         macro : _Macro
         """
+        repeats = int(repeats)
         for _ in range(repeats):
-            self.tasks.append((CHILD_MACRO, macro.run))
+            self.tasks.append((CHILD_MACRO, macro))
         return self
 
     def add_keycode_pause(self):
@@ -119,14 +159,23 @@ class _Macro:
 
     def keycode(self, character):
         """Write the character."""
-        self.tasks.append((KEYSTROKE, lambda: self.handler(character, 1)))
+        character = str(character)
+        code = system_mapping.get(character)
+
+        if code is None:
+            raise KeyError(f'Unknown key "{character}"')
+
+        self.capabilities.add(code)
+
+        self.tasks.append((KEYSTROKE, lambda: self.handler(code, 1)))
         self.add_keycode_pause()
-        self.tasks.append((KEYSTROKE, lambda: self.handler(character, 0)))
+        self.tasks.append((KEYSTROKE, lambda: self.handler(code, 0)))
         self.add_keycode_pause()
         return self
 
     def wait(self, sleeptime):
         """Wait time in milliseconds."""
+        sleeptime = int(sleeptime)
         sleeptime /= 1000
 
         async def sleep():
@@ -191,15 +240,13 @@ def _count_brackets(macro):
     return position
 
 
-def _parse_recurse(macro, handler, macro_instance=None, depth=0):
+def _parse_recurse(macro, macro_instance=None, depth=0):
     """Handle a subset of the macro, e.g. one parameter or function call.
 
     Parameters
     ----------
     macro : string
         Just like parse
-    handler : function
-        passed to _Macro constructors
     macro_instance : _Macro or None
         A macro instance to add tasks to
     depth : int
@@ -211,11 +258,10 @@ def _parse_recurse(macro, handler, macro_instance=None, depth=0):
     # If this gets more complicated than that I'd rather make a macro
     # editor GUI and store them as json.
     assert isinstance(macro, str)
-    assert callable(handler)
     assert isinstance(depth, int)
 
     if macro_instance is None:
-        macro_instance = _Macro(handler, depth, macro)
+        macro_instance = _Macro(depth, macro)
     else:
         assert isinstance(macro_instance, _Macro)
 
@@ -247,7 +293,7 @@ def _parse_recurse(macro, handler, macro_instance=None, depth=0):
         logger.spam('%scalls %s with %s', space, call, string_params)
         # evaluate the params
         params = [
-            _parse_recurse(param.strip(), handler, None, depth + 1)
+            _parse_recurse(param.strip(), None, depth + 1)
             for param in string_params
         ]
 
@@ -258,7 +304,7 @@ def _parse_recurse(macro, handler, macro_instance=None, depth=0):
         if len(macro) > position and macro[position] == '.':
             chain = macro[position + 1:]
             logger.spam('%sfollowed by %s', space, chain)
-            _parse_recurse(chain, handler, macro_instance, depth)
+            _parse_recurse(chain, macro_instance, depth)
 
         return macro_instance
 
@@ -271,7 +317,7 @@ def _parse_recurse(macro, handler, macro_instance=None, depth=0):
     return macro
 
 
-def parse(macro, handler):
+def parse(macro):
     """parse and generate a _Macro that can be run as often as you want.
 
     Parameters
@@ -280,17 +326,13 @@ def parse(macro, handler):
         "r(3, k(a).w(10))"
         "r(2, k(a).k(-)).k(b)"
         "w(1000).m(Shift_L, r(2, k(a))).w(10, 20).k(b)"
-    handler : func
-        A function that accepts keycodes as the first parameter and the
-        key-press state as the second. 1 for down and 0 for up. The
-        macro will write to this function once executed with `.run()`.
     """
     # whitespaces, tabs, newlines and such don't serve a purpose. make
     # the log output clearer and the parsing easier.
     macro = re.sub(r'\s', '', macro)
     logger.spam('preparing macro %s for later execution', macro)
     try:
-        return _parse_recurse(macro, handler)
+        return _parse_recurse(macro)
     except Exception as error:
         logger.error('Failed to parse macro "%s": %s', macro, error)
         return None

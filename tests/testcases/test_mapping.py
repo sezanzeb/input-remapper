@@ -23,7 +23,7 @@ import unittest
 from evdev.events import EV_KEY, EV_ABS
 
 from keymapper.mapping import Mapping
-from keymapper.state import populate_system_mapping
+from keymapper.state import SystemMapping
 
 
 class TestMapping(unittest.TestCase):
@@ -31,18 +31,28 @@ class TestMapping(unittest.TestCase):
         self.mapping = Mapping()
         self.assertFalse(self.mapping.changed)
 
-    def test_populate_system_mapping(self):
-        # not actually a mapping object, just a dict
-        mapping = populate_system_mapping()
-        self.assertGreater(len(mapping), 100)
-        self.assertEqual(mapping['1'], 2)
-        self.assertEqual(mapping['KEY_1'], 2)
+    def test_system_mapping(self):
+        system_mapping = SystemMapping()
+        self.assertGreater(len(system_mapping._mapping), 100)
+        self.assertEqual(system_mapping.get('1'), 2)
+        self.assertEqual(system_mapping.get('KeY_1'), 2)
 
-        self.assertEqual(mapping['Alt_L'], 56)
-        self.assertEqual(mapping['KEY_LEFTALT'], 56)
+        self.assertEqual(system_mapping.get('AlT_L'), 56)
+        self.assertEqual(system_mapping.get('KEy_LEFtALT'), 56)
 
-        self.assertEqual(mapping['KEY_LEFTSHIFT'], 42)
-        self.assertEqual(mapping['Shift_L'], 42)
+        self.assertEqual(system_mapping.get('kEY_LeFTSHIFT'), 42)
+        self.assertEqual(system_mapping.get('ShiFt_L'), 42)
+
+        self.assertIsNotNone(system_mapping.get('kp_1'))
+        self.assertIsNotNone(system_mapping.get('KP_1'))
+        self.assertEqual(
+            system_mapping.get('KP_Left'),
+            system_mapping.get('KP_4')
+        )
+        self.assertEqual(
+            system_mapping.get('KP_Left'),
+            system_mapping.get('KEY_KP4')
+        )
 
     def test_clone(self):
         mapping1 = Mapping()

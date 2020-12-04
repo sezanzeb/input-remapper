@@ -35,8 +35,7 @@ import shutil
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
 
-from keymapper.state import custom_mapping, system_mapping, \
-    clear_system_mapping
+from keymapper.state import custom_mapping, system_mapping
 from keymapper.paths import CONFIG, get_config_path
 from keymapper.config import config
 from keymapper.dev.reader import keycode_reader
@@ -110,6 +109,7 @@ class TestIntegration(unittest.TestCase):
         gtk_iteration()
         shutil.rmtree('/tmp/key-mapper-test')
         clear_write_history()
+        system_mapping.populate()
 
     def get_rows(self):
         return self.window.get('key_list').get_children()
@@ -428,8 +428,8 @@ class TestIntegration(unittest.TestCase):
         keycode_to = 200
 
         self.change_empty_row(keycode_from, 'a')
-        clear_system_mapping()
-        system_mapping['a'] = keycode_to
+        system_mapping.clear()
+        system_mapping._set('a', keycode_to)
 
         pending_events['device 2'] = [
             Event(evdev.events.EV_KEY, keycode_from, 1),
@@ -465,8 +465,8 @@ class TestIntegration(unittest.TestCase):
         keycode_to = 90
 
         self.change_empty_row(keycode_from, 't')
-        clear_system_mapping()
-        system_mapping['t'] = keycode_to
+        system_mapping.clear()
+        system_mapping._set('t', keycode_to)
 
         # not all of those events should be processed, since that takes some
         # time due to time.sleep in the fakes and the injection is stopped.

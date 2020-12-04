@@ -34,32 +34,52 @@ from keymapper.mapping import Mapping
 XKB_KEYCODE_OFFSET = 8
 
 
-def populate_system_mapping():
-    """Get a mapping of all available names to their keycodes."""
-    mapping = {}
+class SystemMapping:
+    """Stores information about all available keycodes."""
+    def __init__(self):
+        """Construct the system_mapping."""
+        self._mapping = {}
+        self.populate()
 
-    xmodmap = subprocess.check_output(['xmodmap', '-pke']).decode() + '\n'
-    mappings = re.findall(r'(\d+) = (.+)\n', xmodmap)
-    for keycode, names in mappings:
-        # there might be multiple, like:
-        # keycode  64 = Alt_L Meta_L Alt_L Meta_L
-        # keycode 204 = NoSymbol Alt_L NoSymbol Alt_L
-        # only the first column is relevant. The others can be achieved
-        # by using a modifier button and the mapped key
-        name = names.split()[0]
-        mapping[name] = int(keycode) - XKB_KEYCODE_OFFSET
+    def populate(self):
+        """Get a mapping of all available names to their keycodes."""
+        self.clear()
+        xmodmap = subprocess.check_output(['xmodmap', '-pke']).decode() + '\n'
+        mappings = re.findall(r'(\d+) = (.+)\n', xmodmap)
+        for keycode, names in mappings:
+            # there might be multiple, like:
+            # keycode  64 = Alt_L Meta_L Alt_L Meta_L
+            # keycode 204 = NoSymbol Alt_L NoSymbol Alt_L
+            # Alt_L should map to code 64. Writing code 204 only works
+            # if a modifier is applied at the same time. So take the first
+            # one.
+            name = names.split()[0]
+            self._set(name, int(keycode) - XKB_KEYCODE_OFFSET)
 
-    for name, ecode in evdev.ecodes.ecodes.items():
-        mapping[name] = ecode
+        for keycode, names in mappings:
+            # but since KP may be mapped like KP_Home KP_7 KP_Home KP_7,
+            # make another pass and add all of them if they don't already
+            # exist. don't overwrite any keycodes.
+            for name in names.split():
+                if self.get(name) is None:
+                    self._set(name, int(keycode) - XKB_KEYCODE_OFFSET)
 
-    return mapping
+        for name, ecode in evdev.ecodes.ecodes.items():
+            self._set(name, ecode)
 
+    def _set(self, name, code):
+        """Map name to code."""
+        self._mapping[str(name).lower()] = code
 
-def clear_system_mapping():
-    """Remove all mapped keys. Only needed for tests."""
-    keys = list(system_mapping.keys())
-    for key in keys:
-        del system_mapping[key]
+    def get(self, name):
+        """Return the code mapped to the key."""
+        return self._mapping.get(str(name).lower())
+
+    def clear(self):
+        """Remove all mapped keys. Only needed for tests."""
+        keys = list(self._mapping.keys())
+        for key in keys:
+            del self._mapping[key]
 
 
 # one mapping object for the whole application that holds all
@@ -67,7 +87,7 @@ def clear_system_mapping():
 custom_mapping = Mapping()
 
 # this mapping represents the xmodmap output, which stays constant
-system_mapping = populate_system_mapping()
+system_mapping = SystemMapping()
 
 # permissions for files created in /usr
 _PERMISSIONS = stat.S_IREAD | stat.S_IWRITE | stat.S_IRGRP | stat.S_IROTH

@@ -52,12 +52,12 @@ def should_map_event_as_btn(type, code):
     return False
 
 
-def handle_keycode(code_code_mapping, macros, event, uinput):
+def handle_keycode(_code_to_code, macros, event, uinput):
     """Write the mapped keycode or forward unmapped ones.
 
     Parameters
     ----------
-    code_code_mapping : dict
+    _code_to_code : dict
         mapping of linux-keycode to linux-keycode.
     macros : dict
         mapping of linux-keycode to _Macro objects
@@ -84,8 +84,8 @@ def handle_keycode(code_code_mapping, macros, event, uinput):
         asyncio.ensure_future(macro.run())
         return
 
-    if input_keycode in code_code_mapping:
-        target_keycode = code_code_mapping[input_keycode]
+    if input_keycode in _code_to_code:
+        target_keycode = _code_to_code[input_keycode]
         target_type = evdev.events.EV_KEY
         logger.spam(
             'got code:%s value:%s event:%s, maps to EV_KEY:%s',
