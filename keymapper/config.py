@@ -84,11 +84,11 @@ class _Config:
         path : string
             For example 'macros.keystroke_sleep_ms'
         """
-        def do(parent, child, chunk):
+        def callback(parent, child, chunk):
             if child is not None:
                 del parent[chunk]
 
-        self._resolve(path, do)
+        self._resolve(path, callback)
 
     def set(self, path, value):
         """Set a config key.
@@ -99,10 +99,10 @@ class _Config:
             For example 'macros.keystroke_sleep_ms'
         value : any
         """
-        def do(parent, child, chunk):
+        def callback(parent, child, chunk):
             parent[chunk] = value
 
-        self._resolve(path, do)
+        self._resolve(path, callback)
 
     def get(self, path, log_unknown=True):
         """Get a config value. If not set, return the default
@@ -114,12 +114,12 @@ class _Config:
         log_unknown : bool
             If True, write an error.
         """
-        def do(parent, child, chunk):
+        def callback(parent, child, chunk):
             return child
 
-        resolved = self._resolve(path, do)
+        resolved = self._resolve(path, callback)
         if resolved is None:
-            resolved = self._resolve(path, do, INITIAL_CONFIG)
+            resolved = self._resolve(path, callback, INITIAL_CONFIG)
 
         if resolved is None and log_unknown:
             logger.error('Unknown config key "%s"', path)

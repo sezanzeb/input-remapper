@@ -53,8 +53,7 @@ DEBUG = 6
 
 def is_this_a_macro(output):
     """Figure out if this is a macro."""
-    if '(' in output and ')' in output and len(output) >= 4:
-        return True
+    return '(' in output and ')' in output and len(output) >= 4
 
 
 class _Macro:

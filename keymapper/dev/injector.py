@@ -23,7 +23,6 @@
 
 
 import re
-import os
 import asyncio
 import time
 import subprocess
@@ -114,7 +113,7 @@ class KeycodeInjector:
     def _map_codes_to_codes(self):
         """To quickly get target keycodes during operation."""
         _code_to_code = {}
-        for (ev_type, keycode), output in self.mapping:
+        for (_, keycode), output in self.mapping:
             if is_this_a_macro(output):
                 continue
 
@@ -297,7 +296,7 @@ class KeycodeInjector:
             # each device parses the macros with a different handler
             logger.debug('Parsing macros for %s', path)
             macros = {}
-            for (ev_type, keycode), output in self.mapping:
+            for (_, keycode), output in self.mapping:
                 if is_this_a_macro(output):
                     macro = parse(output)
                     if macro is None:

@@ -40,6 +40,8 @@ def get_data_path(filename=''):
     distros this is somewhat complicated. Ubuntu wants to use /usr/local
     for data_files, but not everything can be placed there.
     """
+    global logged
+
     source_path = None
     try:
         source_path = pkg_resources.require('key-mapper')[0].location
@@ -50,8 +52,6 @@ def get_data_path(filename=''):
     # depending on where this file is installed to, make sure to use the proper
     # prefix path for data
     # https://docs.python.org/3/distutils/setupscript.html?highlight=package_data#installing-additional-files # noqa pylint: disable=line-too-long
-
-    global logged
 
     data_path = None
     # python3.8/dist-packages python3.7/site-packages, /usr/share,
