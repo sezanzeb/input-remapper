@@ -40,39 +40,36 @@ def get_data_path(filename=''):
     distros this is somewhat complicated. Ubuntu wants to use /usr/local
     for data_files, but not everything can be placed there.
     """
+    source_path = None
     try:
         source_path = pkg_resources.require('key-mapper')[0].location
-    except pkg_resources.DistributionNotFound as error:
-        # try to check where stuff usually should be
-        logger.debug(error)
-        data_path = '/usr/share/key-mapper'
-        if not os.path.exists(data_path):
-            logger.error('key-mapper data was not properly installed')
-            sys.exit(1)
-        return os.path.join('/usr/share/key-mapper', filename)
+        # failed in some ubuntu installations
+    except pkg_resources.DistributionNotFound:
+        pass
 
     # depending on where this file is installed to, make sure to use the proper
     # prefix path for data
     # https://docs.python.org/3/distutils/setupscript.html?highlight=package_data#installing-additional-files # noqa pylint: disable=line-too-long
-
-    candidates = [
-        os.path.join(site.USER_BASE, 'share/key-mapper'),
-        '/usr/local/share/key-mapper',
-        '/usr/share/key-mapper'
-    ]
 
     global logged
 
     data_path = None
     # python3.8/dist-packages python3.7/site-packages, /usr/share,
     # /usr/local/share, endless options
-    if '-packages' not in source_path and 'python' not in source_path:
-        # probably installed with -e, running from the cloned git source
-        data_path = os.path.join(source_path, 'data')
-        if not os.path.exists(data_path):
-            if not logged:
-                logger.debug('Editabe, but data missing at "%s"', data_path)
-            data_path = None
+    if source_path is not None:
+        if '-packages' not in source_path and 'python' not in source_path:
+            # probably installed with -e, running from the cloned git source
+            data_path = os.path.join(source_path, 'data')
+            if not os.path.exists(data_path):
+                if not logged:
+                    logger.debug('-e, but data missing at "%s"', data_path)
+                data_path = None
+
+    candidates = [
+        '/usr/share/key-mapper',
+        '/usr/local/share/key-mapper',
+        os.path.join(site.USER_BASE, 'share/key-mapper'),
+    ]
 
     if data_path is None:
         # try any of the options
