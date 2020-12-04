@@ -28,6 +28,7 @@ https://github.com/LEW21/pydbus/tree/cc407c8b1d25b7e28a6d661a29f9e661b1c9b964/ex
 import subprocess
 
 from pydbus import SessionBus
+from gi.repository import GLib
 
 from keymapper.logger import logger
 from keymapper.dev.injector import KeycodeInjector
@@ -49,15 +50,22 @@ def is_service_running():
 
 def get_dbus_interface():
     """Get an interface to start and stop injecting keystrokes."""
+    msg = (
+        'The daemon "key-mapper-service" is not running, mapping keys '
+        'only works as long as the window is open.'
+    )
+
     if not is_service_running():
-        logger.warning(
-            'The daemon "key-mapper-service" is not running, mapping keys '
-            'only works as long as the window is open.'
-        )
+        logger.warning(msg)
         return Daemon()
 
     bus = SessionBus()
-    interface = bus.get(BUS_NAME)
+    try:
+        interface = bus.get(BUS_NAME)
+    except GLib.GError as error:
+        logger.debug(error)
+        logger.warning(msg)
+        return Daemon()
 
     return interface
 
