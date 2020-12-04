@@ -42,10 +42,11 @@ def can_read_devices():
     def warn(group):
         logger.warning(
             'Some devices may not be visible without being in the '
-            '"%s" user group. Try `sudo usermod -a -G %s $USER` '
+            '"%s" user group. Try `sudo usermod -a -G %s %s` '
             'and log out and back in.',
             group,
-            group
+            group,
+            USER
         )
 
     if not is_root:
@@ -57,7 +58,8 @@ def can_read_devices():
             logger.error(
                 'Injecting keycodes into /dev/uinput is not permitted. '
                 'Either use sudo or run '
-                f'`sudo setfacl -m u:{USER}:rw- /dev/uinput`'
+                '`sudo setfacl -m u:%s:rw- /dev/uinput`',
+                {USER}
             )
 
     ok = (is_root or (is_in_input_group and is_in_plugdev_group)) and can_write
