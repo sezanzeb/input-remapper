@@ -133,6 +133,10 @@ class KeycodeInjector:
             # started once.
             raise Exception('Please construct a new injector instead')
 
+        if self.device not in get_devices():
+            logger.error('Cannot inject for unknown device "%s"', self.device)
+            return
+
         self._process = multiprocessing.Process(target=self._start_injecting)
         self._process.start()
 
@@ -279,7 +283,7 @@ class KeycodeInjector:
         loop = asyncio.get_event_loop()
         coroutines = []
 
-        logger.info('Starting injecting the mapping for %s', self.device)
+        logger.info('Starting injecting the mapping for "%s"', self.device)
 
         paths = get_devices()[self.device]['paths']
 

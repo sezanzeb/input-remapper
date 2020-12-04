@@ -19,7 +19,6 @@
 # along with key-mapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
-import os
 import grp
 import unittest
 
@@ -40,7 +39,7 @@ class TestPermissions(unittest.TestCase):
                 self.gr_mem = []
 
         grp.getgrnam = Grnam
-        self.assertFalse(can_read_devices())
+        self.assertFalse(can_read_devices()[0])
 
     def test_can_access(self):
         class Grnam:
@@ -48,7 +47,7 @@ class TestPermissions(unittest.TestCase):
                 self.gr_mem = [USER]
 
         grp.getgrnam = Grnam
-        self.assertTrue(can_read_devices())
+        self.assertTrue(can_read_devices()[0])
 
 
 if __name__ == "__main__":
