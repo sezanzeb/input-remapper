@@ -30,7 +30,7 @@ from keymapper.logger import logger
 from keymapper.dev.ev_abs_mapper import JOYSTICK
 
 
-def should_map_event_as_btn(ev_type, code): 
+def should_map_event_as_btn(ev_type, code):
     """Does this event describe a button.
 
     Especially important for gamepad events, some of the buttons

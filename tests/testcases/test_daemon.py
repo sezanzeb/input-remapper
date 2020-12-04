@@ -27,7 +27,6 @@ import time
 import evdev
 from evdev.ecodes import EV_KEY
 import gi
-gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
 
 from keymapper.state import custom_mapping, system_mapping
