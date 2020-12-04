@@ -65,6 +65,7 @@ via sudo otherwise. You may also need to grant yourself write access to
 `/dev/uinput` to be able to inject your programmed mapping.
 
 ```bash
+# either use sudo key-mapper-gtk or
 sudo usermod -a -G plugdev,input $USER
 sudo setfacl -m u:$USER:rw- /dev/uinput
 # log out and back in or restart, the two groups should be visible with:
