@@ -22,7 +22,6 @@
 """Error dialog."""
 
 
-import gi
 from gi.repository import Gtk
 
 from keymapper.data import get_data_path
