@@ -124,4 +124,5 @@ sudo pip install . && coverage run tests/test.py
 coverage combine && coverage report -m
 ```
 
-To read events, `evtest` is very helpful.
+To read events, `evtest` is very helpful. Add `-d` to `key-mapper-gtk`
+to get debug outbut.
