@@ -294,8 +294,11 @@ class KeycodeInjector:
             macros = {}
             for (ev_type, keycode), output in self.mapping:
                 if is_this_a_macro(output):
-                    macros[keycode] = parse(output)
-                    continue
+                    macro = parse(output)
+                    if macro is None:
+                        continue
+
+                    macros[keycode] = macro
 
             # certain capabilities can have side effects apparently. with an
             # EV_ABS capability, EV_REL won't move the mouse pointer anymore.

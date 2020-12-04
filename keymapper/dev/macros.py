@@ -119,6 +119,12 @@ class _Macro:
         modifier : str
         macro : _Macro
         """
+        if not isinstance(macro, _Macro):
+            raise ValueError(
+                'Expected the second param for repeat to be '
+                f'a macro, but got {macro}'
+            )
+
         modifier = str(modifier)
         code = system_mapping.get(modifier)
 
@@ -143,7 +149,14 @@ class _Macro:
         repeats : int
         macro : _Macro
         """
+        if not isinstance(macro, _Macro):
+            raise ValueError(
+                'Expected the second param for repeat to be '
+                f'a macro, but got "{macro}"'
+            )
+
         repeats = int(repeats)
+
         for _ in range(repeats):
             self.tasks.append((CHILD_MACRO, macro))
         return self
@@ -310,15 +323,22 @@ def _parse_recurse(macro, macro_instance=None, depth=0):
 
     # probably a parameter for an outer function
     try:
+        # if possible, parse as int
         macro = int(macro)
     except ValueError:
+        # use as string instead
         pass
+
     logger.spam('%s%s %s', space, type(macro), macro)
     return macro
 
 
 def parse(macro):
     """parse and generate a _Macro that can be run as often as you want.
+
+    You need to use set_handler on it before running. If it could not
+    be parsed, possibly due to syntax errors, will log the error and
+    return None.
 
     Parameters
     ----------

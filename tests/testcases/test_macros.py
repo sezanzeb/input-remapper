@@ -52,6 +52,11 @@ class TestMacros(unittest.TestCase):
         self.loop.run_until_complete(macro.run())
         self.assertListEqual(self.result, [(one_code, 1), (one_code, 0)])
 
+    def test_fails(self):
+        self.assertIsNone(parse('r(1, a)'))
+        self.assertIsNone(parse('r(a, k(b))'))
+        self.assertIsNone(parse('m(a, b)'))
+
     def test_0(self):
         macro = parse('k(1)')
         macro.set_handler(self.handler)
