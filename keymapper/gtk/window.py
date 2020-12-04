@@ -23,6 +23,7 @@
 
 
 import evdev
+import sys
 from evdev.ecodes import EV_KEY
 
 import gi
@@ -130,11 +131,14 @@ class Window:
 
     def on_close(self, *_):
         """Safely close the application."""
+        logger.debug('Closing window')
         for timeout in self.timeouts:
             GLib.source_remove(timeout)
             self.timeouts = []
         keycode_reader.stop_reading()
-        Gtk.main_quit()
+        self.window.destroy()
+        gtk_iteration()
+        sys.exit(0)
 
     def check_add_row(self):
         """Ensure that one empty row is available at all times."""
@@ -289,18 +293,20 @@ class Window:
 
     def on_apply_preset_clicked(self, _):
         """Apply a preset without saving changes."""
-        logger.debug(
-            'Applying preset "%s" for "%s"',
-            self.selected_preset,
-            self.selected_device
-        )
-        self.get('status_bar').push(
-            CTX_APPLY,
-            f'Applied "{self.selected_preset}"'
-        )
+        preset = self.selected_preset
+        device = self.selected_device
+
+        logger.debug('Applying preset "%s" for "%s"', preset, device)
+
+        push = self.get('status_bar').push
+        if custom_mapping.changed:
+            push(CTX_APPLY, f'Applied outdated preset "{preset}"')
+        else:
+            push(CTX_APPLY, f'Applied preset "{preset}"')
+
         success = self.dbus.start_injecting(
             self.selected_device,
-            self.selected_preset
+            preset
         )
 
         if not success:
@@ -311,7 +317,7 @@ class Window:
 
         # restart reading because after injecting the device landscape
         # changes a bit
-        keycode_reader.start_reading(self.selected_device)
+        keycode_reader.start_reading(device)
         GLib.timeout_add(10, self.show_device_mapping_status)
 
     def on_preset_autoload_switch_activate(self, _, active):

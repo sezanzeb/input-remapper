@@ -29,7 +29,7 @@ from argparse import ArgumentParser
 import gi
 gi.require_version('Gtk', '3.0')
 gi.require_version('GLib', '2.0')
-from gi.repository import Gtk
+from gi.repository import Gtk, GLib
 
 from keymapper.logger import update_verbosity, log_info
 from keymapper.gtk.window import Window
@@ -65,6 +65,7 @@ if __name__ == '__main__':
             # it created its own temporary daemon inside the process
             # because none was running
             window.dbus.stop()
+
         window.on_close()
 
     atexit.register(stop)
