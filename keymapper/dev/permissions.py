@@ -56,7 +56,8 @@ def can_read_devices():
         if not can_write:
             logger.error(
                 'Injecting keycodes into /dev/uinput is not permitted. '
-                'Either use sudo or run `sudo chmod 660 /dev/uinput`'
+                'Either use sudo or run '
+                f'`sudo setfacl -m u:{USER}:rw- /dev/uinput`'
             )
 
     ok = (is_root or (is_in_input_group and is_in_plugdev_group)) and can_write
