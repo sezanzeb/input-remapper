@@ -54,7 +54,7 @@ def can_read_devices():
         if not is_in_input_group:
             warn('input')
         if not can_write:
-            logger.warning(
+            logger.error(
                 'Injecting keycodes into /dev/uinput is not permitted. '
                 'Either use sudo or run `sudo chmod 660 /dev/uinput`'
             )
