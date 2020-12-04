@@ -30,6 +30,8 @@ Documentation:
 - `m` holds a modifier while executing the second parameter
 - `.` executes two actions behind each other
 
+Syntax errors are logged to the console.
+
 ##### Names
 
 For a list of supported keystrokes and their names for the middle column,
