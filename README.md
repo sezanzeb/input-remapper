@@ -115,7 +115,7 @@ cd key-mapper && sudo python3 setup.py install
 - [x] basic support for gamepads as keyboard and mouse combi
 - [ ] map D-Pad and Joystick directions as buttons, joystick purpose via config
 - [ ] automatically load presets when devices get plugged in after login
-- [ ] option to write hwdb configs for lower level mapping ([remapping_keys_using_hwdb_files](https://www.reddit.com/r/linux_gaming/comments/k3h9qv/remapping_keys_using_hwdb_files/))
+- [ ] option to write hwdb configs for lower level mappings ([remapping_keys_using_hwdb_files](https://www.reddit.com/r/linux_gaming/comments/k3h9qv/remapping_keys_using_hwdb_files/))
 
 ## Tests
 
