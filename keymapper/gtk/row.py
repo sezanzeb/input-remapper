@@ -24,7 +24,6 @@
 
 import evdev
 
-import gi
 from gi.repository import Gtk, GLib
 
 from keymapper.state import custom_mapping
@@ -178,6 +177,10 @@ class Row(Gtk.ListBoxRow):
 
         # make the togglebutton go back to its normal state when doing
         # something else in the UI
+        keycode_input.connect(
+            'focus-in-event',
+            self.window.can_modify_mapping
+        )
         keycode_input.connect(
             'focus-out-event',
             lambda *args: keycode_input.set_active(False)

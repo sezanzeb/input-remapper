@@ -24,7 +24,6 @@
 
 import evdev
 from evdev.ecodes import EV_KEY
-import gi
 from gi.repository import Gtk, Gdk, GLib
 
 from keymapper.data import get_data_path
@@ -229,8 +228,35 @@ class Window:
         key_list = self.get('key_list')
         key_list.forall(lambda row: row.unhighlight())
 
+    def can_modify_mapping(self, *args):
+        """Show a message if changing the mapping is not possible."""
+        if self.dbus.is_injecting(self.selected_device):
+            # because the device is in grab mode by the daemon and
+            # therefore the original keycode inaccessible
+            logger.info('Cannot change keycodes while injecting')
+            self.get('status_bar').push(
+                CTX_ERROR,
+                'Use "Apply Defaults" before editing'
+            )
+
+    def get_focused_row(self):
+        """Get the Row that is currently in focus."""
+        focused = self.window.get_focus()
+        if focused is None:
+            return True
+
+        box = focused.get_parent()
+        if box is None:
+            return True
+
+        row = box.get_parent()
+        if not isinstance(row, Row):
+            return None, None
+
+        return row, focused
+
     def consume_newest_keycode(self):
-        """To capture events from keyboard, mice and gamepads."""
+        """To capture events from keyboards, mice and gamepads."""
         # the "event" event of Gtk.Window wouldn't trigger on gamepad
         # events, so it became a GLib timeout
         ev_type, keycode = keycode_reader.read()
@@ -252,16 +278,8 @@ class Window:
         self.get('keycode').set_text(to_string(ev_type, keycode))
 
         # inform the currently selected row about the new keycode
-        focused = self.window.get_focus()
-        if focused is None:
-            return True
-
-        box = focused.get_parent()
-        if box is None:
-            return True
-
-        row = box.get_parent()
-        if isinstance(focused, Gtk.ToggleButton) and isinstance(row, Row):
+        row, focused = self.get_focused_row()
+        if isinstance(focused, Gtk.ToggleButton):
             row.set_new_keycode(ev_type, keycode)
 
         return True
