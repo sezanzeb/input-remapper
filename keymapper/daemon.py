@@ -26,6 +26,7 @@ https://github.com/LEW21/pydbus/tree/cc407c8b1d25b7e28a6d661a29f9e661b1c9b964/ex
 
 
 import subprocess
+import sys
 
 from pydbus import SessionBus
 
@@ -54,7 +55,7 @@ def get_dbus_interface():
             'The daemon "key-mapper-service" is not running, mapping keys '
             'only works as long as the window is open.'
         )
-        return Daemon(autoload=False)
+        return Daemon()
 
     bus = SessionBus()
     interface = bus.get(BUS_NAME)
@@ -99,21 +100,23 @@ class Daemon:
         </node>
     """
 
-    def __init__(self, autoload=True, loop=None):
+    def __init__(self, loop=None):
         """Constructs the daemon. You still need to run the GLib mainloop."""
         logger.debug('Creating daemon')
         self.injectors = {}
         self.loop = loop
-        if autoload:
-            for device, preset in config.iterate_autoload_presets():
-                mapping = Mapping()
-                mapping.load(device, preset)
-                try:
-                    injector = KeycodeInjector(device, mapping)
-                    injector.start_injecting()
-                    self.injectors[device] = injector
-                except OSError as error:
-                    logger.error(error)
+
+    def autoload(self):
+        """Runs all autoloaded presets."""
+        for device, preset in config.iterate_autoload_presets():
+            mapping = Mapping()
+            mapping.load(device, preset)
+            try:
+                injector = KeycodeInjector(device, mapping)
+                injector.start_injecting()
+                self.injectors[device] = injector
+            except OSError as error:
+                logger.error(error)
 
     def stop_injecting(self, device):
         """Stop injecting the mapping for a single device."""

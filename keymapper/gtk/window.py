@@ -136,9 +136,7 @@ class Window:
             GLib.source_remove(timeout)
             self.timeouts = []
         keycode_reader.stop_reading()
-        self.window.destroy()
-        gtk_iteration()
-        sys.exit(0)
+        Gtk.main_quit()
 
     def check_add_row(self):
         """Ensure that one empty row is available at all times."""
