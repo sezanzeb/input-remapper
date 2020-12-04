@@ -24,6 +24,7 @@
 
 import grp
 import getpass
+import os
 
 from keymapper.logger import logger
 from keymapper.paths import USER
@@ -35,13 +36,17 @@ def can_read_devices():
     is_in_input_group = USER in grp.getgrnam('input').gr_mem
     is_in_plugdev_group = USER in grp.getgrnam('plugdev').gr_mem
 
+    # ubuntu. funnily, individual devices in /dev/input/ have write permitted.
+    can_write = os.access('/dev/uinput', os.W_OK)
+
     def warn(group):
         logger.warning(
             'Some devices may not be visible without being in the '
-            '"%s" user group. Try `sudo usermod -a -G %s $USER` '
+            '"%s" user group. Try `sudo usermod -a -G %s %s` '
             'and log out and back in.',
             group,
-            group
+            group,
+            USER
         )
 
     if not is_root:
@@ -49,7 +54,14 @@ def can_read_devices():
             warn('plugdev')
         if not is_in_input_group:
             warn('input')
+        if not can_write:
+            logger.error(
+                'Injecting keycodes into /dev/uinput is not permitted. '
+                'Either use sudo or run '
+                '`sudo setfacl -m u:%s:rw- /dev/uinput`',
+                {USER}
+            )
 
-    ok = is_root or (is_in_input_group and is_in_plugdev_group)
+    ok = (is_root or (is_in_input_group and is_in_plugdev_group)) and can_write
 
-    return ok, is_root, is_in_input_group, is_in_plugdev_group
+    return ok, is_root, is_in_input_group, is_in_plugdev_group, can_write

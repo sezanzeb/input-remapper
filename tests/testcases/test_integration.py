@@ -21,6 +21,7 @@
 
 import sys
 import time
+import grp
 import os
 import unittest
 import evdev
@@ -36,7 +37,7 @@ gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
 
 from keymapper.state import custom_mapping, system_mapping
-from keymapper.paths import CONFIG, get_config_path
+from keymapper.paths import CONFIG, get_config_path, USER
 from keymapper.config import config
 from keymapper.dev.reader import keycode_reader
 from keymapper.gtk.row import to_string
@@ -51,8 +52,21 @@ def gtk_iteration():
         Gtk.main_iteration()
 
 
+# iterate a few times when Gtk.main() is called, but don't block
+# there and just continue to the tests while the UI becomes
+# unresponsive
+Gtk.main = gtk_iteration
+
+# doesn't do much except avoid some Gtk assertion error, whatever:
+Gtk.main_quit = lambda: None
+
+
 def launch(argv=None):
     """Start key-mapper-gtk with the command line argument array argv."""
+    if os.path.exists(tmp):
+        shutil.rmtree(tmp)
+    custom_mapping.empty()
+
     bin_path = os.path.join(os.getcwd(), 'bin', 'key-mapper-gtk')
 
     if not argv:
@@ -85,20 +99,7 @@ class TestIntegration(unittest.TestCase):
 
     Try to modify the configuration only by calling functions of the window.
     """
-    @classmethod
-    def setUpClass(cls):
-        # iterate a few times when Gtk.main() is called, but don't block
-        # there and just continue to the tests while the UI becomes
-        # unresponsive
-        Gtk.main = gtk_iteration
-
-        # doesn't do much except avoid some Gtk assertion error, whatever:
-        Gtk.main_quit = lambda: None
-
     def setUp(self):
-        if os.path.exists(tmp):
-            shutil.rmtree(tmp)
-        custom_mapping.empty()
         self.window = launch()
 
     def tearDown(self):
@@ -500,6 +501,77 @@ class TestIntegration(unittest.TestCase):
         while pipe.poll():
             write_history.append(pipe.recv())
         self.assertEqual(len(write_history), len_before)
+
+
+original_access = os.access
+original_getgrnam = grp.getgrnam
+
+
+class TestPermissions(unittest.TestCase):
+    def tearDown(self):
+        os.access = original_access
+        os.getgrnam = original_getgrnam
+
+        self.window.on_close()
+        self.window.window.destroy()
+        gtk_iteration()
+        shutil.rmtree('/tmp/key-mapper-test')
+
+    def test_check_groups_missing(self):
+        class Grnam:
+            def __init__(self, group):
+                self.gr_mem = []
+
+        grp.getgrnam = Grnam
+
+        self.window = launch()
+        status = self.window.get('status_bar')
+
+        labels = ''
+        for label in status.get_message_area():
+            labels += label.get_text()
+        self.assertIn('input', labels)
+        self.assertIn('plugdev', labels)
+
+    def test_check_plugdev_missing(self):
+        class Grnam:
+            def __init__(self, group):
+                if group == 'input':
+                    self.gr_mem = [USER]
+                else:
+                    self.gr_mem = []
+
+        grp.getgrnam = Grnam
+
+        self.window = launch()
+        status = self.window.get('status_bar')
+
+        labels = ''
+        for label in status.get_message_area():
+            labels += label.get_text()
+        self.assertNotIn('input', labels)
+        self.assertIn('plugdev', labels)
+
+    def test_check_write_uinput(self):
+        class Grnam:
+            def __init__(self, group):
+                self.gr_mem = [USER]
+
+        grp.getgrnam = Grnam
+
+        def access(path, mode):
+            return False
+
+        os.access = access
+
+        self.window = launch()
+        status = self.window.get('status_bar')
+
+        labels = ''
+        for label in status.get_message_area():
+            labels += label.get_text()
+        self.assertNotIn('plugdev', labels)
+        self.assertIn('Insufficient permissions on /dev/uinput', labels)
 
 
 if __name__ == "__main__":

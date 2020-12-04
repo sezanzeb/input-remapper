@@ -114,7 +114,7 @@ class Window:
         # already visible (without content) to make it look more responsive.
         gtk_iteration()
 
-        ok, _, is_input, is_plugdev = can_read_devices()
+        ok, _, is_input, is_plugdev, can_write = can_read_devices()
         if not ok:
             missing_groups = []
             if not is_input:
@@ -127,6 +127,11 @@ class Window:
                     CTX_ERROR,
                     f'You are not in the {" and ".join(missing_groups)} '
                     f'group{"s" if len(missing_groups) > 0 else ""}'
+                )
+            elif not can_write:
+                self.get('status_bar').push(
+                    CTX_ERROR,
+                    f'Insufficient permissions on /dev/uinput'
                 )
 
         self.populate_devices()
