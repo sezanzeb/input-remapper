@@ -110,25 +110,14 @@ class Window:
         # already visible (without content) to make it look more responsive.
         gtk_iteration()
 
-        permitted, _, is_input, is_plugdev, can_write = can_read_devices()
-        if not permitted:
-            missing_groups = []
-            if not is_input:
-                missing_groups.append('input')
-            if not is_plugdev:
-                missing_groups.append('plugdev')
-
-            if len(missing_groups) > 0:
-                self.get('status_bar').push(
-                    CTX_ERROR,
-                    f'You are not in the {" and ".join(missing_groups)} '
-                    f'group{"s" if len(missing_groups) > 0 else ""}'
-                )
-            elif not can_write:
-                self.get('status_bar').push(
-                    CTX_ERROR,
-                    'Insufficient permissions on /dev/uinput'
-                )
+        permission_errors = can_read_devices()
+        if len(permission_errors) > 0:
+            # TODO test
+            self.show_status(
+                CTX_ERROR,
+                'Permission error. Hover for info',
+                '\n\n'.join(permission_errors)
+            )
 
         self.populate_devices()
 
@@ -235,10 +224,7 @@ class Window:
             # because the device is in grab mode by the daemon and
             # therefore the original keycode inaccessible
             logger.info('Cannot change keycodes while injecting')
-            self.get('status_bar').push(
-                CTX_ERROR,
-                'Use "Apply Defaults" before editing'
-            )
+            self.show_status(CTX_ERROR, 'Use "Apply Defaults" before editing')
 
     def get_focused_row(self):
         """Get the Row that is currently in focus."""
@@ -288,10 +274,7 @@ class Window:
     def on_apply_system_layout_clicked(self, _):
         """Load the mapping."""
         self.dbus.stop_injecting(self.selected_device)
-        self.get('status_bar').push(
-            CTX_APPLY,
-            'Applied the system default'
-        )
+        self.show_status(CTX_APPLY, 'Applied the system default')
         GLib.timeout_add(10, self.show_device_mapping_status)
 
     def show_status(self, context_id, message, tooltip=None):
