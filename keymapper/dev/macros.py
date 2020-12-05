@@ -80,6 +80,8 @@ class _Macro:
 
         # all required capabilities, without those of child macros
         self.capabilities = set()
+
+        # TODO test that child_macros is properly populated
         self.child_macros = []
 
     def get_capabilities(self):
@@ -100,9 +102,8 @@ class _Macro:
             macro will write to this function once executed with `.run()`.
         """
         self.handler = handler
-        for task_type, task in self.tasks:
-            if task_type == CHILD_MACRO:
-                task.set_handler(handler)
+        for macro in self.child_macros:
+            macro.set_handler(handler)
 
     async def run(self):
         """Run the macro."""
@@ -113,9 +114,6 @@ class _Macro:
                 logger.debug('Macro execution stopped')
                 break
 
-            if task_type == CHILD_MACRO:
-                task = task.run
-
             coroutine = task()
             if asyncio.iscoroutine(coroutine):
                 await coroutine
@@ -125,7 +123,13 @@ class _Macro:
         # TODO test
         self.running = False
 
-    async def hold(self, macro):
+    def release_key(self):
+        """Tell all child macros that the key was released."""
+        self.holding = False
+        for macro in self.child_macros:
+            macro.release_key()
+
+    def hold(self, macro):
         """Loops the execution until key release."""
         if not isinstance(macro, _Macro):
             raise ValueError(
@@ -134,11 +138,14 @@ class _Macro:
             )
 
         # TODO test
-        def task():
+
+        async def task():
             while self.holding and self.running:
-                await self.run()
+                await macro.run()
 
         self.tasks.append((REPEAT, task))
+
+        self.child_macros.append(macro)
 
         return self
 
@@ -164,9 +171,11 @@ class _Macro:
 
         self.capabilities.add(code)
 
+        self.child_macros.append(macro)
+
         self.tasks.append((MODIFIER, lambda: self.handler(code, 1)))
         self.add_keycode_pause()
-        self.tasks.append((CHILD_MACRO, macro))
+        self.tasks.append((CHILD_MACRO, macro.run))
         self.add_keycode_pause()
         self.tasks.append((MODIFIER, lambda: self.handler(code, 0)))
         self.add_keycode_pause()
@@ -195,7 +204,10 @@ class _Macro:
             )
 
         for _ in range(repeats):
-            self.tasks.append((CHILD_MACRO, macro))
+            self.tasks.append((CHILD_MACRO, macro.run))
+
+        self.child_macros.append(macro)
+
         return self
 
     def add_keycode_pause(self):

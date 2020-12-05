@@ -65,20 +65,34 @@ def handle_keycode(code_to_code, macros, event, uinput):
         mapping of linux-keycode to linux-keycode
     macros : dict
         mapping of linux-keycode to _Macro objects
+    event : evdev.InputEvent
     """
     if event.value == 2:
-        # button-hold event
+        # button-hold event. Linux seems to create them on its own, no need
+        # to inject them.
         return
 
     input_keycode = event.code
     input_type = event.type
 
     if input_keycode in macros:
+        if event.value == 0:
+            # key-release event. Tell the macro for that keycode
+            # that the key is released and let it decide what to with that
+            # information.
+            macro = active_macros.get(input_keycode)
+            # TODO test
+            if macro is not None:
+                macro.release_key()
+
         if event.value != 1:
             # only key-down events trigger macros
             return
 
         macro = macros[input_keycode]
+        active_macros[input_keycode] = macro
+        # TODO test that holding is true
+        macro.holding = True
         logger.spam(
             'got code:%s value:%s, maps to macro %s',
             input_keycode,
