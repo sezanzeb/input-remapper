@@ -57,32 +57,36 @@ def is_this_a_macro(output):
 
 
 class _Macro:
-    """Supports chaining and preparing actions."""
-    def __init__(self, depth, code):
+    """Supports chaining and preparing actions.
+
+    Calling functions on _Macro does not inject anything yet, it means that
+    once .run is used it will be executed along with all other queued tasks.
+    """
+    def __init__(self, code):
         """Create a macro instance that can be populated with tasks.
 
         Parameters
         ----------
-        depth : int
-            0 for the outermost parent macro, 1 or greater for child macros,
-            like the second argument of repeat.
         code : string
             The original parsed code, for logging purposes.
         """
         self.tasks = []
         self.handler = lambda *args: logger.error('No handler set')
-        self.depth = depth
         self.code = code
+        self.running = False
+
+        # supposed to be True between key event values 1 (down) and 0 (up)
+        self.holding = False
 
         # all required capabilities, without those of child macros
         self.capabilities = set()
+        self.child_macros = []
 
     def get_capabilities(self):
         """Resolve all capabilities of the macro and those of its children."""
         capabilities = self.capabilities.copy()
-        for task_type, task in self.tasks:
-            if task_type == CHILD_MACRO:
-                capabilities.update(task.get_capabilities())
+        for macro in self.child_macros:
+            capabilities.update(macro.get_capabilities())
         return capabilities
 
     def set_handler(self, handler):
@@ -102,13 +106,41 @@ class _Macro:
 
     async def run(self):
         """Run the macro."""
+        self.running = True
+
         for task_type, task in self.tasks:
+            if not self.running:
+                logger.debug('Macro execution stopped')
+                break
+
             if task_type == CHILD_MACRO:
                 task = task.run
 
             coroutine = task()
             if asyncio.iscoroutine(coroutine):
                 await coroutine
+
+    def stop(self):
+        """Stop the macro."""
+        # TODO test
+        self.running = False
+
+    async def hold(self, macro):
+        """Loops the execution until key release."""
+        if not isinstance(macro, _Macro):
+            raise ValueError(
+                'Expected the param for hold to be '
+                f'a macro, but got "{macro}"'
+            )
+
+        # TODO test
+        def task():
+            while self.holding and self.running:
+                await self.run()
+
+        self.tasks.append((REPEAT, task))
+
+        return self
 
     def modify(self, modifier, macro):
         """Do stuff while a modifier is activated.
@@ -288,7 +320,7 @@ def _parse_recurse(macro, macro_instance=None, depth=0):
     assert isinstance(depth, int)
 
     if macro_instance is None:
-        macro_instance = _Macro(depth, macro)
+        macro_instance = _Macro(macro)
     else:
         assert isinstance(macro_instance, _Macro)
 
@@ -305,7 +337,8 @@ def _parse_recurse(macro, macro_instance=None, depth=0):
             'm': (macro_instance.modify, 2),
             'r': (macro_instance.repeat, 2),
             'k': (macro_instance.keycode, 1),
-            'w': (macro_instance.wait, 1)
+            'w': (macro_instance.wait, 1),
+            'h': (macro_instance.hold, 1)
         }
 
         if functions.get(call) is None:
