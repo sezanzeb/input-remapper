@@ -32,8 +32,8 @@ Documentation:
 - `h` executes the parameter as long as the key is pressed down
 - `.` executes two actions behind each other
 
-Syntax errors are shown in the ui. each `k` function adds a short delay of
-10ms that can be configured in `~/.config/key-mapper/config`.
+Syntax errors are shown in the UI on save. each `k` function adds a short
+delay of 10ms that can be configured in `~/.config/key-mapper/config`.
 
 ##### Names
 
@@ -49,7 +49,6 @@ for KEY and BTN names
 
 - Mouse buttons `BTN_LEFT` `BTN_RIGHT` `BTN_MIDDLE` `BTN_SIDE` ...
 - Multimedia keys `KEY_NEXTSONG` `KEY_PLAYPAUSE` ...
-- Macro special keys `KEY_MACRO1` `KEY_MACRO2` ...
 
 ##### Gamepads
 
