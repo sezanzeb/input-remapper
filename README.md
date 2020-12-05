@@ -32,8 +32,8 @@ Documentation:
 - `h` executes the parameter as long as the key is pressed down
 - `.` executes two actions behind each other
 
-Syntax errors are logged to the console. each `k` function adds a short delay
-of 10ms that can be configured in `~/.config/key-mapper/config`.
+Syntax errors are shown in the ui. each `k` function adds a short delay of
+10ms that can be configured in `~/.config/key-mapper/config`.
 
 ##### Names
 

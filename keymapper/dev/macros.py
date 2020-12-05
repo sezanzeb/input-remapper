@@ -53,6 +53,10 @@ DEBUG = 6
 
 def is_this_a_macro(output):
     """Figure out if this is a macro."""
+    # TODO test
+    if not isinstance(output, str):
+        return False
+
     return '(' in output and ')' in output and len(output) >= 4
 
 
@@ -114,6 +118,7 @@ class _Macro:
     def press_key(self):
         """Tell all child macros that the key was pressed down."""
         # TODO test
+        print(id(self), 'hold')
         self.holding = True
         for macro in self.child_macros:
             macro.press_key()
@@ -121,6 +126,7 @@ class _Macro:
     def release_key(self):
         """Tell all child macros that the key was released."""
         # TODO test
+        print(id(self), 'release')
         self.holding = False
         for macro in self.child_macros:
             macro.release_key()
@@ -131,8 +137,8 @@ class _Macro:
         #  even with complicated macros and weird calls to press and release
         if not isinstance(macro, _Macro):
             raise ValueError(
-                'Expected the param for hold to be '
-                f'a macro, but got "{macro}"'
+                'Expected the param for h (hold) to be '
+                f'a macro (like k(a)), but got "{macro}"'
             )
 
         async def task():
@@ -155,8 +161,8 @@ class _Macro:
         """
         if not isinstance(macro, _Macro):
             raise ValueError(
-                'Expected the second param for repeat to be '
-                f'a macro, but got {macro}'
+                'Expected the second param for m (modify) to be '
+                f'a macro (like k(a)), but got {macro}'
             )
 
         modifier = str(modifier)
@@ -187,15 +193,15 @@ class _Macro:
         """
         if not isinstance(macro, _Macro):
             raise ValueError(
-                'Expected the second param for repeat to be '
-                f'a macro, but got "{macro}"'
+                'Expected the second param for r (repeat) to be '
+                f'a macro (like k(a)), but got "{macro}"'
             )
 
         try:
             repeats = int(repeats)
         except ValueError:
             raise ValueError(
-                'Expected the first param for repeat to be '
+                'Expected the first param for r (repeat) to be '
                 f'a number, but got "{repeats}"'
             )
 
@@ -237,7 +243,7 @@ class _Macro:
             sleeptime = int(sleeptime)
         except ValueError:
             raise ValueError(
-                'Expected the param for wait to be '
+                'Expected the param for w (wait) to be '
                 f'a number, but got "{sleeptime}"'
             )
 
@@ -339,6 +345,10 @@ def _parse_recurse(macro, macro_instance=None, depth=0):
     call_match = re.match(r'^(\w+)\(', macro)
     call = call_match[1] if call_match else None
     if call is not None:
+        if 'k(' not in macro:
+            # TODO test
+            raise Exception(f'"{macro}" doesn\'t write any keys')
+
         # available functions in the macro and the number of their
         # parameters
         functions = {
@@ -396,7 +406,7 @@ def _parse_recurse(macro, macro_instance=None, depth=0):
     return macro
 
 
-def parse(macro):
+def parse(macro, return_errors=False):
     """parse and generate a _Macro that can be run as often as you want.
 
     You need to use set_handler on it before running. If it could not
@@ -409,7 +419,10 @@ def parse(macro):
         "r(3, k(a).w(10))"
         "r(2, k(a).k(-)).k(b)"
         "w(1000).m(Shift_L, r(2, k(a))).w(10, 20).k(b)"
+    return_errors : bool
+        if True, returns errors as a string or None if parsing worked
     """
+    # TODO test return_errors
     # whitespaces, tabs, newlines and such don't serve a purpose. make
     # the log output clearer and the parsing easier.
     macro = re.sub(r'\s', '', macro)
@@ -418,9 +431,14 @@ def parse(macro):
         logger.info('Quotation marks in macros are not needed')
         macro = macro.replace('"', '').replace("'", '')
 
-    logger.spam('preparing macro %s for later execution', macro)
+    if return_errors:
+        logger.spam('checking the syntax of %s', macro)
+    else:
+        logger.spam('preparing macro %s for later execution', macro)
+
     try:
-        return _parse_recurse(macro)
+        macro_object = _parse_recurse(macro)
+        return macro_object if not return_errors else None
     except Exception as error:
         logger.error('Failed to parse macro "%s": %s', macro, error)
-        return None
+        return str(error) if return_errors else None

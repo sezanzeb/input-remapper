@@ -37,6 +37,7 @@ from keymapper.gtk.unsaved import unsaved_changes_dialog, GO_BACK
 from keymapper.dev.reader import keycode_reader
 from keymapper.daemon import get_dbus_interface
 from keymapper.config import config
+from keymapper.dev.macros import is_this_a_macro, parse
 from keymapper.dev.permissions import can_read_devices
 
 
@@ -293,11 +294,36 @@ class Window:
         )
         GLib.timeout_add(10, self.show_device_mapping_status)
 
+    def show_status(self, context_id, message, tooltip=None):
+        """Show a status message and set its tooltip."""
+        if tooltip is None:
+            tooltip = message
+
+        status_bar = self.get('status_bar')
+        status_bar.push(context_id, message)
+        status_bar.set_tooltip_text(tooltip)
+
+    def check_macro_syntax(self):
+        """Check if the programmed macros are allright."""
+        # test macros for syntax errors
+        # TODO test
+        for (ev_type, keycode), output in custom_mapping:
+            if not is_this_a_macro(output):
+                continue
+
+            error = parse(output, return_errors=True)
+            if error is None:
+                continue
+
+            position = to_string(ev_type, keycode)
+            msg = f'Syntax error at {position}, hover for info'
+            self.show_status(CTX_ERROR, msg, error)
+
     def on_save_preset_clicked(self, button):
         """Save changes to a preset to the file system."""
         new_name = self.get('preset_name_input').get_text()
         try:
-            self.save_config()
+            self.save_preset()
             if new_name not in ['', self.selected_preset]:
                 rename_preset(
                     self.selected_device,
@@ -308,15 +334,11 @@ class Window:
             # newest, so populate_presets will automatically select the
             # right one again.
             self.populate_presets()
-            self.get('status_bar').push(
-                CTX_SAVE,
-                f'Saved "{self.selected_preset}"'
-            )
+            self.show_status(CTX_SAVE, f'Saved "{self.selected_preset}"')
+            self.check_macro_syntax()
+
         except PermissionError as error:
-            self.get('status_bar').push(
-                CTX_ERROR,
-                'Error: Permission denied!'
-            )
+            self.show_status(CTX_ERROR, 'Error: Permission denied!')
             logger.error(str(error))
 
     def on_delete_preset_clicked(self, _):
@@ -331,11 +353,10 @@ class Window:
 
         logger.debug('Applying preset "%s" for "%s"', preset, device)
 
-        push = self.get('status_bar').push
         if custom_mapping.changed:
-            push(CTX_APPLY, f'Applied outdated preset "{preset}"')
+            self.show_status(CTX_APPLY, f'Applied outdated preset "{preset}"')
         else:
-            push(CTX_APPLY, f'Applied preset "{preset}"')
+            self.show_status(CTX_APPLY, f'Applied preset "{preset}"')
 
         success = self.dbus.start_injecting(
             self.selected_device,
@@ -343,10 +364,7 @@ class Window:
         )
 
         if not success:
-            self.get('status_bar').push(
-                CTX_ERROR,
-                'Error: Could not grab devices!'
-            )
+            self.show_status(CTX_ERROR, 'Error: Could not grab devices!')
 
         # restart reading because after injecting the device landscape
         # changes a bit
@@ -406,10 +424,7 @@ class Window:
             self.get('preset_selection').append(new_preset, new_preset)
             self.get('preset_selection').set_active_id(new_preset)
         except PermissionError as error:
-            self.get('status_bar').push(
-                CTX_ERROR,
-                'Error: Permission denied!'
-            )
+            self.show_status(CTX_ERROR, 'Error: Permission denied!')
             logger.error(str(error))
 
     def on_select_preset(self, dropdown):
@@ -469,8 +484,8 @@ class Window:
         # https://stackoverflow.com/a/30329591/4417769
         key_list.remove(single_key_mapping)
 
-    def save_config(self):
-        """Write changes to disk."""
+    def save_preset(self):
+        """Write changes to presets to disk."""
         if self.selected_device is None or self.selected_preset is None:
             return
 
