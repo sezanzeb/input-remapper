@@ -34,6 +34,7 @@ class TestPermissions(unittest.TestCase):
         grp.getgrnam = self.getgrnam
 
     def test_cannot_access(self):
+        # TODO modify test
         class Grnam:
             def __init__(self, group):
                 self.gr_mem = []
@@ -42,6 +43,7 @@ class TestPermissions(unittest.TestCase):
         self.assertFalse(can_read_devices()[0])
 
     def test_can_access(self):
+        # TODO modify test
         class Grnam:
             def __init__(self, group):
                 self.gr_mem = [USER]

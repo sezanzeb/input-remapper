@@ -23,7 +23,9 @@
 
 
 import grp
+import glob
 import getpass
+import subprocess
 import os
 
 from keymapper.logger import logger
@@ -31,48 +33,80 @@ from keymapper.paths import USER
 
 
 def check_group(group):
-    """Check if the user can access files of that group.
-
-    Returns True if this group doesn't even exist.
-    """
+    """Check if the required group is active and log if not."""
+    # TODO test
     try:
-        return USER in grp.getgrnam(group).gr_mem
+        in_group = USER in grp.getgrnam(group).gr_mem
     except KeyError:
-        return True
+        # group doesn't exist. Ignore
+        return None
+
+    # check if files exist with that group in /dev. Even if plugdev
+    # exists, that doesn't mean that it is needed.
+    used_groups = [os.stat(path).st_gid for path in glob.glob('/dev/input/*')]
+    if grp.getgrnam(group).gr_gid not in used_groups:
+        return None
+
+    if not in_group:
+        msg = (
+            'Some devices may not be visible without being in the '
+            f'"{group}" user group. Try `sudo usermod -a -G {group} {USER}` '
+            'and log out and back in or restart.',
+        )
+        logger.warning(msg)
+        return msg
+
+    try:
+        groups = subprocess.check_output('groups').decode().split()
+        group_active = group in groups
+    except FileNotFoundError:
+        # groups command missing. Idk if any distro doesn't have it
+        # but if so, cover the case.
+        return None
+
+    if in_group and not group_active:
+        msg = (
+            f'You are in the "{group}" group, but your session is not yet '
+            'using it. Some device may not be visible. Please log out and '
+            'back in or restart',
+            group
+        )
+        logger.warning(msg)
+        return msg
+
+    return None
+
+
+def check_injection_rights():
+    """Check if the user may write into /dev/uinput."""
+    if not os.access('/dev/uinput', os.W_OK):
+        can_write = (
+            'Rights to write to /dev/uinput are missing, keycodes cannot '
+            f'be injected. Try `sudo setfacl -m u:{USER}:rw- /dev/uinput`'
+        )
+        logger.error(can_write)
+        return can_write
+
+    return None
 
 
 def can_read_devices():
-    """If the people ever looks into the console, make sure to help them."""
-    is_root = getpass.getuser() == 'root'
-    is_input = check_group('input')
-    is_plugdev = check_group('plugdev')
+    """Help the user to setup correct permissions."""
+    if getpass.getuser() == 'root':
+        return None
+
+    input_check = check_group('input')
+    plugdev_check = check_group('plugdev')
 
     # ubuntu. funnily, individual devices in /dev/input/ have write permitted.
-    can_write = os.access('/dev/uinput', os.W_OK)
+    can_write = check_injection_rights()
 
-    def warn(group):
-        logger.warning(
-            'Some devices may not be visible without being in the '
-            '"%s" user group. Try `sudo usermod -a -G %s %s` '
-            'and log out and back in.',
-            group,
-            group,
-            USER
-        )
+    ret = []
+    if can_write is not None:
+        ret.append(can_write)
+    if input_check is not None:
+        ret.append(input_check)
+    if plugdev_check is not None:
+        ret.append(plugdev_check)
 
-    if not is_root:
-        if not is_plugdev:
-            warn('plugdev')
-        if not is_input:
-            warn('input')
-        if not can_write:
-            logger.error(
-                'Injecting keycodes into /dev/uinput is not permitted. '
-                'Either use sudo or run '
-                '`sudo setfacl -m u:%s:rw- /dev/uinput`',
-                {USER}
-            )
-
-    permitted = (is_root or (is_input and is_plugdev)) and can_write
-
-    return permitted, is_root, is_input, is_plugdev, can_write
+    return ret

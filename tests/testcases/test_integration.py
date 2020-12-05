@@ -518,6 +518,7 @@ class TestPermissions(unittest.TestCase):
         shutil.rmtree('/tmp/key-mapper-test')
 
     def test_check_groups_missing(self):
+        # TODO modify test
         class Grnam:
             def __init__(self, group):
                 self.gr_mem = []
@@ -534,6 +535,7 @@ class TestPermissions(unittest.TestCase):
         self.assertIn('plugdev', labels)
 
     def test_check_plugdev_missing(self):
+        # TODO modify test
         class Grnam:
             def __init__(self, group):
                 if group == 'input':
@@ -553,6 +555,7 @@ class TestPermissions(unittest.TestCase):
         self.assertIn('plugdev', labels)
 
     def test_check_write_uinput(self):
+        # TODO modify test
         class Grnam:
             def __init__(self, group):
                 self.gr_mem = [USER]
