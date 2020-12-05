@@ -154,7 +154,10 @@ def push_event(device, event):
 
 
 class Event:
-    """Event to put into the injector for tests."""
+    """Event to put into the injector for tests.
+
+    fakes evdev.InputEvent
+    """
     def __init__(self, type, code, value):
         """
         Paramaters

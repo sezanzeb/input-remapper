@@ -33,6 +33,7 @@ class TestKeycodeMapper(unittest.TestCase):
         self.assertFalse(should_map_event_as_btn(EV_ABS, ABS_X))
         self.assertFalse(should_map_event_as_btn(EV_REL, REL_X))
 
+    # TODO test for macro holding
 
 if __name__ == "__main__":
     unittest.main()

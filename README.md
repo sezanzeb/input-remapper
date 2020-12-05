@@ -117,11 +117,11 @@ cd key-mapper && sudo python3 setup.py install
 - [x] support timed macros, maybe using some sort of syntax
 - [x] add to the AUR, provide .deb file
 - [x] basic support for gamepads as keyboard and mouse combi
+- [x] executing a macro forever while holding down the key
 - [ ] map D-Pad and Joystick directions as buttons, joystick purpose via config
 - [ ] automatically load presets when devices get plugged in after login
 - [ ] option to write hwdb configs for lower level mappings ([Remapping keys using hwdb files](https://www.reddit.com/r/linux_gaming/comments/k3h9qv/remapping_keys_using_hwdb_files/))
 - [ ] mapping a combined button press to a key
-- [ ] executing a macro while holding down the key
 
 ## Tests
 
