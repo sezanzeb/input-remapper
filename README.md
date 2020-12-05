@@ -68,6 +68,13 @@ sudo key-mapper-service --setup-permissions
 # now log out and back in
 ```
 
+You also need the rights to write keycodes into your system. This seems to be
+already the case on some systems, but not all of them.
+
+```bash
+sudo setfacl -m u:$USER:rw- /dev/uinput
+```
+
 ##### Manjaro/Arch
 
 ```bash
@@ -115,7 +122,6 @@ cd key-mapper && sudo python3 setup.py install
 - [x] executing a macro forever while holding down the key
 - [ ] map D-Pad and Joystick directions as buttons, joystick purpose via config
 - [ ] automatically load presets when devices get plugged in after login
-- [ ] option to write hwdb configs for lower level mappings ([Remapping keys using hwdb files](https://www.reddit.com/r/linux_gaming/comments/k3h9qv/remapping_keys_using_hwdb_files/))
 - [ ] mapping a combined button press to a key
 
 ## Tests
