@@ -61,12 +61,11 @@ you can read information from your devices. You have to start the application
 via sudo otherwise. You may also need to grant yourself write access to
 `/dev/uinput` to be able to inject your programmed mapping.
 
+There is a shortcut for configuring this stuff:
+
 ```bash
-# either use sudo key-mapper-gtk or
-sudo usermod -a -G plugdev,input $USER
-sudo setfacl -m u:$USER:rw- /dev/uinput
-# log out and back in or restart, the two groups should be visible with:
-groups
+sudo key-mapper-service --setup-permissions
+# now log out and back in
 ```
 
 ##### Manjaro/Arch

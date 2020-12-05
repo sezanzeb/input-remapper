@@ -113,9 +113,15 @@ class Window:
         permission_errors = can_read_devices()
         if len(permission_errors) > 0:
             # TODO test
+            permission_errors = [(
+                'You can also try `sudo key-mapper-service --setup-permiss'
+                'ions` to setup all needed permissions for you. All '
+                'commands mentioned here are also printed to the console '
+                'for you to copy.'
+            )] + permission_errors
             self.show_status(
                 CTX_ERROR,
-                'Permission error. Hover for info',
+                'Permission error, hover for info',
                 '\n\n'.join(permission_errors)
             )
 
@@ -288,7 +294,6 @@ class Window:
 
     def check_macro_syntax(self):
         """Check if the programmed macros are allright."""
-        # test macros for syntax errors
         # TODO test
         for (ev_type, keycode), output in custom_mapping:
             if not is_this_a_macro(output):

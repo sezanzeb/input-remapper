@@ -51,7 +51,7 @@ def check_group(group):
         msg = (
             'Some devices may not be visible without being in the '
             f'"{group}" user group. Try `sudo usermod -a -G {group} {USER}` '
-            'and log out and back in or restart.',
+            'and log out and back in or restart.'
         )
         logger.warning(msg)
         return msg
@@ -67,9 +67,8 @@ def check_group(group):
     if in_group and not group_active:
         msg = (
             f'You are in the "{group}" group, but your session is not yet '
-            'using it. Some device may not be visible. Please log out and '
-            'back in or restart',
-            group
+            'using it. Some devices may not be visible. Please log out and '
+            'back in or restart'
         )
         logger.warning(msg)
         return msg
@@ -80,12 +79,12 @@ def check_group(group):
 def check_injection_rights():
     """Check if the user may write into /dev/uinput."""
     if not os.access('/dev/uinput', os.W_OK):
-        can_write = (
+        msg = (
             'Rights to write to /dev/uinput are missing, keycodes cannot '
             f'be injected. Try `sudo setfacl -m u:{USER}:rw- /dev/uinput`'
         )
-        logger.error(can_write)
-        return can_write
+        logger.error(msg)
+        return msg
 
     return None
 
@@ -108,5 +107,11 @@ def can_read_devices():
         ret.append(input_check)
     if plugdev_check is not None:
         ret.append(plugdev_check)
+
+    if len(ret) > 0:
+        logger.info(
+            'You can also use `sudo key-mapper-service --setup-permissions` '
+            'as a shortcut for mentioned commands.'
+        )
 
     return ret
