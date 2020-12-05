@@ -28,6 +28,7 @@ Documentation:
 - `w` waits in milliseconds
 - `k` writes a single keystroke
 - `m` holds a modifier while executing the second parameter
+- `h` executes the parameter as long as the key is pressed down
 - `.` executes two actions behind each other
 
 Syntax errors are logged to the console.
