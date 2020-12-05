@@ -35,7 +35,11 @@ except OSError:
     # failed in some ubuntu installations
     USER = os.environ['USER']
     if USER == 'root':
-        USER = os.environ.get('SUDO_USER', USER)
+        try:
+            USER = os.environ.get('SUDO_USER', USER)
+        except KeyError:
+            # no sudo was used
+            pass
 
 CONFIG = os.path.join('/home', USER, '.config/key-mapper')
 
