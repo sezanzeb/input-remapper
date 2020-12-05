@@ -37,7 +37,7 @@ delay of 10ms that can be configured in `~/.config/key-mapper/config`.
 
 ##### Key Names
 
-Run `key-mapper-service --names` for a list of supported keys for 
+Run `key-mapper-service --key-names` for a list of supported keys for 
 the middle column. Examples:
 
 - Alphanumeric `a` to `z` and `0` to `9`

@@ -66,7 +66,7 @@ if __name__ == '__main__':
         default=False
     )
     parser.add_argument(
-        '-n', '--names', action='store_true', dest='names',
+        '-n', '--key-names', action='store_true', dest='key_names',
         help='Print all available names for the mapping',
         default=False
     )
@@ -85,7 +85,7 @@ if __name__ == '__main__':
     add_filehandler()
     log_info()
 
-    if options.names:
+    if options.key_names:
         # TODO test
         print('\n'.join(system_mapping.list_names()))
         sys.exit(0)
