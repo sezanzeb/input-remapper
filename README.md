@@ -35,7 +35,7 @@ Documentation:
 Syntax errors are shown in the UI on save. each `k` function adds a short
 delay of 10ms that can be configured in `~/.config/key-mapper/config`.
 
-##### Names
+##### Key Names
 
 Run `key-mapper-service --names` for a list of supported keys for 
 the middle column. Examples:
