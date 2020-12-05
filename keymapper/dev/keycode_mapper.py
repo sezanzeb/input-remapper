@@ -30,6 +30,10 @@ from keymapper.logger import logger
 from keymapper.dev.ev_abs_mapper import JOYSTICK
 
 
+# maps mouse buttons to running macros
+active_macros = {}
+
+
 def should_map_event_as_btn(ev_type, code):
     """Does this event describe a button.
 
@@ -52,13 +56,13 @@ def should_map_event_as_btn(ev_type, code):
     return False
 
 
-def handle_keycode(_code_to_code, macros, event, uinput):
+def handle_keycode(code_to_code, macros, event, uinput):
     """Write the mapped keycode or forward unmapped ones.
 
     Parameters
     ----------
-    _code_to_code : dict
-        mapping of linux-keycode to linux-keycode.
+    code_to_code : dict
+        mapping of linux-keycode to linux-keycode
     macros : dict
         mapping of linux-keycode to _Macro objects
     """
@@ -84,8 +88,8 @@ def handle_keycode(_code_to_code, macros, event, uinput):
         asyncio.ensure_future(macro.run())
         return
 
-    if input_keycode in _code_to_code:
-        target_keycode = _code_to_code[input_keycode]
+    if input_keycode in code_to_code:
+        target_keycode = code_to_code[input_keycode]
         target_type = evdev.events.EV_KEY
         logger.spam(
             'got code:%s value:%s event:%s, maps to EV_KEY:%s',
