@@ -38,15 +38,10 @@ delay of 10ms that can be configured in `~/.config/key-mapper/config`.
 ##### Names
 
 For a list of supported keystrokes and their names for the middle column,
-check the output of `xmodmap -pke`
+check the output of `key-mapper-service --names`. Examples:
 
 - Alphanumeric `a` to `z` and `0` to `9`
 - Modifiers `Alt_L` `Control_L` `Control_R` `Shift_L` `Shift_R`
-
-If you can't find what you need, consult
-[linux/input-event-codes.h](https://github.com/torvalds/linux/blob/master/include/uapi/linux/input-event-codes.h)
-for KEY and BTN names
-
 - Mouse buttons `BTN_LEFT` `BTN_RIGHT` `BTN_MIDDLE` `BTN_SIDE` ...
 - Multimedia keys `KEY_NEXTSONG` `KEY_PLAYPAUSE` ...
 
