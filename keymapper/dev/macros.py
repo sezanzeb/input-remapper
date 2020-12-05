@@ -118,7 +118,6 @@ class _Macro:
     def press_key(self):
         """Tell all child macros that the key was pressed down."""
         # TODO test
-        print(id(self), 'hold')
         self.holding = True
         for macro in self.child_macros:
             macro.press_key()
@@ -126,7 +125,6 @@ class _Macro:
     def release_key(self):
         """Tell all child macros that the key was released."""
         # TODO test
-        print(id(self), 'release')
         self.holding = False
         for macro in self.child_macros:
             macro.release_key()
