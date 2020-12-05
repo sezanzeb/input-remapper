@@ -73,7 +73,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '-s', '--setup-permissions', action='store_true', dest='setup',
         help=(
-            'Requires sudo. Sets up all needed permissions to run'
+            'Requires sudo. Sets up all needed permissions to run '
             'key-mapper as regular user'
         ),
         default=False
