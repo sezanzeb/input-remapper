@@ -107,9 +107,9 @@ def log_info():
     """Log version and name to the console"""
     # read values from setup.py
     try:
-        version = pkg_resources.require('key-mapper')[0].version
         name = pkg_resources.require('key-mapper')[0].project_name
-        logger.info('%s %s', version, name)
+        version = pkg_resources.require('key-mapper')[0].version
+        logger.info('%s %s', name, version)
     except pkg_resources.DistributionNotFound as error:
         logger.info('Could not figure out the version')
         logger.debug(error)
