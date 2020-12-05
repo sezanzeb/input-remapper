@@ -690,7 +690,7 @@
 "r(3, k(a).w(500))", "h(a).k(b)"
 "m(Control_L, k(a).k(x))"
 
-Run `key-mapper-service --names` for more
+Run `key-mapper-service --key-names` for more
 
 Macros:
 - r: repeats the execution of the second parameter
