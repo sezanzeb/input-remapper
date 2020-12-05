@@ -90,6 +90,15 @@ def handle_keycode(code_to_code, macros, event, uinput):
             # only key-down events trigger macros
             return
 
+        existing_macro = active_macros.get(input_keycode)
+        if existing_macro is not None:
+            # make sure that a duplicate key-down event won't make a
+            # macro with a hold function run forever. there should always
+            # be only one active.
+            # TODO test, throw in a ton of key-down events and one key up
+            #  event and check that no macro is writing stuff
+            existing_macro.release_key()
+
         macro = macros[input_keycode]
         active_macros[input_keycode] = macro
         # TODO test that holding is true

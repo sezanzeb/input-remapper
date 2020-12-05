@@ -22,6 +22,7 @@ It is possible to write timed macros into the center column:
 - `k(1).k(2)` 1, 2
 - `r(3, k(a).w(500))` a, a, a with 500ms pause
 - `m(Control_L, k(a).k(x))` CTRL + a, CTRL + x
+- `h(k(1))` writes ones while the key is pressed down
 
 Documentation:
 - `r` repeats the execution of the second parameter
@@ -31,7 +32,8 @@ Documentation:
 - `h` executes the parameter as long as the key is pressed down
 - `.` executes two actions behind each other
 
-Syntax errors are logged to the console.
+Syntax errors are logged to the console. each `k` function adds a short delay
+of 10ms that can be configured in `~/.config/key-mapper/config`.
 
 ##### Names
 
