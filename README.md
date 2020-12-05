@@ -128,4 +128,4 @@ coverage combine && coverage report -m
 ```
 
 To read events, `evtest` is very helpful. Add `-d` to `key-mapper-gtk`
-to get debug outbut.
+to get debug output.
