@@ -30,7 +30,8 @@ from keymapper.logger import logger
 from keymapper.dev.ev_abs_mapper import JOYSTICK
 
 
-# maps mouse buttons to running macros
+# maps mouse buttons to macro instances that have been executed. They may
+# still be running or already be done.
 active_macros = {}
 
 
@@ -92,7 +93,7 @@ def handle_keycode(code_to_code, macros, event, uinput):
         macro = macros[input_keycode]
         active_macros[input_keycode] = macro
         # TODO test that holding is true
-        macro.holding = True
+        macro.press_key()
         logger.spam(
             'got code:%s value:%s, maps to macro %s',
             input_keycode,

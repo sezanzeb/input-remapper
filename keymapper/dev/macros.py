@@ -73,7 +73,6 @@ class _Macro:
         self.tasks = []
         self.handler = lambda *args: logger.error('No handler set')
         self.code = code
-        self.running = False
 
         # supposed to be True between key event values 1 (down) and 0 (up)
         self.holding = False
@@ -107,40 +106,37 @@ class _Macro:
 
     async def run(self):
         """Run the macro."""
-        self.running = True
-
         for task_type, task in self.tasks:
-            if not self.running:
-                logger.debug('Macro execution stopped')
-                break
-
             coroutine = task()
             if asyncio.iscoroutine(coroutine):
                 await coroutine
 
-    def stop(self):
-        """Stop the macro."""
+    def press_key(self):
+        """Tell all child macros that the key was pressed down."""
         # TODO test
-        self.running = False
+        self.holding = True
+        for macro in self.child_macros:
+            macro.press_key()
 
     def release_key(self):
         """Tell all child macros that the key was released."""
+        # TODO test
         self.holding = False
         for macro in self.child_macros:
             macro.release_key()
 
     def hold(self, macro):
         """Loops the execution until key release."""
+        # TODO test. especially make sure that this doesn't loop forever
+        #  even with complicated macros and weird calls to press and release
         if not isinstance(macro, _Macro):
             raise ValueError(
                 'Expected the param for hold to be '
                 f'a macro, but got "{macro}"'
             )
 
-        # TODO test
-
         async def task():
-            while self.holding and self.running:
+            while self.holding:
                 await macro.run()
 
         self.tasks.append((REPEAT, task))
