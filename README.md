@@ -35,10 +35,10 @@ Documentation:
 Syntax errors are shown in the UI on save. each `k` function adds a short
 delay of 10ms that can be configured in `~/.config/key-mapper/config`.
 
-##### Names
+##### Key Names
 
-For a list of supported keystrokes and their names for the middle column,
-check the output of `key-mapper-service --names`. Examples:
+Run `key-mapper-service --names` for a list of supported keys for 
+the middle column. Examples:
 
 - Alphanumeric `a` to `z` and `0` to `9`
 - Modifiers `Alt_L` `Control_L` `Control_R` `Shift_L` `Shift_R`
@@ -128,4 +128,4 @@ coverage combine && coverage report -m
 ```
 
 To read events, `evtest` is very helpful. Add `-d` to `key-mapper-gtk`
-to get debug outbut.
+to get debug output.
