@@ -58,12 +58,16 @@ Tested with the XBOX 360 Gamepad.
 
 ## Installation
 
-After your installation, independent of the method, you should add yourself
-to the `input` and `plugdev` groups so that you can read information from your
-devices. You have to start the application via sudo otherwise.
+The tool shows and logs if there are issues, but usually, independent of the
+method, you should add yourself to the `input` and `plugdev` groups so that
+you can read information from your devices. You have to start the application
+via sudo otherwise. You may also need to grant yourself write access to
+`/dev/uinput` to be able to inject your programmed mapping.
 
 ```bash
+# either use sudo key-mapper-gtk or
 sudo usermod -a -G plugdev,input $USER
+sudo setfacl -m u:$USER:rw- /dev/uinput
 # log out and back in or restart, the two groups should be visible with:
 groups
 ```
@@ -78,13 +82,13 @@ pacaur -S key-mapper-git
 
 ```bash
 wget "https://github.com/sezanzeb/key-mapper/releases/"\
-"download/0.1.0/python3-key-mapper_0.1.0-1_all.deb"
-sudo dpkg -i python3-key-mapper_0.1.0-1_all.deb
+"download/0.2.0/python3-key-mapper_0.2.0-1_all.deb"
+sudo dpkg -i python3-key-mapper_0.2.0-1_all.deb
 ```
 
 ##### Git/pip
 
-Depending on your distro, maybe you need to use both methods with --force
+Depending on your distro, maybe you need to use both methods with `--force`
 to get all your files properly in place and overwrite a previous installation
 of key-mapper.
 
@@ -116,6 +120,8 @@ cd key-mapper && sudo python3 setup.py install
 - [ ] map D-Pad and Joystick directions as buttons, joystick purpose via config
 - [ ] automatically load presets when devices get plugged in after login
 - [ ] option to write hwdb configs for lower level mappings ([Remapping keys using hwdb files](https://www.reddit.com/r/linux_gaming/comments/k3h9qv/remapping_keys_using_hwdb_files/))
+- [ ] mapping a combined button press to a key
+- [ ] executing a macro while holding down the key
 
 ## Tests
 
