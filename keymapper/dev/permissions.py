@@ -30,11 +30,22 @@ from keymapper.logger import logger
 from keymapper.paths import USER
 
 
+def check_group(group):
+    """Check if the user can access files of that group.
+
+    Returns True if this group doesn't even exist.
+    """
+    try:
+        return USER in grp.getgrnam(group).gr_mem
+    except KeyError:
+        return True
+
+
 def can_read_devices():
     """If the people ever looks into the console, make sure to help them."""
     is_root = getpass.getuser() == 'root'
-    is_input = USER in grp.getgrnam('input').gr_mem
-    is_plugdev = USER in grp.getgrnam('plugdev').gr_mem
+    is_input = check_group('input')
+    is_plugdev = check_group('plugdev')
 
     # ubuntu. funnily, individual devices in /dev/input/ have write permitted.
     can_write = os.access('/dev/uinput', os.W_OK)
