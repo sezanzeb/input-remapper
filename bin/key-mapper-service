@@ -37,14 +37,6 @@ from keymapper.daemon import Daemon, BUS_NAME
 from keymapper.dev.permissions import can_read_devices
 
 
-try:
-    from rich.traceback import install
-    install(show_locals=True)
-except Exception:
-    # since this is optional, just skip all exceptions
-    pass
-
-
 if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument(

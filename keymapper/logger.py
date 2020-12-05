@@ -118,9 +118,21 @@ def log_info():
 
 
 def update_verbosity(debug):
-    """Set the logging verbosity according to the settings object."""
+    """Set the logging verbosity according to the settings object.
+
+    Also enable rich tracebacks in debug mode.
+    """
     if debug:
         logger.setLevel(SPAM)
+
+        try:
+            from rich.traceback import install
+            install(show_locals=True)
+            logger.debug('Using rich.traceback')
+        except Exception as error:
+            # since this is optional, just skip all exceptions
+            if not isinstance(error, ImportError):
+                logger.debug(f'Cannot use rich.traceback: {error}')
     else:
         logger.setLevel(logging.INFO)
 

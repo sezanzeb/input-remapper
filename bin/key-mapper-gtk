@@ -36,14 +36,6 @@ from keymapper.gtk.window import Window
 from keymapper.daemon import Daemon
 
 
-try:
-    from rich.traceback import install
-    install(show_locals=True)
-except Exception:
-    # since this is optional, just skip all exceptions
-    pass
-
-
 if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument(
