@@ -72,6 +72,13 @@ sudo setfacl -m u:$USER:rw- /dev/uinput
 groups
 ```
 
+You also need the rights to write keycodes into your system. This seems to be
+already the case on some systems, but not all of them.
+
+```
+sudo setfacl -m u:$USER:rw- /dev/uinput
+```
+
 ##### Manjaro/Arch
 
 ```bash
