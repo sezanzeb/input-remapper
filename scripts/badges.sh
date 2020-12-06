@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 
+# sudo pip install git+https://github.com/jongracecox/anybadge
+# sudo pip install git+https://github.com/dbrgn/coverage-badge
+
 coverage_badge() {
-  # https://github.com/dbrgn/coverage-badge
   coverage run tests/test.py
   coverage combine
   python3 -m coverage_badge > readme/coverage.svg
@@ -10,7 +12,6 @@ coverage_badge() {
 }
 
 pylint_badge() {
-  # https://github.com/jongracecox/anybadge
   pylint_output=$(pylint keymapper --extension-pkg-whitelist=evdev)
   rating=$(echo $pylint_output | grep -Po "rated at .+?/" | grep -Po "\d+.\d+")
   rm readme/pylint.svg

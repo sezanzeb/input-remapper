@@ -132,7 +132,7 @@ def update_verbosity(debug):
         except Exception as error:
             # since this is optional, just skip all exceptions
             if not isinstance(error, ImportError):
-                logger.debug(f'Cannot use rich.traceback: {error}')
+                logger.debug('Cannot use rich.traceback: %s', error)
     else:
         logger.setLevel(logging.INFO)
 

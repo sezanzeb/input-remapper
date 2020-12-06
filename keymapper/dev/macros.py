@@ -347,7 +347,7 @@ def _parse_recurse(macro, macro_instance=None, depth=0):
             # maybe this just applies a modifier for a certain amout of time.
             # and maybe it's a wait in repeat or something. Don't make it
             # fail here.
-            logger.warn(f'"{macro}" doesn\'t write any keys (using k)')
+            logger.warn('"%s" doesn\'t write any keys (using k)', macro)
 
         # available functions in the macro and the number of their
         # parameters
