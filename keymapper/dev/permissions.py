@@ -90,9 +90,9 @@ def check_injection_rights():
 
 
 def can_read_devices():
-    """Help the user to setup correct permissions."""
+    """Get a list of problems before key-mapper can be used properly."""
     if getpass.getuser() == 'root':
-        return None
+        return []
 
     input_check = check_group('input')
     plugdev_check = check_group('plugdev')
@@ -100,13 +100,11 @@ def can_read_devices():
     # ubuntu. funnily, individual devices in /dev/input/ have write permitted.
     can_write = check_injection_rights()
 
-    ret = []
-    if can_write is not None:
-        ret.append(can_write)
-    if input_check is not None:
-        ret.append(input_check)
-    if plugdev_check is not None:
-        ret.append(plugdev_check)
+    ret = [
+        check for check
+        in [can_write, input_check, plugdev_check]
+        if check is not None
+    ]
 
     if len(ret) > 0:
         logger.info(
