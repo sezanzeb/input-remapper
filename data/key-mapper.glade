@@ -691,7 +691,7 @@ Help:
 - m: holds a modifier while executing the second parameter
 - h: executes the parameter as long as the key is pressed down
 
-between each keystrokes macros will sleep for 10ms by default.
+between keystrokes macros will sleep for 10ms by default.
 This can be configured in ~/.config/key-mapper/config</property>
                         <property name="margin-top">5</property>
                         <property name="margin-bottom">5</property>
