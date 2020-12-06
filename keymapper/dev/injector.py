@@ -89,6 +89,8 @@ class KeycodeInjector:
     make running multiple injector easier. There is one procss per
     hardware-device that is being mapped.
     """
+    regrab_timeout = 0.5
+
     def __init__(self, device, mapping):
         """Start injecting keycodes based on custom_mapping.
 
@@ -198,7 +200,7 @@ class KeycodeInjector:
                 logger.error('Cannot grab %s, it is possibly in use', path)
                 return None, False
 
-            time.sleep(0.5)
+            time.sleep(self.regrab_timeout)
 
         return device, abs_to_rel
 

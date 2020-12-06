@@ -67,6 +67,9 @@ class TestKeycodeMapper(unittest.TestCase):
             def write(self, type, code, value):
                 history.append((type, code, value))
 
+            def capabilities(self, *args, **kwargs):
+                return []
+
             def syn(self):
                 pass
 
