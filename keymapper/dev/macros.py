@@ -53,7 +53,6 @@ DEBUG = 6
 
 def is_this_a_macro(output):
     """Figure out if this is a macro."""
-    # TODO test
     if not isinstance(output, str):
         return False
 
@@ -86,7 +85,6 @@ class _Macro:
         # all required capabilities, without those of child macros
         self.capabilities = set()
 
-        # TODO test that child_macros is properly populated
         self.child_macros = []
 
     def get_capabilities(self):
@@ -122,7 +120,7 @@ class _Macro:
         self.running = False
 
     def press_key(self):
-        """Tell all child macros that the key was pressed down."""
+        """Tell this and all child macros that the key was pressed down."""
         self.holding = True
         for macro in self.child_macros:
             macro.press_key()
@@ -345,9 +343,11 @@ def _parse_recurse(macro, macro_instance=None, depth=0):
     call_match = re.match(r'^(\w+)\(', macro)
     call = call_match[1] if call_match else None
     if call is not None:
-        if 'k(' not in macro:
-            # TODO test
-            raise Exception(f'"{macro}" doesn\'t write any keys')
+        if 'k(' not in macro and 'm(' not in macro:
+            # maybe this just applies a modifier for a certain amout of time.
+            # and maybe it's a wait in repeat or something. Don't make it
+            # fail here.
+            logger.warn(f'"{macro}" doesn\'t write any keys (using k)')
 
         # available functions in the macro and the number of their
         # parameters
@@ -422,7 +422,6 @@ def parse(macro, return_errors=False):
     return_errors : bool
         if True, returns errors as a string or None if parsing worked
     """
-    # TODO test return_errors
     # whitespaces, tabs, newlines and such don't serve a purpose. make
     # the log output clearer and the parsing easier.
     macro = re.sub(r'\s', '', macro)
