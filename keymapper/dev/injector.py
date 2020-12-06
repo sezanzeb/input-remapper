@@ -313,6 +313,11 @@ class KeycodeInjector:
                 events=self._modify_capabilities(macros, source, abs_to_rel)
             )
 
+            logger.spam(
+                'Injected capabilities for "%s": %s',
+                path, uinput.capabilities(verbose=True)
+            )
+
             def handler(*args, uinput=uinput):
                 # this ensures that the right uinput is used for macro_write,
                 # because this is within a loop
