@@ -38,7 +38,7 @@ from keymapper.dev.reader import keycode_reader
 from keymapper.daemon import get_dbus_interface
 from keymapper.config import config
 from keymapper.dev.macros import is_this_a_macro, parse
-from keymapper.dev.permissions import can_read_devices
+from keymapper.dev import permissions
 
 
 def gtk_iteration():
@@ -110,14 +110,13 @@ class Window:
         # already visible (without content) to make it look more responsive.
         gtk_iteration()
 
-        permission_errors = can_read_devices()
+        permission_errors = permissions.can_read_devices()
         if len(permission_errors) > 0:
-            # TODO test
+            cmd = 'sudo key-mapper-service --setup-permissions'
             permission_errors = [(
-                'You can also try `sudo key-mapper-service --setup-permiss'
-                'ions` to setup all needed permissions for you. All '
-                'commands mentioned here are also printed to the console '
-                'for you to copy.'
+                f'You can also try `{cmd}` to setup all needed permissions '
+                f'for you. All commands mentioned here are also printed to '
+                f'the console for you to copy.'
             )] + permission_errors
             self.show_status(
                 CTX_ERROR,
@@ -294,7 +293,6 @@ class Window:
 
     def check_macro_syntax(self):
         """Check if the programmed macros are allright."""
-        # TODO test
         for (ev_type, keycode), output in custom_mapping:
             if not is_this_a_macro(output):
                 continue
