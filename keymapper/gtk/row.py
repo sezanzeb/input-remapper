@@ -204,6 +204,7 @@ class Row(Gtk.ListBoxRow):
         completion.set_model(store)
         completion.set_text_column(0)
         completion.set_match_func(self.match)
+        completion.set_popup_single_match(False)
         character_input.set_completion(completion)
 
         if character is not None:
