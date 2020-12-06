@@ -681,7 +681,7 @@
                         <property name="tooltip-text" translatable="yes">Macro examples:
 - k(a)
 - r(3, k(a).w(500))
-- h(a).k(b)
+- h(k(a)).k(b)
 - m(Control_L, k(a).k(x))
 
 Help:
@@ -689,7 +689,10 @@ Help:
 - w: waits in milliseconds
 - k: writes a single keystroke
 - m: holds a modifier while executing the second parameter
-- h: executes the parameter as long as the key is pressed down</property>
+- h: executes the parameter as long as the key is pressed down
+
+between each keystrokes macros will sleep for 10ms by default.
+This can be configured in ~/.config/key-mapper/config</property>
                         <property name="margin-top">5</property>
                         <property name="margin-bottom">5</property>
                         <property name="label" translatable="yes">Mapping</property>
