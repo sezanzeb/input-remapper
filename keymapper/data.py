@@ -37,8 +37,8 @@ def get_data_path(filename=''):
     """Depending on the installation prefix, return the data dir.
 
     Since it is a nightmare to get stuff installed with pip across
-    distros this is somewhat complicated. Ubuntu wants to use /usr/local
-    for data_files, but not everything can be placed there.
+    distros this is somewhat complicated. Ubuntu uses /usr/local/share
+    for data_files (setup.py) and manjaro uses /usr/share.
     """
     global logged
 
