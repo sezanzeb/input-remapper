@@ -146,14 +146,14 @@ def push_event(device, event):
     ----------
     device : string
         For example 'device 1'
-    event : Event
+    event : InputEvent
     """
     if pending_events.get(device) is None:
         pending_events[device] = []
     pending_events[device].append(event)
 
 
-class Event:
+class InputEvent:
     """Event to put into the injector for tests.
 
     fakes evdev.InputEvent
@@ -283,7 +283,7 @@ def patch_evdev():
 
         def write(self, type, code, value):
             self.write_count += 1
-            event = Event(type, code, value)
+            event = InputEvent(type, code, value)
             uinput_write_history.append(event)
             uinput_write_history_pipe[1].send(event)
 
