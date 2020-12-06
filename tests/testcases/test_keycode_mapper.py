@@ -47,6 +47,8 @@ class TestKeycodeMapper(unittest.TestCase):
         for key in keys:
             del active_macros[key]
 
+        system_mapping.populate()
+
     def test_should_map_event_as_btn(self):
         self.assertTrue(should_map_event_as_btn(EV_ABS, ABS_HAT0X))
         self.assertTrue(should_map_event_as_btn(EV_KEY, KEY_A))

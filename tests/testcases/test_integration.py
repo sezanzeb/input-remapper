@@ -37,10 +37,11 @@ gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
 
 from keymapper.state import custom_mapping, system_mapping
-from keymapper.paths import CONFIG, get_config_path, USER
+from keymapper.paths import CONFIG, get_config_path
 from keymapper.config import config
 from keymapper.dev.reader import keycode_reader
 from keymapper.gtk.row import to_string
+from keymapper.dev import permissions
 
 from tests.test import tmp, pending_events, InputEvent, uinput_write_history_pipe, \
     clear_write_history
@@ -382,6 +383,22 @@ class TestIntegration(unittest.TestCase):
         self.assertTrue(os.path.exists(f'{CONFIG}/device 1/asdf.json'))
         self.assertEqual(custom_mapping.get_character(EV_KEY, 14), 'b')
 
+    def test_check_macro_syntax(self):
+        status = self.window.get('status_bar')
+
+        custom_mapping.change((EV_KEY, 9), 'k(1))', (None, None))
+        self.window.on_save_preset_clicked(None)
+        tooltip = status.get_tooltip_text().lower()
+        self.assertIn('brackets', tooltip)
+
+        custom_mapping.change((EV_KEY, 9), 'k(1)', (None, None))
+        self.window.on_save_preset_clicked(None)
+        tooltip = status.get_tooltip_text().lower()
+        self.assertNotIn('brackets', tooltip)
+        self.assertIn('saved', tooltip)
+
+        self.assertEqual(custom_mapping.get_character(EV_KEY, 9), 'k(1)')
+
     def test_select_device_and_preset(self):
         # created on start because the first device is selected and some empty
         # preset prepared.
@@ -505,76 +522,48 @@ class TestIntegration(unittest.TestCase):
 
 original_access = os.access
 original_getgrnam = grp.getgrnam
+original_can_read_devices = permissions.can_read_devices
 
 
 class TestPermissions(unittest.TestCase):
     def tearDown(self):
         os.access = original_access
         os.getgrnam = original_getgrnam
+        permissions.can_read_devices = original_can_read_devices
 
-        self.window.on_close()
-        self.window.window.destroy()
-        gtk_iteration()
+        if self.window is not None:
+            self.window.on_close()
+            self.window.window.destroy()
+            gtk_iteration()
+            self.window = None
+
         shutil.rmtree('/tmp/key-mapper-test')
 
-    def test_check_groups_missing(self):
-        # TODO modify test
-        class Grnam:
-            def __init__(self, group):
-                self.gr_mem = []
+    def test_fails(self):
+        def fake():
+            return ['error1', 'error2', 'error3']
 
-        grp.getgrnam = Grnam
+        permissions.can_read_devices = fake
 
         self.window = launch()
         status = self.window.get('status_bar')
 
-        labels = ''
-        for label in status.get_message_area():
-            labels += label.get_text()
-        self.assertIn('input', labels)
-        self.assertIn('plugdev', labels)
+        tooltip = status.get_tooltip_text()
+        self.assertIn('sudo key-mapper-service --setup-permissions', tooltip)
+        self.assertIn('error1', tooltip)
+        self.assertIn('error2', tooltip)
+        self.assertIn('error3', tooltip)
 
-    def test_check_plugdev_missing(self):
-        # TODO modify test
-        class Grnam:
-            def __init__(self, group):
-                if group == 'input':
-                    self.gr_mem = [USER]
-                else:
-                    self.gr_mem = []
+    def test_good(self):
+        def fake():
+            return []
 
-        grp.getgrnam = Grnam
+        permissions.can_read_devices = fake
 
         self.window = launch()
         status = self.window.get('status_bar')
 
-        labels = ''
-        for label in status.get_message_area():
-            labels += label.get_text()
-        self.assertNotIn('input', labels)
-        self.assertIn('plugdev', labels)
-
-    def test_check_write_uinput(self):
-        # TODO modify test
-        class Grnam:
-            def __init__(self, group):
-                self.gr_mem = [USER]
-
-        grp.getgrnam = Grnam
-
-        def access(path, mode):
-            return False
-
-        os.access = access
-
-        self.window = launch()
-        status = self.window.get('status_bar')
-
-        labels = ''
-        for label in status.get_message_area():
-            labels += label.get_text()
-        self.assertNotIn('plugdev', labels)
-        self.assertIn('Insufficient permissions on /dev/uinput', labels)
+        self.assertIsNone(status.get_tooltip_text())
 
 
 if __name__ == "__main__":
