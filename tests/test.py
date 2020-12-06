@@ -37,6 +37,7 @@ gi.require_version('Gtk', '3.0')
 gi.require_version('GLib', '2.0')
 
 from keymapper.logger import update_verbosity
+from keymapper.dev.injector import KeycodeInjector
 
 
 assert not os.getcwd().endswith('tests')
@@ -281,6 +282,9 @@ def patch_evdev():
             self.device = InputDevice('/dev/input/event40')
             pass
 
+        def capabilities(self, *args, **kwargs):
+            return []
+
         def write(self, type, code, value):
             self.write_count += 1
             event = InputEvent(type, code, value)
@@ -315,6 +319,10 @@ patch_paths()
 patch_evdev()
 patch_unsaved()
 patch_select()
+
+
+# no need for a high number in tests
+KeycodeInjector.regrab_timeout = 0.15
 
 
 def main():
