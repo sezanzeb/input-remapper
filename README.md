@@ -38,7 +38,7 @@ delay of 10ms that can be configured in `~/.config/key-mapper/config`.
 ##### Key Names
 
 Run `key-mapper-service --key-names` for a list of supported keys for 
-the middle column. Examples:
+the middle column, or check the autocompletion on the GUI. Examples:
 
 - Alphanumeric `a` to `z` and `0` to `9`
 - Modifiers `Alt_L` `Control_L` `Control_R` `Shift_L` `Shift_R`
