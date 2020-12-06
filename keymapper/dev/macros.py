@@ -81,6 +81,8 @@ class _Macro:
         # supposed to be True between key event values 1 (down) and 0 (up)
         self.holding = False
 
+        self.running = False
+
         # all required capabilities, without those of child macros
         self.capabilities = set()
 
@@ -110,29 +112,29 @@ class _Macro:
 
     async def run(self):
         """Run the macro."""
+        self.running = True
         for task_type, task in self.tasks:
             coroutine = task()
             if asyncio.iscoroutine(coroutine):
                 await coroutine
 
+        # done
+        self.running = False
+
     def press_key(self):
         """Tell all child macros that the key was pressed down."""
-        # TODO test
         self.holding = True
         for macro in self.child_macros:
             macro.press_key()
 
     def release_key(self):
         """Tell all child macros that the key was released."""
-        # TODO test
         self.holding = False
         for macro in self.child_macros:
             macro.release_key()
 
     def hold(self, macro):
         """Loops the execution until key release."""
-        # TODO test. especially make sure that this doesn't loop forever
-        #  even with complicated macros and weird calls to press and release
         if not isinstance(macro, _Macro):
             raise ValueError(
                 'Expected the param for h (hold) to be '

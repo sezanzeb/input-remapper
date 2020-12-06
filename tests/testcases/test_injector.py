@@ -19,7 +19,6 @@
 # along with key-mapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
-import asyncio
 import unittest
 import time
 
@@ -28,13 +27,12 @@ from evdev.ecodes import EV_REL, EV_KEY, EV_ABS, ABS_HAT0X
 
 from keymapper.dev.injector import is_numlock_on, toggle_numlock, \
     ensure_numlock, KeycodeInjector
-from keymapper.dev.keycode_mapper import handle_keycode
 from keymapper.state import custom_mapping, system_mapping
 from keymapper.mapping import Mapping
 from keymapper.config import config
 from keymapper.dev.macros import parse
 
-from tests.test import Event, pending_events, fixtures, \
+from tests.test import InputEvent, pending_events, fixtures, \
     clear_write_history, EVENT_READ_TIMEOUT, uinput_write_history_pipe, \
     MAX_ABS
 
@@ -244,10 +242,10 @@ class TestInjector(unittest.TestCase):
         x = MAX_ABS / pointer_speed / divisor
         y = MAX_ABS / pointer_speed / divisor
         pending_events['gamepad'] = [
-            Event(EV_ABS, rel_x, x),
-            Event(EV_ABS, rel_y, y),
-            Event(EV_ABS, rel_x, -x),
-            Event(EV_ABS, rel_y, -y),
+            InputEvent(EV_ABS, rel_x, x),
+            InputEvent(EV_ABS, rel_y, y),
+            InputEvent(EV_ABS, rel_x, -x),
+            InputEvent(EV_ABS, rel_y, -y),
         ]
 
         self.injector = KeycodeInjector('gamepad', custom_mapping)
@@ -285,70 +283,6 @@ class TestInjector(unittest.TestCase):
         self.assertEqual(history[-2][1], rel_y)
         self.assertAlmostEqual(history[-2][2], -1)
 
-    def test_handle_keycode(self):
-        _code_to_code = {
-            1: 101,
-            2: 102
-        }
-
-        history = []
-
-        class UInput:
-            def write(self, type, code, value):
-                history.append((type, code, value))
-
-            def syn(self):
-                pass
-
-        uinput = UInput()
-
-        EV_KEY = evdev.ecodes.EV_KEY
-
-        handle_keycode(_code_to_code, {}, Event(EV_KEY, 1, 1), uinput)
-        handle_keycode(_code_to_code, {}, Event(EV_KEY, 3, 1), uinput)
-        handle_keycode(_code_to_code, {}, Event(EV_KEY, 2, 1), uinput)
-
-        self.assertEqual(len(history), 3)
-        self.assertEqual(history[0], (EV_KEY, 101, 1))
-        self.assertEqual(history[1], (EV_KEY, 3, 1))
-        self.assertEqual(history[2], (EV_KEY, 102, 1))
-
-    def test_handle_keycode_macro(self):
-        history = []
-
-        code_a = 100
-        code_b = 101
-        system_mapping.clear()
-        system_mapping._set('a', code_a)
-        system_mapping._set('b', code_b)
-
-        macro_mapping = {
-            1: parse('k(a)'),
-            2: parse('r(5, k(b))')
-        }
-
-        macro_mapping[1].set_handler(lambda *args: history.append(args))
-        macro_mapping[2].set_handler(lambda *args: history.append(args))
-
-        handle_keycode({}, macro_mapping, Event(EV_KEY, 1, 1), None)
-        handle_keycode({}, macro_mapping, Event(EV_KEY, 2, 1), None)
-
-        loop = asyncio.get_event_loop()
-
-        sleeptime = config.get('macros.keystroke_sleep_ms', 10) * 12
-
-        async def sleep():
-            await asyncio.sleep(sleeptime / 1000 + 0.1)
-
-        loop.run_until_complete(sleep())
-
-        # 6 keycodes written, with down and up events
-        self.assertEqual(len(history), 12)
-        self.assertIn((code_a, 1), history)
-        self.assertIn((code_a, 0), history)
-        self.assertIn((code_b, 1), history)
-        self.assertIn((code_b, 0), history)
-
     def test_injector(self):
         custom_mapping.change((EV_KEY, 8), 'k(KEY_Q).k(w)')
         custom_mapping.change((EV_ABS, ABS_HAT0X), 'a')
@@ -368,15 +302,15 @@ class TestInjector(unittest.TestCase):
         # keycode used in X and in the mappings
         pending_events['device 2'] = [
             # should execute a macro
-            Event(EV_KEY, 8, 1),
-            Event(EV_KEY, 8, 0),
+            InputEvent(EV_KEY, 8, 1),
+            InputEvent(EV_KEY, 8, 0),
             # normal keystrokes
-            Event(EV_ABS, ABS_HAT0X, 1),
-            Event(EV_ABS, ABS_HAT0X, 0),
+            InputEvent(EV_ABS, ABS_HAT0X, 1),
+            InputEvent(EV_ABS, ABS_HAT0X, 0),
             # just pass those over without modifying
-            Event(EV_KEY, 10, 1),
-            Event(EV_KEY, 10, 0),
-            Event(3124, 3564, 6542),
+            InputEvent(EV_KEY, 10, 1),
+            InputEvent(EV_KEY, 10, 0),
+            InputEvent(3124, 3564, 6542),
         ]
 
         self.injector = KeycodeInjector('device 2', custom_mapping)

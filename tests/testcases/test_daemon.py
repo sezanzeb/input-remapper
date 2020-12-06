@@ -32,7 +32,7 @@ from keymapper.state import custom_mapping, system_mapping
 from keymapper.config import config
 from keymapper.daemon import Daemon, get_dbus_interface, BUS_NAME
 
-from tests.test import uinput_write_history_pipe, Event, pending_events
+from tests.test import uinput_write_history_pipe, InputEvent, pending_events
 
 
 def gtk_iteration():
@@ -95,7 +95,7 @@ class TestDaemon(unittest.TestCase):
         config.set_autoload_preset('device 2', preset)
 
         pending_events['device 2'] = [
-            Event(evdev.events.EV_KEY, keycode_from_1, 0),
+            InputEvent(evdev.events.EV_KEY, keycode_from_1, 0),
         ]
 
         self.daemon = Daemon()
@@ -113,8 +113,8 @@ class TestDaemon(unittest.TestCase):
         self.assertFalse(self.daemon.is_injecting('device 2'))
 
         pending_events['device 2'] = [
-            Event(evdev.events.EV_KEY, keycode_from_2, 1),
-            Event(evdev.events.EV_KEY, keycode_from_2, 0),
+            InputEvent(evdev.events.EV_KEY, keycode_from_2, 1),
+            InputEvent(evdev.events.EV_KEY, keycode_from_2, 0),
         ]
 
         time.sleep(0.2)

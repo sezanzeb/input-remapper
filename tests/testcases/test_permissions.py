@@ -149,6 +149,8 @@ class TestCheckGroup(unittest.TestCase):
 
         # groups command doesn't exist, so cannot check this suff
         self.assertIsNone(check_group('plugdev'))
+        # which doesn't affect the grp lib
+        self.assertIsNotNone(check_group('foobar'))
 
 
 if __name__ == "__main__":

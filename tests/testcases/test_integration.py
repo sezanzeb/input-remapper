@@ -42,7 +42,7 @@ from keymapper.config import config
 from keymapper.dev.reader import keycode_reader
 from keymapper.gtk.row import to_string
 
-from tests.test import tmp, pending_events, Event, uinput_write_history_pipe, \
+from tests.test import tmp, pending_events, InputEvent, uinput_write_history_pipe, \
     clear_write_history
 
 
@@ -433,8 +433,8 @@ class TestIntegration(unittest.TestCase):
         system_mapping._set('a', keycode_to)
 
         pending_events['device 2'] = [
-            Event(evdev.events.EV_KEY, keycode_from, 1),
-            Event(evdev.events.EV_KEY, keycode_from, 0)
+            InputEvent(evdev.events.EV_KEY, keycode_from, 1),
+            InputEvent(evdev.events.EV_KEY, keycode_from, 0)
         ]
 
         custom_mapping.save('device 2', 'foo preset')
@@ -471,7 +471,7 @@ class TestIntegration(unittest.TestCase):
 
         # not all of those events should be processed, since that takes some
         # time due to time.sleep in the fakes and the injection is stopped.
-        pending_events['device 2'] = [Event(1, keycode_from, 1)] * 100
+        pending_events['device 2'] = [InputEvent(1, keycode_from, 1)] * 100
 
         custom_mapping.save('device 2', 'foo preset')
 
