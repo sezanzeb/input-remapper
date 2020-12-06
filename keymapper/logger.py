@@ -44,6 +44,8 @@ logging.Logger.spam = spam
 
 start = time.time()
 
+LOG_PATH = '~/.log/key-mapper'
+
 
 class Formatter(logging.Formatter):
     """Overwritten Formatter to print nicer logs."""
@@ -137,8 +139,14 @@ def update_verbosity(debug):
         logger.setLevel(logging.INFO)
 
 
-def add_filehandler(path='~/.log/key-mapper'):
+def add_filehandler(path=LOG_PATH):
     """Clear the existing logfile and start logging to it."""
+    if is_debug():
+        logger.warning(
+            'Debug level will log all your keystrokes to "%s"',
+            LOG_PATH
+        )
+
     log_path = os.path.expanduser(path)
     log_file = os.path.join(log_path, 'log')
 
