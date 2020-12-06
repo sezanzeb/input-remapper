@@ -68,13 +68,6 @@ sudo key-mapper-service --setup-permissions
 # now log out and back in
 ```
 
-You also need the rights to write keycodes into your system. This seems to be
-already the case on some systems, but not all of them.
-
-```bash
-sudo setfacl -m u:$USER:rw- /dev/uinput
-```
-
 ##### Manjaro/Arch
 
 ```bash

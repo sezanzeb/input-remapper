@@ -96,12 +96,12 @@ if __name__ == '__main__':
             sys.exit(1)
 
         if group_exists('input'):
-            run('usermod -a -G input $USER')
+            run(f'usermod -a -G input {USER}')
 
         if group_exists('plugdev'):
-            run('usermod -a -G plugdev $USER')
+            run(f'usermod -a -G plugdev {USER}')
 
-        run('setfacl -m u:$USER:rw- /dev/uinput')
+        run(f'setfacl -m u:{USER}:rw- /dev/uinput')
 
         logger.info(
             'For these changes to take effect log out and in. '
