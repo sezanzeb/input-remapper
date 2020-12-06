@@ -53,6 +53,8 @@ Tested with the XBOX 360 Gamepad.
 - Buttons can be mapped to keycodes or macros
 - The D-Pad only works as two buttons - horizontal and vertical
 
+On ubuntu, gamepads worked better in wayland than with X11 for me.
+
 ## Installation
 
 The tool shows and logs if there are issues, but usually, independent of the
