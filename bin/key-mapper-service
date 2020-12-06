@@ -86,7 +86,6 @@ if __name__ == '__main__':
     log_info()
 
     if options.key_names:
-        # TODO test
         print('\n'.join(system_mapping.list_names()))
         sys.exit(0)
 

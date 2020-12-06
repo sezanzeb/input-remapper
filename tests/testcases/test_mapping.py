@@ -43,6 +43,8 @@ class TestMapping(unittest.TestCase):
         self.assertEqual(system_mapping.get('kEY_LeFTSHIFT'), 42)
         self.assertEqual(system_mapping.get('ShiFt_L'), 42)
 
+        self.assertEqual(system_mapping.get('BTN_left'), 272)
+
         self.assertIsNotNone(system_mapping.get('kp_1'))
         self.assertIsNotNone(system_mapping.get('KP_1'))
         self.assertEqual(
@@ -53,6 +55,19 @@ class TestMapping(unittest.TestCase):
             system_mapping.get('KP_Left'),
             system_mapping.get('KEY_KP4')
         )
+
+        names = system_mapping.list_names()
+        self.assertIn('key_kp1', names)
+        self.assertIn('key_nextsong', names)
+        self.assertIn('2', names)
+        self.assertIn('key_3', names)
+        self.assertIn('c', names)
+        self.assertIn('key_d', names)
+        self.assertIn('f4', names)
+        self.assertIn('key_f5', names)
+        self.assertIn('minus', names)
+        self.assertIn('btn_left', names)
+        self.assertIn('btn_right', names)
 
     def test_clone(self):
         mapping1 = Mapping()
