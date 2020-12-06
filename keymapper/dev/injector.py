@@ -198,7 +198,7 @@ class KeycodeInjector:
                 logger.error('Cannot grab %s, it is possibly in use', path)
                 return None, False
 
-            time.sleep(0.15)
+            time.sleep(0.5)
 
         return device, abs_to_rel
 
