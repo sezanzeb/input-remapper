@@ -26,11 +26,16 @@ import evdev
 
 from gi.repository import Gtk, GLib
 
-from keymapper.state import custom_mapping
+from keymapper.state import custom_mapping, system_mapping
 from keymapper.logger import logger
 
 
 CTX_KEYCODE = 2
+
+
+store = Gtk.ListStore(str)
+for name in system_mapping.list_names():
+    store.append([name])
 
 
 def to_string(ev_type, code):
@@ -156,6 +161,11 @@ class Row(Gtk.ListBoxRow):
                 previous=(None, None)
             )
 
+    def match(self, completion, key, iter):
+        """Search the avilable names."""
+        value = store.get_value(iter, 0)
+        return key in value.lower()
+
     def put_together(self, character):
         """Create all child GTK widgets and connect their signals."""
         delete_button = Gtk.EventBox()
@@ -190,6 +200,13 @@ class Row(Gtk.ListBoxRow):
         character_input.set_alignment(0.5)
         character_input.set_width_chars(4)
         character_input.set_has_frame(False)
+        completion = Gtk.EntryCompletion()
+        completion.set_model(store)
+        completion.set_text_column(0)
+        completion.set_match_func(self.match)
+        completion.set_popup_single_match(False)
+        character_input.set_completion(completion)
+
         if character is not None:
             character_input.set_text(character)
         character_input.connect(
