@@ -43,7 +43,6 @@ class SystemMapping:
 
     def list_names(self):
         """Return an array of all possible names in the mapping."""
-        # TODO test
         return self._mapping.keys()
 
     def populate(self):
@@ -70,7 +69,7 @@ class SystemMapping:
                     self._set(name, int(keycode) - XKB_KEYCODE_OFFSET)
 
         for name, ecode in evdev.ecodes.ecodes.items():
-            if name.startswith('KEY') or name.startswith('KEY'):
+            if name.startswith('KEY') or name.startswith('BTN'):
                 self._set(name, ecode)
 
     def _set(self, name, code):

@@ -35,5 +35,7 @@ class TestKeycodeMapper(unittest.TestCase):
 
     # TODO test for macro holding
 
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -34,7 +34,6 @@ from keymapper.paths import USER
 
 def check_group(group):
     """Check if the required group is active and log if not."""
-    # TODO test
     try:
         in_group = USER in grp.getgrnam(group).gr_mem
     except KeyError:
