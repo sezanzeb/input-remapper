@@ -117,7 +117,7 @@ class _KeycodeReader:
                 event.value,
                 evdev.ecodes.EV[event.type]
             )
-            self._pipe[1].send((event.type, event.code))
+            self._pipe[1].send(event)
 
     def _read_worker(self):
         """Process that reads keycodes and buffers them into a pipe."""
@@ -149,7 +149,11 @@ class _KeycodeReader:
                     del rlist[fd]
 
     def read(self):
-        """Get the newest tuple of event type, keycode or None."""
+        """Get the newest tuple of event type, keycode or None.
+
+        If the timing of two recent events is very close, prioritize
+        key events over abs events.
+        """
         if self._pipe is None:
             self.fail_counter += 1
             if self.fail_counter % 10 == 0:
@@ -157,11 +161,14 @@ class _KeycodeReader:
                 logger.debug('No pipe available to read from')
             return None, None
 
-        newest_event = (None, None)
+        newest_event = None
         while self._pipe[0].poll():
             newest_event = self._pipe[0].recv()
 
-        return newest_event
+        return (
+            (None, None) if newest_event is None
+            else (newest_event.type, newest_event.code)
+        )
 
 
 keycode_reader = _KeycodeReader()

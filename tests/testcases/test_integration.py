@@ -258,7 +258,7 @@ class TestIntegration(unittest.TestCase):
         if code:
             # modifies the keycode in the row not by writing into the input,
             # but by sending an event
-            keycode_reader._pipe[1].send((EV_KEY, code))
+            keycode_reader._pipe[1].send(InputEvent(EV_KEY, code, 1))
             time.sleep(0.1)
             gtk_iteration()
             if success:
