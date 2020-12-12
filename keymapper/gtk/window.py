@@ -232,14 +232,14 @@ class Window:
             self.show_status(CTX_ERROR, 'Use "Apply Defaults" before editing')
 
     def get_focused_row(self):
-        """Get the Row that is currently in focus."""
+        """Get the Row and its child that is currently in focus."""
         focused = self.window.get_focus()
         if focused is None:
-            return True
+            return None, None
 
         box = focused.get_parent()
         if box is None:
-            return True
+            return None, None
 
         row = box.get_parent()
         if not isinstance(row, Row):

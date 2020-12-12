@@ -21,6 +21,7 @@
 
 import unittest
 import time
+import copy
 
 import evdev
 from evdev.ecodes import EV_REL, EV_KEY, EV_ABS, ABS_HAT0X
@@ -54,6 +55,8 @@ class TestInjector(unittest.TestCase):
 
         evdev.InputDevice.grab = grab_fail_twice
 
+        self.original_config = copy.deepcopy(config._config)
+
     def tearDown(self):
         if self.injector is not None:
             self.injector.stop_injecting()
@@ -65,6 +68,9 @@ class TestInjector(unittest.TestCase):
         clear_write_history()
         custom_mapping.empty()
         system_mapping.populate()
+
+        config._config = self.original_config
+        config.save_config()
 
     def test_modify_capabilities(self):
         class FakeDevice:
