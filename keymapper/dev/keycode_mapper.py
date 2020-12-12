@@ -25,6 +25,7 @@
 import asyncio
 
 import evdev
+from evdev.ecodes import EV_KEY, EV_ABS, ABS_MISC
 
 from keymapper.logger import logger
 from keymapper.dev.ev_abs_mapper import JOYSTICK
@@ -48,13 +49,30 @@ def should_map_event_as_btn(ev_type, code):
     code : int
         linux keycode
     """
-    if ev_type == evdev.events.EV_KEY:
+    if ev_type == EV_KEY:
         return True
 
-    if ev_type == evdev.events.EV_ABS and code not in JOYSTICK:
+    if ev_type == EV_ABS and code not in JOYSTICK + [ABS_MISC]:
+        # wacom intuos 5 reports ABS_MISC for every event right after the
+        # actual event
         return True
 
     return False
+
+
+def is_key_down(event):
+    """Is this event a key press."""
+    if event.type == EV_KEY:
+        # might be 2 for hold
+        return event.value == 1
+
+    # for all other event types, just fire for anything that is not 0
+    return event.value != 0
+
+
+def is_key_up(event):
+    """Is this event a key release."""
+    return event.value == 0
 
 
 def handle_keycode(code_to_code, macros, event, uinput):
@@ -77,16 +95,14 @@ def handle_keycode(code_to_code, macros, event, uinput):
     input_type = event.type
 
     if input_keycode in macros:
-        if event.value == 0:
-            # key-release event. Tell the macro for that keycode
-            # that the key is released and let it decide what to with that
-            # information.
+        if is_key_up(event):
+            # Tell the macro for that keycode that the key is released and
+            # let it decide what to with that information.
             macro = active_macros.get(input_keycode)
             if macro is not None and macro.holding:
                 macro.release_key()
 
-        if event.value != 1:
-            # only key-down events trigger macros
+        if not is_key_down(event):
             return
 
         existing_macro = active_macros.get(input_keycode)
@@ -94,6 +110,8 @@ def handle_keycode(code_to_code, macros, event, uinput):
             # make sure that a duplicate key-down event won't make a
             # macro with a hold function run forever. there should always
             # be only one active.
+            # Furthermore, don't stop and rerun the macro because gamepad
+            # triggers report events all the time just by releasing the key.
             if existing_macro.running:
                 return
 
@@ -111,7 +129,7 @@ def handle_keycode(code_to_code, macros, event, uinput):
 
     if input_keycode in code_to_code:
         target_keycode = code_to_code[input_keycode]
-        target_type = evdev.events.EV_KEY
+        target_type = EV_KEY
         logger.spam(
             'got code:%s value:%s event:%s, maps to EV_KEY:%s',
             input_keycode,

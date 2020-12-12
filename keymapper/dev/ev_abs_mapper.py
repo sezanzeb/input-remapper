@@ -73,6 +73,13 @@ async def ev_abs_mapper(abs_state, input_device, keymapper_device):
     input_device : evdev.InputDevice
     keymapper_device : evdev.UInput
     """
+    max_value = input_device.absinfo(EV_ABS).max
+
+    if max_value == 0:
+        return
+
+    max_speed = ((max_value ** 2) * 2) ** 0.5
+
     # events only take ints, so a movement of 0.3 needs to add
     # up to 1.2 to affect the cursor.
     #
@@ -81,12 +88,10 @@ async def ev_abs_mapper(abs_state, input_device, keymapper_device):
     pending_rx_rel = 0
     pending_ry_rel = 0
 
-    logger.info('Mapping gamepad to mouse movements')
-    max_value = input_device.absinfo(EV_ABS).max
-    max_speed = ((max_value ** 2) * 2) ** 0.5
-
     pointer_speed = config.get('gamepad.joystick.pointer_speed')
     non_linearity = config.get('gamepad.joystick.non_linearity')
+
+    logger.info('Mapping gamepad to mouse movements')
 
     while True:
         start = time.time()
