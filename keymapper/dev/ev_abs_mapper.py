@@ -54,7 +54,7 @@ def accumulate(pending, current):
     """Since devices can't do float values, stuff has to be accumulated.
 
     If pending is 0.6 and current is 0.5, return 0.1 and 1.
-    Because 1 may move 1px, and 0.1px is rememberd for the next value in
+    Because it should move 1px, and 0.1px is rememberd for the next value in
     pending.
     """
     pending += current
@@ -82,7 +82,6 @@ async def ev_abs_mapper(abs_state, input_device, keymapper_device):
 
     # events only take ints, so a movement of 0.3 needs to add
     # up to 1.2 to affect the cursor.
-    #
     pending_x_rel = 0
     pending_y_rel = 0
     pending_rx_rel = 0

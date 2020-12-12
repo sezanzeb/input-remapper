@@ -52,9 +52,7 @@ def should_map_event_as_btn(ev_type, code):
     if ev_type == EV_KEY:
         return True
 
-    if ev_type == EV_ABS and code not in JOYSTICK + [ABS_MISC]:
-        # wacom intuos 5 reports ABS_MISC for every event right after the
-        # actual event
+    if ev_type == EV_ABS and code not in JOYSTICK:
         return True
 
     return False

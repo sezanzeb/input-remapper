@@ -27,6 +27,7 @@ import select
 import multiprocessing
 
 import evdev
+from evdev.events import EV_KEY, EV_ABS
 
 from keymapper.logger import logger
 from keymapper.getdevices import get_devices, refresh_devices
@@ -34,6 +35,16 @@ from keymapper.dev.keycode_mapper import should_map_event_as_btn
 
 
 CLOSE = 1
+
+PRIORITIES = {
+    EV_KEY: 100,
+    EV_ABS: 50
+}
+
+
+def prioritize(events):
+    """Return the event that is most likely desired to be mapped."""
+    return sorted(events, key=lambda e: PRIORITIES[e.type])[-1]
 
 
 class _KeycodeReader:
@@ -48,6 +59,7 @@ class _KeycodeReader:
         self._pipe = None
         self._process = None
         self.fail_counter = 0
+        self.newest_event = None
 
     def __del__(self):
         self.stop_reading()
@@ -161,9 +173,36 @@ class _KeycodeReader:
                 logger.debug('No pipe available to read from')
             return None, None
 
-        newest_event = None
+        newest_event = self.newest_event
+        newest_time = (
+            0 if newest_event is None
+            else newest_event.sec + newest_event.usec / 1000000
+        )
+
         while self._pipe[0].poll():
-            newest_event = self._pipe[0].recv()
+            event = self._pipe[0].recv()
+
+            time = event.sec + event.usec / 1000000
+            delta = time - newest_time
+
+            if delta < 0.01 and prioritize([newest_event, event]) != event:
+                # two events happened very close, probably some weird
+                # spam from the device. The wacom intuos 5 adds an
+                # ABS_MISC event to every button press, filter that out
+                logger.spam(
+                    'Ignoring event code:%s, value:%s, type:%s',
+                    evdev.ecodes.EV[event.type], event.code, event.value
+                )
+                continue
+
+            newest_event = event
+            newest_time = time
+
+        if newest_event == self.newest_event:
+            # don't return the same event twice
+            return None, None
+
+        self.newest_event = newest_event
 
         return (
             (None, None) if newest_event is None

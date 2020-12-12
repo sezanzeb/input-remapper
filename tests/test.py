@@ -159,7 +159,7 @@ class InputEvent:
 
     fakes evdev.InputEvent
     """
-    def __init__(self, type, code, value):
+    def __init__(self, type, code, value, timestamp=None):
         """
         Paramaters
         ----------
@@ -173,6 +173,12 @@ class InputEvent:
         self.type = type
         self.code = code
         self.value = value
+
+        if timestamp is None:
+            timestamp = time.time()
+
+        self.sec = int(timestamp)
+        self.usec = timestamp % 1 * 1000000
 
 
 def patch_paths():

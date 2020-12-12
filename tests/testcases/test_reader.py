@@ -21,7 +21,7 @@
 
 import unittest
 
-from evdev.ecodes import EV_KEY, EV_ABS, ABS_HAT0X
+from evdev.ecodes import EV_KEY, EV_ABS, ABS_HAT0X, KEY_COMMA
 import time
 
 from keymapper.dev.reader import keycode_reader
@@ -125,6 +125,35 @@ class TestReader(unittest.TestCase):
         time.sleep(EVENT_READ_TIMEOUT * 5)
 
         self.assertEqual(keycode_reader.read(), (EV_KEY, CODE_3))
+        self.assertEqual(keycode_reader.read(), (None, None))
+
+    def test_prioritizing_1(self):
+        # filter the ABS_MISC events of the wacom intuos 5 out that come
+        # with every button press. Or more general, prioritize them
+        # based on the event type
+        pending_events['device 1'] = [
+            InputEvent(EV_ABS, ABS_HAT0X, 1, 1234.0000),
+            InputEvent(EV_ABS, ABS_HAT0X, 1, 1235.0000),  # ignored
+            InputEvent(EV_KEY, KEY_COMMA, 1, 1235.0010),
+            InputEvent(EV_ABS, ABS_HAT0X, 1, 1235.0020),  # ignored
+            InputEvent(EV_ABS, ABS_HAT0X, 1, 1236.0000)
+        ]
+        keycode_reader.start_reading('device 1')
+        wait(keycode_reader._pipe[0].poll, 0.5)
+        self.assertEqual(keycode_reader.read(), (EV_ABS, ABS_HAT0X))
+        self.assertEqual(keycode_reader.read(), (None, None))
+
+    def test_prioritizing_2(self):
+        pending_events['device 1'] = [
+            InputEvent(EV_ABS, ABS_HAT0X, 1, 1234.0000),
+            InputEvent(EV_ABS, ABS_HAT0X, 1, 1235.0000),  # ignored
+            InputEvent(EV_KEY, KEY_COMMA, 1, 1235.0010),
+            InputEvent(EV_ABS, ABS_HAT0X, 1, 1235.0020),  # ignored
+            InputEvent(EV_ABS, ABS_HAT0X, 1, 1235.0030)  # ignored
+        ]
+        keycode_reader.start_reading('device 1')
+        wait(keycode_reader._pipe[0].poll, 0.5)
+        self.assertEqual(keycode_reader.read(), (EV_KEY, KEY_COMMA))
         self.assertEqual(keycode_reader.read(), (None, None))
 
 

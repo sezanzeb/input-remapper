@@ -42,6 +42,10 @@ INITIAL_CONFIG = {
     },
     'gamepad': {
         'joystick': {
+            # very small movements of the joystick should result in very
+            # small mouse movements. With a non_linearity of 1 it is
+            # impossible/hard to even find a resting position that won't
+            # move the cursor.
             'non_linearity': 4,
             'pointer_speed': 80,
         },
@@ -99,6 +103,8 @@ class _Config:
             For example 'macros.keystroke_sleep_ms'
         value : any
         """
+        logger.debug('Changing "%s" to "%s"', path, value)
+
         def callback(parent, child, chunk):
             parent[chunk] = value
 
