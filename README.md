@@ -80,8 +80,8 @@ pacaur -S key-mapper-git
 
 ```bash
 wget "https://github.com/sezanzeb/key-mapper/releases/"\
-"download/0.3.0/python3-key-mapper_0.3.0-1_all.deb"
-sudo dpkg -i python3-key-mapper_0.3.0-1_all.deb
+"download/0.3.1/python3-key-mapper_0.3.1-1_all.deb"
+sudo dpkg -i python3-key-mapper_0.3.1-1_all.deb
 ```
 
 ##### Git/pip
