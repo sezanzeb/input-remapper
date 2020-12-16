@@ -26,7 +26,7 @@ import copy
 import evdev
 from evdev.ecodes import EV_REL, EV_KEY, EV_ABS, ABS_HAT0X
 
-from keymapper.dev.injector import is_numlock_on, toggle_numlock, \
+from keymapper.dev.injector import is_numlock_on, set_numlock, \
     ensure_numlock, KeycodeInjector
 from keymapper.state import custom_mapping, system_mapping
 from keymapper.mapping import Mapping
@@ -212,12 +212,12 @@ class TestInjector(unittest.TestCase):
     def test_numlock(self):
         before = is_numlock_on()
 
-        toggle_numlock()  # should change
+        set_numlock(not before)  # should change
         self.assertEqual(not before, is_numlock_on())
 
         @ensure_numlock
         def wrapped_1():
-            toggle_numlock()
+            set_numlock(not is_numlock_on())
 
         @ensure_numlock
         def wrapped_2():
@@ -230,7 +230,7 @@ class TestInjector(unittest.TestCase):
         self.assertEqual(not before, is_numlock_on())
 
         # toggle one more time to restore the previous configuration
-        toggle_numlock()
+        set_numlock(before)
         self.assertEqual(before, is_numlock_on())
 
     def test_abs_to_rel(self):
@@ -290,6 +290,8 @@ class TestInjector(unittest.TestCase):
         self.assertAlmostEqual(history[-2][2], -1)
 
     def test_injector(self):
+        numlock_before = is_numlock_on()
+
         custom_mapping.change((EV_KEY, 8), 'k(KEY_Q).k(w)')
         custom_mapping.change((EV_ABS, ABS_HAT0X), 'a')
         # one mapping that is unknown in the system_mapping on purpose
@@ -372,6 +374,9 @@ class TestInjector(unittest.TestCase):
 
         time.sleep(0.1)
         self.assertTrue(self.injector._process.is_alive())
+
+        numlock_after = is_numlock_on()
+        self.assertEqual(numlock_before, numlock_after)
 
 
 if __name__ == "__main__":
