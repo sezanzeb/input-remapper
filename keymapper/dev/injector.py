@@ -58,10 +58,15 @@ def is_numlock_on():
     return False
 
 
-def toggle_numlock():
-    """Turn the numlock on or off."""
+def set_numlock(state):
+    """Set the numlock to a given state of True or False."""
+    value = {
+        True: 'on',
+        False: 'off'
+    }[state]
+
     try:
-        subprocess.check_output(['numlockx', 'toggle'])
+        subprocess.check_output(['numlockx', value])
     except FileNotFoundError:
         # doesn't seem to be installed everywhere
         logger.debug('numlockx not found')
@@ -74,10 +79,7 @@ def ensure_numlock(func):
         # remember it and apply back later
         numlock_before = is_numlock_on()
         result = func(*args, **kwargs)
-        numlock_after = is_numlock_on()
-        if numlock_after != numlock_before:
-            logger.debug('Reverting numlock status to %s', numlock_before)
-            toggle_numlock()
+        set_numlock(numlock_before)
         return result
     return wrapped
 
@@ -282,6 +284,8 @@ class KeycodeInjector:
         Stuff is non-blocking by using asyncio in order to do multiple things
         somewhat concurrently.
         """
+        numlock_state = is_numlock_on()
+
         loop = asyncio.get_event_loop()
         coroutines = []
 
@@ -344,6 +348,10 @@ class KeycodeInjector:
             return
 
         coroutines.append(self._msg_listener(loop))
+
+        # set the numlock state to what it was before injecting, because
+        # grabbing devices screws this up
+        set_numlock(numlock_state)
 
         try:
             loop.run_until_complete(asyncio.gather(*coroutines))
