@@ -120,13 +120,13 @@ class _Macro:
         self.running = False
 
     def press_key(self):
-        """Tell this and all child macros that the key was pressed down."""
+        """The user pressed the key down."""
         self.holding = True
         for macro in self.child_macros:
             macro.press_key()
 
     def release_key(self):
-        """Tell all child macros that the key was released."""
+        """The user released the key."""
         self.holding = False
         for macro in self.child_macros:
             macro.release_key()
@@ -349,17 +349,18 @@ def _parse_recurse(macro, macro_instance=None, depth=0):
             # fail here.
             logger.warn('"%s" doesn\'t write any keys (using k)', macro)
 
-        # available functions in the macro and the number of their
-        # parameters
+        # available functions in the macro and the minimum and maximum number
+        # of their parameters
         functions = {
-            'm': (macro_instance.modify, 2),
-            'r': (macro_instance.repeat, 2),
-            'k': (macro_instance.keycode, 1),
-            'w': (macro_instance.wait, 1),
-            'h': (macro_instance.hold, 1)
+            'm': (macro_instance.modify, 2, 2),
+            'r': (macro_instance.repeat, 2, 2),
+            'k': (macro_instance.keycode, 1, 1),
+            'w': (macro_instance.wait, 1, 1),
+            'h': (macro_instance.hold, 1, 1)
         }
 
-        if functions.get(call) is None:
+        function = functions.get(call)
+        if function is None:
             raise Exception(f'Unknown function {call}')
 
         # get all the stuff inbetween
@@ -378,13 +379,19 @@ def _parse_recurse(macro, macro_instance=None, depth=0):
 
         logger.spam('%sadd call to %s with %s', space, call, params)
 
-        if len(params) != functions[call][1]:
-            raise ValueError(
-                f'{call} takes {functions[call][1]}, not {len(params)} '
-                'parameters'
-            )
+        if len(params) < function[1] or len(params) > function[2]:
+            if function[1] != function[2]:
+                raise ValueError(
+                    f'{call} takes between {function[1]} and {function[2]}, '
+                    f'not {len(params)} parameters'
+                )
+            else:
+                raise ValueError(
+                    f'{call} takes {function[1]}, '
+                    f'not {len(params)} parameters'
+                )
 
-        functions[call][0](*params)
+        function[0](*params)
 
         # is after this another call? Chain it to the macro_instance
         if len(macro) > position and macro[position] == '.':
