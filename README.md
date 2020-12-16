@@ -33,7 +33,8 @@ Documentation:
 - `.` executes two actions behind each other
 
 Syntax errors are shown in the UI on save. each `k` function adds a short
-delay of 10ms that can be configured in `~/.config/key-mapper/config`.
+delay of 10ms between key-down, key-up and ad the end that can be configured
+in `~/.config/key-mapper/config`.
 
 ##### Key Names
 
@@ -116,8 +117,9 @@ cd key-mapper && sudo python3 setup.py install
 - [x] basic support for gamepads as keyboard and mouse combi
 - [x] executing a macro forever while holding down the key
 - [ ] map D-Pad and Joystick directions as buttons, joystick purpose via config
-- [ ] automatically load presets when devices get plugged in after login
+- [ ] automatically load presets when devices get plugged in after login (udev)
 - [ ] mapping a combined button press to a key
+- [ ] start the daemon in the input group to not require usermod somehow
 
 ## Tests
 
