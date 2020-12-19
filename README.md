@@ -2,7 +2,7 @@
 
 <p align="center">
   A tool to change the mapping of your input device buttons.<br/>
-  Supports <b>mice</b>, <b>keyboards</b>, <b>gamepads</b>, X11, Wayland and programmable macros.
+  <b>Supports mice, keyboards, gamepads, X11, Wayland and programmable macros.</b>
 </p>
 
 <p align="center"><img src="readme/pylint.svg"/> <img src="readme/coverage.svg"/></p>
