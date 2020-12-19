@@ -24,7 +24,7 @@ requests.
 - [x] mapping D-Pad directions as buttons
 - [ ] support for non-GUI TTY environments
 - [ ] mapping joystick directions as buttons, making it act like a D-Pad
-- [ ] configure joystick purpose via the GUI and store it in the preset
+- [ ] configure joystick purpose and speed via the GUI
 - [ ] automatically load presets when devices get plugged in after login (udev)
 - [ ] mapping a combined button press to a key
 - [ ] start the daemon in the input group to not require usermod somehow

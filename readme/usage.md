@@ -32,9 +32,9 @@ Documentation:
 - `h` executes the parameter as long as the key is pressed down
 - `.` executes two actions behind each other
 
-Syntax errors are shown in the UI on save. each `k` function adds a short
-delay of 10ms between key-down, key-up and ad the end that can be configured
-in `~/.config/key-mapper/config`.
+Syntax errors are shown in the UI on save. Each `k` function adds a short
+delay of 10ms between key-down, key-up and at the end. See
+[Configuration Files](#configuration-files) for more info.
 
 Bear in mind that anti-cheat software might detect macros in games.
 
@@ -55,7 +55,8 @@ Joystick movements will be translated to mouse movements, while the second
 joystick acts as a mouse wheel. All buttons, triggers and D-Pads can be
 mapped to keycodes and macros. The purpose of your joysticks can be
 configured in the json files with the `gamepad.joystick.left_purpose` and
-`right_purpose` keys. See below for more info.
+`right_purpose` keys. See [Configuration Files](#configuration-files)
+for more info.
 
 The D-Pad can be mapped to W, A, S, D for example, to run around in games,
 while the joystick turns the view.
