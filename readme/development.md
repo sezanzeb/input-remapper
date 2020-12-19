@@ -22,7 +22,7 @@ requests.
 - [x] basic support for gamepads as keyboard and mouse combi
 - [x] executing a macro forever while holding down the key using `h`
 - [x] mapping D-Pad directions as buttons
-- [ ] support for non-GUI TTY environments
+- [ ] support for non-GUI TTY environments with a command to stop and start
 - [ ] mapping joystick directions as buttons, making it act like a D-Pad
 - [ ] configure joystick purpose and speed via the GUI
 - [ ] automatically load presets when devices get plugged in after login (udev)
