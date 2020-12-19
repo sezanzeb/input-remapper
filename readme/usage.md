@@ -109,3 +109,5 @@ a complete keystroke consists of two events: down and up. Other than that,
 it inherits all configurations from `~/.config/key-mapper/config.json`.
 If config.json is missing some stuff, it will query the hardcoded default
 values.
+
+The event codes can be read using `evtest`.
