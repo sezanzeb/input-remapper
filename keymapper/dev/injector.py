@@ -67,6 +67,9 @@ def set_numlock(state):
 
     try:
         subprocess.check_output(['numlockx', value])
+    except subprocess.CalledProcessError:
+        # might be in a tty
+        pass
     except FileNotFoundError:
         # doesn't seem to be installed everywhere
         logger.debug('numlockx not found')

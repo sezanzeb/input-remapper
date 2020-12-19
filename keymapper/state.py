@@ -48,25 +48,29 @@ class SystemMapping:
     def populate(self):
         """Get a mapping of all available names to their keycodes."""
         self.clear()
-        xmodmap = subprocess.check_output(['xmodmap', '-pke']).decode() + '\n'
-        mappings = re.findall(r'(\d+) = (.+)\n', xmodmap)
-        for keycode, names in mappings:
-            # there might be multiple, like:
-            # keycode  64 = Alt_L Meta_L Alt_L Meta_L
-            # keycode 204 = NoSymbol Alt_L NoSymbol Alt_L
-            # Alt_L should map to code 64. Writing code 204 only works
-            # if a modifier is applied at the same time. So take the first
-            # one.
-            name = names.split()[0]
-            self._set(name, int(keycode) - XKB_KEYCODE_OFFSET)
+        try:
+            xmodmap = subprocess.check_output(['xmodmap', '-pke']).decode()
+            mappings = re.findall(r'(\d+) = (.+)\n', xmodmap + '\n')
+            for keycode, names in mappings:
+                # there might be multiple, like:
+                # keycode  64 = Alt_L Meta_L Alt_L Meta_L
+                # keycode 204 = NoSymbol Alt_L NoSymbol Alt_L
+                # Alt_L should map to code 64. Writing code 204 only works
+                # if a modifier is applied at the same time. So take the first
+                # one.
+                name = names.split()[0]
+                self._set(name, int(keycode) - XKB_KEYCODE_OFFSET)
 
-        for keycode, names in mappings:
-            # but since KP may be mapped like KP_Home KP_7 KP_Home KP_7,
-            # make another pass and add all of them if they don't already
-            # exist. don't overwrite any keycodes.
-            for name in names.split():
-                if self.get(name) is None:
-                    self._set(name, int(keycode) - XKB_KEYCODE_OFFSET)
+            for keycode, names in mappings:
+                # but since KP may be mapped like KP_Home KP_7 KP_Home KP_7,
+                # make another pass and add all of them if they don't already
+                # exist. don't overwrite any keycodes.
+                for name in names.split():
+                    if self.get(name) is None:
+                        self._set(name, int(keycode) - XKB_KEYCODE_OFFSET)
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            # might be within a tty
+            pass
 
         for name, ecode in evdev.ecodes.ecodes.items():
             if name.startswith('KEY') or name.startswith('BTN'):
