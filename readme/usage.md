@@ -73,7 +73,7 @@ an example autoload entry:
 ```json
 {
     "autoload": {
-        "Logitech USB Keyboard": "preset"
+        "Logitech USB Keyboard": "preset name"
     },
     "macros": {
         "keystroke_sleep_ms": 10
@@ -89,7 +89,7 @@ an example autoload entry:
 }
 ```
 
-`preset` refers to `~/.config/key-mapper/device name/preset.json`.
+`preset name` refers to `~/.config/key-mapper/device name/preset name.json`.
 The device name can be found with `evtest`.
 
 Anything that is relevant to presets can be overwritten in them as well.
