@@ -71,7 +71,9 @@ The current default configuration as of commit `42cb7fe` looks like:
 
 ```json
 {
-    "autoload": {},
+    "autoload": {
+        "device name": "preset name"
+    },
     "macros": {
         "keystroke_sleep_ms": 10
     },
