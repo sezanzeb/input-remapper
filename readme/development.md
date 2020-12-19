@@ -23,7 +23,7 @@ requests.
 - [x] executing a macro forever while holding down the key using `h`
 - [x] mapping D-Pad directions as buttons
 - [ ] support for non-GUI TTY environments
-- [ ] mapping joystick directions as buttons
+- [ ] mapping joystick directions as buttons, making it act like a D-Pad
 - [ ] configure joystick purpose via the GUI and store it in the preset
 - [ ] automatically load presets when devices get plugged in after login (udev)
 - [ ] mapping a combined button press to a key
