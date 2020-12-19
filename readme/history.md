@@ -19,6 +19,7 @@ This was quite mature, pretty much finished and tested.
 those to SHIFT and such, whenever a button is clicked. A mapping would have
 existed to prevent the original keycode 10 from writing a 1. But this device
 doesn't have the capabilities set for those keycodes, so it won't use them.
+At that time I didn't know about capabilities though.
 
 **The third idea** is to create a new input device that uses 8 - 255, just
 like other layouts, and key-mapper always tries to use the same keycodes for
