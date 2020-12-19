@@ -250,10 +250,11 @@ class Window:
     def consume_newest_keycode(self):
         """To capture events from keyboards, mice and gamepads."""
         # the "event" event of Gtk.Window wouldn't trigger on gamepad
-        # events, so it became a GLib timeout
-        ev_type, keycode = keycode_reader.read()
+        # events, so it became a GLib timeout to periodically check kernel
+        # events.
+        key = keycode_reader.read()
 
-        if keycode is None or ev_type is None:
+        if key is None:
             return True
 
         click_events = [
@@ -261,18 +262,18 @@ class Window:
             evdev.ecodes.BTN_TOOL_DOUBLETAP
         ]
 
-        if ev_type == EV_KEY and keycode in click_events:
+        if key[0] == EV_KEY and key[1] in click_events:
             # disable mapping the left mouse button because it would break
             # the mouse. Also it is emitted right when focusing the row
             # which breaks the current workflow.
             return True
 
-        self.get('keycode').set_text(to_string(ev_type, keycode))
+        self.get('keycode').set_text(to_string(*key))
 
         # inform the currently selected row about the new keycode
         row, focused = self.get_focused_row()
         if isinstance(focused, Gtk.ToggleButton):
-            row.set_new_keycode(ev_type, keycode)
+            row.set_new_keycode(key)
 
         return True
 
@@ -293,7 +294,7 @@ class Window:
 
     def check_macro_syntax(self):
         """Check if the programmed macros are allright."""
-        for (ev_type, keycode), output in custom_mapping:
+        for key, output in custom_mapping:
             if not is_this_a_macro(output):
                 continue
 
@@ -301,7 +302,7 @@ class Window:
             if error is None:
                 continue
 
-            position = to_string(ev_type, keycode)
+            position = to_string(*key)
             msg = f'Syntax error at {position}, hover for info'
             self.show_status(CTX_ERROR, msg, error)
 
@@ -431,12 +432,11 @@ class Window:
         custom_mapping.load(self.selected_device, self.selected_preset)
 
         key_list = self.get('key_list')
-        for (ev_type, keycode), output in custom_mapping:
+        for key, output in custom_mapping:
             single_key_mapping = Row(
                 window=self,
                 delete_callback=self.on_row_removed,
-                ev_type=ev_type,
-                keycode=keycode,
+                key=key,
                 character=output
             )
             key_list.insert(single_key_mapping, -1)

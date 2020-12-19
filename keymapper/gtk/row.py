@@ -38,12 +38,31 @@ for name in system_mapping.list_names():
     store.append([name])
 
 
-def to_string(ev_type, code):
+def to_string(ev_type, code, value):
     """A nice to show description of the pressed key."""
     try:
         name = evdev.ecodes.bytype[ev_type][code]
         if isinstance(name, list):
             name = name[0]
+
+        if ev_type != evdev.ecodes.EV_KEY:
+            direction = {
+                (evdev.ecodes.ABS_HAT0X, -1): 'L',
+                (evdev.ecodes.ABS_HAT0X, 1): 'R',
+                (evdev.ecodes.ABS_HAT0Y, -1): 'U',
+                (evdev.ecodes.ABS_HAT0Y, 1): 'D',
+                (evdev.ecodes.ABS_HAT1X, -1): 'L',
+                (evdev.ecodes.ABS_HAT1X, 1): 'R',
+                (evdev.ecodes.ABS_HAT1Y, -1): 'U',
+                (evdev.ecodes.ABS_HAT1Y, 1): 'D',
+                (evdev.ecodes.ABS_HAT2X, -1): 'L',
+                (evdev.ecodes.ABS_HAT2X, 1): 'R',
+                (evdev.ecodes.ABS_HAT2Y, -1): 'U',
+                (evdev.ecodes.ABS_HAT2Y, 1): 'D',
+            }.get((code, value))
+            if direction is not None:
+                name += f' {direction}'
+
         return name.replace('KEY_', '')
     except KeyError:
         return 'unknown'
@@ -53,11 +72,14 @@ class Row(Gtk.ListBoxRow):
     """A single, configurable key mapping."""
     __gtype_name__ = 'ListBoxRow'
 
-    def __init__(
-            self, delete_callback, window, ev_type=None, keycode=None,
-            character=None
-    ):
-        """Construct a row widget."""
+    def __init__(self, delete_callback, window, key=None, character=None):
+        """Construct a row widget.
+
+        Parameters
+        ----------
+        key : int, int, int
+            event, code, value
+        """
         super().__init__()
         self.device = window.selected_device
         self.window = window
@@ -66,13 +88,12 @@ class Row(Gtk.ListBoxRow):
         self.character_input = None
         self.keycode_input = None
 
-        self.ev_type = ev_type
-        self.keycode = keycode
+        self.key = key
 
         self.put_together(character)
 
     def get_keycode(self):
-        """Get a tuple of event_type and keycode from the left column.
+        """Get a tuple of type, code and value from the left column.
 
         Or None if no codes are mapped on this row.
         """
@@ -80,45 +101,39 @@ class Row(Gtk.ListBoxRow):
         if not keycode:
             return None
 
-        return self.ev_type, self.keycode
+        return self.key
 
     def get_character(self):
         """Get the assigned character from the middle column."""
         character = self.character_input.get_text()
         return character if character else None
 
-    def set_new_keycode(self, ev_type, new_keycode):
+    def set_new_keycode(self, new_key):
         """Check if a keycode has been pressed and if so, display it."""
         # the newest_keycode is populated since the ui regularly polls it
         # in order to display it in the status bar.
-        key = self.get_keycode()
-        previous_type = key[0] if key else None
-        previous_keycode = key[1] if key else None
-
-        character = self.get_character()
+        previous_key = self.get_keycode()
 
         # no input
-        if new_keycode is None:
+        if new_key is None:
             return
 
         # keycode didn't change, do nothing
-        if new_keycode == previous_keycode:
+        if new_key == previous_key:
             return
 
         # keycode is already set by some other row
-        existing = custom_mapping.get_character(ev_type, new_keycode)
+        existing = custom_mapping.get_character(new_key)
         if existing is not None:
-            name = to_string(ev_type, new_keycode)
-            msg = f'"{name}" already mapped to {existing}"'
+            msg = f'"{to_string(*new_key)}" already mapped to {existing}"'
             logger.info(msg)
             self.window.get('status_bar').push(CTX_KEYCODE, msg)
             return
 
         # it's legal to display the keycode
         self.window.get('status_bar').remove_all(CTX_KEYCODE)
-        self.keycode_input.set_label(to_string(ev_type, new_keycode))
-        self.ev_type = ev_type
-        self.keycode = new_keycode
+        self.keycode_input.set_label(to_string(*new_key))
+        self.key = new_key
         # switch to the character, don't require mouse input because
         # that would overwrite the key with the mouse-button key if
         # the current device is a mouse. idle_add this so that the
@@ -127,15 +142,17 @@ class Row(Gtk.ListBoxRow):
         GLib.idle_add(lambda: window.set_focus(self.character_input))
         self.highlight()
 
+        character = self.get_character()
+
         # the character is empty and therefore the mapping is not complete
         if character is None:
             return
 
         # else, the keycode has changed, the character is set, all good
         custom_mapping.change(
-            new=(ev_type, new_keycode),
+            new_key=new_key,
             character=character,
-            previous=(previous_type, previous_keycode)
+            previous_key=previous_key
         )
 
     def highlight(self):
@@ -151,14 +168,16 @@ class Row(Gtk.ListBoxRow):
         key = self.get_keycode()
         character = self.get_character()
 
+        if character is None:
+            return
+
         self.highlight()
 
         if key is not None:
-            ev_type, keycode = key
             custom_mapping.change(
-                new=(ev_type, keycode),
+                new_key=key,
                 character=character,
-                previous=(None, None)
+                previous_key=None
             )
 
     def match(self, completion, key, iter):
@@ -182,8 +201,8 @@ class Row(Gtk.ListBoxRow):
         keycode_input = Gtk.ToggleButton()
         keycode_input.set_size_request(130, -1)
 
-        if self.keycode is not None:
-            keycode_input.set_label(to_string(self.ev_type, self.keycode))
+        if self.key is not None:
+            keycode_input.set_label(to_string(*self.key))
 
         # make the togglebutton go back to its normal state when doing
         # something else in the UI
@@ -208,6 +227,7 @@ class Row(Gtk.ListBoxRow):
 
         if character is not None:
             character_input.set_text(character)
+
         character_input.connect(
             'changed',
             self.on_character_input_change
@@ -232,8 +252,8 @@ class Row(Gtk.ListBoxRow):
         """Destroy the row and remove it from the config."""
         key = self.get_keycode()
         if key is not None:
-            ev_type, keycode = key
-            custom_mapping.clear(ev_type, keycode)
+            custom_mapping.clear(key)
+
         self.character_input.set_text('')
         self.keycode_input.set_label('')
         self.delete_callback(self)

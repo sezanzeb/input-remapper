@@ -111,7 +111,7 @@ class _Macro:
     async def run(self):
         """Run the macro."""
         self.running = True
-        for task_type, task in self.tasks:
+        for _, task in self.tasks:
             coroutine = task()
             if asyncio.iscoroutine(coroutine):
                 await coroutine
@@ -197,11 +197,11 @@ class _Macro:
 
         try:
             repeats = int(repeats)
-        except ValueError:
+        except ValueError as error:
             raise ValueError(
                 'Expected the first param for r (repeat) to be '
                 f'a number, but got "{repeats}"'
-            )
+            ) from error
 
         for _ in range(repeats):
             self.tasks.append((CHILD_MACRO, macro.run))
@@ -225,7 +225,7 @@ class _Macro:
         code = system_mapping.get(character)
 
         if code is None:
-            raise KeyError(f'Unknown key "{character}"')
+            raise KeyError(f'aUnknown key "{character}"')
 
         self.capabilities.add(code)
 
@@ -239,11 +239,11 @@ class _Macro:
         """Wait time in milliseconds."""
         try:
             sleeptime = int(sleeptime)
-        except ValueError:
+        except ValueError as error:
             raise ValueError(
                 'Expected the param for w (wait) to be '
                 f'a number, but got "{sleeptime}"'
-            )
+            ) from error
 
         sleeptime /= 1000
 
@@ -343,12 +343,6 @@ def _parse_recurse(macro, macro_instance=None, depth=0):
     call_match = re.match(r'^(\w+)\(', macro)
     call = call_match[1] if call_match else None
     if call is not None:
-        if 'k(' not in macro and 'm(' not in macro:
-            # maybe this just applies a modifier for a certain amout of time.
-            # and maybe it's a wait in repeat or something. Don't make it
-            # fail here.
-            logger.warn('"%s" doesn\'t write any keys (using k)', macro)
-
         # available functions in the macro and the minimum and maximum number
         # of their parameters
         functions = {
@@ -381,15 +375,17 @@ def _parse_recurse(macro, macro_instance=None, depth=0):
 
         if len(params) < function[1] or len(params) > function[2]:
             if function[1] != function[2]:
-                raise ValueError(
+                msg = (
                     f'{call} takes between {function[1]} and {function[2]}, '
                     f'not {len(params)} parameters'
                 )
             else:
-                raise ValueError(
+                msg = (
                     f'{call} takes {function[1]}, '
                     f'not {len(params)} parameters'
                 )
+
+            raise ValueError(msg)
 
         function[0](*params)
 

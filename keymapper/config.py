@@ -31,6 +31,9 @@ from keymapper.paths import CONFIG, USER, touch
 from keymapper.logger import logger
 
 
+MOUSE = 'mouse'
+WHEEL = 'wheel'
+
 CONFIG_PATH = os.path.join(CONFIG, 'config')
 
 INITIAL_CONFIG = {
@@ -48,6 +51,8 @@ INITIAL_CONFIG = {
             # move the cursor.
             'non_linearity': 4,
             'pointer_speed': 80,
+            'left_purpose': MOUSE,
+            'right_purpose': WHEEL,
         },
     }
 }

@@ -116,6 +116,13 @@ def log_info():
         logger.info('Could not figure out the version')
         logger.debug(error)
 
+    if is_debug():
+        logger.warning(
+            'Debug level will log all your keystrokes! Do not post this '
+            'output in the internet if you typed in sensitive or private '
+            'information with your device!'
+        )
+
     logger.debug('pid %s', os.getpid())
 
 
@@ -141,11 +148,7 @@ def update_verbosity(debug):
 
 def add_filehandler(path=LOG_PATH):
     """Clear the existing logfile and start logging to it."""
-    if is_debug():
-        logger.warning(
-            'Debug level will log all your keystrokes to "%s"',
-            LOG_PATH
-        )
+    logger.info('This output is also stored in "%s"', LOG_PATH)
 
     log_path = os.path.expanduser(path)
     log_file = os.path.join(log_path, 'log')

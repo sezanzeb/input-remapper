@@ -30,6 +30,15 @@ from keymapper.logger import logger
 from keymapper.paths import get_config_path, touch
 
 
+def verify_key(key):
+    """Check if the key describes a tuple of (type, code, value) ints."""
+    if len(key) != 3:
+        raise ValueError(f'Expected keys to be a 3-tuple, but got {key}')
+
+    if sum([not isinstance(value, int) for value in key]) != 0:
+        raise ValueError(f'Can only use numbers in the tuples, but got {key}')
+
+
 class Mapping:
     """Contains and manages mappings.
 
@@ -50,83 +59,75 @@ class Mapping:
     def __len__(self):
         return len(self._mapping)
 
-    def change(self, new, character, previous=(None, None)):
+    def change(self, new_key, character, previous_key=None):
         """Replace the mapping of a keycode with a different one.
-
-        Return True on success.
 
         Parameters
         ----------
-        new : int, int
+        new_key : int, int, int
+            the new key. (type, code, value). key as in hashmap-key
+
             0: type, one of evdev.events, taken from the original source
             event. Everything will be mapped to EV_KEY.
             1: The source keycode, what the mouse would report without any
             modification.
-        character : string or string[]
+            2. The value. 1 (down), 2 (up) or any
+            other value that the device reports. Gamepads use a continuous
+            space of values for joysticks and triggers.
+        character : string
             A single character known to xkb or linux.
             Examples: KP_1, Shift_L, a, B, BTN_LEFT.
-        previous : int, int
-            If None, will not remove any previous mapping. If you recently
+        previous_key : int, int, int
+            the previous key, same format as new_key
+
+            If not set, will not remove any previous mapping. If you recently
             used 10 for new_keycode and want to overwrite that with 11,
             provide 5 here.
         """
-        new_type, new_keycode = new
-        prev_type, prev_keycode = previous
+        if character is None:
+            raise ValueError('Expected `character` not to be None')
 
-        # either both of them are None, or both integers
-        if prev_keycode is None and prev_keycode != prev_type:
-            logger.error('Got (%s, %s) for previous', prev_type, prev_keycode)
-        if new_keycode is None and prev_keycode != new_type:
-            logger.error('Got (%s, %s) for new', new_type, new_keycode)
+        verify_key(new_key)
+        if previous_key:
+            verify_key(previous_key)
 
-        try:
-            new_keycode = int(new_keycode)
-            new_type = int(new_type)
-            if prev_keycode is not None:
-                prev_keycode = int(prev_keycode)
-            if prev_type is not None:
-                prev_type = int(prev_type)
-        except (TypeError, ValueError):
-            logger.error('Can only use numbers in the tuples')
-            return False
+        logger.debug(
+            '%s will map to %s, replacing %s',
+            new_key, character, previous_key
+        )
+        self._mapping[new_key] = character
 
-        if new_keycode and character:
-            logger.debug(
-                'type:%s, code:%s will map to %s, replacing type:%s, code:%s',
-                new_type, new_keycode, character, prev_type, prev_keycode
-            )
-            self._mapping[(new_type, new_keycode)] = character
-            code_changed = new_keycode != prev_keycode
-            if code_changed and prev_keycode is not None:
+        if previous_key is not None:
+            code_changed = new_key != previous_key
+            if code_changed:
                 # clear previous mapping of that code, because the line
-                # representing that one will now represent a different one.
-                self.clear(prev_type, prev_keycode)
-            self.changed = True
-            return True
+                # representing that one will now represent a different one
+                self.clear(previous_key)
 
-        return False
+        self.changed = True
 
-    def clear(self, ev_type, keycode):
+    def clear(self, key):
         """Remove a keycode from the mapping.
 
         Parameters
         ----------
-        keycode : int
-        ev_type : int
-            one of evdev.events
+        key : int, int, int
+            keycode : int
+            ev_type : int
+                one of evdev.events. codes may be the same for various
+                event types.
+            value : int
+                event value. Usually you want 1 (down)
         """
-        assert keycode is not None
-        assert ev_type is not None
-        assert isinstance(ev_type, int)
-        assert isinstance(keycode, int)
+        verify_key(key)
 
-        if self._mapping.get((ev_type, keycode)) is not None:
-            logger.debug(
-                'type:%s, code:%s will be cleared',
-                ev_type, keycode
-            )
-            del self._mapping[(ev_type, keycode)]
+        if self._mapping.get(key) is not None:
+            logger.debug('%s will be cleared', key)
+            del self._mapping[key]
             self.changed = True
+            return
+
+        logger.error('Unknown key %s', key)
 
     def empty(self):
         """Remove all mappings."""
@@ -144,7 +145,7 @@ class Mapping:
 
         with open(path, 'r') as file:
             preset_dict = json.load(file)
-            if preset_dict.get('mapping') is None:
+            if not isinstance(preset_dict.get('mapping'), dict):
                 logger.error('Invalid preset config at "%s"', path)
                 return
 
@@ -153,18 +154,23 @@ class Mapping:
                     logger.error('Found invalid key: "%s"', key)
                     continue
 
-                ev_type, keycode = key.split(',')
+                if key.count(',') == 1:
+                    # support for legacy mapping objects that didn't include
+                    # the value in the key
+                    ev_type, code = key.split(',')
+                    value = 1
+
+                if key.count(',') == 2:
+                    ev_type, code, value = key.split(',')
+
                 try:
-                    keycode = int(keycode)
+                    key = (int(ev_type), int(code), int(value))
                 except ValueError:
-                    logger.error('Found non-int keycode: "%s"', keycode)
+                    logger.error('Found non-int in: "%s"', key)
                     continue
-                try:
-                    ev_type = int(ev_type)
-                except ValueError:
-                    logger.error('Found non-int ev_type: "%s"', ev_type)
-                    continue
-                self._mapping[(ev_type, keycode)] = character
+
+                logger.spam('%s maps to %s', key, character)
+                self._mapping[key] = character
 
             # add any metadata of the mapping
             for key in preset_dict:
@@ -192,9 +198,9 @@ class Mapping:
             # make sure to keep the option to add metadata if ever needed,
             # so put the mapping into a special key
             json_ready_mapping = {}
-            # tuple keys are not possible in json
+            # tuple keys are not possible in json, encode them as string
             for key, value in self._mapping.items():
-                new_key = f'{key[0]},{key[1]}'
+                new_key = ','.join([str(value) for value in key])
                 json_ready_mapping[new_key] = value
 
             preset_dict = {'mapping': json_ready_mapping}
@@ -204,14 +210,17 @@ class Mapping:
 
         self.changed = False
 
-    def get_character(self, ev_type, keycode):
+    def get_character(self, key):
         """Read the character that is mapped to this keycode.
 
         Parameters
         ----------
-        keycode : int
-        ev_type : int
-            one of evdev.events. codes may be the same for various
-            event types.
+        key : int, int, int
+            keycode : int
+            ev_type : int
+                one of evdev.events. codes may be the same for various
+                event types.
+            value : int
+                event value. Usually you want 1 (down)
         """
-        return self._mapping.get((ev_type, keycode))
+        return self._mapping.get(key)

@@ -30,6 +30,7 @@ import evdev
 from evdev.events import EV_KEY, EV_ABS
 
 from keymapper.logger import logger
+from keymapper.util import sign
 from keymapper.getdevices import get_devices, refresh_devices
 from keymapper.dev.keycode_mapper import should_map_event_as_btn
 
@@ -43,8 +44,14 @@ PRIORITIES = {
 
 
 def prioritize(events):
-    """Return the event that is most likely desired to be mapped."""
-    return sorted(events, key=lambda e: PRIORITIES[e.type])[-1]
+    """Return the event that is most likely desired to be mapped.
+
+    High absolute values (down) over low values (up), KEY over ABS.
+    """
+    return sorted(events, key=lambda e: (
+        PRIORITIES[e.type],
+        abs(e.value)
+    ))[-1]
 
 
 class _KeycodeReader:
@@ -124,10 +131,10 @@ class _KeycodeReader:
 
         if should_map_event_as_btn(event.type, event.code):
             logger.spam(
-                'got code:%s value:%s type:%s',
+                'got (%s, %s, %s)',
+                event.type,
                 event.code,
-                event.value,
-                evdev.ecodes.EV[event.type]
+                event.value
             )
             self._pipe[1].send(event)
 
@@ -171,7 +178,7 @@ class _KeycodeReader:
             if self.fail_counter % 10 == 0:
                 # spam less
                 logger.debug('No pipe available to read from')
-            return None, None
+            return None
 
         newest_event = self.newest_event
         newest_time = (
@@ -182,6 +189,9 @@ class _KeycodeReader:
         while self._pipe[0].poll():
             event = self._pipe[0].recv()
 
+            if event.value == 0:
+                continue
+
             time = event.sec + event.usec / 1000000
             delta = time - newest_time
 
@@ -190,8 +200,8 @@ class _KeycodeReader:
                 # spam from the device. The wacom intuos 5 adds an
                 # ABS_MISC event to every button press, filter that out
                 logger.spam(
-                    'Ignoring event code:%s, value:%s, type:%s',
-                    evdev.ecodes.EV[event.type], event.code, event.value
+                    'Ignoring event (%s, %s, %s)',
+                    event.type, event.code, event.value
                 )
                 continue
 
@@ -200,14 +210,15 @@ class _KeycodeReader:
 
         if newest_event == self.newest_event:
             # don't return the same event twice
-            return None, None
+            return None
 
         self.newest_event = newest_event
 
-        return (
-            (None, None) if newest_event is None
-            else (newest_event.type, newest_event.code)
-        )
+        return (None if newest_event is None else (
+            newest_event.type,
+            newest_event.code,
+            sign(newest_event.value)
+        ))
 
 
 keycode_reader = _KeycodeReader()

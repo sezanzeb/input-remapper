@@ -82,16 +82,16 @@ class TestInjector(unittest.TestCase):
                 }
 
         mapping = Mapping()
-        mapping.change((EV_KEY, 80), 'a')
+        mapping.change((EV_KEY, 80, 1), 'a')
 
         macro_code = 'r(2, m(sHiFt_l, r(2, k(1).k(2))))'
         macro = parse(macro_code)
 
-        mapping.change((EV_KEY, 60), macro_code)
+        mapping.change((EV_KEY, 60, 111), macro_code)
 
         # going to be ignored, because EV_REL cannot be mapped, that's
         # mouse movements.
-        mapping.change((EV_REL, 1234), 'b')
+        mapping.change((EV_REL, 1234, 3), 'b')
 
         a = system_mapping.get('a')
         shift_l = system_mapping.get('ShIfT_L')
@@ -119,7 +119,7 @@ class TestInjector(unittest.TestCase):
 
     def test_grab(self):
         # path is from the fixtures
-        custom_mapping.change((EV_KEY, 10), 'a')
+        custom_mapping.change((EV_KEY, 10, 1), 'a')
 
         self.injector = KeycodeInjector('device 1', custom_mapping)
         path = '/dev/input/event10'
@@ -133,7 +133,7 @@ class TestInjector(unittest.TestCase):
 
     def test_fail_grab(self):
         self.make_it_fail = 10
-        custom_mapping.change((EV_KEY, 10), 'a')
+        custom_mapping.change((EV_KEY, 10, 1), 'a')
 
         self.injector = KeycodeInjector('device 1', custom_mapping)
         path = '/dev/input/event10'
@@ -150,7 +150,7 @@ class TestInjector(unittest.TestCase):
 
     def test_prepare_device_1(self):
         # according to the fixtures, /dev/input/event30 can do ABS_HAT0X
-        custom_mapping.change((EV_ABS, ABS_HAT0X), 'a')
+        custom_mapping.change((EV_ABS, ABS_HAT0X, 1), 'a')
         self.injector = KeycodeInjector('foobar', custom_mapping)
 
         _prepare_device = self.injector._prepare_device
@@ -158,7 +158,7 @@ class TestInjector(unittest.TestCase):
         self.assertIsNotNone(_prepare_device('/dev/input/event30')[0])
 
     def test_prepare_device_non_existing(self):
-        custom_mapping.change((EV_ABS, ABS_HAT0X), 'a')
+        custom_mapping.change((EV_ABS, ABS_HAT0X, 1), 'a')
         self.injector = KeycodeInjector('foobar', custom_mapping)
 
         _prepare_device = self.injector._prepare_device
@@ -186,7 +186,7 @@ class TestInjector(unittest.TestCase):
 
     def test_skip_unused_device(self):
         # skips a device because its capabilities are not used in the mapping
-        custom_mapping.change((EV_KEY, 10), 'a')
+        custom_mapping.change((EV_KEY, 10, 1), 'a')
         self.injector = KeycodeInjector('device 1', custom_mapping)
         path = '/dev/input/event11'
         device, abs_to_rel = self.injector._prepare_device(path)
@@ -292,11 +292,11 @@ class TestInjector(unittest.TestCase):
     def test_injector(self):
         numlock_before = is_numlock_on()
 
-        custom_mapping.change((EV_KEY, 8), 'k(KEY_Q).k(w)')
-        custom_mapping.change((EV_ABS, ABS_HAT0X), 'a')
+        custom_mapping.change((EV_KEY, 8, 1), 'k(KEY_Q).k(w)')
+        custom_mapping.change((EV_ABS, ABS_HAT0X, -1), 'a')
         # one mapping that is unknown in the system_mapping on purpose
         input_b = 10
-        custom_mapping.change((EV_KEY, input_b), 'b')
+        custom_mapping.change((EV_KEY, input_b, 1), 'b')
 
         system_mapping.clear()
         code_a = 100
@@ -312,8 +312,8 @@ class TestInjector(unittest.TestCase):
             # should execute a macro
             InputEvent(EV_KEY, 8, 1),
             InputEvent(EV_KEY, 8, 0),
-            # normal keystrokes
-            InputEvent(EV_ABS, ABS_HAT0X, 1),
+            # gamepad stuff
+            InputEvent(EV_ABS, ABS_HAT0X, -1),
             InputEvent(EV_ABS, ABS_HAT0X, 0),
             # just pass those over without modifying
             InputEvent(EV_KEY, 10, 1),
@@ -366,6 +366,7 @@ class TestInjector(unittest.TestCase):
         del history[index_w_0]
 
         # the rest should be in order.
+        # this should be 1. injected keycodes should always be either 0 or 1
         self.assertEqual(history[0], (ev_key, code_a, 1))
         self.assertEqual(history[1], (ev_key, code_a, 0))
         self.assertEqual(history[2], (ev_key, input_b, 1))

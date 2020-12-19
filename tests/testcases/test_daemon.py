@@ -25,7 +25,7 @@ import unittest
 import time
 
 import evdev
-from evdev.ecodes import EV_KEY
+from evdev.ecodes import EV_KEY, EV_ABS
 from gi.repository import Gtk
 
 from keymapper.state import custom_mapping, system_mapping
@@ -78,13 +78,14 @@ class TestDaemon(unittest.TestCase):
         system_mapping.populate()
 
     def test_daemon(self):
-        keycode_from_1 = 9
+        ev_1 = (EV_KEY, 9)
+        ev_2 = (EV_ABS, 12)
         keycode_to_1 = 100
-        keycode_from_2 = 12
-        keycode_to_2 = 100
+        keycode_to_2 = 101
 
-        custom_mapping.change((EV_KEY, keycode_from_1), 'a')
-        custom_mapping.change((EV_KEY, keycode_from_2), 'b')
+        custom_mapping.change((*ev_1, 1), 'a')
+        custom_mapping.change((*ev_2, -1), 'b')
+
         system_mapping.clear()
         system_mapping._set('a', keycode_to_1)
         system_mapping._set('b', keycode_to_2)
@@ -94,8 +95,11 @@ class TestDaemon(unittest.TestCase):
         custom_mapping.save('device 2', preset)
         config.set_autoload_preset('device 2', preset)
 
+        """injection 1"""
+
+        # should forward the event unchanged
         pending_events['device 2'] = [
-            InputEvent(evdev.events.EV_KEY, keycode_from_1, 0),
+            InputEvent(EV_KEY, 13, 1)
         ]
 
         self.daemon = Daemon()
@@ -105,16 +109,18 @@ class TestDaemon(unittest.TestCase):
         self.assertFalse(self.daemon.is_injecting('device 1'))
 
         event = uinput_write_history_pipe[0].recv()
-        self.assertEqual(event.type, evdev.events.EV_KEY)
-        self.assertEqual(event.code, keycode_to_1)
-        self.assertEqual(event.value, 0)
+        self.assertEqual(event.type, EV_KEY)
+        self.assertEqual(event.code, 13)
+        self.assertEqual(event.value, 1)
 
         self.daemon.stop_injecting('device 2')
         self.assertFalse(self.daemon.is_injecting('device 2'))
 
+        """injection 2"""
+
+        # -1234 will be normalized to -1 by the injector
         pending_events['device 2'] = [
-            InputEvent(evdev.events.EV_KEY, keycode_from_2, 1),
-            InputEvent(evdev.events.EV_KEY, keycode_from_2, 0),
+            InputEvent(*ev_2, -1234)
         ]
 
         time.sleep(0.2)
@@ -122,15 +128,12 @@ class TestDaemon(unittest.TestCase):
 
         self.daemon.start_injecting('device 2', preset)
 
+        # the written key is a key-down event, not the original
+        # event value of -5678
         event = uinput_write_history_pipe[0].recv()
-        self.assertEqual(event.type, evdev.events.EV_KEY)
+        self.assertEqual(event.type, EV_KEY)
         self.assertEqual(event.code, keycode_to_2)
         self.assertEqual(event.value, 1)
-
-        event = uinput_write_history_pipe[0].recv()
-        self.assertEqual(event.type, evdev.events.EV_KEY)
-        self.assertEqual(event.code, keycode_to_2)
-        self.assertEqual(event.value, 0)
 
 
 if __name__ == "__main__":

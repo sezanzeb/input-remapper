@@ -36,9 +36,6 @@ import gi
 gi.require_version('Gtk', '3.0')
 gi.require_version('GLib', '2.0')
 
-from keymapper.logger import update_verbosity
-from keymapper.dev.injector import KeycodeInjector
-
 
 assert not os.getcwd().endswith('tests')
 
@@ -111,6 +108,8 @@ fixtures = {
             evdev.ecodes.EV_ABS: [
                 evdev.ecodes.ABS_X,
                 evdev.ecodes.ABS_Y,
+                evdev.ecodes.ABS_RX,
+                evdev.ecodes.ABS_RY,
                 evdev.ecodes.ABS_HAT0X
             ]
         },
@@ -174,6 +173,9 @@ class InputEvent:
         self.code = code
         self.value = value
 
+        # tuple shorthand
+        self.t = (type, code, value)
+
         if timestamp is None:
             timestamp = time.time()
 
@@ -210,95 +212,97 @@ def patch_select():
     select.select = new_select
 
 
+class InputDevice:
+    # expose as existing attribute, otherwise the patch for
+    # evdev < 1.0.0 will crash the test
+    path = None
+
+    def __init__(self, path):
+        if path not in fixtures:
+            raise FileNotFoundError()
+
+        self.path = path
+        self.phys = fixtures[path]['phys']
+        self.name = fixtures[path]['name']
+        self.fd = self.name
+        self.capa = copy.deepcopy(fixtures[self.path]['capabilities'])
+
+        def absinfo(axis):
+            return {
+                evdev.ecodes.EV_ABS: evdev.AbsInfo(
+                    value=None, min=None, fuzz=None, flat=None,
+                    resolution=None, max=MAX_ABS
+                )
+            }[axis]
+
+        self.absinfo = absinfo
+
+    def grab(self):
+        pass
+
+    def read(self):
+        ret = pending_events.get(self.name, [])
+        if ret is not None:
+            # consume all of them
+            pending_events[self.name] = []
+
+        return ret
+
+    def read_one(self):
+        if pending_events.get(self.name) is None:
+            return None
+
+        if len(pending_events[self.name]) == 0:
+            return None
+
+        event = pending_events[self.name].pop(0)
+        return event
+
+    def read_loop(self):
+        """Read all prepared events at once."""
+        if pending_events.get(self.name) is None:
+            return
+
+        while len(pending_events[self.name]) > 0:
+            yield pending_events[self.name].pop(0)
+            time.sleep(EVENT_READ_TIMEOUT)
+
+    async def async_read_loop(self):
+        """Read all prepared events at once."""
+        if pending_events.get(self.name) is None:
+            return
+
+        while len(pending_events[self.name]) > 0:
+            yield pending_events[self.name].pop(0)
+            await asyncio.sleep(0.01)
+
+    def capabilities(self, absinfo=True):
+        return self.capa
+
+
+class UInput:
+    def __init__(self, *args, **kwargs):
+        self.fd = 0
+        self.write_count = 0
+        self.device = InputDevice('/dev/input/event40')
+        pass
+
+    def capabilities(self, *args, **kwargs):
+        return []
+
+    def write(self, type, code, value):
+        self.write_count += 1
+        event = InputEvent(type, code, value)
+        uinput_write_history.append(event)
+        uinput_write_history_pipe[1].send(event)
+
+    def syn(self):
+        pass
+
+
 def patch_evdev():
     def list_devices():
         return fixtures.keys()
-
-    class InputDevice:
-        # expose as existing attribute, otherwise the patch for
-        # evdev < 1.0.0 will crash the test
-        path = None
-
-        def __init__(self, path):
-            if path not in fixtures:
-                raise FileNotFoundError()
-
-            self.path = path
-            self.phys = fixtures[path]['phys']
-            self.name = fixtures[path]['name']
-            self.fd = self.name
-            self.capa = copy.deepcopy(fixtures[self.path]['capabilities'])
-
-            def absinfo(axis):
-                return {
-                    evdev.ecodes.EV_ABS: evdev.AbsInfo(
-                        value=None, min=None, fuzz=None, flat=None,
-                        resolution=None, max=MAX_ABS
-                    )
-                }[axis]
-
-            self.absinfo = absinfo
-
-        def grab(self):
-            pass
-
-        def read(self):
-            ret = pending_events.get(self.name, [])
-            if ret is not None:
-                # consume all of them
-                pending_events[self.name] = []
-
-            return ret
-
-        def read_one(self):
-            if pending_events.get(self.name) is None:
-                return None
-
-            if len(pending_events[self.name]) == 0:
-                return None
-
-            event = pending_events[self.name].pop(0)
-            return event
-
-        def read_loop(self):
-            """Read all prepared events at once."""
-            if pending_events.get(self.name) is None:
-                return
-
-            while len(pending_events[self.name]) > 0:
-                yield pending_events[self.name].pop(0)
-                time.sleep(EVENT_READ_TIMEOUT)
-
-        async def async_read_loop(self):
-            """Read all prepared events at once."""
-            if pending_events.get(self.name) is None:
-                return
-
-            while len(pending_events[self.name]) > 0:
-                yield pending_events[self.name].pop(0)
-                await asyncio.sleep(0.01)
-
-        def capabilities(self, absinfo=True):
-            return self.capa
-
-    class UInput:
-        def __init__(self, *args, **kwargs):
-            self.fd = 0
-            self.write_count = 0
-            self.device = InputDevice('/dev/input/event40')
-            pass
-
-        def capabilities(self, *args, **kwargs):
-            return []
-
-        def write(self, type, code, value):
-            self.write_count += 1
-            event = InputEvent(type, code, value)
-            uinput_write_history.append(event)
-            uinput_write_history_pipe[1].send(event)
-
-        def syn(self):
-            pass
 
     evdev.list_devices = list_devices
     evdev.InputDevice = InputDevice
@@ -326,6 +330,8 @@ patch_evdev()
 patch_unsaved()
 patch_select()
 
+from keymapper.logger import update_verbosity
+from keymapper.dev.injector import KeycodeInjector
 
 # no need for a high number in tests
 KeycodeInjector.regrab_timeout = 0.15

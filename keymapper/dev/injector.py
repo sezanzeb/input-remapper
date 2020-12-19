@@ -105,7 +105,7 @@ class KeycodeInjector:
         self.mapping = mapping
         self._process = None
         self._msg_pipe = multiprocessing.Pipe()
-        self._code_to_code = self._map_codes_to_codes()
+        self._key_to_code = self._map_keys_to_codes()
         self.stopped = False
 
         # when moving the joystick and then staying at a position, no
@@ -114,20 +114,21 @@ class KeycodeInjector:
         # position.
         self.abs_state = [0, 0, 0, 0]
 
-    def _map_codes_to_codes(self):
+    def _map_keys_to_codes(self):
         """To quickly get target keycodes during operation."""
-        _code_to_code = {}
-        for (_, keycode), output in self.mapping:
+        key_to_code = {}
+        for key, output in self.mapping:
             if is_this_a_macro(output):
                 continue
 
-            target_keycode = system_mapping.get(output)
-            if target_keycode is None:
+            target_code = system_mapping.get(output)
+            if target_code is None:
                 logger.error('Don\'t know what %s is', output)
                 continue
 
-            _code_to_code[keycode] = target_keycode
-        return _code_to_code
+            key_to_code[key] = target_code
+
+        return key_to_code
 
     def start_injecting(self):
         """Start injecting keycodes."""
@@ -166,8 +167,8 @@ class KeycodeInjector:
         capabilities = device.capabilities(absinfo=False)
 
         needed = False
-        for (ev_type, keycode), _ in self.mapping:
-            if keycode in capabilities.get(ev_type, []):
+        for (ev_type, code, _), _ in self.mapping:
+            if code in capabilities.get(ev_type, []):
                 needed = True
                 break
 
@@ -226,14 +227,14 @@ class KeycodeInjector:
         # to act like the device.
         capabilities = input_device.capabilities(absinfo=False)
 
-        if len(self._code_to_code) > 0 or len(macros) > 0:
+        if len(self._key_to_code) > 0 or len(macros) > 0:
             if capabilities.get(EV_KEY) is None:
                 capabilities[EV_KEY] = []
 
         # Furthermore, support all injected keycodes
-        for keycode in self._code_to_code.values():
-            if keycode not in capabilities[EV_KEY]:
-                capabilities[EV_KEY].append(keycode)
+        for code in self._key_to_code.values():
+            if code not in capabilities[EV_KEY]:
+                capabilities[EV_KEY].append(code)
 
         # and all keycodes that are injected by macros
         for macro in macros.values():
@@ -302,13 +303,13 @@ class KeycodeInjector:
             # each device parses the macros with a different handler
             logger.debug('Parsing macros for %s', path)
             macros = {}
-            for (_, keycode), output in self.mapping:
+            for key, output in self.mapping:
                 if is_this_a_macro(output):
                     macro = parse(output)
                     if macro is None:
                         continue
 
-                    macros[keycode] = macro
+                    macros[key] = macro
 
             # certain capabilities can have side effects apparently. with an
             # EV_ABS capability, EV_REL won't move the mouse pointer anymore.
@@ -358,6 +359,8 @@ class KeycodeInjector:
         except RuntimeError:
             # stopped event loop most likely
             pass
+        except OSError as error:
+            logger.error(str(error))
 
         if len(coroutines) > 0:
             logger.debug('asyncio coroutines ended')
@@ -402,7 +405,7 @@ class KeycodeInjector:
                 continue
 
             if should_map_event_as_btn(event.type, event.code):
-                handle_keycode(self._code_to_code, macros, event, uinput)
+                handle_keycode(self._key_to_code, macros, event, uinput)
                 continue
 
             # forward the rest
