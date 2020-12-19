@@ -158,8 +158,10 @@ class Window:
         """Set slider and dropdown values when a gamepad is selected."""
         devices = get_devices()
         if devices[self.selected_device]['gamepad']:
+            self.get('gamepad_separator').show()
             self.get('gamepad_config').show()
         else:
+            self.get('gamepad_separator').hide()
             self.get('gamepad_config').hide()
             return
 
