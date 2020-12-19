@@ -24,16 +24,27 @@
 
 import asyncio
 
-import evdev
-from evdev.ecodes import EV_KEY, EV_ABS, ABS_MISC
+from evdev.ecodes import EV_KEY, EV_ABS
 
 from keymapper.logger import logger
+from keymapper.util import sign
 from keymapper.dev.ev_abs_mapper import JOYSTICK
 
 
 # maps mouse buttons to macro instances that have been executed. They may
-# still be running or already be done.
+# still be running or already be done. Just like unreleased, this is a
+# mapping of (type, code). The value is not included in the key, because
+# a key release event with a value of 0 needs to be able to find the
+# running macro. The downside is that a d-pad cannot execute two macros at
+# once, one for each direction. Only sequentially.
 active_macros = {}
+
+# mapping of input (type, code) to the output keycode that has not yet
+# been released. This is needed in order to release the correct event
+# mapped on a D-Pad. Both directions on each axis report the same type,
+# code and value (0) when releasing, but the correct release-event for
+# the mapped output needs to be triggered.
+unreleased = {}
 
 
 def should_map_event_as_btn(ev_type, code):
@@ -60,11 +71,6 @@ def should_map_event_as_btn(ev_type, code):
 
 def is_key_down(event):
     """Is this event a key press."""
-    if event.type == EV_KEY:
-        # might be 2 for hold
-        return event.value == 1
-
-    # for all other event types, just fire for anything that is not 0
     return event.value != 0
 
 
@@ -73,76 +79,78 @@ def is_key_up(event):
     return event.value == 0
 
 
-def handle_keycode(code_to_code, macros, event, uinput):
-    """Write the mapped keycode or forward unmapped ones.
+def handle_keycode(key_to_code, macros, event, uinput):
+    """Write mapped keycodes, forward unmapped ones and manage macros.
 
     Parameters
     ----------
-    code_to_code : dict
-        mapping of linux-keycode to linux-keycode
+    key_to_code : dict
+        mapping of (type, code, value) to linux-keycode
     macros : dict
-        mapping of linux-keycode to _Macro objects
+        mapping of (type, code, value) to _Macro objects
     event : evdev.InputEvent
     """
-    if event.value == 2:
-        # button-hold event. Linux seems to create them on its own, no need
-        # to inject them.
+    if event.type == EV_KEY and event.value == 2:
+        # button-hold event. Linux creates them on its own for the
+        # injection-fake-device if the release event won't appear,
+        # no need to forward or map them.
         return
 
-    input_keycode = event.code
-    input_type = event.type
+    # normalize event numbers to one of -1, 0, +1. Otherwise mapping
+    # trigger values that are between 1 and 255 is not possible, because
+    # they might skip the 1 when pressed fast enough.
+    key = (event.type, event.code, sign(event.value))
+    short = (event.type, event.code)
 
-    if input_keycode in macros:
-        if is_key_up(event):
-            # Tell the macro for that keycode that the key is released and
-            # let it decide what to with that information.
-            macro = active_macros.get(input_keycode)
-            if macro is not None and macro.holding:
-                macro.release_key()
-
-        if not is_key_down(event):
+    existing_macro = active_macros.get(short)
+    if existing_macro is not None:
+        if is_key_up(event) and not existing_macro.running:
+            # key was released, but macro already stopped
             return
 
-        existing_macro = active_macros.get(input_keycode)
-        if existing_macro is not None:
-            # make sure that a duplicate key-down event won't make a
-            # macro with a hold function run forever. there should always
-            # be only one active.
-            # Furthermore, don't stop and rerun the macro because gamepad
-            # triggers report events all the time just by releasing the key.
-            if existing_macro.running:
-                return
+        if is_key_up(event) and existing_macro.holding:
+            # Tell the macro for that keycode that the key is released and
+            # let it decide what to with that information.
+            existing_macro.release_key()
+            return
 
-        macro = macros[input_keycode]
-        active_macros[input_keycode] = macro
+        if is_key_down(event) and existing_macro.running:
+            # for key-down events and running macros, don't do anything.
+            # This avoids spawning a second macro while the first one is not
+            # finished, especially since gamepad-triggers report a ton of
+            # events with a positive value.
+            return
+
+    if key in macros:
+        macro = macros[key]
+        active_macros[short] = macro
         macro.press_key()
-        logger.spam(
-            'got code:%s value:%s, maps to macro %s',
-            input_keycode,
-            event.value,
-            macro.code
-        )
+        logger.spam('got %s, maps to macro %s', key, macro.code)
         asyncio.ensure_future(macro.run())
         return
 
-    if input_keycode in code_to_code:
-        target_keycode = code_to_code[input_keycode]
-        target_type = EV_KEY
-        logger.spam(
-            'got code:%s value:%s event:%s, maps to EV_KEY:%s',
-            input_keycode,
-            event.value,
-            evdev.ecodes.EV[event.type],
-            target_keycode
-        )
-    else:
-        logger.spam(
-            'got unmapped code:%s value:%s',
-            input_keycode,
-            event.value,
-        )
-        target_keycode = input_keycode
-        target_type = input_type
+    if is_key_down(event) and short in unreleased:
+        # duplicate key-down. skip this event. Avoid writing millions of
+        # key-down events when a continuous value is reported, for example
+        # for gamepad triggers
+        return
 
-    uinput.write(target_type, target_keycode, event.value)
+    if is_key_up(event) and short in unreleased:
+        target_type = EV_KEY
+        target_value = 0
+        target_code = unreleased[short]
+        del unreleased[short]
+    elif key in key_to_code and is_key_down(event):
+        target_type = EV_KEY
+        target_value = 1
+        target_code = key_to_code[key]
+        unreleased[short] = target_code
+        logger.spam('got %s, maps to EV_KEY:%s', key, target_code)
+    else:
+        target_type = key[0]
+        target_code = key[1]
+        target_value = key[2]
+        logger.spam('got unmapped %s', key)
+
+    uinput.write(target_type, target_code, target_value)
     uinput.syn()

@@ -19,17 +19,26 @@
 # along with key-mapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
+import os
+import shutil
+import json
 import unittest
-from evdev.events import EV_KEY, EV_ABS
+from evdev.ecodes import EV_KEY, EV_ABS, ABS_HAT0X
 
 from keymapper.mapping import Mapping
 from keymapper.state import SystemMapping
+
+from tests.test import tmp
 
 
 class TestMapping(unittest.TestCase):
     def setUp(self):
         self.mapping = Mapping()
         self.assertFalse(self.mapping.changed)
+
+    def tearDown(self):
+        if os.path.exists(tmp):
+            shutil.rmtree(tmp)
 
     def test_system_mapping(self):
         system_mapping = SystemMapping()
@@ -70,114 +79,128 @@ class TestMapping(unittest.TestCase):
         self.assertIn('btn_right', names)
 
     def test_clone(self):
+        ev_1 = (EV_KEY, 1, 1)
+        ev_2 = (EV_KEY, 2, 0)
+
         mapping1 = Mapping()
-        mapping1.change((EV_KEY, 1), 'a')
+        mapping1.change(ev_1, 'a')
         mapping2 = mapping1.clone()
-        mapping1.change((EV_KEY, 2), 'b')
+        mapping1.change(ev_2, 'b')
 
-        self.assertEqual(mapping1.get_character(EV_KEY, 1), 'a')
-        self.assertEqual(mapping1.get_character(EV_KEY, 2), 'b')
+        self.assertEqual(mapping1.get_character(ev_1), 'a')
+        self.assertEqual(mapping1.get_character(ev_2), 'b')
 
-        self.assertEqual(mapping2.get_character(EV_KEY, 1), 'a')
-        self.assertIsNone(mapping2.get_character(EV_KEY, 2))
+        self.assertEqual(mapping2.get_character(ev_1), 'a')
+        self.assertIsNone(mapping2.get_character(ev_2))
+
+        self.assertIsNone(mapping2.get_character((EV_KEY, 2, 3)))
+        self.assertIsNone(mapping2.get_character((EV_KEY, 1, 3)))
 
     def test_save_load(self):
-        self.mapping.change((EV_KEY, 10), '1')
-        self.mapping.change((EV_KEY, 11), '2')
-        self.mapping.change((EV_KEY, 12), '3')
+        one = (EV_KEY, 10, 1)
+        two = (EV_KEY, 11, 1)
+        three = (EV_KEY, 12, 1)
+
+        self.mapping.change(one, '1')
+        self.mapping.change(two, '2')
+        self.mapping.change(three, '3')
         self.mapping.config['foo'] = 'bar'
         self.mapping.save('device 1', 'test')
+
+        path = os.path.join(tmp, 'device 1', 'test.json')
+        self.assertTrue(os.path.exists(path))
 
         loaded = Mapping()
         self.assertEqual(len(loaded), 0)
         loaded.load('device 1', 'test')
 
         self.assertEqual(len(loaded), 3)
-        self.assertEqual(loaded.get_character(EV_KEY, 10), '1')
-        self.assertEqual(loaded.get_character(EV_KEY, 11), '2')
-        self.assertEqual(loaded.get_character(EV_KEY, 12), '3')
+        self.assertEqual(loaded.get_character(one), '1')
+        self.assertEqual(loaded.get_character(two), '2')
+        self.assertEqual(loaded.get_character(three), '3')
         self.assertEqual(loaded.config['foo'], 'bar')
 
+    def test_save_load_2(self):
+        # loads mappings with only (type, code) as the key
+        path = os.path.join(tmp, 'device 1', 'test.json')
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, 'w') as file:
+            json.dump({
+                'mapping': {
+                    f'{EV_KEY},3': 'a',
+                    f'{EV_ABS},{ABS_HAT0X},-1': 'b',
+                    f'{EV_ABS},{ABS_HAT0X},1': 'c',
+                }
+            }, file)
+
+        loaded = Mapping()
+        loaded.load('device 1', 'test')
+        self.assertEqual(loaded.get_character((EV_KEY, 3, 1)), 'a')
+        self.assertEqual(loaded.get_character((EV_ABS, ABS_HAT0X, -1)), 'b')
+        self.assertEqual(loaded.get_character((EV_ABS, ABS_HAT0X, 1)), 'c')
+
     def test_change(self):
+        ev_1 = (EV_KEY, 1, 111)
+        ev_2 = (EV_KEY, 1, 222)
+        ev_3 = (EV_KEY, 2, 111)
+        ev_4 = (EV_ABS, 1, 111)
+
         # 1 is not assigned yet, ignore it
-        self.mapping.change((EV_KEY, 2), 'a', (EV_KEY, 1))
+        self.mapping.change(ev_1, 'a', ev_2)
         self.assertTrue(self.mapping.changed)
-        self.assertIsNone(self.mapping.get_character(EV_KEY, 1))
-        self.assertEqual(self.mapping.get_character(EV_KEY, 2), 'a')
+        self.assertIsNone(self.mapping.get_character(ev_2))
+        self.assertEqual(self.mapping.get_character(ev_1), 'a')
         self.assertEqual(len(self.mapping), 1)
 
-        # change KEY 2 to ABS 16 and change a to b
-        self.mapping.change((EV_ABS, 16), 'b', (EV_KEY, 2))
-        self.assertIsNone(self.mapping.get_character(EV_KEY, 2))
-        self.assertEqual(self.mapping.get_character(EV_ABS, 16), 'b')
+        # change ev_1 to ev_3 and change a to b
+        self.mapping.change(ev_3, 'b', ev_1)
+        self.assertIsNone(self.mapping.get_character(ev_1))
+        self.assertEqual(self.mapping.get_character(ev_3), 'b')
         self.assertEqual(len(self.mapping), 1)
 
         # add 4
-        self.mapping.change((EV_KEY, 4), 'c', (None, None))
-        self.assertEqual(self.mapping.get_character(EV_ABS, 16), 'b')
-        self.assertEqual(self.mapping.get_character(EV_KEY, 4), 'c')
+        self.mapping.change(ev_4, 'c', None)
+        self.assertEqual(self.mapping.get_character(ev_3), 'b')
+        self.assertEqual(self.mapping.get_character(ev_4), 'c')
         self.assertEqual(len(self.mapping), 2)
 
         # change the mapping of 4 to d
-        self.mapping.change((EV_KEY, 4), 'd', (None, None))
-        self.assertEqual(self.mapping.get_character(EV_KEY, 4), 'd')
+        self.mapping.change(ev_4, 'd', None)
+        self.assertEqual(self.mapping.get_character(ev_4), 'd')
         self.assertEqual(len(self.mapping), 2)
 
         # this also works in the same way
-        self.mapping.change((EV_KEY, 4), 'e', (EV_KEY, 4))
-        self.assertEqual(self.mapping.get_character(EV_KEY, 4), 'e')
+        self.mapping.change(ev_4, 'e', ev_4)
+        self.assertEqual(self.mapping.get_character(ev_4), 'e')
         self.assertEqual(len(self.mapping), 2)
-
-        # and this
-        self.mapping.change((EV_KEY, '4'), 'f', (str(EV_KEY), '4'))
-        self.assertEqual(self.mapping.get_character(EV_KEY, 4), 'f')
-        self.assertEqual(len(self.mapping), 2)
-
-        # non-int keycodes are ignored
-        self.mapping.change((EV_KEY, 'b'), 'c', (EV_KEY, 'a'))
-        self.mapping.change((EV_KEY, 'b'), 'c')
-        self.mapping.change(('foo', 1), 'c', ('foo', 2))
-        self.mapping.change(('foo', 1), 'c')
-        self.assertEqual(len(self.mapping), 2)
-
-    def test_change_2(self):
-        self.mapping.change((EV_KEY, 2), 'a')
-
-        self.mapping.change((None, 2), 'b', (EV_KEY, 2))
-        self.assertEqual(self.mapping.get_character(EV_KEY, 2), 'a')
-
-        self.mapping.change((EV_KEY, None), 'c', (EV_KEY, 2))
-        self.assertEqual(self.mapping.get_character(EV_KEY, 2), 'a')
-
-        self.assertEqual(len(self.mapping), 1)
 
     def test_clear(self):
         # does nothing
-        self.mapping.clear(EV_KEY, 40)
+        self.mapping.clear((EV_KEY, 40, 1))
         self.assertFalse(self.mapping.changed)
         self.assertEqual(len(self.mapping), 0)
 
-        self.mapping._mapping[(EV_KEY, 40)] = 'b'
+        self.mapping._mapping[(EV_KEY, 40, 1)] = 'b'
         self.assertEqual(len(self.mapping), 1)
-        self.mapping.clear(EV_KEY, 40)
+        self.mapping.clear((EV_KEY, 40, 1))
         self.assertEqual(len(self.mapping), 0)
         self.assertTrue(self.mapping.changed)
 
-        self.mapping.change((EV_KEY, 10), 'KP_1', (None, None))
+        self.mapping.change((EV_KEY, 10, 1), 'KP_1', None)
         self.assertTrue(self.mapping.changed)
-        self.mapping.change((EV_KEY, 20), 'KP_2', (None, None))
-        self.mapping.change((EV_KEY, 30), 'KP_3', (None, None))
+        self.mapping.change((EV_KEY, 20, 1), 'KP_2', None)
+        self.mapping.change((EV_KEY, 30, 1), 'KP_3', None)
         self.assertEqual(len(self.mapping), 3)
-        self.mapping.clear(EV_KEY, 20)
+        self.mapping.clear((EV_KEY, 20, 1))
         self.assertEqual(len(self.mapping), 2)
-        self.assertEqual(self.mapping.get_character(EV_KEY, 10), 'KP_1')
-        self.assertIsNone(self.mapping.get_character(EV_KEY, 20))
-        self.assertEqual(self.mapping.get_character(EV_KEY, 30), 'KP_3')
+        self.assertEqual(self.mapping.get_character((EV_KEY, 10, 1)), 'KP_1')
+        self.assertIsNone(self.mapping.get_character((EV_KEY, 20, 1)))
+        self.assertEqual(self.mapping.get_character((EV_KEY, 30, 1)), 'KP_3')
 
     def test_empty(self):
-        self.mapping.change((EV_KEY, 10), '1')
-        self.mapping.change((EV_KEY, 11), '2')
-        self.mapping.change((EV_KEY, 12), '3')
+        self.mapping.change((EV_KEY, 10, 1), '1')
+        self.mapping.change((EV_KEY, 11, 1), '2')
+        self.mapping.change((EV_KEY, 12, 1), '3')
         self.assertEqual(len(self.mapping), 3)
         self.mapping.empty()
         self.assertEqual(len(self.mapping), 0)

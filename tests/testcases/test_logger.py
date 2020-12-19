@@ -73,7 +73,7 @@ class TestLogger(unittest.TestCase):
     def test_debug(self):
         path = add_filehandler(os.path.join(tmp, 'logger-test'))
         logger.error('abc')
-        logger.warn('foo')
+        logger.warning('foo')
         logger.info('123')
         logger.debug('456')
         logger.spam('789')
@@ -101,7 +101,7 @@ class TestLogger(unittest.TestCase):
         path = add_filehandler(os.path.join(tmp, 'logger-test'))
         update_verbosity(debug=False)
         logger.error('abc')
-        logger.warn('foo')
+        logger.warning('foo')
         logger.info('123')
         logger.debug('456')
         logger.spam('789')

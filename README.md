@@ -36,10 +36,13 @@ Syntax errors are shown in the UI on save. each `k` function adds a short
 delay of 10ms between key-down, key-up and ad the end that can be configured
 in `~/.config/key-mapper/config`.
 
+Bear in mind that anti-cheat software might detect macros in games.
+
 ##### Key Names
 
-Run `key-mapper-service --key-names` for a list of supported keys for 
-the middle column, or check the autocompletion on the GUI. Examples:
+Check the autocompletion of the GUI for possible values. You can also
+obtain a complete list of possiblities using `key-mapper-service --key-names`.
+Examples:
 
 - Alphanumeric `a` to `z` and `0` to `9`
 - Modifiers `Alt_L` `Control_L` `Control_R` `Shift_L` `Shift_R`
@@ -48,13 +51,16 @@ the middle column, or check the autocompletion on the GUI. Examples:
 
 ##### Gamepads
 
-Tested with the XBOX 360 Gamepad.
-- Joystick movements will be translated to mouse movements
-- The second joystick acts as a mouse wheel
-- Buttons can be mapped to keycodes or macros
-- The D-Pad only works as two buttons - horizontal and vertical
+Joystick movements will be translated to mouse movements, while the second
+joystick acts as a mouse wheel. All buttons, triggers and D-Pads can be
+mapped to keycodes and macros. Configuring the purpose of your joysticks
+is currently done in the global configuration at `~/.config/key-mapper/config`.
 
-On Ubuntu, gamepads worked better in Wayland than with X11 for me.
+The D-Pad can be mapped to W, A, S, D for example, to run around in games,
+while the joystick turns the view.
+
+Tested with the XBOX 360 Gamepad. On Ubuntu, gamepads worked better in
+Wayland than with X11 for me.
 
 ## Installation
 
@@ -115,12 +121,15 @@ cd key-mapper && sudo python3 setup.py install
 - [x] support timed macros, maybe using some sort of syntax
 - [x] add to the AUR, provide .deb file
 - [x] basic support for gamepads as keyboard and mouse combi
-- [x] executing a macro forever while holding down the key
+- [x] executing a macro forever while holding down the key using `h`
+- [x] mapping D-Pad directions as buttons
 - [ ] support for non-GUI TTY environments
-- [ ] map D-Pad and Joystick directions as buttons, joystick purpose via config
+- [ ] mapping joystick directions as buttons
+- [ ] configure joystick purpose via the GUI and store it in the preset
 - [ ] automatically load presets when devices get plugged in after login (udev)
 - [ ] mapping a combined button press to a key
 - [ ] start the daemon in the input group to not require usermod somehow
+- [ ] configure locale for preset to provide a different set of possible keys
 
 ## Tests
 

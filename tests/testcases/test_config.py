@@ -28,7 +28,6 @@ class TestConfig(unittest.TestCase):
     def tearDown(self):
         config.clear_config()
         self.assertEqual(len(config.iterate_autoload_presets()), 0)
-        config.save_config()
 
     def test_get_default(self):
         config._config = {}
