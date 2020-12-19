@@ -9,12 +9,12 @@
 
 ## Usage
 
-see [readme/usage.md](readme/usage.md)
+[readme/usage.md](readme/usage.md)
 
 ## Installation
 
-see [readme/installation.md](readme/installation.md)
+[readme/installation.md](readme/installation.md)
 
 ## Development
 
-See [readme/development.md](readme/development.md)
+[readme/development.md](readme/development.md)
