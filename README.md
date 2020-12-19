@@ -8,6 +8,7 @@
 <p align="center"><img src="readme/pylint.svg"/> <img src="readme/coverage.svg"/></p>
 
 <p align="center"><img src="readme/screenshot.png"/></p>
+<p align="center"><img src="readme/screenshot_2.png"/></p>
 <br/>
 
 ## Usage

@@ -23,6 +23,8 @@
 
 
 import evdev
+import math
+
 from evdev.ecodes import EV_KEY
 from gi.repository import Gtk, Gdk, GLib
 
@@ -151,6 +153,25 @@ class Window:
 
         # now show the proper finished content of the window
         self.get('vertical-wrapper').set_opacity(1)
+
+    def initialize_gamepad_config(self):
+        """Set slider and dropdown values when a gamepad is selected."""
+        devices = get_devices()
+        if devices[self.selected_device]['gamepad']:
+            self.get('gamepad_config').show()
+        else:
+            self.get('gamepad_config').hide()
+            return
+
+        left_purpose = custom_mapping.get('gamepad.joystick.left_purpose')
+        self.get('left_joystick_purpose').set_active_id(left_purpose)
+
+        right_purpose = custom_mapping.get('gamepad.joystick.right_purpose')
+        self.get('right_joystick_purpose').set_active_id(right_purpose)
+
+        pointer_speed = custom_mapping.get('gamepad.joystick.pointer_speed')
+        range_value = math.log(pointer_speed, 2)
+        self.get('joystick_mouse_speed').set_value(range_value)
 
     def get(self, name):
         """Get a widget from the window"""
@@ -467,6 +488,23 @@ class Window:
 
         self.get('preset_name_input').set_text('')
         self.add_empty()
+
+        self.initialize_gamepad_config()
+
+    def on_left_joystick_purpose_changed(self, dropdown):
+        """Set the purpose of the left joystick."""
+        purpose = dropdown.get_active_id()
+        custom_mapping.set('gamepad.joystick.left_purpose', purpose)
+
+    def on_right_joystick_purpose_changed(self, dropdown):
+        """Set the purpose of the right joystick."""
+        purpose = dropdown.get_active_id()
+        custom_mapping.set('gamepad.joystick.right_purpose', purpose)
+
+    def on_joystick_mouse_speed_change_value(self, range):
+        """Set how fast the joystick moves the mouse."""
+        speed = 2 ** range.get_value()
+        custom_mapping.set('gamepad.joystick.pointer_speed', speed)
 
     def add_empty(self):
         """Add one empty row for a single mapped key."""

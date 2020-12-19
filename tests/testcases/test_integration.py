@@ -38,7 +38,7 @@ from gi.repository import Gtk
 
 from keymapper.state import custom_mapping, system_mapping
 from keymapper.paths import CONFIG, get_config_path
-from keymapper.config import config
+from keymapper.config import config, WHEEL, MOUSE
 from keymapper.dev.reader import keycode_reader
 from keymapper.gtk.row import to_string
 from keymapper.dev import permissions
@@ -495,6 +495,37 @@ class TestIntegration(unittest.TestCase):
             sorted(os.listdir(f'{CONFIG}/device 1')),
             sorted(['abc 123.json', 'new preset 2.json'])
         )
+
+    def test_gamepad_config(self):
+        # select a device that is not a gamepad
+        self.window.on_select_device(FakeDropdown('device 1'))
+        self.assertFalse(self.window.get('gamepad_config').is_visible())
+
+        # select a gamepad
+        self.window.on_select_device(FakeDropdown('gamepad'))
+        self.assertTrue(self.window.get('gamepad_config').is_visible())
+
+        # set stuff
+        self.window.get('left_joystick_purpose').set_active_id(WHEEL)
+        self.window.get('right_joystick_purpose').set_active_id(WHEEL)
+        joystick_mouse_speed = 5
+        self.window.get('joystick_mouse_speed').set_value(joystick_mouse_speed)
+
+        # it should be stored in custom_mapping, which overwrites the
+        # global config
+        config.set('gamepad.joystick.left_purpose', MOUSE)
+        config.set('gamepad.joystick.right_purpose', MOUSE)
+        config.set('gamepad.joystick.pointer_speed', 50)
+        left_purpose = custom_mapping.get('gamepad.joystick.left_purpose')
+        right_purpose = custom_mapping.get('gamepad.joystick.right_purpose')
+        pointer_speed = custom_mapping.get('gamepad.joystick.pointer_speed')
+        self.assertEqual(left_purpose, WHEEL)
+        self.assertEqual(right_purpose, WHEEL)
+        self.assertEqual(pointer_speed, 2 ** joystick_mouse_speed)
+
+        # select a device that is not a gamepad again
+        self.window.on_select_device(FakeDropdown('device 1'))
+        self.assertFalse(self.window.get('gamepad_config').is_visible())
 
     def test_start_injecting(self):
         keycode_from = 9
