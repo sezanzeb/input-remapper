@@ -28,7 +28,7 @@ import time
 import asyncio
 
 import evdev
-from evdev.ecodes import EV_KEY, EV_ABS
+from evdev.ecodes import EV_KEY, EV_ABS, ABS_X
 
 from keymapper.logger import logger
 
@@ -81,10 +81,14 @@ class _GetDevices(threading.Thread):
 
             # only keyboard devices
             # https://www.kernel.org/doc/html/latest/input/event-codes.html
-            capabilities = device.capabilities().keys()
+            capabilities = device.capabilities(absinfo=False)
             if EV_KEY not in capabilities and EV_ABS not in capabilities:
                 # or gamepads, because they can be mapped like a keyboard
                 continue
+
+            is_gamepad = False
+            if ABS_X in capabilities.get(EV_ABS, []):
+                is_gamepad = True
 
             usb = device.phys.split('/')[0]
             if grouped.get(usb) is None:
@@ -92,17 +96,19 @@ class _GetDevices(threading.Thread):
 
             logger.spam('Found "%s", %s, %s', device.name, device.path, usb)
 
-            grouped[usb].append((device.name, device.path))
+            grouped[usb].append((device.name, device.path, is_gamepad))
 
         # now write down all the paths of that group
         result = {}
         for group in grouped.values():
             names = [entry[0] for entry in group]
             devs = [entry[1] for entry in group]
+            is_gamepad = True in [entry[2] for entry in group]
             shortest_name = sorted(names, key=len)[0]
             result[shortest_name] = {
                 'paths': devs,
-                'devices': names
+                'devices': names,
+                'gamepad': is_gamepad
             }
 
         self.pipe.send(result)

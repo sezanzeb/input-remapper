@@ -46,19 +46,23 @@ class TestGetDevices(unittest.TestCase):
                     'device 1 foo',
                     'device 1',
                     'device 1'
-                ]
+                ],
+                'gamepad': False
             },
             'device 2': {
-               'paths': ['/dev/input/event20'],
-               'devices': ['device 2']
+                'paths': ['/dev/input/event20'],
+                'devices': ['device 2'],
+                'gamepad': False
             },
             'gamepad': {
                 'paths': ['/dev/input/event30'],
-                'devices': ['gamepad']
+                'devices': ['gamepad'],
+                'gamepad': True
             },
             'key-mapper device 2': {
-               'paths': ['/dev/input/event40'],
-               'devices': ['key-mapper device 2']
+                'paths': ['/dev/input/event40'],
+                'devices': ['key-mapper device 2'],
+                'gamepad': False
             },
         })
         self.assertDictEqual(pipe.devices, get_devices(include_keymapper=True))
@@ -75,15 +79,18 @@ class TestGetDevices(unittest.TestCase):
                     'device 1 foo',
                     'device 1',
                     'device 1'
-                ]
+                ],
+                'gamepad': False
             },
             'device 2': {
-               'paths': ['/dev/input/event20'],
-               'devices': ['device 2']
+                'paths': ['/dev/input/event20'],
+                'devices': ['device 2'],
+                'gamepad': False
             },
             'gamepad': {
                 'paths': ['/dev/input/event30'],
-                'devices': ['gamepad']
+                'devices': ['gamepad'],
+                'gamepad': True
             },
         })
 
