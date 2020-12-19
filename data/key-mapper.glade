@@ -541,7 +541,7 @@
                           <object class="GtkSwitch" id="preset_autoload_switch">
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
-                            <signal name="state-set" handler="on_preset_autoload_switch_activate" swapped="no"/>
+                            <signal name="state-set" handler="on_autoload_switch" swapped="no"/>
                           </object>
                           <packing>
                             <property name="expand">False</property>

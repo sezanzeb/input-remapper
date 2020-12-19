@@ -70,6 +70,22 @@ def get_selected_row_bg():
     return color.to_string()
 
 
+class HandlerDisabled:
+    """Safely modify a widget without causing handlers to be called.
+
+    Use in a with statement.
+    """
+    def __init__(self, widget, handler):
+        self.widget = widget
+        self.handler = handler
+
+    def __enter__(self):
+        self.widget.handler_block_by_func(self.handler)
+
+    def __exit__(self, *_):
+        self.widget.handler_unblock_by_func(self.handler)
+
+
 class Window:
     """User Interface."""
     def __init__(self):
@@ -358,7 +374,7 @@ class Window:
         keycode_reader.start_reading(device)
         GLib.timeout_add(10, self.show_device_mapping_status)
 
-    def on_preset_autoload_switch_activate(self, _, active):
+    def on_autoload_switch(self, _, active):
         """Load the preset automatically next time the user logs in."""
         device = self.selected_device
         preset = self.selected_preset
@@ -442,10 +458,12 @@ class Window:
             key_list.insert(single_key_mapping, -1)
 
         autoload_switch = self.get('preset_autoload_switch')
-        autoload_switch.set_active(config.is_autoloaded(
-            self.selected_device,
-            self.selected_preset
-        ))
+
+        with HandlerDisabled(autoload_switch, self.on_autoload_switch):
+            autoload_switch.set_active(config.is_autoloaded(
+                self.selected_device,
+                self.selected_preset
+            ))
 
         self.get('preset_name_input').set_text('')
         self.add_empty()
