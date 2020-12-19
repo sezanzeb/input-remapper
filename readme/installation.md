@@ -10,8 +10,9 @@ There is a shortcut for configuring this stuff:
 
 ```bash
 sudo key-mapper-service --setup-permissions
-# now log out and back in
 ```
+
+Now log out and back in (or restart in some cases).
 
 ## Manjaro/Arch
 
