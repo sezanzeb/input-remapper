@@ -332,9 +332,14 @@ patch_select()
 
 from keymapper.logger import update_verbosity
 from keymapper.dev.injector import KeycodeInjector
+from keymapper.config import config
 
 # no need for a high number in tests
 KeycodeInjector.regrab_timeout = 0.15
+
+# create an empty config beforehand
+config.clear_config()
+config.save_config()
 
 
 def main():

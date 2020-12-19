@@ -19,9 +19,10 @@
 # along with key-mapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
+import os
 import unittest
 
-from keymapper.config import config
+from keymapper.config import config, CONFIG_PATH
 
 
 class TestConfig(unittest.TestCase):
@@ -53,7 +54,6 @@ class TestConfig(unittest.TestCase):
         self.assertEqual(config._config['a']['b']['c'], 3)
 
     def test_autoload(self):
-        del config._config['autoload']
         self.assertEqual(len(config.iterate_autoload_presets()), 0)
         self.assertFalse(config.is_autoloaded('d1', 'a'))
         self.assertFalse(config.is_autoloaded('d2', 'b'))
@@ -86,6 +86,18 @@ class TestConfig(unittest.TestCase):
             list(config.iterate_autoload_presets()),
             [('d1', 'a')]
         )
+
+    def test_initial(self):
+        # when loading for the first time, create a config file with
+        # the default values
+        os.remove(CONFIG_PATH)
+        self.assertFalse(os.path.exists(CONFIG_PATH))
+        config.load_config()
+        self.assertTrue(os.path.exists(CONFIG_PATH))
+
+        with open(CONFIG_PATH, 'r') as file:
+            contents = file.read()
+            self.assertIn('"keystroke_sleep_ms": 10', contents)
 
     def test_save_load(self):
         self.assertEqual(len(config.iterate_autoload_presets()), 0)

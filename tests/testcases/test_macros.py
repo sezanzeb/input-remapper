@@ -26,6 +26,7 @@ import asyncio
 from keymapper.dev.macros import parse, _Macro, _extract_params, \
     is_this_a_macro
 from keymapper.config import config
+from keymapper.mapping import Mapping
 from keymapper.state import system_mapping
 
 
@@ -33,9 +34,11 @@ class TestMacros(unittest.TestCase):
     def setUp(self):
         self.result = []
         self.loop = asyncio.get_event_loop()
+        self.mapping = Mapping()
 
     def tearDown(self):
         self.result = []
+        self.mapping.clear_config()
 
     def handler(self, code, value):
         """Where macros should write codes to."""
@@ -76,7 +79,7 @@ class TestMacros(unittest.TestCase):
         expect(',,', ['', '', ''])
 
     def test_set_handler(self):
-        macro = parse('r(1, r(1, k(1)))')
+        macro = parse('r(1, r(1, k(1)))', self.mapping)
         one_code = system_mapping.get('1')
         self.assertSetEqual(macro.get_capabilities(), {one_code})
 
@@ -88,12 +91,12 @@ class TestMacros(unittest.TestCase):
         self.assertListEqual(self.result, [(one_code, 1), (one_code, 0)])
 
     def test_fails(self):
-        self.assertIsNone(parse('r(1, a)'))
-        self.assertIsNone(parse('r(a, k(b))'))
-        self.assertIsNone(parse('m(a, b)'))
+        self.assertIsNone(parse('r(1, a)', self.mapping))
+        self.assertIsNone(parse('r(a, k(b))', self.mapping))
+        self.assertIsNone(parse('m(a, b)', self.mapping))
 
     def test_0(self):
-        macro = parse('k(1)')
+        macro = parse('k(1)', self.mapping)
         macro.set_handler(self.handler)
         one_code = system_mapping.get('1')
         self.assertSetEqual(macro.get_capabilities(), {one_code})
@@ -103,7 +106,7 @@ class TestMacros(unittest.TestCase):
         self.assertEqual(len(macro.child_macros), 0)
 
     def test_1(self):
-        macro = parse('k(1).k(a).k(3)')
+        macro = parse('k(1).k(a).k(3)', self.mapping)
         macro.set_handler(self.handler)
         self.assertSetEqual(macro.get_capabilities(), {
             system_mapping.get('1'),
@@ -120,37 +123,37 @@ class TestMacros(unittest.TestCase):
         self.assertEqual(len(macro.child_macros), 0)
 
     def test_return_errors(self):
-        error = parse('k(1).h(k(a)).k(3)', return_errors=True)
+        error = parse('k(1).h(k(a)).k(3)', self.mapping, return_errors=True)
         self.assertIsNone(error)
-        error = parse('k(1))', return_errors=True)
+        error = parse('k(1))', self.mapping, return_errors=True)
         self.assertIn('bracket', error)
-        error = parse('k((1)', return_errors=True)
+        error = parse('k((1)', self.mapping, return_errors=True)
         self.assertIn('bracket', error)
-        error = parse('k((1).k)', return_errors=True)
+        error = parse('k((1).k)', self.mapping, return_errors=True)
         self.assertIsNotNone(error)
-        error = parse('r(a, k(1))', return_errors=True)
+        error = parse('r(a, k(1))', self.mapping, return_errors=True)
         self.assertIsNotNone(error)
-        error = parse('k()', return_errors=True)
+        error = parse('k()', self.mapping, return_errors=True)
         self.assertIsNotNone(error)
-        error = parse('k(1)', return_errors=True)
+        error = parse('k(1)', self.mapping, return_errors=True)
         self.assertIsNone(error)
-        error = parse('k(1, 1)', return_errors=True)
+        error = parse('k(1, 1)', self.mapping, return_errors=True)
         self.assertIsNotNone(error)
-        error = parse('h(1, 1)', return_errors=True)
+        error = parse('h(1, 1)', self.mapping, return_errors=True)
         self.assertIsNotNone(error)
-        error = parse('h(h(h(1, 1)))', return_errors=True)
+        error = parse('h(h(h(1, 1)))', self.mapping, return_errors=True)
         self.assertIsNotNone(error)
-        error = parse('r(1)', return_errors=True)
+        error = parse('r(1)', self.mapping, return_errors=True)
         self.assertIsNotNone(error)
-        error = parse('r(1, 1)', return_errors=True)
+        error = parse('r(1, 1)', self.mapping, return_errors=True)
         self.assertIsNotNone(error)
-        error = parse('r(k(1), 1)', return_errors=True)
+        error = parse('r(k(1), 1)', self.mapping, return_errors=True)
         self.assertIsNotNone(error)
-        error = parse('r(1, k(1))', return_errors=True)
+        error = parse('r(1, k(1))', self.mapping, return_errors=True)
         self.assertIsNone(error)
 
     def test_hold(self):
-        macro = parse('k(1).h(k(a)).k(3)')
+        macro = parse('k(1).h(k(a)).k(3)', self.mapping)
         macro.set_handler(self.handler)
         self.assertSetEqual(macro.get_capabilities(), {
             system_mapping.get('1'),
@@ -182,13 +185,13 @@ class TestMacros(unittest.TestCase):
         start = time.time()
         repeats = 20
 
-        macro = parse(f'r({repeats}, k(k)).r(1, k(k))')
+        macro = parse(f'r({repeats}, k(k)).r(1, k(k))', self.mapping)
         macro.set_handler(self.handler)
         k_code = system_mapping.get('k')
         self.assertSetEqual(macro.get_capabilities(), {k_code})
 
         self.loop.run_until_complete(macro.run())
-        keystroke_sleep = config.get('macros.keystroke_sleep_ms')
+        keystroke_sleep = self.mapping.get('macros.keystroke_sleep_ms')
         sleep_time = 2 * repeats * keystroke_sleep / 1000
         self.assertGreater(time.time() - start, sleep_time * 0.9)
         self.assertLess(time.time() - start, sleep_time * 1.1)
@@ -203,13 +206,13 @@ class TestMacros(unittest.TestCase):
 
     def test_3(self):
         start = time.time()
-        macro = parse('r(3, k(m).w(100))')
+        macro = parse('r(3, k(m).w(100))', self.mapping)
         macro.set_handler(self.handler)
         m_code = system_mapping.get('m')
         self.assertSetEqual(macro.get_capabilities(), {m_code})
         self.loop.run_until_complete(macro.run())
 
-        keystroke_time = 6 * config.get('macros.keystroke_sleep_ms')
+        keystroke_time = 6 * self.mapping.get('macros.keystroke_sleep_ms')
         total_time = keystroke_time + 300
         total_time /= 1000
 
@@ -224,7 +227,7 @@ class TestMacros(unittest.TestCase):
         self.assertEqual(len(macro.child_macros[0].child_macros), 0)
 
     def test_4(self):
-        macro = parse('  r(2,\nk(\nr ).k(minus\n )).k(m)  ')
+        macro = parse('  r(2,\nk(\nr ).k(minus\n )).k(m)  ', self.mapping)
         macro.set_handler(self.handler)
 
         r = system_mapping.get('r')
@@ -246,7 +249,7 @@ class TestMacros(unittest.TestCase):
 
     def test_5(self):
         start = time.time()
-        macro = parse('w(200).r(2,m(w,\nr(2,\tk(BtN_LeFt))).w(10).k(k))')
+        macro = parse('w(200).r(2,m(w,\nr(2,\tk(BtN_LeFt))).w(10).k(k))', self.mapping)
         macro.set_handler(self.handler)
 
         self.assertEqual(len(macro.child_macros), 1)
@@ -261,7 +264,7 @@ class TestMacros(unittest.TestCase):
         self.loop.run_until_complete(macro.run())
 
         num_pauses = 8 + 6 + 4
-        keystroke_time = num_pauses * config.get('macros.keystroke_sleep_ms')
+        keystroke_time = num_pauses * self.mapping.get('macros.keystroke_sleep_ms')
         wait_time = 220
         total_time = (keystroke_time + wait_time) / 1000
 
@@ -276,10 +279,30 @@ class TestMacros(unittest.TestCase):
 
     def test_6(self):
         # does nothing without .run
-        macro = parse('k(a).r(3, k(b))')
+        macro = parse('k(a).r(3, k(b))', self.mapping)
         macro.set_handler(self.handler)
         self.assertIsInstance(macro, _Macro)
         self.assertListEqual(self.result, [])
+
+    def test_keystroke_sleep_config(self):
+        # global config as fallback
+        config.set('macros.keystroke_sleep_ms', 100)
+        start = time.time()
+        macro = parse('k(a).k(b)', self.mapping)
+        self.loop.run_until_complete(macro.run())
+        delta = time.time() - start
+        # is currently over 400, k(b) adds another sleep afterwards
+        # that doesn't do anything
+        self.assertGreater(delta, 0.300)
+
+        # now set the value in the mapping, which is prioritized
+        self.mapping.set('macros.keystroke_sleep_ms', 50)
+        start = time.time()
+        macro = parse('k(a).k(b)', self.mapping)
+        self.loop.run_until_complete(macro.run())
+        delta = time.time() - start
+        self.assertGreater(delta, 0.150)
+        self.assertLess(delta, 0.300)
 
 
 if __name__ == '__main__':

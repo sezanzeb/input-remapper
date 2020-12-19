@@ -85,7 +85,7 @@ class TestInjector(unittest.TestCase):
         mapping.change((EV_KEY, 80, 1), 'a')
 
         macro_code = 'r(2, m(sHiFt_l, r(2, k(1).k(2))))'
-        macro = parse(macro_code)
+        macro = parse(macro_code, mapping)
 
         mapping.change((EV_KEY, 60, 111), macro_code)
 

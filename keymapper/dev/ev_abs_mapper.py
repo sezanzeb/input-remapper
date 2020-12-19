@@ -29,7 +29,7 @@ import evdev
 from evdev.ecodes import EV_ABS, EV_REL, REL_X, REL_Y, REL_WHEEL, REL_HWHEEL
 
 from keymapper.logger import logger
-from keymapper.config import config, MOUSE, WHEEL
+from keymapper.config import MOUSE, WHEEL
 
 
 # other events for ABS include buttons
@@ -100,7 +100,7 @@ def get_values(abs_state, left_purpose, right_purpose):
     return mouse_x, mouse_y, wheel_x, wheel_y
 
 
-async def ev_abs_mapper(abs_state, input_device, keymapper_device):
+async def ev_abs_mapper(abs_state, input_device, keymapper_device, mapping):
     """Keep writing mouse movements based on the gamepad stick position.
 
     Parameters
@@ -112,6 +112,8 @@ async def ev_abs_mapper(abs_state, input_device, keymapper_device):
         the outside.
     input_device : evdev.InputDevice
     keymapper_device : evdev.UInput
+    mapping : Mapping
+        the mapping object that configures the current injection
     """
     max_value = input_device.absinfo(EV_ABS).max
 
@@ -127,11 +129,11 @@ async def ev_abs_mapper(abs_state, input_device, keymapper_device):
     pending_rx_rel = 0
     pending_ry_rel = 0
 
-    # TODO move this stuff into the preset configuration
-    pointer_speed = config.get('gamepad.joystick.pointer_speed')
-    non_linearity = config.get('gamepad.joystick.non_linearity')
-    left_purpose = config.get('gamepad.joystick.left_purpose')
-    right_purpose = config.get('gamepad.joystick.right_purpose')
+    # TODO overwrite mapping stuff in tests
+    pointer_speed = mapping.get('gamepad.joystick.pointer_speed')
+    non_linearity = mapping.get('gamepad.joystick.non_linearity')
+    left_purpose = mapping.get('gamepad.joystick.left_purpose')
+    right_purpose = mapping.get('gamepad.joystick.right_purpose')
 
     logger.info(
         'Left joystick as %s, right joystick as %s',

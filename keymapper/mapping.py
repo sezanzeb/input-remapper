@@ -28,6 +28,7 @@ import copy
 
 from keymapper.logger import logger
 from keymapper.paths import get_config_path, touch
+from keymapper.config import ConfigBase, config
 
 
 def verify_key(key):
@@ -39,18 +40,12 @@ def verify_key(key):
         raise ValueError(f'Can only use numbers in the tuples, but got {key}')
 
 
-class Mapping:
-    """Contains and manages mappings.
-
-    The keycode is always unique, multiple keycodes may map to the same
-    character.
-    """
+class Mapping(ConfigBase):
+    """Contains and manages mappings and config of a single preset."""
     def __init__(self):
         self._mapping = {}
-
         self.changed = False
-
-        self.config = {}
+        super().__init__(fallback=config)
 
     def __iter__(self):
         """Iterate over tuples of unique keycodes and their character."""
@@ -81,8 +76,8 @@ class Mapping:
             the previous key, same format as new_key
 
             If not set, will not remove any previous mapping. If you recently
-            used 10 for new_keycode and want to overwrite that with 11,
-            provide 5 here.
+            used (1, 10, 1) for new_key and want to overwrite that with
+            (1, 11, 1), provide (1, 5, 1) here.
         """
         if character is None:
             raise ValueError('Expected `character` not to be None')
@@ -143,6 +138,8 @@ class Mapping:
             logger.error('Tried to load non-existing preset "%s"', path)
             return
 
+        self.clear_config()
+
         with open(path, 'r') as file:
             preset_dict = json.load(file)
             if not isinstance(preset_dict.get('mapping'), dict):
@@ -176,7 +173,7 @@ class Mapping:
             for key in preset_dict:
                 if key == 'mapping':
                     continue
-                self.config[key] = preset_dict[key]
+                self._config[key] = preset_dict[key]
 
         self.changed = False
 
@@ -195,6 +192,12 @@ class Mapping:
         touch(path)
 
         with open(path, 'w') as file:
+            if self._config.get('mapping') is not None:
+                logger.error(
+                    '"mapping" is reserved and cannot be used as config key'
+                )
+            preset_dict = self._config
+
             # make sure to keep the option to add metadata if ever needed,
             # so put the mapping into a special key
             json_ready_mapping = {}
@@ -203,8 +206,7 @@ class Mapping:
                 new_key = ','.join([str(value) for value in key])
                 json_ready_mapping[new_key] = value
 
-            preset_dict = {'mapping': json_ready_mapping}
-            preset_dict.update(self.config)
+            preset_dict['mapping'] = json_ready_mapping
             json.dump(preset_dict, file, indent=4)
             file.write('\n')
 

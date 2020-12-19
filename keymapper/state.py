@@ -87,8 +87,7 @@ class SystemMapping:
             del self._mapping[key]
 
 
-# one mapping object for the whole application that holds all
-# customizations, as shown in the UI
+# one mapping object for the GUI application
 custom_mapping = Mapping()
 
 # this mapping represents the xmodmap output, which stays constant
