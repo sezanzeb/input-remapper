@@ -1,5 +1,8 @@
 # Development
 
+Contributions are very welcome, I will gladly review and discuss any merge
+requests.
+
 ## Roadmap
 
 - [x] show a dropdown to select valid devices
