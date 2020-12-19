@@ -37,3 +37,22 @@ coverage combine && coverage report -m
 
 To read events, `evtest` is very helpful. Add `-d` to `key-mapper-gtk`
 to get debug output.
+
+## Releasing
+
+ssh/login into a ubuntu machine
+
+```bash
+./scripts/build.sh
+```
+
+this will generate `key-mapper/deb_dist/python3-key-mapper_0.3.1-1_all.deb`
+depending on the version configured in setup.py
+
+## Badges
+
+```bash
+sudo pip install git+https://github.com/jongracecox/anybadge
+sudo pip install git+https://github.com/dbrgn/coverage-badge
+./scripts/badges.sh
+```
