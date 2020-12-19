@@ -129,7 +129,6 @@ async def ev_abs_mapper(abs_state, input_device, keymapper_device, mapping):
     pending_rx_rel = 0
     pending_ry_rel = 0
 
-    # TODO overwrite mapping stuff in tests
     pointer_speed = mapping.get('gamepad.joystick.pointer_speed')
     non_linearity = mapping.get('gamepad.joystick.non_linearity')
     left_purpose = mapping.get('gamepad.joystick.left_purpose')

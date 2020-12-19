@@ -39,7 +39,6 @@ import asyncio
 import re
 
 from keymapper.logger import logger
-from keymapper.config import config
 from keymapper.state import system_mapping
 
 
