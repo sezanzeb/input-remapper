@@ -90,7 +90,7 @@ an example autoload entry:
 ```
 
 `preset` refers to `~/.config/key-mapper/device name/preset.json`.
-`device name` can be found with `evtest`.
+The device name can be found with `evtest`.
 
 Anything that is relevant to presets can be overwritten in them as well.
 Here is an example configuration for preset "a" for the "gamepad" device:
