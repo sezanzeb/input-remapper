@@ -195,6 +195,10 @@ class GlobalConfig(ConfigBase):
         if preset is not None:
             self.set(f'autoload.{device}', preset)
         else:
+            logger.info(
+                'Not loading injecting for "%s" automatically anmore',
+                device
+            )
             self.remove(f'autoload.{device}')
 
     def iterate_autoload_presets(self):

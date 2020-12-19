@@ -46,20 +46,27 @@ CLOSE = 0
 
 def is_numlock_on():
     """Get the current state of the numlock."""
-    xset_q = subprocess.check_output(['xset', 'q']).decode()
-    num_lock_status = re.search(
-        r'Num Lock:\s+(.+?)\s',
-        xset_q
-    )
+    try:
+        xset_q = subprocess.check_output(['xset', 'q']).decode()
+        num_lock_status = re.search(
+            r'Num Lock:\s+(.+?)\s',
+            xset_q
+        )
 
-    if num_lock_status is not None:
-        return num_lock_status[1] == 'on'
+        if num_lock_status is not None:
+            return num_lock_status[1] == 'on'
 
-    return False
+        return False
+    except subprocess.CalledProcessError:
+        # tty
+        return None
 
 
 def set_numlock(state):
     """Set the numlock to a given state of True or False."""
+    if state is None:
+        return
+
     value = {
         True: 'on',
         False: 'off'
@@ -81,8 +88,11 @@ def ensure_numlock(func):
         # for some reason, grabbing a device can modify the num lock state.
         # remember it and apply back later
         numlock_before = is_numlock_on()
+
         result = func(*args, **kwargs)
+
         set_numlock(numlock_before)
+
         return result
     return wrapped
 

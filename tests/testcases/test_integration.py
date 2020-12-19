@@ -122,15 +122,20 @@ class TestIntegration(unittest.TestCase):
         self.assertFalse(self.window.show_device_mapping_status())
 
     def test_autoload(self):
-        self.window.on_preset_autoload_switch_activate(None, False)
+        self.window.on_autoload_switch(None, False)
         self.assertFalse(config.is_autoloaded(
             self.window.selected_device,
             self.window.selected_preset
         ))
 
-        # select a preset for the first device
         self.window.on_select_device(FakeDropdown('device 1'))
-        self.window.on_preset_autoload_switch_activate(None, True)
+        gtk_iteration()
+        self.assertFalse(self.window.get('preset_autoload_switch').get_active())
+
+        # select a preset for the first device
+        self.window.get('preset_autoload_switch').set_active(True)
+        gtk_iteration()
+        self.assertTrue(self.window.get('preset_autoload_switch').get_active())
         self.assertTrue(config.is_autoloaded('device 1', 'new preset'))
         self.assertFalse(config.is_autoloaded('device 2', 'new preset'))
         self.assertListEqual(
@@ -138,9 +143,18 @@ class TestIntegration(unittest.TestCase):
             [('device 1', 'new preset')]
         )
 
+        # switch the preset, the switch should be correct and the config
+        # not changed.
+        self.window.on_create_preset_clicked(None)
+        gtk_iteration()
+        self.assertEqual(self.window.selected_preset, 'new preset 2')
+        self.assertFalse(self.window.get('preset_autoload_switch').get_active())
+        self.assertTrue(config.is_autoloaded('device 1', 'new preset'))
+
         # select a preset for the second device
         self.window.on_select_device(FakeDropdown('device 2'))
-        self.window.on_preset_autoload_switch_activate(None, True)
+        self.window.get('preset_autoload_switch').set_active(True)
+        gtk_iteration()
         self.assertTrue(config.is_autoloaded('device 1', 'new preset'))
         self.assertTrue(config.is_autoloaded('device 2', 'new preset'))
         self.assertListEqual(
@@ -149,7 +163,8 @@ class TestIntegration(unittest.TestCase):
         )
 
         # disable autoloading for the second device
-        self.window.on_preset_autoload_switch_activate(None, False)
+        self.window.get('preset_autoload_switch').set_active(False)
+        gtk_iteration()
         self.assertTrue(config.is_autoloaded('device 1', 'new preset'))
         self.assertFalse(config.is_autoloaded('device 2', 'new preset'))
         self.assertListEqual(
