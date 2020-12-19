@@ -26,6 +26,7 @@ from evdev.ecodes import EV_REL, REL_X, REL_Y, REL_WHEEL, REL_HWHEEL
 
 from keymapper.dev.ev_abs_mapper import ev_abs_mapper
 from keymapper.config import config
+from keymapper.mapping import Mapping
 from keymapper.dev.ev_abs_mapper import MOUSE, WHEEL
 
 from tests.test import InputDevice, UInput, MAX_ABS, clear_write_history, \
@@ -35,24 +36,26 @@ from tests.test import InputDevice, UInput, MAX_ABS, clear_write_history, \
 abs_state = [0, 0, 0, 0]
 
 
-SPEED = 20
-
-
 class TestEvAbsMapper(unittest.TestCase):
     # there is also `test_abs_to_rel` in test_injector.py
     def setUp(self):
-        config.set('gamepad.joystick.non_linearity', 1)
-        config.set('gamepad.joystick.pointer_speed', SPEED)
-
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
 
+        self.mapping = Mapping()
+
         device = InputDevice('/dev/input/event30')
         uinput = UInput()
-        asyncio.ensure_future(ev_abs_mapper(abs_state, device, uinput))
+        asyncio.ensure_future(ev_abs_mapper(
+            abs_state,
+            device,
+            uinput,
+            self.mapping
+        ))
 
     def tearDown(self):
         config.clear_config()
+        self.mapping.clear_config()
         loop = asyncio.get_event_loop()
 
         for task in asyncio.Task.all_tasks():
@@ -79,13 +82,16 @@ class TestEvAbsMapper(unittest.TestCase):
         self.assertEqual(history.count(expectation), len(history))
 
     def test_joystick_purpose_1(self):
-        config.set('gamepad.joystick.left_purpose', MOUSE)
-        config.set('gamepad.joystick.right_purpose', WHEEL)
+        speed = 20
+        self.mapping.set('gamepad.joystick.non_linearity', 1)
+        self.mapping.set('gamepad.joystick.pointer_speed', speed)
+        self.mapping.set('gamepad.joystick.left_purpose', MOUSE)
+        self.mapping.set('gamepad.joystick.right_purpose', WHEEL)
 
-        self.do(MAX_ABS, 0, 0, 0, (EV_REL, REL_X, SPEED))
-        self.do(-MAX_ABS, 0, 0, 0, (EV_REL, REL_X, -SPEED))
-        self.do(0, MAX_ABS, 0, 0, (EV_REL, REL_Y, SPEED))
-        self.do(0, -MAX_ABS, 0, 0, (EV_REL, REL_Y, -SPEED))
+        self.do(MAX_ABS, 0, 0, 0, (EV_REL, REL_X, speed))
+        self.do(-MAX_ABS, 0, 0, 0, (EV_REL, REL_X, -speed))
+        self.do(0, MAX_ABS, 0, 0, (EV_REL, REL_Y, speed))
+        self.do(0, -MAX_ABS, 0, 0, (EV_REL, REL_Y, -speed))
 
         # wheel event values are negative
         self.do(0, 0, MAX_ABS, 0, (EV_REL, REL_HWHEEL, -1))
@@ -94,6 +100,9 @@ class TestEvAbsMapper(unittest.TestCase):
         self.do(0, 0, 0, -MAX_ABS, (EV_REL, REL_WHEEL, 1))
 
     def test_joystick_purpose_2(self):
+        speed = 30
+        config.set('gamepad.joystick.non_linearity', 1)
+        config.set('gamepad.joystick.pointer_speed', speed)
         config.set('gamepad.joystick.left_purpose', WHEEL)
         config.set('gamepad.joystick.right_purpose', MOUSE)
 
@@ -103,25 +112,28 @@ class TestEvAbsMapper(unittest.TestCase):
         self.do(0, -MAX_ABS, 0, 0, (EV_REL, REL_WHEEL, 1))
 
         # wheel event values are negative
-        self.do(0, 0, MAX_ABS, 0, (EV_REL, REL_X, SPEED))
-        self.do(0, 0, -MAX_ABS, 0, (EV_REL, REL_X, -SPEED))
-        self.do(0, 0, 0, MAX_ABS, (EV_REL, REL_Y, SPEED))
-        self.do(0, 0, 0, -MAX_ABS, (EV_REL, REL_Y, -SPEED))
+        self.do(0, 0, MAX_ABS, 0, (EV_REL, REL_X, speed))
+        self.do(0, 0, -MAX_ABS, 0, (EV_REL, REL_X, -speed))
+        self.do(0, 0, 0, MAX_ABS, (EV_REL, REL_Y, speed))
+        self.do(0, 0, 0, -MAX_ABS, (EV_REL, REL_Y, -speed))
 
     def test_joystick_purpose_3(self):
-        config.set('gamepad.joystick.left_purpose', MOUSE)
+        speed = 40
+        self.mapping.set('gamepad.joystick.non_linearity', 1)
+        config.set('gamepad.joystick.pointer_speed', speed)
+        self.mapping.set('gamepad.joystick.left_purpose', MOUSE)
         config.set('gamepad.joystick.right_purpose', MOUSE)
 
-        self.do(MAX_ABS, 0, 0, 0, (EV_REL, REL_X, SPEED))
-        self.do(-MAX_ABS, 0, 0, 0, (EV_REL, REL_X, -SPEED))
-        self.do(0, MAX_ABS, 0, 0, (EV_REL, REL_Y, SPEED))
-        self.do(0, -MAX_ABS, 0, 0, (EV_REL, REL_Y, -SPEED))
+        self.do(MAX_ABS, 0, 0, 0, (EV_REL, REL_X, speed))
+        self.do(-MAX_ABS, 0, 0, 0, (EV_REL, REL_X, -speed))
+        self.do(0, MAX_ABS, 0, 0, (EV_REL, REL_Y, speed))
+        self.do(0, -MAX_ABS, 0, 0, (EV_REL, REL_Y, -speed))
 
         # wheel event values are negative
-        self.do(0, 0, MAX_ABS, 0, (EV_REL, REL_X, SPEED))
-        self.do(0, 0, -MAX_ABS, 0, (EV_REL, REL_X, -SPEED))
-        self.do(0, 0, 0, MAX_ABS, (EV_REL, REL_Y, SPEED))
-        self.do(0, 0, 0, -MAX_ABS, (EV_REL, REL_Y, -SPEED))
+        self.do(0, 0, MAX_ABS, 0, (EV_REL, REL_X, speed))
+        self.do(0, 0, -MAX_ABS, 0, (EV_REL, REL_X, -speed))
+        self.do(0, 0, 0, MAX_ABS, (EV_REL, REL_Y, speed))
+        self.do(0, 0, 0, -MAX_ABS, (EV_REL, REL_Y, -speed))
 
     def test_joystick_purpose_4(self):
         config.set('gamepad.joystick.left_purpose', WHEEL)

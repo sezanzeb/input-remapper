@@ -305,7 +305,7 @@ class KeycodeInjector:
             macros = {}
             for key, output in self.mapping:
                 if is_this_a_macro(output):
-                    macro = parse(output)
+                    macro = parse(output, self.mapping)
                     if macro is None:
                         continue
 
@@ -341,7 +341,12 @@ class KeycodeInjector:
             if abs_to_rel:
                 self.abs_state[0] = 0
                 self.abs_state[1] = 0
-                coroutine = ev_abs_mapper(self.abs_state, source, uinput)
+                coroutine = ev_abs_mapper(
+                    self.abs_state,
+                    source,
+                    uinput,
+                    self.mapping
+                )
                 coroutines.append(coroutine)
 
         if len(coroutines) == 0:

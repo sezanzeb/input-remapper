@@ -53,11 +53,58 @@ Examples:
 
 Joystick movements will be translated to mouse movements, while the second
 joystick acts as a mouse wheel. All buttons, triggers and D-Pads can be
-mapped to keycodes and macros. Configuring the purpose of your joysticks
-is currently done in the global configuration at `~/.config/key-mapper/config`.
+mapped to keycodes and macros. The purpose of your joysticks can be
+configured in the json files with the `gamepad.joystick.left_purpose` and
+`right_purpose` keys. See below for more info.
 
 The D-Pad can be mapped to W, A, S, D for example, to run around in games,
 while the joystick turns the view.
 
 Tested with the XBOX 360 Gamepad. On Ubuntu, gamepads worked better in
 Wayland than with X11 for me.
+
+## Configuration Files
+
+The default configuration is stored at `~/.config/key-mapper/config.json`.
+The current default configuration as of commit `42cb7fe` looks like:
+
+```json
+{
+    "autoload": {},
+    "macros": {
+        "keystroke_sleep_ms": 10
+    },
+    "gamepad": {
+        "joystick": {
+            "non_linearity": 4,
+            "pointer_speed": 80,
+            "left_purpose": "mouse",
+            "right_purpose": "wheel"
+        }
+    }
+}
+```
+
+Anything that is relevant to presets can be overwritten in them as well.
+Here is an example configuration for preset "a" for the "gamepad" device:
+`~/.config/key-mapper/gamepad/a.json`
+
+```json
+{
+    "macros": {
+        "keystroke_sleep_ms": 100
+    },
+    "mapping": {
+        "1,315,1": "1",
+        "1,307,1": "k(2).k(3)"
+    }
+}
+```
+
+Both need to be valid json files, otherwise the parser refuses to work. This
+preset maps the EV_KEY down event with code 315 to '1', code 307 to a macro
+and sets the time between injected events of macros to 100 ms. Note that
+a complete keystroke consists of two events: down and up. Other than that,
+it inherits all configurations from `~/.config/key-mapper/config.json`.
+If config.json is missing some stuff, it will query the hardcoded default
+values.

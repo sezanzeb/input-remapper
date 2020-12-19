@@ -31,6 +31,7 @@ from keymapper.dev.keycode_mapper import should_map_event_as_btn, \
 from keymapper.state import system_mapping
 from keymapper.dev.macros import parse
 from keymapper.config import config
+from keymapper.mapping import Mapping
 
 from tests.test import InputEvent, UInput, uinput_write_history, \
     clear_write_history
@@ -71,6 +72,9 @@ def calculate_event_number(holdtime, before, after):
 
 
 class TestKeycodeMapper(unittest.TestCase):
+    def setUp(self):
+        self.mapping = Mapping()
+
     def tearDown(self):
         system_mapping.populate()
 
@@ -166,8 +170,8 @@ class TestKeycodeMapper(unittest.TestCase):
         system_mapping._set('b', code_b)
 
         macro_mapping = {
-            (EV_KEY, 1, 1): parse('k(a)'),
-            (EV_KEY, 2, 1): parse('r(5, k(b))')
+            (EV_KEY, 1, 1): parse('k(a)', self.mapping),
+            (EV_KEY, 2, 1): parse('r(5, k(b))', self.mapping)
         }
 
         macro_mapping[(EV_KEY, 1, 1)].set_handler(lambda *args: history.append(args))
@@ -202,7 +206,7 @@ class TestKeycodeMapper(unittest.TestCase):
         system_mapping._set('c', code_c)
 
         macro_mapping = {
-            (EV_KEY, 1, 1): parse('k(a).h(k(b)).k(c)')
+            (EV_KEY, 1, 1): parse('k(a).h(k(b)).k(c)', self.mapping)
         }
 
         def handler(*args):
@@ -266,9 +270,9 @@ class TestKeycodeMapper(unittest.TestCase):
         system_mapping._set('d', code_d)
 
         macro_mapping = {
-            (EV_KEY, 1, 1): parse('h(k(b))'),
-            (EV_KEY, 2, 1): parse('k(c).r(1, r(1, r(1, h(k(a))))).k(d)'),
-            (EV_KEY, 3, 1): parse('h(k(b))')
+            (EV_KEY, 1, 1): parse('h(k(b))', self.mapping),
+            (EV_KEY, 2, 1): parse('k(c).r(1, r(1, r(1, h(k(a))))).k(d)', self.mapping),
+            (EV_KEY, 3, 1): parse('h(k(b))', self.mapping)
         }
 
         history = []
@@ -389,7 +393,7 @@ class TestKeycodeMapper(unittest.TestCase):
         system_mapping._set('c', code_c)
 
         macro_mapping = {
-            (EV_KEY, 1, 1): parse('k(a).h(k(b)).k(c)'),
+            (EV_KEY, 1, 1): parse('k(a).h(k(b)).k(c)', self.mapping),
         }
 
         history = []
@@ -457,8 +461,8 @@ class TestKeycodeMapper(unittest.TestCase):
         up_2 = (*key_2, 0)
 
         macro_mapping = {
-            down_1: parse('k(1).h(k(2)).k(3)'),
-            down_2: parse('k(a).h(k(b)).k(c)')
+            down_1: parse('k(1).h(k(2)).k(3)', self.mapping),
+            down_2: parse('k(a).h(k(b)).k(c)', self.mapping)
         }
 
         def handler(*args):
@@ -550,8 +554,8 @@ class TestKeycodeMapper(unittest.TestCase):
         repeats = 10
 
         macro_mapping = {
-            down_1: parse(f'r({repeats}, k(1))'),
-            down_2: parse(f'r({repeats}, k(2))')
+            down_1: parse(f'r({repeats}, k(1))', self.mapping),
+            down_2: parse(f'r({repeats}, k(2))', self.mapping)
         }
 
         history = []

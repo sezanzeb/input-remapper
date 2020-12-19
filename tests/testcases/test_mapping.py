@@ -27,19 +27,12 @@ from evdev.ecodes import EV_KEY, EV_ABS, ABS_HAT0X
 
 from keymapper.mapping import Mapping
 from keymapper.state import SystemMapping
+from keymapper.config import config
 
 from tests.test import tmp
 
 
-class TestMapping(unittest.TestCase):
-    def setUp(self):
-        self.mapping = Mapping()
-        self.assertFalse(self.mapping.changed)
-
-    def tearDown(self):
-        if os.path.exists(tmp):
-            shutil.rmtree(tmp)
-
+class TestSystemMapping(unittest.TestCase):
     def test_system_mapping(self):
         system_mapping = SystemMapping()
         self.assertGreater(len(system_mapping._mapping), 100)
@@ -78,6 +71,54 @@ class TestMapping(unittest.TestCase):
         self.assertIn('btn_left', names)
         self.assertIn('btn_right', names)
 
+
+class TestMapping(unittest.TestCase):
+    def setUp(self):
+        self.mapping = Mapping()
+        self.assertFalse(self.mapping.changed)
+
+    def tearDown(self):
+        if os.path.exists(tmp):
+            shutil.rmtree(tmp)
+
+    def test_config(self):
+        self.mapping.save('foo', 'bar2')
+
+        self.assertEqual(self.mapping.get('a'), None)
+
+        self.mapping.set('a', 1)
+        self.assertEqual(self.mapping.get('a'), 1)
+
+        self.mapping.remove('a')
+        self.mapping.set('a.b', 2)
+        self.assertEqual(self.mapping.get('a.b'), 2)
+        self.assertEqual(self.mapping._config['a']['b'], 2)
+
+        self.mapping.remove('a.b')
+        self.mapping.set('a.b.c', 3)
+        self.assertEqual(self.mapping.get('a.b.c'), 3)
+        self.assertEqual(self.mapping._config['a']['b']['c'], 3)
+
+        # setting mapping.whatever does not overwrite the mapping
+        # after saving. It should be ignored.
+        self.mapping.change((EV_KEY, 81, 1), 'a')
+        self.mapping.set('mapping.a', 2)
+        self.mapping.save('foo', 'bar')
+        self.mapping.load('foo', 'bar')
+        self.assertEqual(self.mapping.get_character((EV_KEY, 81, 1)), 'a')
+        self.assertIsNone(self.mapping.get('mapping.a'))
+
+        # loading a different preset also removes the configs from memory
+        self.mapping.set('a.b.c', 6)
+        self.mapping.load('foo', 'bar2')
+        self.assertIsNone(self.mapping.get('a.b.c'))
+
+    def test_fallback(self):
+        config.set('d.e.f', 5)
+        self.assertEqual(self.mapping.get('d.e.f'), 5)
+        self.mapping.set('d.e.f', 3)
+        self.assertEqual(self.mapping.get('d.e.f'), 3)
+
     def test_clone(self):
         ev_1 = (EV_KEY, 1, 1)
         ev_2 = (EV_KEY, 2, 0)
@@ -104,7 +145,7 @@ class TestMapping(unittest.TestCase):
         self.mapping.change(one, '1')
         self.mapping.change(two, '2')
         self.mapping.change(three, '3')
-        self.mapping.config['foo'] = 'bar'
+        self.mapping._config['foo'] = 'bar'
         self.mapping.save('device 1', 'test')
 
         path = os.path.join(tmp, 'device 1', 'test.json')
@@ -118,7 +159,7 @@ class TestMapping(unittest.TestCase):
         self.assertEqual(loaded.get_character(one), '1')
         self.assertEqual(loaded.get_character(two), '2')
         self.assertEqual(loaded.get_character(three), '3')
-        self.assertEqual(loaded.config['foo'], 'bar')
+        self.assertEqual(loaded._config['foo'], 'bar')
 
     def test_save_load_2(self):
         # loads mappings with only (type, code) as the key

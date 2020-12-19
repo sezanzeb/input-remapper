@@ -65,17 +65,20 @@ class _Macro:
     Calling functions on _Macro does not inject anything yet, it means that
     once .run is used it will be executed along with all other queued tasks.
     """
-    def __init__(self, code):
+    def __init__(self, code, mapping):
         """Create a macro instance that can be populated with tasks.
 
         Parameters
         ----------
         code : string
             The original parsed code, for logging purposes.
+        mapping : Mapping
+            The preset object, needed for some config stuff
         """
         self.tasks = []
         self.handler = lambda *args: logger.error('No handler set')
         self.code = code
+        self.mapping = mapping
 
         # supposed to be True between key event values 1 (down) and 0 (up)
         self.holding = False
@@ -212,7 +215,7 @@ class _Macro:
 
     def add_keycode_pause(self):
         """To add a pause between keystrokes."""
-        sleeptime = config.get('macros.keystroke_sleep_ms') / 1000
+        sleeptime = self.mapping.get('macros.keystroke_sleep_ms') / 1000
 
         async def sleep():
             await asyncio.sleep(sleeptime)
@@ -311,13 +314,15 @@ def _count_brackets(macro):
     return position
 
 
-def _parse_recurse(macro, macro_instance=None, depth=0):
+def _parse_recurse(macro, mapping, macro_instance=None, depth=0):
     """Handle a subset of the macro, e.g. one parameter or function call.
 
     Parameters
     ----------
     macro : string
         Just like parse
+    mapping : Mapping
+        The preset configuration
     macro_instance : _Macro or None
         A macro instance to add tasks to
     depth : int
@@ -332,7 +337,7 @@ def _parse_recurse(macro, macro_instance=None, depth=0):
     assert isinstance(depth, int)
 
     if macro_instance is None:
-        macro_instance = _Macro(macro)
+        macro_instance = _Macro(macro, mapping)
     else:
         assert isinstance(macro_instance, _Macro)
 
@@ -367,7 +372,7 @@ def _parse_recurse(macro, macro_instance=None, depth=0):
         logger.spam('%scalls %s with %s', space, call, string_params)
         # evaluate the params
         params = [
-            _parse_recurse(param.strip(), None, depth + 1)
+            _parse_recurse(param.strip(), mapping, None, depth + 1)
             for param in string_params
         ]
 
@@ -393,7 +398,7 @@ def _parse_recurse(macro, macro_instance=None, depth=0):
         if len(macro) > position and macro[position] == '.':
             chain = macro[position + 1:]
             logger.spam('%sfollowed by %s', space, chain)
-            _parse_recurse(chain, macro_instance, depth)
+            _parse_recurse(chain, mapping, macro_instance, depth)
 
         return macro_instance
 
@@ -409,7 +414,7 @@ def _parse_recurse(macro, macro_instance=None, depth=0):
     return macro
 
 
-def parse(macro, return_errors=False):
+def parse(macro, mapping, return_errors=False):
     """parse and generate a _Macro that can be run as often as you want.
 
     You need to use set_handler on it before running. If it could not
@@ -422,6 +427,8 @@ def parse(macro, return_errors=False):
         "r(3, k(a).w(10))"
         "r(2, k(a).k(-)).k(b)"
         "w(1000).m(Shift_L, r(2, k(a))).w(10, 20).k(b)"
+    mapping : Mapping
+        The preset object, needed for some config stuff
     return_errors : bool
         if True, returns errors as a string or None if parsing worked
     """
@@ -439,7 +446,7 @@ def parse(macro, return_errors=False):
         logger.spam('preparing macro %s for later execution', macro)
 
     try:
-        macro_object = _parse_recurse(macro)
+        macro_object = _parse_recurse(macro, mapping)
         return macro_object if not return_errors else None
     except Exception as error:
         logger.error('Failed to parse macro "%s": %s', macro, error)

@@ -298,7 +298,7 @@ class Window:
             if not is_this_a_macro(output):
                 continue
 
-            error = parse(output, return_errors=True)
+            error = parse(output, custom_mapping, return_errors=True)
             if error is None:
                 continue
 
