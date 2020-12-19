@@ -67,11 +67,14 @@ Wayland than with X11 for me.
 ## Configuration Files
 
 The default configuration is stored at `~/.config/key-mapper/config.json`.
-The current default configuration as of commit `42cb7fe` looks like:
+The current default configuration as of commit `42cb7fe` looks like, with
+an example autoload entry:
 
 ```json
 {
-    "autoload": {},
+    "autoload": {
+        "Logitech USB Keyboard": "preset name"
+    },
     "macros": {
         "keystroke_sleep_ms": 10
     },
@@ -85,6 +88,9 @@ The current default configuration as of commit `42cb7fe` looks like:
     }
 }
 ```
+
+`preset name` refers to `~/.config/key-mapper/device name/preset name.json`.
+The device name can be found with `evtest`.
 
 Anything that is relevant to presets can be overwritten in them as well.
 Here is an example configuration for preset "a" for the "gamepad" device:
@@ -110,4 +116,5 @@ it inherits all configurations from `~/.config/key-mapper/config.json`.
 If config.json is missing some stuff, it will query the hardcoded default
 values.
 
-The event codes can be read using `evtest`.
+The event codes can be read using `evtest`. Available names in the mapping
+can be listed with `key-mapper-service --key-names`.
