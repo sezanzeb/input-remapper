@@ -56,3 +56,6 @@ sudo pip install git+https://github.com/jongracecox/anybadge
 sudo pip install git+https://github.com/dbrgn/coverage-badge
 ./scripts/badges.sh
 ```
+
+new badges, if needed, will be created in `readme/` and they
+just need to be commited.
