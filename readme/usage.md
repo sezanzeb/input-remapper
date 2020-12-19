@@ -116,4 +116,5 @@ it inherits all configurations from `~/.config/key-mapper/config.json`.
 If config.json is missing some stuff, it will query the hardcoded default
 values.
 
-The event codes can be read using `evtest`.
+The event codes can be read using `evtest`. Available names in the mapping
+can be listed with `key-mapper-service --key-names`.
