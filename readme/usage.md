@@ -4,8 +4,17 @@ To open the UI to modify the mappings, look into your applications menu
 and search for 'Key Mapper' in settings. You can also start it via 
 `key-mapper-gtk`. It works with both Wayland and X11.
 
+To change the mapping, you need to use the "Apply Defaults" button, so that
+the application can read the original keycode. It would otherwise be
+invisible since the daemon maps it independently of the GUI.
+
+For changes to take effect, save the preset first. Otherwise, the daemon
+won't be able to know about your changes.
+
 If stuff doesn't work, check the output of `key-mapper-gtk -d` and feel free
-to open up an issue here.
+to open up an issue here. Make sure to not post any debug logs that were
+generated while you entered private information with your device. Debug
+logs are quite verbose.
 
 ## Macros
 
