@@ -1,8 +1,8 @@
 [Desktop Entry]
 Type=Application
 Name=key-mapper
-Icon=mouse
+Icon=/usr/share/key-mapper/key-mapper.svg
 Exec=key-mapper-gtk
 Terminal=false
 Categories=Settings
-Comment=GUI for device specific keyboard mappings
+Comment=GUI for device specific key mappings
