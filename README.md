@@ -13,13 +13,9 @@
 
 ## Installation
 
-The tool shows and logs if there are issues, but usually, independent of the
-method, you should add yourself to the `input` and `plugdev` groups so that
-you can read information from your devices. You have to start the application
-via sudo otherwise. You may also need to grant yourself write access to
-`/dev/uinput` to be able to inject your programmed mapping.
-
-There is a shortcut for configuring this stuff:
+The tool shows and logs if there are issues. Independent of the installation
+method, some permissions need to be configured in order to read from /dev/input
+and write to /dev/uinput:
 
 ```bash
 sudo key-mapper-service --setup-permissions
