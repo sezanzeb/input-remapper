@@ -7,17 +7,24 @@
 
 <p align="center"><img src="readme/pylint.svg"/> <img src="readme/coverage.svg"/></p>
 
-<p align="center"><img src="readme/screenshot_2.png"/></p>
-<br/>
-
 ## Usage
 
-[readme/usage.md](readme/usage.md)
+<a href="readme/usage.md">readme/usage.md</a>
 
 ## Installation
 
-[readme/installation.md](readme/installation.md)
+<a href="readme/installation.md">readme/installation.md</a>
 
 ## Development
 
-[readme/development.md](readme/development.md)
+<a href="readme/development.md">readme/development.md</a>
+
+<br/>
+
+<p align="center">
+  <img src="readme/screenshot.png"/>
+</p>
+
+<p align="center">
+  <img src="readme/screenshot_2.png"/>
+</p>
