@@ -56,7 +56,6 @@ depending on the version configured in setup.py
 
 ```bash
 sudo pip install git+https://github.com/jongracecox/anybadge
-sudo pip install git+https://github.com/dbrgn/coverage-badge
 ./scripts/badges.sh
 ```
 
