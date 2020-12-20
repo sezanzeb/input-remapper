@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
 
 # sudo pip install git+https://github.com/jongracecox/anybadge
-# sudo pip install git+https://github.com/dbrgn/coverage-badge
 
 coverage_badge() {
   coverage run tests/test.py
   coverage combine
-  python3 -m coverage_badge > readme/coverage.svg
+  rating=$(coverage report | tail -n 1 | ack "\d+%" -o | ack "\d+" -o)
+  rm readme/coverage.svg
+  anybadge -l coverage -v $rating -f readme/coverage.svg coverage
+
   coverage report -m
   echo "coverage badge created"
 }
@@ -16,6 +18,7 @@ pylint_badge() {
   rating=$(echo $pylint_output | grep -Po "rated at .+?/" | grep -Po "\d+.\d+")
   rm readme/pylint.svg
   anybadge -l pylint -v $rating -f readme/pylint.svg pylint
+
   echo $rating
   echo "pylint badge created"
 }
