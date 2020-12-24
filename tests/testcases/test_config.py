@@ -44,6 +44,22 @@ class TestConfig(unittest.TestCase):
         self.assertTrue(os.path.exists(new))
         self.assertFalse(os.path.exists(old))
 
+    def test_wont_migrate(self):
+        old = os.path.join(CONFIG_PATH, 'config')
+        new = os.path.join(CONFIG_PATH, 'config.json')
+
+        touch(new)
+        with open(new, 'w') as f:
+            f.write('{}')
+
+        touch(old)
+        with open(old, 'w') as f:
+            f.write('{}')
+
+        GlobalConfig()
+        self.assertTrue(os.path.exists(new))
+        self.assertTrue(os.path.exists(old))
+
     def test_get_default(self):
         config._config = {}
         self.assertEqual(config.get('gamepad.joystick.non_linearity'), 4)
