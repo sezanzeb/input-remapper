@@ -22,9 +22,10 @@
 import glob
 from setuptools import setup
 
+
 setup(
     name='key-mapper',
-    version='0.3.1',
+    version='0.4.0',
     description='A tool to change the mapping of your input device buttons',
     author='Sezanzeb',
     author_email='proxima@hip70890b.de',
@@ -38,14 +39,22 @@ setup(
     data_files=[
         ('/usr/share/key-mapper/', glob.glob('data/*')),
         ('/usr/share/applications/', ['data/key-mapper.desktop']),
-        ('/etc/xdg/autostart/', ['data/key-mapper-service.desktop']),
-        # manjaro installs the executables with pip, ubuntu doesn't.
+        ('/usr/share/polkit-1/actions/', ['data/key-mapper.policy']),
+
+        ('/usr/lib/systemd/system', ['data/key-mapper.service']),
+        ('/etc/dbus-1/system.d/', ['data/keymapper.Control.conf']),
+
+        # the autoload.desktop entry tells the dbus service to start injecting
+        # the users presets on login and to stop on logout
+        ('/etc/xdg/autostart/', ['data/key-mapper-autoload.desktop']),
+
         ('/usr/bin/', ['bin/key-mapper-gtk']),
         ('/usr/bin/', ['bin/key-mapper-service']),
+        ('/usr/bin/', ['bin/key-mapper-control']),
     ],
     install_requires=[
         'setuptools',
         'evdev',
         'pydbus'
-    ]
+    ],
 )

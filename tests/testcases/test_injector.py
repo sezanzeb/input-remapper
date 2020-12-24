@@ -21,7 +21,6 @@
 
 import unittest
 import time
-import copy
 
 import evdev
 from evdev.ecodes import EV_REL, EV_KEY, EV_ABS, ABS_HAT0X
@@ -34,8 +33,8 @@ from keymapper.config import config
 from keymapper.dev.macros import parse
 
 from tests.test import InputEvent, pending_events, fixtures, \
-    clear_write_history, EVENT_READ_TIMEOUT, uinput_write_history_pipe, \
-    MAX_ABS
+    EVENT_READ_TIMEOUT, uinput_write_history_pipe, \
+    MAX_ABS, cleanup
 
 
 class TestInjector(unittest.TestCase):
@@ -55,22 +54,12 @@ class TestInjector(unittest.TestCase):
 
         evdev.InputDevice.grab = grab_fail_twice
 
-        self.original_config = copy.deepcopy(config._config)
-
     def tearDown(self):
         if self.injector is not None:
             self.injector.stop_injecting()
             self.injector = None
         evdev.InputDevice.grab = self.grab
-        keys = list(pending_events.keys())
-        for key in keys:
-            del pending_events[key]
-        clear_write_history()
-        custom_mapping.empty()
-        system_mapping.populate()
-
-        config._config = self.original_config
-        config.save_config()
+        cleanup()
 
     def test_modify_capabilities(self):
         class FakeDevice:

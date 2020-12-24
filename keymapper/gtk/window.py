@@ -22,14 +22,16 @@
 """User Interface."""
 
 
-import evdev
 import math
+
+import evdev
 
 from evdev.ecodes import EV_KEY
 from gi.repository import Gtk, Gdk, GLib
 
 from keymapper.data import get_data_path
-from keymapper.state import custom_mapping
+from keymapper.paths import get_config_path, get_preset_path
+from keymapper.state import custom_mapping, XMODMAP_FILENAME
 from keymapper.presets import get_presets, find_newest_preset, \
     delete_preset, rename_preset, get_available_preset_name
 from keymapper.logger import logger
@@ -130,11 +132,9 @@ class Window:
 
         permission_errors = permissions.can_read_devices()
         if len(permission_errors) > 0:
-            cmd = 'sudo key-mapper-service --setup-permissions'
             permission_errors = [(
-                f'You can also try `{cmd}` to setup all needed permissions '
-                f'for you. All commands mentioned here are also printed to '
-                f'the console for you to copy.'
+                'Usually, key-mapper-gtk should be started with pkexec '
+                'or sudo.'
             )] + permission_errors
             self.show_status(
                 CTX_ERROR,
@@ -234,7 +234,8 @@ class Window:
         if len(presets) == 0:
             new_preset = get_available_preset_name(self.selected_device)
             custom_mapping.empty()
-            custom_mapping.save(self.selected_device, new_preset)
+            path = get_preset_path(self.selected_device, new_preset)
+            custom_mapping.save(path)
             presets = [new_preset]
         else:
             logger.debug('"%s" presets: "%s"', device, '", "'.join(presets))
@@ -384,10 +385,9 @@ class Window:
         else:
             self.show_status(CTX_APPLY, f'Applied preset "{preset}"')
 
-        success = self.dbus.start_injecting(
-            self.selected_device,
-            preset
-        )
+        path = get_preset_path(self.selected_device, preset)
+        xmodmap = get_config_path(XMODMAP_FILENAME)
+        success = self.dbus.start_injecting(self.selected_device, path, xmodmap)
 
         if not success:
             self.show_status(CTX_ERROR, 'Error: Could not grab devices!')
@@ -446,7 +446,8 @@ class Window:
         try:
             new_preset = get_available_preset_name(self.selected_device)
             custom_mapping.empty()
-            custom_mapping.save(self.selected_device, new_preset)
+            path = get_preset_path(self.selected_device, new_preset)
+            custom_mapping.save(path)
             self.get('preset_selection').append(new_preset, new_preset)
             self.get('preset_selection').set_active_id(new_preset)
         except PermissionError as error:
@@ -468,7 +469,7 @@ class Window:
         logger.debug('Selecting preset "%s"', preset)
 
         self.selected_preset = preset
-        custom_mapping.load(self.selected_device, self.selected_preset)
+        custom_mapping.load(get_preset_path(self.selected_device, self.selected_preset))
 
         key_list = self.get('key_list')
         for key, output in custom_mapping:
@@ -503,9 +504,9 @@ class Window:
         purpose = dropdown.get_active_id()
         custom_mapping.set('gamepad.joystick.right_purpose', purpose)
 
-    def on_joystick_mouse_speed_change_value(self, range):
+    def on_joystick_mouse_speed_change_value(self, gtk_range):
         """Set how fast the joystick moves the mouse."""
-        speed = 2 ** range.get_value()
+        speed = 2 ** gtk_range.get_value()
         custom_mapping.set('gamepad.joystick.pointer_speed', speed)
 
     def add_empty(self):
@@ -539,7 +540,8 @@ class Window:
             self.selected_preset
         )
 
-        custom_mapping.save(self.selected_device, self.selected_preset)
+        path = get_preset_path(self.selected_device, self.selected_preset)
+        custom_mapping.save(path)
 
         custom_mapping.changed = False
         self.unhighlight_all_rows()

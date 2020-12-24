@@ -1,0 +1,11 @@
+[Unit]
+Description=Service to inject keycodes without the GUI application
+
+[Service]
+Type=dbus
+BusName=keymapper.Control
+ExecStart=/usr/bin/key-mapper-service
+
+[Install]
+WantedBy=default.target
+Alias=key-mapper.service

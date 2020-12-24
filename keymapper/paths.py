@@ -24,24 +24,35 @@
 
 import os
 import shutil
+import getpass
 
 from keymapper.logger import logger
 
 
-# try to find the user who called sudo
-try:
-    USER = os.getlogin()
-except OSError:
-    # failed in some ubuntu installations
-    USER = os.environ['USER']
-    if USER == 'root':
+def get_user():
+    """Try to find the user who called sudo."""
+    try:
+        user = os.getlogin()
+    except OSError:
+        # failed in some ubuntu installations and in systemd services
         try:
-            USER = os.environ.get('SUDO_USER', USER)
+            user = os.environ['USER']
+            if user == 'root':
+                try:
+                    user = os.environ.get('SUDO_USER', user)
+                except KeyError:
+                    # no sudo was used
+                    pass
         except KeyError:
-            # no sudo was used
-            pass
+            # possibly the systemd service. no sudo was used
+            user = getpass.getuser()
 
-CONFIG = os.path.join('/home', USER, '.config/key-mapper')
+    return user
+
+
+USER = get_user()
+
+CONFIG_PATH = os.path.join('/home', USER, '.config/key-mapper')
 
 
 def touch(path, log=True):
@@ -75,10 +86,12 @@ def mkdir(path, log=True):
     shutil.chown(path, USER, USER)
 
 
-def get_config_path(device=None, preset=None):
+def get_preset_path(device=None, preset=None):
     """Get a path to the stored preset, or to store a preset to."""
+    presets_base = os.path.join(CONFIG_PATH, 'presets')
+
     if device is None:
-        return CONFIG
+        return presets_base
 
     if preset is not None:
         # the extension of the preset should not be shown in the ui.
@@ -88,6 +101,11 @@ def get_config_path(device=None, preset=None):
         preset = f'{preset}.json'
 
     if preset is None:
-        return os.path.join(CONFIG, device)
+        return os.path.join(presets_base, device)
 
-    return os.path.join(CONFIG, device, preset)
+    return os.path.join(presets_base, device, preset)
+
+
+def get_config_path(*paths):
+    """Get a path in ~/.config/key-mapper/"""
+    return os.path.join(CONFIG_PATH, *paths)

@@ -24,14 +24,19 @@
 
 import stat
 import re
+import json
 import subprocess
 import evdev
 
+from keymapper.logger import logger
 from keymapper.mapping import Mapping
+from keymapper.paths import get_config_path, touch, USER
 
 
 # xkb uses keycodes that are 8 higher than those from evdev
 XKB_KEYCODE_OFFSET = 8
+
+XMODMAP_FILENAME = 'xmodmap.json'
 
 
 class SystemMapping:
@@ -47,9 +52,12 @@ class SystemMapping:
 
     def populate(self):
         """Get a mapping of all available names to their keycodes."""
+        logger.debug('Gathering available keycodes')
         self.clear()
+        xmodmap_dict = {}
         try:
             xmodmap = subprocess.check_output(['xmodmap', '-pke']).decode()
+            xmodmap = xmodmap.lower()
             mappings = re.findall(r'(\d+) = (.+)\n', xmodmap + '\n')
             for keycode, names in mappings:
                 # there might be multiple, like:
@@ -59,22 +67,43 @@ class SystemMapping:
                 # if a modifier is applied at the same time. So take the first
                 # one.
                 name = names.split()[0]
-                self._set(name, int(keycode) - XKB_KEYCODE_OFFSET)
+                xmodmap_dict[name] = int(keycode) - XKB_KEYCODE_OFFSET
 
             for keycode, names in mappings:
                 # but since KP may be mapped like KP_Home KP_7 KP_Home KP_7,
                 # make another pass and add all of them if they don't already
                 # exist. don't overwrite any keycodes.
                 for name in names.split():
-                    if self.get(name) is None:
-                        self._set(name, int(keycode) - XKB_KEYCODE_OFFSET)
+                    if xmodmap_dict.get(name) is None:
+                        xmodmap_dict[name] = int(keycode) - XKB_KEYCODE_OFFSET
         except (subprocess.CalledProcessError, FileNotFoundError):
             # might be within a tty
             pass
 
+        if USER != 'root':
+            # write this stuff into the key-mapper config directory, because
+            # the systemd service needs to know the xmodmap list on boot.
+            path = get_config_path(XMODMAP_FILENAME)
+            touch(path)
+            with open(path, 'w') as file:
+                logger.info('Writing "%s"', path)
+                json.dump(xmodmap_dict, file, indent=4)
+
+        self._mapping.update(xmodmap_dict)
+
         for name, ecode in evdev.ecodes.ecodes.items():
             if name.startswith('KEY') or name.startswith('BTN'):
                 self._set(name, ecode)
+
+    def update(self, mapping):
+        """Update this with new keys.
+
+        Parameters
+        ----------
+        mapping : dict
+            maps from name to code. Make sure your keys are lowercase.
+        """
+        self._mapping.update(mapping)
 
     def _set(self, name, code):
         """Map name to code."""

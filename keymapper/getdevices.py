@@ -28,7 +28,7 @@ import time
 import asyncio
 
 import evdev
-from evdev.ecodes import EV_KEY, EV_ABS, ABS_X
+from evdev.ecodes import EV_KEY, EV_ABS
 
 from keymapper.logger import logger
 
@@ -43,6 +43,27 @@ if not hasattr(evdev.InputDevice, 'path'):
         return device.fn
 
     evdev.InputDevice.path = path
+
+
+def map_abs_to_rel(capabilities):
+    """Check if joystick movements can and should be mapped."""
+    # mapping buttons only works without ABS events in the capabilities,
+    # possibly due to some intentional constraints in the os. So always
+    # just map those events to REL if possible and remove ABS from
+    # the capabilities, because ABS events prevent regular button
+    # mappings from working,
+    abs_capabilities = capabilities.get(EV_ABS)
+    if abs_capabilities is not None:
+        if evdev.ecodes.ABS_MT_TRACKING_ID in abs_capabilities:
+            # check for some random mousepad capability
+            return False
+
+        if evdev.ecodes.ABS_X in abs_capabilities:
+            # can be a joystick or a mousepad (already handled), so it's
+            # a joystick
+            return True
+
+    return False
 
 
 class _GetDevices(threading.Thread):
@@ -86,9 +107,7 @@ class _GetDevices(threading.Thread):
                 # or gamepads, because they can be mapped like a keyboard
                 continue
 
-            is_gamepad = False
-            if ABS_X in capabilities.get(EV_ABS, []):
-                is_gamepad = True
+            is_gamepad = map_abs_to_rel(capabilities)
 
             usb = device.phys.split('/')[0]
             if grouped.get(usb) is None:

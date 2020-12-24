@@ -199,7 +199,7 @@ class Row(Gtk.ListBoxRow):
         delete_button.set_size_request(50, -1)
 
         keycode_input = Gtk.ToggleButton()
-        keycode_input.set_size_request(130, -1)
+        keycode_input.set_size_request(140, -1)
 
         if self.key is not None:
             keycode_input.set_label(to_string(*self.key))

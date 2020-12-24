@@ -26,14 +26,17 @@ https://github.com/LEW21/pydbus/tree/cc407c8b1d25b7e28a6d661a29f9e661b1c9b964/ex
 
 
 import subprocess
+import json
 
-from pydbus import SessionBus
+from pydbus import SystemBus
 from gi.repository import GLib
 
 from keymapper.logger import logger
 from keymapper.dev.injector import KeycodeInjector
 from keymapper.mapping import Mapping
 from keymapper.config import config
+from keymapper.state import system_mapping
+from keymapper.getdevices import get_devices, refresh_devices
 
 
 BUS_NAME = 'keymapper.Control'
@@ -48,22 +51,38 @@ def is_service_running():
     return True
 
 
-def get_dbus_interface():
-    """Get an interface to start and stop injecting keystrokes."""
+def get_dbus_interface(fallback=True):
+    """Get an interface to start and stop injecting keystrokes.
+
+    Parameters
+    ----------
+    fallback : bool
+        If true, returns an instance of the daemon instead if it cannot
+        connect
+    """
     msg = (
         'The daemon "key-mapper-service" is not running, mapping keys '
         'only works as long as the window is open.'
     )
 
     if not is_service_running():
+        if not fallback:
+            logger.error('Service not running')
+            return None
+
         logger.warning(msg)
         return Daemon()
 
-    bus = SessionBus()
+    bus = SystemBus()
     try:
         interface = bus.get(BUS_NAME)
     except GLib.GError as error:
         logger.debug(error)
+
+        if not fallback:
+            logger.error('Failed to connect to the running service')
+            return None
+
         logger.warning(msg)
         return Daemon()
 
@@ -93,11 +112,11 @@ class Daemon:
                 </method>
                 <method name='start_injecting'>
                     <arg type='s' name='device' direction='in'/>
-                    <arg type='s' name='preset' direction='in'/>
+                    <arg type='s' name='path' direction='in'/>
+                    <arg type='s' name='xmodmap_path' direction='in'/>
                     <arg type='b' name='response' direction='out'/>
                 </method>
                 <method name='stop'>
-                    <arg type='b' name='terminate' direction='in'/>
                 </method>
                 <method name='hello'>
                     <arg type='s' name='out' direction='in'/>
@@ -107,23 +126,10 @@ class Daemon:
         </node>
     """
 
-    def __init__(self, loop=None):
-        """Constructs the daemon. You still need to run the GLib mainloop."""
+    def __init__(self):
+        """Constructs the daemon."""
         logger.debug('Creating daemon')
         self.injectors = {}
-        self.loop = loop
-
-    def autoload(self):
-        """Runs all autoloaded presets."""
-        for device, preset in config.iterate_autoload_presets():
-            mapping = Mapping()
-            mapping.load(device, preset)
-            try:
-                injector = KeycodeInjector(device, mapping)
-                injector.start_injecting()
-                self.injectors[device] = injector
-            except OSError as error:
-                logger.error(error)
 
     def stop_injecting(self, device):
         """Stop injecting the mapping for a single device."""
@@ -141,7 +147,7 @@ class Daemon:
         """Is this device being mapped?"""
         return device in self.injectors
 
-    def start_injecting(self, device, preset):
+    def start_injecting(self, device, path, xmodmap_path=None):
         """Start injecting the preset for the device.
 
         Returns True on success.
@@ -150,16 +156,43 @@ class Daemon:
         ----------
         device : string
             The name of the device
-        preset : string
-            The name of the preset
+        path : string
+            Path to the preset. The daemon, if started via systemctl, has no
+            knowledge of the user and their home path, so the complete
+            absolute path needs to be provided here.
+        xmodmap_path : string, None
+            Path to a dump of the xkb mappings, to provide more human
+            readable keys in the correct keyboard layout to the service.
+            The service cannot use `xmodmap -pke` because it's running via
+            systemd.
         """
+        if device not in get_devices():
+            logger.debug('Devices possibly outdated, refreshing')
+            refresh_devices()
+
         # reload the config, since it may have been changed
         config.load_config()
         if self.injectors.get(device) is not None:
             self.injectors[device].stop_injecting()
 
         mapping = Mapping()
-        mapping.load(device, preset)
+        try:
+            mapping.load(path)
+        except FileNotFoundError as error:
+            logger.error(str(error))
+            return
+
+        if xmodmap_path is not None:
+            try:
+                with open(xmodmap_path, 'r') as file:
+                    xmodmap = json.load(file)
+                    logger.debug('Using keycodes from "%s"', xmodmap_path)
+                    system_mapping.update(xmodmap)
+                    # the service now has process wide knowledge of xmodmap
+                    # keys of the users session
+            except FileNotFoundError:
+                logger.error('Could not find "%s"', xmodmap_path)
+
         try:
             injector = KeycodeInjector(device, mapping)
             injector.start_injecting()
@@ -169,18 +202,16 @@ class Daemon:
 
         return True
 
-    def stop(self, terminate=False):
+    def stop(self):
         """Stop all injections and end the service.
 
         Raises dbus.exceptions.DBusException in your main process.
         """
+        logger.info('Stopping all injections')
         for injector in self.injectors.values():
             injector.stop_injecting()
 
-        if terminate and self.loop:
-            logger.debug('Daemon stops')
-            self.loop.quit()
-
     def hello(self, out):
         """Used for tests."""
+        logger.info('Received "%s" from client', out)
         return out

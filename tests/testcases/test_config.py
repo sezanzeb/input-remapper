@@ -22,13 +22,27 @@
 import os
 import unittest
 
-from keymapper.config import config, CONFIG_PATH
+from keymapper.config import config, GlobalConfig
+from keymapper.paths import touch, CONFIG_PATH
+
+from tests.test import cleanup
 
 
 class TestConfig(unittest.TestCase):
     def tearDown(self):
-        config.clear_config()
+        cleanup()
         self.assertEqual(len(config.iterate_autoload_presets()), 0)
+
+    def test_migrate(self):
+        old = os.path.join(CONFIG_PATH, 'config')
+        new = os.path.join(CONFIG_PATH, 'config.json')
+        os.remove(new)
+        touch(old)
+        with open(old, 'w') as f:
+            f.write('{}')
+        GlobalConfig()
+        self.assertTrue(os.path.exists(new))
+        self.assertFalse(os.path.exists(old))
 
     def test_get_default(self):
         config._config = {}
@@ -90,12 +104,12 @@ class TestConfig(unittest.TestCase):
     def test_initial(self):
         # when loading for the first time, create a config file with
         # the default values
-        os.remove(CONFIG_PATH)
-        self.assertFalse(os.path.exists(CONFIG_PATH))
+        os.remove(config.path)
+        self.assertFalse(os.path.exists(config.path))
         config.load_config()
-        self.assertTrue(os.path.exists(CONFIG_PATH))
+        self.assertTrue(os.path.exists(config.path))
 
-        with open(CONFIG_PATH, 'r') as file:
+        with open(config.path, 'r') as file:
             contents = file.read()
             self.assertIn('"keystroke_sleep_ms": 10', contents)
 

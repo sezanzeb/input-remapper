@@ -27,7 +27,7 @@ import json
 import copy
 
 from keymapper.logger import logger
-from keymapper.paths import get_config_path, touch
+from keymapper.paths import touch
 from keymapper.config import ConfigBase, config
 
 
@@ -129,19 +129,25 @@ class Mapping(ConfigBase):
         self._mapping = {}
         self.changed = True
 
-    def load(self, device, preset):
-        """Load a dumped JSON from home to overwrite the mappings."""
-        path = get_config_path(device, preset)
+    def load(self, path):
+        """Load a dumped JSON from home to overwrite the mappings.
+
+        Parameters
+        path : string
+            Path of the preset file
+        """
         logger.info('Loading preset from "%s"', path)
 
         if not os.path.exists(path):
-            logger.error('Tried to load non-existing preset "%s"', path)
-            return
+            raise FileNotFoundError(
+                f'Tried to load non-existing preset "{path}"'
+            )
 
         self.clear_config()
 
         with open(path, 'r') as file:
             preset_dict = json.load(file)
+
             if not isinstance(preset_dict.get('mapping'), dict):
                 logger.error('Invalid preset config at "%s"', path)
                 return
@@ -184,9 +190,8 @@ class Mapping(ConfigBase):
         mapping.changed = self.changed
         return mapping
 
-    def save(self, device, preset):
+    def save(self, path):
         """Dump as JSON into home."""
-        path = get_config_path(device, preset)
         logger.info('Saving preset to %s', path)
 
         touch(path)

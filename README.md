@@ -13,16 +13,6 @@
 
 ## Installation
 
-The tool shows and logs if there are issues. Independent of the installation
-method, some permissions need to be configured in order to read from /dev/input
-and write to /dev/uinput:
-
-```bash
-sudo key-mapper-service --setup-permissions
-```
-
-Now log out and back in (or restart in some cases).
-
 ##### Manjaro/Arch
 
 ```bash
@@ -31,21 +21,27 @@ pacaur -S key-mapper-git
 
 ##### Ubuntu/Debian
 
+Download a release .deb file from [/releases](https://github.com/sezanzeb/key-mapper/releases)
+or install from source and dpkg using the following commands:
+
 ```bash
-wget "https://github.com/sezanzeb/key-mapper/releases/"\
-"download/0.3.1/python3-key-mapper_0.3.1-1_all.deb"
-sudo dpkg -i python3-key-mapper_0.3.1-1_all.deb
+git clone https://github.com/sezanzeb/key-mapper.git
+cd key-mapper && ./scripts/build.sh
+sudo dpkg -i ./dist/key-mapper-0.4.0.deb
+sudo apt-get -f install
 ```
 
-##### Git/pip
+##### pip
 
 Depending on your distro, maybe you need to use `--force` to get all your
 files properly in place and overwrite a previous installation of key-mapper.
+There are two options available to install using setuptools/pip:
 
 ```bash
-# method 1
 sudo pip install git+https://github.com/sezanzeb/key-mapper.git
-# method 2
+```
+
+```bash
 git clone https://github.com/sezanzeb/key-mapper.git
 cd key-mapper && sudo python3 setup.py install
 ```

@@ -30,9 +30,12 @@ from gi.repository import Gtk
 
 from keymapper.state import custom_mapping, system_mapping
 from keymapper.config import config
+from keymapper.getdevices import get_devices, refresh_devices
+from keymapper.paths import get_preset_path
 from keymapper.daemon import Daemon, get_dbus_interface, BUS_NAME
 
-from tests.test import uinput_write_history_pipe, InputEvent, pending_events
+from tests.test import cleanup, uinput_write_history_pipe, InputEvent, \
+    pending_events, is_service_running, fixtures, tmp
 
 
 def gtk_iteration():
@@ -42,19 +45,25 @@ def gtk_iteration():
 
 
 class TestDBusDaemon(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.process = multiprocessing.Process(
+    def setUp(self):
+        self.process = multiprocessing.Process(
             target=os.system,
             args=('key-mapper-service -d',)
         )
-        cls.process.start()
+        self.process.start()
         time.sleep(0.5)
-        cls.interface = get_dbus_interface()
+        self.interface = get_dbus_interface()
 
-    @classmethod
-    def tearDownClass(cls):
-        cls.interface.stop(True)
+    def tearDown(self):
+        self.interface.stop()
+        os.system('pkill -f key-mapper-service')
+
+        for _ in range(10):
+            time.sleep(0.1)
+            if not is_service_running():
+                break
+
+        self.assertFalse(is_service_running())
 
     def test_can_connect(self):
         # it's a remote dbus object
@@ -64,6 +73,8 @@ class TestDBusDaemon(unittest.TestCase):
 
 
 class TestDaemon(unittest.TestCase):
+    new_fixture = '/dev/input/event9876'
+
     def setUp(self):
         self.grab = evdev.InputDevice.grab
         self.daemon = None
@@ -74,14 +85,20 @@ class TestDaemon(unittest.TestCase):
             self.daemon.stop()
             self.daemon = None
         evdev.InputDevice.grab = self.grab
-        config.clear_config()
-        system_mapping.populate()
+
+        if fixtures.get(self.new_fixture):
+            del fixtures[self.new_fixture]
+            refresh_devices()
+
+        cleanup()
 
     def test_daemon(self):
         ev_1 = (EV_KEY, 9)
         ev_2 = (EV_ABS, 12)
         keycode_to_1 = 100
         keycode_to_2 = 101
+
+        device = 'device 2'
 
         custom_mapping.change((*ev_1, 1), 'a')
         custom_mapping.change((*ev_2, -1), 'b')
@@ -92,20 +109,22 @@ class TestDaemon(unittest.TestCase):
 
         preset = 'foo'
 
-        custom_mapping.save('device 2', preset)
-        config.set_autoload_preset('device 2', preset)
+        custom_mapping.save(get_preset_path(device, preset))
+        config.set_autoload_preset(device, preset)
 
         """injection 1"""
 
         # should forward the event unchanged
-        pending_events['device 2'] = [
+        pending_events[device] = [
             InputEvent(EV_KEY, 13, 1)
         ]
 
         self.daemon = Daemon()
-        self.daemon.autoload()
+        preset_path = get_preset_path(device, preset)
 
-        self.assertTrue(self.daemon.is_injecting('device 2'))
+        self.daemon.start_injecting(device, preset_path)
+
+        self.assertTrue(self.daemon.is_injecting(device))
         self.assertFalse(self.daemon.is_injecting('device 1'))
 
         event = uinput_write_history_pipe[0].recv()
@@ -113,26 +132,100 @@ class TestDaemon(unittest.TestCase):
         self.assertEqual(event.code, 13)
         self.assertEqual(event.value, 1)
 
-        self.daemon.stop_injecting('device 2')
-        self.assertFalse(self.daemon.is_injecting('device 2'))
+        self.daemon.stop_injecting(device)
+        self.assertFalse(self.daemon.is_injecting(device))
 
         """injection 2"""
 
         # -1234 will be normalized to -1 by the injector
-        pending_events['device 2'] = [
+        pending_events[device] = [
             InputEvent(*ev_2, -1234)
         ]
 
         time.sleep(0.2)
         self.assertFalse(uinput_write_history_pipe[0].poll())
 
-        self.daemon.start_injecting('device 2', preset)
+        path = get_preset_path(device, preset)
+        self.daemon.start_injecting(device, path)
 
         # the written key is a key-down event, not the original
         # event value of -5678
         event = uinput_write_history_pipe[0].recv()
         self.assertEqual(event.type, EV_KEY)
         self.assertEqual(event.code, keycode_to_2)
+        self.assertEqual(event.value, 1)
+
+    def test_refresh_devices_on_start(self):
+        ev = (EV_KEY, 9)
+        keycode_to = 100
+        device = '9876 name'
+        # this test only makes sense if this device is unknown yet
+        self.assertIsNone(get_devices().get(device))
+        custom_mapping.change((*ev, 1), 'a')
+        system_mapping.clear()
+        system_mapping._set('a', keycode_to)
+        preset = 'foo'
+        custom_mapping.save(get_preset_path(device, preset))
+        config.set_autoload_preset(device, preset)
+        pending_events[device] = [
+            InputEvent(*ev, 1)
+        ]
+        self.daemon = Daemon()
+        preset_path = get_preset_path(device, preset)
+
+        # make sure the devices are populated
+        get_devices()
+        fixtures[self.new_fixture] = {
+            'capabilities': {evdev.ecodes.EV_KEY: [ev[1]]},
+            'phys': '9876 phys',
+            'name': device
+        }
+
+        self.daemon.start_injecting(device, preset_path)
+
+        # test if the injector called refresh_devices successfully
+        self.assertIsNotNone(get_devices().get(device))
+
+        event = uinput_write_history_pipe[0].recv()
+        self.assertEqual(event.type, EV_KEY)
+        self.assertEqual(event.code, keycode_to)
+        self.assertEqual(event.value, 1)
+
+        self.daemon.stop_injecting(device)
+        self.assertFalse(self.daemon.is_injecting(device))
+
+    def test_xmodmap_file(self):
+        from_keycode = evdev.ecodes.KEY_A
+        to_name = 'qux'
+        to_keycode = 100
+        event = (EV_KEY, from_keycode, 1)
+
+        device = 'device 2'
+        preset = 'foo'
+
+        path = get_preset_path(device, preset)
+
+        custom_mapping.change(event, to_name)
+        custom_mapping.save(path)
+
+        system_mapping.clear()
+
+        config.set_autoload_preset(device, preset)
+
+        pending_events[device] = [
+            InputEvent(*event)
+        ]
+
+        xmodmap_path = os.path.join(tmp, 'foobar.json')
+        with open(xmodmap_path, 'w') as file:
+            file.write(f'{{"{to_name}":{to_keycode}}}')
+
+        self.daemon = Daemon()
+        self.daemon.start_injecting(device, path, xmodmap_path)
+
+        event = uinput_write_history_pipe[0].recv()
+        self.assertEqual(event.type, EV_KEY)
+        self.assertEqual(event.code, to_keycode)
         self.assertEqual(event.value, 1)
 
 

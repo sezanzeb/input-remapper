@@ -21,7 +21,9 @@
 
 import unittest
 
-from keymapper.getdevices import _GetDevices, get_devices
+import evdev
+
+from keymapper.getdevices import _GetDevices, get_devices, map_abs_to_rel
 
 
 class FakePipe:
@@ -94,6 +96,27 @@ class TestGetDevices(unittest.TestCase):
             },
         })
 
+    def test_map_abs_to_rel(self):
+        # properly detects if the device is a gamepad
+        EV_ABS = evdev.ecodes.EV_ABS
+        EV_KEY = evdev.ecodes.EV_KEY
+
+        self.assertTrue(map_abs_to_rel({
+            EV_ABS: [evdev.ecodes.ABS_X]
+        }))
+        self.assertTrue(map_abs_to_rel({
+            EV_ABS: [evdev.ecodes.ABS_X, evdev.ecodes.ABS_RY],
+            EV_KEY: [evdev.ecodes.KEY_A]
+        }))
+        self.assertFalse(map_abs_to_rel({
+            EV_ABS: [evdev.ecodes.ABS_X, evdev.ecodes.ABS_MT_TRACKING_ID]
+        }))
+        self.assertFalse(map_abs_to_rel({
+            EV_ABS: [evdev.ecodes.ABS_HAT2X]
+        }))
+        self.assertFalse(map_abs_to_rel({
+            EV_KEY: [evdev.ecodes.ABS_X]  # intentionally ABS_X (0) on EV_KEY
+        }))
 
 if __name__ == "__main__":
     unittest.main()

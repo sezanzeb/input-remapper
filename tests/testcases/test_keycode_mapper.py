@@ -23,6 +23,7 @@ import unittest
 import asyncio
 import time
 
+from evdev import ecodes
 from evdev.ecodes import EV_KEY, EV_ABS, ABS_HAT0X, ABS_HAT0Y, KEY_A, ABS_X, \
     EV_REL, REL_X, BTN_TL
 
@@ -34,7 +35,7 @@ from keymapper.config import config
 from keymapper.mapping import Mapping
 
 from tests.test import InputEvent, UInput, uinput_write_history, \
-    clear_write_history
+    cleanup
 
 
 def wait(func, timeout=1.0):
@@ -76,8 +77,6 @@ class TestKeycodeMapper(unittest.TestCase):
         self.mapping = Mapping()
 
     def tearDown(self):
-        system_mapping.populate()
-
         # make sure all macros are stopped by tests
         for macro in active_macros.values():
             if macro.holding:
@@ -85,11 +84,7 @@ class TestKeycodeMapper(unittest.TestCase):
             self.assertFalse(macro.holding)
             self.assertFalse(macro.running)
 
-        keys = list(active_macros.keys())
-        for key in keys:
-            del active_macros[key]
-
-        clear_write_history()
+        cleanup()
 
     def test_d_pad(self):
         ev_1 = (EV_ABS, ABS_HAT0X, 1)
@@ -143,6 +138,10 @@ class TestKeycodeMapper(unittest.TestCase):
         self.assertTrue(should_map_event_as_btn(EV_KEY, KEY_A))
         self.assertFalse(should_map_event_as_btn(EV_ABS, ABS_X))
         self.assertFalse(should_map_event_as_btn(EV_REL, REL_X))
+
+        self.assertFalse(should_map_event_as_btn(EV_ABS, ecodes.ABS_MT_SLOT))
+        self.assertFalse(should_map_event_as_btn(EV_ABS, ecodes.ABS_MT_TOOL_Y))
+        self.assertFalse(should_map_event_as_btn(EV_ABS, ecodes.ABS_MT_POSITION_X))
 
     def test_handle_keycode(self):
         _key_to_code = {

@@ -63,8 +63,10 @@ def should_map_event_as_btn(ev_type, code):
     if ev_type == EV_KEY:
         return True
 
-    if ev_type == EV_ABS and code not in JOYSTICK:
-        return True
+    if ev_type == EV_ABS:
+        is_mousepad = 47 <= code <= 61
+        if not is_mousepad and code not in JOYSTICK:
+            return True
 
     return False
 

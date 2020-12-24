@@ -36,15 +36,15 @@ import shutil
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
 
-from keymapper.state import custom_mapping, system_mapping
-from keymapper.paths import CONFIG, get_config_path
+from keymapper.state import custom_mapping, system_mapping, XMODMAP_FILENAME
+from keymapper.paths import CONFIG_PATH, get_preset_path
 from keymapper.config import config, WHEEL, MOUSE
 from keymapper.dev.reader import keycode_reader
 from keymapper.gtk.row import to_string
 from keymapper.dev import permissions
 
-from tests.test import tmp, pending_events, InputEvent, uinput_write_history_pipe, \
-    clear_write_history
+from tests.test import tmp, pending_events, InputEvent, \
+    uinput_write_history_pipe, cleanup
 
 
 def gtk_iteration():
@@ -64,8 +64,6 @@ Gtk.main_quit = lambda: None
 
 def launch(argv=None):
     """Start key-mapper-gtk with the command line argument array argv."""
-    if os.path.exists(tmp):
-        shutil.rmtree(tmp)
     custom_mapping.empty()
 
     bin_path = os.path.join(os.getcwd(), 'bin', 'key-mapper-gtk')
@@ -109,9 +107,7 @@ class TestIntegration(unittest.TestCase):
         self.window.on_close()
         self.window.window.destroy()
         gtk_iteration()
-        shutil.rmtree('/tmp/key-mapper-test')
-        clear_write_history()
-        system_mapping.populate()
+        cleanup()
 
     def get_rows(self):
         return self.window.get('key_list').get_children()
@@ -184,7 +180,7 @@ class TestIntegration(unittest.TestCase):
         # it creates the file for that right away. It may have been possible
         # to write it such that it doesn't (its empty anyway), but it does,
         # so use that to test it in more detail.
-        path = get_config_path('device 2', 'new preset')
+        path = get_preset_path('device 2', 'new preset')
         self.assertTrue(os.path.exists(path))
         with open(path, 'r') as file:
             preset = json.load(file)
@@ -435,7 +431,7 @@ class TestIntegration(unittest.TestCase):
         self.window.get('preset_name_input').set_text('asdf')
         self.window.on_save_preset_clicked(None)
         self.assertEqual(self.window.selected_preset, 'asdf')
-        self.assertTrue(os.path.exists(f'{CONFIG}/device 1/asdf.json'))
+        self.assertTrue(os.path.exists(f'{CONFIG_PATH}/presets/device 1/asdf.json'))
         self.assertEqual(custom_mapping.get_character((EV_KEY, 14, 1)), 'b')
 
     def test_check_macro_syntax(self):
@@ -457,15 +453,15 @@ class TestIntegration(unittest.TestCase):
     def test_select_device_and_preset(self):
         # created on start because the first device is selected and some empty
         # preset prepared.
-        self.assertTrue(os.path.exists(f'{CONFIG}/device 1/new preset.json'))
+        self.assertTrue(os.path.exists(f'{CONFIG_PATH}/presets/device 1/new preset.json'))
         self.assertEqual(self.window.selected_device, 'device 1')
         self.assertEqual(self.window.selected_preset, 'new preset')
 
         # create another one
         self.window.on_create_preset_clicked(None)
         gtk_iteration()
-        self.assertTrue(os.path.exists(f'{CONFIG}/device 1/new preset.json'))
-        self.assertTrue(os.path.exists(f'{CONFIG}/device 1/new preset 2.json'))
+        self.assertTrue(os.path.exists(f'{CONFIG_PATH}/presets/device 1/new preset.json'))
+        self.assertTrue(os.path.exists(f'{CONFIG_PATH}/presets/device 1/new preset 2.json'))
         self.assertEqual(self.window.selected_preset, 'new preset 2')
 
         self.window.on_select_preset(FakeDropdown('new preset'))
@@ -473,7 +469,7 @@ class TestIntegration(unittest.TestCase):
         self.assertEqual(self.window.selected_preset, 'new preset')
 
         self.assertListEqual(
-            sorted(os.listdir(f'{CONFIG}/device 1')),
+            sorted(os.listdir(f'{CONFIG_PATH}/presets/device 1')),
             sorted(['new preset.json', 'new preset 2.json'])
         )
 
@@ -481,18 +477,18 @@ class TestIntegration(unittest.TestCase):
         self.window.get('preset_name_input').set_text('abc 123')
         gtk_iteration()
         self.assertEqual(self.window.selected_preset, 'new preset')
-        self.assertFalse(os.path.exists(f'{CONFIG}/device 1/abc 123.json'))
+        self.assertFalse(os.path.exists(f'{CONFIG_PATH}/presets/device 1/abc 123.json'))
         custom_mapping.change((EV_KEY, 10, 1), '1', None)
         self.window.on_save_preset_clicked(None)
         gtk_iteration()
         self.assertEqual(self.window.selected_preset, 'abc 123')
-        self.assertTrue(os.path.exists(f'{CONFIG}/device 1/abc 123.json'))
+        self.assertTrue(os.path.exists(f'{CONFIG_PATH}/presets/device 1/abc 123.json'))
         self.assertListEqual(
-            sorted(os.listdir(CONFIG)),
+            sorted(os.listdir(os.path.join(CONFIG_PATH, 'presets'))),
             sorted(['device 1'])
         )
         self.assertListEqual(
-            sorted(os.listdir(f'{CONFIG}/device 1')),
+            sorted(os.listdir(f'{CONFIG_PATH}/presets/device 1')),
             sorted(['abc 123.json', 'new preset 2.json'])
         )
 
@@ -540,7 +536,10 @@ class TestIntegration(unittest.TestCase):
             InputEvent(evdev.events.EV_KEY, keycode_from, 0)
         ]
 
-        custom_mapping.save('device 2', 'foo preset')
+        custom_mapping.save(get_preset_path('device 2', 'foo preset'))
+
+        # use only the manipulated system_mapping
+        os.remove(os.path.join(tmp, XMODMAP_FILENAME))
 
         self.window.selected_device = 'device 2'
         self.window.selected_preset = 'foo preset'
@@ -576,7 +575,7 @@ class TestIntegration(unittest.TestCase):
         # time due to time.sleep in the fakes and the injection is stopped.
         pending_events['device 2'] = [InputEvent(1, keycode_from, 1)] * 100
 
-        custom_mapping.save('device 2', 'foo preset')
+        custom_mapping.save(get_preset_path('device 2', 'foo preset'))
 
         self.window.selected_device = 'device 2'
         self.window.selected_preset = 'foo preset'
@@ -635,7 +634,8 @@ class TestPermissions(unittest.TestCase):
         status = self.window.get('status_bar')
 
         tooltip = status.get_tooltip_text()
-        self.assertIn('sudo key-mapper-service --setup-permissions', tooltip)
+        self.assertIn('sudo', tooltip)
+        self.assertIn('pkexec', tooltip)
         self.assertIn('error1', tooltip)
         self.assertIn('error2', tooltip)
         self.assertIn('error3', tooltip)

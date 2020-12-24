@@ -24,6 +24,7 @@
 
 import os
 import sys
+import shutil
 import time
 import copy
 import unittest
@@ -44,13 +45,15 @@ def is_service_running():
     """Check if the daemon is running."""
     try:
         subprocess.check_output(['pgrep', '-f', 'key-mapper-service'])
+        return True
     except subprocess.CalledProcessError:
-        return
+        return False
+
+
+if is_service_running():
     # let tests control daemon existance
     raise Exception('Expected the service not to be running already.')
 
-
-is_service_running()
 
 # make sure the "tests" module visible
 sys.path.append(os.getcwd())
@@ -185,7 +188,7 @@ class InputEvent:
 
 def patch_paths():
     from keymapper import paths
-    paths.CONFIG = '/tmp/key-mapper-test/'
+    paths.CONFIG_PATH = '/tmp/key-mapper-test'
 
 
 def patch_select():
@@ -333,17 +336,33 @@ patch_select()
 from keymapper.logger import update_verbosity
 from keymapper.dev.injector import KeycodeInjector
 from keymapper.config import config
+from keymapper.state import system_mapping, custom_mapping
+from keymapper.dev.keycode_mapper import active_macros
 
 # no need for a high number in tests
 KeycodeInjector.regrab_timeout = 0.15
 
-# create an empty config beforehand
-config.clear_config()
-config.save_config()
+
+def cleanup():
+    """Reset the applications state."""
+    os.system('pkill -f key-mapper-service')
+    if os.path.exists(tmp):
+        shutil.rmtree(tmp)
+    config.clear_config()
+    config.save_config()
+    system_mapping.populate()
+    custom_mapping.empty()
+    clear_write_history()
+    for key in list(active_macros.keys()):
+        del active_macros[key]
+    for key in list(pending_events.keys()):
+        del pending_events[key]
 
 
 def main():
     update_verbosity(True)
+
+    cleanup()
 
     modules = sys.argv[1:]
     # discoverer is really convenient, but it can't find a specific test
