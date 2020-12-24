@@ -128,12 +128,12 @@ class TestCheckGroup(unittest.TestCase):
         # session restart required, usermod already done
         self.assertIsNotNone(check_group('plugdev'))
         self.assertIn('plugdev', check_group('plugdev'))
-        self.assertNotIn('usermod', check_group('plugdev'))
+        self.assertIn('session', check_group('plugdev'))
 
         # usermod required
         self.assertIsNotNone(check_group('foobar'))
         self.assertIn('foobar', check_group('foobar'))
-        self.assertIn('usermod', check_group('foobar'))
+        self.assertIn('group', check_group('foobar'))
 
         # don't exist in /dev
         self.assertIsNone(check_group('a_unused'))

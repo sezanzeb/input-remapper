@@ -1,0 +1,4 @@
+#!/bin/bash
+systemctl enable key-mapper
+systemctl stop key-mapper
+systemctl start key-mapper

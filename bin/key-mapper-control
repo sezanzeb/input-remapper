@@ -1,0 +1,148 @@
+#!/usr/bin/python3
+# -*- coding: utf-8 -*-
+# key-mapper - GUI for device specific keyboard mappings
+# Copyright (C) 2020 sezanzeb <proxima@hip70890b.de>
+#
+# This file is part of key-mapper.
+#
+# key-mapper is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# key-mapper is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with key-mapper.  If not, see <https://www.gnu.org/licenses/>.
+
+
+"""Control the dbus service from the command line."""
+
+
+import os
+import grp
+import sys
+from argparse import ArgumentParser
+
+from keymapper.logger import logger
+from keymapper.config import config
+from keymapper.daemon import get_dbus_interface
+from keymapper.mapping import Mapping
+from keymapper.state import XMODMAP_FILENAME, system_mapping
+from keymapper.paths import get_preset_path, get_config_path
+from keymapper.getdevices import get_devices
+
+
+AUTOLOAD = 'autoload'
+START = 'start'
+STOP = 'stop'
+HELLO = 'hello'
+
+
+def run(cmd):
+    """Run and log a command."""
+    logger.info('Running `%s`...', cmd)
+    code = os.system(cmd)
+    if code != 0:
+        logger.error('Failed. exit code %d', code)
+
+
+def group_exists(name):
+    """Check if a group with that name exists."""
+    try:
+        grp.getgrnam(name)
+        return True
+    except KeyError:
+        return False
+
+
+def main(options, daemon, xmodmap_path):
+    """Do the stuff that the executable is supposed to do."""
+    # Is a function so that I can import it and test it
+    if options.list_devices:
+        get_devices()
+        sys.exit(0)
+
+    if options.key_names:
+        print('\n'.join(system_mapping.list_names()))
+        sys.exit(0)
+
+    if options.command not in [AUTOLOAD, START, STOP, HELLO]:
+        logger.error('Unknown command "%s"', options.command)
+
+    if options.command == AUTOLOAD:
+        daemon.stop()
+        for device, preset in config.iterate_autoload_presets():
+            mapping = Mapping()
+            preset_path = get_preset_path(device, preset)
+            mapping.load(preset_path)
+            daemon.start_injecting(device, preset_path, xmodmap_path)
+
+    if options.command == START:
+        if options.device is None:
+            logger.error('--device missing')
+            sys.exit(1)
+
+        if options.preset is None:
+            logger.error('--preset missing')
+            sys.exit(1)
+
+        preset_path = os.path.abspath(os.path.expanduser(options.preset))
+        daemon.start_injecting(options.device, preset_path, xmodmap_path)
+
+    if options.command == STOP:
+        if options.device is None:
+            logger.error('--device missing')
+            sys.exit(1)
+
+        daemon.stop_injecting(options.device)
+
+    if options.command == HELLO:
+        response = daemon.hello('hello')
+        logger.info('Daemon answered with "%s"', response)
+
+
+if __name__ == '__main__':
+    parser = ArgumentParser()
+    parser.add_argument(
+        '--command', action='store', dest='command',
+        help=(
+            'start, stop, autoload (also stops all current injections) '
+            'or hello'
+        ),
+        default=None, metavar='NAME'
+    )
+    parser.add_argument(
+        '--preset', action='store', dest='preset',
+        help='path to the preset .json file',
+        default=None, metavar='PATH',
+    )
+    parser.add_argument(
+        '--device', action='store', dest='device',
+        help='The device name',
+        default=None, metavar='PATH'
+    )
+    parser.add_argument(
+        '--list-devices', action='store_true', dest='list_devices',
+        help='List available device names and exit',
+        default=False
+    )
+    parser.add_argument(
+        '-n', '--key-names', action='store_true', dest='key_names',
+        help='Print all available names for the mapping',
+        default=False
+    )
+
+    options = parser.parse_args(sys.argv[1:])
+
+    daemon = get_dbus_interface(fallback=False)
+
+    if daemon is None:
+        sys.exit(0)
+
+    xmodmap_path = get_config_path(XMODMAP_FILENAME)
+
+    main(options, daemon, xmodmap_path)

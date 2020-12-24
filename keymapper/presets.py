@@ -26,9 +26,31 @@ import os
 import time
 import glob
 
-from keymapper.paths import get_config_path, mkdir
+from keymapper.paths import get_preset_path, mkdir, CONFIG_PATH
 from keymapper.logger import logger
 from keymapper.getdevices import get_devices
+
+
+def migrate_path():
+    """Migrate the folder structure from < 0.4.0.
+
+    Move existing presets into the new subfolder "presets"
+    """
+    new_preset_folder = os.path.join(CONFIG_PATH, 'presets')
+    if not os.path.exists(get_preset_path()) and os.path.exists(CONFIG_PATH):
+        logger.info('Migrating presets from < 0.4.0...')
+        devices = os.listdir(CONFIG_PATH)
+        mkdir(get_preset_path())
+        for device in devices:
+            path = os.path.join(CONFIG_PATH, device)
+            if os.path.isdir(path):
+                target = path.replace(CONFIG_PATH, new_preset_folder)
+                logger.info('Moving "%s" to "%s"', path, target)
+                os.rename(path, target)
+        logger.info('done')
+
+
+migrate_path()
 
 
 def get_available_preset_name(device, preset='new preset'):
@@ -36,9 +58,9 @@ def get_available_preset_name(device, preset='new preset'):
     preset = preset.strip()
 
     # find a name that is not already taken
-    if os.path.exists(get_config_path(device, preset)):
+    if os.path.exists(get_preset_path(device, preset)):
         i = 2
-        while os.path.exists(get_config_path(device, f'{preset} {i}')):
+        while os.path.exists(get_preset_path(device, f'{preset} {i}')):
             i += 1
         return f'{preset} {i}'
 
@@ -52,7 +74,7 @@ def get_presets(device):
     ----------
     device : string
     """
-    device_folder = get_config_path(device)
+    device_folder = get_preset_path(device)
     mkdir(device_folder)
 
     paths = glob.glob(os.path.join(device_folder, '*.json'))
@@ -89,12 +111,12 @@ def find_newest_preset(device=None):
     # sort the oldest files to the front in order to use pop to get the newest
     if device is None:
         paths = sorted(
-            glob.glob(os.path.join(get_config_path(), '*/*.json')),
+            glob.glob(os.path.join(get_preset_path(), '*/*.json')),
             key=os.path.getmtime
         )
     else:
         paths = sorted(
-            glob.glob(os.path.join(get_config_path(device), '*.json')),
+            glob.glob(os.path.join(get_preset_path(device), '*.json')),
             key=os.path.getmtime
         )
 
@@ -126,7 +148,7 @@ def find_newest_preset(device=None):
 
 def delete_preset(device, preset):
     """Delete one of the users presets."""
-    preset_path = get_config_path(device, preset)
+    preset_path = get_preset_path(device, preset)
     if not os.path.exists(preset_path):
         logger.debug('Cannot remove non existing path "%s"', preset_path)
         return
@@ -134,7 +156,7 @@ def delete_preset(device, preset):
     logger.info('Removing "%s"', preset_path)
     os.remove(preset_path)
 
-    device_path = get_config_path(device)
+    device_path = get_preset_path(device)
     if os.path.exists(device_path) and len(os.listdir(device_path)) == 0:
         logger.debug('Removing empty dir "%s"', device_path)
         os.rmdir(device_path)
@@ -148,9 +170,9 @@ def rename_preset(device, old_preset_name, new_preset_name):
     new_preset_name = get_available_preset_name(device, new_preset_name)
     logger.info('Moving "%s" to "%s"', old_preset_name, new_preset_name)
     os.rename(
-        get_config_path(device, old_preset_name),
-        get_config_path(device, new_preset_name)
+        get_preset_path(device, old_preset_name),
+        get_preset_path(device, new_preset_name)
     )
     # set the modification date to now
     now = time.time()
-    os.utime(get_config_path(device, new_preset_name), (now, now))
+    os.utime(get_preset_path(device, new_preset_name), (now, now))

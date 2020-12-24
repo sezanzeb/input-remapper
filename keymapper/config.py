@@ -23,23 +23,16 @@
 
 
 import os
+import sys
 import json
 import shutil
 
-from keymapper.paths import CONFIG, USER, touch
+from keymapper.paths import CONFIG_PATH, USER, touch
 from keymapper.logger import logger
 
 
 MOUSE = 'mouse'
 WHEEL = 'wheel'
-
-CONFIG_PATH = os.path.join(CONFIG, 'config.json')
-
-# to support early versions in which the .json ending was missing:
-deprecated_path = os.path.join(CONFIG, 'config')
-if os.path.exists(deprecated_path) and not os.path.exists(CONFIG_PATH):
-    logger.info('Moving "%s" to "%s"', deprecated_path, CONFIG_PATH)
-    os.rename(os.path.join(CONFIG, 'config'), CONFIG_PATH)
 
 INITIAL_CONFIG = {
     'autoload': {},
@@ -150,7 +143,7 @@ class ConfigBase:
         path : string
             For example 'macros.keystroke_sleep_ms'
         log_unknown : bool
-            If True, write an error.
+            If True, write an error if `path` does not exist in the config
         """
         def callback(parent, child, chunk):
             return child
@@ -180,6 +173,14 @@ class GlobalConfig(ConfigBase):
     have the key set, a hardcoded default value will be used.
     """
     def __init__(self):
+        self.path = os.path.join(CONFIG_PATH, 'config.json')
+
+        # migrate from < 0.4.0, add the .json ending
+        deprecated_path = os.path.join(CONFIG_PATH, 'config')
+        if os.path.exists(deprecated_path) and not os.path.exists(self.path):
+            logger.info('Moving "%s" to "%s"', deprecated_path, self.path)
+            os.rename(os.path.join(CONFIG_PATH, 'config'), self.path)
+
         super().__init__()
         self.load_config()
 
@@ -207,32 +208,39 @@ class GlobalConfig(ConfigBase):
 
     def is_autoloaded(self, device, preset):
         """Should this preset be loaded automatically?"""
-        return self.get(f'autoload.{device}', '') == preset
+        return self.get(f'autoload.{device}', log_unknown=False) == preset
 
     def load_config(self):
         """Load the config from the file system."""
         self.clear_config()
 
-        if not os.path.exists(CONFIG_PATH):
+        if not os.path.exists(self.path):
             # treated like an empty config
-            logger.debug('Config "%s" doesn\'t exist yet', CONFIG_PATH)
+            logger.debug('Config "%s" doesn\'t exist yet', self.path)
             self.clear_config()
             self._config = INITIAL_CONFIG
             self.save_config()
             return
 
-        with open(CONFIG_PATH, 'r') as file:
-            self._config.update(json.load(file))
-            logger.info('Loaded config from "%s"', CONFIG_PATH)
+        with open(self.path, 'r') as file:
+            try:
+                self._config.update(json.load(file))
+                logger.info('Loaded config from "%s"', self.path)
+            except json.decoder.JSONDecodeError as error:
+                logger.error(
+                    'Failed to parse config "%s": %s',
+                    self.path, str(error)
+                )
+                sys.exit(1)
 
     def save_config(self):
         """Save the config to the file system."""
-        touch(CONFIG_PATH)
+        touch(self.path)
 
-        with open(CONFIG_PATH, 'w') as file:
+        with open(self.path, 'w') as file:
             json.dump(self._config, file, indent=4)
-            logger.info('Saved config to %s', CONFIG_PATH)
-            shutil.chown(CONFIG_PATH, USER, USER)
+            logger.info('Saved config to %s', self.path)
+            shutil.chown(self.path, USER, USER)
             file.write('\n')
 
 

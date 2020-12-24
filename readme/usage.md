@@ -1,8 +1,9 @@
 # Usage
 
 To open the UI to modify the mappings, look into your applications menu
-and search for 'Key Mapper' in settings. You can also start it via 
-`key-mapper-gtk`. It works with both Wayland and X11.
+and search for 'Key Mapper'. You should be prompted for your sudo password
+as special permissions are needed to read events from `/dev/input/` files.
+You can also start it via `sudo key-mapper-gtk`.
 
 To change the mapping, you need to use the "Apply Defaults" button, so that
 the application can read the original keycode. It would otherwise be
@@ -41,7 +42,7 @@ Bear in mind that anti-cheat software might detect macros in games.
 ## Key Names
 
 Check the autocompletion of the GUI for possible values. You can also
-obtain a complete list of possiblities using `key-mapper-service --key-names`.
+obtain a complete list of possiblities using `key-mapper-control --key-names`.
 Examples:
 
 - Alphanumeric `a` to `z` and `0` to `9`
@@ -89,12 +90,12 @@ an example autoload entry:
 }
 ```
 
-`preset name` refers to `~/.config/key-mapper/device name/preset name.json`.
+`preset name` refers to `~/.config/key-mapper/presets/device name/preset name.json`.
 The device name can be found with `evtest`.
 
 Anything that is relevant to presets can be overwritten in them as well.
 Here is an example configuration for preset "a" for the "gamepad" device:
-`~/.config/key-mapper/gamepad/a.json`
+`~/.config/key-mapper/presets/gamepad/a.json`
 
 ```json
 {
@@ -117,4 +118,17 @@ If config.json is missing some stuff, it will query the hardcoded default
 values.
 
 The event codes can be read using `evtest`. Available names in the mapping
-can be listed with `key-mapper-service --key-names`.
+can be listed with `key-mapper-control --key-names`.
+
+## CLI
+
+`--command` requires the service to be running. You can start it via
+`systemctl start key-mapper` or `sudo key-mapper-service` if it isn't already
+running (or without sudo if your user has the appropriate permissions).
+
+```bash
+key-mapper-control --command autoload
+key-mapper-control --list-devices
+key-mapper-control --command stop --device "Razer Razer Naga Trinity"
+key-mapper-control --command start --device "Razer Razer Naga Trinity" --preset "~/.config/key-mapper/presets/gamepad/a.json"
+```

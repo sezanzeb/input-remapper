@@ -271,7 +271,7 @@
     <property name="icon-name">document-save</property>
   </object>
   <object class="GtkWindow" id="window">
-    <property name="width-request">700</property>
+    <property name="width-request">750</property>
     <property name="can-focus">False</property>
     <property name="title" translatable="yes">Key Mapper</property>
     <property name="icon">key-mapper.svg</property>
@@ -285,7 +285,7 @@
           <object class="GtkBox" id="devices">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
-            <property name="border-width">15</property>
+            <property name="border-width">20</property>
             <property name="spacing">10</property>
             <child>
               <object class="GtkLabel">
@@ -363,7 +363,7 @@
                   <object class="GtkBox" id="preset_settings">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
-                    <property name="border-width">15</property>
+                    <property name="border-width">20</property>
                     <property name="orientation">vertical</property>
                     <property name="spacing">10</property>
                     <child>
@@ -583,7 +583,7 @@
                   <object class="GtkBox" id="gamepad_config">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
-                    <property name="border-width">15</property>
+                    <property name="border-width">20</property>
                     <property name="orientation">vertical</property>
                     <property name="spacing">10</property>
                     <child>
@@ -816,7 +816,7 @@
                     <property name="can-focus">False</property>
                     <child>
                       <object class="GtkLabel">
-                        <property name="width-request">130</property>
+                        <property name="width-request">140</property>
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
                         <property name="tooltip-text" translatable="yes">Click on a cell below and hit a key on your device. Click the "Apply Defaults" beforehand.</property>

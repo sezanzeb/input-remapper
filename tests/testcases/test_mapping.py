@@ -28,11 +28,28 @@ from evdev.ecodes import EV_KEY, EV_ABS, ABS_HAT0X
 from keymapper.mapping import Mapping
 from keymapper.state import SystemMapping
 from keymapper.config import config
+from keymapper.paths import get_preset_path
 
-from tests.test import tmp
+from tests.test import tmp, cleanup
 
 
 class TestSystemMapping(unittest.TestCase):
+    def tearDown(self):
+        cleanup()
+
+    def test_update(self):
+        system_mapping = SystemMapping()
+        system_mapping.update({
+            'foo1': 101,
+            'bar1': 102
+        })
+        system_mapping.update({
+            'foo2': 201,
+            'bar2': 202
+        })
+        self.assertEqual(system_mapping.get('foo1'), 101)
+        self.assertEqual(system_mapping.get('bar2'), 202)
+
     def test_system_mapping(self):
         system_mapping = SystemMapping()
         self.assertGreater(len(system_mapping._mapping), 100)
@@ -78,11 +95,10 @@ class TestMapping(unittest.TestCase):
         self.assertFalse(self.mapping.changed)
 
     def tearDown(self):
-        if os.path.exists(tmp):
-            shutil.rmtree(tmp)
+        cleanup()
 
     def test_config(self):
-        self.mapping.save('foo', 'bar2')
+        self.mapping.save(get_preset_path('foo', 'bar2'))
 
         self.assertEqual(self.mapping.get('a'), None)
 
@@ -103,14 +119,14 @@ class TestMapping(unittest.TestCase):
         # after saving. It should be ignored.
         self.mapping.change((EV_KEY, 81, 1), 'a')
         self.mapping.set('mapping.a', 2)
-        self.mapping.save('foo', 'bar')
-        self.mapping.load('foo', 'bar')
+        self.mapping.save(get_preset_path('foo', 'bar'))
+        self.mapping.load(get_preset_path('foo', 'bar'))
         self.assertEqual(self.mapping.get_character((EV_KEY, 81, 1)), 'a')
         self.assertIsNone(self.mapping.get('mapping.a'))
 
         # loading a different preset also removes the configs from memory
         self.mapping.set('a.b.c', 6)
-        self.mapping.load('foo', 'bar2')
+        self.mapping.load(get_preset_path('foo', 'bar2'))
         self.assertIsNone(self.mapping.get('a.b.c'))
 
     def test_fallback(self):
@@ -146,14 +162,14 @@ class TestMapping(unittest.TestCase):
         self.mapping.change(two, '2')
         self.mapping.change(three, '3')
         self.mapping._config['foo'] = 'bar'
-        self.mapping.save('device 1', 'test')
+        self.mapping.save(get_preset_path('device 1', 'test'))
 
-        path = os.path.join(tmp, 'device 1', 'test.json')
+        path = os.path.join(tmp, 'presets', 'device 1', 'test.json')
         self.assertTrue(os.path.exists(path))
 
         loaded = Mapping()
         self.assertEqual(len(loaded), 0)
-        loaded.load('device 1', 'test')
+        loaded.load(get_preset_path('device 1', 'test'))
 
         self.assertEqual(len(loaded), 3)
         self.assertEqual(loaded.get_character(one), '1')
@@ -163,7 +179,7 @@ class TestMapping(unittest.TestCase):
 
     def test_save_load_2(self):
         # loads mappings with only (type, code) as the key
-        path = os.path.join(tmp, 'device 1', 'test.json')
+        path = os.path.join(tmp, 'presets', 'device 1', 'test.json')
         os.makedirs(os.path.dirname(path), exist_ok=True)
         with open(path, 'w') as file:
             json.dump({
@@ -175,7 +191,7 @@ class TestMapping(unittest.TestCase):
             }, file)
 
         loaded = Mapping()
-        loaded.load('device 1', 'test')
+        loaded.load(get_preset_path('device 1', 'test'))
         self.assertEqual(loaded.get_character((EV_KEY, 3, 1)), 'a')
         self.assertEqual(loaded.get_character((EV_ABS, ABS_HAT0X, -1)), 'b')
         self.assertEqual(loaded.get_character((EV_ABS, ABS_HAT0X, 1)), 'c')

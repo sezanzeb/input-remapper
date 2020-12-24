@@ -57,6 +57,8 @@ def prioritize(events):
 class _KeycodeReader:
     """Keeps reading keycodes in the background for the UI to use.
 
+    Does not serve any purpose for the injection service.
+
     When a button was pressed, the newest keycode can be obtained from this
     object. GTK has get_keycode for keyboard keys, but KeycodeReader also
     has knowledge of buttons like the middle-mouse button.

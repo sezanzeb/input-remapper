@@ -32,12 +32,12 @@ import evdev
 from evdev.ecodes import EV_KEY, EV_ABS, EV_REL
 
 from keymapper.logger import logger
-from keymapper.getdevices import get_devices
-from keymapper.state import system_mapping
+from keymapper.getdevices import get_devices, map_abs_to_rel
 from keymapper.dev.keycode_mapper import handle_keycode, \
     should_map_event_as_btn
 from keymapper.dev.ev_abs_mapper import ev_abs_mapper, JOYSTICK
 from keymapper.dev.macros import parse, is_this_a_macro
+from keymapper.state import system_mapping
 
 
 DEV_NAME = 'key-mapper'
@@ -158,13 +158,6 @@ class KeycodeInjector:
         self._process = multiprocessing.Process(target=self._start_injecting)
         self._process.start()
 
-    def map_abs_to_rel(self, capabilities):
-        """Check if joystick movements can and should be mapped."""
-        # mapping buttons only works without ABS events in the capabilities,
-        # possibly due to some intentional constraints in the os. So always
-        # do this without the option to configure, if it is possible.
-        return evdev.ecodes.ABS_X in capabilities.get(EV_ABS, [])
-
     def _prepare_device(self, path):
         """Try to grab the device, return if not needed/possible.
 
@@ -185,7 +178,7 @@ class KeycodeInjector:
                 needed = True
                 break
 
-        abs_to_rel = self.map_abs_to_rel(capabilities)
+        abs_to_rel = map_abs_to_rel(capabilities)
 
         if abs_to_rel:
             needed = True
