@@ -122,6 +122,8 @@ can be listed with `key-mapper-control --key-names`.
 
 ## CLI
 
+**key-mapper-control**
+
 `--command` requires the service to be running. You can start it via
 `systemctl start key-mapper` or `sudo key-mapper-service` if it isn't already
 running (or without sudo if your user has the appropriate permissions).
@@ -132,3 +134,14 @@ key-mapper-control --list-devices
 key-mapper-control --command stop --device "Razer Razer Naga Trinity"
 key-mapper-control --command start --device "Razer Razer Naga Trinity" --preset "~/.config/key-mapper/presets/gamepad/a.json"
 ```
+
+**systemctl**
+
+Stopping the service will stop all injections until the computer is rebooted.
+
+```bash
+sudo systemctl stop key-mapper
+sudo systemctl start key-mapper
+systemctl status key-mapper
+```
+
