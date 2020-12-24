@@ -27,7 +27,7 @@ import time
 from keymapper.presets import find_newest_preset, rename_preset, \
     get_any_preset, delete_preset, get_available_preset_name, get_presets, \
     migrate_path
-from keymapper.paths import CONFIG_PATH, get_preset_path, touch
+from keymapper.paths import CONFIG_PATH, get_preset_path, touch, mkdir
 from keymapper.state import custom_mapping
 
 from tests.test import tmp
@@ -57,6 +57,24 @@ class TestMigrate(unittest.TestCase):
 
         self.assertTrue(os.path.exists(os.path.join(tmp, 'presets', 'foo1', 'bar1.json')))
         self.assertTrue(os.path.exists(os.path.join(tmp, 'presets', 'foo2', 'bar2.json')))
+
+    def test_doesnt_migrate(self):
+        if os.path.exists(tmp):
+            shutil.rmtree(tmp)
+
+        touch(os.path.join(tmp, 'foo1', 'bar1.json'))
+        touch(os.path.join(tmp, 'foo2', 'bar2.json'))
+
+        # already migrated
+        mkdir(os.path.join(tmp, 'presets'))
+
+        migrate_path()
+
+        self.assertTrue(os.path.exists(os.path.join(tmp, 'foo1', 'bar1.json')))
+        self.assertTrue(os.path.exists(os.path.join(tmp, 'foo2', 'bar2.json')))
+
+        self.assertFalse(os.path.exists(os.path.join(tmp, 'presets', 'foo1', 'bar1.json')))
+        self.assertFalse(os.path.exists(os.path.join(tmp, 'presets', 'foo2', 'bar2.json')))
 
 
 class TestCreatePreset(unittest.TestCase):
