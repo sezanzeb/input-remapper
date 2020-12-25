@@ -17,6 +17,9 @@ to [open up an issue here](https://github.com/sezanzeb/key-mapper/issues/new).
 Make sure to not post any debug logs that were generated while you entered
 private information with your device. Debug logs are quite verbose.
 
+If injecting stops after closing the window, the service is not running.
+Try `sudo systemctl start key-mapper` in a terminal.
+
 ## Macros
 
 It is possible to write timed macros into the center column:
