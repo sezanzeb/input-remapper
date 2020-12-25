@@ -12,7 +12,7 @@ invisible since the daemon maps it independently of the GUI.
 For changes to take effect, save the preset first. Otherwise, the daemon
 won't be able to know about your changes.
 
-If stuff doesn't work, check the output of `key-mapper-gtk -d` and feel free
+If stuff doesn't work, check the output of `sudo key-mapper-gtk -d` and feel free
 to [open up an issue here](https://github.com/sezanzeb/key-mapper/issues/new).
 Make sure to not post any debug logs that were generated while you entered
 private information with your device. Debug logs are quite verbose.
