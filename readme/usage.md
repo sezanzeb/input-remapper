@@ -157,5 +157,5 @@ should print `Daemon answered with "hello"`. And
 sudo key-mapper-control --list-devices
 ```
 
-should print Found "...", .... If anything looks wrong, feel free to [create
+should print `Found "...", ...`. If anything looks wrong, feel free to [create
 an issue](https://github.com/sezanzeb/key-mapper/issues/new).
