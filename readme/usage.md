@@ -13,9 +13,9 @@ For changes to take effect, save the preset first. Otherwise, the daemon
 won't be able to know about your changes.
 
 If stuff doesn't work, check the output of `key-mapper-gtk -d` and feel free
-to open up an issue here. Make sure to not post any debug logs that were
-generated while you entered private information with your device. Debug
-logs are quite verbose.
+to [open up an issue here](https://github.com/sezanzeb/key-mapper/issues/new).
+Make sure to not post any debug logs that were generated while you entered
+private information with your device. Debug logs are quite verbose.
 
 ## Macros
 
@@ -142,3 +142,20 @@ sudo systemctl start key-mapper
 systemctl status key-mapper
 ```
 
+## Testing your Installation
+
+The following commands can be used to make sure it works:
+
+```
+sudo key-mapper-service &
+key-mapper-control --command hello
+```
+
+should print Daemon answered with "hello". And
+
+```
+sudo key-mapper-control --list-devices
+```
+
+should print Found "...", .... If anything looks wrong, feel free to [create
+an issue](https://github.com/sezanzeb/key-mapper/issues/new).
