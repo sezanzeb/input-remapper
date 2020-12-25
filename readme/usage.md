@@ -13,9 +13,9 @@ For changes to take effect, save the preset first. Otherwise, the daemon
 won't be able to know about your changes.
 
 If stuff doesn't work, check the output of `key-mapper-gtk -d` and feel free
-to open up an issue here. Make sure to not post any debug logs that were
-generated while you entered private information with your device. Debug
-logs are quite verbose.
+to [open up an issue here](https://github.com/sezanzeb/key-mapper/issues/new).
+Make sure to not post any debug logs that were generated while you entered
+private information with your device. Debug logs are quite verbose.
 
 ## Macros
 
@@ -53,14 +53,11 @@ Examples:
 ## Gamepads
 
 Joystick movements will be translated to mouse movements, while the second
-joystick acts as a mouse wheel. All buttons, triggers and D-Pads can be
-mapped to keycodes and macros. The purpose of your joysticks can be
-configured in the json files with the `gamepad.joystick.left_purpose` and
-`right_purpose` keys. See [Configuration Files](#configuration-files)
-for more info.
+joystick acts as a mouse wheel. You can swap this in the user interface.
+All buttons, triggers and D-Pads can be mapped to keycodes and macros.
 
 The D-Pad can be mapped to W, A, S, D for example, to run around in games,
-while the joystick turns the view.
+while the joystick turns the view (depending on the game).
 
 Tested with the XBOX 360 Gamepad. On Ubuntu, gamepads worked better in
 Wayland than with X11 for me.
@@ -145,3 +142,20 @@ sudo systemctl start key-mapper
 systemctl status key-mapper
 ```
 
+## Testing your Installation
+
+The following commands can be used to make sure it works:
+
+```bash
+sudo key-mapper-service &
+key-mapper-control --command hello
+```
+
+should print `Daemon answered with "hello"`. And
+
+```bash
+sudo key-mapper-control --list-devices
+```
+
+should print `Found "...", ...`. If anything looks wrong, feel free to [create
+an issue](https://github.com/sezanzeb/key-mapper/issues/new).
