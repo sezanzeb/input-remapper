@@ -82,7 +82,7 @@ class SystemMapping:
 
         if USER != 'root':
             # write this stuff into the key-mapper config directory, because
-            # the systemd service needs to know the xmodmap list on boot.
+            # the systemd service won't know the user sessions xmodmap
             path = get_config_path(XMODMAP_FILENAME)
             touch(path)
             with open(path, 'w') as file:
