@@ -91,7 +91,7 @@ an example autoload entry:
 ```
 
 `preset name` refers to `~/.config/key-mapper/presets/device name/preset name.json`.
-The device name can be found with `evtest`.
+The device name can be found with `sudo key-mapper-control --list-devices`.
 
 Anything that is relevant to presets can be overwritten in them as well.
 Here is an example configuration for preset "a" for the "gamepad" device:
@@ -130,7 +130,7 @@ running (or without sudo if your user has the appropriate permissions).
 
 ```bash
 key-mapper-control --command autoload
-key-mapper-control --list-devices
+sudo key-mapper-control --list-devices
 key-mapper-control --command stop --device "Razer Razer Naga Trinity"
 key-mapper-control --command start --device "Razer Razer Naga Trinity" --preset "~/.config/key-mapper/presets/gamepad/a.json"
 ```

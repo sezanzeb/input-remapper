@@ -1,4 +1,6 @@
 #!/bin/bash
-systemctl enable key-mapper
-systemctl stop key-mapper
-systemctl start key-mapper
+if [ -d "/run/systemd/system/" ]; then
+  systemctl enable key-mapper
+  systemctl stop key-mapper
+  systemctl start key-mapper
+fi
