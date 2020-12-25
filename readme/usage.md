@@ -146,14 +146,14 @@ systemctl status key-mapper
 
 The following commands can be used to make sure it works:
 
-```
+```bash
 sudo key-mapper-service &
 key-mapper-control --command hello
 ```
 
-should print Daemon answered with "hello". And
+should print `Daemon answered with "hello"`. And
 
-```
+```bash
 sudo key-mapper-control --list-devices
 ```
 
