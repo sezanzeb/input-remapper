@@ -53,14 +53,11 @@ Examples:
 ## Gamepads
 
 Joystick movements will be translated to mouse movements, while the second
-joystick acts as a mouse wheel. All buttons, triggers and D-Pads can be
-mapped to keycodes and macros. The purpose of your joysticks can be
-configured in the json files with the `gamepad.joystick.left_purpose` and
-`right_purpose` keys. See [Configuration Files](#configuration-files)
-for more info.
+joystick acts as a mouse wheel. You can swap this in the user interface.
+All buttons, triggers and D-Pads can be mapped to keycodes and macros.
 
 The D-Pad can be mapped to W, A, S, D for example, to run around in games,
-while the joystick turns the view.
+while the joystick turns the view (depending on the game).
 
 Tested with the XBOX 360 Gamepad. On Ubuntu, gamepads worked better in
 Wayland than with X11 for me.
