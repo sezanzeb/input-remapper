@@ -834,7 +834,7 @@
                         <property name="width-request">140</property>
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
-                        <property name="tooltip-text" translatable="yes">Click on a cell below and hit a key on your device. Click the "Apply Defaults" beforehand.</property>
+                        <property name="tooltip-text" translatable="yes">Click on a cell below and hit a key on your device. Click the "Restore Defaults" beforehand.</property>
                         <property name="margin-top">5</property>
                         <property name="margin-bottom">5</property>
                         <property name="label" translatable="yes">Key</property>
