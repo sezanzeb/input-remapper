@@ -30,6 +30,7 @@ import os
 
 from keymapper.logger import logger
 from keymapper.paths import USER
+from keymapper.daemon import is_service_running
 
 
 def check_group(group):
@@ -96,7 +97,10 @@ def can_read_devices():
     plugdev_check = check_group('plugdev')
 
     # ubuntu. funnily, individual devices in /dev/input/ have write permitted.
-    can_write = check_injection_rights()
+    if not is_service_running():
+        can_write = check_injection_rights()
+    else:
+        can_write = None
 
     ret = [
         check for check

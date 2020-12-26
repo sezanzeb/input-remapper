@@ -28,6 +28,7 @@ import unittest
 from keymapper.dev.permissions import check_injection_rights, check_group, \
     can_read_devices
 from keymapper.paths import USER
+from keymapper.daemon import is_service_running
 
 
 original_access = os.access
@@ -37,7 +38,7 @@ original_stat = os.stat
 oringal_getuser = getpass.getuser
 
 
-class TestCheckGroup(unittest.TestCase):
+class TestPermissions(unittest.TestCase):
     def tearDown(self):
         # reset all fakes
         os.access = original_access
@@ -97,12 +98,20 @@ class TestCheckGroup(unittest.TestCase):
                 self.gr_mem = gr_mems[group][1]
 
         grp.getgrnam = getgrnam
-        # fake the `groups` output to act like the current session only
-        # has input and a_unused active
-        subprocess.check_output = lambda cmd: b'foo input a_unused bar'
+
+        def fake_check_output(cmd):
+            # fake the `groups` output to act like the current session only
+            # has input and a_unused active
+            if cmd[0] == 'groups':
+                return b'foo input a_unused bar'
+
+            return original_check_output(cmd)
+
+        subprocess.check_output = fake_check_output
 
     def test_can_read_devices(self):
         self.fake_setup()
+        self.assertFalse(is_service_running())
 
         # root user doesn't need this stuff
         getpass.getuser = lambda: 'root'
