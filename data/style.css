@@ -19,6 +19,7 @@ list entry {
     background-color: transparent;
     border-radius: 4px;
     border: 0px;
+    box-shadow: none;
 }
 
 list button:not(:focus) {
