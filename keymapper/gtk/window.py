@@ -154,6 +154,29 @@ class Window:
         # now show the proper finished content of the window
         self.get('vertical-wrapper').set_opacity(1)
 
+        self.ctrl = 0
+
+    def key_press(self, window, event):
+        """To execute shortcuts.
+
+        This has nothing to do with the keycode reader.
+        """
+        gdk_keycode = event.get_keyval()[1]
+        if gdk_keycode == Gdk.KEY_Control_L:
+            self.ctrl = True
+
+        if gdk_keycode == Gdk.KEY_q and self.ctrl:
+            self.on_close()
+
+    def key_release(self, window, event):
+        """To execute shortcuts.
+
+        This has nothing to do with the keycode reader.
+        """
+        gdk_keycode = event.get_keyval()[1]
+        if gdk_keycode == Gdk.KEY_Control_L:
+            self.ctrl = False
+
     def initialize_gamepad_config(self):
         """Set slider and dropdown values when a gamepad is selected."""
         devices = get_devices()
@@ -182,6 +205,7 @@ class Window:
     def on_close(self, *_):
         """Safely close the application."""
         logger.debug('Closing window')
+        self.window.hide()
         for timeout in self.timeouts:
             GLib.source_remove(timeout)
             self.timeouts = []

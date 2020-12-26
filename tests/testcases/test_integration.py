@@ -34,7 +34,7 @@ from importlib.machinery import SourceFileLoader
 import gi
 import shutil
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk
+from gi.repository import Gtk, Gdk
 
 from keymapper.state import custom_mapping, system_mapping, XMODMAP_FILENAME
 from keymapper.paths import CONFIG_PATH, get_preset_path
@@ -100,8 +100,10 @@ class TestIntegration(unittest.TestCase):
     """
     def setUp(self):
         self.window = launch()
+        self.original_on_close = self.window.on_close
 
     def tearDown(self):
+        self.window.on_close = self.original_on_close
         self.window.on_apply_system_layout_clicked(None)
         gtk_iteration()
         self.window.on_close()
@@ -111,6 +113,39 @@ class TestIntegration(unittest.TestCase):
 
     def get_rows(self):
         return self.window.get('key_list').get_children()
+
+    def test_ctrl_q(self):
+        class Event:
+            def __init__(self, keyval):
+                self.keyval = keyval
+
+            def get_keyval(self):
+                return True, self.keyval
+
+        closed = False
+
+        def on_close():
+            nonlocal closed
+            closed = True
+
+        self.window.on_close = on_close
+
+        self.window.key_press(self.window, Event(Gdk.KEY_Control_L))
+        self.window.key_press(self.window, Event(Gdk.KEY_a))
+        self.window.key_release(self.window, Event(Gdk.KEY_Control_L))
+        self.window.key_release(self.window, Event(Gdk.KEY_a))
+        self.window.key_press(self.window, Event(Gdk.KEY_b))
+        self.window.key_press(self.window, Event(Gdk.KEY_q))
+        self.window.key_release(self.window, Event(Gdk.KEY_q))
+        self.window.key_release(self.window, Event(Gdk.KEY_b))
+        self.assertFalse(closed)
+
+        self.window.key_press(self.window, Event(Gdk.KEY_Control_L))
+        self.window.key_press(self.window, Event(Gdk.KEY_q))
+        self.assertTrue(closed)
+
+        self.window.key_release(self.window, Event(Gdk.KEY_Control_L))
+        self.window.key_release(self.window, Event(Gdk.KEY_q))
 
     def test_show_device_mapping_status(self):
         # this function may not return True, otherwise the timeout
