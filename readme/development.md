@@ -94,3 +94,7 @@ by systemd from other applications
 - `key-mapper-autoload.desktop` executes on login and tells the systemd
 service to stop injecting (possible the presets of another user) and to
 inject the users autoloaded presets instead (if any are configured)
+
+## Resources
+
+[PyGObject API Reference](https://lazka.github.io/pgi-docs/)
