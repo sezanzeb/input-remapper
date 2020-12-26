@@ -20,13 +20,12 @@
 
 
 import os
-import shutil
-import json
 import unittest
-from evdev.ecodes import EV_KEY, EV_ABS, ABS_HAT0X
+import json
+from evdev.ecodes import EV_KEY, EV_ABS, ABS_HAT0X, KEY_A
 
 from keymapper.mapping import Mapping
-from keymapper.state import SystemMapping
+from keymapper.state import SystemMapping, XMODMAP_FILENAME
 from keymapper.config import config
 from keymapper.paths import get_preset_path
 
@@ -49,6 +48,20 @@ class TestSystemMapping(unittest.TestCase):
         })
         self.assertEqual(system_mapping.get('foo1'), 101)
         self.assertEqual(system_mapping.get('bar2'), 202)
+
+    def test_xmodmap_file(self):
+        system_mapping = SystemMapping()
+        path = os.path.join(tmp, XMODMAP_FILENAME)
+        os.remove(path)
+
+        system_mapping.populate()
+        self.assertTrue(os.path.exists(path))
+        with open(path, 'r') as file:
+            content = json.load(file)
+            self.assertEqual(content['a'], KEY_A)
+            # only xmodmap stuff should be present
+            self.assertNotIn('key_a', content)
+            self.assertNotIn('KEY_A', content)
 
     def test_system_mapping(self):
         system_mapping = SystemMapping()

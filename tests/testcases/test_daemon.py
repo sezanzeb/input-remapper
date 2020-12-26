@@ -23,14 +23,16 @@ import os
 import multiprocessing
 import unittest
 import time
+import subprocess
 
 import evdev
 from evdev.ecodes import EV_KEY, EV_ABS
 from gi.repository import Gtk
+from pydbus import SystemBus
 
 from keymapper.state import custom_mapping, system_mapping
 from keymapper.config import config
-from keymapper.getdevices import get_devices, refresh_devices
+from keymapper.getdevices import get_devices
 from keymapper.paths import get_preset_path
 from keymapper.daemon import Daemon, get_dbus_interface, BUS_NAME
 
@@ -72,6 +74,10 @@ class TestDBusDaemon(unittest.TestCase):
         self.assertEqual(self.interface.hello('foo'), 'foo')
 
 
+check_output = subprocess.check_output
+dbus_get = type(SystemBus()).get
+
+
 class TestDaemon(unittest.TestCase):
     new_fixture = '/dev/input/event9876'
 
@@ -86,7 +92,30 @@ class TestDaemon(unittest.TestCase):
             self.daemon = None
         evdev.InputDevice.grab = self.grab
 
+        subprocess.check_output = check_output
+        type(SystemBus()).get = dbus_get
+
         cleanup()
+
+    def test_get_dbus_interface(self):
+        # no daemon runs, should return an instance of the object instead
+        self.assertFalse(is_service_running())
+        self.assertIsInstance(get_dbus_interface(), Daemon)
+        self.assertIsNone(get_dbus_interface(False))
+
+        subprocess.check_output = lambda *args: None
+        self.assertTrue(is_service_running())
+        # now it actually tries to use the dbus, but it fails
+        # because none exists, so it returns an instance again
+        self.assertIsInstance(get_dbus_interface(), Daemon)
+        self.assertIsNone(get_dbus_interface(False))
+
+        class FakeConnection:
+            pass
+
+        type(SystemBus()).get = lambda *args: FakeConnection()
+        self.assertIsInstance(get_dbus_interface(), FakeConnection)
+        self.assertIsInstance(get_dbus_interface(False), FakeConnection)
 
     def test_daemon(self):
         ev_1 = (EV_KEY, 9)
