@@ -58,11 +58,15 @@ class TestEvAbsMapper(unittest.TestCase):
         self.mapping.clear_config()
         loop = asyncio.get_event_loop()
 
-        for task in asyncio.Task.all_tasks():
-            task.cancel()
+        try:
+            for task in asyncio.Task.all_tasks():
+                task.cancel()
 
-        loop.stop()
-        loop.close()
+            loop.stop()
+            loop.close()
+        except RuntimeError:
+            pass
+
         clear_write_history()
 
     def do(self, a, b, c, d, expectation):

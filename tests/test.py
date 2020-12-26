@@ -104,8 +104,6 @@ fixtures = {
     },
 
     '/dev/input/event30': {
-        # this device is expected to not have EV_KEY capabilities in tests
-        # yet. Only when the injector is running EV_KEY stuff is added
         'capabilities': {
             evdev.ecodes.EV_SYN: [],
             evdev.ecodes.EV_ABS: [
@@ -114,6 +112,9 @@ fixtures = {
                 evdev.ecodes.ABS_RX,
                 evdev.ecodes.ABS_RY,
                 evdev.ecodes.ABS_HAT0X
+            ],
+            evdev.ecodes.EV_KEY: [
+                evdev.ecodes.BTN_A
             ]
         },
         'phys': 'usb-0000:03:00.0-3/input1',
@@ -228,17 +229,9 @@ class InputDevice:
         self.phys = fixtures[path]['phys']
         self.name = fixtures[path]['name']
         self.fd = self.name
-        self.capa = copy.deepcopy(fixtures[self.path]['capabilities'])
 
-        def absinfo(axis):
-            return {
-                evdev.ecodes.EV_ABS: evdev.AbsInfo(
-                    value=None, min=None, fuzz=None, flat=None,
-                    resolution=None, max=MAX_ABS
-                )
-            }[axis]
-
-        self.absinfo = absinfo
+    def absinfo(self, *args):
+        raise Exception('Ubuntus version of evdev doesn\'t support .absinfo')
 
     def grab(self):
         pass
@@ -280,7 +273,18 @@ class InputDevice:
             await asyncio.sleep(0.01)
 
     def capabilities(self, absinfo=True):
-        return self.capa
+        result = copy.deepcopy(fixtures[self.path]['capabilities'])
+
+        if absinfo and evdev.ecodes.EV_ABS in result:
+            absinfo_obj = evdev.AbsInfo(
+                value=None, min=None, fuzz=None, flat=None,
+                resolution=None, max=MAX_ABS
+            )
+            result[evdev.ecodes.EV_ABS] = [
+                (stuff, absinfo_obj) for stuff in result[evdev.ecodes.EV_ABS]
+            ]
+
+        return result
 
 
 class UInput:
@@ -336,6 +340,7 @@ patch_select()
 from keymapper.logger import update_verbosity
 from keymapper.dev.injector import KeycodeInjector
 from keymapper.config import config
+from keymapper.getdevices import refresh_devices
 from keymapper.state import system_mapping, custom_mapping
 from keymapper.dev.keycode_mapper import active_macros
 
@@ -343,20 +348,35 @@ from keymapper.dev.keycode_mapper import active_macros
 KeycodeInjector.regrab_timeout = 0.15
 
 
+_fixture_copy = copy.deepcopy(fixtures)
+
+
 def cleanup():
     """Reset the applications state."""
     os.system('pkill -f key-mapper-service')
     if os.path.exists(tmp):
         shutil.rmtree(tmp)
+
     config.clear_config()
     config.save_config()
+
     system_mapping.populate()
     custom_mapping.empty()
+
     clear_write_history()
+
     for key in list(active_macros.keys()):
         del active_macros[key]
     for key in list(pending_events.keys()):
         del pending_events[key]
+
+    for path in list(fixtures.keys()):
+        if path not in _fixture_copy:
+            del fixtures[path]
+    for path in list(_fixture_copy.keys()):
+        if path not in fixtures:
+            fixtures[path] = _fixture_copy[path]
+    refresh_devices()
 
 
 def main():

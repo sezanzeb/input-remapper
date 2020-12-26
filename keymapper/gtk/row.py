@@ -41,9 +41,9 @@ for name in system_mapping.list_names():
 def to_string(ev_type, code, value):
     """A nice to show description of the pressed key."""
     try:
-        name = evdev.ecodes.bytype[ev_type][code]
-        if isinstance(name, list):
-            name = name[0]
+        key_name = evdev.ecodes.bytype[ev_type][code]
+        if isinstance(key_name, list):
+            key_name = key_name[0]
 
         if ev_type != evdev.ecodes.EV_KEY:
             direction = {
@@ -61,9 +61,9 @@ def to_string(ev_type, code, value):
                 (evdev.ecodes.ABS_HAT2Y, 1): 'D',
             }.get((code, value))
             if direction is not None:
-                name += f' {direction}'
+                key_name += f' {direction}'
 
-        return name.replace('KEY_', '')
+        return key_name.replace('KEY_', '')
     except KeyError:
         return 'unknown'
 
@@ -180,9 +180,9 @@ class Row(Gtk.ListBoxRow):
                 previous_key=None
             )
 
-    def match(self, completion, key, iter):
+    def match(self, completion, key, tree_iter):
         """Search the avilable names."""
-        value = store.get_value(iter, 0)
+        value = store.get_value(tree_iter, 0)
         return key in value.lower()
 
     def put_together(self, character):

@@ -21,12 +21,42 @@
 
 import unittest
 
+import evdev
+from evdev.ecodes import EV_ABS, EV_KEY
+
 from keymapper.getdevices import get_devices
+
+from tests.test import InputDevice, cleanup, fixtures
 
 
 class TestTest(unittest.TestCase):
     def test_stubs(self):
         self.assertIn('device 1', get_devices())
+
+    def test_fake_capabilities(self):
+        device = InputDevice('/dev/input/event30')
+        capabilities = device.capabilities(absinfo=False)
+        self.assertIsInstance(capabilities, dict)
+        self.assertIsInstance(capabilities[EV_ABS], list)
+        self.assertIsInstance(capabilities[EV_ABS][0], int)
+
+        capabilities = device.capabilities()
+        self.assertIsInstance(capabilities, dict)
+        self.assertIsInstance(capabilities[EV_ABS], list)
+        self.assertIsInstance(capabilities[EV_ABS][0], tuple)
+        self.assertIsInstance(capabilities[EV_ABS][0][0], int)
+        self.assertIsInstance(capabilities[EV_ABS][0][1], evdev.AbsInfo)
+        self.assertIsInstance(capabilities[EV_ABS][0][1].max, int)
+        self.assertIsInstance(capabilities, dict)
+        self.assertIsInstance(capabilities[EV_KEY], list)
+        self.assertIsInstance(capabilities[EV_KEY][0], int)
+
+    def test_restore_fixtures(self):
+        fixtures[1] = [1234]
+        del fixtures['/dev/input/event11']
+        cleanup()
+        self.assertIsNone(fixtures.get(1))
+        self.assertIsNotNone(fixtures.get('/dev/input/event11'))
 
 
 if __name__ == "__main__":

@@ -63,11 +63,11 @@ def accumulate(pending, current):
     return pending, current
 
 
-def abs_max(a, b):
+def abs_max(value_1, value_2):
     """Get the value with the higher abs value."""
-    if abs(a) > abs(b):
-        return a
-    return b
+    if abs(value_1) > abs(value_2):
+        return value_1
+    return value_2
 
 
 def get_values(abs_state, left_purpose, right_purpose):
@@ -115,7 +115,18 @@ async def ev_abs_mapper(abs_state, input_device, keymapper_device, mapping):
     mapping : Mapping
         the mapping object that configures the current injection
     """
-    max_value = input_device.absinfo(EV_ABS).max
+    # since input_device.absinfo(EV_ABS).max is too new for ubuntu,
+    # figure out the max value via the capabilities
+    absinfos = [
+        entry[1] for entry in
+        input_device.capabilities(absinfo=True)[EV_ABS]
+        if isinstance(entry, tuple) and isinstance(entry[1], evdev.AbsInfo)
+    ]
+
+    if len(absinfos) == 0:
+        return
+
+    max_value = absinfos[0].max
 
     if max_value == 0:
         return
