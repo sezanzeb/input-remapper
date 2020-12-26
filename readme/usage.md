@@ -17,7 +17,7 @@ row (as shown in the screenshots).
 For changes to take effect, save the preset first. Otherwise, the daemon
 won't be able to know about your changes. Afterwards press the "Apply" button.
 
-To change the mapping, you need to use the "Apply Defaults" button, so that
+To change the mapping, you need to use the "Restore Defaults" button, so that
 the application can read the original keycode. It would otherwise be
 invisible since the daemon maps it independently of the GUI.
 

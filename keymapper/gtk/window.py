@@ -293,7 +293,7 @@ class Window:
             # because the device is in grab mode by the daemon and
             # therefore the original keycode inaccessible
             logger.info('Cannot change keycodes while injecting')
-            self.show_status(CTX_ERROR, 'Use "Apply Defaults" before editing')
+            self.show_status(CTX_ERROR, 'Use "Restore Defaults" before editing')
 
     def get_focused_row(self):
         """Get the Row and its child that is currently in focus."""
