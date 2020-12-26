@@ -25,10 +25,11 @@ Download a release .deb file from [/releases](https://github.com/sezanzeb/key-ma
 or install from source and dpkg using the following commands:
 
 ```bash
+sudo apt install git python3-setuptools
 git clone https://github.com/sezanzeb/key-mapper.git
 cd key-mapper && ./scripts/build.sh
 sudo dpkg -i ./dist/key-mapper-0.4.0.deb
-sudo apt-get -f install
+sudo apt -f install
 ```
 
 ##### pip
