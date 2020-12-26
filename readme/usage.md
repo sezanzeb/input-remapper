@@ -5,12 +5,23 @@ and search for 'Key Mapper'. You should be prompted for your sudo password
 as special permissions are needed to read events from `/dev/input/` files.
 You can also start it via `sudo key-mapper-gtk`.
 
+<p align="center">
+  <img src="usage_1.png"/>
+  <img src="usage_2.png"/>
+</p>
+
+Hitting a key on the device that is selected in the large dropdown on the top
+should display the key on the bottom of the window, and write it into the selected
+row (as shown in the screenshots).
+
+For changes to take effect, save the preset first. Otherwise, the daemon
+won't be able to know about your changes. Afterwards press the "Apply" button.
+
 To change the mapping, you need to use the "Apply Defaults" button, so that
 the application can read the original keycode. It would otherwise be
 invisible since the daemon maps it independently of the GUI.
 
-For changes to take effect, save the preset first. Otherwise, the daemon
-won't be able to know about your changes.
+## Troubleshooting
 
 If stuff doesn't work, check the output of `sudo key-mapper-gtk -d` and feel free
 to [open up an issue here](https://github.com/sezanzeb/key-mapper/issues/new).
