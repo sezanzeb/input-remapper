@@ -405,7 +405,11 @@ class Window:
         logger.debug('Applying preset "%s" for "%s"', preset, device)
 
         if custom_mapping.changed:
-            self.show_status(CTX_APPLY, f'Applied outdated preset "{preset}"')
+            self.show_status(
+                CTX_APPLY,
+                f'Applied outdated preset "{preset}"',
+                'Click "Save" first for changes to take effect'
+            )
         else:
             self.show_status(CTX_APPLY, f'Applied preset "{preset}"')
 

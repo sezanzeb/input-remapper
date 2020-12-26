@@ -95,12 +95,8 @@ class Row(Gtk.ListBoxRow):
     def get_keycode(self):
         """Get a tuple of type, code and value from the left column.
 
-        Or None if no codes are mapped on this row.
+        Or None if no code is mapped on this row.
         """
-        keycode = self.keycode_input.get_label()
-        if not keycode:
-            return None
-
         return self.key
 
     def get_character(self):
@@ -185,6 +181,32 @@ class Row(Gtk.ListBoxRow):
         value = store.get_value(tree_iter, 0)
         return key in value.lower()
 
+    def show_click_here(self):
+        """Show 'click here' on the keycode input button."""
+        if self.get_keycode() is not None:
+            return
+
+        self.keycode_input.set_label('click here')
+        self.keycode_input.set_opacity(0.3)
+
+    def show_press_key(self):
+        """Show 'press key' on the keycode input button."""
+        if self.get_keycode() is not None:
+            return
+
+        self.keycode_input.set_label('press key')
+        self.keycode_input.set_opacity(1)
+
+    def keycode_input_focus(self, *args):
+        """Refresh useful usage information."""
+        self.show_press_key()
+        self.window.can_modify_mapping()
+
+    def keycode_input_unfocus(self, *args):
+        """Refresh useful usage information."""
+        self.show_click_here()
+        self.keycode_input.set_active(False)
+
     def put_together(self, character):
         """Create all child GTK widgets and connect their signals."""
         delete_button = Gtk.EventBox()
@@ -199,23 +221,27 @@ class Row(Gtk.ListBoxRow):
         delete_button.set_size_request(50, -1)
 
         keycode_input = Gtk.ToggleButton()
+        self.keycode_input = keycode_input
         keycode_input.set_size_request(140, -1)
 
         if self.key is not None:
             keycode_input.set_label(to_string(*self.key))
+        else:
+            self.show_click_here()
 
         # make the togglebutton go back to its normal state when doing
         # something else in the UI
         keycode_input.connect(
             'focus-in-event',
-            self.window.can_modify_mapping
+            self.keycode_input_focus
         )
         keycode_input.connect(
             'focus-out-event',
-            lambda *args: keycode_input.set_active(False)
+            self.keycode_input_unfocus
         )
 
         character_input = Gtk.Entry()
+        self.character_input = character_input
         character_input.set_alignment(0.5)
         character_input.set_width_chars(4)
         character_input.set_has_frame(False)
@@ -245,9 +271,6 @@ class Row(Gtk.ListBoxRow):
         self.add(box)
         self.show_all()
 
-        self.character_input = character_input
-        self.keycode_input = keycode_input
-
     def on_delete_button_clicked(self, *args):
         """Destroy the row and remove it from the config."""
         key = self.get_keycode()
@@ -256,4 +279,5 @@ class Row(Gtk.ListBoxRow):
 
         self.character_input.set_text('')
         self.keycode_input.set_label('')
+        self.key = None
         self.delete_callback(self)
