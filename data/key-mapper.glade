@@ -287,6 +287,7 @@
                 <property name="height-request">20</property>
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
+                <property name="opacity">0</property>
               </object>
               <packing>
                 <property name="expand">False</property>
