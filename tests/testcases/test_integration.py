@@ -242,7 +242,7 @@ class TestIntegration(unittest.TestCase):
         row.set_new_keycode(None)
         self.assertIsNone(row.get_keycode())
         self.assertEqual(len(custom_mapping), 0)
-        self.assertEqual(row.keycode_input.get_label(), None)
+        self.assertEqual(row.keycode_input.get_label(), 'click here')
 
         row.set_new_keycode((EV_KEY, 30, 1))
         self.assertEqual(len(custom_mapping), 0)
@@ -294,7 +294,7 @@ class TestIntegration(unittest.TestCase):
         # find the empty row
         rows = self.get_rows()
         row = rows[-1]
-        self.assertIsNone(row.keycode_input.get_label())
+        self.assertIsNone(row.get_keycode())
         self.assertEqual(row.character_input.get_text(), '')
         self.assertNotIn('changed', row.get_style_context().list_classes())
 
@@ -304,7 +304,15 @@ class TestIntegration(unittest.TestCase):
             row.character_input.set_text(char)
             self.assertEqual(row.get_character(), char)
 
+        if row.keycode_input.is_focus():
+            self.assertEqual(row.keycode_input.get_label(), 'press key')
+        else:
+            self.assertEqual(row.keycode_input.get_label(), 'click here')
+
         self.window.window.set_focus(row.keycode_input)
+        gtk_iteration()
+        self.assertIsNone(row.get_keycode())
+        self.assertEqual(row.keycode_input.get_label(), 'press key')
 
         if key:
             # modifies the keycode in the row not by writing into the input,
@@ -316,6 +324,7 @@ class TestIntegration(unittest.TestCase):
                 self.assertEqual(row.get_keycode(), key)
                 css_classes = row.get_style_context().list_classes()
                 self.assertIn('changed', css_classes)
+                self.assertEqual(row.keycode_input.get_label(), to_string(*key))
 
         if not expect_success:
             self.assertIsNone(row.get_keycode())
@@ -419,7 +428,7 @@ class TestIntegration(unittest.TestCase):
 
     def test_remove_row(self):
         """Comprehensive test for rows 2."""
-        # sleeps are added to be able to visually follow and debug the test
+        # sleeps are added to be able to visually follow and debug the test.
         # add two rows by modifiying the one empty row that exists
         row_1 = self.change_empty_row((EV_KEY, 10, 1), 'a')
         row_2 = self.change_empty_row((EV_KEY, 11, 1), 'b')
@@ -433,6 +442,18 @@ class TestIntegration(unittest.TestCase):
         self.assertEqual(custom_mapping.get_character((EV_KEY, 11, 1)), 'b')
 
         def remove(row, code, char, num_rows_after):
+            """Remove a row by clicking the delete button.
+
+            Parameters
+            ----------
+            row : Row
+            code : int or None
+                keycode of the mapping that is displayed by this row
+            char : string or None
+                ouptut of the mapping that is displayed by this row
+            num_rows_after : int
+                after deleting, how many rows are expected to still be there
+            """
             if code is not None and char is not None:
                 self.assertEqual(custom_mapping.get_character((EV_KEY, code, 1)), char)
 
@@ -441,9 +462,14 @@ class TestIntegration(unittest.TestCase):
                 self.assertIsNone(row.get_keycode())
             else:
                 self.assertEqual(row.get_keycode(), (EV_KEY, code, 1))
+
             row.on_delete_button_clicked()
             time.sleep(0.2)
             gtk_iteration()
+
+            # if a reference to the row is held somewhere and it is
+            # accidentally used again, make sure to not provide any outdated
+            # information that is supposed to be deleted
             self.assertIsNone(row.get_keycode())
             self.assertIsNone(row.get_character())
             self.assertIsNone(custom_mapping.get_character((EV_KEY, code, 1)))
