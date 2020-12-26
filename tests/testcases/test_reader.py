@@ -20,9 +20,10 @@
 
 
 import unittest
-
-from evdev.ecodes import EV_KEY, EV_ABS, ABS_HAT0X, KEY_COMMA
 import time
+
+from evdev.ecodes import EV_KEY, EV_ABS, ABS_HAT0X, KEY_COMMA, BTN_LEFT, \
+    BTN_TOOL_DOUBLETAP
 
 from keymapper.dev.reader import keycode_reader
 

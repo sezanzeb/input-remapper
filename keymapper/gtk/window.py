@@ -289,11 +289,13 @@ class Window:
 
     def can_modify_mapping(self, *args):
         """Show a message if changing the mapping is not possible."""
-        if self.dbus.is_injecting(self.selected_device):
-            # because the device is in grab mode by the daemon and
-            # therefore the original keycode inaccessible
-            logger.info('Cannot change keycodes while injecting')
-            self.show_status(CTX_ERROR, 'Use "Restore Defaults" before editing')
+        if not self.dbus.is_injecting(self.selected_device):
+            return
+
+        # because the device is in grab mode by the daemon and
+        # therefore the original keycode inaccessible
+        logger.info('Cannot change keycodes while injecting')
+        self.show_status(CTX_ERROR, 'Use "Restore Defaults" before editing')
 
     def get_focused_row(self):
         """Get the Row and its child that is currently in focus."""
@@ -389,8 +391,9 @@ class Window:
             self.check_macro_syntax()
 
         except PermissionError as error:
-            self.show_status(CTX_ERROR, 'Error: Permission denied!')
-            logger.error(str(error))
+            error = str(error)
+            self.show_status(CTX_ERROR, 'Error: Permission denied!', error)
+            logger.error(error)
 
     def on_delete_preset_clicked(self, _):
         """Delete a preset from the file system."""
@@ -413,9 +416,9 @@ class Window:
         else:
             self.show_status(CTX_APPLY, f'Applied preset "{preset}"')
 
-        path = get_preset_path(self.selected_device, preset)
+        path = get_preset_path(device, preset)
         xmodmap = get_config_path(XMODMAP_FILENAME)
-        success = self.dbus.start_injecting(self.selected_device, path, xmodmap)
+        success = self.dbus.start_injecting(device, path, xmodmap)
 
         if not success:
             self.show_status(CTX_ERROR, 'Error: Could not grab devices!')
@@ -479,8 +482,9 @@ class Window:
             self.get('preset_selection').append(new_preset, new_preset)
             self.get('preset_selection').set_active_id(new_preset)
         except PermissionError as error:
-            self.show_status(CTX_ERROR, 'Error: Permission denied!')
-            logger.error(str(error))
+            error = str(error)
+            self.show_status(CTX_ERROR, 'Error: Permission denied!', error)
+            logger.error(error)
 
     def on_select_preset(self, dropdown):
         """Show the mappings of the preset."""

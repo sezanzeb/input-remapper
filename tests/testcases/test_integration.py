@@ -25,7 +25,7 @@ import grp
 import os
 import unittest
 import evdev
-from evdev.events import EV_KEY, EV_ABS
+from evdev.ecodes import EV_KEY, EV_ABS, BTN_LEFT, BTN_TOOL_DOUBLETAP
 import json
 from unittest.mock import patch
 from importlib.util import spec_from_loader, module_from_spec
@@ -317,9 +317,17 @@ class TestIntegration(unittest.TestCase):
         if key:
             # modifies the keycode in the row not by writing into the input,
             # but by sending an event
+
+            # click events are ignored because it would render the mouse
+            # useless. It can still be changed in the config files.
+            keycode_reader._pipe[1].send(InputEvent(EV_KEY, BTN_LEFT, 1))
+            time.sleep(0.1)
+            gtk_iteration()
+
             keycode_reader._pipe[1].send(InputEvent(*key))
             time.sleep(0.1)
             gtk_iteration()
+
             if expect_success:
                 self.assertEqual(row.get_keycode(), key)
                 css_classes = row.get_style_context().list_classes()
