@@ -21,6 +21,7 @@
 
 import unittest
 import time
+import copy
 
 import evdev
 from evdev.ecodes import EV_REL, EV_KEY, EV_ABS, ABS_HAT0X
@@ -38,6 +39,8 @@ from tests.test import InputEvent, pending_events, fixtures, \
 
 
 class TestInjector(unittest.TestCase):
+    new_gamepad = '/dev/input/event100'
+
     @classmethod
     def setUpClass(cls):
         cls.injector = None
@@ -59,6 +62,7 @@ class TestInjector(unittest.TestCase):
             self.injector.stop_injecting()
             self.injector = None
         evdev.InputDevice.grab = self.grab
+
         cleanup()
 
     def test_modify_capabilities(self):
@@ -168,8 +172,33 @@ class TestInjector(unittest.TestCase):
         self.assertNotIn(evdev.ecodes.EV_ABS, capabilities)
         self.assertIn(evdev.ecodes.EV_REL, capabilities)
 
+        self.assertIn(evdev.ecodes.EV_KEY, capabilities)
+        self.assertEqual(len(capabilities[evdev.ecodes.EV_KEY]), 1)
+
+    def test_adds_ev_key(self):
         # for some reason, having any EV_KEY capability is needed to
-        # be able to control the mouse
+        # be able to control the mouse. it probably wants the mouse click.
+        self.injector = KeycodeInjector('gamepad 2', custom_mapping)
+
+        path = self.new_gamepad
+        gamepad_template = copy.deepcopy(fixtures['/dev/input/event30'])
+        fixtures[path] = {
+            'name': 'gamepad 2',
+            'phys': 'abcd',
+            'capabilities': gamepad_template['capabilities']
+        }
+        del fixtures[path]['capabilities'][EV_KEY]
+
+        device, abs_to_rel = self.injector._prepare_device(path)
+
+        self.assertNotIn(evdev.ecodes.EV_KEY, device.capabilities())
+
+        capabilities = self.injector._modify_capabilities(
+            {},
+            device,
+            abs_to_rel
+        )
+
         self.assertIn(evdev.ecodes.EV_KEY, capabilities)
         self.assertEqual(len(capabilities[evdev.ecodes.EV_KEY]), 1)
 

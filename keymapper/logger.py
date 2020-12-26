@@ -112,6 +112,9 @@ def log_info():
         name = pkg_resources.require('key-mapper')[0].project_name
         version = pkg_resources.require('key-mapper')[0].version
         logger.info('%s %s', name, version)
+
+        evdev_version = pkg_resources.require('evdev')[0].version
+        logger.info('python-evdev %s', evdev_version)
     except pkg_resources.DistributionNotFound as error:
         logger.info('Could not figure out the version')
         logger.debug(error)

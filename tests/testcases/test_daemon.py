@@ -86,10 +86,6 @@ class TestDaemon(unittest.TestCase):
             self.daemon = None
         evdev.InputDevice.grab = self.grab
 
-        if fixtures.get(self.new_fixture):
-            del fixtures[self.new_fixture]
-            refresh_devices()
-
         cleanup()
 
     def test_daemon(self):
