@@ -81,14 +81,30 @@ class TestReader(unittest.TestCase):
         self.assertEqual(keycode_reader.read(), (EV_ABS, ABS_HAT0X, 1))
         self.assertEqual(keycode_reader.read(), None)
 
+    def test_ignore_btn_left(self):
+        # click events are ignored because overwriting them would render the
+        # mouse useless, but a mouse is needed to stop the injection
+        # comfortably. Furthermore, reading mouse events breaks clicking
+        # around in the table. It can still be changed in the config files.
+        pending_events['device 1'] = [
+            InputEvent(EV_KEY, BTN_LEFT, 1),
+            InputEvent(EV_KEY, CODE_2, 1),
+            InputEvent(EV_KEY, BTN_TOOL_DOUBLETAP, 1),
+        ]
+        keycode_reader.start_reading('device 1')
+        time.sleep(0.1)
+        self.assertEqual(keycode_reader.read(), (EV_KEY, CODE_2, 1))
+        self.assertEqual(keycode_reader.read(), None)
+
     def test_reading_ignore_up(self):
         pending_events['device 1'] = [
             InputEvent(EV_KEY, CODE_1, 0, 10),
-            InputEvent(EV_KEY, CODE_2, 0, 11),
+            InputEvent(EV_KEY, CODE_2, 1, 11),
             InputEvent(EV_KEY, CODE_3, 0, 12),
         ]
         keycode_reader.start_reading('device 1')
         time.sleep(0.1)
+        self.assertEqual(keycode_reader.read(), (EV_KEY, CODE_2, 1))
         self.assertEqual(keycode_reader.read(), None)
 
     def test_wrong_device(self):

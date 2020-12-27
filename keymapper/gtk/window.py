@@ -323,17 +323,6 @@ class Window:
         if key is None:
             return True
 
-        click_events = [
-            evdev.ecodes.BTN_LEFT,
-            evdev.ecodes.BTN_TOOL_DOUBLETAP
-        ]
-
-        if key[0] == EV_KEY and key[1] in click_events:
-            # disable mapping the left mouse button because it would break
-            # the mouse. Also it is emitted right when focusing the row
-            # which breaks the current workflow.
-            return True
-
         self.get('keycode').set_text(to_string(*key))
 
         # inform the currently selected row about the new keycode
