@@ -7,6 +7,13 @@ row {
     border: 0px;
 }
 
+/* adds a bottom border for themes that don't add one in primary-toolbar
+classes. Interestingly, those that do add a border ignore this separator,
+which is perfect. */
+.top_separator {
+    border: 0px; /* fixes light pixels on each end in arc-dark */
+}
+
 .table-header, .row-box {
     padding: 2px;
 }
