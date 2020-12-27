@@ -115,8 +115,11 @@ class TestMapping(unittest.TestCase):
 
         self.assertEqual(self.mapping.get('a'), None)
 
+        self.assertFalse(self.mapping.changed)
+
         self.mapping.set('a', 1)
         self.assertEqual(self.mapping.get('a'), 1)
+        self.assertTrue(self.mapping.changed)
 
         self.mapping.remove('a')
         self.mapping.set('a.b', 2)
@@ -133,11 +136,15 @@ class TestMapping(unittest.TestCase):
         self.mapping.change((EV_KEY, 81, 1), 'a')
         self.mapping.set('mapping.a', 2)
         self.mapping.save(get_preset_path('foo', 'bar'))
+        self.assertFalse(self.mapping.changed)
         self.mapping.load(get_preset_path('foo', 'bar'))
         self.assertEqual(self.mapping.get_character((EV_KEY, 81, 1)), 'a')
         self.assertIsNone(self.mapping.get('mapping.a'))
+        self.assertFalse(self.mapping.changed)
 
         # loading a different preset also removes the configs from memory
+        self.mapping.remove('a')
+        self.assertTrue(self.mapping.changed)
         self.mapping.set('a.b.c', 6)
         self.mapping.load(get_preset_path('foo', 'bar2'))
         self.assertIsNone(self.mapping.get('a.b.c'))

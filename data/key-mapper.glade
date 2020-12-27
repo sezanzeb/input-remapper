@@ -14,6 +14,7 @@
   </object>
   <object class="GtkDialog" id="error_dialog">
     <property name="can-focus">False</property>
+    <property name="border-width">10</property>
     <property name="title" translatable="yes">Key Mapper</property>
     <property name="modal">True</property>
     <property name="window-position">center</property>
@@ -30,6 +31,7 @@
             <property name="visible">True</property>
             <property name="can-focus">False</property>
             <property name="halign">center</property>
+            <property name="margin-top">10</property>
             <property name="layout-style">end</property>
             <child>
               <object class="GtkButton" id="close_error_dialog">
@@ -63,9 +65,8 @@
               <object class="GtkImage" id="error-image">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
+                <property name="margin-end">10</property>
                 <property name="yalign">0</property>
-                <property name="xpad">12</property>
-                <property name="ypad">12</property>
                 <property name="icon-name">dialog-error</property>
                 <property name="icon_size">6</property>
               </object>
@@ -137,6 +138,7 @@
   </object>
   <object class="GtkDialog" id="unsaved_changes">
     <property name="can-focus">False</property>
+    <property name="border-width">10</property>
     <property name="title" translatable="yes">Key Mapper</property>
     <property name="modal">True</property>
     <property name="window-position">center</property>
@@ -153,6 +155,7 @@
             <property name="visible">True</property>
             <property name="can-focus">False</property>
             <property name="halign">center</property>
+            <property name="margin-top">10</property>
             <property name="layout-style">end</property>
             <child>
               <object class="GtkButton" id="go_back">
@@ -199,10 +202,9 @@
               <object class="GtkImage" id="error-image1">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
+                <property name="margin-end">10</property>
                 <property name="yalign">0</property>
-                <property name="xpad">12</property>
-                <property name="ypad">12</property>
-                <property name="icon-name">dialog-error</property>
+                <property name="icon-name">dialog-warning</property>
                 <property name="icon_size">6</property>
               </object>
               <packing>
@@ -771,6 +773,19 @@
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
                         <child>
+                          <object class="GtkImage" id="warning_status_icon">
+                            <property name="can-focus">False</property>
+                            <property name="margin-left">10</property>
+                            <property name="margin-start">10</property>
+                            <property name="icon-name">dialog-warning</property>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">0</property>
+                          </packing>
+                        </child>
+                        <child>
                           <object class="GtkImage" id="error_status_icon">
                             <property name="can-focus">False</property>
                             <property name="margin-start">10</property>
@@ -779,7 +794,7 @@
                           <packing>
                             <property name="expand">False</property>
                             <property name="fill">True</property>
-                            <property name="position">0</property>
+                            <property name="position">1</property>
                           </packing>
                         </child>
                         <child>
@@ -798,7 +813,7 @@
                           <packing>
                             <property name="expand">True</property>
                             <property name="fill">True</property>
-                            <property name="position">1</property>
+                            <property name="position">2</property>
                           </packing>
                         </child>
                         <child>
@@ -809,7 +824,7 @@
                           <packing>
                             <property name="expand">False</property>
                             <property name="fill">True</property>
-                            <property name="position">2</property>
+                            <property name="position">3</property>
                           </packing>
                         </child>
                         <child>
@@ -824,7 +839,7 @@
                           <packing>
                             <property name="expand">False</property>
                             <property name="fill">True</property>
-                            <property name="position">3</property>
+                            <property name="position">4</property>
                           </packing>
                         </child>
                       </object>

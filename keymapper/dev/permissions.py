@@ -49,7 +49,7 @@ def check_group(group):
 
     if not in_group:
         msg = (
-            'Some devices may not be visible without being in the '
+            'Some devices may not be accessible without being in the '
             f'"{group}" user group.'
         )
         logger.warning(msg)
@@ -66,7 +66,7 @@ def check_group(group):
     if in_group and not group_active:
         msg = (
             f'You are in the "{group}" group, but your session is not yet '
-            'using it. Some devices may not be visible. Please log out and '
+            'using it. Some devices may not be accessible. Please log out and '
             'back in or restart'
         )
         logger.warning(msg)
@@ -97,6 +97,7 @@ def can_read_devices():
     plugdev_check = check_group('plugdev')
 
     # ubuntu. funnily, individual devices in /dev/input/ have write permitted.
+    print(is_service_running(), check_injection_rights())
     if not is_service_running():
         can_write = check_injection_rights()
     else:
