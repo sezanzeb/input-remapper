@@ -39,7 +39,7 @@ CLOSE = 1
 
 PRIORITIES = {
     EV_KEY: 100,
-    EV_ABS: 50
+    EV_ABS: 50,
 }
 
 

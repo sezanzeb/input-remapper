@@ -24,7 +24,7 @@
 
 import evdev
 
-from gi.repository import Gtk, GLib
+from gi.repository import Gtk, GLib, Gdk
 
 from keymapper.state import custom_mapping, system_mapping
 from keymapper.logger import logger
@@ -238,6 +238,12 @@ class Row(Gtk.ListBoxRow):
         keycode_input.connect(
             'focus-out-event',
             self.keycode_input_unfocus
+        )
+        # don't leave the input when using arrow keys or tab. wait for the
+        # window to consume the keycode from the reader
+        keycode_input.connect(
+            'key-press-event',
+            lambda *args: Gdk.EVENT_STOP
         )
 
         character_input = Gtk.Entry()
