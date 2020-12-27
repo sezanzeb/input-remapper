@@ -25,6 +25,7 @@
 import os
 import shutil
 import getpass
+import pwd
 
 from keymapper.logger import logger
 
@@ -39,14 +40,19 @@ def get_user():
             user = os.environ['USER']
             if user == 'root':
                 try:
-                    user = os.environ.get('SUDO_USER', user)
+                    user = os.environ['SUDO_USER']
                 except KeyError:
                     # no sudo was used
+                    pass
+                try:
+                    pkexec_uid = os.environ['PKEXEC_UID']
+                    user = pwd.getpwuid(pkexec_uid).pw_name
+                except KeyError:
+                    # no pkexec was used or the uid is unknown
                     pass
         except KeyError:
             # possibly the systemd service. no sudo was used
             user = getpass.getuser()
-
     return user
 
 
