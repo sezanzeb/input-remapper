@@ -41,7 +41,7 @@ JOYSTICK = [
 ]
 
 # miniscule movements on the joystick should not trigger a mouse wheel event
-WHEEL_THRESHOLD = 0.3
+WHEEL_THRESHOLD = 0.15
 
 
 def _write(device, ev_type, keycode, value):
@@ -146,6 +146,8 @@ async def ev_abs_mapper(abs_state, input_device, keymapper_device, mapping):
     non_linearity = mapping.get('gamepad.joystick.non_linearity')
     left_purpose = mapping.get('gamepad.joystick.left_purpose')
     right_purpose = mapping.get('gamepad.joystick.right_purpose')
+    x_scroll_speed = mapping.get('gamepad.joystick.x_scroll_speed')
+    y_scroll_speed = mapping.get('gamepad.joystick.y_scroll_speed')
 
     logger.info(
         'Left joystick as %s, right joystick as %s',
@@ -161,15 +163,15 @@ async def ev_abs_mapper(abs_state, input_device, keymapper_device, mapping):
             right_purpose
         )
 
-        if non_linearity != 1:
-            # to make small movements smaller for more precision
-            speed = (mouse_x ** 2 + mouse_y ** 2) ** 0.5
-            factor = (speed / max_speed) ** non_linearity
-        else:
-            factor = 1
-
         # mouse movements
         if abs(mouse_x) > 0 or abs(mouse_y) > 0:
+            if non_linearity != 1:
+                # to make small movements smaller for more precision
+                speed = (mouse_x ** 2 + mouse_y ** 2) ** 0.5
+                factor = (speed / max_speed) ** non_linearity
+            else:
+                factor = 1
+
             rel_x = mouse_x * factor * pointer_speed / max_value
             rel_y = mouse_y * factor * pointer_speed / max_value
             pending_x_rel, rel_x = accumulate(pending_x_rel, rel_x)
@@ -181,15 +183,15 @@ async def ev_abs_mapper(abs_state, input_device, keymapper_device, mapping):
 
         # wheel movements
         if abs(wheel_x) > 0:
-            float_rel_rx = wheel_x / max_value
+            float_rel_rx = wheel_x * x_scroll_speed / max_value
             pending_rx_rel, rel_rx = accumulate(pending_rx_rel, float_rel_rx)
-            if abs(float_rel_rx) > WHEEL_THRESHOLD:
-                _write(keymapper_device, EV_REL, REL_HWHEEL, -rel_rx)
+            if abs(float_rel_rx) > WHEEL_THRESHOLD * x_scroll_speed:
+                _write(keymapper_device, EV_REL, REL_HWHEEL, rel_rx)
 
         if abs(wheel_y) > 0:
-            float_rel_ry = wheel_y / max_value
+            float_rel_ry = wheel_y * y_scroll_speed / max_value
             pending_ry_rel, rel_ry = accumulate(pending_ry_rel, float_rel_ry)
-            if abs(float_rel_ry) > WHEEL_THRESHOLD:
+            if abs(float_rel_ry) > WHEEL_THRESHOLD * y_scroll_speed:
                 _write(keymapper_device, EV_REL, REL_WHEEL, -rel_ry)
 
         # try to do this as close to 60hz as possible

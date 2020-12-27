@@ -30,7 +30,7 @@ from keymapper.mapping import Mapping
 from keymapper.dev.ev_abs_mapper import MOUSE, WHEEL
 
 from tests.test import InputDevice, UInput, MAX_ABS, clear_write_history, \
-    uinput_write_history
+    uinput_write_history, cleanup
 
 
 abs_state = [0, 0, 0, 0]
@@ -53,21 +53,11 @@ class TestEvAbsMapper(unittest.TestCase):
             self.mapping
         ))
 
+        config.set('gamepad.joystick.x_scroll_speed', 1)
+        config.set('gamepad.joystick.y_scroll_speed', 1)
+
     def tearDown(self):
-        config.clear_config()
-        self.mapping.clear_config()
-        loop = asyncio.get_event_loop()
-
-        try:
-            for task in asyncio.Task.all_tasks():
-                task.cancel()
-
-            loop.stop()
-            loop.close()
-        except RuntimeError:
-            pass
-
-        clear_write_history()
+        cleanup()
 
     def do(self, a, b, c, d, expectation):
         """Present fake values to the loop and observe the outcome."""
@@ -97,9 +87,9 @@ class TestEvAbsMapper(unittest.TestCase):
         self.do(0, MAX_ABS, 0, 0, (EV_REL, REL_Y, speed))
         self.do(0, -MAX_ABS, 0, 0, (EV_REL, REL_Y, -speed))
 
-        # wheel event values are negative
-        self.do(0, 0, MAX_ABS, 0, (EV_REL, REL_HWHEEL, -1))
-        self.do(0, 0, -MAX_ABS, 0, (EV_REL, REL_HWHEEL, 1))
+        # vertical wheel event values are negative
+        self.do(0, 0, MAX_ABS, 0, (EV_REL, REL_HWHEEL, 1))
+        self.do(0, 0, -MAX_ABS, 0, (EV_REL, REL_HWHEEL, -1))
         self.do(0, 0, 0, MAX_ABS, (EV_REL, REL_WHEEL, -1))
         self.do(0, 0, 0, -MAX_ABS, (EV_REL, REL_WHEEL, 1))
 
@@ -109,13 +99,15 @@ class TestEvAbsMapper(unittest.TestCase):
         config.set('gamepad.joystick.pointer_speed', speed)
         config.set('gamepad.joystick.left_purpose', WHEEL)
         config.set('gamepad.joystick.right_purpose', MOUSE)
+        config.set('gamepad.joystick.x_scroll_speed', 1)
+        config.set('gamepad.joystick.y_scroll_speed', 2)
 
-        self.do(MAX_ABS, 0, 0, 0, (EV_REL, REL_HWHEEL, -1))
-        self.do(-MAX_ABS, 0, 0, 0, (EV_REL, REL_HWHEEL, 1))
-        self.do(0, MAX_ABS, 0, 0, (EV_REL, REL_WHEEL, -1))
-        self.do(0, -MAX_ABS, 0, 0, (EV_REL, REL_WHEEL, 1))
+        # vertical wheel event values are negative
+        self.do(MAX_ABS, 0, 0, 0, (EV_REL, REL_HWHEEL, 1))
+        self.do(-MAX_ABS, 0, 0, 0, (EV_REL, REL_HWHEEL, -1))
+        self.do(0, MAX_ABS, 0, 0, (EV_REL, REL_WHEEL, -2))
+        self.do(0, -MAX_ABS, 0, 0, (EV_REL, REL_WHEEL, 2))
 
-        # wheel event values are negative
         self.do(0, 0, MAX_ABS, 0, (EV_REL, REL_X, speed))
         self.do(0, 0, -MAX_ABS, 0, (EV_REL, REL_X, -speed))
         self.do(0, 0, 0, MAX_ABS, (EV_REL, REL_Y, speed))
@@ -133,7 +125,6 @@ class TestEvAbsMapper(unittest.TestCase):
         self.do(0, MAX_ABS, 0, 0, (EV_REL, REL_Y, speed))
         self.do(0, -MAX_ABS, 0, 0, (EV_REL, REL_Y, -speed))
 
-        # wheel event values are negative
         self.do(0, 0, MAX_ABS, 0, (EV_REL, REL_X, speed))
         self.do(0, 0, -MAX_ABS, 0, (EV_REL, REL_X, -speed))
         self.do(0, 0, 0, MAX_ABS, (EV_REL, REL_Y, speed))
@@ -142,17 +133,19 @@ class TestEvAbsMapper(unittest.TestCase):
     def test_joystick_purpose_4(self):
         config.set('gamepad.joystick.left_purpose', WHEEL)
         config.set('gamepad.joystick.right_purpose', WHEEL)
+        self.mapping.set('gamepad.joystick.x_scroll_speed', 2)
+        self.mapping.set('gamepad.joystick.y_scroll_speed', 3)
 
-        self.do(MAX_ABS, 0, 0, 0, (EV_REL, REL_HWHEEL, -1))
-        self.do(-MAX_ABS, 0, 0, 0, (EV_REL, REL_HWHEEL, 1))
-        self.do(0, MAX_ABS, 0, 0, (EV_REL, REL_WHEEL, -1))
-        self.do(0, -MAX_ABS, 0, 0, (EV_REL, REL_WHEEL, 1))
+        self.do(MAX_ABS, 0, 0, 0, (EV_REL, REL_HWHEEL, 2))
+        self.do(-MAX_ABS, 0, 0, 0, (EV_REL, REL_HWHEEL, -2))
+        self.do(0, MAX_ABS, 0, 0, (EV_REL, REL_WHEEL, -3))
+        self.do(0, -MAX_ABS, 0, 0, (EV_REL, REL_WHEEL, 3))
 
-        # wheel event values are negative
-        self.do(0, 0, MAX_ABS, 0, (EV_REL, REL_HWHEEL, -1))
-        self.do(0, 0, -MAX_ABS, 0, (EV_REL, REL_HWHEEL, 1))
-        self.do(0, 0, 0, MAX_ABS, (EV_REL, REL_WHEEL, -1))
-        self.do(0, 0, 0, -MAX_ABS, (EV_REL, REL_WHEEL, 1))
+        # vertical wheel event values are negative
+        self.do(0, 0, MAX_ABS, 0, (EV_REL, REL_HWHEEL, 2))
+        self.do(0, 0, -MAX_ABS, 0, (EV_REL, REL_HWHEEL, -2))
+        self.do(0, 0, 0, MAX_ABS, (EV_REL, REL_WHEEL, -3))
+        self.do(0, 0, 0, -MAX_ABS, (EV_REL, REL_WHEEL, 3))
 
 
 if __name__ == "__main__":

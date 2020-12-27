@@ -247,13 +247,13 @@ class KeycodeInjector:
             capabilities[EV_KEY] += list(macro.get_capabilities())
 
         if abs_to_rel:
-            # those are the requirements to recognize it as mouse
-            # on my system. REL_X and REL_Y are of course required to
-            # accept the events that the mouse-movement-mapper writes.
+            # REL_WHEEL was also required to recognize the gamepad
+            # as mouse, even if no joystick is used as wheel.
             capabilities[EV_REL] = [
                 evdev.ecodes.REL_X,
                 evdev.ecodes.REL_Y,
                 evdev.ecodes.REL_WHEEL,
+                evdev.ecodes.REL_HWHEEL,
             ]
             keys = capabilities.get(EV_KEY)
             if keys is None:
