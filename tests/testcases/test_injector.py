@@ -180,6 +180,8 @@ class TestInjector(unittest.TestCase):
         # be able to control the mouse. it probably wants the mouse click.
         self.injector = KeycodeInjector('gamepad 2', custom_mapping)
 
+        """gamepad without any existing key capability"""
+
         path = self.new_gamepad
         gamepad_template = copy.deepcopy(fixtures['/dev/input/event30'])
         fixtures[path] = {
@@ -189,19 +191,29 @@ class TestInjector(unittest.TestCase):
             'capabilities': gamepad_template['capabilities']
         }
         del fixtures[path]['capabilities'][EV_KEY]
-
         device, abs_to_rel = self.injector._prepare_device(path)
-
-        self.assertNotIn(evdev.ecodes.EV_KEY, device.capabilities())
-
+        self.assertNotIn(EV_KEY, device.capabilities())
         capabilities = self.injector._modify_capabilities(
             {},
             device,
             abs_to_rel
         )
+        self.assertIn(EV_KEY, capabilities)
+        self.assertIn(evdev.ecodes.BTN_MOUSE, capabilities[EV_KEY])
 
-        self.assertIn(evdev.ecodes.EV_KEY, capabilities)
-        self.assertEqual(len(capabilities[evdev.ecodes.EV_KEY]), 1)
+        """gamepad with existing key capabilities, but not btn_mouse"""
+
+        path = '/dev/input/event30'
+        device, abs_to_rel = self.injector._prepare_device(path)
+        self.assertIn(EV_KEY, device.capabilities())
+        self.assertNotIn(evdev.ecodes.BTN_MOUSE, device.capabilities()[EV_KEY])
+        capabilities = self.injector._modify_capabilities(
+            {},
+            device,
+            abs_to_rel
+        )
+        self.assertIn(EV_KEY, capabilities)
+        self.assertIn(evdev.ecodes.BTN_MOUSE, capabilities[EV_KEY])
 
     def test_skip_unused_device(self):
         # skips a device because its capabilities are not used in the mapping

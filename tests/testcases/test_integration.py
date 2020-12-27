@@ -567,10 +567,12 @@ class TestIntegration(unittest.TestCase):
         # select a device that is not a gamepad
         self.window.on_select_device(FakeDropdown('device 1'))
         self.assertFalse(self.window.get('gamepad_config').is_visible())
+        self.assertFalse(custom_mapping.changed)
 
         # select a gamepad
         self.window.on_select_device(FakeDropdown('gamepad'))
         self.assertTrue(self.window.get('gamepad_config').is_visible())
+        self.assertFalse(custom_mapping.changed)
 
         # set stuff
         self.window.get('left_joystick_purpose').set_active_id(WHEEL)
@@ -583,6 +585,7 @@ class TestIntegration(unittest.TestCase):
         config.set('gamepad.joystick.left_purpose', MOUSE)
         config.set('gamepad.joystick.right_purpose', MOUSE)
         config.set('gamepad.joystick.pointer_speed', 50)
+        self.assertTrue(custom_mapping.changed)
         left_purpose = custom_mapping.get('gamepad.joystick.left_purpose')
         right_purpose = custom_mapping.get('gamepad.joystick.right_purpose')
         pointer_speed = custom_mapping.get('gamepad.joystick.pointer_speed')
@@ -593,6 +596,7 @@ class TestIntegration(unittest.TestCase):
         # select a device that is not a gamepad again
         self.window.on_select_device(FakeDropdown('device 1'))
         self.assertFalse(self.window.get('gamepad_config').is_visible())
+        self.assertFalse(custom_mapping.changed)
 
     def test_start_injecting(self):
         keycode_from = 9

@@ -102,7 +102,7 @@ class TestPermissions(unittest.TestCase):
         def fake_check_output(cmd):
             # fake the `groups` output to act like the current session only
             # has input and a_unused active
-            if cmd[0] == 'groups':
+            if cmd == 'groups' or cmd[0] == 'groups':
                 return b'foo input a_unused bar'
 
             return original_check_output(cmd)

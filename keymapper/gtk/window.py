@@ -54,6 +54,7 @@ def gtk_iteration():
 CTX_SAVE = 0
 CTX_APPLY = 1
 CTX_ERROR = 3
+CTX_WARNING = 4
 
 
 def get_selected_row_bg():
@@ -72,6 +73,30 @@ def get_selected_row_bg():
     color.alpha /= 4
     row.destroy()
     return color.to_string()
+
+
+def with_selected_device(func):
+    """Decorate a function to only execute if a device is selected."""
+    # this should only happen if no device was found at all
+    def wrapped(window, *args):
+        if window.selected_device is None:
+            return True  # work with timeout_add
+
+        return func(window, *args)
+
+    return wrapped
+
+
+def with_selected_preset(func):
+    """Decorate a function to only execute if a preset is selected."""
+    # this should only happen if no device was found at all
+    def wrapped(window, *args):
+        if window.selected_preset is None or window.selected_device is None:
+            return True  # work with timeout_add
+
+        return func(window, *args)
+
+    return wrapped
 
 
 class HandlerDisabled:
@@ -141,6 +166,11 @@ class Window:
                 'Permission error, hover for info',
                 '\n\n'.join(permission_errors)
             )
+
+        # this is not set to invisible in glade to give the ui a default
+        # height that doesn't jump when a gamepad is selected
+        self.get('gamepad_separator').hide()
+        self.get('gamepad_config').hide()
 
         self.populate_devices()
 
@@ -313,6 +343,7 @@ class Window:
 
         return row, focused
 
+    @with_selected_device
     def consume_newest_keycode(self):
         """To capture events from keyboards, mice and gamepads."""
         # the "event" event of Gtk.Window wouldn't trigger on gamepad
@@ -332,6 +363,7 @@ class Window:
 
         return True
 
+    @with_selected_device
     def on_apply_system_layout_clicked(self, _):
         """Load the mapping."""
         self.dbus.stop_injecting(self.selected_device)
@@ -343,10 +375,14 @@ class Window:
         if tooltip is None:
             tooltip = message
 
+        self.get('error_status_icon').hide()
+        self.get('warning_status_icon').hide()
+
         if context_id == CTX_ERROR:
             self.get('error_status_icon').show()
-        else:
-            self.get('error_status_icon').hide()
+
+        if context_id == CTX_WARNING:
+            self.get('warning_status_icon').show()
 
         status_bar = self.get('status_bar')
         status_bar.push(context_id, message)
@@ -366,6 +402,7 @@ class Window:
             msg = f'Syntax error at {position}, hover for info'
             self.show_status(CTX_ERROR, msg, error)
 
+    @with_selected_preset
     def on_save_preset_clicked(self, button):
         """Save changes to a preset to the file system."""
         new_name = self.get('preset_name_input').get_text()
@@ -389,11 +426,13 @@ class Window:
             self.show_status(CTX_ERROR, 'Error: Permission denied!', error)
             logger.error(error)
 
+    @with_selected_preset
     def on_delete_preset_clicked(self, _):
         """Delete a preset from the file system."""
         delete_preset(self.selected_device, self.selected_preset)
         self.populate_presets()
 
+    @with_selected_preset
     def on_apply_preset_clicked(self, _):
         """Apply a preset without saving changes."""
         preset = self.selected_preset
@@ -403,7 +442,7 @@ class Window:
 
         if custom_mapping.changed:
             self.show_status(
-                CTX_APPLY,
+                CTX_WARNING,
                 f'Applied outdated preset "{preset}"',
                 'Click "Save" first for changes to take effect'
             )
@@ -462,6 +501,7 @@ class Window:
         else:
             self.get('apply_system_layout').set_opacity(0.4)
 
+    @with_selected_device
     def on_create_preset_clicked(self, _):
         """Create a new preset and select it."""
         if custom_mapping.changed:
@@ -520,6 +560,8 @@ class Window:
 
         self.initialize_gamepad_config()
 
+        custom_mapping.changed = False
+
     def on_left_joystick_purpose_changed(self, dropdown):
         """Set the purpose of the left joystick."""
         purpose = dropdown.get_active_id()
@@ -557,9 +599,6 @@ class Window:
 
     def save_preset(self):
         """Write changes to presets to disk."""
-        if self.selected_device is None or self.selected_preset is None:
-            return
-
         logger.info(
             'Updating configs for "%s", "%s"',
             self.selected_device,

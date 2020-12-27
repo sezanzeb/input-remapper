@@ -46,6 +46,8 @@ WHEEL_THRESHOLD = 0.3
 
 def _write(device, ev_type, keycode, value):
     """Inject."""
+    # if the mouse won't move even though correct stuff is written here, the
+    # capabilities are probably wrong
     device.write(ev_type, keycode, value)
     device.syn()
 

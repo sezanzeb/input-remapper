@@ -257,10 +257,12 @@ class KeycodeInjector:
                 evdev.ecodes.REL_WHEEL,
             ]
             keys = capabilities.get(EV_KEY)
-            if keys is None or len(keys) == 0:
-                # for reasons I don't know, it is also required to have
-                # any keyboard button in capabilities. Maybe they intended to
-                # check for the mouse-button code.
+            if keys is None:
+                capabilities[EV_KEY] = []
+
+            if ecodes.BTN_MOUSE not in capabilities[EV_KEY]:
+                # to be able to move the cursor, this key capability is
+                # needed
                 capabilities[EV_KEY] = [ecodes.BTN_MOUSE]
 
         # just like what python-evdev does in from_device

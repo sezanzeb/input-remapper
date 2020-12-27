@@ -54,6 +54,17 @@ class Mapping(ConfigBase):
     def __len__(self):
         return len(self._mapping)
 
+    def set(self, *args):
+        """Set a config value. See `ConfigBase.set`."""
+        print('set', args)
+        self.changed = True
+        return super().set(*args)
+
+    def remove(self, *args):
+        """Remove a config value. See `ConfigBase.remove`."""
+        self.changed = True
+        return super().remove(*args)
+
     def change(self, new_key, character, previous_key=None):
         """Replace the mapping of a keycode with a different one.
 
