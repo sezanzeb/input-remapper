@@ -109,13 +109,16 @@ class _GetDevices(threading.Thread):
 
             is_gamepad = map_abs_to_rel(capabilities)
 
-            usb = device.phys.split('/')[0]
-            if grouped.get(usb) is None:
-                grouped[usb] = []
+            name = device.name
+            path = device.path
 
-            logger.spam('Found "%s", %s, %s', device.name, device.path, usb)
+            info = str(device.info)
+            if grouped.get(info) is None:
+                grouped[info] = []
 
-            grouped[usb].append((device.name, device.path, is_gamepad))
+            logger.spam('Found "%s", "%s", "%s"', info, path, name)
+
+            grouped[info].append((name, path, is_gamepad))
 
         # now write down all the paths of that group
         result = {}

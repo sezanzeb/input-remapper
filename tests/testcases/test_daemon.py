@@ -203,6 +203,7 @@ class TestDaemon(unittest.TestCase):
         fixtures[self.new_fixture] = {
             'capabilities': {evdev.ecodes.EV_KEY: [ev[1]]},
             'phys': '9876 phys',
+            'info': 'abcd',
             'name': device
         }
 
