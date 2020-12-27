@@ -29,6 +29,7 @@ requests.
 - [ ] automatically load presets when devices get plugged in after login (udev)
 - [ ] mapping a combined button press to a key
 - [ ] configure locale for preset to provide a different set of possible keys
+- [ ] user-friendly way to map btn_left
 
 ## Tests
 
