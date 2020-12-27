@@ -56,7 +56,6 @@ class Mapping(ConfigBase):
 
     def set(self, *args):
         """Set a config value. See `ConfigBase.set`."""
-        print('set', args)
         self.changed = True
         return super().set(*args)
 

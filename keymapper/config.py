@@ -51,6 +51,8 @@ INITIAL_CONFIG = {
             'pointer_speed': 80,
             'left_purpose': MOUSE,
             'right_purpose': WHEEL,
+            'x_scroll_speed': 2,
+            'y_scroll_speed': 0.5
         },
     }
 }

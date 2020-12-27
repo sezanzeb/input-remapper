@@ -365,6 +365,9 @@ _fixture_copy = copy.deepcopy(fixtures)
 
 def cleanup():
     """Reset the applications state."""
+    for task in asyncio.Task.all_tasks():
+        task.cancel()
+
     os.system('pkill -f key-mapper-service')
     if os.path.exists(tmp):
         shutil.rmtree(tmp)
@@ -374,6 +377,7 @@ def cleanup():
 
     system_mapping.populate()
     custom_mapping.empty()
+    custom_mapping.clear_config()
 
     clear_write_history()
 
@@ -388,6 +392,7 @@ def cleanup():
     for path in list(_fixture_copy.keys()):
         if path not in fixtures:
             fixtures[path] = _fixture_copy[path]
+
     refresh_devices()
 
 

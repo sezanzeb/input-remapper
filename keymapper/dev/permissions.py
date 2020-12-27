@@ -97,7 +97,6 @@ def can_read_devices():
     plugdev_check = check_group('plugdev')
 
     # ubuntu. funnily, individual devices in /dev/input/ have write permitted.
-    print(is_service_running(), check_injection_rights())
     if not is_service_running():
         can_write = check_injection_rights()
     else:

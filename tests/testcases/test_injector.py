@@ -174,6 +174,11 @@ class TestInjector(unittest.TestCase):
         self.assertNotIn(evdev.ecodes.EV_ABS, capabilities)
         self.assertIn(evdev.ecodes.EV_REL, capabilities)
 
+        self.assertIn(evdev.ecodes.REL_X, capabilities.get(EV_REL))
+        self.assertIn(evdev.ecodes.REL_Y, capabilities.get(EV_REL))
+        self.assertIn(evdev.ecodes.REL_WHEEL, capabilities.get(EV_REL))
+        self.assertIn(evdev.ecodes.REL_HWHEEL, capabilities.get(EV_REL))
+
         self.assertIn(evdev.ecodes.EV_KEY, capabilities)
         self.assertEqual(len(capabilities[evdev.ecodes.EV_KEY]), 1)
 
