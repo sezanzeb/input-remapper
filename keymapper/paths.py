@@ -25,6 +25,7 @@
 import os
 import shutil
 import getpass
+import pwd
 
 from keymapper.logger import logger
 
@@ -32,20 +33,30 @@ from keymapper.logger import logger
 def get_user():
     """Try to find the user who called sudo."""
     try:
-        user = os.getlogin()
+        return os.getlogin()
     except OSError:
         # failed in some ubuntu installations and in systemd services
+        pass
+
+    try:
+        user = os.environ['USER']
+    except KeyError:
+        # possibly the systemd service. no sudo was used
+        return getpass.getuser()
+
+    if user == 'root':
         try:
-            user = os.environ['USER']
-            if user == 'root':
-                try:
-                    user = os.environ.get('SUDO_USER', user)
-                except KeyError:
-                    # no sudo was used
-                    pass
+            return os.environ['SUDO_USER']
         except KeyError:
-            # possibly the systemd service. no sudo was used
-            user = getpass.getuser()
+            # no sudo was used
+            pass
+
+        try:
+            pkexec_uid = int(os.environ['PKEXEC_UID'])
+            return pwd.getpwuid(pkexec_uid).pw_name
+        except KeyError:
+            # no pkexec was used or the uid is unknown
+            pass
 
     return user
 
