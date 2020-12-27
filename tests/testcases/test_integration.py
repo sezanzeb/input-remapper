@@ -317,13 +317,6 @@ class TestIntegration(unittest.TestCase):
         if key:
             # modifies the keycode in the row not by writing into the input,
             # but by sending an event
-
-            # click events are ignored because it would render the mouse
-            # useless. It can still be changed in the config files.
-            keycode_reader._pipe[1].send(InputEvent(EV_KEY, BTN_LEFT, 1))
-            time.sleep(0.1)
-            gtk_iteration()
-
             keycode_reader._pipe[1].send(InputEvent(*key))
             time.sleep(0.1)
             gtk_iteration()

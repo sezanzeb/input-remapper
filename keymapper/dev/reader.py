@@ -131,14 +131,27 @@ class _KeycodeReader:
             logger.debug('Pipe closed, reader stops.')
             sys.exit(0)
 
-        if should_map_event_as_btn(event.type, event.code):
-            logger.spam(
-                'got (%s, %s, %s)',
-                event.type,
-                event.code,
-                event.value
-            )
-            self._pipe[1].send(event)
+        click_events = [
+            evdev.ecodes.BTN_LEFT,
+            evdev.ecodes.BTN_TOOL_DOUBLETAP
+        ]
+
+        if event.type == EV_KEY and event.code in click_events:
+            # disable mapping the left mouse button because it would break
+            # the mouse. Also it is emitted right when focusing the row
+            # which breaks the current workflow.
+            return
+
+        if not should_map_event_as_btn(event.type, event.code):
+            return
+
+        logger.spam(
+            'got (%s, %s, %s)',
+            event.type,
+            event.code,
+            event.value
+        )
+        self._pipe[1].send(event)
 
     def _read_worker(self):
         """Process that reads keycodes and buffers them into a pipe."""

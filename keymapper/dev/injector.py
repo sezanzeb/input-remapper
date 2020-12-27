@@ -292,6 +292,13 @@ class KeycodeInjector:
         Stuff is non-blocking by using asyncio in order to do multiple things
         somewhat concurrently.
         """
+        # create a new event loop, because somehow running an infinite loop
+        # that sleeps on iterations (ev_abs_mapper) in one process causes
+        # another injection process to screw up reading from the grabbed
+        # device.
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
         numlock_state = is_numlock_on()
 
         loop = asyncio.get_event_loop()
@@ -423,7 +430,6 @@ class KeycodeInjector:
             # forward the rest
             uinput.write(event.type, event.code, event.value)
             # this already includes SYN events, so need to syn here again
-            continue
 
         logger.error(
             'The injector for "%s" stopped early',

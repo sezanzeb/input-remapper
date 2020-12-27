@@ -135,6 +135,7 @@ def handle_keycode(key_to_code, macros, event, uinput):
         # duplicate key-down. skip this event. Avoid writing millions of
         # key-down events when a continuous value is reported, for example
         # for gamepad triggers
+        logger.spam('%s, duplicate key down', key)
         return
 
     if is_key_up(event) and short in unreleased:
@@ -142,17 +143,18 @@ def handle_keycode(key_to_code, macros, event, uinput):
         target_value = 0
         target_code = unreleased[short]
         del unreleased[short]
+        logger.spam('%s, releasing %s', key, target_code)
     elif key in key_to_code and is_key_down(event):
         target_type = EV_KEY
         target_value = 1
         target_code = key_to_code[key]
         unreleased[short] = target_code
-        logger.spam('got %s, maps to EV_KEY:%s', key, target_code)
+        logger.spam('%s, maps to %s', key, target_code)
     else:
         target_type = key[0]
         target_code = key[1]
         target_value = key[2]
-        logger.spam('got unmapped %s', key)
+        logger.spam('%s, unmapped', key)
 
     uinput.write(target_type, target_code, target_value)
     uinput.syn()
