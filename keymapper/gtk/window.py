@@ -24,9 +24,6 @@
 
 import math
 
-import evdev
-
-from evdev.ecodes import EV_KEY
 from gi.repository import Gtk, Gdk, GLib
 
 from keymapper.data import get_data_path
@@ -368,6 +365,7 @@ class Window:
         """Load the mapping."""
         self.dbus.stop_injecting(self.selected_device)
         self.show_status(CTX_APPLY, 'Applied the system default')
+        logger.info('Applied system default for "%s"', self.selected_preset)
         GLib.timeout_add(10, self.show_device_mapping_status)
 
     def show_status(self, context_id, message, tooltip=None):
@@ -438,7 +436,7 @@ class Window:
         preset = self.selected_preset
         device = self.selected_device
 
-        logger.debug('Applying preset "%s" for "%s"', preset, device)
+        logger.info('Applying preset "%s" for "%s"', preset, device)
 
         if custom_mapping.changed:
             self.show_status(
@@ -456,9 +454,6 @@ class Window:
         if not success:
             self.show_status(CTX_ERROR, 'Error: Could not grab devices!')
 
-        # restart reading because after injecting the device landscape
-        # changes a bit
-        keycode_reader.start_reading(device)
         GLib.timeout_add(10, self.show_device_mapping_status)
 
     def on_autoload_switch(self, _, active):
@@ -495,8 +490,9 @@ class Window:
 
     def show_device_mapping_status(self):
         """Figure out if this device is currently under keymappers control."""
-        if self.dbus.is_injecting(self.selected_device):
-            logger.info('This device is currently mapped.')
+        device = self.selected_device
+        if self.dbus.is_injecting(device):
+            logger.info('Device "%s" is currently mapped', device)
             self.get('apply_system_layout').set_opacity(1)
         else:
             self.get('apply_system_layout').set_opacity(0.4)

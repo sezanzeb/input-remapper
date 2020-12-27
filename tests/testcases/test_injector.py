@@ -71,7 +71,8 @@ class TestInjector(unittest.TestCase):
                 assert absinfo is False
                 return {
                     evdev.ecodes.EV_SYN: [1, 2, 3],
-                    evdev.ecodes.EV_FF: [1, 2, 3]
+                    evdev.ecodes.EV_FF: [1, 2, 3],
+                    evdev.ecodes.EV_ABS: [1, 2, 3]
                 }
 
         mapping = Mapping()
@@ -109,6 +110,7 @@ class TestInjector(unittest.TestCase):
         self.assertNotIn(evdev.ecodes.EV_SYN, capabilities)
         self.assertNotIn(evdev.ecodes.EV_FF, capabilities)
         self.assertNotIn(evdev.ecodes.EV_REL, capabilities)
+        self.assertNotIn(evdev.ecodes.EV_ABS, capabilities)
 
     def test_grab(self):
         # path is from the fixtures

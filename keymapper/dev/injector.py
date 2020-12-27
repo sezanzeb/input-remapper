@@ -247,7 +247,6 @@ class KeycodeInjector:
             capabilities[EV_KEY] += list(macro.get_capabilities())
 
         if abs_to_rel:
-            del capabilities[EV_ABS]
             # those are the requirements to recognize it as mouse
             # on my system. REL_X and REL_Y are of course required to
             # accept the events that the mouse-movement-mapper writes.
@@ -270,6 +269,10 @@ class KeycodeInjector:
             del capabilities[ecodes.EV_SYN]
         if ecodes.EV_FF in capabilities:
             del capabilities[ecodes.EV_FF]
+        if ecodes.EV_ABS in capabilities:
+            # EV_KEY events are ignoerd by the os when EV_ABS capabilities
+            # are present
+            del capabilities[ecodes.EV_ABS]
 
         return capabilities
 
@@ -326,6 +329,9 @@ class KeycodeInjector:
                         continue
 
                     macros[key] = macro
+
+            if len(macros) == 0:
+                logger.debug('No macros configured')
 
             # certain capabilities can have side effects apparently. with an
             # EV_ABS capability, EV_REL won't move the mouse pointer anymore.
