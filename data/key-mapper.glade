@@ -66,7 +66,7 @@
                 <property name="yalign">0</property>
                 <property name="xpad">12</property>
                 <property name="ypad">12</property>
-                <property name="icon-name">cancel</property>
+                <property name="icon-name">dialog-error</property>
                 <property name="icon_size">6</property>
               </object>
               <packing>
@@ -202,7 +202,7 @@
                 <property name="yalign">0</property>
                 <property name="xpad">12</property>
                 <property name="ypad">12</property>
-                <property name="icon-name">cancel</property>
+                <property name="icon-name">dialog-error</property>
                 <property name="icon_size">6</property>
               </object>
               <packing>
@@ -757,17 +757,26 @@
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
                         <child>
+                          <object class="GtkImage" id="error_status_icon">
+                            <property name="can-focus">False</property>
+                            <property name="margin-start">10</property>
+                            <property name="icon-name">dialog-error</property>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">0</property>
+                          </packing>
+                        </child>
+                        <child>
                           <object class="GtkStatusbar" id="status_bar">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
-                            <property name="margin-left">10</property>
-                            <property name="margin-right">10</property>
-                            <property name="margin-start">10</property>
-                            <property name="margin-end">10</property>
+                            <property name="margin-start">7</property>
+                            <property name="margin-end">7</property>
                             <property name="margin-top">6</property>
                             <property name="margin-bottom">6</property>
                             <property name="orientation">vertical</property>
-                            <property name="spacing">2</property>
                             <style>
                               <class name="status_bar"/>
                             </style>
@@ -775,7 +784,7 @@
                           <packing>
                             <property name="expand">True</property>
                             <property name="fill">True</property>
-                            <property name="position">0</property>
+                            <property name="position">1</property>
                           </packing>
                         </child>
                         <child>
@@ -786,7 +795,7 @@
                           <packing>
                             <property name="expand">False</property>
                             <property name="fill">True</property>
-                            <property name="position">1</property>
+                            <property name="position">2</property>
                           </packing>
                         </child>
                         <child>
@@ -801,7 +810,7 @@
                           <packing>
                             <property name="expand">False</property>
                             <property name="fill">True</property>
-                            <property name="position">2</property>
+                            <property name="position">3</property>
                           </packing>
                         </child>
                       </object>

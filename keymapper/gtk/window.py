@@ -343,6 +343,11 @@ class Window:
         if tooltip is None:
             tooltip = message
 
+        if context_id == CTX_ERROR:
+            self.get('error_status_icon').show()
+        else:
+            self.get('error_status_icon').hide()
+
         status_bar = self.get('status_bar')
         status_bar.push(context_id, message)
         status_bar.set_tooltip_text(tooltip)

@@ -496,19 +496,28 @@ class TestIntegration(unittest.TestCase):
         self.assertTrue(os.path.exists(f'{CONFIG_PATH}/presets/device 1/asdf.json'))
         self.assertEqual(custom_mapping.get_character((EV_KEY, 14, 1)), 'b')
 
+        error_icon = self.window.get('error_status_icon')
+        status = self.window.get('status_bar')
+        tooltip = status.get_tooltip_text().lower()
+        self.assertIn('saved', tooltip)
+        self.assertFalse(error_icon.get_visible())
+
     def test_check_macro_syntax(self):
         status = self.window.get('status_bar')
+        error_icon = self.window.get('error_status_icon')
 
         custom_mapping.change((EV_KEY, 9, 1), 'k(1))', None)
         self.window.on_save_preset_clicked(None)
         tooltip = status.get_tooltip_text().lower()
         self.assertIn('brackets', tooltip)
+        self.assertTrue(error_icon.get_visible())
 
         custom_mapping.change((EV_KEY, 9, 1), 'k(1)', None)
         self.window.on_save_preset_clicked(None)
         tooltip = status.get_tooltip_text().lower()
         self.assertNotIn('brackets', tooltip)
         self.assertIn('saved', tooltip)
+        self.assertFalse(error_icon.get_visible())
 
         self.assertEqual(custom_mapping.get_character((EV_KEY, 9, 1)), 'k(1)')
 
@@ -694,6 +703,7 @@ class TestPermissions(unittest.TestCase):
 
         self.window = launch()
         status = self.window.get('status_bar')
+        error_icon = self.window.get('error_status_icon')
 
         tooltip = status.get_tooltip_text()
         self.assertIn('sudo', tooltip)
@@ -701,6 +711,7 @@ class TestPermissions(unittest.TestCase):
         self.assertIn('error1', tooltip)
         self.assertIn('error2', tooltip)
         self.assertIn('error3', tooltip)
+        self.assertTrue(error_icon.get_visible())
 
     def test_good(self):
         def fake():
@@ -710,8 +721,10 @@ class TestPermissions(unittest.TestCase):
 
         self.window = launch()
         status = self.window.get('status_bar')
+        error_icon = self.window.get('error_status_icon')
 
         self.assertIsNone(status.get_tooltip_text())
+        self.assertFalse(error_icon.get_visible())
 
 
 if __name__ == "__main__":
