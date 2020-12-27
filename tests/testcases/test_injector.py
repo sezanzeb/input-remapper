@@ -185,6 +185,7 @@ class TestInjector(unittest.TestCase):
         fixtures[path] = {
             'name': 'gamepad 2',
             'phys': 'abcd',
+            'info': '1234',
             'capabilities': gamepad_template['capabilities']
         }
         del fixtures[path]['capabilities'][EV_KEY]

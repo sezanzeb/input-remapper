@@ -73,26 +73,33 @@ pending_events = {}
 
 # key-mapper is only interested in devices that have EV_KEY, add some
 # random other stuff to test that they are ignored.
+phys_1 = 'usb-0000:03:00.0-1/input2'
+info_1 = 'bus: 0001, vendor 0001, product 0001, version 0001'
+
 fixtures = {
     # device 1
     '/dev/input/event11': {
         'capabilities': {evdev.ecodes.EV_KEY: [], evdev.ecodes.EV_REL: []},
-        'phys': 'usb-0000:03:00.0-1/input2',
+        'phys': f'{phys_1}/input2',
+        'info': info_1,
         'name': 'device 1 foo'
     },
     '/dev/input/event10': {
         'capabilities': {evdev.ecodes.EV_KEY: list(evdev.ecodes.keys.keys())},
-        'phys': 'usb-0000:03:00.0-1/input3',
+        'phys': f'{phys_1}/input3',
+        'info': info_1,
         'name': 'device 1'
     },
     '/dev/input/event13': {
         'capabilities': {evdev.ecodes.EV_KEY: [], evdev.ecodes.EV_SYN: []},
-        'phys': 'usb-0000:03:00.0-1/input1',
+        'phys': f'{phys_1}/input1',
+        'info': info_1,
         'name': 'device 1'
     },
     '/dev/input/event14': {
         'capabilities': {evdev.ecodes.EV_SYN: []},
-        'phys': 'usb-0000:03:00.0-1/input0',
+        'phys': f'{phys_1}/input0',
+        'info': info_1,
         'name': 'device 1 qux'
     },
 
@@ -100,6 +107,7 @@ fixtures = {
     '/dev/input/event20': {
         'capabilities': {evdev.ecodes.EV_KEY: list(evdev.ecodes.keys.keys())},
         'phys': 'usb-0000:03:00.0-2/input1',
+        'info': 'bus: 0002, vendor 0001, product 0002, version 0001',
         'name': 'device 2'
     },
 
@@ -118,6 +126,7 @@ fixtures = {
             ]
         },
         'phys': 'usb-0000:03:00.0-3/input1',
+        'info': 'bus: 0003, vendor 0001, product 0003, version 0001',
         'name': 'gamepad'
     },
 
@@ -125,6 +134,7 @@ fixtures = {
     '/dev/input/event31': {
         'capabilities': {evdev.ecodes.EV_SYN: []},
         'phys': 'usb-0000:03:00.0-4/input1',
+        'info': 'bus: 0004, vendor 0001, product 0004, version 0001',
         'name': 'Power Button'
     },
 
@@ -133,6 +143,7 @@ fixtures = {
     '/dev/input/event40': {
         'capabilities': {evdev.ecodes.EV_KEY: list(evdev.ecodes.keys.keys())},
         'phys': 'key-mapper/input1',
+        'info': 'bus: 0005, vendor 0001, product 0005, version 0001',
         'name': 'key-mapper device 2'
     },
 }
@@ -227,6 +238,7 @@ class InputDevice:
 
         self.path = path
         self.phys = fixtures[path]['phys']
+        self.info = fixtures[path]['info']
         self.name = fixtures[path]['name']
         self.fd = self.name
 
