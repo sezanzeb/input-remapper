@@ -98,30 +98,6 @@ def ensure_numlock(func):
     return wrapped
 
 
-def store_permutations(target, combination, value):
-    """Store permutations for key combinations.
-
-    Store every permutation of combination, while the last
-    element needs to remain the last one. It is the finishing
-    key. E.g. a + b is something different than b + a, but
-    a + b + c is the same as b + a + c
-
-    a, b and c are tuples of (type, code, value)
-
-    If combination is not a tuple of 3-tuples, it just uses it as key without
-    permutating anything.
-    """
-    if not isinstance(combination, tuple):
-        logger.error('Expected a tuple, but got "%s"', combination)
-        return
-
-    if isinstance(combination[0], tuple):
-        for permutation in itertools.permutations(combination[:-1]):
-            target[(*permutation, combination[-1])] = value
-    else:
-        target[combination] = value
-
-
 def is_in_capabilities(key, capabilities):
     """Are this key or all of its sub keys in the capabilities?"""
     if isinstance(key[0], tuple):
@@ -153,6 +129,7 @@ class KeycodeInjector:
         ----------
         device : string
             the name of the device as available in get_device
+        mapping : Mapping
         """
         self.device = device
         self.mapping = mapping
@@ -168,7 +145,13 @@ class KeycodeInjector:
         self.abs_state = [0, 0, 0, 0]
 
     def _map_keys_to_codes(self):
-        """To quickly get target keycodes during operation."""
+        """To quickly get target keycodes during operation.
+
+        Returns a mapping of one or more 3-tuples to ints.
+        Examples:
+            ((1, 2, 1),): 3
+            ((1, 5, 1), (1, 4, 1)): 4
+        """
         key_to_code = {}
         for key, output in self.mapping:
             if is_this_a_macro(output):
@@ -179,7 +162,8 @@ class KeycodeInjector:
                 logger.error('Don\'t know what %s is', output)
                 continue
 
-            store_permutations(key_to_code, key, target_code)
+            for permutation in key.get_permutations():
+                key_to_code[permutation.keys] = target_code
 
         return key_to_code
 
@@ -368,7 +352,8 @@ class KeycodeInjector:
                     if macro is None:
                         continue
 
-                    store_permutations(macros, key, macro)
+                    for permutation in key.get_permutations():
+                        macros[permutation.keys] = macro
 
             if len(macros) == 0:
                 logger.debug('No macros configured')

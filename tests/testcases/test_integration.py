@@ -42,6 +42,7 @@ from keymapper.config import config, WHEEL, MOUSE
 from keymapper.dev.reader import keycode_reader
 from keymapper.gtk.row import to_string, HOLDING, IDLE
 from keymapper.dev import permissions
+from keymapper.key import Key
 
 from tests.test import tmp, pending_events, InputEvent, \
     uinput_write_history_pipe, cleanup
@@ -206,9 +207,9 @@ class TestIntegration(unittest.TestCase):
     def test_select_device(self):
         # creates a new empty preset when no preset exists for the device
         self.window.on_select_device(FakeDropdown('device 1'))
-        custom_mapping.change((EV_KEY, 50, 1), 'q')
-        custom_mapping.change((EV_KEY, 51, 1), 'u')
-        custom_mapping.change((EV_KEY, 52, 1), 'x')
+        custom_mapping.change(Key(EV_KEY, 50, 1), 'q')
+        custom_mapping.change(Key(EV_KEY, 51, 1), 'u')
+        custom_mapping.change(Key(EV_KEY, 52, 1), 'x')
         self.assertEqual(len(custom_mapping), 3)
         self.window.on_select_device(FakeDropdown('device 2'))
         self.assertEqual(len(custom_mapping), 0)
@@ -227,14 +228,14 @@ class TestIntegration(unittest.TestCase):
 
     def test_row_keycode_to_string(self):
         # not an integration test, but I have all the row tests here already
-        self.assertEqual(to_string((EV_KEY, evdev.ecodes.KEY_9, 1)), '9')
-        self.assertEqual(to_string((EV_KEY, evdev.ecodes.KEY_SEMICOLON, 1)), 'SEMICOLON')
-        self.assertEqual(to_string((EV_ABS, evdev.ecodes.ABS_HAT0X, -1)), 'ABS_HAT0X L')
-        self.assertEqual(to_string((EV_ABS, evdev.ecodes.ABS_HAT0X, 1)), 'ABS_HAT0X R')
-        self.assertEqual(to_string((EV_KEY, evdev.ecodes.BTN_A, 1)), 'BTN_A')
+        self.assertEqual(to_string(Key(EV_KEY, evdev.ecodes.KEY_9, 1)), '9')
+        self.assertEqual(to_string(Key(EV_KEY, evdev.ecodes.KEY_SEMICOLON, 1)), 'SEMICOLON')
+        self.assertEqual(to_string(Key(EV_ABS, evdev.ecodes.ABS_HAT0X, -1)), 'ABS_HAT0X L')
+        self.assertEqual(to_string(Key(EV_ABS, evdev.ecodes.ABS_HAT0X, 1)), 'ABS_HAT0X R')
+        self.assertEqual(to_string(Key(EV_KEY, evdev.ecodes.BTN_A, 1)), 'BTN_A')
 
         # combinations
-        self.assertEqual(to_string((
+        self.assertEqual(to_string(Key(
             (EV_KEY, evdev.ecodes.BTN_A, 1),
             (EV_KEY, evdev.ecodes.BTN_B, 1),
             (EV_KEY, evdev.ecodes.BTN_C, 1)
@@ -246,21 +247,21 @@ class TestIntegration(unittest.TestCase):
 
         row = rows[0]
 
-        row.set_new_keycode(None)
-        self.assertIsNone(row.get_keycode())
+        row.set_new_key(None)
+        self.assertIsNone(row.get_key())
         self.assertEqual(len(custom_mapping), 0)
         self.assertEqual(row.keycode_input.get_label(), 'click here')
 
-        row.set_new_keycode((EV_KEY, 30, 1))
+        row.set_new_key(Key(EV_KEY, 30, 1))
         self.assertEqual(len(custom_mapping), 0)
-        self.assertEqual(row.get_keycode(), (EV_KEY, 30, 1))
+        self.assertEqual(row.get_key(), (EV_KEY, 30, 1))
         # this is KEY_A in linux/input-event-codes.h,
         # but KEY_ is removed from the text
         self.assertEqual(row.keycode_input.get_label(), 'A')
 
-        row.set_new_keycode((EV_KEY, 30, 1))
+        row.set_new_key(Key(EV_KEY, 30, 1))
         self.assertEqual(len(custom_mapping), 0)
-        self.assertEqual(row.get_keycode(), (EV_KEY, 30, 1))
+        self.assertEqual(row.get_key(), (EV_KEY, 30, 1))
 
         time.sleep(0.1)
         gtk_iteration()
@@ -273,9 +274,9 @@ class TestIntegration(unittest.TestCase):
         gtk_iteration()
         self.assertEqual(len(self.window.get('key_list').get_children()), 2)
 
-        self.assertEqual(custom_mapping.get_character((EV_KEY, 30, 1)), 'Shift_L')
+        self.assertEqual(custom_mapping.get_character(Key(EV_KEY, 30, 1)), 'Shift_L')
         self.assertEqual(row.get_character(), 'Shift_L')
-        self.assertEqual(row.get_keycode(), (EV_KEY, 30, 1))
+        self.assertEqual(row.get_key(), (EV_KEY, 30, 1))
 
     def change_empty_row(self, key, char, code_first=True, expect_success=True):
         """Modify the one empty row that always exists.
@@ -284,9 +285,7 @@ class TestIntegration(unittest.TestCase):
 
         Parameters
         ----------
-        key : int, int, int
-            type, code, value,
-            or a tuple of multiple of those
+        key : Key or None
         code_first : boolean
             If True, the code is entered and then the character.
             If False, the character is entered first.
@@ -304,7 +303,7 @@ class TestIntegration(unittest.TestCase):
         # find the empty row
         rows = self.get_rows()
         row = rows[-1]
-        self.assertIsNone(row.get_keycode())
+        self.assertIsNone(row.get_key())
         self.assertEqual(row.character_input.get_text(), '')
         self.assertNotIn('changed', row.get_style_context().list_classes())
         self.assertEqual(row.state, IDLE)
@@ -322,7 +321,7 @@ class TestIntegration(unittest.TestCase):
 
         self.window.window.set_focus(row.keycode_input)
         gtk_iteration()
-        self.assertIsNone(row.get_keycode())
+        self.assertIsNone(row.get_key())
         self.assertEqual(row.keycode_input.get_label(), 'press key')
 
         if key:
@@ -330,11 +329,8 @@ class TestIntegration(unittest.TestCase):
             # but by sending an event. Events should be consumed 30 times
             # per second, so sleep a bit more than 0.033ms each time
             # press down all the keys of a combination
-            if isinstance(key[0], tuple):
-                for sub_key in key:
-                    keycode_reader._pipe[1].send(InputEvent(*sub_key))
-            else:
-                keycode_reader._pipe[1].send(InputEvent(*key))
+            for sub_key in key:
+                keycode_reader._pipe[1].send(InputEvent(*sub_key))
 
             # make the window consume the keycode
             time.sleep(0.05)
@@ -346,11 +342,8 @@ class TestIntegration(unittest.TestCase):
             self.assertTrue(row.keycode_input.is_focus())
 
             # release all the keys
-            if isinstance(key[0], tuple):
-                for sub_key in key:
-                    keycode_reader._pipe[1].send(InputEvent(*sub_key[:2], 0))
-            else:
-                keycode_reader._pipe[1].send(InputEvent(*key[:2], 0))
+            for sub_key in key:
+                keycode_reader._pipe[1].send(InputEvent(*sub_key[:2], 0))
 
             # make the window consume the keycode
             time.sleep(0.05)
@@ -361,14 +354,14 @@ class TestIntegration(unittest.TestCase):
             self.assertEqual(row.state, IDLE)
 
             if expect_success:
-                self.assertEqual(row.get_keycode(), key)
+                self.assertEqual(row.get_key(), key)
                 css_classes = row.get_style_context().list_classes()
                 self.assertIn('changed', css_classes)
                 self.assertEqual(row.keycode_input.get_label(), to_string(key))
                 self.assertFalse(row.keycode_input.is_focus())
 
         if not expect_success:
-            self.assertIsNone(row.get_keycode())
+            self.assertIsNone(row.get_key())
             self.assertIsNone(row.get_character())
             css_classes = row.get_style_context().list_classes()
             self.assertNotIn('changed', css_classes)
@@ -388,8 +381,8 @@ class TestIntegration(unittest.TestCase):
         # how many rows there should be in the end
         num_rows_target = 3
 
-        ev_1 = (EV_KEY, 10, 1)
-        ev_2 = (EV_ABS, evdev.ecodes.ABS_HAT0X, -1)
+        ev_1 = Key(EV_KEY, 10, 1)
+        ev_2 = Key(EV_ABS, evdev.ecodes.ABS_HAT0X, -1)
 
         """edit"""
 
@@ -440,10 +433,10 @@ class TestIntegration(unittest.TestCase):
 
     def test_hat0x(self):
         # it should be possible to add all of them
-        ev_1 = (EV_ABS, evdev.ecodes.ABS_HAT0X, -1)
-        ev_2 = (EV_ABS, evdev.ecodes.ABS_HAT0X, 1)
-        ev_3 = (EV_ABS, evdev.ecodes.ABS_HAT0Y, -1)
-        ev_4 = (EV_ABS, evdev.ecodes.ABS_HAT0Y, 1)
+        ev_1 = Key(EV_ABS, evdev.ecodes.ABS_HAT0X, -1)
+        ev_2 = Key(EV_ABS, evdev.ecodes.ABS_HAT0X, 1)
+        ev_3 = Key(EV_ABS, evdev.ecodes.ABS_HAT0Y, -1)
+        ev_4 = Key(EV_ABS, evdev.ecodes.ABS_HAT0Y, 1)
 
         self.change_empty_row(ev_1, 'a')
         self.change_empty_row(ev_2, 'b')
@@ -471,20 +464,20 @@ class TestIntegration(unittest.TestCase):
 
     def test_combination(self):
         # it should be possible to write a key combination
-        ev_1 = (EV_KEY, evdev.ecodes.KEY_A, 1)
-        ev_2 = (EV_ABS, evdev.ecodes.ABS_HAT0X, 1)
-        ev_3 = (EV_KEY, evdev.ecodes.KEY_C, 1)
-        ev_4 = (EV_ABS, evdev.ecodes.ABS_HAT0X, -1)
-        combination_1 = (ev_1, ev_2, ev_3)
-        combination_2 = (ev_2, ev_1, ev_3)
+        ev_1 = Key(EV_KEY, evdev.ecodes.KEY_A, 1)
+        ev_2 = Key(EV_ABS, evdev.ecodes.ABS_HAT0X, 1)
+        ev_3 = Key(EV_KEY, evdev.ecodes.KEY_C, 1)
+        ev_4 = Key(EV_ABS, evdev.ecodes.ABS_HAT0X, -1)
+        combination_1 = Key(ev_1, ev_2, ev_3)
+        combination_2 = Key(ev_2, ev_1, ev_3)
 
         # same as 1, but different D-Pad direction
-        combination_3 = (ev_1, ev_4, ev_3)
-        combination_4 = (ev_4, ev_1, ev_3)
+        combination_3 = Key(ev_1, ev_4, ev_3)
+        combination_4 = Key(ev_4, ev_1, ev_3)
 
         # same as 1, but the last key is different
-        combination_5 = (ev_1, ev_3, ev_2)
-        combination_6 = (ev_3, ev_1, ev_2)
+        combination_5 = Key(ev_1, ev_3, ev_2)
+        combination_6 = Key(ev_3, ev_1, ev_2)
 
         self.change_empty_row(combination_1, 'a')
         self.assertEqual(custom_mapping.get_character(combination_1), 'a')
@@ -535,8 +528,8 @@ class TestIntegration(unittest.TestCase):
         """Comprehensive test for rows 2."""
         # sleeps are added to be able to visually follow and debug the test.
         # add two rows by modifiying the one empty row that exists
-        row_1 = self.change_empty_row((EV_KEY, 10, 1), 'a')
-        row_2 = self.change_empty_row((EV_KEY, 11, 1), 'b')
+        row_1 = self.change_empty_row(Key(EV_KEY, 10, 1), 'a')
+        row_2 = self.change_empty_row(Key(EV_KEY, 11, 1), 'b')
         row_3 = self.change_empty_row(None, 'c')
 
         # no empty row added because one is unfinished
@@ -544,7 +537,7 @@ class TestIntegration(unittest.TestCase):
         gtk_iteration()
         self.assertEqual(len(self.get_rows()), 3)
 
-        self.assertEqual(custom_mapping.get_character((EV_KEY, 11, 1)), 'b')
+        self.assertEqual(custom_mapping.get_character(Key(EV_KEY, 11, 1)), 'b')
 
         def remove(row, code, char, num_rows_after):
             """Remove a row by clicking the delete button.
@@ -560,13 +553,13 @@ class TestIntegration(unittest.TestCase):
                 after deleting, how many rows are expected to still be there
             """
             if code is not None and char is not None:
-                self.assertEqual(custom_mapping.get_character((EV_KEY, code, 1)), char)
+                self.assertEqual(custom_mapping.get_character(Key(EV_KEY, code, 1)), char)
 
             self.assertEqual(row.get_character(), char)
             if code is None:
-                self.assertIsNone(row.get_keycode())
+                self.assertIsNone(row.get_key())
             else:
-                self.assertEqual(row.get_keycode(), (EV_KEY, code, 1))
+                self.assertEqual(row.get_key(), Key(EV_KEY, code, 1))
 
             row.on_delete_button_clicked()
             time.sleep(0.2)
@@ -575,9 +568,10 @@ class TestIntegration(unittest.TestCase):
             # if a reference to the row is held somewhere and it is
             # accidentally used again, make sure to not provide any outdated
             # information that is supposed to be deleted
-            self.assertIsNone(row.get_keycode())
+            self.assertIsNone(row.get_key())
             self.assertIsNone(row.get_character())
-            self.assertIsNone(custom_mapping.get_character((EV_KEY, code, 1)))
+            if code is not None:
+                self.assertIsNone(custom_mapping.get_character(Key(EV_KEY, code, 1)))
             self.assertEqual(len(self.get_rows()), num_rows_after)
 
         remove(row_1, 10, 'a', 2)
@@ -588,17 +582,17 @@ class TestIntegration(unittest.TestCase):
         remove(row_3, None, 'c', 1)
 
     def test_rename_and_save(self):
-        custom_mapping.change((EV_KEY, 14, 1), 'a', None)
+        custom_mapping.change(Key(EV_KEY, 14, 1), 'a', None)
         self.assertEqual(self.window.selected_preset, 'new preset')
         self.window.on_save_preset_clicked(None)
-        self.assertEqual(custom_mapping.get_character((EV_KEY, 14, 1)), 'a')
+        self.assertEqual(custom_mapping.get_character(Key(EV_KEY, 14, 1)), 'a')
 
-        custom_mapping.change((EV_KEY, 14, 1), 'b', None)
+        custom_mapping.change(Key(EV_KEY, 14, 1), 'b', None)
         self.window.get('preset_name_input').set_text('asdf')
         self.window.on_save_preset_clicked(None)
         self.assertEqual(self.window.selected_preset, 'asdf')
         self.assertTrue(os.path.exists(f'{CONFIG_PATH}/presets/device 1/asdf.json'))
-        self.assertEqual(custom_mapping.get_character((EV_KEY, 14, 1)), 'b')
+        self.assertEqual(custom_mapping.get_character(Key(EV_KEY, 14, 1)), 'b')
 
         error_icon = self.window.get('error_status_icon')
         status = self.window.get('status_bar')
@@ -610,20 +604,20 @@ class TestIntegration(unittest.TestCase):
         status = self.window.get('status_bar')
         error_icon = self.window.get('error_status_icon')
 
-        custom_mapping.change((EV_KEY, 9, 1), 'k(1))', None)
+        custom_mapping.change(Key(EV_KEY, 9, 1), 'k(1))', None)
         self.window.on_save_preset_clicked(None)
         tooltip = status.get_tooltip_text().lower()
         self.assertIn('brackets', tooltip)
         self.assertTrue(error_icon.get_visible())
 
-        custom_mapping.change((EV_KEY, 9, 1), 'k(1)', None)
+        custom_mapping.change(Key(EV_KEY, 9, 1), 'k(1)', None)
         self.window.on_save_preset_clicked(None)
         tooltip = status.get_tooltip_text().lower()
         self.assertNotIn('brackets', tooltip)
         self.assertIn('saved', tooltip)
         self.assertFalse(error_icon.get_visible())
 
-        self.assertEqual(custom_mapping.get_character((EV_KEY, 9, 1)), 'k(1)')
+        self.assertEqual(custom_mapping.get_character(Key(EV_KEY, 9, 1)), 'k(1)')
 
     def test_select_device_and_preset(self):
         # created on start because the first device is selected and some empty
@@ -653,7 +647,7 @@ class TestIntegration(unittest.TestCase):
         gtk_iteration()
         self.assertEqual(self.window.selected_preset, 'new preset')
         self.assertFalse(os.path.exists(f'{CONFIG_PATH}/presets/device 1/abc 123.json'))
-        custom_mapping.change((EV_KEY, 10, 1), '1', None)
+        custom_mapping.change(Key(EV_KEY, 10, 1), '1', None)
         self.window.on_save_preset_clicked(None)
         gtk_iteration()
         self.assertEqual(self.window.selected_preset, 'abc 123')
@@ -706,7 +700,7 @@ class TestIntegration(unittest.TestCase):
         keycode_from = 9
         keycode_to = 200
 
-        self.change_empty_row((EV_KEY, keycode_from, 1), 'a')
+        self.change_empty_row(Key(EV_KEY, keycode_from, 1), 'a')
         system_mapping.clear()
         system_mapping._set('a', keycode_to)
 
@@ -746,7 +740,7 @@ class TestIntegration(unittest.TestCase):
         keycode_from = 16
         keycode_to = 90
 
-        self.change_empty_row((EV_KEY, keycode_from, 1), 't')
+        self.change_empty_row(Key(EV_KEY, keycode_from, 1), 't')
         system_mapping.clear()
         system_mapping._set('t', keycode_to)
 

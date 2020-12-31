@@ -24,10 +24,11 @@ import unittest
 import json
 from evdev.ecodes import EV_KEY, EV_ABS, ABS_HAT0X, KEY_A
 
-from keymapper.mapping import Mapping, verify_key
+from keymapper.mapping import Mapping
 from keymapper.state import SystemMapping, XMODMAP_FILENAME
 from keymapper.config import config
 from keymapper.paths import get_preset_path
+from keymapper.key import Key
 
 from tests.test import tmp, cleanup
 
@@ -133,12 +134,12 @@ class TestMapping(unittest.TestCase):
 
         # setting mapping.whatever does not overwrite the mapping
         # after saving. It should be ignored.
-        self.mapping.change((EV_KEY, 81, 1), 'a')
+        self.mapping.change(Key(EV_KEY, 81, 1), 'a')
         self.mapping.set('mapping.a', 2)
         self.mapping.save(get_preset_path('foo', 'bar'))
         self.assertFalse(self.mapping.changed)
         self.mapping.load(get_preset_path('foo', 'bar'))
-        self.assertEqual(self.mapping.get_character((EV_KEY, 81, 1)), 'a')
+        self.assertEqual(self.mapping.get_character(Key(EV_KEY, 81, 1)), 'a')
         self.assertIsNone(self.mapping.get('mapping.a'))
         self.assertFalse(self.mapping.changed)
 
@@ -156,8 +157,8 @@ class TestMapping(unittest.TestCase):
         self.assertEqual(self.mapping.get('d.e.f'), 3)
 
     def test_clone(self):
-        ev_1 = (EV_KEY, 1, 1)
-        ev_2 = (EV_KEY, 2, 0)
+        ev_1 = Key(EV_KEY, 1, 1)
+        ev_2 = Key(EV_KEY, 2, 0)
 
         mapping1 = Mapping()
         mapping1.change(ev_1, 'a')
@@ -170,17 +171,17 @@ class TestMapping(unittest.TestCase):
         self.assertEqual(mapping2.get_character(ev_1), 'a')
         self.assertIsNone(mapping2.get_character(ev_2))
 
-        self.assertIsNone(mapping2.get_character((EV_KEY, 2, 3)))
-        self.assertIsNone(mapping2.get_character((EV_KEY, 1, 3)))
+        self.assertIsNone(mapping2.get_character(Key(EV_KEY, 2, 3)))
+        self.assertIsNone(mapping2.get_character(Key(EV_KEY, 1, 3)))
 
     def test_save_load(self):
-        one = (EV_KEY, 10, 1)
-        two = (EV_KEY, 11, 1)
-        three = (EV_KEY, 12, 1)
+        one = Key(EV_KEY, 10, 1)
+        two = Key(EV_KEY, 11, 1)
+        three = Key(EV_KEY, 12, 1)
 
         self.mapping.change(one, '1')
         self.mapping.change(two, '2')
-        self.mapping.change((two, three), '3')
+        self.mapping.change(Key(two, three), '3')
         self.mapping._config['foo'] = 'bar'
         self.mapping.save(get_preset_path('device 1', 'test'))
 
@@ -194,7 +195,7 @@ class TestMapping(unittest.TestCase):
         self.assertEqual(len(loaded), 3)
         self.assertEqual(loaded.get_character(one), '1')
         self.assertEqual(loaded.get_character(two), '2')
-        self.assertEqual(loaded.get_character((two, three)), '3')
+        self.assertEqual(loaded.get_character(Key(two, three)), '3')
         self.assertEqual(loaded._config['foo'], 'bar')
 
     def test_save_load_2(self):
@@ -209,10 +210,8 @@ class TestMapping(unittest.TestCase):
                     f'{EV_ABS},{ABS_HAT0X},-1': 'b',
                     f'{EV_ABS},1,1+{EV_ABS},2,-1+{EV_ABS},3,1': 'c',
                     # ignored because broken
-                    f'3,1,1+': 'd',
                     f'3,1,1,2': 'e',
                     f'3': 'e',
-                    f'+3,1,2': 'f',
                     f',,+3,1,2': 'g',
                     f'': 'h',
                 }
@@ -221,19 +220,21 @@ class TestMapping(unittest.TestCase):
         loaded = Mapping()
         loaded.load(get_preset_path('device 1', 'test'))
         self.assertEqual(len(loaded), 3)
-        self.assertEqual(loaded.get_character((EV_KEY, 3, 1)), 'a')
-        self.assertEqual(loaded.get_character((EV_ABS, ABS_HAT0X, -1)), 'b')
-        self.assertEqual(loaded.get_character(
-            ((EV_ABS, 1, 1), (EV_ABS, 2, -1), (EV_ABS, 3, 1))
+        self.assertEqual(loaded.get_character(Key(EV_KEY, 3, 1)), 'a')
+        self.assertEqual(loaded.get_character(Key(EV_ABS, ABS_HAT0X, -1)), 'b')
+        self.assertEqual(loaded.get_character(Key(
+            (EV_ABS, 1, 1),
+            (EV_ABS, 2, -1),
+            Key(EV_ABS, 3, 1))
         ), 'c')
 
     def test_change(self):
         # the reader would not report values like 111 or 222, only 1 or -1.
         # the mapping just does what it is told, so it accepts them.
-        ev_1 = (EV_KEY, 1, 111)
-        ev_2 = (EV_KEY, 1, 222)
-        ev_3 = (EV_KEY, 2, 111)
-        ev_4 = (EV_ABS, 1, 111)
+        ev_1 = Key(EV_KEY, 1, 111)
+        ev_2 = Key(EV_KEY, 1, 222)
+        ev_3 = Key(EV_KEY, 2, 111)
+        ev_4 = Key(EV_ABS, 1, 111)
 
         # 1 is not assigned yet, ignore it
         self.mapping.change(ev_1, 'a', ev_2)
@@ -265,13 +266,13 @@ class TestMapping(unittest.TestCase):
         self.assertEqual(len(self.mapping), 2)
 
     def test_combinations(self):
-        ev_1 = (EV_KEY, 1, 111)
-        ev_2 = (EV_KEY, 1, 222)
-        ev_3 = (EV_KEY, 2, 111)
-        ev_4 = (EV_ABS, 1, 111)
-        combi_1 = (ev_1, ev_2, ev_3)
-        combi_2 = (ev_2, ev_1, ev_3)
-        combi_3 = (ev_1, ev_2, ev_4)
+        ev_1 = Key(EV_KEY, 1, 111)
+        ev_2 = Key(EV_KEY, 1, 222)
+        ev_3 = Key(EV_KEY, 2, 111)
+        ev_4 = Key(EV_ABS, 1, 111)
+        combi_1 = Key(ev_1, ev_2, ev_3)
+        combi_2 = Key(ev_2, ev_1, ev_3)
+        combi_3 = Key(ev_1, ev_2, ev_4)
 
         self.mapping.change(combi_1, 'a')
         self.assertEqual(self.mapping.get_character(combi_1), 'a')
@@ -293,50 +294,55 @@ class TestMapping(unittest.TestCase):
 
     def test_clear(self):
         # does nothing
-        self.mapping.clear((EV_KEY, 40, 1))
+        ev_1 = Key(EV_KEY, 40, 1)
+        ev_2 = Key(EV_KEY, 30, 1)
+        ev_3 = Key(EV_KEY, 20, 1)
+        ev_4 = Key(EV_KEY, 10, 1)
+
+        self.mapping.clear(ev_1)
         self.assertFalse(self.mapping.changed)
         self.assertEqual(len(self.mapping), 0)
 
-        self.mapping._mapping[(EV_KEY, 40, 1)] = 'b'
+        self.mapping._mapping[ev_1] = 'b'
         self.assertEqual(len(self.mapping), 1)
-        self.mapping.clear((EV_KEY, 40, 1))
+        self.mapping.clear(ev_1)
         self.assertEqual(len(self.mapping), 0)
         self.assertTrue(self.mapping.changed)
 
-        self.mapping.change((EV_KEY, 10, 1), 'KP_1', None)
+        self.mapping.change(ev_4, 'KP_1', None)
         self.assertTrue(self.mapping.changed)
-        self.mapping.change((EV_KEY, 20, 1), 'KP_2', None)
-        self.mapping.change((EV_KEY, 30, 1), 'KP_3', None)
+        self.mapping.change(ev_3, 'KP_2', None)
+        self.mapping.change(ev_2, 'KP_3', None)
         self.assertEqual(len(self.mapping), 3)
-        self.mapping.clear((EV_KEY, 20, 1))
+        self.mapping.clear(ev_3)
         self.assertEqual(len(self.mapping), 2)
-        self.assertEqual(self.mapping.get_character((EV_KEY, 10, 1)), 'KP_1')
-        self.assertIsNone(self.mapping.get_character((EV_KEY, 20, 1)))
-        self.assertEqual(self.mapping.get_character((EV_KEY, 30, 1)), 'KP_3')
+        self.assertEqual(self.mapping.get_character(ev_4), 'KP_1')
+        self.assertIsNone(self.mapping.get_character(ev_3))
+        self.assertEqual(self.mapping.get_character(ev_2), 'KP_3')
 
     def test_empty(self):
-        self.mapping.change((EV_KEY, 10, 1), '1')
-        self.mapping.change((EV_KEY, 11, 1), '2')
-        self.mapping.change((EV_KEY, 12, 1), '3')
+        self.mapping.change(Key(EV_KEY, 10, 1), '1')
+        self.mapping.change(Key(EV_KEY, 11, 1), '2')
+        self.mapping.change(Key(EV_KEY, 12, 1), '3')
         self.assertEqual(len(self.mapping), 3)
         self.mapping.empty()
         self.assertEqual(len(self.mapping), 0)
 
     def test_verify_key(self):
-        self.assertRaises(ValueError, lambda: verify_key(1))
-        self.assertRaises(ValueError, lambda: verify_key(None))
-        self.assertRaises(ValueError, lambda: verify_key([1]))
-        self.assertRaises(ValueError, lambda: verify_key((1,)))
-        self.assertRaises(ValueError, lambda: verify_key((1, 2)))
-        self.assertRaises(ValueError, lambda: verify_key(('1', '2', '3')))
-        self.assertRaises(ValueError, lambda: verify_key('1'))
-        self.assertRaises(ValueError, lambda: verify_key('(1,2,3)'))
-        self.assertRaises(ValueError, lambda: verify_key(((1, 2, 3), (1, 2, '3'))))
-        self.assertRaises(ValueError, lambda: verify_key(((1, 2, 3), (1, 2, 3), None)))
+        self.assertRaises(ValueError, lambda: Key(1))
+        self.assertRaises(ValueError, lambda: Key(None))
+        self.assertRaises(ValueError, lambda: Key([1]))
+        self.assertRaises(ValueError, lambda: Key((1,)))
+        self.assertRaises(ValueError, lambda: Key((1, 2)))
+        self.assertRaises(ValueError, lambda: Key(('1', '2', '3')))
+        self.assertRaises(ValueError, lambda: Key('1'))
+        self.assertRaises(ValueError, lambda: Key('(1,2,3)'))
+        self.assertRaises(ValueError, lambda: Key((1, 2, 3), (1, 2, '3')))
+        self.assertRaises(ValueError, lambda: Key((1, 2, 3), (1, 2, 3), None))
 
         # those don't raise errors
-        verify_key(((1, 2, 3), (1, 2, 3)))
-        verify_key((1, 2, 3))
+        Key((1, 2, 3), (1, 2, 3))
+        Key((1, 2, 3))
 
 
 if __name__ == "__main__":

@@ -27,6 +27,7 @@ from gi.repository import Gtk, GLib, Gdk
 
 from keymapper.state import custom_mapping, system_mapping
 from keymapper.logger import logger
+from keymapper.key import Key
 
 
 CTX_KEYCODE = 2
@@ -39,37 +40,44 @@ for name in system_mapping.list_names():
 
 def to_string(key):
     """A nice to show description of the pressed key."""
-    if isinstance(key[0], tuple):
+    if isinstance(key, Key):
         return ' + '.join([to_string(sub_key) for sub_key in key])
+    elif isinstance(key[0], tuple):
+        raise Exception('deprecated stuff')
 
     ev_type, code, value = key
 
-    try:
-        key_name = evdev.ecodes.bytype[ev_type][code]
-        if isinstance(key_name, list):
-            key_name = key_name[0]
-
-        if ev_type != evdev.ecodes.EV_KEY:
-            direction = {
-                (evdev.ecodes.ABS_HAT0X, -1): 'L',
-                (evdev.ecodes.ABS_HAT0X, 1): 'R',
-                (evdev.ecodes.ABS_HAT0Y, -1): 'U',
-                (evdev.ecodes.ABS_HAT0Y, 1): 'D',
-                (evdev.ecodes.ABS_HAT1X, -1): 'L',
-                (evdev.ecodes.ABS_HAT1X, 1): 'R',
-                (evdev.ecodes.ABS_HAT1Y, -1): 'U',
-                (evdev.ecodes.ABS_HAT1Y, 1): 'D',
-                (evdev.ecodes.ABS_HAT2X, -1): 'L',
-                (evdev.ecodes.ABS_HAT2X, 1): 'R',
-                (evdev.ecodes.ABS_HAT2Y, -1): 'U',
-                (evdev.ecodes.ABS_HAT2Y, 1): 'D',
-            }.get((code, value))
-            if direction is not None:
-                key_name += f' {direction}'
-
-        return key_name.replace('KEY_', '')
-    except KeyError:
+    if ev_type not in evdev.ecodes.bytype:
+        logger.error('Unknown key type for %s', key)
         return 'unknown'
+
+    if code not in evdev.ecodes.bytype[ev_type]:
+        logger.error('Unknown key code for', key)
+        return 'unknown'
+
+    key_name = evdev.ecodes.bytype[ev_type][code]
+    if isinstance(key_name, list):
+        key_name = key_name[0]
+
+    if ev_type != evdev.ecodes.EV_KEY:
+        direction = {
+            (evdev.ecodes.ABS_HAT0X, -1): 'L',
+            (evdev.ecodes.ABS_HAT0X, 1): 'R',
+            (evdev.ecodes.ABS_HAT0Y, -1): 'U',
+            (evdev.ecodes.ABS_HAT0Y, 1): 'D',
+            (evdev.ecodes.ABS_HAT1X, -1): 'L',
+            (evdev.ecodes.ABS_HAT1X, 1): 'R',
+            (evdev.ecodes.ABS_HAT1Y, -1): 'U',
+            (evdev.ecodes.ABS_HAT1Y, 1): 'D',
+            (evdev.ecodes.ABS_HAT2X, -1): 'L',
+            (evdev.ecodes.ABS_HAT2X, 1): 'R',
+            (evdev.ecodes.ABS_HAT2Y, -1): 'U',
+            (evdev.ecodes.ABS_HAT2Y, 1): 'D',
+        }.get((code, value))
+        if direction is not None:
+            key_name += f' {direction}'
+
+    return key_name.replace('KEY_', '')
 
 
 IDLE = 0
@@ -85,9 +93,11 @@ class Row(Gtk.ListBoxRow):
 
         Parameters
         ----------
-        key : int, int, int
-            event, code, value
+        key : Key
         """
+        if key is not None and not isinstance(key, Key):
+            raise TypeError('Expected key to be a Key object')
+
         super().__init__()
         self.device = window.selected_device
         self.window = window
@@ -111,8 +121,8 @@ class Row(Gtk.ListBoxRow):
             window = self.window.window
             GLib.idle_add(lambda: window.set_focus(self.character_input))
 
-    def get_keycode(self):
-        """Get a tuple of type, code and value from the left column.
+    def get_key(self):
+        """Get the Key object from the left column.
 
         Or None if no code is mapped on this row.
         """
@@ -123,11 +133,19 @@ class Row(Gtk.ListBoxRow):
         character = self.character_input.get_text()
         return character if character else None
 
-    def set_new_keycode(self, new_key):
-        """Check if a keycode has been pressed and if so, display it."""
+    def set_new_key(self, new_key):
+        """Check if a keycode has been pressed and if so, display it.
+
+        Parameters
+        ----------
+        new_key : Key
+        """
+        if new_key is not None and not isinstance(new_key, Key):
+            raise TypeError('Expected new_key to be a Key object')
+
         # the newest_keycode is populated since the ui regularly polls it
         # in order to display it in the status bar.
-        previous_key = self.get_keycode()
+        previous_key = self.get_key()
 
         # no input
         if new_key is None:
@@ -182,7 +200,7 @@ class Row(Gtk.ListBoxRow):
 
     def on_character_input_change(self, _):
         """When the output character for that keycode is typed in."""
-        key = self.get_keycode()
+        key = self.get_key()
         character = self.get_character()
 
         if character is None:
@@ -204,7 +222,7 @@ class Row(Gtk.ListBoxRow):
 
     def show_click_here(self):
         """Show 'click here' on the keycode input button."""
-        if self.get_keycode() is not None:
+        if self.get_key() is not None:
             return
 
         self.set_keycode_input_label('click here')
@@ -212,7 +230,7 @@ class Row(Gtk.ListBoxRow):
 
     def show_press_key(self):
         """Show 'press key' on the keycode input button."""
-        if self.get_keycode() is not None:
+        if self.get_key() is not None:
             return
 
         self.set_keycode_input_label('press key')
@@ -311,7 +329,7 @@ class Row(Gtk.ListBoxRow):
 
     def on_delete_button_clicked(self, *args):
         """Destroy the row and remove it from the config."""
-        key = self.get_keycode()
+        key = self.get_key()
         if key is not None:
             custom_mapping.clear(key)
 

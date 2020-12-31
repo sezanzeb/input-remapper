@@ -30,28 +30,13 @@ import copy
 from keymapper.logger import logger
 from keymapper.paths import touch
 from keymapper.config import ConfigBase, config
-
-
-def verify_key(key):
-    """Check if the key describes a tuple or tuples of (type, code, value).
-
-    For combinations it could be e.g. ((1, 2, 1), (1, 3, 1)).
-    """
-    if not isinstance(key, tuple):
-        raise ValueError(f'Expected keys to be a 3-tuple, but got {key}')
-
-    if isinstance(key[0], tuple):
-        for sub_key in key:
-            verify_key(sub_key)
-    else:
-        if len(key) != 3:
-            raise ValueError(f'Expected key to be a 3-tuple, but got {key}')
-        if sum([not isinstance(value, int) for value in key]) != 0:
-            raise ValueError(f'Can only use numbers, but got {key}')
+from keymapper.key import Key
 
 
 def split_key(key):
     """Take a key like "1,2,3" and return a 3-tuple of ints."""
+    key = key.strip()
+
     if ',' not in key:
         logger.error('Found invalid key: "%s"', key)
         return None
@@ -79,12 +64,12 @@ def split_key(key):
 class Mapping(ConfigBase):
     """Contains and manages mappings and config of a single preset."""
     def __init__(self):
-        self._mapping = {}
+        self._mapping = {}  # a mapping of Key objects to strings
         self.changed = False
         super().__init__(fallback=config)
 
     def __iter__(self):
-        """Iterate over tuples of unique keycodes and their character."""
+        """Iterate over Key objects and their character."""
         return iter(self._mapping.items())
 
     def __len__(self):
@@ -105,32 +90,22 @@ class Mapping(ConfigBase):
 
         Parameters
         ----------
-        new_key : int, int, int
-            the new key. (type, code, value). key as in hashmap-key
-
-            0: type, one of evdev.events, taken from the original source
-            event. Everything will be mapped to EV_KEY.
-            1: The source keycode, what the mouse would report without any
-            modification.
-            2. The value. 1 (down), 2 (up) or any
-            other value that the device reports. Gamepads use a continuous
-            space of values for joysticks and triggers.
+        new_key : Key
         character : string
             A single character known to xkb or linux.
             Examples: KP_1, Shift_L, a, B, BTN_LEFT.
-        previous_key : int, int, int
-            the previous key, same format as new_key
+        previous_key : Key or None
+            the previous key
 
             If not set, will not remove any previous mapping. If you recently
             used (1, 10, 1) for new_key and want to overwrite that with
             (1, 11, 1), provide (1, 5, 1) here.
         """
+        if not isinstance(new_key, Key):
+            raise TypeError(f'Expected {new_key} to be a Key object')
+
         if character is None:
             raise ValueError('Expected `character` not to be None')
-
-        verify_key(new_key)
-        if previous_key:
-            verify_key(previous_key)
 
         logger.debug(
             '%s will map to %s, replacing %s',
@@ -153,31 +128,16 @@ class Mapping(ConfigBase):
 
         Parameters
         ----------
-        key : int, int, int
-            keycode : int
-            ev_type : int
-                one of evdev.events. codes may be the same for various
-                event types.
-            value : int
-                event value. Usually you want 1 (down)
+        key : Key
         """
-        verify_key(key)
+        if not isinstance(key, Key):
+            raise TypeError('Expected key to be a Key object')
 
-        if isinstance(key[0], tuple):
-            for permutation in itertools.permutations(key[:-1]):
-                permutation += (key[-1],)
-                if permutation in self._mapping:
-                    logger.debug('%s will be cleared', permutation)
-                    del self._mapping[permutation]
-            return
-
-        if self._mapping.get(key) is not None:
-            logger.debug('%s will be cleared', key)
-            del self._mapping[key]
-            self.changed = True
-            return
-
-        logger.error('Unknown key %s', key)
+        for permutation in key.get_permutations():
+            if permutation in self._mapping:
+                logger.debug('%s will be cleared', permutation)
+                del self._mapping[permutation]
+                self.changed = True
 
     def empty(self):
         """Remove all mappings."""
@@ -208,15 +168,17 @@ class Mapping(ConfigBase):
                 return
 
             for key, character in preset_dict['mapping'].items():
-                if '+' in key:
-                    chunks = key.split('+')
-                    key = tuple([split_key(chunk) for chunk in chunks])
-                    if None in key:
-                        continue
-                else:
-                    key = split_key(key)
-                    if key is None:
-                        continue
+                try:
+                    key = Key(*[
+                        split_key(chunk) for chunk in key.split('+')
+                        if chunk.strip() != ''
+                    ])
+                except ValueError as error:
+                    logger.error(str(error))
+                    continue
+
+                if None in key:
+                    continue
 
                 logger.spam('%s maps to %s', key, character)
                 self._mapping[key] = character
@@ -254,17 +216,13 @@ class Mapping(ConfigBase):
             json_ready_mapping = {}
             # tuple keys are not possible in json, encode them as string
             for key, value in self._mapping.items():
-                if isinstance(key[0], tuple):
-                    # combinations to "1,2,1+1,3,1"
-                    new_key = '+'.join([
-                        ','.join([
-                            str(value)
-                            for value in sub_key
-                        ])
-                        for sub_key in key
+                new_key = '+'.join([
+                    ','.join([
+                        str(value)
+                        for value in sub_key
                     ])
-                else:
-                    new_key = ','.join([str(value) for value in key])
+                    for sub_key in key
+                ])
                 json_ready_mapping[new_key] = value
 
             preset_dict['mapping'] = json_ready_mapping
@@ -278,23 +236,12 @@ class Mapping(ConfigBase):
 
         Parameters
         ----------
-        key : int, int, int
-            keycode : int
-            ev_type : int
-                one of evdev.events. codes may be the same for various
-                event types.
-            value : int
-                event value. Usually you want 1 (down)
-
-            Or a tuple of multiple of those. Checks any possible permutation
-            with the last key being always at the end, to work well with
-            combinations.
+        key : Key
         """
-        if isinstance(key[0], tuple):
-            for permutation in itertools.permutations(key[:-1]):
-                permutation += (key[-1],)
-                existing = self._mapping.get(permutation)
-                if existing is not None:
-                    return existing
+        if not isinstance(key, Key):
+            raise TypeError('Expected key to be a Key object')
 
-        return self._mapping.get(key)
+        for permutation in key.get_permutations():
+            existing = self._mapping.get(permutation)
+            if existing is not None:
+                return existing

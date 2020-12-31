@@ -364,7 +364,7 @@ class Window:
         # inform the currently selected row about the new keycode
         row, focused = self.get_focused_row()
         if isinstance(focused, Gtk.ToggleButton):
-            row.set_new_keycode(key)
+            row.set_new_key(key)
 
         return True
 

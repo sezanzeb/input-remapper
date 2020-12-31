@@ -27,10 +27,11 @@ import evdev
 from evdev.ecodes import EV_REL, EV_KEY, EV_ABS, ABS_HAT0X, BTN_A
 
 from keymapper.dev.injector import is_numlock_on, set_numlock, \
-    ensure_numlock, KeycodeInjector, store_permutations, is_in_capabilities
+    ensure_numlock, KeycodeInjector, is_in_capabilities
 from keymapper.state import custom_mapping, system_mapping
 from keymapper.mapping import Mapping
 from keymapper.config import config
+from keymapper.key import Key
 from keymapper.dev.macros import parse
 
 from tests.test import InputEvent, pending_events, fixtures, \
@@ -76,16 +77,16 @@ class TestInjector(unittest.TestCase):
                 }
 
         mapping = Mapping()
-        mapping.change((EV_KEY, 80, 1), 'a')
+        mapping.change(Key(EV_KEY, 80, 1), 'a')
 
         macro_code = 'r(2, m(sHiFt_l, r(2, k(1).k(2))))'
         macro = parse(macro_code, mapping)
 
-        mapping.change((EV_KEY, 60, 111), macro_code)
+        mapping.change(Key(EV_KEY, 60, 111), macro_code)
 
         # going to be ignored, because EV_REL cannot be mapped, that's
         # mouse movements.
-        mapping.change((EV_REL, 1234, 3), 'b')
+        mapping.change(Key(EV_REL, 1234, 3), 'b')
 
         a = system_mapping.get('a')
         shift_l = system_mapping.get('ShIfT_L')
@@ -114,7 +115,7 @@ class TestInjector(unittest.TestCase):
 
     def test_grab(self):
         # path is from the fixtures
-        custom_mapping.change((EV_KEY, 10, 1), 'a')
+        custom_mapping.change(Key(EV_KEY, 10, 1), 'a')
 
         self.injector = KeycodeInjector('device 1', custom_mapping)
         path = '/dev/input/event10'
@@ -128,7 +129,7 @@ class TestInjector(unittest.TestCase):
 
     def test_fail_grab(self):
         self.make_it_fail = 10
-        custom_mapping.change((EV_KEY, 10, 1), 'a')
+        custom_mapping.change(Key(EV_KEY, 10, 1), 'a')
 
         self.injector = KeycodeInjector('device 1', custom_mapping)
         path = '/dev/input/event10'
@@ -145,7 +146,7 @@ class TestInjector(unittest.TestCase):
 
     def test_prepare_device_1(self):
         # according to the fixtures, /dev/input/event30 can do ABS_HAT0X
-        custom_mapping.change((EV_ABS, ABS_HAT0X, 1), 'a')
+        custom_mapping.change(Key(EV_ABS, ABS_HAT0X, 1), 'a')
         self.injector = KeycodeInjector('foobar', custom_mapping)
 
         _prepare_device = self.injector._prepare_device
@@ -153,7 +154,7 @@ class TestInjector(unittest.TestCase):
         self.assertIsNotNone(_prepare_device('/dev/input/event30')[0])
 
     def test_prepare_device_non_existing(self):
-        custom_mapping.change((EV_ABS, ABS_HAT0X, 1), 'a')
+        custom_mapping.change(Key(EV_ABS, ABS_HAT0X, 1), 'a')
         self.injector = KeycodeInjector('foobar', custom_mapping)
 
         _prepare_device = self.injector._prepare_device
@@ -224,7 +225,7 @@ class TestInjector(unittest.TestCase):
 
     def test_skip_unused_device(self):
         # skips a device because its capabilities are not used in the mapping
-        custom_mapping.change((EV_KEY, 10, 1), 'a')
+        custom_mapping.change(Key(EV_KEY, 10, 1), 'a')
         self.injector = KeycodeInjector('device 1', custom_mapping)
         path = '/dev/input/event11'
         device, abs_to_rel = self.injector._prepare_device(path)
@@ -332,12 +333,12 @@ class TestInjector(unittest.TestCase):
 
         numlock_before = is_numlock_on()
 
-        combination = ((EV_KEY, 8, 1), (EV_KEY, 9, 1))
+        combination = Key((EV_KEY, 8, 1), (EV_KEY, 9, 1))
         custom_mapping.change(combination, 'k(KEY_Q).k(w)')
-        custom_mapping.change((EV_ABS, ABS_HAT0X, -1), 'a')
+        custom_mapping.change(Key(EV_ABS, ABS_HAT0X, -1), 'a')
         # one mapping that is unknown in the system_mapping on purpose
         input_b = 10
-        custom_mapping.change((EV_KEY, input_b, 1), 'b')
+        custom_mapping.change(Key(EV_KEY, input_b, 1), 'b')
 
         # stuff the custom_mapping outputs (except for the unknown b)
         system_mapping.clear()
@@ -429,42 +430,13 @@ class TestInjector(unittest.TestCase):
         numlock_after = is_numlock_on()
         self.assertEqual(numlock_before, numlock_after)
 
-    def test_store_permutations(self):
-        target = {}
-
-        store_permutations(target, ((1,), (2,), (3,), (4,)), 1234)
-        self.assertEqual(len(target), 6)
-        self.assertEqual(target[((1,), (2,), (3,), (4,))], 1234)
-        self.assertEqual(target[((1,), (3,), (2,), (4,))], 1234)
-        self.assertEqual(target[((2,), (1,), (3,), (4,))], 1234)
-        self.assertEqual(target[((2,), (3,), (1,), (4,))], 1234)
-        self.assertEqual(target[((3,), (1,), (2,), (4,))], 1234)
-        self.assertEqual(target[((3,), (2,), (1,), (4,))], 1234)
-
-        store_permutations(target, ((1,), (2,)), 5678)
-        self.assertEqual(len(target), 7)
-        self.assertEqual(target[((1,), (2,))], 5678)
-
-        store_permutations(target, ((1,),), 3456)
-        self.assertEqual(len(target), 8)
-        self.assertEqual(target[((1,),)], 3456)
-
-        store_permutations(target, (1,), 7890)
-        self.assertEqual(len(target), 9)
-        self.assertEqual(target[(1,)], 7890)
-
-        # only accepts tuples, because key-mapper always uses tuples
-        # for this stuff
-        store_permutations(target, 1, 1357)
-        self.assertEqual(len(target), 9)
-
     def test_store_permutations_for_macros(self):
         mapping = Mapping()
         ev_1 = (EV_KEY, 41, 1)
         ev_2 = (EV_KEY, 42, 1)
         ev_3 = (EV_KEY, 43, 1)
         # a combination
-        mapping.change((ev_1, ev_2, ev_3), 'k(a)')
+        mapping.change(Key(ev_1, ev_2, ev_3), 'k(a)')
         self.injector = KeycodeInjector('device 1', mapping)
 
         history = []
@@ -496,17 +468,17 @@ class TestInjector(unittest.TestCase):
         ev_2 = (EV_KEY, 42, 1)
         ev_3 = (EV_KEY, 43, 1)
         ev_4 = (EV_KEY, 44, 1)
-        mapping.change(ev_1, 'a')
+        mapping.change(Key(ev_1), 'a')
         # a combination
-        mapping.change((ev_2, ev_3, ev_4), 'b')
-        self.assertEqual(mapping.get_character((ev_2, ev_3, ev_4)), 'b')
+        mapping.change(Key(ev_2, ev_3, ev_4), 'b')
+        self.assertEqual(mapping.get_character(Key(ev_2, ev_3, ev_4)), 'b')
 
         system_mapping.clear()
         system_mapping._set('a', 51)
         system_mapping._set('b', 52)
 
         injector = KeycodeInjector('device 1', mapping)
-        self.assertEqual(injector._key_to_code.get(ev_1), 51)
+        self.assertEqual(injector._key_to_code.get((ev_1,)), 51)
         # permutations to make matching combinations easier
         self.assertEqual(injector._key_to_code.get((ev_2, ev_3, ev_4)), 52)
         self.assertEqual(injector._key_to_code.get((ev_3, ev_2, ev_4)), 52)
