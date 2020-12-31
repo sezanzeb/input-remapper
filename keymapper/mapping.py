@@ -24,6 +24,7 @@
 
 import os
 import json
+import itertools
 import copy
 
 from keymapper.logger import logger
@@ -32,12 +33,47 @@ from keymapper.config import ConfigBase, config
 
 
 def verify_key(key):
-    """Check if the key describes a tuple of (type, code, value) ints."""
-    if len(key) != 3:
+    """Check if the key describes a tuple or tuples of (type, code, value).
+
+    For combinations it could be e.g. ((1, 2, 1), (1, 3, 1)).
+    """
+    if not isinstance(key, tuple):
         raise ValueError(f'Expected keys to be a 3-tuple, but got {key}')
 
-    if sum([not isinstance(value, int) for value in key]) != 0:
-        raise ValueError(f'Can only use numbers in the tuples, but got {key}')
+    if isinstance(key[0], tuple):
+        for sub_key in key:
+            verify_key(sub_key)
+    else:
+        if len(key) != 3:
+            raise ValueError(f'Expected key to be a 3-tuple, but got {key}')
+        if sum([not isinstance(value, int) for value in key]) != 0:
+            raise ValueError(f'Can only use numbers, but got {key}')
+
+
+def split_key(key):
+    """Take a key like "1,2,3" and return a 3-tuple of ints."""
+    if ',' not in key:
+        logger.error('Found invalid key: "%s"', key)
+        return None
+
+    if key.count(',') == 1:
+        # support for legacy mapping objects that didn't include
+        # the value in the key
+        ev_type, code = key.split(',')
+        value = 1
+    elif key.count(',') == 2:
+        ev_type, code, value = key.split(',')
+    else:
+        logger.error('Found more than two commas in the key: "%s"', key)
+        return None
+
+    try:
+        key = (int(ev_type), int(code), int(value))
+    except ValueError:
+        logger.error('Found non-int in: "%s"', key)
+        return None
+
+    return key
 
 
 class Mapping(ConfigBase):
@@ -49,7 +85,7 @@ class Mapping(ConfigBase):
 
     def __iter__(self):
         """Iterate over tuples of unique keycodes and their character."""
-        return iter(sorted(self._mapping.items()))
+        return iter(self._mapping.items())
 
     def __len__(self):
         return len(self._mapping)
@@ -100,6 +136,7 @@ class Mapping(ConfigBase):
             '%s will map to %s, replacing %s',
             new_key, character, previous_key
         )
+        self.clear(new_key)  # this also clears all equivalent keys
         self._mapping[new_key] = character
 
         if previous_key is not None:
@@ -125,6 +162,14 @@ class Mapping(ConfigBase):
                 event value. Usually you want 1 (down)
         """
         verify_key(key)
+
+        if isinstance(key[0], tuple):
+            for permutation in itertools.permutations(key[:-1]):
+                permutation += (key[-1],)
+                if permutation in self._mapping:
+                    logger.debug('%s will be cleared', permutation)
+                    del self._mapping[permutation]
+            return
 
         if self._mapping.get(key) is not None:
             logger.debug('%s will be cleared', key)
@@ -163,24 +208,15 @@ class Mapping(ConfigBase):
                 return
 
             for key, character in preset_dict['mapping'].items():
-                if ',' not in key:
-                    logger.error('Found invalid key: "%s"', key)
-                    continue
-
-                if key.count(',') == 1:
-                    # support for legacy mapping objects that didn't include
-                    # the value in the key
-                    ev_type, code = key.split(',')
-                    value = 1
-
-                if key.count(',') == 2:
-                    ev_type, code, value = key.split(',')
-
-                try:
-                    key = (int(ev_type), int(code), int(value))
-                except ValueError:
-                    logger.error('Found non-int in: "%s"', key)
-                    continue
+                if '+' in key:
+                    chunks = key.split('+')
+                    key = tuple([split_key(chunk) for chunk in chunks])
+                    if None in key:
+                        continue
+                else:
+                    key = split_key(key)
+                    if key is None:
+                        continue
 
                 logger.spam('%s maps to %s', key, character)
                 self._mapping[key] = character
@@ -218,7 +254,17 @@ class Mapping(ConfigBase):
             json_ready_mapping = {}
             # tuple keys are not possible in json, encode them as string
             for key, value in self._mapping.items():
-                new_key = ','.join([str(value) for value in key])
+                if isinstance(key[0], tuple):
+                    # combinations to "1,2,1+1,3,1"
+                    new_key = '+'.join([
+                        ','.join([
+                            str(value)
+                            for value in sub_key
+                        ])
+                        for sub_key in key
+                    ])
+                else:
+                    new_key = ','.join([str(value) for value in key])
                 json_ready_mapping[new_key] = value
 
             preset_dict['mapping'] = json_ready_mapping
@@ -239,5 +285,16 @@ class Mapping(ConfigBase):
                 event types.
             value : int
                 event value. Usually you want 1 (down)
+
+            Or a tuple of multiple of those. Checks any possible permutation
+            with the last key being always at the end, to work well with
+            combinations.
         """
+        if isinstance(key[0], tuple):
+            for permutation in itertools.permutations(key[:-1]):
+                permutation += (key[-1],)
+                existing = self._mapping.get(permutation)
+                if existing is not None:
+                    return existing
+
         return self._mapping.get(key)

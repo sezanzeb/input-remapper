@@ -40,7 +40,7 @@ from keymapper.state import custom_mapping, system_mapping, XMODMAP_FILENAME
 from keymapper.paths import CONFIG_PATH, get_preset_path
 from keymapper.config import config, WHEEL, MOUSE
 from keymapper.dev.reader import keycode_reader
-from keymapper.gtk.row import to_string
+from keymapper.gtk.row import to_string, HOLDING, IDLE
 from keymapper.dev import permissions
 
 from tests.test import tmp, pending_events, InputEvent, \
@@ -227,11 +227,18 @@ class TestIntegration(unittest.TestCase):
 
     def test_row_keycode_to_string(self):
         # not an integration test, but I have all the row tests here already
-        self.assertEqual(to_string(EV_KEY, evdev.ecodes.KEY_9, 1), '9')
-        self.assertEqual(to_string(EV_KEY, evdev.ecodes.KEY_SEMICOLON, 1), 'SEMICOLON')
-        self.assertEqual(to_string(EV_ABS, evdev.ecodes.ABS_HAT0X, -1), 'ABS_HAT0X L')
-        self.assertEqual(to_string(EV_ABS, evdev.ecodes.ABS_HAT0X, 1), 'ABS_HAT0X R')
-        self.assertEqual(to_string(EV_KEY, evdev.ecodes.BTN_A, 1), 'BTN_A')
+        self.assertEqual(to_string((EV_KEY, evdev.ecodes.KEY_9, 1)), '9')
+        self.assertEqual(to_string((EV_KEY, evdev.ecodes.KEY_SEMICOLON, 1)), 'SEMICOLON')
+        self.assertEqual(to_string((EV_ABS, evdev.ecodes.ABS_HAT0X, -1)), 'ABS_HAT0X L')
+        self.assertEqual(to_string((EV_ABS, evdev.ecodes.ABS_HAT0X, 1)), 'ABS_HAT0X R')
+        self.assertEqual(to_string((EV_KEY, evdev.ecodes.BTN_A, 1)), 'BTN_A')
+
+        # combinations
+        self.assertEqual(to_string((
+            (EV_KEY, evdev.ecodes.BTN_A, 1),
+            (EV_KEY, evdev.ecodes.BTN_B, 1),
+            (EV_KEY, evdev.ecodes.BTN_C, 1)
+        )), 'BTN_A + BTN_B + BTN_C')
 
     def test_row_simple(self):
         rows = self.window.get('key_list').get_children()
@@ -278,7 +285,8 @@ class TestIntegration(unittest.TestCase):
         Parameters
         ----------
         key : int, int, int
-            type, code, value
+            type, code, value,
+            or a tuple of multiple of those
         code_first : boolean
             If True, the code is entered and then the character.
             If False, the character is entered first.
@@ -287,6 +295,8 @@ class TestIntegration(unittest.TestCase):
             in the mapping eventually. False if this change is going to
             cause a duplicate.
         """
+        self.assertFalse(keycode_reader.are_keys_pressed())
+
         # wait for the window to create a new empty row if needed
         time.sleep(0.1)
         gtk_iteration()
@@ -297,6 +307,7 @@ class TestIntegration(unittest.TestCase):
         self.assertIsNone(row.get_keycode())
         self.assertEqual(row.character_input.get_text(), '')
         self.assertNotIn('changed', row.get_style_context().list_classes())
+        self.assertEqual(row.state, IDLE)
 
         if char and not code_first:
             # set the character to make the new row complete
@@ -316,21 +327,52 @@ class TestIntegration(unittest.TestCase):
 
         if key:
             # modifies the keycode in the row not by writing into the input,
-            # but by sending an event
-            keycode_reader._pipe[1].send(InputEvent(*key))
-            time.sleep(0.1)
+            # but by sending an event. Events should be consumed 30 times
+            # per second, so sleep a bit more than 0.033ms each time
+            # press down all the keys of a combination
+            if isinstance(key[0], tuple):
+                for sub_key in key:
+                    keycode_reader._pipe[1].send(InputEvent(*sub_key))
+            else:
+                keycode_reader._pipe[1].send(InputEvent(*key))
+
+            # make the window consume the keycode
+            time.sleep(0.05)
             gtk_iteration()
+
+            # holding down
+            self.assertTrue(keycode_reader.are_keys_pressed())
+            self.assertEqual(row.state, HOLDING)
+            self.assertTrue(row.keycode_input.is_focus())
+
+            # release all the keys
+            if isinstance(key[0], tuple):
+                for sub_key in key:
+                    keycode_reader._pipe[1].send(InputEvent(*sub_key[:2], 0))
+            else:
+                keycode_reader._pipe[1].send(InputEvent(*key[:2], 0))
+
+            # make the window consume the keycode
+            time.sleep(0.05)
+            gtk_iteration()
+
+            # released
+            self.assertFalse(keycode_reader.are_keys_pressed())
+            self.assertEqual(row.state, IDLE)
 
             if expect_success:
                 self.assertEqual(row.get_keycode(), key)
                 css_classes = row.get_style_context().list_classes()
                 self.assertIn('changed', css_classes)
-                self.assertEqual(row.keycode_input.get_label(), to_string(*key))
+                self.assertEqual(row.keycode_input.get_label(), to_string(key))
+                self.assertFalse(row.keycode_input.is_focus())
 
         if not expect_success:
             self.assertIsNone(row.get_keycode())
             self.assertIsNone(row.get_character())
-            self.assertNotIn('changed', row.get_style_context().list_classes())
+            css_classes = row.get_style_context().list_classes()
+            self.assertNotIn('changed', css_classes)
+            self.assertEqual(row.state, IDLE)
             return row
 
         if char and code_first:
@@ -426,6 +468,68 @@ class TestIntegration(unittest.TestCase):
         self.assertEqual(custom_mapping.get_character(ev_3), 'c')
         self.assertEqual(custom_mapping.get_character(ev_4), 'd')
         self.assertTrue(custom_mapping.changed)
+
+    def test_combination(self):
+        # it should be possible to write a key combination
+        ev_1 = (EV_KEY, evdev.ecodes.KEY_A, 1)
+        ev_2 = (EV_ABS, evdev.ecodes.ABS_HAT0X, 1)
+        ev_3 = (EV_KEY, evdev.ecodes.KEY_C, 1)
+        ev_4 = (EV_ABS, evdev.ecodes.ABS_HAT0X, -1)
+        combination_1 = (ev_1, ev_2, ev_3)
+        combination_2 = (ev_2, ev_1, ev_3)
+
+        # same as 1, but different D-Pad direction
+        combination_3 = (ev_1, ev_4, ev_3)
+        combination_4 = (ev_4, ev_1, ev_3)
+
+        # same as 1, but the last key is different
+        combination_5 = (ev_1, ev_3, ev_2)
+        combination_6 = (ev_3, ev_1, ev_2)
+
+        self.change_empty_row(combination_1, 'a')
+        self.assertEqual(custom_mapping.get_character(combination_1), 'a')
+        self.assertEqual(custom_mapping.get_character(combination_2), 'a')
+        self.assertIsNone(custom_mapping.get_character(combination_3))
+        self.assertIsNone(custom_mapping.get_character(combination_4))
+        self.assertIsNone(custom_mapping.get_character(combination_5))
+        self.assertIsNone(custom_mapping.get_character(combination_6))
+
+        # it won't write the same combination again, even if the
+        # first two events are in a different order
+        self.change_empty_row(combination_2, 'b', expect_success=False)
+        self.assertEqual(custom_mapping.get_character(combination_1), 'a')
+        self.assertEqual(custom_mapping.get_character(combination_2), 'a')
+        self.assertIsNone(custom_mapping.get_character(combination_3))
+        self.assertIsNone(custom_mapping.get_character(combination_4))
+        self.assertIsNone(custom_mapping.get_character(combination_5))
+        self.assertIsNone(custom_mapping.get_character(combination_6))
+
+        self.change_empty_row(combination_3, 'c')
+        self.assertEqual(custom_mapping.get_character(combination_1), 'a')
+        self.assertEqual(custom_mapping.get_character(combination_2), 'a')
+        self.assertEqual(custom_mapping.get_character(combination_3), 'c')
+        self.assertEqual(custom_mapping.get_character(combination_4), 'c')
+        self.assertIsNone(custom_mapping.get_character(combination_5))
+        self.assertIsNone(custom_mapping.get_character(combination_6))
+
+        # same as with combination_2, the existing combination_3 blocks
+        # combination_4 because they have the same keys and end in the
+        # same key.
+        self.change_empty_row(combination_4, 'd', expect_success=False)
+        self.assertEqual(custom_mapping.get_character(combination_1), 'a')
+        self.assertEqual(custom_mapping.get_character(combination_2), 'a')
+        self.assertEqual(custom_mapping.get_character(combination_3), 'c')
+        self.assertEqual(custom_mapping.get_character(combination_4), 'c')
+        self.assertIsNone(custom_mapping.get_character(combination_5))
+        self.assertIsNone(custom_mapping.get_character(combination_6))
+
+        self.change_empty_row(combination_5, 'e')
+        self.assertEqual(custom_mapping.get_character(combination_1), 'a')
+        self.assertEqual(custom_mapping.get_character(combination_2), 'a')
+        self.assertEqual(custom_mapping.get_character(combination_3), 'c')
+        self.assertEqual(custom_mapping.get_character(combination_4), 'c')
+        self.assertEqual(custom_mapping.get_character(combination_5), 'e')
+        self.assertEqual(custom_mapping.get_character(combination_6), 'e')
 
     def test_remove_row(self):
         """Comprehensive test for rows 2."""

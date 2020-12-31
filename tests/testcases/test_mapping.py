@@ -24,7 +24,7 @@ import unittest
 import json
 from evdev.ecodes import EV_KEY, EV_ABS, ABS_HAT0X, KEY_A
 
-from keymapper.mapping import Mapping
+from keymapper.mapping import Mapping, verify_key
 from keymapper.state import SystemMapping, XMODMAP_FILENAME
 from keymapper.config import config
 from keymapper.paths import get_preset_path
@@ -180,7 +180,7 @@ class TestMapping(unittest.TestCase):
 
         self.mapping.change(one, '1')
         self.mapping.change(two, '2')
-        self.mapping.change(three, '3')
+        self.mapping.change((two, three), '3')
         self.mapping._config['foo'] = 'bar'
         self.mapping.save(get_preset_path('device 1', 'test'))
 
@@ -194,11 +194,12 @@ class TestMapping(unittest.TestCase):
         self.assertEqual(len(loaded), 3)
         self.assertEqual(loaded.get_character(one), '1')
         self.assertEqual(loaded.get_character(two), '2')
-        self.assertEqual(loaded.get_character(three), '3')
+        self.assertEqual(loaded.get_character((two, three)), '3')
         self.assertEqual(loaded._config['foo'], 'bar')
 
     def test_save_load_2(self):
-        # loads mappings with only (type, code) as the key
+        # loads mappings with only (type, code) as the key by using 1 as value,
+        # loads combinations chained with +
         path = os.path.join(tmp, 'presets', 'device 1', 'test.json')
         os.makedirs(os.path.dirname(path), exist_ok=True)
         with open(path, 'w') as file:
@@ -206,17 +207,29 @@ class TestMapping(unittest.TestCase):
                 'mapping': {
                     f'{EV_KEY},3': 'a',
                     f'{EV_ABS},{ABS_HAT0X},-1': 'b',
-                    f'{EV_ABS},{ABS_HAT0X},1': 'c',
+                    f'{EV_ABS},1,1+{EV_ABS},2,-1+{EV_ABS},3,1': 'c',
+                    # ignored because broken
+                    f'3,1,1+': 'd',
+                    f'3,1,1,2': 'e',
+                    f'3': 'e',
+                    f'+3,1,2': 'f',
+                    f',,+3,1,2': 'g',
+                    f'': 'h',
                 }
             }, file)
 
         loaded = Mapping()
         loaded.load(get_preset_path('device 1', 'test'))
+        self.assertEqual(len(loaded), 3)
         self.assertEqual(loaded.get_character((EV_KEY, 3, 1)), 'a')
         self.assertEqual(loaded.get_character((EV_ABS, ABS_HAT0X, -1)), 'b')
-        self.assertEqual(loaded.get_character((EV_ABS, ABS_HAT0X, 1)), 'c')
+        self.assertEqual(loaded.get_character(
+            ((EV_ABS, 1, 1), (EV_ABS, 2, -1), (EV_ABS, 3, 1))
+        ), 'c')
 
     def test_change(self):
+        # the reader would not report values like 111 or 222, only 1 or -1.
+        # the mapping just does what it is told, so it accepts them.
         ev_1 = (EV_KEY, 1, 111)
         ev_2 = (EV_KEY, 1, 222)
         ev_3 = (EV_KEY, 2, 111)
@@ -251,6 +264,33 @@ class TestMapping(unittest.TestCase):
         self.assertEqual(self.mapping.get_character(ev_4), 'e')
         self.assertEqual(len(self.mapping), 2)
 
+    def test_combinations(self):
+        ev_1 = (EV_KEY, 1, 111)
+        ev_2 = (EV_KEY, 1, 222)
+        ev_3 = (EV_KEY, 2, 111)
+        ev_4 = (EV_ABS, 1, 111)
+        combi_1 = (ev_1, ev_2, ev_3)
+        combi_2 = (ev_2, ev_1, ev_3)
+        combi_3 = (ev_1, ev_2, ev_4)
+
+        self.mapping.change(combi_1, 'a')
+        self.assertEqual(self.mapping.get_character(combi_1), 'a')
+        self.assertEqual(self.mapping.get_character(combi_2), 'a')
+        # since combi_1 and combi_2 are equivalent, a changes to b
+        self.mapping.change(combi_2, 'b')
+        self.assertEqual(self.mapping.get_character(combi_1), 'b')
+        self.assertEqual(self.mapping.get_character(combi_2), 'b')
+
+        self.mapping.change(combi_3, 'c')
+        self.assertEqual(self.mapping.get_character(combi_1), 'b')
+        self.assertEqual(self.mapping.get_character(combi_2), 'b')
+        self.assertEqual(self.mapping.get_character(combi_3), 'c')
+
+        self.mapping.change(combi_3, 'c', combi_1)
+        self.assertIsNone(self.mapping.get_character(combi_1))
+        self.assertIsNone(self.mapping.get_character(combi_2))
+        self.assertEqual(self.mapping.get_character(combi_3), 'c')
+
     def test_clear(self):
         # does nothing
         self.mapping.clear((EV_KEY, 40, 1))
@@ -281,6 +321,22 @@ class TestMapping(unittest.TestCase):
         self.assertEqual(len(self.mapping), 3)
         self.mapping.empty()
         self.assertEqual(len(self.mapping), 0)
+
+    def test_verify_key(self):
+        self.assertRaises(ValueError, lambda: verify_key(1))
+        self.assertRaises(ValueError, lambda: verify_key(None))
+        self.assertRaises(ValueError, lambda: verify_key([1]))
+        self.assertRaises(ValueError, lambda: verify_key((1,)))
+        self.assertRaises(ValueError, lambda: verify_key((1, 2)))
+        self.assertRaises(ValueError, lambda: verify_key(('1', '2', '3')))
+        self.assertRaises(ValueError, lambda: verify_key('1'))
+        self.assertRaises(ValueError, lambda: verify_key('(1,2,3)'))
+        self.assertRaises(ValueError, lambda: verify_key(((1, 2, 3), (1, 2, '3'))))
+        self.assertRaises(ValueError, lambda: verify_key(((1, 2, 3), (1, 2, 3), None)))
+
+        # those don't raise errors
+        verify_key(((1, 2, 3), (1, 2, 3)))
+        verify_key((1, 2, 3))
 
 
 if __name__ == "__main__":

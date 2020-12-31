@@ -31,7 +31,7 @@ from keymapper.logger import logger
 
 
 def get_user():
-    """Try to find the user who called sudo."""
+    """Try to find the user who called sudo/pkexec."""
     try:
         return os.getlogin()
     except OSError:

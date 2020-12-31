@@ -24,10 +24,10 @@ import time
 import copy
 
 import evdev
-from evdev.ecodes import EV_REL, EV_KEY, EV_ABS, ABS_HAT0X
+from evdev.ecodes import EV_REL, EV_KEY, EV_ABS, ABS_HAT0X, BTN_A
 
 from keymapper.dev.injector import is_numlock_on, set_numlock, \
-    ensure_numlock, KeycodeInjector
+    ensure_numlock, KeycodeInjector, store_permutations, is_in_capabilities
 from keymapper.state import custom_mapping, system_mapping
 from keymapper.mapping import Mapping
 from keymapper.config import config
@@ -328,14 +328,18 @@ class TestInjector(unittest.TestCase):
         self.assertAlmostEqual(history[-2][2], -1)
 
     def test_injector(self):
+        # the tests in test_keycode_mapper.py test this stuff in detail
+
         numlock_before = is_numlock_on()
 
-        custom_mapping.change((EV_KEY, 8, 1), 'k(KEY_Q).k(w)')
+        combination = ((EV_KEY, 8, 1), (EV_KEY, 9, 1))
+        custom_mapping.change(combination, 'k(KEY_Q).k(w)')
         custom_mapping.change((EV_ABS, ABS_HAT0X, -1), 'a')
         # one mapping that is unknown in the system_mapping on purpose
         input_b = 10
         custom_mapping.change((EV_KEY, input_b, 1), 'b')
 
+        # stuff the custom_mapping outputs (except for the unknown b)
         system_mapping.clear()
         code_a = 100
         code_q = 101
@@ -344,13 +348,13 @@ class TestInjector(unittest.TestCase):
         system_mapping._set('key_q', code_q)
         system_mapping._set('w', code_w)
 
-        # the second arg of those event objects is 8 lower than the
-        # keycode used in X and in the mappings
         pending_events['device 2'] = [
-            # should execute a macro
+            # should execute a macro...
             InputEvent(EV_KEY, 8, 1),
+            InputEvent(EV_KEY, 9, 1),  # ...now
             InputEvent(EV_KEY, 8, 0),
-            # gamepad stuff
+            InputEvent(EV_KEY, 9, 0),
+            # gamepad stuff. trigger a combination
             InputEvent(EV_ABS, ABS_HAT0X, -1),
             InputEvent(EV_ABS, ABS_HAT0X, 0),
             # just pass those over without modifying
@@ -375,47 +379,160 @@ class TestInjector(unittest.TestCase):
             event = uinput_write_history_pipe[0].recv()
             history.append((event.type, event.code, event.value))
 
+        # 1 event before the combination was triggered (+1 for release)
         # 4 events for the macro
         # 2 for mapped keys
         # 3 for forwarded events
-        self.assertEqual(len(history), 9)
+        self.assertEqual(len(history), 11)
 
         # since the macro takes a little bit of time to execute, its
         # keystrokes are all over the place.
         # just check if they are there and if so, remove them from the list.
-        ev_key = EV_KEY
-        self.assertIn((ev_key, code_q, 1), history)
-        self.assertIn((ev_key, code_q, 0), history)
-        self.assertIn((ev_key, code_w, 1), history)
-        self.assertIn((ev_key, code_w, 0), history)
-        index_q_1 = history.index((ev_key, code_q, 1))
-        index_q_0 = history.index((ev_key, code_q, 0))
-        index_w_1 = history.index((ev_key, code_w, 1))
-        index_w_0 = history.index((ev_key, code_w, 0))
+        self.assertIn((EV_KEY, 8, 1), history)
+        self.assertIn((EV_KEY, code_q, 1), history)
+        self.assertIn((EV_KEY, code_q, 1), history)
+        self.assertIn((EV_KEY, code_q, 0), history)
+        self.assertIn((EV_KEY, code_w, 1), history)
+        self.assertIn((EV_KEY, code_w, 0), history)
+        index_q_1 = history.index((EV_KEY, code_q, 1))
+        index_q_0 = history.index((EV_KEY, code_q, 0))
+        index_w_1 = history.index((EV_KEY, code_w, 1))
+        index_w_0 = history.index((EV_KEY, code_w, 0))
         self.assertGreater(index_q_0, index_q_1)
         self.assertGreater(index_w_1, index_q_0)
         self.assertGreater(index_w_0, index_w_1)
         del history[index_q_1]
-        index_q_0 = history.index((ev_key, code_q, 0))
+        index_q_0 = history.index((EV_KEY, code_q, 0))
         del history[index_q_0]
-        index_w_1 = history.index((ev_key, code_w, 1))
+        index_w_1 = history.index((EV_KEY, code_w, 1))
         del history[index_w_1]
-        index_w_0 = history.index((ev_key, code_w, 0))
+        index_w_0 = history.index((EV_KEY, code_w, 0))
         del history[index_w_0]
 
         # the rest should be in order.
-        # this should be 1. injected keycodes should always be either 0 or 1
-        self.assertEqual(history[0], (ev_key, code_a, 1))
-        self.assertEqual(history[1], (ev_key, code_a, 0))
-        self.assertEqual(history[2], (ev_key, input_b, 1))
-        self.assertEqual(history[3], (ev_key, input_b, 0))
-        self.assertEqual(history[4], (3124, 3564, 6542))
+        # first the incomplete combination key that wasn't mapped to anything
+        # and just forwarded. The input event that triggered the macro
+        # won't appear here.
+        self.assertEqual(history[0], (EV_KEY, 8, 1))
+        self.assertEqual(history[1], (EV_KEY, 8, 0))
+        # value should be 1, even if the input event was -1.
+        # Injected keycodes should always be either 0 or 1
+        self.assertEqual(history[2], (EV_KEY, code_a, 1))
+        self.assertEqual(history[3], (EV_KEY, code_a, 0))
+        self.assertEqual(history[4], (EV_KEY, input_b, 1))
+        self.assertEqual(history[5], (EV_KEY, input_b, 0))
+        self.assertEqual(history[6], (3124, 3564, 6542))
 
         time.sleep(0.1)
         self.assertTrue(self.injector._process.is_alive())
 
         numlock_after = is_numlock_on()
         self.assertEqual(numlock_before, numlock_after)
+
+    def test_store_permutations(self):
+        target = {}
+
+        store_permutations(target, ((1,), (2,), (3,), (4,)), 1234)
+        self.assertEqual(len(target), 6)
+        self.assertEqual(target[((1,), (2,), (3,), (4,))], 1234)
+        self.assertEqual(target[((1,), (3,), (2,), (4,))], 1234)
+        self.assertEqual(target[((2,), (1,), (3,), (4,))], 1234)
+        self.assertEqual(target[((2,), (3,), (1,), (4,))], 1234)
+        self.assertEqual(target[((3,), (1,), (2,), (4,))], 1234)
+        self.assertEqual(target[((3,), (2,), (1,), (4,))], 1234)
+
+        store_permutations(target, ((1,), (2,)), 5678)
+        self.assertEqual(len(target), 7)
+        self.assertEqual(target[((1,), (2,))], 5678)
+
+        store_permutations(target, ((1,),), 3456)
+        self.assertEqual(len(target), 8)
+        self.assertEqual(target[((1,),)], 3456)
+
+        store_permutations(target, (1,), 7890)
+        self.assertEqual(len(target), 9)
+        self.assertEqual(target[(1,)], 7890)
+
+        # only accepts tuples, because key-mapper always uses tuples
+        # for this stuff
+        store_permutations(target, 1, 1357)
+        self.assertEqual(len(target), 9)
+
+    def test_store_permutations_for_macros(self):
+        mapping = Mapping()
+        ev_1 = (EV_KEY, 41, 1)
+        ev_2 = (EV_KEY, 42, 1)
+        ev_3 = (EV_KEY, 43, 1)
+        # a combination
+        mapping.change((ev_1, ev_2, ev_3), 'k(a)')
+        self.injector = KeycodeInjector('device 1', mapping)
+
+        history = []
+
+        class Stop(Exception):
+            pass
+
+        def _modify_capabilities(*args):
+            history.append(args)
+            # avoid going into any mainloop
+            raise Stop()
+
+        self.injector._modify_capabilities = _modify_capabilities
+        try:
+            self.injector._start_injecting()
+        except Stop:
+            pass
+
+        # one call
+        self.assertEqual(len(history), 1)
+        # first argument of the first call
+        self.assertEqual(len(history[0][0]), 2)
+        self.assertEqual(history[0][0][(ev_1, ev_2, ev_3)].code, 'k(a)')
+        self.assertEqual(history[0][0][(ev_2, ev_1, ev_3)].code, 'k(a)')
+
+    def test_key_to_code(self):
+        mapping = Mapping()
+        ev_1 = (EV_KEY, 41, 1)
+        ev_2 = (EV_KEY, 42, 1)
+        ev_3 = (EV_KEY, 43, 1)
+        ev_4 = (EV_KEY, 44, 1)
+        mapping.change(ev_1, 'a')
+        # a combination
+        mapping.change((ev_2, ev_3, ev_4), 'b')
+        self.assertEqual(mapping.get_character((ev_2, ev_3, ev_4)), 'b')
+
+        system_mapping.clear()
+        system_mapping._set('a', 51)
+        system_mapping._set('b', 52)
+
+        injector = KeycodeInjector('device 1', mapping)
+        self.assertEqual(injector._key_to_code.get(ev_1), 51)
+        # permutations to make matching combinations easier
+        self.assertEqual(injector._key_to_code.get((ev_2, ev_3, ev_4)), 52)
+        self.assertEqual(injector._key_to_code.get((ev_3, ev_2, ev_4)), 52)
+        self.assertEqual(len(injector._key_to_code), 3)
+
+    def test_is_in_capabilities(self):
+        key = (1, 2, 1)
+        capabilities = {
+            1: [9, 2, 5]
+        }
+        self.assertTrue(is_in_capabilities(key, capabilities))
+
+        key = ((1, 2, 1), (1, 3, 1))
+        capabilities = {
+            1: [9, 2, 5]
+        }
+        # only one of the codes of the combination is required.
+        # The goal is to make combinations across those sub-devices possible,
+        # that make up one hardware device
+        self.assertTrue(is_in_capabilities(key, capabilities))
+
+        key = ((1, 2, 1), (1, 5, 1))
+        capabilities = {
+            1: [9, 2, 5]
+        }
+        self.assertTrue(is_in_capabilities(key, capabilities))
 
 
 if __name__ == "__main__":

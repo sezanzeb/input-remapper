@@ -62,7 +62,8 @@ def get_dbus_interface(fallback=True):
     """
     msg = (
         'The daemon "key-mapper-service" is not running, mapping keys '
-        'only works as long as the window is open.'
+        'only works as long as the window is open. '
+        'Try `sudo systemctl start key-mapper`'
     )
 
     if not is_service_running():
