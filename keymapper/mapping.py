@@ -24,7 +24,6 @@
 
 import os
 import json
-import itertools
 import copy
 
 from keymapper.logger import logger

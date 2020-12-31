@@ -181,7 +181,7 @@ class Daemon:
             mapping.load(path)
         except FileNotFoundError as error:
             logger.error(str(error))
-            return
+            return False
 
         if xmodmap_path is not None:
             try:

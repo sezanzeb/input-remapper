@@ -42,7 +42,8 @@ def to_string(key):
     """A nice to show description of the pressed key."""
     if isinstance(key, Key):
         return ' + '.join([to_string(sub_key) for sub_key in key])
-    elif isinstance(key[0], tuple):
+
+    if isinstance(key[0], tuple):
         raise Exception('deprecated stuff')
 
     ev_type, code, value = key
