@@ -98,15 +98,14 @@ def ensure_numlock(func):
 
 
 def is_in_capabilities(key, capabilities):
-    """Are this key or all of its sub keys in the capabilities?"""
-    if isinstance(key[0], tuple):
-        # it's a key combination
-        for sub_key in key:
-            if is_in_capabilities(sub_key, capabilities):
-                return True
-    else:
-        ev_type, code, _ = key
-        if code in capabilities.get(ev_type, []):
+    """Are this key or one of its sub keys in the capabilities?
+
+    Parameters
+    ----------
+    key : Key
+    """
+    for sub_key in key:
+        if sub_key[1] in capabilities.get(sub_key[0], []):
             return True
 
     return False
@@ -285,7 +284,7 @@ class KeycodeInjector:
             if ecodes.BTN_MOUSE not in capabilities[EV_KEY]:
                 # to be able to move the cursor, this key capability is
                 # needed
-                capabilities[EV_KEY] = [ecodes.BTN_MOUSE]
+                capabilities[EV_KEY].append(ecodes.BTN_MOUSE)
 
         # just like what python-evdev does in from_device
         if ecodes.EV_SYN in capabilities:

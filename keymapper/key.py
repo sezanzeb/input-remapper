@@ -98,6 +98,7 @@ class Key:
         return hash(self.keys)
 
     def __eq__(self, other):
+        print(self, 'eq', other)
         if isinstance(other, tuple):
             if isinstance(other[0], tuple):
                 # a combination ((1, 5, 1), (1, 3, 1))

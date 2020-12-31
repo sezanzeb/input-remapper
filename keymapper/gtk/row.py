@@ -253,10 +253,11 @@ class Row(Gtk.ListBoxRow):
         self.keycode_input.set_label(label)
         # make the child label widget break lines, important for
         # long combinations
-        self.keycode_input.get_child().set_line_wrap(True)
-        self.keycode_input.get_child().set_line_wrap_mode(2)
-        self.keycode_input.get_child().set_max_width_chars(15)
-        self.keycode_input.get_child().set_justify(Gtk.Justification.CENTER)
+        label = self.keycode_input.get_child()
+        label.set_line_wrap(True)
+        label.set_line_wrap_mode(2)
+        label.set_max_width_chars(13)
+        label.set_justify(Gtk.Justification.CENTER)
 
     def put_together(self, character):
         """Create all child GTK widgets and connect their signals."""

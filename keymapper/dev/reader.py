@@ -223,7 +223,10 @@ class _KeycodeReader:
             if event.value == 0:
                 if without_value in self._unreleased:
                     del self._unreleased[without_value]
+                continue
 
+            if without_value in self._unreleased:
+                # no duplicate down events (gamepad triggers)
                 continue
 
             self._unreleased[without_value] = (

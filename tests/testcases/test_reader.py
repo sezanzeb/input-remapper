@@ -21,9 +21,10 @@
 
 import unittest
 import time
+import multiprocessing
 
 from evdev.ecodes import EV_KEY, EV_ABS, ABS_HAT0X, ABS_HAT0Y, KEY_COMMA, \
-    BTN_LEFT, BTN_TOOL_DOUBLETAP
+    BTN_LEFT, BTN_TOOL_DOUBLETAP, ABS_Z
 
 from keymapper.dev.reader import keycode_reader
 
@@ -125,6 +126,20 @@ class TestReader(unittest.TestCase):
         time.sleep(0.1)
         self.assertEqual(keycode_reader.read(), (EV_KEY, CODE_2, 1))
         self.assertEqual(keycode_reader.read(), None)
+        self.assertEqual(len(keycode_reader._unreleased), 1)
+
+    def test_reading_ignore_duplicate_down(self):
+        pipe = multiprocessing.Pipe()
+        pipe[1].send(InputEvent(EV_ABS, ABS_Z, 1, 10))
+        keycode_reader._pipe = pipe
+
+        self.assertEqual(keycode_reader.read(), (EV_ABS, ABS_Z, 1))
+        self.assertEqual(keycode_reader.read(), None)
+
+        pipe[1].send(InputEvent(EV_ABS, ABS_Z, 1, 10))
+        # still none
+        self.assertEqual(keycode_reader.read(), None)
+
         self.assertEqual(len(keycode_reader._unreleased), 1)
 
     def test_wrong_device(self):
