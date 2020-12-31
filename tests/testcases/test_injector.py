@@ -95,23 +95,34 @@ class TestInjector(unittest.TestCase):
 
         self.injector = KeycodeInjector('foo', mapping)
         fake_device = FakeDevice()
-        capabilities = self.injector._modify_capabilities(
+        capabilities_1 = self.injector._modify_capabilities(
             {60: macro},
             fake_device,
             abs_to_rel=False
         )
 
-        self.assertIn(EV_KEY, capabilities)
-        keys = capabilities[EV_KEY]
+        self.assertIn(EV_KEY, capabilities_1)
+        keys = capabilities_1[EV_KEY]
         self.assertIn(a, keys)
         self.assertIn(one, keys)
         self.assertIn(two, keys)
         self.assertIn(shift_l, keys)
 
-        self.assertNotIn(evdev.ecodes.EV_SYN, capabilities)
-        self.assertNotIn(evdev.ecodes.EV_FF, capabilities)
-        self.assertNotIn(evdev.ecodes.EV_REL, capabilities)
-        self.assertNotIn(evdev.ecodes.EV_ABS, capabilities)
+        self.assertNotIn(evdev.ecodes.EV_SYN, capabilities_1)
+        self.assertNotIn(evdev.ecodes.EV_FF, capabilities_1)
+        self.assertNotIn(evdev.ecodes.EV_REL, capabilities_1)
+        self.assertNotIn(evdev.ecodes.EV_ABS, capabilities_1)
+
+        capabilities_2 = self.injector._modify_capabilities(
+            {60: macro},
+            fake_device,
+            abs_to_rel=True
+        )
+        keys = capabilities_2[EV_KEY]
+        self.assertIn(a, keys)
+        self.assertIn(one, keys)
+        self.assertIn(two, keys)
+        self.assertIn(shift_l, keys)
 
     def test_grab(self):
         # path is from the fixtures
@@ -485,13 +496,13 @@ class TestInjector(unittest.TestCase):
         self.assertEqual(len(injector._key_to_code), 3)
 
     def test_is_in_capabilities(self):
-        key = (1, 2, 1)
+        key = Key(1, 2, 1)
         capabilities = {
             1: [9, 2, 5]
         }
         self.assertTrue(is_in_capabilities(key, capabilities))
 
-        key = ((1, 2, 1), (1, 3, 1))
+        key = Key((1, 2, 1), (1, 3, 1))
         capabilities = {
             1: [9, 2, 5]
         }
@@ -500,7 +511,7 @@ class TestInjector(unittest.TestCase):
         # that make up one hardware device
         self.assertTrue(is_in_capabilities(key, capabilities))
 
-        key = ((1, 2, 1), (1, 5, 1))
+        key = Key((1, 2, 1), (1, 5, 1))
         capabilities = {
             1: [9, 2, 5]
         }

@@ -348,7 +348,12 @@ class Window:
         # the "event" event of Gtk.Window wouldn't trigger on gamepad
         # events, so it became a GLib timeout to periodically check kernel
         # events.
+
+        # letting go of one of the keys of a combination won't just make
+        # it return the leftover key, it will continue to return None because
+        # they have already been read.
         key = keycode_reader.read()
+        key and print(key)
 
         if isinstance(focused, Gtk.ToggleButton):
             if not keycode_reader.are_keys_pressed():
