@@ -34,6 +34,7 @@ from keymapper.state import custom_mapping, system_mapping
 from keymapper.config import config
 from keymapper.getdevices import get_devices
 from keymapper.paths import get_preset_path
+from keymapper.key import Key
 from keymapper.daemon import Daemon, get_dbus_interface, BUS_NAME
 
 from tests.test import cleanup, uinput_write_history_pipe, InputEvent, \
@@ -125,8 +126,8 @@ class TestDaemon(unittest.TestCase):
 
         device = 'device 2'
 
-        custom_mapping.change((*ev_1, 1), 'a')
-        custom_mapping.change((*ev_2, -1), 'b')
+        custom_mapping.change(Key(*ev_1, 1), 'a')
+        custom_mapping.change(Key(*ev_2, -1), 'b')
 
         system_mapping.clear()
         system_mapping._set('a', keycode_to_1)
@@ -186,7 +187,7 @@ class TestDaemon(unittest.TestCase):
         device = '9876 name'
         # this test only makes sense if this device is unknown yet
         self.assertIsNone(get_devices().get(device))
-        custom_mapping.change((*ev, 1), 'a')
+        custom_mapping.change(Key(*ev, 1), 'a')
         system_mapping.clear()
         system_mapping._set('a', keycode_to)
         preset = 'foo'
@@ -231,7 +232,7 @@ class TestDaemon(unittest.TestCase):
 
         path = get_preset_path(device, preset)
 
-        custom_mapping.change(event, to_name)
+        custom_mapping.change(Key(event), to_name)
         custom_mapping.save(path)
 
         system_mapping.clear()

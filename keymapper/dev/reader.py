@@ -31,6 +31,7 @@ from evdev.events import EV_KEY, EV_ABS
 
 from keymapper.logger import logger
 from keymapper.util import sign
+from keymapper.key import Key
 from keymapper.getdevices import get_devices, refresh_devices
 from keymapper.dev.keycode_mapper import should_map_event_as_btn
 
@@ -60,7 +61,7 @@ class _KeycodeReader:
     Does not serve any purpose for the injection service.
 
     When a button was pressed, the newest keycode can be obtained from this
-    object. GTK has get_keycode for keyboard keys, but KeycodeReader also
+    object. GTK has get_key for keyboard keys, but KeycodeReader also
     has knowledge of buttons like the middle-mouse button.
     """
     def __init__(self):
@@ -197,7 +198,7 @@ class _KeycodeReader:
         return len(self._unreleased) > 0
 
     def read(self):
-        """Get the newest tuple of event type, keycode or None.
+        """Get the newest key as Key object
 
         If the timing of two recent events is very close, prioritize
         key events over abs events.
@@ -253,12 +254,8 @@ class _KeycodeReader:
 
         self.newest_event = newest_event
 
-        if len(self._unreleased) > 1:
-            # a combination
-            return tuple(self._unreleased.values())
-        elif len(self._unreleased) == 1:
-            # a single key
-            return list(self._unreleased.values())[0]
+        if len(self._unreleased) > 0:
+            return Key(*self._unreleased.values())
         else:
             # nothing
             return None
