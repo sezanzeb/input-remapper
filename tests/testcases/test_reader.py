@@ -22,12 +22,12 @@
 import unittest
 import time
 
-from evdev.ecodes import EV_KEY, EV_ABS, ABS_HAT0X, KEY_COMMA, BTN_LEFT, \
-    BTN_TOOL_DOUBLETAP
+from evdev.ecodes import EV_KEY, EV_ABS, ABS_HAT0X, ABS_HAT0Y, KEY_COMMA, \
+    BTN_LEFT, BTN_TOOL_DOUBLETAP
 
 from keymapper.dev.reader import keycode_reader
 
-from tests.test import InputEvent, pending_events, EVENT_READ_TIMEOUT
+from tests.test import InputEvent, pending_events, EVENT_READ_TIMEOUT, cleanup
 
 
 CODE_1 = 100
@@ -52,13 +52,21 @@ class TestReader(unittest.TestCase):
         self.assertEqual(keycode_reader.read(), None)
 
     def tearDown(self):
-        keycode_reader.stop_reading()
-        keys = list(pending_events.keys())
-        for key in keys:
-            del pending_events[key]
-        keycode_reader.newest_event = None
+        cleanup()
 
     def test_reading_1(self):
+        # a single event
+        pending_events['device 1'] = [
+            InputEvent(EV_ABS, ABS_HAT0X, 1)
+        ]
+        keycode_reader.start_reading('device 1')
+        wait(keycode_reader._pipe[0].poll, 0.5)
+        self.assertEqual(keycode_reader.read(), (EV_ABS, ABS_HAT0X, 1))
+        self.assertEqual(keycode_reader.read(), None)
+        self.assertEqual(len(keycode_reader._unreleased), 1)
+
+    def test_reading_2(self):
+        # a combination of events
         pending_events['device 1'] = [
             InputEvent(EV_KEY, CODE_1, 1, 10000.1234),
             InputEvent(EV_KEY, CODE_3, 1, 10001.1234),
@@ -71,15 +79,13 @@ class TestReader(unittest.TestCase):
 
         wait(keycode_reader._pipe[0].poll, 0.5)
 
-        self.assertEqual(keycode_reader.read(), (EV_ABS, ABS_HAT0X, -1))
+        self.assertEqual(keycode_reader.read(), (
+            (EV_KEY, CODE_1, 1),
+            (EV_KEY, CODE_3, 1),
+            (EV_ABS, ABS_HAT0X, -1)
+        ))
         self.assertEqual(keycode_reader.read(), None)
-
-    def test_reading_2(self):
-        pending_events['device 1'] = [InputEvent(EV_ABS, ABS_HAT0X, 1)]
-        keycode_reader.start_reading('device 1')
-        wait(keycode_reader._pipe[0].poll, 0.5)
-        self.assertEqual(keycode_reader.read(), (EV_ABS, ABS_HAT0X, 1))
-        self.assertEqual(keycode_reader.read(), None)
+        self.assertEqual(len(keycode_reader._unreleased), 3)
 
     def test_ignore_btn_left(self):
         # click events are ignored because overwriting them would render the
@@ -95,6 +101,19 @@ class TestReader(unittest.TestCase):
         time.sleep(0.1)
         self.assertEqual(keycode_reader.read(), (EV_KEY, CODE_2, 1))
         self.assertEqual(keycode_reader.read(), None)
+        self.assertEqual(len(keycode_reader._unreleased), 1)
+
+    def test_ignore_value_2(self):
+        # this is not a combination, because (EV_KEY CODE_3, 2) is ignored
+        pending_events['device 1'] = [
+            InputEvent(EV_ABS, ABS_HAT0X, 1),
+            InputEvent(EV_KEY, CODE_3, 2)
+        ]
+        keycode_reader.start_reading('device 1')
+        wait(keycode_reader._pipe[0].poll, 0.5)
+        self.assertEqual(keycode_reader.read(), (EV_ABS, ABS_HAT0X, 1))
+        self.assertEqual(keycode_reader.read(), None)
+        self.assertEqual(len(keycode_reader._unreleased), 1)
 
     def test_reading_ignore_up(self):
         pending_events['device 1'] = [
@@ -106,6 +125,7 @@ class TestReader(unittest.TestCase):
         time.sleep(0.1)
         self.assertEqual(keycode_reader.read(), (EV_KEY, CODE_2, 1))
         self.assertEqual(keycode_reader.read(), None)
+        self.assertEqual(len(keycode_reader._unreleased), 1)
 
     def test_wrong_device(self):
         pending_events['device 1'] = [
@@ -116,6 +136,7 @@ class TestReader(unittest.TestCase):
         keycode_reader.start_reading('device 2')
         time.sleep(EVENT_READ_TIMEOUT * 5)
         self.assertEqual(keycode_reader.read(), None)
+        self.assertEqual(len(keycode_reader._unreleased), 0)
 
     def test_keymapper_devices(self):
         # Don't read from keymapper devices, their keycodes are not
@@ -130,6 +151,7 @@ class TestReader(unittest.TestCase):
         keycode_reader.start_reading('device 2')
         time.sleep(EVENT_READ_TIMEOUT * 5)
         self.assertEqual(keycode_reader.read(), None)
+        self.assertEqual(len(keycode_reader._unreleased), 0)
 
     def test_clear(self):
         pending_events['device 1'] = [
@@ -141,6 +163,7 @@ class TestReader(unittest.TestCase):
         time.sleep(EVENT_READ_TIMEOUT * 5)
         keycode_reader.clear()
         self.assertEqual(keycode_reader.read(), None)
+        self.assertEqual(len(keycode_reader._unreleased), 0)
 
     def test_switch_device(self):
         pending_events['device 2'] = [InputEvent(EV_KEY, CODE_1, 1)]
@@ -161,15 +184,24 @@ class TestReader(unittest.TestCase):
         # based on the event type
         pending_events['device 1'] = [
             InputEvent(EV_ABS, ABS_HAT0X, 1, 1234.0000),
+            InputEvent(EV_ABS, ABS_HAT0X, 0, 1234.0001),
+
             InputEvent(EV_ABS, ABS_HAT0X, 1, 1235.0000),  # ignored
+            InputEvent(EV_ABS, ABS_HAT0X, 0, 1235.0001),
+
             InputEvent(EV_KEY, KEY_COMMA, 1, 1235.0010),
+            InputEvent(EV_KEY, KEY_COMMA, 0, 1235.0011),
+
             InputEvent(EV_ABS, ABS_HAT0X, 1, 1235.0020),  # ignored
+            InputEvent(EV_ABS, ABS_HAT0X, 0, 1235.0021),  # ignored
+
             InputEvent(EV_ABS, ABS_HAT0X, 1, 1236.0000)
         ]
         keycode_reader.start_reading('device 1')
         wait(keycode_reader._pipe[0].poll, 0.5)
         self.assertEqual(keycode_reader.read(), (EV_ABS, ABS_HAT0X, 1))
         self.assertEqual(keycode_reader.read(), None)
+        self.assertEqual(len(keycode_reader._unreleased), 1)
 
     def test_prioritizing_2_normalize(self):
         # furthermore, 1234 is 1 in the reader, because it probably is some
@@ -180,22 +212,31 @@ class TestReader(unittest.TestCase):
             InputEvent(EV_KEY, KEY_COMMA, 1234, 1235.0010),
             InputEvent(EV_ABS, ABS_HAT0X, 1, 1235.0020),  # ignored
             InputEvent(EV_ABS, ABS_HAT0X, 1, 1235.0030)  # ignored
+            # this time, don't release anything. the combination should
+            # ignore stuff as well.
         ]
         keycode_reader.start_reading('device 1')
         wait(keycode_reader._pipe[0].poll, 0.5)
-        self.assertEqual(keycode_reader.read(), (EV_KEY, KEY_COMMA, 1))
+        self.assertEqual(keycode_reader.read(), (
+            (EV_ABS, ABS_HAT0X, 1),
+            (EV_KEY, KEY_COMMA, 1)
+        ))
         self.assertEqual(keycode_reader.read(), None)
+        self.assertEqual(len(keycode_reader._unreleased), 2)
 
     def test_prioritizing_3_normalize(self):
         # take the sign of -1234, just like in test_prioritizing_2_normalize
         pending_events['device 1'] = [
             InputEvent(EV_ABS, ABS_HAT0X, -1234, 1234.0000),
-            InputEvent(EV_ABS, ABS_HAT0X, 0, 1234.0030)  # ignored
+            InputEvent(EV_ABS, ABS_HAT0Y, 0, 1234.0030)  # ignored
+            # this time don't release anything as well, but it's not
+            # a combination because only one event is accepted
         ]
         keycode_reader.start_reading('device 1')
         wait(keycode_reader._pipe[0].poll, 0.5)
         self.assertEqual(keycode_reader.read(), (EV_ABS, ABS_HAT0X, -1))
         self.assertEqual(keycode_reader.read(), None)
+        self.assertEqual(len(keycode_reader._unreleased), 1)
 
 
 if __name__ == "__main__":

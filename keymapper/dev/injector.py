@@ -27,6 +27,7 @@ import asyncio
 import time
 import subprocess
 import multiprocessing
+import itertools
 
 import evdev
 from evdev.ecodes import EV_KEY, EV_ABS, EV_REL
@@ -97,6 +98,45 @@ def ensure_numlock(func):
     return wrapped
 
 
+def store_permutations(target, combination, value):
+    """Store permutations for key combinations.
+
+    Store every permutation of combination, while the last
+    element needs to remain the last one. It is the finishing
+    key. E.g. a + b is something different than b + a, but
+    a + b + c is the same as b + a + c
+
+    a, b and c are tuples of (type, code, value)
+
+    If combination is not a tuple of 3-tuples, it just uses it as key without
+    permutating anything.
+    """
+    if not isinstance(combination, tuple):
+        logger.error('Expected a tuple, but got "%s"', combination)
+        return
+
+    if isinstance(combination[0], tuple):
+        for permutation in itertools.permutations(combination[:-1]):
+            target[(*permutation, combination[-1])] = value
+    else:
+        target[combination] = value
+
+
+def is_in_capabilities(key, capabilities):
+    """Are this key or all of its sub keys in the capabilities?"""
+    if isinstance(key[0], tuple):
+        # it's a key combination
+        for sub_key in key:
+            if is_in_capabilities(sub_key, capabilities):
+                return True
+    else:
+        ev_type, code, _ = key
+        if code in capabilities.get(ev_type, []):
+            return True
+
+    return False
+
+
 class KeycodeInjector:
     """Keeps injecting keycodes in the background based on the mapping.
 
@@ -139,7 +179,7 @@ class KeycodeInjector:
                 logger.error('Don\'t know what %s is', output)
                 continue
 
-            key_to_code[key] = target_code
+            store_permutations(key_to_code, key, target_code)
 
         return key_to_code
 
@@ -173,8 +213,8 @@ class KeycodeInjector:
         capabilities = device.capabilities(absinfo=False)
 
         needed = False
-        for (ev_type, code, _), _ in self.mapping:
-            if code in capabilities.get(ev_type, []):
+        for key, _ in self.mapping:
+            if is_in_capabilities(key, capabilities):
                 needed = True
                 break
 
@@ -319,7 +359,7 @@ class KeycodeInjector:
             if source is None:
                 continue
 
-            # each device parses the macros with a different handler
+            # each device needs own macro instances to add a custom handler
             logger.debug('Parsing macros for %s', path)
             macros = {}
             for key, output in self.mapping:
@@ -328,7 +368,7 @@ class KeycodeInjector:
                     if macro is None:
                         continue
 
-                    macros[key] = macro
+                    store_permutations(macros, key, macro)
 
             if len(macros) == 0:
                 logger.debug('No macros configured')
@@ -432,7 +472,12 @@ class KeycodeInjector:
                 continue
 
             if should_map_event_as_btn(event.type, event.code):
-                handle_keycode(self._key_to_code, macros, event, uinput)
+                handle_keycode(
+                    self._key_to_code,
+                    macros,
+                    event,
+                    uinput
+                )
                 continue
 
             # forward the rest

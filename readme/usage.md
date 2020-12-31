@@ -114,19 +114,21 @@ Here is an example configuration for preset "a" for the "gamepad" device:
         "keystroke_sleep_ms": 100
     },
     "mapping": {
-        "1,315,1": "1",
+        "1,315,1+1,16,-1": "1",
         "1,307,1": "k(2).k(3)"
     }
 }
 ```
 
 Both need to be valid json files, otherwise the parser refuses to work. This
-preset maps the EV_KEY down event with code 315 to '1', code 307 to a macro
-and sets the time between injected events of macros to 100 ms. Note that
-a complete keystroke consists of two events: down and up. Other than that,
-it inherits all configurations from `~/.config/key-mapper/config.json`.
-If config.json is missing some stuff, it will query the hardcoded default
-values.
+preset maps the EV_KEY down event with code 307 to a macro and sets the time
+between injected events of macros to 100 ms. The other mapping is a key
+combination, chained using `+`. 
+
+Note that a complete keystroke consists of two events: down and up. Other
+than that, it inherits all configurations from
+`~/.config/key-mapper/config.json`. If config.json is missing some stuff,
+it will query the hardcoded default values.
 
 The event codes can be read using `evtest`. Available names in the mapping
 can be listed with `key-mapper-control --key-names`.

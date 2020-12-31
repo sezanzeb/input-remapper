@@ -25,11 +25,12 @@ requests.
 - [x] configure joystick purpose and speed via the GUI
 - [x] support for non-GUI TTY environments with a command to stop and start
 - [x] start the daemon in such a way to not require usermod
+- [x] mapping a combined button press to a key
 - [ ] mapping joystick directions as buttons, making it act like a D-Pad
 - [ ] automatically load presets when devices get plugged in after login (udev)
-- [ ] mapping a combined button press to a key
 - [ ] configure locale for preset to provide a different set of possible keys
 - [ ] user-friendly way to map btn_left
+- [ ] add "disable" as mapping option
 
 ## Tests
 
