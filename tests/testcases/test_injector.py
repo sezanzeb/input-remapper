@@ -24,7 +24,7 @@ import time
 import copy
 
 import evdev
-from evdev.ecodes import EV_REL, EV_KEY, EV_ABS, ABS_HAT0X, BTN_A
+from evdev.ecodes import EV_REL, EV_KEY, EV_ABS, ABS_HAT0X
 
 from keymapper.dev.injector import is_numlock_on, set_numlock, \
     ensure_numlock, KeycodeInjector, is_in_capabilities
@@ -191,8 +191,8 @@ class TestInjector(unittest.TestCase):
         self.assertIn(evdev.ecodes.REL_WHEEL, capabilities.get(EV_REL))
         self.assertIn(evdev.ecodes.REL_HWHEEL, capabilities.get(EV_REL))
 
-        self.assertIn(evdev.ecodes.EV_KEY, capabilities)
-        self.assertEqual(len(capabilities[evdev.ecodes.EV_KEY]), 1)
+        self.assertIn(EV_KEY, capabilities)
+        self.assertIn(evdev.ecodes.BTN_LEFT, capabilities[EV_KEY])
 
     def test_adds_ev_key(self):
         # for some reason, having any EV_KEY capability is needed to
