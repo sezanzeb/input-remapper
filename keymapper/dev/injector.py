@@ -27,7 +27,6 @@ import asyncio
 import time
 import subprocess
 import multiprocessing
-import itertools
 
 import evdev
 from evdev.ecodes import EV_KEY, EV_ABS, EV_REL
@@ -430,7 +429,7 @@ class KeycodeInjector:
 
         Parameters
         ----------
-        macros : int -> _Macro
+        macros : (int, int) -> _Macro
             macro with a handler that writes to the provided uinput
         source : evdev.InputDevice
             where to read keycodes from

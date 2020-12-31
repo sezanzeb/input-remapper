@@ -256,9 +256,9 @@ class _KeycodeReader:
 
         if len(self._unreleased) > 0:
             return Key(*self._unreleased.values())
-        else:
-            # nothing
-            return None
+
+        # nothing
+        return None
 
 
 keycode_reader = _KeycodeReader()
