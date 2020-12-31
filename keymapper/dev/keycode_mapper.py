@@ -87,6 +87,12 @@ def is_key_up(event):
     return event.value == 0
 
 
+def write(uinput, key):
+    """Shorthand to write stuff."""
+    uinput.write(*key)
+    uinput.syn()
+
+
 COMBINATION_INCOMPLETE = 1  # not all keys of the combination are pressed
 NOT_COMBINED = 2  # this key is not part of a combination
 
@@ -115,7 +121,7 @@ def handle_keycode(key_to_code, macros, event, uinput):
     # normalize event numbers to one of -1, 0, +1. Otherwise mapping
     # trigger values that are between 1 and 255 is not possible, because
     # they might skip the 1 when pressed fast enough.
-    # The key used to index the mappings
+    # The key used to index the mappings `key_to_code` and `macros`
     key = (event.type, event.code, sign(event.value))
 
     # the tuple of the actual input event. Used to forward the event if it is
@@ -123,69 +129,78 @@ def handle_keycode(key_to_code, macros, event, uinput):
     event_tuple = (event.type, event.code, sign(event.value))
     type_code = (event.type, event.code)
 
-    # the finishing key has to be the last element in combination, all
+    # the triggering key-down has to be the last element in combination, all
     # others can have any arbitrary order. By checking all unreleased keys,
     # a + b + c takes priority over b + c, if both mappings exist.
+    # WARNING! the combination-down triggers, but a single key-up releases.
+    # Do not check if key in macros and such, if it is an up event. It's
+    # going to be False.
     combination = tuple([value[1] for value in unreleased.values()] + [key])
     if combination in macros or combination in key_to_code:
         key = combination
 
-    existing_macro = active_macros.get(type_code)
-    if existing_macro is not None:
-        if is_key_up(event) and not existing_macro.running:
-            # key was released, but macro already stopped
-            return
+    """Releasing keys and macros"""
 
-        if is_key_up(event) and existing_macro.holding:
+    active_macro = active_macros.get(type_code)
+    if is_key_up(event):
+        if active_macro is not None and active_macro.holding:
             # Tell the macro for that keycode that the key is released and
-            # let it decide what to with that information.
-            existing_macro.release_key()
-            return
+            # let it decide what to do with that information.
+            active_macro.release_key()
+            logger.spam('%s, releasing macro', key)
 
-        if is_key_down(event) and existing_macro.running:
+        if type_code in unreleased:
+            target_type, target_code = unreleased[type_code][0]
+            logger.spam('%s, releasing %s', key, target_code)
+            del unreleased[type_code]
+            write(uinput, (target_type, target_code, 0))
+        else:
+            logger.spam('%s, unexpected key up', key)
+
+        # everything that can be released is released now
+        return
+
+    """Filtering duplicate key downs"""
+
+    if is_key_down(event):
+        # it would start a macro usually
+        if key in macros and active_macro is not None and active_macro.running:
             # for key-down events and running macros, don't do anything.
             # This avoids spawning a second macro while the first one is not
             # finished, especially since gamepad-triggers report a ton of
             # events with a positive value.
+            logger.spam('%s, macro already running', key)
             return
 
-    if key in macros:
-        macro = macros[key]
-        active_macros[type_code] = macro
-        macro.press_key()
-        logger.spam('got %s, maps to macro %s', key, macro.code)
-        asyncio.ensure_future(macro.run())
-        return
+        # it would write a key usually
+        if key in key_to_code and type_code in unreleased:
+            # duplicate key-down. skip this event. Avoid writing millions of
+            # key-down events when a continuous value is reported, for example
+            # for gamepad triggers
+            logger.spam('%s, duplicate key down', key)
+            return
 
-    if is_key_down(event) and type_code in unreleased:
-        # duplicate key-down. skip this event. Avoid writing millions of
-        # key-down events when a continuous value is reported, for example
-        # for gamepad triggers
-        logger.spam('%s, duplicate key down', key)
-        return
-
-    if is_key_up(event) and type_code in unreleased:
-        target_type, target_code = unreleased[type_code][0]
-        target_value = 0
-        logger.spam('%s, releasing %s', key, target_code)
-    elif key in key_to_code and is_key_down(event):
-        target_type = EV_KEY
-        target_code = key_to_code[key]
-        target_value = 1
-        logger.spam('%s, maps to %s', key, target_code)
-    else:
-        target_type = event_tuple[0]
-        target_code = event_tuple[1]
-        target_value = event_tuple[2]
-        logger.spam('%s, unmapped', key)
+    """starting new macros or injecting new keys"""
 
     if is_key_down(event):
-        # for a combination, the last key that was pressed is also the
-        # key that releases it, so type_code is used to index this.
-        unreleased[type_code] = ((target_type, target_code), event_tuple)
+        if key in macros:
+            macro = macros[key]
+            active_macros[type_code] = macro
+            macro.press_key()
+            logger.spam('%s, maps to macro %s', key, macro.code)
+            asyncio.ensure_future(macro.run())
+            return
 
-    if is_key_up(event) and type_code in unreleased:
-        del unreleased[type_code]
+        if key in key_to_code:
+            target_code = key_to_code[key]
+            logger.spam('%s, maps to %s', key, target_code)
+            unreleased[type_code] = ((EV_KEY, target_code), event_tuple)
+            write(uinput, (EV_KEY, target_code, 1))
+            return
 
-    uinput.write(target_type, target_code, target_value)
-    uinput.syn()
+        logger.spam('%s, forwarding', key)
+        unreleased[type_code] = ((event_tuple[:2]), event_tuple)
+        write(uinput, event_tuple)
+        return
+
+    logger.error('%s, unhandled. %s %s', key, unreleased, active_macros)

@@ -54,6 +54,9 @@ CTX_ERROR = 3
 CTX_WARNING = 4
 
 
+# TODO status warning for ctrl in key combis
+
+
 def get_selected_row_bg():
     """Get the background color that a row is going to have when selected."""
     # ListBoxRows can be selected, but either they are always selectable
@@ -353,7 +356,6 @@ class Window:
         # it return the leftover key, it will continue to return None because
         # they have already been read.
         key = keycode_reader.read()
-        key and print(key)
 
         if isinstance(focused, Gtk.ToggleButton):
             if not keycode_reader.are_keys_pressed():
