@@ -879,7 +879,10 @@
                       <object class="GtkLabel">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
-                        <property name="tooltip-text" translatable="yes">Macro examples:
+                        <property name="tooltip-text" translatable="yes">"disable" disables the key outside of combinations.
+Useful for turning a key into a modifier without any side effects.
+
+Macro examples:
 - k(a)
 - r(3, k(a).w(500))
 - h(k(a)).k(b)
