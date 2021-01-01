@@ -24,11 +24,14 @@ import time
 import multiprocessing
 
 from evdev.ecodes import EV_KEY, EV_ABS, ABS_HAT0X, ABS_HAT0Y, KEY_COMMA, \
-    BTN_LEFT, BTN_TOOL_DOUBLETAP, ABS_Z
+    BTN_LEFT, BTN_TOOL_DOUBLETAP, ABS_Z, ABS_Y
 
 from keymapper.dev.reader import keycode_reader
+from keymapper.state import custom_mapping
+from keymapper.config import BUTTONS, MOUSE
 
-from tests.test import InputEvent, pending_events, EVENT_READ_TIMEOUT, cleanup
+from tests.test import InputEvent, pending_events, EVENT_READ_TIMEOUT, \
+    cleanup, MAX_ABS
 
 
 CODE_1 = 100
@@ -87,6 +90,28 @@ class TestReader(unittest.TestCase):
         ))
         self.assertEqual(keycode_reader.read(), None)
         self.assertEqual(len(keycode_reader._unreleased), 3)
+
+    def test_reads_joysticks(self):
+        # if their purpose is "buttons"
+        custom_mapping.set('gamepad.joystick.left_purpose', BUTTONS)
+        pending_events['gamepad'] = [
+            InputEvent(EV_ABS, ABS_Y, MAX_ABS)
+        ]
+        keycode_reader.start_reading('gamepad')
+        wait(keycode_reader._pipe[0].poll, 0.5)
+        self.assertEqual(keycode_reader.read(), (EV_ABS, ABS_Y, 1))
+        self.assertEqual(keycode_reader.read(), None)
+        self.assertEqual(len(keycode_reader._unreleased), 1)
+
+        keycode_reader._unreleased = {}
+        custom_mapping.set('gamepad.joystick.left_purpose', MOUSE)
+        pending_events['gamepad'] = [
+            InputEvent(EV_ABS, ABS_Y, MAX_ABS)
+        ]
+        keycode_reader.start_reading('gamepad')
+        time.sleep(0.1)
+        self.assertEqual(keycode_reader.read(), None)
+        self.assertEqual(len(keycode_reader._unreleased), 0)
 
     def test_ignore_btn_left(self):
         # click events are ignored because overwriting them would render the

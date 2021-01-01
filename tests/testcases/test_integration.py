@@ -231,9 +231,11 @@ class TestIntegration(unittest.TestCase):
         self.assertEqual(to_string(Key(EV_KEY, evdev.ecodes.KEY_9, 1)), '9')
         self.assertEqual(to_string(Key(EV_KEY, evdev.ecodes.KEY_SEMICOLON, 1)), 'SEMICOLON')
         self.assertEqual(to_string(Key(EV_ABS, evdev.ecodes.ABS_HAT0X, -1)), 'ABS_HAT0X L')
-        self.assertEqual(to_string(Key(EV_ABS, evdev.ecodes.ABS_HAT0X, 1)), 'ABS_HAT0X R')
+        self.assertEqual(to_string(Key(EV_ABS, evdev.ecodes.ABS_HAT0Y, -1)), 'ABS_HAT0Y U')
         self.assertEqual(to_string(Key(EV_KEY, evdev.ecodes.BTN_A, 1)), 'BTN_A')
         self.assertEqual(to_string(Key(EV_KEY, 1234, 1)), 'unknown')
+        self.assertEqual(to_string(Key(EV_ABS, evdev.ecodes.ABS_X, 1)), 'ABS_X R')
+        self.assertEqual(to_string(Key(EV_ABS, evdev.ecodes.ABS_RY, 1)), 'ABS_RY D')
 
         # combinations
         self.assertEqual(to_string(Key(
@@ -334,7 +336,7 @@ class TestIntegration(unittest.TestCase):
                 keycode_reader._pipe[1].send(InputEvent(*sub_key))
 
             # make the window consume the keycode
-            time.sleep(0.05)
+            time.sleep(0.06)
             gtk_iteration()
 
             # holding down
@@ -347,7 +349,7 @@ class TestIntegration(unittest.TestCase):
                 keycode_reader._pipe[1].send(InputEvent(*sub_key[:2], 0))
 
             # make the window consume the keycode
-            time.sleep(0.05)
+            time.sleep(0.06)
             gtk_iteration()
 
             # released
@@ -367,6 +369,8 @@ class TestIntegration(unittest.TestCase):
             css_classes = row.get_style_context().list_classes()
             self.assertNotIn('changed', css_classes)
             self.assertEqual(row.state, IDLE)
+            # it won't switch the focus to the character input
+            self.assertTrue(row.keycode_input.is_focus())
             return row
 
         if char and code_first:

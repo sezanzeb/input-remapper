@@ -24,13 +24,16 @@
 
 import itertools
 import asyncio
+import math
 
-from evdev.ecodes import EV_KEY, EV_ABS
+from evdev.ecodes import EV_KEY, EV_ABS, ABS_X, ABS_Y, ABS_RX, ABS_RY
 
 from keymapper.logger import logger, is_debug
 from keymapper.util import sign
 from keymapper.mapping import DISABLE_CODE
+from keymapper.config import BUTTONS
 from keymapper.dev.ev_abs_mapper import JOYSTICK
+from keymapper.dev.utils import max_abs
 
 
 # maps mouse buttons to macro instances that have been executed. They may
@@ -55,25 +58,44 @@ active_macros = {}
 unreleased = {}
 
 
-def should_map_event_as_btn(ev_type, code):
+# a third of a quarter circle
+JOYSTICK_BUTTON_THRESHOLD = math.sin((math.pi / 2) / 3 * 1)
+
+
+# TODO test intuos again
+
+
+def should_map_event_as_btn(device, event, mapping):
     """Does this event describe a button.
+
+    If it does, this function will make sure its value is one of [-1, 0, 1],
+    so that it matches the possible values in a mapping object.
 
     Especially important for gamepad events, some of the buttons
     require special rules.
-
-    Parameters
-    ----------
-    ev_type : int
-        one of evdev.events
-    code : int
-        linux keycode
     """
-    if ev_type == EV_KEY:
+    if event.type == EV_KEY:
         return True
 
-    if ev_type == EV_ABS:
-        is_mousepad = 47 <= code <= 61
-        if not is_mousepad and code not in JOYSTICK:
+    is_mousepad = event.type == EV_ABS and 47 <= event.code <= 61
+    if is_mousepad:
+        return False
+
+    if event.type == EV_ABS:
+        if event.code in JOYSTICK:
+            l_purpose = mapping.get('gamepad.joystick.left_purpose')
+            r_purpose = mapping.get('gamepad.joystick.right_purpose')
+            threshold = max_abs(device) * JOYSTICK_BUTTON_THRESHOLD
+            triggered = abs(event.value) > threshold
+
+            if event.code in [ABS_X, ABS_Y] and l_purpose == BUTTONS:
+                event.value = sign(event.value) if triggered else 0
+                return True
+
+            if event.code in [ABS_RX, ABS_RY] and r_purpose == BUTTONS:
+                event.value = sign(event.value) if triggered else 0
+                return True
+        else:
             return True
 
     return False
@@ -217,8 +239,9 @@ def handle_keycode(key_to_code, macros, event, uinput):
             else:
                 log(key, 'releasing %s', target_code)
                 write(uinput, (target_type, target_code, 0))
-        else:
-            # disabled keys can still be used in combinations btw
+        elif event.type != EV_ABS:
+            # ABS events might be spammed like crazy every time the position
+            # slightly changes
             log(key, 'unexpected key up')
 
         # everything that can be released is released now

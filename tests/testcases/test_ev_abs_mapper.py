@@ -27,6 +27,7 @@ from evdev.ecodes import EV_REL, REL_X, REL_Y, REL_WHEEL, REL_HWHEEL
 from keymapper.dev.ev_abs_mapper import ev_abs_mapper
 from keymapper.config import config
 from keymapper.mapping import Mapping
+from keymapper.dev.utils import max_abs
 from keymapper.dev.ev_abs_mapper import MOUSE, WHEEL
 
 from tests.test import InputDevice, UInput, MAX_ABS, clear_write_history, \
@@ -58,6 +59,10 @@ class TestEvAbsMapper(unittest.TestCase):
 
     def tearDown(self):
         cleanup()
+
+    def test_max_abs(self):
+        self.assertEqual(max_abs(InputDevice('/dev/input/event30')), MAX_ABS)
+        self.assertIsNone(max_abs(InputDevice('/dev/input/event10')))
 
     def do(self, a, b, c, d, expectation):
         """Present fake values to the loop and observe the outcome."""

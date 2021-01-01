@@ -170,7 +170,6 @@ class Window:
         self.get('gamepad_config').hide()
 
         self.populate_devices()
-
         self.select_newest_preset()
 
         self.timeouts = [

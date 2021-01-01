@@ -645,6 +645,7 @@
                             <items>
                               <item id="mouse" translatable="yes">Mouse</item>
                               <item id="wheel" translatable="yes">Wheel</item>
+                              <item id="buttons" translatable="yes">Buttons</item>
                             </items>
                             <signal name="changed" handler="on_left_joystick_purpose_changed" swapped="no"/>
                           </object>
@@ -687,6 +688,7 @@
                             <items>
                               <item id="mouse" translatable="yes">Mouse</item>
                               <item id="wheel" translatable="yes">Wheel</item>
+                              <item id="buttons" translatable="yes">Buttons</item>
                             </items>
                             <signal name="changed" handler="on_right_joystick_purpose_changed" swapped="no"/>
                           </object>

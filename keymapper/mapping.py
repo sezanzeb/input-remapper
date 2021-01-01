@@ -249,3 +249,5 @@ class Mapping(ConfigBase):
             existing = self._mapping.get(permutation)
             if existing is not None:
                 return existing
+
+        return None

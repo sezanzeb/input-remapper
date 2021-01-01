@@ -71,6 +71,16 @@ uinput_write_history = []
 uinput_write_history_pipe = multiprocessing.Pipe()
 pending_events = {}
 
+
+def read_write_history_pipe():
+    """convert the write history from the pipe to some easier to manage list"""
+    history = []
+    while uinput_write_history_pipe[0].poll():
+        event = uinput_write_history_pipe[0].recv()
+        history.append((event.type, event.code, event.value))
+    return history
+
+
 # key-mapper is only interested in devices that have EV_KEY, add some
 # random other stuff to test that they are ignored.
 phys_1 = 'usb-0000:03:00.0-1/input2'
@@ -197,6 +207,9 @@ class InputEvent:
         self.sec = int(timestamp)
         self.usec = timestamp % 1 * 1000000
 
+    def __str__(self):
+        return f'InputEvent{self.t}'
+
 
 def patch_paths():
     from keymapper import paths
@@ -222,6 +235,9 @@ def patch_select():
             if len(pending_events.get(thing, [])) > 0:
                 ret.append(thing)
 
+        # avoid a fast iterating infinite loop in the reader
+        time.sleep(0.01)
+
         return [ret, [], []]
 
     select.select = new_select
@@ -241,6 +257,13 @@ class InputDevice:
         self.info = fixtures[path]['info']
         self.name = fixtures[path]['name']
         self.fd = self.name
+
+    def log(self, key, msg):
+        print(
+            f'\033[90m'  # color
+            f'{msg} "{self.name}" "{self.phys}" {key}'
+            '\033[0m'  # end style
+        )
 
     def absinfo(self, *args):
         raise Exception('Ubuntus version of evdev doesn\'t support .absinfo')
@@ -264,6 +287,7 @@ class InputDevice:
             return None
 
         event = pending_events[self.name].pop(0)
+        self.log(event, 'read_one')
         return event
 
     def read_loop(self):
@@ -272,7 +296,9 @@ class InputDevice:
             return
 
         while len(pending_events[self.name]) > 0:
-            yield pending_events[self.name].pop(0)
+            result = pending_events[self.name].pop(0)
+            self.log(result, 'read_loop')
+            yield result
             time.sleep(EVENT_READ_TIMEOUT)
 
     async def async_read_loop(self):
@@ -281,7 +307,9 @@ class InputDevice:
             return
 
         while len(pending_events[self.name]) > 0:
-            yield pending_events[self.name].pop(0)
+            result = pending_events[self.name].pop(0)
+            self.log(result, 'async_read_loop')
+            yield result
             await asyncio.sleep(0.01)
 
     def capabilities(self, absinfo=True):
@@ -375,6 +403,9 @@ def cleanup():
         task.cancel()
 
     os.system('pkill -f key-mapper-service')
+
+    time.sleep(0.05)
+
     if os.path.exists(tmp):
         shutil.rmtree(tmp)
 
@@ -436,7 +467,6 @@ def main():
         print()
 
     unittest.TextTestResult.startTest = start_test
-
     unittest.TextTestRunner(verbosity=2).run(testsuite)
 
 
