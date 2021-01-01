@@ -177,7 +177,7 @@ class GlobalConfig(ConfigBase):
     def __init__(self):
         self.path = os.path.join(CONFIG_PATH, 'config.json')
 
-        # migrate from < 0.4.0, add the .json ending
+        # migrate from < 0.4.1, add the .json ending
         deprecated_path = os.path.join(CONFIG_PATH, 'config')
         if os.path.exists(deprecated_path) and not os.path.exists(self.path):
             logger.info('Moving "%s" to "%s"', deprecated_path, self.path)
