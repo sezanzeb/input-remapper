@@ -8,7 +8,7 @@ build_deb() {
   python3 setup.py install --root=build/deb
   cp ./DEBIAN build/deb/ -r
   mkdir dist -p
-  dpkg -b build/deb dist/key-mapper-0.4.1.deb
+  dpkg -b build/deb dist/key-mapper-0.5.0.deb
 }
 
 build_deb &
