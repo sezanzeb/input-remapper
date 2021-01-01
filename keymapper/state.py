@@ -29,7 +29,7 @@ import subprocess
 import evdev
 
 from keymapper.logger import logger
-from keymapper.mapping import Mapping
+from keymapper.mapping import Mapping, DISABLE_NAME, DISABLE_CODE
 from keymapper.paths import get_config_path, touch, USER
 
 
@@ -94,6 +94,8 @@ class SystemMapping:
         for name, ecode in evdev.ecodes.ecodes.items():
             if name.startswith('KEY') or name.startswith('BTN'):
                 self._set(name, ecode)
+
+        self._set(DISABLE_NAME, DISABLE_CODE)
 
     def update(self, mapping):
         """Update this with new keys.

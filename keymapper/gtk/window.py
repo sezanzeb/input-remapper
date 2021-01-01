@@ -54,9 +54,6 @@ CTX_ERROR = 3
 CTX_WARNING = 4
 
 
-# TODO status warning for ctrl in key combis
-
-
 def get_selected_row_bg():
     """Get the background color that a row is going to have when selected."""
     # ListBoxRows can be selected, but either they are always selectable
@@ -365,8 +362,13 @@ class Window:
         if key is None:
             return True
 
-        # only show the latest key, becomes too long otherwise
-        self.get('keycode').set_text(to_string(key).split('+')[-1].strip())
+        if key.is_problematic():
+            self.show_status(
+                CTX_WARNING,
+                'ctrl, alt and shift may not combine properly',
+                'Your system will probably reinterpret combinations with ' +
+                'those after they are injected, and by doing so break them.'
+            )
 
         # inform the currently selected row about the new keycode
         row, focused = self.get_focused_row()
@@ -397,8 +399,8 @@ class Window:
         if context_id == CTX_WARNING:
             self.get('warning_status_icon').show()
 
-        if len(message) > 40:
-            message = message[:37] + '...'
+        if len(message) > 48:
+            message = message[:50] + '...'
 
         status_bar = self.get('status_bar')
         status_bar.push(context_id, message)

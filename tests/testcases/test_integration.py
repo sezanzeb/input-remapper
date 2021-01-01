@@ -25,7 +25,7 @@ import grp
 import os
 import unittest
 import evdev
-from evdev.ecodes import EV_KEY, EV_ABS, BTN_LEFT, BTN_TOOL_DOUBLETAP
+from evdev.ecodes import EV_KEY, EV_ABS, KEY_LEFTSHIFT
 import json
 from unittest.mock import patch
 from importlib.util import spec_from_loader, module_from_spec
@@ -524,6 +524,12 @@ class TestIntegration(unittest.TestCase):
         self.assertEqual(custom_mapping.get_character(combination_5), 'e')
         self.assertEqual(custom_mapping.get_character(combination_6), 'e')
 
+        error_icon = self.window.get('error_status_icon')
+        warning_icon = self.window.get('warning_status_icon')
+
+        self.assertFalse(error_icon.get_visible())
+        self.assertFalse(warning_icon.get_visible())
+
     def test_remove_row(self):
         """Comprehensive test for rows 2."""
         # sleeps are added to be able to visually follow and debug the test.
@@ -581,6 +587,19 @@ class TestIntegration(unittest.TestCase):
         # of rows won't change.
         remove(row_3, None, 'c', 1)
 
+    def test_problematic_combination(self):
+        combination = Key((EV_KEY, KEY_LEFTSHIFT, 1), (EV_KEY, 82, 1))
+        self.change_empty_row(combination, 'b')
+        status = self.window.get('status_bar')
+        text = status.get_message_area().get_children()[0].get_label()
+        self.assertIn('shift', text)
+
+        error_icon = self.window.get('error_status_icon')
+        warning_icon = self.window.get('warning_status_icon')
+
+        self.assertFalse(error_icon.get_visible())
+        self.assertTrue(warning_icon.get_visible())
+
     def test_rename_and_save(self):
         custom_mapping.change(Key(EV_KEY, 14, 1), 'a', None)
         self.assertEqual(self.window.selected_preset, 'new preset')
@@ -603,12 +622,14 @@ class TestIntegration(unittest.TestCase):
     def test_check_macro_syntax(self):
         status = self.window.get('status_bar')
         error_icon = self.window.get('error_status_icon')
+        warning_icon = self.window.get('warning_status_icon')
 
         custom_mapping.change(Key(EV_KEY, 9, 1), 'k(1))', None)
         self.window.on_save_preset_clicked(None)
         tooltip = status.get_tooltip_text().lower()
         self.assertIn('brackets', tooltip)
         self.assertTrue(error_icon.get_visible())
+        self.assertFalse(warning_icon.get_visible())
 
         custom_mapping.change(Key(EV_KEY, 9, 1), 'k(1)', None)
         self.window.on_save_preset_clicked(None)
@@ -616,6 +637,7 @@ class TestIntegration(unittest.TestCase):
         self.assertNotIn('brackets', tooltip)
         self.assertIn('saved', tooltip)
         self.assertFalse(error_icon.get_visible())
+        self.assertFalse(warning_icon.get_visible())
 
         self.assertEqual(custom_mapping.get_character(Key(EV_KEY, 9, 1)), 'k(1)')
 

@@ -32,13 +32,13 @@ from keymapper.getdevices import get_devices
 
 
 def migrate_path():
-    """Migrate the folder structure from < 0.4.1.
+    """Migrate the folder structure from < 0.4.0.
 
     Move existing presets into the new subfolder "presets"
     """
     new_preset_folder = os.path.join(CONFIG_PATH, 'presets')
     if not os.path.exists(get_preset_path()) and os.path.exists(CONFIG_PATH):
-        logger.info('Migrating presets from < 0.4.1...')
+        logger.info('Migrating presets from < 0.4.0...')
         devices = os.listdir(CONFIG_PATH)
         mkdir(get_preset_path())
         for device in devices:

@@ -27,8 +27,9 @@ import asyncio
 
 from evdev.ecodes import EV_KEY, EV_ABS
 
-from keymapper.logger import logger
+from keymapper.logger import logger, is_debug
 from keymapper.util import sign
+from keymapper.mapping import DISABLE_CODE
 from keymapper.dev.ev_abs_mapper import JOYSTICK
 
 
@@ -118,6 +119,25 @@ def subsets(combination):
     ))
 
 
+def log(key, msg, *args):
+    """Function that logs nicely formatted spams."""
+    if not is_debug():
+        return
+
+    msg = msg % args
+    str_key = str(key)
+    str_key = str_key.replace(',)', ')')
+
+    spacing = ' ' + '-' * max(0, 30 - len(str_key))
+    if len(spacing) == 1:
+        spacing = ''
+
+    msg = f'{str_key}{spacing} {msg}'
+
+    logger.spam(msg)
+    return msg
+
+
 def handle_keycode(key_to_code, macros, event, uinput):
     """Write mapped keycodes, forward unmapped ones and manage macros.
 
@@ -172,6 +192,9 @@ def handle_keycode(key_to_code, macros, event, uinput):
     else:
         # no subset found, just use the key. all indices are tuples of tuples,
         # both for combinations and single keys.
+        if event.value == 1 and len(combination) > 1:
+            log(combination, 'unknown combination')
+
         key = (key,)
 
     active_macro = active_macros.get(type_code)
@@ -183,15 +206,20 @@ def handle_keycode(key_to_code, macros, event, uinput):
             # Tell the macro for that keycode that the key is released and
             # let it decide what to do with that information.
             active_macro.release_key()
-            logger.spam('%s, releasing macro', key)
+            log(key, 'releasing macro')
 
         if type_code in unreleased:
             target_type, target_code = unreleased[type_code][0]
-            logger.spam('%s, releasing %s', key, target_code)
             del unreleased[type_code]
-            write(uinput, (target_type, target_code, 0))
+
+            if target_code == DISABLE_CODE:
+                log(key, 'releasing disabled key')
+            else:
+                log(key, 'releasing %s', target_code)
+                write(uinput, (target_type, target_code, 0))
         else:
-            logger.spam('%s, unexpected key up', key)
+            # disabled keys can still be used in combinations btw
+            log(key, 'unexpected key up')
 
         # everything that can be released is released now
         return
@@ -205,7 +233,7 @@ def handle_keycode(key_to_code, macros, event, uinput):
             # This avoids spawning a second macro while the first one is not
             # finished, especially since gamepad-triggers report a ton of
             # events with a positive value.
-            logger.spam('%s, macro already running', key)
+            log(key, 'macro already running')
             return
 
         # it would write a key usually
@@ -213,7 +241,7 @@ def handle_keycode(key_to_code, macros, event, uinput):
             # duplicate key-down. skip this event. Avoid writing millions of
             # key-down events when a continuous value is reported, for example
             # for gamepad triggers
-            logger.spam('%s, duplicate key down', key)
+            log(key, 'duplicate key down')
             return
 
     """starting new macros or injecting new keys"""
@@ -223,20 +251,25 @@ def handle_keycode(key_to_code, macros, event, uinput):
             macro = macros[key]
             active_macros[type_code] = macro
             macro.press_key()
-            logger.spam('%s, maps to macro %s', key, macro.code)
+            log(key, 'maps to macro %s', macro.code)
             asyncio.ensure_future(macro.run())
             return
 
         if key in key_to_code:
             target_code = key_to_code[key]
-            logger.spam('%s, maps to %s', key, target_code)
             unreleased[type_code] = ((EV_KEY, target_code), event_tuple)
+
+            if target_code == DISABLE_CODE:
+                log(key, 'disabled')
+                return
+
+            log(key, 'maps to %s', target_code)
             write(uinput, (EV_KEY, target_code, 1))
             return
 
-        logger.spam('%s, forwarding', key)
+        log(key, 'forwarding')
         unreleased[type_code] = ((event_tuple[:2]), event_tuple)
         write(uinput, event_tuple)
         return
 
-    logger.error('%s, unhandled. %s %s', key, unreleased, active_macros)
+    logger.error(key, '%s unhandled. %s %s', unreleased, active_macros)

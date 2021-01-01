@@ -29,7 +29,7 @@ from evdev.ecodes import EV_REL, EV_KEY, EV_ABS, ABS_HAT0X
 from keymapper.dev.injector import is_numlock_on, set_numlock, \
     ensure_numlock, KeycodeInjector, is_in_capabilities
 from keymapper.state import custom_mapping, system_mapping
-from keymapper.mapping import Mapping
+from keymapper.mapping import Mapping, DISABLE_CODE, DISABLE_NAME
 from keymapper.config import config
 from keymapper.key import Key
 from keymapper.dev.macros import parse
@@ -78,6 +78,7 @@ class TestInjector(unittest.TestCase):
 
         mapping = Mapping()
         mapping.change(Key(EV_KEY, 80, 1), 'a')
+        mapping.change(Key(EV_KEY, 81, 1), DISABLE_NAME)
 
         macro_code = 'r(2, m(sHiFt_l, r(2, k(1).k(2))))'
         macro = parse(macro_code, mapping)
@@ -92,6 +93,7 @@ class TestInjector(unittest.TestCase):
         shift_l = system_mapping.get('ShIfT_L')
         one = system_mapping.get(1)
         two = system_mapping.get('2')
+        btn_left = system_mapping.get('BtN_lEfT')
 
         self.injector = KeycodeInjector('foo', mapping)
         fake_device = FakeDevice()
@@ -107,12 +109,16 @@ class TestInjector(unittest.TestCase):
         self.assertIn(one, keys)
         self.assertIn(two, keys)
         self.assertIn(shift_l, keys)
+        self.assertNotIn(DISABLE_CODE, keys)
+        # abs_to_rel is false, so mouse capabilities are not needed
+        self.assertNotIn(btn_left, keys)
 
         self.assertNotIn(evdev.ecodes.EV_SYN, capabilities_1)
         self.assertNotIn(evdev.ecodes.EV_FF, capabilities_1)
         self.assertNotIn(evdev.ecodes.EV_REL, capabilities_1)
         self.assertNotIn(evdev.ecodes.EV_ABS, capabilities_1)
 
+        # abs_to_rel makes sure that BTN_LEFT is present
         capabilities_2 = self.injector._modify_capabilities(
             {60: macro},
             fake_device,
@@ -123,6 +129,7 @@ class TestInjector(unittest.TestCase):
         self.assertIn(one, keys)
         self.assertIn(two, keys)
         self.assertIn(shift_l, keys)
+        self.assertIn(btn_left, keys)
 
     def test_grab(self):
         # path is from the fixtures

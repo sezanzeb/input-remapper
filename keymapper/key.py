@@ -24,7 +24,7 @@
 
 import itertools
 
-from keymapper.util import sign
+from evdev import ecodes
 
 
 def verify(key):
@@ -34,6 +34,14 @@ def verify(key):
     if sum([not isinstance(value, int) for value in key]) != 0:
         raise ValueError(f'Can only use numbers, but got {key}')
 
+
+# having shift in combinations modifies the configured output,
+# ctrl might not work at all
+DIFFICULT_COMBINATIONS = [
+    ecodes.KEY_LEFTSHIFT, ecodes.KEY_RIGHTSHIFT,
+    ecodes.KEY_LEFTCTRL, ecodes.KEY_RIGHTCTRL,
+    ecodes.KEY_LEFTALT, ecodes.KEY_RIGHTALT
+]
 
 class Key:
     """Represents one or more pressed down keys.
@@ -111,6 +119,20 @@ class Key:
 
         # compare two instances of Key
         return self.keys == other.keys
+
+    def is_problematic(self):
+        """Is this combination going to work properly on all systems?"""
+        if len(self.keys) <= 1:
+            return False
+
+        for sub_key in self.keys:
+            if sub_key[0] != ecodes.EV_KEY:
+                continue
+
+            if sub_key[1] in DIFFICULT_COMBINATIONS:
+                return True
+
+        return False
 
     def get_permutations(self):
         """Get a list of Key objects representing all possible permutations.
