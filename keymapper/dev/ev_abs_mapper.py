@@ -26,10 +26,11 @@ import asyncio
 import time
 
 import evdev
-from evdev.ecodes import EV_ABS, EV_REL, REL_X, REL_Y, REL_WHEEL, REL_HWHEEL
+from evdev.ecodes import EV_REL, REL_X, REL_Y, REL_WHEEL, REL_HWHEEL
 
 from keymapper.logger import logger
 from keymapper.config import MOUSE, WHEEL
+from keymapper.dev.utils import max_abs
 
 
 # other events for ABS include buttons
@@ -117,20 +118,9 @@ async def ev_abs_mapper(abs_state, input_device, keymapper_device, mapping):
     mapping : Mapping
         the mapping object that configures the current injection
     """
-    # since input_device.absinfo(EV_ABS).max is too new for ubuntu,
-    # figure out the max value via the capabilities
-    absinfos = [
-        entry[1] for entry in
-        input_device.capabilities(absinfo=True)[EV_ABS]
-        if isinstance(entry, tuple) and isinstance(entry[1], evdev.AbsInfo)
-    ]
+    max_value = max_abs(input_device)
 
-    if len(absinfos) == 0:
-        return
-
-    max_value = absinfos[0].max
-
-    if max_value == 0:
+    if max_value == 0 or max_value is None:
         return
 
     max_speed = ((max_value ** 2) * 2) ** 0.5

@@ -62,6 +62,7 @@ def to_string(key):
 
     if ev_type != evdev.ecodes.EV_KEY:
         direction = {
+            # D-Pad
             (evdev.ecodes.ABS_HAT0X, -1): 'L',
             (evdev.ecodes.ABS_HAT0X, 1): 'R',
             (evdev.ecodes.ABS_HAT0Y, -1): 'U',
@@ -74,6 +75,15 @@ def to_string(key):
             (evdev.ecodes.ABS_HAT2X, 1): 'R',
             (evdev.ecodes.ABS_HAT2Y, -1): 'U',
             (evdev.ecodes.ABS_HAT2Y, 1): 'D',
+            # joystick
+            (evdev.ecodes.ABS_X, 1): 'R',
+            (evdev.ecodes.ABS_X, -1): 'L',
+            (evdev.ecodes.ABS_Y, 1): 'D',
+            (evdev.ecodes.ABS_Y, -1): 'U',
+            (evdev.ecodes.ABS_RX, 1): 'R',
+            (evdev.ecodes.ABS_RX, -1): 'L',
+            (evdev.ecodes.ABS_RY, 1): 'D',
+            (evdev.ecodes.ABS_RY, -1): 'U',
         }.get((code, value))
         if direction is not None:
             key_name += f' {direction}'
@@ -115,12 +125,14 @@ class Row(Gtk.ListBoxRow):
 
     def release(self):
         """Tell the row that no keys are currently pressed down."""
-        if self.state == HOLDING:
+        if self.state == HOLDING and self.get_key() is not None:
             # A key was pressed and then released.
             # Switch to the character. idle_add this so that the
             # keycode event won't write into the character input as well.
             window = self.window.window
             GLib.idle_add(lambda: window.set_focus(self.character_input))
+
+        self.state = IDLE
 
     def get_key(self):
         """Get the Key object from the left column.

@@ -118,5 +118,6 @@ class TestGetDevices(unittest.TestCase):
             EV_KEY: [evdev.ecodes.ABS_X]  # intentionally ABS_X (0) on EV_KEY
         }))
 
+
 if __name__ == "__main__":
     unittest.main()

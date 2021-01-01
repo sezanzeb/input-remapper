@@ -148,6 +148,7 @@ class TestDaemon(unittest.TestCase):
         self.daemon = Daemon()
         preset_path = get_preset_path(device, preset)
 
+        self.assertFalse(uinput_write_history_pipe[0].poll())
         self.daemon.start_injecting(device, preset_path)
 
         self.assertTrue(self.daemon.is_injecting(device))
@@ -161,15 +162,19 @@ class TestDaemon(unittest.TestCase):
         self.daemon.stop_injecting(device)
         self.assertFalse(self.daemon.is_injecting(device))
 
+        time.sleep(0.2)
+        try:
+            self.assertFalse(uinput_write_history_pipe[0].poll())
+        except AssertionError:
+            print(uinput_write_history_pipe[0].recv())
+            raise
+
         """injection 2"""
 
         # -1234 will be normalized to -1 by the injector
         pending_events[device] = [
             InputEvent(*ev_2, -1234)
         ]
-
-        time.sleep(0.2)
-        self.assertFalse(uinput_write_history_pipe[0].poll())
 
         path = get_preset_path(device, preset)
         self.daemon.start_injecting(device, path)

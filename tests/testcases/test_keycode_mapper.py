@@ -31,11 +31,11 @@ from keymapper.dev.keycode_mapper import should_map_event_as_btn, \
     active_macros, handle_keycode, unreleased, subsets, log
 from keymapper.state import system_mapping
 from keymapper.dev.macros import parse
-from keymapper.config import config
+from keymapper.config import config, BUTTONS
 from keymapper.mapping import Mapping, DISABLE_CODE
 
 from tests.test import InputEvent, UInput, uinput_write_history, \
-    cleanup
+    cleanup, InputDevice, MAX_ABS
 
 
 def wait(func, timeout=1.0):
@@ -192,19 +192,61 @@ class TestKeycodeMapper(unittest.TestCase):
         self.assertEqual(uinput_write_history[3].t, (EV_KEY, 51, 0))
 
     def test_should_map_event_as_btn(self):
-        self.assertTrue(should_map_event_as_btn(EV_ABS, ABS_HAT0X))
-        self.assertTrue(should_map_event_as_btn(EV_KEY, KEY_A))
-        self.assertFalse(should_map_event_as_btn(EV_ABS, ABS_X))
-        self.assertFalse(should_map_event_as_btn(EV_REL, REL_X))
+        device = InputDevice('/dev/input/event30')
+        mapping = Mapping()
 
-        self.assertFalse(should_map_event_as_btn(EV_ABS, ecodes.ABS_MT_SLOT))
-        self.assertFalse(should_map_event_as_btn(EV_ABS, ecodes.ABS_MT_TOOL_Y))
-        self.assertFalse(should_map_event_as_btn(EV_ABS, ecodes.ABS_MT_POSITION_X))
+        # the function name is so horribly long
+        do = should_map_event_as_btn
+
+        """D-Pad"""
+        self.assertTrue(do(device, InputEvent(EV_ABS, ABS_HAT0X, 1), mapping))
+        self.assertTrue(do(device, InputEvent(EV_ABS, ABS_HAT0X, -1), mapping))
+
+        """regular keys"""
+
+        self.assertTrue(do(device, InputEvent(EV_KEY, KEY_A, 1), mapping))
+        self.assertFalse(do(device, InputEvent(EV_ABS, ABS_X, 1), mapping))
+        self.assertFalse(do(device, InputEvent(EV_REL, REL_X, 1), mapping))
+
+        """mousepad events"""
+
+        self.assertFalse(do(device, InputEvent(EV_ABS, ecodes.ABS_MT_SLOT, 1), mapping))
+        self.assertFalse(do(device, InputEvent(EV_ABS, ecodes.ABS_MT_TOOL_Y, 1), mapping))
+        self.assertFalse(do(device, InputEvent(EV_ABS, ecodes.ABS_MT_POSITION_X, 1), mapping))
+
+        """joysticks"""
+
+        self.assertFalse(do(device, InputEvent(EV_ABS, ecodes.ABS_RX, 1234), mapping))
+        self.assertFalse(do(device, InputEvent(EV_ABS, ecodes.ABS_Y, -1), mapping))
+
+        mapping.set('gamepad.joystick.left_purpose', BUTTONS)
+
+        event = InputEvent(EV_ABS, ecodes.ABS_RX, MAX_ABS)
+        self.assertFalse(do(device, event, mapping))
+        self.assertEqual(event.value, MAX_ABS)
+        event = InputEvent(EV_ABS, ecodes.ABS_Y, -MAX_ABS)
+        self.assertTrue(do(device, event, mapping))
+        self.assertEqual(event.value, -1)
+        event = InputEvent(EV_ABS, ecodes.ABS_X, -MAX_ABS / 4)
+        self.assertTrue(do(device, event, mapping))
+        self.assertEqual(event.value, 0)
+
+        config.set('gamepad.joystick.right_purpose', BUTTONS)
+
+        event = InputEvent(EV_ABS, ecodes.ABS_RX, MAX_ABS)
+        self.assertTrue(do(device, event, mapping))
+        self.assertEqual(event.value, 1)
+        event = InputEvent(EV_ABS, ecodes.ABS_Y, MAX_ABS)
+        self.assertTrue(do(device, event, mapping))
+        self.assertEqual(event.value, 1)
+        event = InputEvent(EV_ABS, ecodes.ABS_X, MAX_ABS / 4)
+        self.assertTrue(do(device, event, mapping))
+        self.assertEqual(event.value, 0)
 
     def test_handle_keycode(self):
         _key_to_code = {
             ((EV_KEY, 1, 1),): 101,
-           ((EV_KEY, 2, 1),): 102
+            ((EV_KEY, 2, 1),): 102
         }
 
         uinput = UInput()

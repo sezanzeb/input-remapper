@@ -24,19 +24,19 @@ import time
 import copy
 
 import evdev
-from evdev.ecodes import EV_REL, EV_KEY, EV_ABS, ABS_HAT0X
+from evdev.ecodes import EV_REL, EV_KEY, EV_ABS, ABS_HAT0X, ABS_RX, ABS_Y
 
 from keymapper.dev.injector import is_numlock_on, set_numlock, \
     ensure_numlock, KeycodeInjector, is_in_capabilities
 from keymapper.state import custom_mapping, system_mapping
 from keymapper.mapping import Mapping, DISABLE_CODE, DISABLE_NAME
-from keymapper.config import config
+from keymapper.config import config, BUTTONS
 from keymapper.key import Key
 from keymapper.dev.macros import parse
 
 from tests.test import InputEvent, pending_events, fixtures, \
     EVENT_READ_TIMEOUT, uinput_write_history_pipe, \
-    MAX_ABS, cleanup
+    MAX_ABS, cleanup, read_write_history_pipe
 
 
 class TestInjector(unittest.TestCase):
@@ -393,10 +393,7 @@ class TestInjector(unittest.TestCase):
         self.injector._msg_pipe[1].send(1234)
 
         # convert the write history to some easier to manage list
-        history = []
-        while uinput_write_history_pipe[0].poll():
-            event = uinput_write_history_pipe[0].recv()
-            history.append((event.type, event.code, event.value))
+        history = read_write_history_pipe()
 
         # 1 event before the combination was triggered (+1 for release)
         # 4 events for the macro
@@ -447,6 +444,69 @@ class TestInjector(unittest.TestCase):
 
         numlock_after = is_numlock_on()
         self.assertEqual(numlock_before, numlock_after)
+
+    def test_joysticks_as_buttons(self):
+        y_up = (EV_ABS, ABS_Y, -MAX_ABS)
+        y_release = (EV_ABS, ABS_Y, MAX_ABS // 4)
+
+        rx_right = (EV_ABS, ABS_RX, MAX_ABS)
+        rx_release = (EV_ABS, ABS_RX, -MAX_ABS // 4)
+
+        custom_mapping.change(Key(*y_up[:2], -1), 'w')
+        custom_mapping.change(Key(*rx_right[:2], 1), 'k(d)')
+
+        system_mapping.clear()
+        code_w = 71
+        code_d = 74
+        system_mapping._set('w', code_w)
+        system_mapping._set('d', code_d)
+
+        def do_stuff():
+            if self.injector is not None:
+                self.injector.stop_injecting()
+                time.sleep(0.1)
+                while uinput_write_history_pipe[0].poll():
+                    uinput_write_history_pipe[0].recv()
+
+            pending_events['gamepad'] = [
+                InputEvent(*y_up),
+                InputEvent(*rx_right),
+                InputEvent(*y_release),
+                InputEvent(*rx_release),
+            ]
+
+            self.injector = KeycodeInjector('gamepad', custom_mapping)
+            self.injector.start_injecting()
+            uinput_write_history_pipe[0].poll(timeout=1)
+            time.sleep(EVENT_READ_TIMEOUT * 10)
+            return read_write_history_pipe()
+
+        """purpose != buttons"""
+
+        history = do_stuff()
+        self.assertEqual(history.count((EV_KEY, code_w, 1)), 0)
+        self.assertEqual(history.count((EV_KEY, code_d, 1)), 0)
+        self.assertEqual(history.count((EV_KEY, code_w, 0)), 0)
+        self.assertEqual(history.count((EV_KEY, code_d, 0)), 0)
+
+        """left purpose buttons"""
+
+        custom_mapping.set('gamepad.joystick.left_purpose', BUTTONS)
+        history = do_stuff()
+        self.assertEqual(history.count((EV_KEY, code_w, 1)), 1)
+        self.assertEqual(history.count((EV_KEY, code_d, 1)), 0)
+        self.assertEqual(history.count((EV_KEY, code_w, 0)), 1)
+        self.assertEqual(history.count((EV_KEY, code_d, 0)), 0)
+
+        """right purpose buttons"""
+
+        custom_mapping.remove('gamepad.joystick.right_purpose')
+        config.set('gamepad.joystick.right_purpose', BUTTONS)
+        history = do_stuff()
+        self.assertEqual(history.count((EV_KEY, code_w, 1)), 1)
+        self.assertEqual(history.count((EV_KEY, code_d, 1)), 1)
+        self.assertEqual(history.count((EV_KEY, code_w, 0)), 1)
+        self.assertEqual(history.count((EV_KEY, code_d, 0)), 1)
 
     def test_store_permutations_for_macros(self):
         mapping = Mapping()

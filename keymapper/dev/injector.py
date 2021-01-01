@@ -162,6 +162,11 @@ class KeycodeInjector:
                 continue
 
             for permutation in key.get_permutations():
+                if permutation.keys[-1][-1] not in [-1, 1]:
+                    logger.error(
+                        'Expected values to be -1 or 1 at this point: %s',
+                        permutation.keys
+                    )
                 key_to_code[permutation.keys] = target_code
 
         return key_to_code
@@ -447,6 +452,15 @@ class KeycodeInjector:
         )
 
         async for event in source.async_read_loop():
+            if should_map_event_as_btn(source, event, self.mapping):
+                handle_keycode(
+                    self._key_to_code,
+                    macros,
+                    event,
+                    uinput
+                )
+                continue
+
             if abs_to_rel and event.type == EV_ABS and event.code in JOYSTICK:
                 if event.code == evdev.ecodes.ABS_X:
                     self.abs_state[0] = event.value
@@ -456,15 +470,6 @@ class KeycodeInjector:
                     self.abs_state[2] = event.value
                 elif event.code == evdev.ecodes.ABS_RY:
                     self.abs_state[3] = event.value
-                continue
-
-            if should_map_event_as_btn(event.type, event.code):
-                handle_keycode(
-                    self._key_to_code,
-                    macros,
-                    event,
-                    uinput
-                )
                 continue
 
             # forward the rest

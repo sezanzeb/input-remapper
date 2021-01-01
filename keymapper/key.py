@@ -32,7 +32,7 @@ def verify(key):
     if not isinstance(key, tuple) or len(key) != 3:
         raise ValueError(f'Expected key to be a 3-tuple, but got {key}')
     if sum([not isinstance(value, int) for value in key]) != 0:
-        raise ValueError(f'Can only use numbers, but got {key}')
+        raise ValueError(f'Can only use integers, but got {key}')
 
 
 # having shift in combinations modifies the configured output,

@@ -25,13 +25,15 @@
 import sys
 import select
 import multiprocessing
+import threading
 
 import evdev
-from evdev.events import EV_KEY, EV_ABS
+from evdev.ecodes import EV_KEY, EV_ABS
 
 from keymapper.logger import logger
 from keymapper.util import sign
 from keymapper.key import Key
+from keymapper.state import custom_mapping
 from keymapper.getdevices import get_devices, refresh_devices
 from keymapper.dev.keycode_mapper import should_map_event_as_btn
 
@@ -128,13 +130,13 @@ class _KeycodeReader:
 
         pipe = multiprocessing.Pipe()
         self._pipe = pipe
-        self._process = multiprocessing.Process(target=self._read_worker)
+        self._process = threading.Thread(target=self._read_worker)
         self._process.start()
 
-    def _consume_event(self, event):
+    def _consume_event(self, event, device):
         """Write the event code into the pipe if it is a key-down press."""
         # value: 1 for down, 0 for up, 2 for hold.
-        if self._pipe[1].closed:
+        if self._pipe is None or self._pipe[1].closed:
             logger.debug('Pipe closed, reader stops.')
             sys.exit(0)
 
@@ -153,20 +155,22 @@ class _KeycodeReader:
             # which breaks the current workflow.
             return
 
-        if not should_map_event_as_btn(event.type, event.code):
+        if not should_map_event_as_btn(device, event, custom_mapping):
             return
 
-        logger.spam(
-            'got (%s, %s, %s)',
-            event.type,
-            event.code,
-            event.value
-        )
+        if not (event.value == 0 and event.type == EV_ABS):
+            # avoid gamepad trigger spam
+            logger.spam(
+                'got (%s, %s, %s)',
+                event.type,
+                event.code,
+                event.value
+            )
         self._pipe[1].send(event)
 
     def _read_worker(self):
-        """Process that reads keycodes and buffers them into a pipe."""
-        # using a process that blocks instead of read_one made it easier
+        """Thread that reads keycodes and buffers them into a pipe."""
+        # using a thread that blocks instead of read_one made it easier
         # to debug via the logs, because the UI was not polling properly
         # at some point which caused logs for events not to be written.
         rlist = {device.fd: device for device in self.virtual_devices}
@@ -175,7 +179,7 @@ class _KeycodeReader:
         while True:
             ready = select.select(rlist, [], [])[0]
             for fd in ready:
-                readable = rlist[fd]
+                readable = rlist[fd]  # a device or a pipe
                 if isinstance(readable, multiprocessing.connection.Connection):
                     msg = readable.recv()
                     if msg == CLOSE:
@@ -185,7 +189,7 @@ class _KeycodeReader:
 
                 try:
                     for event in rlist[fd].read():
-                        self._consume_event(event)
+                        self._consume_event(event, readable)
                 except OSError:
                     logger.debug(
                         'Device "%s" disappeared from the reader',
