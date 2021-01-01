@@ -43,6 +43,7 @@ DIFFICULT_COMBINATIONS = [
     ecodes.KEY_LEFTALT, ecodes.KEY_RIGHTALT
 ]
 
+
 class Key:
     """Represents one or more pressed down keys.
 

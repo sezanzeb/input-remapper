@@ -233,6 +233,7 @@ class TestIntegration(unittest.TestCase):
         self.assertEqual(to_string(Key(EV_ABS, evdev.ecodes.ABS_HAT0X, -1)), 'ABS_HAT0X L')
         self.assertEqual(to_string(Key(EV_ABS, evdev.ecodes.ABS_HAT0X, 1)), 'ABS_HAT0X R')
         self.assertEqual(to_string(Key(EV_KEY, evdev.ecodes.BTN_A, 1)), 'BTN_A')
+        self.assertEqual(to_string(Key(EV_KEY, 1234, 1)), 'unknown')
 
         # combinations
         self.assertEqual(to_string(Key(

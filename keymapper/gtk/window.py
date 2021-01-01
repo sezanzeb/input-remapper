@@ -183,7 +183,7 @@ class Window:
 
         self.ctrl = 0
 
-    def key_press(self, window, event):
+    def key_press(self, _, event):
         """To execute shortcuts.
 
         This has nothing to do with the keycode reader.
@@ -195,7 +195,7 @@ class Window:
         if gdk_keycode == Gdk.KEY_q and self.ctrl:
             self.on_close()
 
-    def key_release(self, window, event):
+    def key_release(self, _, event):
         """To execute shortcuts.
 
         This has nothing to do with the keycode reader.
@@ -314,7 +314,7 @@ class Window:
         key_list = self.get('key_list')
         key_list.forall(lambda row: row.unhighlight())
 
-    def can_modify_mapping(self, *args):
+    def can_modify_mapping(self, *_):
         """Show a message if changing the mapping is not possible."""
         if not self.dbus.is_injecting(self.selected_device):
             return
@@ -421,7 +421,7 @@ class Window:
             self.show_status(CTX_ERROR, msg, error)
 
     @with_selected_preset
-    def on_save_preset_clicked(self, button):
+    def on_save_preset_clicked(self, _):
         """Save changes to a preset to the file system."""
         new_name = self.get('preset_name_input').get_text()
         try:
