@@ -31,6 +31,31 @@ private information with your device. Debug logs are quite verbose.
 If injecting stops after closing the window, the service is not running.
 Try `sudo systemctl start key-mapper` in a terminal.
 
+## Combinations
+
+Select the key in your row (`click here`) and hold a few buttons down.
+Releasing them will make your text cursor jump into the mapping column
+to type in what you want to map it to.
+
+Combinations involving Ctrl might not work, I think the desktop environment
+grabs them or something. Combinations with Shift might not work the way
+you would expect. If it outputs the keycode for a, you are going to get an
+'A', because X11 still sees the enabled shift button.
+
+This happens, because all key-mapper does is either forwarding or mapping
+your keycodes (which is easier said than done), and X11/Wayland has to decide
+what to do with it. And it decides, that if shift is pressed down, it will
+capitalize your stuff.
+
+A better option for a key combination would be `KP1 + a` instead of 
+`LEFTSHIFT + a`, because there won't be any side effect. You can disable
+`KP1` by mapping it to `disable`, so you won't trigger writing a "1" into
+your focused application.
+
+<p align="center">
+  <img src="combination.png"/>
+</p>
+
 ## Macros
 
 It is possible to write timed macros into the center column:
@@ -79,7 +104,7 @@ Wayland than with X11 for me.
 ## Configuration Files
 
 The default configuration is stored at `~/.config/key-mapper/config.json`.
-The current default configuration as of commit `42cb7fe` looks like, with
+The current default configuration as of 0.5.0 looks like, with
 an example autoload entry:
 
 ```json
@@ -95,7 +120,9 @@ an example autoload entry:
             "non_linearity": 4,
             "pointer_speed": 80,
             "left_purpose": "mouse",
-            "right_purpose": "wheel"
+            "right_purpose": "wheel",
+            "x_scroll_speed": 2,
+            "y_scroll_speed": 0.5
         }
     }
 }
