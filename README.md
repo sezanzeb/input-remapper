@@ -3,7 +3,7 @@
 <h1 align="center">Key Mapper</h1>
 
 <p align="center">
-  A tool to change the mapping of your input device buttons.<br/>
+  An easy to use tool to change the mapping of your input device buttons.<br/>
   Supports mice, keyboards, gamepads, X11, Wayland, combined buttons and programmable macros.
 </p>
 
