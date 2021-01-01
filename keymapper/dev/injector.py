@@ -335,19 +335,6 @@ class KeycodeInjector:
 
         paths = get_devices()[self.device]['paths']
 
-        """# in order to map a combination of shift + a to xf86audiomute,
-        # key-mapper has to find a way around the systems xkb configs,
-        # because X11 won't do shift + xf86audiomute.
-        # This special input can write every possible EV_KEY character
-        # below 272 (which is mouse-left) without being bothered by
-        # modifiers. It has its own special xkb symbols and keycodes files
-        # and 
-        self.special_uinput = evdev.UInput(
-            name=f'{DEV_NAME} special {self.device}',
-            phys=DEV_NAME,
-            events=self._modify_capabilities(macros, source, abs_to_rel)
-        )"""
-
         # Watch over each one of the potentially multiple devices per hardware
         for path in paths:
             source, abs_to_rel = self._prepare_device(path)

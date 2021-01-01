@@ -22,6 +22,7 @@
 """Inject a keycode based on the mapping."""
 
 
+import itertools
 import asyncio
 
 from evdev.ecodes import EV_KEY, EV_ABS
@@ -97,6 +98,26 @@ COMBINATION_INCOMPLETE = 1  # not all keys of the combination are pressed
 NOT_COMBINED = 2  # this key is not part of a combination
 
 
+def subsets(combination):
+    """Return a list of subsets of the combination.
+
+    If combination is only one element long it returns an empty list,
+    because it's not a combination and there is no reason to iterate.
+
+    Parameters
+    -----------
+    combination : tuple
+        tuple of 3-tuples, each being int, int, int (type, code, value)
+    """
+    combination = list(combination)
+    lengths = list(range(2, len(combination) + 1))
+    lengths.reverse()
+    return list(itertools.chain.from_iterable(
+        itertools.combinations(combination, length)
+        for length in lengths
+    ))
+
+
 def handle_keycode(key_to_code, macros, event, uinput):
     """Write mapped keycodes, forward unmapped ones and manage macros.
 
@@ -136,12 +157,27 @@ def handle_keycode(key_to_code, macros, event, uinput):
     # Do not check if key in macros and such, if it is an up event. It's
     # going to be False.
     combination = tuple([value[1] for value in unreleased.values()] + [key])
-    if combination in macros or combination in key_to_code:
-        key = combination
+    # find any triggered combination. macros and key_to_code contain
+    # every possible equivalent permutation of possible macros. The last
+    # key in the combination needs to remain the newest key though.
+    for subset in subsets(combination):
+        if subset[-1] != key:
+            # only combinations that are completed and triggered by the
+            # newest input are of interest
+            continue
+
+        if subset in macros or subset in key_to_code:
+            key = subset
+            break
+    else:
+        # no subset found, just use the key. all indices are tuples of tuples,
+        # both for combinations and single keys.
+        key = (key,)
+
+    active_macro = active_macros.get(type_code)
 
     """Releasing keys and macros"""
 
-    active_macro = active_macros.get(type_code)
     if is_key_up(event):
         if active_macro is not None and active_macro.holding:
             # Tell the macro for that keycode that the key is released and
