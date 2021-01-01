@@ -4,7 +4,7 @@
 
 <p align="center">
   A tool to change the mapping of your input device buttons.<br/>
-  Supports mice, keyboards, gamepads, X11, Wayland and programmable macros.
+  Supports mice, keyboards, gamepads, X11, Wayland, combined buttons and programmable macros.
 </p>
 
 <p align="center"><a href="readme/usage.md">Usage</a> - <a href="#installation">Installation</a> - <a href="readme/development.md">Development</a> - <a href="#screenshots">Screenshots</a></p>
