@@ -53,7 +53,7 @@ def to_string(key):
         return 'unknown'
 
     if code not in evdev.ecodes.bytype[ev_type]:
-        logger.error('Unknown key code for', key)
+        logger.error('Unknown key code for %s', key)
         return 'unknown'
 
     key_name = evdev.ecodes.bytype[ev_type][code]
@@ -215,7 +215,7 @@ class Row(Gtk.ListBoxRow):
                 previous_key=None
             )
 
-    def match(self, completion, key, tree_iter):
+    def match(self, _, key, tree_iter):
         """Search the avilable names."""
         value = store.get_value(tree_iter, 0)
         return key in value.lower()
@@ -236,12 +236,12 @@ class Row(Gtk.ListBoxRow):
         self.set_keycode_input_label('press key')
         self.keycode_input.set_opacity(1)
 
-    def on_keycode_input_focus(self, *args):
+    def on_keycode_input_focus(self, *_):
         """Refresh useful usage information."""
         self.show_press_key()
         self.window.can_modify_mapping()
 
-    def on_keycode_input_unfocus(self, *args):
+    def on_keycode_input_unfocus(self, *_):
         """Refresh useful usage information and set some state stuff."""
         self.show_click_here()
         self.keycode_input.set_active(False)
@@ -328,7 +328,7 @@ class Row(Gtk.ListBoxRow):
         self.add(box)
         self.show_all()
 
-    def on_delete_button_clicked(self, *args):
+    def on_delete_button_clicked(self, *_):
         """Destroy the row and remove it from the config."""
         key = self.get_key()
         if key is not None:
