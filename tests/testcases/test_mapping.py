@@ -63,6 +63,7 @@ class TestSystemMapping(unittest.TestCase):
             # only xmodmap stuff should be present
             self.assertNotIn('key_a', content)
             self.assertNotIn('KEY_A', content)
+            self.assertNotIn('disable', content)
 
     def test_system_mapping(self):
         system_mapping = SystemMapping()
@@ -101,6 +102,8 @@ class TestSystemMapping(unittest.TestCase):
         self.assertIn('minus', names)
         self.assertIn('btn_left', names)
         self.assertIn('btn_right', names)
+
+        self.assertEqual(system_mapping.get('disable'), -1)
 
 
 class TestMapping(unittest.TestCase):

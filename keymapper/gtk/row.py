@@ -168,7 +168,6 @@ class Row(Gtk.ListBoxRow):
             return
 
         # it's legal to display the keycode
-        self.window.get('status_bar').remove_all(CTX_KEYCODE)
 
         # always ask for get_child to set the label, otherwise line breaking
         # has to be configured again.

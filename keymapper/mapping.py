@@ -32,6 +32,11 @@ from keymapper.config import ConfigBase, config
 from keymapper.key import Key
 
 
+DISABLE_NAME = 'disable'
+
+DISABLE_CODE = -1
+
+
 def split_key(key):
     """Take a key like "1,2,3" and return a 3-tuple of ints."""
     key = key.strip()

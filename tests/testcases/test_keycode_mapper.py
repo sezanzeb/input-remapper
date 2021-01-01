@@ -28,11 +28,11 @@ from evdev.ecodes import EV_KEY, EV_ABS, ABS_HAT0X, ABS_HAT0Y, KEY_A, ABS_X, \
     EV_REL, REL_X, BTN_TL
 
 from keymapper.dev.keycode_mapper import should_map_event_as_btn, \
-    active_macros, handle_keycode, unreleased, subsets
+    active_macros, handle_keycode, unreleased, subsets, log
 from keymapper.state import system_mapping
 from keymapper.dev.macros import parse
 from keymapper.config import config
-from keymapper.mapping import Mapping
+from keymapper.mapping import Mapping, DISABLE_CODE
 
 from tests.test import InputEvent, UInput, uinput_write_history, \
     cleanup
@@ -821,6 +821,90 @@ class TestKeycodeMapper(unittest.TestCase):
         self.assertEqual(len(uinput_write_history), 2)
         self.assertEqual(uinput_write_history[0].t, (EV_KEY, 21, 1))
         self.assertEqual(uinput_write_history[1].t, (EV_KEY, 21, 0))
+
+    def test_ignore_disabled(self):
+        ev_1 = (EV_ABS, ABS_HAT0Y, 1)
+        ev_2 = (EV_ABS, ABS_HAT0Y, 0)
+
+        ev_3 = (EV_ABS, ABS_HAT0X, 1)
+        ev_4 = (EV_ABS, ABS_HAT0X, 0)
+
+        ev_5 = (EV_KEY, KEY_A, 1)
+        ev_6 = (EV_KEY, KEY_A, 0)
+
+        combi_1 = (ev_5, ev_3)
+        combi_2 = (ev_3, ev_5)
+
+        _key_to_code = {
+            (ev_1,): 61,
+            (ev_3,): DISABLE_CODE,
+            combi_1: 62,
+            combi_2: 63
+        }
+
+        uinput = UInput()
+
+        """single keys"""
+
+        # down
+        handle_keycode(_key_to_code, {}, InputEvent(*ev_1), uinput)
+        handle_keycode(_key_to_code, {}, InputEvent(*ev_3), uinput)
+        # up
+        handle_keycode(_key_to_code, {}, InputEvent(*ev_2), uinput)
+        handle_keycode(_key_to_code, {}, InputEvent(*ev_4), uinput)
+
+        self.assertEqual(len(uinput_write_history), 2)
+        self.assertEqual(uinput_write_history[0].t, (EV_KEY, 61, 1))
+        self.assertEqual(uinput_write_history[1].t, (EV_KEY, 61, 0))
+
+        """a combination that ends in a disabled key"""
+
+        # ev_5 should be forwarded and the combination triggered
+        handle_keycode(_key_to_code, {}, InputEvent(*combi_1[0]), uinput)
+        handle_keycode(_key_to_code, {}, InputEvent(*combi_1[1]), uinput)
+        self.assertEqual(len(uinput_write_history), 4)
+        self.assertEqual(uinput_write_history[2].t, (EV_KEY, KEY_A, 1))
+        self.assertEqual(uinput_write_history[3].t, (EV_KEY, 62, 1))
+
+        # release the last key of the combi first, it should
+        # release what the combination maps to
+        event = InputEvent(combi_1[1][0], combi_1[1][1], 0)
+        handle_keycode(_key_to_code, {}, event, uinput)
+        self.assertEqual(len(uinput_write_history), 5)
+        self.assertEqual(uinput_write_history[-1].t, (EV_KEY, 62, 0))
+
+        event = InputEvent(combi_1[0][0], combi_1[0][1], 0)
+        handle_keycode(_key_to_code, {}, event, uinput)
+        self.assertEqual(len(uinput_write_history), 6)
+        self.assertEqual(uinput_write_history[-1].t, (EV_KEY, KEY_A, 0))
+
+        """a combination that starts with a disabled key"""
+
+        # only the combination should get triggered
+        handle_keycode(_key_to_code, {}, InputEvent(*combi_2[0]), uinput)
+        handle_keycode(_key_to_code, {}, InputEvent(*combi_2[1]), uinput)
+        self.assertEqual(len(uinput_write_history), 7)
+        self.assertEqual(uinput_write_history[-1].t, (EV_KEY, 63, 1))
+
+        # release the last key of the combi first, it should
+        # release what the combination maps to
+        event = InputEvent(combi_2[1][0], combi_2[1][1], 0)
+        handle_keycode(_key_to_code, {}, event, uinput)
+        self.assertEqual(len(uinput_write_history), 8)
+        self.assertEqual(uinput_write_history[-1].t, (EV_KEY, 63, 0))
+
+        # the first key of combi_2 is disabled, so it won't write another
+        # key-up event
+        event = InputEvent(combi_2[0][0], combi_2[0][1], 0)
+        handle_keycode(_key_to_code, {}, event, uinput)
+        self.assertEqual(len(uinput_write_history), 8)
+
+    def test_log(self):
+        msg1 = log(((1, 2, 1),), 'foo %s bar', 1234)
+        self.assertEqual(msg1, '((1, 2, 1)) ------------------- foo 1234 bar')
+
+        msg2 = log(((1, 200, -1), (1, 5, 1)), 'foo %s', (1, 2))
+        self.assertEqual(msg2, '((1, 200, -1), (1, 5, 1)) ----- foo (1, 2)')
 
 
 if __name__ == "__main__":

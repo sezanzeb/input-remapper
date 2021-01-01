@@ -38,6 +38,7 @@ from keymapper.dev.keycode_mapper import handle_keycode, \
 from keymapper.dev.ev_abs_mapper import ev_abs_mapper, JOYSTICK
 from keymapper.dev.macros import parse, is_this_a_macro
 from keymapper.state import system_mapping
+from keymapper.mapping import DISABLE_CODE
 
 
 DEV_NAME = 'key-mapper'
@@ -261,6 +262,9 @@ class KeycodeInjector:
 
         # Furthermore, support all injected keycodes
         for code in self._key_to_code.values():
+            if code == DISABLE_CODE:
+                continue
+
             if code not in capabilities[EV_KEY]:
                 capabilities[EV_KEY].append(code)
 
