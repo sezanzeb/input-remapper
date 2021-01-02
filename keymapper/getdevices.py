@@ -58,6 +58,13 @@ def map_abs_to_rel(capabilities):
             # check for some random mousepad capability
             return False
 
+        if evdev.ecodes.BTN_TOOL_BRUSH in capabilities.get(EV_KEY, []):
+            # a graphics tablet, not a gamepad
+            return False
+        if evdev.ecodes.BTN_STYLUS in capabilities.get(EV_KEY, []):
+            # another graphics tablet test
+            return False
+
         if evdev.ecodes.ABS_X in abs_capabilities:
             # can be a joystick or a mousepad (already handled), so it's
             # a joystick

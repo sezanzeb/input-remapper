@@ -33,9 +33,9 @@ from evdev.ecodes import EV_KEY, EV_ABS, EV_REL
 
 from keymapper.logger import logger
 from keymapper.getdevices import get_devices, map_abs_to_rel
-from keymapper.dev.keycode_mapper import handle_keycode, \
-    should_map_event_as_btn
-from keymapper.dev.ev_abs_mapper import ev_abs_mapper, JOYSTICK
+from keymapper.dev.keycode_mapper import handle_keycode
+from keymapper.dev import utils
+from keymapper.dev.ev_abs_mapper import ev_abs_mapper
 from keymapper.dev.macros import parse, is_this_a_macro
 from keymapper.state import system_mapping
 from keymapper.mapping import DISABLE_CODE
@@ -261,9 +261,8 @@ class KeycodeInjector:
         # to act like the device.
         capabilities = input_device.capabilities(absinfo=False)
 
-        if len(self._key_to_code) > 0 or len(macros) > 0:
-            if capabilities.get(EV_KEY) is None:
-                capabilities[EV_KEY] = []
+        if (self._key_to_code or macros) and capabilities.get(EV_KEY) is None:
+            capabilities[EV_KEY] = []
 
         # Furthermore, support all injected keycodes
         for code in self._key_to_code.values():
@@ -327,6 +326,9 @@ class KeycodeInjector:
 
         Stuff is non-blocking by using asyncio in order to do multiple things
         somewhat concurrently.
+
+        Use this function as starting point in a process. It creates
+        the loops needed to read and map events and keeps running them.
         """
         # create a new event loop, because somehow running an infinite loop
         # that sleeps on iterations (ev_abs_mapper) in one process causes
@@ -387,21 +389,25 @@ class KeycodeInjector:
             for macro in macros.values():
                 macro.set_handler(handler)
 
-            # keycode injection
-            coroutine = self._keycode_loop(macros, source, uinput, abs_to_rel)
-            coroutines.append(coroutine)
+            # actual reading of events
+            coroutines.append(self._event_consumer(
+                macros,
+                source,
+                uinput,
+                abs_to_rel
+            ))
 
-            # mouse movement injection
+            # mouse movement injection based on the results of the
+            # event consumer
             if abs_to_rel:
                 self.abs_state[0] = 0
                 self.abs_state[1] = 0
-                coroutine = ev_abs_mapper(
+                coroutines.append(ev_abs_mapper(
                     self.abs_state,
                     source,
                     uinput,
                     self.mapping
-                )
-                coroutines.append(coroutine)
+                ))
 
         if len(coroutines) == 0:
             logger.error('Did not grab any device')
@@ -430,14 +436,14 @@ class KeycodeInjector:
         uinput.write(EV_KEY, code, value)
         uinput.syn()
 
-    async def _keycode_loop(self, macros, source, uinput, abs_to_rel):
-        """Inject keycodes for one of the virtual devices.
+    async def _event_consumer(self, macros, source, uinput, abs_to_rel):
+        """Reads input events to inject keycodes or talk to the ev_abs_mapper.
 
         Can be stopped by stopping the asyncio loop.
 
         Parameters
         ----------
-        macros : (int, int) -> _Macro
+        macros : int: _Macro
             macro with a handler that writes to the provided uinput
         source : evdev.InputDevice
             where to read keycodes from
@@ -452,7 +458,7 @@ class KeycodeInjector:
         )
 
         async for event in source.async_read_loop():
-            if should_map_event_as_btn(source, event, self.mapping):
+            if utils.should_map_event_as_btn(source, event, self.mapping):
                 handle_keycode(
                     self._key_to_code,
                     macros,
@@ -461,7 +467,9 @@ class KeycodeInjector:
                 )
                 continue
 
-            if abs_to_rel and event.type == EV_ABS and event.code in JOYSTICK:
+            is_joystick = event.type == EV_ABS and event.code in utils.JOYSTICK
+            if abs_to_rel and is_joystick:
+                # talks to the ev_abs_mapper via the abs_state array
                 if event.code == evdev.ecodes.ABS_X:
                     self.abs_state[0] = event.value
                 elif event.code == evdev.ecodes.ABS_Y:

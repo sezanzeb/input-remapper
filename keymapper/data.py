@@ -42,9 +42,9 @@ def get_data_path(filename=''):
     """
     global logged
 
-    source_path = None
+    source = None
     try:
-        source_path = pkg_resources.require('key-mapper')[0].location
+        source = pkg_resources.require('key-mapper')[0].location
         # failed in some ubuntu installations
     except pkg_resources.DistributionNotFound:
         pass
@@ -53,17 +53,16 @@ def get_data_path(filename=''):
     # prefix path for data
     # https://docs.python.org/3/distutils/setupscript.html?highlight=package_data#installing-additional-files # noqa pylint: disable=line-too-long
 
-    data_path = None
+    data = None
     # python3.8/dist-packages python3.7/site-packages, /usr/share,
     # /usr/local/share, endless options
-    if source_path is not None:
-        if '-packages' not in source_path and 'python' not in source_path:
-            # probably installed with -e, running from the cloned git source
-            data_path = os.path.join(source_path, 'data')
-            if not os.path.exists(data_path):
-                if not logged:
-                    logger.debug('-e, but data missing at "%s"', data_path)
-                data_path = None
+    if source and '-packages' not in source and 'python' not in source:
+        # probably installed with -e, running from the cloned git source
+        data = os.path.join(source, 'data')
+        if not os.path.exists(data):
+            if not logged:
+                logger.debug('-e, but data missing at "%s"', data)
+            data = None
 
     candidates = [
         '/usr/share/key-mapper',
@@ -71,19 +70,19 @@ def get_data_path(filename=''):
         os.path.join(site.USER_BASE, 'share/key-mapper'),
     ]
 
-    if data_path is None:
+    if data is None:
         # try any of the options
         for candidate in candidates:
             if os.path.exists(candidate):
-                data_path = candidate
+                data = candidate
                 break
 
-        if data_path is None:
+        if data is None:
             logger.error('Could not find the application data')
             sys.exit(1)
 
     if not logged:
-        logger.debug('Found data at "%s"', data_path)
+        logger.debug('Found data at "%s"', data)
         logged = True
 
-    return os.path.join(data_path, filename)
+    return os.path.join(data, filename)

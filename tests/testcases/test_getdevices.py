@@ -117,6 +117,14 @@ class TestGetDevices(unittest.TestCase):
         self.assertFalse(map_abs_to_rel({
             EV_KEY: [evdev.ecodes.ABS_X]  # intentionally ABS_X (0) on EV_KEY
         }))
+        self.assertFalse(map_abs_to_rel({
+            EV_ABS: [evdev.ecodes.ABS_X],
+            EV_KEY: [evdev.ecodes.BTN_TOOL_BRUSH]
+        }))
+        self.assertFalse(map_abs_to_rel({
+            EV_ABS: [evdev.ecodes.ABS_X],
+            EV_KEY: [evdev.ecodes.BTN_STYLUS]
+        }))
 
 
 if __name__ == "__main__":

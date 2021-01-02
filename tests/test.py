@@ -198,14 +198,16 @@ class InputEvent:
         self.code = code
         self.value = value
 
-        # tuple shorthand
-        self.t = (type, code, value)
-
         if timestamp is None:
             timestamp = time.time()
 
         self.sec = int(timestamp)
         self.usec = timestamp % 1 * 1000000
+
+    @property
+    def t(self):
+        # tuple shorthand
+        return self.type, self.code, self.value
 
     def __str__(self):
         return f'InputEvent{self.t}'

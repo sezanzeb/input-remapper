@@ -353,10 +353,10 @@ class Window:
         # they have already been read.
         key = keycode_reader.read()
 
-        if isinstance(focused, Gtk.ToggleButton):
-            if not keycode_reader.are_keys_pressed():
-                row.release()
-                return True
+        keys_pressed = keycode_reader.are_keys_pressed()
+        if isinstance(focused, Gtk.ToggleButton) and not keys_pressed:
+            row.release()
+            return True
 
         if key is None:
             return True
@@ -519,8 +519,7 @@ class Window:
     @with_selected_device
     def on_create_preset_clicked(self, _):
         """Create a new preset and select it."""
-        if custom_mapping.changed:
-            if unsaved_changes_dialog() == GO_BACK:
+        if custom_mapping.changed and unsaved_changes_dialog() == GO_BACK:
                 return
 
         try:

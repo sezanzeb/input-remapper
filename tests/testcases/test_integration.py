@@ -39,7 +39,7 @@ from gi.repository import Gtk, Gdk
 from keymapper.state import custom_mapping, system_mapping, XMODMAP_FILENAME
 from keymapper.paths import CONFIG_PATH, get_preset_path
 from keymapper.config import config, WHEEL, MOUSE
-from keymapper.dev.reader import keycode_reader
+from keymapper.dev.reader import keycode_reader, FILTER_THRESHOLD
 from keymapper.gtk.row import to_string, HOLDING, IDLE
 from keymapper.dev import permissions
 from keymapper.key import Key
@@ -334,6 +334,7 @@ class TestIntegration(unittest.TestCase):
             # press down all the keys of a combination
             for sub_key in key:
                 keycode_reader._pipe[1].send(InputEvent(*sub_key))
+                time.sleep(FILTER_THRESHOLD * 2)
 
             # make the window consume the keycode
             time.sleep(0.06)

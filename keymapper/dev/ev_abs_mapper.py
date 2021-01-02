@@ -25,21 +25,12 @@
 import asyncio
 import time
 
-import evdev
 from evdev.ecodes import EV_REL, REL_X, REL_Y, REL_WHEEL, REL_HWHEEL
 
 from keymapper.logger import logger
 from keymapper.config import MOUSE, WHEEL
-from keymapper.dev.utils import max_abs
+from keymapper.dev.utils import get_max_abs
 
-
-# other events for ABS include buttons
-JOYSTICK = [
-    evdev.ecodes.ABS_X,
-    evdev.ecodes.ABS_Y,
-    evdev.ecodes.ABS_RX,
-    evdev.ecodes.ABS_RY,
-]
 
 # miniscule movements on the joystick should not trigger a mouse wheel event
 WHEEL_THRESHOLD = 0.15
@@ -49,8 +40,12 @@ def _write(device, ev_type, keycode, value):
     """Inject."""
     # if the mouse won't move even though correct stuff is written here, the
     # capabilities are probably wrong
-    device.write(ev_type, keycode, value)
-    device.syn()
+    try:
+        device.write(ev_type, keycode, value)
+        device.syn()
+    except OverflowError:
+        logger.error('OverflowError (%s, %s, %s)', ev_type, keycode, value)
+        pass
 
 
 def accumulate(pending, current):
@@ -106,6 +101,9 @@ def get_values(abs_state, left_purpose, right_purpose):
 async def ev_abs_mapper(abs_state, input_device, keymapper_device, mapping):
     """Keep writing mouse movements based on the gamepad stick position.
 
+    Even if no new input event arrived because the joystick remained at
+    its position, this will keep injecting the mouse movement events.
+
     Parameters
     ----------
     abs_state : [int, int. int, int]
@@ -118,10 +116,13 @@ async def ev_abs_mapper(abs_state, input_device, keymapper_device, mapping):
     mapping : Mapping
         the mapping object that configures the current injection
     """
-    max_value = max_abs(input_device)
+    max_value = get_max_abs(input_device)
 
-    if max_value == 0 or max_value is None:
+    if max_value in [0, 1, None]:
+        # not something that was intended for this
         return
+
+    logger.debug('Max abs of "%s": %s', input_device.name, max_value)
 
     max_speed = ((max_value ** 2) * 2) ** 0.5
 
@@ -153,6 +154,18 @@ async def ev_abs_mapper(abs_state, input_device, keymapper_device, mapping):
             right_purpose
         )
 
+        out_of_bounds = [
+            val for val in [mouse_x, mouse_y, wheel_x, wheel_y]
+            if val > max_value
+        ]
+        if len(out_of_bounds) > 0:
+            logger.error(
+                'Encountered inconsistent values: %s, max abs: %s',
+                out_of_bounds,
+                max_value
+            )
+            return
+
         # mouse movements
         if abs(mouse_x) > 0 or abs(mouse_y) > 0:
             if non_linearity != 1:
@@ -162,8 +175,8 @@ async def ev_abs_mapper(abs_state, input_device, keymapper_device, mapping):
             else:
                 factor = 1
 
-            rel_x = mouse_x * factor * pointer_speed / max_value
-            rel_y = mouse_y * factor * pointer_speed / max_value
+            rel_x = (mouse_x / max_value) * factor * pointer_speed
+            rel_y = (mouse_y / max_value) * factor * pointer_speed
             pending_x_rel, rel_x = accumulate(pending_x_rel, rel_x)
             pending_y_rel, rel_y = accumulate(pending_y_rel, rel_y)
             if rel_x != 0:
