@@ -23,19 +23,17 @@ import unittest
 import asyncio
 import time
 
-from evdev import ecodes
-from evdev.ecodes import EV_KEY, EV_ABS, ABS_HAT0X, ABS_HAT0Y, KEY_A, ABS_X, \
-    EV_REL, REL_X, BTN_TL
+from evdev.ecodes import EV_KEY, EV_ABS, ABS_HAT0X, ABS_HAT0Y, KEY_A, BTN_TL
 
-from keymapper.dev.keycode_mapper import should_map_event_as_btn, \
-    active_macros, handle_keycode, unreleased, subsets, log
+from keymapper.dev.keycode_mapper import active_macros, handle_keycode,\
+    unreleased, subsets, log
 from keymapper.state import system_mapping
 from keymapper.dev.macros import parse
-from keymapper.config import config, BUTTONS
+from keymapper.config import config
 from keymapper.mapping import Mapping, DISABLE_CODE
 
 from tests.test import InputEvent, UInput, uinput_write_history, \
-    cleanup, InputDevice, MAX_ABS
+    cleanup
 
 
 def wait(func, timeout=1.0):
@@ -190,58 +188,6 @@ class TestKeycodeMapper(unittest.TestCase):
         self.assertEqual(len(uinput_write_history), 4)
         self.assertEqual(uinput_write_history[2].t, ev_3)
         self.assertEqual(uinput_write_history[3].t, (EV_KEY, 51, 0))
-
-    def test_should_map_event_as_btn(self):
-        device = InputDevice('/dev/input/event30')
-        mapping = Mapping()
-
-        # the function name is so horribly long
-        do = should_map_event_as_btn
-
-        """D-Pad"""
-        self.assertTrue(do(device, InputEvent(EV_ABS, ABS_HAT0X, 1), mapping))
-        self.assertTrue(do(device, InputEvent(EV_ABS, ABS_HAT0X, -1), mapping))
-
-        """regular keys"""
-
-        self.assertTrue(do(device, InputEvent(EV_KEY, KEY_A, 1), mapping))
-        self.assertFalse(do(device, InputEvent(EV_ABS, ABS_X, 1), mapping))
-        self.assertFalse(do(device, InputEvent(EV_REL, REL_X, 1), mapping))
-
-        """mousepad events"""
-
-        self.assertFalse(do(device, InputEvent(EV_ABS, ecodes.ABS_MT_SLOT, 1), mapping))
-        self.assertFalse(do(device, InputEvent(EV_ABS, ecodes.ABS_MT_TOOL_Y, 1), mapping))
-        self.assertFalse(do(device, InputEvent(EV_ABS, ecodes.ABS_MT_POSITION_X, 1), mapping))
-
-        """joysticks"""
-
-        self.assertFalse(do(device, InputEvent(EV_ABS, ecodes.ABS_RX, 1234), mapping))
-        self.assertFalse(do(device, InputEvent(EV_ABS, ecodes.ABS_Y, -1), mapping))
-
-        mapping.set('gamepad.joystick.left_purpose', BUTTONS)
-
-        event = InputEvent(EV_ABS, ecodes.ABS_RX, MAX_ABS)
-        self.assertFalse(do(device, event, mapping))
-        self.assertEqual(event.value, MAX_ABS)
-        event = InputEvent(EV_ABS, ecodes.ABS_Y, -MAX_ABS)
-        self.assertTrue(do(device, event, mapping))
-        self.assertEqual(event.value, -1)
-        event = InputEvent(EV_ABS, ecodes.ABS_X, -MAX_ABS / 4)
-        self.assertTrue(do(device, event, mapping))
-        self.assertEqual(event.value, 0)
-
-        config.set('gamepad.joystick.right_purpose', BUTTONS)
-
-        event = InputEvent(EV_ABS, ecodes.ABS_RX, MAX_ABS)
-        self.assertTrue(do(device, event, mapping))
-        self.assertEqual(event.value, 1)
-        event = InputEvent(EV_ABS, ecodes.ABS_Y, MAX_ABS)
-        self.assertTrue(do(device, event, mapping))
-        self.assertEqual(event.value, 1)
-        event = InputEvent(EV_ABS, ecodes.ABS_X, MAX_ABS / 4)
-        self.assertTrue(do(device, event, mapping))
-        self.assertEqual(event.value, 0)
 
     def test_handle_keycode(self):
         _key_to_code = {
@@ -781,37 +727,8 @@ class TestKeycodeMapper(unittest.TestCase):
         self.assertEqual(history.count((code_2, 1)), 10)
         self.assertEqual(history.count((code_2, 0)), 10)
 
-    def test_normalize(self):
-        # -1234 to -1, 5678 to 1, 0 to 0
-
-        key_1 = (EV_KEY, BTN_TL)
-        ev_1 = (*key_1, 5678)
-        ev_2 = (*key_1, 0)
-
-        # doesn't really matter if it makes sense, the A key reports
-        # negative values now.
-        key_2 = (EV_KEY, KEY_A)
-        ev_3 = (*key_2, -1234)
-        ev_4 = (*key_2, 0)
-
-        _key_to_code = {
-            ((*key_1, 1),): 41,
-            ((*key_2, -1),): 42
-        }
-
-        uinput = UInput()
-        handle_keycode(_key_to_code, {}, InputEvent(*ev_1), uinput)
-        handle_keycode(_key_to_code, {}, InputEvent(*ev_2), uinput)
-        handle_keycode(_key_to_code, {}, InputEvent(*ev_3), uinput)
-        handle_keycode(_key_to_code, {}, InputEvent(*ev_4), uinput)
-
-        self.assertEqual(len(uinput_write_history), 4)
-        self.assertEqual(uinput_write_history[0].t, (EV_KEY, 41, 1))
-        self.assertEqual(uinput_write_history[1].t, (EV_KEY, 41, 0))
-        self.assertEqual(uinput_write_history[2].t, (EV_KEY, 42, 1))
-        self.assertEqual(uinput_write_history[3].t, (EV_KEY, 42, 0))
-
     def test_filter_trigger_spam(self):
+        # test_filter_duplicates
         trigger = (EV_KEY, BTN_TL)
 
         _key_to_code = {
@@ -823,16 +740,16 @@ class TestKeycodeMapper(unittest.TestCase):
 
         """positive"""
 
-        for i in range(1, 20):
-            handle_keycode(_key_to_code, {}, InputEvent(*trigger, i), uinput)
+        for _ in range(1, 20):
+            handle_keycode(_key_to_code, {}, InputEvent(*trigger, 1), uinput)
         handle_keycode(_key_to_code, {}, InputEvent(*trigger, 0), uinput)
 
         self.assertEqual(len(uinput_write_history), 2)
 
         """negative"""
 
-        for i in range(1, 20):
-            handle_keycode(_key_to_code, {}, InputEvent(*trigger, -i), uinput)
+        for _ in range(1, 20):
+            handle_keycode(_key_to_code, {}, InputEvent(*trigger, -1), uinput)
         handle_keycode(_key_to_code, {}, InputEvent(*trigger, 0), uinput)
 
         self.assertEqual(len(uinput_write_history), 4)

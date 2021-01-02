@@ -24,7 +24,7 @@ import time
 import multiprocessing
 
 from evdev.ecodes import EV_KEY, EV_ABS, ABS_HAT0X, ABS_HAT0Y, KEY_COMMA, \
-    BTN_LEFT, BTN_TOOL_DOUBLETAP, ABS_Z, ABS_Y
+    BTN_LEFT, BTN_TOOL_DOUBLETAP, ABS_Z, ABS_Y, ABS_MISC
 
 from keymapper.dev.reader import keycode_reader
 from keymapper.state import custom_mapping
@@ -244,22 +244,25 @@ class TestReader(unittest.TestCase):
         self.assertEqual(len(keycode_reader._unreleased), 1)
 
     def test_prioritizing_2_normalize(self):
-        # furthermore, 1234 is 1 in the reader, because it probably is some
-        # sort of continuous trigger or joystick value
-        pending_events['device 1'] = [
+        # a value of 1234 becomes 1 in the reader in order to properly map
+        # it. Value like that are usually some sort of continuous trigger
+        # value and normal for some ev_abs events.
+        custom_mapping.set('gamepad.joystick.left_purpose', BUTTONS)
+        pending_events['gamepad'] = [
             InputEvent(EV_ABS, ABS_HAT0X, 1, 1234.0000),
-            InputEvent(EV_ABS, ABS_HAT0X, 1, 1235.0000),  # ignored
-            InputEvent(EV_KEY, KEY_COMMA, 1234, 1235.0010),
-            InputEvent(EV_ABS, ABS_HAT0X, 1, 1235.0020),  # ignored
-            InputEvent(EV_ABS, ABS_HAT0X, 1, 1235.0030)  # ignored
+            InputEvent(EV_ABS, ABS_MISC, 1, 1235.0000),  # ignored
+            InputEvent(EV_ABS, ABS_Y, MAX_ABS, 1235.0010),
+            InputEvent(EV_ABS, ABS_MISC, 1, 1235.0020),  # ignored
+            InputEvent(EV_ABS, ABS_MISC, 1, 1235.0030)  # ignored
             # this time, don't release anything. the combination should
             # ignore stuff as well.
         ]
-        keycode_reader.start_reading('device 1')
+        keycode_reader.start_reading('gamepad')
+        time.sleep(0.5)
         wait(keycode_reader._pipe[0].poll, 0.5)
         self.assertEqual(keycode_reader.read(), (
             (EV_ABS, ABS_HAT0X, 1),
-            (EV_KEY, KEY_COMMA, 1)
+            (EV_ABS, ABS_Y, 1)
         ))
         self.assertEqual(keycode_reader.read(), None)
         self.assertEqual(len(keycode_reader._unreleased), 2)

@@ -28,14 +28,13 @@ import multiprocessing
 import threading
 
 import evdev
-from evdev.ecodes import EV_KEY, EV_ABS
+from evdev.ecodes import EV_KEY, EV_ABS, ABS_MISC
 
 from keymapper.logger import logger
-from keymapper.util import sign
 from keymapper.key import Key
 from keymapper.state import custom_mapping
 from keymapper.getdevices import get_devices, refresh_devices
-from keymapper.dev.keycode_mapper import should_map_event_as_btn
+from keymapper.dev import utils
 
 
 CLOSE = 1
@@ -45,14 +44,21 @@ PRIORITIES = {
     EV_ABS: 50,
 }
 
+FILTER_THRESHOLD = 0.01
+
 
 def prioritize(events):
     """Return the event that is most likely desired to be mapped.
 
-    High absolute values (down) over low values (up), KEY over ABS.
+    KEY over ABS and everything over ABS_MISC.
     """
+    events = [
+        event for event in events
+        if event is not None
+    ]
     return sorted(events, key=lambda e: (
         PRIORITIES[e.type],
+        not (e.type == EV_ABS and e.code == ABS_MISC),
         abs(e.value)
     ))[-1]
 
@@ -155,7 +161,7 @@ class _KeycodeReader:
             # which breaks the current workflow.
             return
 
-        if not should_map_event_as_btn(device, event, custom_mapping):
+        if not utils.should_map_event_as_btn(device, event, custom_mapping):
             return
 
         if not (event.value == 0 and event.type == EV_ABS):
@@ -233,24 +239,30 @@ class _KeycodeReader:
                 # no duplicate down events (gamepad triggers)
                 continue
 
-            self._unreleased[without_value] = (
-                event.type,
-                event.code,
-                sign(event.value)
-            )
-
             time = event.sec + event.usec / 1000000
             delta = time - newest_time
 
-            if delta < 0.01 and prioritize([newest_event, event]) != event:
-                # two events happened very close, probably some weird
-                # spam from the device. The wacom intuos 5 adds an
-                # ABS_MISC event to every button press, filter that out
-                logger.spam(
-                    'Ignoring event (%s, %s, %s)',
-                    event.type, event.code, event.value
-                )
-                continue
+            if delta < FILTER_THRESHOLD:
+                if prioritize([newest_event, event]) != event:
+                    # two events happened very close, probably some weird
+                    # spam from the device. The wacom intuos 5 adds an
+                    # ABS_MISC event to every button press, filter that out
+                    logger.spam(
+                        'Ignoring event (%s, %s, %s)',
+                        event.type, event.code, event.value
+                    )
+                    continue
+
+                # the previous event is ignored
+                previous_without_value = (newest_event.type, newest_event.code)
+                if previous_without_value in self._unreleased:
+                    del self._unreleased[previous_without_value]
+
+            self._unreleased[without_value] = (
+                event.type,
+                event.code,
+                event.value
+            )
 
             newest_event = event
             newest_time = time

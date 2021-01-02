@@ -24,19 +24,23 @@ import time
 import copy
 
 import evdev
-from evdev.ecodes import EV_REL, EV_KEY, EV_ABS, ABS_HAT0X, ABS_RX, ABS_Y
+from evdev.ecodes import EV_REL, EV_KEY, EV_ABS, ABS_HAT0X, BTN_LEFT, KEY_A
 
 from keymapper.dev.injector import is_numlock_on, set_numlock, \
     ensure_numlock, KeycodeInjector, is_in_capabilities
 from keymapper.state import custom_mapping, system_mapping
 from keymapper.mapping import Mapping, DISABLE_CODE, DISABLE_NAME
-from keymapper.config import config, BUTTONS
+from keymapper.config import config
 from keymapper.key import Key
 from keymapper.dev.macros import parse
+from keymapper.dev import utils
 
 from tests.test import InputEvent, pending_events, fixtures, \
     EVENT_READ_TIMEOUT, uinput_write_history_pipe, \
-    MAX_ABS, cleanup, read_write_history_pipe
+    MAX_ABS, cleanup, read_write_history_pipe, InputDevice
+
+
+original_smeab = utils.should_map_event_as_btn
 
 
 class TestInjector(unittest.TestCase):
@@ -59,6 +63,8 @@ class TestInjector(unittest.TestCase):
         evdev.InputDevice.grab = grab_fail_twice
 
     def tearDown(self):
+        utils.should_map_event_as_btn = original_smeab
+
         if self.injector is not None:
             self.injector.stop_injecting()
             self.injector = None
@@ -211,21 +217,35 @@ class TestInjector(unittest.TestCase):
         path = self.new_gamepad
         gamepad_template = copy.deepcopy(fixtures['/dev/input/event30'])
         fixtures[path] = {
-            'name': 'gamepad 2',
-            'phys': 'abcd',
-            'info': '1234',
+            'name': 'gamepad 2', 'phys': 'abcd', 'info': '1234',
             'capabilities': gamepad_template['capabilities']
         }
         del fixtures[path]['capabilities'][EV_KEY]
         device, abs_to_rel = self.injector._prepare_device(path)
         self.assertNotIn(EV_KEY, device.capabilities())
         capabilities = self.injector._modify_capabilities(
-            {},
-            device,
-            abs_to_rel
+            {}, device, abs_to_rel
         )
         self.assertIn(EV_KEY, capabilities)
         self.assertIn(evdev.ecodes.BTN_MOUSE, capabilities[EV_KEY])
+
+        """gamepad with a btn_mouse capability existing"""
+
+        path = self.new_gamepad
+        gamepad_template = copy.deepcopy(fixtures['/dev/input/event30'])
+        fixtures[path] = {
+            'name': 'gamepad 3', 'phys': 'abcd', 'info': '1234',
+            'capabilities': gamepad_template['capabilities']
+        }
+        fixtures[path]['capabilities'][EV_KEY].append(BTN_LEFT)
+        fixtures[path]['capabilities'][EV_KEY].append(KEY_A)
+        device, abs_to_rel = self.injector._prepare_device(path)
+        capabilities = self.injector._modify_capabilities(
+            {}, device, abs_to_rel
+        )
+        self.assertIn(EV_KEY, capabilities)
+        self.assertIn(evdev.ecodes.BTN_MOUSE, capabilities[EV_KEY])
+        self.assertIn(evdev.ecodes.KEY_A, capabilities[EV_KEY])
 
         """gamepad with existing key capabilities, but not btn_mouse"""
 
@@ -234,11 +254,10 @@ class TestInjector(unittest.TestCase):
         self.assertIn(EV_KEY, device.capabilities())
         self.assertNotIn(evdev.ecodes.BTN_MOUSE, device.capabilities()[EV_KEY])
         capabilities = self.injector._modify_capabilities(
-            {},
-            device,
-            abs_to_rel
+            {}, device, abs_to_rel
         )
         self.assertIn(EV_KEY, capabilities)
+        self.assertGreater(len(capabilities), 1)
         self.assertIn(evdev.ecodes.BTN_MOUSE, capabilities[EV_KEY])
 
     def test_skip_unused_device(self):
@@ -296,7 +315,6 @@ class TestInjector(unittest.TestCase):
         pointer_speed = 80
         config.set('gamepad.joystick.pointer_speed', pointer_speed)
 
-        # same for ABS, 0 for x, 1 for y
         rel_x = evdev.ecodes.REL_X
         rel_y = evdev.ecodes.REL_Y
 
@@ -445,15 +463,21 @@ class TestInjector(unittest.TestCase):
         numlock_after = is_numlock_on()
         self.assertEqual(numlock_before, numlock_after)
 
-    def test_joysticks_as_buttons(self):
-        y_up = (EV_ABS, ABS_Y, -MAX_ABS)
-        y_release = (EV_ABS, ABS_Y, MAX_ABS // 4)
+    def test_any_funky_event_as_button(self):
+        # as long as should_map_event_as_btn says it should be a button,
+        # it will be.
+        EV_TYPE = 4531
+        CODE_1 = 754
+        CODE_2 = 4139
 
-        rx_right = (EV_ABS, ABS_RX, MAX_ABS)
-        rx_release = (EV_ABS, ABS_RX, -MAX_ABS // 4)
+        w_down = (EV_TYPE, CODE_1, -1)
+        w_up = (EV_TYPE, CODE_1, 0)
 
-        custom_mapping.change(Key(*y_up[:2], -1), 'w')
-        custom_mapping.change(Key(*rx_right[:2], 1), 'k(d)')
+        d_down = (EV_TYPE, CODE_2, 1)
+        d_up = (EV_TYPE, CODE_2, 0)
+
+        custom_mapping.change(Key(*w_down[:2], -1), 'w')
+        custom_mapping.change(Key(*d_down[:2], 1), 'k(d)')
 
         system_mapping.clear()
         code_w = 71
@@ -463,25 +487,32 @@ class TestInjector(unittest.TestCase):
 
         def do_stuff():
             if self.injector is not None:
+                # discard the previous injector
                 self.injector.stop_injecting()
                 time.sleep(0.1)
                 while uinput_write_history_pipe[0].poll():
                     uinput_write_history_pipe[0].recv()
 
             pending_events['gamepad'] = [
-                InputEvent(*y_up),
-                InputEvent(*rx_right),
-                InputEvent(*y_release),
-                InputEvent(*rx_release),
+                InputEvent(*w_down),
+                InputEvent(*d_down),
+                InputEvent(*w_up),
+                InputEvent(*d_up),
             ]
 
             self.injector = KeycodeInjector('gamepad', custom_mapping)
+
+            # the injector will otherwise skip the device because
+            # the capabilities don't contain EV_TYPE
+            input = InputDevice('/dev/input/event30')
+            self.injector._prepare_device = lambda *args: (input, False)
+
             self.injector.start_injecting()
             uinput_write_history_pipe[0].poll(timeout=1)
             time.sleep(EVENT_READ_TIMEOUT * 10)
             return read_write_history_pipe()
 
-        """purpose != buttons"""
+        """no"""
 
         history = do_stuff()
         self.assertEqual(history.count((EV_KEY, code_w, 1)), 0)
@@ -489,19 +520,9 @@ class TestInjector(unittest.TestCase):
         self.assertEqual(history.count((EV_KEY, code_w, 0)), 0)
         self.assertEqual(history.count((EV_KEY, code_d, 0)), 0)
 
-        """left purpose buttons"""
+        """yes"""
 
-        custom_mapping.set('gamepad.joystick.left_purpose', BUTTONS)
-        history = do_stuff()
-        self.assertEqual(history.count((EV_KEY, code_w, 1)), 1)
-        self.assertEqual(history.count((EV_KEY, code_d, 1)), 0)
-        self.assertEqual(history.count((EV_KEY, code_w, 0)), 1)
-        self.assertEqual(history.count((EV_KEY, code_d, 0)), 0)
-
-        """right purpose buttons"""
-
-        custom_mapping.remove('gamepad.joystick.right_purpose')
-        config.set('gamepad.joystick.right_purpose', BUTTONS)
+        utils.should_map_event_as_btn = lambda *args: True
         history = do_stuff()
         self.assertEqual(history.count((EV_KEY, code_w, 1)), 1)
         self.assertEqual(history.count((EV_KEY, code_d, 1)), 1)

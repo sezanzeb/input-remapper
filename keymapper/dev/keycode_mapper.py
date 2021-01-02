@@ -24,16 +24,11 @@
 
 import itertools
 import asyncio
-import math
 
-from evdev.ecodes import EV_KEY, EV_ABS, ABS_X, ABS_Y, ABS_RX, ABS_RY
+from evdev.ecodes import EV_KEY, EV_ABS
 
 from keymapper.logger import logger, is_debug
-from keymapper.util import sign
 from keymapper.mapping import DISABLE_CODE
-from keymapper.config import BUTTONS
-from keymapper.dev.ev_abs_mapper import JOYSTICK
-from keymapper.dev.utils import max_abs
 
 
 # maps mouse buttons to macro instances that have been executed. They may
@@ -56,49 +51,6 @@ active_macros = {}
 # A combination might be desired for D-Pad left, but not D-Pad right.
 # (what_will_be_released, what_caused_the_key_down)
 unreleased = {}
-
-
-# a third of a quarter circle
-JOYSTICK_BUTTON_THRESHOLD = math.sin((math.pi / 2) / 3 * 1)
-
-
-# TODO test intuos again
-
-
-def should_map_event_as_btn(device, event, mapping):
-    """Does this event describe a button.
-
-    If it does, this function will make sure its value is one of [-1, 0, 1],
-    so that it matches the possible values in a mapping object.
-
-    Especially important for gamepad events, some of the buttons
-    require special rules.
-    """
-    if event.type == EV_KEY:
-        return True
-
-    is_mousepad = event.type == EV_ABS and 47 <= event.code <= 61
-    if is_mousepad:
-        return False
-
-    if event.type == EV_ABS:
-        if event.code in JOYSTICK:
-            l_purpose = mapping.get('gamepad.joystick.left_purpose')
-            r_purpose = mapping.get('gamepad.joystick.right_purpose')
-            threshold = max_abs(device) * JOYSTICK_BUTTON_THRESHOLD
-            triggered = abs(event.value) > threshold
-
-            if event.code in [ABS_X, ABS_Y] and l_purpose == BUTTONS:
-                event.value = sign(event.value) if triggered else 0
-                return True
-
-            if event.code in [ABS_RX, ABS_RY] and r_purpose == BUTTONS:
-                event.value = sign(event.value) if triggered else 0
-                return True
-        else:
-            return True
-
-    return False
 
 
 def is_key_down(event):
@@ -163,6 +115,10 @@ def log(key, msg, *args):
 def handle_keycode(key_to_code, macros, event, uinput):
     """Write mapped keycodes, forward unmapped ones and manage macros.
 
+    As long as the provided event is mapped it will handle it, it won't
+    check any type, code or capability anymore. Otherwise it forwards
+    it as it is.
+
     Parameters
     ----------
     key_to_code : dict
@@ -181,15 +137,12 @@ def handle_keycode(key_to_code, macros, event, uinput):
         # no need to forward or map them.
         return
 
-    # normalize event numbers to one of -1, 0, +1. Otherwise mapping
-    # trigger values that are between 1 and 255 is not possible, because
-    # they might skip the 1 when pressed fast enough.
     # The key used to index the mappings `key_to_code` and `macros`
-    key = (event.type, event.code, sign(event.value))
+    key = (event.type, event.code, event.value)
 
     # the tuple of the actual input event. Used to forward the event if it is
     # not mapped, and to index unreleased and active_macros
-    event_tuple = (event.type, event.code, sign(event.value))
+    event_tuple = (event.type, event.code, event.value)
     type_code = (event.type, event.code)
 
     # the triggering key-down has to be the last element in combination, all
