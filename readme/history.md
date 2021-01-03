@@ -1,8 +1,5 @@
 # Why does key-mapper not use xkb configs?
 
-Branches for some of that stuff exist to archive it instead of loosing it
-forever. Some of this stuff is based on wild guesses.
-
 **Initial target** You write a symbols file based on your specified mapping,
 and that's pretty much it. There were two mappings: The first one is in the
 keycodes file and contains "<10> = 10", which is super redundant but needed
@@ -13,6 +10,8 @@ and writes 1/! on keycode 10, then you would not be able to write ! by
 pressing that mouse button and that keyboard button at the same time.
 
 This was quite mature, pretty much finished and tested.
+
+It still exists in the [first](https://github.com/sezanzeb/key-mapper/tree/first) branch
 
 **The second idea** was to write special keycodes known only to key-mapper
 (256 - 511) into the input device of your mouse in /dev/input, and map
@@ -40,11 +39,11 @@ SHIFT as already used in the system default. The pipeline is like this:
 But this is a rather complicated approach. The mapping of 10 -> 50 would
 have to be stored somewhere as well. It would make the mess of configuration
 files already needed for xkb even worse. This idea was not considered for
-long, so no "third" branch exists.
+long
 
 **Fourth idea**: Based on the second idea, instead of using keycodes greater
 than 255, use unused keycodes starting from 255, going down. For example
-pressing key 10 triggers key-mapper to write key 253 into the /dev device,
+pressing key 10 triggers key-mapper to write key 253 into the /dev device
 while mapping key 10 to nothing. This has the same problem, the device
 capabilities ignore many of those keycodes. 140 works, 145 won't, 150 works.
 
