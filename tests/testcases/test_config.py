@@ -86,36 +86,42 @@ class TestConfig(unittest.TestCase):
     def test_autoload(self):
         self.assertEqual(len(config.iterate_autoload_presets()), 0)
         self.assertFalse(config.is_autoloaded('d1', 'a'))
-        self.assertFalse(config.is_autoloaded('d2', 'b'))
+        self.assertFalse(config.is_autoloaded('d2.foo', 'b'))
+        self.assertEqual(config.get(['autoload', 'd1']), None)
+        self.assertEqual(config.get(['autoload', 'd2.foo']), None)
 
         config.set_autoload_preset('d1', 'a')
         self.assertEqual(len(config.iterate_autoload_presets()), 1)
         self.assertTrue(config.is_autoloaded('d1', 'a'))
-        self.assertFalse(config.is_autoloaded('d2', 'b'))
+        self.assertFalse(config.is_autoloaded('d2.foo', 'b'))
 
-        config.set_autoload_preset('d2', 'b')
+        config.set_autoload_preset('d2.foo', 'b')
         self.assertEqual(len(config.iterate_autoload_presets()), 2)
         self.assertTrue(config.is_autoloaded('d1', 'a'))
-        self.assertTrue(config.is_autoloaded('d2', 'b'))
+        self.assertTrue(config.is_autoloaded('d2.foo', 'b'))
+        self.assertEqual(config.get(['autoload', 'd1']), 'a')
+        self.assertEqual(config.get(['autoload', 'd2.foo']), 'b')
 
-        config.set_autoload_preset('d2', 'c')
+        config.set_autoload_preset('d2.foo', 'c')
         self.assertEqual(len(config.iterate_autoload_presets()), 2)
         self.assertTrue(config.is_autoloaded('d1', 'a'))
-        self.assertFalse(config.is_autoloaded('d2', 'b'))
-        self.assertTrue(config.is_autoloaded('d2', 'c'))
+        self.assertFalse(config.is_autoloaded('d2.foo', 'b'))
+        self.assertTrue(config.is_autoloaded('d2.foo', 'c'))
+        self.assertEqual(config._config['autoload']['d2.foo'], 'c')
         self.assertListEqual(
             list(config.iterate_autoload_presets()),
-            [('d1', 'a'), ('d2', 'c')]
+            [('d1', 'a'), ('d2.foo', 'c')]
         )
 
-        config.set_autoload_preset('d2', None)
+        config.set_autoload_preset('d2.foo', None)
         self.assertTrue(config.is_autoloaded('d1', 'a'))
-        self.assertFalse(config.is_autoloaded('d2', 'b'))
-        self.assertFalse(config.is_autoloaded('d2', 'c'))
+        self.assertFalse(config.is_autoloaded('d2.foo', 'b'))
+        self.assertFalse(config.is_autoloaded('d2.foo', 'c'))
         self.assertListEqual(
             list(config.iterate_autoload_presets()),
             [('d1', 'a')]
         )
+        self.assertEqual(config.get(['autoload', 'd1']), 'a')
 
     def test_initial(self):
         # when loading for the first time, create a config file with
@@ -136,7 +142,7 @@ class TestConfig(unittest.TestCase):
         self.assertEqual(len(config.iterate_autoload_presets()), 0)
 
         config.set_autoload_preset('d1', 'a')
-        config.set_autoload_preset('d2', 'b')
+        config.set_autoload_preset('d2.foo', 'b')
         config.save_config()
 
         # ignored after load
@@ -145,7 +151,7 @@ class TestConfig(unittest.TestCase):
         config.load_config()
         self.assertListEqual(
             list(config.iterate_autoload_presets()),
-            [('d1', 'a'), ('d2', 'b')]
+            [('d1', 'a'), ('d2.foo', 'b')]
         )
 
 
