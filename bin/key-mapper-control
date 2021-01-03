@@ -75,7 +75,13 @@ def main(options, daemon, xmodmap_path):
 
     if options.command == AUTOLOAD:
         daemon.stop()
-        for device, preset in config.iterate_autoload_presets():
+        for device, preset in list(config.iterate_autoload_presets()):
+            if not isinstance(preset, str):
+                # broken
+                config.remove(['autoload', device])
+                config.save_config()
+                continue
+
             mapping = Mapping()
             preset_path = get_preset_path(device, preset)
             mapping.load(preset_path)
