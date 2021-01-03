@@ -85,7 +85,7 @@ class ConfigBase:
         config : dict
             The dictionary to search. Defaults to self._config.
         """
-        chunks = path.split('.')
+        chunks = path.copy() if isinstance(path, list) else path.split('.')
 
         if config is None:
             child = self._config
@@ -110,7 +110,7 @@ class ConfigBase:
 
         Parameters
         ----------
-        path : string
+        path : string or string[]
             For example 'macros.keystroke_sleep_ms'
         """
         def callback(parent, child, chunk):
@@ -124,8 +124,9 @@ class ConfigBase:
 
         Parameters
         ----------
-        path : string
+        path : string or string[]
             For example 'macros.keystroke_sleep_ms'
+            or ['macros', 'keystroke_sleep_ms']
         value : any
         """
         logger.debug(
@@ -197,13 +198,13 @@ class GlobalConfig(ConfigBase):
             if None, don't autoload something for this device.
         """
         if preset is not None:
-            self.set(f'autoload.{device}', preset)
+            self.set(['autoload', device], preset)
         else:
             logger.info(
                 'Not loading injecting for "%s" automatically anmore',
                 device
             )
-            self.remove(f'autoload.{device}')
+            self.remove(['autoload', device])
 
     def iterate_autoload_presets(self):
         """Get tuples of (device, preset)."""
@@ -211,7 +212,7 @@ class GlobalConfig(ConfigBase):
 
     def is_autoloaded(self, device, preset):
         """Should this preset be loaded automatically?"""
-        return self.get(f'autoload.{device}', log_unknown=False) == preset
+        return self.get(['autoload', device], log_unknown=False) == preset
 
     def load_config(self):
         """Load the config from the file system."""
