@@ -214,8 +214,22 @@ class GlobalConfig(ConfigBase):
         """Should this preset be loaded automatically?"""
         return self.get(['autoload', device], log_unknown=False) == preset
 
-    def load_config(self):
-        """Load the config from the file system."""
+    def load_config(self, path=None):
+        """Load the config from the file system.
+
+        Parameters
+        ----------
+        path : string or None
+            If set, will change the path to load from and save to.
+        """
+        if path is not None:
+            # TODO Test
+            if not os.path.exists(path):
+                logger.error('Config at "%s" not found', path)
+                return
+
+            self.path = path
+
         self.clear_config()
 
         if not os.path.exists(self.path):

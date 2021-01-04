@@ -112,11 +112,11 @@ def is_in_capabilities(key, capabilities):
     return False
 
 
-class KeycodeInjector:
-    """Keeps injecting keycodes in the background based on the mapping.
+class Injector:
+    """Keeps injecting events in the background based on mapping and config.
 
     Is a process to make it non-blocking for the rest of the code and to
-    make running multiple injector easier. There is one procss per
+    make running multiple injector easier. There is one process per
     hardware-device that is being mapped.
     """
     regrab_timeout = 0.5

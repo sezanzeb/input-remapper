@@ -25,6 +25,7 @@ https://github.com/LEW21/pydbus/tree/cc407c8b1d25b7e28a6d661a29f9e661b1c9b964/ex
 """
 
 
+import os
 import subprocess
 import json
 
@@ -32,7 +33,7 @@ from pydbus import SystemBus
 from gi.repository import GLib
 
 from keymapper.logger import logger
-from keymapper.dev.injector import KeycodeInjector
+from keymapper.dev.injector import Injector
 from keymapper.mapping import Mapping
 from keymapper.config import config
 from keymapper.state import system_mapping
@@ -148,7 +149,7 @@ class Daemon:
         """Is this device being mapped?"""
         return device in self.injectors
 
-    def start_injecting(self, device, path, xmodmap_path=None):
+    def start_injecting(self, device, preset_path, config_dir=None):
         """Start injecting the preset for the device.
 
         Returns True on success.
@@ -157,33 +158,38 @@ class Daemon:
         ----------
         device : string
             The name of the device
-        path : string
+        preset_path : string
             Path to the preset. The daemon, if started via systemctl, has no
             knowledge of the user and their home path, so the complete
             absolute path needs to be provided here.
-        xmodmap_path : string, None
-            Path to a dump of the xkb mappings, to provide more human
-            readable keys in the correct keyboard layout to the service.
-            The service cannot use `xmodmap -pke` because it's running via
-            systemd.
+        config_dir : string
+            Contains xmodmap.json and config.json of the current users session
         """
+        # reload the config, since it may have been changed
+        if config_dir is not None:
+            config_path = os.path.join(config_dir, 'config.json')
+            config.load_config(config_path)
+
         if device not in get_devices():
             logger.debug('Devices possibly outdated, refreshing')
             refresh_devices()
 
-        # reload the config, since it may have been changed
-        config.load_config()
         if self.injectors.get(device) is not None:
             self.injectors[device].stop_injecting()
 
         mapping = Mapping()
         try:
-            mapping.load(path)
+            mapping.load(preset_path)
         except FileNotFoundError as error:
             logger.error(str(error))
             return False
 
-        if xmodmap_path is not None:
+        # Path to a dump of the xkb mappings, to provide more human
+        # readable keys in the correct keyboard layout to the service.
+        # The service cannot use `xmodmap -pke` because it's running via
+        # systemd.
+        if config_dir is not None:
+            xmodmap_path = os.path.join(config_dir, 'xmodmap.json')
             try:
                 with open(xmodmap_path, 'r') as file:
                     xmodmap = json.load(file)
@@ -195,7 +201,7 @@ class Daemon:
                 logger.error('Could not find "%s"', xmodmap_path)
 
         try:
-            injector = KeycodeInjector(device, mapping)
+            injector = Injector(device, mapping)
             injector.start_injecting()
             self.injectors[device] = injector
         except OSError:

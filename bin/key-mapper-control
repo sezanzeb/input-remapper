@@ -59,7 +59,7 @@ def group_exists(name):
         return False
 
 
-def main(options, daemon, xmodmap_path):
+def main(options, daemon, config_path):
     """Do the stuff that the executable is supposed to do."""
     # Is a function so that I can import it and test it
     if options.list_devices:
@@ -85,7 +85,7 @@ def main(options, daemon, xmodmap_path):
             mapping = Mapping()
             preset_path = get_preset_path(device, preset)
             mapping.load(preset_path)
-            daemon.start_injecting(device, preset_path, xmodmap_path)
+            daemon.start_injecting(device, preset_path, config_path)
 
     if options.command == START:
         if options.device is None:
@@ -97,7 +97,7 @@ def main(options, daemon, xmodmap_path):
             sys.exit(1)
 
         preset_path = os.path.abspath(os.path.expanduser(options.preset))
-        daemon.start_injecting(options.device, preset_path, xmodmap_path)
+        daemon.start_injecting(options.device, preset_path, config_path)
 
     if options.command == STOP:
         if options.device is None:
@@ -149,6 +149,6 @@ if __name__ == '__main__':
     if daemon is None:
         sys.exit(0)
 
-    xmodmap_path = get_config_path(XMODMAP_FILENAME)
+    config_path = get_config_path()
 
-    main(options, daemon, xmodmap_path)
+    main(options, daemon, config_path)
