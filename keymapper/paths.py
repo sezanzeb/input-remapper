@@ -30,6 +30,9 @@ import pwd
 from keymapper.logger import logger
 
 
+# TODO unittest everything in here
+
+
 def get_user():
     """Try to find the user who called sudo/pkexec."""
     try:

@@ -27,7 +27,7 @@ import evdev
 from evdev.ecodes import EV_REL, EV_KEY, EV_ABS, ABS_HAT0X, BTN_LEFT, KEY_A
 
 from keymapper.dev.injector import is_numlock_on, set_numlock, \
-    ensure_numlock, KeycodeInjector, is_in_capabilities
+    ensure_numlock, Injector, is_in_capabilities
 from keymapper.state import custom_mapping, system_mapping
 from keymapper.mapping import Mapping, DISABLE_CODE, DISABLE_NAME
 from keymapper.config import config
@@ -101,7 +101,7 @@ class TestInjector(unittest.TestCase):
         two = system_mapping.get('2')
         btn_left = system_mapping.get('BtN_lEfT')
 
-        self.injector = KeycodeInjector('foo', mapping)
+        self.injector = Injector('foo', mapping)
         fake_device = FakeDevice()
         capabilities_1 = self.injector._modify_capabilities(
             {60: macro},
@@ -141,7 +141,7 @@ class TestInjector(unittest.TestCase):
         # path is from the fixtures
         custom_mapping.change(Key(EV_KEY, 10, 1), 'a')
 
-        self.injector = KeycodeInjector('device 1', custom_mapping)
+        self.injector = Injector('device 1', custom_mapping)
         path = '/dev/input/event10'
         # this test needs to pass around all other constraints of
         # _prepare_device
@@ -155,7 +155,7 @@ class TestInjector(unittest.TestCase):
         self.make_it_fail = 10
         custom_mapping.change(Key(EV_KEY, 10, 1), 'a')
 
-        self.injector = KeycodeInjector('device 1', custom_mapping)
+        self.injector = Injector('device 1', custom_mapping)
         path = '/dev/input/event10'
         device, abs_to_rel = self.injector._prepare_device(path)
         self.assertFalse(abs_to_rel)
@@ -171,7 +171,7 @@ class TestInjector(unittest.TestCase):
     def test_prepare_device_1(self):
         # according to the fixtures, /dev/input/event30 can do ABS_HAT0X
         custom_mapping.change(Key(EV_ABS, ABS_HAT0X, 1), 'a')
-        self.injector = KeycodeInjector('foobar', custom_mapping)
+        self.injector = Injector('foobar', custom_mapping)
 
         _prepare_device = self.injector._prepare_device
         self.assertIsNone(_prepare_device('/dev/input/event10')[0])
@@ -179,13 +179,13 @@ class TestInjector(unittest.TestCase):
 
     def test_prepare_device_non_existing(self):
         custom_mapping.change(Key(EV_ABS, ABS_HAT0X, 1), 'a')
-        self.injector = KeycodeInjector('foobar', custom_mapping)
+        self.injector = Injector('foobar', custom_mapping)
 
         _prepare_device = self.injector._prepare_device
         self.assertIsNone(_prepare_device('/dev/input/event1234')[0])
 
     def test_gamepad_capabilities(self):
-        self.injector = KeycodeInjector('gamepad', custom_mapping)
+        self.injector = Injector('gamepad', custom_mapping)
 
         path = '/dev/input/event30'
         device, abs_to_rel = self.injector._prepare_device(path)
@@ -210,7 +210,7 @@ class TestInjector(unittest.TestCase):
     def test_adds_ev_key(self):
         # for some reason, having any EV_KEY capability is needed to
         # be able to control the mouse. it probably wants the mouse click.
-        self.injector = KeycodeInjector('gamepad 2', custom_mapping)
+        self.injector = Injector('gamepad 2', custom_mapping)
 
         """gamepad without any existing key capability"""
 
@@ -263,7 +263,7 @@ class TestInjector(unittest.TestCase):
     def test_skip_unused_device(self):
         # skips a device because its capabilities are not used in the mapping
         custom_mapping.change(Key(EV_KEY, 10, 1), 'a')
-        self.injector = KeycodeInjector('device 1', custom_mapping)
+        self.injector = Injector('device 1', custom_mapping)
         path = '/dev/input/event11'
         device, abs_to_rel = self.injector._prepare_device(path)
         self.assertFalse(abs_to_rel)
@@ -272,7 +272,7 @@ class TestInjector(unittest.TestCase):
 
     def test_skip_unknown_device(self):
         # skips a device because its capabilities are not used in the mapping
-        self.injector = KeycodeInjector('device 1', custom_mapping)
+        self.injector = Injector('device 1', custom_mapping)
         path = '/dev/input/event11'
         device, _ = self.injector._prepare_device(path)
 
@@ -329,7 +329,7 @@ class TestInjector(unittest.TestCase):
             InputEvent(EV_ABS, rel_y, -y),
         ]
 
-        self.injector = KeycodeInjector('gamepad', custom_mapping)
+        self.injector = Injector('gamepad', custom_mapping)
         self.injector.start_injecting()
 
         # wait for the injector to start sending, at most 1s
@@ -400,7 +400,7 @@ class TestInjector(unittest.TestCase):
             InputEvent(3124, 3564, 6542),
         ]
 
-        self.injector = KeycodeInjector('device 2', custom_mapping)
+        self.injector = Injector('device 2', custom_mapping)
         self.injector.start_injecting()
 
         uinput_write_history_pipe[0].poll(timeout=1)
@@ -500,7 +500,7 @@ class TestInjector(unittest.TestCase):
                 InputEvent(*d_up),
             ]
 
-            self.injector = KeycodeInjector('gamepad', custom_mapping)
+            self.injector = Injector('gamepad', custom_mapping)
 
             # the injector will otherwise skip the device because
             # the capabilities don't contain EV_TYPE
@@ -536,7 +536,7 @@ class TestInjector(unittest.TestCase):
         ev_3 = (EV_KEY, 43, 1)
         # a combination
         mapping.change(Key(ev_1, ev_2, ev_3), 'k(a)')
-        self.injector = KeycodeInjector('device 1', mapping)
+        self.injector = Injector('device 1', mapping)
 
         history = []
 
@@ -576,7 +576,7 @@ class TestInjector(unittest.TestCase):
         system_mapping._set('a', 51)
         system_mapping._set('b', 52)
 
-        injector = KeycodeInjector('device 1', mapping)
+        injector = Injector('device 1', mapping)
         self.assertEqual(injector._key_to_code.get((ev_1,)), 51)
         # permutations to make matching combinations easier
         self.assertEqual(injector._key_to_code.get((ev_2, ev_3, ev_4)), 52)

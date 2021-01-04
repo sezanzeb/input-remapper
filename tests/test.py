@@ -380,7 +380,7 @@ patch_unsaved()
 patch_select()
 
 from keymapper.logger import update_verbosity
-from keymapper.dev.injector import KeycodeInjector
+from keymapper.dev.injector import Injector
 from keymapper.config import config
 from keymapper.dev.reader import keycode_reader
 from keymapper.getdevices import refresh_devices
@@ -388,7 +388,7 @@ from keymapper.state import system_mapping, custom_mapping
 from keymapper.dev.keycode_mapper import active_macros, unreleased
 
 # no need for a high number in tests
-KeycodeInjector.regrab_timeout = 0.15
+Injector.regrab_timeout = 0.15
 
 
 _fixture_copy = copy.deepcopy(fixtures)
@@ -401,8 +401,9 @@ def cleanup():
     keycode_reader.newest_event = None
     keycode_reader._unreleased = {}
 
-    for task in asyncio.Task.all_tasks():
-        task.cancel()
+    if asyncio.get_event_loop().is_running():
+        for task in asyncio.all_tasks():
+            task.cancel()
 
     os.system('pkill -f key-mapper-service')
 

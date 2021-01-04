@@ -467,8 +467,7 @@ class Window:
             self.show_status(CTX_APPLY, f'Applied preset "{preset}"')
 
         path = get_preset_path(device, preset)
-        xmodmap = get_config_path(XMODMAP_FILENAME)
-        success = self.dbus.start_injecting(device, path, xmodmap)
+        success = self.dbus.start_injecting(device, path, get_config_path())
 
         if not success:
             self.show_status(CTX_ERROR, 'Error: Could not grab devices!')

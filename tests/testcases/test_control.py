@@ -71,7 +71,7 @@ class TestControl(unittest.TestCase):
             get_preset_path(devices[0], presets[0]),
             get_preset_path(devices[1], presets[1])
         ]
-        xmodmap = 'a/xmodmap.json'
+        config_dir = '/foo/bar'
 
         Mapping().save(paths[0])
         Mapping().save(paths[1])
@@ -86,17 +86,17 @@ class TestControl(unittest.TestCase):
         config.set_autoload_preset(devices[0], presets[0])
         config.set_autoload_preset(devices[1], presets[1])
 
-        control(options('autoload', None, None, False, False), daemon, xmodmap)
+        control(options('autoload', None, None, False, False), daemon, config_dir)
 
         self.assertEqual(len(start_history), 2)
         self.assertEqual(len(stop_history), 1)
-        self.assertEqual(start_history[0], (devices[0], os.path.expanduser(paths[0]), xmodmap))
-        self.assertEqual(start_history[1], (devices[1], os.path.abspath(paths[1]), xmodmap))
+        self.assertEqual(start_history[0], (devices[0], os.path.expanduser(paths[0]), config_dir))
+        self.assertEqual(start_history[1], (devices[1], os.path.abspath(paths[1]), config_dir))
 
     def test_start_stop(self):
         device = 'device 1234'
         path = '~/a/preset.json'
-        xmodmap = 'a/xmodmap.json'
+        config_dir = '/foo/bar'
 
         daemon = Daemon()
 
@@ -105,12 +105,12 @@ class TestControl(unittest.TestCase):
         daemon.start_injecting = lambda *args: start_history.append(args)
         daemon.stop_injecting = lambda *args: stop_history.append(args)
 
-        control(options('start', path, device, False, False), daemon, xmodmap)
+        control(options('start', path, device, False, False), daemon, config_dir)
         control(options('stop', None, device, False, False), daemon, None)
 
         self.assertEqual(len(start_history), 1)
         self.assertEqual(len(stop_history), 1)
-        self.assertEqual(start_history[0], (device, os.path.expanduser(path), xmodmap))
+        self.assertEqual(start_history[0], (device, os.path.expanduser(path), config_dir))
         self.assertEqual(stop_history[0], (device,))
 
 

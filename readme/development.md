@@ -30,12 +30,13 @@ requests.
 - [x] mapping joystick directions as buttons, making it act like a D-Pad
 - [ ] mapping mouse wheel events to buttons
 - [ ] automatically load presets when devices get plugged in after login (udev)
-- [ ] configure locale for preset to provide a different set of possible keys
-- [ ] user-friendly way to map btn_left
+- [ ] using keys that aren't available in the systems keyboard layout
+- [ ] user-friendly way to map the left mouse button
 
 ## Tests
 
 ```bash
+sudo pip install coverage
 pylint keymapper --extension-pkg-whitelist=evdev
 sudo pip install . && coverage run tests/test.py
 coverage combine && coverage report -m

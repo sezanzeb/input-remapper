@@ -248,17 +248,29 @@ class TestDaemon(unittest.TestCase):
             InputEvent(*event)
         ]
 
-        xmodmap_path = os.path.join(tmp, 'foobar.json')
+        config_dir = os.path.join(tmp, 'foo')
+        os.makedirs(config_dir, exist_ok=True)
+
+        config_path = os.path.join(config_dir, 'config.json')
+        with open(config_path, 'w') as file:
+            file.write('{"bar":1234}')
+
+        xmodmap_path = os.path.join(config_dir, 'xmodmap.json')
         with open(xmodmap_path, 'w') as file:
             file.write(f'{{"{to_name}":{to_keycode}}}')
 
         self.daemon = Daemon()
-        self.daemon.start_injecting(device, path, xmodmap_path)
+
+        self.daemon.start_injecting(device, path, config_dir)
 
         event = uinput_write_history_pipe[0].recv()
         self.assertEqual(event.type, EV_KEY)
         self.assertEqual(event.code, to_keycode)
         self.assertEqual(event.value, 1)
+
+        # since the daemon is running in the same process, the config
+        # that the test knows will be overwritten
+        self.assertEqual(config.get('bar'), 1234)
 
 
 if __name__ == "__main__":
