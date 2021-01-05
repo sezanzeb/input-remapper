@@ -89,28 +89,35 @@ info_1 = 'bus: 0001, vendor 0001, product 0001, version 0001'
 fixtures = {
     # device 1
     '/dev/input/event11': {
-        'capabilities': {evdev.ecodes.EV_KEY: [], evdev.ecodes.EV_REL: []},
+        'capabilities': {evdev.ecodes.EV_KEY: [], evdev.ecodes.EV_REL: [
+            evdev.ecodes.REL_WHEEL,
+            evdev.ecodes.REL_HWHEEL
+        ]},
         'phys': f'{phys_1}/input2',
         'info': info_1,
-        'name': 'device 1 foo'
+        'name': 'device 1 foo',
+        'group': 'device 1'
     },
     '/dev/input/event10': {
         'capabilities': {evdev.ecodes.EV_KEY: list(evdev.ecodes.keys.keys())},
         'phys': f'{phys_1}/input3',
         'info': info_1,
-        'name': 'device 1'
+        'name': 'device 1',
+        'group': 'device 1'
     },
     '/dev/input/event13': {
         'capabilities': {evdev.ecodes.EV_KEY: [], evdev.ecodes.EV_SYN: []},
         'phys': f'{phys_1}/input1',
         'info': info_1,
-        'name': 'device 1'
+        'name': 'device 1',
+        'group': 'device 1'
     },
     '/dev/input/event14': {
         'capabilities': {evdev.ecodes.EV_SYN: []},
         'phys': f'{phys_1}/input0',
         'info': info_1,
-        'name': 'device 1 qux'
+        'name': 'device 1 qux',
+        'group': 'device 1'
     },
 
     # device 2
@@ -178,39 +185,15 @@ def push_event(device, event):
     pending_events[device].append(event)
 
 
-class InputEvent:
-    """Event to put into the injector for tests.
+def new_event(type, code, value, timestamp=None):
+    """Create a new input_event."""
+    if timestamp is None:
+        timestamp = time.time()
 
-    fakes evdev.InputEvent
-    """
-    def __init__(self, type, code, value, timestamp=None):
-        """
-        Paramaters
-        ----------
-        type : int
-            one of evdev.ecodes.EV_*
-        code : int
-            keyboard event code as known to linux. E.g. 2 for the '1' button
-        value : int
-            1 for down, 0 for up, 2 for hold
-        """
-        self.type = type
-        self.code = code
-        self.value = value
-
-        if timestamp is None:
-            timestamp = time.time()
-
-        self.sec = int(timestamp)
-        self.usec = timestamp % 1 * 1000000
-
-    @property
-    def t(self):
-        # tuple shorthand
-        return self.type, self.code, self.value
-
-    def __str__(self):
-        return f'InputEvent{self.t}'
+    sec = int(timestamp)
+    usec = timestamp % 1 * 1000000
+    event = evdev.InputEvent(sec, usec, type, code, value)
+    return event
 
 
 def patch_paths():
@@ -251,19 +234,24 @@ class InputDevice:
     path = None
 
     def __init__(self, path):
-        if path not in fixtures:
+        if path != 'justdoit' and path not in fixtures:
             raise FileNotFoundError()
 
         self.path = path
-        self.phys = fixtures[path]['phys']
-        self.info = fixtures[path]['info']
-        self.name = fixtures[path]['name']
+        fixture = fixtures.get(path, {})
+        self.phys = fixture.get('phys', 'unset')
+        self.info = fixture.get('info', 'unset')
+        self.name = fixture.get('name', 'unset')
         self.fd = self.name
+
+        # properties that exists for test purposes and are not part of
+        # the original object
+        self.group = fixture.get('group', self.name)
 
     def log(self, key, msg):
         print(
             f'\033[90m'  # color
-            f'{msg} "{self.name}" "{self.phys}" {key}'
+            f'{msg} "{self.name}" "{self.path}" {key}'
             '\033[0m'  # end style
         )
 
@@ -274,42 +262,45 @@ class InputDevice:
         pass
 
     def read(self):
-        ret = pending_events.get(self.name, [])
+        # the patched fake InputDevice objects read anything pending from
+        # that group, to be realistic it would have to check if the provided
+        # element is in its capabilities.
+        ret = pending_events.get(self.group, [])
         if ret is not None:
             # consume all of them
-            pending_events[self.name] = []
+            pending_events[self.group] = []
 
         return ret
 
     def read_one(self):
-        if pending_events.get(self.name) is None:
+        if pending_events.get(self.group) is None:
             return None
 
-        if len(pending_events[self.name]) == 0:
+        if len(pending_events[self.group]) == 0:
             return None
 
-        event = pending_events[self.name].pop(0)
+        event = pending_events[self.group].pop(0)
         self.log(event, 'read_one')
         return event
 
     def read_loop(self):
         """Read all prepared events at once."""
-        if pending_events.get(self.name) is None:
+        if pending_events.get(self.group) is None:
             return
 
-        while len(pending_events[self.name]) > 0:
-            result = pending_events[self.name].pop(0)
+        while len(pending_events[self.group]) > 0:
+            result = pending_events[self.group].pop(0)
             self.log(result, 'read_loop')
             yield result
             time.sleep(EVENT_READ_TIMEOUT)
 
     async def async_read_loop(self):
         """Read all prepared events at once."""
-        if pending_events.get(self.name) is None:
+        if pending_events.get(self.group) is None:
             return
 
-        while len(pending_events[self.name]) > 0:
-            result = pending_events[self.name].pop(0)
+        while len(pending_events[self.group]) > 0:
+            result = pending_events[self.group].pop(0)
             self.log(result, 'async_read_loop')
             yield result
             await asyncio.sleep(0.01)
@@ -330,23 +321,36 @@ class InputDevice:
 
 
 class UInput:
-    def __init__(self, *args, **kwargs):
+    def __init__(self, events=None, name='unnamed', *args, **kwargs):
         self.fd = 0
         self.write_count = 0
-        self.device = InputDevice('/dev/input/event40')
+        self.device = InputDevice('justdoit')
+        self.name = name
+        self.events = events
         pass
 
     def capabilities(self, *args, **kwargs):
-        return []
+        return self.events
 
     def write(self, type, code, value):
         self.write_count += 1
-        event = InputEvent(type, code, value)
+        event = new_event(type, code, value)
         uinput_write_history.append(event)
         uinput_write_history_pipe[1].send(event)
+        print(
+            f'\033[90m'  # color
+            f'{(type, code, value)} written'
+            '\033[0m'  # end style
+        )
 
     def syn(self):
         pass
+
+
+class InputEvent(evdev.InputEvent):
+    def __init__(self, sec, usec, type, code, value):
+        self.t = (type, code, value)
+        super().__init__(sec, usec, type, code, value)
 
 
 def patch_evdev():
@@ -356,12 +360,20 @@ def patch_evdev():
     evdev.list_devices = list_devices
     evdev.InputDevice = InputDevice
     evdev.UInput = UInput
+    evdev.InputEvent = InputEvent
 
 
 def patch_unsaved():
     # don't block tests
     from keymapper.gtk import unsaved
     unsaved.unsaved_changes_dialog = lambda: unsaved.CONTINUE
+
+
+def patch_events():
+    # improve logging of stuff
+    evdev.InputEvent.__str__ = lambda self: (
+        f'InputEvent{(self.type, self.code, self.value)}'
+    )
 
 
 def clear_write_history():
@@ -378,6 +390,7 @@ patch_paths()
 patch_evdev()
 patch_unsaved()
 patch_select()
+patch_events()
 
 from keymapper.logger import update_verbosity
 from keymapper.dev.injector import Injector
@@ -396,6 +409,11 @@ _fixture_copy = copy.deepcopy(fixtures)
 
 def cleanup():
     """Reset the applications state."""
+    print(
+        f'\033[90m'  # color
+        f'cleanup'
+        '\033[0m'  # end style
+    )
     keycode_reader.stop_reading()
     keycode_reader.clear()
     keycode_reader.newest_event = None

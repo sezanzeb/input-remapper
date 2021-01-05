@@ -28,7 +28,7 @@ requests.
 - [x] mapping a combined button press to a key
 - [x] add "disable" as mapping option
 - [x] mapping joystick directions as buttons, making it act like a D-Pad
-- [ ] mapping mouse wheel events to buttons
+- [x] mapping mouse wheel events to buttons
 - [ ] automatically load presets when devices get plugged in after login (udev)
 - [ ] using keys that aren't available in the systems keyboard layout
 - [ ] user-friendly way to map the left mouse button
@@ -47,7 +47,7 @@ to get debug output.
 
 ## Releasing
 
-Install dpkg or ssh/login into a debian/ubuntu environment
+ssh/login into a debian/ubuntu environment
 
 ```bash
 ./scripts/build.sh

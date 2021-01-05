@@ -29,13 +29,13 @@ import subprocess
 import multiprocessing
 
 import evdev
-from evdev.ecodes import EV_KEY, EV_ABS, EV_REL
+from evdev.ecodes import EV_KEY, EV_REL
 
 from keymapper.logger import logger
 from keymapper.getdevices import get_devices, map_abs_to_rel
 from keymapper.dev.keycode_mapper import handle_keycode
 from keymapper.dev import utils
-from keymapper.dev.ev_abs_mapper import ev_abs_mapper
+from keymapper.dev.event_producer import EventProducer
 from keymapper.dev.macros import parse, is_this_a_macro
 from keymapper.state import system_mapping
 from keymapper.mapping import DISABLE_CODE
@@ -43,6 +43,9 @@ from keymapper.mapping import DISABLE_CODE
 
 DEV_NAME = 'key-mapper'
 CLOSE = 0
+
+
+# TODO joystick unmodified? forward abs_rel and abs_rel in capabilities
 
 
 def is_numlock_on():
@@ -136,12 +139,7 @@ class Injector:
         self._msg_pipe = multiprocessing.Pipe()
         self._key_to_code = self._map_keys_to_codes()
         self.stopped = False
-
-        # when moving the joystick and then staying at a position, no
-        # events will be written anymore. Remember the last value the
-        # joystick reported, because it is still remaining at that
-        # position.
-        self.abs_state = [0, 0, 0, 0]
+        self._event_producer = None
 
     def _map_keys_to_codes(self):
         """To quickly get target keycodes during operation.
@@ -331,7 +329,7 @@ class Injector:
         the loops needed to read and map events and keeps running them.
         """
         # create a new event loop, because somehow running an infinite loop
-        # that sleeps on iterations (ev_abs_mapper) in one process causes
+        # that sleeps on iterations (event_producer) in one process causes
         # another injection process to screw up reading from the grabbed
         # device.
         loop = asyncio.new_event_loop()
@@ -346,10 +344,14 @@ class Injector:
 
         paths = get_devices()[self.device]['paths']
 
+        self._event_producer = EventProducer(self.mapping)
+
         # Watch over each one of the potentially multiple devices per hardware
         for path in paths:
             source, abs_to_rel = self._prepare_device(path)
             if source is None:
+                # this path doesn't need to be grabbed for injection, because
+                # it doesn't provide the events needed to execute the mapping
                 continue
 
             # each device needs own macro instances to add a custom handler
@@ -393,21 +395,15 @@ class Injector:
             coroutines.append(self._event_consumer(
                 macros,
                 source,
-                uinput,
-                abs_to_rel
+                uinput
             ))
 
-            # mouse movement injection based on the results of the
-            # event consumer
+            # The event source of the current iteration will deliver events
+            # that are needed for this. It is that one that will be mapped
+            # to a mouse-like devnode.
             if abs_to_rel:
-                self.abs_state[0] = 0
-                self.abs_state[1] = 0
-                coroutines.append(ev_abs_mapper(
-                    self.abs_state,
-                    source,
-                    uinput,
-                    self.mapping
-                ))
+                self._event_producer.set_max_abs_from(source)
+                self._event_producer.set_mouse_uinput(uinput)
 
         if len(coroutines) == 0:
             logger.error('Did not grab any device')
@@ -418,6 +414,9 @@ class Injector:
         # set the numlock state to what it was before injecting, because
         # grabbing devices screws this up
         set_numlock(numlock_state)
+
+        # run besides this stuff
+        coroutines.append(self._event_producer.run())
 
         try:
             loop.run_until_complete(asyncio.gather(*coroutines))
@@ -436,10 +435,13 @@ class Injector:
         uinput.write(EV_KEY, code, value)
         uinput.syn()
 
-    async def _event_consumer(self, macros, source, uinput, abs_to_rel):
-        """Reads input events to inject keycodes or talk to the ev_abs_mapper.
+    async def _event_consumer(self, macros, source, uinput):
+        """Reads input events to inject keycodes or talk to the event_producer.
 
-        Can be stopped by stopping the asyncio loop.
+        Can be stopped by stopping the asyncio loop. This loop
+        reads events from a single device only. Other devnodes may be
+        present for the hardware device, in which case this needs to be
+        started multiple times.
 
         Parameters
         ----------
@@ -449,35 +451,45 @@ class Injector:
             where to read keycodes from
         uinput : evdev.UInput
             where to write keycodes to
-        abs_to_rel : bool
-            if joystick events should be mapped to mouse movements
         """
         logger.debug(
-            'Started injecting into %s, fd %s',
-            uinput.device.path, uinput.fd
+            'Started consumer to inject to %s, fd %s',
+            source.path, source.fd
         )
 
         async for event in source.async_read_loop():
+            if self._event_producer.is_handled(event):
+                # the event_producer will take care of it
+                self._event_producer.notify(event)
+                continue
+
+            # for mapped stuff
             if utils.should_map_event_as_btn(source, event, self.mapping):
+                will_report_key_up = utils.will_report_key_up(event)
+
                 handle_keycode(
                     self._key_to_code,
                     macros,
                     event,
-                    uinput
+                    uinput,
                 )
-                continue
 
-            is_joystick = event.type == EV_ABS and event.code in utils.JOYSTICK
-            if abs_to_rel and is_joystick:
-                # talks to the ev_abs_mapper via the abs_state array
-                if event.code == evdev.ecodes.ABS_X:
-                    self.abs_state[0] = event.value
-                elif event.code == evdev.ecodes.ABS_Y:
-                    self.abs_state[1] = event.value
-                elif event.code == evdev.ecodes.ABS_RX:
-                    self.abs_state[2] = event.value
-                elif event.code == evdev.ecodes.ABS_RY:
-                    self.abs_state[3] = event.value
+                if not will_report_key_up:
+                    # simulate a key-up event if no down event arrives anymore.
+                    # this may release macros, combinations or keycodes.
+                    release = evdev.InputEvent(0, 0, event.type, event.code, 0)
+                    self._event_producer.debounce(
+                        debounce_id=(event.type, event.code, event.value),
+                        func=handle_keycode,
+                        args=(
+                            self._key_to_code, macros,
+                            release,
+                            uinput,
+                            False
+                        ),
+                        ticks=3,
+                    )
+
                 continue
 
             # forward the rest
@@ -485,8 +497,8 @@ class Injector:
             # this already includes SYN events, so need to syn here again
 
         logger.error(
-            'The injector for "%s" stopped early',
-            uinput.device.path
+            'The consumer for "%s" stopped early',
+            source.path
         )
 
     @ensure_numlock

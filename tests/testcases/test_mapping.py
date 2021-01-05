@@ -22,6 +22,7 @@
 import os
 import unittest
 import json
+
 from evdev.ecodes import EV_KEY, EV_ABS, ABS_HAT0X, KEY_A
 
 from keymapper.mapping import Mapping

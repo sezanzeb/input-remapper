@@ -28,6 +28,7 @@ from gi.repository import Gtk, GLib, Gdk
 from keymapper.state import custom_mapping, system_mapping
 from keymapper.logger import logger
 from keymapper.key import Key
+from keymapper.dev.reader import keycode_reader
 
 
 CTX_KEYCODE = 2
@@ -84,6 +85,11 @@ def to_string(key):
             (evdev.ecodes.ABS_RX, -1): 'L',
             (evdev.ecodes.ABS_RY, 1): 'D',
             (evdev.ecodes.ABS_RY, -1): 'U',
+            # wheel
+            (evdev.ecodes.REL_WHEEL, -1): 'D',
+            (evdev.ecodes.REL_WHEEL, 1): 'U',
+            (evdev.ecodes.REL_HWHEEL, -1): 'L',
+            (evdev.ecodes.REL_HWHEEL, 1): 'R',
         }.get((code, value))
         if direction is not None:
             key_name += f' {direction}'
@@ -258,6 +264,7 @@ class Row(Gtk.ListBoxRow):
         self.show_click_here()
         self.keycode_input.set_active(False)
         self.state = IDLE
+        keycode_reader.clear()
 
     def set_keycode_input_label(self, label):
         """Set the label of the keycode input."""

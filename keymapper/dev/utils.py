@@ -56,6 +56,16 @@ def sign(value):
     return 0
 
 
+def is_wheel(event):
+    """Check if this is a wheel event."""
+    return event.type == EV_REL and event.code in [REL_WHEEL, REL_HWHEEL]
+
+
+def will_report_key_up(event):
+    """Check if the key is expected to report a down event as well."""
+    return not is_wheel(event)
+
+
 def should_map_event_as_btn(device, event, mapping):
     """Does this event describe a button.
 
@@ -74,6 +84,9 @@ def should_map_event_as_btn(device, event, mapping):
     is_mousepad = event.type == EV_ABS and 47 <= event.code <= 61
     if is_mousepad:
         return False
+
+    if is_wheel(event):
+        return True
 
     if event.type == EV_ABS:
         if event.code in JOYSTICK:

@@ -240,7 +240,9 @@ class Mapping(ConfigBase):
 
         Parameters
         ----------
-        key : Key
+        key : Key or InputEvent
+            If an InputEvent, will test if that event is mapped
+            and take the sign of the value.
         """
         if not isinstance(key, Key):
             raise TypeError('Expected key to be a Key object')
