@@ -188,7 +188,8 @@ class Window:
         This has nothing to do with the keycode reader.
         """
         gdk_keycode = event.get_keyval()[1]
-        if gdk_keycode == Gdk.KEY_Control_L:
+
+        if gdk_keycode in [Gdk.KEY_Control_L, Gdk.KEY_Control_R]:
             self.ctrl = True
 
         if gdk_keycode == Gdk.KEY_q and self.ctrl:
@@ -200,7 +201,8 @@ class Window:
         This has nothing to do with the keycode reader.
         """
         gdk_keycode = event.get_keyval()[1]
-        if gdk_keycode == Gdk.KEY_Control_L:
+
+        if gdk_keycode in [Gdk.KEY_Control_L, Gdk.KEY_Control_R]:
             self.ctrl = False
 
     def initialize_gamepad_config(self):
@@ -361,7 +363,7 @@ class Window:
         if key is None:
             return True
 
-        if key.is_problematic():
+        if key.is_problematic() and isinstance(focused, Gtk.ToggleButton):
             self.show_status(
                 CTX_WARNING,
                 'ctrl, alt and shift may not combine properly',
@@ -398,8 +400,8 @@ class Window:
         if context_id == CTX_WARNING:
             self.get('warning_status_icon').show()
 
-        if len(message) > 48:
-            message = message[:50] + '...'
+        if len(message) > 55:
+            message = message[:52] + '...'
 
         status_bar = self.get('status_bar')
         status_bar.push(context_id, message)
@@ -460,11 +462,14 @@ class Window:
         if custom_mapping.changed:
             self.show_status(
                 CTX_WARNING,
-                f'Applied outdated preset "{preset}"',
+                f'"{preset}" is outdated. shift + del to stop.',
                 'Click "Save" first for changes to take effect'
             )
         else:
-            self.show_status(CTX_APPLY, f'Applied preset "{preset}"')
+            self.show_status(
+                CTX_APPLY,
+                f'Applied preset "{preset}". shift + del to stop'
+            )
 
         path = get_preset_path(device, preset)
         success = self.dbus.start_injecting(device, path, get_config_path())

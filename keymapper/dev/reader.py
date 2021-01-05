@@ -57,7 +57,7 @@ def prioritize(events):
         if event is not None
     ]
     return sorted(events, key=lambda e: (
-        PRIORITIES[e.type],
+        PRIORITIES.get(e.type, 0),
         not (e.type == EV_ABS and e.code == ABS_MISC),
         abs(e.value)
     ))[-1]
@@ -228,6 +228,7 @@ class _KeycodeReader:
 
         while self._pipe[0].poll():
             event = self._pipe[0].recv()
+            event_tuple = (event.type, event.code, event.value)
             without_value = (event.type, event.code)
 
             if event.value == 0:
@@ -235,7 +236,7 @@ class _KeycodeReader:
                     del self._unreleased[without_value]
                 continue
 
-            if without_value in self._unreleased:
+            if self._unreleased.get(without_value) == event_tuple:
                 # no duplicate down events (gamepad triggers)
                 continue
 

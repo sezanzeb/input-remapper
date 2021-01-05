@@ -24,7 +24,8 @@ import time
 import copy
 
 import evdev
-from evdev.ecodes import EV_REL, EV_KEY, EV_ABS, ABS_HAT0X, BTN_LEFT, KEY_A
+from evdev.ecodes import EV_REL, EV_KEY, EV_ABS, ABS_HAT0X, BTN_LEFT, KEY_A, \
+    REL_X, REL_Y, REL_WHEEL, REL_HWHEEL
 
 from keymapper.dev.injector import is_numlock_on, set_numlock, \
     ensure_numlock, Injector, is_in_capabilities
@@ -34,8 +35,10 @@ from keymapper.config import config
 from keymapper.key import Key
 from keymapper.dev.macros import parse
 from keymapper.dev import utils
+from keymapper.logger import logger
+from keymapper.getdevices import get_devices
 
-from tests.test import InputEvent, pending_events, fixtures, \
+from tests.test import new_event, pending_events, fixtures, \
     EVENT_READ_TIMEOUT, uinput_write_history_pipe, \
     MAX_ABS, cleanup, read_write_history_pipe, InputDevice
 
@@ -315,18 +318,15 @@ class TestInjector(unittest.TestCase):
         pointer_speed = 80
         config.set('gamepad.joystick.pointer_speed', pointer_speed)
 
-        rel_x = evdev.ecodes.REL_X
-        rel_y = evdev.ecodes.REL_Y
-
         # they need to sum up before something is written
         divisor = 10
         x = MAX_ABS / pointer_speed / divisor
         y = MAX_ABS / pointer_speed / divisor
         pending_events['gamepad'] = [
-            InputEvent(EV_ABS, rel_x, x),
-            InputEvent(EV_ABS, rel_y, y),
-            InputEvent(EV_ABS, rel_x, -x),
-            InputEvent(EV_ABS, rel_y, -y),
+            new_event(EV_ABS, REL_X, x),
+            new_event(EV_ABS, REL_Y, y),
+            new_event(EV_ABS, REL_X, -x),
+            new_event(EV_ABS, REL_Y, -y),
         ]
 
         self.injector = Injector('gamepad', custom_mapping)
@@ -348,6 +348,7 @@ class TestInjector(unittest.TestCase):
         if history[0][0] == EV_ABS:
             raise AssertionError(
                 'The injector probably just forwarded them unchanged'
+                # possibly in addition to writing mouse events
             )
 
         # movement is written at 60hz and it takes `divisor` steps to
@@ -355,14 +356,13 @@ class TestInjector(unittest.TestCase):
         self.assertGreater(len(history), 60 * sleep * 0.9 * 2 / divisor)
         self.assertLess(len(history), 60 * sleep * 1.1 * 2 / divisor)
 
-        # those may be in arbitrary order, the injector happens to write
-        # y first
-        self.assertEqual(history[-1][0], EV_REL)
-        self.assertEqual(history[-1][1], rel_x)
-        self.assertAlmostEqual(history[-1][2], -1)
-        self.assertEqual(history[-2][0], EV_REL)
-        self.assertEqual(history[-2][1], rel_y)
-        self.assertAlmostEqual(history[-2][2], -1)
+        # those may be in arbitrary order
+        count_x = history.count((EV_REL, REL_X, -1))
+        count_y = history.count((EV_REL, REL_Y, -1))
+        self.assertGreater(count_x, 1)
+        self.assertGreater(count_y, 1)
+        # only those two types of events were written
+        self.assertEqual(len(history), count_x + count_y)
 
     def test_injector(self):
         # the tests in test_keycode_mapper.py test this stuff in detail
@@ -387,17 +387,17 @@ class TestInjector(unittest.TestCase):
 
         pending_events['device 2'] = [
             # should execute a macro...
-            InputEvent(EV_KEY, 8, 1),
-            InputEvent(EV_KEY, 9, 1),  # ...now
-            InputEvent(EV_KEY, 8, 0),
-            InputEvent(EV_KEY, 9, 0),
+            new_event(EV_KEY, 8, 1),
+            new_event(EV_KEY, 9, 1),  # ...now
+            new_event(EV_KEY, 8, 0),
+            new_event(EV_KEY, 9, 0),
             # gamepad stuff. trigger a combination
-            InputEvent(EV_ABS, ABS_HAT0X, -1),
-            InputEvent(EV_ABS, ABS_HAT0X, 0),
+            new_event(EV_ABS, ABS_HAT0X, -1),
+            new_event(EV_ABS, ABS_HAT0X, 0),
             # just pass those over without modifying
-            InputEvent(EV_KEY, 10, 1),
-            InputEvent(EV_KEY, 10, 0),
-            InputEvent(3124, 3564, 6542),
+            new_event(EV_KEY, 10, 1),
+            new_event(EV_KEY, 10, 0),
+            new_event(3124, 3564, 6542),
         ]
 
         self.injector = Injector('device 2', custom_mapping)
@@ -494,10 +494,10 @@ class TestInjector(unittest.TestCase):
                     uinput_write_history_pipe[0].recv()
 
             pending_events['gamepad'] = [
-                InputEvent(*w_down),
-                InputEvent(*d_down),
-                InputEvent(*w_up),
-                InputEvent(*d_up),
+                new_event(*w_down),
+                new_event(*d_down),
+                new_event(*w_up),
+                new_event(*d_up),
             ]
 
             self.injector = Injector('gamepad', custom_mapping)
@@ -528,6 +528,81 @@ class TestInjector(unittest.TestCase):
         self.assertEqual(history.count((EV_KEY, code_d, 1)), 1)
         self.assertEqual(history.count((EV_KEY, code_w, 0)), 1)
         self.assertEqual(history.count((EV_KEY, code_d, 0)), 1)
+
+    def test_wheel(self):
+        # wheel release events are made up with a debouncer
+
+        # map those two to stuff
+        w_up = (EV_REL, REL_WHEEL, -1)
+        hw_right = (EV_REL, REL_HWHEEL, 1)
+
+        # should be forwarded and present in the capabilities
+        hw_left = (EV_REL, REL_HWHEEL, -1)
+
+        custom_mapping.change(Key(*hw_right), 'k(b)')
+        custom_mapping.change(Key(*w_up), 'c')
+
+        system_mapping.clear()
+        code_b = 91
+        code_c = 92
+        system_mapping._set('b', code_b)
+        system_mapping._set('c', code_c)
+
+        device_name = 'device 1'
+        pending_events[device_name] = [
+            new_event(*w_up),
+        ] * 10 + [
+            new_event(*hw_right),
+            new_event(*w_up),
+        ] * 5 + [
+            new_event(*hw_left)
+        ]
+
+        self.injector = Injector(device_name, custom_mapping)
+
+        device = InputDevice('/dev/input/event11')
+        # make sure this test uses a device that has the needed capabilities
+        # for the injector to grab it
+        self.assertIn(EV_REL, device.capabilities())
+        self.assertIn(REL_WHEEL, device.capabilities()[EV_REL])
+        self.assertIn(REL_HWHEEL, device.capabilities()[EV_REL])
+        self.assertIn(device.path, get_devices()[device_name]['paths'])
+
+        self.injector.start_injecting()
+
+        # wait for the first injected key down event
+        uinput_write_history_pipe[0].poll(timeout=1)
+        self.assertTrue(uinput_write_history_pipe[0].poll())
+        event = uinput_write_history_pipe[0].recv()
+        self.assertEqual(event.t, (EV_KEY, code_c, 1))
+
+        time.sleep(EVENT_READ_TIMEOUT * 5)
+        # in 5 more read-loop ticks, nothing new should have happened
+        self.assertFalse(uinput_write_history_pipe[0].poll())
+
+        time.sleep(EVENT_READ_TIMEOUT * 6)
+        # 5 more and it should be within the second phase in which
+        # the horizontal wheel is used. add some tolerance
+        self.assertTrue(uinput_write_history_pipe[0].poll())
+        event = uinput_write_history_pipe[0].recv()
+        self.assertEqual(event.t, (EV_KEY, code_b, 1))
+
+        time.sleep(EVENT_READ_TIMEOUT * 10 + 5 / 60)
+        # after 21 read-loop ticks all events should be consumed, wait for
+        # at least 3 (=5) producer-ticks so that the debouncers are triggered.
+        # Key-up events for both wheel events should be written now that no
+        # new key-down event arrived.
+        events = read_write_history_pipe()
+        self.assertEqual(events.count((EV_KEY, code_b, 0)), 1)
+        self.assertEqual(events.count((EV_KEY, code_c, 0)), 1)
+        self.assertEqual(events.count(hw_left), 1)  # the unmapped wheel
+
+        # the unmapped wheel won't get a debounced release command, it's
+        # forwarded as is
+        self.assertNotIn((EV_REL, REL_HWHEEL, 0), events)
+
+        print(events)
+        self.assertEqual(len(events), 3)
 
     def test_store_permutations_for_macros(self):
         mapping = Mapping()

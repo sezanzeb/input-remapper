@@ -44,7 +44,7 @@ from keymapper.gtk.row import to_string, HOLDING, IDLE
 from keymapper.dev import permissions
 from keymapper.key import Key
 
-from tests.test import tmp, pending_events, InputEvent, \
+from tests.test import tmp, pending_events, new_event, \
     uinput_write_history_pipe, cleanup
 
 
@@ -333,7 +333,7 @@ class TestIntegration(unittest.TestCase):
             # per second, so sleep a bit more than 0.033ms each time
             # press down all the keys of a combination
             for sub_key in key:
-                keycode_reader._pipe[1].send(InputEvent(*sub_key))
+                keycode_reader._pipe[1].send(new_event(*sub_key))
                 time.sleep(FILTER_THRESHOLD * 2)
 
             # make the window consume the keycode
@@ -347,7 +347,7 @@ class TestIntegration(unittest.TestCase):
 
             # release all the keys
             for sub_key in key:
-                keycode_reader._pipe[1].send(InputEvent(*sub_key[:2], 0))
+                keycode_reader._pipe[1].send(new_event(*sub_key[:2], 0))
 
             # make the window consume the keycode
             time.sleep(0.06)
@@ -363,6 +363,7 @@ class TestIntegration(unittest.TestCase):
                 self.assertIn('changed', css_classes)
                 self.assertEqual(row.keycode_input.get_label(), to_string(key))
                 self.assertFalse(row.keycode_input.is_focus())
+                self.assertEqual(len(keycode_reader._unreleased), 0)
 
         if not expect_success:
             self.assertIsNone(row.get_key())
@@ -733,8 +734,8 @@ class TestIntegration(unittest.TestCase):
         system_mapping._set('a', keycode_to)
 
         pending_events['device 2'] = [
-            InputEvent(evdev.events.EV_KEY, keycode_from, 1),
-            InputEvent(evdev.events.EV_KEY, keycode_from, 0)
+            new_event(evdev.events.EV_KEY, keycode_from, 1),
+            new_event(evdev.events.EV_KEY, keycode_from, 0)
         ]
 
         custom_mapping.save(get_preset_path('device 2', 'foo preset'))
@@ -774,7 +775,7 @@ class TestIntegration(unittest.TestCase):
 
         # not all of those events should be processed, since that takes some
         # time due to time.sleep in the fakes and the injection is stopped.
-        pending_events['device 2'] = [InputEvent(1, keycode_from, 1)] * 100
+        pending_events['device 2'] = [new_event(1, keycode_from, 1)] * 100
 
         custom_mapping.save(get_preset_path('device 2', 'foo preset'))
 

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.38.1 -->
+<!-- Generated with glade 3.38.2 -->
 <interface>
   <requires lib="gtk+" version="3.22"/>
   <object class="GtkImage" id="check-icon">
@@ -339,11 +339,14 @@
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
                     <property name="receives-default">True</property>
-                    <property name="tooltip-text" translatable="yes">To give your keys back their original mapping.</property>
+                    <property name="tooltip-text" translatable="yes">Shortcut: shift + del
+
+To give your keys back their original mapping.</property>
                     <property name="halign">end</property>
                     <property name="image">gtk-redo-icon</property>
                     <property name="always-show-image">True</property>
                     <signal name="clicked" handler="on_apply_system_layout_clicked" swapped="no"/>
+                    <accelerator key="Delete" signal="activate" modifiers="GDK_SHIFT_MASK"/>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -411,7 +414,7 @@
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
                             <property name="receives-default">True</property>
-                            <property name="tooltip-text" translatable="yes">Presets need to be saved before they can be applied</property>
+                            <property name="tooltip-text" translatable="yes">Presets need to be saved before they can be applied. Don't hold down any keys while the preset gets applied.</property>
                             <property name="image">check-icon</property>
                             <property name="always-show-image">True</property>
                             <signal name="clicked" handler="on_apply_preset_clicked" swapped="no"/>

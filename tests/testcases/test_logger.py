@@ -43,6 +43,15 @@ class TestLogger(unittest.TestCase):
 
         update_verbosity(debug=True)
 
+    def test_key_spam(self):
+        path = add_filehandler(os.path.join(tmp, 'logger-test'))
+        logger.key_spam(((1, 2, 1),), 'foo %s bar', 1234)
+        logger.key_spam(((1, 200, -1), (1, 5, 1)), 'foo %s', (1, 2))
+        with open(path, 'r') as f:
+            content = f.read().lower()
+            self.assertIn('((1, 2, 1)) ------------------- foo 1234 bar', content)
+            self.assertIn('((1, 200, -1), (1, 5, 1)) ----- foo (1, 2)', content)
+
     def test_log_info(self):
         update_verbosity(debug=False)
         path = add_filehandler(os.path.join(tmp, 'logger-test'))
