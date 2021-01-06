@@ -1,5 +1,6 @@
 [Desktop Entry]
+Type=Application
+Exec=key-mapper-control --command autoload
 Name=key-mapper-autoload
 Icon=/usr/share/key-mapper/key-mapper.svg
-Exec=key-mapper-control --command autoload
 Comment=Starts injecting all presets that are set to automatically load for the user
