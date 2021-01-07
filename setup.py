@@ -25,7 +25,7 @@ from setuptools import setup
 
 setup(
     name='key-mapper',
-    version='0.5.0',
+    version='0.6.0',
     description='A tool to change the mapping of your input device buttons',
     author='Sezanzeb',
     author_email='proxima@hip70890b.de',
