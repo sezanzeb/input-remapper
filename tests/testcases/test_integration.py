@@ -25,7 +25,8 @@ import grp
 import os
 import unittest
 import evdev
-from evdev.ecodes import EV_KEY, EV_ABS, KEY_LEFTSHIFT
+from evdev.ecodes import EV_KEY, EV_ABS, KEY_LEFTSHIFT, KEY_A, ABS_RX, \
+    BTN_A, EV_REL, REL_X, ABS_X
 import json
 from unittest.mock import patch
 from importlib.util import spec_from_loader, module_from_spec
@@ -38,14 +39,15 @@ from gi.repository import Gtk, Gdk
 
 from keymapper.state import custom_mapping, system_mapping, XMODMAP_FILENAME
 from keymapper.paths import CONFIG_PATH, get_preset_path
-from keymapper.config import config, WHEEL, MOUSE
+from keymapper.config import config, WHEEL, MOUSE, BUTTONS
 from keymapper.dev.reader import keycode_reader, FILTER_THRESHOLD
+from keymapper.dev.injector import RUNNING
 from keymapper.gtk.row import to_string, HOLDING, IDLE
 from keymapper.dev import permissions
 from keymapper.key import Key
 
 from tests.test import tmp, pending_events, new_event, \
-    uinput_write_history_pipe, cleanup
+    uinput_write_history_pipe, cleanup, MAX_ABS
 
 
 def gtk_iteration():
@@ -99,9 +101,20 @@ class TestIntegration(unittest.TestCase):
 
     Try to modify the configuration only by calling functions of the window.
     """
+    @classmethod
+    def setUpClass(cls):
+        cls.injector = None
+        cls.grab = evdev.InputDevice.grab
+
     def setUp(self):
         self.window = launch()
         self.original_on_close = self.window.on_close
+
+        self.grab_fails = False
+        def grab(_):
+            if self.grab_fails:
+                raise OSError()
+        evdev.InputDevice.grab = grab
 
     def tearDown(self):
         self.window.on_close = self.original_on_close
@@ -114,6 +127,14 @@ class TestIntegration(unittest.TestCase):
 
     def get_rows(self):
         return self.window.get('key_list').get_children()
+
+    def get_status_text(self):
+        status_bar = self.window.get('status_bar')
+        return status_bar.get_message_area().get_children()[0].get_label()
+
+    def test_can_start(self):
+        self.assertIsNotNone(self.window)
+        self.assertTrue(self.window.window.get_visible())
 
     def test_ctrl_q(self):
         class Event:
@@ -222,10 +243,6 @@ class TestIntegration(unittest.TestCase):
             preset = json.load(file)
             self.assertEqual(len(preset['mapping']), 0)
 
-    def test_can_start(self):
-        self.assertIsNotNone(self.window)
-        self.assertTrue(self.window.window.get_visible())
-
     def test_row_keycode_to_string(self):
         # not an integration test, but I have all the row tests here already
         self.assertEqual(to_string(Key(EV_KEY, evdev.ecodes.KEY_9, 1)), '9')
@@ -281,6 +298,16 @@ class TestIntegration(unittest.TestCase):
         self.assertEqual(row.get_character(), 'Shift_L')
         self.assertEqual(row.get_key(), (EV_KEY, 30, 1))
 
+    def wait_until_reader_pipe_clear(self):
+        for i in range(100):
+            if keycode_reader._pipe[0].poll():
+                time.sleep(0.01)
+                gtk_iteration()
+            else:
+                break
+        else:
+            raise Exception('Expected the event to be read at some point')
+
     def change_empty_row(self, key, char, code_first=True, expect_success=True):
         """Modify the one empty row that always exists.
 
@@ -297,7 +324,7 @@ class TestIntegration(unittest.TestCase):
             in the mapping eventually. False if this change is going to
             cause a duplicate.
         """
-        self.assertFalse(keycode_reader.are_keys_pressed())
+        self.assertIsNone(keycode_reader.get_unreleased_keys())
 
         # wait for the window to create a new empty row if needed
         time.sleep(0.1)
@@ -309,7 +336,7 @@ class TestIntegration(unittest.TestCase):
         self.assertIsNone(row.get_key())
         self.assertEqual(row.character_input.get_text(), '')
         self.assertNotIn('changed', row.get_style_context().list_classes())
-        self.assertEqual(row.state, IDLE)
+        self.assertEqual(row._state, IDLE)
 
         if char and not code_first:
             # set the character to make the new row complete
@@ -329,33 +356,32 @@ class TestIntegration(unittest.TestCase):
 
         if key:
             # modifies the keycode in the row not by writing into the input,
-            # but by sending an event. Events should be consumed 30 times
-            # per second, so sleep a bit more than 0.033ms each time
-            # press down all the keys of a combination
+            # but by sending an event. press down all the keys of a combination
             for sub_key in key:
                 keycode_reader._pipe[1].send(new_event(*sub_key))
-                time.sleep(FILTER_THRESHOLD * 2)
+                time.sleep(FILTER_THRESHOLD * 1.1)
+                # this will be consumed all at once, since no gt_iteration
+                # is done
 
             # make the window consume the keycode
-            time.sleep(0.06)
-            gtk_iteration()
+            self.wait_until_reader_pipe_clear()
 
             # holding down
-            self.assertTrue(keycode_reader.are_keys_pressed())
-            self.assertEqual(row.state, HOLDING)
+            self.assertIsNotNone(keycode_reader.get_unreleased_keys())
+            self.assertGreater(len(keycode_reader.get_unreleased_keys()), 0)
+            self.assertEqual(row._state, HOLDING)
             self.assertTrue(row.keycode_input.is_focus())
 
             # release all the keys
             for sub_key in key:
                 keycode_reader._pipe[1].send(new_event(*sub_key[:2], 0))
 
-            # make the window consume the keycode
-            time.sleep(0.06)
-            gtk_iteration()
+            # wait for the window to consume the keycode
+            self.wait_until_reader_pipe_clear()
 
             # released
-            self.assertFalse(keycode_reader.are_keys_pressed())
-            self.assertEqual(row.state, IDLE)
+            self.assertIsNone(keycode_reader.get_unreleased_keys())
+            self.assertEqual(row._state, IDLE)
 
             if expect_success:
                 self.assertEqual(row.get_key(), key)
@@ -370,7 +396,7 @@ class TestIntegration(unittest.TestCase):
             self.assertIsNone(row.get_character())
             css_classes = row.get_style_context().list_classes()
             self.assertNotIn('changed', css_classes)
-            self.assertEqual(row.state, IDLE)
+            self.assertEqual(row._state, IDLE)
             # it won't switch the focus to the character input
             self.assertTrue(row.keycode_input.is_focus())
             return row
@@ -382,6 +408,29 @@ class TestIntegration(unittest.TestCase):
             self.assertEqual(row.get_character(), char)
 
         return row
+
+    def test_clears_unreleased_on_focus_change(self):
+        ev_1 = Key(EV_KEY, 41, 1)
+
+        rows = self.get_rows()
+        row = rows[-1]
+
+        # focused
+        self.window.window.set_focus(row.keycode_input)
+        keycode_reader._pipe[1].send(new_event(*ev_1.keys[0]))
+        keycode_reader.read()
+        self.assertEqual(keycode_reader.get_unreleased_keys(), ev_1)
+
+        # unfocused
+        self.window.window.set_focus(None)
+        self.assertEqual(keycode_reader.get_unreleased_keys(), None)
+        keycode_reader._pipe[1].send(new_event(*ev_1.keys[0]))
+        keycode_reader.read()
+        self.assertEqual(keycode_reader.get_unreleased_keys(), ev_1)
+
+        # focus back
+        self.window.window.set_focus(row.keycode_input)
+        self.assertEqual(keycode_reader.get_unreleased_keys(), None)
 
     def test_rows(self):
         """Comprehensive test for rows."""
@@ -598,7 +647,7 @@ class TestIntegration(unittest.TestCase):
         combination = Key((EV_KEY, KEY_LEFTSHIFT, 1), (EV_KEY, 82, 1))
         self.change_empty_row(combination, 'b')
         status = self.window.get('status_bar')
-        text = status.get_message_area().get_children()[0].get_label()
+        text = self.get_status_text()
         self.assertIn('shift', text)
 
         error_icon = self.window.get('error_status_icon')
@@ -691,6 +740,16 @@ class TestIntegration(unittest.TestCase):
         )
 
     def test_gamepad_config(self):
+        # set some stuff in the beginning, otherwise gtk fails to
+        # do handler_unblock_by_func, which makes no sense at all.
+        # but it ONLY fails on right_joystick_purpose for some reason,
+        # unblocking the left one works just fine. I should open a bug report
+        # on gtk or something probably.
+        self.window.get('left_joystick_purpose').set_active_id(BUTTONS)
+        self.window.get('right_joystick_purpose').set_active_id(BUTTONS)
+        self.window.get('joystick_mouse_speed').set_value(1)
+        custom_mapping.changed = False
+        
         # select a device that is not a gamepad
         self.window.on_select_device(FakeDropdown('device 1'))
         self.assertFalse(self.window.get('gamepad_config').is_visible())
@@ -702,6 +761,7 @@ class TestIntegration(unittest.TestCase):
         self.assertFalse(custom_mapping.changed)
 
         # set stuff
+        gtk_iteration()
         self.window.get('left_joystick_purpose').set_active_id(WHEEL)
         self.window.get('right_joystick_purpose').set_active_id(WHEEL)
         joystick_mouse_speed = 5
@@ -724,6 +784,113 @@ class TestIntegration(unittest.TestCase):
         self.window.on_select_device(FakeDropdown('device 1'))
         self.assertFalse(self.window.get('gamepad_config').is_visible())
         self.assertFalse(custom_mapping.changed)
+
+    def test_wont_start(self):
+        error_icon = self.window.get('error_status_icon')
+        preset_name = 'foo preset'
+        device_name = 'device 2'
+        self.window.selected_preset = preset_name
+        self.window.selected_device = device_name
+
+        # empty
+
+        custom_mapping.empty()
+        custom_mapping.save(get_preset_path(device_name, preset_name))
+        self.window.on_apply_preset_clicked(None)
+        text = self.get_status_text()
+        self.assertIn('add keys', text)
+        self.assertIn('save', text)
+        self.assertTrue(error_icon.get_visible())
+        self.assertNotEqual(self.window.dbus.get_state(device_name), RUNNING)
+
+        # not empty, but not saved
+
+        custom_mapping.change(Key(EV_KEY, KEY_A, 1), 'a')
+        self.window.on_apply_preset_clicked(None)
+        text = self.get_status_text()
+        self.assertNotIn('add keys', text)
+        self.assertIn('save', text)
+        self.assertTrue(error_icon.get_visible())
+        self.assertNotEqual(self.window.dbus.get_state(device_name), RUNNING)
+
+        # saved, but keys are held down
+
+        custom_mapping.save(get_preset_path(device_name, preset_name))
+        keycode_reader._pipe[1].send(new_event(EV_KEY, KEY_A, 1))
+        keycode_reader.read()
+        self.assertEqual(len(keycode_reader._unreleased), 1)
+        self.assertFalse(self.window.unreleased_warn)
+        self.window.on_apply_preset_clicked(None)
+        text = self.get_status_text()
+        self.assertIn('release', text)
+        self.assertTrue(error_icon.get_visible())
+        self.assertNotEqual(self.window.dbus.get_state(device_name), RUNNING)
+        self.assertTrue(self.window.unreleased_warn)
+        self.assertEqual(self.window.get('apply_system_layout').get_opacity(), 0.4)
+
+        # device grabbing fails
+
+        def wait():
+            """Wait for the injector process to finish doing stuff."""
+            for _ in range(10):
+                time.sleep(0.1)
+                gtk_iteration()
+                if 'Starting' not in self.get_status_text():
+                    return
+
+        for i in range(2):
+            # just pressing apply again will overwrite the previous error
+            self.grab_fails = True
+            self.window.on_apply_preset_clicked(None)
+            self.assertFalse(self.window.unreleased_warn)
+            text = self.get_status_text()
+            # it takes a little bit of time
+            self.assertIn('Starting injection', text)
+            self.assertFalse(error_icon.get_visible())
+            wait()
+            text = self.get_status_text()
+            self.assertIn('not grabbed', text)
+            self.assertTrue(error_icon.get_visible())
+            self.assertNotEqual(self.window.dbus.get_state(device_name), RUNNING)
+
+            # for the second try, release the key. that should also work
+            keycode_reader._pipe[1].send(new_event(EV_KEY, KEY_A, 0))
+            keycode_reader.read()
+            self.assertEqual(len(keycode_reader._unreleased), 0)
+
+        # this time work, but changes are unsaved
+
+        custom_mapping.change(Key(EV_KEY, KEY_A, 1), 'b')
+        self.grab_fails = False
+        self.window.on_apply_preset_clicked(None)
+        text = self.get_status_text()
+        # it takes a little bit of time
+        self.assertIn('Starting injection', text)
+        self.assertFalse(error_icon.get_visible())
+        wait()
+        text = self.get_status_text()
+        self.assertIn('Applied', text)
+        self.assertIn('unsaved', text)
+        self.assertFalse(error_icon.get_visible())
+        self.assertEqual(self.window.dbus.get_state(device_name), RUNNING)
+        self.assertEqual(self.window.get('apply_system_layout').get_opacity(), 1)
+
+        # save changes, this time work properly
+
+        custom_mapping.save(get_preset_path(device_name, preset_name))
+        self.window.on_apply_preset_clicked(None)
+        text = self.get_status_text()
+        self.assertIn('Starting injection', text)
+        self.assertFalse(error_icon.get_visible())
+        wait()
+        text = self.get_status_text()
+        self.assertIn('Applied', text)
+        self.assertNotIn('unsaved', text)
+        self.assertFalse(error_icon.get_visible())
+        self.assertEqual(self.window.dbus.get_state(device_name), RUNNING)
+
+        # because this test managed to reproduce some minor bug:
+        self.assertNotIn('mapping', custom_mapping._config)
 
     def test_start_injecting(self):
         keycode_from = 9
@@ -751,7 +918,7 @@ class TestIntegration(unittest.TestCase):
         # processes, as intended. Luckily, recv will block until the events
         # are handled and pushed.
 
-        # Note, that pushing events to pending_events won't work anymore
+        # Note, that appending events to pending_events won't work anymore
         # from here on because the injector processes memory cannot be
         # modified from here.
 
@@ -764,6 +931,39 @@ class TestIntegration(unittest.TestCase):
         self.assertEqual(event.type, evdev.events.EV_KEY)
         self.assertEqual(event.code, keycode_to)
         self.assertEqual(event.value, 0)
+
+    def test_gamepad_purpose_mouse_and_button(self):
+        self.window.on_select_device(FakeDropdown('gamepad'))
+        self.window.get('right_joystick_purpose').set_active_id(MOUSE)
+        self.window.get('left_joystick_purpose').set_active_id(BUTTONS)
+        self.window.get('joystick_mouse_speed').set_value(6)
+        gtk_iteration()
+        speed = custom_mapping.get('gamepad.joystick.pointer_speed')
+        custom_mapping.set('gamepad.joystick.non_linearity', 1)
+        self.assertEqual(speed, 2 ** 6)
+
+        pending_events['gamepad'] = [
+             new_event(EV_ABS, ABS_RX, -MAX_ABS),
+             new_event(EV_ABS, ABS_X, MAX_ABS)
+        ] * 100
+
+        custom_mapping.change(Key(EV_ABS, ABS_X, 1), 'a')
+        self.window.on_save_preset_clicked(None)
+
+        gtk_iteration()
+
+        self.window.on_apply_preset_clicked(None)
+        time.sleep(0.3)
+
+        history = []
+        while uinput_write_history_pipe[0].poll():
+            history.append(uinput_write_history_pipe[0].recv().t)
+
+        count_mouse = history.count((EV_REL, REL_X, -speed))
+        count_button = history.count((EV_KEY, KEY_A, 1))
+        self.assertGreater(count_mouse, 1)
+        self.assertEqual(count_button, 1)
+        self.assertEqual(count_button + count_mouse, len(history))
 
     def test_stop_injecting(self):
         keycode_from = 16

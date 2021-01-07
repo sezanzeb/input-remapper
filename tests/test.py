@@ -265,7 +265,7 @@ class InputDevice:
         # the patched fake InputDevice objects read anything pending from
         # that group, to be realistic it would have to check if the provided
         # element is in its capabilities.
-        ret = pending_events.get(self.group, [])
+        ret = [e.copy() for e in pending_events.get(self.group, [])]
         if ret is not None:
             # consume all of them
             pending_events[self.group] = []
@@ -279,7 +279,7 @@ class InputDevice:
         if len(pending_events[self.group]) == 0:
             return None
 
-        event = pending_events[self.group].pop(0)
+        event = pending_events[self.group].pop(0).copy()
         self.log(event, 'read_one')
         return event
 
@@ -289,7 +289,7 @@ class InputDevice:
             return
 
         while len(pending_events[self.group]) > 0:
-            result = pending_events[self.group].pop(0)
+            result = pending_events[self.group].pop(0).copy()
             self.log(result, 'read_loop')
             yield result
             time.sleep(EVENT_READ_TIMEOUT)
@@ -300,7 +300,7 @@ class InputDevice:
             return
 
         while len(pending_events[self.group]) > 0:
-            result = pending_events[self.group].pop(0)
+            result = pending_events[self.group].pop(0).copy()
             self.log(result, 'async_read_loop')
             yield result
             await asyncio.sleep(0.01)
@@ -351,6 +351,15 @@ class InputEvent(evdev.InputEvent):
     def __init__(self, sec, usec, type, code, value):
         self.t = (type, code, value)
         super().__init__(sec, usec, type, code, value)
+
+    def copy(self):
+        return InputEvent(
+            self.sec,
+            self.usec,
+            self.type,
+            self.code,
+            self.value
+        )
 
 
 def patch_evdev():
@@ -405,6 +414,7 @@ Injector.regrab_timeout = 0.15
 
 
 _fixture_copy = copy.deepcopy(fixtures)
+environ_copy = copy.deepcopy(os.environ)
 
 
 def cleanup():
@@ -415,9 +425,7 @@ def cleanup():
         '\033[0m'  # end style
     )
     keycode_reader.stop_reading()
-    keycode_reader.clear()
-    keycode_reader.newest_event = None
-    keycode_reader._unreleased = {}
+    keycode_reader.__init__()
 
     if asyncio.get_event_loop().is_running():
         for task in asyncio.all_tasks():
@@ -453,6 +461,11 @@ def cleanup():
     for path in list(_fixture_copy.keys()):
         if path not in fixtures:
             fixtures[path] = _fixture_copy[path]
+
+    os.environ.update(environ_copy)
+    for key in list(os.environ.keys()):
+        if key not in environ_copy:
+            del os.environ[key]
 
     refresh_devices()
 

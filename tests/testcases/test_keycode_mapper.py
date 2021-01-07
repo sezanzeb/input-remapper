@@ -121,8 +121,14 @@ class TestKeycodeMapper(unittest.TestCase):
         handle_keycode(_key_to_code, {}, new_event(*ev_1), uinput)
         handle_keycode(_key_to_code, {}, new_event(*ev_4), uinput)
         self.assertEqual(len(unreleased), 2)
-        self.assertEqual(unreleased.get(ev_1[:2]), ((EV_KEY, _key_to_code[(ev_1,)]), ev_1))
-        self.assertEqual(unreleased.get(ev_4[:2]), ((EV_KEY, _key_to_code[(ev_4,)]), ev_4))
+
+        self.assertEqual(unreleased.get(ev_1[:2]).target_type_code, (EV_KEY, _key_to_code[(ev_1,)]))
+        self.assertEqual(unreleased.get(ev_1[:2]).input_event_tuple, ev_1)
+        self.assertEqual(unreleased.get(ev_1[:2]).key, (ev_1,))  # as seen in _key_to_code
+
+        self.assertEqual(unreleased.get(ev_4[:2]).target_type_code, (EV_KEY, _key_to_code[(ev_4,)]), ev_4)
+        self.assertEqual(unreleased.get(ev_4[:2]).input_event_tuple, ev_4)
+        self.assertEqual(unreleased.get(ev_4[:2]).key, (ev_4,))
 
         # release all of them
         handle_keycode(_key_to_code, {}, new_event(*ev_3), uinput)
@@ -133,8 +139,10 @@ class TestKeycodeMapper(unittest.TestCase):
         handle_keycode(_key_to_code, {}, new_event(*ev_2), uinput)
         handle_keycode(_key_to_code, {}, new_event(*ev_5), uinput)
         self.assertEqual(len(unreleased), 2)
-        self.assertEqual(unreleased.get(ev_2[:2]), ((EV_KEY, _key_to_code[(ev_2,)]), ev_2))
-        self.assertEqual(unreleased.get(ev_5[:2]), ((EV_KEY, _key_to_code[(ev_5,)]), ev_5))
+        self.assertEqual(unreleased.get(ev_2[:2]).target_type_code, (EV_KEY, _key_to_code[(ev_2,)]))
+        self.assertEqual(unreleased.get(ev_2[:2]).input_event_tuple, ev_2)
+        self.assertEqual(unreleased.get(ev_5[:2]).target_type_code, (EV_KEY, _key_to_code[(ev_5,)]))
+        self.assertEqual(unreleased.get(ev_5[:2]).input_event_tuple, ev_5)
 
         # release all of them again
         handle_keycode(_key_to_code, {}, new_event(*ev_3), uinput)
@@ -161,7 +169,8 @@ class TestKeycodeMapper(unittest.TestCase):
         uinput = UInput()
 
         handle_keycode({}, {}, new_event(*down), uinput, False)
-        self.assertEqual(unreleased[(EV_KEY, 91)], (down[:2], down))
+        self.assertEqual(unreleased[(EV_KEY, 91)].input_event_tuple, down)
+        self.assertEqual(unreleased[(EV_KEY, 91)].target_type_code, down[:2])
         self.assertEqual(len(unreleased), 1)
         self.assertEqual(uinput.write_count, 0)
 
@@ -171,7 +180,10 @@ class TestKeycodeMapper(unittest.TestCase):
 
     def test_dont_filter_unmapped(self):
         # if an event is not used at all, it should be written into
-        # unmapped but not furthermore modified
+        # unmapped but not furthermore modified. For example wheel events
+        # keep reporting events of the same value without a release inbetween,
+        # they should be forwarded.
+
         down = (EV_KEY, 91, 1)
         up = (EV_KEY, 91, 0)
         uinput = UInput()
@@ -179,7 +191,8 @@ class TestKeycodeMapper(unittest.TestCase):
         for _ in range(10):
             handle_keycode({}, {}, new_event(*down), uinput)
 
-        self.assertEqual(unreleased[(EV_KEY, 91)], (down[:2], down))
+        self.assertEqual(unreleased[(EV_KEY, 91)].input_event_tuple, down)
+        self.assertEqual(unreleased[(EV_KEY, 91)].target_type_code, down[:2])
         self.assertEqual(len(unreleased), 1)
         self.assertEqual(uinput.write_count, 10)
 
@@ -236,8 +249,10 @@ class TestKeycodeMapper(unittest.TestCase):
         handle_keycode(_key_to_code, {}, new_event(*ev_1), uinput)
         handle_keycode(_key_to_code, {}, new_event(*ev_2), uinput)
         # (what_will_be_released, what_caused_the_key_down)
-        self.assertEqual(unreleased.get(ev_1[:2]), ((EV_ABS, ABS_HAT0X), ev_1))
-        self.assertEqual(unreleased.get(ev_2[:2]), ((EV_KEY, 51), ev_2))
+        self.assertEqual(unreleased.get(ev_1[:2]).target_type_code, (EV_ABS, ABS_HAT0X))
+        self.assertEqual(unreleased.get(ev_1[:2]).input_event_tuple, ev_1)
+        self.assertEqual(unreleased.get(ev_2[:2]).target_type_code, (EV_KEY, 51))
+        self.assertEqual(unreleased.get(ev_2[:2]).input_event_tuple, ev_2)
         self.assertEqual(len(unreleased), 2)
 
         # ev_1 is unmapped and the other is the triggered combination
@@ -927,6 +942,10 @@ class TestKeycodeMapper(unittest.TestCase):
         self.assertEqual(uinput_write_history[3].t, (EV_KEY, 62, 1))
         self.assertIn(combi_1[0][:2], unreleased)
         self.assertIn(combi_1[1][:2], unreleased)
+        # since this event did not trigger anything, key is None
+        self.assertEqual(unreleased[combi_1[0][:2]].key, None)
+        # that one triggered something from _key_to_code, so the key is that
+        self.assertEqual(unreleased[combi_1[1][:2]].key, combi_1)
 
         # release the last key of the combi first, it should
         # release what the combination maps to
@@ -1024,6 +1043,68 @@ class TestKeycodeMapper(unittest.TestCase):
         self.assertEqual(len(uinput_write_history), 2)
         self.assertNotIn(down_1[:2], unreleased)
         self.assertNotIn(down_2[:2], unreleased)
+
+    def test_wheel_combination_release_failure(self):
+        # test based on a bug that once occurred
+        # 1 | 22.6698, ((1, 276, 1)) -------------- forwarding
+        # 2 | 22.9904, ((1, 276, 1), (2, 8, -1)) -- maps to 30
+        # 3 | 23.0103, ((1, 276, 1), (2, 8, -1)) -- duplicate key down
+        # 4 | ... 34 more duplicate key downs (scrolling)
+        # 5 | 23.7104, ((1, 276, 1), (2, 8, -1)) -- duplicate key down
+        # 6 | 23.7283, ((1, 276, 0)) -------------- forwarding release
+        # 7 | 23.7303, ((2, 8, -1)) --------------- forwarding
+        # 8 | 23.7865, ((2, 8, 0)) ---------------- not forwarding release
+        # line 7 should have been "duplicate key down" as well
+        # line 8 should have released 30, instead it was never released
+
+        scroll = (2, 8, -1)
+        scroll_up = (2, 8, 0)
+        btn_down = (1, 276, 1)
+        btn_up = (1, 276, 0)
+        combination = ((1, 276, 1), (2, 8, -1))
+
+        system_mapping.clear()
+        system_mapping._set('a', 30)
+        k2c = {combination: 30}
+
+        uinput = UInput()
+
+        handle_keycode(k2c, {}, new_event(*btn_down), uinput)
+        # "forwarding"
+        self.assertEqual(uinput_write_history[0].t, btn_down)
+
+        handle_keycode(k2c, {}, new_event(*scroll), uinput)
+        # "maps to 30"
+        self.assertEqual(uinput_write_history[1].t, (1, 30, 1))
+
+        for _ in range(5):
+            # keep scrolling
+            # "duplicate key down"
+            handle_keycode(k2c, {}, new_event(*scroll), uinput)
+
+        # nothing new since all of them were duplicate key downs
+        self.assertEqual(len(uinput_write_history), 2)
+
+        handle_keycode(k2c, {}, new_event(*btn_up), uinput)
+        # "forwarding release"
+        self.assertEqual(uinput_write_history[2].t, btn_up)
+
+        # one more scroll event. since the combination is still not released,
+        # it should be ignored as duplicate key-down
+        self.assertEqual(len(uinput_write_history), 3)
+        # "forwarding" (should be "duplicate key down")
+        handle_keycode(k2c, {}, new_event(*scroll), uinput)
+        self.assertEqual(len(uinput_write_history), 3)
+
+        # the failure to release the mapped key
+        # forward=False is what the debouncer uses, because a
+        # "scroll release" doesn't actually exist so it is not actually
+        # written if it doesn't release any mapping
+        handle_keycode(k2c, {}, new_event(*scroll_up), uinput, forward=False)
+
+        # 30 should be released
+        self.assertEqual(uinput_write_history[3].t, (1, 30, 0))
+        self.assertEqual(len(uinput_write_history), 4)
 
 
 if __name__ == "__main__":

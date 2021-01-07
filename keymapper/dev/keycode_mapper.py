@@ -39,19 +39,22 @@ from keymapper.mapping import DISABLE_CODE
 # once, one for each direction. Only sequentially.W
 active_macros = {}
 
-# mapping of future up event (type, code) to (output, input event),
+# mapping of future release event (type, code) to (output, input event),
 # with output being a tuple of (type, code) as  well. All key-up events
 # have a value of 0, so it is not added to the tuple.
 # This is needed in order to release the correct event mapped on a
 # D-Pad. Each direction on one D-Pad axis reports the same type and
 # code, but different values. There cannot be both at the same time,
 # as pressing one side of a D-Pad forces the other side to go up.
-# "I have got this release event, what was this for?"
-# It maps to (output_code, input_event) with input_event being the
-# same as the key, but with the value of e.g. -1 or 1. The complete
-# 3-tuple output event is used to track if a combined button press was done.
-# A combination might be desired for D-Pad left, but not D-Pad right.
-# (what_will_be_released, what_caused_the_key_down)
+# If both sides of a D-Pad are mapped to different event-codes, this data
+# structure helps to figure out which of those two to release on an event
+# of value 0. Same goes for the Wheel.
+# The input event is remembered to make sure no duplicate down-events are
+# written. Since wheels report a lot of "down" events that don't serve
+# any purpose when mapped to a key, those duplicate down events should be
+# removed. If the same type and code arrives but with a different value
+# (direction), there must be a way to check if the event is actually a
+# duplicate and not a different event.
 unreleased = {}
 
 
@@ -95,6 +98,140 @@ def subsets(combination):
     ))
 
 
+class Unreleased:
+    """This represents a key that has been pressed but not released yet."""
+    __slots__ = (
+        'target_type_code',
+        'input_event_tuple',
+        'key'
+    )
+
+    def __init__(self, target_type_code, input_event_tuple, key):
+        """
+        Parameters
+        ----------
+        target_type_code : 2-tuple
+            int type and int code of what was injected or forwarded
+        input_event_tuple : 3-tuple
+            the original event, int, int, int / type, code, value
+        key : tuple of 3-tuples
+            what was used to index key_to_code and macros when stuff
+            was triggered
+        """
+        self.target_type_code = target_type_code
+        self.input_event_tuple = input_event_tuple
+        self.key = key
+        unreleased[input_event_tuple[:2]] = self
+
+    def __str__(self):
+        return (
+            f'target{self.target_type_code} '
+            f'input{self.input_event_tuple} '
+            f'key{self.key}'
+        )
+
+
+def find_by_event(event):
+    """Find an unreleased entry by an event.
+
+    If such an entry exists, it was created by an event that is exactly like
+    the input parameter (except for the timestamp).
+
+    That doesn't mean it triggered something, only that it was seen before.
+    """
+    unreleased_entry = unreleased.get((event.type, event.code))
+    event_tuple = (event.type, event.code, event.value)
+    if unreleased_entry and unreleased_entry.input_event_tuple == event_tuple:
+        return unreleased_entry
+
+    return None
+
+
+def find_by_key(key):
+    """Find an unreleased entry by a combination of keys.
+
+    If such an entry exist, it was created when a combination of keys (which
+    matches the parameter) (can also be of len 1 = single key) ended
+    up triggering something.
+
+    Parameters
+    ----------
+    key : tuple of 3-tuples
+    """
+    unreleased_entry = unreleased.get(key[-1][:2])
+    if unreleased_entry and unreleased_entry.key == key:
+        return unreleased_entry
+
+    return None
+
+
+def _get_key(event, key_to_code, macros):
+    """If the event triggers stuff, get the key for that.
+
+    This key can be used to index `key_to_code` and `macros` and it might
+    be a combination of keys.
+
+    Otherwise, for unmapped events, returns the input.
+
+    The return format is always a tuple of 3-tuples, each 3-tuple being
+    type, code, value (int, int, int)
+    """
+    # The key used to index the mappings `key_to_code` and `macros`.
+    # If the key triggers a combination, the returned key will be that one
+    # instead
+    key = ((event.type, event.code, event.value),)
+
+    unreleased_entry = find_by_event(event)
+    if unreleased_entry is not None and unreleased_entry.key is not None:
+        # seen before. If this key triggered a combination,
+        # use the combination that was triggered by this as key.
+        return unreleased_entry.key
+
+    if is_key_down(event):
+        # get the key/combination that the key-down would trigger
+
+        # the triggering key-down has to be the last element in combination,
+        # all others can have any arbitrary order. By checking all unreleased
+        # keys, a + b + c takes priority over b + c, if both mappings exist.
+        # WARNING! the combination-down triggers, but a single key-up releases.
+        # Do not check if key in macros and such, if it is an up event. It's
+        # going to be False.
+        combination = tuple([
+            value.input_event_tuple for value
+            in unreleased.values()
+        ])
+        if key[0] not in combination:  # might be a duplicate-down event
+            combination += key
+
+        # find any triggered combination. macros and key_to_code contain
+        # every possible equivalent permutation of possible macros. The last
+        # key in the combination needs to remain the newest key though.
+        for subset in subsets(combination):
+            if subset[-1] != key[0]:
+                # only combinations that are completed and triggered by the
+                # newest input are of interest
+                continue
+
+            if subset in macros or subset in key_to_code:
+                key = subset
+                break
+        else:
+            # no subset found, just use the key. all indices are tuples of
+            # tuples, both for combinations and single keys.
+            if event.value == 1 and len(combination) > 1:
+                logger.key_spam(combination, 'unknown combination')
+
+    return key
+
+
+def print_unreleased():
+    """For debugging purposes."""
+    print('unreleased:')
+    print('\n'.join([
+        f'    {key}: {str(value)}' for key, value in unreleased.items()
+    ]))
+
+
 def handle_keycode(key_to_code, macros, event, uinput, forward=True):
     """Write mapped keycodes, forward unmapped ones and manage macros.
 
@@ -105,12 +242,12 @@ def handle_keycode(key_to_code, macros, event, uinput, forward=True):
     Parameters
     ----------
     key_to_code : dict
-        mapping of (type, code, value) to linux-keycode
+        mapping of ((type, code, value),) to linux-keycode
         or multiple of those like ((...), (...), ...) for combinations
         combinations need to be present in every possible valid ordering.
         e.g. shift + alt + a and alt + shift + a
     macros : dict
-        mapping of (type, code, value) to _Macro objects.
+        mapping of ((type, code, value),) to _Macro objects.
         Combinations work similar as in key_to_code
     event : evdev.InputEvent
     forward : bool
@@ -122,49 +259,14 @@ def handle_keycode(key_to_code, macros, event, uinput, forward=True):
         # no need to forward or map them.
         return
 
-    # The key used to index the mappings `key_to_code` and `macros`
-    key = (event.type, event.code, event.value)
-
     # the tuple of the actual input event. Used to forward the event if it is
-    # not mapped, and to index unreleased and active_macros
+    # not mapped, and to index unreleased and active_macros. stays constant
     event_tuple = (event.type, event.code, event.value)
     type_code = (event.type, event.code)
-
-    # the triggering key-down has to be the last element in combination, all
-    # others can have any arbitrary order. By checking all unreleased keys,
-    # a + b + c takes priority over b + c, if both mappings exist.
-    # WARNING! the combination-down triggers, but a single key-up releases.
-    # Do not check if key in macros and such, if it is an up event. It's
-    # going to be False.
-    combination = tuple([value[1] for value in unreleased.values()])
-    if key not in combination:  # might be a duplicate-down event
-        combination += (key,)
-
-    mapped = False  # only down events are usually mapped
-
-    # find any triggered combination. macros and key_to_code contain
-    # every possible equivalent permutation of possible macros. The last
-    # key in the combination needs to remain the newest key though.
-    for subset in subsets(combination):
-        if subset[-1] != key:
-            # only combinations that are completed and triggered by the
-            # newest input are of interest
-            continue
-
-        if subset in macros or subset in key_to_code:
-            key = subset
-            mapped = True
-            break
-    else:
-        # no subset found, just use the key. all indices are tuples of tuples,
-        # both for combinations and single keys.
-        if event.value == 1 and len(combination) > 1:
-            logger.key_spam(combination, 'unknown combination')
-
-        key = (key,)
-        mapped = key in macros or key in key_to_code
-
     active_macro = active_macros.get(type_code)
+
+    key = _get_key(event, key_to_code, macros)
+    is_mapped = key in macros or key in key_to_code
 
     """Releasing keys and macros"""
 
@@ -176,7 +278,8 @@ def handle_keycode(key_to_code, macros, event, uinput, forward=True):
             logger.key_spam(key, 'releasing macro')
 
         if type_code in unreleased:
-            target_type, target_code = unreleased[type_code][0]
+            # figure out what this release event was for
+            target_type, target_code = unreleased[type_code].target_type_code
             del unreleased[type_code]
 
             if target_code == DISABLE_CODE:
@@ -203,11 +306,12 @@ def handle_keycode(key_to_code, macros, event, uinput, forward=True):
 
     """Filtering duplicate key downs"""
 
-    if mapped and is_key_down(event):
+    if is_mapped and is_key_down(event):
         # unmapped keys should not be filtered here, they should just
         # be forwarded to populate unreleased and then be written.
 
-        if unreleased.get(type_code, (None, None))[1] == event_tuple:
+        if find_by_key(key) is not None:
+            # this key/combination triggered stuff before.
             # duplicate key-down. skip this event. Avoid writing millions of
             # key-down events when a continuous value is reported, for example
             # for gamepad triggers or mouse-wheel-side buttons
@@ -232,7 +336,7 @@ def handle_keycode(key_to_code, macros, event, uinput, forward=True):
         if key in macros:
             macro = macros[key]
             active_macros[type_code] = macro
-            unreleased[type_code] = ((EV_KEY, None), event_tuple)
+            Unreleased((None, None), event_tuple, key)
             macro.press_key()
             logger.key_spam(key, 'maps to macro %s', macro.code)
             asyncio.ensure_future(macro.run())
@@ -240,8 +344,9 @@ def handle_keycode(key_to_code, macros, event, uinput, forward=True):
 
         if key in key_to_code:
             target_code = key_to_code[key]
-            # remember the key that triggered this (combination or single key)
-            unreleased[type_code] = ((EV_KEY, target_code), event_tuple)
+            # remember the key that triggered this
+            # (this combination or this single key)
+            Unreleased((EV_KEY, target_code), event_tuple, key)
 
             if target_code == DISABLE_CODE:
                 logger.key_spam(key, 'disabled')
@@ -259,7 +364,7 @@ def handle_keycode(key_to_code, macros, event, uinput, forward=True):
 
         # unhandled events may still be important for triggering combinations
         # later, so remember them as well.
-        unreleased[type_code] = ((event_tuple[:2]), event_tuple)
+        Unreleased((event_tuple[:2]), event_tuple, None)
         return
 
     logger.error(key, '%s unhandled. %s %s', unreleased, active_macros)

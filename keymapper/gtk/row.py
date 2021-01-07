@@ -127,18 +127,33 @@ class Row(Gtk.ListBoxRow):
 
         self.put_together(character)
 
-        self.state = IDLE
+        self._state = IDLE
 
-    def release(self):
-        """Tell the row that no keys are currently pressed down."""
-        if self.state == HOLDING and self.get_key() is not None:
+    def refresh_state(self):
+        """Refresh the state.
+
+        The state is needed to switch focus when no keys are held anymore,
+        but only if the row has been in the HOLDING state before.
+        """
+        old_state = self._state
+
+        if not self.keycode_input.is_focus():
+            self._state = IDLE
+            return
+
+        unreleased_keys = keycode_reader.get_unreleased_keys()
+        if unreleased_keys is None and old_state == HOLDING and self.key:
             # A key was pressed and then released.
             # Switch to the character. idle_add this so that the
             # keycode event won't write into the character input as well.
             window = self.window.window
             GLib.idle_add(lambda: window.set_focus(self.character_input))
 
-        self.state = IDLE
+        if unreleased_keys is not None:
+            self._state = HOLDING
+            return
+
+        self._state = IDLE
 
     def get_key(self):
         """Get the Key object from the left column.
@@ -171,7 +186,7 @@ class Row(Gtk.ListBoxRow):
             return
 
         # it might end up being a key combination
-        self.state = HOLDING
+        self._state = HOLDING
 
         # keycode didn't change, do nothing
         if new_key == previous_key:
@@ -256,6 +271,7 @@ class Row(Gtk.ListBoxRow):
 
     def on_keycode_input_focus(self, *_):
         """Refresh useful usage information."""
+        keycode_reader.clear()
         self.show_press_key()
         self.window.can_modify_mapping()
 
@@ -263,7 +279,7 @@ class Row(Gtk.ListBoxRow):
         """Refresh useful usage information and set some state stuff."""
         self.show_click_here()
         self.keycode_input.set_active(False)
-        self.state = IDLE
+        self._state = IDLE
         keycode_reader.clear()
 
     def set_keycode_input_label(self, label):

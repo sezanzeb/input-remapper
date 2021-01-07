@@ -340,7 +340,6 @@
                     <property name="can-focus">True</property>
                     <property name="receives-default">True</property>
                     <property name="tooltip-text" translatable="yes">Shortcut: shift + del
-
 To give your keys back their original mapping.</property>
                     <property name="halign">end</property>
                     <property name="image">gtk-redo-icon</property>
@@ -414,7 +413,8 @@ To give your keys back their original mapping.</property>
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
                             <property name="receives-default">True</property>
-                            <property name="tooltip-text" translatable="yes">Presets need to be saved before they can be applied. Don't hold down any keys while the preset gets applied.</property>
+                            <property name="tooltip-text" translatable="yes">Presets need to be saved before they can be applied.
+Don't hold down any keys while the injection starts.</property>
                             <property name="image">check-icon</property>
                             <property name="always-show-image">True</property>
                             <signal name="clicked" handler="on_apply_preset_clicked" swapped="no"/>
@@ -650,7 +650,7 @@ To give your keys back their original mapping.</property>
                               <item id="wheel" translatable="yes">Wheel</item>
                               <item id="buttons" translatable="yes">Buttons</item>
                             </items>
-                            <signal name="changed" handler="on_left_joystick_purpose_changed" swapped="no"/>
+                            <signal name="changed" handler="on_left_joystick_changed" swapped="no"/>
                           </object>
                           <packing>
                             <property name="expand">False</property>
@@ -693,7 +693,7 @@ To give your keys back their original mapping.</property>
                               <item id="wheel" translatable="yes">Wheel</item>
                               <item id="buttons" translatable="yes">Buttons</item>
                             </items>
-                            <signal name="changed" handler="on_right_joystick_purpose_changed" swapped="no"/>
+                            <signal name="changed" handler="on_right_joystick_changed" swapped="no"/>
                           </object>
                           <packing>
                             <property name="expand">False</property>
@@ -735,7 +735,7 @@ To give your keys back their original mapping.</property>
                             <property name="adjustment">mouse_speed_adjustment</property>
                             <property name="round-digits">1</property>
                             <property name="draw-value">False</property>
-                            <signal name="value-changed" handler="on_joystick_mouse_speed_change_value" swapped="no"/>
+                            <signal name="value-changed" handler="on_joystick_mouse_speed_changed" swapped="no"/>
                           </object>
                           <packing>
                             <property name="expand">True</property>

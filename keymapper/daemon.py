@@ -33,7 +33,7 @@ from pydbus import SystemBus
 from gi.repository import GLib
 
 from keymapper.logger import logger
-from keymapper.dev.injector import Injector
+from keymapper.dev.injector import Injector, UNKNOWN
 from keymapper.mapping import Mapping
 from keymapper.config import config
 from keymapper.state import system_mapping
@@ -108,9 +108,9 @@ class Daemon:
                 <method name='stop_injecting'>
                     <arg type='s' name='device' direction='in'/>
                 </method>
-                <method name='is_injecting'>
+                <method name='get_state'>
                     <arg type='s' name='device' direction='in'/>
-                    <arg type='b' name='response' direction='out'/>
+                    <arg type='i' name='response' direction='out'/>
                 </method>
                 <method name='start_injecting'>
                     <arg type='s' name='device' direction='in'/>
@@ -136,18 +136,18 @@ class Daemon:
     def stop_injecting(self, device):
         """Stop injecting the mapping for a single device."""
         if self.injectors.get(device) is None:
-            logger.error(
+            logger.debug(
                 'Tried to stop injector, but none is running for device "%s"',
                 device
             )
             return
 
         self.injectors[device].stop_injecting()
-        del self.injectors[device]
 
-    def is_injecting(self, device):
-        """Is this device being mapped?"""
-        return device in self.injectors
+    def get_state(self, device):
+        """Get the injectors state."""
+        injector = self.injectors.get(device)
+        return injector.get_state() if injector else UNKNOWN
 
     def start_injecting(self, device, preset_path, config_dir=None):
         """Start injecting the preset for the device.
@@ -205,6 +205,8 @@ class Daemon:
             injector.start_injecting()
             self.injectors[device] = injector
         except OSError:
+            # I think this will never happen, probably leftover from
+            # some earlier version
             return False
 
         return True

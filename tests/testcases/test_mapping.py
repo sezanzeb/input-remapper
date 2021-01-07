@@ -140,7 +140,9 @@ class TestMapping(unittest.TestCase):
         # after saving. It should be ignored.
         self.mapping.change(Key(EV_KEY, 81, 1), 'a')
         self.mapping.set('mapping.a', 2)
+        self.assertEqual(self.mapping.num_saved_keys, 0)
         self.mapping.save(get_preset_path('foo', 'bar'))
+        self.assertEqual(self.mapping.num_saved_keys, len(self.mapping))
         self.assertFalse(self.mapping.changed)
         self.mapping.load(get_preset_path('foo', 'bar'))
         self.assertEqual(self.mapping.get_character(Key(EV_KEY, 81, 1)), 'a')
@@ -222,8 +224,10 @@ class TestMapping(unittest.TestCase):
             }, file)
 
         loaded = Mapping()
+        self.assertEqual(loaded.num_saved_keys, 0)
         loaded.load(get_preset_path('device 1', 'test'))
         self.assertEqual(len(loaded), 3)
+        self.assertEqual(loaded.num_saved_keys, 3)
         self.assertEqual(loaded.get_character(Key(EV_KEY, 3, 1)), 'a')
         self.assertEqual(loaded.get_character(Key(EV_ABS, ABS_HAT0X, -1)), 'b')
         self.assertEqual(loaded.get_character(Key(
@@ -268,6 +272,8 @@ class TestMapping(unittest.TestCase):
         self.mapping.change(ev_4, 'e', ev_4)
         self.assertEqual(self.mapping.get_character(ev_4), 'e')
         self.assertEqual(len(self.mapping), 2)
+
+        self.assertEqual(self.mapping.num_saved_keys, 0)
 
     def test_combinations(self):
         ev_1 = Key(EV_KEY, 1, 111)
