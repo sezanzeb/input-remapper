@@ -129,7 +129,7 @@ class ConfigBase:
             or ['macros', 'keystroke_sleep_ms']
         value : any
         """
-        logger.debug(
+        logger.info(
             'Changing "%s" to "%s" in %s',
             path, value, self.__class__.__name__
         )
@@ -144,7 +144,7 @@ class ConfigBase:
 
         Parameters
         ----------
-        path : string
+        path : string or string[]
             For example 'macros.keystroke_sleep_ms'
         log_unknown : bool
             If True, write an error if `path` does not exist in the config
@@ -223,7 +223,6 @@ class GlobalConfig(ConfigBase):
             If set, will change the path to load from and save to.
         """
         if path is not None:
-            # TODO Test
             if not os.path.exists(path):
                 logger.error('Config at "%s" not found', path)
                 return

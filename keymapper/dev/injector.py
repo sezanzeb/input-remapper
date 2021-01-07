@@ -42,7 +42,20 @@ from keymapper.mapping import DISABLE_CODE
 
 
 DEV_NAME = 'key-mapper'
+
+# messages
 CLOSE = 0
+OK = 1
+
+# states
+UNKNOWN = -1
+STARTING = 2
+FAILED = 3
+RUNNING = 4
+STOPPED = 5
+
+# for both states and messages
+NO_GRAB = 6
 
 
 # TODO joystick unmodified? forward abs_rel and abs_rel in capabilities
@@ -138,7 +151,7 @@ class Injector:
         self._process = None
         self._msg_pipe = multiprocessing.Pipe()
         self._key_to_code = self._map_keys_to_codes()
-        self.stopped = False
+        self._state = UNKNOWN
         self._event_producer = None
 
     def _map_keys_to_codes(self):
@@ -171,7 +184,7 @@ class Injector:
 
     def start_injecting(self):
         """Start injecting keycodes."""
-        if self.stopped or self._process is not None:
+        if self._process is not None:
             # So that there is less concern about integrity when putting
             # stuff into self. Each injector object can only be
             # started once.
@@ -181,8 +194,27 @@ class Injector:
             logger.error('Cannot inject for unknown device "%s"', self.device)
             return
 
+        self._state = STARTING
         self._process = multiprocessing.Process(target=self._start_injecting)
         self._process.start()
+
+    def get_state(self):
+        """Get the state of the injection."""
+        # only at this point the actual state is figured out
+        if self._state == STARTING and self._msg_pipe[1].poll():
+            msg = self._msg_pipe[1].recv()
+            if msg == OK:
+                self._state = RUNNING
+
+            if msg == NO_GRAB:
+                self._state = NO_GRAB
+
+        alive = self._process is not None and self._process.is_alive()
+        if self._state in [STARTING, RUNNING] and not alive:
+            self._state = FAILED
+            logger.error('Injector was unexpectedly found stopped')
+
+        return self._state
 
     def _prepare_device(self, path):
         """Try to grab the device, return if not needed/possible.
@@ -225,15 +257,17 @@ class Injector:
                 device.grab()
                 logger.debug('Grab %s', path)
                 break
-            except IOError:
+            except IOError as error:
                 attempts += 1
+
                 # it might take a little time until the device is free if
                 # it was previously grabbed.
-                logger.debug('Failed attemts to grab %s: %d', path, attempts)
+                logger.debug('Failed attempts to grab %s: %d', path, attempts)
 
-            if attempts >= 4:
-                logger.error('Cannot grab %s, it is possibly in use', path)
-                return None, False
+                if attempts >= 4:
+                    logger.error('Cannot grab %s, it is possibly in use', path)
+                    logger.error(str(error))
+                    return None, False
 
             time.sleep(self.regrab_timeout)
 
@@ -242,13 +276,13 @@ class Injector:
     def _modify_capabilities(self, macros, input_device, abs_to_rel):
         """Adds all used keycodes into a copy of a devices capabilities.
 
-        A device with those capabilities can do exactly the stuff it needs
-        to perform all mappings and macros.
+        Sometimes capabilities are a bit tricky and change how the system
+        interprets the device.
 
-        Prameters
-        ---------
+        Parameters
+        ----------
         macros : dict
-            maping of int to _Macro
+            mapping of int to _Macro
         input_device : evdev.InputDevice
         abs_to_rel : bool
             if ABS capabilities should be removed in favor of REL
@@ -407,16 +441,19 @@ class Injector:
 
         if len(coroutines) == 0:
             logger.error('Did not grab any device')
+            self._msg_pipe[0].send(NO_GRAB)
             return
 
         coroutines.append(self._msg_listener(loop))
+
+        # run besides this stuff
+        coroutines.append(self._event_producer.run())
 
         # set the numlock state to what it was before injecting, because
         # grabbing devices screws this up
         set_numlock(numlock_state)
 
-        # run besides this stuff
-        coroutines.append(self._event_producer.run())
+        self._msg_pipe[0].send(OK)
 
         try:
             loop.run_until_complete(asyncio.gather(*coroutines))
@@ -427,6 +464,9 @@ class Injector:
             logger.error(str(error))
 
         if len(coroutines) > 0:
+            # expected when stop_injecting is called,
+            # during normal operation as well as tests this point is not
+            # reached otherwise.
             logger.debug('asyncio coroutines ended')
 
     def _macro_write(self, code, value, uinput):
@@ -506,4 +546,4 @@ class Injector:
         """Stop injecting keycodes."""
         logger.info('Stopping injecting keycodes for device "%s"', self.device)
         self._msg_pipe[1].send(CLOSE)
-        self.stopped = True
+        self._state = STOPPED

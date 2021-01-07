@@ -28,14 +28,14 @@ from evdev.ecodes import EV_REL, EV_KEY, EV_ABS, ABS_HAT0X, BTN_LEFT, KEY_A, \
     REL_X, REL_Y, REL_WHEEL, REL_HWHEEL
 
 from keymapper.dev.injector import is_numlock_on, set_numlock, \
-    ensure_numlock, Injector, is_in_capabilities
+    ensure_numlock, Injector, is_in_capabilities, \
+    STARTING, RUNNING, STOPPED, NO_GRAB, UNKNOWN
 from keymapper.state import custom_mapping, system_mapping
 from keymapper.mapping import Mapping, DISABLE_CODE, DISABLE_NAME
 from keymapper.config import config
 from keymapper.key import Key
 from keymapper.dev.macros import parse
 from keymapper.dev import utils
-from keymapper.logger import logger
 from keymapper.getdevices import get_devices
 
 from tests.test import new_event, pending_events, fixtures, \
@@ -70,6 +70,7 @@ class TestInjector(unittest.TestCase):
 
         if self.injector is not None:
             self.injector.stop_injecting()
+            self.assertEqual(self.injector.get_state(), STOPPED)
             self.injector = None
         evdev.InputDevice.grab = self.grab
 
@@ -165,11 +166,14 @@ class TestInjector(unittest.TestCase):
         self.assertGreaterEqual(self.failed, 1)
         self.assertIsNone(device)
 
+        self.assertEqual(self.injector.get_state(), UNKNOWN)
         self.injector.start_injecting()
+        self.assertEqual(self.injector.get_state(), STARTING)
         # since none can be grabbed, the process will terminate. But that
         # actually takes quite some time.
         time.sleep(1.5)
         self.assertFalse(self.injector._process.is_alive())
+        self.assertEqual(self.injector.get_state(), NO_GRAB)
 
     def test_prepare_device_1(self):
         # according to the fixtures, /dev/input/event30 can do ABS_HAT0X
@@ -401,9 +405,12 @@ class TestInjector(unittest.TestCase):
         ]
 
         self.injector = Injector('device 2', custom_mapping)
+        self.assertEqual(self.injector.get_state(), UNKNOWN)
         self.injector.start_injecting()
+        self.assertEqual(self.injector.get_state(), STARTING)
 
         uinput_write_history_pipe[0].poll(timeout=1)
+        self.assertEqual(self.injector.get_state(), RUNNING)
         time.sleep(EVENT_READ_TIMEOUT * 10)
 
         # sending anything arbitrary does not stop the process
@@ -462,6 +469,7 @@ class TestInjector(unittest.TestCase):
 
         numlock_after = is_numlock_on()
         self.assertEqual(numlock_before, numlock_after)
+        self.assertEqual(self.injector.get_state(), RUNNING)
 
     def test_any_funky_event_as_button(self):
         # as long as should_map_event_as_btn says it should be a button,
@@ -530,6 +538,10 @@ class TestInjector(unittest.TestCase):
         self.assertEqual(history.count((EV_KEY, code_d, 0)), 1)
 
     def test_wheel(self):
+        # this tests both keycode_mapper and event_producer, and it seems
+        # to test stuff not covered in test_keycode_mapper, so it's a quite
+        # important one.
+
         # wheel release events are made up with a debouncer
 
         # map those two to stuff
@@ -601,7 +613,6 @@ class TestInjector(unittest.TestCase):
         # forwarded as is
         self.assertNotIn((EV_REL, REL_HWHEEL, 0), events)
 
-        print(events)
         self.assertEqual(len(events), 3)
 
     def test_store_permutations_for_macros(self):

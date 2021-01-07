@@ -102,4 +102,5 @@ inject the users autoloaded presets instead (if any are configured)
 ## Resources
 
 [PyGObject API Reference](https://lazka.github.io/pgi-docs/)
+
 [python-evdev](https://python-evdev.readthedocs.io/en/stable/)

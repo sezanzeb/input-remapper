@@ -28,7 +28,7 @@ from gi.repository import Gtk, Gdk, GLib
 
 from keymapper.data import get_data_path
 from keymapper.paths import get_config_path, get_preset_path
-from keymapper.state import custom_mapping, XMODMAP_FILENAME
+from keymapper.state import custom_mapping
 from keymapper.presets import get_presets, find_newest_preset, \
     delete_preset, rename_preset, get_available_preset_name
 from keymapper.logger import logger
@@ -36,6 +36,7 @@ from keymapper.getdevices import get_devices
 from keymapper.gtk.row import Row, to_string
 from keymapper.gtk.unsaved import unsaved_changes_dialog, GO_BACK
 from keymapper.dev.reader import keycode_reader
+from keymapper.dev.injector import RUNNING, FAILED, NO_GRAB
 from keymapper.daemon import get_dbus_interface
 from keymapper.config import config
 from keymapper.dev.macros import is_this_a_macro, parse
@@ -181,6 +182,7 @@ class Window:
         self.get('vertical-wrapper').set_opacity(1)
 
         self.ctrl = 0
+        self.unreleased_warn = 0
 
     def key_press(self, _, event):
         """To execute shortcuts.
@@ -216,15 +218,22 @@ class Window:
             self.get('gamepad_config').hide()
             return
 
-        left_purpose = custom_mapping.get('gamepad.joystick.left_purpose')
-        self.get('left_joystick_purpose').set_active_id(left_purpose)
+        left_purpose = self.get('left_joystick_purpose')
+        right_purpose = self.get('right_joystick_purpose')
+        speed = self.get('joystick_mouse_speed')
 
-        right_purpose = custom_mapping.get('gamepad.joystick.right_purpose')
-        self.get('right_joystick_purpose').set_active_id(right_purpose)
+        with HandlerDisabled(left_purpose, self.on_left_joystick_changed):
+            value = custom_mapping.get('gamepad.joystick.left_purpose')
+            left_purpose.set_active_id(value)
 
-        pointer_speed = custom_mapping.get('gamepad.joystick.pointer_speed')
-        range_value = math.log(pointer_speed, 2)
-        self.get('joystick_mouse_speed').set_value(range_value)
+        with HandlerDisabled(right_purpose, self.on_right_joystick_changed):
+            value = custom_mapping.get('gamepad.joystick.right_purpose')
+            right_purpose.set_active_id(value)
+
+        with HandlerDisabled(speed, self.on_joystick_mouse_speed_changed):
+            value = custom_mapping.get('gamepad.joystick.pointer_speed')
+            range_value = math.log(value, 2)
+            speed.set_value(range_value)
 
     def get(self, name):
         """Get a widget from the window"""
@@ -317,13 +326,16 @@ class Window:
 
     def can_modify_mapping(self, *_):
         """Show a message if changing the mapping is not possible."""
-        if not self.dbus.is_injecting(self.selected_device):
+        if self.dbus.get_state(self.selected_device) != RUNNING:
             return
 
         # because the device is in grab mode by the daemon and
         # therefore the original keycode inaccessible
         logger.info('Cannot change keycodes while injecting')
-        self.show_status(CTX_ERROR, 'Use "Restore Defaults" before editing')
+        self.show_status(
+            CTX_ERROR,
+            'Use "Restore Defaults" to stop before editing'
+        )
 
     def get_focused_row(self):
         """Get the Row and its child that is currently in focus."""
@@ -344,8 +356,6 @@ class Window:
     @with_selected_device
     def consume_newest_keycode(self):
         """To capture events from keyboards, mice and gamepads."""
-        row, focused = self.get_focused_row()
-
         # the "event" event of Gtk.Window wouldn't trigger on gamepad
         # events, so it became a GLib timeout to periodically check kernel
         # events.
@@ -355,26 +365,23 @@ class Window:
         # they have already been read.
         key = keycode_reader.read()
 
-        keys_pressed = keycode_reader.are_keys_pressed()
-        if isinstance(focused, Gtk.ToggleButton) and not keys_pressed:
-            row.release()
-            return True
-
-        if key is None:
-            return True
-
-        if key.is_problematic() and isinstance(focused, Gtk.ToggleButton):
-            self.show_status(
-                CTX_WARNING,
-                'ctrl, alt and shift may not combine properly',
-                'Your system will probably reinterpret combinations with ' +
-                'those after they are injected, and by doing so break them.'
-            )
-
         # inform the currently selected row about the new keycode
         row, focused = self.get_focused_row()
-        if isinstance(focused, Gtk.ToggleButton):
-            row.set_new_key(key)
+        if key is not None:
+            if isinstance(focused, Gtk.ToggleButton):
+                row.set_new_key(key)
+
+            if key.is_problematic() and isinstance(focused, Gtk.ToggleButton):
+                self.show_status(
+                    CTX_WARNING,
+                    'ctrl, alt and shift may not combine properly',
+                    'Your system will probably reinterpret combinations ' +
+                    'with those after they are injected, and by doing so ' +
+                    'break them.'
+                )
+
+        if row is not None:
+            row.refresh_state()
 
         return True
 
@@ -383,8 +390,7 @@ class Window:
         """Stop injecting the mapping."""
         self.dbus.stop_injecting(self.selected_device)
         self.show_status(CTX_APPLY, 'Applied the system default')
-        logger.info('Applied system default for "%s"', self.selected_preset)
-        GLib.timeout_add(10, self.show_device_mapping_status)
+        GLib.timeout_add(100, self.show_device_mapping_status)
 
     def show_status(self, context_id, message, tooltip=None):
         """Show a status message and set its tooltip."""
@@ -442,7 +448,7 @@ class Window:
 
         except PermissionError as error:
             error = str(error)
-            self.show_status(CTX_ERROR, 'Error: Permission denied!', error)
+            self.show_status(CTX_ERROR, 'Permission denied!', error)
             logger.error(error)
 
     @with_selected_preset
@@ -454,30 +460,55 @@ class Window:
     @with_selected_preset
     def on_apply_preset_clicked(self, _):
         """Apply a preset without saving changes."""
+        if custom_mapping.num_saved_keys == 0:
+            logger.error('Cannot apply empty preset file')
+            # also helpful for first time use
+            if custom_mapping.changed:
+                self.show_status(
+                    CTX_ERROR,
+                    'You need to save your changes first',
+                    'No mappings are stored in the preset .json file yet'
+                )
+            else:
+                self.show_status(
+                    CTX_ERROR,
+                    'You need to add keys and save first'
+                )
+            return
+
         preset = self.selected_preset
         device = self.selected_device
 
         logger.info('Applying preset "%s" for "%s"', preset, device)
 
-        if custom_mapping.changed:
-            self.show_status(
-                CTX_WARNING,
-                f'"{preset}" is outdated. shift + del to stop.',
-                'Click "Save" first for changes to take effect'
-            )
-        else:
-            self.show_status(
-                CTX_APPLY,
-                f'Applied preset "{preset}". shift + del to stop'
-            )
-
         path = get_preset_path(device, preset)
-        success = self.dbus.start_injecting(device, path, get_config_path())
+        if not self.unreleased_warn:
+            unreleased = keycode_reader.get_unreleased_keys()
+            if unreleased is not None:
+                # it's super annoying if that happens and may break the user
+                # input in such a way to prevent disabling the mapping
+                logger.error(
+                    'Tried to apply a preset while keys were held down: %s',
+                    unreleased
+                )
+                self.show_status(
+                    CTX_ERROR,
+                    'Please release your pressed keys first',
+                    'X11 will think they are held down forever otherwise.\n'
+                    'To overwrite this warning, press apply again.'
+                )
+                self.unreleased_warn = True
+                return
 
-        if not success:
-            self.show_status(CTX_ERROR, 'Error: Could not grab devices!')
+        self.unreleased_warn = False
+        self.dbus.start_injecting(device, path, get_config_path())
 
-        GLib.timeout_add(10, self.show_device_mapping_status)
+        self.show_status(
+            CTX_APPLY,
+            'Starting injection...'
+        )
+
+        GLib.timeout_add(100, self.show_injection_result)
 
     def on_autoload_switch(self, _, active):
         """Load the preset automatically next time the user logs in."""
@@ -511,10 +542,50 @@ class Window:
 
         self.show_device_mapping_status()
 
+    def show_injection_result(self):
+        """Show if the injection was successfully started."""
+        state = self.dbus.get_state(self.selected_device)
+
+        if state == RUNNING:
+            if custom_mapping.changed:
+                self.show_status(
+                    CTX_WARNING,
+                    'Applied without unsaved changes. shift + del to stop',
+                    'Click "Save" first for changes to take effect'
+                )
+            else:
+                self.show_status(
+                    CTX_APPLY,
+                    f'Applied preset "{self.selected_preset}"'
+                )
+
+            self.show_device_mapping_status()
+            return False
+
+        if state == FAILED:
+            self.show_status(
+                CTX_ERROR,
+                f'Failed to apply preset "{self.selected_preset}"'
+            )
+            return False
+
+        if state == NO_GRAB:
+            self.show_status(
+                CTX_ERROR,
+                'The device was not grabbed',
+                'Either another application is already grabbing it or '
+                'your preset doesn\'t contain anything that is sent by the '
+                'device.'
+            )
+            return False
+
+        # keep the timeout running
+        return True
+
     def show_device_mapping_status(self):
         """Figure out if this device is currently under keymappers control."""
         device = self.selected_device
-        if self.dbus.is_injecting(device):
+        if self.dbus.get_state(device) == RUNNING:
             logger.info('Device "%s" is currently mapped', device)
             self.get('apply_system_layout').set_opacity(1)
         else:
@@ -524,7 +595,7 @@ class Window:
     def on_create_preset_clicked(self, _):
         """Create a new preset and select it."""
         if custom_mapping.changed and unsaved_changes_dialog() == GO_BACK:
-                return
+            return
 
         try:
             new_preset = get_available_preset_name(self.selected_device)
@@ -535,7 +606,7 @@ class Window:
             self.get('preset_selection').set_active_id(new_preset)
         except PermissionError as error:
             error = str(error)
-            self.show_status(CTX_ERROR, 'Error: Permission denied!', error)
+            self.show_status(CTX_ERROR, 'Permission denied!', error)
             logger.error(error)
 
     def on_select_preset(self, dropdown):
@@ -551,9 +622,9 @@ class Window:
 
         preset = dropdown.get_active_text()
         logger.debug('Selecting preset "%s"', preset)
-
         self.selected_preset = preset
-        custom_mapping.load(get_preset_path(self.selected_device, self.selected_preset))
+
+        custom_mapping.load(get_preset_path(self.selected_device, preset))
 
         key_list = self.get('key_list')
         for key, output in custom_mapping:
@@ -580,17 +651,17 @@ class Window:
 
         custom_mapping.changed = False
 
-    def on_left_joystick_purpose_changed(self, dropdown):
+    def on_left_joystick_changed(self, dropdown):
         """Set the purpose of the left joystick."""
         purpose = dropdown.get_active_id()
         custom_mapping.set('gamepad.joystick.left_purpose', purpose)
 
-    def on_right_joystick_purpose_changed(self, dropdown):
+    def on_right_joystick_changed(self, dropdown):
         """Set the purpose of the right joystick."""
         purpose = dropdown.get_active_id()
         custom_mapping.set('gamepad.joystick.right_purpose', purpose)
 
-    def on_joystick_mouse_speed_change_value(self, gtk_range):
+    def on_joystick_mouse_speed_changed(self, gtk_range):
         """Set how fast the joystick moves the mouse."""
         speed = 2 ** gtk_range.get_value()
         custom_mapping.set('gamepad.joystick.pointer_speed', speed)

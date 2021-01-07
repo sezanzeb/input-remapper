@@ -113,6 +113,7 @@ class TestEventProducer(unittest.TestCase):
     def do(self, a, b, c, d, expectation):
         """Present fake values to the loop and observe the outcome."""
         clear_write_history()
+        self.event_producer.update_purposes()
         self.event_producer.notify(new_event(EV_ABS, ABS_X, a))
         self.event_producer.notify(new_event(EV_ABS, ABS_Y, b))
         self.event_producer.notify(new_event(EV_ABS, ABS_RX, c))

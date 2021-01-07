@@ -30,9 +30,6 @@ import pwd
 from keymapper.logger import logger
 
 
-# TODO unittest everything in here
-
-
 def get_user():
     """Try to find the user who called sudo/pkexec."""
     try:
@@ -71,6 +68,9 @@ CONFIG_PATH = os.path.join('/home', USER, '.config/key-mapper')
 
 def touch(path, log=True):
     """Create an empty file and all its parent dirs, give it to the user."""
+    if path.endswith('/'):
+        raise ValueError(f'Expected path to not end with a slash: {path}')
+
     if os.path.exists(path):
         return
 

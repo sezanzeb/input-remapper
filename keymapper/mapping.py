@@ -70,6 +70,10 @@ class Mapping(ConfigBase):
     def __init__(self):
         self._mapping = {}  # a mapping of Key objects to strings
         self.changed = False
+
+        # are there actually any keys set in the mapping file?
+        self.num_saved_keys = 0
+
         super().__init__(fallback=config)
 
     def __iter__(self):
@@ -168,7 +172,11 @@ class Mapping(ConfigBase):
             preset_dict = json.load(file)
 
             if not isinstance(preset_dict.get('mapping'), dict):
-                logger.error('Invalid preset config at "%s"', path)
+                logger.error(
+                    'Expected mapping to be a dict, but was %s. '
+                    'Invalid preset config at "%s"',
+                    preset_dict.get('mapping'), path
+                )
                 return
 
             for key, character in preset_dict['mapping'].items():
@@ -194,6 +202,7 @@ class Mapping(ConfigBase):
                 self._config[key] = preset_dict[key]
 
         self.changed = False
+        self.num_saved_keys = len(self)
 
     def clone(self):
         """Create a copy of the mapping."""
@@ -211,9 +220,12 @@ class Mapping(ConfigBase):
         with open(path, 'w') as file:
             if self._config.get('mapping') is not None:
                 logger.error(
-                    '"mapping" is reserved and cannot be used as config key'
+                    '"mapping" is reserved and cannot be used as config '
+                    'key: %s',
+                    self._config.get('mapping')
                 )
-            preset_dict = self._config
+
+            preset_dict = self._config.copy()  # shallow copy
 
             # make sure to keep the option to add metadata if ever needed,
             # so put the mapping into a special key
@@ -234,6 +246,7 @@ class Mapping(ConfigBase):
             file.write('\n')
 
         self.changed = False
+        self.num_saved_keys = len(self)
 
     def get_character(self, key):
         """Read the character that is mapped to this keycode.

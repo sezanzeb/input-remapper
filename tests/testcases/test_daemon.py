@@ -35,6 +35,7 @@ from keymapper.config import config
 from keymapper.getdevices import get_devices
 from keymapper.paths import get_preset_path
 from keymapper.key import Key
+from keymapper.dev.injector import STARTING, RUNNING, STOPPED, UNKNOWN
 from keymapper.daemon import Daemon, get_dbus_interface, BUS_NAME
 
 from tests.test import cleanup, uinput_write_history_pipe, new_event, \
@@ -151,16 +152,17 @@ class TestDaemon(unittest.TestCase):
         self.assertFalse(uinput_write_history_pipe[0].poll())
         self.daemon.start_injecting(device, preset_path)
 
-        self.assertTrue(self.daemon.is_injecting(device))
-        self.assertFalse(self.daemon.is_injecting('device 1'))
+        self.assertEqual(self.daemon.get_state(device), STARTING)
+        self.assertEqual(self.daemon.get_state('device 1'), UNKNOWN)
 
         event = uinput_write_history_pipe[0].recv()
+        self.assertEqual(self.daemon.get_state(device), RUNNING)
         self.assertEqual(event.type, EV_KEY)
         self.assertEqual(event.code, 13)
         self.assertEqual(event.value, 1)
 
         self.daemon.stop_injecting(device)
-        self.assertFalse(self.daemon.is_injecting(device))
+        self.assertEqual(self.daemon.get_state(device), STOPPED)
 
         time.sleep(0.2)
         try:
@@ -220,12 +222,10 @@ class TestDaemon(unittest.TestCase):
         self.assertIsNotNone(get_devices().get(device))
 
         event = uinput_write_history_pipe[0].recv()
-        self.assertEqual(event.type, EV_KEY)
-        self.assertEqual(event.code, keycode_to)
-        self.assertEqual(event.value, 1)
+        self.assertEqual(event.t, (EV_KEY, keycode_to, 1))
 
         self.daemon.stop_injecting(device)
-        self.assertFalse(self.daemon.is_injecting(device))
+        self.assertEqual(self.daemon.get_state(device), STOPPED)
 
     def test_xmodmap_file(self):
         from_keycode = evdev.ecodes.KEY_A

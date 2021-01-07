@@ -42,7 +42,14 @@ def spam(self, message, *args, **kwargs):
 
 
 def key_spam(self, key, msg, *args):
-    """Log a spam message custom tailored to keycode_mapper."""
+    """Log a spam message custom tailored to keycode_mapper.
+
+    Parameters
+    ----------
+    key : tuple
+        anything that can be string formatted, but usually a tuple of
+        (type, code, value) tuples
+    """
     if not self.isEnabledFor(SPAM):
         return
     msg = msg % args
@@ -92,14 +99,15 @@ class Formatter(logging.Formatter):
                 pid = f'pid {os.getpid()}, '
 
             if debug:
-                delta = f' {str(time.time() - start)[:7]}, '
+                delta = f'{str(time.time() - start)[:7]}'
                 self._style._fmt = (  # noqa
-                    '\033[1m'  # bold
                     f'\033[{color}m'  # color
+                    f'{delta} '
+                    '\033[1m'  # bold
                     f'%(levelname)s'
                     '\033[0m'  # end style
                     f'\033[{color}m'  # color
-                    f':{delta}{pid}%(filename)s, line %(lineno)d, %(message)s'
+                    f': {pid}%(filename)s, line %(lineno)d, %(message)s'
                     '\033[0m'  # end style
                 )
             else:

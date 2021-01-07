@@ -25,7 +25,7 @@ import unittest
 from keymapper.config import config, GlobalConfig
 from keymapper.paths import touch, CONFIG_PATH
 
-from tests.test import cleanup
+from tests.test import cleanup, tmp
 
 
 class TestConfig(unittest.TestCase):
@@ -100,6 +100,7 @@ class TestConfig(unittest.TestCase):
         self.assertTrue(config.is_autoloaded('d1', 'a'))
         self.assertTrue(config.is_autoloaded('d2.foo', 'b'))
         self.assertEqual(config.get(['autoload', 'd1']), 'a')
+        self.assertEqual(config.get('autoload.d1'), 'a')
         self.assertEqual(config.get(['autoload', 'd2.foo']), 'b')
 
         config.set_autoload_preset('d2.foo', 'c')
@@ -153,6 +154,15 @@ class TestConfig(unittest.TestCase):
             list(config.iterate_autoload_presets()),
             [('d1', 'a'), ('d2.foo', 'b')]
         )
+
+        config_2 = os.path.join(tmp, 'config_2.json')
+        touch(config_2)
+        with open(config_2, 'w') as f:
+            f.write('{"a":"b"}')
+
+        config.load_config(config_2)
+        self.assertEqual(config.get("a"), "b")
+        self.assertEqual(config.get(["a"]), "b")
 
 
 if __name__ == "__main__":

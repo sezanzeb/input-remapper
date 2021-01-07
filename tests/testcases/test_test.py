@@ -19,6 +19,7 @@
 # along with key-mapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
+import os
 import unittest
 
 import evdev
@@ -57,6 +58,14 @@ class TestTest(unittest.TestCase):
         cleanup()
         self.assertIsNone(fixtures.get(1))
         self.assertIsNotNone(fixtures.get('/dev/input/event11'))
+
+    def test_restore_os_environ(self):
+        os.environ['foo'] = 'bar'
+        del os.environ['USER']
+        environ = os.environ
+        cleanup()
+        self.assertIn('USER', environ)
+        self.assertNotIn('foo', environ)
 
 
 if __name__ == "__main__":

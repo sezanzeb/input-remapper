@@ -70,6 +70,15 @@ class EventProducer:
         self.abs_state = {ABS_X: 0, ABS_Y: 0, ABS_RX: 0, ABS_RY: 0}
 
         self.debounces = {}
+        self.left_purpose = None
+        self.right_purpose = None
+
+        self.update_purposes()
+
+    def update_purposes(self):
+        """Figure out how the joysticks should be used"""
+        self.left_purpose = self.mapping.get('gamepad.joystick.left_purpose')
+        self.right_purpose = self.mapping.get('gamepad.joystick.right_purpose')
 
     def notify(self, event):
         """Tell the EventProducer about the newest ABS event.
@@ -169,8 +178,21 @@ class EventProducer:
 
     def is_handled(self, event):
         """Check if the event is something ev_abs will take care of."""
-        is_joystick = event.type == EV_ABS and event.code in utils.JOYSTICK
-        return is_joystick and self.max_abs is not None
+        if event.type != EV_ABS or event.code not in utils.JOYSTICK:
+            return False
+
+        if self.max_abs is None:
+            return False
+
+        purposes = [MOUSE, WHEEL]
+
+        if event.code in (ABS_X, ABS_Y) and self.left_purpose in purposes:
+            return True
+
+        if event.code in (ABS_RX, ABS_RY) and self.right_purpose in purposes:
+            return True
+
+        return False
 
     async def run(self):
         """Keep writing mouse movements based on the gamepad stick position.
@@ -182,16 +204,17 @@ class EventProducer:
         mapping = self.mapping
         pointer_speed = mapping.get('gamepad.joystick.pointer_speed')
         non_linearity = mapping.get('gamepad.joystick.non_linearity')
-        left_purpose = mapping.get('gamepad.joystick.left_purpose')
-        right_purpose = mapping.get('gamepad.joystick.right_purpose')
         x_scroll_speed = mapping.get('gamepad.joystick.x_scroll_speed')
         y_scroll_speed = mapping.get('gamepad.joystick.y_scroll_speed')
+        left_purpose = self.left_purpose
+        right_purpose = self.right_purpose
 
-        logger.info(
-            'Left joystick as %s, right joystick as %s',
-            left_purpose,
-            right_purpose
-        )
+        if max_abs is not None:
+            logger.info(
+                'Left joystick as %s, right joystick as %s',
+                left_purpose,
+                right_purpose
+            )
 
         start = time.time()
         while True:
