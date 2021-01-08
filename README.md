@@ -39,11 +39,13 @@ There are two options available to install using setuptools/pip:
 
 ```bash
 sudo pip install git+https://github.com/sezanzeb/key-mapper.git
+sudo systemctl restart key-mapper
 ```
 
 ```bash
 git clone https://github.com/sezanzeb/key-mapper.git
 cd key-mapper && sudo python3 setup.py install
+sudo systemctl restart key-mapper
 ```
 
 ## Screenshots
