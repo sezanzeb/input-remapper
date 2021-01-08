@@ -119,7 +119,13 @@ class _GetDevices(threading.Thread):
             name = device.name
             path = device.path
 
-            info = str(device.info)
+            info = (
+                f'{device.info.bustype},'
+                f'{device.info.vendor},'
+                f'{device.info.product}'
+                # observed a case with varying versions within a device,
+                # so only use the other three as index
+            )
             if grouped.get(info) is None:
                 grouped[info] = []
 

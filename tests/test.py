@@ -84,7 +84,7 @@ def read_write_history_pipe():
 # key-mapper is only interested in devices that have EV_KEY, add some
 # random other stuff to test that they are ignored.
 phys_1 = 'usb-0000:03:00.0-1/input2'
-info_1 = 'bus: 0001, vendor 0001, product 0001, version 0001'
+info_1 = evdev.device.DeviceInfo(1, 1, 1, 1)
 
 fixtures = {
     # device 1
@@ -124,7 +124,7 @@ fixtures = {
     '/dev/input/event20': {
         'capabilities': {evdev.ecodes.EV_KEY: list(evdev.ecodes.keys.keys())},
         'phys': 'usb-0000:03:00.0-2/input1',
-        'info': 'bus: 0002, vendor 0001, product 0002, version 0001',
+        'info': evdev.device.DeviceInfo(2, 1, 2, 1),
         'name': 'device 2'
     },
 
@@ -143,7 +143,7 @@ fixtures = {
             ]
         },
         'phys': 'usb-0000:03:00.0-3/input1',
-        'info': 'bus: 0003, vendor 0001, product 0003, version 0001',
+        'info': evdev.device.DeviceInfo(3, 1, 3, 1),
         'name': 'gamepad'
     },
 
@@ -151,7 +151,7 @@ fixtures = {
     '/dev/input/event31': {
         'capabilities': {evdev.ecodes.EV_SYN: []},
         'phys': 'usb-0000:03:00.0-4/input1',
-        'info': 'bus: 0004, vendor 0001, product 0004, version 0001',
+        'info': evdev.device.DeviceInfo(4, 1, 4, 1),
         'name': 'Power Button'
     },
 
@@ -160,7 +160,7 @@ fixtures = {
     '/dev/input/event40': {
         'capabilities': {evdev.ecodes.EV_KEY: list(evdev.ecodes.keys.keys())},
         'phys': 'key-mapper/input1',
-        'info': 'bus: 0005, vendor 0001, product 0005, version 0001',
+        'info': evdev.device.DeviceInfo(5, 1, 5, 1),
         'name': 'key-mapper device 2'
     },
 }
@@ -240,7 +240,7 @@ class InputDevice:
         self.path = path
         fixture = fixtures.get(path, {})
         self.phys = fixture.get('phys', 'unset')
-        self.info = fixture.get('info', 'unset')
+        self.info = fixture.get('info', evdev.device.DeviceInfo(None, None, None, None))
         self.name = fixture.get('name', 'unset')
         self.fd = self.name
 
