@@ -170,6 +170,7 @@ running (or without sudo if your user has the appropriate permissions).
 
 ```bash
 key-mapper-control --command autoload
+key-mapper-control --command autoload --config "/home/user/.config/key-mapper/"
 sudo key-mapper-control --list-devices
 key-mapper-control --command stop --device "Razer Razer Naga Trinity"
 key-mapper-control --command start --device "Razer Razer Naga Trinity" --preset "~/.config/key-mapper/presets/gamepad/a.json"

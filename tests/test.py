@@ -372,12 +372,6 @@ def patch_evdev():
     evdev.InputEvent = InputEvent
 
 
-def patch_unsaved():
-    # don't block tests
-    from keymapper.gtk import unsaved
-    unsaved.unsaved_changes_dialog = lambda: unsaved.CONTINUE
-
-
 def patch_events():
     # improve logging of stuff
     evdev.InputEvent.__str__ = lambda self: (
@@ -397,7 +391,6 @@ def clear_write_history():
 # the original versions
 patch_paths()
 patch_evdev()
-patch_unsaved()
 patch_select()
 patch_events()
 
@@ -407,6 +400,7 @@ from keymapper.config import config
 from keymapper.dev.reader import keycode_reader
 from keymapper.getdevices import refresh_devices
 from keymapper.state import system_mapping, custom_mapping
+from keymapper.paths import get_config_path
 from keymapper.dev.keycode_mapper import active_macros, unreleased
 
 # no need for a high number in tests
@@ -438,12 +432,14 @@ def cleanup():
     if os.path.exists(tmp):
         shutil.rmtree(tmp)
 
+    config.path = os.path.join(get_config_path(), 'config.json')
     config.clear_config()
     config.save_config()
 
     system_mapping.populate()
     custom_mapping.empty()
     custom_mapping.clear_config()
+    custom_mapping.changed = False
 
     clear_write_history()
 

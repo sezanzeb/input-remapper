@@ -30,15 +30,14 @@ from argparse import ArgumentParser
 from keymapper.logger import logger
 from keymapper.config import config
 from keymapper.daemon import get_dbus_interface
-from keymapper.mapping import Mapping
-from keymapper.state import XMODMAP_FILENAME, system_mapping
-from keymapper.paths import get_preset_path, get_config_path
+from keymapper.state import system_mapping
 from keymapper.getdevices import get_devices
 
 
 AUTOLOAD = 'autoload'
 START = 'start'
 STOP = 'stop'
+STOP_ALL = 'stop-all'
 HELLO = 'hello'
 
 
@@ -59,9 +58,24 @@ def group_exists(name):
         return False
 
 
-def main(options, daemon, config_path):
+def main(options, daemon):
     """Do the stuff that the executable is supposed to do."""
     # Is a function so that I can import it and test it
+    if options.config_dir is not None:
+        path = os.path.abspath(os.path.expanduser(os.path.join(
+            options.config_dir,
+            'config.json'
+        )))
+        if not os.path.exists(path):
+            logger.error('"%s" does not exist', path)
+            sys.exit(1)
+
+        logger.info('Using config from "%s" instead', path)
+        config.load_config(path)
+
+    config_dir = os.path.dirname(config.path)
+    presets_dir = os.path.join(config_dir, 'presets')
+
     if options.list_devices:
         get_devices()
         sys.exit(0)
@@ -70,7 +84,7 @@ def main(options, daemon, config_path):
         print('\n'.join(system_mapping.list_names()))
         sys.exit(0)
 
-    if options.command not in [AUTOLOAD, START, STOP, HELLO]:
+    if options.command not in [AUTOLOAD, START, STOP, HELLO, STOP_ALL]:
         logger.error('Unknown command "%s"', options.command)
 
     if options.command == AUTOLOAD:
@@ -82,10 +96,8 @@ def main(options, daemon, config_path):
                 config.save_config()
                 continue
 
-            mapping = Mapping()
-            preset_path = get_preset_path(device, preset)
-            mapping.load(preset_path)
-            daemon.start_injecting(device, preset_path, config_path)
+            preset_path = os.path.join(presets_dir, device, preset + '.json')
+            daemon.start_injecting(device, preset_path, config_dir)
 
     if options.command == START:
         if options.device is None:
@@ -97,7 +109,7 @@ def main(options, daemon, config_path):
             sys.exit(1)
 
         preset_path = os.path.abspath(os.path.expanduser(options.preset))
-        daemon.start_injecting(options.device, preset_path, config_path)
+        daemon.start_injecting(options.device, preset_path, config_dir)
 
     if options.command == STOP:
         if options.device is None:
@@ -105,6 +117,9 @@ def main(options, daemon, config_path):
             sys.exit(1)
 
         daemon.stop_injecting(options.device)
+
+    if options.command == STOP_ALL:
+        daemon.stop()
 
     if options.command == HELLO:
         response = daemon.hello('hello')
@@ -116,10 +131,18 @@ if __name__ == '__main__':
     parser.add_argument(
         '--command', action='store', dest='command',
         help=(
-            'start, stop, autoload (also stops all current injections) '
-            'or hello'
+            'start, stop, autoload (also stops all current injections), '
+            'hello or stop-all'
         ),
         default=None, metavar='NAME'
+    )
+    parser.add_argument(
+        '--config-dir', action='store', dest='config_dir',
+        help=(
+            'path to the config directory containing config.json. '
+            'defaults to ~/.config/key-mapper/'
+        ),
+        default=None, metavar='PATH',
     )
     parser.add_argument(
         '--preset', action='store', dest='preset',
@@ -149,6 +172,4 @@ if __name__ == '__main__':
     if daemon is None:
         sys.exit(0)
 
-    config_path = get_config_path()
-
-    main(options, daemon, config_path)
+    main(options, daemon)

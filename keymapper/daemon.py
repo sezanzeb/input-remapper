@@ -168,6 +168,8 @@ class Daemon:
         # reload the config, since it may have been changed
         if config_dir is not None:
             config_path = os.path.join(config_dir, 'config.json')
+            if not os.path.exists(config_path):
+                logger.error('"%s" does not exist', config_path)
             config.load_config(config_path)
 
         if device not in get_devices():
@@ -212,10 +214,7 @@ class Daemon:
         return True
 
     def stop(self):
-        """Stop all injections and end the service.
-
-        Raises dbus.exceptions.DBusException in your main process.
-        """
+        """Stop all injections."""
         logger.info('Stopping all injections')
         for injector in self.injectors.values():
             injector.stop_injecting()

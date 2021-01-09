@@ -67,8 +67,6 @@ Gtk.main_quit = lambda: None
 
 def launch(argv=None):
     """Start key-mapper-gtk with the command line argument array argv."""
-    custom_mapping.empty()
-
     bin_path = os.path.join(os.getcwd(), 'bin', 'key-mapper-gtk')
 
     if not argv:
@@ -81,6 +79,8 @@ def launch(argv=None):
         spec.loader.exec_module(module)
 
     gtk_iteration()
+
+    module.window.unsaved_changes.run = lambda: Gtk.ResponseType.ACCEPT
 
     return module.window
 
