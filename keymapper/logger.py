@@ -68,7 +68,7 @@ logging.Logger.key_spam = key_spam
 
 start = time.time()
 
-LOG_PATH = '~/.log/key-mapper'
+LOG_PATH = os.path.expanduser('~/.log/key-mapper')
 
 
 class Formatter(logging.Formatter):

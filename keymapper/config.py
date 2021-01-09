@@ -252,6 +252,10 @@ class GlobalConfig(ConfigBase):
 
     def save_config(self):
         """Save the config to the file system."""
+        if USER == 'root':
+            logger.debug('Skipping config file creation for the root user')
+            return
+
         touch(self.path)
 
         with open(self.path, 'w') as file:

@@ -471,7 +471,7 @@ class Injector:
 
     def _macro_write(self, code, value, uinput):
         """Handler for macros."""
-        logger.spam('macro writes code:%s value:%d', code, value)
+        logger.spam('macro writes %s', (EV_KEY, code, value))
         uinput.write(EV_KEY, code, value)
         uinput.syn()
 

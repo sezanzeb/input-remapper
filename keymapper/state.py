@@ -86,7 +86,7 @@ class SystemMapping:
             path = get_config_path(XMODMAP_FILENAME)
             touch(path)
             with open(path, 'w') as file:
-                logger.info('Writing "%s"', path)
+                logger.debug('Writing "%s"', path)
                 json.dump(xmodmap_dict, file, indent=4)
 
         self._mapping.update(xmodmap_dict)

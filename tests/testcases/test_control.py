@@ -30,11 +30,12 @@ from importlib.machinery import SourceFileLoader
 
 from keymapper.state import custom_mapping
 from keymapper.config import config
+from keymapper.paths import get_config_path
 from keymapper.daemon import Daemon
 from keymapper.mapping import Mapping
 from keymapper.paths import get_preset_path
 
-from tests.test import cleanup
+from tests.test import cleanup, tmp
 
 
 def import_control():
@@ -56,7 +57,7 @@ control = import_control()
 
 options = collections.namedtuple(
     'options',
-    ['command', 'preset', 'device', 'list_devices', 'key_names']
+    ['command', 'config_dir', 'preset', 'device', 'list_devices', 'key_names']
 )
 
 
@@ -71,7 +72,7 @@ class TestControl(unittest.TestCase):
             get_preset_path(devices[0], presets[0]),
             get_preset_path(devices[1], presets[1])
         ]
-        config_dir = '/foo/bar'
+        config_dir = get_config_path()
 
         Mapping().save(paths[0])
         Mapping().save(paths[1])
@@ -86,7 +87,39 @@ class TestControl(unittest.TestCase):
         config.set_autoload_preset(devices[0], presets[0])
         config.set_autoload_preset(devices[1], presets[1])
 
-        control(options('autoload', None, None, False, False), daemon, config_dir)
+        control(options('autoload', None, None, None, False, False), daemon)
+
+        self.assertEqual(len(start_history), 2)
+        self.assertEqual(len(stop_history), 1)
+        self.assertEqual(start_history[0], (devices[0], os.path.expanduser(paths[0]), config_dir))
+        self.assertEqual(start_history[1], (devices[1], os.path.abspath(paths[1]), config_dir))
+
+    def test_autoload_other_path(self):
+        devices = ['device 1234', 'device 2345']
+        presets = ['preset', 'bar']
+        config_dir = os.path.join(tmp, 'foo', 'bar')
+        paths = [
+            os.path.join(config_dir, 'presets', devices[0], presets[0] + '.json'),
+            os.path.join(config_dir, 'presets', devices[1], presets[1] + '.json')
+        ]
+
+        Mapping().save(paths[0])
+        Mapping().save(paths[1])
+
+        daemon = Daemon()
+
+        start_history = []
+        stop_history = []
+        daemon.start_injecting = lambda *args: start_history.append(args)
+        daemon.stop = lambda *args: stop_history.append(args)
+
+        config.path = os.path.join(config_dir, 'config.json')
+        config.load_config()
+        config.set_autoload_preset(devices[0], presets[0])
+        config.set_autoload_preset(devices[1], presets[1])
+        config.save_config()
+
+        control(options('autoload', config_dir, None, None, False, False), daemon)
 
         self.assertEqual(len(start_history), 2)
         self.assertEqual(len(stop_history), 1)
@@ -94,6 +127,32 @@ class TestControl(unittest.TestCase):
         self.assertEqual(start_history[1], (devices[1], os.path.abspath(paths[1]), config_dir))
 
     def test_start_stop(self):
+        device = 'device 1234'
+        path = '~/a/preset.json'
+        config_dir = get_config_path()
+
+        daemon = Daemon()
+
+        start_history = []
+        stop_history = []
+        stop_all_history = []
+        daemon.start_injecting = lambda *args: start_history.append(args)
+        daemon.stop_injecting = lambda *args: stop_history.append(args)
+        daemon.stop = lambda *args: stop_all_history.append(args)
+
+        control(options('start', None, path, device, False, False), daemon)
+        self.assertEqual(len(start_history), 1)
+        self.assertEqual(start_history[0], (device, os.path.expanduser(path), config_dir))
+
+        control(options('stop', None, None, device, False, False), daemon)
+        self.assertEqual(len(stop_history), 1)
+        self.assertEqual(stop_history[0], (device,))
+
+        control(options('stop-all', None, None, None, False, False), daemon)
+        self.assertEqual(len(stop_all_history), 1)
+        self.assertEqual(stop_all_history[0], ())
+
+    def test_config_not_found(self):
         device = 'device 1234'
         path = '~/a/preset.json'
         config_dir = '/foo/bar'
@@ -105,13 +164,11 @@ class TestControl(unittest.TestCase):
         daemon.start_injecting = lambda *args: start_history.append(args)
         daemon.stop_injecting = lambda *args: stop_history.append(args)
 
-        control(options('start', path, device, False, False), daemon, config_dir)
-        control(options('stop', None, device, False, False), daemon, None)
+        options_1 = options('start', config_dir, path, device, False, False)
+        self.assertRaises(SystemExit, lambda: control(options_1, daemon))
 
-        self.assertEqual(len(start_history), 1)
-        self.assertEqual(len(stop_history), 1)
-        self.assertEqual(start_history[0], (device, os.path.expanduser(path), config_dir))
-        self.assertEqual(stop_history[0], (device,))
+        options_2 = options('stop', config_dir, None, device, False, False)
+        self.assertRaises(SystemExit, lambda: control(options_2, daemon))
 
 
 if __name__ == "__main__":

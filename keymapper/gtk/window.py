@@ -34,7 +34,6 @@ from keymapper.presets import get_presets, find_newest_preset, \
 from keymapper.logger import logger
 from keymapper.getdevices import get_devices
 from keymapper.gtk.row import Row, to_string
-from keymapper.gtk.unsaved import unsaved_changes_dialog, GO_BACK
 from keymapper.dev.reader import keycode_reader
 from keymapper.dev.injector import RUNNING, FAILED, NO_GRAB
 from keymapper.daemon import get_dbus_interface
@@ -53,6 +52,9 @@ CTX_SAVE = 0
 CTX_APPLY = 1
 CTX_ERROR = 3
 CTX_WARNING = 4
+
+CONTINUE = True
+GO_BACK = False
 
 
 def get_selected_row_bg():
@@ -143,6 +145,8 @@ class Window:
         builder.connect_signals(self)
         self.builder = builder
 
+        self.unsaved_changes = builder.get_object('unsaved_changes')
+
         window = self.get('window')
         window.show()
         # hide everything until stuff is populated
@@ -183,6 +187,17 @@ class Window:
 
         self.ctrl = 0
         self.unreleased_warn = 0
+
+    def unsaved_changes_dialog(self):
+        """Blocks until the user decided about an action."""
+        self.unsaved_changes.show()
+        response = self.unsaved_changes.run()
+        self.unsaved_changes.hide()
+
+        if response == Gtk.ResponseType.ACCEPT:
+            return CONTINUE
+
+        return GO_BACK
 
     def key_press(self, _, event):
         """To execute shortcuts.
@@ -522,7 +537,7 @@ class Window:
         if dropdown.get_active_id() == self.selected_device:
             return
 
-        if custom_mapping.changed and unsaved_changes_dialog() == GO_BACK:
+        if custom_mapping.changed and self.unsaved_changes_dialog() == GO_BACK:
             dropdown.set_active_id(self.selected_device)
             return
 
@@ -594,7 +609,7 @@ class Window:
     @with_selected_device
     def on_create_preset_clicked(self, _):
         """Create a new preset and select it."""
-        if custom_mapping.changed and unsaved_changes_dialog() == GO_BACK:
+        if custom_mapping.changed and self.unsaved_changes_dialog() == GO_BACK:
             return
 
         try:
@@ -614,7 +629,7 @@ class Window:
         if dropdown.get_active_id() == self.selected_preset:
             return
 
-        if custom_mapping.changed and unsaved_changes_dialog() == GO_BACK:
+        if custom_mapping.changed and self.unsaved_changes_dialog() == GO_BACK:
             dropdown.set_active_id(self.selected_preset)
             return
 

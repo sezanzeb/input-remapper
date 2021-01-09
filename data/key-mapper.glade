@@ -14,7 +14,7 @@
   </object>
   <object class="GtkDialog" id="error_dialog">
     <property name="can-focus">False</property>
-    <property name="border-width">10</property>
+    <property name="border-width">4</property>
     <property name="title" translatable="yes">Key Mapper</property>
     <property name="modal">True</property>
     <property name="window-position">center</property>
@@ -138,7 +138,7 @@
   </object>
   <object class="GtkDialog" id="unsaved_changes">
     <property name="can-focus">False</property>
-    <property name="border-width">10</property>
+    <property name="border-width">4</property>
     <property name="title" translatable="yes">Key Mapper</property>
     <property name="modal">True</property>
     <property name="window-position">center</property>
