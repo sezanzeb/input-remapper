@@ -226,8 +226,8 @@ def _get_key(event, key_to_code, macros):
 
 def print_unreleased():
     """For debugging purposes."""
-    print('unreleased:')
-    print('\n'.join([
+    logger.debug('unreleased:')
+    logger.debug('\n'.join([
         f'    {key}: {str(value)}' for key, value in unreleased.items()
     ]))
 
@@ -367,4 +367,4 @@ def handle_keycode(key_to_code, macros, event, uinput, forward=True):
         Unreleased((event_tuple[:2]), event_tuple, None)
         return
 
-    logger.error(key, '%s unhandled. %s %s', unreleased, active_macros)
+    logger.error('%s unhandled', key)

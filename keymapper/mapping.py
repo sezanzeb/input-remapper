@@ -116,8 +116,8 @@ class Mapping(ConfigBase):
             raise ValueError('Expected `character` not to be None')
 
         logger.debug(
-            '%s will map to %s, replacing %s',
-            new_key, character, previous_key
+            '%s will map to "%s"',
+            new_key, character
         )
         self.clear(new_key)  # this also clears all equivalent keys
         self._mapping[new_key] = character
@@ -146,6 +146,8 @@ class Mapping(ConfigBase):
                 logger.debug('%s will be cleared', permutation)
                 del self._mapping[permutation]
                 self.changed = True
+                # there should be only one variation of the permutations
+                # in the mapping actually
 
     def empty(self):
         """Remove all mappings."""
