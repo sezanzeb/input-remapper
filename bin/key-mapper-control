@@ -97,6 +97,7 @@ def main(options, daemon):
                 continue
 
             preset_path = os.path.join(presets_dir, device, preset + '.json')
+            logger.info('Starting injection: "%s", "%s"', device, preset_path)
             daemon.start_injecting(device, preset_path, config_dir)
 
     if options.command == START:
@@ -109,6 +110,7 @@ def main(options, daemon):
             sys.exit(1)
 
         preset_path = os.path.abspath(os.path.expanduser(options.preset))
+        logger.info('Starting injection: "%s", "%s"', options.device, preset_path)
         daemon.start_injecting(options.device, preset_path, config_dir)
 
     if options.command == STOP:

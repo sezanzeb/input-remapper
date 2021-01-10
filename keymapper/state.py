@@ -56,7 +56,10 @@ class SystemMapping:
         self.clear()
         xmodmap_dict = {}
         try:
-            xmodmap = subprocess.check_output(['xmodmap', '-pke']).decode()
+            xmodmap = subprocess.check_output(
+                ['xmodmap', '-pke'],
+                stderr=subprocess.STDOUT
+            ).decode()
             xmodmap = xmodmap.lower()
             mappings = re.findall(r'(\d+) = (.+)\n', xmodmap + '\n')
             for keycode, names in mappings:
