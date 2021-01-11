@@ -87,6 +87,9 @@ def main(options, daemon):
     if options.command not in [AUTOLOAD, START, STOP, HELLO, STOP_ALL]:
         logger.error('Unknown command "%s"', options.command)
 
+    if daemon is None:
+        sys.exit(0)
+
     if options.command == AUTOLOAD:
         daemon.stop()
         for device, preset in list(config.iterate_autoload_presets()):
@@ -170,8 +173,5 @@ if __name__ == '__main__':
     options = parser.parse_args(sys.argv[1:])
 
     daemon = get_dbus_interface(fallback=False)
-
-    if daemon is None:
-        sys.exit(0)
 
     main(options, daemon)
