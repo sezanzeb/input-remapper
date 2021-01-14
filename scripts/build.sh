@@ -1,17 +1,26 @@
 #!/usr/bin/env bash
 
-build_deb() {
+pack_deb() {
   # https://www.devdungeon.com/content/debian-package-tutorial-dpkgdeb
   # that was really easy actually
-  rm build dist -r
   mkdir build/deb -p
   python3 setup.py install --root=build/deb
   cp ./DEBIAN build/deb/ -r
+
+  if [[ -f build/dist/key-mapper-0.6.0.deb ]]; then
+      rm build/dist/key-mapper-0.6.0.deb
+  fi
   mkdir dist -p
   dpkg -b build/deb dist/key-mapper-0.6.0.deb
 }
 
-build_deb &
+pack_flatpak() {
+  python3 setup.py install --root=build/flatpak
+  flatpak-builder build/flatpak_idk org.flatpak.Hello.yml
+}
+
+pack_deb &
 # add more build targets here
 
 wait
+

@@ -1,0 +1,28 @@
+app-id: whatever.idk.key-mapper
+runtime: org.gnome.Platform
+runtime-version: '3.38'
+sdk: org.gnome.Sdk
+rename-appdata-file: key-mapper.appdata.xml
+rename-desktop-file: key-mapper.desktop
+rename-icon: key-mapper
+command: key-mapper
+finish-args:
+  - --socket=fallback-x11
+  - --socket=wayland
+modules:
+  - name: python-evdev
+    buildsystem: simple
+    build-commands:
+      - python3 setup.py install --prefix=/app
+    sources:
+      - type: git
+        url: https://github.com/gvalkov/python-evdev.git
+  - name: key-mapper
+    buildsystem: simple
+    build-commands:
+      - python3 setup.py install --root=/app
+    sources:
+      - type: git
+        url: https://github.com/sezanzeb/key-mapper.git
+        branch: main
+
