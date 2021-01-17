@@ -47,7 +47,7 @@ def abs_max(value_1, value_2):
 class EventProducer:
     """Keeps producing events at 60hz if needed.
 
-    Can debounce writes or map joysticks to mouse movements.
+    Can debounce arbitrary functions. Maps joysticks to mouse movements.
 
     This class does not handle injecting macro stuff over time, that is done
     by the keycode_mapper.
@@ -140,6 +140,8 @@ class EventProducer:
         This information is needed for abs -> rel mapping.
         """
         if device is None:
+            # I don't think this ever happened
+            logger.error('Expected device to not be None')
             return
 
         max_abs = utils.get_max_abs(device)

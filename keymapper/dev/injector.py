@@ -32,13 +32,14 @@ import evdev
 from evdev.ecodes import EV_KEY, EV_REL
 
 from keymapper.logger import logger
-from keymapper.getdevices import get_devices, map_abs_to_rel
+from keymapper.getdevices import get_devices, is_gamepad
 from keymapper.dev.keycode_mapper import handle_keycode
 from keymapper.dev import utils
 from keymapper.dev.event_producer import EventProducer
 from keymapper.dev.macros import parse, is_this_a_macro
 from keymapper.state import system_mapping
 from keymapper.mapping import DISABLE_CODE
+from keymapper.config import NONE, MOUSE, WHEEL
 
 
 DEV_NAME = 'key-mapper'
@@ -56,9 +57,6 @@ STOPPED = 5
 
 # for both states and messages
 NO_GRAB = 6
-
-
-# TODO joystick unmodified? forward abs_rel and abs_rel in capabilities
 
 
 def is_numlock_on():
@@ -150,12 +148,34 @@ class Injector:
         mapping : Mapping
         """
         self.device = device
+
         self.mapping = mapping
+
         self._process = None
         self._msg_pipe = multiprocessing.Pipe()
         self._key_to_code = self._map_keys_to_codes()
         self._state = UNKNOWN
         self._event_producer = None
+
+    def _forwards_joystick(self):
+        """If at least one of the joysticks remains a regular joystick."""
+        left_purpose = self.mapping.get('gamepad.joystick.left_purpose')
+        right_purpose = self.mapping.get('gamepad.joystick.right_purpose')
+        return NONE in (left_purpose, right_purpose)
+
+    def _maps_joystick(self):
+        """If at least one of the joysticks will serve a special purpose."""
+        left_purpose = self.mapping.get('gamepad.joystick.left_purpose')
+        right_purpose = self.mapping.get('gamepad.joystick.right_purpose')
+        return (left_purpose, right_purpose) != (NONE, NONE)
+
+    def _joystick_as_mouse(self):
+        """If at least one joystick maps to an EV_REL capability."""
+        purposes = (
+            self.mapping.get('gamepad.joystick.left_purpose'),
+            self.mapping.get('gamepad.joystick.right_purpose')
+        )
+        return MOUSE in purposes or WHEEL in purposes
 
     def _map_keys_to_codes(self):
         """To quickly get target keycodes during operation.
@@ -219,17 +239,13 @@ class Injector:
 
         return self._state
 
-    def _prepare_device(self, path):
-        """Try to grab the device, return if not needed/possible.
-
-        Also return if ABS events are changed to REL mouse movements,
-        because the capabilities of the returned device are changed
-        so this cannot be checked later anymore.
-        """
+    def _grab_device(self, path):
+        """Try to grab the device, return None if not needed/possible."""
         try:
             device = evdev.InputDevice(path)
         except FileNotFoundError:
-            return None, False
+            logger.error('Could not find "%s"', path)
+            return None
 
         capabilities = device.capabilities(absinfo=False)
 
@@ -239,16 +255,16 @@ class Injector:
                 needed = True
                 break
 
-        abs_to_rel = map_abs_to_rel(capabilities)
+        gamepad = is_gamepad(device)
 
-        if abs_to_rel:
+        if gamepad and self._maps_joystick():
             needed = True
 
         if not needed:
             # skipping reading and checking on events from those devices
             # may be beneficial for performance.
             logger.debug('No need to grab %s', path)
-            return None, False
+            return None
 
         attempts = 0
         while True:
@@ -270,13 +286,13 @@ class Injector:
                 if attempts >= 4:
                     logger.error('Cannot grab %s, it is possibly in use', path)
                     logger.error(str(error))
-                    return None, False
+                    return None
 
             time.sleep(self.regrab_timeout)
 
-        return device, abs_to_rel
+        return device
 
-    def _modify_capabilities(self, macros, input_device, abs_to_rel):
+    def _modify_capabilities(self, macros, input_device, gamepad):
         """Adds all used keycodes into a copy of a devices capabilities.
 
         Sometimes capabilities are a bit tricky and change how the system
@@ -287,7 +303,7 @@ class Injector:
         macros : dict
             mapping of int to _Macro
         input_device : evdev.InputDevice
-        abs_to_rel : bool
+        gamepad : bool
             if ABS capabilities should be removed in favor of REL
         """
         ecodes = evdev.ecodes
@@ -311,7 +327,7 @@ class Injector:
         for macro in macros.values():
             capabilities[EV_KEY] += list(macro.get_capabilities())
 
-        if abs_to_rel:
+        if gamepad and self._joystick_as_mouse():
             # REL_WHEEL was also required to recognize the gamepad
             # as mouse, even if no joystick is used as wheel.
             capabilities[EV_REL] = [
@@ -334,15 +350,18 @@ class Injector:
             del capabilities[ecodes.EV_SYN]
         if ecodes.EV_FF in capabilities:
             del capabilities[ecodes.EV_FF]
-        if ecodes.EV_ABS in capabilities:
-            # EV_KEY events are ignoerd by the os when EV_ABS capabilities
-            # are present
+        if gamepad and not self._forwards_joystick():
+            # key input to text inputs and such only works without ABS
+            # events in the capabilities, possibly due to some intentional
+            # constraints in wayland/X. So if the joysticks are not used
+            # as joysticks remove ABS.
             del capabilities[ecodes.EV_ABS]
 
         return capabilities
 
-    async def _msg_listener(self, loop):
+    async def _msg_listener(self):
         """Wait for messages from the main process to do special stuff."""
+        loop = asyncio.get_event_loop()
         while True:
             frame_available = asyncio.Event()
             loop.add_reader(self._msg_pipe[0].fileno(), frame_available.set)
@@ -374,7 +393,6 @@ class Injector:
 
         numlock_state = is_numlock_on()
 
-        loop = asyncio.get_event_loop()
         coroutines = []
 
         logger.info('Starting injecting the mapping for "%s"', self.device)
@@ -385,7 +403,7 @@ class Injector:
 
         # Watch over each one of the potentially multiple devices per hardware
         for path in paths:
-            source, abs_to_rel = self._prepare_device(path)
+            source = self._grab_device(path)
             if source is None:
                 # this path doesn't need to be grabbed for injection, because
                 # it doesn't provide the events needed to execute the mapping
@@ -409,10 +427,11 @@ class Injector:
             # certain capabilities can have side effects apparently. with an
             # EV_ABS capability, EV_REL won't move the mouse pointer anymore.
             # so don't merge all InputDevices into one UInput device.
+            gamepad = is_gamepad(source)
             uinput = evdev.UInput(
                 name=f'{DEV_NAME} {self.device}',
                 phys=DEV_NAME,
-                events=self._modify_capabilities(macros, source, abs_to_rel)
+                events=self._modify_capabilities(macros, source, gamepad)
             )
 
             logger.spam(
@@ -429,16 +448,12 @@ class Injector:
                 macro.set_handler(handler)
 
             # actual reading of events
-            coroutines.append(self._event_consumer(
-                macros,
-                source,
-                uinput
-            ))
+            coroutines.append(self._event_consumer(macros, source, uinput))
 
             # The event source of the current iteration will deliver events
             # that are needed for this. It is that one that will be mapped
             # to a mouse-like devnode.
-            if abs_to_rel:
+            if gamepad and self._joystick_as_mouse():
                 self._event_producer.set_max_abs_from(source)
                 self._event_producer.set_mouse_uinput(uinput)
 
@@ -447,7 +462,7 @@ class Injector:
             self._msg_pipe[0].send(NO_GRAB)
             return
 
-        coroutines.append(self._msg_listener(loop))
+        coroutines.append(self._msg_listener())
 
         # run besides this stuff
         coroutines.append(self._event_producer.run())
@@ -536,6 +551,7 @@ class Injector:
                 continue
 
             # forward the rest
+            # TODO triggers should retain their original value if not mapped
             uinput.write(event.type, event.code, event.value)
             # this already includes SYN events, so need to syn here again
 
