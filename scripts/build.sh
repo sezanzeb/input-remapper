@@ -17,7 +17,7 @@ pack_deb() {
 
 pack_flatpak() {
   python3 setup.py install --root=build/flatpak
-  flatpak-builder build/flatpak_idk org.flatpak.Hello.yml
+  flatpak-builder build/flatpak_idk org.flatpak.key-mapper.yml
 }
 
 pack_deb &
