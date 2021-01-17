@@ -34,6 +34,7 @@ from keymapper.logger import logger
 MOUSE = 'mouse'
 WHEEL = 'wheel'
 BUTTONS = 'buttons'
+NONE = 'none'
 
 INITIAL_CONFIG = {
     'autoload': {},

@@ -28,7 +28,7 @@ import time
 import asyncio
 
 import evdev
-from evdev.ecodes import EV_KEY, EV_ABS
+from evdev.ecodes import EV_KEY, EV_ABS, KEY_CAMERA
 
 from keymapper.logger import logger
 
@@ -45,13 +45,14 @@ if not hasattr(evdev.InputDevice, 'path'):
     evdev.InputDevice.path = path
 
 
-def map_abs_to_rel(capabilities):
-    """Check if joystick movements can and should be mapped."""
-    # mapping buttons only works without ABS events in the capabilities,
-    # possibly due to some intentional constraints in the os. So always
-    # just map those events to REL if possible and remove ABS from
-    # the capabilities, because ABS events prevent regular button
-    # mappings from working,
+def is_gamepad(device):
+    """Check if joystick movements are available for mapping.
+
+    Parameters
+    ----------
+    device : InputDevice
+    """
+    capabilities = device.capabilities(absinfo=False)
     abs_capabilities = capabilities.get(EV_ABS)
     if abs_capabilities is not None:
         if evdev.ecodes.ABS_MT_TRACKING_ID in abs_capabilities:
@@ -107,14 +108,20 @@ class _GetDevices(threading.Thread):
             if device.name == 'Power Button':
                 continue
 
-            # only keyboard devices
+            gamepad = is_gamepad(device)
+
             # https://www.kernel.org/doc/html/latest/input/event-codes.html
             capabilities = device.capabilities(absinfo=False)
-            if EV_KEY not in capabilities and EV_ABS not in capabilities:
-                # or gamepads, because they can be mapped like a keyboard
+
+            key_capa = capabilities.get(EV_KEY)
+
+            if key_capa is None and not gamepad:
+                # skip devices that don't provide buttons that can be mapped
                 continue
 
-            is_gamepad = map_abs_to_rel(capabilities)
+            if len(key_capa) == 1 and key_capa[0] == KEY_CAMERA:
+                # skip cameras
+                continue
 
             name = device.name
             path = device.path
@@ -129,31 +136,31 @@ class _GetDevices(threading.Thread):
             if grouped.get(info) is None:
                 grouped[info] = []
 
-            logger.spam('Found "%s", "%s", "%s"', info, path, name)
+            logger.spam(
+                'Found "%s", "%s", "%s" %s',
+                info, path, name, '(gamepad)' if gamepad else ''
+            )
 
-            grouped[info].append((name, path, is_gamepad))
+            grouped[info].append((name, path, gamepad))
 
         # now write down all the paths of that group
         result = {}
         for group in grouped.values():
             names = [entry[0] for entry in group]
             devs = [entry[1] for entry in group]
-            is_gamepad = True in [entry[2] for entry in group]
+            gamepad = True in [entry[2] for entry in group]
             shortest_name = sorted(names, key=len)[0]
             result[shortest_name] = {
                 'paths': devs,
                 'devices': names,
-                'gamepad': is_gamepad
+                'gamepad': gamepad
             }
 
         self.pipe.send(result)
 
 
 def refresh_devices():
-    """Get new devices, e.g. new ones created by key-mapper.
-
-    This should be called whenever devices in /dev are added or removed.
-    """
+    """This can be called to discover new devices."""
     # it may take a little bit of time until devices are visible after
     # changes
     time.sleep(0.1)
@@ -185,11 +192,7 @@ def get_devices(include_keymapper=False):
         # block until devices are available
         _devices = pipe[0].recv()
         if len(_devices) == 0:
-            logger.error(
-                'Did not find any device. If you added yourself to the '
-                'needed groups (see `ls -l /dev/input`)  already, make sure '
-                'you also logged out and back in.'
-            )
+            logger.error('Did not find any input device')
         else:
             names = [f'"{name}"' for name in _devices]
             logger.info('Found %s', ', '.join(names))
