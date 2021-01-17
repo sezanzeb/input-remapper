@@ -23,7 +23,7 @@ import unittest
 
 import evdev
 
-from keymapper.getdevices import _GetDevices, get_devices, map_abs_to_rel
+from keymapper.getdevices import _GetDevices, get_devices, is_gamepad
 
 
 class FakePipe:
@@ -96,35 +96,43 @@ class TestGetDevices(unittest.TestCase):
             },
         })
 
-    def test_map_abs_to_rel(self):
+    def test_is_gamepad(self):
         # properly detects if the device is a gamepad
         EV_ABS = evdev.ecodes.EV_ABS
         EV_KEY = evdev.ecodes.EV_KEY
 
-        self.assertTrue(map_abs_to_rel({
+        class FakeDevice:
+            def __init__(self, capabilities):
+                self.c = capabilities
+
+            def capabilities(self, absinfo):
+                assert not absinfo
+                return self.c
+
+        self.assertTrue(is_gamepad(FakeDevice({
             EV_ABS: [evdev.ecodes.ABS_X]
-        }))
-        self.assertTrue(map_abs_to_rel({
+        })))
+        self.assertTrue(is_gamepad(FakeDevice({
             EV_ABS: [evdev.ecodes.ABS_X, evdev.ecodes.ABS_RY],
             EV_KEY: [evdev.ecodes.KEY_A]
-        }))
-        self.assertFalse(map_abs_to_rel({
+        })))
+        self.assertFalse(is_gamepad(FakeDevice({
             EV_ABS: [evdev.ecodes.ABS_X, evdev.ecodes.ABS_MT_TRACKING_ID]
-        }))
-        self.assertFalse(map_abs_to_rel({
+        })))
+        self.assertFalse(is_gamepad(FakeDevice({
             EV_ABS: [evdev.ecodes.ABS_HAT2X]
-        }))
-        self.assertFalse(map_abs_to_rel({
+        })))
+        self.assertFalse(is_gamepad(FakeDevice({
             EV_KEY: [evdev.ecodes.ABS_X]  # intentionally ABS_X (0) on EV_KEY
-        }))
-        self.assertFalse(map_abs_to_rel({
+        })))
+        self.assertFalse(is_gamepad(FakeDevice({
             EV_ABS: [evdev.ecodes.ABS_X],
             EV_KEY: [evdev.ecodes.BTN_TOOL_BRUSH]
-        }))
-        self.assertFalse(map_abs_to_rel({
+        })))
+        self.assertFalse(is_gamepad(FakeDevice({
             EV_ABS: [evdev.ecodes.ABS_X],
             EV_KEY: [evdev.ecodes.BTN_STYLUS]
-        }))
+        })))
 
 
 if __name__ == "__main__":

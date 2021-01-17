@@ -327,7 +327,6 @@ class UInput:
         self.device = InputDevice('justdoit')
         self.name = name
         self.events = events
-        pass
 
     def capabilities(self, *args, **kwargs):
         return self.events

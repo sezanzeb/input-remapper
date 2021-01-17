@@ -5,6 +5,7 @@ pack_deb() {
   # that was really easy actually
   mkdir build/deb -p
   python3 setup.py install --root=build/deb
+  mv build/deb/usr/local/lib/python3.*/ build/deb/usr/lib/python3/
   cp ./DEBIAN build/deb/ -r
 
   if [[ -f build/dist/key-mapper-0.6.0.deb ]]; then

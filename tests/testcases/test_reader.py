@@ -241,7 +241,6 @@ class TestReader(unittest.TestCase):
 
         pipe[1].send(new_event(EV_KEY, CODE_1, 0, 1004))
         read = keycode_reader.read()
-        print(read)
         self.assertEqual(read, None)
 
         pipe[1].send(new_event(EV_ABS, ABS_Y, 0, 1007))
