@@ -3,6 +3,8 @@
 .idea
 *.png~
 
+.flatpak-builder
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

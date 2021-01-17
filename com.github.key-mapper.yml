@@ -1,4 +1,4 @@
-app-id: whatever.idk.key-mapper
+app-id: com.github.key-mapper
 runtime: org.gnome.Platform
 runtime-version: '3.38'
 sdk: org.gnome.Sdk
@@ -14,7 +14,7 @@ modules:
   - name: key-mapper
     buildsystem: simple
     build-commands:
-      - python3 setup.py install --root=/app
+      - python3 setup.py install --root=/app --prefix=/app
     sources:
       - type: git
         url: https://github.com/sezanzeb/key-mapper.git
