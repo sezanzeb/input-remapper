@@ -6,7 +6,7 @@ build_deb() {
   rm build dist -r
   mkdir build/deb -p
   python3 setup.py install --root=build/deb
-  mv build/deb/usr/local/lib/python3.8/ build/deb/usr/lib/python3/
+  mv build/deb/usr/local/lib/python3.*/ build/deb/usr/lib/python3/
   cp ./DEBIAN build/deb/ -r
   mkdir dist -p
   dpkg -b build/deb dist/key-mapper-0.6.0.deb
