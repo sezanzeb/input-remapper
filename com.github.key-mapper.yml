@@ -14,7 +14,7 @@ modules:
   - name: key-mapper
     buildsystem: simple
     build-commands:
-      - python3 setup.py install --root=/app --prefix=/app
+      - python3 setup.py install --root=/app
     sources:
       - type: git
         url: https://github.com/sezanzeb/key-mapper.git
