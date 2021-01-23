@@ -69,35 +69,37 @@ just need to be commited.
 
 **service**
 
-- `bin/key-mapper-service` executable that starts listening over dbus for
-commands and runs the injector when needed. It shouldn't matter how it is
-started as long as it manages to start without throwing errors.
+- `bin/key-mapper-service` executable that starts listening for
+  commands via dbus and runs the injector when needed. It shouldn't matter how 
+  it is started as long as it manages to start without throwing errors. It
+  usually needs root rights.
 
 **gui**
 
 - `bin/key-mapper-gtk` the executable that starts the gui. It also sends
-messages to the service via dbus
-- `data/key-mapper.policy` is needed to show a password promt when starting
-the gui for sudo rights
+  messages to the service via dbus if certain buttons are clicked.
+- `bin/key-mapper-gtk-pkexec` opens a password promt to grant root rights
+  to the GUI, so that it can read from devices.
+- `data/key-mapper.policy` is needed for pkexec
 - `data/key-mapper.desktop` is the entry in the start menu
 
 **cli**
 
 - `bin/key-mapper-control` is an executable to send messages to the service
-via dbus. It can be used to start and stop injection without a gui.
+  via dbus. It can be used to start and stop injection without a GUI.
 
 **systemd**
 
-- `data/key-mapper.service` starts key-mapper-service automatically on boot,
-systemctl commands are possible.
+- `data/key-mapper.service` starts key-mapper-service automatically on boot
+  on distros using systemd.
 - `data/keymapper.Control.conf` is needed to connect to dbus services started
-by systemd from other applications
+  by systemd from other applications.
 
 **user stuff**
 
 - `key-mapper-autoload.desktop` executes on login and tells the systemd
-service to stop injecting (possible the presets of another user) and to
-inject the users autoloaded presets instead (if any are configured)
+  service to stop injecting (possibly the presets of another user) and to
+  inject the users autoloaded presets instead (if any are configured)
 
 ## Resources
 
