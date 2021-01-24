@@ -271,7 +271,7 @@ def handle_keycode(key_to_code, macros, event, uinput, forward=True):
     """Releasing keys and macros"""
 
     if is_key_up(event):
-        if active_macro is not None and active_macro.holding:
+        if active_macro is not None and active_macro.is_holding():
             # Tell the macro for that keycode that the key is released and
             # let it decide what to do with that information.
             active_macro.release_key()

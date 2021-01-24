@@ -79,8 +79,8 @@ class _Macro:
         self.code = code
         self.mapping = mapping
 
-        # supposed to be True between key event values 1 (down) and 0 (up)
-        self.holding = False
+        # is a lock so that h() can be realized
+        self._holding_lock = asyncio.Lock()
 
         self.running = False
 
@@ -88,6 +88,10 @@ class _Macro:
         self.capabilities = set()
 
         self.child_macros = []
+
+    def is_holding(self):
+        """Check if the macro is waiting for a key to be released."""
+        return self._holding_lock.locked()
 
     def get_capabilities(self):
         """Resolve all capabilities of the macro and those of its children."""
@@ -123,31 +127,52 @@ class _Macro:
 
     def press_key(self):
         """The user pressed the key down."""
-        self.holding = True
+        if self.is_holding():
+            logger.error('Already holding')
+            return
+
+        asyncio.ensure_future(self._holding_lock.acquire())
+
         for macro in self.child_macros:
             macro.press_key()
 
     def release_key(self):
         """The user released the key."""
-        self.holding = False
+        if self._holding_lock is not None:
+            self._holding_lock.release()
+
         for macro in self.child_macros:
             macro.release_key()
 
-    def hold(self, macro):
+    def hold(self, macro=None):
         """Loops the execution until key release."""
-        if not isinstance(macro, _Macro):
-            raise ValueError(
-                'Expected the param for h (hold) to be '
-                f'a macro (like k(a)), but got "{macro}"'
-            )
+        if macro is None:
+            # no parameters: block until released
+            async def task():
+                # wait until the key is released. Only then it will be
+                # able to acquire the lock. Release it right after so that
+                # it can be acquired by press_key again.
+                await self._holding_lock.acquire()
+                self._holding_lock.release()
+                # this seems to be much more efficient on the CPU than
+                # looping `await asyncio.sleep(0.001)`
 
-        async def task():
-            while self.holding:
-                await macro.run()
+            self.tasks.append((1234, task))
+        else:
+            if not isinstance(macro, _Macro):
+                raise ValueError(
+                    'Expected the param for h (hold) to be '
+                    f'a macro (like k(a)), but got "{macro}"'
+                )
 
-        self.tasks.append((REPEAT, task))
+            async def task():
+                while self.is_holding():
+                    # run the child macro completely to avoid
+                    # not-releasing any key
+                    await macro.run()
 
-        self.child_macros.append(macro)
+            self.tasks.append((REPEAT, task))
+            self.child_macros.append(macro)
 
         return self
 
@@ -335,6 +360,9 @@ def _parse_recurse(macro, mapping, macro_instance=None, depth=0):
     assert isinstance(macro, str)
     assert isinstance(depth, int)
 
+    if macro == '':
+        return None
+
     if macro_instance is None:
         macro_instance = _Macro(macro, mapping)
     else:
@@ -354,7 +382,7 @@ def _parse_recurse(macro, mapping, macro_instance=None, depth=0):
             'r': (macro_instance.repeat, 2, 2),
             'k': (macro_instance.keycode, 1, 1),
             'w': (macro_instance.wait, 1, 1),
-            'h': (macro_instance.hold, 1, 1)
+            'h': (macro_instance.hold, 0, 1)
         }
 
         function = functions.get(call)

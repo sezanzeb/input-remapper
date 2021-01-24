@@ -164,22 +164,47 @@ class TestMacros(unittest.TestCase):
         macro.press_key()
         asyncio.ensure_future(macro.run())
         self.loop.run_until_complete(asyncio.sleep(0.2))
+        self.assertTrue(macro.is_holding())
+        self.assertGreater(len(self.result), 2)
+
         macro.release_key()
         self.loop.run_until_complete(asyncio.sleep(0.05))
+        self.assertFalse(macro.is_holding())
 
-        self.assertEqual(
-            self.result[0],
-            (system_mapping.get('1'), 1)
-        )
-        self.assertEqual(
-            self.result[-1],
-            (system_mapping.get('3'), 0)
-        )
+        self.assertEqual(self.result[0], (system_mapping.get('1'), 1))
+        self.assertEqual(self.result[-1], (system_mapping.get('3'), 0))
 
         code_a = system_mapping.get('a')
         self.assertGreater(self.result.count((code_a, 1)), 2)
 
         self.assertEqual(len(macro.child_macros), 1)
+
+    def test_hold_forever(self):
+        macro = parse('k(1).h().k(3)', self.mapping)
+        macro.set_handler(self.handler)
+        self.assertSetEqual(macro.get_capabilities(), {
+            system_mapping.get('1'),
+            system_mapping.get('3')
+        })
+
+        macro.press_key()
+        asyncio.ensure_future(macro.run())
+        self.loop.run_until_complete(asyncio.sleep(0.1))
+        self.assertTrue(macro.is_holding())
+        self.assertEqual(len(self.result), 2)
+        self.loop.run_until_complete(asyncio.sleep(0.1))
+        # doesn't do fancy stuff, is blocking until the release
+        self.assertEqual(len(self.result), 2)
+
+        macro.release_key()
+        self.loop.run_until_complete(asyncio.sleep(0.05))
+        self.assertFalse(macro.is_holding())
+        self.assertEqual(len(self.result), 4)
+
+        self.assertEqual(self.result[0], (system_mapping.get('1'), 1))
+        self.assertEqual(self.result[-1], (system_mapping.get('3'), 0))
+
+        self.assertEqual(len(macro.child_macros), 0)
 
     def test_2(self):
         start = time.time()

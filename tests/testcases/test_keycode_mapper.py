@@ -78,9 +78,9 @@ class TestKeycodeMapper(unittest.TestCase):
     def tearDown(self):
         # make sure all macros are stopped by tests
         for macro in active_macros.values():
-            if macro.holding:
+            if macro.is_holding():
                 macro.release_key()
-            self.assertFalse(macro.holding)
+            self.assertFalse(macro.is_holding())
             self.assertFalse(macro.running)
 
         cleanup()
@@ -451,7 +451,7 @@ class TestKeycodeMapper(unittest.TestCase):
         keystroke_sleep = config.get('macros.keystroke_sleep_ms', 10)
         loop.run_until_complete(asyncio.sleep(sleeptime / 1000))
 
-        self.assertTrue(active_macros[(EV_KEY, 1)].holding)
+        self.assertTrue(active_macros[(EV_KEY, 1)].is_holding())
         self.assertTrue(active_macros[(EV_KEY, 1)].running)
 
         """stop macro"""
@@ -480,7 +480,7 @@ class TestKeycodeMapper(unittest.TestCase):
         count_after = len(history)
         self.assertEqual(count_before, count_after)
 
-        self.assertFalse(active_macros[(EV_KEY, 1)].holding)
+        self.assertFalse(active_macros[(EV_KEY, 1)].is_holding())
         self.assertFalse(active_macros[(EV_KEY, 1)].running)
 
     def test_hold_2(self):
@@ -525,11 +525,11 @@ class TestKeycodeMapper(unittest.TestCase):
             handle_keycode({}, macro_mapping, new_event(EV_KEY, 1, 1), None)
             handle_keycode({}, macro_mapping, new_event(EV_KEY, 3, 1), None)
             loop.run_until_complete(asyncio.sleep(0.05))
-            self.assertTrue(active_macros[(EV_KEY, 1)].holding)
+            self.assertTrue(active_macros[(EV_KEY, 1)].is_holding())
             self.assertTrue(active_macros[(EV_KEY, 1)].running)
-            self.assertTrue(active_macros[(EV_KEY, 2)].holding)
+            self.assertTrue(active_macros[(EV_KEY, 2)].is_holding())
             self.assertTrue(active_macros[(EV_KEY, 2)].running)
-            self.assertTrue(active_macros[(EV_KEY, 3)].holding)
+            self.assertTrue(active_macros[(EV_KEY, 3)].is_holding())
             self.assertTrue(active_macros[(EV_KEY, 3)].running)
 
         # there should only be one code_c in the events, because no key
@@ -573,11 +573,11 @@ class TestKeycodeMapper(unittest.TestCase):
             handle_keycode({}, macro_mapping, new_event(EV_KEY, 1, 0), None)
             handle_keycode({}, macro_mapping, new_event(EV_KEY, 3, 0), None)
             loop.run_until_complete(asyncio.sleep(0.05))
-            self.assertFalse(active_macros[(EV_KEY, 1)].holding)
+            self.assertFalse(active_macros[(EV_KEY, 1)].is_holding())
             self.assertFalse(active_macros[(EV_KEY, 1)].running)
-            self.assertTrue(active_macros[(EV_KEY, 2)].holding)
+            self.assertTrue(active_macros[(EV_KEY, 2)].is_holding())
             self.assertTrue(active_macros[(EV_KEY, 2)].running)
-            self.assertFalse(active_macros[(EV_KEY, 3)].holding)
+            self.assertFalse(active_macros[(EV_KEY, 3)].is_holding())
             self.assertFalse(active_macros[(EV_KEY, 3)].running)
 
         # stop macro 2
@@ -601,11 +601,11 @@ class TestKeycodeMapper(unittest.TestCase):
         count_after = len(history)
         self.assertEqual(count_before, count_after)
 
-        self.assertFalse(active_macros[(EV_KEY, 1)].holding)
+        self.assertFalse(active_macros[(EV_KEY, 1)].is_holding())
         self.assertFalse(active_macros[(EV_KEY, 1)].running)
-        self.assertFalse(active_macros[(EV_KEY, 2)].holding)
+        self.assertFalse(active_macros[(EV_KEY, 2)].is_holding())
         self.assertFalse(active_macros[(EV_KEY, 2)].running)
-        self.assertFalse(active_macros[(EV_KEY, 3)].holding)
+        self.assertFalse(active_macros[(EV_KEY, 3)].is_holding())
         self.assertFalse(active_macros[(EV_KEY, 3)].running)
 
     def test_hold_3(self):
@@ -634,7 +634,7 @@ class TestKeycodeMapper(unittest.TestCase):
 
         loop.run_until_complete(asyncio.sleep(0.1))
         for _ in range(5):
-            self.assertTrue(active_macros[(EV_KEY, 1)].holding)
+            self.assertTrue(active_macros[(EV_KEY, 1)].is_holding())
             self.assertTrue(active_macros[(EV_KEY, 1)].running)
             handle_keycode({}, macro_mapping, new_event(EV_KEY, 1, 1), None)
             loop.run_until_complete(asyncio.sleep(0.05))
@@ -652,7 +652,7 @@ class TestKeycodeMapper(unittest.TestCase):
         self.assertEqual(history.count((code_a, 0)), 1)
         self.assertEqual(history.count((code_c, 1)), 1)
         self.assertEqual(history.count((code_c, 0)), 1)
-        self.assertFalse(active_macros[(EV_KEY, 1)].holding)
+        self.assertFalse(active_macros[(EV_KEY, 1)].is_holding())
         self.assertFalse(active_macros[(EV_KEY, 1)].running)
 
         # it's stopped and won't write stuff anymore
@@ -727,9 +727,9 @@ class TestKeycodeMapper(unittest.TestCase):
         loop.run_until_complete(asyncio.sleep(sleeptime / 1000))
 
         self.assertEqual(len(active_macros), 2)
-        self.assertTrue(active_macros[key_1].holding)
+        self.assertTrue(active_macros[key_1].is_holding())
         self.assertTrue(active_macros[key_1].running)
-        self.assertTrue(active_macros[key_2].holding)
+        self.assertTrue(active_macros[key_2].is_holding())
         self.assertTrue(active_macros[key_2].running)
 
         self.assertIn(down_0[:2], unreleased)
@@ -748,9 +748,9 @@ class TestKeycodeMapper(unittest.TestCase):
 
         loop.run_until_complete(asyncio.sleep(keystroke_sleep * 10 / 1000))
 
-        self.assertFalse(active_macros[key_1].holding)
+        self.assertFalse(active_macros[key_1].is_holding())
         self.assertFalse(active_macros[key_1].running)
-        self.assertFalse(active_macros[key_2].holding)
+        self.assertFalse(active_macros[key_2].is_holding())
         self.assertFalse(active_macros[key_2].running)
 
         events = calculate_event_number(sleeptime, 1, 1) * 2
