@@ -174,8 +174,11 @@ class _KeycodeReader:
             # which breaks the current workflow.
             return
 
-        if not utils.should_map_event_as_btn(device, event, custom_mapping):
+        if not utils.should_map_event_as_btn(event, custom_mapping):
             return
+
+        max_abs = utils.get_max_abs(device)
+        event.value = utils.normalize_value(event, max_abs)
 
         self._pipe[1].send(event)
 
@@ -267,7 +270,6 @@ class _KeycodeReader:
         # have to trigger anything, manage any macros and only
         # reports key-down events. This function is called periodically
         # by the window.
-
         if self._pipe is None:
             self.fail_counter += 1
             if self.fail_counter % 10 == 0:  # spam less
@@ -293,11 +295,8 @@ class _KeycodeReader:
                 self._release(type_code)
                 continue
 
-            key_down_received = True
-
             if self._unreleased.get(type_code) == event_tuple:
-                if event.type != EV_ABS:  # spams a lot
-                    logger.key_spam(event_tuple, 'duplicate key down')
+                logger.key_spam(event_tuple, 'duplicate key down')
                 self._debounce_start(event_tuple)
                 continue
 
@@ -318,7 +317,10 @@ class _KeycodeReader:
                     previous_event.value
                 )
                 if prev_tuple[:2] in self._unreleased:
-                    logger.key_spam(prev_tuple, 'ignoring previous event')
+                    logger.key_spam(
+                        event_tuple,
+                        'ignoring previous event %s', prev_tuple
+                    )
                     self._release(prev_tuple[:2])
 
             # to keep track of combinations.
@@ -326,6 +328,7 @@ class _KeycodeReader:
             # event for a D-Pad axis might be any direction, hence this maps
             # from release to input in order to remember it. Since all release
             # events have value 0, the value is not used in the key.
+            key_down_received = True
             logger.key_spam(event_tuple, 'down')
             self._unreleased[type_code] = event_tuple
             self._debounce_start(event_tuple)

@@ -28,7 +28,6 @@ from evdev.ecodes import EV_KEY, EV_ABS, ABS_HAT0X, KEY_A, \
 from keymapper.config import config, BUTTONS
 from keymapper.mapping import Mapping
 from keymapper.dev import utils
-from keymapper.key import Key
 
 from tests.test import new_event, InputDevice, MAX_ABS
 
@@ -51,12 +50,11 @@ class TestDevUtils(unittest.TestCase):
         self.assertFalse(utils.is_wheel(new_event(EV_ABS, ABS_HAT0X, -1)))
 
     def test_should_map_event_as_btn(self):
-        device = InputDevice('/dev/input/event30')
         mapping = Mapping()
 
         # the function name is so horribly long
         def do(event):
-            return utils.should_map_event_as_btn(device, event, mapping)
+            return utils.should_map_event_as_btn(event, mapping)
 
         """D-Pad"""
 
@@ -86,29 +84,31 @@ class TestDevUtils(unittest.TestCase):
 
         self.assertFalse(do(new_event(EV_ABS, ecodes.ABS_RX, 1234)))
         self.assertFalse(do(new_event(EV_ABS, ecodes.ABS_Y, -1)))
+        self.assertFalse(do(new_event(EV_ABS, ecodes.ABS_RY, -1)))
 
-        mapping.set('gamepad.joystick.left_purpose', BUTTONS)
+        mapping.set('gamepad.joystick.right_purpose', BUTTONS)
+        config.set('gamepad.joystick.left_purpose', BUTTONS)
 
-        # the event.value should be modified for the left joystick
-        # to one of 0, -1 or 1
+        self.assertTrue(do(new_event(EV_ABS, ecodes.ABS_Y, -1)))
+        self.assertTrue(do(new_event(EV_ABS, ecodes.ABS_RY, -1)))
+
+    def test_normalize_value(self):
+        def do(event):
+            return utils.normalize_value(event, MAX_ABS)
+
         event = new_event(EV_ABS, ecodes.ABS_RX, MAX_ABS)
-        self.assertFalse(do(event))
-        self.assertEqual(event.value, MAX_ABS)
+        self.assertEqual(do(event), 1)
         event = new_event(EV_ABS, ecodes.ABS_Y, -MAX_ABS)
-        self.assertTrue(do(event))
-        self.assertEqual(event.value, -1)
+        self.assertEqual(do(event), -1)
         event = new_event(EV_ABS, ecodes.ABS_X, -MAX_ABS // 4)
-        self.assertTrue(do(event))
-        self.assertEqual(event.value, 0)
-
-        config.set('gamepad.joystick.right_purpose', BUTTONS)
-
+        self.assertEqual(do(event), 0)
         event = new_event(EV_ABS, ecodes.ABS_RX, MAX_ABS)
-        self.assertTrue(do(event))
-        self.assertEqual(event.value, 1)
+        self.assertEqual(do(event), 1)
         event = new_event(EV_ABS, ecodes.ABS_Y, MAX_ABS)
-        self.assertTrue(do(event))
-        self.assertEqual(event.value, 1)
+        self.assertEqual(do(event), 1)
         event = new_event(EV_ABS, ecodes.ABS_X, MAX_ABS // 4)
-        self.assertTrue(do(event))
-        self.assertEqual(event.value, 0)
+        self.assertEqual(do(event), 0)
+
+        # if none, it just forwards the value
+        event = new_event(EV_ABS, ecodes.ABS_RX, MAX_ABS)
+        self.assertEqual(utils.normalize_value(event, None), MAX_ABS)

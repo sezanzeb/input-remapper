@@ -32,6 +32,8 @@ SPAM = 5
 
 start = time.time()
 
+previous_key_spam = None
+
 
 def spam(self, message, *args, **kwargs):
     """Log a more-verbose message than debug."""
@@ -52,6 +54,9 @@ def key_spam(self, key, msg, *args):
     """
     if not self.isEnabledFor(SPAM):
         return
+
+    global previous_key_spam
+
     msg = msg % args
     str_key = str(key)
     str_key = str_key.replace(',)', ')')
@@ -59,6 +64,13 @@ def key_spam(self, key, msg, *args):
     if len(spacing) == 1:
         spacing = ''
     msg = f'{str_key}{spacing} {msg}'
+
+    if msg == previous_key_spam:
+        # avoid some super spam from EV_ABS events
+        return
+
+    previous_key_spam = msg
+
     self._log(SPAM, msg, args=None)
 
 
