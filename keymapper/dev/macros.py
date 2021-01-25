@@ -457,7 +457,8 @@ def parse(macro, mapping, return_errors=False):
     mapping : Mapping
         The preset object, needed for some config stuff
     return_errors : bool
-        if True, returns errors as a string or None if parsing worked
+        If True, returns errors as a string or None if parsing worked.
+        If False, returns the parsed macro.
     """
     # whitespaces, tabs, newlines and such don't serve a purpose. make
     # the log output clearer and the parsing easier.
