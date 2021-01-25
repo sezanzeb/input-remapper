@@ -100,6 +100,10 @@ class Key:
     def __str__(self):
         return f'Key{str(self.keys)}'
 
+    def __repr__(self):
+        # used in the AssertionError output of tests
+        return self.__str__()
+
     def __hash__(self):
         if len(self.keys) == 1:
             return hash(self.keys[0])

@@ -41,12 +41,13 @@ JOYSTICK = [
 ]
 
 
-# a third of a quarter circle
+# a third of a quarter circle, so that each quarter is divided in 3 areas:
+# up, left and up-left. That makes up/down/left/right larger than the
+# overlapping sections though, maybe it should be 8 equal areas though, idk
 JOYSTICK_BUTTON_THRESHOLD = math.sin((math.pi / 2) / 3 * 1)
 
 
 def sign(value):
-    """Get the sign of the value, or 0 if 0."""
     if value > 0:
         return 1
 
@@ -54,6 +55,23 @@ def sign(value):
         return -1
 
     return 0
+
+
+def normalize_value(event, max_abs):
+    """Fit the event value to one of 0, 1 or -1."""
+    if event.type == EV_ABS and event.code in JOYSTICK:
+        if max_abs is None:
+            logger.error(
+                'Got %s, but max_abs is %s',
+                (event.type, event.code, event.value), max_abs
+            )
+            return event.value
+
+        threshold = max_abs * JOYSTICK_BUTTON_THRESHOLD
+        triggered = abs(event.value) > threshold
+        return sign(event.value) if triggered else 0
+
+    return sign(event.value)
 
 
 def is_wheel(event):
@@ -66,7 +84,7 @@ def will_report_key_up(event):
     return not is_wheel(event)
 
 
-def should_map_event_as_btn(device, event, mapping):
+def should_map_event_as_btn(event, mapping):
     """Does this event describe a button.
 
     If it does, this function will make sure its value is one of [-1, 0, 1],
@@ -93,30 +111,12 @@ def should_map_event_as_btn(device, event, mapping):
             l_purpose = mapping.get('gamepad.joystick.left_purpose')
             r_purpose = mapping.get('gamepad.joystick.right_purpose')
 
-            max_abs = get_max_abs(device)
-
-            if max_abs is None:
-                logger.error(
-                    'Got %s, but max_abs is %s',
-                    (event.type, event.code, event.value), max_abs
-                )
-                return False
-
-            threshold = max_abs * JOYSTICK_BUTTON_THRESHOLD
-            triggered = abs(event.value) > threshold
-
             if event.code in [ABS_X, ABS_Y] and l_purpose == BUTTONS:
-                event.value = sign(event.value) if triggered else 0
                 return True
 
             if event.code in [ABS_RX, ABS_RY] and r_purpose == BUTTONS:
-                event.value = sign(event.value) if triggered else 0
                 return True
         else:
-            # normalize event numbers to one of -1, 0, +1. Otherwise mapping
-            # trigger values that are between 1 and 255 is not possible,
-            # because they might skip the 1 when pressed fast enough.
-            event.value = sign(event.value)
             return True
 
     return False

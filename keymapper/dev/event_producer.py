@@ -99,7 +99,6 @@ class EventProducer:
         except OverflowError:
             # screwed up the calculation of mouse movements
             logger.error('OverflowError (%s, %s, %s)', ev_type, keycode, value)
-            pass
 
     def debounce(self, debounce_id, func, args, ticks):
         """Debounce a function call.

@@ -25,7 +25,8 @@ import copy
 
 import evdev
 from evdev.ecodes import EV_REL, EV_KEY, EV_ABS, ABS_HAT0X, BTN_LEFT, KEY_A, \
-    REL_X, REL_Y, REL_WHEEL, REL_HWHEEL, BTN_A, ABS_X, ABS_Y
+    REL_X, REL_Y, REL_WHEEL, REL_HWHEEL, BTN_A, ABS_X, ABS_Y, BTN_NORTH,\
+    ABS_Z, ABS_RZ
 
 from keymapper.dev.injector import is_numlock_on, set_numlock, \
     ensure_numlock, Injector, is_in_capabilities, \
@@ -395,6 +396,33 @@ class TestInjector(unittest.TestCase):
         self.assertEqual(history.count((EV_ABS, ABS_Y, -40)), 2)
         self.assertEqual(history.count((EV_KEY, 77, 1)), 2)
         self.assertEqual(history.count((EV_KEY, 77, 0)), 2)
+
+    def test_gamepad_trigger(self):
+        # map one of the triggers to BTN_NORTH, while the other one
+        # should be forwarded unchanged
+        value = MAX_ABS // 2
+        pending_events['gamepad'] = [
+            new_event(EV_ABS, ABS_Z, value),
+            new_event(EV_ABS, ABS_RZ, value),
+        ]
+
+        # ABS_Z -> 77
+        # ABS_RZ is not mapped
+        custom_mapping.change(Key((EV_ABS, ABS_Z, 1)), 'b')
+        system_mapping._set('b', 77)
+        self.injector = Injector('gamepad', custom_mapping)
+        self.injector.start_injecting()
+
+        # wait for the injector to start sending, at most 1s
+        uinput_write_history_pipe[0].poll(1)
+        time.sleep(0.2)
+
+        # convert the write history to some easier to manage list
+        history = read_write_history_pipe()
+
+        print(history)
+        self.assertEqual(history.count((EV_KEY, 77, 1)), 1)
+        self.assertEqual(history.count((EV_ABS, ABS_RZ, value)), 1)
 
     def test_gamepad_to_mouse_event_producer(self):
         custom_mapping.set('gamepad.joystick.left_purpose', MOUSE)

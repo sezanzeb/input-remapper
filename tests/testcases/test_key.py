@@ -34,6 +34,7 @@ class TestKey(unittest.TestCase):
         self.assertEqual(len(key_1), 2)
         self.assertEqual(key_1[0], (1, 3, 1))
         self.assertEqual(key_1[1], (1, 5, 1))
+        self.assertEqual(hash(key_1), hash(((1, 3, 1), (1, 5, 1))))
 
         key_2 = Key((1, 3, 1))
         self.assertEqual(str(key_2), 'Key((1, 3, 1),)')

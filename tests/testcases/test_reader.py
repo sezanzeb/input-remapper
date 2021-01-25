@@ -25,7 +25,7 @@ import multiprocessing
 
 from evdev.ecodes import EV_KEY, EV_ABS, ABS_HAT0X, ABS_HAT0Y, KEY_COMMA, \
     BTN_LEFT, BTN_TOOL_DOUBLETAP, ABS_Z, ABS_Y, ABS_MISC, KEY_A, \
-    EV_REL, REL_WHEEL, REL_X
+    EV_REL, REL_WHEEL, REL_X, ABS_X, ABS_RZ
 
 from keymapper.dev.reader import keycode_reader, will_report_up, \
     event_unix_time
@@ -253,7 +253,10 @@ class TestReader(unittest.TestCase):
         # if their purpose is "buttons"
         custom_mapping.set('gamepad.joystick.left_purpose', BUTTONS)
         pending_events['gamepad'] = [
-            new_event(EV_ABS, ABS_Y, MAX_ABS)
+            new_event(EV_ABS, ABS_Y, MAX_ABS),
+            # the value of that one is interpreted as release, because
+            # it is too small
+            new_event(EV_ABS, ABS_X, MAX_ABS // 10)
         ]
         keycode_reader.start_reading('gamepad')
         wait(keycode_reader._pipe[0].poll, 0.5)
@@ -270,6 +273,36 @@ class TestReader(unittest.TestCase):
         time.sleep(0.1)
         self.assertEqual(keycode_reader.read(), None)
         self.assertEqual(len(keycode_reader._unreleased), 0)
+
+    def test_combine_triggers(self):
+        pipe = multiprocessing.Pipe()
+        keycode_reader._pipe = pipe
+
+        i = 0
+        def next_timestamp():
+            nonlocal i
+            i += 1
+            return 100 * i
+
+        # based on an observed bug
+        pipe[1].send(new_event(3, 1, 0, next_timestamp()))
+        pipe[1].send(new_event(3, 0, 0, next_timestamp()))
+        pipe[1].send(new_event(3, 2, 1, next_timestamp()))
+        self.assertEqual(keycode_reader.read(), (EV_ABS, ABS_Z, 1))
+        pipe[1].send(new_event(3, 0, 0, next_timestamp()))
+        pipe[1].send(new_event(3, 5, 1, next_timestamp()))
+        self.assertEqual(keycode_reader.read(), ((EV_ABS, ABS_Z, 1), (EV_ABS, ABS_RZ, 1)))
+        pipe[1].send(new_event(3, 5, 0, next_timestamp()))
+        pipe[1].send(new_event(3, 0, 0, next_timestamp()))
+        pipe[1].send(new_event(3, 1, 0, next_timestamp()))
+        self.assertEqual(keycode_reader.read(), None)
+        pipe[1].send(new_event(3, 2, 1, next_timestamp()))
+        pipe[1].send(new_event(3, 1, 0, next_timestamp()))
+        pipe[1].send(new_event(3, 0, 0, next_timestamp()))
+        # due to not properly handling the duplicate down event it cleared
+        # the combination and returned it. Instead it should report None
+        # and by doing that keep the previous combination.
+        self.assertEqual(keycode_reader.read(), None)
 
     def test_ignore_btn_left(self):
         # click events are ignored because overwriting them would render the
@@ -456,6 +489,8 @@ class TestReader(unittest.TestCase):
     def test_prioritizing_3_normalize(self):
         # take the sign of -1234, just like in test_prioritizing_2_normalize
         pending_events['device 1'] = [
+            # HAT0X usually reports only -1, 0 and 1, but that shouldn't
+            # matter. Everything is normalized.
             new_event(EV_ABS, ABS_HAT0X, -1234, 1234.0000),
             new_event(EV_ABS, ABS_HAT0Y, 0, 1234.0030)  # ignored
             # this time don't release anything as well, but it's not

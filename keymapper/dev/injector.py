@@ -33,7 +33,7 @@ from evdev.ecodes import EV_KEY, EV_REL
 
 from keymapper.logger import logger
 from keymapper.getdevices import get_devices, is_gamepad
-from keymapper.dev.keycode_mapper import handle_keycode
+from keymapper.dev.keycode_mapper import KeycodeMapper
 from keymapper.dev import utils
 from keymapper.dev.event_producer import EventProducer
 from keymapper.dev.macros import parse, is_this_a_macro
@@ -515,6 +515,11 @@ class Injector:
             source.path, source.fd
         )
 
+        keycode_handler = KeycodeMapper(
+            source, self.mapping, uinput,
+            self._key_to_code, macros
+        )
+
         async for event in source.async_read_loop():
             if self._event_producer.is_handled(event):
                 # the event_producer will take care of it
@@ -522,14 +527,11 @@ class Injector:
                 continue
 
             # for mapped stuff
-            if utils.should_map_event_as_btn(source, event, self.mapping):
+            if utils.should_map_event_as_btn(event, self.mapping):
                 will_report_key_up = utils.will_report_key_up(event)
 
-                handle_keycode(
-                    self._key_to_code,
-                    macros,
+                keycode_handler.handle_keycode(
                     event,
-                    uinput,
                 )
 
                 if not will_report_key_up:
@@ -538,11 +540,9 @@ class Injector:
                     release = evdev.InputEvent(0, 0, event.type, event.code, 0)
                     self._event_producer.debounce(
                         debounce_id=(event.type, event.code, event.value),
-                        func=handle_keycode,
+                        func=keycode_handler.handle_keycode,
                         args=(
-                            self._key_to_code, macros,
                             release,
-                            uinput,
                             False
                         ),
                         ticks=3,
@@ -551,7 +551,6 @@ class Injector:
                 continue
 
             # forward the rest
-            # TODO triggers should retain their original value if not mapped
             uinput.write(event.type, event.code, event.value)
             # this already includes SYN events, so need to syn here again
 
