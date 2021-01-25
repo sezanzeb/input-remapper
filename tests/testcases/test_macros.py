@@ -24,7 +24,7 @@ import unittest
 import asyncio
 
 from keymapper.dev.macros import parse, _Macro, _extract_params, \
-    is_this_a_macro
+    is_this_a_macro, _parse_recurse
 from keymapper.config import config
 from keymapper.mapping import Mapping
 from keymapper.state import system_mapping
@@ -94,6 +94,11 @@ class TestMacros(unittest.TestCase):
         self.assertIsNone(parse('r(1, a)', self.mapping))
         self.assertIsNone(parse('r(a, k(b))', self.mapping))
         self.assertIsNone(parse('m(a, b)', self.mapping))
+
+    def test_parse_params(self):
+        self.assertEqual(_parse_recurse('', self.mapping), None)
+        self.assertEqual(_parse_recurse('5', self.mapping), 5)
+        self.assertEqual(_parse_recurse('foo', self.mapping), 'foo')
 
     def test_0(self):
         macro = parse('k(1)', self.mapping)
@@ -179,7 +184,28 @@ class TestMacros(unittest.TestCase):
 
         self.assertEqual(len(macro.child_macros), 1)
 
-    def test_hold_forever(self):
+    def test_dont_hold(self):
+        macro = parse('k(1).h(k(a)).k(3)', self.mapping)
+        macro.set_handler(self.handler)
+        self.assertSetEqual(macro.get_capabilities(), {
+            system_mapping.get('1'),
+            system_mapping.get('a'),
+            system_mapping.get('3')
+        })
+
+        asyncio.ensure_future(macro.run())
+        self.loop.run_until_complete(asyncio.sleep(0.2))
+        self.assertFalse(macro.is_holding())
+        # press_key was never called, so the macro completes right away
+        # and the child macro of hold is never called.
+        self.assertEqual(len(self.result), 4)
+
+        self.assertEqual(self.result[0], (system_mapping.get('1'), 1))
+        self.assertEqual(self.result[-1], (system_mapping.get('3'), 0))
+
+        self.assertEqual(len(macro.child_macros), 1)
+
+    def test_just_hold(self):
         macro = parse('k(1).h().k(3)', self.mapping)
         macro.set_handler(self.handler)
         self.assertSetEqual(macro.get_capabilities(), {
@@ -199,6 +225,26 @@ class TestMacros(unittest.TestCase):
         macro.release_key()
         self.loop.run_until_complete(asyncio.sleep(0.05))
         self.assertFalse(macro.is_holding())
+        self.assertEqual(len(self.result), 4)
+
+        self.assertEqual(self.result[0], (system_mapping.get('1'), 1))
+        self.assertEqual(self.result[-1], (system_mapping.get('3'), 0))
+
+        self.assertEqual(len(macro.child_macros), 0)
+
+    def test_dont_just_hold(self):
+        macro = parse('k(1).h().k(3)', self.mapping)
+        macro.set_handler(self.handler)
+        self.assertSetEqual(macro.get_capabilities(), {
+            system_mapping.get('1'),
+            system_mapping.get('3')
+        })
+
+        asyncio.ensure_future(macro.run())
+        self.loop.run_until_complete(asyncio.sleep(0.1))
+        self.assertFalse(macro.is_holding())
+        # since press_key was never called it just does the macro
+        # completely
         self.assertEqual(len(self.result), 4)
 
         self.assertEqual(self.result[0], (system_mapping.get('1'), 1))
