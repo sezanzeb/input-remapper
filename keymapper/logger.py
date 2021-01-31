@@ -34,7 +34,7 @@ start = time.time()
 
 previous_key_spam = None
 
-COMMIT_HASH = ''
+COMMIT_HASH = ''  # overwritten in setup.py
 
 
 def spam(self, message, *args, **kwargs):

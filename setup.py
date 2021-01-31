@@ -29,7 +29,7 @@ from setuptools.command.install import install
 class Install(install):
     """Add the current commit hash to logger.py."""
     def run(self):
-        commit = os.popen('git rev-parse HEAD').read().replace('\n', '')
+        commit = os.popen('git rev-parse HEAD').read().strip()
         if re.match(r'^([a-z]|[0-9])+$', commit):
             with open('keymapper/logger.py', 'r') as f:
                 contents = f.read()
