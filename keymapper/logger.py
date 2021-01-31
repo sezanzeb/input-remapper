@@ -34,6 +34,8 @@ start = time.time()
 
 previous_key_spam = None
 
+COMMIT_HASH = ''
+
 
 def spam(self, message, *args, **kwargs):
     """Log a more-verbose message than debug."""
@@ -149,7 +151,7 @@ def log_info():
     try:
         name = pkg_resources.require('key-mapper')[0].project_name
         version = pkg_resources.require('key-mapper')[0].version
-        logger.info('%s %s', name, version)
+        logger.info('%s %s %s', name, version, COMMIT_HASH)
 
         evdev_version = pkg_resources.require('evdev')[0].version
         logger.info('python-evdev %s', evdev_version)
