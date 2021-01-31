@@ -20,7 +20,28 @@
 
 
 import glob
+import os
+import re
 from setuptools import setup
+from setuptools.command.install import install
+
+
+class Install(install):
+    """Add the current commit hash to logger.py."""
+    def run(self):
+        commit = os.popen('git rev-parse HEAD').read().replace('\n', '')
+        if re.match(r'^([a-z]|[0-9])+$', commit):
+            with open('keymapper/logger.py', 'r') as f:
+                contents = f.read()
+                contents = contents.replace(
+                    "COMMIT_HASH = ''",
+                    f"COMMIT_HASH = '{commit}'"
+                )
+
+            with open('keymapper/logger.py', 'w') as f:
+                f.write(contents)
+
+        install.run(self)
 
 
 setup(
@@ -54,4 +75,7 @@ setup(
         'evdev',
         'pydbus'
     ],
+    cmdclass={
+        'install': Install,
+    },
 )
