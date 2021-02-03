@@ -71,6 +71,9 @@ def is_gamepad(device):
             # a joystick
             return True
 
+        if evdev.ecodes.ABS_Y in abs_capabilities:
+            return True
+
     return False
 
 
