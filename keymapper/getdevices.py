@@ -119,7 +119,7 @@ class _GetDevices(threading.Thread):
                 # skip devices that don't provide buttons that can be mapped
                 continue
 
-            if len(key_capa) == 1 and key_capa[0] == KEY_CAMERA:
+            if key_capa and len(key_capa) == 1 and key_capa[0] == KEY_CAMERA:
                 # skip cameras
                 continue
 
