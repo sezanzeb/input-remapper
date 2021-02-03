@@ -23,7 +23,10 @@ import unittest
 
 import evdev
 
-from keymapper.getdevices import _GetDevices, get_devices, is_gamepad
+from keymapper.getdevices import _GetDevices, get_devices, is_gamepad, \
+    refresh_devices
+
+from tests.test import cleanup, fixtures
 
 
 class FakePipe:
@@ -34,6 +37,13 @@ class FakePipe:
 
 
 class TestGetDevices(unittest.TestCase):
+    def setUp(self):
+        self.original_list_devices = evdev.list_devices
+
+    def tearDown(self):
+        evdev.list_devices = self.original_list_devices
+        cleanup()
+
     def test_get_devices(self):
         pipe = FakePipe()
         _GetDevices(pipe).run()
@@ -95,6 +105,46 @@ class TestGetDevices(unittest.TestCase):
                 'gamepad': True
             },
         })
+
+    def test_skip_camera(self):
+        def list_devices():
+            return ['/foo/bar', '/dev/input/event30']
+
+        fixtures['/foo/bar'] = {
+            'name': 'camera', 'phys': 'abcd1',
+            'info': evdev.DeviceInfo(1, 2, 3, 4),
+            'capabilities': {
+                evdev.ecodes.EV_KEY: [
+                    evdev.ecodes.KEY_CAMERA
+                ]
+            }
+        }
+
+        evdev.list_devices = list_devices
+
+        refresh_devices()
+        self.assertNotIn('camera', get_devices())
+        self.assertIn('gamepad', get_devices())
+
+    def test_gamepad_without_ev_key(self):
+        def list_devices():
+            return ['/foo/bar', '/dev/input/event30']
+
+        fixtures['/foo/bar'] = {
+            'name': 'gamepad2', 'phys': 'abcd2',
+            'info': evdev.DeviceInfo(1, 2, 3, 4),
+            'capabilities': {
+                evdev.ecodes.EV_ABS: [
+                    evdev.ecodes.ABS_X
+                ]
+            }
+        }
+
+        evdev.list_devices = list_devices
+
+        refresh_devices()
+        self.assertIn('gamepad', get_devices())
+        self.assertIn('gamepad2', get_devices())
 
     def test_is_gamepad(self):
         # properly detects if the device is a gamepad
