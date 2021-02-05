@@ -107,7 +107,7 @@ class Mapping(ConfigBase):
 
             If not set, will not remove any previous mapping. If you recently
             used (1, 10, 1) for new_key and want to overwrite that with
-            (1, 11, 1), provide (1, 5, 1) here.
+            (1, 11, 1), provide (1, 10, 1) here.
         """
         if not isinstance(new_key, Key):
             raise TypeError(f'Expected {new_key} to be a Key object')
