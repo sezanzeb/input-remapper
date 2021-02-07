@@ -48,6 +48,7 @@ JOYSTICK_BUTTON_THRESHOLD = math.sin((math.pi / 2) / 3 * 1)
 
 
 def sign(value):
+    """Return -1, 0 or 1 depending on the input value."""
     if value > 0:
         return 1
 

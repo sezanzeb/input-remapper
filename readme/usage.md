@@ -31,6 +31,10 @@ private information with your device. Debug logs are quite verbose.
 If injecting stops after closing the window, the service is not running.
 Try `sudo systemctl start key-mapper` in a terminal.
 
+If key-mapper or your presets prevents your input device from working
+at all due to autoload, please try to replug your device, wait 3 seconds
+and replug it again. No injection should be running anymore.
+
 ## Combinations
 
 Select the key in your row (`click here`) and hold a few buttons down.
@@ -101,6 +105,22 @@ while the joystick turns the view (depending on the game).
 Tested with the XBOX 360 Gamepad. On Ubuntu, gamepads worked better in
 Wayland than with X11 for me.
 
+<br/>
+<br/>
+<br/>
+<br/>
+<br/>
+<br/>
+
+# Advanced
+
+You usually don't need the stuff described here, you can configure everything
+via the gui as well.
+
+If you have trouble mapping some keys because the gui loses focus, or
+if you don't have a graphical user interface, you'll need to edit the
+configuration files.
+
 ## Configuration Files
 
 The default configuration is stored at `~/.config/key-mapper/config.json`.
@@ -168,12 +188,16 @@ can be listed with `key-mapper-control --key-names`.
 `systemctl start key-mapper` or `sudo key-mapper-service` if it isn't already
 running (or without sudo if your user has the appropriate permissions).
 
+Examples:
+
 ```bash
 key-mapper-control --command autoload
+# if you are running as root user, provide information about the whereabouts of the key-mapper config:
 key-mapper-control --command autoload --config-dir "/home/user/.config/key-mapper/"
 sudo key-mapper-control --list-devices
 key-mapper-control --command stop --device "Razer Razer Naga Trinity"
-key-mapper-control --command start --device "Razer Razer Naga Trinity" --preset "~/.config/key-mapper/presets/gamepad/a.json"
+# load ~/.config/key-mapper/presets/Razer Razer Naga Trinity/a.json:
+key-mapper-control --command start --device "Razer Razer Naga Trinity" --preset "a"
 ```
 
 **systemctl**

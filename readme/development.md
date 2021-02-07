@@ -29,9 +29,9 @@ requests.
 - [x] add "disable" as mapping option
 - [x] mapping joystick directions as buttons, making it act like a D-Pad
 - [x] mapping mouse wheel events to buttons
-- [ ] automatically load presets when devices get plugged in after login (udev)
-- [ ] using keys that aren't available in the systems keyboard layout
-- [ ] user-friendly way to map the left mouse button
+- [x] automatically load presets when devices get plugged in after login (udev)
+- [ ] map keys using a `modifier + modifier + ... + key` syntax
+- [ ] injecting keys that aren't available in the systems keyboard layout
 
 ## Tests
 
@@ -67,20 +67,13 @@ just need to be commited.
 
 ## Files
 
-**service**
-
-- `bin/key-mapper-service` executable that starts listening for
-  commands via dbus and runs the injector when needed. It shouldn't matter how 
-  it is started as long as it manages to start without throwing errors. It
-  usually needs root rights.
-
 **gui**
 
 - `bin/key-mapper-gtk` the executable that starts the gui. It also sends
   messages to the service via dbus if certain buttons are clicked.
 - `bin/key-mapper-gtk-pkexec` opens a password promt to grant root rights
-  to the GUI, so that it can read from devices.
-- `data/key-mapper.policy` is needed for pkexec
+  to the GUI, so that it can read from devices
+- `data/key-mapper.policy` configures pkexec
 - `data/key-mapper.desktop` is the entry in the start menu
 
 **cli**
@@ -88,18 +81,39 @@ just need to be commited.
 - `bin/key-mapper-control` is an executable to send messages to the service
   via dbus. It can be used to start and stop injection without a GUI.
 
-**systemd**
+**service**
 
+- `bin/key-mapper-service` executable that starts listening for
+  commands via dbus and runs the injector when needed. It shouldn't matter how
+  it is started as long as it manages to start without throwing errors. It
+  usually needs root rights.
 - `data/key-mapper.service` starts key-mapper-service automatically on boot
   on distros using systemd.
 - `data/keymapper.Control.conf` is needed to connect to dbus services started
   by systemd from other applications.
 
-**user stuff**
+**autoload**
 
-- `key-mapper-autoload.desktop` executes on login and tells the systemd
+- `data/key-mapper-autoload.desktop` executes on login and tells the systemd
   service to stop injecting (possibly the presets of another user) and to
   inject the users autoloaded presets instead (if any are configured)
+- `data/key-mapper.rules` udev rule that sends a message to the service to
+  start injecting for new devices when they are seen for the first time.
+
+**Example system startup**
+
+1. systemd loads `key-mapper.service` on boot
+2. on login, `key-mapper-autoload.desktop` is executed, which has knowledge 
+   of the current user und doesn't run as root  
+   2.1 it sends the users config directory to the service  
+   2.2 it makes the service stop all ongoing injectings  
+   2.3 it tells the service to start loading all of the configured presets
+3. a bluetooth device gets connected, so udev runs `key-mapper.rules` which
+   tells the service to start injecting for that device if it has a preset
+   assigned. Works because step 2 told the service about the current users
+   config.
+
+Communication to the service always happens via `key-mapper-control`
 
 ## Resources
 

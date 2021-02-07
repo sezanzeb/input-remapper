@@ -32,6 +32,7 @@ from keymapper.config import config
 from keymapper.daemon import get_dbus_interface
 from keymapper.state import system_mapping
 from keymapper.getdevices import get_devices
+from keymapper.paths import USER
 
 
 AUTOLOAD = 'autoload'
@@ -60,7 +61,7 @@ def group_exists(name):
 
 def main(options, daemon):
     """Do the stuff that the executable is supposed to do."""
-    # Is a function so that I can import it and test it
+    # `main` is a function so that I can import it and test it
     if options.config_dir is not None:
         path = os.path.abspath(os.path.expanduser(os.path.join(
             options.config_dir,
@@ -73,8 +74,8 @@ def main(options, daemon):
         logger.info('Using config from "%s" instead', path)
         config.load_config(path)
 
+    # this is either the user-provided path or the default path in home
     config_dir = os.path.dirname(config.path)
-    presets_dir = os.path.join(config_dir, 'presets')
 
     if options.list_devices:
         get_devices()
@@ -90,18 +91,19 @@ def main(options, daemon):
     if daemon is None:
         sys.exit(0)
 
-    if options.command == AUTOLOAD:
-        daemon.stop()
-        for device, preset in list(config.iterate_autoload_presets()):
-            if not isinstance(preset, str):
-                # broken
-                config.remove(['autoload', device])
-                config.save_config()
-                continue
+    if USER != 'root':
+        # might be triggered by udev, so skip the root user.
+        # this will also refresh the config of the daemon if the user changed
+        # it in the meantime.
+        daemon.set_config_dir(config_dir)
 
-            preset_path = os.path.join(presets_dir, device, preset + '.json')
-            logger.info('Starting injection: "%s", "%s"', device, preset_path)
-            daemon.start_injecting(device, preset_path, config_dir)
+    if options.command == AUTOLOAD:
+        # if device was specified, autoload for that one. if None autoload
+        # for all devices.
+        if options.device is None:
+            daemon.autoload()
+        else:
+            daemon.autoload_single(options.device)
 
     if options.command == START:
         if options.device is None:
@@ -112,9 +114,8 @@ def main(options, daemon):
             logger.error('--preset missing')
             sys.exit(1)
 
-        preset_path = os.path.abspath(os.path.expanduser(options.preset))
-        logger.info('Starting injection: "%s", "%s"', options.device, preset_path)
-        daemon.start_injecting(options.device, preset_path, config_dir)
+        logger.info('Starting injection: "%s", "%s"', options.device, options.preset)
+        daemon.start_injecting(options.device, options.preset)
 
     if options.command == STOP:
         if options.device is None:
@@ -124,7 +125,7 @@ def main(options, daemon):
         daemon.stop_injecting(options.device)
 
     if options.command == STOP_ALL:
-        daemon.stop()
+        daemon.stop_all()
 
     if options.command == HELLO:
         response = daemon.hello('hello')
@@ -135,29 +136,30 @@ if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument(
         '--command', action='store', dest='command',
-        help=(
-            'start, stop, autoload (also stops all current injections), '
-            'hello or stop-all'
-        ),
+        help='start, stop, autoload, hello or stop-all',
         default=None, metavar='NAME'
     )
     parser.add_argument(
         '--config-dir', action='store', dest='config_dir',
         help=(
-            'path to the config directory containing config.json. '
+            'path to the config directory containing config.json, '
+            'xmodmap.json and the presets folder. '
             'defaults to ~/.config/key-mapper/'
         ),
         default=None, metavar='PATH',
     )
     parser.add_argument(
         '--preset', action='store', dest='preset',
-        help='path to the preset .json file',
-        default=None, metavar='PATH',
+        help='The filename of the preset without the .json extension.',
+        default=None, metavar='NAME',
     )
     parser.add_argument(
         '--device', action='store', dest='device',
-        help='The device name',
-        default=None, metavar='PATH'
+        help=(
+            'The device name which is used for subfolders in the '
+            'presets directory'
+        ),
+        default=None, metavar='NAME'
     )
     parser.add_argument(
         '--list-devices', action='store_true', dest='list_devices',

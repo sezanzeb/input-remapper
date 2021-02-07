@@ -33,9 +33,10 @@ class Install(install):
         if re.match(r'^([a-z]|[0-9])+$', commit):
             with open('keymapper/logger.py', 'r') as f:
                 contents = f.read()
-                contents = contents.replace(
-                    "COMMIT_HASH = ''",
-                    f"COMMIT_HASH = '{commit}'"
+                contents = re.sub(
+                    r"COMMIT_HASH = '.+'",
+                    f"COMMIT_HASH = '{commit}'",
+                    contents
                 )
 
             with open('keymapper/logger.py', 'w') as f:
@@ -65,6 +66,7 @@ setup(
         ('/usr/lib/systemd/system', ['data/key-mapper.service']),
         ('/etc/dbus-1/system.d/', ['data/keymapper.Control.conf']),
         ('/etc/xdg/autostart/', ['data/key-mapper-autoload.desktop']),
+        ('/etc/udev/rules.d', ['data/key-mapper.rules']),
         ('/usr/bin/', ['bin/key-mapper-gtk']),
         ('/usr/bin/', ['bin/key-mapper-gtk-pkexec']),
         ('/usr/bin/', ['bin/key-mapper-service']),

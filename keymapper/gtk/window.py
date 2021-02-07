@@ -496,7 +496,6 @@ class Window:
 
         logger.info('Applying preset "%s" for "%s"', preset, device)
 
-        path = get_preset_path(device, preset)
         if not self.unreleased_warn:
             unreleased = keycode_reader.get_unreleased_keys()
             if unreleased is not None:
@@ -516,7 +515,8 @@ class Window:
                 return
 
         self.unreleased_warn = False
-        self.dbus.start_injecting(device, path, get_config_path())
+        self.dbus.set_config_dir(get_config_path())
+        self.dbus.start_injecting(device, preset)
 
         self.show_status(
             CTX_APPLY,
@@ -531,6 +531,8 @@ class Window:
         preset = self.selected_preset
         config.set_autoload_preset(device, preset if active else None)
         config.save_config()
+        # tell the service to refresh its config
+        self.dbus.set_config_dir(get_config_path())
 
     def on_select_device(self, dropdown):
         """List all presets, create one if none exist yet."""

@@ -26,7 +26,7 @@ import os
 import unittest
 import evdev
 from evdev.ecodes import EV_KEY, EV_ABS, KEY_LEFTSHIFT, KEY_A, ABS_RX, \
-    BTN_A, EV_REL, REL_X, ABS_X
+    EV_REL, REL_X, ABS_X
 import json
 from unittest.mock import patch
 from importlib.util import spec_from_loader, module_from_spec
@@ -38,7 +38,7 @@ gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk
 
 from keymapper.state import custom_mapping, system_mapping, XMODMAP_FILENAME
-from keymapper.paths import CONFIG_PATH, get_preset_path
+from keymapper.paths import CONFIG_PATH, get_preset_path, get_config_path
 from keymapper.config import config, WHEEL, MOUSE, BUTTONS
 from keymapper.dev.reader import keycode_reader, FILTER_THRESHOLD
 from keymapper.dev.injector import RUNNING
@@ -46,8 +46,8 @@ from keymapper.gtk.row import to_string, HOLDING, IDLE
 from keymapper.dev import permissions
 from keymapper.key import Key
 
-from tests.test import tmp, pending_events, new_event, \
-    uinput_write_history_pipe, cleanup, MAX_ABS
+from tests.test import tmp, pending_events, new_event, spy, cleanup, \
+    uinput_write_history_pipe, MAX_ABS
 
 
 def gtk_iteration():
@@ -175,7 +175,11 @@ class TestIntegration(unittest.TestCase):
         self.assertFalse(self.window.show_device_mapping_status())
 
     def test_autoload(self):
+        set_config_dir_history = spy(self.window.dbus, 'set_config_dir')
+
         self.window.on_autoload_switch(None, False)
+        self.assertEqual(len(set_config_dir_history), 1)
+
         self.assertFalse(config.is_autoloaded(
             self.window.selected_device,
             self.window.selected_preset
@@ -910,9 +914,14 @@ class TestIntegration(unittest.TestCase):
         # use only the manipulated system_mapping
         os.remove(os.path.join(tmp, XMODMAP_FILENAME))
 
+        # spy on set_config_dir
+        set_config_dir_history = spy(self.window.dbus, 'set_config_dir')
+
         self.window.selected_device = 'device 2'
         self.window.selected_preset = 'foo preset'
         self.window.on_apply_preset_clicked(None)
+        self.assertEqual(len(set_config_dir_history), 1)
+        self.assertEqual(set_config_dir_history[0][0], (get_config_path(),))
 
         # the integration tests will cause the injection to be started as
         # processes, as intended. Luckily, recv will block until the events
@@ -964,6 +973,8 @@ class TestIntegration(unittest.TestCase):
         self.assertGreater(count_mouse, 1)
         self.assertEqual(count_button, 1)
         self.assertEqual(count_button + count_mouse, len(history))
+
+        self.assertIn('gamepad', self.window.dbus.injectors)
 
     def test_stop_injecting(self):
         keycode_from = 16
