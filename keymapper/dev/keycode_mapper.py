@@ -193,6 +193,7 @@ def print_unreleased():
 
 
 class KeycodeMapper:
+    """Injects keycodes and starts macros."""
     def __init__(self, source, mapping, uinput, key_to_code, macros):
         """Create a keycode mapper for one virtual device.
 
@@ -227,7 +228,7 @@ class KeycodeMapper:
         # some type checking, prevents me from forgetting what that stuff
         # is supposed to be when writing tests.
         # TODO create that stuff (including macros) from mapping here instead
-        #  of the injector
+        #  of the injector, to not provide redundant parameters
         for key in key_to_code:
             for sub_key in key:
                 if abs(sub_key[2]) > 1:

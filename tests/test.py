@@ -412,11 +412,7 @@ environ_copy = copy.deepcopy(os.environ)
 
 def cleanup():
     """Reset the applications state."""
-    print(
-        f'\033[90m'  # color
-        f'cleanup'
-        '\033[0m'  # end style
-    )
+    print('cleanup')
     keycode_reader.stop_reading()
     keycode_reader.__init__()
 
@@ -463,6 +459,23 @@ def cleanup():
             del os.environ[key]
 
     refresh_devices()
+
+
+def spy(obj, name):
+    """Keep track of arguments and callcount.
+
+    Get a list of the call history that keeps getting updated.
+    """
+    original_func = obj.__getattribute__(name)
+    history = []
+
+    def new_func(*args, **kwargs):
+        history.append((args, kwargs))
+        original_func(*args, **kwargs)
+
+    obj.__setattr__(name, new_func)
+
+    return history
 
 
 def main():

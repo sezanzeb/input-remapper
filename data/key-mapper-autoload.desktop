@@ -1,6 +1,6 @@
 [Desktop Entry]
 Type=Application
-Exec=key-mapper-control --command autoload
+Exec=bash -c "key-mapper-control --command stop-all && key-mapper-control --command autoload"
 Name=key-mapper-autoload
 Icon=/usr/share/key-mapper/key-mapper.svg
 Comment=Starts injecting all presets that are set to automatically load for the user

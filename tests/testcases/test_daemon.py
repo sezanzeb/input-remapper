@@ -24,6 +24,7 @@ import multiprocessing
 import unittest
 import time
 import subprocess
+import json
 
 import evdev
 from evdev.ecodes import EV_KEY, EV_ABS
@@ -33,10 +34,12 @@ from pydbus import SystemBus
 from keymapper.state import custom_mapping, system_mapping
 from keymapper.config import config
 from keymapper.getdevices import get_devices
-from keymapper.paths import get_preset_path
+from keymapper.paths import get_preset_path, get_config_path
 from keymapper.key import Key
+from keymapper.mapping import Mapping
 from keymapper.dev.injector import STARTING, RUNNING, STOPPED, UNKNOWN
-from keymapper.daemon import Daemon, get_dbus_interface, BUS_NAME
+from keymapper.daemon import Daemon, get_dbus_interface, BUS_NAME, \
+    path_to_device_name
 
 from tests.test import cleanup, uinput_write_history_pipe, new_event, \
     pending_events, is_service_running, fixtures, tmp
@@ -59,7 +62,7 @@ class TestDBusDaemon(unittest.TestCase):
         self.interface = get_dbus_interface()
 
     def tearDown(self):
-        self.interface.stop()
+        self.interface.stop_all()
         os.system('pkill -f key-mapper-service')
 
         for _ in range(10):
@@ -90,7 +93,7 @@ class TestDaemon(unittest.TestCase):
     def tearDown(self):
         # avoid race conditions with other tests, daemon may run processes
         if self.daemon is not None:
-            self.daemon.stop()
+            self.daemon.stop_all()
             self.daemon = None
         evdev.InputDevice.grab = self.grab
 
@@ -98,6 +101,12 @@ class TestDaemon(unittest.TestCase):
         type(SystemBus()).get = dbus_get
 
         cleanup()
+
+    def test_path_to_device_name(self):
+        self.assertEqual(path_to_device_name('/dev/input/event13'), 'device 1')
+        self.assertEqual(path_to_device_name('/dev/input/event30'), 'gamepad')
+        self.assertEqual(path_to_device_name('/dev/input/event1234'), None)
+        self.assertEqual(path_to_device_name('asdf'), 'asdf')
 
     def test_get_dbus_interface(self):
         # no daemon runs, should return an instance of the object instead
@@ -120,6 +129,9 @@ class TestDaemon(unittest.TestCase):
         self.assertIsInstance(get_dbus_interface(False), FakeConnection)
 
     def test_daemon(self):
+        # remove the existing system mapping to force our own into it
+        os.remove(get_config_path('xmodmap.json'))
+
         ev_1 = (EV_KEY, 9)
         ev_2 = (EV_ABS, 12)
         keycode_to_1 = 100
@@ -131,6 +143,8 @@ class TestDaemon(unittest.TestCase):
         custom_mapping.change(Key(*ev_2, -1), 'b')
 
         system_mapping.clear()
+        # since this is in the same memory as the daemon, there is no need
+        # to save it to disk
         system_mapping._set('a', keycode_to_1)
         system_mapping._set('b', keycode_to_2)
 
@@ -147,10 +161,10 @@ class TestDaemon(unittest.TestCase):
         ]
 
         self.daemon = Daemon()
-        preset_path = get_preset_path(device, preset)
+        self.daemon.set_config_dir(get_config_path())
 
         self.assertFalse(uinput_write_history_pipe[0].poll())
-        self.daemon.start_injecting(device, preset_path)
+        self.daemon.start_injecting(device, preset)
 
         self.assertEqual(self.daemon.get_state(device), STARTING)
         self.assertEqual(self.daemon.get_state('device 1'), UNKNOWN)
@@ -164,7 +178,7 @@ class TestDaemon(unittest.TestCase):
         self.daemon.stop_injecting(device)
         self.assertEqual(self.daemon.get_state(device), STOPPED)
 
-        time.sleep(0.2)
+        time.sleep(0.1)
         try:
             self.assertFalse(uinput_write_history_pipe[0].poll())
         except AssertionError:
@@ -179,17 +193,22 @@ class TestDaemon(unittest.TestCase):
             new_event(*ev_2, -1234)
         ]
 
-        path = get_preset_path(device, preset)
-        self.daemon.start_injecting(device, path)
+        self.daemon.start_injecting(device, preset)
+
+        time.sleep(0.1)
+        self.assertTrue(uinput_write_history_pipe[0].poll())
 
         # the written key is a key-down event, not the original
         # event value of -1234
         event = uinput_write_history_pipe[0].recv()
+
         self.assertEqual(event.type, EV_KEY)
         self.assertEqual(event.code, keycode_to_2)
         self.assertEqual(event.value, 1)
 
     def test_refresh_devices_on_start(self):
+        os.remove(get_config_path('xmodmap.json'))
+
         ev = (EV_KEY, 9)
         keycode_to = 100
         device = '9876 name'
@@ -198,6 +217,12 @@ class TestDaemon(unittest.TestCase):
         custom_mapping.change(Key(*ev, 1), 'a')
         system_mapping.clear()
         system_mapping._set('a', keycode_to)
+
+        # make the daemon load the file instead
+        with open(get_config_path('xmodmap.json'), 'w') as file:
+            json.dump(system_mapping._mapping, file, indent=4)
+        system_mapping.clear()
+
         preset = 'foo'
         custom_mapping.save(get_preset_path(device, preset))
         config.set_autoload_preset(device, preset)
@@ -205,7 +230,6 @@ class TestDaemon(unittest.TestCase):
             new_event(*ev, 1)
         ]
         self.daemon = Daemon()
-        preset_path = get_preset_path(device, preset)
 
         # make sure the devices are populated
         get_devices()
@@ -216,10 +240,14 @@ class TestDaemon(unittest.TestCase):
             'name': device
         }
 
-        self.daemon.start_injecting(device, preset_path)
+        self.daemon.set_config_dir(get_config_path())
+        self.daemon.start_injecting(device, preset)
 
         # test if the injector called refresh_devices successfully
         self.assertIsNotNone(get_devices().get(device))
+
+        time.sleep(0.1)
+        self.assertTrue(uinput_write_history_pipe[0].poll())
 
         event = uinput_write_history_pipe[0].recv()
         self.assertEqual(event.t, (EV_KEY, keycode_to, 1))
@@ -236,42 +264,145 @@ class TestDaemon(unittest.TestCase):
         device = 'device 2'
         preset = 'foo'
 
-        path = get_preset_path(device, preset)
+        config_dir = os.path.join(tmp, 'foo')
+
+        path = os.path.join(config_dir, 'presets', device, f'{preset}.json')
 
         custom_mapping.change(Key(event), to_name)
         custom_mapping.save(path)
 
         system_mapping.clear()
 
-        config.set_autoload_preset(device, preset)
-
         pending_events[device] = [
             new_event(*event)
         ]
 
-        config_dir = os.path.join(tmp, 'foo')
-        os.makedirs(config_dir, exist_ok=True)
-
+        # an existing config file is needed otherwise set_config_dir refuses
+        # to use the directory
         config_path = os.path.join(config_dir, 'config.json')
-        with open(config_path, 'w') as file:
-            file.write('{"bar":1234}')
+        config.path = config_path
+        config.save_config()
 
         xmodmap_path = os.path.join(config_dir, 'xmodmap.json')
         with open(xmodmap_path, 'w') as file:
             file.write(f'{{"{to_name}":{to_keycode}}}')
 
         self.daemon = Daemon()
+        self.daemon.set_config_dir(config_dir)
 
-        self.daemon.start_injecting(device, path, config_dir)
+        self.daemon.start_injecting(device, preset)
+
+        time.sleep(0.1)
+        self.assertTrue(uinput_write_history_pipe[0].poll())
 
         event = uinput_write_history_pipe[0].recv()
         self.assertEqual(event.type, EV_KEY)
         self.assertEqual(event.code, to_keycode)
         self.assertEqual(event.value, 1)
 
-        # since the daemon is running in the same process, the config
-        # that the test knows will be overwritten
-        self.assertEqual(config.get('bar'), 1234)
+    def test_start_stop(self):
+        device = 'device 1'
+        preset = 'preset'
+        path = '/dev/input/event11'
+
+        daemon = Daemon()
+        self.daemon = daemon
+
+        mapping = Mapping()
+        mapping.change(Key(3, 2, 1), 'a')
+        mapping.save(get_preset_path(device, preset))
+
+        # the daemon needs set_config_dir first before doing anything
+        daemon.start_injecting(device, preset)
+        self.assertNotIn(device, daemon.autoload_history._autoload_history)
+        self.assertNotIn(device, daemon.injectors)
+        self.assertTrue(daemon.autoload_history.may_autoload(device, preset))
+
+        # start
+        daemon.set_config_dir(get_config_path())
+        daemon.start_injecting(path, preset)
+        # explicit start, not autoload, so the history stays empty
+        self.assertNotIn(device, daemon.autoload_history._autoload_history)
+        self.assertTrue(daemon.autoload_history.may_autoload(device, preset))
+        # path got translated to the device name
+        self.assertIn(device, daemon.injectors)
+        # after passing device and preset, the correct preset is read
+        # from the path
+        injector = daemon.injectors[device]
+        self.assertEqual(injector.mapping.get_character(Key(3, 2, 1)), 'a')
+
+        # start again
+        previous_injector = daemon.injectors[device]
+        self.assertNotEqual(previous_injector.get_state(), STOPPED)
+        daemon.start_injecting(device, preset)
+        self.assertNotIn(device, daemon.autoload_history._autoload_history)
+        self.assertTrue(daemon.autoload_history.may_autoload(device, preset))
+        self.assertIn(device, daemon.injectors)
+        self.assertEqual(previous_injector.get_state(), STOPPED)
+        # a different injetor is now running
+        self.assertNotEqual(previous_injector, daemon.injectors[device])
+        self.assertNotEqual(daemon.injectors[device].get_state(), STOPPED)
+        injector = daemon.injectors[device]
+        self.assertEqual(injector.mapping.get_character(Key(3, 2, 1)), 'a')
+
+        # trying to inject a non existing preset keeps the previous inejction
+        # alive
+        injector = daemon.injectors[device]
+        daemon.start_injecting(device, 'qux')
+        self.assertEqual(injector, daemon.injectors[device])
+        self.assertNotEqual(daemon.injectors[device].get_state(), STOPPED)
+
+        # trying to start injecting for an unknown device also just does
+        # nothing
+        daemon.start_injecting('quux', 'qux')
+        self.assertNotEqual(daemon.injectors[device].get_state(), STOPPED)
+
+        # after all that stuff autoload_history is still unharmed
+        self.assertNotIn(device, daemon.autoload_history._autoload_history)
+        self.assertTrue(daemon.autoload_history.may_autoload(device, preset))
+
+        # stop
+        daemon.stop_injecting(device)
+        self.assertNotIn(device, daemon.autoload_history._autoload_history)
+        self.assertEqual(daemon.injectors[device].get_state(), STOPPED)
+        self.assertTrue(daemon.autoload_history.may_autoload(device, preset))
+
+    def test_autoload(self):
+        device = 'device 1'
+        preset = 'preset'
+        path = '/dev/input/event11'
+
+        daemon = Daemon()
+        self.daemon = daemon
+        self.daemon.set_config_dir(get_config_path())
+
+        mapping = Mapping()
+        mapping.change(Key(3, 2, 1), 'a')
+        mapping.save(get_preset_path(device, preset))
+
+        # no autoloading is configured yet
+        self.daemon._autoload(device)
+        self.daemon._autoload(path)
+        self.assertNotIn(device, daemon.autoload_history._autoload_history)
+        self.assertTrue(daemon.autoload_history.may_autoload(device, preset))
+
+        config.set_autoload_preset(device, preset)
+        config.save_config()
+        self.daemon.set_config_dir(get_config_path())
+        self.daemon._autoload(path)
+        self.assertEqual(daemon.autoload_history._autoload_history[device][1], preset)
+        self.assertFalse(daemon.autoload_history.may_autoload(device, preset))
+        injector = daemon.injectors[device]
+
+        # calling duplicate _autoload does nothing
+        self.daemon._autoload(path)
+        self.assertEqual(daemon.autoload_history._autoload_history[device][1], preset)
+        self.assertEqual(injector, daemon.injectors[device])
+        self.assertFalse(daemon.autoload_history.may_autoload(device, preset))
+
+        # explicit start_injecting clears the autoload history
+        self.daemon.start_injecting(device, preset)
+        self.assertTrue(daemon.autoload_history.may_autoload(device, preset))
 
 
 if __name__ == "__main__":

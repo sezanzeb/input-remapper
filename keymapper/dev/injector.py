@@ -243,7 +243,7 @@ class Injector:
         """Try to grab the device, return None if not needed/possible."""
         try:
             device = evdev.InputDevice(path)
-        except FileNotFoundError:
+        except (FileNotFoundError, OSError):
             logger.error('Could not find "%s"', path)
             return None
 

@@ -31,9 +31,10 @@ gi.require_version('Gtk', '3.0')
 gi.require_version('GLib', '2.0')
 from gi.repository import Gtk
 
+# https://github.com/Nuitka/Nuitka/issues/607#issuecomment-650217096
+Gtk.init()
+
 from keymapper.logger import update_verbosity, log_info
-from keymapper.gtk.window import Window
-from keymapper.daemon import Daemon
 
 
 if __name__ == '__main__':
@@ -48,13 +49,17 @@ if __name__ == '__main__':
     update_verbosity(options.debug)
     log_info()
 
+    # import key-mapper stuff after setting the log verbosity
+    from keymapper.gtk.window import Window
+    from keymapper.daemon import Daemon
+
     window = Window()
 
     def stop():
         if isinstance(window.dbus, Daemon):
             # it created its own temporary daemon inside the process
             # because none was running
-            window.dbus.stop()
+            window.dbus.stop_all()
 
         window.on_close()
 

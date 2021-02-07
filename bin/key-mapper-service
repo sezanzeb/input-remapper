@@ -48,6 +48,7 @@ if __name__ == '__main__':
 
     update_verbosity(options.debug)
 
+    # import key-mapper stuff after setting the log verbosity
     from keymapper.daemon import Daemon, BUS_NAME
 
     add_filehandler()
@@ -65,6 +66,6 @@ if __name__ == '__main__':
         logger.error('Is the service is already running?', str(error))
         sys.exit(1)
 
-    atexit.register(daemon.stop)
+    atexit.register(daemon.stop_all)
 
     loop.run()

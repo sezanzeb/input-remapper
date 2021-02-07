@@ -1,3 +1,4 @@
 #!/bin/bash
-
+# This binary exists only to make key-mapper.desktop compatible to
+# environments that can't handle arguments in Exec.
 pkexec key-mapper-gtk
