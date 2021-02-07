@@ -305,6 +305,11 @@ class Injector:
         input_device : evdev.InputDevice
         gamepad : bool
             if ABS capabilities should be removed in favor of REL
+
+        Returns
+        -------
+        a mapping of int event type to an array of int event codes.
+        Without absinfo.
         """
         ecodes = evdev.ecodes
 
@@ -351,11 +356,17 @@ class Injector:
         if ecodes.EV_FF in capabilities:
             del capabilities[ecodes.EV_FF]
         if gamepad and not self._forwards_joystick():
-            # key input to text inputs and such only works without ABS
+            # Key input to text inputs and such only works without ABS
             # events in the capabilities, possibly due to some intentional
             # constraints in wayland/X. So if the joysticks are not used
             # as joysticks remove ABS.
             del capabilities[ecodes.EV_ABS]
+
+        if ecodes.ABS_VOLUME in capabilities.get(ecodes.EV_ABS, []):
+            # For some reason an ABS_VOLUME capability likes to appear
+            # for some users. It prevents mice from moving around and
+            # keyboards from writing characters
+            capabilities[ecodes.EV_ABS].remove(ecodes.ABS_VOLUME)
 
         return capabilities
 
