@@ -25,8 +25,8 @@ import copy
 
 import evdev
 from evdev.ecodes import EV_REL, EV_KEY, EV_ABS, ABS_HAT0X, BTN_LEFT, KEY_A, \
-    REL_X, REL_Y, REL_WHEEL, REL_HWHEEL, BTN_A, ABS_X, ABS_Y, BTN_NORTH,\
-    ABS_Z, ABS_RZ
+    REL_X, REL_Y, REL_WHEEL, REL_HWHEEL, BTN_A, ABS_X, ABS_Y, \
+    ABS_Z, ABS_RZ, ABS_VOLUME
 
 from keymapper.dev.injector import is_numlock_on, set_numlock, \
     ensure_numlock, Injector, is_in_capabilities, \
@@ -784,13 +784,16 @@ class TestInjector(unittest.TestCase):
 class TestModifyCapabilities(unittest.TestCase):
     def setUp(self):
         class FakeDevice:
-            def capabilities(self, absinfo=True):
-                assert absinfo is False
-                return {
+            def __init__(self):
+                self._capabilities = {
                     evdev.ecodes.EV_SYN: [1, 2, 3],
                     evdev.ecodes.EV_FF: [1, 2, 3],
                     evdev.ecodes.EV_ABS: [1, 2, 3]
                 }
+
+            def capabilities(self, absinfo=True):
+                assert absinfo is False
+                return self._capabilities
 
         mapping = Mapping()
         mapping.change(Key(EV_KEY, 80, 1), 'a')
@@ -850,6 +853,21 @@ class TestModifyCapabilities(unittest.TestCase):
         # a gamepad, so it probably serves some special purpose for that
         # device type.
         self.assertIn(evdev.ecodes.EV_ABS, capabilities)
+
+    def test_no_abs_volume(self):
+        # I don't know what ABS_VOLUME is, for now I would like to just always
+        # remove it until somebody complains
+        self.injector = Injector('foo', self.mapping)
+        self.fake_device._capabilities = {
+            EV_ABS: [ABS_Y, ABS_VOLUME, ABS_X]
+        }
+
+        capabilities = self.injector._modify_capabilities(
+            {60: self.macro},
+            self.fake_device,
+            gamepad=False
+        )
+        self.assertNotIn(ABS_VOLUME, capabilities[EV_ABS])
 
     def test_modify_capabilities_gamepad(self):
         config.set('gamepad.joystick.left_purpose', MOUSE)
