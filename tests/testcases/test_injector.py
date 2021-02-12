@@ -41,7 +41,7 @@ from keymapper.getdevices import get_devices, is_gamepad
 
 from tests.test import new_event, pending_events, fixtures, \
     EVENT_READ_TIMEOUT, uinput_write_history_pipe, \
-    MAX_ABS, cleanup, read_write_history_pipe, InputDevice
+    MAX_ABS, quick_cleanup, read_write_history_pipe, InputDevice
 
 
 original_smeab = utils.should_map_event_as_btn
@@ -75,7 +75,7 @@ class TestInjector(unittest.TestCase):
             self.injector = None
         evdev.InputDevice.grab = self.grab
 
-        cleanup()
+        quick_cleanup()
 
     def test_grab(self):
         # path is from the fixtures
@@ -827,7 +827,7 @@ class TestModifyCapabilities(unittest.TestCase):
         self.assertNotIn(DISABLE_CODE, keys)
 
     def tearDown(self):
-        cleanup()
+        quick_cleanup()
 
     def test_modify_capabilities(self):
         self.injector = Injector('foo', self.mapping)

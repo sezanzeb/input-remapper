@@ -35,7 +35,7 @@ from keymapper.daemon import Daemon
 from keymapper.mapping import Mapping
 from keymapper.paths import get_preset_path
 
-from tests.test import cleanup, tmp
+from tests.test import quick_cleanup, tmp
 
 
 def import_control():
@@ -63,7 +63,7 @@ options = collections.namedtuple(
 
 class TestControl(unittest.TestCase):
     def tearDown(self):
-        cleanup()
+        quick_cleanup()
 
     def test_autoload(self):
         devices = ['device 1', 'device 2']

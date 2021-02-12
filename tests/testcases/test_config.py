@@ -25,12 +25,12 @@ import unittest
 from keymapper.config import config, GlobalConfig
 from keymapper.paths import touch, CONFIG_PATH
 
-from tests.test import cleanup, tmp
+from tests.test import quick_cleanup, tmp
 
 
 class TestConfig(unittest.TestCase):
     def tearDown(self):
-        cleanup()
+        quick_cleanup()
         self.assertEqual(len(config.iterate_autoload_presets()), 0)
 
     def test_migrate(self):

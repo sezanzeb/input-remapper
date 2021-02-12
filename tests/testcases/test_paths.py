@@ -25,7 +25,7 @@ import unittest
 from keymapper.paths import get_user, touch, mkdir, \
     get_preset_path, get_config_path
 
-from tests.test import cleanup, tmp
+from tests.test import quick_cleanup, tmp
 
 
 original_getlogin = os.getlogin()
@@ -37,7 +37,7 @@ def _raise(error):
 
 class TestPaths(unittest.TestCase):
     def tearDown(self):
-        cleanup()
+        quick_cleanup()
         os.getlogin = original_getlogin
 
     def test_get_user(self):

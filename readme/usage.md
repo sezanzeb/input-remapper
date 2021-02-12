@@ -60,6 +60,16 @@ your focused application.
   <img src="combination.png"/>
 </p>
 
+## Writing Combinations
+
+You can write `control_l + a` as mapping, which will inject those two
+keycodes into your system on a single key press. An arbitrary number of
+names can be chained using ` + `.
+
+<p align="center">
+  <img src="plus.png"/>
+</p>
+
 ## Macros
 
 It is possible to write timed macros into the center column:

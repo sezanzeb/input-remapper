@@ -30,7 +30,7 @@ requests.
 - [x] mapping joystick directions as buttons, making it act like a D-Pad
 - [x] mapping mouse wheel events to buttons
 - [x] automatically load presets when devices get plugged in after login (udev)
-- [ ] map keys using a `modifier + modifier + ... + key` syntax
+- [x] map keys using a `modifier + modifier + ... + key` syntax
 - [ ] injecting keys that aren't available in the systems keyboard layout
 
 ## Tests

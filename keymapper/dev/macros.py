@@ -55,6 +55,10 @@ def is_this_a_macro(output):
     if not isinstance(output, str):
         return False
 
+    if '+' in output.strip():
+        # for example "a + b"
+        return True
+
     return '(' in output and ')' in output and len(output) >= 4
 
 
@@ -441,6 +445,34 @@ def _parse_recurse(macro, mapping, macro_instance=None, depth=0):
     return macro
 
 
+def handle_plus_syntax(macro):
+    """transform a + b + c to m(a, m(b, m(c, h())))"""
+    if '+' not in macro:
+        return macro
+
+    if '(' in macro or ')' in macro:
+        logger.error('Mixing "+" and macros is unsupported: "%s"', macro)
+        return macro
+
+    chunks = [chunk.strip() for chunk in macro.split('+')]
+    output = ''
+    depth = 0
+    for chunk in chunks:
+        if chunk == '':
+            # invalid syntax
+            logger.error('Invalid syntax for "%s"', macro)
+            return macro
+
+        depth += 1
+        output += f'm({chunk},'
+
+    output += 'h()'
+    output += depth * ')'
+
+    logger.debug('Transformed "%s" to "%s"', macro, output)
+    return output
+
+
 def parse(macro, mapping, return_errors=False):
     """parse and generate a _Macro that can be run as often as you want.
 
@@ -460,6 +492,8 @@ def parse(macro, mapping, return_errors=False):
         If True, returns errors as a string or None if parsing worked.
         If False, returns the parsed macro.
     """
+    macro = handle_plus_syntax(macro)
+
     # whitespaces, tabs, newlines and such don't serve a purpose. make
     # the log output clearer and the parsing easier.
     macro = re.sub(r'\s', '', macro)

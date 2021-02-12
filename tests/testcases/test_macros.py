@@ -24,10 +24,12 @@ import unittest
 import asyncio
 
 from keymapper.dev.macros import parse, _Macro, _extract_params, \
-    is_this_a_macro, _parse_recurse
+    is_this_a_macro, _parse_recurse, handle_plus_syntax
 from keymapper.config import config
 from keymapper.mapping import Mapping
 from keymapper.state import system_mapping
+
+from tests.test import quick_cleanup
 
 
 class TestMacros(unittest.TestCase):
@@ -39,6 +41,7 @@ class TestMacros(unittest.TestCase):
     def tearDown(self):
         self.result = []
         self.mapping.clear_config()
+        quick_cleanup()
 
     def handler(self, code, value):
         """Where macros should write codes to."""
@@ -54,6 +57,58 @@ class TestMacros(unittest.TestCase):
         self.assertFalse(is_this_a_macro('btn_left'))
         self.assertFalse(is_this_a_macro('minus'))
         self.assertFalse(is_this_a_macro('k'))
+
+        self.assertTrue(is_this_a_macro('a+b'))
+        self.assertTrue(is_this_a_macro('a+b+c'))
+        self.assertTrue(is_this_a_macro('a + b'))
+        self.assertTrue(is_this_a_macro('a + b + c'))
+
+    def test_handle_plus_syntax(self):
+        self.assertEqual(handle_plus_syntax('a + b'), 'm(a,m(b,h()))')
+        self.assertEqual(handle_plus_syntax('a + b + c'), 'm(a,m(b,m(c,h())))')
+        self.assertEqual(handle_plus_syntax(' a+b+c '), 'm(a,m(b,m(c,h())))')
+
+        # invalid
+        self.assertEqual(handle_plus_syntax('+'), '+')
+        self.assertEqual(handle_plus_syntax('a+'), 'a+')
+        self.assertEqual(handle_plus_syntax('+b'), '+b')
+        self.assertEqual(handle_plus_syntax('k(a + b)'), 'k(a + b)')
+        self.assertEqual(handle_plus_syntax('a'), 'a')
+        self.assertEqual(handle_plus_syntax('k(a)'), 'k(a)')
+        self.assertEqual(handle_plus_syntax(''), '')
+
+    def test_run_plus_syntax(self):
+        macro = parse('a + b + c + d', self.mapping)
+        macro.set_handler(self.handler)
+        self.assertSetEqual(macro.get_capabilities(), {
+            system_mapping.get('a'),
+            system_mapping.get('b'),
+            system_mapping.get('c'),
+            system_mapping.get('d')
+        })
+
+        macro.press_key()
+        asyncio.ensure_future(macro.run())
+        self.loop.run_until_complete(asyncio.sleep(0.2))
+        self.assertTrue(macro.is_holding())
+        print(self.mapping.get('macros.keystroke_sleep_ms'))
+        print(self.result)
+
+        # starting from the left, presses each one down
+        self.assertEqual(self.result[0], (system_mapping.get('a'), 1))
+        self.assertEqual(self.result[1], (system_mapping.get('b'), 1))
+        self.assertEqual(self.result[2], (system_mapping.get('c'), 1))
+        self.assertEqual(self.result[3], (system_mapping.get('d'), 1))
+
+        # and then releases starting with the previously pressed key
+        macro.release_key()
+        self.loop.run_until_complete(asyncio.sleep(0.2))
+        self.assertFalse(macro.is_holding())
+        print(self.result)
+        self.assertEqual(self.result[4], (system_mapping.get('d'), 0))
+        self.assertEqual(self.result[5], (system_mapping.get('c'), 0))
+        self.assertEqual(self.result[6], (system_mapping.get('b'), 0))
+        self.assertEqual(self.result[7], (system_mapping.get('a'), 0))
 
     def test_extract_params(self):
         def expect(raw, expectation):

@@ -411,19 +411,17 @@ _fixture_copy = copy.deepcopy(fixtures)
 environ_copy = copy.deepcopy(os.environ)
 
 
-def cleanup():
+def quick_cleanup(log=True):
     """Reset the applications state."""
-    print('cleanup')
+    if log:
+        print('quick cleanup')
+
     keycode_reader.stop_reading()
     keycode_reader.__init__()
 
     if asyncio.get_event_loop().is_running():
         for task in asyncio.all_tasks():
             task.cancel()
-
-    os.system('pkill -f key-mapper-service')
-
-    time.sleep(0.05)
 
     if os.path.exists(tmp):
         shutil.rmtree(tmp)
@@ -458,6 +456,20 @@ def cleanup():
     for key in list(os.environ.keys()):
         if key not in environ_copy:
             del os.environ[key]
+
+
+def cleanup():
+    """Reset the applications state.
+
+    Using this is very slow, usually quick_cleanup() is sufficient.
+    """
+    print('cleanup')
+
+    os.system('pkill -f key-mapper-service')
+
+    time.sleep(0.05)
+
+    quick_cleanup(log=False)
 
     refresh_devices()
 
