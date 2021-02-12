@@ -34,7 +34,7 @@ from keymapper.config import config, BUTTONS
 from keymapper.mapping import Mapping, DISABLE_CODE
 
 from tests.test import new_event, UInput, uinput_write_history, \
-    cleanup, InputDevice, MAX_ABS
+    quick_cleanup, InputDevice, MAX_ABS
 
 
 def wait(func, timeout=1.0):
@@ -84,7 +84,7 @@ class TestKeycodeMapper(unittest.TestCase):
             self.assertFalse(macro.is_holding())
             self.assertFalse(macro.running)
 
-        cleanup()
+        quick_cleanup()
 
     def test_subsets(self):
         a = subsets(((1,), (2,), (3,)))

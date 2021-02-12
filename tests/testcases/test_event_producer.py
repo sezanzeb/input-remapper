@@ -30,7 +30,7 @@ from keymapper.mapping import Mapping
 from keymapper.dev.event_producer import EventProducer, MOUSE, WHEEL
 
 from tests.test import InputDevice, UInput, MAX_ABS, clear_write_history, \
-    uinput_write_history, cleanup, new_event
+    uinput_write_history, quick_cleanup, new_event
 
 
 abs_state = [0, 0, 0, 0]
@@ -55,7 +55,7 @@ class TestEventProducer(unittest.TestCase):
         config.set('gamepad.joystick.y_scroll_speed', 1)
 
     def tearDown(self):
-        cleanup()
+        quick_cleanup()
 
     def test_debounce_1(self):
         loop = asyncio.get_event_loop()

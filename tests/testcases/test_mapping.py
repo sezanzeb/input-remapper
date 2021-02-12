@@ -31,12 +31,12 @@ from keymapper.config import config
 from keymapper.paths import get_preset_path
 from keymapper.key import Key
 
-from tests.test import tmp, cleanup
+from tests.test import tmp, quick_cleanup
 
 
 class TestSystemMapping(unittest.TestCase):
     def tearDown(self):
-        cleanup()
+        quick_cleanup()
 
     def test_update(self):
         system_mapping = SystemMapping()
@@ -113,7 +113,7 @@ class TestMapping(unittest.TestCase):
         self.assertFalse(self.mapping.changed)
 
     def tearDown(self):
-        cleanup()
+        quick_cleanup()
 
     def test_config(self):
         self.mapping.save(get_preset_path('foo', 'bar2'))

@@ -34,7 +34,7 @@ from keymapper.config import BUTTONS, MOUSE
 from keymapper.key import Key
 
 from tests.test import new_event, pending_events, EVENT_READ_TIMEOUT, \
-    cleanup, MAX_ABS
+    quick_cleanup, MAX_ABS
 
 
 CODE_1 = 100
@@ -59,7 +59,7 @@ class TestReader(unittest.TestCase):
         self.assertEqual(keycode_reader.read(), None)
 
     def tearDown(self):
-        cleanup()
+        quick_cleanup()
 
     def test_will_report_up(self):
         self.assertFalse(will_report_up(EV_REL))
