@@ -255,6 +255,30 @@ class TestDaemon(unittest.TestCase):
         self.daemon.stop_injecting(device)
         self.assertEqual(self.daemon.get_state(device), STOPPED)
 
+    def test_refresh_devices_for_unknown_paths(self):
+        device = '9876 name'
+        # this test only makes sense if this device is unknown yet
+        self.assertIsNone(get_devices().get(device))
+
+        self.daemon = Daemon()
+
+        # make sure the devices are populated
+        get_devices()
+
+        self.daemon.refresh_devices()
+
+        fixtures[self.new_fixture] = {
+            'capabilities': {evdev.ecodes.EV_KEY: [evdev.ecodes.KEY_A]},
+            'phys': '9876 phys',
+            'info': evdev.device.DeviceInfo(4, 5, 6, 7),
+            'name': device
+        }
+
+        self.daemon._autoload(self.new_fixture)
+
+        # test if the injector called refresh_devices successfully
+        self.assertIsNotNone(get_devices().get(device))
+
     def test_xmodmap_file(self):
         from_keycode = evdev.ecodes.KEY_A
         to_name = 'qux'
@@ -302,7 +326,7 @@ class TestDaemon(unittest.TestCase):
 
     def test_start_stop(self):
         device = 'device 1'
-        preset = 'preset'
+        preset = 'preset8'
         path = '/dev/input/event11'
 
         daemon = Daemon()
@@ -369,7 +393,7 @@ class TestDaemon(unittest.TestCase):
 
     def test_autoload(self):
         device = 'device 1'
-        preset = 'preset'
+        preset = 'preset7'
         path = '/dev/input/event11'
 
         daemon = Daemon()
@@ -389,10 +413,13 @@ class TestDaemon(unittest.TestCase):
         config.set_autoload_preset(device, preset)
         config.save_config()
         self.daemon.set_config_dir(get_config_path())
+        len_before = len(self.daemon.autoload_history._autoload_history)
         self.daemon._autoload(path)
+        len_after = len(self.daemon.autoload_history._autoload_history)
         self.assertEqual(daemon.autoload_history._autoload_history[device][1], preset)
         self.assertFalse(daemon.autoload_history.may_autoload(device, preset))
         injector = daemon.injectors[device]
+        self.assertEqual(len_before + 1, len_after)
 
         # calling duplicate _autoload does nothing
         self.daemon._autoload(path)
@@ -403,6 +430,18 @@ class TestDaemon(unittest.TestCase):
         # explicit start_injecting clears the autoload history
         self.daemon.start_injecting(device, preset)
         self.assertTrue(daemon.autoload_history.may_autoload(device, preset))
+
+        # calling autoload for (yet) unknown devices does nothing
+        len_before = len(self.daemon.autoload_history._autoload_history)
+        self.daemon._autoload('/dev/input/qux')
+        len_after = len(self.daemon.autoload_history._autoload_history)
+        self.assertEqual(len_before, len_after)
+
+        # autoloading key-mapper devices does nothing
+        len_before = len(self.daemon.autoload_history._autoload_history)
+        self.daemon.autoload_single('/dev/input/event40')
+        len_after = len(self.daemon.autoload_history._autoload_history)
+        self.assertEqual(len_before, len_after)
 
 
 if __name__ == "__main__":

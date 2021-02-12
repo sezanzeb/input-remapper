@@ -951,6 +951,11 @@ class TestIntegration(unittest.TestCase):
         custom_mapping.set('gamepad.joystick.non_linearity', 1)
         self.assertEqual(speed, 2 ** 6)
 
+        # don't consume the events in the reader, they are used to test
+        # the injection
+        keycode_reader.stop_reading()
+        time.sleep(0.1)
+
         pending_events['gamepad'] = [
              new_event(EV_ABS, ABS_RX, -MAX_ABS),
              new_event(EV_ABS, ABS_X, MAX_ABS)

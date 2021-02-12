@@ -30,6 +30,7 @@ import subprocess
 import json
 import time
 
+import evdev
 from pydbus import SystemBus
 from gi.repository import GLib
 
@@ -215,6 +216,33 @@ class Daemon:
         self.config_dir = None
 
         self.autoload_history = AutoloadHistory()
+        self.refreshed_devices_at = 0
+
+    def refresh_devices(self, device=None):
+        """Keep the devices up to date."""
+        now = time.time()
+        if now - 10 > self.refreshed_devices_at:
+            logger.debug('Refreshing because last info is too old')
+            refresh_devices()
+            self.refreshed_devices_at = now
+            return
+
+        if device is not None:
+            if device.startswith('/dev/input/'):
+                for group in get_devices().values():
+                    if device in group['paths']:
+                        break
+                else:
+                    logger.debug('Refreshing because path unknown')
+                    refresh_devices()
+                    self.refreshed_devices_at = now
+                    return
+            else:
+                if device not in get_devices():
+                    logger.debug('Refreshing because name unknown')
+                    refresh_devices()
+                    self.refreshed_devices_at = now
+                    return
 
     def stop_injecting(self, device):
         """Stop injecting the mapping for a single device."""
@@ -262,7 +290,15 @@ class Daemon:
             Device name. Expects a key that is present in get_devices().
             Can also be a path starting with /dev/input/
         """
+        self.refresh_devices(device)
+
         device = path_to_device_name(device)
+        if device not in get_devices():
+            # even after refresh_devices, the device is not in
+            # get_devices(), so it's either not relevant for key-mapper,
+            # or not connected yet
+            return
+
         preset = config.get(['autoload', device], log_unknown=False)
 
         if preset is None:
@@ -297,6 +333,19 @@ class Daemon:
         device : str
             The name of the device as indexed in get_devices()
         """
+        if device.startswith('/dev/input/'):
+            # this is only here to avoid confusing console output,
+            # block invalid requests before any logs are written.
+            # Those requests are rejected later anyway.
+            try:
+                name = evdev.InputDevice(device).name
+                if 'key-mapper' in name:
+                    return
+            except OSError:
+                return
+
+        logger.info('Request to autoload for "%s"', device)
+
         if self.config_dir is None:
             logger.error(
                 'Tried to autoload %s without configuring the daemon first '
@@ -343,6 +392,8 @@ class Daemon:
         preset : string
             The name of the preset
         """
+        self.refresh_devices(device)
+
         device = path_to_device_name(device)
 
         if self.config_dir is None:
@@ -351,10 +402,6 @@ class Daemon:
                 'first via set_config_dir.'
             )
             return
-
-        if device not in get_devices():
-            logger.debug('Devices possibly outdated, refreshing')
-            refresh_devices()
 
         if device not in get_devices():
             logger.error('Could not find device "%s"', device)

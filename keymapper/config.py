@@ -26,6 +26,7 @@ import os
 import sys
 import json
 import shutil
+import copy
 
 from keymapper.paths import CONFIG_PATH, USER, touch
 from keymapper.logger import logger
@@ -162,7 +163,8 @@ class ConfigBase:
         if resolved is None and log_unknown:
             logger.error('Unknown config key "%s"', path)
 
-        return resolved
+        # modifications are only allowed via set
+        return copy.deepcopy(resolved)
 
     def clear_config(self):
         """Remove all configurations in memory."""
@@ -236,7 +238,7 @@ class GlobalConfig(ConfigBase):
             # treated like an empty config
             logger.debug('Config "%s" doesn\'t exist yet', self.path)
             self.clear_config()
-            self._config = INITIAL_CONFIG
+            self._config = copy.deepcopy(INITIAL_CONFIG)
             self.save_config()
             return
 

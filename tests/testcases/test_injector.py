@@ -420,7 +420,6 @@ class TestInjector(unittest.TestCase):
         # convert the write history to some easier to manage list
         history = read_write_history_pipe()
 
-        print(history)
         self.assertEqual(history.count((EV_KEY, 77, 1)), 1)
         self.assertEqual(history.count((EV_ABS, ABS_RZ, value)), 1)
 

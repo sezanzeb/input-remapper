@@ -102,12 +102,13 @@ class _GetDevices(threading.Thread):
         asyncio.set_event_loop(loop)
 
         logger.debug('Discovering device paths')
-        devices = [evdev.InputDevice(path) for path in evdev.list_devices()]
 
         # group them together by usb device because there could be stuff like
         # "Logitech USB Keyboard" and "Logitech USB Keyboard Consumer Control"
         grouped = {}
-        for device in devices:
+        for path in evdev.list_devices():
+            device = evdev.InputDevice(path)
+
             if device.name == 'Power Button':
                 continue
 

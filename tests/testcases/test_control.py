@@ -66,8 +66,8 @@ class TestControl(unittest.TestCase):
         cleanup()
 
     def test_autoload(self):
-        devices = ['device 1234', 'device 2345']
-        presets = ['preset', 'bar', 'bar2']
+        devices = ['device 1', 'device 2']
+        presets = ['bar0', 'bar', 'bar2']
         paths = [
             get_preset_path(devices[0], presets[0]),
             get_preset_path(devices[1], presets[1]),
@@ -152,9 +152,9 @@ class TestControl(unittest.TestCase):
         self.assertTrue(daemon.autoload_history.may_autoload(devices[1], presets[2]))
 
     def test_autoload_other_path(self):
-        devices = ['device 1234', 'device 2345']
-        presets = ['preset', 'bar']
-        config_dir = os.path.join(tmp, 'foo', 'bar')
+        devices = ['device 1', 'device 2']
+        presets = ['bar123', 'bar2']
+        config_dir = os.path.join(tmp, 'qux', 'quux')
         paths = [
             os.path.join(config_dir, 'presets', devices[0], presets[0] + '.json'),
             os.path.join(config_dir, 'presets', devices[1], presets[1] + '.json')
@@ -182,7 +182,7 @@ class TestControl(unittest.TestCase):
 
     def test_start_stop(self):
         device = 'device 1234'
-        preset = 'preset'
+        preset = 'preset9'
 
         daemon = Daemon()
 
