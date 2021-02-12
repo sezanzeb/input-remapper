@@ -268,6 +268,7 @@ class InputDevice:
         ret = [e.copy() for e in pending_events.get(self.group, [])]
         if ret is not None:
             # consume all of them
+            self.log('read all', self.group)
             pending_events[self.group] = []
 
         return ret
