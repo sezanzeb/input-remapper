@@ -51,15 +51,10 @@ class EventProducer:
     This class does not handle injecting macro stuff over time, that is done
     by the keycode_mapper.
     """
-    def __init__(self, mapping):
-        """Construct the event producer without it doing anything yet.
+    def __init__(self, context):
+        """Construct the event producer without it doing anything yet."""
+        self.context = context
 
-        Parameters
-        ----------
-        mapping : Mapping
-            the mapping object that configures the current injection
-        """
-        self.mapping = mapping
         self.mouse_uinput = None
         self.max_abs = None
         # events only take ints, so a movement of 0.3 needs to add
@@ -69,15 +64,6 @@ class EventProducer:
         self.abs_state = {ABS_X: 0, ABS_Y: 0, ABS_RX: 0, ABS_RY: 0}
 
         self.debounces = {}
-        self.left_purpose = None
-        self.right_purpose = None
-
-        self.update_purposes()
-
-    def update_purposes(self):
-        """Figure out how the joysticks should be used"""
-        self.left_purpose = self.mapping.get('gamepad.joystick.left_purpose')
-        self.right_purpose = self.mapping.get('gamepad.joystick.right_purpose')
 
     def notify(self, event):
         """Tell the EventProducer about the newest ABS event.
@@ -150,7 +136,7 @@ class EventProducer:
         self.max_abs = max_abs
         logger.debug('Max abs of "%s": %s', device.name, max_abs)
 
-    def get_abs_values(self, left_purpose, right_purpose):
+    def get_abs_values(self):
         """Get the raw values for wheel and mouse movement.
 
         If two joysticks have the same purpose, the one that reports higher
@@ -158,26 +144,26 @@ class EventProducer:
         """
         mouse_x, mouse_y, wheel_x, wheel_y = 0, 0, 0, 0
 
-        if left_purpose == MOUSE:
+        if self.context.left_purpose == MOUSE:
             mouse_x = abs_max(mouse_x, self.abs_state[ABS_X])
             mouse_y = abs_max(mouse_y, self.abs_state[ABS_Y])
 
-        if left_purpose == WHEEL:
+        if self.context.left_purpose == WHEEL:
             wheel_x = abs_max(wheel_x, self.abs_state[ABS_X])
             wheel_y = abs_max(wheel_y, self.abs_state[ABS_Y])
 
-        if right_purpose == MOUSE:
+        if self.context.right_purpose == MOUSE:
             mouse_x = abs_max(mouse_x, self.abs_state[ABS_RX])
             mouse_y = abs_max(mouse_y, self.abs_state[ABS_RY])
 
-        if right_purpose == WHEEL:
+        if self.context.right_purpose == WHEEL:
             wheel_x = abs_max(wheel_x, self.abs_state[ABS_RX])
             wheel_y = abs_max(wheel_y, self.abs_state[ABS_RY])
 
         return mouse_x, mouse_y, wheel_x, wheel_y
 
     def is_handled(self, event):
-        """Check if the event is something ev_abs will take care of."""
+        """Check if the event is something this will take care of."""
         if event.type != EV_ABS or event.code not in utils.JOYSTICK:
             return False
 
@@ -185,11 +171,13 @@ class EventProducer:
             return False
 
         purposes = [MOUSE, WHEEL]
+        left_purpose = self.context.left_purpose
+        right_purpose = self.context.right_purpose
 
-        if event.code in (ABS_X, ABS_Y) and self.left_purpose in purposes:
+        if event.code in (ABS_X, ABS_Y) and left_purpose in purposes:
             return True
 
-        if event.code in (ABS_RX, ABS_RY) and self.right_purpose in purposes:
+        if event.code in (ABS_RX, ABS_RY) and right_purpose in purposes:
             return True
 
         return False
@@ -201,19 +189,17 @@ class EventProducer:
         its position, this will keep injecting the mouse movement events.
         """
         max_abs = self.max_abs
-        mapping = self.mapping
+        mapping = self.context.mapping
         pointer_speed = mapping.get('gamepad.joystick.pointer_speed')
         non_linearity = mapping.get('gamepad.joystick.non_linearity')
         x_scroll_speed = mapping.get('gamepad.joystick.x_scroll_speed')
         y_scroll_speed = mapping.get('gamepad.joystick.y_scroll_speed')
-        left_purpose = self.left_purpose
-        right_purpose = self.right_purpose
 
         if max_abs is not None:
             logger.info(
                 'Left joystick as %s, right joystick as %s',
-                left_purpose,
-                right_purpose
+                self.context.left_purpose,
+                self.context.right_purpose
             )
 
         start = time.time()
@@ -243,7 +229,7 @@ class EventProducer:
 
             max_speed = ((max_abs ** 2) * 2) ** 0.5
 
-            abs_values = self.get_abs_values(left_purpose, right_purpose)
+            abs_values = self.get_abs_values()
 
             if len([val for val in abs_values if val > max_abs]) > 0:
                 logger.error(

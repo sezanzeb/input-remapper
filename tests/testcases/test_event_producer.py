@@ -27,6 +27,7 @@ from evdev.ecodes import EV_REL, REL_X, REL_Y, REL_WHEEL, REL_HWHEEL, \
 
 from keymapper.config import config
 from keymapper.mapping import Mapping
+from keymapper.injection.context import Context
 from keymapper.injection.event_producer import EventProducer, MOUSE, WHEEL
 
 from tests.test import InputDevice, UInput, MAX_ABS, clear_write_history, \
@@ -37,16 +38,16 @@ abs_state = [0, 0, 0, 0]
 
 
 class TestEventProducer(unittest.TestCase):
-    # there is also `test_abs_to_rel` in test_injector.py
     def setUp(self):
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
 
         self.mapping = Mapping()
+        self.context = Context(self.mapping)
 
         device = InputDevice('/dev/input/event30')
         uinput = UInput()
-        self.event_producer = EventProducer(self.mapping)
+        self.event_producer = EventProducer(self.context)
         self.event_producer.set_max_abs_from(device)
         self.event_producer.set_mouse_uinput(uinput)
         asyncio.ensure_future(self.event_producer.run())
@@ -113,7 +114,7 @@ class TestEventProducer(unittest.TestCase):
     def do(self, a, b, c, d, expectation):
         """Present fake values to the loop and observe the outcome."""
         clear_write_history()
-        self.event_producer.update_purposes()
+        self.event_producer.context.update_purposes()
         self.event_producer.notify(new_event(EV_ABS, ABS_X, a))
         self.event_producer.notify(new_event(EV_ABS, ABS_Y, b))
         self.event_producer.notify(new_event(EV_ABS, ABS_RX, c))
