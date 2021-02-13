@@ -33,13 +33,13 @@ from keymapper.presets import get_presets, find_newest_preset, \
     delete_preset, rename_preset, get_available_preset_name
 from keymapper.logger import logger
 from keymapper.getdevices import get_devices
-from keymapper.gtk.row import Row, to_string
-from keymapper.dev.reader import keycode_reader
-from keymapper.dev.injector import RUNNING, FAILED, NO_GRAB
+from keymapper.gui.row import Row, to_string
+from keymapper.gui.reader import keycode_reader
+from keymapper.injection.injector import RUNNING, FAILED, NO_GRAB
 from keymapper.daemon import get_dbus_interface
 from keymapper.config import config
-from keymapper.dev.macros import is_this_a_macro, parse
-from keymapper.dev import permissions
+from keymapper.injection.macros import is_this_a_macro, parse
+from keymapper import permissions
 
 
 def gtk_iteration():

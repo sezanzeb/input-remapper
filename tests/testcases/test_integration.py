@@ -40,10 +40,10 @@ from gi.repository import Gtk, Gdk
 from keymapper.state import custom_mapping, system_mapping, XMODMAP_FILENAME
 from keymapper.paths import CONFIG_PATH, get_preset_path, get_config_path
 from keymapper.config import config, WHEEL, MOUSE, BUTTONS
-from keymapper.dev.reader import keycode_reader, FILTER_THRESHOLD
-from keymapper.dev.injector import RUNNING
-from keymapper.gtk.row import to_string, HOLDING, IDLE
-from keymapper.dev import permissions
+from keymapper.gui.reader import keycode_reader, FILTER_THRESHOLD
+from keymapper.injection.injector import RUNNING
+from keymapper.gui.row import to_string, HOLDING, IDLE
+from keymapper import permissions
 from keymapper.key import Key
 
 from tests.test import tmp, pending_events, new_event, spy, cleanup, \

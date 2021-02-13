@@ -55,8 +55,8 @@ setup(
     license='GPL-3.0',
     packages=[
         'keymapper',
-        'keymapper.dev',
-        'keymapper.gtk'
+        'keymapper.gui',
+        'keymapper.injection'
     ],
     data_files=[
         # see development.md#files

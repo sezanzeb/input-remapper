@@ -50,7 +50,7 @@ if __name__ == '__main__':
     log_info()
 
     # import key-mapper stuff after setting the log verbosity
-    from keymapper.gtk.window import Window
+    from keymapper.gui.window import Window
     from keymapper.daemon import Daemon
 
     window = Window()

@@ -35,7 +35,7 @@ from pydbus import SystemBus
 from gi.repository import GLib
 
 from keymapper.logger import logger
-from keymapper.dev.injector import Injector, UNKNOWN
+from keymapper.injection.injector import Injector, UNKNOWN
 from keymapper.mapping import Mapping
 from keymapper.config import config
 from keymapper.state import system_mapping

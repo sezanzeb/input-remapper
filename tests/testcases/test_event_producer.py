@@ -27,7 +27,7 @@ from evdev.ecodes import EV_REL, REL_X, REL_Y, REL_WHEEL, REL_HWHEEL, \
 
 from keymapper.config import config
 from keymapper.mapping import Mapping
-from keymapper.dev.event_producer import EventProducer, MOUSE, WHEEL
+from keymapper.injection.event_producer import EventProducer, MOUSE, WHEEL
 
 from tests.test import InputDevice, UInput, MAX_ABS, clear_write_history, \
     uinput_write_history, quick_cleanup, new_event

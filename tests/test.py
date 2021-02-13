@@ -401,13 +401,13 @@ patch_select()
 patch_events()
 
 from keymapper.logger import update_verbosity
-from keymapper.dev.injector import Injector
+from keymapper.injection.injector import Injector
 from keymapper.config import config
-from keymapper.dev.reader import keycode_reader
+from keymapper.gui.reader import keycode_reader
 from keymapper.getdevices import refresh_devices
 from keymapper.state import system_mapping, custom_mapping
 from keymapper.paths import get_config_path
-from keymapper.dev.keycode_mapper import active_macros, unreleased
+from keymapper.injection.keycode_mapper import active_macros, unreleased
 
 # no need for a high number in tests
 Injector.regrab_timeout = 0.15

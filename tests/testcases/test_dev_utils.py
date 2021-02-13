@@ -27,7 +27,7 @@ from evdev.ecodes import EV_KEY, EV_ABS, ABS_HAT0X, KEY_A, \
 
 from keymapper.config import config, BUTTONS
 from keymapper.mapping import Mapping
-from keymapper.dev import utils
+from keymapper import utils
 
 from tests.test import new_event, InputDevice, MAX_ABS
 
@@ -38,10 +38,13 @@ class TestDevUtils(unittest.TestCase):
         self.assertIsNone(utils.get_max_abs(InputDevice('/dev/input/event10')))
 
     def test_will_report_key_up(self):
-        self.assertFalse(utils.will_report_key_up(new_event(EV_REL, REL_WHEEL, 1)))
-        self.assertFalse(utils.will_report_key_up(new_event(EV_REL, REL_HWHEEL, -1)))
+        self.assertFalse(
+            utils.will_report_key_up(new_event(EV_REL, REL_WHEEL, 1)))
+        self.assertFalse(
+            utils.will_report_key_up(new_event(EV_REL, REL_HWHEEL, -1)))
         self.assertTrue(utils.will_report_key_up(new_event(EV_KEY, KEY_A, 1)))
-        self.assertTrue(utils.will_report_key_up(new_event(EV_ABS, ABS_HAT0X, -1)))
+        self.assertTrue(
+            utils.will_report_key_up(new_event(EV_ABS, ABS_HAT0X, -1)))
 
     def test_is_wheel(self):
         self.assertTrue(utils.is_wheel(new_event(EV_REL, REL_WHEEL, 1)))

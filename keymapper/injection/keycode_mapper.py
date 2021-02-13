@@ -29,8 +29,7 @@ from evdev.ecodes import EV_KEY, EV_ABS
 
 from keymapper.logger import logger
 from keymapper.mapping import DISABLE_CODE
-from keymapper.dev import utils
-
+from keymapper import utils
 
 # this state is shared by all KeycodeMappers of this process
 

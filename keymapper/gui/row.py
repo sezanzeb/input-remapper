@@ -28,7 +28,7 @@ from gi.repository import Gtk, GLib, Gdk
 from keymapper.state import custom_mapping, system_mapping
 from keymapper.logger import logger
 from keymapper.key import Key
-from keymapper.dev.reader import keycode_reader
+from keymapper.gui.reader import keycode_reader
 
 
 CTX_KEYCODE = 2

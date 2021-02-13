@@ -25,7 +25,7 @@ import getpass
 import subprocess
 import unittest
 
-from keymapper.dev.permissions import check_injection_rights, check_group, \
+from keymapper.permissions import check_injection_rights, check_group, \
     can_read_devices
 from keymapper.paths import USER
 from keymapper.daemon import is_service_running
