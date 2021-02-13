@@ -36,6 +36,14 @@ from keymapper.logger import logger
 _devices = None
 
 
+TABLET_KEYS = [
+    evdev.ecodes.BTN_STYLUS,
+    evdev.ecodes.BTN_TOOL_BRUSH,
+    evdev.ecodes.BTN_TOOL_PEN,
+    evdev.ecodes.BTN_TOOL_RUBBER
+]
+
+
 if not hasattr(evdev.InputDevice, 'path'):
     # for evdev < 1.0.0 patch the path property
     @property
@@ -59,11 +67,10 @@ def is_gamepad(device):
             # check for some random mousepad capability
             return False
 
-        if evdev.ecodes.BTN_TOOL_BRUSH in capabilities.get(EV_KEY, []):
-            # a graphics tablet, not a gamepad
-            return False
-        if evdev.ecodes.BTN_STYLUS in capabilities.get(EV_KEY, []):
-            # another graphics tablet test
+        # graphics tablet tests.
+        # They use ABS_X and ABS_Y for moving the cursor
+        keys = capabilities.get(EV_KEY, [])
+        if [key for key in keys if key in TABLET_KEYS]:
             return False
 
         if evdev.ecodes.ABS_X in abs_capabilities:

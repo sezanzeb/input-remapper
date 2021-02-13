@@ -124,6 +124,6 @@ Communication to the service always happens via `key-mapper-control`
 
 ## Resources
 
-[PyGObject API Reference](https://lazka.github.io/pgi-docs/)
-
-[python-evdev](https://python-evdev.readthedocs.io/en/stable/)
+- [Guidelines for device capabilities](https://www.kernel.org/doc/Documentation/input/event-codes.txt)
+- [PyGObject API Reference](https://lazka.github.io/pgi-docs/)
+- [python-evdev](https://python-evdev.readthedocs.io/en/stable/)
