@@ -36,10 +36,8 @@ from keymapper.getdevices import get_devices, is_gamepad
 from keymapper.injection.keycode_mapper import KeycodeMapper
 from keymapper import utils
 from keymapper.injection.event_producer import EventProducer
-from keymapper.injection.macros import parse, is_this_a_macro
-from keymapper.state import system_mapping
 from keymapper.mapping import DISABLE_CODE
-from keymapper.config import NONE, MOUSE, WHEEL
+from keymapper.injection.context import Context
 
 
 DEV_NAME = 'key-mapper'
@@ -148,11 +146,12 @@ class Injector(multiprocessing.Process):
         mapping : Mapping
         """
         self.device = device
-        self.mapping = mapping
-        self._key_to_code = self._map_keys_to_codes()
         self._event_producer = None
         self._state = UNKNOWN
         self._msg_pipe = multiprocessing.Pipe()
+
+        self.context = Context(mapping)
+
         super().__init__()
 
     # Functions to interact with the running process:
@@ -200,54 +199,6 @@ class Injector(multiprocessing.Process):
 
     # Process internal stuff:
 
-    def _forwards_joystick(self):
-        """If at least one of the joysticks remains a regular joystick."""
-        left_purpose = self.mapping.get('gamepad.joystick.left_purpose')
-        right_purpose = self.mapping.get('gamepad.joystick.right_purpose')
-        return NONE in (left_purpose, right_purpose)
-
-    def _maps_joystick(self):
-        """If at least one of the joysticks will serve a special purpose."""
-        left_purpose = self.mapping.get('gamepad.joystick.left_purpose')
-        right_purpose = self.mapping.get('gamepad.joystick.right_purpose')
-        return (left_purpose, right_purpose) != (NONE, NONE)
-
-    def _joystick_as_mouse(self):
-        """If at least one joystick maps to an EV_REL capability."""
-        purposes = (
-            self.mapping.get('gamepad.joystick.left_purpose'),
-            self.mapping.get('gamepad.joystick.right_purpose')
-        )
-        return MOUSE in purposes or WHEEL in purposes
-
-    def _map_keys_to_codes(self):
-        """To quickly get target keycodes during operation.
-
-        Returns a mapping of one or more 3-tuples to ints.
-        Examples:
-            ((1, 2, 1),): 3
-            ((1, 5, 1), (1, 4, 1)): 4
-        """
-        key_to_code = {}
-        for key, output in self.mapping:
-            if is_this_a_macro(output):
-                continue
-
-            target_code = system_mapping.get(output)
-            if target_code is None:
-                logger.error('Don\'t know what %s is', output)
-                continue
-
-            for permutation in key.get_permutations():
-                if permutation.keys[-1][-1] not in [-1, 1]:
-                    logger.error(
-                        'Expected values to be -1 or 1 at this point: %s',
-                        permutation.keys
-                    )
-                key_to_code[permutation.keys] = target_code
-
-        return key_to_code
-
     def _grab_device(self, path):
         """Try to grab the device, return None if not needed/possible."""
         try:
@@ -259,14 +210,14 @@ class Injector(multiprocessing.Process):
         capabilities = device.capabilities(absinfo=False)
 
         needed = False
-        for key, _ in self.mapping:
+        for key, _ in self.context.mapping:
             if is_in_capabilities(key, capabilities):
                 needed = True
                 break
 
         gamepad = is_gamepad(device)
 
-        if gamepad and self._maps_joystick():
+        if gamepad and self.context.maps_joystick():
             needed = True
 
         if not needed:
@@ -301,7 +252,7 @@ class Injector(multiprocessing.Process):
 
         return device
 
-    def _modify_capabilities(self, macros, input_device, gamepad):
+    def _modify_capabilities(self, input_device, gamepad):
         """Adds all used keycodes into a copy of a devices capabilities.
 
         Sometimes capabilities are a bit tricky and change how the system
@@ -309,8 +260,6 @@ class Injector(multiprocessing.Process):
 
         Parameters
         ----------
-        macros : dict
-            mapping of int to _Macro
         input_device : evdev.InputDevice
         gamepad : bool
             if ABS capabilities should be removed in favor of REL
@@ -326,11 +275,11 @@ class Injector(multiprocessing.Process):
         # to act like the device.
         capabilities = input_device.capabilities(absinfo=True)
 
-        if (self._key_to_code or macros) and capabilities.get(EV_KEY) is None:
+        if self.context.writes_keys and capabilities.get(EV_KEY) is None:
             capabilities[EV_KEY] = []
 
         # Furthermore, support all injected keycodes
-        for code in self._key_to_code.values():
+        for code in self.context.key_to_code.values():
             if code == DISABLE_CODE:
                 continue
 
@@ -338,10 +287,10 @@ class Injector(multiprocessing.Process):
                 capabilities[EV_KEY].append(code)
 
         # and all keycodes that are injected by macros
-        for macro in macros.values():
+        for macro in self.context.macros.values():
             capabilities[EV_KEY] += list(macro.get_capabilities())
 
-        if gamepad and self._joystick_as_mouse():
+        if gamepad and self.context.joystick_as_mouse():
             # REL_WHEEL was also required to recognize the gamepad
             # as mouse, even if no joystick is used as wheel.
             capabilities[EV_REL] = [
@@ -364,7 +313,7 @@ class Injector(multiprocessing.Process):
             del capabilities[ecodes.EV_SYN]
         if ecodes.EV_FF in capabilities:
             del capabilities[ecodes.EV_FF]
-        if gamepad and not self._forwards_joystick():
+        if gamepad and not self.context.forwards_joystick():
             # Key input to text inputs and such only works without ABS
             # events in the capabilities, possibly due to some intentional
             # constraints in wayland/X. So if the joysticks are not used
@@ -408,6 +357,8 @@ class Injector(multiprocessing.Process):
             logger.error('Cannot inject for unknown device "%s"', self.device)
             return
 
+        logger.info('Starting injecting the mapping for "%s"', self.device)
+
         # create a new event loop, because somehow running an infinite loop
         # that sleeps on iterations (event_producer) in one process causes
         # another injection process to screw up reading from the grabbed
@@ -415,32 +366,13 @@ class Injector(multiprocessing.Process):
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
 
-        numlock_state = is_numlock_on()
+        self._event_producer = EventProducer(self.context)
 
+        numlock_state = is_numlock_on()
         coroutines = []
 
-        logger.info('Starting injecting the mapping for "%s"', self.device)
-
-        paths = get_devices()[self.device]['paths']
-
-        self._event_producer = EventProducer(self.mapping)
-
-        logger.debug('Parsing macros')
-        macros = {}
-        for key, output in self.mapping:
-            if is_this_a_macro(output):
-                macro = parse(output, self.mapping)
-                if macro is None:
-                    continue
-
-                for permutation in key.get_permutations():
-                    macros[permutation.keys] = macro
-
-        if len(macros) == 0:
-            logger.debug('No macros configured')
-
         # Watch over each one of the potentially multiple devices per hardware
-        for path in paths:
+        for path in get_devices()[self.device]['paths']:
             source = self._grab_device(path)
             if source is None:
                 # this path doesn't need to be grabbed for injection, because
@@ -459,7 +391,7 @@ class Injector(multiprocessing.Process):
             uinput = evdev.UInput(
                 name=f'{DEV_NAME} {self.device}',
                 phys=DEV_NAME,
-                events=self._modify_capabilities(macros, source, gamepad)
+                events=self._modify_capabilities(source, gamepad)
             )
 
             logger.spam(
@@ -468,12 +400,12 @@ class Injector(multiprocessing.Process):
             )
 
             # actual reading of events
-            coroutines.append(self._event_consumer(macros, source, uinput))
+            coroutines.append(self._event_consumer(source, uinput))
 
             # The event source of the current iteration will deliver events
             # that are needed for this. It is that one that will be mapped
             # to a mouse-like devnode.
-            if gamepad and self._joystick_as_mouse():
+            if gamepad and self.context.joystick_as_mouse():
                 self._event_producer.set_max_abs_from(source)
                 self._event_producer.set_mouse_uinput(uinput)
 
@@ -513,7 +445,7 @@ class Injector(multiprocessing.Process):
         uinput.write(EV_KEY, code, value)
         uinput.syn()
 
-    async def _event_consumer(self, macros, source, uinput):
+    async def _event_consumer(self, source, uinput):
         """Reads input events to inject keycodes or talk to the event_producer.
 
         Can be stopped by stopping the asyncio loop. This loop
@@ -523,8 +455,6 @@ class Injector(multiprocessing.Process):
 
         Parameters
         ----------
-        macros : int: _Macro
-            macro with a handler that writes to the provided uinput
         source : evdev.InputDevice
             where to read keycodes from
         uinput : evdev.UInput
@@ -535,10 +465,7 @@ class Injector(multiprocessing.Process):
             source.path, source.fd
         )
 
-        keycode_handler = KeycodeMapper(
-            source, self.mapping, uinput,
-            self._key_to_code, macros
-        )
+        keycode_handler = KeycodeMapper(self.context, source, uinput)
 
         async for event in source.async_read_loop():
             if self._event_producer.is_handled(event):
@@ -547,12 +474,10 @@ class Injector(multiprocessing.Process):
                 continue
 
             # for mapped stuff
-            if utils.should_map_event_as_btn(event, self.mapping):
+            if utils.should_map_event_as_btn(event, self.context.mapping):
                 will_report_key_up = utils.will_report_key_up(event)
 
-                keycode_handler.handle_keycode(
-                    event,
-                )
+                keycode_handler.handle_keycode(event)
 
                 if not will_report_key_up:
                     # simulate a key-up event if no down event arrives anymore.
@@ -561,10 +486,7 @@ class Injector(multiprocessing.Process):
                     self._event_producer.debounce(
                         debounce_id=(event.type, event.code, event.value),
                         func=keycode_handler.handle_keycode,
-                        args=(
-                            release,
-                            False
-                        ),
+                        args=(release, False),
                         ticks=3,
                     )
 

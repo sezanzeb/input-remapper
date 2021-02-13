@@ -193,7 +193,7 @@ def print_unreleased():
 
 class KeycodeMapper:
     """Injects keycodes and starts macros."""
-    def __init__(self, source, mapping, uinput, key_to_code, macros):
+    def __init__(self, context, source, uinput):
         """Create a keycode mapper for one virtual device.
 
         There may be multiple KeycodeMappers for one hardware device. They
@@ -201,43 +201,27 @@ class KeycodeMapper:
 
         Parameters
         ----------
+        context : Context
+            the configuration of the Injector process
         source : InputDevice
             where events used in handle_keycode come from
-        mapping : Mapping
-            the mapping that is the source of key_to_code and macros,
-            only used to query config values.
         uinput : UInput:
             where to inject events to
-        key_to_code : dict
-            mapping of ((type, code, value),) to linux-keycode
-            or multiple of those like ((...), (...), ...) for combinations
-            combinations need to be present in every possible valid ordering.
-            e.g. shift + alt + a and alt + shift + a.
-            This is needed to query keycodes more efficiently without having
-            to search mapping each time.
-        macros : dict
-            mapping of ((type, code, value),) to _Macro objects.
-            Combinations work similar as in key_to_code
         """
         self.source = source
         self.max_abs = utils.get_max_abs(source)
-        self.mapping = mapping
+        self.context = context
         self.uinput = uinput
 
         # some type checking, prevents me from forgetting what that stuff
         # is supposed to be when writing tests.
-        # TODO create that stuff (including macros) from mapping here instead
-        #  of the injector, to not provide redundant parameters
-        for key in key_to_code:
+        for key in context.key_to_code:
             for sub_key in key:
                 if abs(sub_key[2]) > 1:
                     raise ValueError(
                         f'Expected values to be one of -1, 0 or 1, '
                         f'but got {key}'
                     )
-
-        self.key_to_code = key_to_code
-        self.macros = macros
 
     def macro_write(self, code, value):
         """Handler for macros."""
@@ -301,7 +285,7 @@ class KeycodeMapper:
                     # the newest input are of interest
                     continue
 
-                if subset in self.macros or subset in self.key_to_code:
+                if self.context.is_mapped(subset):
                     key = subset
                     break
             else:
@@ -347,7 +331,7 @@ class KeycodeMapper:
         active_macro = active_macros.get(type_code)
 
         key = self._get_key(event_tuple)
-        is_mapped = key in self.macros or key in self.key_to_code
+        is_mapped = self.context.is_mapped(key)
 
         """Releasing keys and macros"""
 
@@ -402,7 +386,9 @@ class KeycodeMapper:
                 return
 
             # it would start a macro usually
-            if key in self.macros and active_macro and active_macro.running:
+            in_macros = key in self.context.macros
+            running = active_macro and active_macro.running
+            if in_macros and running:
                 # for key-down events and running macros, don't do anything.
                 # This avoids spawning a second macro while the first one is
                 # not finished, especially since gamepad-triggers report a ton
@@ -417,8 +403,8 @@ class KeycodeMapper:
             # triggering a combination, so they should be remembered in
             # unreleased
 
-            if key in self.macros:
-                macro = self.macros[key]
+            if key in self.context.macros:
+                macro = self.context.macros[key]
                 active_macros[type_code] = macro
                 Unreleased((None, None), event_tuple, key)
                 macro.press_key()
@@ -426,8 +412,8 @@ class KeycodeMapper:
                 asyncio.ensure_future(macro.run(self.macro_write))
                 return
 
-            if key in self.key_to_code:
-                target_code = self.key_to_code[key]
+            if key in self.context.key_to_code:
+                target_code = self.context.key_to_code[key]
                 # remember the key that triggered this
                 # (this combination or this single key)
                 Unreleased((EV_KEY, target_code), event_tuple, key)

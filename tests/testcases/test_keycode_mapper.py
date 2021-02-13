@@ -30,6 +30,7 @@ from keymapper.injection.keycode_mapper import active_macros, KeycodeMapper, \
     unreleased, subsets
 from keymapper.state import system_mapping
 from keymapper.injection.macros import parse
+from keymapper.injection.context import Context
 from keymapper.config import config, BUTTONS
 from keymapper.mapping import Mapping, DISABLE_CODE
 
@@ -110,30 +111,33 @@ class TestKeycodeMapper(unittest.TestCase):
         ev_5 = (EV_ABS, ABS_HAT0Y, -1)
         ev_6 = (EV_ABS, ABS_HAT0Y, 0)
 
-        _key_to_code = {
+        uinput = UInput()
+        context = Context(self.mapping)
+        context.key_to_code = {
             (ev_1,): 51,
             (ev_2,): 52,
             (ev_4,): 54,
             (ev_5,): 55,
         }
 
-        uinput = UInput()
-
-        keycode_mapper = KeycodeMapper(
-            self.source, self.mapping, uinput,
-            _key_to_code, {}
-        )
+        keycode_mapper = KeycodeMapper(context, self.source, uinput)
 
         # a bunch of d-pad key down events at once
         keycode_mapper.handle_keycode(new_event(*ev_1))
         keycode_mapper.handle_keycode(new_event(*ev_4))
         self.assertEqual(len(unreleased), 2)
 
-        self.assertEqual(unreleased.get(ev_1[:2]).target_type_code, (EV_KEY, _key_to_code[(ev_1,)]))
+        self.assertEqual(
+            unreleased.get(ev_1[:2]).target_type_code,
+            (EV_KEY, context.key_to_code[(ev_1,)])
+        )
         self.assertEqual(unreleased.get(ev_1[:2]).input_event_tuple, ev_1)
-        self.assertEqual(unreleased.get(ev_1[:2]).key, (ev_1,))  # as seen in _key_to_code
+        self.assertEqual(unreleased.get(ev_1[:2]).key, (ev_1,))  # as seen in key_to_code
 
-        self.assertEqual(unreleased.get(ev_4[:2]).target_type_code, (EV_KEY, _key_to_code[(ev_4,)]), ev_4)
+        self.assertEqual(
+            unreleased.get(ev_4[:2]).target_type_code,
+            (EV_KEY, context.key_to_code[(ev_4,)]), ev_4
+        )
         self.assertEqual(unreleased.get(ev_4[:2]).input_event_tuple, ev_4)
         self.assertEqual(unreleased.get(ev_4[:2]).key, (ev_4,))
 
@@ -146,10 +150,22 @@ class TestKeycodeMapper(unittest.TestCase):
         keycode_mapper.handle_keycode(new_event(*ev_2))
         keycode_mapper.handle_keycode(new_event(*ev_5))
         self.assertEqual(len(unreleased), 2)
-        self.assertEqual(unreleased.get(ev_2[:2]).target_type_code, (EV_KEY, _key_to_code[(ev_2,)]))
-        self.assertEqual(unreleased.get(ev_2[:2]).input_event_tuple, ev_2)
-        self.assertEqual(unreleased.get(ev_5[:2]).target_type_code, (EV_KEY, _key_to_code[(ev_5,)]))
-        self.assertEqual(unreleased.get(ev_5[:2]).input_event_tuple, ev_5)
+        self.assertEqual(
+            unreleased.get(ev_2[:2]).target_type_code,
+            (EV_KEY, context.key_to_code[(ev_2,)])
+        )
+        self.assertEqual(
+            unreleased.get(ev_2[:2]).input_event_tuple,
+            ev_2
+        )
+        self.assertEqual(
+            unreleased.get(ev_5[:2]).target_type_code,
+            (EV_KEY, context.key_to_code[(ev_5,)])
+        )
+        self.assertEqual(
+            unreleased.get(ev_5[:2]).input_event_tuple,
+            ev_5
+        )
 
         # release all of them again
         keycode_mapper.handle_keycode(new_event(*ev_3))
@@ -175,10 +191,8 @@ class TestKeycodeMapper(unittest.TestCase):
         up = (EV_KEY, 91, 0)
         uinput = UInput()
 
-        keycode_mapper = KeycodeMapper(
-            self.source, self.mapping, uinput,
-            {}, {}
-        )
+        context = Context(self.mapping)
+        keycode_mapper = KeycodeMapper(context, self.source, uinput)
 
         keycode_mapper.handle_keycode(new_event(*down), False)
         self.assertEqual(unreleased[(EV_KEY, 91)].input_event_tuple, down)
@@ -207,10 +221,9 @@ class TestKeycodeMapper(unittest.TestCase):
         # something with gamepad capabilities
         source = InputDevice('/dev/input/event30')
 
-        keycode_mapper = KeycodeMapper(
-            source, self.mapping, uinput,
-            _key_to_code, {}
-        )
+        context = Context(self.mapping)
+        context.key_to_code = _key_to_code
+        keycode_mapper = KeycodeMapper(context, source, uinput)
 
         keycode_mapper.handle_keycode(new_event(*ev_3))
         keycode_mapper.handle_keycode(new_event(*ev_1))
@@ -234,10 +247,8 @@ class TestKeycodeMapper(unittest.TestCase):
         up = (EV_KEY, 91, 0)
         uinput = UInput()
 
-        keycode_mapper = KeycodeMapper(
-            self.source, self.mapping, uinput,
-            {}, {}
-        )
+        context = Context(self.mapping)
+        keycode_mapper = KeycodeMapper(context, self.source, uinput)
 
         for _ in range(10):
             keycode_mapper.handle_keycode(new_event(*down))
@@ -266,10 +277,9 @@ class TestKeycodeMapper(unittest.TestCase):
             (down_1, down_2): 71
         }
 
-        keycode_mapper = KeycodeMapper(
-            self.source, self.mapping, uinput,
-            key_to_code, {}
-        )
+        context = Context(self.mapping)
+        context.key_to_code = key_to_code
+        keycode_mapper = KeycodeMapper(context, self.source, uinput)
 
         keycode_mapper.handle_keycode(new_event(*down_1))
         for _ in range(10):
@@ -302,10 +312,9 @@ class TestKeycodeMapper(unittest.TestCase):
 
         uinput = UInput()
 
-        keycode_mapper = KeycodeMapper(
-            self.source, self.mapping, uinput,
-            _key_to_code, {}
-        )
+        context = Context(self.mapping)
+        context.key_to_code = _key_to_code
+        keycode_mapper = KeycodeMapper(context, self.source, uinput)
 
         # a bunch of d-pad key down events at once
         keycode_mapper.handle_keycode(new_event(*ev_1))
@@ -339,10 +348,9 @@ class TestKeycodeMapper(unittest.TestCase):
 
         uinput = UInput()
 
-        keycode_mapper = KeycodeMapper(
-            self.source, self.mapping, uinput,
-            _key_to_code, {}
-        )
+        context = Context(self.mapping)
+        context.key_to_code = _key_to_code
+        keycode_mapper = KeycodeMapper(context, self.source, uinput)
 
         keycode_mapper.handle_keycode(new_event(EV_KEY, 1, 1))
         keycode_mapper.handle_keycode(new_event(EV_KEY, 3, 1))
@@ -361,10 +369,9 @@ class TestKeycodeMapper(unittest.TestCase):
 
         uinput = UInput()
 
-        keycode_mapper = KeycodeMapper(
-            self.source, self.mapping, uinput,
-            _key_to_code, {}
-        )
+        context = Context(self.mapping)
+        context.key_to_code = _key_to_code
+        keycode_mapper = KeycodeMapper(context, self.source, uinput)
 
         keycode_mapper.handle_keycode(new_event(*combination[0]))
         keycode_mapper.handle_keycode(new_event(*combination[1]))
@@ -425,10 +432,9 @@ class TestKeycodeMapper(unittest.TestCase):
 
         source = InputDevice('/dev/input/event30')
 
-        keycode_mapper = KeycodeMapper(
-            source, self.mapping, uinput,
-            _key_to_code, {}
-        )
+        context = Context(self.mapping)
+        context.key_to_code = _key_to_code
+        keycode_mapper = KeycodeMapper(context, source, uinput)
 
         # 10 and 11: insert some more arbitrary key-down events,
         # they should not break the combinations
@@ -478,10 +484,9 @@ class TestKeycodeMapper(unittest.TestCase):
             ((EV_KEY, 2, 1),): parse('r(5, k(b))', self.mapping)
         }
 
-        keycode_mapper = KeycodeMapper(
-            self.source, self.mapping, None,
-            {}, macro_mapping
-        )
+        context = Context(self.mapping)
+        context.macros = macro_mapping
+        keycode_mapper = KeycodeMapper(context, self.source, None)
 
         keycode_mapper.macro_write = lambda *args: history.append(args)
         keycode_mapper.macro_write = lambda *args: history.append(args)
@@ -531,10 +536,9 @@ class TestKeycodeMapper(unittest.TestCase):
         def handler(*args):
             history.append(args)
 
-        keycode_mapper = KeycodeMapper(
-            self.source, self.mapping, None,
-            {}, macro_mapping
-        )
+        context = Context(self.mapping)
+        context.macros = macro_mapping
+        keycode_mapper = KeycodeMapper(context, self.source, None)
 
         keycode_mapper.macro_write = handler
 
@@ -604,10 +608,9 @@ class TestKeycodeMapper(unittest.TestCase):
         def handler(*args):
             history.append(args)
 
-        keycode_mapper = KeycodeMapper(
-            self.source, self.mapping, None,
-            {}, macro_mapping
-        )
+        context = Context(self.mapping)
+        context.macros = macro_mapping
+        keycode_mapper = KeycodeMapper(context, self.source, None)
 
         keycode_mapper.macro_write = handler
         keycode_mapper.macro_write = handler
@@ -730,10 +733,9 @@ class TestKeycodeMapper(unittest.TestCase):
         def handler(*args):
             history.append(args)
 
-        keycode_mapper = KeycodeMapper(
-            self.source, self.mapping, None,
-            {}, macro_mapping
-        )
+        context = Context(self.mapping)
+        context.macros = macro_mapping
+        keycode_mapper = KeycodeMapper(context, self.source, None)
 
         keycode_mapper.macro_write = handler
 
@@ -808,12 +810,12 @@ class TestKeycodeMapper(unittest.TestCase):
 
         loop = asyncio.get_event_loop()
 
+        context = Context(self.mapping)
+        context.macros = macro_mapping
+
         uinput_1 = UInput()
 
-        keycode_mapper = KeycodeMapper(
-            self.source, self.mapping, uinput_1,
-            {}, macro_mapping
-        )
+        keycode_mapper = KeycodeMapper(context, self.source, uinput_1)
 
         keycode_mapper.macro_write = handler
 
@@ -828,10 +830,7 @@ class TestKeycodeMapper(unittest.TestCase):
 
         uinput_2 = UInput()
 
-        keycode_mapper = KeycodeMapper(
-            self.source, self.mapping, uinput_2,
-            {}, macro_mapping
-        )
+        keycode_mapper = KeycodeMapper(context, self.source, uinput_2)
 
         keycode_mapper.macro_write = handler
 
@@ -858,10 +857,7 @@ class TestKeycodeMapper(unittest.TestCase):
 
         """stop macros"""
 
-        keycode_mapper = KeycodeMapper(
-            self.source, self.mapping, None,
-            {}, macro_mapping
-        )
+        keycode_mapper = KeycodeMapper(context, self.source, None)
 
         # releasing the last key of a combination releases the whole macro
         keycode_mapper.handle_keycode(new_event(*up_1))
@@ -934,10 +930,9 @@ class TestKeycodeMapper(unittest.TestCase):
         def handler(*args):
             history.append(args)
 
-        keycode_mapper = KeycodeMapper(
-            self.source, self.mapping, None,
-            {}, macro_mapping
-        )
+        context = Context(self.mapping)
+        context.macros = macro_mapping
+        keycode_mapper = KeycodeMapper(context, self.source, None)
 
         keycode_mapper.macro_write = handler
         keycode_mapper.macro_write = handler
@@ -970,10 +965,9 @@ class TestKeycodeMapper(unittest.TestCase):
 
         uinput = UInput()
 
-        keycode_mapper = KeycodeMapper(
-            self.source, self.mapping, uinput,
-            _key_to_code, {}
-        )
+        context = Context(self.mapping)
+        context.key_to_code = _key_to_code
+        keycode_mapper = KeycodeMapper(context, self.source, uinput)
 
         """positive"""
 
@@ -1016,10 +1010,9 @@ class TestKeycodeMapper(unittest.TestCase):
 
         uinput = UInput()
 
-        keycode_mapper = KeycodeMapper(
-            self.source, self.mapping, uinput,
-            _key_to_code, {}
-        )
+        context = Context(self.mapping)
+        context.key_to_code = _key_to_code
+        keycode_mapper = KeycodeMapper(context, self.source, uinput)
 
         keycode_mapper.handle_keycode(new_event(*ev_1))
 
@@ -1056,10 +1049,9 @@ class TestKeycodeMapper(unittest.TestCase):
 
         uinput = UInput()
 
-        keycode_mapper = KeycodeMapper(
-            self.source, self.mapping, uinput,
-            _key_to_code, {}
-        )
+        context = Context(self.mapping)
+        context.key_to_code = _key_to_code
+        keycode_mapper = KeycodeMapper(context, self.source, uinput)
 
         """single keys"""
 
@@ -1152,10 +1144,10 @@ class TestKeycodeMapper(unittest.TestCase):
 
         loop = asyncio.get_event_loop()
 
-        keycode_mapper = KeycodeMapper(
-            self.source, self.mapping, uinput,
-            _key_to_code, macro_mapping
-        )
+        context = Context(self.mapping)
+        context.key_to_code = _key_to_code
+        context.macros = macro_mapping
+        keycode_mapper = KeycodeMapper(context, self.source, uinput)
 
         keycode_mapper.macro_write = handler
 
@@ -1221,10 +1213,9 @@ class TestKeycodeMapper(unittest.TestCase):
 
         uinput = UInput()
 
-        keycode_mapper = KeycodeMapper(
-            self.source, self.mapping,
-            uinput, k2c, {}
-        )
+        context = Context(self.mapping)
+        context.key_to_code = k2c
+        keycode_mapper = KeycodeMapper(context, self.source, uinput)
 
         keycode_mapper.handle_keycode(new_event(*btn_down))
         # "forwarding"
