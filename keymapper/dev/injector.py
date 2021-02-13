@@ -315,7 +315,7 @@ class Injector:
 
         # copy the capabilities because the uinput is going
         # to act like the device.
-        capabilities = input_device.capabilities(absinfo=False)
+        capabilities = input_device.capabilities(absinfo=True)
 
         if (self._key_to_code or macros) and capabilities.get(EV_KEY) is None:
             capabilities[EV_KEY] = []

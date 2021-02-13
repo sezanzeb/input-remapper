@@ -41,6 +41,15 @@ JOYSTICK = [
 ]
 
 
+# drawing table stylus movements
+STYLUS = [
+    (EV_ABS, evdev.ecodes.ABS_DISTANCE),
+    (EV_ABS, evdev.ecodes.ABS_TILT_X),
+    (EV_ABS, evdev.ecodes.ABS_TILT_Y),
+    (EV_KEY, evdev.ecodes.BTN_DIGI)
+]
+
+
 # a third of a quarter circle, so that each quarter is divided in 3 areas:
 # up, left and up-left. That makes up/down/left/right larger than the
 # overlapping sections though, maybe it should be 8 equal areas though, idk
@@ -97,17 +106,19 @@ def should_map_event_as_btn(event, mapping):
     Especially important for gamepad events, some of the buttons
     require special rules.
     """
-    if event.type == EV_KEY:
-        return True
+    if (event.type, event.code) in STYLUS:
+        return False
 
     is_mousepad = event.type == EV_ABS and 47 <= event.code <= 61
     if is_mousepad:
         return False
 
-    if is_wheel(event):
-        return True
-
     if event.type == EV_ABS:
+        if event.code == evdev.ecodes.ABS_MISC:
+            # what is that even supposed to be.
+            # the intuos 5 spams those with every event
+            return False
+
         if event.code in JOYSTICK:
             l_purpose = mapping.get('gamepad.joystick.left_purpose')
             r_purpose = mapping.get('gamepad.joystick.right_purpose')
@@ -119,6 +130,13 @@ def should_map_event_as_btn(event, mapping):
                 return True
         else:
             return True
+
+    if is_wheel(event):
+        return True
+
+    if event.type == EV_KEY:
+        # usually all EV_KEY events are allright
+        return True
 
     return False
 
