@@ -39,8 +39,6 @@ class Context:
 
     Benefits of the context:
     - less redundant passing around of parameters
-    - more clear which parameters are shared between coroutines and which
-      ones are unique to a certain method
     - easier to add new process wide information without having to adjust
       all function calls in unittests
     - makes the injection class shorter and more specific to a certain task,
