@@ -104,25 +104,18 @@ class _Macro:
             capabilities.update(macro.get_capabilities())
         return capabilities
 
-    def set_handler(self, handler):
-        """Set the handler function.
+    async def run(self, handler):
+        """Run the macro.
 
         Parameters
         ----------
-        handler : func
-            A function that accepts keycodes as the first parameter and the
-            key-press state as the second. 1 for down and 0 for up. The
-            macro will write to this function once executed with `.run()`.
+        handler : function
+            Will receive int code and value for an EV_KEY event to write
         """
-        self.handler = handler
-        for macro in self.child_macros:
-            macro.set_handler(handler)
-
-    async def run(self):
-        """Run the macro."""
+        # TODO test handler
         self.running = True
         for _, task in self.tasks:
-            coroutine = task()
+            coroutine = task(handler)
             if asyncio.iscoroutine(coroutine):
                 await coroutine
 
@@ -152,7 +145,7 @@ class _Macro:
         """Loops the execution until key release."""
         if macro is None:
             # no parameters: block until released
-            async def task():
+            async def task(_):
                 # wait until the key is released. Only then it will be
                 # able to acquire the lock. Release it right after so that
                 # it can be acquired by press_key again.
@@ -169,11 +162,11 @@ class _Macro:
                     f'a macro (like k(a)), but got "{macro}"'
                 )
 
-            async def task():
+            async def task(handler):
                 while self.is_holding():
                     # run the child macro completely to avoid
                     # not-releasing any key
-                    await macro.run()
+                    await macro.run(handler)
 
             self.tasks.append((REPEAT, task))
             self.child_macros.append(macro)
@@ -204,11 +197,11 @@ class _Macro:
 
         self.child_macros.append(macro)
 
-        self.tasks.append((MODIFIER, lambda: self.handler(code, 1)))
+        self.tasks.append((MODIFIER, lambda handler: handler(code, 1)))
         self.add_keycode_pause()
         self.tasks.append((CHILD_MACRO, macro.run))
         self.add_keycode_pause()
-        self.tasks.append((MODIFIER, lambda: self.handler(code, 0)))
+        self.tasks.append((MODIFIER, lambda handler: handler(code, 0)))
         self.add_keycode_pause()
         return self
 
@@ -245,7 +238,7 @@ class _Macro:
         """To add a pause between keystrokes."""
         sleeptime = self.mapping.get('macros.keystroke_sleep_ms') / 1000
 
-        async def sleep():
+        async def sleep(_):
             await asyncio.sleep(sleeptime)
 
         self.tasks.append((SLEEP, sleep))
@@ -260,9 +253,9 @@ class _Macro:
 
         self.capabilities.add(code)
 
-        self.tasks.append((KEYSTROKE, lambda: self.handler(code, 1)))
+        self.tasks.append((KEYSTROKE, lambda handler: handler(code, 1)))
         self.add_keycode_pause()
-        self.tasks.append((KEYSTROKE, lambda: self.handler(code, 0)))
+        self.tasks.append((KEYSTROKE, lambda handler: handler(code, 0)))
         self.add_keycode_pause()
         return self
 
@@ -278,7 +271,7 @@ class _Macro:
 
         sleeptime /= 1000
 
-        async def sleep():
+        async def sleep(_):
             await asyncio.sleep(sleeptime)
 
         self.tasks.append((SLEEP, sleep))
@@ -476,9 +469,8 @@ def handle_plus_syntax(macro):
 def parse(macro, mapping, return_errors=False):
     """parse and generate a _Macro that can be run as often as you want.
 
-    You need to use set_handler on it before running. If it could not
-    be parsed, possibly due to syntax errors, will log the error and
-    return None.
+    If it could not be parsed, possibly due to syntax errors, will log the
+    error and return None.
 
     Parameters
     ----------
