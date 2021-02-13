@@ -176,8 +176,8 @@ class TestGetDevices(unittest.TestCase):
             EV_KEY: [evdev.ecodes.ABS_X]  # intentionally ABS_X (0) on EV_KEY
         })))
         self.assertFalse(is_gamepad(FakeDevice({
-            EV_ABS: [evdev.ecodes.ABS_X],
-            EV_KEY: [evdev.ecodes.BTN_TOOL_BRUSH]
+            EV_ABS: [evdev.ecodes.ABS_Y],
+            EV_KEY: [evdev.ecodes.BTN_TOOL_PEN]
         })))
         self.assertFalse(is_gamepad(FakeDevice({
             EV_ABS: [evdev.ecodes.ABS_X],
