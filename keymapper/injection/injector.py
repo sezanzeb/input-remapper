@@ -129,7 +129,7 @@ def is_in_capabilities(key, capabilities):
     return False
 
 
-class Injector:
+class Injector(multiprocessing.Process):
     """Keeps injecting events in the background based on mapping and config.
 
     Is a process to make it non-blocking for the rest of the code and to
@@ -139,7 +139,7 @@ class Injector:
     regrab_timeout = 0.5
 
     def __init__(self, device, mapping):
-        """Start injecting keycodes based on custom_mapping.
+        """Setup a process to start injecting keycodes based on custom_mapping.
 
         Parameters
         ----------
@@ -148,14 +148,57 @@ class Injector:
         mapping : Mapping
         """
         self.device = device
-
         self.mapping = mapping
-
-        self._process = None
-        self._msg_pipe = multiprocessing.Pipe()
         self._key_to_code = self._map_keys_to_codes()
-        self._state = UNKNOWN
         self._event_producer = None
+        self._state = UNKNOWN
+        self._msg_pipe = multiprocessing.Pipe()
+        super().__init__()
+
+    # Functions to interact with the running process:
+
+    def get_state(self):
+        """Get the state of the injection.
+
+        Can be safely called from the main process.
+        """
+        # slowly figure out what is going on
+        alive = self.is_alive()
+
+        if self._state == UNKNOWN and not alive:
+            # didn't start yet
+            return self._state
+
+        # if it is alive, it is definitely at least starting up
+        if self._state == UNKNOWN and alive:
+            self._state = STARTING
+
+        # if there is a message available, it might have finished starting up
+        if self._state == STARTING and self._msg_pipe[1].poll():
+            msg = self._msg_pipe[1].recv()
+            if msg == OK:
+                self._state = RUNNING
+
+            if msg == NO_GRAB:
+                self._state = NO_GRAB
+
+        if self._state in [STARTING, RUNNING] and not alive:
+            self._state = FAILED
+            logger.error('Injector was unexpectedly found stopped')
+
+        return self._state
+
+    @ensure_numlock
+    def stop_injecting(self):
+        """Stop injecting keycodes.
+
+        Can be safely called from the main procss.
+        """
+        logger.info('Stopping injecting keycodes for device "%s"', self.device)
+        self._msg_pipe[1].send(CLOSE)
+        self._state = STOPPED
+
+    # Process internal stuff:
 
     def _forwards_joystick(self):
         """If at least one of the joysticks remains a regular joystick."""
@@ -204,40 +247,6 @@ class Injector:
                 key_to_code[permutation.keys] = target_code
 
         return key_to_code
-
-    def start_injecting(self):
-        """Start injecting keycodes."""
-        if self._process is not None:
-            # So that there is less concern about integrity when putting
-            # stuff into self. Each injector object can only be
-            # started once.
-            raise Exception('Please construct a new injector instead')
-
-        if self.device not in get_devices():
-            logger.error('Cannot inject for unknown device "%s"', self.device)
-            return
-
-        self._state = STARTING
-        self._process = multiprocessing.Process(target=self._start_injecting)
-        self._process.start()
-
-    def get_state(self):
-        """Get the state of the injection."""
-        # only at this point the actual state is figured out
-        if self._state == STARTING and self._msg_pipe[1].poll():
-            msg = self._msg_pipe[1].recv()
-            if msg == OK:
-                self._state = RUNNING
-
-            if msg == NO_GRAB:
-                self._state = NO_GRAB
-
-        alive = self._process is not None and self._process.is_alive()
-        if self._state in [STARTING, RUNNING] and not alive:
-            self._state = FAILED
-            logger.error('Injector was unexpectedly found stopped')
-
-        return self._state
 
     def _grab_device(self, path):
         """Try to grab the device, return None if not needed/possible."""
@@ -386,7 +395,7 @@ class Injector:
                 loop.stop()
                 return
 
-    def _start_injecting(self):
+    def run(self):
         """The injection worker that keeps injecting until terminated.
 
         Stuff is non-blocking by using asyncio in order to do multiple things
@@ -395,6 +404,10 @@ class Injector:
         Use this function as starting point in a process. It creates
         the loops needed to read and map events and keeps running them.
         """
+        if self.device not in get_devices():
+            logger.error('Cannot inject for unknown device "%s"', self.device)
+            return
+
         # create a new event loop, because somehow running an infinite loop
         # that sleeps on iterations (event_producer) in one process causes
         # another injection process to screw up reading from the grabbed
@@ -565,10 +578,3 @@ class Injector:
             'The consumer for "%s" stopped early',
             source.path
         )
-
-    @ensure_numlock
-    def stop_injecting(self):
-        """Stop injecting keycodes."""
-        logger.info('Stopping injecting keycodes for device "%s"', self.device)
-        self._msg_pipe[1].send(CLOSE)
-        self._state = STOPPED

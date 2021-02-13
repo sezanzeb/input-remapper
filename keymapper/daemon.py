@@ -443,7 +443,7 @@ class Daemon:
 
         try:
             injector = Injector(device, mapping)
-            injector.start_injecting()
+            injector.start()
             self.injectors[device] = injector
         except OSError:
             # I think this will never happen, probably leftover from

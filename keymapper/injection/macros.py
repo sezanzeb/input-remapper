@@ -112,7 +112,6 @@ class _Macro:
         handler : function
             Will receive int code and value for an EV_KEY event to write
         """
-        # TODO test handler
         self.running = True
         for _, task in self.tasks:
             coroutine = task(handler)
