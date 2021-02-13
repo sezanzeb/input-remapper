@@ -22,10 +22,8 @@
 """Keeps injecting keycodes in the background based on the mapping."""
 
 
-import re
 import asyncio
 import time
-import subprocess
 import multiprocessing
 
 import evdev
@@ -33,11 +31,13 @@ from evdev.ecodes import EV_KEY, EV_REL
 
 from keymapper.logger import logger
 from keymapper.getdevices import get_devices, is_gamepad
-from keymapper.injection.keycode_mapper import KeycodeMapper
 from keymapper import utils
-from keymapper.injection.event_producer import EventProducer
 from keymapper.mapping import DISABLE_CODE
+from keymapper.injection.keycode_mapper import KeycodeMapper
 from keymapper.injection.context import Context
+from keymapper.injection.event_producer import EventProducer
+from keymapper.injection.numlock import set_numlock, is_numlock_on, \
+    ensure_numlock
 
 
 DEV_NAME = 'key-mapper'
@@ -55,62 +55,6 @@ STOPPED = 5
 
 # for both states and messages
 NO_GRAB = 6
-
-
-def is_numlock_on():
-    """Get the current state of the numlock."""
-    try:
-        xset_q = subprocess.check_output(
-            ['xset', 'q'],
-            stderr=subprocess.STDOUT
-        ).decode()
-        num_lock_status = re.search(
-            r'Num Lock:\s+(.+?)\s',
-            xset_q
-        )
-
-        if num_lock_status is not None:
-            return num_lock_status[1] == 'on'
-
-        return False
-    except (FileNotFoundError, subprocess.CalledProcessError):
-        # tty
-        return None
-
-
-def set_numlock(state):
-    """Set the numlock to a given state of True or False."""
-    if state is None:
-        return
-
-    value = {
-        True: 'on',
-        False: 'off'
-    }[state]
-
-    try:
-        subprocess.check_output(['numlockx', value])
-    except subprocess.CalledProcessError:
-        # might be in a tty
-        pass
-    except FileNotFoundError:
-        # doesn't seem to be installed everywhere
-        logger.debug('numlockx not found')
-
-
-def ensure_numlock(func):
-    """Decorator to reset the numlock to its initial state afterwards."""
-    def wrapped(*args, **kwargs):
-        # for some reason, grabbing a device can modify the num lock state.
-        # remember it and apply back later
-        numlock_before = is_numlock_on()
-
-        result = func(*args, **kwargs)
-
-        set_numlock(numlock_before)
-
-        return result
-    return wrapped
 
 
 def is_in_capabilities(key, capabilities):

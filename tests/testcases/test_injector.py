@@ -28,9 +28,10 @@ from evdev.ecodes import EV_REL, EV_KEY, EV_ABS, ABS_HAT0X, BTN_LEFT, KEY_A, \
     REL_X, REL_Y, REL_WHEEL, REL_HWHEEL, BTN_A, ABS_X, ABS_Y, \
     ABS_Z, ABS_RZ, ABS_VOLUME
 
-from keymapper.injection.injector import is_numlock_on, set_numlock, \
-    ensure_numlock, Injector, is_in_capabilities, \
+from keymapper.injection.injector import Injector, is_in_capabilities, \
     STARTING, RUNNING, STOPPED, NO_GRAB, UNKNOWN
+from keymapper.injection.numlock import is_numlock_on, set_numlock, \
+    ensure_numlock
 from keymapper.state import custom_mapping, system_mapping
 from keymapper.mapping import Mapping, DISABLE_CODE, DISABLE_NAME
 from keymapper.config import config, NONE, MOUSE, WHEEL, BUTTONS
