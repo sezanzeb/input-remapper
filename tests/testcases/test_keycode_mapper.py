@@ -478,13 +478,13 @@ class TestKeycodeMapper(unittest.TestCase):
             ((EV_KEY, 2, 1),): parse('r(5, k(b))', self.mapping)
         }
 
-        macro_mapping[((EV_KEY, 1, 1),)].set_handler(lambda *args: history.append(args))
-        macro_mapping[((EV_KEY, 2, 1),)].set_handler(lambda *args: history.append(args))
-
         keycode_mapper = KeycodeMapper(
             self.source, self.mapping, None,
             {}, macro_mapping
         )
+
+        keycode_mapper.macro_write = lambda *args: history.append(args)
+        keycode_mapper.macro_write = lambda *args: history.append(args)
 
         keycode_mapper.handle_keycode(new_event(EV_KEY, 1, 1))
         keycode_mapper.handle_keycode(new_event(EV_KEY, 2, 1))
@@ -531,12 +531,12 @@ class TestKeycodeMapper(unittest.TestCase):
         def handler(*args):
             history.append(args)
 
-        macro_mapping[((EV_KEY, 1, 1),)].set_handler(handler)
-
         keycode_mapper = KeycodeMapper(
             self.source, self.mapping, None,
             {}, macro_mapping
         )
+
+        keycode_mapper.macro_write = handler
 
         """start macro"""
 
@@ -604,14 +604,14 @@ class TestKeycodeMapper(unittest.TestCase):
         def handler(*args):
             history.append(args)
 
-        macro_mapping[((EV_KEY, 1, 1),)].set_handler(handler)
-        macro_mapping[((EV_KEY, 2, 1),)].set_handler(handler)
-        macro_mapping[((EV_KEY, 3, 1),)].set_handler(handler)
-
         keycode_mapper = KeycodeMapper(
             self.source, self.mapping, None,
             {}, macro_mapping
         )
+
+        keycode_mapper.macro_write = handler
+        keycode_mapper.macro_write = handler
+        keycode_mapper.macro_write = handler
 
         """start macro 2"""
 
@@ -730,12 +730,12 @@ class TestKeycodeMapper(unittest.TestCase):
         def handler(*args):
             history.append(args)
 
-        macro_mapping[((EV_KEY, 1, 1),)].set_handler(handler)
-
         keycode_mapper = KeycodeMapper(
             self.source, self.mapping, None,
             {}, macro_mapping
         )
+
+        keycode_mapper.macro_write = handler
 
         keycode_mapper.handle_keycode(new_event(EV_KEY, 1, 1))
         loop = asyncio.get_event_loop()
@@ -806,18 +806,16 @@ class TestKeycodeMapper(unittest.TestCase):
         def handler(*args):
             history.append(args)
 
-        macro_mapping[(down_0, down_1)].set_handler(handler)
-        macro_mapping[(down_2,)].set_handler(handler)
-
         loop = asyncio.get_event_loop()
 
-        macros_uinput = UInput()
-        keys_uinput = UInput()
+        uinput_1 = UInput()
 
         keycode_mapper = KeycodeMapper(
-            self.source, self.mapping, macros_uinput,
+            self.source, self.mapping, uinput_1,
             {}, macro_mapping
         )
+
+        keycode_mapper.macro_write = handler
 
         # key up won't do anything
         keycode_mapper.handle_keycode(new_event(*up_0))
@@ -828,16 +826,20 @@ class TestKeycodeMapper(unittest.TestCase):
 
         """start macros"""
 
+        uinput_2 = UInput()
+
         keycode_mapper = KeycodeMapper(
-            self.source, self.mapping, keys_uinput,
+            self.source, self.mapping, uinput_2,
             {}, macro_mapping
         )
 
+        keycode_mapper.macro_write = handler
+
         keycode_mapper.handle_keycode(new_event(*down_0))
-        self.assertEqual(keys_uinput.write_count, 1)
+        self.assertEqual(uinput_2.write_count, 1)
         keycode_mapper.handle_keycode(new_event(*down_1))
         keycode_mapper.handle_keycode(new_event(*down_2))
-        self.assertEqual(keys_uinput.write_count, 1)
+        self.assertEqual(uinput_2.write_count, 1)
 
         # let the mainloop run for some time so that the macro does its stuff
         sleeptime = 500
@@ -932,13 +934,13 @@ class TestKeycodeMapper(unittest.TestCase):
         def handler(*args):
             history.append(args)
 
-        macro_mapping[(right,)].set_handler(handler)
-        macro_mapping[(left,)].set_handler(handler)
-
         keycode_mapper = KeycodeMapper(
             self.source, self.mapping, None,
             {}, macro_mapping
         )
+
+        keycode_mapper.macro_write = handler
+        keycode_mapper.macro_write = handler
 
         keycode_mapper.handle_keycode(new_event(*right))
         self.assertIn((EV_ABS, ABS_HAT0X), unreleased)
@@ -1145,7 +1147,6 @@ class TestKeycodeMapper(unittest.TestCase):
         macro_history = []
         def handler(*args):
             macro_history.append(args)
-        macro_mapping[(down_1,)].set_handler(handler)
 
         uinput = UInput()
 
@@ -1155,6 +1156,8 @@ class TestKeycodeMapper(unittest.TestCase):
             self.source, self.mapping, uinput,
             _key_to_code, macro_mapping
         )
+
+        keycode_mapper.macro_write = handler
 
         # macro starts
         keycode_mapper.handle_keycode(new_event(*down_1))
@@ -1217,7 +1220,7 @@ class TestKeycodeMapper(unittest.TestCase):
         k2c = {combination: 30}
 
         uinput = UInput()
-        
+
         keycode_mapper = KeycodeMapper(
             self.source, self.mapping,
             uinput, k2c, {}

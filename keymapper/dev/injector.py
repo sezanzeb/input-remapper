@@ -412,6 +412,20 @@ class Injector:
 
         self._event_producer = EventProducer(self.mapping)
 
+        logger.debug('Parsing macros')
+        macros = {}
+        for key, output in self.mapping:
+            if is_this_a_macro(output):
+                macro = parse(output, self.mapping)
+                if macro is None:
+                    continue
+
+                for permutation in key.get_permutations():
+                    macros[permutation.keys] = macro
+
+        if len(macros) == 0:
+            logger.debug('No macros configured')
+
         # Watch over each one of the potentially multiple devices per hardware
         for path in paths:
             source = self._grab_device(path)
@@ -419,21 +433,6 @@ class Injector:
                 # this path doesn't need to be grabbed for injection, because
                 # it doesn't provide the events needed to execute the mapping
                 continue
-
-            # each device needs own macro instances to add a custom handler
-            logger.debug('Parsing macros for %s', path)
-            macros = {}
-            for key, output in self.mapping:
-                if is_this_a_macro(output):
-                    macro = parse(output, self.mapping)
-                    if macro is None:
-                        continue
-
-                    for permutation in key.get_permutations():
-                        macros[permutation.keys] = macro
-
-            if len(macros) == 0:
-                logger.debug('No macros configured')
 
             logger.spam(
                 'Original capabilities for "%s": %s',
@@ -454,14 +453,6 @@ class Injector:
                 'Injected capabilities for "%s": %s',
                 path, uinput.capabilities(verbose=True)
             )
-
-            def handler(*args, uinput=uinput):
-                # this ensures that the right uinput is used for macro_write,
-                # because this is within a loop
-                self._macro_write(*args, uinput)
-
-            for macro in macros.values():
-                macro.set_handler(handler)
 
             # actual reading of events
             coroutines.append(self._event_consumer(macros, source, uinput))

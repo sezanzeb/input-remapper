@@ -79,7 +79,6 @@ class TestMacros(unittest.TestCase):
 
     def test_run_plus_syntax(self):
         macro = parse('a + b + c + d', self.mapping)
-        macro.set_handler(self.handler)
         self.assertSetEqual(macro.get_capabilities(), {
             system_mapping.get('a'),
             system_mapping.get('b'),
@@ -88,11 +87,9 @@ class TestMacros(unittest.TestCase):
         })
 
         macro.press_key()
-        asyncio.ensure_future(macro.run())
+        asyncio.ensure_future(macro.run(self.handler))
         self.loop.run_until_complete(asyncio.sleep(0.2))
         self.assertTrue(macro.is_holding())
-        print(self.mapping.get('macros.keystroke_sleep_ms'))
-        print(self.result)
 
         # starting from the left, presses each one down
         self.assertEqual(self.result[0], (system_mapping.get('a'), 1))
@@ -104,7 +101,6 @@ class TestMacros(unittest.TestCase):
         macro.release_key()
         self.loop.run_until_complete(asyncio.sleep(0.2))
         self.assertFalse(macro.is_holding())
-        print(self.result)
         self.assertEqual(self.result[4], (system_mapping.get('d'), 0))
         self.assertEqual(self.result[5], (system_mapping.get('c'), 0))
         self.assertEqual(self.result[6], (system_mapping.get('b'), 0))
@@ -133,18 +129,6 @@ class TestMacros(unittest.TestCase):
         expect(',', ['', ''])
         expect(',,', ['', '', ''])
 
-    def test_set_handler(self):
-        macro = parse('r(1, r(1, k(1)))', self.mapping)
-        one_code = system_mapping.get('1')
-        self.assertSetEqual(macro.get_capabilities(), {one_code})
-
-        self.loop.run_until_complete(macro.run())
-        self.assertListEqual(self.result, [])
-
-        macro.set_handler(self.handler)
-        self.loop.run_until_complete(macro.run())
-        self.assertListEqual(self.result, [(one_code, 1), (one_code, 0)])
-
     def test_fails(self):
         self.assertIsNone(parse('r(1, a)', self.mapping))
         self.assertIsNone(parse('r(a, k(b))', self.mapping))
@@ -157,24 +141,22 @@ class TestMacros(unittest.TestCase):
 
     def test_0(self):
         macro = parse('k(1)', self.mapping)
-        macro.set_handler(self.handler)
         one_code = system_mapping.get('1')
         self.assertSetEqual(macro.get_capabilities(), {one_code})
 
-        self.loop.run_until_complete(macro.run())
+        self.loop.run_until_complete(macro.run(self.handler))
         self.assertListEqual(self.result, [(one_code, 1), (one_code, 0)])
         self.assertEqual(len(macro.child_macros), 0)
 
     def test_1(self):
         macro = parse('k(1).k(a).k(3)', self.mapping)
-        macro.set_handler(self.handler)
         self.assertSetEqual(macro.get_capabilities(), {
             system_mapping.get('1'),
             system_mapping.get('a'),
             system_mapping.get('3')
         })
 
-        self.loop.run_until_complete(macro.run())
+        self.loop.run_until_complete(macro.run(self.handler))
         self.assertListEqual(self.result, [
             (system_mapping.get('1'), 1), (system_mapping.get('1'), 0),
             (system_mapping.get('a'), 1), (system_mapping.get('a'), 0),
@@ -214,7 +196,6 @@ class TestMacros(unittest.TestCase):
 
     def test_hold(self):
         macro = parse('k(1).h(k(a)).k(3)', self.mapping)
-        macro.set_handler(self.handler)
         self.assertSetEqual(macro.get_capabilities(), {
             system_mapping.get('1'),
             system_mapping.get('a'),
@@ -222,7 +203,7 @@ class TestMacros(unittest.TestCase):
         })
 
         macro.press_key()
-        asyncio.ensure_future(macro.run())
+        asyncio.ensure_future(macro.run(self.handler))
         self.loop.run_until_complete(asyncio.sleep(0.2))
         self.assertTrue(macro.is_holding())
         self.assertGreater(len(self.result), 2)
@@ -241,14 +222,13 @@ class TestMacros(unittest.TestCase):
 
     def test_dont_hold(self):
         macro = parse('k(1).h(k(a)).k(3)', self.mapping)
-        macro.set_handler(self.handler)
         self.assertSetEqual(macro.get_capabilities(), {
             system_mapping.get('1'),
             system_mapping.get('a'),
             system_mapping.get('3')
         })
 
-        asyncio.ensure_future(macro.run())
+        asyncio.ensure_future(macro.run(self.handler))
         self.loop.run_until_complete(asyncio.sleep(0.2))
         self.assertFalse(macro.is_holding())
         # press_key was never called, so the macro completes right away
@@ -262,14 +242,13 @@ class TestMacros(unittest.TestCase):
 
     def test_just_hold(self):
         macro = parse('k(1).h().k(3)', self.mapping)
-        macro.set_handler(self.handler)
         self.assertSetEqual(macro.get_capabilities(), {
             system_mapping.get('1'),
             system_mapping.get('3')
         })
 
         macro.press_key()
-        asyncio.ensure_future(macro.run())
+        asyncio.ensure_future(macro.run(self.handler))
         self.loop.run_until_complete(asyncio.sleep(0.1))
         self.assertTrue(macro.is_holding())
         self.assertEqual(len(self.result), 2)
@@ -289,13 +268,12 @@ class TestMacros(unittest.TestCase):
 
     def test_dont_just_hold(self):
         macro = parse('k(1).h().k(3)', self.mapping)
-        macro.set_handler(self.handler)
         self.assertSetEqual(macro.get_capabilities(), {
             system_mapping.get('1'),
             system_mapping.get('3')
         })
 
-        asyncio.ensure_future(macro.run())
+        asyncio.ensure_future(macro.run(self.handler))
         self.loop.run_until_complete(asyncio.sleep(0.1))
         self.assertFalse(macro.is_holding())
         # since press_key was never called it just does the macro
@@ -312,11 +290,10 @@ class TestMacros(unittest.TestCase):
         repeats = 20
 
         macro = parse(f'r({repeats}, k(k)).r(1, k(k))', self.mapping)
-        macro.set_handler(self.handler)
         k_code = system_mapping.get('k')
         self.assertSetEqual(macro.get_capabilities(), {k_code})
 
-        self.loop.run_until_complete(macro.run())
+        self.loop.run_until_complete(macro.run(self.handler))
         keystroke_sleep = self.mapping.get('macros.keystroke_sleep_ms')
         sleep_time = 2 * repeats * keystroke_sleep / 1000
         self.assertGreater(time.time() - start, sleep_time * 0.9)
@@ -333,10 +310,9 @@ class TestMacros(unittest.TestCase):
     def test_3(self):
         start = time.time()
         macro = parse('r(3, k(m).w(100))', self.mapping)
-        macro.set_handler(self.handler)
         m_code = system_mapping.get('m')
         self.assertSetEqual(macro.get_capabilities(), {m_code})
-        self.loop.run_until_complete(macro.run())
+        self.loop.run_until_complete(macro.run(self.handler))
 
         keystroke_time = 6 * self.mapping.get('macros.keystroke_sleep_ms')
         total_time = keystroke_time + 300
@@ -354,7 +330,6 @@ class TestMacros(unittest.TestCase):
 
     def test_4(self):
         macro = parse('  r(2,\nk(\nr ).k(minus\n )).k(m)  ', self.mapping)
-        macro.set_handler(self.handler)
 
         r = system_mapping.get('r')
         minus = system_mapping.get('minus')
@@ -362,7 +337,7 @@ class TestMacros(unittest.TestCase):
 
         self.assertSetEqual(macro.get_capabilities(), {r, minus, m})
 
-        self.loop.run_until_complete(macro.run())
+        self.loop.run_until_complete(macro.run(self.handler))
         self.assertListEqual(self.result, [
             (r, 1), (r, 0),
             (minus, 1), (minus, 0),
@@ -376,7 +351,6 @@ class TestMacros(unittest.TestCase):
     def test_5(self):
         start = time.time()
         macro = parse('w(200).r(2,m(w,\nr(2,\tk(BtN_LeFt))).w(10).k(k))', self.mapping)
-        macro.set_handler(self.handler)
 
         self.assertEqual(len(macro.child_macros), 1)
         self.assertEqual(len(macro.child_macros[0].child_macros), 1)
@@ -387,7 +361,7 @@ class TestMacros(unittest.TestCase):
 
         self.assertSetEqual(macro.get_capabilities(), {w, left, k})
 
-        self.loop.run_until_complete(macro.run())
+        self.loop.run_until_complete(macro.run(self.handler))
 
         num_pauses = 8 + 6 + 4
         keystroke_time = num_pauses * self.mapping.get('macros.keystroke_sleep_ms')
@@ -406,7 +380,6 @@ class TestMacros(unittest.TestCase):
     def test_6(self):
         # does nothing without .run
         macro = parse('k(a).r(3, k(b))', self.mapping)
-        macro.set_handler(self.handler)
         self.assertIsInstance(macro, _Macro)
         self.assertListEqual(self.result, [])
 
@@ -415,7 +388,7 @@ class TestMacros(unittest.TestCase):
         config.set('macros.keystroke_sleep_ms', 100)
         start = time.time()
         macro = parse('k(a).k(b)', self.mapping)
-        self.loop.run_until_complete(macro.run())
+        self.loop.run_until_complete(macro.run(self.handler))
         delta = time.time() - start
         # is currently over 400, k(b) adds another sleep afterwards
         # that doesn't do anything
@@ -425,7 +398,7 @@ class TestMacros(unittest.TestCase):
         self.mapping.set('macros.keystroke_sleep_ms', 50)
         start = time.time()
         macro = parse('k(a).k(b)', self.mapping)
-        self.loop.run_until_complete(macro.run())
+        self.loop.run_until_complete(macro.run(self.handler))
         delta = time.time() - start
         self.assertGreater(delta, 0.150)
         self.assertLess(delta, 0.300)

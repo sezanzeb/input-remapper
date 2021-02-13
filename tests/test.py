@@ -332,6 +332,7 @@ class UInput:
         self.device = InputDevice('justdoit')
         self.name = name
         self.events = events
+        self.write_history = []
 
     def capabilities(self, *args, **kwargs):
         return self.events
@@ -341,6 +342,7 @@ class UInput:
         event = new_event(type, code, value)
         uinput_write_history.append(event)
         uinput_write_history_pipe[1].send(event)
+        self.write_history.append(event)
         print(
             f'\033[90m'  # color
             f'{(type, code, value)} written'

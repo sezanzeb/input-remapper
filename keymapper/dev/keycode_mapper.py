@@ -240,6 +240,11 @@ class KeycodeMapper:
         self.key_to_code = key_to_code
         self.macros = macros
 
+    def macro_write(self, code, value):
+        """Handler for macros."""
+        self.uinput.write(EV_KEY, code, value)
+        self.uinput.syn()
+
     def _get_key(self, key):
         """If the event triggers stuff, get the key for that.
 
@@ -419,7 +424,7 @@ class KeycodeMapper:
                 Unreleased((None, None), event_tuple, key)
                 macro.press_key()
                 logger.key_spam(key, 'maps to macro %s', macro.code)
-                asyncio.ensure_future(macro.run())
+                asyncio.ensure_future(macro.run(self.macro_write))
                 return
 
             if key in self.key_to_code:
