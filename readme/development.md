@@ -32,6 +32,7 @@ requests.
 - [x] automatically load presets when devices get plugged in after login (udev)
 - [x] map keys using a `modifier + modifier + ... + key` syntax
 - [ ] injecting keys that aren't available in the systems keyboard layout
+- [ ] injecting keys while abs capabilities are present. e.g. stylus buttons
 
 ## Tests
 
@@ -44,6 +45,12 @@ coverage combine && coverage report -m
 
 To read events, `evtest` is very helpful. Add `-d` to `key-mapper-gtk`
 to get debug output.
+
+Single tests can be executed via
+
+```bash
+python3 tests/test.py test_paths.TestPaths.test_mkdir
+```
 
 ## Releasing
 

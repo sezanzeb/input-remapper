@@ -80,11 +80,22 @@ class TestDevUtils(unittest.TestCase):
         self.assertFalse(do(new_event(EV_ABS, ecodes.ABS_MT_TOOL_Y, 1)))
         self.assertFalse(do(new_event(EV_ABS, ecodes.ABS_MT_POSITION_X, 1)))
 
+        """stylus movements"""
+
+        self.assertFalse(do(new_event(EV_KEY, ecodes.BTN_DIGI, 1)))
+        self.assertFalse(do(new_event(EV_ABS, ecodes.ABS_TILT_X, 1)))
+        self.assertFalse(do(new_event(EV_ABS, ecodes.ABS_TILT_Y, 1)))
+        self.assertFalse(do(new_event(EV_ABS, ecodes.ABS_DISTANCE, 1)))
+
         """joysticks"""
 
         self.assertFalse(do(new_event(EV_ABS, ecodes.ABS_RX, 1234)))
         self.assertFalse(do(new_event(EV_ABS, ecodes.ABS_Y, -1)))
         self.assertFalse(do(new_event(EV_ABS, ecodes.ABS_RY, -1)))
+
+        """weird events"""
+
+        self.assertFalse(do(new_event(EV_ABS, ecodes.ABS_MISC, -1)))
 
         mapping.set('gamepad.joystick.right_purpose', BUTTONS)
         config.set('gamepad.joystick.left_purpose', BUTTONS)
