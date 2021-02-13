@@ -103,12 +103,12 @@ class TestInjector(unittest.TestCase):
         self.assertGreaterEqual(self.failed, 1)
 
         self.assertEqual(self.injector.get_state(), UNKNOWN)
-        self.injector.start_injecting()
+        self.injector.start()
         self.assertEqual(self.injector.get_state(), STARTING)
         # since none can be grabbed, the process will terminate. But that
         # actually takes quite some time.
         time.sleep(1.5)
-        self.assertFalse(self.injector._process.is_alive())
+        self.assertFalse(self.injector.is_alive())
         self.assertEqual(self.injector.get_state(), NO_GRAB)
 
     def test_grab_device_1(self):
@@ -333,7 +333,7 @@ class TestInjector(unittest.TestCase):
         ]
 
         self.injector = Injector('gamepad', custom_mapping)
-        self.injector.start_injecting()
+        self.injector.start()
 
         # wait for the injector to start sending, at most 1s
         uinput_write_history_pipe[0].poll(1)
@@ -381,7 +381,7 @@ class TestInjector(unittest.TestCase):
         custom_mapping.change(Key((1, BTN_A, 1)), 'b')
         system_mapping._set('b', 77)
         self.injector = Injector('gamepad', custom_mapping)
-        self.injector.start_injecting()
+        self.injector.start()
 
         # wait for the injector to start sending, at most 1s
         uinput_write_history_pipe[0].poll(1)
@@ -411,7 +411,7 @@ class TestInjector(unittest.TestCase):
         custom_mapping.change(Key((EV_ABS, ABS_Z, 1)), 'b')
         system_mapping._set('b', 77)
         self.injector = Injector('gamepad', custom_mapping)
-        self.injector.start_injecting()
+        self.injector.start()
 
         # wait for the injector to start sending, at most 1s
         uinput_write_history_pipe[0].poll(1)
@@ -428,10 +428,10 @@ class TestInjector(unittest.TestCase):
         custom_mapping.set('gamepad.joystick.right_purpose', NONE)
         self.injector = Injector('gamepad', custom_mapping)
         # the stop message will be available in the pipe right away,
-        # so _start_injecting won't block and just stop. all the stuff
+        # so run won't block and just stop. all the stuff
         # will be initialized though, so that stuff can be tested
         self.injector.stop_injecting()
-        self.injector._start_injecting()
+        self.injector.run()
         # not in a process, so the event_producer state can be checked
         self.assertEqual(self.injector._event_producer.max_abs, MAX_ABS)
         self.assertIsNotNone(self.injector._event_producer.mouse_uinput)
@@ -441,7 +441,7 @@ class TestInjector(unittest.TestCase):
         custom_mapping.set('gamepad.joystick.right_purpose', BUTTONS)
         self.injector = Injector('gamepad', custom_mapping)
         self.injector.stop_injecting()
-        self.injector._start_injecting()
+        self.injector.run()
         self.assertIsNone(self.injector._event_producer.max_abs, MAX_ABS)
         self.assertIsNone(self.injector._event_producer.mouse_uinput)
 
@@ -450,7 +450,7 @@ class TestInjector(unittest.TestCase):
         custom_mapping.set('gamepad.joystick.right_purpose', WHEEL)
         self.injector = Injector('device 1', custom_mapping)
         self.injector.stop_injecting()
-        self.injector._start_injecting()
+        self.injector.run()
         # not a gamepad, so _event_producer is not initialized for that.
         # it can still debounce stuff though
         self.assertIsNone(self.injector._event_producer.max_abs)
@@ -494,7 +494,7 @@ class TestInjector(unittest.TestCase):
 
         self.injector = Injector('device 2', custom_mapping)
         self.assertEqual(self.injector.get_state(), UNKNOWN)
-        self.injector.start_injecting()
+        self.injector.start()
         self.assertEqual(self.injector.get_state(), STARTING)
 
         uinput_write_history_pipe[0].poll(timeout=1)
@@ -553,7 +553,7 @@ class TestInjector(unittest.TestCase):
         self.assertEqual(history[6], (3124, 3564, 6542))
 
         time.sleep(0.1)
-        self.assertTrue(self.injector._process.is_alive())
+        self.assertTrue(self.injector.is_alive())
 
         numlock_after = is_numlock_on()
         self.assertEqual(numlock_before, numlock_after)
@@ -603,7 +603,7 @@ class TestInjector(unittest.TestCase):
             input = InputDevice('/dev/input/event30')
             self.injector._grab_device = lambda *args: input
 
-            self.injector.start_injecting()
+            self.injector.start()
             uinput_write_history_pipe[0].poll(timeout=1)
             time.sleep(EVENT_READ_TIMEOUT * 10)
             return read_write_history_pipe()
@@ -668,7 +668,7 @@ class TestInjector(unittest.TestCase):
         self.assertIn(REL_HWHEEL, device.capabilities()[EV_REL])
         self.assertIn(device.path, get_devices()[device_name]['paths'])
 
-        self.injector.start_injecting()
+        self.injector.start()
 
         # wait for the first injected key down event
         uinput_write_history_pipe[0].poll(timeout=1)
@@ -724,7 +724,7 @@ class TestInjector(unittest.TestCase):
 
         self.injector._modify_capabilities = _modify_capabilities
         try:
-            self.injector._start_injecting()
+            self.injector.run()
         except Stop:
             pass
 
