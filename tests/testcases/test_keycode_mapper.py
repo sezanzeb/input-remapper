@@ -26,10 +26,10 @@ import time
 from evdev.ecodes import EV_KEY, EV_ABS, KEY_A, BTN_TL, \
     ABS_HAT0X, ABS_HAT0Y, ABS_HAT1X, ABS_HAT1Y, ABS_Y
 
-from keymapper.dev.keycode_mapper import active_macros, KeycodeMapper, \
+from keymapper.injection.keycode_mapper import active_macros, KeycodeMapper, \
     unreleased, subsets
 from keymapper.state import system_mapping
-from keymapper.dev.macros import parse
+from keymapper.injection.macros import parse
 from keymapper.config import config, BUTTONS
 from keymapper.mapping import Mapping, DISABLE_CODE
 

@@ -28,15 +28,15 @@ from evdev.ecodes import EV_REL, EV_KEY, EV_ABS, ABS_HAT0X, BTN_LEFT, KEY_A, \
     REL_X, REL_Y, REL_WHEEL, REL_HWHEEL, BTN_A, ABS_X, ABS_Y, \
     ABS_Z, ABS_RZ, ABS_VOLUME
 
-from keymapper.dev.injector import is_numlock_on, set_numlock, \
+from keymapper.injection.injector import is_numlock_on, set_numlock, \
     ensure_numlock, Injector, is_in_capabilities, \
     STARTING, RUNNING, STOPPED, NO_GRAB, UNKNOWN
 from keymapper.state import custom_mapping, system_mapping
 from keymapper.mapping import Mapping, DISABLE_CODE, DISABLE_NAME
 from keymapper.config import config, NONE, MOUSE, WHEEL, BUTTONS
 from keymapper.key import Key
-from keymapper.dev.macros import parse
-from keymapper.dev import utils
+from keymapper.injection.macros import parse
+from keymapper import utils
 from keymapper.getdevices import get_devices, is_gamepad
 
 from tests.test import new_event, pending_events, fixtures, \

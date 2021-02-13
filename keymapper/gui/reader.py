@@ -35,8 +35,7 @@ from keymapper.logger import logger
 from keymapper.key import Key
 from keymapper.state import custom_mapping
 from keymapper.getdevices import get_devices
-from keymapper.dev import utils
-
+from keymapper import utils
 
 CLOSE = 1
 

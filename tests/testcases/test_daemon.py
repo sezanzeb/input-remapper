@@ -37,7 +37,7 @@ from keymapper.getdevices import get_devices
 from keymapper.paths import get_preset_path, get_config_path
 from keymapper.key import Key
 from keymapper.mapping import Mapping
-from keymapper.dev.injector import STARTING, RUNNING, STOPPED, UNKNOWN
+from keymapper.injection.injector import STARTING, RUNNING, STOPPED, UNKNOWN
 from keymapper.daemon import Daemon, get_dbus_interface, BUS_NAME, \
     path_to_device_name
 

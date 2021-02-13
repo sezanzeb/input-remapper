@@ -30,8 +30,7 @@ from evdev.ecodes import EV_REL, REL_X, REL_Y, REL_WHEEL, REL_HWHEEL, \
 
 from keymapper.logger import logger
 from keymapper.config import MOUSE, WHEEL
-from keymapper.dev import utils
-
+from keymapper import utils
 
 # miniscule movements on the joystick should not trigger a mouse wheel event
 WHEEL_THRESHOLD = 0.15

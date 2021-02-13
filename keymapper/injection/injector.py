@@ -33,10 +33,10 @@ from evdev.ecodes import EV_KEY, EV_REL
 
 from keymapper.logger import logger
 from keymapper.getdevices import get_devices, is_gamepad
-from keymapper.dev.keycode_mapper import KeycodeMapper
-from keymapper.dev import utils
-from keymapper.dev.event_producer import EventProducer
-from keymapper.dev.macros import parse, is_this_a_macro
+from keymapper.injection.keycode_mapper import KeycodeMapper
+from keymapper import utils
+from keymapper.injection.event_producer import EventProducer
+from keymapper.injection.macros import parse, is_this_a_macro
 from keymapper.state import system_mapping
 from keymapper.mapping import DISABLE_CODE
 from keymapper.config import NONE, MOUSE, WHEEL

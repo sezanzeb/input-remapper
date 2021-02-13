@@ -33,7 +33,7 @@ from pydbus import SystemBus
 
 from keymapper.logger import update_verbosity, log_info, \
     add_filehandler, logger
-from keymapper.dev.permissions import can_read_devices
+from keymapper.permissions import can_read_devices
 
 
 if __name__ == '__main__':

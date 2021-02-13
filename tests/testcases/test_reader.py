@@ -27,7 +27,7 @@ from evdev.ecodes import EV_KEY, EV_ABS, ABS_HAT0X, ABS_HAT0Y, KEY_COMMA, \
     BTN_LEFT, BTN_TOOL_DOUBLETAP, ABS_Z, ABS_Y, ABS_MISC, KEY_A, \
     EV_REL, REL_WHEEL, REL_X, ABS_X, ABS_RZ
 
-from keymapper.dev.reader import keycode_reader, will_report_up, \
+from keymapper.gui.reader import keycode_reader, will_report_up, \
     event_unix_time
 from keymapper.state import custom_mapping
 from keymapper.config import BUTTONS, MOUSE

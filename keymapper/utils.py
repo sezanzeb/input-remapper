@@ -19,7 +19,7 @@
 # along with key-mapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
-"""Utility functions for all other modules in keymapper.dev"""
+"""Utility functions."""
 
 
 import math

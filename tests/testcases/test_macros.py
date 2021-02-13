@@ -23,7 +23,7 @@ import time
 import unittest
 import asyncio
 
-from keymapper.dev.macros import parse, _Macro, _extract_params, \
+from keymapper.injection.macros import parse, _Macro, _extract_params, \
     is_this_a_macro, _parse_recurse, handle_plus_syntax
 from keymapper.config import config
 from keymapper.mapping import Mapping
