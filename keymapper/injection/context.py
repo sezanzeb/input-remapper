@@ -29,8 +29,7 @@ from keymapper.config import NONE, MOUSE, WHEEL
 
 
 class Context:
-    """
-    Stores injection-process wide information.
+    """Stores injection-process wide information.
 
     In some ways this is a wrapper for the mapping that derives some
     information that is specifically important to the injection.

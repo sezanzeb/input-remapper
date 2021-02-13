@@ -31,6 +31,7 @@ from keymapper.logger import logger
 from keymapper.mapping import DISABLE_CODE
 from keymapper import utils
 
+
 # this state is shared by all KeycodeMappers of this process
 
 # maps mouse buttons to macro instances that have been executed.
@@ -41,6 +42,7 @@ from keymapper import utils
 # execute two macros at once, one for each direction.
 # Only sequentially.
 active_macros = {}
+
 
 # mapping of future release event (type, code) to an Unreleased object,
 # All key-up events have a value of 0, so it is not added to
