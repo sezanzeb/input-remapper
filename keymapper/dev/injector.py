@@ -75,7 +75,7 @@ def is_numlock_on():
             return num_lock_status[1] == 'on'
 
         return False
-    except subprocess.CalledProcessError:
+    except (FileNotFoundError, subprocess.CalledProcessError):
         # tty
         return None
 
@@ -434,6 +434,11 @@ class Injector:
 
             if len(macros) == 0:
                 logger.debug('No macros configured')
+
+            logger.spam(
+                'Original capabilities for "%s": %s',
+                path, source.capabilities(verbose=True)
+            )
 
             # certain capabilities can have side effects apparently. with an
             # EV_ABS capability, EV_REL won't move the mouse pointer anymore.
