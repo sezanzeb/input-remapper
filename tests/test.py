@@ -306,7 +306,7 @@ class InputDevice:
             yield result
             await asyncio.sleep(0.01)
 
-    def capabilities(self, absinfo=True):
+    def capabilities(self, absinfo=True, verbose=False):
         result = copy.deepcopy(fixtures[self.path]['capabilities'])
 
         if absinfo and evdev.ecodes.EV_ABS in result:
