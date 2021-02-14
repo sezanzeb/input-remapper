@@ -3,3 +3,7 @@
 disable=
     # that is the standard way to import GTK afaik
     wrong-import-position
+
+    # using """ for comments highlights them in green for me and makes it
+    # a great way to separate stuff into multiple sections
+    pointless-string-statement

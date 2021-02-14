@@ -76,7 +76,7 @@ class Key:
         flattened = ()
         for key in keys:
             if isinstance(key, Key):
-                flattened += key.keys
+                flattened += key.keys  # pylint: disable=no-member
             else:
                 flattened += (key,)
         keys = flattened
