@@ -98,7 +98,7 @@ class Injector(multiprocessing.Process):
 
         super().__init__()
 
-    # Functions to interact with the running process:
+    """Functions to interact with the running process"""
 
     def get_state(self):
         """Get the state of the injection.
@@ -141,7 +141,7 @@ class Injector(multiprocessing.Process):
         self._msg_pipe[1].send(CLOSE)
         self._state = STOPPED
 
-    # Process internal stuff:
+    """Process internal stuff"""
 
     def _grab_device(self, path):
         """Try to grab the device, return None if not needed/possible."""
@@ -206,7 +206,10 @@ class Injector(multiprocessing.Process):
         ----------
         input_device : evdev.InputDevice
         gamepad : bool
-            if ABS capabilities should be removed in favor of REL
+            If ABS capabilities should be removed in favor of REL.
+            This parameter is somewhat redundant and could be derived
+            from input_device, but it is very useful to control this in
+            tests.
 
         Returns
         -------
@@ -383,12 +386,6 @@ class Injector(multiprocessing.Process):
             # reached otherwise.
             logger.debug('asyncio coroutines ended')
 
-    def _macro_write(self, code, value, uinput):
-        """Handler for macros."""
-        logger.spam('macro writes %s', (EV_KEY, code, value))
-        uinput.write(EV_KEY, code, value)
-        uinput.syn()
-
     async def _event_consumer(self, source, uinput):
         """Reads input events to inject keycodes or talk to the event_producer.
 
@@ -440,7 +437,4 @@ class Injector(multiprocessing.Process):
             uinput.write(event.type, event.code, event.value)
             # this already includes SYN events, so need to syn here again
 
-        logger.error(
-            'The consumer for "%s" stopped early',
-            source.path
-        )
+        logger.error('The consumer for "%s" stopped early', source.path)
