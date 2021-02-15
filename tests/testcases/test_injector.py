@@ -199,30 +199,28 @@ class TestInjector(unittest.TestCase):
     def test_adds_ev_key(self):
         # for some reason, having any EV_KEY capability is needed to
         # be able to control the mouse. it probably wants the mouse click.
+        custom_mapping.change(Key(EV_KEY, BTN_A, 1), 'a')
         self.injector = Injector('gamepad 2', custom_mapping)
 
-        """gamepad without any existing key capability"""
+        """ABS device without any key capability"""
 
         path = self.new_gamepad
         gamepad_template = copy.deepcopy(fixtures['/dev/input/event30'])
         fixtures[path] = {
-            'name': 'gamepad 2', 'phys': 'abcd', 'info': '1234',
+            'name': 'qux 2', 'phys': 'abcd', 'info': '1234',
             'capabilities': gamepad_template['capabilities']
         }
         del fixtures[path]['capabilities'][EV_KEY]
         device = self.injector._grab_device(path)
-        gamepad = is_gamepad(device)
-        self.assertNotIn(EV_KEY, device.capabilities())
-        capabilities = self.injector._modify_capabilities(device, gamepad)
-        self.assertIn(EV_KEY, capabilities)
-        self.assertIn(evdev.ecodes.BTN_MOUSE, capabilities[EV_KEY])
+        # no reason to grab, BTN_A capability is missing in the device
+        self.assertIsNone(device)
 
-        """gamepad with a btn_mouse capability existing"""
+        """ABS device with a btn_mouse capability"""
 
         path = self.new_gamepad
         gamepad_template = copy.deepcopy(fixtures['/dev/input/event30'])
         fixtures[path] = {
-            'name': 'gamepad 3', 'phys': 'abcd', 'info': '1234',
+            'name': 'qux 3', 'phys': 'abcd', 'info': '1234',
             'capabilities': gamepad_template['capabilities']
         }
         fixtures[path]['capabilities'][EV_KEY].append(BTN_LEFT)
@@ -234,7 +232,7 @@ class TestInjector(unittest.TestCase):
         self.assertIn(evdev.ecodes.BTN_MOUSE, capabilities[EV_KEY])
         self.assertIn(evdev.ecodes.KEY_A, capabilities[EV_KEY])
 
-        """gamepad with existing key capabilities, but not btn_mouse"""
+        """a gamepad"""
 
         path = '/dev/input/event30'
         device = self.injector._grab_device(path)

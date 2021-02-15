@@ -126,12 +126,15 @@ class TestGetDevices(unittest.TestCase):
         self.assertNotIn('camera', get_devices())
         self.assertIn('gamepad', get_devices())
 
-    def test_gamepad_without_ev_key(self):
+    def test_device_with_only_ev_abs(self):
         def list_devices():
             return ['/foo/bar', '/dev/input/event30']
 
+        # could be anything, a lot of devices have ABS_X capabilities,
+        # so it is not treated as gamepad joystick and since it also
+        # doesn't have key capabilities, there is nothing to map.
         fixtures['/foo/bar'] = {
-            'name': 'gamepad2', 'phys': 'abcd2',
+            'name': 'qux', 'phys': 'abcd2',
             'info': evdev.DeviceInfo(1, 2, 3, 4),
             'capabilities': {
                 evdev.ecodes.EV_ABS: [
@@ -144,7 +147,7 @@ class TestGetDevices(unittest.TestCase):
 
         refresh_devices()
         self.assertIn('gamepad', get_devices())
-        self.assertIn('gamepad2', get_devices())
+        self.assertNotIn('qux', get_devices())
 
     def test_is_gamepad(self):
         # properly detects if the device is a gamepad
@@ -160,33 +163,37 @@ class TestGetDevices(unittest.TestCase):
                 assert not absinfo
                 return self.c
 
+        """positive tests"""
+
         self.assertTrue(is_gamepad(FakeDevice({
-            EV_ABS: [evdev.ecodes.ABS_X]
+            EV_ABS: [evdev.ecodes.ABS_X, evdev.ecodes.ABS_Y],
+            EV_KEY: [evdev.ecodes.BTN_A]
         })))
-        self.assertTrue(is_gamepad(FakeDevice({
-            EV_ABS: [evdev.ecodes.ABS_X, evdev.ecodes.ABS_RY],
-            EV_KEY: [evdev.ecodes.KEY_A]
-        })))
+
+        """negative tests"""
+
         self.assertFalse(is_gamepad(FakeDevice({
-            EV_ABS: [evdev.ecodes.ABS_X, evdev.ecodes.ABS_MT_TRACKING_ID]
-        })))
-        self.assertFalse(is_gamepad(FakeDevice({
-            EV_ABS: [evdev.ecodes.ABS_HAT2X]
-        })))
-        self.assertFalse(is_gamepad(FakeDevice({
-            EV_KEY: [0]
-        })))
-        self.assertFalse(is_gamepad(FakeDevice({
-            EV_ABS: [evdev.ecodes.ABS_Y],
-            EV_KEY: [evdev.ecodes.BTN_TOOL_PEN]
-        })))
-        self.assertFalse(is_gamepad(FakeDevice({
-            EV_ABS: [evdev.ecodes.ABS_X],
-            EV_KEY: [evdev.ecodes.BTN_STYLUS]
-        })))
-        self.assertFalse(is_gamepad(FakeDevice({
-            EV_ABS: [evdev.ecodes.ABS_X],
+            EV_ABS: [evdev.ecodes.ABS_X, evdev.ecodes.ABS_Y],
+            EV_KEY: [evdev.ecodes.BTN_A],
             EV_REL: [evdev.ecodes.REL_X]
+        })))
+
+        self.assertFalse(is_gamepad(FakeDevice({
+            EV_ABS: [evdev.ecodes.ABS_X, evdev.ecodes.ABS_Y],
+            EV_KEY: [evdev.ecodes.KEY_1]
+        })))
+
+        self.assertFalse(is_gamepad(FakeDevice({
+            EV_ABS: [evdev.ecodes.ABS_X],
+            EV_KEY: [evdev.ecodes.BTN_A]
+        })))
+
+        self.assertFalse(is_gamepad(FakeDevice({
+            EV_KEY: [evdev.ecodes.BTN_A]
+        })))
+
+        self.assertFalse(is_gamepad(FakeDevice({
+            EV_ABS: [evdev.ecodes.ABS_X]
         })))
 
 
