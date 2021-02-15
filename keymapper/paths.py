@@ -67,10 +67,11 @@ CONFIG_PATH = os.path.join('/home', USER, '.config/key-mapper')
 
 
 def chown(path):
+    """Set the owner of a path to the user."""
     try:
         shutil.chown(path, user=USER, group=USER)
     except LookupError:
-        # the users group was missing in one case for whatever reason
+        # the users group was unknown in one case for whatever reason
         shutil.chown(path, user=USER)
 
 
