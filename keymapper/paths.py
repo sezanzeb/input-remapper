@@ -66,6 +66,14 @@ USER = get_user()
 CONFIG_PATH = os.path.join('/home', USER, '.config/key-mapper')
 
 
+def chown(path):
+    try:
+        shutil.chown(path, user=USER, group=USER)
+    except LookupError:
+        # the users group was missing in one case for whatever reason
+        shutil.chown(path, user=USER)
+
+
 def touch(path, log=True):
     """Create an empty file and all its parent dirs, give it to the user."""
     if path.endswith('/'):
@@ -80,7 +88,7 @@ def touch(path, log=True):
     mkdir(os.path.dirname(path), log=False)
 
     os.mknod(path)
-    shutil.chown(path, USER, USER)
+    chown(path)
 
 
 def mkdir(path, log=True):
@@ -97,7 +105,7 @@ def mkdir(path, log=True):
     mkdir(base, log=False)
 
     os.makedirs(path)
-    shutil.chown(path, USER, USER)
+    chown(path)
 
 
 def get_preset_path(device=None, preset=None):
