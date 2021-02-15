@@ -150,6 +150,7 @@ class TestGetDevices(unittest.TestCase):
         # properly detects if the device is a gamepad
         EV_ABS = evdev.ecodes.EV_ABS
         EV_KEY = evdev.ecodes.EV_KEY
+        EV_REL = evdev.ecodes.EV_REL
 
         class FakeDevice:
             def __init__(self, capabilities):
@@ -173,7 +174,7 @@ class TestGetDevices(unittest.TestCase):
             EV_ABS: [evdev.ecodes.ABS_HAT2X]
         })))
         self.assertFalse(is_gamepad(FakeDevice({
-            EV_KEY: [evdev.ecodes.ABS_X]  # intentionally ABS_X (0) on EV_KEY
+            EV_KEY: [0]
         })))
         self.assertFalse(is_gamepad(FakeDevice({
             EV_ABS: [evdev.ecodes.ABS_Y],
@@ -182,6 +183,10 @@ class TestGetDevices(unittest.TestCase):
         self.assertFalse(is_gamepad(FakeDevice({
             EV_ABS: [evdev.ecodes.ABS_X],
             EV_KEY: [evdev.ecodes.BTN_STYLUS]
+        })))
+        self.assertFalse(is_gamepad(FakeDevice({
+            EV_ABS: [evdev.ecodes.ABS_X],
+            EV_REL: [evdev.ecodes.REL_X]
         })))
 
 
