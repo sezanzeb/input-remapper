@@ -28,7 +28,8 @@ import time
 import asyncio
 
 import evdev
-from evdev.ecodes import EV_KEY, EV_ABS, KEY_CAMERA, EV_REL
+from evdev.ecodes import EV_KEY, EV_ABS, KEY_CAMERA, EV_REL, ABS_PRESSURE, \
+    BTN_STYLUS, BTN_A
 
 from keymapper.logger import logger
 
@@ -60,33 +61,32 @@ def is_gamepad(device):
     ----------
     device : InputDevice
     """
+    # if false positives appear, prefer requiring more gamepad specific
+    # capabilities over searching for capabilities that gamepads usually
+    # don't have.
     capabilities = device.capabilities(absinfo=False)
 
+    # some tests that should easily match most devices of those
+    # non-gamepad types:
     if EV_REL in capabilities:
         # A mouse
         return False
+    if BTN_STYLUS in capabilities.get(EV_KEY, []):
+        # a graphics tablet
+        return False
 
-    abs_capabilities = capabilities.get(EV_ABS)
-    if abs_capabilities is not None:
-        if evdev.ecodes.ABS_MT_TRACKING_ID in abs_capabilities:
-            # check for some random mousepad capability
-            return False
+    # buttons
+    if BTN_A not in capabilities.get(EV_KEY, []):
+        return False
 
-        # graphics tablet tests.
-        # They use ABS_X and ABS_Y for moving the cursor
-        keys = capabilities.get(EV_KEY, [])
-        if [key for key in keys if key in TABLET_KEYS]:
-            return False
+    # joystick
+    abs_capabilities = capabilities.get(EV_ABS, [])
+    if evdev.ecodes.ABS_X not in abs_capabilities:
+        return False
+    if evdev.ecodes.ABS_Y not in abs_capabilities:
+        return False
 
-        if evdev.ecodes.ABS_X in abs_capabilities:
-            # can be a joystick or a mousepad (already handled), so it's
-            # a joystick
-            return True
-
-        if evdev.ecodes.ABS_Y in abs_capabilities:
-            return True
-
-    return False
+    return True
 
 
 class _GetDevices(threading.Thread):
