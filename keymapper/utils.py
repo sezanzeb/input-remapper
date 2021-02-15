@@ -46,7 +46,8 @@ STYLUS = [
     (EV_ABS, evdev.ecodes.ABS_DISTANCE),
     (EV_ABS, evdev.ecodes.ABS_TILT_X),
     (EV_ABS, evdev.ecodes.ABS_TILT_Y),
-    (EV_KEY, evdev.ecodes.BTN_DIGI)
+    (EV_KEY, evdev.ecodes.BTN_DIGI),
+    (EV_ABS, evdev.ecodes.ABS_PRESSURE)
 ]
 
 
@@ -135,7 +136,10 @@ def should_map_event_as_btn(event, mapping):
         return True
 
     if event.type == EV_KEY:
-        # usually all EV_KEY events are allright
+        # usually all EV_KEY events are allright, except for
+        if event.code == evdev.ecodes.BTN_TOUCH:
+            return False
+
         return True
 
     return False

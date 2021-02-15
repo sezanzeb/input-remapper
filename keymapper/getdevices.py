@@ -28,7 +28,7 @@ import time
 import asyncio
 
 import evdev
-from evdev.ecodes import EV_KEY, EV_ABS, KEY_CAMERA
+from evdev.ecodes import EV_KEY, EV_ABS, KEY_CAMERA, EV_REL
 
 from keymapper.logger import logger
 
@@ -61,6 +61,11 @@ def is_gamepad(device):
     device : InputDevice
     """
     capabilities = device.capabilities(absinfo=False)
+
+    if EV_REL in capabilities:
+        # A mouse
+        return False
+
     abs_capabilities = capabilities.get(EV_ABS)
     if abs_capabilities is not None:
         if evdev.ecodes.ABS_MT_TRACKING_ID in abs_capabilities:

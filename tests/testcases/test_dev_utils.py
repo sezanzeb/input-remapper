@@ -82,6 +82,7 @@ class TestDevUtils(unittest.TestCase):
         self.assertFalse(do(new_event(EV_ABS, ecodes.ABS_MT_SLOT, 1)))
         self.assertFalse(do(new_event(EV_ABS, ecodes.ABS_MT_TOOL_Y, 1)))
         self.assertFalse(do(new_event(EV_ABS, ecodes.ABS_MT_POSITION_X, 1)))
+        self.assertFalse(do(new_event(EV_KEY, ecodes.BTN_TOUCH, 1)))
 
         """stylus movements"""
 
@@ -89,6 +90,7 @@ class TestDevUtils(unittest.TestCase):
         self.assertFalse(do(new_event(EV_ABS, ecodes.ABS_TILT_X, 1)))
         self.assertFalse(do(new_event(EV_ABS, ecodes.ABS_TILT_Y, 1)))
         self.assertFalse(do(new_event(EV_ABS, ecodes.ABS_DISTANCE, 1)))
+        self.assertFalse(do(new_event(EV_ABS, ecodes.ABS_PRESSURE, 1)))
 
         """joysticks"""
 
