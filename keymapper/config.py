@@ -248,10 +248,11 @@ class GlobalConfig(ConfigBase):
                 logger.info('Loaded config from "%s"', self.path)
             except json.decoder.JSONDecodeError as error:
                 logger.error(
-                    'Failed to parse config "%s": %s',
+                    'Failed to parse config "%s": %s. Using defaults',
                     self.path, str(error)
                 )
-                sys.exit(1)
+                # uses the default configuration when the config object
+                # is empty automatically
 
     def save_config(self):
         """Save the config to the file system."""
@@ -264,7 +265,6 @@ class GlobalConfig(ConfigBase):
         with open(self.path, 'w') as file:
             json.dump(self._config, file, indent=4)
             logger.info('Saved config to %s', self.path)
-            shutil.chown(self.path, USER, USER)
             file.write('\n')
 
 
