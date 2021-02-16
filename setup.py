@@ -34,7 +34,7 @@ class Install(install):
             with open('keymapper/logger.py', 'r') as f:
                 contents = f.read()
                 contents = re.sub(
-                    r"COMMIT_HASH = '.+'",
+                    r"COMMIT_HASH = '.*?'",
                     f"COMMIT_HASH = '{commit}'",
                     contents
                 )
