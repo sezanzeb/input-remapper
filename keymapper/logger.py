@@ -152,7 +152,10 @@ def log_info():
     try:
         name = pkg_resources.require('key-mapper')[0].project_name
         version = pkg_resources.require('key-mapper')[0].version
-        logger.info('%s %s %s', name, version, COMMIT_HASH)
+        logger.info(
+            '%s %s %s https://github.com/sezanzeb/key-mapper',
+            name, version, COMMIT_HASH
+        )
 
         evdev_version = pkg_resources.require('evdev')[0].version
         logger.info('python-evdev %s', evdev_version)
