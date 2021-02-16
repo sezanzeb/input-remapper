@@ -406,6 +406,8 @@ class Injector(multiprocessing.Process):
             source.path, source.fd
         )
 
+        gamepad = is_gamepad(source)
+
         keycode_handler = KeycodeMapper(self.context, source, uinput)
 
         async for event in source.async_read_loop():
@@ -415,7 +417,7 @@ class Injector(multiprocessing.Process):
                 continue
 
             # for mapped stuff
-            if utils.should_map_event_as_btn(event, self.context.mapping):
+            if utils.should_map_event_as_btn(event, self.context.mapping, gamepad):
                 will_report_key_up = utils.will_report_key_up(event)
 
                 keycode_handler.handle_keycode(event)

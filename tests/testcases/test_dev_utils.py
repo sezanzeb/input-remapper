@@ -56,57 +56,76 @@ class TestDevUtils(unittest.TestCase):
         mapping = Mapping()
 
         # the function name is so horribly long
-        def do(event):
-            return utils.should_map_event_as_btn(event, mapping)
+        def do(gamepad, event):
+            return utils.should_map_event_as_btn(event, mapping, gamepad)
 
         """D-Pad"""
 
-        self.assertTrue(do(new_event(EV_ABS, ABS_HAT0X, 1)))
-        self.assertTrue(do(new_event(EV_ABS, ABS_HAT0X, -1)))
+        self.assertTrue(do(1, new_event(EV_ABS, ABS_HAT0X, 1)))
+        self.assertTrue(do(0, new_event(EV_ABS, ABS_HAT0X, -1)))
 
         """Mouse movements"""
 
-        self.assertTrue(do(new_event(EV_REL, REL_WHEEL, 1)))
-        self.assertTrue(do(new_event(EV_REL, REL_WHEEL, -1)))
-        self.assertTrue(do(new_event(EV_REL, REL_HWHEEL, 1)))
-        self.assertTrue(do(new_event(EV_REL, REL_HWHEEL, -1)))
-        self.assertFalse(do(new_event(EV_REL, REL_X, -1)))
+        self.assertTrue(do(1, new_event(EV_REL, REL_WHEEL, 1)))
+        self.assertTrue(do(0, new_event(EV_REL, REL_WHEEL, -1)))
+        self.assertTrue(do(1, new_event(EV_REL, REL_HWHEEL, 1)))
+        self.assertTrue(do(0, new_event(EV_REL, REL_HWHEEL, -1)))
+        self.assertFalse(do(1, new_event(EV_REL, REL_X, -1)))
 
         """regular keys and buttons"""
 
-        self.assertTrue(do(new_event(EV_KEY, KEY_A, 1)))
-        self.assertTrue(do(new_event(EV_ABS, ABS_HAT0X, -1)))
+        self.assertTrue(do(1, new_event(EV_KEY, KEY_A, 1)))
+        self.assertTrue(do(0, new_event(EV_KEY, KEY_A, 1)))
+        self.assertTrue(do(1, new_event(EV_ABS, ABS_HAT0X, -1)))
+        self.assertTrue(do(0, new_event(EV_ABS, ABS_HAT0X, -1)))
 
         """mousepad events"""
 
-        self.assertFalse(do(new_event(EV_ABS, ecodes.ABS_MT_SLOT, 1)))
-        self.assertFalse(do(new_event(EV_ABS, ecodes.ABS_MT_TOOL_Y, 1)))
-        self.assertFalse(do(new_event(EV_ABS, ecodes.ABS_MT_POSITION_X, 1)))
-        self.assertFalse(do(new_event(EV_KEY, ecodes.BTN_TOUCH, 1)))
+        self.assertFalse(do(1, new_event(EV_ABS, ecodes.ABS_MT_SLOT, 1)))
+        self.assertFalse(do(0, new_event(EV_ABS, ecodes.ABS_MT_SLOT, 1)))
+        self.assertFalse(do(1, new_event(EV_ABS, ecodes.ABS_MT_TOOL_Y, 1)))
+        self.assertFalse(do(0, new_event(EV_ABS, ecodes.ABS_MT_TOOL_Y, 1)))
+        self.assertFalse(do(1, new_event(EV_ABS, ecodes.ABS_MT_POSITION_X, 1)))
+        self.assertFalse(do(0, new_event(EV_ABS, ecodes.ABS_MT_POSITION_X, 1)))
+        self.assertFalse(do(1, new_event(EV_KEY, ecodes.BTN_TOUCH, 1)))
+        self.assertFalse(do(0, new_event(EV_KEY, ecodes.BTN_TOUCH, 1)))
 
         """stylus movements"""
 
-        self.assertFalse(do(new_event(EV_KEY, ecodes.BTN_DIGI, 1)))
-        self.assertFalse(do(new_event(EV_ABS, ecodes.ABS_TILT_X, 1)))
-        self.assertFalse(do(new_event(EV_ABS, ecodes.ABS_TILT_Y, 1)))
-        self.assertFalse(do(new_event(EV_ABS, ecodes.ABS_DISTANCE, 1)))
-        self.assertFalse(do(new_event(EV_ABS, ecodes.ABS_PRESSURE, 1)))
+        self.assertFalse(do(0, new_event(EV_KEY, ecodes.BTN_DIGI, 1)))
+        self.assertFalse(do(1, new_event(EV_KEY, ecodes.BTN_DIGI, 1)))
+        self.assertFalse(do(0, new_event(EV_ABS, ecodes.ABS_TILT_X, 1)))
+        self.assertFalse(do(1, new_event(EV_ABS, ecodes.ABS_TILT_X, 1)))
+        self.assertFalse(do(0, new_event(EV_ABS, ecodes.ABS_TILT_Y, 1)))
+        self.assertFalse(do(1, new_event(EV_ABS, ecodes.ABS_TILT_Y, 1)))
+        self.assertFalse(do(0, new_event(EV_ABS, ecodes.ABS_DISTANCE, 1)))
+        self.assertFalse(do(1, new_event(EV_ABS, ecodes.ABS_DISTANCE, 1)))
+        self.assertFalse(do(0, new_event(EV_ABS, ecodes.ABS_PRESSURE, 1)))
+        self.assertFalse(do(1, new_event(EV_ABS, ecodes.ABS_PRESSURE, 1)))
 
         """joysticks"""
 
-        self.assertFalse(do(new_event(EV_ABS, ecodes.ABS_RX, 1234)))
-        self.assertFalse(do(new_event(EV_ABS, ecodes.ABS_Y, -1)))
-        self.assertFalse(do(new_event(EV_ABS, ecodes.ABS_RY, -1)))
-
-        """weird events"""
-
-        self.assertFalse(do(new_event(EV_ABS, ecodes.ABS_MISC, -1)))
+        # without a purpose of BUTTONS it won't map any button, even for
+        # gamepads
+        self.assertFalse(do(0, new_event(EV_ABS, ecodes.ABS_RX, 1234)))
+        self.assertFalse(do(1, new_event(EV_ABS, ecodes.ABS_RX, 1234)))
+        self.assertFalse(do(0, new_event(EV_ABS, ecodes.ABS_Y, -1)))
+        self.assertFalse(do(1, new_event(EV_ABS, ecodes.ABS_Y, -1)))
+        self.assertFalse(do(0, new_event(EV_ABS, ecodes.ABS_RY, -1)))
+        self.assertFalse(do(1, new_event(EV_ABS, ecodes.ABS_RY, -1)))
 
         mapping.set('gamepad.joystick.right_purpose', BUTTONS)
         config.set('gamepad.joystick.left_purpose', BUTTONS)
+        # but only for gamepads
+        self.assertFalse(do(0, new_event(EV_ABS, ecodes.ABS_Y, -1)))
+        self.assertTrue(do(1, new_event(EV_ABS, ecodes.ABS_Y, -1)))
+        self.assertFalse(do(0, new_event(EV_ABS, ecodes.ABS_RY, -1)))
+        self.assertTrue(do(1, new_event(EV_ABS, ecodes.ABS_RY, -1)))
 
-        self.assertTrue(do(new_event(EV_ABS, ecodes.ABS_Y, -1)))
-        self.assertTrue(do(new_event(EV_ABS, ecodes.ABS_RY, -1)))
+        """weird events"""
+
+        self.assertFalse(do(0, new_event(EV_ABS, ecodes.ABS_MISC, -1)))
+        self.assertFalse(do(1, new_event(EV_ABS, ecodes.ABS_MISC, -1)))
 
     def test_normalize_value(self):
         def do(event):

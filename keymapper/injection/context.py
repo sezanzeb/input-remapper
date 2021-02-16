@@ -59,6 +59,9 @@ class Context:
     macros : dict
         mapping of ((type, code, value),) to _Macro objects.
         Combinations work similar as in key_to_code
+    is_gamepad : bool
+        if key-mapper considers this device to be a gamepad. If yes, ABS_X
+        and ABS_Y events can be treated as buttons.
     """
     def __init__(self, mapping):
         self.mapping = mapping
@@ -67,6 +70,7 @@ class Context:
         # might be a bit expensive
         self.key_to_code = self._map_keys_to_codes()
         self.macros = self._parse_macros()
+
         self.left_purpose = None
         self.right_purpose = None
         self.update_purposes()

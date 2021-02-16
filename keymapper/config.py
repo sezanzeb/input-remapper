@@ -23,9 +23,7 @@
 
 
 import os
-import sys
 import json
-import shutil
 import copy
 
 from keymapper.paths import CONFIG_PATH, USER, touch

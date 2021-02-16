@@ -34,7 +34,7 @@ from evdev.ecodes import EV_KEY, EV_ABS, ABS_MISC, EV_REL
 from keymapper.logger import logger
 from keymapper.key import Key
 from keymapper.state import custom_mapping
-from keymapper.getdevices import get_devices
+from keymapper.getdevices import get_devices, is_gamepad
 from keymapper import utils
 
 CLOSE = 1
@@ -119,6 +119,11 @@ class _KeycodeReader:
 
         If read is called without prior start_reading, no keycodes
         will be available.
+
+        Parameters
+        ----------
+        device_name : string
+            As indexed in get_devices()
         """
         if self._pipe is not None:
             self.stop_reading()
@@ -126,33 +131,39 @@ class _KeycodeReader:
 
         self.virtual_devices = []
 
-        for name, group in get_devices().items():
-            if device_name not in name:
+        group = get_devices()[device_name]
+
+        # Watch over each one of the potentially multiple devices per hardware
+        for path in group['paths']:
+            try:
+                device = evdev.InputDevice(path)
+            except FileNotFoundError:
                 continue
 
-            # Watch over each one of the potentially multiple devices per
-            # hardware
-            for path in group['paths']:
-                try:
-                    device = evdev.InputDevice(path)
-                except FileNotFoundError:
-                    continue
+            if evdev.ecodes.EV_KEY in device.capabilities():
+                self.virtual_devices.append(device)
 
-                if evdev.ecodes.EV_KEY in device.capabilities():
-                    self.virtual_devices.append(device)
-
-            logger.debug(
-                'Starting reading keycodes from "%s"',
-                '", "'.join([device.name for device in self.virtual_devices])
-            )
+        logger.debug(
+            'Starting reading keycodes from "%s"',
+            '", "'.join([device.name for device in self.virtual_devices])
+        )
 
         pipe = multiprocessing.Pipe()
         self._pipe = pipe
         self._process = threading.Thread(target=self._read_worker)
         self._process.start()
 
-    def _pipe_event(self, event, device):
-        """Write the event into the pipe to the main process."""
+    def _pipe_event(self, event, device, gamepad):
+        """Write the event into the pipe to the main process.
+
+        Parameters
+        ----------
+        event : evdev.InputEvent
+        device : evdev.InputDevice
+        gamepad : bool
+            If true, ABS_X and ABS_Y might be mapped to buttons as well
+            depending on the purpose configuration
+        """
         # value: 1 for down, 0 for up, 2 for hold.
         if self._pipe is None or self._pipe[1].closed:
             logger.debug('Pipe closed, reader stops.')
@@ -173,7 +184,7 @@ class _KeycodeReader:
             # which breaks the current workflow.
             return
 
-        if not utils.should_map_event_as_btn(event, custom_mapping):
+        if not utils.should_map_event_as_btn(event, custom_mapping, gamepad):
             return
 
         max_abs = utils.get_max_abs(device)
@@ -186,13 +197,18 @@ class _KeycodeReader:
         # using a thread that blocks instead of read_one made it easier
         # to debug via the logs, because the UI was not polling properly
         # at some point which caused logs for events not to be written.
-        rlist = {device.fd: device for device in self.virtual_devices}
+        rlist = {}
+        gamepad = {}
+        for device in self.virtual_devices:
+            rlist[device.fd] = device
+            gamepad[device.fd] = is_gamepad(device)
+
         rlist[self._pipe[1]] = self._pipe[1]
 
         while True:
             ready = select.select(rlist, [], [])[0]
             for fd in ready:
-                readable = rlist[fd]  # a device or a pipe
+                readable = rlist[fd]  # an InputDevice or a pipe
                 if isinstance(readable, multiprocessing.connection.Connection):
                     msg = readable.recv()
                     if msg == CLOSE:
@@ -202,7 +218,11 @@ class _KeycodeReader:
 
                 try:
                     for event in rlist[fd].read():
-                        self._pipe_event(event, readable)
+                        self._pipe_event(
+                            event,
+                            readable,
+                            gamepad.get(fd, False)
+                        )
                 except OSError:
                     logger.debug(
                         'Device "%s" disappeared from the reader',
