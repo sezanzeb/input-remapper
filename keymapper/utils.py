@@ -95,7 +95,7 @@ def will_report_key_up(event):
     return not is_wheel(event)
 
 
-def should_map_event_as_btn(event, mapping):
+def should_map_event_as_btn(event, mapping, gamepad):
     """Does this event describe a button.
 
     If it does, this function will make sure its value is one of [-1, 0, 1],
@@ -106,6 +106,13 @@ def should_map_event_as_btn(event, mapping):
 
     Especially important for gamepad events, some of the buttons
     require special rules.
+
+    Parameters
+    ----------
+    event : evdev.InputEvent
+    mapping : Mapping
+    gamepad : bool
+        If the device is treated as gamepad
     """
     if (event.type, event.code) in STYLUS:
         return False
@@ -121,6 +128,9 @@ def should_map_event_as_btn(event, mapping):
             return False
 
         if event.code in JOYSTICK:
+            if not gamepad:
+                return False
+
             l_purpose = mapping.get('gamepad.joystick.left_purpose')
             r_purpose = mapping.get('gamepad.joystick.right_purpose')
 
@@ -130,6 +140,8 @@ def should_map_event_as_btn(event, mapping):
             if event.code in [ABS_RX, ABS_RY] and r_purpose == BUTTONS:
                 return True
         else:
+            # for non-joystick buttons just always offer mapping them to
+            # buttons
             return True
 
     if is_wheel(event):

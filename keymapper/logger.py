@@ -54,6 +54,7 @@ def key_spam(self, key, msg, *args):
         anything that can be string formatted, but usually a tuple of
         (type, code, value) tuples
     """
+    # pylint: disable=protected-access
     if not self.isEnabledFor(SPAM):
         return
 

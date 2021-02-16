@@ -28,8 +28,7 @@ import time
 import asyncio
 
 import evdev
-from evdev.ecodes import EV_KEY, EV_ABS, KEY_CAMERA, EV_REL, ABS_PRESSURE, \
-    BTN_STYLUS, BTN_A
+from evdev.ecodes import EV_KEY, EV_ABS, KEY_CAMERA, EV_REL, BTN_STYLUS, BTN_A
 
 from keymapper.logger import logger
 
