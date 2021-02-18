@@ -196,7 +196,29 @@ class Injector(multiprocessing.Process):
 
         return device
 
-    def _modify_capabilities(self, input_device, gamepad):
+    def _copy_capabilities(self, input_device):
+        """Copy capabilities for a new device."""
+        ecodes = evdev.ecodes
+
+        # copy the capabilities because the uinput is going
+        # to act like the device.
+        capabilities = input_device.capabilities(absinfo=True)
+
+        # just like what python-evdev does in from_device
+        if ecodes.EV_SYN in capabilities:
+            del capabilities[ecodes.EV_SYN]
+        if ecodes.EV_FF in capabilities:
+            del capabilities[ecodes.EV_FF]
+
+        if ecodes.ABS_VOLUME in capabilities.get(ecodes.EV_ABS, []):
+            # For some reason an ABS_VOLUME capability likes to appear
+            # for some users. It prevents mice from moving around and
+            # keyboards from writing characters
+            capabilities[ecodes.EV_ABS].remove(ecodes.ABS_VOLUME)
+
+        return capabilities
+
+    def _construct_capabilities(self, gamepad):
         """Adds all used keycodes into a copy of a devices capabilities.
 
         Sometimes capabilities are a bit tricky and change how the system
@@ -204,28 +226,21 @@ class Injector(multiprocessing.Process):
 
         Parameters
         ----------
-        input_device : evdev.InputDevice
         gamepad : bool
-            If ABS capabilities should be removed in favor of REL.
-            This parameter is somewhat redundant and could be derived
-            from input_device, but it is very useful to control this in
-            tests.
+            If gamepad events can be translated to mouse events. (also
+            depends on the configured purpose)
 
         Returns
         -------
         a mapping of int event type to an array of int event codes.
-        Without absinfo.
         """
         ecodes = evdev.ecodes
 
-        # copy the capabilities because the uinput is going
-        # to act like the device.
-        capabilities = input_device.capabilities(absinfo=True)
+        capabilities = {
+            EV_KEY: []
+        }
 
-        if self.context.writes_keys and capabilities.get(EV_KEY) is None:
-            capabilities[EV_KEY] = []
-
-        # Furthermore, support all injected keycodes
+        # support all injected keycodes
         for code in self.context.key_to_code.values():
             if code == DISABLE_CODE:
                 continue
@@ -254,24 +269,6 @@ class Injector(multiprocessing.Process):
                 # to be able to move the cursor, this key capability is
                 # needed
                 capabilities[EV_KEY].append(ecodes.BTN_MOUSE)
-
-        # just like what python-evdev does in from_device
-        if ecodes.EV_SYN in capabilities:
-            del capabilities[ecodes.EV_SYN]
-        if ecodes.EV_FF in capabilities:
-            del capabilities[ecodes.EV_FF]
-        if gamepad and not self.context.forwards_joystick():
-            # Key input to text inputs and such only works without ABS
-            # events in the capabilities, possibly due to some intentional
-            # constraints in wayland/X. So if the joysticks are not used
-            # as joysticks remove ABS.
-            del capabilities[ecodes.EV_ABS]
-
-        if ecodes.ABS_VOLUME in capabilities.get(ecodes.EV_ABS, []):
-            # For some reason an ABS_VOLUME capability likes to appear
-            # for some users. It prevents mice from moving around and
-            # keyboards from writing characters
-            capabilities[ecodes.EV_ABS].remove(ecodes.ABS_VOLUME)
 
         return capabilities
 
@@ -304,6 +301,8 @@ class Injector(multiprocessing.Process):
             logger.error('Cannot inject for unknown device "%s"', self.device)
             return
 
+        group = get_devices()[self.device]
+
         logger.info('Starting injecting the mapping for "%s"', self.device)
 
         # create a new event loop, because somehow running an infinite loop
@@ -318,43 +317,40 @@ class Injector(multiprocessing.Process):
         numlock_state = is_numlock_on()
         coroutines = []
 
+        # where mapped events go to.
+        # See the Context docstring on why this is needed.
+        self.context.uinput = evdev.UInput(
+            name=f'{DEV_NAME} {self.device} mapped',
+            phys=DEV_NAME,
+            events=self._construct_capabilities(group['gamepad'])
+        )
+
         # Watch over each one of the potentially multiple devices per hardware
-        for path in get_devices()[self.device]['paths']:
+        for path in group['paths']:
             source = self._grab_device(path)
             if source is None:
                 # this path doesn't need to be grabbed for injection, because
                 # it doesn't provide the events needed to execute the mapping
                 continue
 
-            logger.spam(
-                'Original capabilities for "%s": %s',
-                path, source.capabilities(verbose=True)
-            )
-
             # certain capabilities can have side effects apparently. with an
             # EV_ABS capability, EV_REL won't move the mouse pointer anymore.
             # so don't merge all InputDevices into one UInput device.
             gamepad = is_gamepad(source)
-            uinput = evdev.UInput(
-                name=f'{DEV_NAME} {self.device}',
+            forward_to = evdev.UInput(
+                name=f'{DEV_NAME} {source.name} forwarded',
                 phys=DEV_NAME,
-                events=self._modify_capabilities(source, gamepad)
-            )
-
-            logger.spam(
-                'Injected capabilities for "%s": %s',
-                path, uinput.capabilities(verbose=True)
+                events=self._copy_capabilities(source)
             )
 
             # actual reading of events
-            coroutines.append(self._event_consumer(source, uinput))
+            coroutines.append(self._event_consumer(source, forward_to))
 
             # The event source of the current iteration will deliver events
             # that are needed for this. It is that one that will be mapped
             # to a mouse-like devnode.
             if gamepad and self.context.joystick_as_mouse():
                 self._event_producer.set_max_abs_from(source)
-                self._event_producer.set_mouse_uinput(uinput)
 
         if len(coroutines) == 0:
             logger.error('Did not grab any device')
@@ -386,7 +382,7 @@ class Injector(multiprocessing.Process):
             # reached otherwise.
             logger.debug('asyncio coroutines ended')
 
-    async def _event_consumer(self, source, uinput):
+    async def _event_consumer(self, source, forward_to):
         """Reads input events to inject keycodes or talk to the event_producer.
 
         Can be stopped by stopping the asyncio loop. This loop
@@ -398,8 +394,10 @@ class Injector(multiprocessing.Process):
         ----------
         source : evdev.InputDevice
             where to read keycodes from
-        uinput : evdev.UInput
-            where to write keycodes to
+        forward_to : evdev.UInput
+            where to write keycodes to that were not mapped to anything.
+            Should be an UInput with capabilities that work for all forwarded
+            events, so ideally they should be copied from source.
         """
         logger.debug(
             'Started consumer to inject to %s, fd %s',
@@ -408,7 +406,7 @@ class Injector(multiprocessing.Process):
 
         gamepad = is_gamepad(source)
 
-        keycode_handler = KeycodeMapper(self.context, source, uinput)
+        keycode_handler = KeycodeMapper(self.context, source, forward_to)
 
         async for event in source.async_read_loop():
             if self._event_producer.is_handled(event):
@@ -417,7 +415,7 @@ class Injector(multiprocessing.Process):
                 continue
 
             # for mapped stuff
-            if utils.should_map_event_as_btn(event, self.context.mapping, gamepad):
+            if utils.should_map_as_btn(event, self.context.mapping, gamepad):
                 will_report_key_up = utils.will_report_key_up(event)
 
                 keycode_handler.handle_keycode(event)
@@ -436,7 +434,10 @@ class Injector(multiprocessing.Process):
                 continue
 
             # forward the rest
-            uinput.write(event.type, event.code, event.value)
+            forward_to.write(event.type, event.code, event.value)
             # this already includes SYN events, so need to syn here again
 
+        # This happens all the time in tests because the async_read_loop
+        # stops when there is nothing to read anymore. Otherwise tests
+        # would block.
         logger.error('The consumer for "%s" stopped early', source.path)

@@ -55,7 +55,6 @@ class EventProducer:
         """Construct the event producer without it doing anything yet."""
         self.context = context
 
-        self.mouse_uinput = None
         self.max_abs = None
         # events only take ints, so a movement of 0.3 needs to add
         # up to 1.2 to affect the cursor, with 0.2 remaining
@@ -74,13 +73,13 @@ class EventProducer:
         if event.type == EV_ABS and event.code in self.abs_state:
             self.abs_state[event.code] = event.value
 
-    def _write(self, device, ev_type, keycode, value):
+    def _write(self, ev_type, keycode, value):
         """Inject."""
         # if the mouse won't move even though correct stuff is written here,
         # the capabilities are probably wrong
         try:
-            device.write(ev_type, keycode, value)
-            device.syn()
+            self.context.uinput.write(ev_type, keycode, value)
+            self.context.uinput.syn()
         except OverflowError:
             # screwed up the calculation of mouse movements
             logger.error('OverflowError (%s, %s, %s)', ev_type, keycode, value)
@@ -112,11 +111,6 @@ class EventProducer:
         output_value = int(self.pending_rel[code])
         self.pending_rel[code] -= output_value
         return output_value
-
-    def set_mouse_uinput(self, uinput):
-        """Set where to write mouse movements to."""
-        logger.debug('Going to inject mouse movements to "%s"', uinput.name)
-        self.mouse_uinput = uinput
 
     def set_max_abs_from(self, device):
         """Update the maximum value joysticks will report.
@@ -254,19 +248,19 @@ class EventProducer:
                 rel_x = self.accumulate(REL_X, rel_x)
                 rel_y = self.accumulate(REL_Y, rel_y)
                 if rel_x != 0:
-                    self._write(self.mouse_uinput, EV_REL, REL_X, rel_x)
+                    self._write(EV_REL, REL_X, rel_x)
                 if rel_y != 0:
-                    self._write(self.mouse_uinput, EV_REL, REL_Y, rel_y)
+                    self._write(EV_REL, REL_Y, rel_y)
 
             # wheel movements
             if abs(wheel_x) > 0:
                 change = wheel_x * x_scroll_speed / max_abs
                 value = self.accumulate(REL_WHEEL, change)
                 if abs(change) > WHEEL_THRESHOLD * x_scroll_speed:
-                    self._write(self.mouse_uinput, EV_REL, REL_HWHEEL, value)
+                    self._write(EV_REL, REL_HWHEEL, value)
 
             if abs(wheel_y) > 0:
                 change = wheel_y * y_scroll_speed / max_abs
                 value = self.accumulate(REL_HWHEEL, change)
                 if abs(change) > WHEEL_THRESHOLD * y_scroll_speed:
-                    self._write(self.mouse_uinput, EV_REL, REL_WHEEL, -value)
+                    self._write(EV_REL, REL_WHEEL, -value)

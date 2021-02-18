@@ -649,6 +649,7 @@ Don't hold down any keys while the injection starts.</property>
                               <item id="mouse" translatable="yes">Mouse</item>
                               <item id="wheel" translatable="yes">Wheel</item>
                               <item id="buttons" translatable="yes">Buttons</item>
+                              <item id="none" translatable="yes">Joystick</item>
                             </items>
                             <signal name="changed" handler="on_left_joystick_changed" swapped="no"/>
                           </object>
@@ -692,6 +693,7 @@ Don't hold down any keys while the injection starts.</property>
                               <item id="mouse" translatable="yes">Mouse</item>
                               <item id="wheel" translatable="yes">Wheel</item>
                               <item id="buttons" translatable="yes">Buttons</item>
+                              <item id="none" translatable="yes">Joystick</item>
                             </items>
                             <signal name="changed" handler="on_right_joystick_changed" swapped="no"/>
                           </object>
