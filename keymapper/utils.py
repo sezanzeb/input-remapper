@@ -95,7 +95,7 @@ def will_report_key_up(event):
     return not is_wheel(event)
 
 
-def should_map_event_as_btn(event, mapping, gamepad):
+def should_map_as_btn(event, mapping, gamepad):
     """Does this event describe a button.
 
     If it does, this function will make sure its value is one of [-1, 0, 1],

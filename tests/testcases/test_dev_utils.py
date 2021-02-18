@@ -52,12 +52,11 @@ class TestDevUtils(unittest.TestCase):
         self.assertFalse(utils.is_wheel(new_event(EV_KEY, KEY_A, 1)))
         self.assertFalse(utils.is_wheel(new_event(EV_ABS, ABS_HAT0X, -1)))
 
-    def test_should_map_event_as_btn(self):
+    def test_should_map_as_btn(self):
         mapping = Mapping()
 
-        # the function name is so horribly long
         def do(gamepad, event):
-            return utils.should_map_event_as_btn(event, mapping, gamepad)
+            return utils.should_map_as_btn(event, mapping, gamepad)
 
         """D-Pad"""
 

@@ -45,11 +45,12 @@ class TestEventProducer(unittest.TestCase):
         self.mapping = Mapping()
         self.context = Context(self.mapping)
 
-        device = InputDevice('/dev/input/event30')
         uinput = UInput()
+        self.context.uinput = uinput
+
+        device = InputDevice('/dev/input/event30')
         self.event_producer = EventProducer(self.context)
         self.event_producer.set_max_abs_from(device)
-        self.event_producer.set_mouse_uinput(uinput)
         asyncio.ensure_future(self.event_producer.run())
 
         config.set('gamepad.joystick.x_scroll_speed', 1)

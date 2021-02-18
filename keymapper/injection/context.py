@@ -47,21 +47,30 @@ class Context:
     Members
     -------
     mapping : Mapping
-        the mapping that is the source of key_to_code and macros,
+        The mapping that is the source of key_to_code and macros,
         only used to query config values.
     key_to_code : dict
-        mapping of ((type, code, value),) to linux-keycode
-        or multiple of those like ((...), (...), ...) for combinations
-        combinations need to be present in every possible valid ordering.
+        Mapping of ((type, code, value),) to linux-keycode
+        or multiple of those like ((...), (...), ...) for combinations.
+        Combinations need to be present in every possible valid ordering.
         e.g. shift + alt + a and alt + shift + a.
         This is needed to query keycodes more efficiently without having
         to search mapping each time.
     macros : dict
-        mapping of ((type, code, value),) to _Macro objects.
+        Mapping of ((type, code, value),) to _Macro objects.
         Combinations work similar as in key_to_code
-    is_gamepad : bool
-        if key-mapper considers this device to be a gamepad. If yes, ABS_X
-        and ABS_Y events can be treated as buttons.
+    uinput : evdev.UInput
+        Where to inject stuff to. This is an extra node in /dev so that
+        existing capabilities won't clash.
+        For example a gamepad can keep being a gamepad, while injected
+        keycodes appear as keyboard input.
+        This way the stylus buttons of a graphics tablet can also be mapped
+        to keys, while the stylus keeps being a stylus.
+        The main issue is, that the window manager handles events differently
+        depending on the overall capabilities, and with EV_ABS capabilities
+        keycodes are pretty much ignored and not written to the desktop.
+        So this uinput should not have EV_ABS capabilities. Only EV_REL
+        and EV_KEY is allowed.
     """
     def __init__(self, mapping):
         self.mapping = mapping
@@ -74,6 +83,8 @@ class Context:
         self.left_purpose = None
         self.right_purpose = None
         self.update_purposes()
+
+        self.uinput = None
 
     def update_purposes(self):
         """Read joystick purposes from the configuration."""
@@ -151,4 +162,4 @@ class Context:
 
     def writes_keys(self):
         """Check if anything is being mapped to keys."""
-        return len(self.macros) == 0 and len(self.key_to_code) == 0
+        return len(self.macros) > 0 and len(self.key_to_code) > 0

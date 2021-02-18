@@ -32,7 +32,7 @@ requests.
 - [x] automatically load presets when devices get plugged in after login (udev)
 - [x] map keys using a `modifier + modifier + ... + key` syntax
 - [ ] injecting keys that aren't available in the systems keyboard layout
-- [ ] inject in an additional device instead to avoid clashing capabilities
+- [x] inject in an additional device instead to avoid clashing capabilities
 - [ ] ship with a list of all keys known to xkb and validate input in the gui
 
 ## Tests
@@ -136,27 +136,16 @@ sudo evtest
 **It tries or doesn't try to map ABS_X/ABS_Y**
 
 Is the device a gamepad? Does the GUI show joystick configurations?
+
 - if yes, no: adjust `is_gamepad` to loosen up the constraints
 - if no, yes: adjust `is_gamepad` to tighten up the constraints
+
 Try to do it in such a way that other devices won't break. Also see 
 readme/capabilities.md
 
 **It won't offer mapping a button**
 
-Modify `should_map_event_as_btn`
-
-**The cursor won't move anymore**
-
-Can be difficult. Depending on capabilities the display server might not
-treat events as cursor movements anymore. e.g. mice with EV_ABS capabilities
-won't move the cursor. Or key-mapper removed the EV_ABS capabilities.
-Or due to weird stuff a new capability appears out of nowhere (ABS_VOLUME).
-
-At some point this won't be a problem anymore when key-mapper creates a new
-device for all injected keys for non-keyboards, as well as for generated
-EV_REL events for gamepads.
-
-Modify `_modify_capabilities` to get it to work.
+Modify `should_map_as_btn`
 
 ## Resources
 

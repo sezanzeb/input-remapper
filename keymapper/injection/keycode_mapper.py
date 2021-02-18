@@ -72,12 +72,6 @@ def is_key_up(value):
     return value == 0
 
 
-def write(uinput, key):
-    """Shorthand to write stuff."""
-    uinput.write(*key)
-    uinput.syn()
-
-
 COMBINATION_INCOMPLETE = 1  # not all keys of the combination are pressed
 NOT_COMBINED = 2  # this key is not part of a combination
 
@@ -195,7 +189,7 @@ def print_unreleased():
 
 class KeycodeMapper:
     """Injects keycodes and starts macros."""
-    def __init__(self, context, source, uinput):
+    def __init__(self, context, source, forward_to):
         """Create a keycode mapper for one virtual device.
 
         There may be multiple KeycodeMappers for one hardware device. They
@@ -207,13 +201,13 @@ class KeycodeMapper:
             the configuration of the Injector process
         source : InputDevice
             where events used in handle_keycode come from
-        uinput : UInput:
-            where to inject events to
+        forward_to : UInput
+            where forwarded/unhandled events should be written to
         """
         self.source = source
         self.max_abs = utils.get_max_abs(source)
         self.context = context
-        self.uinput = uinput
+        self.forward_to = forward_to
 
         # some type checking, prevents me from forgetting what that stuff
         # is supposed to be when writing tests.
@@ -227,8 +221,17 @@ class KeycodeMapper:
 
     def macro_write(self, code, value):
         """Handler for macros."""
-        self.uinput.write(EV_KEY, code, value)
-        self.uinput.syn()
+        self.context.uinput.write(EV_KEY, code, value)
+        self.context.uinput.syn()
+
+    def write(self, key):
+        """Shorthand to write stuff."""
+        self.context.uinput.write(*key)
+        self.context.uinput.syn()
+
+    def forward(self, key):
+        """Shorthand to forwards an event."""
+        self.forward_to.write(*key)
 
     def _get_key(self, key):
         """If the event triggers stuff, get the key for that.
@@ -358,11 +361,11 @@ class KeycodeMapper:
                 elif type_code != (target_type, target_code):
                     # release what the input is mapped to
                     logger.key_spam(key, 'releasing %s', target_code)
-                    write(self.uinput, (target_type, target_code, 0))
+                    self.write((target_type, target_code, 0))
                 elif forward:
                     # forward the release event
                     logger.key_spam((original_tuple,), 'forwarding release')
-                    write(self.uinput, original_tuple)
+                    self.forward(original_tuple)
                 else:
                     logger.key_spam(key, 'not forwarding release')
             elif event.type != EV_ABS:
@@ -425,12 +428,12 @@ class KeycodeMapper:
                     return
 
                 logger.key_spam(key, 'maps to %s', target_code)
-                write(self.uinput, (EV_KEY, target_code, 1))
+                self.write((EV_KEY, target_code, 1))
                 return
 
             if forward:
                 logger.key_spam((original_tuple,), 'forwarding')
-                write(self.uinput, original_tuple)
+                self.forward(original_tuple)
             else:
                 logger.key_spam((event_tuple,), 'not forwarding')
 

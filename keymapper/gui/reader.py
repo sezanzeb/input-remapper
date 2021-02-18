@@ -184,7 +184,7 @@ class _KeycodeReader:
             # which breaks the current workflow.
             return
 
-        if not utils.should_map_event_as_btn(event, custom_mapping, gamepad):
+        if not utils.should_map_as_btn(event, custom_mapping, gamepad):
             return
 
         max_abs = utils.get_max_abs(device)

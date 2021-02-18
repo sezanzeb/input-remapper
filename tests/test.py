@@ -325,6 +325,9 @@ class InputDevice:
         return result
 
 
+uinputs = {}
+
+
 class UInput:
     def __init__(self, events=None, name='unnamed', *args, **kwargs):
         self.fd = 0
@@ -333,6 +336,9 @@ class UInput:
         self.name = name
         self.events = events
         self.write_history = []
+
+        global uinputs
+        uinputs[name] = self
 
     def capabilities(self, *args, **kwargs):
         return self.events
