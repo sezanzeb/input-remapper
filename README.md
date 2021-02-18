@@ -32,20 +32,13 @@ sudo dpkg -i ./dist/key-mapper-0.6.1.deb; sudo apt -f install
 
 ##### pip
 
-Depending on your distro, maybe you need to use `--force` to get all your
-files properly in place and overwrite a previous installation of key-mapper.
-There are two options available to install using setuptools/pip:
-
 ```bash
 sudo pip install git+https://github.com/sezanzeb/key-mapper.git
 sudo systemctl restart key-mapper
 ```
 
-```bash
-git clone https://github.com/sezanzeb/key-mapper.git
-cd key-mapper && sudo python3 setup.py install
-sudo systemctl restart key-mapper
-```
+You can also try `sudo python3 setup.py install`, but that is not
+recommended to do.
 
 ## Screenshots
 
