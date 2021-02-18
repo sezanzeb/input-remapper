@@ -38,7 +38,7 @@ sudo systemctl restart key-mapper
 ```
 
 You can also try `sudo python3 setup.py install`, but that is not
-recommended to do. `--force` can potentially help as well.
+recommended to do.
 
 ## Screenshots
 
