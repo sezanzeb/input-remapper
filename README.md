@@ -34,6 +34,7 @@ sudo apt install ./dist/key-mapper-0.6.1.deb
 
 ```bash
 sudo pip install git+https://github.com/sezanzeb/key-mapper.git
+sudo systemctl enable key-mapper
 sudo systemctl restart key-mapper
 ```
 
