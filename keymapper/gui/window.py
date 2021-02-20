@@ -266,18 +266,34 @@ class Window:
 
     def check_add_row(self):
         """Ensure that one empty row is available at all times."""
-        num_rows = len(self.get('key_list').get_children())
+        rows = self.get('key_list').get_children()
 
-        # verify that all mappings are displayed. One of them
-        # is possible the empty row
+        # verify that all mappings are displayed.
+        # One of them is possibly the empty row
+        num_rows = len(rows)
         num_maps = len(custom_mapping)
         if num_rows < num_maps or num_rows > num_maps + 1:
-            raise AssertionError(
+            logger.error(
                 f'custom_mapping contains {len(custom_mapping)} rows, '
                 f'but {num_rows} are displayed'
             )
+            logger.spam(
+                'Mapping %s',
+                list(custom_mapping)
+            )
+            logger.spam(
+                'Rows    %s',
+                [(row.get_key(), row.get_character()) for row in rows]
+            )
 
-        if num_rows == len(custom_mapping):
+        # iterating over that 10 times per second is a bit wasteful,
+        # but there were problems with the old approach which involved
+        # just counting the number of mappings and rows.
+        for row in rows:
+            if row.get_key() is None or row.get_character() is None:
+                # unfinished row found
+                break
+        else:
             self.add_empty()
 
         return True
