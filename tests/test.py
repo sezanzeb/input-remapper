@@ -449,6 +449,9 @@ def quick_cleanup(log=True):
 
     clear_write_history()
 
+    for name in list(uinputs.keys()):
+        del uinputs[name]
+
     for key in list(active_macros.keys()):
         del active_macros[key]
     for key in list(unreleased.keys()):
