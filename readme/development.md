@@ -31,8 +31,9 @@ requests.
 - [x] mapping mouse wheel events to buttons
 - [x] automatically load presets when devices get plugged in after login (udev)
 - [x] map keys using a `modifier + modifier + ... + key` syntax
-- [ ] injecting keys that aren't available in the systems keyboard layout
 - [x] inject in an additional device instead to avoid clashing capabilities
+- [ ] don't run any GTK code as root for wayland compatibility
+- [ ] injecting keys that aren't available in the systems keyboard layout
 - [ ] ship with a list of all keys known to xkb and validate input in the gui
 
 ## Tests
