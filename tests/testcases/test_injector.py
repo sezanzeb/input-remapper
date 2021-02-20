@@ -437,17 +437,24 @@ class TestInjector(unittest.TestCase):
         self.injector.stop_injecting()
         self.injector.run()
 
+        self.assertListEqual(
+            sorted(uinputs.keys()),
+            sorted([
+                # reading and preventing original events from reaching the
+                # display server
+                'key-mapper device 1 foo forwarded',
+                'key-mapper device 1 forwarded',
+                # injection
+                'key-mapper device 1 mapped'
+            ])
+        )
+
         forwarded_foo = uinputs.get('key-mapper device 1 foo forwarded')
         forwarded = uinputs.get('key-mapper device 1 forwarded')
         mapped = uinputs.get('key-mapper device 1 mapped')
-
-        # reading and preventing original events from reaching the
-        # display server
         self.assertIsNotNone(forwarded_foo)
         self.assertIsNotNone(forwarded)
-        # injection
         self.assertIsNotNone(mapped)
-        self.assertEqual(len(uinputs), 3)
 
         # puts the needed capabilities into the new key-mapper device
         self.assertIn(EV_KEY, mapped.capabilities())
