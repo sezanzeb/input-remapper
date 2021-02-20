@@ -403,6 +403,57 @@ class TestMacros(unittest.TestCase):
         self.assertGreater(delta, 0.150)
         self.assertLess(delta, 0.300)
 
+    def test_duplicate_run(self):
+        # it won't restart the macro, because that may screw up the
+        # internal state (in particular the _holding_lock).
+        # I actually don't know at all what kind of bugs that might produce,
+        # lets just avoid it. It might cause it to be held down forever.
+        a = system_mapping.get('a')
+        b = system_mapping.get('b')
+        c = system_mapping.get('c')
+
+        macro = parse('k(a).m(b, h()).k(c)', self.mapping)
+        asyncio.ensure_future(macro.run(self.handler))
+        self.assertFalse(macro.is_holding())
+
+        asyncio.ensure_future(macro.run(self.handler))  # ignored
+        self.assertFalse(macro.is_holding())
+
+        macro.press_key()
+        self.loop.run_until_complete(asyncio.sleep(0.2))
+        self.assertTrue(macro.is_holding())
+
+        asyncio.ensure_future(macro.run(self.handler))  # ignored
+        self.assertTrue(macro.is_holding())
+
+        macro.release_key()
+        self.loop.run_until_complete(asyncio.sleep(0.2))
+        self.assertFalse(macro.is_holding())
+
+        expected = [
+            (a, 1), (a, 0),
+            (b, 1), (b, 0),
+            (c, 1), (c, 0),
+        ]
+        self.assertListEqual(self.result, expected)
+
+        """not ignored, since previous run is over"""
+
+        asyncio.ensure_future(macro.run(self.handler))
+        macro.press_key()
+        self.loop.run_until_complete(asyncio.sleep(0.2))
+        self.assertTrue(macro.is_holding())
+        macro.release_key()
+        self.loop.run_until_complete(asyncio.sleep(0.2))
+        self.assertFalse(macro.is_holding())
+
+        expected = [
+            (a, 1), (a, 0),
+            (b, 1), (b, 0),
+            (c, 1), (c, 0),
+        ] * 2
+        self.assertListEqual(self.result, expected)
+
 
 if __name__ == '__main__':
     unittest.main()
