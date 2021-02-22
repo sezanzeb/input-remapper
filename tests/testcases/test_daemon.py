@@ -343,6 +343,7 @@ class TestDaemon(unittest.TestCase):
         self.assertTrue(daemon.autoload_history.may_autoload(device, preset))
 
         # start
+        config.save_config()
         daemon.set_config_dir(get_config_path())
         daemon.start_injecting(path, preset)
         # explicit start, not autoload, so the history stays empty
@@ -350,10 +351,6 @@ class TestDaemon(unittest.TestCase):
         self.assertTrue(daemon.autoload_history.may_autoload(device, preset))
         # path got translated to the device name
         self.assertIn(device, daemon.injectors)
-        # after passing device and preset, the correct preset is read
-        # from the path
-        injector = daemon.injectors[device]
-        self.assertEqual(injector.context.mapping.get_character(Key(3, 2, 1)), 'a')
 
         # start again
         previous_injector = daemon.injectors[device]
@@ -366,8 +363,6 @@ class TestDaemon(unittest.TestCase):
         # a different injetor is now running
         self.assertNotEqual(previous_injector, daemon.injectors[device])
         self.assertNotEqual(daemon.injectors[device].get_state(), STOPPED)
-        injector = daemon.injectors[device]
-        self.assertEqual(injector.context.mapping.get_character(Key(3, 2, 1)), 'a')
 
         # trying to inject a non existing preset keeps the previous inejction
         # alive

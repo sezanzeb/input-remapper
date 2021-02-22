@@ -93,9 +93,8 @@ class Injector(multiprocessing.Process):
         self._event_producer = None
         self._state = UNKNOWN
         self._msg_pipe = multiprocessing.Pipe()
-
-        self.context = Context(mapping)
-
+        self.mapping = mapping
+        self.context = None  # only needed inside the injection process
         super().__init__()
 
     """Functions to interact with the running process"""
@@ -313,6 +312,10 @@ class Injector(multiprocessing.Process):
         # device.
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
+
+        # create this within the process after the event loop creation,
+        # so that the macros use the correct loop
+        self.context = Context(self.mapping)
 
         self._event_producer = EventProducer(self.context)
 
