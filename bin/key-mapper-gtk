@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # key-mapper - GUI for device specific keyboard mappings
-# Copyright (C) 2020 sezanzeb <proxima@hip70890b.de>
+# Copyright (C) 2020 sezanzeb <proxima@sezanzeb.de>
 #
 # This file is part of key-mapper.
 #

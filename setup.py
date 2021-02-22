@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # key-mapper - GUI for device specific keyboard mappings
-# Copyright (C) 2021 sezanzeb <proxima@hip70890b.de>
+# Copyright (C) 2021 sezanzeb <proxima@sezanzeb.de>
 #
 # This file is part of key-mapper.
 #
@@ -47,10 +47,10 @@ class Install(install):
 
 setup(
     name='key-mapper',
-    version='0.6.1',
+    version='0.7.0',
     description='A tool to change the mapping of your input device buttons',
     author='Sezanzeb',
-    author_email='proxima@hip70890b.de',
+    author_email='proxima@sezanzeb.de',
     url='https://github.com/sezanzeb/key-mapper',
     license='GPL-3.0',
     packages=[
