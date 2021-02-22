@@ -151,10 +151,15 @@ class _Macro:
                 # wait until the key is released. Only then it will be
                 # able to acquire the lock. Release it right after so that
                 # it can be acquired by press_key again.
-                await self._holding_lock.acquire()
-                self._holding_lock.release()
-                # this seems to be much more efficient on the CPU than
-                # looping `await asyncio.sleep(0.001)`
+                try:
+                    await self._holding_lock.acquire()
+                    self._holding_lock.release()
+                except RuntimeError as error:
+                    # The specific bug in question has been fixed already,
+                    # but lets keep this check here for the future. Not
+                    # catching errors here causes the macro to never be
+                    # released
+                    logger.error('Failed h(): %s', error)
 
             self.tasks.append((1234, task))
         else:
