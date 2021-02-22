@@ -134,7 +134,7 @@ configuration files.
 ## Configuration Files
 
 The default configuration is stored at `~/.config/key-mapper/config.json`.
-The current default configuration as of 0.6.1 looks like, with
+The current default configuration as of 0.7.0 looks like, with
 an example autoload entry:
 
 ```json
