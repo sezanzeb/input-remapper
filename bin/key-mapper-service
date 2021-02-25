@@ -63,7 +63,7 @@ if __name__ == '__main__':
     try:
         bus.publish(BUS_NAME, daemon)
     except RuntimeError as error:
-        logger.error('Is the service is already running?', str(error))
+        logger.error('Is the service is already running? %s', str(error))
         sys.exit(1)
 
     atexit.register(daemon.stop_all)
