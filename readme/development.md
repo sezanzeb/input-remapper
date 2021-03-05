@@ -1,7 +1,8 @@
 # Development
 
 Contributions are very welcome, I will gladly review and discuss any merge
-requests.
+requests. This file should give an overview about some notable internals of
+key-mapper.
 
 ## Roadmap
 
