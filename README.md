@@ -15,7 +15,7 @@
 
 ##### Manjaro/Arch
 
-I recommend using manjaro and xfce4.
+I recommend Manjaro and Xfce.
 
 ```bash
 pacaur -S key-mapper-git
