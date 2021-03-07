@@ -15,6 +15,8 @@
 
 ##### Manjaro/Arch
 
+I recommend Manjaro and Xfce.
+
 ```bash
 pacaur -S key-mapper-git
 ```
@@ -37,9 +39,6 @@ sudo pip install git+https://github.com/sezanzeb/key-mapper.git
 sudo systemctl enable key-mapper
 sudo systemctl restart key-mapper
 ```
-
-You can also try `sudo python3 setup.py install`, but that is not
-recommended to do.
 
 ## Screenshots
 
