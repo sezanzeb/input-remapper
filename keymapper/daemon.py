@@ -77,8 +77,8 @@ def get_dbus_interface(fallback=True):
         logger.warning(msg)
         return Daemon()
 
-    bus = SystemBus()
     try:
+        bus = SystemBus()
         interface = bus.get(BUS_NAME)
     except GLib.GError as error:
         logger.debug(error)
