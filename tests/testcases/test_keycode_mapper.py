@@ -351,26 +351,34 @@ class TestKeycodeMapper(unittest.TestCase):
         self.assertEqual(uinput_write_history[3].t, (EV_KEY, 51, 0))
 
     def test_handle_keycode(self):
+        code_2 = 2
+        # this also makes sure that the keycode_mapper doesn't get confused
+        # when input and output codes are the same (because it at some point
+        # screwed it up because of that)
         _key_to_code = {
             ((EV_KEY, 1, 1),): 101,
-            ((EV_KEY, 2, 1),): 102
+            ((EV_KEY, code_2, 1),): code_2
         }
 
-        uinput = UInput()
+        uinput_mapped = UInput()
+        uinput_forwarded = UInput()
 
         context = Context(self.mapping)
-        context.uinput = uinput
+        context.uinput = uinput_mapped
         context.key_to_code = _key_to_code
-        keycode_mapper = KeycodeMapper(context, self.source, uinput)
+        keycode_mapper = KeycodeMapper(context, self.source, uinput_forwarded)
 
         keycode_mapper.handle_keycode(new_event(EV_KEY, 1, 1))
         keycode_mapper.handle_keycode(new_event(EV_KEY, 3, 1))
-        keycode_mapper.handle_keycode(new_event(EV_KEY, 2, 1))
+        keycode_mapper.handle_keycode(new_event(EV_KEY, code_2, 1))
+        keycode_mapper.handle_keycode(new_event(EV_KEY, code_2, 0))
 
-        self.assertEqual(len(uinput_write_history), 3)
-        self.assertEqual(uinput_write_history[0].t, (EV_KEY, 101, 1))
-        self.assertEqual(uinput_write_history[1].t, (EV_KEY, 3, 1))
-        self.assertEqual(uinput_write_history[2].t, (EV_KEY, 102, 1))
+        self.assertEqual(len(uinput_write_history), 4)
+        self.assertEqual(uinput_mapped.write_history[0].t, (EV_KEY, 101, 1))
+        self.assertEqual(uinput_mapped.write_history[1].t, (EV_KEY, code_2, 1))
+        self.assertEqual(uinput_mapped.write_history[2].t, (EV_KEY, code_2, 0))
+
+        self.assertEqual(uinput_forwarded.write_history[0].t, (EV_KEY, 3, 1))
 
     def test_combination_keycode(self):
         combination = ((EV_KEY, 1, 1), (EV_KEY, 2, 1))

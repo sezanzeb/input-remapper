@@ -103,10 +103,11 @@ class Unreleased:
     __slots__ = (
         'target_type_code',
         'input_event_tuple',
-        'key'
+        'key',
+        'is_mapped'
     )
 
-    def __init__(self, target_type_code, input_event_tuple, key):
+    def __init__(self, target_type_code, input_event_tuple, key, is_mapped):
         """
         Parameters
         ----------
@@ -117,10 +118,15 @@ class Unreleased:
         key : tuple of 3-tuples
             what was used to index key_to_code and macros when stuff
             was triggered
+        is_mapped : bool
+            if true, target_type_code is supposed to be written to the
+            "... mapped" device and originated from the mapping.
+            cached result of context.is_mapped(key)
         """
         self.target_type_code = target_type_code
         self.input_event_tuple = input_event_tuple
         self.key = key
+        self.is_mapped = is_mapped
 
         if (
             not isinstance(input_event_tuple[0], int) or
@@ -349,6 +355,7 @@ class KeycodeMapper:
 
             if type_code in unreleased:
                 # figure out what this release event was for
+                unreleased_entry = unreleased[type_code]
                 target_type, target_code = (
                     unreleased[type_code].target_type_code
                 )
@@ -358,7 +365,7 @@ class KeycodeMapper:
                     logger.key_spam(key, 'releasing disabled key')
                 elif target_code is None:
                     logger.key_spam(key, 'releasing key')
-                elif type_code != (target_type, target_code):
+                elif unreleased_entry.is_mapped:
                     # release what the input is mapped to
                     logger.key_spam(key, 'releasing %s', target_code)
                     self.write((target_type, target_code, 0))
@@ -411,7 +418,7 @@ class KeycodeMapper:
             if key in self.context.macros:
                 macro = self.context.macros[key]
                 active_macros[type_code] = macro
-                Unreleased((None, None), event_tuple, key)
+                Unreleased((None, None), event_tuple, key, is_mapped)
                 macro.press_key()
                 logger.key_spam(key, 'maps to macro %s', macro.code)
                 asyncio.ensure_future(macro.run(self.macro_write))
@@ -421,7 +428,7 @@ class KeycodeMapper:
                 target_code = self.context.key_to_code[key]
                 # remember the key that triggered this
                 # (this combination or this single key)
-                Unreleased((EV_KEY, target_code), event_tuple, key)
+                Unreleased((EV_KEY, target_code), event_tuple, key, is_mapped)
 
                 if target_code == DISABLE_CODE:
                     logger.key_spam(key, 'disabled')
@@ -439,7 +446,7 @@ class KeycodeMapper:
 
             # unhandled events may still be important for triggering
             # combinations later, so remember them as well.
-            Unreleased((event_tuple[:2]), event_tuple, None)
+            Unreleased((event_tuple[:2]), event_tuple, None, is_mapped)
             return
 
         logger.error('%s unhandled', key)
