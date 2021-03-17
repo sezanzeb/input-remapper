@@ -21,7 +21,8 @@ pacaur -S key-mapper-git
 
 ##### Ubuntu/Debian
 
-Get the .deb file from https://github.com/sezanzeb/key-mapper/releases or make it yourself:
+Get a .deb file from the [release page](https://github.com/sezanzeb/key-mapper/releases)
+or install the latest changes via:
 
 ```bash
 sudo apt install git python3-setuptools
