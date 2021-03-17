@@ -200,13 +200,14 @@ class TestIntegration(unittest.TestCase):
             [('device 1', 'new preset')]
         )
 
-        # switch the preset, the switch should be correct and the config
-        # not changed.
+        # create a new preset, the switch should be correctly off and the
+        # config not changed.
         self.window.on_create_preset_clicked(None)
         gtk_iteration()
         self.assertEqual(self.window.selected_preset, 'new preset 2')
         self.assertFalse(self.window.get('preset_autoload_switch').get_active())
         self.assertTrue(config.is_autoloaded('device 1', 'new preset'))
+        self.assertFalse(config.is_autoloaded('device 1', 'new preset 2'))
 
         # select a preset for the second device
         self.window.on_select_device(FakeDropdown('device 2'))
@@ -354,6 +355,7 @@ class TestIntegration(unittest.TestCase):
             self.assertEqual(row.keycode_input.get_label(), 'click here')
 
         self.window.window.set_focus(row.keycode_input)
+        gtk_iteration()
         gtk_iteration()
         self.assertIsNone(row.get_key())
         self.assertEqual(row.keycode_input.get_label(), 'press key')
@@ -650,7 +652,6 @@ class TestIntegration(unittest.TestCase):
     def test_problematic_combination(self):
         combination = Key((EV_KEY, KEY_LEFTSHIFT, 1), (EV_KEY, 82, 1))
         self.change_empty_row(combination, 'b')
-        status = self.window.get('status_bar')
         text = self.get_status_text()
         self.assertIn('shift', text)
 
@@ -661,10 +662,15 @@ class TestIntegration(unittest.TestCase):
         self.assertTrue(warning_icon.get_visible())
 
     def test_rename_and_save(self):
+        self.assertEqual(self.window.selected_device, 'device 1')
+        self.assertFalse(config.is_autoloaded('device 1', 'new preset'))
+
         custom_mapping.change(Key(EV_KEY, 14, 1), 'a', None)
         self.assertEqual(self.window.selected_preset, 'new preset')
         self.window.on_save_preset_clicked(None)
         self.assertEqual(custom_mapping.get_character(Key(EV_KEY, 14, 1)), 'a')
+        config.set_autoload_preset('device 1', 'new preset')
+        self.assertTrue(config.is_autoloaded('device 1', 'new preset'))
 
         custom_mapping.change(Key(EV_KEY, 14, 1), 'b', None)
         self.window.get('preset_name_input').set_text('asdf')
@@ -672,6 +678,8 @@ class TestIntegration(unittest.TestCase):
         self.assertEqual(self.window.selected_preset, 'asdf')
         self.assertTrue(os.path.exists(f'{CONFIG_PATH}/presets/device 1/asdf.json'))
         self.assertEqual(custom_mapping.get_character(Key(EV_KEY, 14, 1)), 'b')
+        # after renaming the preset it is still set to autoload
+        self.assertTrue(config.is_autoloaded('device 1', 'asdf'))
 
         error_icon = self.window.get('error_status_icon')
         status = self.window.get('status_bar')
@@ -742,6 +750,40 @@ class TestIntegration(unittest.TestCase):
             sorted(os.listdir(f'{CONFIG_PATH}/presets/device 1')),
             sorted(['abc 123.json', 'new preset 2.json'])
         )
+
+    def test_copy_preset(self):
+        key_list = self.window.get('key_list')
+        self.change_empty_row(Key(EV_KEY, 81, 1), 'a')
+        time.sleep(0.1)
+        gtk_iteration()
+        self.window.on_save_preset_clicked(None)
+        self.assertEqual(len(key_list.get_children()), 2)
+
+        self.window.ctrl = False
+        self.window.on_create_preset_clicked(None)
+
+        # the preset should be empty, only one empty row present
+        self.assertEqual(len(key_list.get_children()), 1)
+
+        # add one new row again
+        self.change_empty_row(Key(EV_KEY, 81, 1), 'b')
+        time.sleep(0.1)
+        gtk_iteration()
+        self.window.on_save_preset_clicked(None)
+        self.assertEqual(len(key_list.get_children()), 2)
+
+        # this time it should be copied
+        self.window.ctrl = True
+        self.window.on_create_preset_clicked(None)
+        self.assertEqual(self.window.selected_preset, 'new preset 2 copy')
+        self.assertEqual(len(key_list.get_children()), 2)
+        self.assertEqual(key_list.get_children()[0].get_character(), 'b')
+
+        # make another copy
+        self.window.on_create_preset_clicked(None)
+        self.assertEqual(self.window.selected_preset, 'new preset 2 copy 2')
+        self.assertEqual(len(key_list.get_children()), 2)
+        self.assertEqual(key_list.get_children()[0].get_character(), 'b')
 
     def test_gamepad_config(self):
         # set some stuff in the beginning, otherwise gtk fails to

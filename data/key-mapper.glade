@@ -449,6 +449,7 @@ Don't hold down any keys while the injection starts.</property>
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
                             <property name="receives-default">True</property>
+                            <property name="tooltip-text" translatable="yes">Hold down ctrl and click here to copy the current preset</property>
                             <property name="image">new-icon</property>
                             <property name="always-show-image">True</property>
                             <signal name="clicked" handler="on_create_preset_clicked" swapped="no"/>

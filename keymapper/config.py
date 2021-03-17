@@ -202,7 +202,7 @@ class GlobalConfig(ConfigBase):
             self.set(['autoload', device], preset)
         else:
             logger.info(
-                'Not loading injecting for "%s" automatically anmore',
+                'Not injecting for "%s" automatically anmore',
                 device
             )
             self.remove(['autoload', device])

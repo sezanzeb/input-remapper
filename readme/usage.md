@@ -92,6 +92,12 @@ delay of 10ms between key-down, key-up and at the end. See
 
 Bear in mind that anti-cheat software might detect macros in games.
 
+## UI Shortcuts
+
+- Hold down `ctrl` and click on "new" to copy the current preset
+- `shift` + `del` stops the injection (only works while the gui is in focus)
+- `ctrl` + `q` closes the application
+
 ## Key Names
 
 Check the autocompletion of the GUI for possible values. You can also
