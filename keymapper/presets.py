@@ -25,6 +25,7 @@
 import os
 import time
 import glob
+import re
 
 from keymapper.paths import get_preset_path, mkdir, CONFIG_PATH
 from keymapper.logger import logger
@@ -53,15 +54,27 @@ def migrate_path():
 migrate_path()
 
 
-def get_available_preset_name(device, preset='new preset'):
+def get_available_preset_name(device, preset='new preset', copy=False):
     """Increment the preset name until it is available."""
     preset = preset.strip()
 
+    if copy and not re.match(r'^.+\scopy( \d+)?$', preset):
+        preset = f'{preset} copy'
+
     # find a name that is not already taken
     if os.path.exists(get_preset_path(device, preset)):
-        i = 2
+        # if there already is a trailing number, increment it instead of
+        # adding another one
+        match = re.match(r'^(.+) (\d+)$', preset)
+        if match:
+            preset = match[1]
+            i = int(match[2]) + 1
+        else:
+            i = 2
+
         while os.path.exists(get_preset_path(device, f'{preset} {i}')):
             i += 1
+
         return f'{preset} {i}'
 
     return preset

@@ -185,7 +185,7 @@ class Window:
         # now show the proper finished content of the window
         self.get('vertical-wrapper').set_opacity(1)
 
-        self.ctrl = 0
+        self.ctrl = False
         self.unreleased_warn = 0
 
     def unsaved_changes_dialog(self):
@@ -465,11 +465,24 @@ class Window:
         try:
             self.save_preset()
             if new_name not in ['', self.selected_preset]:
+                # if a new name is entered
                 rename_preset(
                     self.selected_device,
                     self.selected_preset,
                     new_name
                 )
+                # if the old preset was being autoloaded, change the
+                # name there as well
+                is_autoloaded = config.is_autoloaded(
+                    self.selected_device,
+                    self.selected_preset
+                )
+                if is_autoloaded:
+                    config.set_autoload_preset(
+                        self.selected_device,
+                        new_name
+                    )
+
             # after saving the config, its modification date will be the
             # newest, so populate_presets will automatically select the
             # right one again.
@@ -630,9 +643,18 @@ class Window:
         if custom_mapping.changed and self.unsaved_changes_dialog() == GO_BACK:
             return
 
+        copy = self.ctrl
+
         try:
-            new_preset = get_available_preset_name(self.selected_device)
-            custom_mapping.empty()
+            new_preset = get_available_preset_name(
+                self.selected_device,
+                self.selected_preset,
+                copy
+            )
+
+            if not copy:
+                custom_mapping.empty()
+
             path = get_preset_path(self.selected_device, new_preset)
             custom_mapping.save(path)
             self.get('preset_selection').append(new_preset, new_preset)

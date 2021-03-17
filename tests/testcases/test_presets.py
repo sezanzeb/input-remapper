@@ -42,6 +42,35 @@ def create_preset(device, name='new preset'):
 PRESETS = os.path.join(CONFIG_PATH, 'presets')
 
 
+class TestPresets(unittest.TestCase):
+    def test_get_available_preset_name(self):
+        # no filename conflict
+        self.assertEqual(get_available_preset_name('_', 'qux 2'), 'qux 2')
+
+        touch(get_preset_path('_', 'qux 5'))
+        self.assertEqual(get_available_preset_name('_', 'qux 5'), 'qux 6')
+        touch(get_preset_path('_', 'qux'))
+        self.assertEqual(get_available_preset_name('_', 'qux'), 'qux 2')
+        touch(get_preset_path('_', 'qux1'))
+        self.assertEqual(get_available_preset_name('_', 'qux1'), 'qux1 2')
+        touch(get_preset_path('_', 'qux 2 3'))
+        self.assertEqual(get_available_preset_name('_', 'qux 2 3'), 'qux 2 4')
+
+        touch(get_preset_path('_', 'qux 5'))
+        self.assertEqual(get_available_preset_name('_', 'qux 5', True), 'qux 5 copy')
+        touch(get_preset_path('_', 'qux 5 copy'))
+        self.assertEqual(get_available_preset_name('_', 'qux 5', True), 'qux 5 copy 2')
+        touch(get_preset_path('_', 'qux 5 copy 2'))
+        self.assertEqual(get_available_preset_name('_', 'qux 5', True), 'qux 5 copy 3')
+
+        touch(get_preset_path('_', 'qux 5copy'))
+        self.assertEqual(get_available_preset_name('_', 'qux 5copy', True), 'qux 5copy copy')
+        touch(get_preset_path('_', 'qux 5copy 2'))
+        self.assertEqual(get_available_preset_name('_', 'qux 5copy 2', True), 'qux 5copy 2 copy')
+        touch(get_preset_path('_', 'qux 5copy 2 copy'))
+        self.assertEqual(get_available_preset_name('_', 'qux 5copy 2 copy', True), 'qux 5copy 2 copy 2')
+
+
 class TestMigrate(unittest.TestCase):
     def test_migrate(self):
         if os.path.exists(tmp):
