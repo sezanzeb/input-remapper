@@ -687,6 +687,18 @@ class TestIntegration(unittest.TestCase):
         self.assertIn('saved', tooltip)
         self.assertFalse(error_icon.get_visible())
 
+    def test_rename_and_create(self):
+        # after renaming a preset and saving it, new presets
+        # start with "new preset" again
+        custom_mapping.change(Key(EV_KEY, 14, 1), 'a', None)
+        self.window.get('preset_name_input').set_text('asdf')
+        self.window.on_save_preset_clicked(None)
+        self.assertEqual(self.window.selected_preset, 'asdf')
+
+        self.window.on_create_preset_clicked(None)
+        self.assertEqual(self.window.selected_preset, 'new preset')
+        self.assertIsNone(custom_mapping.get_character(Key(EV_KEY, 14, 1)))
+
     def test_check_macro_syntax(self):
         status = self.window.get('status_bar')
         error_icon = self.window.get('error_status_icon')
