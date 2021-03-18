@@ -28,7 +28,7 @@ or install the latest changes via:
 sudo apt install git python3-setuptools
 git clone https://github.com/sezanzeb/key-mapper.git
 cd key-mapper; ./scripts/build.sh
-sudo apt install ./dist/key-mapper-0.7.0.deb
+sudo apt install ./dist/key-mapper-0.7.1.deb
 ```
 
 ##### pip

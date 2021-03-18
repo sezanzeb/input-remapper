@@ -63,7 +63,7 @@ ssh/login into a debian/ubuntu environment
 ./scripts/build.sh
 ```
 
-This will generate `key-mapper/deb/key-mapper-0.7.0.deb`
+This will generate `key-mapper/deb/key-mapper-0.7.1.deb`
 
 ## Badges
 
@@ -151,7 +151,8 @@ Modify `should_map_as_btn`
 
 ## How it works
 
-It uses evdev
+It uses evdev. The links below point to older code in 0.7.0 so that their
+line numbers remain valid.
 
 1. It grabs a device (e.g. /dev/input/event3), so that the key events won't reach X11/Wayland anymore [source](https://github.com/sezanzeb/key-mapper/blob/0.7.0/keymapper/injection/injector.py#L182)
 2. Reads the events from it (`evtest` can do it, you can also do `cat /dev/input/event3` which yields binary stuff) [source](https://github.com/sezanzeb/key-mapper/blob/0.7.0/keymapper/injection/injector.py#L413)
