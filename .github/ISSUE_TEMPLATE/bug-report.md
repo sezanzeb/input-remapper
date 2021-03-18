@@ -7,9 +7,8 @@ assignees: ''
 
 ---
 
-Please first install the newest version from source to see if the problem has already been solved. If there are problems with mapping keys, please run the following, reproduce the problem and then share the logs:
+Please install the newest version from source to see if the problem has already been solved.
 
-```
-sudo systemctl stop key-mapper
-sudo key-mapper-gtk -d
-```
+If a button on your device doesn't show up in the gui, verify that the button is reporting an event via `sudo evtest`. If not, key-mapper won't be able to map that button.
+
+If yes, please run `sudo systemctl stop key-mapper && sudo key-mapper-gtk -d`, reproduce the problem and then share the logs.
