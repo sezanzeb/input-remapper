@@ -646,13 +646,16 @@ class Window:
         copy = self.ctrl
 
         try:
-            new_preset = get_available_preset_name(
-                self.selected_device,
-                self.selected_preset,
-                copy
-            )
-
-            if not copy:
+            if copy:
+                new_preset = get_available_preset_name(
+                    self.selected_device,
+                    self.selected_preset,
+                    copy
+                )
+            else:
+                new_preset = get_available_preset_name(
+                    self.selected_device
+                )
                 custom_mapping.empty()
 
             path = get_preset_path(self.selected_device, new_preset)
