@@ -225,9 +225,9 @@ class KeycodeMapper:
                         f'but got {key}'
                     )
 
-    def macro_write(self, code, value):
+    def macro_write(self, ev_type, code, value):
         """Handler for macros."""
-        self.context.uinput.write(EV_KEY, code, value)
+        self.context.uinput.write(ev_type, code, value)
         self.context.uinput.syn()
 
     def write(self, key):

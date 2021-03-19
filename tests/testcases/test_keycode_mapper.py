@@ -547,10 +547,10 @@ class TestKeycodeMapper(unittest.TestCase):
 
         # 6 keycodes written, with down and up events
         self.assertEqual(len(history), 12)
-        self.assertIn((code_a, 1), history)
-        self.assertIn((code_a, 0), history)
-        self.assertIn((code_b, 1), history)
-        self.assertIn((code_b, 0), history)
+        self.assertIn((EV_KEY, code_a, 1), history)
+        self.assertIn((EV_KEY, code_a, 0), history)
+        self.assertIn((EV_KEY, code_b, 1), history)
+        self.assertIn((EV_KEY, code_b, 0), history)
 
         # releasing stuff
         self.assertIn((EV_KEY, 1), unreleased)
@@ -611,14 +611,14 @@ class TestKeycodeMapper(unittest.TestCase):
         self.assertGreater(len(history), events * 0.9)
         self.assertLess(len(history), events * 1.1)
 
-        self.assertIn((code_a, 1), history)
-        self.assertIn((code_a, 0), history)
-        self.assertIn((code_b, 1), history)
-        self.assertIn((code_b, 0), history)
-        self.assertIn((code_c, 1), history)
-        self.assertIn((code_c, 0), history)
-        self.assertGreater(history.count((code_b, 1)), 1)
-        self.assertGreater(history.count((code_b, 0)), 1)
+        self.assertIn((EV_KEY, code_a, 1), history)
+        self.assertIn((EV_KEY, code_a, 0), history)
+        self.assertIn((EV_KEY, code_b, 1), history)
+        self.assertIn((EV_KEY, code_b, 0), history)
+        self.assertIn((EV_KEY, code_c, 1), history)
+        self.assertIn((EV_KEY, code_c, 0), history)
+        self.assertGreater(history.count((EV_KEY, code_b, 1)), 1)
+        self.assertGreater(history.count((EV_KEY, code_b, 0)), 1)
 
         # it's stopped and won't write stuff anymore
         count_before = len(history)
@@ -667,8 +667,8 @@ class TestKeycodeMapper(unittest.TestCase):
 
         loop.run_until_complete(asyncio.sleep(0.1))
         # starting code_c written
-        self.assertEqual(history.count((code_c, 1)), 1)
-        self.assertEqual(history.count((code_c, 0)), 1)
+        self.assertEqual(history.count((EV_KEY, code_c, 1)), 1)
+        self.assertEqual(history.count((EV_KEY, code_c, 0)), 1)
 
         # spam garbage events
         for _ in range(5):
@@ -684,8 +684,8 @@ class TestKeycodeMapper(unittest.TestCase):
 
         # there should only be one code_c in the events, because no key
         # up event was ever done so the hold just continued
-        self.assertEqual(history.count((code_c, 1)), 1)
-        self.assertEqual(history.count((code_c, 0)), 1)
+        self.assertEqual(history.count((EV_KEY, code_c, 1)), 1)
+        self.assertEqual(history.count((EV_KEY, code_c, 0)), 1)
         # without an key up event on 2, it won't write code_d
         self.assertNotIn((code_d, 1), history)
         self.assertNotIn((code_d, 0), history)
@@ -695,17 +695,17 @@ class TestKeycodeMapper(unittest.TestCase):
         loop.run_until_complete(asyncio.sleep(0.1))
 
         # it stopped and didn't restart, so the count stays at 1
-        self.assertEqual(history.count((code_c, 1)), 1)
-        self.assertEqual(history.count((code_c, 0)), 1)
+        self.assertEqual(history.count((EV_KEY, code_c, 1)), 1)
+        self.assertEqual(history.count((EV_KEY, code_c, 0)), 1)
         # and the trailing d was written
-        self.assertEqual(history.count((code_d, 1)), 1)
-        self.assertEqual(history.count((code_d, 0)), 1)
+        self.assertEqual(history.count((EV_KEY, code_d, 1)), 1)
+        self.assertEqual(history.count((EV_KEY, code_d, 0)), 1)
 
         # it's stopped and won't write stuff anymore
-        count_before = history.count((code_a, 1))
+        count_before = history.count((EV_KEY, code_a, 1))
         self.assertGreater(count_before, 1)
         loop.run_until_complete(asyncio.sleep(0.1))
-        count_after = history.count((code_a, 1))
+        count_after = history.count((EV_KEY, code_a, 1))
         self.assertEqual(count_before, count_after)
 
         """restart macro 2"""
@@ -714,8 +714,8 @@ class TestKeycodeMapper(unittest.TestCase):
 
         keycode_mapper.handle_keycode(new_event(EV_KEY, 2, 1))
         loop.run_until_complete(asyncio.sleep(0.1))
-        self.assertEqual(history.count((code_c, 1)), 1)
-        self.assertEqual(history.count((code_c, 0)), 1)
+        self.assertEqual(history.count((EV_KEY, code_c, 1)), 1)
+        self.assertEqual(history.count((EV_KEY, code_c, 0)), 1)
 
         # spam garbage events again, this time key-up events on all other
         # macros
@@ -734,11 +734,11 @@ class TestKeycodeMapper(unittest.TestCase):
         keycode_mapper.handle_keycode(new_event(EV_KEY, 2, 0))
         loop.run_until_complete(asyncio.sleep(0.1))
         # was started only once
-        self.assertEqual(history.count((code_c, 1)), 1)
-        self.assertEqual(history.count((code_c, 0)), 1)
+        self.assertEqual(history.count((EV_KEY, code_c, 1)), 1)
+        self.assertEqual(history.count((EV_KEY, code_c, 0)), 1)
         # and the trailing d was also written only once
-        self.assertEqual(history.count((code_d, 1)), 1)
-        self.assertEqual(history.count((code_d, 0)), 1)
+        self.assertEqual(history.count((EV_KEY, code_d, 1)), 1)
+        self.assertEqual(history.count((EV_KEY, code_d, 0)), 1)
 
         # stop all macros
         keycode_mapper.handle_keycode(new_event(EV_KEY, 1, 0))
@@ -794,18 +794,18 @@ class TestKeycodeMapper(unittest.TestCase):
             loop.run_until_complete(asyncio.sleep(0.05))
 
         # duplicate key down events don't do anything
-        self.assertEqual(history.count((code_a, 1)), 1)
-        self.assertEqual(history.count((code_a, 0)), 1)
-        self.assertEqual(history.count((code_c, 1)), 0)
-        self.assertEqual(history.count((code_c, 0)), 0)
+        self.assertEqual(history.count((EV_KEY, code_a, 1)), 1)
+        self.assertEqual(history.count((EV_KEY, code_a, 0)), 1)
+        self.assertEqual(history.count((EV_KEY, code_c, 1)), 0)
+        self.assertEqual(history.count((EV_KEY, code_c, 0)), 0)
 
         # stop
         keycode_mapper.handle_keycode(new_event(EV_KEY, 1, 0))
         loop.run_until_complete(asyncio.sleep(0.1))
-        self.assertEqual(history.count((code_a, 1)), 1)
-        self.assertEqual(history.count((code_a, 0)), 1)
-        self.assertEqual(history.count((code_c, 1)), 1)
-        self.assertEqual(history.count((code_c, 0)), 1)
+        self.assertEqual(history.count((EV_KEY, code_a, 1)), 1)
+        self.assertEqual(history.count((EV_KEY, code_a, 0)), 1)
+        self.assertEqual(history.count((EV_KEY, code_c, 1)), 1)
+        self.assertEqual(history.count((EV_KEY, code_c, 0)), 1)
         self.assertFalse(active_macros[(EV_KEY, 1)].is_holding())
         self.assertFalse(active_macros[(EV_KEY, 1)].running)
 
@@ -925,22 +925,22 @@ class TestKeycodeMapper(unittest.TestCase):
         self.assertGreater(len(history), events * 0.9)
         self.assertLess(len(history), events * 1.1)
 
-        self.assertIn((code_a, 1), history)
-        self.assertIn((code_a, 0), history)
-        self.assertIn((code_b, 1), history)
-        self.assertIn((code_b, 0), history)
-        self.assertIn((code_c, 1), history)
-        self.assertIn((code_c, 0), history)
-        self.assertIn((code_1, 1), history)
-        self.assertIn((code_1, 0), history)
-        self.assertIn((code_2, 1), history)
-        self.assertIn((code_2, 0), history)
-        self.assertIn((code_3, 1), history)
-        self.assertIn((code_3, 0), history)
-        self.assertGreater(history.count((code_b, 1)), 1)
-        self.assertGreater(history.count((code_b, 0)), 1)
-        self.assertGreater(history.count((code_2, 1)), 1)
-        self.assertGreater(history.count((code_2, 0)), 1)
+        self.assertIn((EV_KEY, code_a, 1), history)
+        self.assertIn((EV_KEY, code_a, 0), history)
+        self.assertIn((EV_KEY, code_b, 1), history)
+        self.assertIn((EV_KEY, code_b, 0), history)
+        self.assertIn((EV_KEY, code_c, 1), history)
+        self.assertIn((EV_KEY, code_c, 0), history)
+        self.assertIn((EV_KEY, code_1, 1), history)
+        self.assertIn((EV_KEY, code_1, 0), history)
+        self.assertIn((EV_KEY, code_2, 1), history)
+        self.assertIn((EV_KEY, code_2, 0), history)
+        self.assertIn((EV_KEY, code_3, 1), history)
+        self.assertIn((EV_KEY, code_3, 0), history)
+        self.assertGreater(history.count((EV_KEY, code_b, 1)), 1)
+        self.assertGreater(history.count((EV_KEY, code_b, 0)), 1)
+        self.assertGreater(history.count((EV_KEY, code_2, 1)), 1)
+        self.assertGreater(history.count((EV_KEY, code_2, 0)), 1)
 
         # it's stopped and won't write stuff anymore
         count_before = len(history)
@@ -994,10 +994,10 @@ class TestKeycodeMapper(unittest.TestCase):
         sleeptime = config.get('macros.keystroke_sleep_ms') / 1000
         loop.run_until_complete(asyncio.sleep(1.1 * repeats * 2 * sleeptime))
 
-        self.assertEqual(history.count((code_1, 1)), 10)
-        self.assertEqual(history.count((code_1, 0)), 10)
-        self.assertEqual(history.count((code_2, 1)), 10)
-        self.assertEqual(history.count((code_2, 0)), 10)
+        self.assertEqual(history.count((EV_KEY, code_1, 1)), 10)
+        self.assertEqual(history.count((EV_KEY, code_1, 0)), 10)
+        self.assertEqual(history.count((EV_KEY, code_2, 1)), 10)
+        self.assertEqual(history.count((EV_KEY, code_2, 0)), 10)
         self.assertEqual(len(history), repeats * 4)
 
     def test_filter_trigger_spam(self):
@@ -1223,7 +1223,7 @@ class TestKeycodeMapper(unittest.TestCase):
         self.assertEqual(len(uinput_write_history), 0)
         self.assertGreater(len(macro_history), 1)
         self.assertIn(down_1[:2], unreleased)
-        self.assertIn((92, 1), macro_history)
+        self.assertIn((EV_KEY, 92, 1), macro_history)
 
         # combination triggered
         keycode_mapper.handle_keycode(new_event(*down_2))

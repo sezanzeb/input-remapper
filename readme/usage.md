@@ -73,18 +73,23 @@ names can be chained using ` + `.
 ## Macros
 
 It is possible to write timed macros into the center column:
+- `r` repeats the execution of the second parameter
+- `w` waits in milliseconds
+- `k` writes a single keystroke
+- `e` writes an event
+- `m` holds a modifier while executing the second parameter
+- `h` executes the parameter as long as the key is pressed down
+- `.` executes two actions behind each other
+
+Examples:
 - `k(1).k(2)` 1, 2
 - `r(3, k(a).w(500))` a, a, a with 500ms pause
 - `m(Control_L, k(a).k(x))` CTRL + a, CTRL + x
 - `k(1).h(k(2)).k(3)` writes 1 2 2 ... 2 2 3 while the key is pressed
-
-Documentation:
-- `r` repeats the execution of the second parameter
-- `w` waits in milliseconds
-- `k` writes a single keystroke
-- `m` holds a modifier while executing the second parameter
-- `h` executes the parameter as long as the key is pressed down
-- `.` executes two actions behind each other
+- `e(EV_REL, REL_X, 10)` moves the mouse cursor 10px to the right
+- `mouse(right, 4)` which keeps moving the mouse while pressed.
+  Made out of `h(e(...))` internally
+- `wheel(down, 1)` keeps scrolling down while held
 
 Syntax errors are shown in the UI on save. Each `k` function adds a short
 delay of 10ms between key-down, key-up and at the end. See
