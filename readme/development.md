@@ -35,7 +35,7 @@ key-mapper.
 - [x] inject in an additional device instead to avoid clashing capabilities
 - [ ] don't run any GTK code as root for wayland compatibility
 - [ ] injecting keys that aren't available in the systems keyboard layout
-- [ ] ship with a list of all keys known to xkb and validate input in the gui
+- [ ] add comprehensive tabbed help popup
 
 ## Tests
 

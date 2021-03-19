@@ -251,7 +251,13 @@ class Injector(multiprocessing.Process):
 
         # and all keycodes that are injected by macros
         for macro in self.context.macros.values():
-            capabilities[EV_KEY] += list(macro.get_capabilities())
+            macro_capabilities = macro.get_capabilities()
+            for ev_type in macro_capabilities:
+                if len(macro_capabilities[ev_type]) == 0:
+                    continue
+                if ev_type not in capabilities:
+                    capabilities[ev_type] = []
+                capabilities[ev_type] += list(macro_capabilities[ev_type])
 
         if gamepad and self.context.joystick_as_mouse():
             # REL_WHEEL was also required to recognize the gamepad

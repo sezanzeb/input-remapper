@@ -37,17 +37,13 @@ w(1000).m(Shift_L, r(2, k(a))).w(10).k(b): <1s> A A <10ms> b
 
 import asyncio
 import re
+import copy
+
+from evdev.ecodes import ecodes, EV_KEY, EV_REL, REL_X, REL_Y, REL_WHEEL, \
+    REL_HWHEEL
 
 from keymapper.logger import logger
 from keymapper.state import system_mapping
-
-
-MODIFIER = 1
-CHILD_MACRO = 2
-SLEEP = 3
-REPEAT = 4
-KEYSTROKE = 5
-DEBUG = 6
 
 
 def is_this_a_macro(output):
@@ -73,7 +69,7 @@ class _Macro:
 
         Parameters
         ----------
-        code : string
+        code : string or None
             The original parsed code, for logging purposes.
         mapping : Mapping
             The preset object, needed for some config stuff
@@ -88,7 +84,10 @@ class _Macro:
         self.running = False
 
         # all required capabilities, without those of child macros
-        self.capabilities = set()
+        self.capabilities = {
+            EV_KEY: set(),
+            EV_REL: set(),
+        }
 
         self.child_macros = []
 
@@ -98,9 +97,16 @@ class _Macro:
 
     def get_capabilities(self):
         """Resolve all capabilities of the macro and those of its children."""
-        capabilities = self.capabilities.copy()
+        capabilities = copy.deepcopy(self.capabilities)
+
         for macro in self.child_macros:
-            capabilities.update(macro.get_capabilities())
+            macro_capabilities = macro.get_capabilities()
+            for ev_type in macro_capabilities:
+                if ev_type not in capabilities:
+                    capabilities[ev_type] = set()
+
+                capabilities[ev_type].update(macro_capabilities[ev_type])
+
         return capabilities
 
     async def run(self, handler):
@@ -109,14 +115,17 @@ class _Macro:
         Parameters
         ----------
         handler : function
-            Will receive int code and value for an EV_KEY event to write
+            Will receive int type, code and value for an event to write
         """
         if self.running:
             logger.error('Tried to run already running macro "%s"', self.code)
             return
 
         self.running = True
-        for _, task in self.tasks:
+        for task in self.tasks:
+            # one could call tasks the compiled macros. it's lambda functions
+            # that receive the handler as an argument, so that they know
+            # where to send the event to.
             coroutine = task(handler)
             if asyncio.iscoroutine(coroutine):
                 await coroutine
@@ -161,7 +170,7 @@ class _Macro:
                     # released
                     logger.error('Failed h(): %s', error)
 
-            self.tasks.append((1234, task))
+            self.tasks.append(task)
         else:
             if not isinstance(macro, _Macro):
                 raise ValueError(
@@ -175,7 +184,7 @@ class _Macro:
                     # not-releasing any key
                     await macro.run(handler)
 
-            self.tasks.append((REPEAT, task))
+            self.tasks.append(task)
             self.child_macros.append(macro)
 
         return self
@@ -200,15 +209,15 @@ class _Macro:
         if code is None:
             raise KeyError(f'Unknown modifier "{modifier}"')
 
-        self.capabilities.add(code)
+        self.capabilities[EV_KEY].add(code)
 
         self.child_macros.append(macro)
 
-        self.tasks.append((MODIFIER, lambda handler: handler(code, 1)))
+        self.tasks.append(lambda handler: handler(EV_KEY, code, 1))
         self.add_keycode_pause()
-        self.tasks.append((CHILD_MACRO, macro.run))
+        self.tasks.append(macro.run)
         self.add_keycode_pause()
-        self.tasks.append((MODIFIER, lambda handler: handler(code, 0)))
+        self.tasks.append(lambda handler: handler(EV_KEY, code, 0))
         self.add_keycode_pause()
         return self
 
@@ -235,7 +244,7 @@ class _Macro:
             ) from error
 
         for _ in range(repeats):
-            self.tasks.append((CHILD_MACRO, macro.run))
+            self.tasks.append(macro.run)
 
         self.child_macros.append(macro)
 
@@ -248,7 +257,7 @@ class _Macro:
         async def sleep(_):
             await asyncio.sleep(sleeptime)
 
-        self.tasks.append((SLEEP, sleep))
+        self.tasks.append(sleep)
 
     def keycode(self, character):
         """Write the character."""
@@ -256,15 +265,76 @@ class _Macro:
         code = system_mapping.get(character)
 
         if code is None:
-            raise KeyError(f'aUnknown key "{character}"')
+            raise KeyError(f'Unknown key "{character}"')
 
-        self.capabilities.add(code)
+        if EV_KEY not in self.capabilities:
+            self.capabilities[EV_KEY] = set()
+        self.capabilities[EV_KEY].add(code)
 
-        self.tasks.append((KEYSTROKE, lambda handler: handler(code, 1)))
+        self.tasks.append(lambda handler: handler(EV_KEY, code, 1))
         self.add_keycode_pause()
-        self.tasks.append((KEYSTROKE, lambda handler: handler(code, 0)))
+        self.tasks.append(lambda handler: handler(EV_KEY, code, 0))
         self.add_keycode_pause()
         return self
+
+    def event(self, ev_type, code, value):
+        """Write any event.
+
+        Parameters
+        ----------
+        ev_type: str or int
+            examples: 2, 'EV_KEY'
+        code : int or int
+            examples: 52, 'KEY_A'
+        value : int
+        """
+        if isinstance(ev_type, str):
+            ev_type = ecodes[ev_type.upper()]
+        if isinstance(code, str):
+            code = ecodes[code.upper()]
+
+        if ev_type not in self.capabilities:
+            self.capabilities[ev_type] = set()
+
+        if ev_type == EV_REL:
+            # add all capabilities that are required for the display server
+            # to recognize the device as mouse
+            self.capabilities[EV_REL].add(REL_X)
+            self.capabilities[EV_REL].add(REL_Y)
+            self.capabilities[EV_REL].add(REL_WHEEL)
+
+        self.capabilities[ev_type].add(code)
+
+        self.tasks.append(lambda handler: handler(ev_type, code, value))
+        self.add_keycode_pause()
+
+        return self
+
+    def mouse(self, direction, speed):
+        """Shortcut for h(e(...))."""
+        code, value = {
+            'up': (REL_Y, -1),
+            'down': (REL_Y, 1),
+            'left': (REL_X, -1),
+            'right': (REL_X, 1),
+        }[direction.lower()]
+        value *= speed
+        child_macro = _Macro(None, self.mapping)
+        child_macro.event(EV_REL, code, value)
+        self.hold(child_macro)
+
+    def wheel(self, direction, speed):
+        """Shortcut for h(e(...))."""
+        code, value = {
+            'up': (REL_WHEEL, 1),
+            'down': (REL_WHEEL, -1),
+            'left': (REL_HWHEEL, 1),
+            'right': (REL_HWHEEL, -1),
+        }[direction.lower()]
+        child_macro = _Macro(None, self.mapping)
+        child_macro.event(EV_REL, code, value)
+        child_macro.wait(100 / speed)
+        self.hold(child_macro)
 
     def wait(self, sleeptime):
         """Wait time in milliseconds."""
@@ -281,7 +351,7 @@ class _Macro:
         async def sleep(_):
             await asyncio.sleep(sleeptime)
 
-        self.tasks.append((SLEEP, sleep))
+        self.tasks.append(sleep)
         return self
 
 
@@ -385,8 +455,11 @@ def _parse_recurse(macro, mapping, macro_instance=None, depth=0):
             'm': (macro_instance.modify, 2, 2),
             'r': (macro_instance.repeat, 2, 2),
             'k': (macro_instance.keycode, 1, 1),
+            'e': (macro_instance.event, 3, 3),
             'w': (macro_instance.wait, 1, 1),
-            'h': (macro_instance.hold, 0, 1)
+            'h': (macro_instance.hold, 0, 1),
+            'mouse': (macro_instance.mouse, 2, 2),
+            'wheel': (macro_instance.wheel, 2, 2)
         }
 
         function = functions.get(call)
@@ -396,7 +469,7 @@ def _parse_recurse(macro, mapping, macro_instance=None, depth=0):
         # get all the stuff inbetween
         position = _count_brackets(macro)
 
-        inner = macro[2:position - 1]
+        inner = macro[macro.index('(') + 1:position - 1]
 
         # split "3, k(a).w(10)" into parameters
         string_params = _extract_params(inner)
@@ -510,5 +583,5 @@ def parse(macro, mapping, return_errors=False):
         macro_object = _parse_recurse(macro, mapping)
         return macro_object if not return_errors else None
     except Exception as error:
-        logger.error('Failed to parse macro "%s": %s', macro, error)
+        logger.error('Failed to parse macro "%s": %s', macro, error.__repr__())
         return str(error) if return_errors else None

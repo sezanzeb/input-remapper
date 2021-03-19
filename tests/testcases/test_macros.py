@@ -23,6 +23,8 @@ import time
 import unittest
 import asyncio
 
+from evdev.ecodes import EV_REL, EV_KEY, REL_Y, REL_X, REL_WHEEL, REL_HWHEEL
+
 from keymapper.injection.macros import parse, _Macro, _extract_params, \
     is_this_a_macro, _parse_recurse, handle_plus_syntax
 from keymapper.config import config
@@ -43,9 +45,10 @@ class TestMacros(unittest.TestCase):
         self.mapping.clear_config()
         quick_cleanup()
 
-    def handler(self, code, value):
+    def handler(self, ev_type, code, value):
         """Where macros should write codes to."""
-        self.result.append((code, value))
+        print(f'\033[90mmacro wrote{(ev_type, code, value)}\033[0m')
+        self.result.append((ev_type, code, value))
 
     def test_is_this_a_macro(self):
         self.assertTrue(is_this_a_macro('k(1)'))
@@ -79,7 +82,7 @@ class TestMacros(unittest.TestCase):
 
     def test_run_plus_syntax(self):
         macro = parse('a + b + c + d', self.mapping)
-        self.assertSetEqual(macro.get_capabilities(), {
+        self.assertSetEqual(macro.get_capabilities()[EV_KEY], {
             system_mapping.get('a'),
             system_mapping.get('b'),
             system_mapping.get('c'),
@@ -92,19 +95,19 @@ class TestMacros(unittest.TestCase):
         self.assertTrue(macro.is_holding())
 
         # starting from the left, presses each one down
-        self.assertEqual(self.result[0], (system_mapping.get('a'), 1))
-        self.assertEqual(self.result[1], (system_mapping.get('b'), 1))
-        self.assertEqual(self.result[2], (system_mapping.get('c'), 1))
-        self.assertEqual(self.result[3], (system_mapping.get('d'), 1))
+        self.assertEqual(self.result[0], (EV_KEY, system_mapping.get('a'), 1))
+        self.assertEqual(self.result[1], (EV_KEY, system_mapping.get('b'), 1))
+        self.assertEqual(self.result[2], (EV_KEY, system_mapping.get('c'), 1))
+        self.assertEqual(self.result[3], (EV_KEY, system_mapping.get('d'), 1))
 
         # and then releases starting with the previously pressed key
         macro.release_key()
         self.loop.run_until_complete(asyncio.sleep(0.2))
         self.assertFalse(macro.is_holding())
-        self.assertEqual(self.result[4], (system_mapping.get('d'), 0))
-        self.assertEqual(self.result[5], (system_mapping.get('c'), 0))
-        self.assertEqual(self.result[6], (system_mapping.get('b'), 0))
-        self.assertEqual(self.result[7], (system_mapping.get('a'), 0))
+        self.assertEqual(self.result[4], (EV_KEY, system_mapping.get('d'), 0))
+        self.assertEqual(self.result[5], (EV_KEY, system_mapping.get('c'), 0))
+        self.assertEqual(self.result[6], (EV_KEY, system_mapping.get('b'), 0))
+        self.assertEqual(self.result[7], (EV_KEY, system_mapping.get('a'), 0))
 
     def test_extract_params(self):
         def expect(raw, expectation):
@@ -142,15 +145,16 @@ class TestMacros(unittest.TestCase):
     def test_0(self):
         macro = parse('k(1)', self.mapping)
         one_code = system_mapping.get('1')
-        self.assertSetEqual(macro.get_capabilities(), {one_code})
+        self.assertSetEqual(macro.get_capabilities()[EV_KEY], {one_code})
+        self.assertSetEqual(macro.get_capabilities()[EV_REL], set())
 
         self.loop.run_until_complete(macro.run(self.handler))
-        self.assertListEqual(self.result, [(one_code, 1), (one_code, 0)])
+        self.assertListEqual(self.result, [(EV_KEY, one_code, 1), (EV_KEY, one_code, 0)])
         self.assertEqual(len(macro.child_macros), 0)
 
     def test_1(self):
         macro = parse('k(1).k(a).k(3)', self.mapping)
-        self.assertSetEqual(macro.get_capabilities(), {
+        self.assertSetEqual(macro.get_capabilities()[EV_KEY], {
             system_mapping.get('1'),
             system_mapping.get('a'),
             system_mapping.get('3')
@@ -158,9 +162,9 @@ class TestMacros(unittest.TestCase):
 
         self.loop.run_until_complete(macro.run(self.handler))
         self.assertListEqual(self.result, [
-            (system_mapping.get('1'), 1), (system_mapping.get('1'), 0),
-            (system_mapping.get('a'), 1), (system_mapping.get('a'), 0),
-            (system_mapping.get('3'), 1), (system_mapping.get('3'), 0),
+            (EV_KEY, system_mapping.get('1'), 1), (EV_KEY, system_mapping.get('1'), 0),
+            (EV_KEY, system_mapping.get('a'), 1), (EV_KEY, system_mapping.get('a'), 0),
+            (EV_KEY, system_mapping.get('3'), 1), (EV_KEY, system_mapping.get('3'), 0),
         ])
         self.assertEqual(len(macro.child_macros), 0)
 
@@ -196,7 +200,7 @@ class TestMacros(unittest.TestCase):
 
     def test_hold(self):
         macro = parse('k(1).h(k(a)).k(3)', self.mapping)
-        self.assertSetEqual(macro.get_capabilities(), {
+        self.assertSetEqual(macro.get_capabilities()[EV_KEY], {
             system_mapping.get('1'),
             system_mapping.get('a'),
             system_mapping.get('3')
@@ -212,17 +216,17 @@ class TestMacros(unittest.TestCase):
         self.loop.run_until_complete(asyncio.sleep(0.05))
         self.assertFalse(macro.is_holding())
 
-        self.assertEqual(self.result[0], (system_mapping.get('1'), 1))
-        self.assertEqual(self.result[-1], (system_mapping.get('3'), 0))
+        self.assertEqual(self.result[0], (EV_KEY, system_mapping.get('1'), 1))
+        self.assertEqual(self.result[-1], (EV_KEY, system_mapping.get('3'), 0))
 
         code_a = system_mapping.get('a')
-        self.assertGreater(self.result.count((code_a, 1)), 2)
+        self.assertGreater(self.result.count((EV_KEY, code_a, 1)), 2)
 
         self.assertEqual(len(macro.child_macros), 1)
 
     def test_dont_hold(self):
         macro = parse('k(1).h(k(a)).k(3)', self.mapping)
-        self.assertSetEqual(macro.get_capabilities(), {
+        self.assertSetEqual(macro.get_capabilities()[EV_KEY], {
             system_mapping.get('1'),
             system_mapping.get('a'),
             system_mapping.get('3')
@@ -235,14 +239,14 @@ class TestMacros(unittest.TestCase):
         # and the child macro of hold is never called.
         self.assertEqual(len(self.result), 4)
 
-        self.assertEqual(self.result[0], (system_mapping.get('1'), 1))
-        self.assertEqual(self.result[-1], (system_mapping.get('3'), 0))
+        self.assertEqual(self.result[0], (EV_KEY, system_mapping.get('1'), 1))
+        self.assertEqual(self.result[-1], (EV_KEY, system_mapping.get('3'), 0))
 
         self.assertEqual(len(macro.child_macros), 1)
 
     def test_just_hold(self):
         macro = parse('k(1).h().k(3)', self.mapping)
-        self.assertSetEqual(macro.get_capabilities(), {
+        self.assertSetEqual(macro.get_capabilities()[EV_KEY], {
             system_mapping.get('1'),
             system_mapping.get('3')
         })
@@ -261,14 +265,14 @@ class TestMacros(unittest.TestCase):
         self.assertFalse(macro.is_holding())
         self.assertEqual(len(self.result), 4)
 
-        self.assertEqual(self.result[0], (system_mapping.get('1'), 1))
-        self.assertEqual(self.result[-1], (system_mapping.get('3'), 0))
+        self.assertEqual(self.result[0], (EV_KEY, system_mapping.get('1'), 1))
+        self.assertEqual(self.result[-1], (EV_KEY, system_mapping.get('3'), 0))
 
         self.assertEqual(len(macro.child_macros), 0)
 
     def test_dont_just_hold(self):
         macro = parse('k(1).h().k(3)', self.mapping)
-        self.assertSetEqual(macro.get_capabilities(), {
+        self.assertSetEqual(macro.get_capabilities()[EV_KEY], {
             system_mapping.get('1'),
             system_mapping.get('3')
         })
@@ -280,8 +284,8 @@ class TestMacros(unittest.TestCase):
         # completely
         self.assertEqual(len(self.result), 4)
 
-        self.assertEqual(self.result[0], (system_mapping.get('1'), 1))
-        self.assertEqual(self.result[-1], (system_mapping.get('3'), 0))
+        self.assertEqual(self.result[0], (EV_KEY, system_mapping.get('1'), 1))
+        self.assertEqual(self.result[-1], (EV_KEY, system_mapping.get('3'), 0))
 
         self.assertEqual(len(macro.child_macros), 0)
 
@@ -291,7 +295,7 @@ class TestMacros(unittest.TestCase):
 
         macro = parse(f'r({repeats}, k(k)).r(1, k(k))', self.mapping)
         k_code = system_mapping.get('k')
-        self.assertSetEqual(macro.get_capabilities(), {k_code})
+        self.assertSetEqual(macro.get_capabilities()[EV_KEY], {k_code})
 
         self.loop.run_until_complete(macro.run(self.handler))
         keystroke_sleep = self.mapping.get('macros.keystroke_sleep_ms')
@@ -301,7 +305,7 @@ class TestMacros(unittest.TestCase):
 
         self.assertListEqual(
             self.result,
-            [(k_code, 1), (k_code, 0)] * (repeats + 1)
+            [(EV_KEY, k_code, 1), (EV_KEY, k_code, 0)] * (repeats + 1)
         )
 
         self.assertEqual(len(macro.child_macros), 2)
@@ -311,7 +315,7 @@ class TestMacros(unittest.TestCase):
         start = time.time()
         macro = parse('r(3, k(m).w(100))', self.mapping)
         m_code = system_mapping.get('m')
-        self.assertSetEqual(macro.get_capabilities(), {m_code})
+        self.assertSetEqual(macro.get_capabilities()[EV_KEY], {m_code})
         self.loop.run_until_complete(macro.run(self.handler))
 
         keystroke_time = 6 * self.mapping.get('macros.keystroke_sleep_ms')
@@ -321,9 +325,9 @@ class TestMacros(unittest.TestCase):
         self.assertGreater(time.time() - start, total_time * 0.9)
         self.assertLess(time.time() - start, total_time * 1.1)
         self.assertListEqual(self.result, [
-            (m_code, 1), (m_code, 0),
-            (m_code, 1), (m_code, 0),
-            (m_code, 1), (m_code, 0),
+            (EV_KEY, m_code, 1), (EV_KEY, m_code, 0),
+            (EV_KEY, m_code, 1), (EV_KEY, m_code, 0),
+            (EV_KEY, m_code, 1), (EV_KEY, m_code, 0),
         ])
         self.assertEqual(len(macro.child_macros), 1)
         self.assertEqual(len(macro.child_macros[0].child_macros), 0)
@@ -335,15 +339,15 @@ class TestMacros(unittest.TestCase):
         minus = system_mapping.get('minus')
         m = system_mapping.get('m')
 
-        self.assertSetEqual(macro.get_capabilities(), {r, minus, m})
+        self.assertSetEqual(macro.get_capabilities()[EV_KEY], {r, minus, m})
 
         self.loop.run_until_complete(macro.run(self.handler))
         self.assertListEqual(self.result, [
-            (r, 1), (r, 0),
-            (minus, 1), (minus, 0),
-            (r, 1), (r, 0),
-            (minus, 1), (minus, 0),
-            (m, 1), (m, 0),
+            (EV_KEY, r, 1), (EV_KEY, r, 0),
+            (EV_KEY, minus, 1), (EV_KEY, minus, 0),
+            (EV_KEY, r, 1), (EV_KEY, r, 0),
+            (EV_KEY, minus, 1), (EV_KEY, minus, 0),
+            (EV_KEY, m, 1), (EV_KEY, m, 0),
         ])
         self.assertEqual(len(macro.child_macros), 1)
         self.assertEqual(len(macro.child_macros[0].child_macros), 0)
@@ -359,7 +363,7 @@ class TestMacros(unittest.TestCase):
         left = system_mapping.get('bTn_lEfT')
         k = system_mapping.get('k')
 
-        self.assertSetEqual(macro.get_capabilities(), {w, left, k})
+        self.assertSetEqual(macro.get_capabilities()[EV_KEY], {w, left, k})
 
         self.loop.run_until_complete(macro.run(self.handler))
 
@@ -370,10 +374,10 @@ class TestMacros(unittest.TestCase):
 
         self.assertLess(time.time() - start, total_time * 1.1)
         self.assertGreater(time.time() - start, total_time * 0.9)
-        expected = [(w, 1)]
-        expected += [(left, 1), (left, 0)] * 2
-        expected += [(w, 0)]
-        expected += [(k, 1), (k, 0)]
+        expected = [(EV_KEY, w, 1)]
+        expected += [(EV_KEY, left, 1), (EV_KEY, left, 0)] * 2
+        expected += [(EV_KEY, w, 0)]
+        expected += [(EV_KEY, k, 1), (EV_KEY, k, 0)]
         expected *= 2
         self.assertListEqual(self.result, expected)
 
@@ -431,9 +435,9 @@ class TestMacros(unittest.TestCase):
         self.assertFalse(macro.is_holding())
 
         expected = [
-            (a, 1), (a, 0),
-            (b, 1), (b, 0),
-            (c, 1), (c, 0),
+            (EV_KEY, a, 1), (EV_KEY, a, 0),
+            (EV_KEY, b, 1), (EV_KEY, b, 0),
+            (EV_KEY, c, 1), (EV_KEY, c, 0),
         ]
         self.assertListEqual(self.result, expected)
 
@@ -448,11 +452,56 @@ class TestMacros(unittest.TestCase):
         self.assertFalse(macro.is_holding())
 
         expected = [
-            (a, 1), (a, 0),
-            (b, 1), (b, 0),
-            (c, 1), (c, 0),
+            (EV_KEY, a, 1), (EV_KEY, a, 0),
+            (EV_KEY, b, 1), (EV_KEY, b, 0),
+            (EV_KEY, c, 1), (EV_KEY, c, 0),
         ] * 2
         self.assertListEqual(self.result, expected)
+
+    def test_mouse(self):
+        macro_1 = parse('mouse(up, 4)', self.mapping)
+        macro_2 = parse('wheel(left, 3)', self.mapping)
+        macro_1.press_key()
+        macro_2.press_key()
+        asyncio.ensure_future(macro_1.run(self.handler))
+        asyncio.ensure_future(macro_2.run(self.handler))
+        self.loop.run_until_complete(asyncio.sleep(0.1))
+        self.assertTrue(macro_1.is_holding())
+        self.assertTrue(macro_2.is_holding())
+        macro_1.release_key()
+        macro_2.release_key()
+
+        self.assertIn((EV_REL, REL_Y, -4), self.result)
+        self.assertIn((EV_REL, REL_HWHEEL, 1), self.result)
+
+        self.assertIn(REL_WHEEL, macro_1.get_capabilities()[EV_REL])
+        self.assertIn(REL_Y, macro_1.get_capabilities()[EV_REL])
+        self.assertIn(REL_X, macro_1.get_capabilities()[EV_REL])
+
+        self.assertIn(REL_WHEEL, macro_2.get_capabilities()[EV_REL])
+        self.assertIn(REL_Y, macro_2.get_capabilities()[EV_REL])
+        self.assertIn(REL_X, macro_2.get_capabilities()[EV_REL])
+
+    def test_event_1(self):
+        macro = parse('e(EV_KEY, KEY_A, 1)', self.mapping)
+        a_code = system_mapping.get('a')
+        self.assertSetEqual(macro.get_capabilities()[EV_KEY], {a_code})
+        self.assertSetEqual(macro.get_capabilities()[EV_REL], set())
+
+        self.loop.run_until_complete(macro.run(self.handler))
+        self.assertListEqual(self.result, [(EV_KEY, a_code, 1)])
+        self.assertEqual(len(macro.child_macros), 0)
+
+    def test_event_2(self):
+        macro = parse('e(5421, 324, 154)', self.mapping)
+        code = 324
+        self.assertSetEqual(macro.get_capabilities()[5421], {324})
+        self.assertSetEqual(macro.get_capabilities()[EV_REL], set())
+        self.assertSetEqual(macro.get_capabilities()[EV_KEY], set())
+
+        self.loop.run_until_complete(macro.run(self.handler))
+        self.assertListEqual(self.result, [(5421, code, 154)])
+        self.assertEqual(len(macro.child_macros), 0)
 
 
 if __name__ == '__main__':
