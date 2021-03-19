@@ -80,6 +80,7 @@ It is possible to write timed macros into the center column:
 - `m` holds a modifier while executing the second parameter
 - `h` executes the parameter as long as the key is pressed down
 - `.` executes two actions behind each other
+- `mouse` and `wheel` take a direction like "up" and speed as parameters
 
 Examples:
 - `k(1).k(2)` 1, 2
