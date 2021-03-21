@@ -25,11 +25,12 @@
 import os
 import grp
 import sys
-from argparse import ArgumentParser
+import argparse
+import subprocess
 
-from keymapper.logger import logger
+from keymapper.logger import logger, update_verbosity, log_info
 from keymapper.config import config
-from keymapper.daemon import get_dbus_interface
+from keymapper.daemon import Daemon
 from keymapper.state import system_mapping
 from keymapper.getdevices import get_devices
 from keymapper.paths import USER
@@ -40,6 +41,10 @@ START = 'start'
 STOP = 'stop'
 STOP_ALL = 'stop-all'
 HELLO = 'hello'
+
+# internal stuff that the gui uses
+START_DAEMON = 'start-daemon'
+HELPER = 'helper'
 
 
 def run(cmd):
@@ -59,9 +64,16 @@ def group_exists(name):
         return False
 
 
+COMMANDS = [AUTOLOAD, START, STOP, HELLO, STOP_ALL]
+
+INTERNALS = [START_DAEMON, HELPER]
+
+
 def main(options, daemon):
-    """Do the stuff that the executable is supposed to do."""
-    # `main` is a function so that I can import it and test it
+    """Do the stuff that the executable is supposed to do.
+
+    Is a function so that I can import it and test it
+    """
     if options.config_dir is not None:
         path = os.path.abspath(os.path.expanduser(os.path.join(
             options.config_dir,
@@ -85,7 +97,7 @@ def main(options, daemon):
         print('\n'.join(system_mapping.list_names()))
         sys.exit(0)
 
-    if options.command not in [AUTOLOAD, START, STOP, HELLO, STOP_ALL]:
+    if options.command not in COMMANDS:
         logger.error('Unknown command "%s"', options.command)
 
     if daemon is None:
@@ -114,7 +126,10 @@ def main(options, daemon):
             logger.error('--preset missing')
             sys.exit(1)
 
-        logger.info('Starting injection: "%s", "%s"', options.device, options.preset)
+        logger.info(
+            'Starting injection: "%s", "%s"',
+            options.device, options.preset
+        )
         daemon.start_injecting(options.device, options.preset)
 
     if options.command == STOP:
@@ -132,8 +147,28 @@ def main(options, daemon):
         logger.info('Daemon answered with "%s"', response)
 
 
+def internals(options):
+    """Methods that are needed to get the gui to work and that require root.
+
+    key-mapper-control should be started with sudo or pkexec for this.
+    """
+    if options.command == HELPER:
+        cmd = ['key-mapper-helper']
+    elif options.command == START_DAEMON:
+        cmd = ['key-mapper-service', '--hide-info']
+    else:
+        return
+
+    if options.debug:
+        cmd.append('-d')
+
+    # Popen makes os.system of the main process continue with stuff while
+    # cmd runs in the background.
+    subprocess.Popen(cmd)
+
+
 if __name__ == '__main__':
-    parser = ArgumentParser()
+    parser = argparse.ArgumentParser()
     parser.add_argument(
         '--command', action='store', dest='command',
         help='start, stop, autoload, hello or stop-all',
@@ -171,9 +206,31 @@ if __name__ == '__main__':
         help='Print all available names for the mapping',
         default=False
     )
+    parser.add_argument(
+        '-d', '--debug', action='store_true', dest='debug',
+        help='Displays additional debug information',
+        default=False
+    )
+    parser.add_argument(
+        '-v', '--version', action='store_true', dest='version',
+        help='Print the version and exit', default=False
+    )
 
     options = parser.parse_args(sys.argv[1:])
 
-    daemon = get_dbus_interface(fallback=False)
+    if options.version:
+        log_info()
+        sys.exit(0)
 
-    main(options, daemon)
+    update_verbosity(options.debug)
+
+    logger.debug('Call for "%s"', sys.argv)
+
+    config.load_config()
+
+    if options.command in INTERNALS:
+        options.debug = True
+        internals(options)
+    else:
+        daemon = Daemon.connect(fallback=False)
+        main(options, daemon)

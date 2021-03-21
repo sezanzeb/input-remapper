@@ -25,6 +25,7 @@
 import os
 import time
 import unittest
+from unittest import mock
 import collections
 from importlib.util import spec_from_loader, module_from_spec
 from importlib.machinery import SourceFileLoader
@@ -49,15 +50,17 @@ def import_control():
     module = module_from_spec(spec)
     spec.loader.exec_module(module)
 
-    return module.main
+    return module.main, module.internals
 
 
-control = import_control()
+control, internals = import_control()
 
 
 options = collections.namedtuple(
-    'options',
-    ['command', 'config_dir', 'preset', 'device', 'list_devices', 'key_names']
+    'options', [
+        'command', 'config_dir', 'preset', 'device', 'list_devices',
+        'key_names', 'debug'
+    ]
 )
 
 
@@ -97,7 +100,7 @@ class TestControl(unittest.TestCase):
         config.set_autoload_preset(devices[1], presets[1])
         config.save_config()
 
-        control(options('autoload', None, None, None, False, False), daemon)
+        control(options('autoload', None, None, None, False, False, False), daemon)
         self.assertEqual(len(start_history), 2)
         self.assertEqual(start_history[0], (devices[0], presets[0]))
         self.assertEqual(start_history[1], (devices[1], presets[1]))
@@ -107,31 +110,31 @@ class TestControl(unittest.TestCase):
         self.assertFalse(daemon.autoload_history.may_autoload(devices[1], presets[1]))
 
         # calling autoload again doesn't load redundantly
-        control(options('autoload', None, None, None, False, False), daemon)
+        control(options('autoload', None, None, None, False, False, False), daemon)
         self.assertEqual(len(start_history), 2)
         self.assertEqual(stop_counter, 0)
         self.assertFalse(daemon.autoload_history.may_autoload(devices[0], presets[0]))
         self.assertFalse(daemon.autoload_history.may_autoload(devices[1], presets[1]))
 
         # unless the injection in question ist stopped
-        control(options('stop', None, None, devices[0], False, False), daemon)
+        control(options('stop', None, None, devices[0], False, False, False), daemon)
         self.assertEqual(stop_counter, 1)
         self.assertTrue(daemon.autoload_history.may_autoload(devices[0], presets[0]))
         self.assertFalse(daemon.autoload_history.may_autoload(devices[1], presets[1]))
-        control(options('autoload', None, None, None, False, False), daemon)
+        control(options('autoload', None, None, None, False, False, False), daemon)
         self.assertEqual(len(start_history), 3)
         self.assertEqual(start_history[2], (devices[0], presets[0]))
         self.assertFalse(daemon.autoload_history.may_autoload(devices[0], presets[0]))
         self.assertFalse(daemon.autoload_history.may_autoload(devices[1], presets[1]))
 
         # if a device name is passed, will only start injecting for that one
-        control(options('stop-all', None, None, None, False, False), daemon)
+        control(options('stop-all', None, None, None, False, False, False), daemon)
         self.assertTrue(daemon.autoload_history.may_autoload(devices[0], presets[0]))
         self.assertTrue(daemon.autoload_history.may_autoload(devices[1], presets[1]))
         self.assertEqual(stop_counter, 3)
         config.set_autoload_preset(devices[1], presets[2])
         config.save_config()
-        control(options('autoload', None, None, devices[1], False, False), daemon)
+        control(options('autoload', None, None, devices[1], False, False, False), daemon)
         self.assertEqual(len(start_history), 4)
         self.assertEqual(start_history[3], (devices[1], presets[2]))
         self.assertTrue(daemon.autoload_history.may_autoload(devices[0], presets[0]))
@@ -139,7 +142,7 @@ class TestControl(unittest.TestCase):
 
         # autoloading for the same device again redundantly will not autoload
         # again
-        control(options('autoload', None, None, devices[1], False, False), daemon)
+        control(options('autoload', None, None, devices[1], False, False, False), daemon)
         self.assertEqual(len(start_history), 4)
         self.assertEqual(stop_counter, 3)
         self.assertFalse(daemon.autoload_history.may_autoload(devices[1], presets[2]))
@@ -174,7 +177,7 @@ class TestControl(unittest.TestCase):
         config.set_autoload_preset(devices[1], presets[1])
         config.save_config()
 
-        control(options('autoload', config_dir, None, None, False, False), daemon)
+        control(options('autoload', config_dir, None, None, False, False, False), daemon)
 
         self.assertEqual(len(start_history), 2)
         self.assertEqual(start_history[0], (devices[0], presets[0]))
@@ -193,15 +196,15 @@ class TestControl(unittest.TestCase):
         daemon.stop_injecting = lambda *args: stop_history.append(args)
         daemon.stop_all = lambda *args: stop_all_history.append(args)
 
-        control(options('start', None, preset, device, False, False), daemon)
+        control(options('start', None, preset, device, False, False, False), daemon)
         self.assertEqual(len(start_history), 1)
         self.assertEqual(start_history[0], (device, preset))
 
-        control(options('stop', None, None, device, False, False), daemon)
+        control(options('stop', None, None, device, False, False, False), daemon)
         self.assertEqual(len(stop_history), 1)
         self.assertEqual(stop_history[0], (device,))
 
-        control(options('stop-all', None, None, None, False, False), daemon)
+        control(options('stop-all', None, None, None, False, False, False), daemon)
         self.assertEqual(len(stop_all_history), 1)
         self.assertEqual(stop_all_history[0], ())
 
@@ -217,10 +220,10 @@ class TestControl(unittest.TestCase):
         daemon.start_injecting = lambda *args: start_history.append(args)
         daemon.stop_injecting = lambda *args: stop_history.append(args)
 
-        options_1 = options('start', config_dir, path, device, False, False)
+        options_1 = options('start', config_dir, path, device, False, False, False)
         self.assertRaises(SystemExit, lambda: control(options_1, daemon))
 
-        options_2 = options('stop', config_dir, None, device, False, False)
+        options_2 = options('stop', config_dir, None, device, False, False, False)
         self.assertRaises(SystemExit, lambda: control(options_2, daemon))
 
     def test_autoload_config_dir(self):
@@ -244,6 +247,19 @@ class TestControl(unittest.TestCase):
         self.assertEqual(config.get('foo'), 'bar')
         daemon.set_config_dir(os.path.join(tmp, 'qux'))
         self.assertEqual(config.get('foo'), 'bar')
+
+    def test_internals(self):
+        with mock.patch('subprocess.Popen') as popen_patch:
+            internals(options('helper', None, None, None, False, False, False))
+            popen_patch.assert_called_once()
+            self.assertIn('key-mapper-helper', popen_patch.call_args.args[0])
+            self.assertNotIn('-d', popen_patch.call_args.args[0])
+
+        with mock.patch('subprocess.Popen') as popen_patch:
+            internals(options('start-daemon', None, None, None, False, False, True))
+            popen_patch.assert_called_once()
+            self.assertIn('key-mapper-service', popen_patch.call_args.args[0])
+            self.assertIn('-d', popen_patch.call_args.args[0])
 
 
 if __name__ == "__main__":

@@ -3,7 +3,7 @@
 To open the UI to modify the mappings, look into your applications menu
 and search for 'Key Mapper'. You should be prompted for your sudo password
 as special permissions are needed to read events from `/dev/input/` files.
-You can also start it via `sudo key-mapper-gtk`.
+You can also start it via `key-mapper-gtk`.
 
 <p align="center">
   <img src="usage_1.png"/>
@@ -23,17 +23,14 @@ invisible since the daemon maps it independently of the GUI.
 
 ## Troubleshooting
 
-If stuff doesn't work, check the output of `sudo key-mapper-gtk -d` and feel free
+If stuff doesn't work, check the output of `key-mapper-gtk -d` and feel free
 to [open up an issue here](https://github.com/sezanzeb/key-mapper/issues/new).
 Make sure to not post any debug logs that were generated while you entered
 private information with your device. Debug logs are quite verbose.
 
-If injecting stops after closing the window, the service is not running.
-Try `sudo systemctl start key-mapper` in a terminal.
-
 If key-mapper or your presets prevents your input device from working
-at all due to autoload, please try to replug your device, wait 3 seconds
-and replug it again. No injection should be running anymore.
+at all due to autoload, please try to unplug and plug it in twice.
+No injection should be running anymore.
 
 ## Combinations
 
@@ -212,6 +209,7 @@ running (or without sudo if your user has the appropriate permissions).
 Examples:
 
 ```bash
+key-mapper-control --version
 key-mapper-control --command autoload
 # if you are running as root user, provide information about the whereabouts of the key-mapper config:
 key-mapper-control --command autoload --config-dir "/home/user/.config/key-mapper/"

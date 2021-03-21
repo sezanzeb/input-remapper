@@ -23,9 +23,12 @@
 
 
 import os
+import shutil
 import time
 import logging
 import pkg_resources
+
+from keymapper.user import HOME
 
 
 SPAM = 5
@@ -81,9 +84,10 @@ logging.addLevelName(SPAM, "SPAM")
 logging.Logger.spam = spam
 logging.Logger.key_spam = key_spam
 
-start = time.time()
-
-LOG_PATH = os.path.expanduser('~/.log/key-mapper')
+LOG_PATH = (
+    '/var/log/key-mapper' if os.access('/var/log', os.W_OK)
+    else f'{HOME}/.log/key-mapper'
+)
 
 
 class Formatter(logging.Formatter):
@@ -107,22 +111,15 @@ class Formatter(logging.Formatter):
                 logging.INFO: 32,
             }.get(record.levelno, 0)
 
-            # if this runs in a separate process, write down the pid
-            # to debug exit codes and such
-            pid = ''
-            if os.getpid() != logger.main_pid:
-                pid = f'pid {os.getpid()}, '
-
             if debug:
                 delta = f'{str(time.time() - start)[:7]}'
                 self._style._fmt = (  # noqa
                     f'\033[{color}m'  # color
+                    f'{os.getpid()} '
                     f'{delta} '
-                    '\033[1m'  # bold
-                    f'%(levelname)s'
-                    '\033[0m'  # end style
-                    f'\033[{color}m'  # color
-                    f': {pid}%(filename)s, line %(lineno)d, %(message)s'
+                    f'%(levelname)s '
+                    f'%(filename)s:%(lineno)d: '
+                    '%(message)s'
                     '\033[0m'  # end style
                 )
             else:
@@ -138,7 +135,6 @@ handler.setFormatter(Formatter())
 logger.addHandler(handler)
 logger.setLevel(logging.INFO)
 logging.getLogger('asyncio').setLevel(logging.WARNING)
-logger.main_pid = os.getpid()
 
 try:
     name = pkg_resources.require('key-mapper')[0].project_name
@@ -157,9 +153,10 @@ def is_debug():
     return logger.level <= logging.DEBUG
 
 
-def log_info():
+def log_info(name='key-mapper'):
     """Log version and name to the console"""
     # read values from setup.py
+
     logger.info(
         '%s %s %s https://github.com/sezanzeb/key-mapper',
         name, version, COMMIT_HASH
@@ -168,14 +165,17 @@ def log_info():
     if evdev_version:
         logger.info('python-evdev %s', evdev_version)
 
+    logger.info(
+        '%s %s %s https://github.com/sezanzeb/key-mapper',
+        name, version, COMMIT_HASH
+    )
+
     if is_debug():
         logger.warning(
             'Debug level will log all your keystrokes! Do not post this '
             'output in the internet if you typed in sensitive or private '
             'information with your device!'
         )
-
-    logger.debug('pid %s', os.getpid())
 
 
 def update_verbosity(debug):
@@ -201,24 +201,24 @@ def update_verbosity(debug):
         logger.setLevel(logging.INFO)
 
 
-def add_filehandler(path=LOG_PATH):
+def add_filehandler(log_path=LOG_PATH):
     """Clear the existing logfile and start logging to it."""
     logger.info('This output is also stored in "%s"', LOG_PATH)
 
-    log_path = os.path.expanduser(path)
-    log_file = os.path.join(log_path, 'log')
+    log_path = os.path.expanduser(log_path)
+    os.makedirs(os.path.dirname(log_path), exist_ok=True)
 
-    os.makedirs(log_path, exist_ok=True)
-
-    if os.path.exists(log_file):
+    if os.path.exists(log_path):
         # keep the log path small, start from scratch each time
-        os.remove(log_file)
+        if os.path.isdir(log_path):
+            # used to be a folder < 0.8.0
+            shutil.rmtree(log_path)
+        else:
+            os.remove(log_path)
 
-    file_handler = logging.FileHandler(log_file)
+    file_handler = logging.FileHandler(log_path)
     file_handler.setFormatter(Formatter())
 
-    logger.info('Logging to "%s"', log_file)
+    logger.info('Logging to "%s"', log_path)
 
     logger.addHandler(file_handler)
-
-    return os.path.join(log_path, log_file)

@@ -24,46 +24,9 @@
 
 import os
 import shutil
-import getpass
-import pwd
 
 from keymapper.logger import logger
-
-
-def get_user():
-    """Try to find the user who called sudo/pkexec."""
-    try:
-        return os.getlogin()
-    except OSError:
-        # failed in some ubuntu installations and in systemd services
-        pass
-
-    try:
-        user = os.environ['USER']
-    except KeyError:
-        # possibly the systemd service. no sudo was used
-        return getpass.getuser()
-
-    if user == 'root':
-        try:
-            return os.environ['SUDO_USER']
-        except KeyError:
-            # no sudo was used
-            pass
-
-        try:
-            pkexec_uid = int(os.environ['PKEXEC_UID'])
-            return pwd.getpwuid(pkexec_uid).pw_name
-        except KeyError:
-            # no pkexec was used or the uid is unknown
-            pass
-
-    return user
-
-
-USER = get_user()
-
-CONFIG_PATH = os.path.join('/home', USER, '.config/key-mapper')
+from keymapper.user import USER, CONFIG_PATH
 
 
 def chown(path):
@@ -94,6 +57,9 @@ def touch(path, log=True):
 
 def mkdir(path, log=True):
     """Create a folder, give it to the user."""
+    if path == '' or path is None:
+        return
+
     if os.path.exists(path):
         return
 
@@ -107,6 +73,17 @@ def mkdir(path, log=True):
 
     os.makedirs(path)
     chown(path)
+
+
+def remove(path):
+    """Remove whatever is at the path"""
+    if not os.path.exists(path):
+        return
+
+    if os.path.isdir(path):
+        shutil.rmtree(path)
+    else:
+        os.remove(path)
 
 
 def get_preset_path(device=None, preset=None):

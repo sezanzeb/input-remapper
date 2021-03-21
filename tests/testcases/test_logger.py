@@ -26,25 +26,26 @@ import logging
 
 from keymapper.logger import logger, add_filehandler, update_verbosity, \
     log_info
+from keymapper.paths import remove
 
 from tests.test import tmp
 
 
 class TestLogger(unittest.TestCase):
     def tearDown(self):
+        update_verbosity(debug=True)
+
         # remove the file handler
         logger.handlers = [
             handler for handler in logger.handlers
             if not isinstance(logger.handlers, logging.FileHandler)
         ]
         path = os.path.join(tmp, 'logger-test')
-        if os.path.exists(path):
-            shutil.rmtree(path)
-
-        update_verbosity(debug=True)
+        remove(path)
 
     def test_key_spam(self):
-        path = add_filehandler(os.path.join(tmp, 'logger-test'))
+        path = os.path.join(tmp, 'logger-test')
+        add_filehandler(path)
         logger.key_spam(((1, 2, 1),), 'foo %s bar', 1234)
         logger.key_spam(((1, 200, -1), (1, 5, 1)), 'foo %s', (1, 2))
         with open(path, 'r') as f:
@@ -54,7 +55,8 @@ class TestLogger(unittest.TestCase):
 
     def test_log_info(self):
         update_verbosity(debug=False)
-        path = add_filehandler(os.path.join(tmp, 'logger-test'))
+        path = os.path.join(tmp, 'logger-test')
+        add_filehandler(path)
         log_info()
         with open(path, 'r') as f:
             content = f.read().lower()
@@ -70,7 +72,7 @@ class TestLogger(unittest.TestCase):
         self.assertTrue(os.path.exists(new_path))
 
     def test_clears_log(self):
-        path = os.path.join(tmp, 'logger-test', 'log')
+        path = os.path.join(tmp, 'logger-test')
         os.makedirs(os.path.dirname(path), exist_ok=True)
         os.mknod(path)
         with open(path, 'w') as f:
@@ -80,7 +82,8 @@ class TestLogger(unittest.TestCase):
             self.assertEqual(f.read(), '')
 
     def test_debug(self):
-        path = add_filehandler(os.path.join(tmp, 'logger-test'))
+        path = os.path.join(tmp, 'logger-test')
+        add_filehandler(path)
         logger.error('abc')
         logger.warning('foo')
         logger.info('123')
@@ -89,7 +92,6 @@ class TestLogger(unittest.TestCase):
         with open(path, 'r') as f:
             content = f.read().lower()
             self.assertIn('logger.py', content)
-            self.assertIn('line', content)
 
             self.assertIn('error', content)
             self.assertIn('abc', content)
@@ -107,7 +109,8 @@ class TestLogger(unittest.TestCase):
             self.assertIn('789', content)
 
     def test_default(self):
-        path = add_filehandler(os.path.join(tmp, 'logger-test'))
+        path = os.path.join(tmp, 'logger-test')
+        add_filehandler(path)
         update_verbosity(debug=False)
         logger.error('abc')
         logger.warning('foo')

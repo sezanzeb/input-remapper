@@ -31,6 +31,7 @@ import unittest
 import subprocess
 import multiprocessing
 import asyncio
+import psutil
 
 import evdev
 import gi
@@ -41,6 +42,9 @@ gi.require_version('GLib', '2.0')
 assert not os.getcwd().endswith('tests')
 
 
+os.environ['UNITTEST'] = '1'
+
+
 def is_service_running():
     """Check if the daemon is running."""
     try:
@@ -48,6 +52,28 @@ def is_service_running():
         return True
     except subprocess.CalledProcessError:
         return False
+
+
+def join_children():
+    """Wait for child processes to exit. Stop them if it takes too long."""
+    this = psutil.Process(os.getpid())
+
+    i = 0
+    time.sleep(EVENT_READ_TIMEOUT)
+    children = this.children(recursive=True)
+    while len([c for c in children if c.status() != 'zombie']) > 0:
+        for child in children:
+            if i > 10:
+                child.kill()
+                print(
+                    f'\033[90m'  # color
+                    f'Killed pid {child.pid} because it didn\'t finish in time'
+                    '\033[0m'  # end style
+                )
+
+        children = this.children(recursive=True)
+        time.sleep(EVENT_READ_TIMEOUT)
+        i += 1
 
 
 if is_service_running():
@@ -61,6 +87,11 @@ sys.path.append(os.getcwd())
 # give tests some time to test stuff while the process
 # is still running
 EVENT_READ_TIMEOUT = 0.01
+
+# based on experience how much time passes at most until
+# the helper starts receiving previously pushed events after a
+# call to start_reading
+START_READING_DELAY = 0.05
 
 MAX_ABS = 2 ** 15
 
@@ -170,13 +201,31 @@ fixtures = {
 }
 
 
+def setup_pipe(device):
+    """Create a pipe that can be used to send events to the helper,
+    which in turn will be sent to the reader
+    """
+    if pending_events.get(device) is None:
+        pending_events[device] = multiprocessing.Pipe()
+
+
+# make sure those pipes exist before any process (the helper) gets forked,
+# so that events can be pushed after the fork.
+for fixture in fixtures.values():
+    if 'group' in fixture:
+        setup_pipe(fixture['group'])
+
+
 def get_events():
     """Get all events written by the injector."""
     return uinput_write_history
 
 
 def push_event(device, event):
-    """Emit a fake event for a device.
+    """Make a device act like it is reading events from evdev.
+
+    push_event is like hitting a key on a keyboard for stuff that reads from
+    evdev.InputDevice (which is patched in test.py to work that way)
 
     Parameters
     ----------
@@ -184,15 +233,20 @@ def push_event(device, event):
         For example 'device 1'
     event : InputEvent
     """
-    if pending_events.get(device) is None:
-        pending_events[device] = []
-    pending_events[device].append(event)
+    setup_pipe(device)
+    pending_events[device][0].send(event)
 
 
-def new_event(type, code, value, timestamp=None):
+def push_events(device, events):
+    """Push multiple events"""
+    for event in events:
+        push_event(device, event)
+
+
+def new_event(type, code, value, timestamp=None, offset=0):
     """Create a new input_event."""
     if timestamp is None:
-        timestamp = time.time()
+        timestamp = time.time() + offset
 
     sec = int(timestamp)
     usec = timestamp % 1 * 1000000
@@ -203,33 +257,6 @@ def new_event(type, code, value, timestamp=None):
 def patch_paths():
     from keymapper import paths
     paths.CONFIG_PATH = '/tmp/key-mapper-test'
-
-
-def patch_select():
-    # goes hand in hand with patch_evdev, which makes InputDevices return
-    # their names for `.fd`.
-    # rlist contains device names therefore, so select.select returns the
-    # name of the device for which events are pending.
-    import select
-
-    def new_select(rlist, *args):
-        ret = []
-        for thing in rlist:
-            if hasattr(thing, 'poll') and thing.poll():
-                # the reader receives msgs through pipes. If there is one
-                # ready, provide the pipe
-                ret.append(thing)
-                continue
-
-            if len(pending_events.get(thing, [])) > 0:
-                ret.append(thing)
-
-        # avoid a fast iterating infinite loop in the reader
-        time.sleep(0.01)
-
-        return [ret, [], []]
-
-    select.select = new_select
 
 
 class InputDevice:
@@ -246,11 +273,20 @@ class InputDevice:
         self.phys = fixture.get('phys', 'unset')
         self.info = fixture.get('info', evdev.device.DeviceInfo(None, None, None, None))
         self.name = fixture.get('name', 'unset')
-        self.fd = self.name
 
         # properties that exists for test purposes and are not part of
         # the original object
         self.group = fixture.get('group', self.name)
+
+        # ensure a pipe exists to make this object act like
+        # it is reading events from a device
+        setup_pipe(self.group)
+
+        self.fd = pending_events[self.group][1].fileno()
+
+    def fileno(self):
+        """Compatibility to select.select."""
+        return self.fd
 
     def log(self, key, msg):
         print(
@@ -265,50 +301,58 @@ class InputDevice:
     def grab(self):
         pass
 
+    async def async_read_loop(self):
+        if pending_events.get(self.group) is None:
+            self.log('no events to read', self.group)
+            return
+
+        # consume all of them
+        while pending_events[self.group][1].poll():
+            result = pending_events[self.group][1].recv()
+            self.log(result, 'async_read_loop')
+            yield result
+            await asyncio.sleep(0.01)
+
+        # doesn't loop endlessly in order to run tests for the injector in
+        # the main process
+
     def read(self):
         # the patched fake InputDevice objects read anything pending from
-        # that group, to be realistic it would have to check if the provided
+        # that group.
+        # To be realistic it would have to check if the provided
         # element is in its capabilities.
-        ret = [e.copy() for e in pending_events.get(self.group, [])]
-        if ret is not None:
-            # consume all of them
-            self.log('read all', self.group)
-            pending_events[self.group] = []
+        if self.group not in pending_events:
+            self.log('no events to read', self.group)
+            return
 
-        return ret
+        # consume all of them
+        while pending_events[self.group][1].poll():
+            event = pending_events[self.group][1].recv()
+            self.log(event, 'read')
+            yield event
+            time.sleep(EVENT_READ_TIMEOUT)
+
+    def read_loop(self):
+        """Endless loop that yields events."""
+        while True:
+            event = pending_events[self.group][1].recv()
+            if event is not None:
+                self.log(event, 'read_loop')
+                yield event
+            time.sleep(EVENT_READ_TIMEOUT)
 
     def read_one(self):
+        """Read one event or none if nothing available."""
         if pending_events.get(self.group) is None:
             return None
 
         if len(pending_events[self.group]) == 0:
             return None
 
-        event = pending_events[self.group].pop(0).copy()
+        time.sleep(EVENT_READ_TIMEOUT)
+        event = pending_events[self.group][1].recv()
         self.log(event, 'read_one')
         return event
-
-    def read_loop(self):
-        """Read all prepared events at once."""
-        if pending_events.get(self.group) is None:
-            return
-
-        while len(pending_events[self.group]) > 0:
-            result = pending_events[self.group].pop(0).copy()
-            self.log(result, 'read_loop')
-            yield result
-            time.sleep(EVENT_READ_TIMEOUT)
-
-    async def async_read_loop(self):
-        """Read all prepared events at once."""
-        if pending_events.get(self.group) is None:
-            return
-
-        while len(pending_events[self.group]) > 0:
-            result = pending_events[self.group].pop(0).copy()
-            self.log(result, 'async_read_loop')
-            yield result
-            await asyncio.sleep(0.01)
 
     def capabilities(self, absinfo=True, verbose=False):
         result = copy.deepcopy(fixtures[self.path]['capabilities'])
@@ -391,6 +435,21 @@ def patch_events():
     )
 
 
+def patch_os_system():
+    """Avoid running pkexec."""
+    original_system = os.system
+
+    def system(command):
+        if 'pkexec' in command:
+            # because it
+            # - will open a window for user input
+            # - has no knowledge of the fixtures and patches
+            raise Exception('Write patches to avoid running pkexec stuff')
+        return original_system(command)
+
+    os.system = system
+
+
 def clear_write_history():
     """Empty the history in preparation for the next test."""
     while len(uinput_write_history) > 0:
@@ -403,13 +462,16 @@ def clear_write_history():
 # the original versions
 patch_paths()
 patch_evdev()
-patch_select()
 patch_events()
+patch_os_system()
 
 from keymapper.logger import update_verbosity
+
+update_verbosity(True)
+
 from keymapper.injection.injector import Injector
 from keymapper.config import config
-from keymapper.gui.reader import keycode_reader
+from keymapper.gui.reader import reader
 from keymapper.getdevices import refresh_devices
 from keymapper.state import system_mapping, custom_mapping
 from keymapper.paths import get_config_path
@@ -423,13 +485,30 @@ _fixture_copy = copy.deepcopy(fixtures)
 environ_copy = copy.deepcopy(os.environ)
 
 
+def send_event_to_reader(event):
+    """Act like the helper and send input events to the reader."""
+    reader._results._unread.append({
+        'type': 'event',
+        'message': (
+            event.sec, event.usec,
+            event.type, event.code, event.value
+        )
+    })
+
+
 def quick_cleanup(log=True):
     """Reset the applications state."""
     if log:
         print('quick cleanup')
 
-    keycode_reader.stop_reading()
-    keycode_reader.__init__()
+    for key in list(pending_events.keys()):
+        while pending_events[key][1].poll():
+            pending_events[key][1].recv()
+
+    try:
+        reader.terminate()
+    except (BrokenPipeError, OSError):
+        pass
 
     if asyncio.get_event_loop().is_running():
         for task in asyncio.all_tasks():
@@ -457,9 +536,6 @@ def quick_cleanup(log=True):
     for key in list(unreleased.keys()):
         del unreleased[key]
 
-    for key in list(pending_events.keys()):
-        del pending_events[key]
-
     for path in list(fixtures.keys()):
         if path not in _fixture_copy:
             del fixtures[path]
@@ -472,20 +548,26 @@ def quick_cleanup(log=True):
         if key not in environ_copy:
             del os.environ[key]
 
+    join_children()
+
+    reader.clear()
+
+    for _, pipe in pending_events.values():
+        assert not pipe.poll()
+
 
 def cleanup():
     """Reset the applications state.
 
-    Using this is very slow, usually quick_cleanup() is sufficient.
+    Using this is slower, usually quick_cleanup() is sufficient.
     """
     print('cleanup')
 
     os.system('pkill -f key-mapper-service')
-
+    os.system('pkill -f key-mapper-control')
     time.sleep(0.05)
 
     quick_cleanup(log=False)
-
     refresh_devices()
 
 
@@ -507,8 +589,6 @@ def spy(obj, name):
 
 
 def main():
-    update_verbosity(True)
-
     cleanup()
 
     modules = sys.argv[1:]

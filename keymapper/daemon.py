@@ -26,15 +26,18 @@ https://github.com/LEW21/pydbus/tree/cc407c8b1d25b7e28a6d661a29f9e661b1c9b964/ex
 
 
 import os
-import subprocess
+import sys
 import json
 import time
+import atexit
 
 import evdev
 from pydbus import SystemBus
+import gi
+gi.require_version('GLib', '2.0')
 from gi.repository import GLib
 
-from keymapper.logger import logger
+from keymapper.logger import logger, is_debug
 from keymapper.injection.injector import Injector, UNKNOWN
 from keymapper.mapping import Mapping
 from keymapper.config import config
@@ -43,54 +46,6 @@ from keymapper.getdevices import get_devices, refresh_devices
 
 
 BUS_NAME = 'keymapper.Control'
-
-
-def is_service_running():
-    """Check if the daemon is running."""
-    try:
-        subprocess.check_output(['pgrep', '-f', 'key-mapper-service'])
-    except subprocess.CalledProcessError:
-        return False
-    return True
-
-
-def get_dbus_interface(fallback=True):
-    """Get an interface to start and stop injecting keystrokes.
-
-    Parameters
-    ----------
-    fallback : bool
-        If true, returns an instance of the daemon instead if it cannot
-        connect
-    """
-    msg = (
-        'The daemon "key-mapper-service" is not running, mapping keys '
-        'only works as long as the window is open. '
-        'Try `sudo systemctl start key-mapper`'
-    )
-
-    if not is_service_running():
-        if not fallback:
-            logger.error('Service not running')
-            return None
-
-        logger.warning(msg)
-        return Daemon()
-
-    try:
-        bus = SystemBus()
-        interface = bus.get(BUS_NAME)
-    except GLib.GError as error:
-        logger.debug(error)
-
-        if not fallback:
-            logger.error('Failed to connect to the running service')
-            return None
-
-        logger.warning(msg)
-        return Daemon()
-
-    return interface
 
 
 def path_to_device_name(path):
@@ -217,6 +172,75 @@ class Daemon:
 
         self.autoload_history = AutoloadHistory()
         self.refreshed_devices_at = 0
+
+        atexit.register(self.stop_all)
+
+    @classmethod
+    def connect(cls, fallback=True):
+        """Get an interface to start and stop injecting keystrokes.
+
+        Parameters
+        ----------
+        fallback : bool
+            If true, returns an instance of the daemon instead if it cannot
+            connect
+        """
+        try:
+            bus = SystemBus()
+            interface = bus.get(BUS_NAME)
+            logger.info('Connected to the service')
+        except GLib.GError as error:
+            if not fallback:
+                logger.error('Service not running? %s', error)
+                return None
+
+            logger.info('Starting the service')
+            # Blocks until pkexec is done asking for the password.
+            # Runs via key-mapper-control so that auth_admin_keep works
+            # for all pkexec calls of the gui
+            cmd = 'pkexec key-mapper-control --command start-daemon'
+            if is_debug():
+                cmd += ' -d'
+
+            # using pkexec will also cause the service to continue running in
+            # the background after the gui has been closed, which will keep
+            # the injections ongoing
+
+            logger.debug('Running `%s`', cmd)
+            os.system(cmd)
+            time.sleep(0.2)
+
+            # try a few times if the service was just started
+            for attempt in range(3):
+                try:
+                    interface = bus.get(BUS_NAME)
+                    break
+                except GLib.GError as error:
+                    logger.debug(
+                        'Attempt %d to connect to the service failed: "%s"',
+                        attempt + 1, error
+                    )
+                time.sleep(0.2)
+            else:
+                logger.error('Failed to connect to the service')
+                sys.exit(1)
+
+        return interface
+
+    def publish(self):
+        """Make the dbus interface available."""
+        bus = SystemBus()
+        try:
+            bus.publish(BUS_NAME, self)
+        except RuntimeError as error:
+            logger.error('Is the service is already running? %s', str(error))
+            sys.exit(1)
+
+    def run(self):
+        """Start the daemons loop. Blocks until the daemon stops."""
+        loop = GLib.MainLoop()
+        logger.debug('Running daemon')
+        loop.run()
 
     def refresh_devices(self, device=None):
         """Keep the devices up to date."""
@@ -401,11 +425,11 @@ class Daemon:
                 'Tried to start an injection without configuring the daemon '
                 'first via set_config_dir.'
             )
-            return
+            return False
 
         if device not in get_devices():
             logger.error('Could not find device "%s"', device)
-            return
+            return False
 
         preset_path = os.path.join(
             self.config_dir,

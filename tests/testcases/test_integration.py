@@ -21,9 +21,10 @@
 
 import sys
 import time
-import grp
+import atexit
 import os
 import unittest
+import multiprocessing
 import evdev
 from evdev.ecodes import EV_KEY, EV_ABS, KEY_LEFTSHIFT, KEY_A, ABS_RX, \
     EV_REL, REL_X, ABS_X
@@ -33,21 +34,24 @@ from importlib.util import spec_from_loader, module_from_spec
 from importlib.machinery import SourceFileLoader
 
 import gi
-import shutil
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk
 
 from keymapper.state import custom_mapping, system_mapping, XMODMAP_FILENAME
 from keymapper.paths import CONFIG_PATH, get_preset_path, get_config_path
 from keymapper.config import config, WHEEL, MOUSE, BUTTONS
-from keymapper.gui.reader import keycode_reader, FILTER_THRESHOLD
-from keymapper.injection.injector import RUNNING
-from keymapper.gui.row import to_string, HOLDING, IDLE
-from keymapper import permissions
+from keymapper.gui.reader import reader
+from keymapper.injection.injector import RUNNING, FAILED
+from keymapper.gui.row import Row, to_string, HOLDING, IDLE
+from keymapper.gui.window import Window
 from keymapper.key import Key
+from keymapper.daemon import Daemon
+from keymapper.getdevices import get_devices, set_devices
+from keymapper.gui.helper import RootHelper
 
-from tests.test import tmp, pending_events, new_event, spy, cleanup, \
-    uinput_write_history_pipe, MAX_ABS
+from tests.test import tmp, push_events, new_event, spy, cleanup, \
+    uinput_write_history_pipe, MAX_ABS, EVENT_READ_TIMEOUT, \
+    send_event_to_reader
 
 
 def gtk_iteration():
@@ -80,6 +84,10 @@ def launch(argv=None):
 
     gtk_iteration()
 
+    # otherwise a new handler is added with each call to launch, which
+    # spams tons of garbage when all tests finish
+    atexit.unregister(module.stop)
+
     return module.window
 
 
@@ -93,6 +101,93 @@ class FakeDropdown(Gtk.ComboBoxText):
     def get_active_id(self):
         return self.name
 
+    def set_active_id(self, name):
+        self.name = name
+
+
+def clean_up_integration(test):
+    if hasattr(test, 'original_on_close'):
+        test.window.on_close = test.original_on_close
+
+    test.window.on_apply_system_layout_clicked(None)
+    gtk_iteration()
+    test.window.on_close()
+    test.window.window.destroy()
+    gtk_iteration()
+    cleanup()
+
+    # do this now, not when all tests are finished
+    test.window.dbus.stop_all()
+    if isinstance(test.window.dbus, Daemon):
+        atexit.unregister(test.window.dbus.stop_all)
+
+
+original_on_select_preset = Window.on_select_preset
+
+
+class TestGetDevicesFromHelper(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.injector = None
+        cls.grab = evdev.InputDevice.grab
+
+        # don't try to connect, return an object instance of it instead
+        cls.original_connect = Daemon.connect
+        Daemon.connect = Daemon
+
+        cls.original_os_system = os.system
+
+        def os_system(cmd):
+            # instead of running pkexec, fork instead. This will make
+            # the helper aware of all the test patches
+            if 'pkexec key-mapper-control --command helper' in cmd:
+                # the process will have the initial value of None
+                set_devices(None)
+                multiprocessing.Process(target=RootHelper).start()
+                # the gui an empty dict, because it doesn't know any devices
+                # without the help of the privileged helper
+                set_devices({})
+            else:
+                cls.original_os_system(cmd)
+
+        os.system = os_system
+
+    def setUp(self):
+        self.window = launch()
+        # verify that the ui doesn't have knowledge of any device yet
+        self.assertIsNone(self.window.selected_device)
+        self.assertEqual(len(get_devices()), 0)
+
+    def tearDown(self):
+        clean_up_integration(self)
+
+    @classmethod
+    def tearDownClass(cls):
+        os.system = cls.original_os_system
+        Daemon.connect = cls.original_connect
+
+    @patch('keymapper.gui.window.Window.on_select_preset')
+    def test_knows_devices(self, on_select_preset_patch):
+        # verify that it is working as expected
+        gtk_iteration()
+        self.assertIsNone(self.window.selected_device)
+        self.assertIsNone(self.window.selected_preset)
+        self.assertEqual(len(get_devices()), 0)
+        on_select_preset_patch.assert_not_called()
+
+        # perform some iterations so that the gui ends up running
+        # consume_newest_keycode, which will make it receive devices.
+        # Restore patch, otherwise gtk complains when disabling handlers
+        Window.on_select_preset = original_on_select_preset
+        for _ in range(10):
+            time.sleep(0.01)
+            gtk_iteration()
+
+        self.assertIn('device 1', get_devices())
+        self.assertIn('device 2', get_devices())
+        self.assertIn('gamepad', get_devices())
+        self.assertEqual(self.window.selected_device, 'device 1')
+
 
 class TestIntegration(unittest.TestCase):
     """For tests that use the window.
@@ -104,6 +199,15 @@ class TestIntegration(unittest.TestCase):
         cls.injector = None
         cls.grab = evdev.InputDevice.grab
 
+        def start_processes(self):
+            """Avoid running pkexec which requires user input, and fork in
+            order to pass the fixtures to the helper and daemon process.
+            """
+            multiprocessing.Process(target=RootHelper).start()
+            self.dbus = Daemon()
+
+        Window.start_processes = start_processes
+
     def setUp(self):
         self.window = launch()
         self.original_on_close = self.window.on_close
@@ -114,14 +218,10 @@ class TestIntegration(unittest.TestCase):
                 raise OSError()
         evdev.InputDevice.grab = grab
 
+        config.save_config()
+
     def tearDown(self):
-        self.window.on_close = self.original_on_close
-        self.window.on_apply_system_layout_clicked(None)
-        gtk_iteration()
-        self.window.on_close()
-        self.window.window.destroy()
-        gtk_iteration()
-        cleanup()
+        clean_up_integration(self)
 
     def get_rows(self):
         return self.window.get('key_list').get_children()
@@ -246,10 +346,26 @@ class TestIntegration(unittest.TestCase):
             preset = json.load(file)
             self.assertEqual(len(preset['mapping']), 0)
 
+    def test_permission_error_on_create_preset_clicked(self):
+        def save(_=None):
+            raise PermissionError
+        with patch.object(custom_mapping, 'save', save):
+            self.window.on_create_preset_clicked(None)
+            status = self.get_status_text()
+            self.assertIn('Permission denied', status)
+
+    def test_show_injection_result_failure(self):
+        def get_state(_=None):
+            return FAILED
+
+        with patch.object(self.window.dbus, 'get_state', get_state):
+            self.window.show_injection_result()
+            text = self.get_status_text()
+            self.assertIn('Failed', text)
+
     def test_row_keycode_to_string(self):
         # not an integration test, but I have all the row tests here already
-        self.assertEqual(to_string(Key(EV_KEY, evdev.ecodes.KEY_9, 1)), '9')
-        self.assertEqual(to_string(Key(EV_KEY, evdev.ecodes.KEY_SEMICOLON, 1)), 'SEMICOLON')
+        self.assertEqual(to_string(Key(EV_KEY, evdev.ecodes.KEY_A, 1)), 'a')
         self.assertEqual(to_string(Key(EV_ABS, evdev.ecodes.ABS_HAT0X, -1)), 'ABS_HAT0X L')
         self.assertEqual(to_string(Key(EV_ABS, evdev.ecodes.ABS_HAT0Y, -1)), 'ABS_HAT0Y U')
         self.assertEqual(to_string(Key(EV_KEY, evdev.ecodes.BTN_A, 1)), 'BTN_A')
@@ -280,7 +396,7 @@ class TestIntegration(unittest.TestCase):
         self.assertEqual(row.get_key(), (EV_KEY, 30, 1))
         # this is KEY_A in linux/input-event-codes.h,
         # but KEY_ is removed from the text
-        self.assertEqual(row.keycode_input.get_label(), 'A')
+        self.assertEqual(row.keycode_input.get_label(), 'a')
 
         row.set_new_key(Key(EV_KEY, 30, 1))
         self.assertEqual(len(custom_mapping), 0)
@@ -301,15 +417,42 @@ class TestIntegration(unittest.TestCase):
         self.assertEqual(row.get_character(), 'Shift_L')
         self.assertEqual(row.get_key(), (EV_KEY, 30, 1))
 
-    def wait_until_reader_pipe_clear(self):
-        for i in range(100):
-            if keycode_reader._pipe[0].poll():
-                time.sleep(0.01)
-                gtk_iteration()
-            else:
-                break
-        else:
-            raise Exception('Expected the event to be read at some point')
+    def sleep(self, num_events):
+        for _ in range(num_events * 2):
+            time.sleep(EVENT_READ_TIMEOUT)
+            gtk_iteration()
+
+        time.sleep(1 / 30)  # one window iteration
+        gtk_iteration()
+
+    def test_row_not_focused(self):
+        self.window.window.set_focus(self.window.get('preset_name_input'))
+        send_event_to_reader(new_event(1, 61, 1))
+        self.window.consume_newest_keycode()
+
+        rows = self.get_rows()
+        self.assertEqual(len(rows), 1)
+        row = rows[0]
+
+        # the empty row has this key not set
+        self.assertIsNone(row.get_key())
+
+        # focus the text input instead
+        self.window.window.set_focus(row.character_input)
+        send_event_to_reader(new_event(1, 61, 1))
+        self.window.consume_newest_keycode()
+
+        # still nothing set
+        self.assertIsNone(row.get_key())
+
+    def test_show_status(self):
+        self.window.show_status(0, 'a' * 100)
+        text = self.get_status_text()
+        self.assertIn('...', text)
+
+        self.window.show_status(0, 'b')
+        text = self.get_status_text()
+        self.assertNotIn('...', text)
 
     def change_empty_row(self, key, char, code_first=True, expect_success=True):
         """Modify the one empty row that always exists.
@@ -327,7 +470,7 @@ class TestIntegration(unittest.TestCase):
             in the mapping eventually. False if this change is going to
             cause a duplicate.
         """
-        self.assertIsNone(keycode_reader.get_unreleased_keys())
+        self.assertIsNone(reader.get_unreleased_keys())
 
         # wait for the window to create a new empty row if needed
         time.sleep(0.1)
@@ -361,36 +504,36 @@ class TestIntegration(unittest.TestCase):
             # modifies the keycode in the row not by writing into the input,
             # but by sending an event. press down all the keys of a combination
             for sub_key in key:
-                keycode_reader._pipe[1].send(new_event(*sub_key))
-                time.sleep(FILTER_THRESHOLD * 1.1)
+
+                send_event_to_reader(new_event(*sub_key))
                 # this will be consumed all at once, since no gt_iteration
                 # is done
 
             # make the window consume the keycode
-            self.wait_until_reader_pipe_clear()
+            self.sleep(len(key))
 
             # holding down
-            self.assertIsNotNone(keycode_reader.get_unreleased_keys())
-            self.assertGreater(len(keycode_reader.get_unreleased_keys()), 0)
+            self.assertIsNotNone(reader.get_unreleased_keys())
+            self.assertGreater(len(reader.get_unreleased_keys()), 0)
             self.assertEqual(row._state, HOLDING)
             self.assertTrue(row.keycode_input.is_focus())
 
             # release all the keys
             for sub_key in key:
-                keycode_reader._pipe[1].send(new_event(*sub_key[:2], 0))
+                send_event_to_reader(new_event(*sub_key[:2], 0))
 
             # wait for the window to consume the keycode
-            self.wait_until_reader_pipe_clear()
+            self.sleep(len(key))
 
             # released
-            self.assertIsNone(keycode_reader.get_unreleased_keys())
+            self.assertIsNone(reader.get_unreleased_keys())
             self.assertEqual(row._state, IDLE)
 
             if expect_success:
                 self.assertEqual(row.get_key(), key)
                 self.assertEqual(row.keycode_input.get_label(), to_string(key))
                 self.assertFalse(row.keycode_input.is_focus())
-                self.assertEqual(len(keycode_reader._unreleased), 0)
+                self.assertEqual(len(reader._unreleased), 0)
 
         if not expect_success:
             self.assertIsNone(row.get_key())
@@ -416,20 +559,20 @@ class TestIntegration(unittest.TestCase):
 
         # focused
         self.window.window.set_focus(row.keycode_input)
-        keycode_reader._pipe[1].send(new_event(*ev_1.keys[0]))
-        keycode_reader.read()
-        self.assertEqual(keycode_reader.get_unreleased_keys(), ev_1)
+        send_event_to_reader(new_event(*ev_1.keys[0]))
+        reader.read()
+        self.assertEqual(reader.get_unreleased_keys(), ev_1)
 
         # unfocused
         self.window.window.set_focus(None)
-        self.assertEqual(keycode_reader.get_unreleased_keys(), None)
-        keycode_reader._pipe[1].send(new_event(*ev_1.keys[0]))
-        keycode_reader.read()
-        self.assertEqual(keycode_reader.get_unreleased_keys(), ev_1)
+        self.assertEqual(reader.get_unreleased_keys(), None)
+        send_event_to_reader(new_event(*ev_1.keys[0]))
+        reader.read()
+        self.assertEqual(reader.get_unreleased_keys(), ev_1)
 
         # focus back
         self.window.window.set_focus(row.keycode_input)
-        self.assertEqual(keycode_reader.get_unreleased_keys(), None)
+        self.assertEqual(reader.get_unreleased_keys(), None)
 
     def test_rows(self):
         """Comprehensive test for rows."""
@@ -659,7 +802,8 @@ class TestIntegration(unittest.TestCase):
         self.window.save_preset()
         self.window.on_rename_button_clicked(None)
         self.assertEqual(self.window.selected_preset, 'asdf')
-        self.assertTrue(os.path.exists(f'{CONFIG_PATH}/presets/device 1/asdf.json'))
+        preset_path = f'{CONFIG_PATH}/presets/device 1/asdf.json'
+        self.assertTrue(os.path.exists(preset_path))
         self.assertEqual(custom_mapping.get_character(Key(EV_KEY, 14, 1)), 'b')
         # after renaming the preset it is still set to autoload
         self.assertTrue(config.is_autoloaded('device 1', 'asdf'))
@@ -667,7 +811,22 @@ class TestIntegration(unittest.TestCase):
         error_icon = self.window.get('error_status_icon')
         self.assertFalse(error_icon.get_visible())
 
-    def test_rename_and_create(self):
+        # otherwise save won't do anything
+        custom_mapping.change(Key(EV_KEY, 14, 1), 'c', None)
+        self.assertTrue(custom_mapping.changed)
+
+        def save(_):
+            raise PermissionError
+        with patch.object(custom_mapping, 'save', save):
+            self.window.save_preset()
+            status = self.get_status_text()
+            self.assertIn('Permission denied', status)
+
+        with patch.object(self.window, 'show_confirm_delete', lambda: Gtk.ResponseType.ACCEPT):
+            self.window.on_delete_preset_clicked(None)
+            self.assertFalse(os.path.exists(preset_path))
+
+    def test_rename_create_switch(self):
         # after renaming a preset and saving it, new presets
         # start with "new preset" again
         custom_mapping.change(Key(EV_KEY, 14, 1), 'a', None)
@@ -680,15 +839,37 @@ class TestIntegration(unittest.TestCase):
         self.window.on_create_preset_clicked(None)
         self.assertEqual(self.window.selected_preset, 'new preset')
         self.assertIsNone(custom_mapping.get_character(Key(EV_KEY, 14, 1)))
+        self.window.save_preset()
+
+        # selecting the first one again loads the saved mapping
+        self.window.on_select_preset(FakeDropdown('asdf'))
+        self.assertEqual(custom_mapping.get_character(Key(EV_KEY, 14, 1)), 'a')
         config.set_autoload_preset('device 1', 'new preset')
 
-        # renaming another preset to an existing name appends a number
+        # renaming a preset to an existing name appends a number
+        self.window.on_select_preset(FakeDropdown('new preset'))
         self.window.get('preset_name_input').set_text('asdf')
         self.window.on_rename_button_clicked(None)
         self.assertEqual(self.window.selected_preset, 'asdf 2')
         # and that added number is correctly used in the autoload
         # configuration as well
         self.assertTrue(config.is_autoloaded('device 1', 'asdf 2'))
+
+        self.assertEqual(self.window.get('preset_name_input').get_text(), '')
+
+        # renaming the current preset to itself doesn't append a number and
+        # it doesn't do anything on the file system
+        def _raise(*_):
+            # should not get called
+            raise AssertionError
+        with patch.object(os, 'rename', _raise):
+            self.window.get('preset_name_input').set_text('asdf 2')
+            self.window.on_rename_button_clicked(None)
+            self.assertEqual(self.window.selected_preset, 'asdf 2')
+
+            self.window.get('preset_name_input').set_text('')
+            self.window.on_rename_button_clicked(None)
+            self.assertEqual(self.window.selected_preset, 'asdf 2')
 
     def test_avoids_redundant_saves(self):
         custom_mapping.change(Key(EV_KEY, 14, 1), 'abcd', None)
@@ -893,30 +1074,20 @@ class TestIntegration(unittest.TestCase):
         # empty
 
         custom_mapping.empty()
-        custom_mapping.save(get_preset_path(device_name, preset_name))
+        self.window.save_preset()
         self.window.on_apply_preset_clicked(None)
         text = self.get_status_text()
         self.assertIn('add keys', text)
-        self.assertIn('save', text)
         self.assertTrue(error_icon.get_visible())
         self.assertNotEqual(self.window.dbus.get_state(device_name), RUNNING)
 
-        # not empty, but not saved
+        # not empty, but keys are held down
 
         custom_mapping.change(Key(EV_KEY, KEY_A, 1), 'a')
-        self.window.on_apply_preset_clicked(None)
-        text = self.get_status_text()
-        self.assertNotIn('add keys', text)
-        self.assertIn('save', text)
-        self.assertTrue(error_icon.get_visible())
-        self.assertNotEqual(self.window.dbus.get_state(device_name), RUNNING)
-
-        # saved, but keys are held down
-
-        custom_mapping.save(get_preset_path(device_name, preset_name))
-        keycode_reader._pipe[1].send(new_event(EV_KEY, KEY_A, 1))
-        keycode_reader.read()
-        self.assertEqual(len(keycode_reader._unreleased), 1)
+        self.window.save_preset()
+        send_event_to_reader(new_event(EV_KEY, KEY_A, 1))
+        reader.read()
+        self.assertEqual(len(reader._unreleased), 1)
         self.assertFalse(self.window.unreleased_warn)
         self.window.on_apply_preset_clicked(None)
         text = self.get_status_text()
@@ -952,29 +1123,13 @@ class TestIntegration(unittest.TestCase):
             self.assertNotEqual(self.window.dbus.get_state(device_name), RUNNING)
 
             # for the second try, release the key. that should also work
-            keycode_reader._pipe[1].send(new_event(EV_KEY, KEY_A, 0))
-            keycode_reader.read()
-            self.assertEqual(len(keycode_reader._unreleased), 0)
+            send_event_to_reader(new_event(EV_KEY, KEY_A, 0))
+            reader.read()
+            self.assertEqual(len(reader._unreleased), 0)
 
-        # this time work, but changes are unsaved
+        # this time work properly
 
-        custom_mapping.change(Key(EV_KEY, KEY_A, 1), 'b')
         self.grab_fails = False
-        self.window.on_apply_preset_clicked(None)
-        text = self.get_status_text()
-        # it takes a little bit of time
-        self.assertIn('Starting injection', text)
-        self.assertFalse(error_icon.get_visible())
-        wait()
-        text = self.get_status_text()
-        self.assertIn('Applied', text)
-        self.assertIn('unsaved', text)
-        self.assertFalse(error_icon.get_visible())
-        self.assertEqual(self.window.dbus.get_state(device_name), RUNNING)
-        self.assertEqual(self.window.get('apply_system_layout').get_opacity(), 1)
-
-        # save changes, this time work properly
-
         custom_mapping.save(get_preset_path(device_name, preset_name))
         self.window.on_apply_preset_clicked(None)
         text = self.get_status_text()
@@ -983,12 +1138,40 @@ class TestIntegration(unittest.TestCase):
         wait()
         text = self.get_status_text()
         self.assertIn('Applied', text)
-        self.assertNotIn('unsaved', text)
         self.assertFalse(error_icon.get_visible())
         self.assertEqual(self.window.dbus.get_state(device_name), RUNNING)
 
         # because this test managed to reproduce some minor bug:
         self.assertNotIn('mapping', custom_mapping._config)
+
+    def test_can_modify_mapping(self):
+        preset_name = 'foo preset'
+        device_name = 'device 2'
+        self.window.selected_preset = preset_name
+        self.window.selected_device = device_name
+
+        self.assertNotEqual(self.window.dbus.get_state(device_name), RUNNING)
+        self.window.can_modify_mapping()
+        text = self.get_status_text()
+        self.assertNotIn('Restore Defaults', text)
+
+        custom_mapping.change(Key(EV_KEY, KEY_A, 1), 'b')
+        custom_mapping.save(get_preset_path(device_name, preset_name))
+        self.window.on_apply_preset_clicked(None)
+
+        # wait for the injector to start
+        for _ in range(10):
+            time.sleep(0.1)
+            gtk_iteration()
+            if 'Starting' not in self.get_status_text():
+                return
+
+        self.assertEqual(self.window.dbus.get_state(device_name), RUNNING)
+
+        # the mapping cannot be changed anymore
+        self.window.can_modify_mapping()
+        text = self.get_status_text()
+        self.assertIn('Restore Defaults', text)
 
     def test_start_injecting(self):
         keycode_from = 9
@@ -998,15 +1181,16 @@ class TestIntegration(unittest.TestCase):
         system_mapping.clear()
         system_mapping._set('a', keycode_to)
 
-        pending_events['device 2'] = [
+        push_events('device 2', [
             new_event(evdev.events.EV_KEY, keycode_from, 1),
             new_event(evdev.events.EV_KEY, keycode_from, 0)
-        ]
+        ])
 
         custom_mapping.save(get_preset_path('device 2', 'foo preset'))
 
         # use only the manipulated system_mapping
-        os.remove(os.path.join(tmp, XMODMAP_FILENAME))
+        if os.path.exists(os.path.join(tmp, XMODMAP_FILENAME)):
+            os.remove(os.path.join(tmp, XMODMAP_FILENAME))
 
         # spy on set_config_dir
         set_config_dir_history = spy(self.window.dbus, 'set_config_dir')
@@ -1047,13 +1231,13 @@ class TestIntegration(unittest.TestCase):
 
         # don't consume the events in the reader, they are used to test
         # the injection
-        keycode_reader.stop_reading()
+        reader.terminate()
         time.sleep(0.1)
 
-        pending_events['gamepad'] = [
+        push_events('gamepad', [
              new_event(EV_ABS, ABS_RX, -MAX_ABS),
              new_event(EV_ABS, ABS_X, MAX_ABS)
-        ] * 100
+        ] * 100)
 
         custom_mapping.change(Key(EV_ABS, ABS_X, 1), 'a')
         self.window.save_preset()
@@ -1085,7 +1269,7 @@ class TestIntegration(unittest.TestCase):
 
         # not all of those events should be processed, since that takes some
         # time due to time.sleep in the fakes and the injection is stopped.
-        pending_events['device 2'] = [new_event(1, keycode_from, 1)] * 100
+        push_events('device 2', [new_event(1, keycode_from, 1)] * 100)
 
         custom_mapping.save(get_preset_path('device 2', 'foo preset'))
 
@@ -1138,56 +1322,66 @@ class TestIntegration(unittest.TestCase):
             self.assertEqual(self.window.selected_preset, 'new preset')
             self.assertEqual(self.window.selected_device, 'device 1')
 
+    def test_populate_devices(self):
+        preset_selection = self.window.get('preset_selection')
+        device_selection = self.window.get('device_selection')
 
-original_access = os.access
-original_getgrnam = grp.getgrnam
-original_can_read_devices = permissions.can_read_devices
+        # create two presets
+        self.window.get('preset_name_input').set_text('preset 1')
+        self.window.on_rename_button_clicked(None)
+        self.assertEqual(preset_selection.get_active_id(), 'preset 1')
 
+        # to make sure the next preset has a slightly higher timestamp
+        time.sleep(0.1)
+        self.window.on_create_preset_clicked(None)
+        self.window.get('preset_name_input').set_text('preset 2')
+        self.window.on_rename_button_clicked(None)
+        self.assertEqual(preset_selection.get_active_id(), 'preset 2')
 
-class TestPermissions(unittest.TestCase):
-    def tearDown(self):
-        os.access = original_access
-        os.getgrnam = original_getgrnam
-        permissions.can_read_devices = original_can_read_devices
+        # select the older one
+        preset_selection.set_active_id('preset 1')
+        self.assertEqual(self.window.selected_preset, 'preset 1')
 
-        if self.window is not None:
-            self.window.on_close()
-            self.window.window.destroy()
-            gtk_iteration()
-            self.window = None
+        # add a device that doesn't exist to the dropdown
+        device_selection.insert(0, 'foo', 'foo')
 
-        shutil.rmtree('/tmp/key-mapper-test')
+        # now the newest preset should be selected and the non-existing
+        # device removed
+        self.window.populate_devices()
+        self.assertEqual(self.window.selected_preset, 'preset 2')
+        # Idk how I can check if foo is not in the list except for this way:
+        device_selection.set_active_id('foo')
+        self.assertEqual(device_selection.get_active_id(), 'device 1')
 
-    def test_fails(self):
-        def fake():
-            return ['error1', 'error2', 'error3']
+    def test_screw_up_rows(self):
+        # add a row that is not present in custom_mapping
+        key_list = self.window.get('key_list')
+        key_list.forall(key_list.remove)
+        for i in range(5):
+            broken = Row(window=self.window, delete_callback=lambda: None)
+            broken.set_new_key(Key(1, i, 1))
+            broken.character_input.set_text('a')
+            key_list.insert(broken, -1)
+        custom_mapping.empty()
 
-        permissions.can_read_devices = fake
+        # the ui has 5 rows, the custom_mapping 0. mismatch
+        num_rows_before = len(key_list.get_children())
+        self.assertEqual(len(custom_mapping), 0)
+        self.assertEqual(num_rows_before, 5)
 
-        self.window = launch()
-        status = self.window.get('status_bar')
-        error_icon = self.window.get('error_status_icon')
+        # it returns true to keep the glib timeout going
+        self.assertTrue(self.window.check_add_row())
+        # it still adds a new empty row and won't break
+        num_rows_after = len(key_list.get_children())
+        self.assertEqual(num_rows_after, num_rows_before + 1)
 
-        tooltip = status.get_tooltip_text()
-        self.assertIn('sudo', tooltip)
-        self.assertIn('pkexec', tooltip)
-        self.assertIn('error1', tooltip)
-        self.assertIn('error2', tooltip)
-        self.assertIn('error3', tooltip)
-        self.assertTrue(error_icon.get_visible())
-
-    def test_good(self):
-        def fake():
-            return []
-
-        permissions.can_read_devices = fake
-
-        self.window = launch()
-        status = self.window.get('status_bar')
-        error_icon = self.window.get('error_status_icon')
-
-        self.assertIsNone(status.get_tooltip_text())
-        self.assertFalse(error_icon.get_visible())
+        rows = key_list.get_children()
+        self.assertEqual(rows[0].get_character(), 'a')
+        self.assertEqual(rows[1].get_character(), 'a')
+        self.assertEqual(rows[2].get_character(), 'a')
+        self.assertEqual(rows[3].get_character(), 'a')
+        self.assertEqual(rows[4].get_character(), 'a')
+        self.assertEqual(rows[5].get_character(), None)
 
 
 if __name__ == "__main__":

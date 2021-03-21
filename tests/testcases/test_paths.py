@@ -21,14 +21,12 @@
 
 import os
 import unittest
+from unittest import mock
 
-from keymapper.paths import get_user, touch, mkdir, \
-    get_preset_path, get_config_path
+from keymapper.paths import touch, mkdir, get_preset_path, get_config_path
+from keymapper.user import get_user
 
 from tests.test import quick_cleanup, tmp
-
-
-original_getlogin = os.getlogin()
 
 
 def _raise(error):
@@ -38,25 +36,23 @@ def _raise(error):
 class TestPaths(unittest.TestCase):
     def tearDown(self):
         quick_cleanup()
-        os.getlogin = original_getlogin
 
     def test_get_user(self):
-        os.getlogin = lambda: 'foo'
-        self.assertEqual(get_user(), 'foo')
+        with mock.patch('os.getlogin', lambda: 'foo'):
+            self.assertEqual(get_user(), 'foo')
 
-        os.getlogin = lambda: 'root'
-        self.assertEqual(get_user(), 'root')
+        with mock.patch('os.getlogin', lambda: 'root'):
+            self.assertEqual(get_user(), 'root')
 
-        os.getlogin = lambda: _raise(OSError())
+        with mock.patch('os.getlogin', lambda: _raise(OSError())):
+            os.environ['USER'] = 'root'
+            os.environ['SUDO_USER'] = 'qux'
+            self.assertEqual(get_user(), 'qux')
 
-        os.environ['USER'] = 'root'
-        os.environ['SUDO_USER'] = 'qux'
-        self.assertEqual(get_user(), 'qux')
-
-        os.environ['USER'] = 'root'
-        del os.environ['SUDO_USER']
-        os.environ['PKEXEC_UID'] = '1000'
-        self.assertNotEqual(get_user(), 'root')
+            os.environ['USER'] = 'root'
+            del os.environ['SUDO_USER']
+            os.environ['PKEXEC_UID'] = '1000'
+            self.assertNotEqual(get_user(), 'root')
 
     def test_touch(self):
         touch('/tmp/a/b/c/d/e')

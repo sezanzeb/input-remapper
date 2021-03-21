@@ -20,6 +20,7 @@
 
 
 import unittest
+from unittest import mock
 
 import evdev
 
@@ -37,11 +38,7 @@ class FakePipe:
 
 
 class TestGetDevices(unittest.TestCase):
-    def setUp(self):
-        self.original_list_devices = evdev.list_devices
-
     def tearDown(self):
-        evdev.list_devices = self.original_list_devices
         cleanup()
 
     def test_get_devices(self):
@@ -120,11 +117,10 @@ class TestGetDevices(unittest.TestCase):
             }
         }
 
-        evdev.list_devices = list_devices
-
-        refresh_devices()
-        self.assertNotIn('camera', get_devices())
-        self.assertIn('gamepad', get_devices())
+        with mock.patch('evdev.list_devices', list_devices):
+            refresh_devices()
+            self.assertNotIn('camera', get_devices())
+            self.assertIn('gamepad', get_devices())
 
     def test_device_with_only_ev_abs(self):
         def list_devices():
@@ -143,11 +139,10 @@ class TestGetDevices(unittest.TestCase):
             }
         }
 
-        evdev.list_devices = list_devices
-
-        refresh_devices()
-        self.assertIn('gamepad', get_devices())
-        self.assertNotIn('qux', get_devices())
+        with mock.patch('evdev.list_devices', list_devices):
+            refresh_devices()
+            self.assertIn('gamepad', get_devices())
+            self.assertNotIn('qux', get_devices())
 
     def test_is_gamepad(self):
         # properly detects if the device is a gamepad

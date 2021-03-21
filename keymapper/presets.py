@@ -56,6 +56,10 @@ migrate_path()
 
 def get_available_preset_name(device, preset='new preset', copy=False):
     """Increment the preset name until it is available."""
+    if device is None:
+        # endless loop otherwise
+        raise ValueError('Device may not be None')
+
     preset = preset.strip()
 
     if copy and not re.match(r'^.+\scopy( \d+)?$', preset):

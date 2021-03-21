@@ -21,18 +21,26 @@
 
 import os
 import unittest
+import time
+import multiprocessing
 
 import evdev
 from evdev.ecodes import EV_ABS, EV_KEY
 
 from keymapper.getdevices import get_devices
+from keymapper.gui.reader import reader
+from keymapper.gui.helper import RootHelper
 
-from tests.test import InputDevice, cleanup, fixtures
+from tests.test import InputDevice, quick_cleanup, cleanup, fixtures,\
+    new_event, push_events, EVENT_READ_TIMEOUT, START_READING_DELAY
 
 
 class TestTest(unittest.TestCase):
     def test_stubs(self):
         self.assertIn('device 1', get_devices())
+
+    def tearDown(self):
+        quick_cleanup()
 
     def test_fake_capabilities(self):
         device = InputDevice('/dev/input/event30')
@@ -66,6 +74,48 @@ class TestTest(unittest.TestCase):
         cleanup()
         self.assertIn('USER', environ)
         self.assertNotIn('foo', environ)
+
+    def test_push_events(self):
+        """Test that push_event works properly between helper and reader.
+
+        Using push_events after the helper is already forked should work,
+        as well as using push_event twice
+        """
+        def create_helper():
+            # this will cause pending events to be copied over to the helper
+            # process
+            def start_helper():
+                helper = RootHelper()
+                helper.run()
+
+            self.helper = multiprocessing.Process(target=start_helper)
+            self.helper.start()
+            time.sleep(0.1)
+
+        def wait_for_results():
+            # wait for the helper to send stuff
+            for _ in range(10):
+                time.sleep(EVENT_READ_TIMEOUT)
+                if reader._results.poll():
+                    break
+
+        event = new_event(EV_KEY, 102, 1)
+        create_helper()
+        reader.start_reading('device 1')
+        time.sleep(START_READING_DELAY)
+
+        push_events('device 1', [event])
+        wait_for_results()
+        self.assertTrue(reader._results.poll())
+
+        reader.clear()
+        self.assertFalse(reader._results.poll())
+
+        # can push more events to the helper that is inside a separate
+        # process, which end up being sent to the reader
+        push_events('device 1', [event])
+        wait_for_results()
+        self.assertTrue(reader._results.poll())
 
 
 if __name__ == "__main__":

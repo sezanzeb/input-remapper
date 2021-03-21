@@ -44,6 +44,7 @@ class SystemMapping:
     def __init__(self):
         """Construct the system_mapping."""
         self._mapping = {}
+        self.xmodmap = {}
         self.populate()
 
     def list_names(self):
@@ -61,8 +62,9 @@ class SystemMapping:
                 stderr=subprocess.STDOUT
             ).decode()
             xmodmap = xmodmap.lower()
-            mappings = re.findall(r'(\d+) = (.+)\n', xmodmap + '\n')
-            for keycode, names in mappings:
+            self.xmodmap = re.findall(r'(\d+) = (.+)\n', xmodmap + '\n')
+
+            for keycode, names in self.xmodmap:
                 # there might be multiple, like:
                 # keycode  64 = Alt_L Meta_L Alt_L Meta_L
                 # keycode 204 = NoSymbol Alt_L NoSymbol Alt_L
@@ -72,7 +74,7 @@ class SystemMapping:
                 name = names.split()[0]
                 xmodmap_dict[name] = int(keycode) - XKB_KEYCODE_OFFSET
 
-            for keycode, names in mappings:
+            for keycode, names in self.xmodmap:
                 # but since KP may be mapped like KP_Home KP_7 KP_Home KP_7,
                 # make another pass and add all of them if they don't already
                 # exist. don't overwrite any keycodes.
@@ -123,6 +125,14 @@ class SystemMapping:
         keys = list(self._mapping.keys())
         for key in keys:
             del self._mapping[key]
+
+    def get_name(self, code):
+        """Get the first matching name for the code."""
+        for entry in self.xmodmap:
+            if int(entry[0]) - XKB_KEYCODE_OFFSET == code:
+                return entry[1].split()[0]
+
+        return None
 
 
 # one mapping object for the GUI application
