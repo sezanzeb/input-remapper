@@ -38,8 +38,7 @@ from evdev.ecodes import EV_KEY
 
 from keymapper.ipc.pipe import Pipe
 from keymapper.logger import logger
-from keymapper.state import custom_mapping
-from keymapper.getdevices import get_devices, is_gamepad
+from keymapper.getdevices import get_devices
 from keymapper import utils
 
 
@@ -110,7 +109,6 @@ class RootHelper:
         device_name = self.device_name
 
         rlist = {}
-        gamepad = {}
 
         if device_name is None:
             logger.error('device_name is None')
@@ -135,7 +133,6 @@ class RootHelper:
 
         for device in virtual_devices:
             rlist[device.fd] = device
-            gamepad[device.fd] = is_gamepad(device)
 
         logger.debug(
             'Starting reading keycodes from "%s"',
@@ -162,21 +159,18 @@ class RootHelper:
 
                 try:
                     event = device.read_one()
-                    self._send_event(event, device, gamepad[device.fd])
+                    self._send_event(event, device)
                 except OSError:
                     logger.debug('Device "%s" disappeared', device.path)
                     return
 
-    def _send_event(self, event, device, gamepad):
+    def _send_event(self, event, device):
         """Write the event into the pipe to the main process.
 
         Parameters
         ----------
         event : evdev.InputEvent
         device : evdev.InputDevice
-        gamepad : bool
-            If true, ABS_X and ABS_Y might be mapped to buttons as well
-            depending on the purpose configuration
         """
         # value: 1 for down, 0 for up, 2 for hold.
         if event.type == EV_KEY and event.value == 2:
@@ -192,9 +186,6 @@ class RootHelper:
             # disable mapping the left mouse button because it would break
             # the mouse. Also it is emitted right when focusing the row
             # which breaks the current workflow.
-            return
-
-        if not utils.should_map_as_btn(event, custom_mapping, gamepad):
             return
 
         max_abs = utils.get_max_abs(device)

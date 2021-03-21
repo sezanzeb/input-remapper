@@ -20,6 +20,7 @@
 
 
 import unittest
+from unittest import mock
 import time
 import multiprocessing
 
@@ -166,22 +167,22 @@ class TestReader(unittest.TestCase):
         self.assertEqual(reader.get_unreleased_keys(), None)
 
     def test_change_wheel_direction(self):
-        self.assertEqual(reader.read(), None)
-        self.create_helper()
-        self.assertEqual(reader.read(), None)
         # not just wheel, anything that suddenly reports a different value.
         # as long as type and code are equal its the same key, so there is no
         # way both directions can be held down.
+        self.assertEqual(reader.read(), None)
+        self.create_helper()
+        self.assertEqual(reader.read(), None)
         reader.start_reading('device 1')
         self.assertEqual(reader.read(), None)
 
-        send_event_to_reader(new_event(1234, 2345, 1))
-        self.assertEqual(reader.read(), (1234, 2345, 1))
+        send_event_to_reader(new_event(EV_REL, REL_WHEEL, 1))
+        self.assertEqual(reader.read(), (EV_REL, REL_WHEEL, 1))
         self.assertEqual(len(reader._unreleased), 1)
         self.assertEqual(reader.read(), None)
 
-        send_event_to_reader(new_event(1234, 2345, -1))
-        self.assertEqual(reader.read(), (1234, 2345, -1))
+        send_event_to_reader(new_event(EV_REL, REL_WHEEL, -1))
+        self.assertEqual(reader.read(), (EV_REL, REL_WHEEL, -1))
         # notice that this is no combination of two sides, the previous
         # entry in unreleased has to get overwritten. So there is still only
         # one element in it.
@@ -240,13 +241,14 @@ class TestReader(unittest.TestCase):
     def test_reading_3(self):
         self.create_helper()
         # a combination of events via Socket with reads inbetween
-        reader.start_reading('device 1')
+        reader.start_reading('gamepad')
 
         send_event_to_reader(new_event(EV_KEY, CODE_1, 1, 1001))
         self.assertEqual(reader.read(), (
             (EV_KEY, CODE_1, 1)
         ))
 
+        custom_mapping.set('gamepad.joystick.left_purpose', BUTTONS)
         send_event_to_reader(new_event(EV_ABS, ABS_Y, 1, 1002))
         self.assertEqual(reader.read(), (
             (EV_KEY, CODE_1, 1),
@@ -308,7 +310,7 @@ class TestReader(unittest.TestCase):
         self.assertEqual(len(reader._unreleased), 0)
 
     def test_combine_triggers(self):
-        reader.start_reading('foo')
+        reader.start_reading('device 1')
 
         i = 0
 
