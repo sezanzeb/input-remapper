@@ -449,6 +449,23 @@ class TestInjector(unittest.TestCase):
         # it can still debounce stuff though
         self.assertIsNone(self.injector._event_producer.max_abs)
 
+    def test_get_udef_name(self):
+        self.injector = Injector('device 1', custom_mapping)
+        suffix = 'mapped'
+        prefix = 'key-mapper'
+        expected = f'{prefix} {"a" * (80 - len(suffix) - len(prefix) - 2)} {suffix}'
+        self.assertEqual(len(expected), 80)
+        self.assertEqual(
+            self.injector.get_udef_name('a' * 100, suffix),
+            expected
+        )
+
+        self.injector.device = 'abcd'
+        self.assertEqual(
+            self.injector.get_udef_name('abcd', 'forwarded'),
+            'key-mapper abcd forwarded'
+        )
+
     def test_capabilities_and_uinput_presence(self):
         custom_mapping.change(Key(EV_KEY, KEY_A, 1), 'c')
         custom_mapping.change(Key(EV_REL, REL_HWHEEL, 1), 'k(b)')

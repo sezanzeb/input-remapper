@@ -295,6 +295,15 @@ class Injector(multiprocessing.Process):
                 loop.stop()
                 return
 
+    def get_udef_name(self, name, prefix):
+        """Make sure the generated name is not longer than 80 chars."""
+        max_len = 80  # based on error messages
+        suffix = 'key-mapper'
+        remaining_len = max_len - len(suffix) - len(prefix) - 2
+        middle = name[:remaining_len]
+        name = f'{suffix} {middle} {prefix}'
+        return name
+
     def run(self):
         """The injection worker that keeps injecting until terminated.
 
@@ -331,7 +340,7 @@ class Injector(multiprocessing.Process):
         # where mapped events go to.
         # See the Context docstring on why this is needed.
         self.context.uinput = evdev.UInput(
-            name=f'{DEV_NAME} {self.device} mapped',
+            name=self.get_udef_name(self.device, 'mapped'),
             phys=DEV_NAME,
             events=self._construct_capabilities(group['gamepad'])
         )
@@ -349,7 +358,7 @@ class Injector(multiprocessing.Process):
             # so don't merge all InputDevices into one UInput device.
             gamepad = is_gamepad(source)
             forward_to = evdev.UInput(
-                name=f'{DEV_NAME} {source.name} forwarded',
+                name=self.get_udef_name(source.name, 'forwarded'),
                 phys=DEV_NAME,
                 events=self._copy_capabilities(source)
             )
