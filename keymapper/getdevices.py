@@ -175,13 +175,23 @@ class _GetDevices(threading.Thread):
 
 
 def refresh_devices():
-    """This can be called to discover new devices."""
+    """This can be called to discover new devices.
+
+    Only call this if appropriate permissions are available, otherwise
+    the object may be empty afterwards.
+    """
     # it may take a little bit of time until devices are visible after
     # changes
     time.sleep(0.1)
     global _devices
     _devices = None
     return get_devices()
+
+
+def set_devices(devices):
+    """Overwrite the object containing the devices."""
+    global _devices
+    _devices = devices
 
 
 def get_devices(include_keymapper=False):

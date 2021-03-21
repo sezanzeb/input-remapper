@@ -19,53 +19,40 @@
 # along with key-mapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
-"""Starts the user interface."""
+"""Starts the root helper."""
 
 
+import os
 import sys
 import atexit
+import signal
 from argparse import ArgumentParser
 
-import gi
-gi.require_version('Gtk', '3.0')
-gi.require_version('GLib', '2.0')
-from gi.repository import Gtk
-
-# https://github.com/Nuitka/Nuitka/issues/607#issuecomment-650217096
-Gtk.init()
-
-from keymapper.logger import update_verbosity, log_info
+from keymapper.logger import update_verbosity
 
 
 if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument(
         '-d', '--debug', action='store_true', dest='debug',
-        help='Displays additional debug information',
-        default=False
+        help='Displays additional debug information', default=False
     )
 
     options = parser.parse_args(sys.argv[1:])
+
     update_verbosity(options.debug)
-    log_info('key-mapper-gtk')
 
     # import key-mapper stuff after setting the log verbosity
-    from keymapper.gui.window import Window
-    from keymapper.daemon import Daemon
-    from keymapper.daemon import config
+    from keymapper.gui.helper import RootHelper
 
-    config.load_config()
+    def on_exit():
+        """Don't remain idle and alive when the GUI exits via ctrl+c."""
+        # makes no sense to me, but after the keyboard interrupt it is still
+        # waiting for an event to complete (`S` in `ps ax`), even when using
+        # sys.exit
+        os.kill(os.getpid(), signal.SIGKILL)
 
-    window = Window()
+    atexit.register(on_exit)
 
-    def stop():
-        if isinstance(window.dbus, Daemon):
-            # it created its own temporary daemon inside the process
-            # because none was running
-            window.dbus.stop_all()
-
-        window.on_close()
-
-    atexit.register(stop)
-
-    Gtk.main()
+    helper = RootHelper()
+    helper.run()

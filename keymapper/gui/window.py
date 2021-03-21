@@ -23,6 +23,7 @@
 
 
 import math
+import os
 
 from gi.repository import Gtk, Gdk, GLib
 
@@ -31,15 +32,16 @@ from keymapper.paths import get_config_path, get_preset_path
 from keymapper.state import custom_mapping, system_mapping
 from keymapper.presets import get_presets, find_newest_preset, \
     delete_preset, rename_preset, get_available_preset_name
-from keymapper.logger import logger, COMMIT_HASH, version, evdev_version
+from keymapper.logger import logger, COMMIT_HASH, version, evdev_version, \
+    is_debug
 from keymapper.getdevices import get_devices
 from keymapper.gui.row import Row, to_string
-from keymapper.gui.reader import keycode_reader
+from keymapper.gui.reader import reader
+from keymapper.gui.helper import is_helper_running
 from keymapper.injection.injector import RUNNING, FAILED, NO_GRAB
-from keymapper.daemon import get_dbus_interface
+from keymapper.daemon import Daemon
 from keymapper.config import config
 from keymapper.injection.macros import is_this_a_macro, parse
-from keymapper import permissions
 
 
 def gtk_iteration():
@@ -107,7 +109,7 @@ def on_close_about(about, _):
 class Window:
     """User Interface."""
     def __init__(self):
-        self.dbus = get_dbus_interface()
+        self.dbus = None
 
         self.selected_device = None
         self.selected_preset = None
@@ -128,6 +130,8 @@ class Window:
         builder.connect_signals(self)
         self.builder = builder
 
+        self.start_processes()
+
         self.confirm_delete = builder.get_object('confirm-delete')
         self.about = builder.get_object('about-dialog')
         self.about.connect('delete-event', on_close_about)
@@ -147,25 +151,12 @@ class Window:
         # already visible (without content) to make it look more responsive.
         gtk_iteration()
 
-        permission_errors = permissions.can_read_devices()
-        if len(permission_errors) > 0:
-            permission_errors = [(
-                'Usually, key-mapper-gtk should be started with pkexec '
-                'or sudo.'
-            )] + permission_errors
-            self.show_status(
-                CTX_ERROR,
-                'Permission error, hover for info',
-                '\n\n'.join(permission_errors)
-            )
-
         # this is not set to invisible in glade to give the ui a default
         # height that doesn't jump when a gamepad is selected
         self.get('gamepad_separator').hide()
         self.get('gamepad_config').hide()
 
         self.populate_devices()
-        self.select_newest_preset()
 
         self.timeouts = [
             GLib.timeout_add(100, self.check_add_row),
@@ -177,6 +168,21 @@ class Window:
 
         self.ctrl = False
         self.unreleased_warn = 0
+
+    def start_processes(self):
+        """Start helper and daemon via pkexec to run in the background."""
+        # this function is overwritten in tests
+        self.dbus = Daemon.connect()
+
+        cmd = 'pkexec key-mapper-control --command helper'
+        if is_debug:
+            cmd += ' -d'
+
+        logger.debug('Running `%s`', cmd)
+        os.system(cmd)
+
+        if not is_helper_running():
+            self.show_status(CTX_ERROR, 'The helper did not start')
 
     def show_confirm_delete(self):
         """Blocks until the user decided about an action."""
@@ -248,7 +254,7 @@ class Window:
         for timeout in self.timeouts:
             GLib.source_remove(timeout)
             self.timeouts = []
-        keycode_reader.stop_reading()
+        reader.terminate()
         Gtk.main_quit()
 
     def check_add_row(self):
@@ -275,8 +281,8 @@ class Window:
             )
 
         # iterating over that 10 times per second is a bit wasteful,
-        # but there were problems with the old approach which involved
-        # just counting the number of mappings and rows.
+        # but the old approach which involved just counting the number of
+        # mappings and rows didn't seem very robust.
         for row in rows:
             if row.get_key() is None or row.get_character() is None:
                 # unfinished row found
@@ -287,19 +293,24 @@ class Window:
         return True
 
     def select_newest_preset(self):
-        """Find and select the newest preset."""
+        """Find and select the newest preset (and its device)."""
         device, preset = find_newest_preset()
         if device is not None:
             self.get('device_selection').set_active_id(device)
         if preset is not None:
-            self.get('device_selection').set_active_id(preset)
+            self.get('preset_selection').set_active_id(preset)
 
     def populate_devices(self):
         """Make the devices selectable."""
         devices = get_devices()
         device_selection = self.get('device_selection')
-        for device in devices:
-            device_selection.append(device, device)
+
+        with HandlerDisabled(device_selection, self.on_select_device):
+            device_selection.remove_all()
+            for device in devices:
+                device_selection.append(device, device)
+
+        self.select_newest_preset()
 
     def populate_presets(self):
         """Show the available presets for the selected device.
@@ -320,10 +331,9 @@ class Window:
 
         preset_selection = self.get('preset_selection')
 
-        preset_selection.handler_block_by_func(self.on_select_preset)
-        # otherwise the handler is called with None for each removed preset
-        preset_selection.remove_all()
-        preset_selection.handler_unblock_by_func(self.on_select_preset)
+        with HandlerDisabled(preset_selection, self.on_select_preset):
+            # otherwise the handler is called with None for each preset
+            preset_selection.remove_all()
 
         for preset in presets:
             preset_selection.append(preset, preset)
@@ -365,7 +375,6 @@ class Window:
 
         return row, focused
 
-    @with_selected_device
     def consume_newest_keycode(self):
         """To capture events from keyboards, mice and gamepads."""
         # the "event" event of Gtk.Window wouldn't trigger on gamepad
@@ -375,7 +384,10 @@ class Window:
         # letting go of one of the keys of a combination won't just make
         # it return the leftover key, it will continue to return None because
         # they have already been read.
-        key = keycode_reader.read()
+        key = reader.read()
+
+        if reader.are_new_devices_available():
+            self.populate_devices()
 
         # TODO highlight if a row for that key exists or something
 
@@ -499,6 +511,8 @@ class Window:
     @with_selected_preset
     def on_apply_preset_clicked(self, _):
         """Apply a preset without saving changes."""
+        self.save_preset()
+
         if custom_mapping.num_saved_keys == 0:
             logger.error('Cannot apply empty preset file')
             # also helpful for first time use
@@ -521,7 +535,7 @@ class Window:
         logger.info('Applying preset "%s" for "%s"', preset, device)
 
         if not self.unreleased_warn:
-            unreleased = keycode_reader.get_unreleased_keys()
+            unreleased = reader.get_unreleased_keys()
             if unreleased is not None:
                 # it's super annoying if that happens and may break the user
                 # input in such a way to prevent disabling the mapping
@@ -571,13 +585,17 @@ class Window:
 
         device = dropdown.get_active_text()
 
+        if device is None:
+            return
+
         logger.debug('Selecting device "%s"', device)
 
         self.selected_device = device
         self.selected_preset = None
 
         self.populate_presets()
-        GLib.idle_add(lambda: keycode_reader.start_reading(device))
+
+        reader.start_reading(device)
 
         self.show_device_mapping_status()
 
@@ -586,17 +604,10 @@ class Window:
         state = self.dbus.get_state(self.selected_device)
 
         if state == RUNNING:
-            if custom_mapping.changed:
-                self.show_status(
-                    CTX_WARNING,
-                    'Applied without unsaved changes. shift + del to stop',
-                    'Click "Save" first for changes to take effect'
-                )
-            else:
-                self.show_status(
-                    CTX_APPLY,
-                    f'Applied preset "{self.selected_preset}"'
-                )
+            self.show_status(
+                CTX_APPLY,
+                f'Applied preset "{self.selected_preset}"'
+            )
 
             self.show_device_mapping_status()
             return False
@@ -624,7 +635,8 @@ class Window:
     def show_device_mapping_status(self):
         """Figure out if this device is currently under keymappers control."""
         device = self.selected_device
-        if self.dbus.get_state(device) == RUNNING:
+        state = self.dbus.get_state(device)
+        if state == RUNNING:
             logger.info('Device "%s" is currently mapped', device)
             self.get('apply_system_layout').set_opacity(1)
         else:
@@ -668,12 +680,18 @@ class Window:
 
     def on_select_preset(self, dropdown):
         """Show the mappings of the preset."""
+        # beware in tests that this function won't be called at all if the
+        # active_id stays the same
+
         if dropdown.get_active_id() == self.selected_preset:
             return
 
         self.clear_mapping_table()
 
         preset = dropdown.get_active_text()
+        if preset is None:
+            return
+
         logger.debug('Selecting preset "%s"', preset)
         self.selected_preset = preset
 
@@ -723,10 +741,7 @@ class Window:
 
     def add_empty(self):
         """Add one empty row for a single mapped key."""
-        empty = Row(
-            window=self,
-            delete_callback=self.on_row_removed
-        )
+        empty = Row(window=self, delete_callback=self.on_row_removed)
         key_list = self.get('key_list')
         key_list.insert(empty, -1)
 

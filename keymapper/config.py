@@ -156,7 +156,9 @@ class ConfigBase:
         if resolved is None and self.fallback is not None:
             resolved = self.fallback._resolve(path, callback)
         if resolved is None:
-            resolved = self._resolve(path, callback, INITIAL_CONFIG)
+            # don't create new empty stuff in INITIAL_CONFIG with _resolve
+            initial_copy = copy.deepcopy(INITIAL_CONFIG)
+            resolved = self._resolve(path, callback, initial_copy)
 
         if resolved is None and log_unknown:
             logger.error('Unknown config key "%s"', path)
@@ -187,7 +189,6 @@ class GlobalConfig(ConfigBase):
             os.rename(os.path.join(CONFIG_PATH, 'config'), self.path)
 
         super().__init__()
-        self.load_config()
 
     def set_autoload_preset(self, device, preset):
         """Set a preset to be automatically applied on start.

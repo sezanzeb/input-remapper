@@ -133,14 +133,14 @@ class TestKeycodeMapper(unittest.TestCase):
             (EV_KEY, context.key_to_code[(ev_1,)])
         )
         self.assertEqual(unreleased.get(ev_1[:2]).input_event_tuple, ev_1)
-        self.assertEqual(unreleased.get(ev_1[:2]).key, (ev_1,))  # as seen in key_to_code
+        self.assertEqual(unreleased.get(ev_1[:2]).triggered_key, (ev_1,))  # as seen in key_to_code
 
         self.assertEqual(
             unreleased.get(ev_4[:2]).target_type_code,
             (EV_KEY, context.key_to_code[(ev_4,)]), ev_4
         )
         self.assertEqual(unreleased.get(ev_4[:2]).input_event_tuple, ev_4)
-        self.assertEqual(unreleased.get(ev_4[:2]).key, (ev_4,))
+        self.assertEqual(unreleased.get(ev_4[:2]).triggered_key, (ev_4,))
 
         # release all of them
         keycode_mapper.handle_keycode(new_event(*ev_3))
@@ -1139,9 +1139,9 @@ class TestKeycodeMapper(unittest.TestCase):
         self.assertIn(combi_1[0][:2], unreleased)
         self.assertIn(combi_1[1][:2], unreleased)
         # since this event did not trigger anything, key is None
-        self.assertEqual(unreleased[combi_1[0][:2]].key, None)
+        self.assertEqual(unreleased[combi_1[0][:2]].triggered_key, None)
         # that one triggered something from _key_to_code, so the key is that
-        self.assertEqual(unreleased[combi_1[1][:2]].key, combi_1)
+        self.assertEqual(unreleased[combi_1[1][:2]].triggered_key, combi_1)
 
         # release the last key of the combi first, it should
         # release what the combination maps to

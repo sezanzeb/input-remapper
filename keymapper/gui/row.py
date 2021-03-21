@@ -28,7 +28,7 @@ from gi.repository import Gtk, GLib, Gdk
 from keymapper.state import custom_mapping, system_mapping
 from keymapper.logger import logger
 from keymapper.key import Key
-from keymapper.gui.reader import keycode_reader
+from keymapper.gui.reader import reader
 
 
 CTX_KEYCODE = 2
@@ -37,6 +37,19 @@ CTX_KEYCODE = 2
 store = Gtk.ListStore(str)
 for name in system_mapping.list_names():
     store.append([name])
+
+for key in [
+    'mouse(up, 1)',
+    'mouse(down, 1)',
+    'mouse(left, 1)',
+    'mouse(right, 1)',
+    'wheel(up, 1)',
+    'wheel(down, 1)',
+    'wheel(left, 1)',
+    'wheel(right, 1)'
+]:
+    # add some more keys to the dropdown list
+    store.append([key])
 
 
 def to_string(key):
@@ -57,9 +70,20 @@ def to_string(key):
         logger.error('Unknown key code for %s', key)
         return 'unknown'
 
-    key_name = evdev.ecodes.bytype[ev_type][code]
-    if isinstance(key_name, list):
-        key_name = key_name[0]
+    key_name = None
+
+    # first try to find the name in xmodmap to not display wrong
+    # names due to the keyboard layout
+    if ev_type == evdev.ecodes.EV_KEY:
+        key_name = system_mapping.get_name(code)
+
+    if key_name is None:
+        # if no result, look in the linux key constants. On a german
+        # keyboard for example z and y are switched, which will therefore
+        # cause the wrong letter to be displayed.
+        key_name = evdev.ecodes.bytype[ev_type][code]
+        if isinstance(key_name, list):
+            key_name = key_name[0]
 
     if ev_type != evdev.ecodes.EV_KEY:
         direction = {
@@ -141,7 +165,7 @@ class Row(Gtk.ListBoxRow):
             self._state = IDLE
             return
 
-        unreleased_keys = keycode_reader.get_unreleased_keys()
+        unreleased_keys = reader.get_unreleased_keys()
         if unreleased_keys is None and old_state == HOLDING and self.key:
             # A key was pressed and then released.
             # Switch to the character. idle_add this so that the
@@ -259,7 +283,7 @@ class Row(Gtk.ListBoxRow):
 
     def on_keycode_input_focus(self, *_):
         """Refresh useful usage information."""
-        keycode_reader.clear()
+        reader.clear()
         self.show_press_key()
         self.window.can_modify_mapping()
 
@@ -268,7 +292,7 @@ class Row(Gtk.ListBoxRow):
         self.show_click_here()
         self.keycode_input.set_active(False)
         self._state = IDLE
-        keycode_reader.clear()
+        reader.clear()
         self.window.save_preset()
 
     def set_keycode_input_label(self, label):

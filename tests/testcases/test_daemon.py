@@ -34,15 +34,15 @@ from pydbus import SystemBus
 from keymapper.state import custom_mapping, system_mapping
 from keymapper.config import config
 from keymapper.getdevices import get_devices
-from keymapper.paths import get_preset_path, get_config_path
+from keymapper.paths import get_preset_path, get_config_path, mkdir
 from keymapper.key import Key
 from keymapper.mapping import Mapping
 from keymapper.injection.injector import STARTING, RUNNING, STOPPED, UNKNOWN
-from keymapper.daemon import Daemon, get_dbus_interface, BUS_NAME, \
+from keymapper.daemon import Daemon, BUS_NAME, \
     path_to_device_name
 
 from tests.test import cleanup, uinput_write_history_pipe, new_event, \
-    pending_events, is_service_running, fixtures, tmp
+    push_events, is_service_running, fixtures, tmp
 
 
 def gtk_iteration():
@@ -59,7 +59,10 @@ class TestDBusDaemon(unittest.TestCase):
         )
         self.process.start()
         time.sleep(0.5)
-        self.interface = get_dbus_interface()
+
+        # should not use pkexec, but rather connect to the previously
+        # spawned process
+        self.interface = Daemon.connect()
 
     def tearDown(self):
         self.interface.stop_all()
@@ -80,6 +83,7 @@ class TestDBusDaemon(unittest.TestCase):
 
 
 check_output = subprocess.check_output
+os_system = os.system
 dbus_get = type(SystemBus()).get
 
 
@@ -89,6 +93,8 @@ class TestDaemon(unittest.TestCase):
     def setUp(self):
         self.grab = evdev.InputDevice.grab
         self.daemon = None
+        mkdir(get_config_path())
+        config.save_config()
 
     def tearDown(self):
         # avoid race conditions with other tests, daemon may run processes
@@ -98,6 +104,7 @@ class TestDaemon(unittest.TestCase):
         evdev.InputDevice.grab = self.grab
 
         subprocess.check_output = check_output
+        os.system = os_system
         type(SystemBus()).get = dbus_get
 
         cleanup()
@@ -108,29 +115,28 @@ class TestDaemon(unittest.TestCase):
         self.assertEqual(path_to_device_name('/dev/input/event1234'), None)
         self.assertEqual(path_to_device_name('asdf'), 'asdf')
 
-    def test_get_dbus_interface(self):
-        # no daemon runs, should return an instance of the object instead
-        self.assertFalse(is_service_running())
-        self.assertIsInstance(get_dbus_interface(), Daemon)
-        self.assertIsNone(get_dbus_interface(False))
+    def test_connect(self):
+        os_system_history = []
+        os.system = os_system_history.append
 
-        subprocess.check_output = lambda *args: None
-        self.assertTrue(is_service_running())
-        # now it actually tries to use the dbus, but it fails
-        # because none exists, so it returns an instance again
-        self.assertIsInstance(get_dbus_interface(), Daemon)
-        self.assertIsNone(get_dbus_interface(False))
+        self.assertFalse(is_service_running())
+        # no daemon runs, should try to run it via pkexec instead.
+        # It fails due to the patch and therefore exits the process
+        self.assertRaises(SystemExit, Daemon.connect)
+        self.assertEqual(len(os_system_history), 1)
+        self.assertIsNone(Daemon.connect(False))
 
         class FakeConnection:
             pass
 
         type(SystemBus()).get = lambda *args: FakeConnection()
-        self.assertIsInstance(get_dbus_interface(), FakeConnection)
-        self.assertIsInstance(get_dbus_interface(False), FakeConnection)
+        self.assertIsInstance(Daemon.connect(), FakeConnection)
+        self.assertIsInstance(Daemon.connect(False), FakeConnection)
 
     def test_daemon(self):
         # remove the existing system mapping to force our own into it
-        os.remove(get_config_path('xmodmap.json'))
+        if os.path.exists(get_config_path('xmodmap.json')):
+            os.remove(get_config_path('xmodmap.json'))
 
         ev_1 = (EV_KEY, 9)
         ev_2 = (EV_ABS, 12)
@@ -156,9 +162,9 @@ class TestDaemon(unittest.TestCase):
         """injection 1"""
 
         # should forward the event unchanged
-        pending_events[device] = [
+        push_events(device, [
             new_event(EV_KEY, 13, 1)
-        ]
+        ])
 
         self.daemon = Daemon()
         self.daemon.set_config_dir(get_config_path())
@@ -189,9 +195,9 @@ class TestDaemon(unittest.TestCase):
         """injection 2"""
 
         # -1234 will be normalized to -1 by the injector
-        pending_events[device] = [
+        push_events(device, [
             new_event(*ev_2, -1234)
-        ]
+        ])
 
         self.daemon.start_injecting(device, preset)
 
@@ -207,7 +213,8 @@ class TestDaemon(unittest.TestCase):
         self.assertEqual(event.value, 1)
 
     def test_refresh_devices_on_start(self):
-        os.remove(get_config_path('xmodmap.json'))
+        if os.path.exists(get_config_path('xmodmap.json')):
+            os.remove(get_config_path('xmodmap.json'))
 
         ev = (EV_KEY, 9)
         keycode_to = 100
@@ -226,9 +233,9 @@ class TestDaemon(unittest.TestCase):
         preset = 'foo'
         custom_mapping.save(get_preset_path(device, preset))
         config.set_autoload_preset(device, preset)
-        pending_events[device] = [
+        push_events(device, [
             new_event(*ev, 1)
-        ]
+        ])
         self.daemon = Daemon()
 
         # make sure the devices are populated
@@ -297,9 +304,9 @@ class TestDaemon(unittest.TestCase):
 
         system_mapping.clear()
 
-        pending_events[device] = [
+        push_events(device, [
             new_event(*event)
-        ]
+        ])
 
         # an existing config file is needed otherwise set_config_dir refuses
         # to use the directory

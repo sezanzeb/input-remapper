@@ -2,7 +2,7 @@
 Type=Application
 Name=key-mapper
 Icon=/usr/share/key-mapper/key-mapper.svg
-Exec=key-mapper-gtk-pkexec
+Exec=key-mapper-gtk
 Terminal=false
 Categories=Settings
 Comment=GUI for device specific key mappings

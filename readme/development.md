@@ -1,8 +1,9 @@
 # Development
 
 Contributions are very welcome, I will gladly review and discuss any merge
-requests. This file should give an overview about some notable internals of
-key-mapper.
+requests. If you have questions about the code and architecture, feel free
+to [open an issue](https://github.com/sezanzeb/key-mapper/issues). This
+file should give an overview about some internals of key-mapper.
 
 ## Roadmap
 
@@ -33,9 +34,9 @@ key-mapper.
 - [x] automatically load presets when devices get plugged in after login (udev)
 - [x] map keys using a `modifier + modifier + ... + key` syntax
 - [x] inject in an additional device instead to avoid clashing capabilities
-- [ ] don't run any GTK code as root for wayland compatibility
+- [x] don't run any GUI code as root for improved wayland compatibility
 - [ ] injecting keys that aren't available in the systems keyboard layout
-- [ ] add comprehensive tabbed help popup
+- [ ] getting it into the official debian repo
 
 ## Tests
 
@@ -81,15 +82,21 @@ just need to be commited.
 
 - `bin/key-mapper-gtk` the executable that starts the gui. It also sends
   messages to the service via dbus if certain buttons are clicked.
-- `bin/key-mapper-gtk-pkexec` opens a password promt to grant root rights
-  to the GUI, so that it can read from devices
-- `data/key-mapper.policy` configures pkexec
+- `bin/key-mapper-helper` provides information to the gui that requires
+  root rights. Is stopped when the gui closes.
+- `data/key-mapper.policy` configures pkexec. By using auth_admin_keep
+  the user is not asked multiple times for each task that needs elevated
+  rights. This is done instead of granting the whole application root rights
+  because it is [considered problematic](https://wiki.archlinux.org/index.php/Running_GUI_applications_as_root).
 - `data/key-mapper.desktop` is the entry in the start menu
 
 **cli**
 
 - `bin/key-mapper-control` is an executable to send messages to the service
   via dbus. It can be used to start and stop injection without a GUI.
+  The gui also uses it to run the service (if not already running) and
+  helper, because by using one single command for both the polkit rules file
+  remembers not to ask for a password again.
 
 **service**
 
@@ -125,6 +132,26 @@ just need to be commited.
 
 Communication to the service always happens via `key-mapper-control`
 
+## Permissions
+
+**gui**
+
+The gui process starts without root rights. It makes sure the daemon and
+helper are running via pkexec.
+
+**daemon**
+
+The daemon exists to keep injections alive beyond the lifetime of the
+user interface. Runs via root. Communicates via dbus. Either started
+via systemd or pkexec.
+
+**helper**
+
+The helper provides information to the user interface like events and
+devices. Communicates via pipes. It should not exceed the lifetime of
+the user interface because it exposes all the input events. Starts via
+pkexec.
+
 ## Unsupported Devices
 
 Either open up an issue or debug it yourself and make a pull request.
@@ -147,18 +174,30 @@ readme/capabilities.md
 
 **It won't offer mapping a button**
 
-Modify `should_map_as_btn`
+If `sudo evtest` shows an event for the button, try to
+modify `should_map_as_btn`. If not, the button cannot be mapped.
 
 ## How it works
 
 It uses evdev. The links below point to older code in 0.7.0 so that their
 line numbers remain valid.
 
-1. It grabs a device (e.g. /dev/input/event3), so that the key events won't reach X11/Wayland anymore [source](https://github.com/sezanzeb/key-mapper/blob/0.7.0/keymapper/injection/injector.py#L182)
-2. Reads the events from it (`evtest` can do it, you can also do `cat /dev/input/event3` which yields binary stuff) [source](https://github.com/sezanzeb/key-mapper/blob/0.7.0/keymapper/injection/injector.py#L413)
-3. Looks up the mapping if that event maps to anything [source](https://github.com/sezanzeb/key-mapper/blob/0.7.0/keymapper/injection/keycode_mapper.py#L421)
-4. Injects the output event in a new device that key-mapper created (another new path in /dev/input, device name is suffixed by "mapped") [source](https://github.com/sezanzeb/key-mapper/blob/0.7.0/keymapper/injection/keycode_mapper.py#L227), [new device](https://github.com/sezanzeb/key-mapper/blob/0.7.0/keymapper/injection/injector.py#L324)
-5. Forwards any events that should not be mapped to anything in another new device (device name is suffixed by "forwarded") [source](https://github.com/sezanzeb/key-mapper/blob/0.7.0/keymapper/injection/keycode_mapper.py#L232), [new device](https://github.com/sezanzeb/key-mapper/blob/0.7.0/keymapper/injection/injector.py#L342)
+1. It grabs a device (e.g. /dev/input/event3), so that the key events won't
+   reach X11/Wayland anymore
+   [source](https://github.com/sezanzeb/key-mapper/blob/0.7.0/keymapper/injection/injector.py#L182)
+2. Reads the events from it (`evtest` can do it, you can also do
+   `cat /dev/input/event3` which yields binary stuff)
+   [source](https://github.com/sezanzeb/key-mapper/blob/0.7.0/keymapper/injection/injector.py#L413)
+3. Looks up the mapping if that event maps to anything
+   [source](https://github.com/sezanzeb/key-mapper/blob/0.7.0/keymapper/injection/keycode_mapper.py#L421)
+4. Injects the output event in a new device that key-mapper created (another
+   new path in /dev/input, device name is suffixed by "mapped")
+   [source](https://github.com/sezanzeb/key-mapper/blob/0.7.0/keymapper/injection/keycode_mapper.py#L227),
+   [new device](https://github.com/sezanzeb/key-mapper/blob/0.7.0/keymapper/injection/injector.py#L324)
+5. Forwards any events that should not be mapped to anything in another new
+   device (device name is suffixed by "forwarded")
+   [source](https://github.com/sezanzeb/key-mapper/blob/0.7.0/keymapper/injection/keycode_mapper.py#L232),
+   [new device](https://github.com/sezanzeb/key-mapper/blob/0.7.0/keymapper/injection/injector.py#L342)
 
 This stuff is going on as a daemon in the background
 
@@ -167,3 +206,4 @@ This stuff is going on as a daemon in the background
 - [Guidelines for device capabilities](https://www.kernel.org/doc/Documentation/input/event-codes.txt)
 - [PyGObject API Reference](https://lazka.github.io/pgi-docs/)
 - [python-evdev](https://python-evdev.readthedocs.io/en/stable/)
+- [Python Unix Domain Sockets](https://pymotw.com/2/socket/uds.html)

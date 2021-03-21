@@ -23,25 +23,21 @@
 
 
 import sys
-import atexit
 from argparse import ArgumentParser
 
-import gi
-gi.require_version('GLib', '2.0')
-from gi.repository import GLib
-from pydbus import SystemBus
-
 from keymapper.logger import update_verbosity, log_info, \
-    add_filehandler, logger
-from keymapper.permissions import can_read_devices
+    add_filehandler
 
 
 if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument(
         '-d', '--debug', action='store_true', dest='debug',
-        help='Displays additional debug information',
-        default=False
+        help='Displays additional debug information', default=False
+    )
+    parser.add_argument(
+        '--hide-info', action='store_true', dest='hide_info',
+        help='Don\'t display version information', default=False
     )
 
     options = parser.parse_args(sys.argv[1:])
@@ -49,23 +45,12 @@ if __name__ == '__main__':
     update_verbosity(options.debug)
 
     # import key-mapper stuff after setting the log verbosity
-    from keymapper.daemon import Daemon, BUS_NAME
+    from keymapper.daemon import Daemon
 
     add_filehandler()
-    log_info()
+    if not options.hide_info:
+        log_info('key-mapper-service')
 
-    can_read_devices()
-
-    bus = SystemBus()
-    loop = GLib.MainLoop()
     daemon = Daemon()
-
-    try:
-        bus.publish(BUS_NAME, daemon)
-    except RuntimeError as error:
-        logger.error('Is the service is already running? %s', str(error))
-        sys.exit(1)
-
-    atexit.register(daemon.stop_all)
-
-    loop.run()
+    daemon.publish()
+    daemon.run()

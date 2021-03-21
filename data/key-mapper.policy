@@ -9,10 +9,10 @@
         <message>Authentication is required to discover and read devices.</message>
         <defaults>
             <allow_any>no</allow_any>
-            <allow_inactive>auth_admin</allow_inactive>
-            <allow_active>auth_admin</allow_active>
+            <allow_inactive>auth_admin_keep</allow_inactive>
+            <allow_active>auth_admin_keep</allow_active>
         </defaults>
-        <annotate key="org.freedesktop.policykit.exec.path">/usr/bin/key-mapper-gtk</annotate>
-        <annotate key="org.freedesktop.policykit.exec.allow_gui">true</annotate>
+        <annotate key="org.freedesktop.policykit.exec.path">/usr/bin/key-mapper-control</annotate>
+        <annotate key="org.freedesktop.policykit.exec.allow_gui">false</annotate>
     </action>
 </policyconfig>
