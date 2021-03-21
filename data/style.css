@@ -39,4 +39,8 @@ list button {
     border-color: transparent;
 }
 
+.copyright {
+    font-size: 7pt;
+}
+
 /* @theme_bg_color, @theme_fg_color */
