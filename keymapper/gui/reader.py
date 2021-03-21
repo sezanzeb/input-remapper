@@ -33,6 +33,9 @@ from keymapper.key import Key
 from keymapper.getdevices import set_devices
 from keymapper.ipc.pipe import Pipe
 from keymapper.gui.helper import TERMINATE
+from keymapper import utils
+from keymapper.state import custom_mapping
+from keymapper.getdevices import get_devices
 
 
 DEBOUNCE_TICKS = 3
@@ -130,6 +133,10 @@ class Reader:
             message = self._results.recv()
             event = self._get_event(message)
             if event is None:
+                continue
+
+            gamepad = get_devices()[self.device_name]['gamepad']
+            if not utils.should_map_as_btn(event, custom_mapping, gamepad):
                 continue
 
             event_tuple = (event.type, event.code, event.value)
