@@ -26,7 +26,7 @@ import asyncio
 from evdev.ecodes import EV_REL, EV_KEY, REL_Y, REL_X, REL_WHEEL, REL_HWHEEL
 
 from keymapper.injection.macros import parse, _Macro, _extract_params, \
-    is_this_a_macro, _parse_recurse, handle_plus_syntax
+    is_this_a_macro, _parse_recurse, handle_plus_syntax, _count_brackets
 from keymapper.config import config
 from keymapper.mapping import Mapping
 from keymapper.state import system_mapping
@@ -60,6 +60,8 @@ class TestMacros(unittest.TestCase):
         self.assertFalse(is_this_a_macro('btn_left'))
         self.assertFalse(is_this_a_macro('minus'))
         self.assertFalse(is_this_a_macro('k'))
+        self.assertFalse(is_this_a_macro(1))
+        self.assertFalse(is_this_a_macro(None))
 
         self.assertTrue(is_this_a_macro('a+b'))
         self.assertTrue(is_this_a_macro('a+b+c'))
@@ -153,7 +155,8 @@ class TestMacros(unittest.TestCase):
         self.assertEqual(len(macro.child_macros), 0)
 
     def test_1(self):
-        macro = parse('k(1).k(a).k(3)', self.mapping)
+        # quotation marks are removed automatically and don't do any harm
+        macro = parse('k(1).k("a").k(3)', self.mapping)
         self.assertSetEqual(macro.get_capabilities()[EV_KEY], {
             system_mapping.get('1'),
             system_mapping.get('a'),
@@ -197,6 +200,14 @@ class TestMacros(unittest.TestCase):
         self.assertIsNotNone(error)
         error = parse('r(1, k(1))', self.mapping, return_errors=True)
         self.assertIsNone(error)
+        error = parse('m(asdf, k(a))', self.mapping, return_errors=True)
+        self.assertIsNotNone(error)
+        error = parse('h(a)', self.mapping, return_errors=True)
+        self.assertIn('macro', error)
+        self.assertIn('a', error)
+        error = parse('foo(a)', self.mapping, return_errors=True)
+        self.assertIn('unknown', error.lower())
+        self.assertIn('foo', error)
 
     def test_hold(self):
         macro = parse('k(1).h(k(a)).k(3)', self.mapping)
@@ -207,6 +218,10 @@ class TestMacros(unittest.TestCase):
         })
 
         macro.press_key()
+        self.loop.run_until_complete(asyncio.sleep(0.05))
+        self.assertTrue(macro.is_holding())
+
+        macro.press_key()  # redundantly calling doesn't break anything
         asyncio.ensure_future(macro.run(self.handler))
         self.loop.run_until_complete(asyncio.sleep(0.2))
         self.assertTrue(macro.is_holding())
@@ -493,7 +508,7 @@ class TestMacros(unittest.TestCase):
         self.assertEqual(len(macro.child_macros), 0)
 
     def test_event_2(self):
-        macro = parse('e(5421, 324, 154)', self.mapping)
+        macro = parse('r(1, e(5421, 324, 154))', self.mapping)
         code = 324
         self.assertSetEqual(macro.get_capabilities()[5421], {324})
         self.assertSetEqual(macro.get_capabilities()[EV_REL], set())
@@ -501,7 +516,17 @@ class TestMacros(unittest.TestCase):
 
         self.loop.run_until_complete(macro.run(self.handler))
         self.assertListEqual(self.result, [(5421, code, 154)])
-        self.assertEqual(len(macro.child_macros), 0)
+        self.assertEqual(len(macro.child_macros), 1)
+
+    def test_count_brackets(self):
+        self.assertEqual(_count_brackets(''), 0)
+        self.assertEqual(_count_brackets('()'), 2)
+        self.assertEqual(_count_brackets('a()'), 3)
+        self.assertEqual(_count_brackets('a(b)'), 4)
+        self.assertEqual(_count_brackets('a(b())'), 6)
+        self.assertEqual(_count_brackets('a(b(c))'), 7)
+        self.assertEqual(_count_brackets('a(b(c))d'), 7)
+        self.assertEqual(_count_brackets('a(b(c))d()'), 7)
 
 
 if __name__ == '__main__':

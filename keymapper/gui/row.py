@@ -208,8 +208,6 @@ class Row(Gtk.ListBoxRow):
 
         self.key = new_key
 
-        self.highlight()
-
         character = self.get_character()
 
         # the character is empty and therefore the mapping is not complete
@@ -223,14 +221,6 @@ class Row(Gtk.ListBoxRow):
             previous_key=previous_key
         )
 
-    def highlight(self):
-        """Mark this row as changed."""
-        self.get_style_context().add_class('changed')
-
-    def unhighlight(self):
-        """Mark this row as unchanged."""
-        self.get_style_context().remove_class('changed')
-
     def on_character_input_change(self, _):
         """When the output character for that keycode is typed in."""
         key = self.get_key()
@@ -238,8 +228,6 @@ class Row(Gtk.ListBoxRow):
 
         if character is None:
             return
-
-        self.highlight()
 
         if key is not None:
             custom_mapping.change(
@@ -281,6 +269,7 @@ class Row(Gtk.ListBoxRow):
         self.keycode_input.set_active(False)
         self._state = IDLE
         keycode_reader.clear()
+        self.window.save_preset()
 
     def set_keycode_input_label(self, label):
         """Set the label of the keycode input."""
@@ -349,6 +338,10 @@ class Row(Gtk.ListBoxRow):
         character_input.connect(
             'changed',
             self.on_character_input_change
+        )
+        character_input.connect(
+            'focus-out-event',
+            self.window.save_preset
         )
 
         box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)

@@ -34,7 +34,7 @@ start = time.time()
 
 previous_key_spam = None
 
-COMMIT_HASH = ''  # overwritten in setup.py
+COMMIT_HASH = '12ff3df22e47a2e8b7be2811b300512c2d597725'  # overwritten in setup.py
 
 
 def spam(self, message, *args, **kwargs):
@@ -140,6 +140,17 @@ logger.setLevel(logging.INFO)
 logging.getLogger('asyncio').setLevel(logging.WARNING)
 logger.main_pid = os.getpid()
 
+try:
+    name = pkg_resources.require('key-mapper')[0].project_name
+    version = pkg_resources.require('key-mapper')[0].version
+    evdev_version = pkg_resources.require('evdev')[0].version
+except pkg_resources.DistributionNotFound as error:
+    name = 'key-mapper'
+    version = ''
+    evdev_version = None
+    logger.info('Could not figure out the version')
+    logger.debug(error)
+
 
 def is_debug():
     """True, if the logger is currently in DEBUG or SPAM mode."""
@@ -149,19 +160,13 @@ def is_debug():
 def log_info():
     """Log version and name to the console"""
     # read values from setup.py
-    try:
-        name = pkg_resources.require('key-mapper')[0].project_name
-        version = pkg_resources.require('key-mapper')[0].version
-        logger.info(
-            '%s %s %s https://github.com/sezanzeb/key-mapper',
-            name, version, COMMIT_HASH
-        )
+    logger.info(
+        '%s %s %s https://github.com/sezanzeb/key-mapper',
+        name, version, COMMIT_HASH
+    )
 
-        evdev_version = pkg_resources.require('evdev')[0].version
+    if evdev_version:
         logger.info('python-evdev %s', evdev_version)
-    except pkg_resources.DistributionNotFound as error:
-        logger.info('Could not figure out the version')
-        logger.debug(error)
 
     if is_debug():
         logger.warning(
