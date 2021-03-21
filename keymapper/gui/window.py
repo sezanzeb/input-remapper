@@ -186,6 +186,9 @@ class Window:
 
     def show_confirm_delete(self):
         """Blocks until the user decided about an action."""
+        text = f'Are you sure to delete preset "{self.selected_preset}"?'
+        self.get('confirm-delete-label').set_text(text)
+
         self.confirm_delete.show()
         response = self.confirm_delete.run()
         self.confirm_delete.hide()
@@ -682,6 +685,7 @@ class Window:
         """Show the mappings of the preset."""
         # beware in tests that this function won't be called at all if the
         # active_id stays the same
+        self.save_preset()
 
         if dropdown.get_active_id() == self.selected_preset:
             return
@@ -794,3 +798,9 @@ class Window:
     def on_about_clicked(self, _):
         """Show the about/help dialog."""
         self.about.show()
+
+    def on_about_key_press(self, _, event):
+        """Hide the about/help dialog."""
+        gdk_keycode = event.get_keyval()[1]
+        if gdk_keycode == Gdk.KEY_Escape:
+            self.about.hide()

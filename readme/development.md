@@ -207,3 +207,4 @@ This stuff is going on as a daemon in the background
 - [PyGObject API Reference](https://lazka.github.io/pgi-docs/)
 - [python-evdev](https://python-evdev.readthedocs.io/en/stable/)
 - [Python Unix Domain Sockets](https://pymotw.com/2/socket/uds.html)
+- [GNOME HIG](https://developer.gnome.org/hig/stable/)
