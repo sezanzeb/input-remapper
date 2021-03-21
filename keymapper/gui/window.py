@@ -28,10 +28,10 @@ from gi.repository import Gtk, Gdk, GLib
 
 from keymapper.data import get_data_path
 from keymapper.paths import get_config_path, get_preset_path
-from keymapper.state import custom_mapping
+from keymapper.state import custom_mapping, system_mapping
 from keymapper.presets import get_presets, find_newest_preset, \
     delete_preset, rename_preset, get_available_preset_name
-from keymapper.logger import logger
+from keymapper.logger import logger, COMMIT_HASH, version, evdev_version
 from keymapper.getdevices import get_devices
 from keymapper.gui.row import Row, to_string
 from keymapper.gui.reader import keycode_reader
@@ -52,27 +52,10 @@ CTX_SAVE = 0
 CTX_APPLY = 1
 CTX_ERROR = 3
 CTX_WARNING = 4
+CTX_MAPPING = 5
 
 CONTINUE = True
 GO_BACK = False
-
-
-def get_selected_row_bg():
-    """Get the background color that a row is going to have when selected."""
-    # ListBoxRows can be selected, but either they are always selectable
-    # via mouse clicks and via code, or not at all. I just want to controll
-    # it over code. So I have to add a class and change the background color
-    # to act like it's selected. For this I need the right color, but
-    # @selected_bg_color doesn't work for every theme. So get it from
-    # some widget (which is deprecated according to the docs, but it works...)
-    row = Gtk.ListBoxRow()
-    row.show_all()
-    context = row.get_style_context()
-    color = context.get_background_color(Gtk.StateFlags.SELECTED)
-    # but this way it can be made only slightly highlighted, which is nice
-    color.alpha /= 4
-    row.destroy()
-    return color.to_string()
 
 
 def with_selected_device(func):
@@ -115,6 +98,12 @@ class HandlerDisabled:
         self.widget.handler_unblock_by_func(self.handler)
 
 
+def on_close_about(about, _):
+    """Hide the about dialog without destroying it."""
+    about.hide()
+    return True
+
+
 class Window:
     """User Interface."""
     def __init__(self):
@@ -125,13 +114,7 @@ class Window:
 
         css_provider = Gtk.CssProvider()
         with open(get_data_path('style.css'), 'r') as file:
-            data = (
-                file.read() +
-                '\n.changed{background-color:' +
-                get_selected_row_bg() +
-                ';}\n'
-            )
-            css_provider.load_from_data(bytes(data, encoding='UTF-8'))
+            css_provider.load_from_data(bytes(file.read(), encoding='UTF-8'))
 
         Gtk.StyleContext.add_provider_for_screen(
             Gdk.Screen.get_default(),
@@ -145,7 +128,14 @@ class Window:
         builder.connect_signals(self)
         self.builder = builder
 
-        self.unsaved_changes = builder.get_object('unsaved_changes')
+        self.confirm_delete = builder.get_object('confirm-delete')
+        self.about = builder.get_object('about-dialog')
+        self.about.connect('delete-event', on_close_about)
+
+        self.get('version-label').set_text(
+            f'key-mapper {version} {COMMIT_HASH[:7]}'
+            f'\npython-evdev {evdev_version}' if evdev_version else ''
+        )
 
         window = self.get('window')
         window.show()
@@ -188,16 +178,12 @@ class Window:
         self.ctrl = False
         self.unreleased_warn = 0
 
-    def unsaved_changes_dialog(self):
+    def show_confirm_delete(self):
         """Blocks until the user decided about an action."""
-        self.unsaved_changes.show()
-        response = self.unsaved_changes.run()
-        self.unsaved_changes.hide()
-
-        if response == Gtk.ResponseType.ACCEPT:
-            return CONTINUE
-
-        return GO_BACK
+        self.confirm_delete.show()
+        response = self.confirm_delete.run()
+        self.confirm_delete.hide()
+        return response
 
     def key_press(self, _, event):
         """To execute shortcuts.
@@ -257,6 +243,7 @@ class Window:
     def on_close(self, *_):
         """Safely close the application."""
         logger.debug('Closing window')
+        self.save_preset()
         self.window.hide()
         for timeout in self.timeouts:
             GLib.source_remove(timeout)
@@ -274,8 +261,9 @@ class Window:
         num_maps = len(custom_mapping)
         if num_rows < num_maps or num_rows > num_maps + 1:
             logger.error(
-                f'custom_mapping contains {len(custom_mapping)} rows, '
-                f'but {num_rows} are displayed'
+                'custom_mapping contains %d rows, '
+                'but %d are displayed',
+                len(custom_mapping), num_rows
             )
             logger.spam(
                 'Mapping %s',
@@ -318,8 +306,6 @@ class Window:
 
         This will destroy unsaved changes in the custom_mapping.
         """
-        self.get('preset_name_input').set_text('')
-
         device = self.selected_device
         presets = get_presets(device)
 
@@ -341,7 +327,7 @@ class Window:
 
         for preset in presets:
             preset_selection.append(preset, preset)
-        # and select the newest one (on the top)
+        # and select the newest one (on the top). triggers on_select_preset
         preset_selection.set_active(0)
 
     def clear_mapping_table(self):
@@ -349,11 +335,6 @@ class Window:
         key_list = self.get('key_list')
         key_list.forall(key_list.remove)
         custom_mapping.empty()
-
-    def unhighlight_all_rows(self):
-        """Remove all rows from the mappings table."""
-        key_list = self.get('key_list')
-        key_list.forall(lambda row: row.unhighlight())
 
     def can_modify_mapping(self, *_):
         """Show a message if changing the mapping is not possible."""
@@ -396,6 +377,8 @@ class Window:
         # they have already been read.
         key = keycode_reader.read()
 
+        # TODO highlight if a row for that key exists or something
+
         # inform the currently selected row about the new keycode
         row, focused = self.get_focused_row()
         if key is not None:
@@ -424,28 +407,45 @@ class Window:
         GLib.timeout_add(100, self.show_device_mapping_status)
 
     def show_status(self, context_id, message, tooltip=None):
-        """Show a status message and set its tooltip."""
-        if tooltip is None:
-            tooltip = message
+        """Show a status message and set its tooltip.
 
-        self.get('error_status_icon').hide()
-        self.get('warning_status_icon').hide()
-
-        if context_id == CTX_ERROR:
-            self.get('error_status_icon').show()
-
-        if context_id == CTX_WARNING:
-            self.get('warning_status_icon').show()
-
-        if len(message) > 55:
-            message = message[:52] + '...'
-
+        If message is None, it will remove the newest message of the
+        given context_id.
+        """
         status_bar = self.get('status_bar')
-        status_bar.push(context_id, message)
-        status_bar.set_tooltip_text(tooltip)
+
+        if message is None:
+            status_bar.remove_all(context_id)
+
+            if context_id in (CTX_ERROR, CTX_MAPPING):
+                self.get('error_status_icon').hide()
+
+            if context_id == CTX_WARNING:
+                self.get('warning_status_icon').hide()
+
+            status_bar.set_tooltip_text('')
+        else:
+            if tooltip is None:
+                tooltip = message
+
+            self.get('error_status_icon').hide()
+            self.get('warning_status_icon').hide()
+
+            if context_id in (CTX_ERROR, CTX_MAPPING):
+                self.get('error_status_icon').show()
+
+            if context_id == CTX_WARNING:
+                self.get('warning_status_icon').show()
+
+            if len(message) > 55:
+                message = message[:52] + '...'
+
+            status_bar.push(context_id, message)
+            status_bar.set_tooltip_text(tooltip)
 
     def check_macro_syntax(self):
         """Check if the programmed macros are allright."""
+        self.show_status(CTX_MAPPING, None)
         for key, output in custom_mapping:
             if not is_this_a_macro(output):
                 continue
@@ -456,48 +456,43 @@ class Window:
 
             position = to_string(key)
             msg = f'Syntax error at {position}, hover for info'
-            self.show_status(CTX_ERROR, msg, error)
+            self.show_status(CTX_MAPPING, msg, error)
 
-    @with_selected_preset
-    def on_save_preset_clicked(self, _):
-        """Save changes to a preset to the file system."""
+    def on_rename_button_clicked(self, _):
+        """Rename the preset based on the contents of the name input."""
         new_name = self.get('preset_name_input').get_text()
-        try:
-            self.save_preset()
-            if new_name not in ['', self.selected_preset]:
-                # if a new name is entered
-                rename_preset(
-                    self.selected_device,
-                    self.selected_preset,
-                    new_name
-                )
-                # if the old preset was being autoloaded, change the
-                # name there as well
-                is_autoloaded = config.is_autoloaded(
-                    self.selected_device,
-                    self.selected_preset
-                )
-                if is_autoloaded:
-                    config.set_autoload_preset(
-                        self.selected_device,
-                        new_name
-                    )
 
-            # after saving the config, its modification date will be the
-            # newest, so populate_presets will automatically select the
-            # right one again.
-            self.populate_presets()
-            self.show_status(CTX_SAVE, f'Saved "{self.selected_preset}"')
-            self.check_macro_syntax()
+        if new_name in ['', self.selected_preset]:
+            return
 
-        except PermissionError as error:
-            error = str(error)
-            self.show_status(CTX_ERROR, 'Permission denied!', error)
-            logger.error(error)
+        self.save_preset()
+
+        new_name = rename_preset(
+            self.selected_device,
+            self.selected_preset,
+            new_name
+        )
+
+        # if the old preset was being autoloaded, change the
+        # name there as well
+        is_autoloaded = config.is_autoloaded(
+            self.selected_device,
+            self.selected_preset
+        )
+        if is_autoloaded:
+            config.set_autoload_preset(self.selected_device, new_name)
+
+        self.get('preset_name_input').set_text('')
+        self.populate_presets()
 
     @with_selected_preset
     def on_delete_preset_clicked(self, _):
         """Delete a preset from the file system."""
+        accept = Gtk.ResponseType.ACCEPT
+        if len(custom_mapping) > 0 and self.show_confirm_delete() != accept:
+            return
+
+        custom_mapping.changed = False
         delete_preset(self.selected_device, self.selected_preset)
         self.populate_presets()
 
@@ -565,11 +560,9 @@ class Window:
 
     def on_select_device(self, dropdown):
         """List all presets, create one if none exist yet."""
-        if dropdown.get_active_id() == self.selected_device:
-            return
+        self.save_preset()
 
-        if custom_mapping.changed and self.unsaved_changes_dialog() == GO_BACK:
-            dropdown.set_active_id(self.selected_device)
+        if dropdown.get_active_id() == self.selected_device:
             return
 
         # selecting a device will also automatically select a different
@@ -637,13 +630,19 @@ class Window:
         else:
             self.get('apply_system_layout').set_opacity(0.4)
 
+    @with_selected_preset
+    def on_copy_preset_clicked(self, _):
+        """Copy the current preset and select it."""
+        self.create_preset(True)
+
     @with_selected_device
     def on_create_preset_clicked(self, _):
         """Create a new preset and select it."""
-        if custom_mapping.changed and self.unsaved_changes_dialog() == GO_BACK:
-            return
+        self.create_preset()
 
-        copy = self.ctrl
+    def create_preset(self, copy=False):
+        """Create a new preset and select it."""
+        self.save_preset()
 
         try:
             if copy:
@@ -670,10 +669,6 @@ class Window:
     def on_select_preset(self, dropdown):
         """Show the mappings of the preset."""
         if dropdown.get_active_id() == self.selected_preset:
-            return
-
-        if custom_mapping.changed and self.unsaved_changes_dialog() == GO_BACK:
-            dropdown.set_active_id(self.selected_preset)
             return
 
         self.clear_mapping_table()
@@ -713,11 +708,13 @@ class Window:
         """Set the purpose of the left joystick."""
         purpose = dropdown.get_active_id()
         custom_mapping.set('gamepad.joystick.left_purpose', purpose)
+        self.save_preset()
 
     def on_right_joystick_changed(self, dropdown):
         """Set the purpose of the right joystick."""
         purpose = dropdown.get_active_id()
         custom_mapping.set('gamepad.joystick.right_purpose', purpose)
+        self.save_preset()
 
     def on_joystick_mouse_speed_changed(self, gtk_range):
         """Set how fast the joystick moves the mouse."""
@@ -744,16 +741,41 @@ class Window:
         # https://stackoverflow.com/a/30329591/4417769
         key_list.remove(single_key_mapping)
 
-    def save_preset(self):
+    def save_preset(self, *_):
         """Write changes to presets to disk."""
-        logger.info(
-            'Updating configs for "%s", "%s"',
-            self.selected_device,
-            self.selected_preset
-        )
+        if not custom_mapping.changed:
+            return
 
-        path = get_preset_path(self.selected_device, self.selected_preset)
-        custom_mapping.save(path)
+        try:
+            path = get_preset_path(self.selected_device, self.selected_preset)
+            custom_mapping.save(path)
 
-        custom_mapping.changed = False
-        self.unhighlight_all_rows()
+            custom_mapping.changed = False
+
+            # after saving the config, its modification date will be the
+            # newest, so populate_presets will automatically select the
+            # right one again.
+            self.populate_presets()
+        except PermissionError as error:
+            error = str(error)
+            self.show_status(CTX_ERROR, 'Permission denied!', error)
+            logger.error(error)
+
+        for _, character in custom_mapping:
+            if is_this_a_macro(character):
+                continue
+
+            if system_mapping.get(character) is None:
+                self.show_status(CTX_MAPPING, f'Unknown mapping "{character}"')
+                break
+        else:
+            # no broken mappings found
+            self.show_status(CTX_MAPPING, None)
+
+            # checking macros is probably a bit more expensive, do that if
+            # the regular mappings are allright
+            self.check_macro_syntax()
+
+    def on_about_clicked(self, _):
+        """Show the about/help dialog."""
+        self.about.show()

@@ -267,8 +267,6 @@ class _Macro:
         if code is None:
             raise KeyError(f'Unknown key "{character}"')
 
-        if EV_KEY not in self.capabilities:
-            self.capabilities[EV_KEY] = set()
         self.capabilities[EV_KEY].add(code)
 
         self.tasks.append(lambda handler: handler(EV_KEY, code, 1))

@@ -295,13 +295,12 @@ class Injector(multiprocessing.Process):
                 loop.stop()
                 return
 
-    def get_udef_name(self, name, prefix):
+    def get_udef_name(self, name, suffix):
         """Make sure the generated name is not longer than 80 chars."""
         max_len = 80  # based on error messages
-        suffix = 'key-mapper'
-        remaining_len = max_len - len(suffix) - len(prefix) - 2
+        remaining_len = max_len - len(DEV_NAME) - len(suffix) - 2
         middle = name[:remaining_len]
-        name = f'{suffix} {middle} {prefix}'
+        name = f'{DEV_NAME} {middle} {suffix}'
         return name
 
     def run(self):

@@ -80,8 +80,6 @@ def launch(argv=None):
 
     gtk_iteration()
 
-    module.window.unsaved_changes.run = lambda: Gtk.ResponseType.ACCEPT
-
     return module.window
 
 
@@ -340,7 +338,6 @@ class TestIntegration(unittest.TestCase):
         row = rows[-1]
         self.assertIsNone(row.get_key())
         self.assertEqual(row.character_input.get_text(), '')
-        self.assertNotIn('changed', row.get_style_context().list_classes())
         self.assertEqual(row._state, IDLE)
 
         if char and not code_first:
@@ -391,8 +388,6 @@ class TestIntegration(unittest.TestCase):
 
             if expect_success:
                 self.assertEqual(row.get_key(), key)
-                css_classes = row.get_style_context().list_classes()
-                self.assertIn('changed', css_classes)
                 self.assertEqual(row.keycode_input.get_label(), to_string(key))
                 self.assertFalse(row.keycode_input.is_focus())
                 self.assertEqual(len(keycode_reader._unreleased), 0)
@@ -400,8 +395,6 @@ class TestIntegration(unittest.TestCase):
         if not expect_success:
             self.assertIsNone(row.get_key())
             self.assertIsNone(row.get_character())
-            css_classes = row.get_style_context().list_classes()
-            self.assertNotIn('changed', css_classes)
             self.assertEqual(row._state, IDLE)
             # it won't switch the focus to the character input
             self.assertTrue(row.keycode_input.is_focus())
@@ -463,23 +456,14 @@ class TestIntegration(unittest.TestCase):
 
         """save"""
 
-        self.window.on_save_preset_clicked(None)
-        for row in self.get_rows():
-            css_classes = row.get_style_context().list_classes()
-            self.assertNotIn('changed', css_classes)
-
+        # unfocusing the row triggers saving the preset
+        self.window.window.set_focus(None)
         self.assertFalse(custom_mapping.changed)
 
         """edit first row"""
 
-        # now change the first row and it should turn blue,
-        # but the other should remain unhighlighted
         row = self.get_rows()[0]
         row.character_input.set_text('c')
-        self.assertIn('changed', row.get_style_context().list_classes())
-        for row in self.get_rows()[1:]:
-            css_classes = row.get_style_context().list_classes()
-            self.assertNotIn('changed', css_classes)
 
         self.assertEqual(custom_mapping.get_character(ev_1), 'c')
         self.assertEqual(custom_mapping.get_character(ev_2), 'k(b).k(c)')
@@ -509,7 +493,6 @@ class TestIntegration(unittest.TestCase):
         self.assertEqual(custom_mapping.get_character(ev_2), 'b')
         self.assertEqual(custom_mapping.get_character(ev_3), 'c')
         self.assertEqual(custom_mapping.get_character(ev_4), 'd')
-        self.assertTrue(custom_mapping.changed)
 
         # and trying to add them as duplicate rows will be ignored for each
         # of them
@@ -522,7 +505,6 @@ class TestIntegration(unittest.TestCase):
         self.assertEqual(custom_mapping.get_character(ev_2), 'b')
         self.assertEqual(custom_mapping.get_character(ev_3), 'c')
         self.assertEqual(custom_mapping.get_character(ev_4), 'd')
-        self.assertTrue(custom_mapping.changed)
 
     def test_combination(self):
         # it should be possible to write a key combination
@@ -667,14 +649,15 @@ class TestIntegration(unittest.TestCase):
 
         custom_mapping.change(Key(EV_KEY, 14, 1), 'a', None)
         self.assertEqual(self.window.selected_preset, 'new preset')
-        self.window.on_save_preset_clicked(None)
+        self.window.save_preset()
         self.assertEqual(custom_mapping.get_character(Key(EV_KEY, 14, 1)), 'a')
         config.set_autoload_preset('device 1', 'new preset')
         self.assertTrue(config.is_autoloaded('device 1', 'new preset'))
 
         custom_mapping.change(Key(EV_KEY, 14, 1), 'b', None)
         self.window.get('preset_name_input').set_text('asdf')
-        self.window.on_save_preset_clicked(None)
+        self.window.save_preset()
+        self.window.on_rename_button_clicked(None)
         self.assertEqual(self.window.selected_preset, 'asdf')
         self.assertTrue(os.path.exists(f'{CONFIG_PATH}/presets/device 1/asdf.json'))
         self.assertEqual(custom_mapping.get_character(Key(EV_KEY, 14, 1)), 'b')
@@ -682,9 +665,6 @@ class TestIntegration(unittest.TestCase):
         self.assertTrue(config.is_autoloaded('device 1', 'asdf'))
 
         error_icon = self.window.get('error_status_icon')
-        status = self.window.get('status_bar')
-        tooltip = status.get_tooltip_text().lower()
-        self.assertIn('saved', tooltip)
         self.assertFalse(error_icon.get_visible())
 
     def test_rename_and_create(self):
@@ -692,12 +672,73 @@ class TestIntegration(unittest.TestCase):
         # start with "new preset" again
         custom_mapping.change(Key(EV_KEY, 14, 1), 'a', None)
         self.window.get('preset_name_input').set_text('asdf')
-        self.window.on_save_preset_clicked(None)
+        self.window.save_preset()
+        self.window.on_rename_button_clicked(None)
+        self.assertEqual(len(custom_mapping), 1)
         self.assertEqual(self.window.selected_preset, 'asdf')
 
         self.window.on_create_preset_clicked(None)
         self.assertEqual(self.window.selected_preset, 'new preset')
         self.assertIsNone(custom_mapping.get_character(Key(EV_KEY, 14, 1)))
+        config.set_autoload_preset('device 1', 'new preset')
+
+        # renaming another preset to an existing name appends a number
+        self.window.get('preset_name_input').set_text('asdf')
+        self.window.on_rename_button_clicked(None)
+        self.assertEqual(self.window.selected_preset, 'asdf 2')
+        # and that added number is correctly used in the autoload
+        # configuration as well
+        self.assertTrue(config.is_autoloaded('device 1', 'asdf 2'))
+
+    def test_avoids_redundant_saves(self):
+        custom_mapping.change(Key(EV_KEY, 14, 1), 'abcd', None)
+
+        custom_mapping.changed = False
+        self.window.save_preset()
+
+        with open(get_preset_path('device 1', 'new preset')) as f:
+            content = f.read()
+            self.assertNotIn('abcd', content)
+
+        custom_mapping.changed = True
+        self.window.save_preset()
+
+        with open(get_preset_path('device 1', 'new preset')) as f:
+            content = f.read()
+            self.assertIn('abcd', content)
+
+    def test_check_for_unknown_characters(self):
+        status = self.window.get('status_bar')
+        error_icon = self.window.get('error_status_icon')
+        warning_icon = self.window.get('warning_status_icon')
+
+        custom_mapping.change(Key(EV_KEY, 71, 1), 'qux', None)
+        custom_mapping.change(Key(EV_KEY, 72, 1), 'foo', None)
+        self.window.save_preset()
+        tooltip = status.get_tooltip_text().lower()
+        self.assertIn('qux', tooltip)
+        self.assertTrue(error_icon.get_visible())
+        self.assertFalse(warning_icon.get_visible())
+
+        # it will still save it though
+        with open(get_preset_path('device 1', 'new preset')) as f:
+            content = f.read()
+            self.assertIn('qux', content)
+            self.assertIn('foo', content)
+
+        custom_mapping.change(Key(EV_KEY, 71, 1), 'a', None)
+        self.window.save_preset()
+        tooltip = status.get_tooltip_text().lower()
+        self.assertIn('foo', tooltip)
+        self.assertTrue(error_icon.get_visible())
+        self.assertFalse(warning_icon.get_visible())
+
+        custom_mapping.change(Key(EV_KEY, 72, 1), 'b', None)
+        self.window.save_preset()
+        tooltip = status.get_tooltip_text()
+        self.assertIsNone(tooltip)
+        self.assertFalse(error_icon.get_visible())
+        self.assertFalse(warning_icon.get_visible())
 
     def test_check_macro_syntax(self):
         status = self.window.get('status_bar')
@@ -705,17 +746,16 @@ class TestIntegration(unittest.TestCase):
         warning_icon = self.window.get('warning_status_icon')
 
         custom_mapping.change(Key(EV_KEY, 9, 1), 'k(1))', None)
-        self.window.on_save_preset_clicked(None)
+        self.window.save_preset()
         tooltip = status.get_tooltip_text().lower()
         self.assertIn('brackets', tooltip)
         self.assertTrue(error_icon.get_visible())
         self.assertFalse(warning_icon.get_visible())
 
         custom_mapping.change(Key(EV_KEY, 9, 1), 'k(1)', None)
-        self.window.on_save_preset_clicked(None)
-        tooltip = status.get_tooltip_text().lower()
+        self.window.save_preset()
+        tooltip = (status.get_tooltip_text() or '').lower()
         self.assertNotIn('brackets', tooltip)
-        self.assertIn('saved', tooltip)
         self.assertFalse(error_icon.get_visible())
         self.assertFalse(warning_icon.get_visible())
 
@@ -750,7 +790,8 @@ class TestIntegration(unittest.TestCase):
         self.assertEqual(self.window.selected_preset, 'new preset')
         self.assertFalse(os.path.exists(f'{CONFIG_PATH}/presets/device 1/abc 123.json'))
         custom_mapping.change(Key(EV_KEY, 10, 1), '1', None)
-        self.window.on_save_preset_clicked(None)
+        self.window.save_preset()
+        self.window.on_rename_button_clicked(None)
         gtk_iteration()
         self.assertEqual(self.window.selected_preset, 'abc 123')
         self.assertTrue(os.path.exists(f'{CONFIG_PATH}/presets/device 1/abc 123.json'))
@@ -768,10 +809,9 @@ class TestIntegration(unittest.TestCase):
         self.change_empty_row(Key(EV_KEY, 81, 1), 'a')
         time.sleep(0.1)
         gtk_iteration()
-        self.window.on_save_preset_clicked(None)
+        self.window.save_preset()
         self.assertEqual(len(key_list.get_children()), 2)
 
-        self.window.ctrl = False
         self.window.on_create_preset_clicked(None)
 
         # the preset should be empty, only one empty row present
@@ -781,21 +821,21 @@ class TestIntegration(unittest.TestCase):
         self.change_empty_row(Key(EV_KEY, 81, 1), 'b')
         time.sleep(0.1)
         gtk_iteration()
-        self.window.on_save_preset_clicked(None)
+        self.window.save_preset()
         self.assertEqual(len(key_list.get_children()), 2)
 
         # this time it should be copied
-        self.window.ctrl = True
-        self.window.on_create_preset_clicked(None)
+        self.window.on_copy_preset_clicked(None)
         self.assertEqual(self.window.selected_preset, 'new preset 2 copy')
         self.assertEqual(len(key_list.get_children()), 2)
         self.assertEqual(key_list.get_children()[0].get_character(), 'b')
 
         # make another copy
-        self.window.on_create_preset_clicked(None)
+        self.window.on_copy_preset_clicked(None)
         self.assertEqual(self.window.selected_preset, 'new preset 2 copy 2')
         self.assertEqual(len(key_list.get_children()), 2)
         self.assertEqual(key_list.get_children()[0].get_character(), 'b')
+        self.assertEqual(len(custom_mapping), 1)
 
     def test_gamepad_config(self):
         # set some stuff in the beginning, otherwise gtk fails to
@@ -1016,7 +1056,7 @@ class TestIntegration(unittest.TestCase):
         ] * 100
 
         custom_mapping.change(Key(EV_ABS, ABS_X, 1), 'a')
-        self.window.on_save_preset_clicked(None)
+        self.window.save_preset()
 
         gtk_iteration()
 
@@ -1075,6 +1115,28 @@ class TestIntegration(unittest.TestCase):
         while pipe.poll():
             write_history.append(pipe.recv())
         self.assertEqual(len(write_history), len_before)
+
+    def test_delete_preset(self):
+        custom_mapping.change(Key(EV_KEY, 71, 1), 'a', None)
+        self.window.get('preset_name_input').set_text('asdf')
+        self.window.on_rename_button_clicked(None)
+        gtk_iteration()
+        self.assertEqual(self.window.selected_preset, 'asdf')
+        self.assertEqual(len(custom_mapping), 1)
+        self.window.save_preset()
+        self.assertTrue(os.path.exists(get_preset_path('device 1', 'asdf')))
+
+        with patch.object(self.window, 'show_confirm_delete', lambda: Gtk.ResponseType.CANCEL):
+            self.window.on_delete_preset_clicked(None)
+            self.assertTrue(os.path.exists(get_preset_path('device 1', 'asdf')))
+            self.assertEqual(self.window.selected_preset, 'asdf')
+            self.assertEqual(self.window.selected_device, 'device 1')
+
+        with patch.object(self.window, 'show_confirm_delete', lambda: Gtk.ResponseType.ACCEPT):
+            self.window.on_delete_preset_clicked(None)
+            self.assertFalse(os.path.exists(get_preset_path('device 1', 'asdf')))
+            self.assertEqual(self.window.selected_preset, 'new preset')
+            self.assertEqual(self.window.selected_device, 'device 1')
 
 
 original_access = os.access
