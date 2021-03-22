@@ -111,9 +111,6 @@ class Reader:
         Otherwise making combinations wouldn't be possible. Because at
         some point the keys have to be released, and that shouldn't cause
         the combination to get trimmed.
-
-        If the timing of two recent events is very close, prioritize
-        key events over abs events.
         """
         # this is in some ways similar to the keycode_mapper and
         # event_producer, but its much simpler because it doesn't
@@ -122,8 +119,7 @@ class Reader:
         # by the window.
 
         # remember the previous down-event from the pipe in order to
-        # be able to prioritize events, and to be able to tell if the reader
-        # should return the updated combination
+        # be able to tell if the reader should return the updated combination
         previous_event = self.previous_event
         key_down_received = False
 
