@@ -135,6 +135,9 @@ class Window:
         self.confirm_delete = builder.get_object('confirm-delete')
         self.about = builder.get_object('about-dialog')
         self.about.connect('delete-event', on_close_about)
+        # set_position needs to be done once initially, otherwise the
+        # dialog is not centered when it is opened for the first time
+        self.about.set_position(Gtk.WindowPosition.CENTER_ON_PARENT)
 
         self.get('version-label').set_text(
             f'key-mapper {version} {COMMIT_HASH[:7]}'
