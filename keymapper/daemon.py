@@ -198,9 +198,8 @@ class Daemon:
             # Blocks until pkexec is done asking for the password.
             # Runs via key-mapper-control so that auth_admin_keep works
             # for all pkexec calls of the gui
-            cmd = 'pkexec key-mapper-control --command start-daemon'
-            if is_debug():
-                cmd += ' -d'
+            debug = ' -d' if is_debug() else ''
+            cmd = f'pkexec key-mapper-control --command start-daemon {debug}'
 
             # using pkexec will also cause the service to continue running in
             # the background after the gui has been closed, which will keep

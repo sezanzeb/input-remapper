@@ -111,6 +111,8 @@ class Window:
     def __init__(self):
         self.dbus = None
 
+        self.start_processes()
+
         self.selected_device = None
         self.selected_preset = None
 
@@ -129,8 +131,6 @@ class Window:
         builder.add_from_file(gladefile)
         builder.connect_signals(self)
         self.builder = builder
-
-        self.start_processes()
 
         self.confirm_delete = builder.get_object('confirm-delete')
         self.about = builder.get_object('about-dialog')
@@ -169,20 +169,19 @@ class Window:
         self.ctrl = False
         self.unreleased_warn = 0
 
+        if not is_helper_running():
+            self.show_status(CTX_ERROR, 'The helper did not start')
+
     def start_processes(self):
         """Start helper and daemon via pkexec to run in the background."""
         # this function is overwritten in tests
         self.dbus = Daemon.connect()
 
-        cmd = 'pkexec key-mapper-control --command helper'
-        if is_debug:
-            cmd += ' -d'
+        debug = ' -d' if is_debug() else ''
+        cmd = f'pkexec key-mapper-control --command helper {debug}'
 
         logger.debug('Running `%s`', cmd)
         os.system(cmd)
-
-        if not is_helper_running():
-            self.show_status(CTX_ERROR, 'The helper did not start')
 
     def show_confirm_delete(self):
         """Blocks until the user decided about an action."""
