@@ -249,17 +249,17 @@ class TestControl(unittest.TestCase):
         self.assertEqual(config.get('foo'), 'bar')
 
     def test_internals(self):
-        with mock.patch('subprocess.Popen') as popen_patch:
+        with mock.patch('os.system') as os_system_patch:
             internals(options('helper', None, None, None, False, False, False))
-            popen_patch.assert_called_once()
-            self.assertIn('key-mapper-helper', popen_patch.call_args.args[0])
-            self.assertNotIn('-d', popen_patch.call_args.args[0])
+            os_system_patch.assert_called_once()
+            self.assertIn('key-mapper-helper', os_system_patch.call_args.args[0])
+            self.assertNotIn('-d', os_system_patch.call_args.args[0])
 
-        with mock.patch('subprocess.Popen') as popen_patch:
+        with mock.patch('os.system') as os_system_patch:
             internals(options('start-daemon', None, None, None, False, False, True))
-            popen_patch.assert_called_once()
-            self.assertIn('key-mapper-service', popen_patch.call_args.args[0])
-            self.assertIn('-d', popen_patch.call_args.args[0])
+            os_system_patch.assert_called_once()
+            self.assertIn('key-mapper-service', os_system_patch.call_args.args[0])
+            self.assertIn('-d', os_system_patch.call_args.args[0])
 
 
 if __name__ == "__main__":

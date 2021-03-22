@@ -152,19 +152,18 @@ def internals(options):
 
     key-mapper-control should be started with sudo or pkexec for this.
     """
+    debug = ' -d' if options.debug else ''
+
     if options.command == HELPER:
-        cmd = ['key-mapper-helper']
+        cmd = f'key-mapper-helper{debug}'
     elif options.command == START_DAEMON:
-        cmd = ['key-mapper-service', '--hide-info']
+        cmd = f'key-mapper-service --hide-info{debug}'
     else:
         return
 
-    if options.debug:
-        cmd.append('-d')
-
-    # Popen makes os.system of the main process continue with stuff while
-    # cmd runs in the background.
-    subprocess.Popen(cmd)
+    # daemonize
+    cmd = f'{cmd} &'
+    os.system(cmd)
 
 
 if __name__ == '__main__':
