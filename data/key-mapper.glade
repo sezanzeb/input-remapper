@@ -215,6 +215,7 @@ To give your keys back their original mapping.</property>
                             <property name="tooltip-text" translatable="yes">Presets need to be saved before they can be applied.
 Don't hold down any keys while the injection starts.</property>
                             <property name="image">check-icon</property>
+                            <property name="relief">none</property>
                             <property name="always-show-image">True</property>
                             <signal name="clicked" handler="on_apply_preset_clicked" swapped="no"/>
                           </object>
@@ -232,6 +233,7 @@ Don't hold down any keys while the injection starts.</property>
                             <property name="can-focus">True</property>
                             <property name="receives-default">True</property>
                             <property name="image">copy-icon</property>
+                            <property name="relief">none</property>
                             <property name="always-show-image">True</property>
                             <signal name="clicked" handler="on_copy_preset_clicked" swapped="no"/>
                           </object>
@@ -249,6 +251,7 @@ Don't hold down any keys while the injection starts.</property>
                             <property name="can-focus">True</property>
                             <property name="receives-default">True</property>
                             <property name="image">new-icon</property>
+                            <property name="relief">none</property>
                             <property name="always-show-image">True</property>
                             <signal name="clicked" handler="on_create_preset_clicked" swapped="no"/>
                           </object>
@@ -266,6 +269,7 @@ Don't hold down any keys while the injection starts.</property>
                             <property name="can-focus">True</property>
                             <property name="receives-default">True</property>
                             <property name="image">delete-icon</property>
+                            <property name="relief">none</property>
                             <property name="always-show-image">True</property>
                             <signal name="clicked" handler="on_delete_preset_clicked" swapped="no"/>
                           </object>
@@ -365,6 +369,7 @@ Don't hold down any keys while the injection starts.</property>
                                 <property name="tooltip-text" translatable="yes">Save the entered name</property>
                                 <property name="margin-start">6</property>
                                 <property name="image">save-icon</property>
+                                <property name="relief">none</property>
                                 <signal name="clicked" handler="on_rename_button_clicked" swapped="no"/>
                               </object>
                               <packing>
