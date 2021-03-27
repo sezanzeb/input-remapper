@@ -426,6 +426,8 @@ class TestIntegration(unittest.TestCase):
         gtk_iteration()
 
     def test_row_not_focused(self):
+        # focus anything that is not the row,
+        # no keycode should be inserted into it
         self.window.window.set_focus(self.window.get('preset_name_input'))
         send_event_to_reader(new_event(1, 61, 1))
         self.window.consume_newest_keycode()
@@ -558,6 +560,12 @@ class TestIntegration(unittest.TestCase):
         self.window.window.set_focus(self.get_rows()[0].keycode_input)
         send_event_to_reader(new_event(*ev_1.keys[0]))
         reader.read()
+        self.assertEqual(reader.get_unreleased_keys(), ev_1)
+
+        # unfocus
+        # doesn't call reader.clear
+        # because otherwise the super key cannot be mapped
+        self.window.window.set_focus(None)
         self.assertEqual(reader.get_unreleased_keys(), ev_1)
 
         # focus different row
