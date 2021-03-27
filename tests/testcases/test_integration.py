@@ -554,24 +554,15 @@ class TestIntegration(unittest.TestCase):
     def test_clears_unreleased_on_focus_change(self):
         ev_1 = Key(EV_KEY, 41, 1)
 
-        rows = self.get_rows()
-        row = rows[-1]
-
-        # focused
-        self.window.window.set_focus(row.keycode_input)
+        # focus
+        self.window.window.set_focus(self.get_rows()[0].keycode_input)
         send_event_to_reader(new_event(*ev_1.keys[0]))
         reader.read()
         self.assertEqual(reader.get_unreleased_keys(), ev_1)
 
-        # unfocused
-        self.window.window.set_focus(None)
-        self.assertEqual(reader.get_unreleased_keys(), None)
-        send_event_to_reader(new_event(*ev_1.keys[0]))
-        reader.read()
-        self.assertEqual(reader.get_unreleased_keys(), ev_1)
-
-        # focus back
-        self.window.window.set_focus(row.keycode_input)
+        # focus different row
+        self.window.add_empty()
+        self.window.window.set_focus(self.get_rows()[1].keycode_input)
         self.assertEqual(reader.get_unreleased_keys(), None)
 
     def test_rows(self):

@@ -490,6 +490,7 @@ class TestReader(unittest.TestCase):
 
         reader.terminate()
         reader.clear()
+        time.sleep(EVENT_READ_TIMEOUT)
 
         # no new events arrive after terminating
         push_events('device 1', [new_event(EV_KEY, CODE_3, 1)])
