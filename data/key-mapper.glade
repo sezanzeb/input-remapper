@@ -203,6 +203,7 @@ To give your keys back their original mapping.</property>
                       <object class="GtkBox" id="button_container">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
+                        <property name="margin-bottom">12</property>
                         <property name="spacing">6</property>
                         <property name="homogeneous">True</property>
                         <child>
