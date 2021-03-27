@@ -292,7 +292,6 @@ class Row(Gtk.ListBoxRow):
         self.show_click_here()
         self.keycode_input.set_active(False)
         self._state = IDLE
-        reader.clear()
         self.window.save_preset()
 
     def set_keycode_input_label(self, label):
@@ -305,6 +304,7 @@ class Row(Gtk.ListBoxRow):
         label.set_line_wrap_mode(2)
         label.set_max_width_chars(13)
         label.set_justify(Gtk.Justification.CENTER)
+        self.keycode_input.set_opacity(1)
 
     def put_together(self, character):
         """Create all child GTK widgets and connect their signals."""
