@@ -39,11 +39,12 @@ from keymapper.config import config, NONE, MOUSE, WHEEL, BUTTONS
 from keymapper.key import Key
 from keymapper.injection.macros import parse
 from keymapper.injection.context import Context
-from keymapper.getdevices import get_devices, is_gamepad
+from keymapper.getdevices import get_devices, classify, GAMEPAD
 
 from tests.test import new_event, push_events, fixtures, \
     EVENT_READ_TIMEOUT, uinput_write_history_pipe, \
-    MAX_ABS, quick_cleanup, read_write_history_pipe, InputDevice, uinputs
+    MAX_ABS, quick_cleanup, read_write_history_pipe, InputDevice, uinputs, \
+    keyboard_keys
 
 
 class TestInjector(unittest.TestCase):
@@ -84,7 +85,7 @@ class TestInjector(unittest.TestCase):
         # _grab_device
         self.injector.context = Context(custom_mapping)
         device = self.injector._grab_device(path)
-        gamepad = is_gamepad(device)
+        gamepad = classify(device) == GAMEPAD
         self.assertFalse(gamepad)
         self.assertEqual(self.failed, 2)
         # success on the third try
@@ -134,7 +135,7 @@ class TestInjector(unittest.TestCase):
 
         path = '/dev/input/event30'
         device = self.injector._grab_device(path)
-        gamepad = is_gamepad(device)
+        gamepad = classify(device) == GAMEPAD
         self.assertIsNotNone(device)
         self.assertTrue(gamepad)
 
@@ -165,7 +166,7 @@ class TestInjector(unittest.TestCase):
         custom_mapping.change(Key(EV_KEY, BTN_A, 1), 'a')
         device = self.injector._grab_device(path)
         self.assertIsNotNone(device)
-        gamepad = is_gamepad(device)
+        gamepad = classify(device) == GAMEPAD
         self.assertTrue(gamepad)
         capabilities = self.injector._construct_capabilities(gamepad)
         self.assertNotIn(EV_ABS, capabilities)
@@ -183,7 +184,7 @@ class TestInjector(unittest.TestCase):
         # the right joystick maps as mouse, so it is grabbed
         # even with an empty mapping
         self.assertIsNotNone(device)
-        gamepad = is_gamepad(device)
+        gamepad = classify(device) == GAMEPAD
         self.assertTrue(gamepad)
         capabilities = self.injector._construct_capabilities(gamepad)
         self.assertNotIn(EV_ABS, capabilities)
@@ -191,7 +192,7 @@ class TestInjector(unittest.TestCase):
 
         custom_mapping.change(Key(EV_KEY, BTN_A, 1), 'a')
         device = self.injector._grab_device(path)
-        gamepad = is_gamepad(device)
+        gamepad = classify(device) == GAMEPAD
         self.assertIsNotNone(device)
         self.assertTrue(gamepad)
         capabilities = self.injector._construct_capabilities(gamepad)
@@ -230,7 +231,7 @@ class TestInjector(unittest.TestCase):
         fixtures[path]['capabilities'][EV_KEY].append(BTN_LEFT)
         fixtures[path]['capabilities'][EV_KEY].append(KEY_A)
         device = self.injector._grab_device(path)
-        gamepad = is_gamepad(device)
+        gamepad = classify(device) == GAMEPAD
         capabilities = self.injector._construct_capabilities(gamepad)
         self.assertIn(EV_KEY, capabilities)
         self.assertIn(evdev.ecodes.BTN_MOUSE, capabilities[EV_KEY])
@@ -240,7 +241,7 @@ class TestInjector(unittest.TestCase):
 
         path = '/dev/input/event30'
         device = self.injector._grab_device(path)
-        gamepad = is_gamepad(device)
+        gamepad = classify(device) == GAMEPAD
         self.assertIn(EV_KEY, device.capabilities())
         self.assertNotIn(evdev.ecodes.BTN_MOUSE, device.capabilities()[EV_KEY])
         capabilities = self.injector._construct_capabilities(gamepad)
@@ -259,16 +260,13 @@ class TestInjector(unittest.TestCase):
         self.assertEqual(self.failed, 0)
 
     def test_skip_unknown_device(self):
+        custom_mapping.change(Key(EV_KEY, 10, 1), 'a')
+
         # skips a device because its capabilities are not used in the mapping
         self.injector = Injector('device 1', custom_mapping)
         self.injector.context = Context(custom_mapping)
         path = '/dev/input/event11'
         device = self.injector._grab_device(path)
-
-        # make sure the test uses a fixture without interesting capabilities
-        capabilities = evdev.InputDevice(path).capabilities()
-        self.assertEqual(len(capabilities.get(EV_KEY, [])), 0)
-        self.assertEqual(len(capabilities.get(EV_ABS, [])), 0)
 
         # skips the device alltogether, so no grab attempts fail
         self.assertEqual(self.failed, 0)
@@ -516,8 +514,8 @@ class TestInjector(unittest.TestCase):
         self.assertIn(EV_REL, forwarded_foo.capabilities())
         self.assertIn(EV_KEY, forwarded.capabilities())
         self.assertEqual(
-            len(forwarded.capabilities()[EV_KEY]),
-            len(evdev.ecodes.keys)
+            sorted(forwarded.capabilities()[EV_KEY]),
+            keyboard_keys
         )
 
     def test_injector(self):

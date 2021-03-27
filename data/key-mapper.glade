@@ -104,7 +104,7 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkComboBoxText" id="device_selection">
+                  <object class="GtkComboBox" id="device_selection">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
                     <signal name="changed" handler="on_select_device" swapped="no"/>
@@ -213,8 +213,7 @@ To give your keys back their original mapping.</property>
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
                             <property name="receives-default">True</property>
-                            <property name="tooltip-text" translatable="yes">Presets need to be saved before they can be applied.
-Don't hold down any keys while the injection starts.</property>
+                            <property name="tooltip-text" translatable="yes">Don't hold down any keys while the injection starts.</property>
                             <property name="image">check-icon</property>
                             <property name="relief">none</property>
                             <property name="always-show-image">True</property>
@@ -255,6 +254,7 @@ Don't hold down any keys while the injection starts.</property>
                             <property name="relief">none</property>
                             <property name="always-show-image">True</property>
                             <signal name="clicked" handler="on_create_preset_clicked" swapped="no"/>
+                            <accelerator key="n" signal="activate" modifiers="GDK_CONTROL_MASK"/>
                           </object>
                           <packing>
                             <property name="expand">True</property>

@@ -24,6 +24,7 @@
 
 import math
 import os
+import sys
 
 from gi.repository import Gtk, Gdk, GLib
 
@@ -34,7 +35,8 @@ from keymapper.presets import get_presets, find_newest_preset, \
     delete_preset, rename_preset, get_available_preset_name
 from keymapper.logger import logger, COMMIT_HASH, version, evdev_version, \
     is_debug
-from keymapper.getdevices import get_devices
+from keymapper.getdevices import get_devices, GAMEPAD, KEYBOARD, UNKNOWN, \
+    GRAPHICS_TABLET, TOUCHPAD, MOUSE
 from keymapper.gui.row import Row, to_string
 from keymapper.gui.reader import reader
 from keymapper.gui.helper import is_helper_running
@@ -132,6 +134,20 @@ class Window:
         builder.connect_signals(self)
         self.builder = builder
 
+        # set up the device selection
+        # https://python-gtk-3-tutorial.readthedocs.io/en/latest/treeview.html#the-view
+        combobox = self.get('device_selection')
+        self.device_store = Gtk.ListStore(str, str)
+        combobox.set_model(self.device_store)
+        renderer_icon = Gtk.CellRendererPixbuf()
+        renderer_text = Gtk.CellRendererText()
+        renderer_text.set_padding(5, 0)
+        combobox.set_id_column(1)
+        combobox.pack_start(renderer_icon, False)
+        combobox.pack_start(renderer_text, False)
+        combobox.add_attribute(renderer_icon, 'icon-name', 0)
+        combobox.add_attribute(renderer_text, 'text', 1)
+
         self.confirm_delete = builder.get_object('confirm-delete')
         self.about = builder.get_object('about-dialog')
         self.about.connect('delete-event', on_close_about)
@@ -184,7 +200,11 @@ class Window:
         cmd = f'pkexec key-mapper-control --command helper {debug}'
 
         logger.debug('Running `%s`', cmd)
-        os.system(cmd)
+        exit_code = os.system(cmd)
+
+        if exit_code != 0:
+            logger.error('Failed to pkexec the helper, code %d', exit_code)
+            sys.exit()
 
     def show_confirm_delete(self):
         """Blocks until the user decided about an action."""
@@ -222,7 +242,7 @@ class Window:
     def initialize_gamepad_config(self):
         """Set slider and dropdown values when a gamepad is selected."""
         devices = get_devices()
-        if devices[self.selected_device]['gamepad']:
+        if devices[self.selected_device]['type'] == 'gamepad':
             self.get('gamepad_separator').show()
             self.get('gamepad_config').show()
         else:
@@ -311,9 +331,21 @@ class Window:
         device_selection = self.get('device_selection')
 
         with HandlerDisabled(device_selection, self.on_select_device):
-            device_selection.remove_all()
+            self.device_store.clear()
+
             for device in devices:
-                device_selection.append(device, device)
+                icons = {
+                    GAMEPAD: 'input-gaming',
+                    MOUSE: 'input-mouse',
+                    KEYBOARD: 'input-keyboard',
+                    GRAPHICS_TABLET: 'input-tablet',
+                    TOUCHPAD: 'input-touchpad',
+                    UNKNOWN: None,
+                }
+                self.device_store.append([
+                    icons[devices[device]['type']],
+                    device
+                ])
 
         self.select_newest_preset()
 
@@ -588,7 +620,7 @@ class Window:
         # preset. Prevent another unsaved-changes dialog to pop up
         custom_mapping.changed = False
 
-        device = dropdown.get_active_text()
+        device = dropdown.get_active_id()
 
         if device is None:
             return

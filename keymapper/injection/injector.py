@@ -30,7 +30,7 @@ import evdev
 from evdev.ecodes import EV_KEY, EV_REL
 
 from keymapper.logger import logger
-from keymapper.getdevices import get_devices, is_gamepad
+from keymapper.getdevices import get_devices, classify, GAMEPAD
 from keymapper import utils
 from keymapper.mapping import DISABLE_CODE
 from keymapper.injection.keycode_mapper import KeycodeMapper
@@ -159,7 +159,7 @@ class Injector(multiprocessing.Process):
                 needed = True
                 break
 
-        gamepad = is_gamepad(device)
+        gamepad = classify(device) == GAMEPAD
 
         if gamepad and self.context.maps_joystick():
             logger.debug('Grabbing "%s" because of maps_joystick', path)
@@ -341,7 +341,7 @@ class Injector(multiprocessing.Process):
         self.context.uinput = evdev.UInput(
             name=self.get_udef_name(self.device, 'mapped'),
             phys=DEV_NAME,
-            events=self._construct_capabilities(group['gamepad'])
+            events=self._construct_capabilities(group['type'] == 'gamepad')
         )
 
         # Watch over each one of the potentially multiple devices per hardware
@@ -355,7 +355,7 @@ class Injector(multiprocessing.Process):
             # certain capabilities can have side effects apparently. with an
             # EV_ABS capability, EV_REL won't move the mouse pointer anymore.
             # so don't merge all InputDevices into one UInput device.
-            gamepad = is_gamepad(source)
+            gamepad = classify(source) == GAMEPAD
             forward_to = evdev.UInput(
                 name=self.get_udef_name(source.name, 'forwarded'),
                 phys=DEV_NAME,
@@ -423,7 +423,7 @@ class Injector(multiprocessing.Process):
             source.path, source.fd
         )
 
-        gamepad = is_gamepad(source)
+        gamepad = classify(source) == GAMEPAD
 
         keycode_handler = KeycodeMapper(self.context, source, forward_to)
 
