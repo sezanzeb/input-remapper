@@ -1,5 +1,5 @@
 Package: key-mapper
-Version: 0.7.1
+Version: 0.8.0
 Architecture: all
 Maintainer: Sezanzeb <proxima@sezanzeb.de>
 Depends: build-essential, libpython3-dev, libdbus-1-dev, python3, python3-setuptools, python3-evdev, python3-pydbus, python3-gi

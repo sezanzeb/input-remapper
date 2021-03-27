@@ -64,7 +64,7 @@ ssh/login into a debian/ubuntu environment
 ./scripts/build.sh
 ```
 
-This will generate `key-mapper/deb/key-mapper-0.7.1.deb`
+This will generate `key-mapper/deb/key-mapper-0.8.0.deb`
 
 ## Badges
 
