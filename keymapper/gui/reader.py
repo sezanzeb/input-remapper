@@ -131,7 +131,7 @@ class Reader:
             if event is None:
                 continue
 
-            gamepad = get_devices()[self.device_name]['gamepad']
+            gamepad = get_devices()[self.device_name]['type'] == 'gamepad'
             if not utils.should_map_as_btn(event, custom_mapping, gamepad):
                 continue
 

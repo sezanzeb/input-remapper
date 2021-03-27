@@ -32,6 +32,7 @@ import subprocess
 import multiprocessing
 import asyncio
 import psutil
+from pickle import UnpicklingError
 
 import evdev
 import gi
@@ -121,20 +122,29 @@ def read_write_history_pipe():
 phys_1 = 'usb-0000:03:00.0-1/input2'
 info_1 = evdev.device.DeviceInfo(1, 1, 1, 1)
 
+keyboard_keys = sorted(evdev.ecodes.keys.keys())[:255]
+
 fixtures = {
     # device 1
     '/dev/input/event11': {
-        'capabilities': {evdev.ecodes.EV_KEY: [], evdev.ecodes.EV_REL: [
-            evdev.ecodes.REL_WHEEL,
-            evdev.ecodes.REL_HWHEEL
-        ]},
+        'capabilities': {
+            evdev.ecodes.EV_KEY: [
+                evdev.ecodes.BTN_LEFT
+            ],
+            evdev.ecodes.EV_REL: [
+                evdev.ecodes.REL_X,
+                evdev.ecodes.REL_Y,
+                evdev.ecodes.REL_WHEEL,
+                evdev.ecodes.REL_HWHEEL
+            ]
+        },
         'phys': f'{phys_1}/input2',
         'info': info_1,
         'name': 'device 1 foo',
         'group': 'device 1'
     },
     '/dev/input/event10': {
-        'capabilities': {evdev.ecodes.EV_KEY: list(evdev.ecodes.keys.keys())},
+        'capabilities': {evdev.ecodes.EV_KEY: keyboard_keys},
         'phys': f'{phys_1}/input3',
         'info': info_1,
         'name': 'device 1',
@@ -157,7 +167,7 @@ fixtures = {
 
     # device 2
     '/dev/input/event20': {
-        'capabilities': {evdev.ecodes.EV_KEY: list(evdev.ecodes.keys.keys())},
+        'capabilities': {evdev.ecodes.EV_KEY: keyboard_keys},
         'phys': 'usb-0000:03:00.0-2/input1',
         'info': evdev.device.DeviceInfo(2, 1, 2, 1),
         'name': 'device 2'
@@ -193,7 +203,7 @@ fixtures = {
     # key-mapper devices are not displayed in the ui, some instance
     # of key-mapper started injecting apparently.
     '/dev/input/event40': {
-        'capabilities': {evdev.ecodes.EV_KEY: list(evdev.ecodes.keys.keys())},
+        'capabilities': {evdev.ecodes.EV_KEY: keyboard_keys},
         'phys': 'key-mapper/input1',
         'info': evdev.device.DeviceInfo(5, 1, 5, 1),
         'name': 'key-mapper device 2'
@@ -350,7 +360,13 @@ class InputDevice:
             return None
 
         time.sleep(EVENT_READ_TIMEOUT)
-        event = pending_events[self.group][1].recv()
+        try:
+            event = pending_events[self.group][1].recv()
+        except UnpicklingError as error:
+            # failed in tests sometimes
+            print(error)
+            return None
+
         self.log(event, 'read_one')
         return event
 

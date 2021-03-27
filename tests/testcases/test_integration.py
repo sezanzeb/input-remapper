@@ -147,8 +147,9 @@ class TestGetDevicesFromHelper(unittest.TestCase):
                 # the gui an empty dict, because it doesn't know any devices
                 # without the help of the privileged helper
                 set_devices({})
-            else:
-                cls.original_os_system(cmd)
+                return 0
+
+            return cls.original_os_system(cmd)
 
         os.system = os_system
 
@@ -1342,7 +1343,7 @@ class TestIntegration(unittest.TestCase):
         self.assertEqual(self.window.selected_preset, 'preset 1')
 
         # add a device that doesn't exist to the dropdown
-        device_selection.insert(0, 'foo', 'foo')
+        self.window.device_store.insert(0, [None, 'foo'])
 
         # now the newest preset should be selected and the non-existing
         # device removed
