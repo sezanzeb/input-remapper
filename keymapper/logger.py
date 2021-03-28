@@ -137,13 +137,11 @@ logger.setLevel(logging.INFO)
 logging.getLogger('asyncio').setLevel(logging.WARNING)
 
 try:
-    name = pkg_resources.require('key-mapper')[0].project_name
-    version = pkg_resources.require('key-mapper')[0].version
-    evdev_version = pkg_resources.require('evdev')[0].version
+    VERSION = pkg_resources.require('key-mapper')[0].version
+    EVDEV_VERSION = pkg_resources.require('evdev')[0].version
 except pkg_resources.DistributionNotFound as error:
-    name = 'key-mapper'
-    version = ''
-    evdev_version = None
+    VERSION = ''
+    EVDEV_VERSION = None
     logger.info('Could not figure out the version')
     logger.debug(error)
 
@@ -154,20 +152,20 @@ def is_debug():
 
 
 def log_info(name='key-mapper'):
-    """Log version and name to the console"""
+    """Log version and name to the console."""
     # read values from setup.py
 
     logger.info(
         '%s %s %s https://github.com/sezanzeb/key-mapper',
-        name, version, COMMIT_HASH
+        name, VERSION, COMMIT_HASH
     )
 
-    if evdev_version:
-        logger.info('python-evdev %s', evdev_version)
+    if EVDEV_VERSION:
+        logger.info('python-evdev %s', EVDEV_VERSION)
 
     logger.info(
         '%s %s %s https://github.com/sezanzeb/key-mapper',
-        name, version, COMMIT_HASH
+        name, VERSION, COMMIT_HASH
     )
 
     if is_debug():

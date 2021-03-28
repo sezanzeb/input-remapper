@@ -86,13 +86,15 @@ class Reader:
         """Return an InputEvent if the message contains one. None otherwise."""
         message_type = message['type']
         message_body = message['message']
+
         if message_type == 'devices':
             # result of get_devices in the helper
             logger.debug('Received %d devices', len(message_body))
             set_devices(message_body)
             self._devices_updated = True
             return None
-        elif message_type == 'event':
+
+        if message_type == 'event':
             return evdev.InputEvent(*message_body)
 
         logger.error('Received unknown message "%s"', message)

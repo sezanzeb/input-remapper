@@ -236,8 +236,8 @@ def Client(path):
         # ensure it is running, might have been closed
         existing_clients[path].reset()
         return existing_clients[path]
-    else:
-        return _Client(path)
+
+    return _Client(path)
 
 
 class _Server(Base):
@@ -293,5 +293,5 @@ def Server(path):
         # ensure it is running, might have been closed
         existing_servers[path].reset()
         return existing_servers[path]
-    else:
-        return _Server(path)
+
+    return _Server(path)
