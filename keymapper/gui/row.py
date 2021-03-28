@@ -35,21 +35,24 @@ CTX_KEYCODE = 2
 
 
 store = Gtk.ListStore(str)
-for name in system_mapping.list_names():
-    store.append([name])
 
-for key in [
-    'mouse(up, 1)',
-    'mouse(down, 1)',
-    'mouse(left, 1)',
-    'mouse(right, 1)',
-    'wheel(up, 1)',
-    'wheel(down, 1)',
-    'wheel(left, 1)',
-    'wheel(right, 1)'
-]:
-    # add some more keys to the dropdown list
-    store.append([key])
+
+def populate_store():
+    """Fill the dropdown for key suggestions with values."""
+    for name in system_mapping.list_names():
+        store.append([name])
+
+    extra = [
+        'mouse(up, 1)', 'mouse(down, 1)', 'mouse(left, 1)', 'mouse(right, 1)',
+        'wheel(up, 1)', 'wheel(down, 1)', 'wheel(left, 1)', 'wheel(right, 1)'
+    ]
+
+    for key in extra:
+        # add some more keys to the dropdown list
+        store.append([key])
+
+
+populate_store()
 
 
 def to_string(key):

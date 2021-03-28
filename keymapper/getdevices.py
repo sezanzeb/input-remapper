@@ -36,14 +36,12 @@ from keymapper.logger import logger
 
 _devices = None
 
-
 TABLET_KEYS = [
     evdev.ecodes.BTN_STYLUS,
     evdev.ecodes.BTN_TOOL_BRUSH,
     evdev.ecodes.BTN_TOOL_PEN,
     evdev.ecodes.BTN_TOOL_RUBBER
 ]
-
 
 GAMEPAD = 'gamepad'
 KEYBOARD = 'keyboard'
@@ -52,7 +50,6 @@ TOUCHPAD = 'touchpad'
 GRAPHICS_TABLET = 'graphics-tablet'
 CAMERA = 'camera'
 UNKNOWN = 'unknown'
-
 
 # sort types that most devices would fall in easily to the right
 PRIORITIES = [
@@ -131,7 +128,6 @@ def classify(device):
     Use this instead of functions like _is_keyboard to avoid getting false
     positives.
     """
-    # TODO test
     capabilities = device.capabilities(absinfo=False)
 
     if _is_graphics_tablet(capabilities):

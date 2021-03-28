@@ -33,7 +33,7 @@ from keymapper.paths import get_config_path, get_preset_path
 from keymapper.state import custom_mapping, system_mapping
 from keymapper.presets import get_presets, find_newest_preset, \
     delete_preset, rename_preset, get_available_preset_name
-from keymapper.logger import logger, COMMIT_HASH, version, evdev_version, \
+from keymapper.logger import logger, COMMIT_HASH, VERSION, EVDEV_VERSION, \
     is_debug
 from keymapper.getdevices import get_devices, GAMEPAD, KEYBOARD, UNKNOWN, \
     GRAPHICS_TABLET, TOUCHPAD, MOUSE
@@ -60,6 +60,15 @@ CTX_MAPPING = 5
 
 CONTINUE = True
 GO_BACK = False
+
+ICON_NAMES = {
+    GAMEPAD: 'input-gaming',
+    MOUSE: 'input-mouse',
+    KEYBOARD: 'input-keyboard',
+    GRAPHICS_TABLET: 'input-tablet',
+    TOUCHPAD: 'input-touchpad',
+    UNKNOWN: None,
+}
 
 
 def with_selected_device(func):
@@ -156,8 +165,8 @@ class Window:
         self.about.set_position(Gtk.WindowPosition.CENTER_ON_PARENT)
 
         self.get('version-label').set_text(
-            f'key-mapper {version} {COMMIT_HASH[:7]}'
-            f'\npython-evdev {evdev_version}' if evdev_version else ''
+            f'key-mapper {VERSION} {COMMIT_HASH[:7]}'
+            f'\npython-evdev {EVDEV_VERSION}' if EVDEV_VERSION else ''
         )
 
         window = self.get('window')
@@ -332,20 +341,9 @@ class Window:
 
         with HandlerDisabled(device_selection, self.on_select_device):
             self.device_store.clear()
-
             for device in devices:
-                icons = {
-                    GAMEPAD: 'input-gaming',
-                    MOUSE: 'input-mouse',
-                    KEYBOARD: 'input-keyboard',
-                    GRAPHICS_TABLET: 'input-tablet',
-                    TOUCHPAD: 'input-touchpad',
-                    UNKNOWN: None,
-                }
-                self.device_store.append([
-                    icons[devices[device]['type']],
-                    device
-                ])
+                icon_name = ICON_NAMES[devices[device].get('type')]
+                self.device_store.append([icon_name, device])
 
         self.select_newest_preset()
 

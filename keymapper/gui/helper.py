@@ -144,8 +144,8 @@ class RootHelper:
         while True:
             ready_fds = select.select(rlist, [], [])
             if len(ready_fds[0]) == 0:
-                # whatever, maybe the socket is closed and select
-                # has nothing to select from?
+                # whatever, happens for sockets sometimes. Maybe the socket
+                # is closed and select has nothing to select from?
                 continue
 
             for fd in ready_fds[0]:
