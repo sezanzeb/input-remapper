@@ -100,25 +100,19 @@ class TestSystemMapping(unittest.TestCase):
 
         self.assertEqual(system_mapping.get('BTN_left'), 272)
 
-        self.assertIsNotNone(system_mapping.get('kp_1'))
-        self.assertIsNotNone(system_mapping.get('KP_1'))
-        self.assertEqual(
-            system_mapping.get('KP_Left'),
-            system_mapping.get('KP_4')
-        )
+        self.assertIsNotNone(system_mapping.get('KEY_KP4'))
         self.assertEqual(
             system_mapping.get('KP_Left'),
             system_mapping.get('KEY_KP4')
         )
 
-        # this only lists the correct casing, includes linux constants,
-        # xmodmap symbols and all KP_ codes
+        # this only lists the correct casing,
+        # includes linux constants and xmodmap symbols
         names = system_mapping.list_names()
         self.assertIn('2', names)
         self.assertIn('c', names)
         self.assertIn('KEY_3', names)
         self.assertNotIn('key_3', names)
-        self.assertIn('KP_8', names)
         self.assertIn('KP_Down', names)
         self.assertNotIn('kp_down', names)
         names = system_mapping._mapping.keys()
@@ -126,7 +120,7 @@ class TestSystemMapping(unittest.TestCase):
         self.assertNotIn('f4', names)
         self.assertIn('BTN_RIGHT', names)
         self.assertNotIn('btn_right', names)
-        self.assertIn('KP_7', names)
+        self.assertIn('KEY_KP7', names)
         self.assertIn('KP_Home', names)
         self.assertNotIn('kp_home', names)
 
@@ -345,16 +339,16 @@ class TestMapping(unittest.TestCase):
         self.assertEqual(len(self.mapping), 0)
         self.assertTrue(self.mapping.changed)
 
-        self.mapping.change(ev_4, 'KP_1', None)
+        self.mapping.change(ev_4, 'KEY_KP1', None)
         self.assertTrue(self.mapping.changed)
-        self.mapping.change(ev_3, 'KP_2', None)
-        self.mapping.change(ev_2, 'KP_3', None)
+        self.mapping.change(ev_3, 'KEY_KP2', None)
+        self.mapping.change(ev_2, 'KEY_KP3', None)
         self.assertEqual(len(self.mapping), 3)
         self.mapping.clear(ev_3)
         self.assertEqual(len(self.mapping), 2)
-        self.assertEqual(self.mapping.get_character(ev_4), 'KP_1')
+        self.assertEqual(self.mapping.get_character(ev_4), 'KEY_KP1')
         self.assertIsNone(self.mapping.get_character(ev_3))
-        self.assertEqual(self.mapping.get_character(ev_2), 'KP_3')
+        self.assertEqual(self.mapping.get_character(ev_2), 'KEY_KP3')
 
     def test_empty(self):
         self.mapping.change(Key(EV_KEY, 10, 1), '1')
