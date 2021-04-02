@@ -389,19 +389,19 @@ class TestIntegration(unittest.TestCase):
     def test_row_keycode_to_string(self):
         # not an integration test, but I have all the row tests here already
         self.assertEqual(to_string(Key(EV_KEY, evdev.ecodes.KEY_A, 1)), 'a')
-        self.assertEqual(to_string(Key(EV_ABS, evdev.ecodes.ABS_HAT0X, -1)), 'ABS_HAT0X L')
-        self.assertEqual(to_string(Key(EV_ABS, evdev.ecodes.ABS_HAT0Y, -1)), 'ABS_HAT0Y U')
-        self.assertEqual(to_string(Key(EV_KEY, evdev.ecodes.BTN_A, 1)), 'BTN_A')
+        self.assertEqual(to_string(Key(EV_ABS, evdev.ecodes.ABS_HAT0X, -1)), 'DPad Left')
+        self.assertEqual(to_string(Key(EV_ABS, evdev.ecodes.ABS_HAT0Y, -1)), 'DPad Up')
+        self.assertEqual(to_string(Key(EV_KEY, evdev.ecodes.BTN_A, 1)), 'Button A')
         self.assertEqual(to_string(Key(EV_KEY, 1234, 1)), 'unknown')
-        self.assertEqual(to_string(Key(EV_ABS, evdev.ecodes.ABS_X, 1)), 'ABS_X R')
-        self.assertEqual(to_string(Key(EV_ABS, evdev.ecodes.ABS_RY, 1)), 'ABS_RY D')
+        self.assertEqual(to_string(Key(EV_ABS, evdev.ecodes.ABS_X, 1)), 'Joystick Right')
+        self.assertEqual(to_string(Key(EV_ABS, evdev.ecodes.ABS_RY, 1)), 'Joystick 2 Down')
 
         # combinations
         self.assertEqual(to_string(Key(
             (EV_KEY, evdev.ecodes.BTN_A, 1),
             (EV_KEY, evdev.ecodes.BTN_B, 1),
             (EV_KEY, evdev.ecodes.BTN_C, 1)
-        )), 'BTN_A + BTN_B + BTN_C')
+        )), 'Button A + Button B + Button C')
 
     def test_row_simple(self):
         rows = self.window.get('key_list').get_children()

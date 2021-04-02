@@ -91,37 +91,57 @@ def to_string(key):
     if ev_type != evdev.ecodes.EV_KEY:
         direction = {
             # D-Pad
-            (evdev.ecodes.ABS_HAT0X, -1): 'L',
-            (evdev.ecodes.ABS_HAT0X, 1): 'R',
-            (evdev.ecodes.ABS_HAT0Y, -1): 'U',
-            (evdev.ecodes.ABS_HAT0Y, 1): 'D',
-            (evdev.ecodes.ABS_HAT1X, -1): 'L',
-            (evdev.ecodes.ABS_HAT1X, 1): 'R',
-            (evdev.ecodes.ABS_HAT1Y, -1): 'U',
-            (evdev.ecodes.ABS_HAT1Y, 1): 'D',
-            (evdev.ecodes.ABS_HAT2X, -1): 'L',
-            (evdev.ecodes.ABS_HAT2X, 1): 'R',
-            (evdev.ecodes.ABS_HAT2Y, -1): 'U',
-            (evdev.ecodes.ABS_HAT2Y, 1): 'D',
+            (evdev.ecodes.ABS_HAT0X, -1): 'Left',
+            (evdev.ecodes.ABS_HAT0X, 1): 'Right',
+            (evdev.ecodes.ABS_HAT0Y, -1): 'Up',
+            (evdev.ecodes.ABS_HAT0Y, 1): 'Down',
+            (evdev.ecodes.ABS_HAT1X, -1): 'Left',
+            (evdev.ecodes.ABS_HAT1X, 1): 'Right',
+            (evdev.ecodes.ABS_HAT1Y, -1): 'Up',
+            (evdev.ecodes.ABS_HAT1Y, 1): 'Down',
+            (evdev.ecodes.ABS_HAT2X, -1): 'Left',
+            (evdev.ecodes.ABS_HAT2X, 1): 'Right',
+            (evdev.ecodes.ABS_HAT2Y, -1): 'Up',
+            (evdev.ecodes.ABS_HAT2Y, 1): 'Down',
             # joystick
-            (evdev.ecodes.ABS_X, 1): 'R',
-            (evdev.ecodes.ABS_X, -1): 'L',
-            (evdev.ecodes.ABS_Y, 1): 'D',
-            (evdev.ecodes.ABS_Y, -1): 'U',
-            (evdev.ecodes.ABS_RX, 1): 'R',
-            (evdev.ecodes.ABS_RX, -1): 'L',
-            (evdev.ecodes.ABS_RY, 1): 'D',
-            (evdev.ecodes.ABS_RY, -1): 'U',
+            (evdev.ecodes.ABS_X, 1): 'Right',
+            (evdev.ecodes.ABS_X, -1): 'Left',
+            (evdev.ecodes.ABS_Y, 1): 'Down',
+            (evdev.ecodes.ABS_Y, -1): 'Up',
+            (evdev.ecodes.ABS_RX, 1): 'Right',
+            (evdev.ecodes.ABS_RX, -1): 'Left',
+            (evdev.ecodes.ABS_RY, 1): 'Down',
+            (evdev.ecodes.ABS_RY, -1): 'Up',
             # wheel
-            (evdev.ecodes.REL_WHEEL, -1): 'D',
-            (evdev.ecodes.REL_WHEEL, 1): 'U',
-            (evdev.ecodes.REL_HWHEEL, -1): 'L',
-            (evdev.ecodes.REL_HWHEEL, 1): 'R',
+            (evdev.ecodes.REL_WHEEL, -1): 'Down',
+            (evdev.ecodes.REL_WHEEL, 1): 'Up',
+            (evdev.ecodes.REL_HWHEEL, -1): 'Left',
+            (evdev.ecodes.REL_HWHEEL, 1): 'Right',
         }.get((code, value))
         if direction is not None:
             key_name += f' {direction}'
 
-    return key_name.replace('KEY_', '')
+    key_name = key_name.replace('ABS_Z', 'Trigger Left')
+    key_name = key_name.replace('ABS_RZ', 'Trigger Right')
+
+    key_name = key_name.replace('ABS_HAT', 'DPad ')
+    key_name = key_name.replace('0X', '')
+    key_name = key_name.replace('0Y', '')
+    key_name = key_name.replace('1X', '2')
+    key_name = key_name.replace('1Y', '2')
+
+    key_name = key_name.replace('ABS_X', 'Joystick')
+    key_name = key_name.replace('ABS_Y', 'Joystick')
+    key_name = key_name.replace('ABS_RX', 'Joystick 2')
+    key_name = key_name.replace('ABS_RY', 'Joystick 2')
+
+    key_name = key_name.replace('BTN_', 'Button ')
+    key_name = key_name.replace('_', ' ')
+    key_name = key_name.replace('KEY_', '')
+
+    key_name = key_name.replace('  ', ' ')
+
+    return key_name
 
 
 IDLE = 0
