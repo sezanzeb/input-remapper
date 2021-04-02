@@ -41,7 +41,7 @@ from keymapper.state import custom_mapping, system_mapping, XMODMAP_FILENAME
 from keymapper.paths import CONFIG_PATH, get_preset_path, get_config_path
 from keymapper.config import config, WHEEL, MOUSE, BUTTONS
 from keymapper.gui.reader import reader
-from keymapper.injection.injector import RUNNING, FAILED
+from keymapper.injection.injector import RUNNING, FAILED, UNKNOWN
 from keymapper.gui.row import Row, to_string, HOLDING, IDLE
 from keymapper.gui.window import Window
 from keymapper.key import Key
@@ -1170,11 +1170,58 @@ class TestIntegration(unittest.TestCase):
         wait()
         text = self.get_status_text()
         self.assertIn('Applied', text)
+        text = self.get_status_text()
+        self.assertNotIn('CTRL + DEL', text)  # only shown if btn_left mapped
         self.assertFalse(error_icon.get_visible())
         self.assertEqual(self.window.dbus.get_state(device_name), RUNNING)
 
         # because this test managed to reproduce some minor bug:
         self.assertNotIn('mapping', custom_mapping._config)
+
+    def test_wont_start_2(self):
+        preset_name = 'foo preset'
+        device_name = 'device 2'
+        self.window.selected_preset = preset_name
+        self.window.selected_device = device_name
+
+        def wait():
+            """Wait for the injector process to finish doing stuff."""
+            for _ in range(10):
+                time.sleep(0.1)
+                gtk_iteration()
+                if 'Starting' not in self.get_status_text():
+                    return
+
+        # btn_left mapped
+        custom_mapping.change(Key.btn_left(), 'a')
+        self.window.save_preset()
+
+        # and key held down
+        send_event_to_reader(new_event(EV_KEY, KEY_A, 1))
+        reader.read()
+        self.assertEqual(len(reader._unreleased), 1)
+        self.assertFalse(self.window.unreleased_warn)
+
+        # first apply, shows btn_left warning
+        self.window.on_apply_preset_clicked(None)
+        text = self.get_status_text()
+        self.assertIn('click', text)
+        self.assertEqual(self.window.dbus.get_state(device_name), UNKNOWN)
+
+        # second apply, shows unreleased warning
+        self.window.on_apply_preset_clicked(None)
+        text = self.get_status_text()
+        self.assertIn('release', text)
+        self.assertEqual(self.window.dbus.get_state(device_name), UNKNOWN)
+
+        # third apply, overwrites both warnings
+        self.window.on_apply_preset_clicked(None)
+        wait()
+        self.assertEqual(self.window.dbus.get_state(device_name), RUNNING)
+        text = self.get_status_text()
+        # because btn_left is mapped, shows help on how to stop
+        # injecting via the keyboard
+        self.assertIn('CTRL + DEL', text)
 
     def test_can_modify_mapping(self):
         preset_name = 'foo preset'

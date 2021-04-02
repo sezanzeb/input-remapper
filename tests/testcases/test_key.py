@@ -100,6 +100,22 @@ class TestKey(unittest.TestCase):
         key_5 = Key((1, 3, 1), (1, 5, 1))
         self.assertFalse(key_5.is_problematic())
 
+    def test_raises(self):
+        self.assertRaises(ValueError, lambda: Key(1))
+        self.assertRaises(ValueError, lambda: Key(None))
+        self.assertRaises(ValueError, lambda: Key([1]))
+        self.assertRaises(ValueError, lambda: Key((1,)))
+        self.assertRaises(ValueError, lambda: Key((1, 2)))
+        self.assertRaises(ValueError, lambda: Key(('1', '2', '3')))
+        self.assertRaises(ValueError, lambda: Key('1'))
+        self.assertRaises(ValueError, lambda: Key('(1,2,3)'))
+        self.assertRaises(ValueError, lambda: Key((1, 2, 3), (1, 2, '3')))
+        self.assertRaises(ValueError, lambda: Key((1, 2, 3), (1, 2, 3), None))
+
+        # those don't raise errors
+        Key((1, 2, 3), (1, 2, 3))
+        Key((1, 2, 3))
+
 
 if __name__ == "__main__":
     unittest.main()

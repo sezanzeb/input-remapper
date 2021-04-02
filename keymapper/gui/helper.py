@@ -192,15 +192,11 @@ class RootHelper:
             # ignore hold-down events
             return
 
-        click_events = [
-            evdev.ecodes.BTN_LEFT,
+        blacklisted_keys = [
             evdev.ecodes.BTN_TOOL_DOUBLETAP
         ]
 
-        if event.type == EV_KEY and event.code in click_events:
-            # disable mapping the left mouse button because it would break
-            # the mouse. Also it is emitted right when focusing the row
-            # which breaks the current workflow.
+        if event.type == EV_KEY and event.code in blacklisted_keys:
             return
 
         if event.type == EV_ABS:

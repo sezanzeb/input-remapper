@@ -329,12 +329,12 @@ class Row(Gtk.ListBoxRow):
         label.set_justify(Gtk.Justification.CENTER)
         self.keycode_input.set_opacity(1)
 
-    def on_character_input_unfocus(self, input, _):
+    def on_character_input_unfocus(self, character_input, _):
         """Save the preset and correct the input casing."""
-        character = input.get_text()
+        character = character_input.get_text()
         correct_case = system_mapping.correct_case(character)
         if character != correct_case:
-            input.set_text(correct_case)
+            character_input.set_text(correct_case)
         self.window.save_preset()
 
     def put_together(self, character):

@@ -29,7 +29,7 @@ import asyncio
 
 import evdev
 from evdev.ecodes import EV_KEY, EV_ABS, KEY_CAMERA, EV_REL, BTN_STYLUS, \
-    BTN_A, ABS_MT_POSITION_X, REL_X, KEY_A, BTN_LEFT, REL_Y, REL_WHEEL
+    ABS_MT_POSITION_X, REL_X, KEY_A, BTN_LEFT, REL_Y, REL_WHEEL
 
 from keymapper.logger import logger
 

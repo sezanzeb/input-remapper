@@ -87,6 +87,10 @@ class Key:
         self.keys = tuple(keys)
         self.release = (*self.keys[-1][:2], 0)
 
+    @classmethod
+    def btn_left(cls):
+        return cls(ecodes.EV_KEY, ecodes.BTN_LEFT, 1)
+
     def __iter__(self):
         return iter(self.keys)
 
