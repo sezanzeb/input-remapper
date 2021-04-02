@@ -475,6 +475,8 @@ class TestIntegration(unittest.TestCase):
         """
         self.assertIsNone(reader.get_unreleased_keys())
 
+        changed = custom_mapping.changed
+
         # wait for the window to create a new empty row if needed
         time.sleep(0.1)
         gtk_iteration()
@@ -544,6 +546,7 @@ class TestIntegration(unittest.TestCase):
             self.assertEqual(row._state, IDLE)
             # it won't switch the focus to the character input
             self.assertTrue(row.keycode_input.is_focus())
+            self.assertEqual(custom_mapping.changed, changed)
             return row
 
         if char and code_first:
@@ -551,6 +554,12 @@ class TestIntegration(unittest.TestCase):
             self.assertIsNone(row.get_character())
             row.character_input.set_text(char)
             self.assertEqual(row.get_character(), char)
+
+        # unfocus them to trigger some final logic
+        self.window.window.set_focus(None)
+        correct_case = system_mapping.correct_case(char)
+        self.assertEqual(row.get_character(), correct_case)
+        self.assertFalse(custom_mapping.changed)
 
         return row
 
@@ -576,6 +585,12 @@ class TestIntegration(unittest.TestCase):
 
     def test_rows(self):
         """Comprehensive test for rows."""
+        system_mapping.clear()
+        system_mapping._set('Foo_BAR', 41)
+        system_mapping._set('B', 42)
+        system_mapping._set('c', 43)
+        system_mapping._set('d', 44)
+
         # how many rows there should be in the end
         num_rows_target = 3
 
@@ -584,8 +599,10 @@ class TestIntegration(unittest.TestCase):
 
         """edit"""
 
-        # add two rows by modifiying the one empty row that exists
-        self.change_empty_row(ev_1, 'a', code_first=False)
+        # add two rows by modifiying the one empty row that exists.
+        # Insert lowercase, it should be corrected to uppercase as stored
+        # in system_mapping
+        self.change_empty_row(ev_1, 'foo_bar', code_first=False)
         self.change_empty_row(ev_2, 'k(b).k(c)')
 
         # one empty row added automatically again
@@ -593,15 +610,8 @@ class TestIntegration(unittest.TestCase):
         gtk_iteration()
         self.assertEqual(len(self.get_rows()), num_rows_target)
 
-        self.assertEqual(custom_mapping.get_character(ev_1), 'a')
+        self.assertEqual(custom_mapping.get_character(ev_1), 'Foo_BAR')
         self.assertEqual(custom_mapping.get_character(ev_2), 'k(b).k(c)')
-        self.assertTrue(custom_mapping.changed)
-
-        """save"""
-
-        # unfocusing the row triggers saving the preset
-        self.window.window.set_focus(None)
-        self.assertFalse(custom_mapping.changed)
 
         """edit first row"""
 

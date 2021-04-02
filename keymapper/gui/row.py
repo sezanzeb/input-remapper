@@ -309,6 +309,14 @@ class Row(Gtk.ListBoxRow):
         label.set_justify(Gtk.Justification.CENTER)
         self.keycode_input.set_opacity(1)
 
+    def on_character_input_unfocus(self, input, _):
+        """Save the preset and correct the input casing."""
+        character = input.get_text()
+        correct_case = system_mapping.correct_case(character)
+        if character != correct_case:
+            input.set_text(correct_case)
+        self.window.save_preset()
+
     def put_together(self, character):
         """Create all child GTK widgets and connect their signals."""
         delete_button = Gtk.EventBox()
@@ -368,7 +376,7 @@ class Row(Gtk.ListBoxRow):
         )
         character_input.connect(
             'focus-out-event',
-            self.window.save_preset
+            self.on_character_input_unfocus
         )
 
         box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
