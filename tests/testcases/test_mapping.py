@@ -66,9 +66,29 @@ class TestSystemMapping(unittest.TestCase):
             self.assertNotIn('KEY_A', content)
             self.assertNotIn('disable', content)
 
+    def test_correct_case(self):
+        system_mapping = SystemMapping()
+        system_mapping.clear()
+        system_mapping._set('A', 31)
+        system_mapping._set('a', 32)
+        system_mapping._set('abcd_B', 33)
+
+        self.assertEqual(system_mapping.correct_case('a'), 'a')
+        self.assertEqual(system_mapping.correct_case('A'), 'A')
+        self.assertEqual(system_mapping.correct_case('ABCD_b'), 'abcd_B')
+        # unknown stuff is returned as is
+        self.assertEqual(system_mapping.correct_case('FOo'), 'FOo')
+
+        self.assertEqual(system_mapping.get('A'), 31)
+        self.assertEqual(system_mapping.get('a'), 32)
+        self.assertEqual(system_mapping.get('ABCD_b'), 33)
+        self.assertEqual(system_mapping.get('abcd_B'), 33)
+
     def test_system_mapping(self):
         system_mapping = SystemMapping()
         self.assertGreater(len(system_mapping._mapping), 100)
+
+        # this is case-insensitive
         self.assertEqual(system_mapping.get('1'), 2)
         self.assertEqual(system_mapping.get('KeY_1'), 2)
 
@@ -91,18 +111,24 @@ class TestSystemMapping(unittest.TestCase):
             system_mapping.get('KEY_KP4')
         )
 
+        # this only lists the correct casing, includes linux constants,
+        # xmodmap symbols and all KP_ codes
         names = system_mapping.list_names()
-        self.assertIn('key_kp1', names)
-        self.assertIn('key_nextsong', names)
         self.assertIn('2', names)
-        self.assertIn('key_3', names)
         self.assertIn('c', names)
-        self.assertIn('key_d', names)
-        self.assertIn('f4', names)
-        self.assertIn('key_f5', names)
-        self.assertIn('minus', names)
-        self.assertIn('btn_left', names)
-        self.assertIn('btn_right', names)
+        self.assertIn('KEY_3', names)
+        self.assertNotIn('key_3', names)
+        self.assertIn('KP_8', names)
+        self.assertIn('KP_Down', names)
+        self.assertNotIn('kp_down', names)
+        names = system_mapping._mapping.keys()
+        self.assertIn('F4', names)
+        self.assertNotIn('f4', names)
+        self.assertIn('BTN_RIGHT', names)
+        self.assertNotIn('btn_right', names)
+        self.assertIn('KP_7', names)
+        self.assertIn('KP_Home', names)
+        self.assertNotIn('kp_home', names)
 
         self.assertEqual(system_mapping.get('disable'), -1)
 

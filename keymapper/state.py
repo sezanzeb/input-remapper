@@ -44,12 +44,20 @@ class SystemMapping:
     def __init__(self):
         """Construct the system_mapping."""
         self._mapping = {}
-        self.xmodmap = {}
+        self._xmodmap = {}
+        self._case_insensitive_mapping = {}
         self.populate()
 
     def list_names(self):
         """Return an array of all possible names in the mapping."""
         return self._mapping.keys()
+
+    def correct_case(self, character):
+        """Return the correct casing for a character."""
+        if character in self._mapping:
+            return character
+        # only if not e.g. both "a" and "A" are in the mapping
+        return self._case_insensitive_mapping.get(character.lower(), character)
 
     def populate(self):
         """Get a mapping of all available names to their keycodes."""
@@ -61,26 +69,9 @@ class SystemMapping:
                 ['xmodmap', '-pke'],
                 stderr=subprocess.STDOUT
             ).decode()
-            xmodmap = xmodmap.lower()
-            self.xmodmap = re.findall(r'(\d+) = (.+)\n', xmodmap + '\n')
-
-            for keycode, names in self.xmodmap:
-                # there might be multiple, like:
-                # keycode  64 = Alt_L Meta_L Alt_L Meta_L
-                # keycode 204 = NoSymbol Alt_L NoSymbol Alt_L
-                # Alt_L should map to code 64. Writing code 204 only works
-                # if a modifier is applied at the same time. So take the first
-                # one.
-                name = names.split()[0]
-                xmodmap_dict[name] = int(keycode) - XKB_KEYCODE_OFFSET
-
-            for keycode, names in self.xmodmap:
-                # but since KP may be mapped like KP_Home KP_7 KP_Home KP_7,
-                # make another pass and add all of them if they don't already
-                # exist. don't overwrite any keycodes.
-                for name in names.split():
-                    if xmodmap_dict.get(name) is None:
-                        xmodmap_dict[name] = int(keycode) - XKB_KEYCODE_OFFSET
+            xmodmap = xmodmap
+            self._xmodmap = re.findall(r'(\d+) = (.+)\n', xmodmap + '\n')
+            xmodmap_dict = self._find_legit_mappings()
         except (subprocess.CalledProcessError, FileNotFoundError):
             # might be within a tty
             pass
@@ -94,7 +85,8 @@ class SystemMapping:
                 logger.debug('Writing "%s"', path)
                 json.dump(xmodmap_dict, file, indent=4)
 
-        self._mapping.update(xmodmap_dict)
+        for name, code in xmodmap_dict.items():
+            self._set(name, code)
 
         for name, ecode in evdev.ecodes.ecodes.items():
             if name.startswith('KEY') or name.startswith('BTN'):
@@ -110,15 +102,22 @@ class SystemMapping:
         mapping : dict
             maps from name to code. Make sure your keys are lowercase.
         """
-        self._mapping.update(mapping)
+        for name, code in mapping.items():
+            self._set(name, code)
 
     def _set(self, name, code):
         """Map name to code."""
-        self._mapping[str(name).lower()] = code
+        self._mapping[str(name)] = code
+        self._case_insensitive_mapping[str(name).lower()] = name
 
     def get(self, name):
         """Return the code mapped to the key."""
-        return self._mapping.get(str(name).lower())
+        # the correct casing should be shown when asking the system_mapping
+        # for stuff. indexing case insensitive to support old < 0.8.1 presets.
+        if name not in self._mapping:
+            # only if not e.g. both "a" and "A" are in the mapping
+            name = self._case_insensitive_mapping.get(str(name).lower())
+        return self._mapping.get(name)
 
     def clear(self):
         """Remove all mapped keys. Only needed for tests."""
@@ -128,11 +127,34 @@ class SystemMapping:
 
     def get_name(self, code):
         """Get the first matching name for the code."""
-        for entry in self.xmodmap:
+        for entry in self._xmodmap:
             if int(entry[0]) - XKB_KEYCODE_OFFSET == code:
                 return entry[1].split()[0]
 
         return None
+
+    def _find_legit_mappings(self):
+        """From the parsed xmodmap list find usable symbols and their codes."""
+        xmodmap_dict = {}
+        for keycode, names in self._xmodmap:
+            # there might be multiple, like:
+            # keycode  64 = Alt_L Meta_L Alt_L Meta_L
+            # keycode 204 = NoSymbol Alt_L NoSymbol Alt_L
+            # Alt_L should map to code 64. Writing code 204 only works
+            # if a modifier is applied at the same time. So take the first
+            # one.
+            name = names.split()[0]
+            xmodmap_dict[name] = int(keycode) - XKB_KEYCODE_OFFSET
+
+        for keycode, names in self._xmodmap:
+            # but since KP may be mapped like KP_Home KP_7 KP_Home KP_7,
+            # make another pass and add all of them if they don't already
+            # exist. don't overwrite any keycodes.
+            for name in names.split():
+                if 'KP_' in name and xmodmap_dict.get(name) is None:
+                    xmodmap_dict[name] = int(keycode) - XKB_KEYCODE_OFFSET
+
+        return xmodmap_dict
 
 
 # one mapping object for the GUI application
