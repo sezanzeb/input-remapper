@@ -124,7 +124,7 @@ class Context:
 
             target_code = system_mapping.get(output)
             if target_code is None:
-                logger.error('Don\'t know what %s is', output)
+                logger.error('Don\'t know what "%s" is', output)
                 continue
 
             for permutation in key.get_permutations():

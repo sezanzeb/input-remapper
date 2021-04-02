@@ -70,6 +70,11 @@ ICON_NAMES = {
     UNKNOWN: None,
 }
 
+# sort types that most devices would fall in easily to the right.
+ICON_PRIORITIES = [
+    GRAPHICS_TABLET, TOUCHPAD, GAMEPAD, MOUSE, KEYBOARD, UNKNOWN
+]
+
 
 def with_selected_device(func):
     """Decorate a function to only execute if a device is selected."""
@@ -251,7 +256,7 @@ class Window:
     def initialize_gamepad_config(self):
         """Set slider and dropdown values when a gamepad is selected."""
         devices = get_devices()
-        if devices[self.selected_device]['type'] == 'gamepad':
+        if GAMEPAD in devices[self.selected_device]['types']:
             self.get('gamepad_separator').show()
             self.get('gamepad_config').show()
         else:
@@ -342,7 +347,9 @@ class Window:
         with HandlerDisabled(device_selection, self.on_select_device):
             self.device_store.clear()
             for device in devices:
-                icon_name = ICON_NAMES[devices[device].get('type')]
+                types = devices[device]['types']
+                significant_type = sorted(types, key=ICON_PRIORITIES.index)[0]
+                icon_name = ICON_NAMES[significant_type]
                 self.device_store.append([icon_name, device])
 
         self.select_newest_preset()

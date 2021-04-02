@@ -94,6 +94,8 @@ EVENT_READ_TIMEOUT = 0.01
 # call to start_reading
 START_READING_DELAY = 0.05
 
+# for joysticks
+MIN_ABS = -2 ** 15
 MAX_ABS = 2 ** 15
 
 
@@ -375,7 +377,7 @@ class InputDevice:
 
         if absinfo and evdev.ecodes.EV_ABS in result:
             absinfo_obj = evdev.AbsInfo(
-                value=None, min=None, fuzz=None, flat=None,
+                value=None, min=MIN_ABS, fuzz=None, flat=None,
                 resolution=None, max=MAX_ABS
             )
             result[evdev.ecodes.EV_ABS] = [
@@ -517,9 +519,15 @@ def quick_cleanup(log=True):
     if log:
         print('quick cleanup')
 
-    for key in list(pending_events.keys()):
-        while pending_events[key][1].poll():
-            pending_events[key][1].recv()
+    for device in list(pending_events.keys()):
+        try:
+            while pending_events[device][1].poll():
+                pending_events[device][1].recv()
+        except EOFError:
+            # it broke, set up a new pipe
+            pending_events[device] = None
+            setup_pipe(device)
+            pass
 
     try:
         reader.terminate()
@@ -547,10 +555,10 @@ def quick_cleanup(log=True):
     for name in list(uinputs.keys()):
         del uinputs[name]
 
-    for key in list(active_macros.keys()):
-        del active_macros[key]
-    for key in list(unreleased.keys()):
-        del unreleased[key]
+    for device in list(active_macros.keys()):
+        del active_macros[device]
+    for device in list(unreleased.keys()):
+        del unreleased[device]
 
     for path in list(fixtures.keys()):
         if path not in _fixture_copy:
@@ -560,9 +568,9 @@ def quick_cleanup(log=True):
             fixtures[path] = _fixture_copy[path]
 
     os.environ.update(environ_copy)
-    for key in list(os.environ.keys()):
-        if key not in environ_copy:
-            del os.environ[key]
+    for device in list(os.environ.keys()):
+        if device not in environ_copy:
+            del os.environ[device]
 
     join_children()
 

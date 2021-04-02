@@ -29,7 +29,7 @@ import asyncio
 
 import evdev
 from evdev.ecodes import EV_KEY, EV_ABS, KEY_CAMERA, EV_REL, BTN_STYLUS, \
-    BTN_A, ABS_MT_POSITION_X, REL_X, KEY_A, BTN_LEFT
+    BTN_A, ABS_MT_POSITION_X, REL_X, KEY_A, BTN_LEFT, REL_Y, REL_WHEEL
 
 from keymapper.logger import logger
 
@@ -51,11 +51,6 @@ GRAPHICS_TABLET = 'graphics-tablet'
 CAMERA = 'camera'
 UNKNOWN = 'unknown'
 
-# sort types that most devices would fall in easily to the right
-PRIORITIES = [
-    GRAPHICS_TABLET, TOUCHPAD, MOUSE, GAMEPAD, KEYBOARD, CAMERA, UNKNOWN
-]
-
 
 if not hasattr(evdev.InputDevice, 'path'):
     # for evdev < 1.0.0 patch the path property
@@ -68,10 +63,17 @@ if not hasattr(evdev.InputDevice, 'path'):
 
 def _is_gamepad(capabilities):
     """Check if joystick movements are available for mapping."""
-    if len(capabilities.get(EV_REL, [])) > 0:
-        return False
-
-    if BTN_A not in capabilities.get(EV_KEY, []):
+    # A few buttons that indicate a gamepad
+    buttons = {
+        evdev.ecodes.BTN_BASE,
+        evdev.ecodes.BTN_A,
+        evdev.ecodes.BTN_THUMB,
+        evdev.ecodes.BTN_TOP,
+        evdev.ecodes.BTN_DPAD_DOWN,
+        evdev.ecodes.BTN_GAMEPAD,
+    }
+    if not buttons.intersection(capabilities.get(EV_KEY, [])):
+        # no button is in the key capabilities
         return False
 
     # joysticks
@@ -86,9 +88,20 @@ def _is_gamepad(capabilities):
 
 def _is_mouse(capabilities):
     """Check if the capabilities represent those of a mouse."""
+    # Based on observation, those capabilities need to be present to get an
+    # UInput recognized as mouse
+
+    # mouse movements
     if not REL_X in capabilities.get(EV_REL, []):
         return False
+    if not REL_Y in capabilities.get(EV_REL, []):
+        return False
 
+    # at least the vertical mouse wheel
+    if not REL_WHEEL in capabilities.get(EV_REL, []):
+        return False
+
+    # and a mouse click button
     if not BTN_LEFT in capabilities.get(EV_KEY, []):
         return False
 
@@ -138,11 +151,11 @@ def classify(device):
     if _is_touchpad(capabilities):
         return TOUCHPAD
 
-    if _is_mouse(capabilities):
-        return MOUSE
-
     if _is_gamepad(capabilities):
         return GAMEPAD
+
+    if _is_mouse(capabilities):
+        return MOUSE
 
     if _is_camera(capabilities):
         return CAMERA
@@ -230,16 +243,15 @@ class _GetDevices(threading.Thread):
             names = [entry[0] for entry in group]
             devs = [entry[1] for entry in group]
 
-            # find the most specific type from all devices per group.
-            # e.g. a device with mouse and keyboard subdevices is a mouse.
-            types = sorted([entry[2] for entry in group], key=PRIORITIES.index)
-            device_type = types[0]
-
             shortest_name = sorted(names, key=len)[0]
             result[shortest_name] = {
                 'paths': devs,
                 'devices': names,
-                'type': device_type
+                # sort it alphabetically to be predictable in tests
+                'types': sorted(list({
+                    item[2] for item in group
+                    if item[2] != UNKNOWN
+                }))
             }
 
         self.pipe.send(result)

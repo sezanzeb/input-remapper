@@ -57,22 +57,22 @@ class TestGetDevices(unittest.TestCase):
                     'device 1',
                     'device 1'
                 ],
-                'type': MOUSE
+                'types': [KEYBOARD, MOUSE]
             },
             'device 2': {
                 'paths': ['/dev/input/event20'],
                 'devices': ['device 2'],
-                'type': KEYBOARD
+                'types': [KEYBOARD]
             },
             'gamepad': {
                 'paths': ['/dev/input/event30'],
                 'devices': ['gamepad'],
-                'type': GAMEPAD
+                'types': [GAMEPAD]
             },
             'key-mapper device 2': {
                 'paths': ['/dev/input/event40'],
                 'devices': ['key-mapper device 2'],
-                'type': KEYBOARD
+                'types': [KEYBOARD]
             },
         })
         self.assertDictEqual(pipe.devices, get_devices(include_keymapper=True))
@@ -90,17 +90,17 @@ class TestGetDevices(unittest.TestCase):
                     'device 1',
                     'device 1'
                 ],
-                'type': MOUSE
+                'types': [KEYBOARD, MOUSE]
             },
             'device 2': {
                 'paths': ['/dev/input/event20'],
                 'devices': ['device 2'],
-                'type': KEYBOARD
+                'types': [KEYBOARD]
             },
             'gamepad': {
                 'paths': ['/dev/input/event30'],
                 'devices': ['gamepad'],
-                'type': GAMEPAD
+                'types': [GAMEPAD]
             },
         })
 
@@ -169,7 +169,7 @@ class TestGetDevices(unittest.TestCase):
         """mice"""
 
         self.assertEqual(classify(FakeDevice({
-            EV_REL: [evdev.ecodes.REL_X, evdev.ecodes.REL_Y],
+            EV_REL: [evdev.ecodes.REL_X, evdev.ecodes.REL_Y, evdev.ecodes.REL_WHEEL],
             EV_KEY: [evdev.ecodes.BTN_LEFT]
         })), MOUSE)
 
@@ -186,13 +186,14 @@ class TestGetDevices(unittest.TestCase):
             EV_ABS: [evdev.ecodes.ABS_MT_POSITION_X]
         })), TOUCHPAD)
 
-        """weird combos"""
+        """graphics tablets"""
 
         self.assertEqual(classify(FakeDevice({
             EV_ABS: [evdev.ecodes.ABS_X, evdev.ecodes.ABS_Y],
-            EV_KEY: [evdev.ecodes.BTN_A],
-            EV_REL: [evdev.ecodes.REL_X]
-        })), UNKNOWN)
+            EV_KEY: [evdev.ecodes.BTN_STYLUS]
+        })), GRAPHICS_TABLET)
+
+        """weird combos"""
 
         self.assertEqual(classify(FakeDevice({
             EV_ABS: [evdev.ecodes.ABS_X, evdev.ecodes.ABS_Y],

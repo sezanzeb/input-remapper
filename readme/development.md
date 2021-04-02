@@ -43,6 +43,7 @@ file should give an overview about some internals of key-mapper.
 ```bash
 sudo pip install coverage
 pylint keymapper --extension-pkg-whitelist=evdev
+sudo pkill -f key-mapper
 sudo pip install . && coverage run tests/test.py
 coverage combine && coverage report -m
 ```
@@ -55,6 +56,9 @@ Single tests can be executed via
 ```bash
 python3 tests/test.py test_paths.TestPaths.test_mkdir
 ```
+
+Don't use your computer during integration tests to avoid interacting
+with the gui, which might make tests fail.
 
 ## Releasing
 

@@ -338,10 +338,11 @@ class Injector(multiprocessing.Process):
 
         # where mapped events go to.
         # See the Context docstring on why this is needed.
+        is_gamepad = GAMEPAD in group['types']
         self.context.uinput = evdev.UInput(
             name=self.get_udef_name(self.device, 'mapped'),
             phys=DEV_NAME,
-            events=self._construct_capabilities(group['type'] == 'gamepad')
+            events=self._construct_capabilities(is_gamepad)
         )
 
         # Watch over each one of the potentially multiple devices per hardware
@@ -369,7 +370,7 @@ class Injector(multiprocessing.Process):
             # that are needed for this. It is that one that will be mapped
             # to a mouse-like devnode.
             if gamepad and self.context.joystick_as_mouse():
-                self._event_producer.set_max_abs_from(source)
+                self._event_producer.set_abs_range_from(source)
 
         if len(coroutines) == 0:
             logger.error('Did not grab any device')
