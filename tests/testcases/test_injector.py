@@ -44,7 +44,7 @@ from keymapper.getdevices import get_devices, classify, GAMEPAD
 from tests.test import new_event, push_events, fixtures, \
     EVENT_READ_TIMEOUT, uinput_write_history_pipe, \
     MAX_ABS, quick_cleanup, read_write_history_pipe, InputDevice, uinputs, \
-    keyboard_keys
+    keyboard_keys, MIN_ABS
 
 
 class TestInjector(unittest.TestCase):
@@ -418,7 +418,8 @@ class TestInjector(unittest.TestCase):
 
         self.injector.run()
         # not in a process, so the event_producer state can be checked
-        self.assertEqual(self.injector._event_producer.max_abs, MAX_ABS)
+        self.assertEqual(self.injector._event_producer.abs_range[0], MIN_ABS)
+        self.assertEqual(self.injector._event_producer.abs_range[1], MAX_ABS)
         self.assertEqual(
             self.injector.context.mapping.get('gamepad.joystick.left_purpose'),
             MOUSE
@@ -430,7 +431,7 @@ class TestInjector(unittest.TestCase):
         self.injector = Injector('gamepad', custom_mapping)
         self.injector.stop_injecting()
         self.injector.run()
-        self.assertIsNone(self.injector._event_producer.max_abs, MAX_ABS)
+        self.assertIsNone(self.injector._event_producer.abs_range)
 
     def test_device1_event_producer(self):
         custom_mapping.set('gamepad.joystick.left_purpose', MOUSE)
@@ -440,7 +441,7 @@ class TestInjector(unittest.TestCase):
         self.injector.run()
         # not a gamepad, so _event_producer is not initialized for that.
         # it can still debounce stuff though
-        self.assertIsNone(self.injector._event_producer.max_abs)
+        self.assertIsNone(self.injector._event_producer.abs_range)
 
     def test_get_udef_name(self):
         self.injector = Injector('device 1', custom_mapping)

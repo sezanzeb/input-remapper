@@ -34,7 +34,7 @@ import multiprocessing
 import subprocess
 
 import evdev
-from evdev.ecodes import EV_KEY
+from evdev.ecodes import EV_KEY, EV_ABS
 
 from keymapper.ipc.pipe import Pipe
 from keymapper.logger import logger
@@ -159,7 +159,8 @@ class RootHelper:
 
                 try:
                     event = device.read_one()
-                    self._send_event(event, device)
+                    if event:
+                        self._send_event(event, device)
                 except OSError:
                     logger.debug('Device "%s" disappeared', device.path)
                     return
@@ -188,8 +189,11 @@ class RootHelper:
             # which breaks the current workflow.
             return
 
-        max_abs = utils.get_max_abs(device)
-        event.value = utils.normalize_value(event, max_abs)
+        if event.type == EV_ABS:
+            abs_range = utils.get_abs_range(device, event.code)
+            event.value = utils.normalize_value(event, abs_range)
+        else:
+            event.value = utils.normalize_value(event)
 
         self._results.send({
             'type': 'event',

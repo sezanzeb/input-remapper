@@ -29,13 +29,13 @@ from keymapper.config import config, BUTTONS
 from keymapper.mapping import Mapping
 from keymapper import utils
 
-from tests.test import new_event, InputDevice, MAX_ABS
+from tests.test import new_event, InputDevice, MAX_ABS, MIN_ABS
 
 
 class TestDevUtils(unittest.TestCase):
     def test_max_abs(self):
-        self.assertEqual(utils.get_max_abs(InputDevice('/dev/input/event30')), MAX_ABS)
-        self.assertIsNone(utils.get_max_abs(InputDevice('/dev/input/event10')))
+        self.assertEqual(utils.get_abs_range(InputDevice('/dev/input/event30'))[1], MAX_ABS)
+        self.assertIsNone(utils.get_abs_range(InputDevice('/dev/input/event10')))
 
     def test_will_report_key_up(self):
         self.assertFalse(
@@ -127,22 +127,66 @@ class TestDevUtils(unittest.TestCase):
         self.assertFalse(do(1, new_event(EV_ABS, ecodes.ABS_MISC, -1)))
 
     def test_normalize_value(self):
-        def do(event):
-            return utils.normalize_value(event, MAX_ABS)
+        """"""
 
-        event = new_event(EV_ABS, ecodes.ABS_RX, MAX_ABS)
-        self.assertEqual(do(event), 1)
-        event = new_event(EV_ABS, ecodes.ABS_Y, -MAX_ABS)
-        self.assertEqual(do(event), -1)
-        event = new_event(EV_ABS, ecodes.ABS_X, -MAX_ABS // 4)
-        self.assertEqual(do(event), 0)
+        """0 to MAX_ABS"""
+
+        def do(event):
+            return utils.normalize_value(event, (0, MAX_ABS))
+
         event = new_event(EV_ABS, ecodes.ABS_RX, MAX_ABS)
         self.assertEqual(do(event), 1)
         event = new_event(EV_ABS, ecodes.ABS_Y, MAX_ABS)
         self.assertEqual(do(event), 1)
+        event = new_event(EV_ABS, ecodes.ABS_Y, 0)
+        self.assertEqual(do(event), -1)
         event = new_event(EV_ABS, ecodes.ABS_X, MAX_ABS // 4)
+        self.assertEqual(do(event), -1)
+        event = new_event(EV_ABS, ecodes.ABS_X, MAX_ABS // 2)
         self.assertEqual(do(event), 0)
 
-        # if none, it just forwards the value
+        """MIN_ABS to MAX_ABS"""
+
+        def do2(event):
+            return utils.normalize_value(event, (MIN_ABS, MAX_ABS))
+
+        event = new_event(EV_ABS, ecodes.ABS_RX, MAX_ABS)
+        self.assertEqual(do2(event), 1)
+        event = new_event(EV_ABS, ecodes.ABS_Y, MIN_ABS)
+        self.assertEqual(do2(event), -1)
+        event = new_event(EV_ABS, ecodes.ABS_X, MIN_ABS // 4)
+        self.assertEqual(do2(event), 0)
+        event = new_event(EV_ABS, ecodes.ABS_RX, MAX_ABS)
+        self.assertEqual(do2(event), 1)
+        event = new_event(EV_ABS, ecodes.ABS_Y, MAX_ABS)
+        self.assertEqual(do2(event), 1)
+        event = new_event(EV_ABS, ecodes.ABS_X, MAX_ABS // 4)
+        self.assertEqual(do2(event), 0)
+
+        """None"""
+
+        # it just forwards the value
         event = new_event(EV_ABS, ecodes.ABS_RX, MAX_ABS)
         self.assertEqual(utils.normalize_value(event, None), MAX_ABS)
+
+        """Not a joystick"""
+
+        event = new_event(EV_ABS, ecodes.ABS_Z, 1234)
+        self.assertEqual(do(event), 1)
+        self.assertEqual(do2(event), 1)
+        event = new_event(EV_ABS, ecodes.ABS_Z, 0)
+        self.assertEqual(do(event), 0)
+        self.assertEqual(do2(event), 0)
+        event = new_event(EV_ABS, ecodes.ABS_Z, -1234)
+        self.assertEqual(do(event), -1)
+        self.assertEqual(do2(event), -1)
+
+        event = new_event(EV_KEY, ecodes.KEY_A, 1)
+        self.assertEqual(do(event), 1)
+        self.assertEqual(do2(event), 1)
+        event = new_event(EV_ABS, ecodes.ABS_HAT0X, 0)
+        self.assertEqual(do(event), 0)
+        self.assertEqual(do2(event), 0)
+        event = new_event(EV_ABS, ecodes.ABS_HAT0X, -1)
+        self.assertEqual(do(event), -1)
+        self.assertEqual(do2(event), -1)

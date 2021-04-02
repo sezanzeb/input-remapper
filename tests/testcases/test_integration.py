@@ -51,7 +51,7 @@ from keymapper.gui.helper import RootHelper
 
 from tests.test import tmp, push_events, new_event, spy, cleanup, \
     uinput_write_history_pipe, MAX_ABS, EVENT_READ_TIMEOUT, \
-    send_event_to_reader
+    send_event_to_reader, MIN_ABS
 
 
 def gtk_iteration():
@@ -1235,7 +1235,7 @@ class TestIntegration(unittest.TestCase):
         time.sleep(0.1)
 
         push_events('gamepad', [
-             new_event(EV_ABS, ABS_RX, -MAX_ABS),
+             new_event(EV_ABS, ABS_RX, MIN_ABS),
              new_event(EV_ABS, ABS_X, MAX_ABS)
         ] * 100)
 

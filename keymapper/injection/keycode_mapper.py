@@ -216,7 +216,7 @@ class KeycodeMapper:
             where forwarded/unhandled events should be written to
         """
         self.source = source
-        self.max_abs = utils.get_max_abs(source)
+        self.abs_range = utils.get_abs_range(source)
         self.context = context
         self.forward_to = forward_to
 
@@ -337,7 +337,7 @@ class KeycodeMapper:
         # possible, because they might skip the 1 when pressed fast
         # enough.
         original_tuple = (event.type, event.code, event.value)
-        event.value = utils.normalize_value(event, self.max_abs)
+        event.value = utils.normalize_value(event, self.abs_range)
 
         # the tuple of the actual input event. Used to forward the event if
         # it is not mapped, and to index unreleased and active_macros. stays

@@ -55,7 +55,7 @@ class EventProducer:
         """Construct the event producer without it doing anything yet."""
         self.context = context
 
-        self.max_abs = None
+        self.abs_range = None
         # events only take ints, so a movement of 0.3 needs to add
         # up to 1.2 to affect the cursor, with 0.2 remaining
         self.pending_rel = {REL_X: 0, REL_Y: 0, REL_WHEEL: 0, REL_HWHEEL: 0}
@@ -112,8 +112,8 @@ class EventProducer:
         self.pending_rel[code] -= output_value
         return output_value
 
-    def set_max_abs_from(self, device):
-        """Update the maximum value joysticks will report.
+    def set_abs_range_from(self, device):
+        """Update the min and max values joysticks will report.
 
         This information is needed for abs -> rel mapping.
         """
@@ -122,38 +122,72 @@ class EventProducer:
             logger.error('Expected device to not be None')
             return
 
-        max_abs = utils.get_max_abs(device)
-        if max_abs in [0, 1, None]:
-            # max_abs of joysticks is usually a much higher number
+        abs_range = utils.get_abs_range(device)
+        if abs_range is None:
             return
 
-        self.max_abs = max_abs
-        logger.debug('Max abs of "%s": %s', device.name, max_abs)
+        if abs_range[1] in [0, 1, None]:
+            # max abs_range of joysticks is usually a much higher number
+            return
+
+        self.set_abs_range(*abs_range)
+        logger.debug('ABS range of "%s": %s', device.name, abs_range)
+
+    def set_abs_range(self, min_abs, max_abs):
+        """Update the min and max values joysticks will report.
+
+        This information is needed for abs -> rel mapping.
+        """
+        self.abs_range = (min_abs, max_abs)
+
+        # all joysticks in resting position by default
+        center = (self.abs_range[1] + self.abs_range[0]) / 2
+        self.abs_state = {
+            ABS_X: center,
+            ABS_Y: center,
+            ABS_RX: center,
+            ABS_RY: center
+        }
 
     def get_abs_values(self):
         """Get the raw values for wheel and mouse movement.
 
+        Returned values center around 0 and are normalized into -1 and 1.
+
         If two joysticks have the same purpose, the one that reports higher
         absolute values takes over the control.
         """
-        mouse_x, mouse_y, wheel_x, wheel_y = 0, 0, 0, 0
+        # center is the value of the resting position
+        center = (self.abs_range[1] + self.abs_range[0]) / 2
+        # normalizer is the maximum possible value after centering
+        normalizer = (self.abs_range[1] - self.abs_range[0]) / 2
+
+        mouse_x = 0
+        mouse_y = 0
+        wheel_x = 0
+        wheel_y = 0
+
+        def standardize(value):
+            return (value - center) / normalizer
 
         if self.context.left_purpose == MOUSE:
-            mouse_x = abs_max(mouse_x, self.abs_state[ABS_X])
-            mouse_y = abs_max(mouse_y, self.abs_state[ABS_Y])
+            mouse_x = abs_max(mouse_x, standardize(self.abs_state[ABS_X]))
+            mouse_y = abs_max(mouse_y, standardize(self.abs_state[ABS_Y]))
 
         if self.context.left_purpose == WHEEL:
-            wheel_x = abs_max(wheel_x, self.abs_state[ABS_X])
-            wheel_y = abs_max(wheel_y, self.abs_state[ABS_Y])
+            wheel_x = abs_max(wheel_x, standardize(self.abs_state[ABS_X]))
+            wheel_y = abs_max(wheel_y, standardize(self.abs_state[ABS_Y]))
 
         if self.context.right_purpose == MOUSE:
-            mouse_x = abs_max(mouse_x, self.abs_state[ABS_RX])
-            mouse_y = abs_max(mouse_y, self.abs_state[ABS_RY])
+            mouse_x = abs_max(mouse_x, standardize(self.abs_state[ABS_RX]))
+            mouse_y = abs_max(mouse_y, standardize(self.abs_state[ABS_RY]))
 
         if self.context.right_purpose == WHEEL:
-            wheel_x = abs_max(wheel_x, self.abs_state[ABS_RX])
-            wheel_y = abs_max(wheel_y, self.abs_state[ABS_RY])
+            wheel_x = abs_max(wheel_x, standardize(self.abs_state[ABS_RX]))
+            wheel_y = abs_max(wheel_y, standardize(self.abs_state[ABS_RY]))
 
+        # Some joysticks report from 0 to 255 (EMV101),
+        # others from -32768 to 32767 (X-Box 360 Pad)
         return mouse_x, mouse_y, wheel_x, wheel_y
 
     def is_handled(self, event):
@@ -161,7 +195,7 @@ class EventProducer:
         if event.type != EV_ABS or event.code not in utils.JOYSTICK:
             return False
 
-        if self.max_abs is None:
+        if self.abs_range is None:
             return False
 
         purposes = [MOUSE, WHEEL]
@@ -182,14 +216,15 @@ class EventProducer:
         Even if no new input event arrived because the joystick remained at
         its position, this will keep injecting the mouse movement events.
         """
-        max_abs = self.max_abs
+        abs_range = self.abs_range
         mapping = self.context.mapping
         pointer_speed = mapping.get('gamepad.joystick.pointer_speed')
         non_linearity = mapping.get('gamepad.joystick.non_linearity')
         x_scroll_speed = mapping.get('gamepad.joystick.x_scroll_speed')
         y_scroll_speed = mapping.get('gamepad.joystick.y_scroll_speed')
+        max_speed = 2 ** 0.5  # for normalized abs event values
 
-        if max_abs is not None:
+        if abs_range is not None:
             logger.info(
                 'Left joystick as %s, right joystick as %s',
                 self.context.left_purpose,
@@ -217,20 +252,15 @@ class EventProducer:
 
             """mouse movement production"""
 
-            if max_abs is None:
+            if abs_range is None:
                 # no ev_abs events will be mapped to ev_rel
                 continue
 
-            max_speed = ((max_abs ** 2) * 2) ** 0.5
-
             abs_values = self.get_abs_values()
 
-            if len([val for val in abs_values if val > max_abs]) > 0:
-                logger.error(
-                    'Inconsistent values: %s, max_abs: %s',
-                    abs_values, max_abs
-                )
-                return
+            if len([val for val in abs_values if not (-1 <= val <= 1)]) > 0:
+                logger.error('Inconsistent values: %s', abs_values)
+                continue
 
             mouse_x, mouse_y, wheel_x, wheel_y = abs_values
 
@@ -238,13 +268,13 @@ class EventProducer:
             if abs(mouse_x) > 0 or abs(mouse_y) > 0:
                 if non_linearity != 1:
                     # to make small movements smaller for more precision
-                    speed = (mouse_x ** 2 + mouse_y ** 2) ** 0.5
+                    speed = (mouse_x ** 2 + mouse_y ** 2) ** 0.5  # pythagoras
                     factor = (speed / max_speed) ** non_linearity
                 else:
                     factor = 1
 
-                rel_x = (mouse_x / max_abs) * factor * pointer_speed
-                rel_y = (mouse_y / max_abs) * factor * pointer_speed
+                rel_x = mouse_x * factor * pointer_speed
+                rel_y = mouse_y * factor * pointer_speed
                 rel_x = self.accumulate(REL_X, rel_x)
                 rel_y = self.accumulate(REL_Y, rel_y)
                 if rel_x != 0:
@@ -254,13 +284,13 @@ class EventProducer:
 
             # wheel movements
             if abs(wheel_x) > 0:
-                change = wheel_x * x_scroll_speed / max_abs
+                change = wheel_x * x_scroll_speed
                 value = self.accumulate(REL_WHEEL, change)
                 if abs(change) > WHEEL_THRESHOLD * x_scroll_speed:
                     self._write(EV_REL, REL_HWHEEL, value)
 
             if abs(wheel_y) > 0:
-                change = wheel_y * y_scroll_speed / max_abs
+                change = wheel_y * y_scroll_speed
                 value = self.accumulate(REL_HWHEEL, change)
                 if abs(change) > WHEEL_THRESHOLD * y_scroll_speed:
                     self._write(EV_REL, REL_WHEEL, -value)

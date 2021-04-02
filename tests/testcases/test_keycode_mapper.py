@@ -35,7 +35,7 @@ from keymapper.config import config, BUTTONS
 from keymapper.mapping import Mapping, DISABLE_CODE
 
 from tests.test import new_event, UInput, uinput_write_history, \
-    quick_cleanup, InputDevice, MAX_ABS
+    quick_cleanup, InputDevice, MAX_ABS, MIN_ABS
 
 
 def wait(func, timeout=1.0):
@@ -210,7 +210,7 @@ class TestKeycodeMapper(unittest.TestCase):
         # with the left joystick mapped as button, it will release the mapped
         # key when it goes back to close to its resting position
         ev_1 = (3, 0, MAX_ABS // 10)  # release
-        ev_3 = (3, 0, -MAX_ABS)  # press
+        ev_3 = (3, 0, MIN_ABS)  # press
 
         uinput = UInput()
 
@@ -422,7 +422,7 @@ class TestKeycodeMapper(unittest.TestCase):
     def test_combination_keycode_2(self):
         combination_1 = (
             (EV_KEY, 1, 1),
-            (EV_ABS, ABS_Y, -MAX_ABS),
+            (EV_ABS, ABS_Y, MIN_ABS),
             (EV_KEY, 3, 1),
             (EV_KEY, 4, 1)
         )
