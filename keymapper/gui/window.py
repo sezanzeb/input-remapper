@@ -362,8 +362,12 @@ class Window:
             self.device_store.clear()
             for device in devices:
                 types = devices[device]['types']
-                significant_type = sorted(types, key=ICON_PRIORITIES.index)[0]
-                icon_name = ICON_NAMES[significant_type]
+                if len(types) > 0:
+                    device_type = sorted(types, key=ICON_PRIORITIES.index)[0]
+                    icon_name = ICON_NAMES[device_type]
+                else:
+                    icon_name = None
+
                 self.device_store.append([icon_name, device])
 
         self.select_newest_preset()

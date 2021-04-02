@@ -1432,6 +1432,25 @@ class TestIntegration(unittest.TestCase):
         device_selection.set_active_id('foo')
         self.assertEqual(device_selection.get_active_id(), 'device 1')
 
+        # the list contains correct entries
+        entries = [
+            (entry[0], entry[1]) for entry in
+            self.window.device_store
+        ]
+        self.assertIn(('input-mouse', 'device 1'), entries)
+        self.assertIn(('input-keyboard', 'device 2'), entries)
+        self.assertIn(('input-gaming', 'gamepad'), entries)
+
+        # it won't crash due to "list index out of range"
+        # when `types` is an empty list. Won't show an icon
+        devices = get_devices()
+        devices['device 1']['types'] = []
+        self.window.populate_devices()
+        self.assertIn((None, 'device 1'), [
+            (entry[0], entry[1]) for entry in
+            self.window.device_store
+        ])
+
     def test_screw_up_rows(self):
         # add a row that is not present in custom_mapping
         key_list = self.window.get('key_list')
