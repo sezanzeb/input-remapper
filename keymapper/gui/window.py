@@ -595,7 +595,7 @@ class Window:
                 self.show_status(
                     CTX_ERROR,
                     'This would disable your click button',
-                    'Map a button to BTN_Left to avoid this.\n'
+                    'Map a button to BTN_LEFT to avoid this.\n'
                     'To overwrite this warning, press apply again.'
                 )
                 self.button_left_warn = True
