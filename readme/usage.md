@@ -58,7 +58,7 @@ your focused application.
 
 ## Writing Combinations
 
-You can write `control_l + a` as mapping, which will inject those two
+You can write `Control_L + a` as mapping, which will inject those two
 keycodes into your system on a single key press. An arbitrary number of
 names can be chained using ` + `.
 
