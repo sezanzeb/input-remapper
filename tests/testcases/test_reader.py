@@ -340,13 +340,9 @@ class TestReader(unittest.TestCase):
         # and by doing that keep the previous combination.
         self.assertEqual(reader.read(), None)
 
-    def test_ignore_btn_left(self):
-        # click events are ignored because overwriting them would render the
-        # mouse useless, but a mouse is needed to stop the injection
-        # comfortably. Furthermore, reading mouse events breaks clicking
-        # around in the table. It can still be changed in the config files.
+    def test_blacklist(self):
         push_events('device 1', [
-            new_event(EV_KEY, BTN_LEFT, 1),
+            new_event(EV_KEY, BTN_TOOL_DOUBLETAP, 1),
             new_event(EV_KEY, CODE_2, 1),
             new_event(EV_KEY, BTN_TOOL_DOUBLETAP, 1),
         ])

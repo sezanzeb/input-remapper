@@ -38,6 +38,7 @@ from keymapper.logger import logger, COMMIT_HASH, VERSION, EVDEV_VERSION, \
 from keymapper.getdevices import get_devices, GAMEPAD, KEYBOARD, UNKNOWN, \
     GRAPHICS_TABLET, TOUCHPAD, MOUSE
 from keymapper.gui.row import Row, to_string
+from keymapper.key import Key
 from keymapper.gui.reader import reader
 from keymapper.gui.helper import is_helper_running
 from keymapper.injection.injector import RUNNING, FAILED, NO_GRAB
@@ -200,7 +201,8 @@ class Window:
         self.get('vertical-wrapper').set_opacity(1)
 
         self.ctrl = False
-        self.unreleased_warn = 0
+        self.unreleased_warn = False
+        self.button_left_warn = False
 
         if not is_helper_running():
             self.show_status(CTX_ERROR, 'The helper did not start')
@@ -357,7 +359,6 @@ class Window:
         device_selection = self.get('device_selection')
 
         with HandlerDisabled(device_selection, self.on_select_device):
-            print('clearing device_store')
             self.device_store.clear()
             for device in devices:
                 types = devices[device]['types']
@@ -589,9 +590,20 @@ class Window:
 
         logger.info('Applying preset "%s" for "%s"', preset, device)
 
+        if not self.button_left_warn:
+            if custom_mapping.dangerously_mapped_btn_left():
+                self.show_status(
+                    CTX_ERROR,
+                    'This would disable your click button',
+                    'Map a button to BTN_Left to avoid this.\n'
+                    'To overwrite this warning, press apply again.'
+                )
+                self.button_left_warn = True
+                return
+
         if not self.unreleased_warn:
             unreleased = reader.get_unreleased_keys()
-            if unreleased is not None:
+            if unreleased is not None and unreleased != Key.btn_left():
                 # it's super annoying if that happens and may break the user
                 # input in such a way to prevent disabling the mapping
                 logger.error(
@@ -608,6 +620,7 @@ class Window:
                 return
 
         self.unreleased_warn = False
+        self.button_left_warn = False
         self.dbus.set_config_dir(get_config_path())
         self.dbus.start_injecting(device, preset)
 
@@ -659,10 +672,12 @@ class Window:
         state = self.dbus.get_state(self.selected_device)
 
         if state == RUNNING:
-            self.show_status(
-                CTX_APPLY,
-                f'Applied preset "{self.selected_preset}"'
-            )
+            msg = f'Applied preset "{self.selected_preset}"'
+
+            if custom_mapping.get_character(Key.btn_left()):
+                msg += ', CTRL + DEL to stop'
+
+            self.show_status(CTX_APPLY, msg)
 
             self.show_device_mapping_status()
             return False

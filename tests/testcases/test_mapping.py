@@ -364,21 +364,21 @@ class TestMapping(unittest.TestCase):
         self.mapping.empty()
         self.assertEqual(len(self.mapping), 0)
 
-    def test_verify_key(self):
-        self.assertRaises(ValueError, lambda: Key(1))
-        self.assertRaises(ValueError, lambda: Key(None))
-        self.assertRaises(ValueError, lambda: Key([1]))
-        self.assertRaises(ValueError, lambda: Key((1,)))
-        self.assertRaises(ValueError, lambda: Key((1, 2)))
-        self.assertRaises(ValueError, lambda: Key(('1', '2', '3')))
-        self.assertRaises(ValueError, lambda: Key('1'))
-        self.assertRaises(ValueError, lambda: Key('(1,2,3)'))
-        self.assertRaises(ValueError, lambda: Key((1, 2, 3), (1, 2, '3')))
-        self.assertRaises(ValueError, lambda: Key((1, 2, 3), (1, 2, 3), None))
+    def test_dangerously_mapped_btn_left(self):
+        self.mapping.change(Key.btn_left(), '1')
+        self.assertTrue(self.mapping.dangerously_mapped_btn_left())
 
-        # those don't raise errors
-        Key((1, 2, 3), (1, 2, 3))
-        Key((1, 2, 3))
+        self.mapping.change(Key(EV_KEY, 41, 1), '2')
+        self.assertTrue(self.mapping.dangerously_mapped_btn_left())
+
+        self.mapping.change(Key(EV_KEY, 42, 1), 'btn_left')
+        self.assertFalse(self.mapping.dangerously_mapped_btn_left())
+
+        self.mapping.change(Key(EV_KEY, 42, 1), 'BTN_Left')
+        self.assertFalse(self.mapping.dangerously_mapped_btn_left())
+
+        self.mapping.change(Key(EV_KEY, 42, 1), '3')
+        self.assertTrue(self.mapping.dangerously_mapped_btn_left())
 
 
 if __name__ == "__main__":

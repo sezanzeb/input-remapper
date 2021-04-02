@@ -26,6 +26,8 @@ import os
 import json
 import copy
 
+from evdev.ecodes import EV_KEY, BTN_LEFT
+
 from keymapper.logger import logger
 from keymapper.paths import touch
 from keymapper.config import ConfigBase, config
@@ -253,9 +255,7 @@ class Mapping(ConfigBase):
 
         Parameters
         ----------
-        key : Key or InputEvent
-            If an InputEvent, will test if that event is mapped
-            and take the sign of the value.
+        key : Key
         """
         if not isinstance(key, Key):
             raise TypeError('Expected key to be a Key object')
@@ -266,3 +266,11 @@ class Mapping(ConfigBase):
                 return existing
 
         return None
+
+    def dangerously_mapped_btn_left(self):
+        """Return True if this mapping disables BTN_Left."""
+        if self.get_character(Key(EV_KEY, BTN_LEFT, 1)) is not None:
+            values = [value.lower() for value in self._mapping.values()]
+            return 'btn_left' not in values
+
+        return False
