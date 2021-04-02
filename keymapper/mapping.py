@@ -103,7 +103,7 @@ class Mapping(ConfigBase):
         new_key : Key
         character : string
             A single character known to xkb or linux.
-            Examples: KP_1, Shift_L, a, B, BTN_LEFT.
+            Examples: KEY_KP1, Shift_L, a, B, BTN_LEFT.
         previous_key : Key or None
             the previous key
 

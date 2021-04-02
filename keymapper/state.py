@@ -146,14 +146,6 @@ class SystemMapping:
             name = names.split()[0]
             xmodmap_dict[name] = int(keycode) - XKB_KEYCODE_OFFSET
 
-        for keycode, names in self._xmodmap:
-            # but since KP may be mapped like KP_Home KP_7 KP_Home KP_7,
-            # make another pass and add all of them if they don't already
-            # exist. don't overwrite any keycodes.
-            for name in names.split():
-                if 'KP_' in name and xmodmap_dict.get(name) is None:
-                    xmodmap_dict[name] = int(keycode) - XKB_KEYCODE_OFFSET
-
         return xmodmap_dict
 
 
@@ -162,6 +154,3 @@ custom_mapping = Mapping()
 
 # this mapping represents the xmodmap output, which stays constant
 system_mapping = SystemMapping()
-
-# permissions for files created in /usr
-_PERMISSIONS = stat.S_IREAD | stat.S_IWRITE | stat.S_IRGRP | stat.S_IROTH
