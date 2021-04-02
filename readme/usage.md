@@ -47,9 +47,9 @@ your keycodes (which is easier said than done), and X11/Wayland has to decide
 what to do with it. And it decides, that if shift is pressed down, it will
 capitalize your stuff.
 
-A better option for a key combination would be `KEY_KP1 + a` instead of 
+A better option for a key combination would be `KP1 + a` instead of 
 `LEFTSHIFT + a`, because there won't be any side effect. You can disable
-`KEY_KP1` by mapping it to `disable`, so you won't trigger writing a "1" into
+`KP1` by mapping it to `disable`, so you won't trigger writing a "1" into
 your focused application.
 
 <p align="center">
