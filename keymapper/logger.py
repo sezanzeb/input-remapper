@@ -153,8 +153,6 @@ def is_debug():
 
 def log_info(name='key-mapper'):
     """Log version and name to the console."""
-    # read values from setup.py
-
     logger.info(
         '%s %s %s https://github.com/sezanzeb/key-mapper',
         name, VERSION, COMMIT_HASH
@@ -162,11 +160,6 @@ def log_info(name='key-mapper'):
 
     if EVDEV_VERSION:
         logger.info('python-evdev %s', EVDEV_VERSION)
-
-    logger.info(
-        '%s %s %s https://github.com/sezanzeb/key-mapper',
-        name, VERSION, COMMIT_HASH
-    )
 
     if is_debug():
         logger.warning(

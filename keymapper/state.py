@@ -113,7 +113,7 @@ class SystemMapping:
     def get(self, name):
         """Return the code mapped to the key."""
         # the correct casing should be shown when asking the system_mapping
-        # for stuff. indexing case insensitive to support old < 0.8.1 presets.
+        # for stuff. indexing case insensitive to support old presets.
         if name not in self._mapping:
             # only if not e.g. both "a" and "A" are in the mapping
             name = self._case_insensitive_mapping.get(str(name).lower())
