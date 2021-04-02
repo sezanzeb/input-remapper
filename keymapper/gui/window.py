@@ -235,13 +235,25 @@ class Window:
 
         This has nothing to do with the keycode reader.
         """
+        _, focused = self.get_focused_row()
+        if isinstance(focused, Gtk.ToggleButton):
+            return
+
         gdk_keycode = event.get_keyval()[1]
 
         if gdk_keycode in [Gdk.KEY_Control_L, Gdk.KEY_Control_R]:
             self.ctrl = True
 
-        if gdk_keycode == Gdk.KEY_q and self.ctrl:
-            self.on_close()
+        if self.ctrl:
+            # shortcuts
+            if gdk_keycode == Gdk.KEY_q:
+                self.on_close()
+
+            if gdk_keycode == Gdk.KEY_r:
+                reader.get_devices()
+
+            if gdk_keycode == Gdk.KEY_Delete:
+                self.on_restore_defaults_clicked()
 
     def key_release(self, _, event):
         """To execute shortcuts.
@@ -345,6 +357,7 @@ class Window:
         device_selection = self.get('device_selection')
 
         with HandlerDisabled(device_selection, self.on_select_device):
+            print('clearing device_store')
             self.device_store.clear()
             for device in devices:
                 types = devices[device]['types']
@@ -443,7 +456,7 @@ class Window:
                 self.show_status(
                     CTX_WARNING,
                     'ctrl, alt and shift may not combine properly',
-                    'Your system will probably reinterpret combinations ' +
+                    'Your system might reinterpret combinations ' +
                     'with those after they are injected, and by doing so ' +
                     'break them.'
                 )
@@ -454,7 +467,7 @@ class Window:
         return True
 
     @with_selected_device
-    def on_apply_system_layout_clicked(self, _):
+    def on_restore_defaults_clicked(self, *_):
         """Stop injecting the mapping."""
         self.dbus.stop_injecting(self.selected_device)
         self.show_status(CTX_APPLY, 'Applied the system default')

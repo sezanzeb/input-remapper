@@ -96,8 +96,9 @@ Bear in mind that anti-cheat software might detect macros in games.
 
 ## UI Shortcuts
 
-- `shift` + `del` stops the injection (only works while the gui is in focus)
+- `ctrl` + `del` stops the injection (only works while the gui is in focus)
 - `ctrl` + `q` closes the application
+- `ctrl` + `r` refreshes the device list
 
 ## Key Names
 

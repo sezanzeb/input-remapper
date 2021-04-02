@@ -32,7 +32,7 @@ from keymapper.logger import logger
 from keymapper.key import Key
 from keymapper.getdevices import set_devices
 from keymapper.ipc.pipe import Pipe
-from keymapper.gui.helper import TERMINATE
+from keymapper.gui.helper import TERMINATE, GET_DEVICES
 from keymapper import utils
 from keymapper.state import custom_mapping
 from keymapper.getdevices import get_devices, GAMEPAD
@@ -89,9 +89,10 @@ class Reader:
 
         if message_type == 'devices':
             # result of get_devices in the helper
-            logger.debug('Received %d devices', len(message_body))
-            set_devices(message_body)
-            self._devices_updated = True
+            if message_body != get_devices():
+                logger.debug('Received %d devices', len(message_body))
+                set_devices(message_body)
+                self._devices_updated = True
             return None
 
         if message_type == 'event':
@@ -194,6 +195,10 @@ class Reader:
         """Stop reading keycodes for good."""
         logger.debug('Sending close msg to helper')
         self._commands.send(TERMINATE)
+
+    def get_devices(self):
+        """Ask the helper for new devices."""
+        self._commands.send(GET_DEVICES)
 
     def clear(self):
         """Next time when reading don't return the previous keycode."""

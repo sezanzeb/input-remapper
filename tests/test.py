@@ -364,9 +364,8 @@ class InputDevice:
         time.sleep(EVENT_READ_TIMEOUT)
         try:
             event = pending_events[self.group][1].recv()
-        except UnpicklingError as error:
+        except (UnpicklingError, EOFError):
             # failed in tests sometimes
-            print(error)
             return None
 
         self.log(event, 'read_one')
@@ -523,7 +522,7 @@ def quick_cleanup(log=True):
         try:
             while pending_events[device][1].poll():
                 pending_events[device][1].recv()
-        except EOFError:
+        except (UnpicklingError, EOFError):
             # it broke, set up a new pipe
             pending_events[device] = None
             setup_pipe(device)
