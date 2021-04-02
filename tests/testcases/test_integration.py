@@ -109,7 +109,7 @@ def clean_up_integration(test):
     if hasattr(test, 'original_on_close'):
         test.window.on_close = test.original_on_close
 
-    test.window.on_apply_system_layout_clicked(None)
+    test.window.on_restore_defaults_clicked(None)
     gtk_iteration()
     test.window.on_close()
     test.window.window.destroy()
@@ -123,6 +123,14 @@ def clean_up_integration(test):
 
 
 original_on_select_preset = Window.on_select_preset
+
+
+class GtkKeyEvent:
+    def __init__(self, keyval):
+        self.keyval = keyval
+
+    def get_keyval(self):
+        return True, self.keyval
 
 
 class TestGetDevicesFromHelper(unittest.TestCase):
@@ -236,13 +244,6 @@ class TestIntegration(unittest.TestCase):
         self.assertTrue(self.window.window.get_visible())
 
     def test_ctrl_q(self):
-        class Event:
-            def __init__(self, keyval):
-                self.keyval = keyval
-
-            def get_keyval(self):
-                return True, self.keyval
-
         closed = False
 
         def on_close():
@@ -251,22 +252,43 @@ class TestIntegration(unittest.TestCase):
 
         self.window.on_close = on_close
 
-        self.window.key_press(self.window, Event(Gdk.KEY_Control_L))
-        self.window.key_press(self.window, Event(Gdk.KEY_a))
-        self.window.key_release(self.window, Event(Gdk.KEY_Control_L))
-        self.window.key_release(self.window, Event(Gdk.KEY_a))
-        self.window.key_press(self.window, Event(Gdk.KEY_b))
-        self.window.key_press(self.window, Event(Gdk.KEY_q))
-        self.window.key_release(self.window, Event(Gdk.KEY_q))
-        self.window.key_release(self.window, Event(Gdk.KEY_b))
+        self.window.key_press(self.window, GtkKeyEvent(Gdk.KEY_Control_L))
+        self.window.key_press(self.window, GtkKeyEvent(Gdk.KEY_a))
+        self.window.key_release(self.window, GtkKeyEvent(Gdk.KEY_Control_L))
+        self.window.key_release(self.window, GtkKeyEvent(Gdk.KEY_a))
+        self.window.key_press(self.window, GtkKeyEvent(Gdk.KEY_b))
+        self.window.key_press(self.window, GtkKeyEvent(Gdk.KEY_q))
+        self.window.key_release(self.window, GtkKeyEvent(Gdk.KEY_q))
+        self.window.key_release(self.window, GtkKeyEvent(Gdk.KEY_b))
         self.assertFalse(closed)
 
-        self.window.key_press(self.window, Event(Gdk.KEY_Control_L))
-        self.window.key_press(self.window, Event(Gdk.KEY_q))
+        # while keys are being recorded no shortcut should work
+        rows = self.get_rows()
+        row = rows[-1]
+        self.window.window.set_focus(row.keycode_input)
+        self.window.key_press(self.window, GtkKeyEvent(Gdk.KEY_Control_L))
+        self.window.key_press(self.window, GtkKeyEvent(Gdk.KEY_q))
+        self.assertFalse(closed)
+
+        self.window.window.set_focus(None)
+        self.window.key_press(self.window, GtkKeyEvent(Gdk.KEY_Control_L))
+        self.window.key_press(self.window, GtkKeyEvent(Gdk.KEY_q))
         self.assertTrue(closed)
 
-        self.window.key_release(self.window, Event(Gdk.KEY_Control_L))
-        self.window.key_release(self.window, Event(Gdk.KEY_q))
+        self.window.key_release(self.window, GtkKeyEvent(Gdk.KEY_Control_L))
+        self.window.key_release(self.window, GtkKeyEvent(Gdk.KEY_q))
+
+    def test_ctrl_r(self):
+        with patch.object(reader, 'get_devices') as reader_get_devices_patch:
+            self.window.key_press(self.window, GtkKeyEvent(Gdk.KEY_Control_L))
+            self.window.key_press(self.window, GtkKeyEvent(Gdk.KEY_r))
+            reader_get_devices_patch.assert_called_once()
+
+    def test_ctrl_del(self):
+        with patch.object(self.window.dbus, 'stop_injecting') as stop_injecting:
+            self.window.key_press(self.window, GtkKeyEvent(Gdk.KEY_Control_L))
+            self.window.key_press(self.window, GtkKeyEvent(Gdk.KEY_Delete))
+            stop_injecting.assert_called_once()
 
     def test_show_device_mapping_status(self):
         # this function may not return True, otherwise the timeout
@@ -1293,7 +1315,7 @@ class TestIntegration(unittest.TestCase):
         write_history = [pipe.recv()]
 
         # stop
-        self.window.on_apply_system_layout_clicked(None)
+        self.window.on_restore_defaults_clicked(None)
 
         # try to receive a few of the events
         time.sleep(0.2)

@@ -38,11 +38,12 @@ from evdev.ecodes import EV_KEY, EV_ABS
 
 from keymapper.ipc.pipe import Pipe
 from keymapper.logger import logger
-from keymapper.getdevices import get_devices
+from keymapper.getdevices import get_devices, refresh_devices
 from keymapper import utils
 
 
 TERMINATE = 'terminate'
+GET_DEVICES = 'get_devices'
 
 
 def is_helper_running():
@@ -67,11 +68,7 @@ class RootHelper:
         self._results = Pipe('/tmp/key-mapper/results')
         self._commands = Pipe('/tmp/key-mapper/commands')
 
-        # the ui needs the devices first
-        self._results.send({
-            'type': 'devices',
-            'message': get_devices()
-        })
+        self._send_devices()
 
         self.device_name = None
         self._pipe = multiprocessing.Pipe()
@@ -81,6 +78,13 @@ class RootHelper:
         while True:
             self._handle_commands()
             self._start_reading()
+
+    def _send_devices(self):
+        """Send the get_devices datastructure to the gui."""
+        self._results.send({
+            'type': 'devices',
+            'message': get_devices()
+        })
 
     def _handle_commands(self):
         """Handle all unread commands."""
@@ -93,6 +97,9 @@ class RootHelper:
             if cmd == TERMINATE:
                 logger.debug('Helper terminates')
                 sys.exit(0)
+            if cmd == GET_DEVICES:
+                refresh_devices()
+                self._send_devices()
             elif cmd in get_devices():
                 self.device_name = cmd
             else:
@@ -114,7 +121,14 @@ class RootHelper:
             logger.error('device_name is None')
             return
 
-        group = get_devices()[device_name]
+        group = get_devices().get(device_name)
+
+        if group is None:
+            # a device possibly disappeared due to refresh_devices
+            self.device_name = None
+            logger.error('%s disappeared', device_name)
+            return
+
         virtual_devices = []
         # Watch over each one of the potentially multiple devices per
         # hardware

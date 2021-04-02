@@ -33,7 +33,7 @@ from keymapper.state import custom_mapping
 from keymapper.config import BUTTONS, MOUSE
 from keymapper.key import Key
 from keymapper.gui.helper import RootHelper
-from keymapper.getdevices import set_devices
+from keymapper.getdevices import set_devices, get_devices, refresh_devices
 
 from tests.test import new_event, push_events, send_event_to_reader, \
     EVENT_READ_TIMEOUT, START_READING_DELAY, quick_cleanup, MAX_ABS
@@ -63,6 +63,7 @@ class TestReader(unittest.TestCase):
         quick_cleanup()
         if self.helper is not None:
             self.helper.join()
+        refresh_devices()
 
     def create_helper(self):
         # this will cause pending events to be copied over to the helper
@@ -506,6 +507,26 @@ class TestReader(unittest.TestCase):
         reader.read()
 
         self.assertTrue(reader.are_new_devices_available())
+        # a bit weird, but it assumes the gui handled that and returns
+        # false afterwards
+        self.assertFalse(reader.are_new_devices_available())
+
+        # send the same devices again
+        reader._get_event({
+            'type': 'devices',
+            'message': get_devices()
+        })
+        self.assertFalse(reader.are_new_devices_available())
+
+        # send changed devices
+        message = {**get_devices()}
+        del message['device 1']
+        reader._get_event({
+            'type': 'devices',
+            'message': message
+        })
+        self.assertTrue(reader.are_new_devices_available())
+        self.assertFalse(reader.are_new_devices_available())
 
 
 if __name__ == "__main__":
