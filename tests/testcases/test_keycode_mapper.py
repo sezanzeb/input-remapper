@@ -452,6 +452,9 @@ class TestKeycodeMapper(unittest.TestCase):
 
         source = InputDevice('/dev/input/event30')
 
+        # ABS_Y is part of the combination, which only works if the joystick
+        # is configured as D-Pad
+        self.mapping.set('gamepad.joystick.left_purpose', BUTTONS)
         context = Context(self.mapping)
         context.uinput = uinput
         context.key_to_code = _key_to_code
@@ -465,6 +468,7 @@ class TestKeycodeMapper(unittest.TestCase):
         keycode_mapper.handle_keycode(new_event(*combination_1[2]))
         keycode_mapper.handle_keycode(new_event(EV_KEY, 11, 1))
         keycode_mapper.handle_keycode(new_event(*combination_1[3]))
+        # combination_1 should have been triggered now
 
         self.assertEqual(len(uinput_write_history), 6)
         # the first events are written and then the triggered combination,

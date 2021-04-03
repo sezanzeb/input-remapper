@@ -131,6 +131,8 @@ class TestInjector(unittest.TestCase):
 
     def test_gamepad_capabilities(self):
         self.injector = Injector('gamepad', custom_mapping)
+        # give the injector a reason to grab the device
+        custom_mapping.set('gamepad.joystick.left_purpose', MOUSE)
         self.injector.context = Context(custom_mapping)
 
         path = '/dev/input/event30'
@@ -205,6 +207,7 @@ class TestInjector(unittest.TestCase):
         # be able to control the mouse. it probably wants the mouse click.
         custom_mapping.change(Key(EV_KEY, BTN_A, 1), 'a')
         self.injector = Injector('gamepad 2', custom_mapping)
+        custom_mapping.set('gamepad.joystick.left_purpose', MOUSE)
         self.injector.context = Context(custom_mapping)
 
         """ABS device without any key capability"""
@@ -301,6 +304,7 @@ class TestInjector(unittest.TestCase):
         config.set('gamepad.joystick.non_linearity', 1)
         pointer_speed = 80
         config.set('gamepad.joystick.pointer_speed', pointer_speed)
+        config.set('gamepad.joystick.left_purpose', MOUSE)
 
         # they need to sum up before something is written
         divisor = 10
@@ -957,9 +961,9 @@ class TestModifyCapabilities(unittest.TestCase):
 
         self.injector = Injector('foo', self.mapping)
         self.injector.context = Context(self.mapping)
-        self.assertFalse(self.injector.context.forwards_joystick())
         self.assertTrue(self.injector.context.maps_joystick())
         self.assertTrue(self.injector.context.joystick_as_mouse())
+        self.assertFalse(self.injector.context.joystick_as_dpad())
 
         capabilities = self.injector._construct_capabilities(gamepad=True)
         self.assertNotIn(EV_ABS, capabilities)
@@ -979,9 +983,9 @@ class TestModifyCapabilities(unittest.TestCase):
 
         self.injector = Injector('foo', self.mapping)
         self.injector.context = Context(self.mapping)
-        self.assertTrue(self.injector.context.forwards_joystick())
         self.assertFalse(self.injector.context.maps_joystick())
         self.assertFalse(self.injector.context.joystick_as_mouse())
+        self.assertFalse(self.injector.context.joystick_as_dpad())
 
         capabilities = self.injector._construct_capabilities(gamepad=True)
         self.assertNotIn(EV_ABS, capabilities)
@@ -996,9 +1000,9 @@ class TestModifyCapabilities(unittest.TestCase):
 
         self.injector = Injector('foo', self.mapping)
         self.injector.context = Context(self.mapping)
-        self.assertFalse(self.injector.context.forwards_joystick())
         self.assertTrue(self.injector.context.maps_joystick())
         self.assertFalse(self.injector.context.joystick_as_mouse())
+        self.assertTrue(self.injector.context.joystick_as_dpad())
 
         capabilities = self.injector._construct_capabilities(gamepad=True)
 

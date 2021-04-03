@@ -1025,23 +1025,30 @@ class TestIntegration(unittest.TestCase):
         self.window.save_preset()
         self.assertEqual(len(key_list.get_children()), 2)
 
+        # should be cleared when creating a new preset
+        custom_mapping.set('a.b', 3)
+        self.assertEqual(custom_mapping.get('a.b'), 3)
+
         self.window.on_create_preset_clicked(None)
 
         # the preset should be empty, only one empty row present
         self.assertEqual(len(key_list.get_children()), 1)
+        self.assertIsNone(custom_mapping.get('a.b'), 3)
 
-        # add one new row again
+        # add one new row again and a setting
         self.change_empty_row(Key(EV_KEY, 81, 1), 'b')
         time.sleep(0.1)
         gtk_iteration()
         self.window.save_preset()
         self.assertEqual(len(key_list.get_children()), 2)
+        custom_mapping.set(['foo', 'bar'], 2)
 
         # this time it should be copied
         self.window.on_copy_preset_clicked(None)
         self.assertEqual(self.window.selected_preset, 'new preset 2 copy')
         self.assertEqual(len(key_list.get_children()), 2)
         self.assertEqual(key_list.get_children()[0].get_character(), 'b')
+        self.assertEqual(custom_mapping.get(['foo', 'bar']), 2)
 
         # make another copy
         self.window.on_copy_preset_clicked(None)
@@ -1049,6 +1056,7 @@ class TestIntegration(unittest.TestCase):
         self.assertEqual(len(key_list.get_children()), 2)
         self.assertEqual(key_list.get_children()[0].get_character(), 'b')
         self.assertEqual(len(custom_mapping), 1)
+        self.assertEqual(custom_mapping.get('foo.bar'), 2)
 
     def test_gamepad_config(self):
         # set some stuff in the beginning, otherwise gtk fails to

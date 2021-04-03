@@ -75,23 +75,30 @@ class TestContext(unittest.TestCase):
             ((1, 36, 1),)
         ))
 
-    def test_forwards_joystick(self):
-        self.assertFalse(self.context.forwards_joystick())
-        self.mapping.set('gamepad.joystick.left_purpose', NONE)
-        self.mapping.set('gamepad.joystick.right_purpose', BUTTONS)
-        self.assertFalse(self.context.forwards_joystick())
-
-        # I guess the whole purpose of update_purposes is that the config
-        # doesn't need to get resolved many times during operation
-        self.context.update_purposes()
-        self.assertTrue(self.context.forwards_joystick())
-
     def test_maps_joystick(self):
         self.assertTrue(self.context.maps_joystick())
         self.mapping.set('gamepad.joystick.left_purpose', NONE)
         self.mapping.set('gamepad.joystick.right_purpose', NONE)
         self.context.update_purposes()
         self.assertFalse(self.context.maps_joystick())
+
+    def test_joystick_as_dpad(self):
+        self.assertTrue(self.context.maps_joystick())
+
+        self.mapping.set('gamepad.joystick.left_purpose', WHEEL)
+        self.mapping.set('gamepad.joystick.right_purpose', MOUSE)
+        self.context.update_purposes()
+        self.assertFalse(self.context.joystick_as_dpad())
+
+        self.mapping.set('gamepad.joystick.left_purpose', BUTTONS)
+        self.mapping.set('gamepad.joystick.right_purpose', NONE)
+        self.context.update_purposes()
+        self.assertTrue(self.context.joystick_as_dpad())
+
+        self.mapping.set('gamepad.joystick.left_purpose', MOUSE)
+        self.mapping.set('gamepad.joystick.right_purpose', BUTTONS)
+        self.context.update_purposes()
+        self.assertTrue(self.context.joystick_as_dpad())
 
     def test_joystick_as_mouse(self):
         self.assertTrue(self.context.maps_joystick())

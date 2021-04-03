@@ -50,8 +50,8 @@ INITIAL_CONFIG = {
             # move the cursor.
             'non_linearity': 4,
             'pointer_speed': 80,
-            'left_purpose': MOUSE,
-            'right_purpose': WHEEL,
+            'left_purpose': NONE,
+            'right_purpose': NONE,
             'x_scroll_speed': 2,
             'y_scroll_speed': 0.5
         },
