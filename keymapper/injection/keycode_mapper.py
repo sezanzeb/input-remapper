@@ -216,7 +216,11 @@ class KeycodeMapper:
             where forwarded/unhandled events should be written to
         """
         self.source = source
-        self.abs_range = utils.get_abs_range(source)
+        self.abs_range = None
+
+        if context.maps_joystick():
+            self.abs_range = utils.get_abs_range(source)
+
         self.context = context
         self.forward_to = forward_to
 

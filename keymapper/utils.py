@@ -73,7 +73,7 @@ def normalize_value(event, abs_range=None):
     if event.type == EV_ABS and event.code in JOYSTICK:
         if abs_range is None:
             logger.error(
-                'Got %s, but max_abs is %s',
+                'Got %s, but abs_range is %s',
                 (event.type, event.code, event.value), abs_range
             )
             return event.value
