@@ -150,9 +150,10 @@ class Mapping(ConfigBase):
                 # in the mapping actually
 
     def empty(self):
-        """Remove all mappings."""
+        """Remove all mappings and custom configs without saving."""
         self._mapping = {}
         self.changed = True
+        self.clear_config()
 
     def load(self, path):
         """Load a dumped JSON from home to overwrite the mappings.

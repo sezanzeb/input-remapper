@@ -338,11 +338,10 @@ class Injector(multiprocessing.Process):
 
         # where mapped events go to.
         # See the Context docstring on why this is needed.
-        is_gamepad = GAMEPAD in group['types']
         self.context.uinput = evdev.UInput(
             name=self.get_udef_name(self.device, 'mapped'),
             phys=DEV_NAME,
-            events=self._construct_capabilities(is_gamepad)
+            events=self._construct_capabilities(GAMEPAD in group['types'])
         )
 
         # Watch over each one of the potentially multiple devices per hardware

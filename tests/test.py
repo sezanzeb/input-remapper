@@ -183,6 +183,8 @@ fixtures = {
                 evdev.ecodes.ABS_Y,
                 evdev.ecodes.ABS_RX,
                 evdev.ecodes.ABS_RY,
+                evdev.ecodes.ABS_Z,
+                evdev.ecodes.ABS_RZ,
                 evdev.ecodes.ABS_HAT0X
             ],
             evdev.ecodes.EV_KEY: [
@@ -523,10 +525,11 @@ def quick_cleanup(log=True):
             while pending_events[device][1].poll():
                 pending_events[device][1].recv()
         except (UnpicklingError, EOFError):
-            # it broke, set up a new pipe
-            pending_events[device] = None
-            setup_pipe(device)
             pass
+
+        # setup new pipes for the next test
+        pending_events[device] = None
+        setup_pipe(device)
 
     try:
         reader.terminate()
