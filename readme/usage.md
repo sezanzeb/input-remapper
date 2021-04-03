@@ -132,12 +132,36 @@ Wayland than with X11 for me.
 
 # Advanced
 
-You usually don't need the stuff described here, you can configure everything
-via the gui as well.
-
-If you have trouble mapping some keys because the gui loses focus, or
-if you don't have a graphical user interface, you'll need to edit the
+If you don't have a graphical user interface, you'll need to edit the
 configuration files.
+
+## How to use unavailable characters
+
+For example Japanese letters. Only works in X11.
+
+```
+xmodmap -pke > keyboard_layout
+mousepad keyboard_layout &
+```
+
+Find a code that is not mapped to anything, for example `keycode  93 = `,
+and map it like `keycode  93 = kana_YA`. See [this gist](https://gist.github.com/sezanzeb/e29bae637b8a799ccf2490b8537487df)
+for available symbols.
+
+```
+xmodmap keyboard_layout
+key-mapper-gtk
+```
+
+"kana_YA" should be in the dropdown of available characters now. Map it
+to a key and press apply. Now run
+
+```
+xmodmap keyboard_layout
+```
+
+again for the injection to use that xmodmap as well. It should be possible
+to write "ヤ" now when pressing the key.
 
 ## Configuration Files
 
@@ -157,8 +181,8 @@ an example autoload entry:
         "joystick": {
             "non_linearity": 4,
             "pointer_speed": 80,
-            "left_purpose": "mouse",
-            "right_purpose": "wheel",
+            "left_purpose": "none",
+            "right_purpose": "none",
             "x_scroll_speed": 2,
             "y_scroll_speed": 0.5
         }
