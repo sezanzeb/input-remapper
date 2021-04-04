@@ -395,6 +395,8 @@ class TestIntegration(unittest.TestCase):
         self.assertEqual(to_string(Key(EV_KEY, 1234, 1)), 'unknown')
         self.assertEqual(to_string(Key(EV_ABS, evdev.ecodes.ABS_X, 1)), 'Joystick Right')
         self.assertEqual(to_string(Key(EV_ABS, evdev.ecodes.ABS_RY, 1)), 'Joystick 2 Down')
+        self.assertEqual(to_string(Key(EV_REL, evdev.ecodes.REL_HWHEEL, 1)), 'Wheel Right')
+        self.assertEqual(to_string(Key(EV_REL, evdev.ecodes.REL_WHEEL, -1)), 'Wheel Down')
 
         # combinations
         self.assertEqual(to_string(Key(

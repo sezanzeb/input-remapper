@@ -124,11 +124,12 @@ def to_string(key):
     key_name = key_name.replace('ABS_Z', 'Trigger Left')
     key_name = key_name.replace('ABS_RZ', 'Trigger Right')
 
-    key_name = key_name.replace('ABS_HAT', 'DPad ')
-    key_name = key_name.replace('0X', '')
-    key_name = key_name.replace('0Y', '')
-    key_name = key_name.replace('1X', '2')
-    key_name = key_name.replace('1Y', '2')
+    key_name = key_name.replace('ABS_HAT0X', 'DPad')
+    key_name = key_name.replace('ABS_HAT0Y', 'DPad')
+    key_name = key_name.replace('ABS_HAT1X', 'DPad 2')
+    key_name = key_name.replace('ABS_HAT1Y', 'DPad 2')
+    key_name = key_name.replace('ABS_HAT2X', 'DPad 3')
+    key_name = key_name.replace('ABS_HAT2Y', 'DPad 3')
 
     key_name = key_name.replace('ABS_X', 'Joystick')
     key_name = key_name.replace('ABS_Y', 'Joystick')
@@ -136,9 +137,13 @@ def to_string(key):
     key_name = key_name.replace('ABS_RY', 'Joystick 2')
 
     key_name = key_name.replace('BTN_', 'Button ')
-    key_name = key_name.replace('_', ' ')
     key_name = key_name.replace('KEY_', '')
 
+    key_name = key_name.replace('REL_', '')
+    key_name = key_name.replace('HWHEEL', 'Wheel')
+    key_name = key_name.replace('WHEEL', 'Wheel')
+
+    key_name = key_name.replace('_', ' ')
     key_name = key_name.replace('  ', ' ')
 
     return key_name
