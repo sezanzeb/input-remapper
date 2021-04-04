@@ -166,7 +166,7 @@ to write "ヤ" now when pressing the key.
 ## Configuration Files
 
 The default configuration is stored at `~/.config/key-mapper/config.json`.
-The current default configuration as of 0.8.0 looks like, with
+The current default configuration as of 0.8.1 looks like, with
 an example autoload entry:
 
 ```json
@@ -211,11 +211,11 @@ Here is an example configuration for preset "a" for the "gamepad" device:
 
 Both need to be valid json files, otherwise the parser refuses to work. This
 preset maps the EV_KEY down event with code 307 to a macro and sets the time
-between injected events of macros to 100 ms. The other mapping is a key
-combination, chained using `+`. 
+between injected events of macros to 100 ms. Note that a complete keystroke
+consists of two events: down and up. The other mapping is a key combination,
+chained using `+`. 
 
-Note that a complete keystroke consists of two events: down and up. Other
-than that, it inherits all configurations from
+Other than that, it inherits all configurations from
 `~/.config/key-mapper/config.json`. If config.json is missing some stuff,
 it will query the hardcoded default values.
 
