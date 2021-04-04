@@ -181,8 +181,8 @@ an example autoload entry:
         "joystick": {
             "non_linearity": 4,
             "pointer_speed": 80,
-            "left_purpose": "mouse",
-            "right_purpose": "wheel",
+            "left_purpose": "none",
+            "right_purpose": "none",
             "x_scroll_speed": 2,
             "y_scroll_speed": 0.5
         }
