@@ -35,7 +35,7 @@ file should give an overview about some internals of key-mapper.
 - [x] map keys using a `modifier + modifier + ... + key` syntax
 - [x] inject in an additional device instead to avoid clashing capabilities
 - [x] don't run any GUI code as root for improved wayland compatibility
-- [ ] plugin support [#33](https://github.com/sezanzeb/key-mapper/issues/33#issuecomment-809315221) [#34](https://github.com/sezanzeb/key-mapper/discussions/34#discussioncomment-349286) [#49](https://github.com/sezanzeb/key-mapper/issues/49#issuecomment-808764388) 
+- [ ] plugin support
 - [ ] getting it into the official debian repo
 
 ## Tests
