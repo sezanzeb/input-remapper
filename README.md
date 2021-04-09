@@ -25,10 +25,11 @@ Get a .deb file from the [release page](https://github.com/sezanzeb/key-mapper/r
 or install the latest changes via:
 
 ```bash
-sudo apt install git python3-setuptools
+sudo apt install git devscripts dh-python python3-all libpython3-dev libdbus-1-dev
 git clone https://github.com/sezanzeb/key-mapper.git
-cd key-mapper; ./scripts/build.sh
-sudo apt install ./dist/key-mapper-0.8.1.deb
+cd key-mapper
+debuild -us -uc
+sudo apt install ../key-mapper-0.8.2_all.deb
 ```
 
 ##### pip

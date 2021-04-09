@@ -1,0 +1,19 @@
+#!/usr/bin/make -f
+%:
+	dh $@ --with python3 --buildsystem=pybuild
+
+override_dh_auto_clean:
+	dh_auto_clean
+	rm -f debian/key-mapper.service
+
+override_dh_auto_install:
+	dh_auto_install
+	# remove the systemd-service in /usr/lib/systemd and replace it with dh-systemd
+	rm -rf debian/key-mapper/usr/lib/systemd/
+	cp data/key-mapper.service debian/key-mapper.service
+	# move udev-rule from /etc to /lib for packaging
+	mkdir -p debian/key-mapper/lib
+	mv debian/key-mapper/etc/udev debian/key-mapper/lib/udev
+
+override_dh_auto_test:
+	# skip them during drafting

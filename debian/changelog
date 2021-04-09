@@ -1,0 +1,5 @@
+key-mapper (0.8.2) UNRELEASED; urgency=low
+
+  * initial packaging
+
+ -- Matthias Blümel <debian@blaimi.de>  Fri, 09 Apr 2021 08:56:40 +0200

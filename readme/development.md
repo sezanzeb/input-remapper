@@ -65,10 +65,10 @@ with the gui, which might make tests fail.
 ssh/login into a debian/ubuntu environment
 
 ```bash
-./scripts/build.sh
+debuild -us -uc
 ```
 
-This will generate `key-mapper/deb/key-mapper-0.8.1.deb`
+This will generate `../key-mapper-0.8.2_all.deb`
 
 ## Badges
 

@@ -1,0 +1,29 @@
+Source: key-mapper
+Section: misc
+Priority: optional
+Maintainer: Sezanzeb <proxima@sezanzeb.de>
+Standards-Version: 4.5.0
+Build-Depends:
+ debhelper-compat (= 12),
+ dh-python,
+ python3-all,
+ python3-evdev,
+ python3-pydbus,
+ python3-gi,
+Vcs-Git: https://github.com/sezanzeb/key-mapper
+Vcs-Browser: https://github.com/sezanzeb/key-mapper
+
+Package: key-mapper
+Architecture: all
+Depends: python3-gi,
+ ${misc:Depends},
+ ${python3:Depends},
+Replaces: python3-key-mapper
+Description: Input device button mapping tool
+ key-mapper allows users to map buttons on all input devices
+ (keyboards, mice, gamepads...) in X11 and Wayland. It also supports
+ combined buttons and programmable macros.
+ .
+ key-mapper includes a UI to configure button mappings, per device,
+ and configuration to automatically apply button mappings at boot and
+ on device connection.
