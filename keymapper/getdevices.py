@@ -170,7 +170,7 @@ def classify(device):
 
 
 DENYLIST = [
-    ('Yubico', r'.*YubiKey.*')
+    '.*Yubico.*YubiKey.*'
 ]
 
 
@@ -181,14 +181,9 @@ def is_denylisted(device):
     ----------
     device : InputDevice
     """
-    for vendor, name in DENYLIST:
-        if not re.match(vendor, str(device.info.vendor), re.IGNORECASE):
-            return False
-
-        if not re.match(name, str(device.name), re.IGNORECASE):
-            return False
-
-    return True
+    for name in DENYLIST:
+        if re.match(name, str(device.name), re.IGNORECASE):
+            return True
 
 
 class _GetDevices(threading.Thread):
