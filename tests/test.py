@@ -212,6 +212,14 @@ fixtures = {
         'info': evdev.device.DeviceInfo(5, 1, 5, 1),
         'name': 'key-mapper device 2'
     },
+
+    # denylisted
+    '/dev/input/event51': {
+        'capabilities': {evdev.ecodes.EV_KEY: keyboard_keys},
+        'phys': 'usb-0000:03:00.0-5/input1',
+        'info': evdev.device.DeviceInfo(6, 'YuBiCo', 6, 1),
+        'name': 'fooYuBiKeYbar'
+    },
 }
 
 
