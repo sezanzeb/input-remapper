@@ -22,6 +22,7 @@
 """Device and evdev stuff that is independent from the display server."""
 
 
+import re
 import multiprocessing
 import threading
 import time
@@ -168,6 +169,23 @@ def classify(device):
     return UNKNOWN
 
 
+DENYLIST = [
+    '.*Yubico.*YubiKey.*'
+]
+
+
+def is_denylisted(device):
+    """Check if a device should not be used in key-mapper.
+
+    Parameters
+    ----------
+    device : InputDevice
+    """
+    for name in DENYLIST:
+        if re.match(name, str(device.name), re.IGNORECASE):
+            return True
+
+
 class _GetDevices(threading.Thread):
     """Process to get the devices that can be worked with.
 
@@ -215,6 +233,9 @@ class _GetDevices(threading.Thread):
 
             if key_capa is None and device_type != GAMEPAD:
                 # skip devices that don't provide buttons that can be mapped
+                continue
+
+            if is_denylisted(device):
                 continue
 
             name = device.name
