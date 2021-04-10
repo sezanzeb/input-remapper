@@ -358,8 +358,12 @@ class Injector(multiprocessing.Process):
             gamepad = classify(source) == GAMEPAD
             forward_to = evdev.UInput(
                 name=self.get_udef_name(source.name, 'forwarded'),
-                phys=DEV_NAME,
-                events=self._copy_capabilities(source)
+                events=self._copy_capabilities(source),
+                phys=source.phys,
+                version=source.version,
+                vendor=source.info.vendor,
+                product=source.info.product,
+                bustype=source.info.bustype
             )
 
             # actual reading of events
