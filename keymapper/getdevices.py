@@ -170,7 +170,8 @@ def classify(device):
 
 
 DENYLIST = [
-    '.*Yubico.*YubiKey.*'
+    '.*Yubico.*YubiKey.*',
+    'Eee PC WMI hotkeys'
 ]
 
 
