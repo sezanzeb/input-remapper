@@ -400,7 +400,7 @@ To give your keys back their original mapping.</property>
                           <object class="GtkLabel">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
-                            <property name="tooltip-text" translatable="yes">To automatically apply the preset after your login if the device is alread connected.</property>
+                            <property name="tooltip-text" translatable="yes">To automatically apply the preset after your login or when it connects.</property>
                             <property name="label" translatable="yes">Autoload</property>
                             <property name="xalign">0</property>
                           </object>
