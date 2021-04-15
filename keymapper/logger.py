@@ -30,14 +30,17 @@ import pkg_resources
 
 from keymapper.user import HOME
 
+try:
+    from keymapper.commit_hash import COMMIT_HASH
+except ImportError:
+    COMMIT_HASH = ''
+
 
 SPAM = 5
 
 start = time.time()
 
 previous_key_spam = None
-
-COMMIT_HASH = '12ff3df22e47a2e8b7be2811b300512c2d597725'  # overwritten in setup.py
 
 
 def spam(self, message, *args, **kwargs):

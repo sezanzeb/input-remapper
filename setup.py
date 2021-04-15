@@ -31,16 +31,8 @@ class Install(install):
     def run(self):
         commit = os.popen('git rev-parse HEAD').read().strip()
         if re.match(r'^([a-z]|[0-9])+$', commit):
-            with open('keymapper/logger.py', 'r') as f:
-                contents = f.read()
-                contents = re.sub(
-                    r"COMMIT_HASH = '.*?'",
-                    f"COMMIT_HASH = '{commit}'",
-                    contents
-                )
-
-            with open('keymapper/logger.py', 'w') as f:
-                f.write(contents)
+            with open('keymapper/commit_hash.py', 'w') as f:
+                f.write(f"COMMIT_HASH = '{commit}'\n")
 
         install.run(self)
 
@@ -80,7 +72,7 @@ setup(
         ('/usr/lib/systemd/system', ['data/key-mapper.service']),
         ('/etc/dbus-1/system.d/', ['data/keymapper.Control.conf']),
         ('/etc/xdg/autostart/', ['data/key-mapper-autoload.desktop']),
-        ('/etc/udev/rules.d', ['data/key-mapper.rules']),
+        ('/lib/udev/rules.d', ['data/key-mapper.rules']),
         ('/usr/bin/', ['bin/key-mapper-gtk']),
         ('/usr/bin/', ['bin/key-mapper-service']),
         ('/usr/bin/', ['bin/key-mapper-control']),
