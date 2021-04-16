@@ -72,7 +72,7 @@ setup(
         ('/usr/lib/systemd/system', ['data/key-mapper.service']),
         ('/etc/dbus-1/system.d/', ['data/keymapper.Control.conf']),
         ('/etc/xdg/autostart/', ['data/key-mapper-autoload.desktop']),
-        ('/lib/udev/rules.d', ['data/key-mapper.rules']),
+        ('/usr/lib/udev/rules.d', ['data/key-mapper.rules']),
         ('/usr/bin/', ['bin/key-mapper-gtk']),
         ('/usr/bin/', ['bin/key-mapper-service']),
         ('/usr/bin/', ['bin/key-mapper-control']),
