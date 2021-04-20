@@ -143,7 +143,6 @@ To give your keys back their original mapping.</property>
                     <property name="image">about-icon</property>
                     <property name="always-show-image">True</property>
                     <signal name="clicked" handler="on_about_clicked" swapped="no"/>
-                    <accelerator key="Delete" signal="activate" modifiers="GDK_SHIFT_MASK"/>
                   </object>
                   <packing>
                     <property name="expand">False</property>
