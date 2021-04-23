@@ -190,31 +190,34 @@ class GlobalConfig(ConfigBase):
 
         super().__init__()
 
-    def set_autoload_preset(self, device, preset):
+    def set_autoload_preset(self, group_key, preset):
         """Set a preset to be automatically applied on start.
 
         Parameters
         ----------
-        device : string
+        group_key : string
+            the unique identifier of the group. This is used instead of the
+            name to enable autoloading two different presets when two similar
+            devices are connected.
         preset : string or None
             if None, don't autoload something for this device.
         """
         if preset is not None:
-            self.set(['autoload', device], preset)
+            self.set(['autoload', group_key], preset)
         else:
             logger.info(
                 'Not injecting for "%s" automatically anmore',
-                device
+                group_key
             )
-            self.remove(['autoload', device])
+            self.remove(['autoload', group_key])
 
     def iterate_autoload_presets(self):
         """Get tuples of (device, preset)."""
         return self._config.get('autoload', {}).items()
 
-    def is_autoloaded(self, device, preset):
+    def is_autoloaded(self, group_key, preset):
         """Should this preset be loaded automatically?"""
-        return self.get(['autoload', device], log_unknown=False) == preset
+        return self.get(['autoload', group_key], log_unknown=False) == preset
 
     def load_config(self, path=None):
         """Load the config from the file system.

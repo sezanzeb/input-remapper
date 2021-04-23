@@ -179,7 +179,6 @@ def update_verbosity(debug):
     """
     # pylint really doesn't like what I'm doing with rich.traceback here
     # pylint: disable=broad-except,import-error,import-outside-toplevel
-
     if debug:
         logger.setLevel(SPAM)
 

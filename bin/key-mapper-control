@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # key-mapper - GUI for device specific keyboard mappings
-# Copyright (C) 2020 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2021 sezanzeb <proxima@sezanzeb.de>
 #
 # This file is part of key-mapper.
 #
@@ -26,14 +26,13 @@ import os
 import grp
 import sys
 import argparse
-import subprocess
+import logging
 
 from keymapper.logger import logger, update_verbosity, log_info
 from keymapper.config import config
-from keymapper.daemon import Daemon
-from keymapper.state import system_mapping
-from keymapper.getdevices import get_devices
-from keymapper.paths import USER
+
+# import keymapper modules as late as possible to make sure the correct
+# log level is applied before anything is logged
 
 
 AUTOLOAD = 'autoload'
@@ -69,11 +68,47 @@ COMMANDS = [AUTOLOAD, START, STOP, HELLO, STOP_ALL]
 INTERNALS = [START_DAEMON, HELPER]
 
 
-def main(options, daemon):
-    """Do the stuff that the executable is supposed to do.
+def utils(options):
+    """Listing names, tasks that don't require a running daemon."""
+    if options.list_devices:
+        logger.setLevel(logging.ERROR)
+        from keymapper.groups import groups
+        for group in groups:
+            print(group.key)
+        sys.exit(0)
 
-    Is a function so that I can import it and test it
-    """
+    if options.key_names:
+        from keymapper.state import system_mapping
+        print('\n'.join(system_mapping.list_names()))
+        sys.exit(0)
+
+
+def communicate(options, daemon):
+    """Commands that require a running daemon"""
+    # import stuff late to make sure the correct log level is applied
+    # before anything is logged
+    from keymapper.groups import groups
+    from keymapper.paths import USER
+
+    def require_group():
+        if options.device is None:
+            logger.error('--device missing')
+            sys.exit(1)
+
+        if options.device.startswith('/dev'):
+            group = groups.find(path=options.device)
+        else:
+            group = groups.find(key=options.device)
+
+        if group is None:
+            logger.error('unknown device "%s"', options.device)
+            sys.exit(1)
+
+        return group
+
+    if daemon is None:
+        sys.exit(0)
+
     if options.config_dir is not None:
         path = os.path.abspath(os.path.expanduser(os.path.join(
             options.config_dir,
@@ -86,27 +121,12 @@ def main(options, daemon):
         logger.info('Using config from "%s" instead', path)
         config.load_config(path)
 
-    # this is either the user-provided path or the default path in home
-    config_dir = os.path.dirname(config.path)
-
-    if options.list_devices:
-        get_devices()
-        sys.exit(0)
-
-    if options.key_names:
-        print('\n'.join(system_mapping.list_names()))
-        sys.exit(0)
-
-    if options.command not in COMMANDS:
-        logger.error('Unknown command "%s"', options.command)
-
-    if daemon is None:
-        sys.exit(0)
-
     if USER != 'root':
-        # might be triggered by udev, so skip the root user.
-        # this will also refresh the config of the daemon if the user changed
+        # Might be triggered by udev, so skip the root user.
+        # This will also refresh the config of the daemon if the user changed
         # it in the meantime.
+        # config_dir is either the cli arg or the default path in home
+        config_dir = os.path.dirname(config.path)
         daemon.set_config_dir(config_dir)
 
     if options.command == AUTOLOAD:
@@ -115,29 +135,22 @@ def main(options, daemon):
         if options.device is None:
             daemon.autoload()
         else:
-            daemon.autoload_single(options.device)
+            group = require_group()
+            daemon.autoload_single(group.key)
 
     if options.command == START:
-        if options.device is None:
-            logger.error('--device missing')
-            sys.exit(1)
-
-        if options.preset is None:
-            logger.error('--preset missing')
-            sys.exit(1)
+        group = require_group()
 
         logger.info(
             'Starting injection: "%s", "%s"',
             options.device, options.preset
         )
-        daemon.start_injecting(options.device, options.preset)
+
+        daemon.start_injecting(group.key, options.preset)
 
     if options.command == STOP:
-        if options.device is None:
-            logger.error('--device missing')
-            sys.exit(1)
-
-        daemon.stop_injecting(options.device)
+        group = require_group()
+        daemon.stop_injecting(group.key)
 
     if options.command == STOP_ALL:
         daemon.stop_all()
@@ -169,9 +182,10 @@ def internals(options):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        '--command', action='store', dest='command',
-        help='start, stop, autoload, hello or stop-all',
-        default=None, metavar='NAME'
+        '--command', action='store', dest='command', help=(
+            'Communicate with the daemon. Available commands are start, '
+            'stop, autoload, hello or stop-all'
+        ), default=None, metavar='NAME'
     )
     parser.add_argument(
         '--config-dir', action='store', dest='config_dir',
@@ -189,19 +203,16 @@ if __name__ == '__main__':
     )
     parser.add_argument(
         '--device', action='store', dest='device',
-        help=(
-            'The device name which is used for subfolders in the '
-            'presets directory'
-        ),
+        help='One of the device keys from --list-devices',
         default=None, metavar='NAME'
     )
     parser.add_argument(
         '--list-devices', action='store_true', dest='list_devices',
-        help='List available device names and exit',
+        help='List available device keys and exit',
         default=False
     )
     parser.add_argument(
-        '-n', '--key-names', action='store_true', dest='key_names',
+        '-n', '--symbol-names', action='store_true', dest='key_names',
         help='Print all available names for the mapping',
         default=False
     )
@@ -225,11 +236,15 @@ if __name__ == '__main__':
 
     logger.debug('Call for "%s"', sys.argv)
 
-    config.load_config()
-
-    if options.command in INTERNALS:
-        options.debug = True
-        internals(options)
+    if options.command is not None:
+        if options.command in INTERNALS:
+            options.debug = True
+            internals(options)
+        elif options.command in COMMANDS:
+            from keymapper.daemon import Daemon
+            daemon = Daemon.connect(fallback=False)
+            communicate(options, daemon)
+        else:
+            logger.error('Unknown command "%s"', options.command)
     else:
-        daemon = Daemon.connect(fallback=False)
-        main(options, daemon)
+        utils(options)

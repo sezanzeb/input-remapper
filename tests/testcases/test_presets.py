@@ -33,10 +33,10 @@ from keymapper.state import custom_mapping
 from tests.test import tmp
 
 
-def create_preset(device, name='new preset'):
-    name = get_available_preset_name(device, name)
+def create_preset(group_name, name='new preset'):
+    name = get_available_preset_name(group_name, name)
     custom_mapping.empty()
-    custom_mapping.save(get_preset_path(device, name))
+    custom_mapping.save(get_preset_path(group_name, name))
 
 
 PRESETS = os.path.join(CONFIG_PATH, 'presets')
@@ -112,24 +112,24 @@ class TestCreatePreset(unittest.TestCase):
             shutil.rmtree(tmp)
 
     def test_create_preset_1(self):
-        self.assertEqual(get_any_preset(), ('device 1', None))
-        create_preset('device 1')
-        self.assertEqual(get_any_preset(), ('device 1', 'new preset'))
-        self.assertTrue(os.path.exists(f'{PRESETS}/device 1/new preset.json'))
+        self.assertEqual(get_any_preset(), ('Foo Device', None))
+        create_preset('Foo Device')
+        self.assertEqual(get_any_preset(), ('Foo Device', 'new preset'))
+        self.assertTrue(os.path.exists(f'{PRESETS}/Foo Device/new preset.json'))
 
     def test_create_preset_2(self):
-        create_preset('device 1')
-        create_preset('device 1')
-        self.assertTrue(os.path.exists(f'{PRESETS}/device 1/new preset.json'))
-        self.assertTrue(os.path.exists(f'{PRESETS}/device 1/new preset 2.json'))
+        create_preset('Foo Device')
+        create_preset('Foo Device')
+        self.assertTrue(os.path.exists(f'{PRESETS}/Foo Device/new preset.json'))
+        self.assertTrue(os.path.exists(f'{PRESETS}/Foo Device/new preset 2.json'))
 
     def test_create_preset_3(self):
-        create_preset('device 1', 'pre set')
-        create_preset('device 1', 'pre set')
-        create_preset('device 1', 'pre set')
-        self.assertTrue(os.path.exists(f'{PRESETS}/device 1/pre set.json'))
-        self.assertTrue(os.path.exists(f'{PRESETS}/device 1/pre set 2.json'))
-        self.assertTrue(os.path.exists(f'{PRESETS}/device 1/pre set 3.json'))
+        create_preset('Foo Device', 'pre set')
+        create_preset('Foo Device', 'pre set')
+        create_preset('Foo Device', 'pre set')
+        self.assertTrue(os.path.exists(f'{PRESETS}/Foo Device/pre set.json'))
+        self.assertTrue(os.path.exists(f'{PRESETS}/Foo Device/pre set 2.json'))
+        self.assertTrue(os.path.exists(f'{PRESETS}/Foo Device/pre set 3.json'))
 
 
 class TestDeletePreset(unittest.TestCase):
@@ -138,17 +138,17 @@ class TestDeletePreset(unittest.TestCase):
             shutil.rmtree(tmp)
 
     def test_delete_preset(self):
-        create_preset('device 1')
-        create_preset('device 1')
-        self.assertTrue(os.path.exists(f'{PRESETS}/device 1/new preset.json'))
-        delete_preset('device 1', 'new preset')
-        self.assertFalse(os.path.exists(f'{PRESETS}/device 1/new preset.json'))
-        self.assertTrue(os.path.exists(f'{PRESETS}/device 1'))
-        delete_preset('device 1', 'new preset 2')
-        self.assertFalse(os.path.exists(f'{PRESETS}/device 1/new preset.json'))
-        self.assertFalse(os.path.exists(f'{PRESETS}/device 1/new preset 2.json'))
+        create_preset('Foo Device')
+        create_preset('Foo Device')
+        self.assertTrue(os.path.exists(f'{PRESETS}/Foo Device/new preset.json'))
+        delete_preset('Foo Device', 'new preset')
+        self.assertFalse(os.path.exists(f'{PRESETS}/Foo Device/new preset.json'))
+        self.assertTrue(os.path.exists(f'{PRESETS}/Foo Device'))
+        delete_preset('Foo Device', 'new preset 2')
+        self.assertFalse(os.path.exists(f'{PRESETS}/Foo Device/new preset.json'))
+        self.assertFalse(os.path.exists(f'{PRESETS}/Foo Device/new preset 2.json'))
         # if no preset in the directory, remove the directory
-        self.assertFalse(os.path.exists(f'{PRESETS}/device 1'))
+        self.assertFalse(os.path.exists(f'{PRESETS}/Foo Device'))
 
 
 class TestRenamePreset(unittest.TestCase):
@@ -157,15 +157,15 @@ class TestRenamePreset(unittest.TestCase):
             shutil.rmtree(tmp)
 
     def test_rename_preset(self):
-        create_preset('device 1', 'preset 1')
-        create_preset('device 1', 'preset 2')
-        create_preset('device 1', 'foobar')
-        rename_preset('device 1', 'preset 1', 'foobar')
-        rename_preset('device 1', 'preset 2', 'foobar')
-        self.assertFalse(os.path.exists(f'{PRESETS}/device 1/preset 1.json'))
-        self.assertTrue(os.path.exists(f'{PRESETS}/device 1/foobar.json'))
-        self.assertTrue(os.path.exists(f'{PRESETS}/device 1/foobar 2.json'))
-        self.assertTrue(os.path.exists(f'{PRESETS}/device 1/foobar 3.json'))
+        create_preset('Foo Device', 'preset 1')
+        create_preset('Foo Device', 'preset 2')
+        create_preset('Foo Device', 'foobar')
+        rename_preset('Foo Device', 'preset 1', 'foobar')
+        rename_preset('Foo Device', 'preset 2', 'foobar')
+        self.assertFalse(os.path.exists(f'{PRESETS}/Foo Device/preset 1.json'))
+        self.assertTrue(os.path.exists(f'{PRESETS}/Foo Device/foobar.json'))
+        self.assertTrue(os.path.exists(f'{PRESETS}/Foo Device/foobar 2.json'))
+        self.assertTrue(os.path.exists(f'{PRESETS}/Foo Device/foobar 3.json'))
 
 
 class TestFindPresets(unittest.TestCase):
@@ -186,54 +186,54 @@ class TestFindPresets(unittest.TestCase):
         self.assertListEqual(get_presets('1234'), ['foo bar 2', 'foo bar 1'])
 
     def test_find_newest_preset_1(self):
-        create_preset('device 1', 'preset 1')
+        create_preset('Foo Device', 'preset 1')
         time.sleep(0.01)
-        create_preset('device 2', 'preset 2')
+        create_preset('Bar Device', 'preset 2')
 
         # not a preset, ignore
         time.sleep(0.01)
-        path = os.path.join(PRESETS, 'device 2', 'picture.png')
+        path = os.path.join(PRESETS, 'Bar Device', 'picture.png')
         os.mknod(path)
 
-        self.assertEqual(find_newest_preset(), ('device 2', 'preset 2'))
+        self.assertEqual(find_newest_preset(), ('Bar Device', 'preset 2'))
 
     def test_find_newest_preset_2(self):
-        os.makedirs(f'{PRESETS}/device 1')
+        os.makedirs(f'{PRESETS}/Foo Device')
         time.sleep(0.01)
         os.makedirs(f'{PRESETS}/device_2')
         # takes the first one that the test-fake returns
-        self.assertEqual(find_newest_preset(), ('device 1', None))
+        self.assertEqual(find_newest_preset(), ('Foo Device', None))
 
     def test_find_newest_preset_3(self):
-        os.makedirs(f'{PRESETS}/device 1')
-        self.assertEqual(find_newest_preset(), ('device 1', None))
+        os.makedirs(f'{PRESETS}/Foo Device')
+        self.assertEqual(find_newest_preset(), ('Foo Device', None))
 
     def test_find_newest_preset_4(self):
-        create_preset('device 1', 'preset 1')
-        self.assertEqual(find_newest_preset(), ('device 1', 'preset 1'))
+        create_preset('Foo Device', 'preset 1')
+        self.assertEqual(find_newest_preset(), ('Foo Device', 'preset 1'))
 
     def test_find_newest_preset_5(self):
-        create_preset('device 1', 'preset 1')
+        create_preset('Foo Device', 'preset 1')
         time.sleep(0.01)
         create_preset('unknown device 3', 'preset 3')
-        self.assertEqual(find_newest_preset(), ('device 1', 'preset 1'))
+        self.assertEqual(find_newest_preset(), ('Foo Device', 'preset 1'))
 
     def test_find_newest_preset_6(self):
         # takes the first one that the test-fake returns
-        self.assertEqual(find_newest_preset(), ('device 1', None))
+        self.assertEqual(find_newest_preset(), ('Foo Device', None))
 
     def test_find_newest_preset_7(self):
-        self.assertEqual(find_newest_preset('device 1'), ('device 1', None))
+        self.assertEqual(find_newest_preset('Foo Device'), ('Foo Device', None))
 
     def test_find_newest_preset_8(self):
-        create_preset('device 1', 'preset 1')
+        create_preset('Foo Device', 'preset 1')
         time.sleep(0.01)
-        create_preset('device 1', 'preset 3')
+        create_preset('Foo Device', 'preset 3')
         time.sleep(0.01)
-        create_preset('device 2', 'preset 2')
+        create_preset('Bar Device', 'preset 2')
         self.assertEqual(
-            find_newest_preset('device 1'),
-            ('device 1', 'preset 3')
+            find_newest_preset('Foo Device'),
+            ('Foo Device', 'preset 3')
         )
 
 

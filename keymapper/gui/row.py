@@ -157,7 +157,7 @@ class Row(Gtk.ListBoxRow):
     """A single, configurable key mapping."""
     __gtype_name__ = 'ListBoxRow'
 
-    def __init__(self, delete_callback, window, key=None, character=None):
+    def __init__(self, delete_callback, window, key=None, symbol=None):
         """Construct a row widget.
 
         Parameters
@@ -168,16 +168,16 @@ class Row(Gtk.ListBoxRow):
             raise TypeError('Expected key to be a Key object')
 
         super().__init__()
-        self.device = window.selected_device
+        self.device = window.group
         self.window = window
         self.delete_callback = delete_callback
 
-        self.character_input = None
+        self.symbol_input = None
         self.keycode_input = None
 
         self.key = key
 
-        self.put_together(character)
+        self.put_together(symbol)
 
         self._state = IDLE
 
@@ -196,10 +196,10 @@ class Row(Gtk.ListBoxRow):
         unreleased_keys = reader.get_unreleased_keys()
         if unreleased_keys is None and old_state == HOLDING and self.key:
             # A key was pressed and then released.
-            # Switch to the character. idle_add this so that the
-            # keycode event won't write into the character input as well.
+            # Switch to the symbol. idle_add this so that the
+            # keycode event won't write into the symbol input as well.
             window = self.window.window
-            GLib.idle_add(lambda: window.set_focus(self.character_input))
+            GLib.idle_add(lambda: window.set_focus(self.symbol_input))
 
         if unreleased_keys is not None:
             self._state = HOLDING
@@ -214,10 +214,10 @@ class Row(Gtk.ListBoxRow):
         """
         return self.key
 
-    def get_character(self):
-        """Get the assigned character from the middle column."""
-        character = self.character_input.get_text()
-        return character if character else None
+    def get_symbol(self):
+        """Get the assigned symbol from the middle column."""
+        symbol = self.symbol_input.get_text()
+        return symbol if symbol else None
 
     def set_new_key(self, new_key):
         """Check if a keycode has been pressed and if so, display it.
@@ -245,7 +245,7 @@ class Row(Gtk.ListBoxRow):
             return
 
         # keycode is already set by some other row
-        existing = custom_mapping.get_character(new_key)
+        existing = custom_mapping.get_symbol(new_key)
         if existing is not None:
             msg = f'"{to_string(new_key)}" already mapped to "{existing}"'
             logger.info(msg)
@@ -260,31 +260,31 @@ class Row(Gtk.ListBoxRow):
 
         self.key = new_key
 
-        character = self.get_character()
+        symbol = self.get_symbol()
 
-        # the character is empty and therefore the mapping is not complete
-        if character is None:
+        # the symbol is empty and therefore the mapping is not complete
+        if symbol is None:
             return
 
-        # else, the keycode has changed, the character is set, all good
+        # else, the keycode has changed, the symbol is set, all good
         custom_mapping.change(
             new_key=new_key,
-            character=character,
+            symbol=symbol,
             previous_key=previous_key
         )
 
-    def on_character_input_change(self, _):
-        """When the output character for that keycode is typed in."""
+    def on_symbol_input_change(self, _):
+        """When the output symbol for that keycode is typed in."""
         key = self.get_key()
-        character = self.get_character()
+        symbol = self.get_symbol()
 
-        if character is None:
+        if symbol is None:
             return
 
         if key is not None:
             custom_mapping.change(
                 new_key=key,
-                character=character,
+                symbol=symbol,
                 previous_key=None
             )
 
@@ -334,15 +334,15 @@ class Row(Gtk.ListBoxRow):
         label.set_justify(Gtk.Justification.CENTER)
         self.keycode_input.set_opacity(1)
 
-    def on_character_input_unfocus(self, character_input, _):
+    def on_symbol_input_unfocus(self, symbol_input, _):
         """Save the preset and correct the input casing."""
-        character = character_input.get_text()
-        correct_case = system_mapping.correct_case(character)
-        if character != correct_case:
-            character_input.set_text(correct_case)
+        symbol = symbol_input.get_text()
+        correct_case = system_mapping.correct_case(symbol)
+        if symbol != correct_case:
+            symbol_input.set_text(correct_case)
         self.window.save_preset()
 
-    def put_together(self, character):
+    def put_together(self, symbol):
         """Create all child GTK widgets and connect their signals."""
         delete_button = Gtk.EventBox()
         delete_button.add(Gtk.Image.new_from_icon_name(
@@ -381,34 +381,34 @@ class Row(Gtk.ListBoxRow):
             lambda *args: Gdk.EVENT_STOP
         )
 
-        character_input = Gtk.Entry()
-        self.character_input = character_input
-        character_input.set_alignment(0.5)
-        character_input.set_width_chars(4)
-        character_input.set_has_frame(False)
+        symbol_input = Gtk.Entry()
+        self.symbol_input = symbol_input
+        symbol_input.set_alignment(0.5)
+        symbol_input.set_width_chars(4)
+        symbol_input.set_has_frame(False)
         completion = Gtk.EntryCompletion()
         completion.set_model(store)
         completion.set_text_column(0)
         completion.set_match_func(self.match)
-        character_input.set_completion(completion)
+        symbol_input.set_completion(completion)
 
-        if character is not None:
-            character_input.set_text(character)
+        if symbol is not None:
+            symbol_input.set_text(symbol)
 
-        character_input.connect(
+        symbol_input.connect(
             'changed',
-            self.on_character_input_change
+            self.on_symbol_input_change
         )
-        character_input.connect(
+        symbol_input.connect(
             'focus-out-event',
-            self.on_character_input_unfocus
+            self.on_symbol_input_unfocus
         )
 
         box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
         box.set_homogeneous(False)
         box.set_spacing(0)
         box.pack_start(keycode_input, expand=False, fill=True, padding=0)
-        box.pack_start(character_input, expand=True, fill=True, padding=0)
+        box.pack_start(symbol_input, expand=True, fill=True, padding=0)
         box.pack_start(delete_button, expand=False, fill=True, padding=0)
         box.show_all()
         box.get_style_context().add_class('row-box')
@@ -422,7 +422,7 @@ class Row(Gtk.ListBoxRow):
         if key is not None:
             custom_mapping.clear(key)
 
-        self.character_input.set_text('')
+        self.symbol_input.set_text('')
         self.set_keycode_input_label('')
         self.key = None
         self.delete_callback(self)

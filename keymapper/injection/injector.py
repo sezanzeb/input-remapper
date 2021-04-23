@@ -30,7 +30,7 @@ import evdev
 from evdev.ecodes import EV_KEY, EV_REL
 
 from keymapper.logger import logger
-from keymapper.getdevices import get_devices, classify, GAMEPAD
+from keymapper.groups import classify, GAMEPAD, groups
 from keymapper import utils
 from keymapper.mapping import DISABLE_CODE
 from keymapper.injection.keycode_mapper import KeycodeMapper
@@ -80,16 +80,16 @@ class Injector(multiprocessing.Process):
     """
     regrab_timeout = 0.5
 
-    def __init__(self, device, mapping):
+    def __init__(self, group, mapping):
         """Setup a process to start injecting keycodes based on custom_mapping.
 
         Parameters
         ----------
-        device : string
-            the name of the device as available in get_device
+        group : _Group
+            the device group
         mapping : Mapping
         """
-        self.device = device
+        self.group = group
         self._event_producer = None
         self._state = UNKNOWN
         self._msg_pipe = multiprocessing.Pipe()
@@ -136,7 +136,10 @@ class Injector(multiprocessing.Process):
 
         Can be safely called from the main procss.
         """
-        logger.info('Stopping injecting keycodes for device "%s"', self.device)
+        logger.info(
+            'Stopping injecting keycodes for group "%s"',
+            self.group.key
+        )
         self._msg_pipe[1].send(CLOSE)
         self._state = STOPPED
 
@@ -214,7 +217,7 @@ class Injector(multiprocessing.Process):
         if ecodes.ABS_VOLUME in capabilities.get(ecodes.EV_ABS, []):
             # For some reason an ABS_VOLUME capability likes to appear
             # for some users. It prevents mice from moving around and
-            # keyboards from writing characters
+            # keyboards from writing symbols
             capabilities[ecodes.EV_ABS].remove(ecodes.ABS_VOLUME)
 
         return capabilities
@@ -295,7 +298,7 @@ class Injector(multiprocessing.Process):
                 loop.stop()
                 return
 
-    def get_udef_name(self, name, suffix):
+    def get_udev_name(self, name, suffix):
         """Make sure the generated name is not longer than 80 chars."""
         max_len = 80  # based on error messages
         remaining_len = max_len - len(DEV_NAME) - len(suffix) - 2
@@ -312,13 +315,7 @@ class Injector(multiprocessing.Process):
         Use this function as starting point in a process. It creates
         the loops needed to read and map events and keeps running them.
         """
-        if self.device not in get_devices():
-            logger.error('Cannot inject for unknown device "%s"', self.device)
-            return
-
-        group = get_devices()[self.device]
-
-        logger.info('Starting injecting the mapping for "%s"', self.device)
+        logger.info('Starting injecting the mapping for "%s"', self.group.key)
 
         # create a new event loop, because somehow running an infinite loop
         # that sleeps on iterations (event_producer) in one process causes
@@ -339,13 +336,13 @@ class Injector(multiprocessing.Process):
         # where mapped events go to.
         # See the Context docstring on why this is needed.
         self.context.uinput = evdev.UInput(
-            name=self.get_udef_name(self.device, 'mapped'),
+            name=self.get_udev_name(self.group.key, 'mapped'),
             phys=DEV_NAME,
-            events=self._construct_capabilities(GAMEPAD in group['types'])
+            events=self._construct_capabilities(GAMEPAD in self.group.types)
         )
 
         # Watch over each one of the potentially multiple devices per hardware
-        for path in group['paths']:
+        for path in self.group.paths:
             source = self._grab_device(path)
             if source is None:
                 # this path doesn't need to be grabbed for injection, because
@@ -357,7 +354,7 @@ class Injector(multiprocessing.Process):
             # so don't merge all InputDevices into one UInput device.
             gamepad = classify(source) == GAMEPAD
             forward_to = evdev.UInput(
-                name=self.get_udef_name(source.name, 'forwarded'),
+                name=self.get_udev_name(source.name, 'forwarded'),
                 phys=DEV_NAME,
                 events=self._copy_capabilities(source)
             )

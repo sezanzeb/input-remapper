@@ -52,12 +52,12 @@ class SystemMapping:
         """Return an array of all possible names in the mapping."""
         return self._mapping.keys()
 
-    def correct_case(self, character):
-        """Return the correct casing for a character."""
-        if character in self._mapping:
-            return character
+    def correct_case(self, symbol):
+        """Return the correct casing for a symbol."""
+        if symbol in self._mapping:
+            return symbol
         # only if not e.g. both "a" and "A" are in the mapping
-        return self._case_insensitive_mapping.get(character.lower(), character)
+        return self._case_insensitive_mapping.get(symbol.lower(), symbol)
 
     def populate(self):
         """Get a mapping of all available names to their keycodes."""

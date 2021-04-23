@@ -31,7 +31,6 @@ import json
 import time
 import atexit
 
-import evdev
 from pydbus import SystemBus
 import gi
 gi.require_version('GLib', '2.0')
@@ -42,33 +41,10 @@ from keymapper.injection.injector import Injector, UNKNOWN
 from keymapper.mapping import Mapping
 from keymapper.config import config
 from keymapper.state import system_mapping
-from keymapper.getdevices import get_devices, refresh_devices
+from keymapper.groups import groups
 
 
 BUS_NAME = 'keymapper.Control'
-
-
-def path_to_device_name(path):
-    """Find the name of the get_devices group this path belongs to.
-
-    The group name is commonly referred to as "device".
-
-    Parameters
-    ----------
-    path : str
-    """
-    if not path.startswith('/dev/input/'):
-        # already the name
-        return path
-
-    devices = get_devices()
-    for device in devices:
-        for candidate_path in devices[device]['paths']:
-            if path == candidate_path:
-                return device
-
-    logger.debug('Device path %s is not managed by key-mapper', path)
-    return None
 
 
 class AutoloadHistory:
@@ -78,16 +54,16 @@ class AutoloadHistory:
         # mapping of device -> (timestamp, preset)
         self._autoload_history = {}
 
-    def remember(self, device, preset):
+    def remember(self, group_key, preset):
         """Remember when this preset was autoloaded for the device."""
-        self._autoload_history[device] = (time.time(), preset)
+        self._autoload_history[group_key] = (time.time(), preset)
 
-    def forget(self, device):
+    def forget(self, group_key):
         """The injection was stopped or started by hand."""
-        if device in self._autoload_history:
-            del self._autoload_history[device]
+        if group_key in self._autoload_history:
+            del self._autoload_history[group_key]
 
-    def may_autoload(self, device, preset):
+    def may_autoload(self, group_key, preset):
         """Check if this autoload would be redundant.
 
         This is needed because udev triggers multiple times per hardware
@@ -99,10 +75,10 @@ class AutoloadHistory:
         timeframe which will then not ask for autoloading again. Wait 3
         seconds between replugging.
         """
-        if device not in self._autoload_history:
+        if group_key not in self._autoload_history:
             return True
 
-        if self._autoload_history[device][1] != preset:
+        if self._autoload_history[group_key][1] != preset:
             return True
 
         # bluetooth devices go to standby mode after some time. After a
@@ -113,7 +89,7 @@ class AutoloadHistory:
         # seconds in my case.
         now = time.time()
         threshold = 15  # seconds
-        if self._autoload_history[device][0] < now - threshold:
+        if self._autoload_history[group_key][0] < now - threshold:
             return True
 
         return False
@@ -135,14 +111,14 @@ class Daemon:
         <node>
             <interface name='{BUS_NAME}'>
                 <method name='stop_injecting'>
-                    <arg type='s' name='device' direction='in'/>
+                    <arg type='s' name='group_key' direction='in'/>
                 </method>
                 <method name='get_state'>
-                    <arg type='s' name='device' direction='in'/>
+                    <arg type='s' name='group_key' direction='in'/>
                     <arg type='i' name='response' direction='out'/>
                 </method>
                 <method name='start_injecting'>
-                    <arg type='s' name='device' direction='in'/>
+                    <arg type='s' name='group_key' direction='in'/>
                     <arg type='s' name='preset' direction='in'/>
                     <arg type='b' name='response' direction='out'/>
                 </method>
@@ -154,7 +130,7 @@ class Daemon:
                 <method name='autoload'>
                 </method>
                 <method name='autoload_single'>
-                    <arg type='s' name='device_path' direction='in'/>
+                    <arg type='s' name='group_key' direction='in'/>
                 </method>
                 <method name='hello'>
                     <arg type='s' name='out' direction='in'/>
@@ -241,47 +217,41 @@ class Daemon:
         logger.debug('Running daemon')
         loop.run()
 
-    def refresh_devices(self, device=None):
-        """Keep the devices up to date."""
+    def refresh(self, group_key=None):
+        """Refresh groups if the specified group is unknown.
+
+        Parameters
+        ----------
+        group_key : str
+            unique identifier used by the groups object
+        """
         now = time.time()
         if now - 10 > self.refreshed_devices_at:
             logger.debug('Refreshing because last info is too old')
-            refresh_devices()
+            groups.refresh()
             self.refreshed_devices_at = now
             return
 
-        if device is not None:
-            if device.startswith('/dev/input/'):
-                for group in get_devices().values():
-                    if device in group['paths']:
-                        break
-                else:
-                    logger.debug('Refreshing because path unknown')
-                    refresh_devices()
-                    self.refreshed_devices_at = now
-                    return
-            else:
-                if device not in get_devices():
-                    logger.debug('Refreshing because name unknown')
-                    refresh_devices()
-                    self.refreshed_devices_at = now
-                    return
+        if not groups.find(key=group_key):
+            logger.debug('Refreshing because "%s" is unknown', group_key)
+            groups.refresh()
+            self.refreshed_devices_at = now
 
-    def stop_injecting(self, device):
+    def stop_injecting(self, group_key):
         """Stop injecting the mapping for a single device."""
-        if self.injectors.get(device) is None:
+        if self.injectors.get(group_key) is None:
             logger.debug(
-                'Tried to stop injector, but none is running for device "%s"',
-                device
+                'Tried to stop injector, but none is running for group "%s"',
+                group_key
             )
             return
 
-        self.injectors[device].stop_injecting()
-        self.autoload_history.forget(device)
+        self.injectors[group_key].stop_injecting()
+        self.autoload_history.forget(group_key)
 
-    def get_state(self, device):
+    def get_state(self, group_key):
         """Get the injectors state."""
-        injector = self.injectors.get(device)
+        injector = self.injectors.get(group_key)
         return injector.get_state() if injector else UNKNOWN
 
     def set_config_dir(self, config_dir):
@@ -304,25 +274,23 @@ class Daemon:
         self.config_dir = config_dir
         config.load_config(config_path)
 
-    def _autoload(self, device):
+    def _autoload(self, group_key):
         """Check if autoloading is a good idea, and if so do it.
 
         Parameters
         ----------
-        device : str
-            Device name. Expects a key that is present in get_devices().
-            Can also be a path starting with /dev/input/
+        group_key : str
+            unique identifier used by the groups object
         """
-        self.refresh_devices(device)
+        self.refresh(group_key)
 
-        device = path_to_device_name(device)
-        if device not in get_devices():
-            # even after refresh_devices, the device is not in
-            # get_devices(), so it's either not relevant for key-mapper,
-            # or not connected yet
+        group = groups.find(key=group_key)
+        if group is None:
+            # even after groups.refresh, the device is unknown, so it's
+            # either not relevant for key-mapper, or not connected yet
             return
 
-        preset = config.get(['autoload', device], log_unknown=False)
+        preset = config.get(['autoload', group.key], log_unknown=False)
 
         if preset is None:
             # no autoloading is configured for this device
@@ -330,54 +298,47 @@ class Daemon:
 
         if not isinstance(preset, str):
             # might be broken due to a previous bug
-            config.remove(['autoload', device])
+            config.remove(['autoload', group.key])
             config.save_config()
             return
 
-        logger.info('Autoloading "%s"', device)
+        logger.info('Autoloading for "%s"', group.key)
 
-        if not self.autoload_history.may_autoload(device, preset):
+        if not self.autoload_history.may_autoload(group.key, preset):
             logger.info(
-                'Not autoloading the same preset "%s" again for device "%s"',
-                preset, device
+                'Not autoloading the same preset "%s" again for group "%s"',
+                preset, group.key
             )
             return
 
-        self.start_injecting(device, preset)
-        self.autoload_history.remember(device, preset)
+        self.start_injecting(group.key, preset)
+        self.autoload_history.remember(group.key, preset)
 
-    def autoload_single(self, device):
+    def autoload_single(self, group_key):
         """Inject the configured autoload preset for the device.
 
         If the preset is already being injected, it won't autoload it again.
 
         Parameters
         ----------
-        device : str
-            The name of the device as indexed in get_devices()
+        group_key : str
+            unique identifier used by the groups object
         """
-        if device.startswith('/dev/input/'):
-            # this is only here to avoid confusing console output,
-            # block invalid requests before any logs are written.
-            # Those requests are rejected later anyway.
-            try:
-                name = evdev.InputDevice(device).name
-                if 'key-mapper' in name:
-                    return
-            except OSError:
-                return
+        # avoid some confusing logs and filter obviously invalid requests
+        if group_key.startswith('key-mapper'):
+            return
 
-        logger.info('Request to autoload for "%s"', device)
+        logger.info('Request to autoload for "%s"', group_key)
 
         if self.config_dir is None:
             logger.error(
-                'Tried to autoload %s without configuring the daemon first '
-                'via set_config_dir.',
-                device
+                'Tried to autoload "%s" without configuring the daemon '
+                'first via set_config_dir.',
+                group_key
             )
             return
 
-        self._autoload(device)
+        self._autoload(group_key)
 
     def autoload(self):
         """Load all autoloaded presets for the current config_dir.
@@ -399,10 +360,13 @@ class Daemon:
             logger.error('No presets configured to autoload')
             return
 
-        for device, _ in autoload_presets:
-            self._autoload(device)
+        for device_key, _ in autoload_presets:
+            group = groups.find(key=device_key)
+            if group is None:
+                continue
+            self._autoload(group.key)
 
-    def start_injecting(self, device, preset):
+    def start_injecting(self, group_key, preset):
         """Start injecting the preset for the device.
 
         Returns True on success. If an injection is already ongoing for
@@ -410,14 +374,12 @@ class Daemon:
 
         Parameters
         ----------
-        device : string
-            The name of the device
+        group_key : string
+            The unique key of the group
         preset : string
             The name of the preset
         """
-        self.refresh_devices(device)
-
-        device = path_to_device_name(device)
+        self.refresh(group_key)
 
         if self.config_dir is None:
             logger.error(
@@ -426,14 +388,16 @@ class Daemon:
             )
             return False
 
-        if device not in get_devices():
-            logger.error('Could not find device "%s"', device)
+        group = groups.find(key=group_key)
+
+        if group is None:
+            logger.error('Could not find group "%s"', group_key)
             return False
 
         preset_path = os.path.join(
             self.config_dir,
             'presets',
-            device,
+            group.name,
             f'{preset}.json'
         )
 
@@ -444,8 +408,8 @@ class Daemon:
             logger.error(str(error))
             return False
 
-        if self.injectors.get(device) is not None:
-            self.stop_injecting(device)
+        if self.injectors.get(group_key) is not None:
+            self.stop_injecting(group_key)
 
         # Path to a dump of the xkb mappings, to provide more human
         # readable keys in the correct keyboard layout to the service.
@@ -465,9 +429,9 @@ class Daemon:
             logger.error('Could not find "%s"', xmodmap_path)
 
         try:
-            injector = Injector(device, mapping)
+            injector = Injector(group, mapping)
             injector.start()
-            self.injectors[device] = injector
+            self.injectors[group.key] = injector
         except OSError:
             # I think this will never happen, probably leftover from
             # some earlier version
@@ -478,8 +442,8 @@ class Daemon:
     def stop_all(self):
         """Stop all injections."""
         logger.info('Stopping all injections')
-        for device in list(self.injectors.keys()):
-            self.stop_injecting(device)
+        for group_key in list(self.injectors.keys()):
+            self.stop_injecting(group_key)
 
     def hello(self, out):
         """Used for tests."""

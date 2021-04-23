@@ -103,7 +103,7 @@ Bear in mind that anti-cheat software might detect macros in games.
 ## Key Names
 
 Check the autocompletion of the GUI for possible values. You can also
-obtain a complete list of possiblities using `key-mapper-control --key-names`.
+obtain a complete list of possiblities using `key-mapper-control --symbol-names`.
 Examples:
 
 - Alphanumeric `a` to `z` and `0` to `9`
@@ -135,7 +135,7 @@ Wayland than with X11 for me.
 If you don't have a graphical user interface, you'll need to edit the
 configuration files.
 
-## How to use unavailable characters
+## How to use unavailable symbols
 
 For example Japanese letters. Only works in X11.
 
@@ -153,7 +153,7 @@ xmodmap keyboard_layout
 key-mapper-gtk
 ```
 
-"kana_YA" should be in the dropdown of available characters now. Map it
+"kana_YA" should be in the dropdown of available symbols now. Map it
 to a key and press apply. Now run
 
 ```
@@ -220,7 +220,7 @@ Other than that, it inherits all configurations from
 it will query the hardcoded default values.
 
 The event codes can be read using `evtest`. Available names in the mapping
-can be listed with `key-mapper-control --key-names`.
+can be listed with `key-mapper-control --symbol-names`.
 
 ## CLI
 
@@ -232,20 +232,18 @@ running (or without sudo if your user has the appropriate permissions).
 
 Examples:
 
-```bash
-key-mapper-control --version
-key-mapper-control --command autoload
-# if you are running as root user, provide information about the whereabouts of the key-mapper config:
-key-mapper-control --command autoload --config-dir "/home/user/.config/key-mapper/"
-sudo key-mapper-control --list-devices
-key-mapper-control --command stop --device "Razer Razer Naga Trinity"
-# load ~/.config/key-mapper/presets/Razer Razer Naga Trinity/a.json:
-key-mapper-control --command start --device "Razer Razer Naga Trinity" --preset "a"
-```
+| Description                                                                                         | Command                                                                               |
+|-----------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------|
+| Load all configured presets for all devices                                                         | `key-mapper-control --command autoload`                                               |
+| If you are running as root user, provide information about the whereabouts of the key-mapper config | `key-mapper-control --command autoload --config-dir "~/.config/key-mapper/"`          |
+| List available device names for the `--device` parameter                                            | `sudo key-mapper-control --list-devices`                                              |
+| Stop injecting                                                                                      | `key-mapper-control --command stop --device "Razer Razer Naga Trinity"`               |
+| Load `~/.config/key-mapper/presets/Razer Razer Naga Trinity/a.json`                                 | `key-mapper-control --command start --device "Razer Razer Naga Trinity" --preset "a"` |
+| Loads the configured preset for whatever device is using this /dev path                             | `/bin/key-mapper-control --command autoload --device /dev/input/event5`               |
 
 **systemctl**
 
-Stopping the service will stop all injections until the computer is rebooted.
+Stopping the service will stop all ongoing injections
 
 ```bash
 sudo systemctl stop key-mapper

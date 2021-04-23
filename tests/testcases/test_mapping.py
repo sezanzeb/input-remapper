@@ -165,7 +165,7 @@ class TestMapping(unittest.TestCase):
         self.assertEqual(self.mapping.num_saved_keys, len(self.mapping))
         self.assertFalse(self.mapping.changed)
         self.mapping.load(get_preset_path('foo', 'bar'))
-        self.assertEqual(self.mapping.get_character(Key(EV_KEY, 81, 1)), 'a')
+        self.assertEqual(self.mapping.get_symbol(Key(EV_KEY, 81, 1)), 'a')
         self.assertIsNone(self.mapping.get('mapping.a'))
         self.assertFalse(self.mapping.changed)
 
@@ -191,14 +191,14 @@ class TestMapping(unittest.TestCase):
         mapping2 = mapping1.clone()
         mapping1.change(ev_2, 'b ')
 
-        self.assertEqual(mapping1.get_character(ev_1), 'a')
-        self.assertEqual(mapping1.get_character(ev_2), 'b')
+        self.assertEqual(mapping1.get_symbol(ev_1), 'a')
+        self.assertEqual(mapping1.get_symbol(ev_2), 'b')
 
-        self.assertEqual(mapping2.get_character(ev_1), 'a')
-        self.assertIsNone(mapping2.get_character(ev_2))
+        self.assertEqual(mapping2.get_symbol(ev_1), 'a')
+        self.assertIsNone(mapping2.get_symbol(ev_2))
 
-        self.assertIsNone(mapping2.get_character(Key(EV_KEY, 2, 3)))
-        self.assertIsNone(mapping2.get_character(Key(EV_KEY, 1, 3)))
+        self.assertIsNone(mapping2.get_symbol(Key(EV_KEY, 2, 3)))
+        self.assertIsNone(mapping2.get_symbol(Key(EV_KEY, 1, 3)))
 
     def test_save_load(self):
         one = Key(EV_KEY, 10, 1)
@@ -209,25 +209,25 @@ class TestMapping(unittest.TestCase):
         self.mapping.change(two, '2')
         self.mapping.change(Key(two, three), '3')
         self.mapping._config['foo'] = 'bar'
-        self.mapping.save(get_preset_path('device 1', 'test'))
+        self.mapping.save(get_preset_path('Foo Device', 'test'))
 
-        path = os.path.join(tmp, 'presets', 'device 1', 'test.json')
+        path = os.path.join(tmp, 'presets', 'Foo Device', 'test.json')
         self.assertTrue(os.path.exists(path))
 
         loaded = Mapping()
         self.assertEqual(len(loaded), 0)
-        loaded.load(get_preset_path('device 1', 'test'))
+        loaded.load(get_preset_path('Foo Device', 'test'))
 
         self.assertEqual(len(loaded), 3)
-        self.assertEqual(loaded.get_character(one), '1')
-        self.assertEqual(loaded.get_character(two), '2')
-        self.assertEqual(loaded.get_character(Key(two, three)), '3')
+        self.assertEqual(loaded.get_symbol(one), '1')
+        self.assertEqual(loaded.get_symbol(two), '2')
+        self.assertEqual(loaded.get_symbol(Key(two, three)), '3')
         self.assertEqual(loaded._config['foo'], 'bar')
 
     def test_save_load_2(self):
         # loads mappings with only (type, code) as the key by using 1 as value,
         # loads combinations chained with +
-        path = os.path.join(tmp, 'presets', 'device 1', 'test.json')
+        path = os.path.join(tmp, 'presets', 'Foo Device', 'test.json')
         os.makedirs(os.path.dirname(path), exist_ok=True)
         with open(path, 'w') as file:
             json.dump({
@@ -245,12 +245,12 @@ class TestMapping(unittest.TestCase):
 
         loaded = Mapping()
         self.assertEqual(loaded.num_saved_keys, 0)
-        loaded.load(get_preset_path('device 1', 'test'))
+        loaded.load(get_preset_path('Foo Device', 'test'))
         self.assertEqual(len(loaded), 3)
         self.assertEqual(loaded.num_saved_keys, 3)
-        self.assertEqual(loaded.get_character(Key(EV_KEY, 3, 1)), 'a')
-        self.assertEqual(loaded.get_character(Key(EV_ABS, ABS_HAT0X, -1)), 'b')
-        self.assertEqual(loaded.get_character(Key(
+        self.assertEqual(loaded.get_symbol(Key(EV_KEY, 3, 1)), 'a')
+        self.assertEqual(loaded.get_symbol(Key(EV_ABS, ABS_HAT0X, -1)), 'b')
+        self.assertEqual(loaded.get_symbol(Key(
             (EV_ABS, 1, 1),
             (EV_ABS, 2, -1),
             Key(EV_ABS, 3, 1))
@@ -267,30 +267,30 @@ class TestMapping(unittest.TestCase):
         # 1 is not assigned yet, ignore it
         self.mapping.change(ev_1, 'a', ev_2)
         self.assertTrue(self.mapping.changed)
-        self.assertIsNone(self.mapping.get_character(ev_2))
-        self.assertEqual(self.mapping.get_character(ev_1), 'a')
+        self.assertIsNone(self.mapping.get_symbol(ev_2))
+        self.assertEqual(self.mapping.get_symbol(ev_1), 'a')
         self.assertEqual(len(self.mapping), 1)
 
         # change ev_1 to ev_3 and change a to b
         self.mapping.change(ev_3, 'b', ev_1)
-        self.assertIsNone(self.mapping.get_character(ev_1))
-        self.assertEqual(self.mapping.get_character(ev_3), 'b')
+        self.assertIsNone(self.mapping.get_symbol(ev_1))
+        self.assertEqual(self.mapping.get_symbol(ev_3), 'b')
         self.assertEqual(len(self.mapping), 1)
 
         # add 4
         self.mapping.change(ev_4, 'c', None)
-        self.assertEqual(self.mapping.get_character(ev_3), 'b')
-        self.assertEqual(self.mapping.get_character(ev_4), 'c')
+        self.assertEqual(self.mapping.get_symbol(ev_3), 'b')
+        self.assertEqual(self.mapping.get_symbol(ev_4), 'c')
         self.assertEqual(len(self.mapping), 2)
 
         # change the mapping of 4 to d
         self.mapping.change(ev_4, 'd', None)
-        self.assertEqual(self.mapping.get_character(ev_4), 'd')
+        self.assertEqual(self.mapping.get_symbol(ev_4), 'd')
         self.assertEqual(len(self.mapping), 2)
 
         # this also works in the same way
         self.mapping.change(ev_4, 'e', ev_4)
-        self.assertEqual(self.mapping.get_character(ev_4), 'e')
+        self.assertEqual(self.mapping.get_symbol(ev_4), 'e')
         self.assertEqual(len(self.mapping), 2)
 
         self.assertEqual(self.mapping.num_saved_keys, 0)
@@ -305,22 +305,22 @@ class TestMapping(unittest.TestCase):
         combi_3 = Key(ev_1, ev_2, ev_4)
 
         self.mapping.change(combi_1, 'a')
-        self.assertEqual(self.mapping.get_character(combi_1), 'a')
-        self.assertEqual(self.mapping.get_character(combi_2), 'a')
+        self.assertEqual(self.mapping.get_symbol(combi_1), 'a')
+        self.assertEqual(self.mapping.get_symbol(combi_2), 'a')
         # since combi_1 and combi_2 are equivalent, a changes to b
         self.mapping.change(combi_2, 'b')
-        self.assertEqual(self.mapping.get_character(combi_1), 'b')
-        self.assertEqual(self.mapping.get_character(combi_2), 'b')
+        self.assertEqual(self.mapping.get_symbol(combi_1), 'b')
+        self.assertEqual(self.mapping.get_symbol(combi_2), 'b')
 
         self.mapping.change(combi_3, 'c')
-        self.assertEqual(self.mapping.get_character(combi_1), 'b')
-        self.assertEqual(self.mapping.get_character(combi_2), 'b')
-        self.assertEqual(self.mapping.get_character(combi_3), 'c')
+        self.assertEqual(self.mapping.get_symbol(combi_1), 'b')
+        self.assertEqual(self.mapping.get_symbol(combi_2), 'b')
+        self.assertEqual(self.mapping.get_symbol(combi_3), 'c')
 
         self.mapping.change(combi_3, 'c', combi_1)
-        self.assertIsNone(self.mapping.get_character(combi_1))
-        self.assertIsNone(self.mapping.get_character(combi_2))
-        self.assertEqual(self.mapping.get_character(combi_3), 'c')
+        self.assertIsNone(self.mapping.get_symbol(combi_1))
+        self.assertIsNone(self.mapping.get_symbol(combi_2))
+        self.assertEqual(self.mapping.get_symbol(combi_3), 'c')
 
     def test_clear(self):
         # does nothing
@@ -346,9 +346,9 @@ class TestMapping(unittest.TestCase):
         self.assertEqual(len(self.mapping), 3)
         self.mapping.clear(ev_3)
         self.assertEqual(len(self.mapping), 2)
-        self.assertEqual(self.mapping.get_character(ev_4), 'KEY_KP1')
-        self.assertIsNone(self.mapping.get_character(ev_3))
-        self.assertEqual(self.mapping.get_character(ev_2), 'KEY_KP3')
+        self.assertEqual(self.mapping.get_symbol(ev_4), 'KEY_KP1')
+        self.assertIsNone(self.mapping.get_symbol(ev_3))
+        self.assertEqual(self.mapping.get_symbol(ev_2), 'KEY_KP3')
 
     def test_empty(self):
         self.mapping.change(Key(EV_KEY, 10, 1), '1')

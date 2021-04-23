@@ -33,6 +33,7 @@ import multiprocessing
 import asyncio
 import psutil
 from pickle import UnpicklingError
+from unittest.mock import patch
 
 import evdev
 import gi
@@ -121,13 +122,27 @@ def read_write_history_pipe():
 
 # key-mapper is only interested in devices that have EV_KEY, add some
 # random other stuff to test that they are ignored.
-phys_1 = 'usb-0000:03:00.0-1/input2'
-info_1 = evdev.device.DeviceInfo(1, 1, 1, 1)
+phys_foo = 'usb-0000:03:00.0-1/input2'
+info_foo = evdev.device.DeviceInfo(1, 1, 1, 1)
 
 keyboard_keys = sorted(evdev.ecodes.keys.keys())[:255]
 
 fixtures = {
-    # device 1
+    '/dev/input/event1': {
+        'capabilities': {
+            evdev.ecodes.EV_KEY: [
+                evdev.ecodes.KEY_A
+            ],
+        },
+        'phys': 'usb-0000:03:00.0-0/input1',
+        'info': info_foo,
+        'name': 'Foo Device'
+    },
+    
+    # Another "Foo Device", which will get an incremented key.
+    # If possible write tests using this one, because name != key here and
+    # that would be important to test as well. Otherwise the tests can't
+    # see if the groups correct attribute is used in functions and paths.
     '/dev/input/event11': {
         'capabilities': {
             evdev.ecodes.EV_KEY: [
@@ -140,39 +155,39 @@ fixtures = {
                 evdev.ecodes.REL_HWHEEL
             ]
         },
-        'phys': f'{phys_1}/input2',
-        'info': info_1,
-        'name': 'device 1 foo',
-        'group': 'device 1'
+        'phys': f'{phys_foo}/input2',
+        'info': info_foo,
+        'name': 'Foo Device foo',
+        'group_key': 'Foo Device 2'  # expected key
     },
     '/dev/input/event10': {
         'capabilities': {evdev.ecodes.EV_KEY: keyboard_keys},
-        'phys': f'{phys_1}/input3',
-        'info': info_1,
-        'name': 'device 1',
-        'group': 'device 1'
+        'phys': f'{phys_foo}/input3',
+        'info': info_foo,
+        'name': 'Foo Device',
+        'group_key': 'Foo Device 2'
     },
     '/dev/input/event13': {
         'capabilities': {evdev.ecodes.EV_KEY: [], evdev.ecodes.EV_SYN: []},
-        'phys': f'{phys_1}/input1',
-        'info': info_1,
-        'name': 'device 1',
-        'group': 'device 1'
+        'phys': f'{phys_foo}/input1',
+        'info': info_foo,
+        'name': 'Foo Device',
+        'group_key': 'Foo Device 2'
     },
     '/dev/input/event14': {
         'capabilities': {evdev.ecodes.EV_SYN: []},
-        'phys': f'{phys_1}/input0',
-        'info': info_1,
-        'name': 'device 1 qux',
-        'group': 'device 1'
+        'phys': f'{phys_foo}/input0',
+        'info': info_foo,
+        'name': 'Foo Device qux',
+        'group_key': 'Foo Device 2'
     },
 
-    # device 2
+    # Bar Device
     '/dev/input/event20': {
         'capabilities': {evdev.ecodes.EV_KEY: keyboard_keys},
         'phys': 'usb-0000:03:00.0-2/input1',
         'info': evdev.device.DeviceInfo(2, 1, 2, 1),
-        'name': 'device 2'
+        'name': 'Bar Device'
     },
 
     '/dev/input/event30': {
@@ -191,7 +206,7 @@ fixtures = {
                 evdev.ecodes.BTN_A
             ]
         },
-        'phys': 'usb-0000:03:00.0-3/input1',
+        'phys': '',  # this is empty sometimes
         'info': evdev.device.DeviceInfo(3, 1, 3, 1),
         'name': 'gamepad'
     },
@@ -210,7 +225,7 @@ fixtures = {
         'capabilities': {evdev.ecodes.EV_KEY: keyboard_keys},
         'phys': 'key-mapper/input1',
         'info': evdev.device.DeviceInfo(5, 1, 5, 1),
-        'name': 'key-mapper device 2'
+        'name': 'key-mapper Bar Device'
     },
 
     # denylisted
@@ -223,19 +238,19 @@ fixtures = {
 }
 
 
-def setup_pipe(device):
+def setup_pipe(group_key):
     """Create a pipe that can be used to send events to the helper,
     which in turn will be sent to the reader
     """
-    if pending_events.get(device) is None:
-        pending_events[device] = multiprocessing.Pipe()
+    if pending_events.get(group_key) is None:
+        pending_events[group_key] = multiprocessing.Pipe()
 
 
 # make sure those pipes exist before any process (the helper) gets forked,
 # so that events can be pushed after the fork.
 for fixture in fixtures.values():
-    if 'group' in fixture:
-        setup_pipe(fixture['group'])
+    if 'group_key' in fixture:
+        setup_pipe(fixture['group_key'])
 
 
 def get_events():
@@ -243,7 +258,7 @@ def get_events():
     return uinput_write_history
 
 
-def push_event(device, event):
+def push_event(group_key, event):
     """Make a device act like it is reading events from evdev.
 
     push_event is like hitting a key on a keyboard for stuff that reads from
@@ -251,18 +266,18 @@ def push_event(device, event):
 
     Parameters
     ----------
-    device : string
-        For example 'device 1'
+    group_key : string
+        For example 'Foo Device'
     event : InputEvent
     """
-    setup_pipe(device)
-    pending_events[device][0].send(event)
+    setup_pipe(group_key)
+    pending_events[group_key][0].send(event)
 
 
-def push_events(device, events):
+def push_events(group_key, events):
     """Push multiple events"""
     for event in events:
-        push_event(device, event)
+        push_event(group_key, event)
 
 
 def new_event(type, code, value, timestamp=None, offset=0):
@@ -296,15 +311,15 @@ class InputDevice:
         self.info = fixture.get('info', evdev.device.DeviceInfo(None, None, None, None))
         self.name = fixture.get('name', 'unset')
 
-        # properties that exists for test purposes and are not part of
-        # the original object
-        self.group = fixture.get('group', self.name)
+        # this property exists only for test purposes and is not part of
+        # the original evdev.InputDevice class
+        self.group_key = fixture.get('group_key', self.name)
 
         # ensure a pipe exists to make this object act like
         # it is reading events from a device
-        setup_pipe(self.group)
+        setup_pipe(self.group_key)
 
-        self.fd = pending_events[self.group][1].fileno()
+        self.fd = pending_events[self.group_key][1].fileno()
 
     def fileno(self):
         """Compatibility to select.select."""
@@ -324,13 +339,13 @@ class InputDevice:
         pass
 
     async def async_read_loop(self):
-        if pending_events.get(self.group) is None:
-            self.log('no events to read', self.group)
+        if pending_events.get(self.group_key) is None:
+            self.log('no events to read', self.group_key)
             return
 
         # consume all of them
-        while pending_events[self.group][1].poll():
-            result = pending_events[self.group][1].recv()
+        while pending_events[self.group_key][1].poll():
+            result = pending_events[self.group_key][1].recv()
             self.log(result, 'async_read_loop')
             yield result
             await asyncio.sleep(0.01)
@@ -343,13 +358,13 @@ class InputDevice:
         # that group.
         # To be realistic it would have to check if the provided
         # element is in its capabilities.
-        if self.group not in pending_events:
-            self.log('no events to read', self.group)
+        if self.group_key not in pending_events:
+            self.log('no events to read', self.group_key)
             return
 
         # consume all of them
-        while pending_events[self.group][1].poll():
-            event = pending_events[self.group][1].recv()
+        while pending_events[self.group_key][1].poll():
+            event = pending_events[self.group_key][1].recv()
             self.log(event, 'read')
             yield event
             time.sleep(EVENT_READ_TIMEOUT)
@@ -357,7 +372,7 @@ class InputDevice:
     def read_loop(self):
         """Endless loop that yields events."""
         while True:
-            event = pending_events[self.group][1].recv()
+            event = pending_events[self.group_key][1].recv()
             if event is not None:
                 self.log(event, 'read_loop')
                 yield event
@@ -365,15 +380,15 @@ class InputDevice:
 
     def read_one(self):
         """Read one event or none if nothing available."""
-        if pending_events.get(self.group) is None:
+        if pending_events.get(self.group_key) is None:
             return None
 
-        if len(pending_events[self.group]) == 0:
+        if len(pending_events[self.group_key]) == 0:
             return None
 
         time.sleep(EVENT_READ_TIMEOUT)
         try:
-            event = pending_events[self.group][1].recv()
+            event = pending_events[self.group_key][1].recv()
         except (UnpicklingError, EOFError):
             # failed in tests sometimes
             return None
@@ -499,7 +514,7 @@ update_verbosity(True)
 from keymapper.injection.injector import Injector
 from keymapper.config import config
 from keymapper.gui.reader import reader
-from keymapper.getdevices import refresh_devices
+from keymapper.groups import groups
 from keymapper.state import system_mapping, custom_mapping
 from keymapper.paths import get_config_path
 from keymapper.injection.keycode_mapper import active_macros, unreleased
@@ -574,8 +589,7 @@ def quick_cleanup(log=True):
         if path not in _fixture_copy:
             del fixtures[path]
     for path in list(_fixture_copy.keys()):
-        if path not in fixtures:
-            fixtures[path] = _fixture_copy[path]
+        fixtures[path] = copy.deepcopy(_fixture_copy[path])
 
     os.environ.update(environ_copy)
     for device in list(os.environ.keys()):
@@ -602,24 +616,12 @@ def cleanup():
     time.sleep(0.05)
 
     quick_cleanup(log=False)
-    refresh_devices()
+    groups.refresh()
 
 
 def spy(obj, name):
-    """Keep track of arguments and callcount.
-
-    Get a list of the call history that keeps getting updated.
-    """
-    original_func = obj.__getattribute__(name)
-    history = []
-
-    def new_func(*args, **kwargs):
-        history.append((args, kwargs))
-        original_func(*args, **kwargs)
-
-    obj.__setattr__(name, new_func)
-
-    return history
+    """Convenient wrapper for patch.object(..., ..., wraps=...)."""
+    return patch.object(obj, name, wraps=obj.__getattribute__(name))
 
 
 def main():

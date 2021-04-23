@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # key-mapper - GUI for device specific keyboard mappings
-# Copyright (C) 2020 sezanzeb <proxima@sezanzeb.de>
+# Copyright (C) 2021 sezanzeb <proxima@sezanzeb.de>
 #
 # This file is part of key-mapper.
 #
@@ -258,7 +258,7 @@ class EventProducer:
 
             abs_values = self.get_abs_values()
 
-            if len([val for val in abs_values if not (-1 <= val <= 1)]) > 0:
+            if len([val for val in abs_values if not -1 <= val <= 1]) > 0:
                 logger.error('Inconsistent values: %s', abs_values)
                 continue
 

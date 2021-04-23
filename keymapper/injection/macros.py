@@ -259,13 +259,13 @@ class _Macro:
 
         self.tasks.append(sleep)
 
-    def keycode(self, character):
-        """Write the character."""
-        character = str(character)
-        code = system_mapping.get(character)
+    def keycode(self, symbol):
+        """Write the symbol."""
+        symbol = str(symbol)
+        code = system_mapping.get(symbol)
 
         if code is None:
-            raise KeyError(f'Unknown key "{character}"')
+            raise KeyError(f'Unknown key "{symbol}"')
 
         self.capabilities[EV_KEY].add(code)
 

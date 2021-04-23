@@ -89,6 +89,7 @@ class Key:
 
     @classmethod
     def btn_left(cls):
+        """Construct a Key object representing a left click on a mouse."""
         return cls(ecodes.EV_KEY, ecodes.BTN_LEFT, 1)
 
     def __iter__(self):
