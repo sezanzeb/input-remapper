@@ -29,7 +29,7 @@ import re
 
 from keymapper.paths import get_preset_path, mkdir, CONFIG_PATH
 from keymapper.logger import logger
-from keymapper.getdevices import get_devices
+from keymapper.groups import groups
 
 
 def migrate_path():
@@ -54,11 +54,11 @@ def migrate_path():
 migrate_path()
 
 
-def get_available_preset_name(device, preset='new preset', copy=False):
+def get_available_preset_name(group_name, preset='new preset', copy=False):
     """Increment the preset name until it is available."""
-    if device is None:
+    if group_name is None:
         # endless loop otherwise
-        raise ValueError('Device may not be None')
+        raise ValueError('group_name may not be None')
 
     preset = preset.strip()
 
@@ -66,7 +66,7 @@ def get_available_preset_name(device, preset='new preset', copy=False):
         preset = f'{preset} copy'
 
     # find a name that is not already taken
-    if os.path.exists(get_preset_path(device, preset)):
+    if os.path.exists(get_preset_path(group_name, preset)):
         # if there already is a trailing number, increment it instead of
         # adding another one
         match = re.match(r'^(.+) (\d+)$', preset)
@@ -76,7 +76,7 @@ def get_available_preset_name(device, preset='new preset', copy=False):
         else:
             i = 2
 
-        while os.path.exists(get_preset_path(device, f'{preset} {i}')):
+        while os.path.exists(get_preset_path(group_name, f'{preset} {i}')):
             i += 1
 
         return f'{preset} {i}'
@@ -84,14 +84,14 @@ def get_available_preset_name(device, preset='new preset', copy=False):
     return preset
 
 
-def get_presets(device):
+def get_presets(group_name):
     """Get all presets for the device and user, starting with the newest.
 
     Parameters
     ----------
-    device : string
+    group_name : string
     """
-    device_folder = get_preset_path(device)
+    device_folder = get_preset_path(group_name)
     mkdir(device_folder)
 
     paths = glob.glob(os.path.join(device_folder, '*.json'))
@@ -106,15 +106,15 @@ def get_presets(device):
 
 def get_any_preset():
     """Return the first found tuple of (device, preset)."""
-    devices = get_devices().keys()
-    if len(devices) == 0:
+    group_names = groups.list_group_names()
+    if len(group_names) == 0:
         return None, None
-    any_device = list(devices)[0]
+    any_device = list(group_names)[0]
     any_preset = (get_presets(any_device) or [None])[0]
     return any_device, any_preset
 
 
-def find_newest_preset(device=None):
+def find_newest_preset(group_name=None):
     """Get a tuple of (device, preset) that was most recently modified
     in the users home directory.
 
@@ -122,18 +122,18 @@ def find_newest_preset(device=None):
 
     Parameters
     ----------
-    device : string
+    group_name : string
         If set, will return the newest preset for the device or None
     """
     # sort the oldest files to the front in order to use pop to get the newest
-    if device is None:
+    if group_name is None:
         paths = sorted(
             glob.glob(os.path.join(get_preset_path(), '*/*.json')),
             key=os.path.getmtime
         )
     else:
         paths = sorted(
-            glob.glob(os.path.join(get_preset_path(device), '*.json')),
+            glob.glob(os.path.join(get_preset_path(group_name), '*.json')),
             key=os.path.getmtime
         )
 
@@ -141,15 +141,15 @@ def find_newest_preset(device=None):
         logger.debug('No presets found')
         return get_any_preset()
 
-    online_devices = get_devices().keys()
+    group_names = groups.list_group_names()
 
     newest_path = None
     while len(paths) > 0:
         # take the newest path
         path = paths.pop()
         preset = os.path.split(path)[1]
-        device = os.path.split(os.path.split(path)[0])[1]
-        if device in online_devices:
+        group_name = os.path.split(os.path.split(path)[0])[1]
+        if group_name in group_names:
             newest_path = path
             break
 
@@ -158,14 +158,14 @@ def find_newest_preset(device=None):
         return get_any_preset()
 
     preset = os.path.splitext(preset)[0]
-    logger.debug('The newest preset is "%s", "%s"', device, preset)
+    logger.debug('The newest preset is "%s", "%s"', group_name, preset)
 
-    return device, preset
+    return group_name, preset
 
 
-def delete_preset(device, preset):
+def delete_preset(group_name, preset):
     """Delete one of the users presets."""
-    preset_path = get_preset_path(device, preset)
+    preset_path = get_preset_path(group_name, preset)
     if not os.path.exists(preset_path):
         logger.debug('Cannot remove non existing path "%s"', preset_path)
         return
@@ -173,24 +173,24 @@ def delete_preset(device, preset):
     logger.info('Removing "%s"', preset_path)
     os.remove(preset_path)
 
-    device_path = get_preset_path(device)
+    device_path = get_preset_path(group_name)
     if os.path.exists(device_path) and len(os.listdir(device_path)) == 0:
         logger.debug('Removing empty dir "%s"', device_path)
         os.rmdir(device_path)
 
 
-def rename_preset(device, old_preset_name, new_preset_name):
+def rename_preset(group_name, old_preset_name, new_preset_name):
     """Rename one of the users presets while avoiding name conflicts."""
     if new_preset_name == old_preset_name:
         return None
 
-    new_preset_name = get_available_preset_name(device, new_preset_name)
+    new_preset_name = get_available_preset_name(group_name, new_preset_name)
     logger.info('Moving "%s" to "%s"', old_preset_name, new_preset_name)
     os.rename(
-        get_preset_path(device, old_preset_name),
-        get_preset_path(device, new_preset_name)
+        get_preset_path(group_name, old_preset_name),
+        get_preset_path(group_name, new_preset_name)
     )
     # set the modification date to now
     now = time.time()
-    os.utime(get_preset_path(device, new_preset_name), (now, now))
+    os.utime(get_preset_path(group_name, new_preset_name), (now, now))
     return new_preset_name

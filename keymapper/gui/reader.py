@@ -30,12 +30,11 @@ from evdev.ecodes import EV_REL
 
 from keymapper.logger import logger
 from keymapper.key import Key
-from keymapper.getdevices import set_devices
+from keymapper.groups import groups, GAMEPAD
 from keymapper.ipc.pipe import Pipe
-from keymapper.gui.helper import TERMINATE, GET_DEVICES
+from keymapper.gui.helper import TERMINATE, REFRESH_GROUPS
 from keymapper import utils
 from keymapper.state import custom_mapping
-from keymapper.getdevices import get_devices, GAMEPAD
 
 
 DEBOUNCE_TICKS = 3
@@ -62,7 +61,7 @@ class Reader:
         self._debounce_remove = {}
         self._devices_updated = False
         self._cleared_at = 0
-        self.device_name = None
+        self.group = None
 
         self._results = None
         self._commands = None
@@ -74,7 +73,7 @@ class Reader:
         self._commands = Pipe('/tmp/key-mapper/commands')
 
     def are_new_devices_available(self):
-        """Check if get_devices contains new devices.
+        """Check if groups contains new devices.
 
         The ui should then update its list.
         """
@@ -87,11 +86,10 @@ class Reader:
         message_type = message['type']
         message_body = message['message']
 
-        if message_type == 'devices':
-            # result of get_devices in the helper
-            if message_body != get_devices():
-                logger.debug('Received %d devices', len(message_body))
-                set_devices(message_body)
+        if message_type == 'groups':
+            if message_body != groups.dumps():
+                groups.loads(message_body)
+                logger.debug('Received %d devices', len(groups))
                 self._devices_updated = True
             return None
 
@@ -134,7 +132,7 @@ class Reader:
             if event is None:
                 continue
 
-            gamepad = GAMEPAD in get_devices()[self.device_name]['types']
+            gamepad = GAMEPAD in self.group.types
             if not utils.should_map_as_btn(event, custom_mapping, gamepad):
                 continue
 
@@ -184,11 +182,11 @@ class Reader:
 
         return None
 
-    def start_reading(self, device_name):
+    def start_reading(self, group):
         """Start reading keycodes for a device."""
-        logger.debug('Sending start msg to helper for "%s"', device_name)
-        self._commands.send(device_name)
-        self.device_name = device_name
+        logger.debug('Sending start msg to helper for "%s"', group.key)
+        self._commands.send(group.key)
+        self.group = group
         self.clear()
 
     def terminate(self):
@@ -196,16 +194,16 @@ class Reader:
         logger.debug('Sending close msg to helper')
         self._commands.send(TERMINATE)
 
-    def get_devices(self):
-        """Ask the helper for new devices."""
-        self._commands.send(GET_DEVICES)
+    def refresh_groups(self):
+        """Ask the helper for new device groups."""
+        self._commands.send(REFRESH_GROUPS)
 
     def clear(self):
         """Next time when reading don't return the previous keycode."""
         logger.debug('Clearing reader')
         while self._results.poll():
             # clear the results pipe and handle any non-event messages,
-            # otherwise a get_devices message might get lost
+            # otherwise a 'groups' message might get lost
             message = self._results.recv()
             self._get_event(message)
 

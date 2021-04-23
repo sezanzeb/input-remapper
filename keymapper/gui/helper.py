@@ -38,12 +38,12 @@ from evdev.ecodes import EV_KEY, EV_ABS
 
 from keymapper.ipc.pipe import Pipe
 from keymapper.logger import logger
-from keymapper.getdevices import get_devices, refresh_devices
+from keymapper.groups import groups
 from keymapper import utils
 
 
 TERMINATE = 'terminate'
-GET_DEVICES = 'get_devices'
+REFRESH_GROUPS = 'refresh_groups'
 
 
 def is_helper_running():
@@ -68,9 +68,9 @@ class RootHelper:
         self._results = Pipe('/tmp/key-mapper/results')
         self._commands = Pipe('/tmp/key-mapper/commands')
 
-        self._send_devices()
+        self._send_groups()
 
-        self.device_name = None
+        self.group = None
         self._pipe = multiprocessing.Pipe()
 
     def run(self):
@@ -79,11 +79,11 @@ class RootHelper:
             self._handle_commands()
             self._start_reading()
 
-    def _send_devices(self):
-        """Send the get_devices datastructure to the gui."""
+    def _send_groups(self):
+        """Send the groups to the gui."""
         self._results.send({
-            'type': 'devices',
-            'message': get_devices()
+            'type': 'groups',
+            'message': groups.dumps()
         })
 
     def _handle_commands(self):
@@ -94,16 +94,26 @@ class RootHelper:
         while self._commands.poll():
             cmd = self._commands.recv()
             logger.debug('Received command "%s"', cmd)
+
             if cmd == TERMINATE:
                 logger.debug('Helper terminates')
                 sys.exit(0)
-            if cmd == GET_DEVICES:
-                refresh_devices()
-                self._send_devices()
-            elif cmd in get_devices():
-                self.device_name = cmd
-            else:
-                logger.error('Received unknown command "%s"', cmd)
+
+            if cmd == REFRESH_GROUPS:
+                groups.refresh()
+                self._send_groups()
+                continue
+
+            group = groups.find(key=cmd)
+            if group is None:
+                groups.refresh()
+                group = groups.find(key=cmd)
+
+            if group is not None:
+                self.group = group
+                continue
+
+            logger.error('Received unknown command "%s"', cmd)
 
     def _start_reading(self):
         """Tell the evdev lib to start looking for keycodes.
@@ -113,26 +123,16 @@ class RootHelper:
 
         This blocks forever until it discovers a new command on the socket.
         """
-        device_name = self.device_name
-
         rlist = {}
 
-        if device_name is None:
-            logger.error('device_name is None')
-            return
-
-        group = get_devices().get(device_name)
-
-        if group is None:
-            # a device possibly disappeared due to refresh_devices
-            self.device_name = None
-            logger.error('%s disappeared', device_name)
+        if self.group is None:
+            logger.error('group is None')
             return
 
         virtual_devices = []
         # Watch over each one of the potentially multiple devices per
         # hardware
-        for path in group['paths']:
+        for path in self.group.paths:
             try:
                 device = evdev.InputDevice(path)
             except FileNotFoundError:
@@ -142,7 +142,7 @@ class RootHelper:
                 virtual_devices.append(device)
 
         if len(virtual_devices) == 0:
-            logger.debug('No interesting device for "%s"', device_name)
+            logger.debug('No interesting device for "%s"', self.group.key)
             return
 
         for device in virtual_devices:

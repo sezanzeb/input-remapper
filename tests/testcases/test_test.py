@@ -27,7 +27,7 @@ import multiprocessing
 import evdev
 from evdev.ecodes import EV_ABS, EV_KEY
 
-from keymapper.getdevices import get_devices
+from keymapper.groups import groups
 from keymapper.gui.reader import reader
 from keymapper.gui.helper import RootHelper
 
@@ -37,7 +37,7 @@ from tests.test import InputDevice, quick_cleanup, cleanup, fixtures,\
 
 class TestTest(unittest.TestCase):
     def test_stubs(self):
-        self.assertIn('device 1', get_devices())
+        self.assertIsNotNone(groups.find(key='Foo Device 2'))
 
     def tearDown(self):
         quick_cleanup()
@@ -101,10 +101,10 @@ class TestTest(unittest.TestCase):
 
         event = new_event(EV_KEY, 102, 1)
         create_helper()
-        reader.start_reading('device 1')
+        reader.start_reading(groups.find(key='Foo Device 2'))
         time.sleep(START_READING_DELAY)
 
-        push_events('device 1', [event])
+        push_events('Foo Device 2', [event])
         wait_for_results()
         self.assertTrue(reader._results.poll())
 
@@ -113,7 +113,7 @@ class TestTest(unittest.TestCase):
 
         # can push more events to the helper that is inside a separate
         # process, which end up being sent to the reader
-        push_events('device 1', [event])
+        push_events('Foo Device 2', [event])
         wait_for_results()
         self.assertTrue(reader._results.poll())
 

@@ -79,7 +79,7 @@ class Mapping(ConfigBase):
         super().__init__(fallback=config)
 
     def __iter__(self):
-        """Iterate over Key objects and their character."""
+        """Iterate over Key objects and their symbol."""
         return iter(self._mapping.items())
 
     def __len__(self):
@@ -95,14 +95,14 @@ class Mapping(ConfigBase):
         self.changed = True
         return super().remove(*args)
 
-    def change(self, new_key, character, previous_key=None):
+    def change(self, new_key, symbol, previous_key=None):
         """Replace the mapping of a keycode with a different one.
 
         Parameters
         ----------
         new_key : Key
-        character : string
-            A single character known to xkb or linux.
+        symbol : string
+            A single symbol known to xkb or linux.
             Examples: KEY_KP1, Shift_L, a, B, BTN_LEFT.
         previous_key : Key or None
             the previous key
@@ -114,13 +114,13 @@ class Mapping(ConfigBase):
         if not isinstance(new_key, Key):
             raise TypeError(f'Expected {new_key} to be a Key object')
 
-        if character is None:
-            raise ValueError('Expected `character` not to be None')
+        if symbol is None:
+            raise ValueError('Expected `symbol` not to be None')
 
-        character = character.strip()
-        logger.debug('%s will map to "%s"', new_key, character)
+        symbol = symbol.strip()
+        logger.debug('%s will map to "%s"', new_key, symbol)
         self.clear(new_key)  # this also clears all equivalent keys
-        self._mapping[new_key] = character
+        self._mapping[new_key] = symbol
 
         if previous_key is not None:
             code_changed = new_key != previous_key
@@ -182,7 +182,7 @@ class Mapping(ConfigBase):
                 )
                 return
 
-            for key, character in preset_dict['mapping'].items():
+            for key, symbol in preset_dict['mapping'].items():
                 try:
                     key = Key(*[
                         split_key(chunk) for chunk in key.split('+')
@@ -195,8 +195,8 @@ class Mapping(ConfigBase):
                 if None in key:
                     continue
 
-                logger.spam('%s maps to %s', key, character)
-                self._mapping[key] = character
+                logger.spam('%s maps to %s', key, symbol)
+                self._mapping[key] = symbol
 
             # add any metadata of the mapping
             for key in preset_dict:
@@ -251,8 +251,8 @@ class Mapping(ConfigBase):
         self.changed = False
         self.num_saved_keys = len(self)
 
-    def get_character(self, key):
-        """Read the character that is mapped to this keycode.
+    def get_symbol(self, key):
+        """Read the symbol that is mapped to this keycode.
 
         Parameters
         ----------
@@ -270,7 +270,7 @@ class Mapping(ConfigBase):
 
     def dangerously_mapped_btn_left(self):
         """Return True if this mapping disables BTN_Left."""
-        if self.get_character(Key(EV_KEY, BTN_LEFT, 1)) is not None:
+        if self.get_symbol(Key(EV_KEY, BTN_LEFT, 1)) is not None:
             values = [value.lower() for value in self._mapping.values()]
             return 'btn_left' not in values
 

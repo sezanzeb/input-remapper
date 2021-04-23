@@ -86,11 +86,11 @@ def remove(path):
         os.remove(path)
 
 
-def get_preset_path(device=None, preset=None):
+def get_preset_path(group_name=None, preset=None):
     """Get a path to the stored preset, or to store a preset to."""
     presets_base = os.path.join(CONFIG_PATH, 'presets')
 
-    if device is None:
+    if group_name is None:
         return presets_base
 
     if preset is not None:
@@ -101,9 +101,9 @@ def get_preset_path(device=None, preset=None):
         preset = f'{preset}.json'
 
     if preset is None:
-        return os.path.join(presets_base, device)
+        return os.path.join(presets_base, group_name)
 
-    return os.path.join(presets_base, device, preset)
+    return os.path.join(presets_base, group_name, preset)
 
 
 def get_config_path(*paths):

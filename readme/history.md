@@ -109,7 +109,7 @@ configurations are needed at all anymore.
 
 This solution would have made the macro thing impossible though
 
-setxkbmap -layout ~/.config/key-mapper/mouse -device 13
+setxkbmap -layout ~/.config/key-mapper/mouse -Foo Device3
 
 config looks like:
 ```

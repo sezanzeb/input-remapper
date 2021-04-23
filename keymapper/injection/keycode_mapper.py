@@ -288,10 +288,10 @@ class KeycodeMapper:
             # WARNING! the combination-down triggers, but a single key-up
             # releases. Do not check if key in macros and such, if it is an
             # up event. It's going to be False.
-            combination = tuple([
+            combination = tuple(
                 value.input_event_tuple for value
                 in unreleased.values()
-            ])
+            )
             if key[0] not in combination:  # might be a duplicate-down event
                 combination += key
 

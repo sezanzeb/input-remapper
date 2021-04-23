@@ -46,7 +46,7 @@ from keymapper.gui.row import Row, to_string, HOLDING, IDLE
 from keymapper.gui.window import Window
 from keymapper.key import Key
 from keymapper.daemon import Daemon
-from keymapper.getdevices import get_devices, set_devices
+from keymapper.groups import groups
 from keymapper.gui.helper import RootHelper
 
 from tests.test import tmp, push_events, new_event, spy, cleanup, \
@@ -76,11 +76,12 @@ def launch(argv=None):
     if not argv:
         argv = ['-d']
 
-    with patch.object(sys, 'argv', [''] + [str(arg) for arg in argv]):
-        loader = SourceFileLoader('__main__', bin_path)
-        spec = spec_from_loader('__main__', loader)
-        module = module_from_spec(spec)
-        spec.loader.exec_module(module)
+    with patch('keymapper.gui.window.Window.setup_timeouts', lambda *args: None):
+        with patch.object(sys, 'argv', [''] + [str(arg) for arg in argv]):
+            loader = SourceFileLoader('__main__', bin_path)
+            spec = spec_from_loader('__main__', loader)
+            module = module_from_spec(spec)
+            spec.loader.exec_module(module)
 
     gtk_iteration()
 
@@ -88,10 +89,33 @@ def launch(argv=None):
     # spams tons of garbage when all tests finish
     atexit.unregister(module.stop)
 
+    # to avoid triggering any timeouts while the module loads, patch it and
+    # do it afterwards. Because some tests don't want them to be triggered
+    # yet and test the windows initial state. This is only a problem on
+    # slow computers that take long for the window import.
+    module.window.setup_timeouts()
+
     return module.window
 
 
-class FakeDropdown(Gtk.ComboBoxText):
+class FakeDeviceDropdown(Gtk.ComboBoxText):
+    def __init__(self, group):
+        if type(group) == str:
+            group = groups.find(key=group)
+
+        self.group = group
+
+    def get_active_text(self):
+        return self.group.name
+
+    def get_active_id(self):
+        return self.group.key
+
+    def set_active_id(self, key):
+        self.group = groups.find(key=key)
+
+
+class FakePresetDropdown(Gtk.ComboBoxText):
     def __init__(self, name):
         self.name = name
 
@@ -133,7 +157,7 @@ class GtkKeyEvent:
         return True, self.keyval
 
 
-class TestGetDevicesFromHelper(unittest.TestCase):
+class TestGroupsFromHelper(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.injector = None
@@ -149,12 +173,12 @@ class TestGetDevicesFromHelper(unittest.TestCase):
             # instead of running pkexec, fork instead. This will make
             # the helper aware of all the test patches
             if 'pkexec key-mapper-control --command helper' in cmd:
-                # the process will have the initial value of None
-                set_devices(None)
+                # the forked process should get the initial groups
+                groups.refresh()
                 multiprocessing.Process(target=RootHelper).start()
                 # the gui an empty dict, because it doesn't know any devices
                 # without the help of the privileged helper
-                set_devices({})
+                groups.set_groups({})
                 return 0
 
             return cls.original_os_system(cmd)
@@ -164,8 +188,9 @@ class TestGetDevicesFromHelper(unittest.TestCase):
     def setUp(self):
         self.window = launch()
         # verify that the ui doesn't have knowledge of any device yet
-        self.assertIsNone(self.window.selected_device)
-        self.assertEqual(len(get_devices()), 0)
+        print('test self.assertIsNone(self.window.group)')
+        self.assertIsNone(self.window.group)
+        self.assertEqual(len(groups), 0)
 
     def tearDown(self):
         clean_up_integration(self)
@@ -179,9 +204,9 @@ class TestGetDevicesFromHelper(unittest.TestCase):
     def test_knows_devices(self, on_select_preset_patch):
         # verify that it is working as expected
         gtk_iteration()
-        self.assertIsNone(self.window.selected_device)
-        self.assertIsNone(self.window.selected_preset)
-        self.assertEqual(len(get_devices()), 0)
+        self.assertIsNone(self.window.group)
+        self.assertIsNone(self.window.preset_name)
+        self.assertEqual(len(groups), 0)
         on_select_preset_patch.assert_not_called()
 
         # perform some iterations so that the gui ends up running
@@ -192,10 +217,10 @@ class TestGetDevicesFromHelper(unittest.TestCase):
             time.sleep(0.01)
             gtk_iteration()
 
-        self.assertIn('device 1', get_devices())
-        self.assertIn('device 2', get_devices())
-        self.assertIn('gamepad', get_devices())
-        self.assertEqual(self.window.selected_device, 'device 1')
+        self.assertIsNotNone(groups.find(key='Foo Device 2'))
+        self.assertIsNotNone(groups.find(name='Bar Device'))
+        self.assertIsNotNone(groups.find(name='gamepad'))
+        self.assertEqual(self.window.group.name, 'Foo Device')
 
 
 class TestIntegration(unittest.TestCase):
@@ -279,7 +304,7 @@ class TestIntegration(unittest.TestCase):
         self.window.key_release(self.window, GtkKeyEvent(Gdk.KEY_q))
 
     def test_ctrl_r(self):
-        with patch.object(reader, 'get_devices') as reader_get_devices_patch:
+        with patch.object(reader, 'refresh_groups') as reader_get_devices_patch:
             self.window.key_press(self.window, GtkKeyEvent(Gdk.KEY_Control_L))
             self.window.key_press(self.window, GtkKeyEvent(Gdk.KEY_r))
             reader_get_devices_patch.assert_called_once()
@@ -296,17 +321,16 @@ class TestIntegration(unittest.TestCase):
         self.assertFalse(self.window.show_device_mapping_status())
 
     def test_autoload(self):
-        set_config_dir_history = spy(self.window.dbus, 'set_config_dir')
-
-        self.window.on_autoload_switch(None, False)
-        self.assertEqual(len(set_config_dir_history), 1)
+        with spy(self.window.dbus, 'set_config_dir') as set_config_dir:
+            self.window.on_autoload_switch(None, False)
+            set_config_dir.assert_called_once()
 
         self.assertFalse(config.is_autoloaded(
-            self.window.selected_device,
-            self.window.selected_preset
+            self.window.group.key,
+            self.window.preset_name
         ))
 
-        self.window.on_select_device(FakeDropdown('device 1'))
+        self.window.on_select_device(FakeDeviceDropdown('Foo Device 2'))
         gtk_iteration()
         self.assertFalse(self.window.get('preset_autoload_switch').get_active())
 
@@ -314,56 +338,62 @@ class TestIntegration(unittest.TestCase):
         self.window.get('preset_autoload_switch').set_active(True)
         gtk_iteration()
         self.assertTrue(self.window.get('preset_autoload_switch').get_active())
-        self.assertTrue(config.is_autoloaded('device 1', 'new preset'))
-        self.assertFalse(config.is_autoloaded('device 2', 'new preset'))
+        self.assertEqual(self.window.group.key, 'Foo Device 2')
+        self.assertEqual(self.window.group.name, 'Foo Device')
+        self.assertTrue(config.is_autoloaded(self.window.group.key, 'new preset'))
+        self.assertFalse(config.is_autoloaded('Bar Device', 'new preset'))
         self.assertListEqual(
             list(config.iterate_autoload_presets()),
-            [('device 1', 'new preset')]
+            [('Foo Device 2', 'new preset')]
         )
 
         # create a new preset, the switch should be correctly off and the
         # config not changed.
         self.window.on_create_preset_clicked(None)
         gtk_iteration()
-        self.assertEqual(self.window.selected_preset, 'new preset 2')
+        self.assertEqual(self.window.preset_name, 'new preset 2')
         self.assertFalse(self.window.get('preset_autoload_switch').get_active())
-        self.assertTrue(config.is_autoloaded('device 1', 'new preset'))
-        self.assertFalse(config.is_autoloaded('device 1', 'new preset 2'))
+        self.assertTrue(config.is_autoloaded('Foo Device 2', 'new preset'))
+        self.assertFalse(config.is_autoloaded('Foo Device', 'new preset'))
+        self.assertFalse(config.is_autoloaded('Foo Device', 'new preset 2'))
+        self.assertFalse(config.is_autoloaded('Foo Device 2', 'new preset 2'))
 
         # select a preset for the second device
-        self.window.on_select_device(FakeDropdown('device 2'))
+        self.window.on_select_device(FakeDeviceDropdown('Bar Device'))
         self.window.get('preset_autoload_switch').set_active(True)
         gtk_iteration()
-        self.assertTrue(config.is_autoloaded('device 1', 'new preset'))
-        self.assertTrue(config.is_autoloaded('device 2', 'new preset'))
+        self.assertTrue(config.is_autoloaded('Foo Device 2', 'new preset'))
+        self.assertFalse(config.is_autoloaded('Foo Device', 'new preset'))
+        self.assertTrue(config.is_autoloaded('Bar Device', 'new preset'))
         self.assertListEqual(
             list(config.iterate_autoload_presets()),
-            [('device 1', 'new preset'), ('device 2', 'new preset')]
+            [('Foo Device 2', 'new preset'), ('Bar Device', 'new preset')]
         )
 
         # disable autoloading for the second device
         self.window.get('preset_autoload_switch').set_active(False)
         gtk_iteration()
-        self.assertTrue(config.is_autoloaded('device 1', 'new preset'))
-        self.assertFalse(config.is_autoloaded('device 2', 'new preset'))
+        self.assertTrue(config.is_autoloaded('Foo Device 2', 'new preset'))
+        self.assertFalse(config.is_autoloaded('Foo Device', 'new preset'))
+        self.assertFalse(config.is_autoloaded('Bar Device', 'new preset'))
         self.assertListEqual(
             list(config.iterate_autoload_presets()),
-            [('device 1', 'new preset')]
+            [('Foo Device 2', 'new preset')]
         )
 
     def test_select_device(self):
         # creates a new empty preset when no preset exists for the device
-        self.window.on_select_device(FakeDropdown('device 1'))
+        self.window.on_select_device(FakeDeviceDropdown('Foo Device'))
         custom_mapping.change(Key(EV_KEY, 50, 1), 'q')
         custom_mapping.change(Key(EV_KEY, 51, 1), 'u')
         custom_mapping.change(Key(EV_KEY, 52, 1), 'x')
         self.assertEqual(len(custom_mapping), 3)
-        self.window.on_select_device(FakeDropdown('device 2'))
+        self.window.on_select_device(FakeDeviceDropdown('Bar Device'))
         self.assertEqual(len(custom_mapping), 0)
         # it creates the file for that right away. It may have been possible
         # to write it such that it doesn't (its empty anyway), but it does,
         # so use that to test it in more detail.
-        path = get_preset_path('device 2', 'new preset')
+        path = get_preset_path('Bar Device', 'new preset')
         self.assertTrue(os.path.exists(path))
         with open(path, 'r') as file:
             preset = json.load(file)
@@ -431,15 +461,15 @@ class TestIntegration(unittest.TestCase):
         gtk_iteration()
         self.assertEqual(len(self.window.get('key_list').get_children()), 1)
 
-        row.character_input.set_text('Shift_L')
+        row.symbol_input.set_text('Shift_L')
         self.assertEqual(len(custom_mapping), 1)
 
         time.sleep(0.1)
         gtk_iteration()
         self.assertEqual(len(self.window.get('key_list').get_children()), 2)
 
-        self.assertEqual(custom_mapping.get_character(Key(EV_KEY, 30, 1)), 'Shift_L')
-        self.assertEqual(row.get_character(), 'Shift_L')
+        self.assertEqual(custom_mapping.get_symbol(Key(EV_KEY, 30, 1)), 'Shift_L')
+        self.assertEqual(row.get_symbol(), 'Shift_L')
         self.assertEqual(row.get_key(), (EV_KEY, 30, 1))
 
     def sleep(self, num_events):
@@ -465,7 +495,7 @@ class TestIntegration(unittest.TestCase):
         self.assertIsNone(row.get_key())
 
         # focus the text input instead
-        self.window.window.set_focus(row.character_input)
+        self.window.window.set_focus(row.symbol_input)
         send_event_to_reader(new_event(1, 61, 1))
         self.window.consume_newest_keycode()
 
@@ -490,8 +520,8 @@ class TestIntegration(unittest.TestCase):
         ----------
         key : Key or None
         code_first : boolean
-            If True, the code is entered and then the character.
-            If False, the character is entered first.
+            If True, the code is entered and then the symbol.
+            If False, the symbol is entered first.
         expect_success : boolean
             If this change on the empty row is going to result in a change
             in the mapping eventually. False if this change is going to
@@ -509,14 +539,14 @@ class TestIntegration(unittest.TestCase):
         rows = self.get_rows()
         row = rows[-1]
         self.assertIsNone(row.get_key())
-        self.assertEqual(row.character_input.get_text(), '')
+        self.assertEqual(row.symbol_input.get_text(), '')
         self.assertEqual(row._state, IDLE)
 
         if char and not code_first:
-            # set the character to make the new row complete
-            self.assertIsNone(row.get_character())
-            row.character_input.set_text(char)
-            self.assertEqual(row.get_character(), char)
+            # set the symbol to make the new row complete
+            self.assertIsNone(row.get_symbol())
+            row.symbol_input.set_text(char)
+            self.assertEqual(row.get_symbol(), char)
 
         if row.keycode_input.is_focus():
             self.assertEqual(row.keycode_input.get_label(), 'press key')
@@ -566,23 +596,23 @@ class TestIntegration(unittest.TestCase):
 
         if not expect_success:
             self.assertIsNone(row.get_key())
-            self.assertIsNone(row.get_character())
+            self.assertIsNone(row.get_symbol())
             self.assertEqual(row._state, IDLE)
-            # it won't switch the focus to the character input
+            # it won't switch the focus to the symbol input
             self.assertTrue(row.keycode_input.is_focus())
             self.assertEqual(custom_mapping.changed, changed)
             return row
 
         if char and code_first:
-            # set the character to make the new row complete
-            self.assertIsNone(row.get_character())
-            row.character_input.set_text(char)
-            self.assertEqual(row.get_character(), char)
+            # set the symbol to make the new row complete
+            self.assertIsNone(row.get_symbol())
+            row.symbol_input.set_text(char)
+            self.assertEqual(row.get_symbol(), char)
 
         # unfocus them to trigger some final logic
         self.window.window.set_focus(None)
         correct_case = system_mapping.correct_case(char)
-        self.assertEqual(row.get_character(), correct_case)
+        self.assertEqual(row.get_symbol(), correct_case)
         self.assertFalse(custom_mapping.changed)
 
         return row
@@ -634,23 +664,23 @@ class TestIntegration(unittest.TestCase):
         gtk_iteration()
         self.assertEqual(len(self.get_rows()), num_rows_target)
 
-        self.assertEqual(custom_mapping.get_character(ev_1), 'Foo_BAR')
-        self.assertEqual(custom_mapping.get_character(ev_2), 'k(b).k(c)')
+        self.assertEqual(custom_mapping.get_symbol(ev_1), 'Foo_BAR')
+        self.assertEqual(custom_mapping.get_symbol(ev_2), 'k(b).k(c)')
 
         """edit first row"""
 
         row = self.get_rows()[0]
-        row.character_input.set_text('c')
+        row.symbol_input.set_text('c')
 
-        self.assertEqual(custom_mapping.get_character(ev_1), 'c')
-        self.assertEqual(custom_mapping.get_character(ev_2), 'k(b).k(c)')
+        self.assertEqual(custom_mapping.get_symbol(ev_1), 'c')
+        self.assertEqual(custom_mapping.get_symbol(ev_2), 'k(b).k(c)')
         self.assertTrue(custom_mapping.changed)
 
         """add duplicate"""
 
         # try to add a duplicate keycode, it should be ignored
         self.change_empty_row(ev_2, 'd', expect_success=False)
-        self.assertEqual(custom_mapping.get_character(ev_2), 'k(b).k(c)')
+        self.assertEqual(custom_mapping.get_symbol(ev_2), 'k(b).k(c)')
         # and the number of rows shouldn't change
         self.assertEqual(len(self.get_rows()), num_rows_target)
 
@@ -666,10 +696,10 @@ class TestIntegration(unittest.TestCase):
         self.change_empty_row(ev_3, 'c')
         self.change_empty_row(ev_4, 'd')
 
-        self.assertEqual(custom_mapping.get_character(ev_1), 'a')
-        self.assertEqual(custom_mapping.get_character(ev_2), 'b')
-        self.assertEqual(custom_mapping.get_character(ev_3), 'c')
-        self.assertEqual(custom_mapping.get_character(ev_4), 'd')
+        self.assertEqual(custom_mapping.get_symbol(ev_1), 'a')
+        self.assertEqual(custom_mapping.get_symbol(ev_2), 'b')
+        self.assertEqual(custom_mapping.get_symbol(ev_3), 'c')
+        self.assertEqual(custom_mapping.get_symbol(ev_4), 'd')
 
         # and trying to add them as duplicate rows will be ignored for each
         # of them
@@ -678,10 +708,10 @@ class TestIntegration(unittest.TestCase):
         self.change_empty_row(ev_3, 'g', expect_success=False)
         self.change_empty_row(ev_4, 'h', expect_success=False)
 
-        self.assertEqual(custom_mapping.get_character(ev_1), 'a')
-        self.assertEqual(custom_mapping.get_character(ev_2), 'b')
-        self.assertEqual(custom_mapping.get_character(ev_3), 'c')
-        self.assertEqual(custom_mapping.get_character(ev_4), 'd')
+        self.assertEqual(custom_mapping.get_symbol(ev_1), 'a')
+        self.assertEqual(custom_mapping.get_symbol(ev_2), 'b')
+        self.assertEqual(custom_mapping.get_symbol(ev_3), 'c')
+        self.assertEqual(custom_mapping.get_symbol(ev_4), 'd')
 
     def test_combination(self):
         # it should be possible to write a key combination
@@ -701,49 +731,49 @@ class TestIntegration(unittest.TestCase):
         combination_6 = Key(ev_3, ev_1, ev_2)
 
         self.change_empty_row(combination_1, 'a')
-        self.assertEqual(custom_mapping.get_character(combination_1), 'a')
-        self.assertEqual(custom_mapping.get_character(combination_2), 'a')
-        self.assertIsNone(custom_mapping.get_character(combination_3))
-        self.assertIsNone(custom_mapping.get_character(combination_4))
-        self.assertIsNone(custom_mapping.get_character(combination_5))
-        self.assertIsNone(custom_mapping.get_character(combination_6))
+        self.assertEqual(custom_mapping.get_symbol(combination_1), 'a')
+        self.assertEqual(custom_mapping.get_symbol(combination_2), 'a')
+        self.assertIsNone(custom_mapping.get_symbol(combination_3))
+        self.assertIsNone(custom_mapping.get_symbol(combination_4))
+        self.assertIsNone(custom_mapping.get_symbol(combination_5))
+        self.assertIsNone(custom_mapping.get_symbol(combination_6))
 
         # it won't write the same combination again, even if the
         # first two events are in a different order
         self.change_empty_row(combination_2, 'b', expect_success=False)
-        self.assertEqual(custom_mapping.get_character(combination_1), 'a')
-        self.assertEqual(custom_mapping.get_character(combination_2), 'a')
-        self.assertIsNone(custom_mapping.get_character(combination_3))
-        self.assertIsNone(custom_mapping.get_character(combination_4))
-        self.assertIsNone(custom_mapping.get_character(combination_5))
-        self.assertIsNone(custom_mapping.get_character(combination_6))
+        self.assertEqual(custom_mapping.get_symbol(combination_1), 'a')
+        self.assertEqual(custom_mapping.get_symbol(combination_2), 'a')
+        self.assertIsNone(custom_mapping.get_symbol(combination_3))
+        self.assertIsNone(custom_mapping.get_symbol(combination_4))
+        self.assertIsNone(custom_mapping.get_symbol(combination_5))
+        self.assertIsNone(custom_mapping.get_symbol(combination_6))
 
         self.change_empty_row(combination_3, 'c')
-        self.assertEqual(custom_mapping.get_character(combination_1), 'a')
-        self.assertEqual(custom_mapping.get_character(combination_2), 'a')
-        self.assertEqual(custom_mapping.get_character(combination_3), 'c')
-        self.assertEqual(custom_mapping.get_character(combination_4), 'c')
-        self.assertIsNone(custom_mapping.get_character(combination_5))
-        self.assertIsNone(custom_mapping.get_character(combination_6))
+        self.assertEqual(custom_mapping.get_symbol(combination_1), 'a')
+        self.assertEqual(custom_mapping.get_symbol(combination_2), 'a')
+        self.assertEqual(custom_mapping.get_symbol(combination_3), 'c')
+        self.assertEqual(custom_mapping.get_symbol(combination_4), 'c')
+        self.assertIsNone(custom_mapping.get_symbol(combination_5))
+        self.assertIsNone(custom_mapping.get_symbol(combination_6))
 
         # same as with combination_2, the existing combination_3 blocks
         # combination_4 because they have the same keys and end in the
         # same key.
         self.change_empty_row(combination_4, 'd', expect_success=False)
-        self.assertEqual(custom_mapping.get_character(combination_1), 'a')
-        self.assertEqual(custom_mapping.get_character(combination_2), 'a')
-        self.assertEqual(custom_mapping.get_character(combination_3), 'c')
-        self.assertEqual(custom_mapping.get_character(combination_4), 'c')
-        self.assertIsNone(custom_mapping.get_character(combination_5))
-        self.assertIsNone(custom_mapping.get_character(combination_6))
+        self.assertEqual(custom_mapping.get_symbol(combination_1), 'a')
+        self.assertEqual(custom_mapping.get_symbol(combination_2), 'a')
+        self.assertEqual(custom_mapping.get_symbol(combination_3), 'c')
+        self.assertEqual(custom_mapping.get_symbol(combination_4), 'c')
+        self.assertIsNone(custom_mapping.get_symbol(combination_5))
+        self.assertIsNone(custom_mapping.get_symbol(combination_6))
 
         self.change_empty_row(combination_5, 'e')
-        self.assertEqual(custom_mapping.get_character(combination_1), 'a')
-        self.assertEqual(custom_mapping.get_character(combination_2), 'a')
-        self.assertEqual(custom_mapping.get_character(combination_3), 'c')
-        self.assertEqual(custom_mapping.get_character(combination_4), 'c')
-        self.assertEqual(custom_mapping.get_character(combination_5), 'e')
-        self.assertEqual(custom_mapping.get_character(combination_6), 'e')
+        self.assertEqual(custom_mapping.get_symbol(combination_1), 'a')
+        self.assertEqual(custom_mapping.get_symbol(combination_2), 'a')
+        self.assertEqual(custom_mapping.get_symbol(combination_3), 'c')
+        self.assertEqual(custom_mapping.get_symbol(combination_4), 'c')
+        self.assertEqual(custom_mapping.get_symbol(combination_5), 'e')
+        self.assertEqual(custom_mapping.get_symbol(combination_6), 'e')
 
         error_icon = self.window.get('error_status_icon')
         warning_icon = self.window.get('warning_status_icon')
@@ -764,7 +794,7 @@ class TestIntegration(unittest.TestCase):
         gtk_iteration()
         self.assertEqual(len(self.get_rows()), 3)
 
-        self.assertEqual(custom_mapping.get_character(Key(EV_KEY, 11, 1)), 'b')
+        self.assertEqual(custom_mapping.get_symbol(Key(EV_KEY, 11, 1)), 'b')
 
         def remove(row, code, char, num_rows_after):
             """Remove a row by clicking the delete button.
@@ -780,9 +810,9 @@ class TestIntegration(unittest.TestCase):
                 after deleting, how many rows are expected to still be there
             """
             if code is not None and char is not None:
-                self.assertEqual(custom_mapping.get_character(Key(EV_KEY, code, 1)), char)
+                self.assertEqual(custom_mapping.get_symbol(Key(EV_KEY, code, 1)), char)
 
-            self.assertEqual(row.get_character(), char)
+            self.assertEqual(row.get_symbol(), char)
             if code is None:
                 self.assertIsNone(row.get_key())
             else:
@@ -796,9 +826,9 @@ class TestIntegration(unittest.TestCase):
             # accidentally used again, make sure to not provide any outdated
             # information that is supposed to be deleted
             self.assertIsNone(row.get_key())
-            self.assertIsNone(row.get_character())
+            self.assertIsNone(row.get_symbol())
             if code is not None:
-                self.assertIsNone(custom_mapping.get_character(Key(EV_KEY, code, 1)))
+                self.assertIsNone(custom_mapping.get_symbol(Key(EV_KEY, code, 1)))
             self.assertEqual(len(self.get_rows()), num_rows_after)
 
         remove(row_1, 10, 'a', 2)
@@ -821,26 +851,26 @@ class TestIntegration(unittest.TestCase):
         self.assertTrue(warning_icon.get_visible())
 
     def test_rename_and_save(self):
-        self.assertEqual(self.window.selected_device, 'device 1')
-        self.assertFalse(config.is_autoloaded('device 1', 'new preset'))
+        self.assertEqual(self.window.group.name, 'Foo Device')
+        self.assertFalse(config.is_autoloaded('Foo Device', 'new preset'))
 
         custom_mapping.change(Key(EV_KEY, 14, 1), 'a', None)
-        self.assertEqual(self.window.selected_preset, 'new preset')
+        self.assertEqual(self.window.preset_name, 'new preset')
         self.window.save_preset()
-        self.assertEqual(custom_mapping.get_character(Key(EV_KEY, 14, 1)), 'a')
-        config.set_autoload_preset('device 1', 'new preset')
-        self.assertTrue(config.is_autoloaded('device 1', 'new preset'))
+        self.assertEqual(custom_mapping.get_symbol(Key(EV_KEY, 14, 1)), 'a')
+        config.set_autoload_preset('Foo Device', 'new preset')
+        self.assertTrue(config.is_autoloaded('Foo Device', 'new preset'))
 
         custom_mapping.change(Key(EV_KEY, 14, 1), 'b', None)
         self.window.get('preset_name_input').set_text('asdf')
         self.window.save_preset()
         self.window.on_rename_button_clicked(None)
-        self.assertEqual(self.window.selected_preset, 'asdf')
-        preset_path = f'{CONFIG_PATH}/presets/device 1/asdf.json'
+        self.assertEqual(self.window.preset_name, 'asdf')
+        preset_path = f'{CONFIG_PATH}/presets/Foo Device/asdf.json'
         self.assertTrue(os.path.exists(preset_path))
-        self.assertEqual(custom_mapping.get_character(Key(EV_KEY, 14, 1)), 'b')
+        self.assertEqual(custom_mapping.get_symbol(Key(EV_KEY, 14, 1)), 'b')
         # after renaming the preset it is still set to autoload
-        self.assertTrue(config.is_autoloaded('device 1', 'asdf'))
+        self.assertTrue(config.is_autoloaded('Foo Device', 'asdf'))
 
         error_icon = self.window.get('error_status_icon')
         self.assertFalse(error_icon.get_visible())
@@ -868,26 +898,26 @@ class TestIntegration(unittest.TestCase):
         self.window.save_preset()
         self.window.on_rename_button_clicked(None)
         self.assertEqual(len(custom_mapping), 1)
-        self.assertEqual(self.window.selected_preset, 'asdf')
+        self.assertEqual(self.window.preset_name, 'asdf')
 
         self.window.on_create_preset_clicked(None)
-        self.assertEqual(self.window.selected_preset, 'new preset')
-        self.assertIsNone(custom_mapping.get_character(Key(EV_KEY, 14, 1)))
+        self.assertEqual(self.window.preset_name, 'new preset')
+        self.assertIsNone(custom_mapping.get_symbol(Key(EV_KEY, 14, 1)))
         self.window.save_preset()
 
         # selecting the first one again loads the saved mapping
-        self.window.on_select_preset(FakeDropdown('asdf'))
-        self.assertEqual(custom_mapping.get_character(Key(EV_KEY, 14, 1)), 'a')
-        config.set_autoload_preset('device 1', 'new preset')
+        self.window.on_select_preset(FakePresetDropdown('asdf'))
+        self.assertEqual(custom_mapping.get_symbol(Key(EV_KEY, 14, 1)), 'a')
+        config.set_autoload_preset('Foo Device', 'new preset')
 
         # renaming a preset to an existing name appends a number
-        self.window.on_select_preset(FakeDropdown('new preset'))
+        self.window.on_select_preset(FakePresetDropdown('new preset'))
         self.window.get('preset_name_input').set_text('asdf')
         self.window.on_rename_button_clicked(None)
-        self.assertEqual(self.window.selected_preset, 'asdf 2')
+        self.assertEqual(self.window.preset_name, 'asdf 2')
         # and that added number is correctly used in the autoload
         # configuration as well
-        self.assertTrue(config.is_autoloaded('device 1', 'asdf 2'))
+        self.assertTrue(config.is_autoloaded('Foo Device', 'asdf 2'))
 
         self.assertEqual(self.window.get('preset_name_input').get_text(), '')
 
@@ -899,11 +929,11 @@ class TestIntegration(unittest.TestCase):
         with patch.object(os, 'rename', _raise):
             self.window.get('preset_name_input').set_text('asdf 2')
             self.window.on_rename_button_clicked(None)
-            self.assertEqual(self.window.selected_preset, 'asdf 2')
+            self.assertEqual(self.window.preset_name, 'asdf 2')
 
             self.window.get('preset_name_input').set_text('')
             self.window.on_rename_button_clicked(None)
-            self.assertEqual(self.window.selected_preset, 'asdf 2')
+            self.assertEqual(self.window.preset_name, 'asdf 2')
 
     def test_avoids_redundant_saves(self):
         custom_mapping.change(Key(EV_KEY, 14, 1), 'abcd', None)
@@ -911,18 +941,18 @@ class TestIntegration(unittest.TestCase):
         custom_mapping.changed = False
         self.window.save_preset()
 
-        with open(get_preset_path('device 1', 'new preset')) as f:
+        with open(get_preset_path('Foo Device', 'new preset')) as f:
             content = f.read()
             self.assertNotIn('abcd', content)
 
         custom_mapping.changed = True
         self.window.save_preset()
 
-        with open(get_preset_path('device 1', 'new preset')) as f:
+        with open(get_preset_path('Foo Device', 'new preset')) as f:
             content = f.read()
             self.assertIn('abcd', content)
 
-    def test_check_for_unknown_characters(self):
+    def test_check_for_unknown_symbols(self):
         status = self.window.get('status_bar')
         error_icon = self.window.get('error_status_icon')
         warning_icon = self.window.get('warning_status_icon')
@@ -936,7 +966,7 @@ class TestIntegration(unittest.TestCase):
         self.assertFalse(warning_icon.get_visible())
 
         # it will still save it though
-        with open(get_preset_path('device 1', 'new preset')) as f:
+        with open(get_preset_path('Foo Device', 'new preset')) as f:
             content = f.read()
             self.assertIn('qux', content)
             self.assertIn('foo', content)
@@ -974,48 +1004,48 @@ class TestIntegration(unittest.TestCase):
         self.assertFalse(error_icon.get_visible())
         self.assertFalse(warning_icon.get_visible())
 
-        self.assertEqual(custom_mapping.get_character(Key(EV_KEY, 9, 1)), 'k(1)')
+        self.assertEqual(custom_mapping.get_symbol(Key(EV_KEY, 9, 1)), 'k(1)')
 
     def test_select_device_and_preset(self):
         # created on start because the first device is selected and some empty
         # preset prepared.
-        self.assertTrue(os.path.exists(f'{CONFIG_PATH}/presets/device 1/new preset.json'))
-        self.assertEqual(self.window.selected_device, 'device 1')
-        self.assertEqual(self.window.selected_preset, 'new preset')
+        self.assertTrue(os.path.exists(f'{CONFIG_PATH}/presets/Foo Device/new preset.json'))
+        self.assertEqual(self.window.group.name, 'Foo Device')
+        self.assertEqual(self.window.preset_name, 'new preset')
 
         # create another one
         self.window.on_create_preset_clicked(None)
         gtk_iteration()
-        self.assertTrue(os.path.exists(f'{CONFIG_PATH}/presets/device 1/new preset.json'))
-        self.assertTrue(os.path.exists(f'{CONFIG_PATH}/presets/device 1/new preset 2.json'))
-        self.assertEqual(self.window.selected_preset, 'new preset 2')
+        self.assertTrue(os.path.exists(f'{CONFIG_PATH}/presets/Foo Device/new preset.json'))
+        self.assertTrue(os.path.exists(f'{CONFIG_PATH}/presets/Foo Device/new preset 2.json'))
+        self.assertEqual(self.window.preset_name, 'new preset 2')
 
-        self.window.on_select_preset(FakeDropdown('new preset'))
+        self.window.on_select_preset(FakePresetDropdown('new preset'))
         gtk_iteration()
-        self.assertEqual(self.window.selected_preset, 'new preset')
+        self.assertEqual(self.window.preset_name, 'new preset')
 
         self.assertListEqual(
-            sorted(os.listdir(f'{CONFIG_PATH}/presets/device 1')),
+            sorted(os.listdir(f'{CONFIG_PATH}/presets/Foo Device')),
             sorted(['new preset.json', 'new preset 2.json'])
         )
 
         # now try to change the name
         self.window.get('preset_name_input').set_text('abc 123')
         gtk_iteration()
-        self.assertEqual(self.window.selected_preset, 'new preset')
-        self.assertFalse(os.path.exists(f'{CONFIG_PATH}/presets/device 1/abc 123.json'))
+        self.assertEqual(self.window.preset_name, 'new preset')
+        self.assertFalse(os.path.exists(f'{CONFIG_PATH}/presets/Foo Device/abc 123.json'))
         custom_mapping.change(Key(EV_KEY, 10, 1), '1', None)
         self.window.save_preset()
         self.window.on_rename_button_clicked(None)
         gtk_iteration()
-        self.assertEqual(self.window.selected_preset, 'abc 123')
-        self.assertTrue(os.path.exists(f'{CONFIG_PATH}/presets/device 1/abc 123.json'))
+        self.assertEqual(self.window.preset_name, 'abc 123')
+        self.assertTrue(os.path.exists(f'{CONFIG_PATH}/presets/Foo Device/abc 123.json'))
         self.assertListEqual(
             sorted(os.listdir(os.path.join(CONFIG_PATH, 'presets'))),
-            sorted(['device 1'])
+            sorted(['Foo Device'])
         )
         self.assertListEqual(
-            sorted(os.listdir(f'{CONFIG_PATH}/presets/device 1')),
+            sorted(os.listdir(f'{CONFIG_PATH}/presets/Foo Device')),
             sorted(['abc 123.json', 'new preset 2.json'])
         )
 
@@ -1047,16 +1077,16 @@ class TestIntegration(unittest.TestCase):
 
         # this time it should be copied
         self.window.on_copy_preset_clicked(None)
-        self.assertEqual(self.window.selected_preset, 'new preset 2 copy')
+        self.assertEqual(self.window.preset_name, 'new preset 2 copy')
         self.assertEqual(len(key_list.get_children()), 2)
-        self.assertEqual(key_list.get_children()[0].get_character(), 'b')
+        self.assertEqual(key_list.get_children()[0].get_symbol(), 'b')
         self.assertEqual(custom_mapping.get(['foo', 'bar']), 2)
 
         # make another copy
         self.window.on_copy_preset_clicked(None)
-        self.assertEqual(self.window.selected_preset, 'new preset 2 copy 2')
+        self.assertEqual(self.window.preset_name, 'new preset 2 copy 2')
         self.assertEqual(len(key_list.get_children()), 2)
-        self.assertEqual(key_list.get_children()[0].get_character(), 'b')
+        self.assertEqual(key_list.get_children()[0].get_symbol(), 'b')
         self.assertEqual(len(custom_mapping), 1)
         self.assertEqual(custom_mapping.get('foo.bar'), 2)
 
@@ -1072,12 +1102,12 @@ class TestIntegration(unittest.TestCase):
         custom_mapping.changed = False
         
         # select a device that is not a gamepad
-        self.window.on_select_device(FakeDropdown('device 1'))
+        self.window.on_select_device(FakeDeviceDropdown('Foo Device'))
         self.assertFalse(self.window.get('gamepad_config').is_visible())
         self.assertFalse(custom_mapping.changed)
 
         # select a gamepad
-        self.window.on_select_device(FakeDropdown('gamepad'))
+        self.window.on_select_device(FakeDeviceDropdown('gamepad'))
         self.assertTrue(self.window.get('gamepad_config').is_visible())
         self.assertFalse(custom_mapping.changed)
 
@@ -1102,16 +1132,16 @@ class TestIntegration(unittest.TestCase):
         self.assertEqual(pointer_speed, 2 ** joystick_mouse_speed)
 
         # select a device that is not a gamepad again
-        self.window.on_select_device(FakeDropdown('device 1'))
+        self.window.on_select_device(FakeDeviceDropdown('Foo Device'))
         self.assertFalse(self.window.get('gamepad_config').is_visible())
         self.assertFalse(custom_mapping.changed)
 
     def test_wont_start(self):
         error_icon = self.window.get('error_status_icon')
         preset_name = 'foo preset'
-        device_name = 'device 2'
-        self.window.selected_preset = preset_name
-        self.window.selected_device = device_name
+        group_name = 'Bar Device'
+        self.window.preset_name = preset_name
+        self.window.group = groups.find(name=group_name)
 
         # empty
 
@@ -1121,7 +1151,7 @@ class TestIntegration(unittest.TestCase):
         text = self.get_status_text()
         self.assertIn('add keys', text)
         self.assertTrue(error_icon.get_visible())
-        self.assertNotEqual(self.window.dbus.get_state(device_name), RUNNING)
+        self.assertNotEqual(self.window.dbus.get_state(self.window.group.key), RUNNING)
 
         # not empty, but keys are held down
 
@@ -1135,7 +1165,7 @@ class TestIntegration(unittest.TestCase):
         text = self.get_status_text()
         self.assertIn('release', text)
         self.assertTrue(error_icon.get_visible())
-        self.assertNotEqual(self.window.dbus.get_state(device_name), RUNNING)
+        self.assertNotEqual(self.window.dbus.get_state(self.window.group.key), RUNNING)
         self.assertTrue(self.window.unreleased_warn)
         self.assertEqual(self.window.get('apply_system_layout').get_opacity(), 0.4)
 
@@ -1162,7 +1192,7 @@ class TestIntegration(unittest.TestCase):
             text = self.get_status_text()
             self.assertIn('not grabbed', text)
             self.assertTrue(error_icon.get_visible())
-            self.assertNotEqual(self.window.dbus.get_state(device_name), RUNNING)
+            self.assertNotEqual(self.window.dbus.get_state(self.window.group.key), RUNNING)
 
             # for the second try, release the key. that should also work
             send_event_to_reader(new_event(EV_KEY, KEY_A, 0))
@@ -1172,7 +1202,7 @@ class TestIntegration(unittest.TestCase):
         # this time work properly
 
         self.grab_fails = False
-        custom_mapping.save(get_preset_path(device_name, preset_name))
+        custom_mapping.save(get_preset_path(group_name, preset_name))
         self.window.on_apply_preset_clicked(None)
         text = self.get_status_text()
         self.assertIn('Starting injection', text)
@@ -1183,16 +1213,16 @@ class TestIntegration(unittest.TestCase):
         text = self.get_status_text()
         self.assertNotIn('CTRL + DEL', text)  # only shown if btn_left mapped
         self.assertFalse(error_icon.get_visible())
-        self.assertEqual(self.window.dbus.get_state(device_name), RUNNING)
+        self.assertEqual(self.window.dbus.get_state(self.window.group.key), RUNNING)
 
         # because this test managed to reproduce some minor bug:
         self.assertNotIn('mapping', custom_mapping._config)
 
     def test_wont_start_2(self):
         preset_name = 'foo preset'
-        device_name = 'device 2'
-        self.window.selected_preset = preset_name
-        self.window.selected_device = device_name
+        group_name = 'Bar Device'
+        self.window.preset_name = preset_name
+        self.window.group = groups.find(name=group_name)
 
         def wait():
             """Wait for the injector process to finish doing stuff."""
@@ -1216,18 +1246,18 @@ class TestIntegration(unittest.TestCase):
         self.window.on_apply_preset_clicked(None)
         text = self.get_status_text()
         self.assertIn('click', text)
-        self.assertEqual(self.window.dbus.get_state(device_name), UNKNOWN)
+        self.assertEqual(self.window.dbus.get_state(self.window.group.key), UNKNOWN)
 
         # second apply, shows unreleased warning
         self.window.on_apply_preset_clicked(None)
         text = self.get_status_text()
         self.assertIn('release', text)
-        self.assertEqual(self.window.dbus.get_state(device_name), UNKNOWN)
+        self.assertEqual(self.window.dbus.get_state(self.window.group.key), UNKNOWN)
 
         # third apply, overwrites both warnings
         self.window.on_apply_preset_clicked(None)
         wait()
-        self.assertEqual(self.window.dbus.get_state(device_name), RUNNING)
+        self.assertEqual(self.window.dbus.get_state(self.window.group.key), RUNNING)
         text = self.get_status_text()
         # because btn_left is mapped, shows help on how to stop
         # injecting via the keyboard
@@ -1235,17 +1265,17 @@ class TestIntegration(unittest.TestCase):
 
     def test_can_modify_mapping(self):
         preset_name = 'foo preset'
-        device_name = 'device 2'
-        self.window.selected_preset = preset_name
-        self.window.selected_device = device_name
+        group_name = 'Bar Device'
+        self.window.preset_name = preset_name
+        self.window.group = groups.find(name=group_name)
 
-        self.assertNotEqual(self.window.dbus.get_state(device_name), RUNNING)
+        self.assertNotEqual(self.window.dbus.get_state(self.window.group.key), RUNNING)
         self.window.can_modify_mapping()
         text = self.get_status_text()
         self.assertNotIn('Restore Defaults', text)
 
         custom_mapping.change(Key(EV_KEY, KEY_A, 1), 'b')
-        custom_mapping.save(get_preset_path(device_name, preset_name))
+        custom_mapping.save(get_preset_path(group_name, preset_name))
         self.window.on_apply_preset_clicked(None)
 
         # wait for the injector to start
@@ -1255,7 +1285,7 @@ class TestIntegration(unittest.TestCase):
             if 'Starting' not in self.get_status_text():
                 return
 
-        self.assertEqual(self.window.dbus.get_state(device_name), RUNNING)
+        self.assertEqual(self.window.dbus.get_state(self.window.group.key), RUNNING)
 
         # the mapping cannot be changed anymore
         self.window.can_modify_mapping()
@@ -1270,25 +1300,30 @@ class TestIntegration(unittest.TestCase):
         system_mapping.clear()
         system_mapping._set('a', keycode_to)
 
-        push_events('device 2', [
+        push_events('Foo Device 2', [
             new_event(evdev.events.EV_KEY, keycode_from, 1),
             new_event(evdev.events.EV_KEY, keycode_from, 0)
         ])
 
-        custom_mapping.save(get_preset_path('device 2', 'foo preset'))
+        # injecting for group.key will look at paths containing group.name
+        custom_mapping.save(get_preset_path('Foo Device', 'foo preset'))
 
         # use only the manipulated system_mapping
         if os.path.exists(os.path.join(tmp, XMODMAP_FILENAME)):
             os.remove(os.path.join(tmp, XMODMAP_FILENAME))
 
-        # spy on set_config_dir
-        set_config_dir_history = spy(self.window.dbus, 'set_config_dir')
+        # select the second Foo device
+        self.window.group = groups.find(key='Foo Device 2')
 
-        self.window.selected_device = 'device 2'
-        self.window.selected_preset = 'foo preset'
-        self.window.on_apply_preset_clicked(None)
-        self.assertEqual(len(set_config_dir_history), 1)
-        self.assertEqual(set_config_dir_history[0][0], (get_config_path(),))
+        with spy(self.window.dbus, 'set_config_dir') as spy1:
+            self.window.preset_name = 'foo preset'
+
+            with spy(self.window.dbus, 'start_injecting') as spy2:
+                self.window.on_apply_preset_clicked(None)
+                # correctly uses group.key, not group.name
+                spy2.assert_called_once_with('Foo Device 2', 'foo preset')
+
+            spy1.assert_called_once_with(get_config_path())
 
         # the integration tests will cause the injection to be started as
         # processes, as intended. Luckily, recv will block until the events
@@ -1308,8 +1343,15 @@ class TestIntegration(unittest.TestCase):
         self.assertEqual(event.code, keycode_to)
         self.assertEqual(event.value, 0)
 
+        # the key-mapper device will not be shown
+        groups.refresh()
+        self.window.populate_devices()
+        for entry in self.window.device_store:
+            # whichever attribute contains "key-mapper"
+            self.assertNotIn('key-mapper', ''.join(entry))
+
     def test_gamepad_purpose_mouse_and_button(self):
-        self.window.on_select_device(FakeDropdown('gamepad'))
+        self.window.on_select_device(FakeDeviceDropdown('gamepad'))
         self.window.get('right_joystick_purpose').set_active_id(MOUSE)
         self.window.get('left_joystick_purpose').set_active_id(BUTTONS)
         self.window.get('joystick_mouse_speed').set_value(6)
@@ -1358,12 +1400,12 @@ class TestIntegration(unittest.TestCase):
 
         # not all of those events should be processed, since that takes some
         # time due to time.sleep in the fakes and the injection is stopped.
-        push_events('device 2', [new_event(1, keycode_from, 1)] * 100)
+        push_events('Bar Device', [new_event(1, keycode_from, 1)] * 100)
 
-        custom_mapping.save(get_preset_path('device 2', 'foo preset'))
+        custom_mapping.save(get_preset_path('Bar Device', 'foo preset'))
 
-        self.window.selected_device = 'device 2'
-        self.window.selected_preset = 'foo preset'
+        self.window.group = groups.find(name='Bar Device')
+        self.window.preset_name = 'foo preset'
         self.window.on_apply_preset_clicked(None)
 
         pipe = uinput_write_history_pipe[0]
@@ -1394,26 +1436,25 @@ class TestIntegration(unittest.TestCase):
         self.window.get('preset_name_input').set_text('asdf')
         self.window.on_rename_button_clicked(None)
         gtk_iteration()
-        self.assertEqual(self.window.selected_preset, 'asdf')
+        self.assertEqual(self.window.preset_name, 'asdf')
         self.assertEqual(len(custom_mapping), 1)
         self.window.save_preset()
-        self.assertTrue(os.path.exists(get_preset_path('device 1', 'asdf')))
+        self.assertTrue(os.path.exists(get_preset_path('Foo Device', 'asdf')))
 
         with patch.object(self.window, 'show_confirm_delete', lambda: Gtk.ResponseType.CANCEL):
             self.window.on_delete_preset_clicked(None)
-            self.assertTrue(os.path.exists(get_preset_path('device 1', 'asdf')))
-            self.assertEqual(self.window.selected_preset, 'asdf')
-            self.assertEqual(self.window.selected_device, 'device 1')
+            self.assertTrue(os.path.exists(get_preset_path('Foo Device', 'asdf')))
+            self.assertEqual(self.window.preset_name, 'asdf')
+            self.assertEqual(self.window.group.name, 'Foo Device')
 
         with patch.object(self.window, 'show_confirm_delete', lambda: Gtk.ResponseType.ACCEPT):
             self.window.on_delete_preset_clicked(None)
-            self.assertFalse(os.path.exists(get_preset_path('device 1', 'asdf')))
-            self.assertEqual(self.window.selected_preset, 'new preset')
-            self.assertEqual(self.window.selected_device, 'device 1')
+            self.assertFalse(os.path.exists(get_preset_path('Foo Device', 'asdf')))
+            self.assertEqual(self.window.preset_name, 'new preset')
+            self.assertEqual(self.window.group.name, 'Foo Device')
 
     def test_populate_devices(self):
         preset_selection = self.window.get('preset_selection')
-        device_selection = self.window.get('device_selection')
 
         # create two presets
         self.window.get('preset_name_input').set_text('preset 1')
@@ -1429,35 +1470,36 @@ class TestIntegration(unittest.TestCase):
 
         # select the older one
         preset_selection.set_active_id('preset 1')
-        self.assertEqual(self.window.selected_preset, 'preset 1')
+        self.assertEqual(self.window.preset_name, 'preset 1')
 
         # add a device that doesn't exist to the dropdown
-        self.window.device_store.insert(0, [None, 'foo'])
+        unknown_key = 'key-1234'
+        self.window.device_store.insert(0, [unknown_key, None, 'foo'])
 
-        # now the newest preset should be selected and the non-existing
-        # device removed
         self.window.populate_devices()
-        self.assertEqual(self.window.selected_preset, 'preset 2')
-        # Idk how I can check if foo is not in the list except for this way:
-        device_selection.set_active_id('foo')
-        self.assertEqual(device_selection.get_active_id(), 'device 1')
+        # the newest preset should be selected
+        self.assertEqual(self.window.preset_name, 'preset 2')
 
         # the list contains correct entries
+        # and the non-existing entry should be removed
         entries = [
-            (entry[0], entry[1]) for entry in
+            tuple(entry) for entry in
             self.window.device_store
         ]
-        self.assertIn(('input-mouse', 'device 1'), entries)
-        self.assertIn(('input-keyboard', 'device 2'), entries)
-        self.assertIn(('input-gaming', 'gamepad'), entries)
+        keys = [entry[0] for entry in self.window.device_store]
+        self.assertNotIn(unknown_key, keys)
+        self.assertIn('Foo Device', keys)
+        self.assertIn(('Foo Device', 'input-keyboard', 'Foo Device'), entries)
+        self.assertIn(('Foo Device 2', 'input-mouse', 'Foo Device 2'), entries)
+        self.assertIn(('Bar Device', 'input-keyboard', 'Bar Device'), entries)
+        self.assertIn(('gamepad', 'input-gaming', 'gamepad'), entries)
 
         # it won't crash due to "list index out of range"
         # when `types` is an empty list. Won't show an icon
-        devices = get_devices()
-        devices['device 1']['types'] = []
+        groups.find(key='Foo Device 2').types = []
         self.window.populate_devices()
-        self.assertIn((None, 'device 1'), [
-            (entry[0], entry[1]) for entry in
+        self.assertIn(('Foo Device 2', None, 'Foo Device 2'), [
+            tuple(entry) for entry in
             self.window.device_store
         ])
 
@@ -1468,7 +1510,7 @@ class TestIntegration(unittest.TestCase):
         for i in range(5):
             broken = Row(window=self.window, delete_callback=lambda: None)
             broken.set_new_key(Key(1, i, 1))
-            broken.character_input.set_text('a')
+            broken.symbol_input.set_text('a')
             key_list.insert(broken, -1)
         custom_mapping.empty()
 
@@ -1484,12 +1526,38 @@ class TestIntegration(unittest.TestCase):
         self.assertEqual(num_rows_after, num_rows_before + 1)
 
         rows = key_list.get_children()
-        self.assertEqual(rows[0].get_character(), 'a')
-        self.assertEqual(rows[1].get_character(), 'a')
-        self.assertEqual(rows[2].get_character(), 'a')
-        self.assertEqual(rows[3].get_character(), 'a')
-        self.assertEqual(rows[4].get_character(), 'a')
-        self.assertEqual(rows[5].get_character(), None)
+        self.assertEqual(rows[0].get_symbol(), 'a')
+        self.assertEqual(rows[1].get_symbol(), 'a')
+        self.assertEqual(rows[2].get_symbol(), 'a')
+        self.assertEqual(rows[3].get_symbol(), 'a')
+        self.assertEqual(rows[4].get_symbol(), 'a')
+        self.assertEqual(rows[5].get_symbol(), None)
+
+    def test_shared_presets(self):
+        # devices with the same name (but different key because the key is
+        # unique) share the same presets
+        key_list = self.window.get('key_list')
+
+        # 1. create a preset
+        self.window.on_select_device(FakeDeviceDropdown('Foo Device 2'))
+        self.window.on_create_preset_clicked(None)
+        self.change_empty_row(Key(3, 2, 1), 'qux')
+        self.window.get('preset_name_input').set_text('asdf')
+        self.window.on_rename_button_clicked(None)
+        self.window.save_preset()
+        self.assertIn('asdf.json', os.listdir(get_preset_path('Foo Device')))
+
+        # 2. switch to the other device, there should be no preset named asdf
+        self.window.on_select_device(FakeDeviceDropdown('Bar Device'))
+        self.assertEqual(self.window.preset_name, 'new preset')
+        self.assertNotIn('asdf.json', os.listdir(get_preset_path('Bar Device')))
+        self.assertIsNone(key_list.get_children()[0].get_symbol(), None)
+
+        # 3. switch to the device with the same name
+        self.window.on_select_device(FakeDeviceDropdown('Foo Device'))
+        # the newest preset is asdf, it should be automatically selected
+        self.assertEqual(self.window.preset_name, 'asdf')
+        self.assertEqual(key_list.get_children()[0].get_symbol(), 'qux')
 
 
 if __name__ == "__main__":
