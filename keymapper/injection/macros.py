@@ -46,6 +46,10 @@ from keymapper.logger import logger
 from keymapper.state import system_mapping
 
 
+# process wide information about variables set by macros
+macro_variables = {}
+
+
 def is_this_a_macro(output):
     """Figure out if this is a macro."""
     if not isinstance(output, str):
@@ -321,6 +325,8 @@ class _Macro:
         child_macro.event(EV_REL, code, value)
         self.hold(child_macro)
 
+        return self  # TODO test
+
     def wheel(self, direction, speed):
         """Shortcut for h(e(...))."""
         code, value = {
@@ -333,6 +339,8 @@ class _Macro:
         child_macro.event(EV_REL, code, value)
         child_macro.wait(100 / speed)
         self.hold(child_macro)
+
+        return self  # TODO test
 
     def wait(self, sleeptime):
         """Wait time in milliseconds."""
@@ -350,6 +358,42 @@ class _Macro:
             await asyncio.sleep(sleeptime)
 
         self.tasks.append(sleep)
+        return self
+
+    def set(self, variable, value):
+        """Set a variable to a certain value."""
+        # TODO test
+        async def set(_):
+            logger.debug('"%s" set to "%s"', variable, value)
+            macro_variables[variable] = value
+
+        self.tasks.append(set)
+        return self
+
+    def ifeq(self, variable, value, then, otherwise=None):
+        """Perform an equality check.
+
+        Parameters
+        ----------
+        variable : string
+        value : string | number
+        then : _Macro
+        otherwise : _Macro
+        """
+        # TODO test
+        async def ifeq(handler):
+            logger.debug('"%s" is "%s"', variable, macro_variables[variable])
+            if macro_variables[variable] == value:
+                await then.run(handler)
+            elif otherwise is not None:
+                await otherwise.run(handler)
+
+        self.tasks.append(ifeq)
+
+        self.child_macros.append(then)
+        if otherwise is not None:
+            self.child_macros.append(otherwise)
+
         return self
 
 
@@ -457,7 +501,9 @@ def _parse_recurse(macro, mapping, macro_instance=None, depth=0):
             'w': (macro_instance.wait, 1, 1),
             'h': (macro_instance.hold, 0, 1),
             'mouse': (macro_instance.mouse, 2, 2),
-            'wheel': (macro_instance.wheel, 2, 2)
+            'wheel': (macro_instance.wheel, 2, 2),
+            'ifeq': (macro_instance.ifeq, 3, 4),
+            'set': (macro_instance.set, 2, 2),
         }
 
         function = functions.get(call)
