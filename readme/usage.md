@@ -69,7 +69,7 @@ names can be chained using ` + `.
 ## Macros
 
 For more advanced examples and more explanation of the syntax,
-see [readme/macros.md](readme/macros.md)
+see [readme/macros.md](macros.md)
 
 It is possible to write timed macros into the center column:
 - `r` repeats the execution of the second parameter
