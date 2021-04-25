@@ -22,6 +22,8 @@
 import time
 import unittest
 import asyncio
+import multiprocessing
+import sys
 
 from evdev.ecodes import EV_REL, EV_KEY, REL_Y, REL_X, REL_WHEEL, REL_HWHEEL
 
@@ -202,20 +204,20 @@ class TestMacros(unittest.TestCase):
         self.assertIsNone(error)
         error = parse('m(asdf, k(a))', self.mapping, return_errors=True)
         self.assertIsNotNone(error)
-        error = parse('h(a)', self.mapping, return_errors=True)
-        self.assertIn('macro', error)
-        self.assertIn('a', error)
         error = parse('foo(a)', self.mapping, return_errors=True)
         self.assertIn('unknown', error.lower())
         self.assertIn('foo', error)
 
     def test_hold(self):
+        # repeats k(a) as long as the key is held down
         macro = parse('k(1).h(k(a)).k(3)', self.mapping)
         self.assertSetEqual(macro.get_capabilities()[EV_KEY], {
             system_mapping.get('1'),
             system_mapping.get('a'),
             system_mapping.get('3')
         })
+
+        """down"""
 
         macro.press_key()
         self.loop.run_until_complete(asyncio.sleep(0.05))
@@ -226,6 +228,8 @@ class TestMacros(unittest.TestCase):
         self.loop.run_until_complete(asyncio.sleep(0.2))
         self.assertTrue(macro.is_holding())
         self.assertGreater(len(self.result), 2)
+
+        """up"""
 
         macro.release_key()
         self.loop.run_until_complete(asyncio.sleep(0.05))
@@ -266,6 +270,8 @@ class TestMacros(unittest.TestCase):
             system_mapping.get('3')
         })
 
+        """down"""
+
         macro.press_key()
         asyncio.ensure_future(macro.run(self.handler))
         self.loop.run_until_complete(asyncio.sleep(0.1))
@@ -274,6 +280,8 @@ class TestMacros(unittest.TestCase):
         self.loop.run_until_complete(asyncio.sleep(0.1))
         # doesn't do fancy stuff, is blocking until the release
         self.assertEqual(len(self.result), 2)
+
+        """up"""
 
         macro.release_key()
         self.loop.run_until_complete(asyncio.sleep(0.05))
@@ -303,6 +311,37 @@ class TestMacros(unittest.TestCase):
         self.assertEqual(self.result[-1], (EV_KEY, system_mapping.get('3'), 0))
 
         self.assertEqual(len(macro.child_macros), 0)
+
+    def test_hold_down(self):
+        # writes down and waits for the up event until the key is released
+        macro = parse('h(a)', self.mapping)
+        self.assertSetEqual(macro.get_capabilities()[EV_KEY], {
+            system_mapping.get('a'),
+        })
+        self.assertEqual(len(macro.child_macros), 0)
+
+        """down"""
+
+        macro.press_key()
+        self.loop.run_until_complete(asyncio.sleep(0.05))
+        self.assertTrue(macro.is_holding())
+
+        asyncio.ensure_future(macro.run(self.handler))
+        macro.press_key()  # redundantly calling doesn't break anything
+        self.loop.run_until_complete(asyncio.sleep(0.2))
+        self.assertTrue(macro.is_holding())
+        self.assertEqual(len(self.result), 1)
+        self.assertEqual(self.result[0], (EV_KEY, system_mapping.get('a'), 1))
+
+        """up"""
+
+        macro.release_key()
+        self.loop.run_until_complete(asyncio.sleep(0.05))
+        self.assertFalse(macro.is_holding())
+
+        self.assertEqual(len(self.result), 2)
+        self.assertEqual(self.result[0], (EV_KEY, system_mapping.get('a'), 1))
+        self.assertEqual(self.result[1], (EV_KEY, system_mapping.get('a'), 0))
 
     def test_2(self):
         start = time.time()
@@ -517,6 +556,73 @@ class TestMacros(unittest.TestCase):
         self.loop.run_until_complete(macro.run(self.handler))
         self.assertListEqual(self.result, [(5421, code, 154)])
         self.assertEqual(len(macro.child_macros), 1)
+
+    def test_ifeq_runs(self):
+        macro = parse('set(foo, 2).ifeq(foo, 2, k(a), k(b))', self.mapping)
+        code_a = system_mapping.get('a')
+        code_b = system_mapping.get('b')
+        self.assertSetEqual(macro.get_capabilities()[EV_KEY], {code_a, code_b})
+        self.assertSetEqual(macro.get_capabilities()[EV_REL], set())
+
+        self.loop.run_until_complete(macro.run(self.handler))
+        self.assertListEqual(self.result, [
+            (EV_KEY, code_a, 1),
+            (EV_KEY, code_a, 0)
+        ])
+        self.assertEqual(len(macro.child_macros), 2)
+
+    def test_ifeq_unknown_key(self):
+        macro = parse('ifeq(qux, 2, k(a), k(b))', self.mapping)
+        code_a = system_mapping.get('a')
+        code_b = system_mapping.get('b')
+        self.assertSetEqual(macro.get_capabilities()[EV_KEY], {code_a, code_b})
+        self.assertSetEqual(macro.get_capabilities()[EV_REL], set())
+
+        self.loop.run_until_complete(macro.run(self.handler))
+        self.assertListEqual(self.result, [
+            (EV_KEY, code_b, 1),
+            (EV_KEY, code_b, 0)
+        ])
+        self.assertEqual(len(macro.child_macros), 2)
+
+    def test_ifeq_runs_multiprocessed(self):
+        macro = parse('ifeq(foo, 3, k(a), k(b))', self.mapping)
+        code_a = system_mapping.get('a')
+        code_b = system_mapping.get('b')
+
+        self.assertSetEqual(macro.get_capabilities()[EV_KEY], {code_a, code_b})
+        self.assertSetEqual(macro.get_capabilities()[EV_REL], set())
+        self.assertEqual(len(macro.child_macros), 2)
+
+        def set_foo(value):
+            # will write foo = 2 into the shared dictionary of macros
+            macro_2 = parse(f'set(foo, {value})', self.mapping)
+            loop = asyncio.new_event_loop()
+            loop.run_until_complete(macro_2.run(lambda: None))
+
+        """foo is not 3"""
+
+        process = multiprocessing.Process(target=set_foo, args=(2,))
+        process.start()
+        process.join()
+        self.loop.run_until_complete(macro.run(self.handler))
+        self.assertListEqual(self.result, [
+            (EV_KEY, code_b, 1),
+            (EV_KEY, code_b, 0)
+        ])
+
+        """foo is 3"""
+
+        process = multiprocessing.Process(target=set_foo, args=(3,))
+        process.start()
+        process.join()
+        self.loop.run_until_complete(macro.run(self.handler))
+        self.assertListEqual(self.result, [
+            (EV_KEY, code_b, 1),
+            (EV_KEY, code_b, 0),
+            (EV_KEY, code_a, 1),
+            (EV_KEY, code_a, 0)
+        ])
 
     def test_count_brackets(self):
         self.assertEqual(_count_brackets(''), 0)

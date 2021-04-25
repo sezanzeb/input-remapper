@@ -30,7 +30,7 @@ import evdev
 from evdev.ecodes import EV_KEY, EV_REL
 
 from keymapper.logger import logger
-from keymapper.groups import classify, GAMEPAD, groups
+from keymapper.groups import classify, GAMEPAD
 from keymapper import utils
 from keymapper.mapping import DISABLE_CODE
 from keymapper.injection.keycode_mapper import KeycodeMapper

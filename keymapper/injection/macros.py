@@ -21,7 +21,7 @@
 
 """Executes more complex patterns of keystrokes.
 
-To keep it short on the UI, the available functions are one-letter long.
+To keep it short on the UI, basic functions are one letter long.
 
 The outermost macro (in the examples below the one created by 'r',
 'r' and 'w') will be started, which triggers a chain reaction to execute
@@ -37,13 +37,83 @@ w(1000).m(Shift_L, r(2, k(a))).w(10).k(b): <1s> A A <10ms> b
 
 import asyncio
 import re
+import traceback
 import copy
+import multiprocessing
+import atexit
+import select
 
 from evdev.ecodes import ecodes, EV_KEY, EV_REL, REL_X, REL_Y, REL_WHEEL, \
     REL_HWHEEL
 
 from keymapper.logger import logger
 from keymapper.state import system_mapping
+
+
+class SharedDict:
+    """Share a dictionary across processes."""
+    # because unittests terminate all child processes in cleanup I can't use
+    # multiprocessing.Manager
+    def __init__(self):
+        """Create a shared dictionary."""
+        super().__init__()
+        self.pipe = multiprocessing.Pipe()
+        self.process = None
+        atexit.register(self._stop)
+        self._start()
+
+    def _start(self):
+        """Ensure the process to manage the dictionary is running."""
+        if self.process is not None and self.process.is_alive():
+            return
+
+        # if the manager has already been running in the past but stopped
+        # for some reason, the dictionary contents are lost
+        self.process = multiprocessing.Process(target=self.manage)
+        self.process.start()
+
+    def manage(self):
+        """Manage the dictionary, handle read and write requests."""
+        shared_dict = dict()
+        while True:
+            message = self.pipe[0].recv()
+            logger.spam('SharedDict got %s', message)
+
+            if message[0] == 'stop':
+                return
+
+            if message[0] == 'set':
+                shared_dict[message[1]] = message[2]
+
+            if message[0] == 'get':
+                self.pipe[0].send(shared_dict.get(message[1]))
+
+    def _stop(self):
+        """Stop the managing process."""
+        self.pipe[1].send(('stop',))
+
+    def get(self, key):
+        """Get a value from the dictionary."""
+        return self.__getitem__(key)
+
+    def __setitem__(self, key, value):
+        self.pipe[1].send(('set', key, value))
+
+    def __getitem__(self, key):
+        self.pipe[1].send(('get', key))
+
+        # to avoid blocking forever if something goes wrong
+        select.select([self.pipe[1]], [], [], 0.1)
+        if self.pipe[1].poll():
+            return self.pipe[1].recv()
+
+        return None
+
+    def __del__(self):
+        self._stop()
+
+
+macro_variables = SharedDict()
 
 
 def is_this_a_macro(output):
@@ -61,8 +131,14 @@ def is_this_a_macro(output):
 class _Macro:
     """Supports chaining and preparing actions.
 
-    Calling functions on _Macro does not inject anything yet, it means that
-    once .run is used it will be executed along with all other queued tasks.
+    Calling functions like keycode on _Macro doesn't inject any events yet,
+    it means that once .run is used it will be executed along with all other
+    queued tasks.
+
+    Those functions need to construct an asyncio coroutine and append it to
+    self.tasks. This makes parameter checking during compile time possible.
+    Coroutines receive a handler as argument, which is a function that can be
+    used to inject input events into the system.
     """
     def __init__(self, code, mapping):
         """Create a macro instance that can be populated with tasks.
@@ -74,9 +150,12 @@ class _Macro:
         mapping : Mapping
             The preset object, needed for some config stuff
         """
-        self.tasks = []
         self.code = code
         self.mapping = mapping
+
+        # List of coroutines that will be called sequentially.
+        # This is the compiled code
+        self.tasks = []
 
         # is a lock so that h() can be realized
         self._holding_lock = asyncio.Lock()
@@ -90,6 +169,8 @@ class _Macro:
         }
 
         self.child_macros = []
+        
+        self.keystroke_sleep_ms = None
 
     def is_holding(self):
         """Check if the macro is waiting for a key to be released."""
@@ -120,6 +201,8 @@ class _Macro:
         if self.running:
             logger.error('Tried to run already running macro "%s"', self.code)
             return
+        
+        self.keystroke_sleep_ms = self.mapping.get('macros.keystroke_sleep_ms')
 
         self.running = True
         for task in self.tasks:
@@ -154,30 +237,42 @@ class _Macro:
 
     def hold(self, macro=None):
         """Loops the execution until key release."""
+        async def hold_block(_):
+            # wait until the key is released. Only then it will be
+            # able to acquire the lock. Release it right after so that
+            # it can be acquired by press_key again.
+            try:
+                await self._holding_lock.acquire()
+                self._holding_lock.release()
+            except RuntimeError as error:
+                # The specific bug in question has been fixed already,
+                # but lets keep this check here for the future. Not
+                # catching errors here causes the macro to never be
+                # released
+                logger.error('Failed h(): %s', error)
+
         if macro is None:
             # no parameters: block until released
-            async def task(_):
-                # wait until the key is released. Only then it will be
-                # able to acquire the lock. Release it right after so that
-                # it can be acquired by press_key again.
-                try:
-                    await self._holding_lock.acquire()
-                    self._holding_lock.release()
-                except RuntimeError as error:
-                    # The specific bug in question has been fixed already,
-                    # but lets keep this check here for the future. Not
-                    # catching errors here causes the macro to never be
-                    # released
-                    logger.error('Failed h(): %s', error)
+            self.tasks.append(hold_block)
+            return
 
-            self.tasks.append(task)
-        else:
-            if not isinstance(macro, _Macro):
-                raise ValueError(
-                    'Expected the param for h (hold) to be '
-                    f'a macro (like k(a)), but got "{macro}"'
-                )
+        if not isinstance(macro, _Macro):
+            # if macro is a key name, hold down the key while the actual
+            # keyboard key is held down
+            symbol = str(macro)
+            code = system_mapping.get(symbol)
 
+            if code is None:
+                raise KeyError(f'Unknown key "{symbol}"')
+
+            self.capabilities[EV_KEY].add(code)
+            self.tasks.append(lambda handler: handler(EV_KEY, code, 1))
+            self.tasks.append(hold_block)
+            self.tasks.append(lambda handler: handler(EV_KEY, code, 0))
+            return
+
+        if isinstance(macro, _Macro):
+            # repeat the macro forever while the key is held down
             async def task(handler):
                 while self.is_holding():
                     # run the child macro completely to avoid
@@ -186,8 +281,6 @@ class _Macro:
 
             self.tasks.append(task)
             self.child_macros.append(macro)
-
-        return self
 
     def modify(self, modifier, macro):
         """Do stuff while a modifier is activated.
@@ -214,19 +307,18 @@ class _Macro:
         self.child_macros.append(macro)
 
         self.tasks.append(lambda handler: handler(EV_KEY, code, 1))
-        self.add_keycode_pause()
+        self.tasks.append(self._keycode_pause)
         self.tasks.append(macro.run)
-        self.add_keycode_pause()
+        self.tasks.append(self._keycode_pause)
         self.tasks.append(lambda handler: handler(EV_KEY, code, 0))
-        self.add_keycode_pause()
-        return self
+        self.tasks.append(self._keycode_pause)
 
     def repeat(self, repeats, macro):
         """Repeat actions.
 
         Parameters
         ----------
-        repeats : int
+        repeats : int or _Macro
         macro : _Macro
         """
         if not isinstance(macro, _Macro):
@@ -243,21 +335,16 @@ class _Macro:
                 f'a number, but got "{repeats}"'
             ) from error
 
-        for _ in range(repeats):
-            self.tasks.append(macro.run)
+        async def repeat(handler):
+            for _ in range(repeats):
+                await macro.run(handler)
 
+        self.tasks.append(repeat)
         self.child_macros.append(macro)
 
-        return self
-
-    def add_keycode_pause(self):
+    async def _keycode_pause(self, _=None):
         """To add a pause between keystrokes."""
-        sleeptime = self.mapping.get('macros.keystroke_sleep_ms') / 1000
-
-        async def sleep(_):
-            await asyncio.sleep(sleeptime)
-
-        self.tasks.append(sleep)
+        await asyncio.sleep(self.keystroke_sleep_ms / 1000)
 
     def keycode(self, symbol):
         """Write the symbol."""
@@ -269,11 +356,13 @@ class _Macro:
 
         self.capabilities[EV_KEY].add(code)
 
-        self.tasks.append(lambda handler: handler(EV_KEY, code, 1))
-        self.add_keycode_pause()
-        self.tasks.append(lambda handler: handler(EV_KEY, code, 0))
-        self.add_keycode_pause()
-        return self
+        async def keycode(handler):
+            handler(EV_KEY, code, 1)
+            await self._keycode_pause()
+            handler(EV_KEY, code, 0)
+            await self._keycode_pause()
+
+        self.tasks.append(keycode)
 
     def event(self, ev_type, code, value):
         """Write any event.
@@ -304,9 +393,7 @@ class _Macro:
         self.capabilities[ev_type].add(code)
 
         self.tasks.append(lambda handler: handler(ev_type, code, value))
-        self.add_keycode_pause()
-
-        return self
+        self.tasks.append(self._keycode_pause)
 
     def mouse(self, direction, speed):
         """Shortcut for h(e(...))."""
@@ -350,7 +437,50 @@ class _Macro:
             await asyncio.sleep(sleeptime)
 
         self.tasks.append(sleep)
-        return self
+
+    def set(self, variable, value):
+        """Set a variable to a certain value."""
+        async def set(_):
+            logger.debug('"%s" set to "%s"', variable, value)
+            macro_variables[variable] = value
+
+        self.tasks.append(set)
+
+    def ifeq(self, variable, value, then, otherwise=None):
+        """Perform an equality check.
+
+        Parameters
+        ----------
+        variable : string
+        value : string | number
+        then : any
+        otherwise : any
+        """
+        if not isinstance(then, _Macro):
+            raise ValueError(
+                'Expected the third param for ifeq to be '
+                f'a macro (like k(a)), but got "{then}"'
+            )
+
+        if otherwise and not isinstance(otherwise, _Macro):
+            raise ValueError(
+                'Expected the fourth param for ifeq to be '
+                f'a macro (like k(a)), but got "{otherwise}"'
+            )
+
+        async def ifeq(handler):
+            set_value = macro_variables.get(variable)
+            logger.debug('"%s" is "%s"', variable, set_value)
+            if set_value == value:
+                await then.run(handler)
+            elif otherwise is not None:
+                await otherwise.run(handler)
+
+        self.child_macros.append(then)
+        if isinstance(otherwise, _Macro):
+            self.child_macros.append(otherwise)
+
+        self.tasks.append(ifeq)
 
 
 def _extract_params(inner):
@@ -423,12 +553,7 @@ def _parse_recurse(macro, mapping, macro_instance=None, depth=0):
         A macro instance to add tasks to
     depth : int
     """
-    # to anyone who knows better about compilers and thinks this is horrible:
-    # please make a pull request. Because it probably is.
-    # not using eval for security reasons ofc. And this syntax doesn't need
-    # string quotes for its params.
-    # If this gets more complicated than that I'd rather make a macro
-    # editor GUI and store them as json.
+    # not using eval for security reasons
     assert isinstance(macro, str)
     assert isinstance(depth, int)
 
@@ -457,7 +582,9 @@ def _parse_recurse(macro, mapping, macro_instance=None, depth=0):
             'w': (macro_instance.wait, 1, 1),
             'h': (macro_instance.hold, 0, 1),
             'mouse': (macro_instance.mouse, 2, 2),
-            'wheel': (macro_instance.wheel, 2, 2)
+            'wheel': (macro_instance.wheel, 2, 2),
+            'ifeq': (macro_instance.ifeq, 3, 4),
+            'set': (macro_instance.set, 2, 2),
         }
 
         function = functions.get(call)
@@ -582,4 +709,6 @@ def parse(macro, mapping, return_errors=False):
         return macro_object if not return_errors else None
     except Exception as error:
         logger.error('Failed to parse macro "%s": %s', macro, error.__repr__())
+        # print the traceback in case this is a bug of key-mapper
+        logger.debug(''.join(traceback.format_tb(error.__traceback__)).strip())
         return str(error) if return_errors else None
