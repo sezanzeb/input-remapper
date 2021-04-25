@@ -1,10 +1,44 @@
 # Macros
 
-This document contains examples for macros with explanations. You are very
-welcome to contribute your examples as well if you have a special use-case
-via a pull-request.
+You are very welcome to contribute your examples as well if you have a 
+pecial use-case via a pull-request.
 
-## The syntax
+## Overview
+
+It is possible to write timed macros into the center column:
+- `r` repeats the execution of the second parameter
+- `w` waits in milliseconds
+- `k` writes a single keystroke
+- `e` writes an event
+- `m` holds a modifier while executing the second parameter
+- `h` executes the parameter as long as the key is pressed down
+- `.` executes two actions behind each other
+- `mouse` and `wheel` take a direction like "up" and speed as parameters
+- `set` set a variable to a value, visible to all injection processes
+- `ifeq` if that variable is a certain value do something
+
+The names for the most common functions are kept short, to make it easy to
+write them into the constrained space.
+
+Examples:
+- `k(1).k(2)` 1, 2
+- `r(3, k(a).w(500))` a, a, a with 500ms pause
+- `m(Control_L, k(a).k(x))` CTRL + a, CTRL + x
+- `k(1).h(k(2)).k(3)` writes 1 2 2 ... 2 2 3 while the key is pressed
+- `e(EV_REL, REL_X, 10)` moves the mouse cursor 10px to the right
+- `mouse(right, 4)` which keeps moving the mouse while pressed.
+  Made out of `h(e(...))` internally
+- `wheel(down, 1)` keeps scrolling down while held
+- `set(foo, 1)` set "foo" to 1
+- `ifeq(foo, 1, k(x), k(y))` if "foo" is 1, write x, otherwise y
+
+Syntax errors are shown in the UI on save. Each `k` function adds a short
+delay of 10ms between key-down, key-up and at the end. See
+[usage.md](usage.md#configuration-files) for more info.
+
+Bear in mind that anti-cheat software might detect macros in games.
+
+## Syntax
 
 The system is very trivial and basic, lots of features known from other
 scripting languages are missing.
