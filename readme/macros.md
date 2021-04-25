@@ -65,9 +65,12 @@ when the macro gets compiled.
 
 ## Combinations spanning multiple devices
 
-**Keyboard** `space`: `set(foo, bar).h(space).set(foo, 0)`
+For regular combinations on only single devices it is not required to
+configure macros. See (usage.md)[usage.md].
 
-**Mouse** `middle`: `ifeq(foo, bar, h(a), h(BTN_MIDDLE))`
+**Keyboard** `space` `set(foo, bar).h(space).set(foo, 0)`
+
+**Mouse** `middle` `ifeq(foo, bar, h(a), h(BTN_MIDDLE))`
 
 Apply both presets. If you press space on your keyboard, it will write a
 space exactly like it used to. If you hold down space and press the middle
