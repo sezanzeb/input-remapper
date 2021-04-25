@@ -517,6 +517,7 @@ from keymapper.gui.reader import reader
 from keymapper.groups import groups
 from keymapper.state import system_mapping, custom_mapping
 from keymapper.paths import get_config_path
+from keymapper.injection.macros import macro_variables
 from keymapper.injection.keycode_mapper import active_macros, unreleased
 
 # no need for a high number in tests
@@ -596,7 +597,14 @@ def quick_cleanup(log=True):
         if device not in environ_copy:
             del os.environ[device]
 
+    if not macro_variables.process.is_alive():
+        raise AssertionError('the SharedDict manager is not running anymore')
+
+    macro_variables._stop()
+
     join_children()
+
+    macro_variables._start()
 
     reader.clear()
 

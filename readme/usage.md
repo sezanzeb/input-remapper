@@ -68,6 +68,9 @@ names can be chained using ` + `.
 
 ## Macros
 
+For more advanced examples and more explanation of the syntax,
+see [readme/macros.md](readme/macros.md)
+
 It is possible to write timed macros into the center column:
 - `r` repeats the execution of the second parameter
 - `w` waits in milliseconds
@@ -77,6 +80,11 @@ It is possible to write timed macros into the center column:
 - `h` executes the parameter as long as the key is pressed down
 - `.` executes two actions behind each other
 - `mouse` and `wheel` take a direction like "up" and speed as parameters
+- `set` set a variable to a value, visible to all injection processes
+- `ifeq` if that variable is a certain value do something
+
+The names for the most common functions are kept short, to make it easy to
+write them into the constrained space.
 
 Examples:
 - `k(1).k(2)` 1, 2
@@ -87,6 +95,8 @@ Examples:
 - `mouse(right, 4)` which keeps moving the mouse while pressed.
   Made out of `h(e(...))` internally
 - `wheel(down, 1)` keeps scrolling down while held
+- `set(foo, 1)` set "foo" to 1
+- `ifeq(foo, 1, k(x), k(y))` if "foo" is 1, write x, otherwise y
 
 Syntax errors are shown in the UI on save. Each `k` function adds a short
 delay of 10ms between key-down, key-up and at the end. See
@@ -132,9 +142,6 @@ Wayland than with X11 for me.
 
 # Advanced
 
-If you don't have a graphical user interface, you'll need to edit the
-configuration files.
-
 ## How to use unavailable symbols
 
 For example Japanese letters. Only works in X11.
@@ -165,9 +172,13 @@ to write "ヤ" now when pressing the key.
 
 ## Configuration Files
 
-The default configuration is stored at `~/.config/key-mapper/config.json`.
-The current default configuration as of 0.8.1 looks like, with
-an example autoload entry:
+If you don't have a graphical user interface, you'll need to edit the
+configuration files.
+
+The default configuration is stored at `~/.config/key-mapper/config.json`,
+which doesn't include any mappings, but rather other parameters that
+are interesting for injections. The current default configuration as of 0.8.1
+looks like, with  an example autoload entry:
 
 ```json
 {
