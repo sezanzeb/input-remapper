@@ -78,14 +78,9 @@ middle button of your mouse it behaves like a regular middle mouse button.
 
 `h(space)` makes your key work exactly like if it was mapped to "space".
 It will inject a key-down event if you press it, does nothing as long you
-hold your key down, and inject a key-up event after releasing.
-
+hold your key down, and injects a key-up event after releasing.
 `set(foo, 1).set(foo, 0)` sets "foo" to 1 and then sets "foo" to 0.
 `set` and `ifeq` work on shared memory, so all injections will see your
-variables.
-
-Combine both to get a key that works like a normal key, but that also
-works as a modifier for other keys of other devices
-
-`ifeq(foo, bar, ..., ...)` runs the first param if foo is "bar", or the second
-one if foo is not "bar".
+variables. Combine both to get a key that works like a normal key, but that also
+works as a modifier for other keys of other devices `ifeq(foo, bar, ..., ...)`
+runs the first param if foo is "bar", or the second one if foo is not "bar".
