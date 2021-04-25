@@ -518,6 +518,65 @@ class TestMacros(unittest.TestCase):
         self.assertListEqual(self.result, [(5421, code, 154)])
         self.assertEqual(len(macro.child_macros), 1)
 
+    def test_set_get_returns(self):
+        macro = parse('set(foo, 2).r(get(foo), k(a))', self.mapping)
+        code = system_mapping.get('a')
+        self.assertSetEqual(macro.get_capabilities()[EV_KEY], {code})
+        self.assertSetEqual(macro.get_capabilities()[EV_REL], set())
+
+        self.loop.run_until_complete(macro.run(self.handler))
+        self.assertListEqual(self.result, [
+            (EV_KEY, code, 1),
+            (EV_KEY, code, 0)
+        ] * 2)
+        self.assertEqual(len(macro.child_macros), 1)
+
+    def test_ifeq_runs(self):
+        macro = parse('set(foo, 2).ifeq(foo, 3, k(b), k(a))', self.mapping)
+        code_a = system_mapping.get('a')
+        code_b = system_mapping.get('b')
+        self.assertSetEqual(macro.get_capabilities()[EV_KEY], {code_a, code_b})
+        self.assertSetEqual(macro.get_capabilities()[EV_REL], set())
+
+        self.loop.run_until_complete(macro.run(self.handler))
+        self.assertListEqual(self.result, [
+            (EV_KEY, code_a, 1),
+            (EV_KEY, code_a, 0)
+        ])
+        self.assertEqual(len(macro.child_macros), 2)
+
+    def test_ifeq_adds_capabilities(self):
+        macro = parse('set(foo, 2).k(ifeq(foo, 3, b, a))', self.mapping)
+        code_a = system_mapping.get('a')
+        code_b = system_mapping.get('b')
+        self.assertSetEqual(macro.get_capabilities()[EV_KEY], {code_a, code_b})
+        self.assertSetEqual(macro.get_capabilities()[EV_REL], set())
+
+        self.loop.run_until_complete(macro.run(self.handler))
+        self.assertListEqual(self.result, [
+            (EV_KEY, code_a, 1),
+            (EV_KEY, code_a, 0)
+        ])
+        self.assertEqual(len(macro.child_macros), 2)
+
+    def test_set_get_multiprocessed(self):
+        macro = parse('set(foo, a)', self.mapping)
+
+        def process():
+            macro_2 = parse('k(get(foo))', self.mapping)
+
+        code_a = system_mapping.get('a')
+        code_b = system_mapping.get('b')
+        self.assertSetEqual(macro.get_capabilities()[EV_KEY], {code_a, code_b})
+        self.assertSetEqual(macro.get_capabilities()[EV_REL], set())
+
+        self.loop.run_until_complete(macro.run(self.handler))
+        self.assertListEqual(self.result, [
+            (EV_KEY, code_a, 1),
+            (EV_KEY, code_a, 0)
+        ])
+        self.assertEqual(len(macro.child_macros), 2)
+
     def test_count_brackets(self):
         self.assertEqual(_count_brackets(''), 0)
         self.assertEqual(_count_brackets('()'), 2)
