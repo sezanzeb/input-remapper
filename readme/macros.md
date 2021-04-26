@@ -31,6 +31,9 @@ Examples:
 - `wheel(down, 1)` keeps scrolling down while held
 - `set(foo, 1)` set "foo" to 1
 - `ifeq(foo, 1, k(x), k(y))` if "foo" is 1, write x, otherwise y
+- `h()` does nothing as long as your key is held down
+- `h(a)` holds down "a" as long as the key is pressed, just like a
+  regular mapping
 
 Syntax errors are shown in the UI on save. Each `k` function adds a short
 delay of 10ms between key-down, key-up and at the end. See
