@@ -47,6 +47,10 @@ assert not os.getcwd().endswith('tests')
 os.environ['UNITTEST'] = '1'
 
 
+def grey_log(*msgs):
+    print(f'\033[90m{" ".join(msgs)}\033[0m')
+
+
 def is_service_running():
     """Check if the daemon is running."""
     try:
@@ -67,11 +71,7 @@ def join_children():
         for child in children:
             if i > 10:
                 child.kill()
-                print(
-                    f'\033[90m'  # color
-                    f'Killed pid {child.pid} because it didn\'t finish in time'
-                    '\033[0m'  # end style
-                )
+                grey_log(f'Killed pid {child.pid} because it didn\'t finish in time')
 
         children = this.children(recursive=True)
         time.sleep(EVENT_READ_TIMEOUT)
@@ -326,17 +326,16 @@ class InputDevice:
         return self.fd
 
     def log(self, key, msg):
-        print(
-            f'\033[90m'  # color
-            f'{msg} "{self.name}" "{self.path}" {key}'
-            '\033[0m'  # end style
-        )
+        grey_log(f'{msg} "{self.name}" "{self.path}" {key}')
 
     def absinfo(self, *args):
         raise Exception('Ubuntus version of evdev doesn\'t support .absinfo')
 
     def grab(self):
-        pass
+        grey_log('grab', self.name, self.path)
+
+    def ungrab(self):
+        grey_log('ungrab', self.name, self.path)
 
     async def async_read_loop(self):
         if pending_events.get(self.group_key) is None:
@@ -435,11 +434,7 @@ class UInput:
         uinput_write_history.append(event)
         uinput_write_history_pipe[1].send(event)
         self.write_history.append(event)
-        print(
-            f'\033[90m'  # color
-            f'{(type, code, value)} written'
-            '\033[0m'  # end style
-        )
+        grey_log(f'{(type, code, value)} written')
 
     def syn(self):
         pass
@@ -521,7 +516,7 @@ from keymapper.injection.macros import macro_variables
 from keymapper.injection.keycode_mapper import active_macros, unreleased
 
 # no need for a high number in tests
-Injector.regrab_timeout = 0.15
+Injector.regrab_timeout = 0.05
 
 
 _fixture_copy = copy.deepcopy(fixtures)

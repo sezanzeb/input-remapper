@@ -77,10 +77,11 @@ class TestInjector(unittest.TestCase):
 
     def test_grab(self):
         # path is from the fixtures
+        path = '/dev/input/event10'
+
         custom_mapping.change(Key(EV_KEY, 10, 1), 'a')
 
         self.injector = Injector(groups.find(key='Foo Device 2'), custom_mapping)
-        path = '/dev/input/event10'
         # this test needs to pass around all other constraints of
         # _grab_device
         self.injector.context = Context(custom_mapping)
@@ -92,7 +93,7 @@ class TestInjector(unittest.TestCase):
         self.assertEqual(device.name, fixtures[path]['name'])
 
     def test_fail_grab(self):
-        self.make_it_fail = 10
+        self.make_it_fail = 999
         custom_mapping.change(Key(EV_KEY, 10, 1), 'a')
 
         self.injector = Injector(groups.find(key='Foo Device 2'), custom_mapping)
@@ -107,7 +108,7 @@ class TestInjector(unittest.TestCase):
         self.assertEqual(self.injector.get_state(), STARTING)
         # since none can be grabbed, the process will terminate. But that
         # actually takes quite some time.
-        time.sleep(1.5)
+        time.sleep(self.injector.regrab_timeout * 12)
         self.assertFalse(self.injector.is_alive())
         self.assertEqual(self.injector.get_state(), NO_GRAB)
 
@@ -403,7 +404,8 @@ class TestInjector(unittest.TestCase):
         self.assertEqual(history.count((EV_KEY, 77, 1)), 1)
         self.assertEqual(history.count((EV_ABS, ABS_RZ, value)), 1)
 
-    def test_gamepad_to_mouse_event_producer(self):
+    @mock.patch('evdev.InputDevice.ungrab')
+    def test_gamepad_to_mouse_event_producer(self, ungrab_patch):
         custom_mapping.set('gamepad.joystick.left_purpose', MOUSE)
         custom_mapping.set('gamepad.joystick.right_purpose', NONE)
         self.injector = Injector(groups.find(name='gamepad'), custom_mapping)
@@ -423,6 +425,8 @@ class TestInjector(unittest.TestCase):
             self.injector.context.mapping.get('gamepad.joystick.left_purpose'),
             MOUSE
         )
+
+        self.assertEqual(ungrab_patch.call_count, 1)
 
     def test_gamepad_to_buttons_event_producer(self):
         custom_mapping.set('gamepad.joystick.left_purpose', BUTTONS)
@@ -459,7 +463,8 @@ class TestInjector(unittest.TestCase):
             'key-mapper abcd forwarded'
         )
 
-    def test_capabilities_and_uinput_presence(self):
+    @mock.patch('evdev.InputDevice.ungrab')
+    def test_capabilities_and_uinput_presence(self, ungrab_patch):
         custom_mapping.change(Key(EV_KEY, KEY_A, 1), 'c')
         custom_mapping.change(Key(EV_REL, REL_HWHEEL, 1), 'k(b)')
         self.injector = Injector(groups.find(key='Foo Device 2'), custom_mapping)
@@ -517,6 +522,8 @@ class TestInjector(unittest.TestCase):
             sorted(forwarded.capabilities()[EV_KEY]),
             keyboard_keys
         )
+
+        self.assertEqual(ungrab_patch.call_count, 2)
 
     def test_injector(self):
         # the tests in test_keycode_mapper.py test this stuff in detail

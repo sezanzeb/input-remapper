@@ -78,7 +78,7 @@ class Injector(multiprocessing.Process):
     make running multiple injector easier. There is one process per
     hardware-device that is being mapped.
     """
-    regrab_timeout = 0.5
+    regrab_timeout = 0.2
 
     def __init__(self, group, mapping):
         """Setup a process to start injecting keycodes based on custom_mapping.
@@ -145,8 +145,25 @@ class Injector(multiprocessing.Process):
 
     """Process internal stuff"""
 
+    def _grab_devices(self):
+        """Grab all devices that are needed for the injection."""
+        sources = []
+        for path in self.group.paths:
+            source = self._grab_device(path)
+            if source is None:
+                # this path doesn't need to be grabbed for injection, because
+                # it doesn't provide the events needed to execute the mapping
+                continue
+            sources.append(source)
+
+        return sources
+
     def _grab_device(self, path):
-        """Try to grab the device, return None if not needed/possible."""
+        """Try to grab the device, return None if not needed/possible.
+
+        Without grab, original events from it would reach the display server
+        even though they are mapped.
+        """
         try:
             device = evdev.InputDevice(path)
         except (FileNotFoundError, OSError):
@@ -177,10 +194,6 @@ class Injector(multiprocessing.Process):
         attempts = 0
         while True:
             try:
-                # grab to avoid e.g. the disabled keycode of 10 to confuse
-                # X, especially when one of the buttons of your mouse also
-                # uses 10. This also avoids having to load an empty xkb
-                # symbols file to prevent writing any unwanted keys.
                 device.grab()
                 logger.debug('Grab %s', path)
                 break
@@ -191,7 +204,7 @@ class Injector(multiprocessing.Process):
                 # it was previously grabbed.
                 logger.debug('Failed attempts to grab %s: %d', path, attempts)
 
-                if attempts >= 4:
+                if attempts >= 10:
                     logger.error('Cannot grab %s, it is possibly in use', path)
                     logger.error(str(error))
                     return None
@@ -328,6 +341,11 @@ class Injector(multiprocessing.Process):
         # so that the macros use the correct loop
         self.context = Context(self.mapping)
 
+        # grab devices as early as possible. If events appear that won't get
+        # released anymore before the grab they appear to be held down
+        # forever
+        sources = self._grab_devices()
+
         self._event_producer = EventProducer(self.context)
 
         numlock_state = is_numlock_on()
@@ -341,14 +359,7 @@ class Injector(multiprocessing.Process):
             events=self._construct_capabilities(GAMEPAD in self.group.types)
         )
 
-        # Watch over each one of the potentially multiple devices per hardware
-        for path in self.group.paths:
-            source = self._grab_device(path)
-            if source is None:
-                # this path doesn't need to be grabbed for injection, because
-                # it doesn't provide the events needed to execute the mapping
-                continue
-
+        for source in sources:
             # certain capabilities can have side effects apparently. with an
             # EV_ABS capability, EV_REL won't move the mouse pointer anymore.
             # so don't merge all InputDevices into one UInput device.
@@ -397,6 +408,11 @@ class Injector(multiprocessing.Process):
             # during normal operation as well as tests this point is not
             # reached otherwise.
             logger.debug('asyncio coroutines ended')
+
+        for source in sources:
+            # ungrab at the end to make the next injection process not fail
+            # its grabs
+            source.ungrab()
 
     async def _event_consumer(self, source, forward_to):
         """Reads input events to inject keycodes or talk to the event_producer.
