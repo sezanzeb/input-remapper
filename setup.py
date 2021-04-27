@@ -81,7 +81,8 @@ setup(
     install_requires=[
         'setuptools',
         'evdev',
-        'pydbus'
+        'pydbus',
+        'pygobject',
     ],
     cmdclass={
         'install': Install,
