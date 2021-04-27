@@ -559,6 +559,12 @@ def quick_cleanup(log=True):
         for task in asyncio.all_tasks():
             task.cancel()
 
+    macro_variables._stop()
+
+    join_children()
+
+    macro_variables._start()
+
     if os.path.exists(tmp):
         shutil.rmtree(tmp)
 
@@ -572,6 +578,9 @@ def quick_cleanup(log=True):
     custom_mapping.changed = False
 
     clear_write_history()
+
+    if not macro_variables.process.is_alive():
+        raise AssertionError('the SharedDict manager is not running anymore')
 
     for name in list(uinputs.keys()):
         del uinputs[name]
@@ -592,19 +601,12 @@ def quick_cleanup(log=True):
         if device not in environ_copy:
             del os.environ[device]
 
-    if not macro_variables.process.is_alive():
-        raise AssertionError('the SharedDict manager is not running anymore')
-
-    macro_variables._stop()
-
-    join_children()
-
-    macro_variables._start()
-
     reader.clear()
 
     for _, pipe in pending_events.values():
         assert not pipe.poll()
+
+    assert macro_variables.is_alive()
 
 
 def cleanup():

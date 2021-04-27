@@ -88,6 +88,9 @@ class SharedDict:
             if message[0] == 'get':
                 self.pipe[0].send(shared_dict.get(message[1]))
 
+            if message[0] == 'ping':
+                self.pipe[0].send('pong')
+
     def _stop(self):
         """Stop the managing process."""
         self.pipe[1].send(('stop',))
@@ -96,17 +99,30 @@ class SharedDict:
         """Get a value from the dictionary."""
         return self.__getitem__(key)
 
+    def is_alive(self):
+        """Check if the manager process is running."""
+        self.pipe[1].send(('ping',))
+        select.select([self.pipe[1]], [], [], 0.1)
+        if self.pipe[1].poll():
+            return self.pipe[1].recv() == 'pong'
+
+        return False
+
     def __setitem__(self, key, value):
         self.pipe[1].send(('set', key, value))
 
     def __getitem__(self, key):
         self.pipe[1].send(('get', key))
 
-        # to avoid blocking forever if something goes wrong
-        select.select([self.pipe[1]], [], [], 0.1)
+        # To avoid blocking forever if something goes wrong.
+        # The maximum observed time this takes was 0.00025 for me
+        timeout = 0.01
+
+        select.select([self.pipe[1]], [], [], timeout)
         if self.pipe[1].poll():
             return self.pipe[1].recv()
 
+        logger.error('select.select timed out')
         return None
 
     def __del__(self):
