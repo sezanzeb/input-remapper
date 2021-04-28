@@ -331,7 +331,8 @@ class Daemon:
         logger.info('Request to autoload for "%s"', group_key)
 
         if self.config_dir is None:
-            logger.error(
+            # spams on boot, when no user is logged in yet
+            logger.debug(
                 'Tried to autoload "%s" without configuring the daemon '
                 'first via set_config_dir.',
                 group_key

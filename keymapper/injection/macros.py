@@ -115,8 +115,8 @@ class SharedDict:
         self.pipe[1].send(('get', key))
 
         # To avoid blocking forever if something goes wrong.
-        # The maximum observed time this takes was 0.00025 for me
-        timeout = 0.01
+        # The maximum observed time this takes was 0.001 for me on a slow pc
+        timeout = 0.02
 
         select.select([self.pipe[1]], [], [], timeout)
         if self.pipe[1].poll():
