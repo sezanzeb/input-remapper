@@ -21,6 +21,7 @@ The names for the most common functions are kept short, to make it easy to
 write them into the constrained space.
 
 Examples:
+- `k(BTN_LEFT)` a single mouse-click
 - `k(1).k(2)` 1, 2
 - `r(3, k(a).w(500))` a, a, a with 500ms pause
 - `m(Control_L, k(a).k(x))` CTRL + a, CTRL + x
@@ -90,3 +91,14 @@ hold your key down, and injects a key-up event after releasing.
 variables. Combine both to get a key that works like a normal key, but that also
 works as a modifier for other keys of other devices. `ifeq(foo, bar, ..., ...)`
 runs the first param if foo is "bar", or the second one if foo is not "bar".
+
+## Triggering combinations on release
+
+`a` `set(flag, 0).h().ifeq(flag, 0, k(c))`
+
+`a + b` `set(flag, 1).h(d)`
+
+"c" will only be written on release, and only if the b-key is not pressed
+at the same time. If both are pressed at the same time, a "d" is written,
+but not a "c". In other words: The a-key is a modifier for the b-key now,
+and if the b-key is not pressed a "c" is written when the a-key is released.

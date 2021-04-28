@@ -428,7 +428,7 @@ class _Groups:
         self.loads(pipe[0].recv())
 
         if len(self._groups) == 0:
-            logger.error('Did not find any input device')
+            logger.debug('Did not find any input device')
         else:
             keys = [f'"{group.key}"' for group in self._groups]
             logger.info('Found %s', ', '.join(keys))
