@@ -18,4 +18,4 @@ Share some logs please:
 5. `sudo ls -l /proc/1/exe`
 
 6. `sudo pkill -f key-mapper-service && key-mapper-gtk -d`, start the injection and hit your key. Then share that log.
-7. `sudo evtest` would also be interesting while the first command is still running, to see how your mapped are injected.
+7. `sudo evtest` would also be interesting while the first command is still running, to see how your mappings are injected.
