@@ -432,7 +432,7 @@ class Injector(multiprocessing.Process):
             events, so ideally they should be copied from source.
         """
         logger.debug(
-            'Started consumer to inject to %s, fd %s',
+            'Started consumer to inject for %s, fd %s',
             source.path, source.fd
         )
 

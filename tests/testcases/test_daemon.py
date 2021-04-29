@@ -475,6 +475,29 @@ class TestDaemon(unittest.TestCase):
         self.assertEqual(len(history), 1)
         self.assertEqual(history[group.key][1], preset)
 
+    def test_autoload_3(self):
+        # based on a bug
+        preset = 'preset7'
+        group = groups.find(key='Foo Device 2')
+
+        mapping = Mapping()
+        mapping.change(Key(3, 2, 1), 'a')
+        mapping.save(group.get_preset_path(preset))
+
+        config.set_autoload_preset(group.key, preset)
+        config.save_config()
+
+        self.daemon = Daemon()
+        self.daemon.set_config_dir(get_config_path())
+        groups.set_groups([])
+        self.daemon.autoload()
+
+        # it should try to refresh the groups because one of the
+        # group_keys is unknown at the moment
+        history = self.daemon.autoload_history._autoload_history
+        self.assertEqual(history[group.key][1], preset)
+        self.assertEqual(self.daemon.get_state(group.key), STARTING)
+
 
 if __name__ == "__main__":
     unittest.main()

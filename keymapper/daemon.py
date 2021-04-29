@@ -361,11 +361,8 @@ class Daemon:
             logger.error('No presets configured to autoload')
             return
 
-        for device_key, _ in autoload_presets:
-            group = groups.find(key=device_key)
-            if group is None:
-                continue
-            self._autoload(group.key)
+        for group_key, _ in autoload_presets:
+            self._autoload(group_key)
 
     def start_injecting(self, group_key, preset):
         """Start injecting the preset for the device.

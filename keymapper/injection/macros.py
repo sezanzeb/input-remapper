@@ -62,6 +62,10 @@ class SharedDict:
         atexit.register(self._stop)
         self._start()
 
+        # To avoid blocking forever if something goes wrong. The maximum
+        # observed time communication takes was 0.001 for me on a slow pc
+        self._timeout = 0.02
+
     def _start(self):
         """Ensure the process to manage the dictionary is running."""
         if self.process is not None and self.process.is_alive():
@@ -99,10 +103,10 @@ class SharedDict:
         """Get a value from the dictionary."""
         return self.__getitem__(key)
 
-    def is_alive(self):
+    def is_alive(self, timeout=None):
         """Check if the manager process is running."""
         self.pipe[1].send(('ping',))
-        select.select([self.pipe[1]], [], [], 0.1)
+        select.select([self.pipe[1]], [], [], timeout or self._timeout)
         if self.pipe[1].poll():
             return self.pipe[1].recv() == 'pong'
 
@@ -114,11 +118,7 @@ class SharedDict:
     def __getitem__(self, key):
         self.pipe[1].send(('get', key))
 
-        # To avoid blocking forever if something goes wrong.
-        # The maximum observed time this takes was 0.001 for me on a slow pc
-        timeout = 0.02
-
-        select.select([self.pipe[1]], [], [], timeout)
+        select.select([self.pipe[1]], [], [], self._timeout)
         if self.pipe[1].poll():
             return self.pipe[1].recv()
 
