@@ -489,11 +489,11 @@ class TestDaemon(unittest.TestCase):
 
         self.daemon = Daemon()
         self.daemon.set_config_dir(get_config_path())
-        groups.set_groups([])
+        groups.set_groups([])  # caused the bug
         self.daemon.autoload()
 
-        # it should try to refresh the groups because one of the
-        # group_keys is unknown at the moment
+        # it should try to refresh the groups because all the
+        # group_keys are unknown at the moment
         history = self.daemon.autoload_history._autoload_history
         self.assertEqual(history[group.key][1], preset)
         self.assertEqual(self.daemon.get_state(group.key), STARTING)
