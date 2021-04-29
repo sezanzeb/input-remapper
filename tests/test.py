@@ -559,6 +559,9 @@ def quick_cleanup(log=True):
         for task in asyncio.all_tasks():
             task.cancel()
 
+    if not macro_variables.process.is_alive():
+        raise AssertionError('the SharedDict manager is not running anymore')
+
     macro_variables._stop()
 
     join_children()
@@ -578,9 +581,6 @@ def quick_cleanup(log=True):
     custom_mapping.changed = False
 
     clear_write_history()
-
-    if not macro_variables.process.is_alive():
-        raise AssertionError('the SharedDict manager is not running anymore')
 
     for name in list(uinputs.keys()):
         del uinputs[name]
@@ -606,7 +606,7 @@ def quick_cleanup(log=True):
     for _, pipe in pending_events.values():
         assert not pipe.poll()
 
-    assert macro_variables.is_alive()
+    assert macro_variables.is_alive(1)
 
 
 def cleanup():
