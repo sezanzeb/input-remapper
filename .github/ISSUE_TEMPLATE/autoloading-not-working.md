@@ -17,5 +17,6 @@ Please install the newest version from source to see if the problem has already 
 
 6. `cat ~/.config/key-mapper/config.json`
 7. `key-mapper-control --command hello`
-8. Run `sudo pkill -f key-mapper-service && sudo key-mapper-service -d & sleep 2 && key-mapper-control --command autoload` and share the logs.
-9. Afterwards (while the previous command is still running) run `sudo evtest` and search for a device suffixed by "mapped". Select it, does it report any events? Share the output.
+8. `systemctl status key-mapper -n 50`
+9. Run `sudo pkill -f key-mapper-service && sudo key-mapper-service -d & sleep 2 && key-mapper-control --command autoload` and share the logs.
+10. Afterwards (while the previous command is still running) run `sudo evtest` and search for a device suffixed by "mapped". Select it, does it report any events? Share the output.
