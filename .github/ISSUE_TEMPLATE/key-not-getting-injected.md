@@ -17,5 +17,6 @@ Share some logs please:
 4. which desktop environment (gnome, plasma, xfce4, etc.)
 5. `sudo ls -l /proc/1/exe`
 
-6. `sudo pkill -f key-mapper-service && key-mapper-gtk -d`, start the injection and hit your key. Then share that log.
-7. `sudo evtest` would also be interesting while the first command is still running, to see how your mappings are injected.
+6. paste the affected preset .json file from ~/.config/key-mapper/presets
+7. `sudo pkill -f key-mapper-service && key-mapper-gtk -d`, start the injection and hit your key. Then share that log.
+8. `sudo evtest` would also be interesting while the first command is still running, to see how your mappings are injected.
