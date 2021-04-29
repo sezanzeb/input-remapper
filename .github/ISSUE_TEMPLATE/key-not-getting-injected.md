@@ -9,6 +9,8 @@ assignees: ''
 
 Please install the newest version from source to see if the problem has already been solved.
 
+Share some logs please:
+
 1. `key-mapper-control --version`
 2. which linux distro (ubuntu 20.04, manjaro, etc.)
 3. `echo $XDG_SESSION_TYPE`
