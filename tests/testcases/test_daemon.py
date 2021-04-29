@@ -490,6 +490,7 @@ class TestDaemon(unittest.TestCase):
         self.daemon = Daemon()
         self.daemon.set_config_dir(get_config_path())
         groups.set_groups([])  # caused the bug
+        self.assertIsNone(groups.find(key='Foo Device 2'))
         self.daemon.autoload()
 
         # it should try to refresh the groups because all the
@@ -497,6 +498,7 @@ class TestDaemon(unittest.TestCase):
         history = self.daemon.autoload_history._autoload_history
         self.assertEqual(history[group.key][1], preset)
         self.assertEqual(self.daemon.get_state(group.key), STARTING)
+        self.assertIsNotNone(groups.find(key='Foo Device 2'))
 
 
 if __name__ == "__main__":
