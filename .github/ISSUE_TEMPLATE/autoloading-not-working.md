@@ -20,5 +20,5 @@ Share some logs please:
 6. `cat ~/.config/key-mapper/config.json`
 7. `key-mapper-control --command hello`
 8. `systemctl status key-mapper -n 50`
-9. `sudo pkill -f key-mapper-service && sudo key-mapper-service -d & sleep 2 && key-mapper-control --command autoload`
+9. `sudo pkill -f key-mapper-service && sudo key-mapper-service -d & sleep 2 && key-mapper-control --command autoload`, are your keys mapped now?
 10. (while the previous command is still running) `sudo evtest` and search for a device suffixed by "mapped". Select it, does it report any events? Share the output.
