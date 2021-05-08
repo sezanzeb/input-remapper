@@ -143,7 +143,7 @@ configuration files.
 
 The default configuration is stored at `~/.config/key-mapper/config.json`,
 which doesn't include any mappings, but rather other parameters that
-are interesting for injections. The current default configuration as of 0.8.1
+are interesting for injections. The current default configuration as of 1.0.0
 looks like, with  an example autoload entry:
 
 ```json
