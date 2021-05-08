@@ -57,7 +57,7 @@ def get_packages():
 
 setup(
     name='key-mapper',
-    version='0.8.1',
+    version='1.0.0',
     description='A tool to change the mapping of your input device buttons',
     author='Sezanzeb',
     author_email='proxima@sezanzeb.de',
