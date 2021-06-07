@@ -110,7 +110,8 @@ Wayland than with X11 for me.
 
 ## How to use unavailable symbols
 
-For example Japanese letters. Only works in X11.
+For example Japanese letters without overwriting any existing key
+of your system-layout. Only works in X11.
 
 ```
 xmodmap -pke > keyboard_layout
