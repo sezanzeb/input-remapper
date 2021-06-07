@@ -226,8 +226,14 @@ class _Macro:
             # that receive the handler as an argument, so that they know
             # where to send the event to.
             coroutine = task(handler)
+
+            if (self.is_holding() == False and coroutine.__name__ == "sleep"):
+                break
+
             if asyncio.iscoroutine(coroutine):
                 await coroutine
+                if (self.is_holding() == False and coroutine.__name__ == "sleep"):
+                    break
 
         # done
         self.running = False
@@ -447,10 +453,14 @@ class _Macro:
                 f'a number, but got "{sleeptime}"'
             ) from error
 
-        sleeptime /= 1000
-
+       
         async def sleep(_):
-            await asyncio.sleep(sleeptime)
+            """ Wait in intervals of 10ms so the wait can be ended early if the key is released """
+            for i in range(int(sleeptime/10)):
+                await asyncio.sleep(0.01)
+                if (self.is_holding() == False):
+                    break
+                
 
         self.tasks.append(sleep)
 
