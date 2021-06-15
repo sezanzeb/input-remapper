@@ -50,7 +50,7 @@ For example a combination of `LEFTSHIFT + a` for `b` would write "B" insetad,
 because shift will be activated before you hit the "a". Therefore the
 environment will see shift and a "b", which will then be capitalized.
 
-The first option to work around this issue is to use `KP1 + a` instead of 
+The first option to work around this issue is to use `KP1 + a` instead of
 `LEFTSHIFT + a`. You can disable `KP1` by mapping it to `disable`, so you
 won't trigger writing a "1" into your focused application.
 
@@ -75,38 +75,21 @@ names can be chained using ` + `.
   <img src="plus.png"/>
 </p>
 
-## Macros
-
-See [readme/macros.md](macros.md)
-
 ## UI Shortcuts
 
 - `ctrl` + `del` stops the injection (only works while the gui is in focus)
 - `ctrl` + `q` closes the application
 - `ctrl` + `r` refreshes the device list
 
-## Key Names
+## Key Names and Macros
 
 Check the autocompletion of the GUI for possible values. You can also
 obtain a complete list of possiblities using `key-mapper-control --symbol-names`.
-Examples:
 
-- Alphanumeric `a` to `z` and `0` to `9`
-- Modifiers `Alt_L` `Control_L` `Control_R` `Shift_L` `Shift_R`
-- Mouse buttons `BTN_LEFT` `BTN_RIGHT` `BTN_MIDDLE` `BTN_SIDE` ...
-- Multimedia keys `KEY_NEXTSONG` `KEY_PLAYPAUSE` ...
+Values for mouse movement and scrolling are actually [macros](macros.md).
 
-## Gamepads
-
-Joystick movements will be translated to mouse movements, while the second
-joystick acts as a mouse wheel. You can swap this in the user interface.
-All buttons, triggers and D-Pads can be mapped to keycodes and macros.
-
-The D-Pad can be mapped to W, A, S, D for example, to run around in games,
-while the joystick turns the view (depending on the game).
-
-Tested with the XBOX 360 Gamepad. On Ubuntu, gamepads worked better in
-Wayland than with X11 for me.
+See [examples of use](examples.md) for mapping tips for concrete devices
+and use cases.
 
 <br/>
 <br/>
@@ -116,35 +99,6 @@ Wayland than with X11 for me.
 <br/>
 
 # Advanced
-
-## How to use unavailable symbols
-
-For example Japanese letters without overwriting any existing key
-of your system-layout. Only works in X11.
-
-```
-xmodmap -pke > keyboard_layout
-mousepad keyboard_layout &
-```
-
-Find a code that is not mapped to anything, for example `keycode  93 = `,
-and map it like `keycode  93 = kana_YA`. See [this gist](https://gist.github.com/sezanzeb/e29bae637b8a799ccf2490b8537487df)
-for available symbols.
-
-```
-xmodmap keyboard_layout
-key-mapper-gtk
-```
-
-"kana_YA" should be in the dropdown of available symbols now. Map it
-to a key and press apply. Now run
-
-```
-xmodmap keyboard_layout
-```
-
-again for the injection to use that xmodmap as well. It should be possible
-to write "ヤ" now when pressing the key.
 
 ## Configuration Files
 
@@ -200,7 +154,7 @@ Both need to be valid json files, otherwise the parser refuses to work. This
 preset maps the EV_KEY down event with code 307 to a macro and sets the time
 between injected events of macros to 100 ms. Note that a complete keystroke
 consists of two events: down and up. The other mapping is a key combination,
-chained using `+`. 
+chained using `+`.
 
 Other than that, it inherits all configurations from
 `~/.config/key-mapper/config.json`. If config.json is missing some stuff,

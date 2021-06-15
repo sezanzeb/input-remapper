@@ -17,13 +17,13 @@ Bear in mind that anti-cheat software might detect macros in games.
 > You don't have to use quotes around the symbol constants.
 >
 > Shorthand: `k`
-> 
+>
 > ```c#
 > key(symbol: str)
 > ```
-> 
+>
 > Examples:
-> 
+>
 > ```c#
 > key(symbol=KEY_A)
 > key(b).key(space)
@@ -32,15 +32,15 @@ Bear in mind that anti-cheat software might detect macros in games.
 ### wait
 
 > Waits in milliseconds before continuing the macro
-> 
+>
 > Shorthand: `w`
-> 
+>
 > ```c#
 > wait(time: int)
 > ```
-> 
+>
 > Examples:
-> 
+>
 > ```c#
 > wait(time=100)
 > wait(500)
@@ -55,9 +55,9 @@ Bear in mind that anti-cheat software might detect macros in games.
 > ```c#
 > repeat(repeats: int, macro: Macro)
 > ```
-> 
+>
 > Examples:
-> 
+>
 > ```c#
 > repeat(1, key(KEY_A))
 > repeat(repeats=2, key(space))
@@ -68,13 +68,13 @@ Bear in mind that anti-cheat software might detect macros in games.
 > Holds a modifier while executing the second parameter
 >
 > Shorthand: `m`
-> 
+>
 > ```c#
 > modify(modifier: str, macro: Macro)
 > ```
 >
 > Examples:
-> 
+>
 > ```c#
 > modify(Control_L, k(a).k(x))
 > ```
@@ -179,7 +179,7 @@ Bear in mind that anti-cheat software might detect macros in games.
 > ```
 >
 > Examples:
-> 
+>
 > ```c#
 > set(a, 1).if_eq($a, 1, key(KEY_A), key(KEY_B))
 > set(a, 1).set(b, 1).if_eq($a, $b, else=key(KEY_B).key(KEY_C))
@@ -197,7 +197,7 @@ Bear in mind that anti-cheat software might detect macros in games.
 > ```
 >
 > Examples:
-> 
+>
 > ```c#
 > if_tap(key(KEY_A), key(KEY_B), timeout=500)
 > if_tap(then=key(KEY_A), else=key(KEY_B))
@@ -214,7 +214,7 @@ Bear in mind that anti-cheat software might detect macros in games.
 > ```
 >
 > Examples:
-> 
+>
 > ```c#
 > if_single(key(KEY_A), key(KEY_B))
 > if_single(then=key(KEY_A), else=key(KEY_B))
@@ -236,28 +236,3 @@ Similar to python, arguments can be either positional or keyword arguments.
 
 Using `$` resolves a variable during runtime. For example `set(a, $1)` and
 `if_eq($a, 1, key(KEY_A), key(KEY_B))`.
-
-## Combinations spanning multiple devices
-
-For regular combinations on only single devices it is not required to
-configure macros. See [readme/usage.md](usage.md#combinations).
-
-**Keyboard** `space` `set(foo, 1).h(space).set(foo, 0)`
-
-**Mouse** `middle` `if_eq($foo, 1, h(a), h(BTN_MIDDLE))`
-
-Apply both presets. If you press space on your keyboard, it will write a
-space exactly like it used to. If you hold down space and press the middle
-button of your mouse, it will write "a" instead. If you just press the
-middle button of your mouse it behaves like a regular middle mouse button.
-
-**Explanation**
-
-`h(space)` makes your key work exactly like if it was mapped to "space".
-It will inject a key-down event if you press it, does nothing as long you
-hold your key down, and injects a key-up event after releasing.
-`set(foo, 1).set(foo, 0)` sets "foo" to 1 and then sets "foo" to 0.
-`set` and `if_eq` work on shared memory, so all injections will see your
-variables. Combine both to get a key that works like a normal key, but that also
-works as a modifier for other keys of other devices. `ifeq($foo, 1, ..., ...)`
-runs the first param if foo is 1, or the second one if foo is not 1.
