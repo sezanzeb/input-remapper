@@ -24,6 +24,10 @@
 
 import sys
 import atexit
+import gettext
+import locale
+from keymapper.data import get_data_path
+import os.path
 from argparse import ArgumentParser
 
 import gi
@@ -31,10 +35,17 @@ gi.require_version('Gtk', '3.0')
 gi.require_version('GLib', '2.0')
 from gi.repository import Gtk
 
+APP_NAME = 'key-mapper'
+LOCALE_DIR = os.path.join(get_data_path(), 'lang')
+
+locale.bindtextdomain(APP_NAME, LOCALE_DIR)
+locale.textdomain(APP_NAME)
+
+
 # https://github.com/Nuitka/Nuitka/issues/607#issuecomment-650217096
 Gtk.init()
 
-from keymapper.logger import update_verbosity, log_info
+from keymapper.logger import logger, update_verbosity, log_info
 
 
 if __name__ == '__main__':
@@ -48,6 +59,7 @@ if __name__ == '__main__':
     options = parser.parse_args(sys.argv[1:])
     update_verbosity(options.debug)
     log_info('key-mapper-gtk')
+    logger.debug('Using locale directory: {}'.format(LOCALE_DIR))
 
     # import key-mapper stuff after setting the log verbosity
     from keymapper.gui.window import Window
