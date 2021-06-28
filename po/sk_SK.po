@@ -1,0 +1,362 @@
+# Slovak translation of key-mapper.
+# Copyright (C) 2021.
+# This file is distributed under the same license as the key-mapper package.
+# Jose Riha <jose 1711 gmail com>, 2021.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2021-06-28 21:18+0200\n"
+"PO-Revision-Date: 2021-06-28 21:22+0200\n"
+"Last-Translator: Jose Riha <jose1711@gmail.com>\n"
+"Language-Team: \n"
+"Language: sk_SK\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Poedit 3.0\n"
+"Plural-Forms: nplurals=3; plural=(n==1 ? 0 : n>=2 && n<=4 ? 1 : 2);\n"
+
+#: data/key-mapper.glade:1128
+msgid "."
+msgstr "."
+
+#: data/key-mapper.glade:1348
+msgid "1, 2"
+msgstr "1, 2"
+
+#: data/key-mapper.glade:926
+msgid ""
+"A \"key + key + ... + key\" syntax can be used to trigger key combinations. "
+"For example \"control_l + a\".\n"
+"\n"
+"\"disable\" disables a key."
+msgstr ""
+"Syntax \"kláves + kláves + ... + kláves\" môžete použiť na zadávanie "
+"kombinácie klávesov. Napríklad \"control_l + a\".\n"
+"\n"
+"\"disable\" deaktivuje mapovanie klávesu."
+
+#: data/key-mapper.glade:898
+msgid "About"
+msgstr "O programe"
+
+#: data/key-mapper.glade:209
+msgid "Apply"
+msgstr "Použiť"
+
+#: data/key-mapper.glade:403
+msgid "Autoload"
+msgstr "Automatické načítanie"
+
+#: data/key-mapper.glade:1420
+msgid ""
+"Between calls to k, key down and key up events, macros will sleep for 10ms "
+"by default, which can be configured in ~/.config/key-mapper/config"
+msgstr ""
+"Medzi volaniami k, udalosťami stlačeného a uvoľneného klávesu štandardne "
+"čakajú makrá 10 ms. Toto nastavenie môžete zmeniť v ~/.config/key-mapper/"
+"config"
+
+#: data/key-mapper.glade:482 data/key-mapper.glade:526
+msgid "Buttons"
+msgstr "Tlačidlá"
+
+#: data/key-mapper.glade:1286
+msgid "CTRL + a, CTRL + x"
+msgstr "CTRL + a, CTRL + x"
+
+#: data/key-mapper.glade:706
+msgid ""
+"Click on a cell below and hit a key on your device. Click the \"Restore "
+"Defaults\" button beforehand."
+msgstr ""
+"Kliknite do poľa nižšie a stlačte tlačidlo na vašom zariadení. Predtým "
+"kliknite na tlačidlo \"Obnoviť predvolené\"."
+
+#: data/key-mapper.glade:228
+msgid "Copy"
+msgstr "Kopírovať"
+
+#: data/key-mapper.glade:265
+msgid "Delete"
+msgstr "Odstrániť"
+
+#: data/key-mapper.glade:96
+msgid "Device"
+msgstr "Zariadenie"
+
+#: data/key-mapper.glade:214
+msgid "Don't hold down any keys while the injection starts."
+msgstr "Nedržte stlačené žiadne tlačidlá kým prebieha injektáž."
+
+#: data/key-mapper.glade:1213
+msgid "Examples"
+msgstr "Príklady"
+
+#: data/key-mapper.glade:1604
+msgid "Go Back"
+msgstr "Prejsť späť"
+
+#: data/key-mapper.glade:483 data/key-mapper.glade:527
+msgid "Joystick"
+msgstr "Joystick"
+
+#: data/key-mapper.glade:709
+msgid "Key"
+msgstr "Kláves"
+
+#: data/key-mapper.glade:54 data/key-mapper.glade:1583
+#: data/key-mapper.glade:1695
+msgid "Key Mapper"
+msgstr "Mapovač klávesov"
+
+#: data/key-mapper.glade:465
+msgid "Left joystick"
+msgstr "Ľavý joystick"
+
+#: data/key-mapper.glade:948
+msgid "Macros"
+msgstr "Makrá"
+
+#: data/key-mapper.glade:964
+msgid "Macros allow multiple characters to be written with a single key-press."
+msgstr "Makrá vám umožnia zapísať po stlačení jedného klávesu viacero znakov."
+
+#: data/key-mapper.glade:723
+msgid "Mapping"
+msgstr "Mapovanie"
+
+#: data/key-mapper.glade:480 data/key-mapper.glade:524
+msgid "Mouse"
+msgstr "Myš"
+
+#: data/key-mapper.glade:553
+msgid "Mouse speed"
+msgstr "Citlivosť myši"
+
+#: data/key-mapper.glade:246
+msgid "New"
+msgstr "Nový"
+
+#: data/key-mapper.glade:298
+msgid "Preset"
+msgstr "Prednastavenie"
+
+#: data/key-mapper.glade:337
+msgid "Rename"
+msgstr "Premenovať"
+
+#: data/key-mapper.glade:120
+msgid "Restore Defaults"
+msgstr "Obnoviť predvolené"
+
+#: data/key-mapper.glade:509
+msgid "Right joystick"
+msgstr "Pravý joystick"
+
+#: data/key-mapper.glade:368
+msgid "Save the entered name"
+msgstr "Uložiť zadané meno"
+
+#: data/key-mapper.glade:124
+msgid ""
+"Shortcut: ctrl + del\n"
+"To give your keys back their original mapping."
+msgstr ""
+"Skratka: ctrl + del\n"
+"Pre návrat na pôvodné mapovanie klávesov."
+
+#: data/key-mapper.glade:1556
+msgid "Shortcuts"
+msgstr "Skratky"
+
+#: data/key-mapper.glade:1458
+msgid ""
+"Shortcuts only work while keys are not being recorded and the gui is in "
+"focus."
+msgstr ""
+"Skratky fungujú iba vtedy, ak sa tlačidlá nenahrávaju a okno programu je "
+"aktívne."
+
+#: data/key-mapper.glade:402
+msgid "To automatically apply the preset after your login or when it connects."
+msgstr ""
+"Na automatické použitie prednastavenia po prihlásení alebo pripojení "
+"zariadenia."
+
+#: data/key-mapper.glade:1439
+msgid "Usage"
+msgstr "Použitie"
+
+#: data/key-mapper.glade:843
+msgid "Version unknown"
+msgstr "Neznáma verzia"
+
+#: data/key-mapper.glade:481 data/key-mapper.glade:525
+msgid "Wheel"
+msgstr "Koliesko"
+
+#: data/key-mapper.glade:860
+msgid ""
+"You can find more information and report bugs at\n"
+"<a href=\"https://github.com/sezanzeb/key-mapper\">https://github.com/"
+"sezanzeb/key-mapper</a>"
+msgstr ""
+"Viac informácií a hlásenia chýb nájdete na\n"
+"<a href=\"https://github.com/sezanzeb/key-mapper\">https://github.com/"
+"sezanzeb/key-mapper</a>"
+
+#: data/key-mapper.glade:1248
+msgid "a, a, a with 500ms pause"
+msgstr "a, a, a s 500ms oneskorením"
+
+#: data/key-mapper.glade:1490
+msgid "closes the application"
+msgstr "zavrie aplikáciu"
+
+#: data/key-mapper.glade:1478
+msgid "ctrl + del"
+msgstr "ctrl + del"
+
+#: data/key-mapper.glade:1502
+msgid "ctrl + q"
+msgstr "ctrl + q"
+
+#: data/key-mapper.glade:1514
+msgid "ctrl + r"
+msgstr "ctrl + r"
+
+#: data/key-mapper.glade:1044
+msgid "e"
+msgstr "e"
+
+#: data/key-mapper.glade:1335
+msgid "e(EV_REL, REL_X, 10)"
+msgstr "e(EV_REL, REL_X, 10)"
+
+#: data/key-mapper.glade:1104
+msgid "executes the parameter as long as the key is pressed down"
+msgstr "vykoná parameter, kým je kláves stlačený"
+
+#: data/key-mapper.glade:1140
+msgid "executes two actions behind each other"
+msgstr "vykoná dve akcie za sebou"
+
+#: data/key-mapper.glade:1116
+msgid "h"
+msgstr "h"
+
+#: data/key-mapper.glade:1056
+msgid "holds a modifier while executing the second parameter"
+msgstr "počas vykonávania druhého parametra je stlačený modifikátor"
+
+#: data/key-mapper.glade:1020
+msgid "k"
+msgstr "k"
+
+#: data/key-mapper.glade:1298
+msgid "k(1).h(k(2)).k(3)"
+msgstr "k(1).h(k(2)).k(3)"
+
+#: data/key-mapper.glade:1235
+msgid "k(1).k(2)"
+msgstr "k(1).k(2)"
+
+#: data/key-mapper.glade:1398
+msgid "keeps scrolling down while held"
+msgstr "kým je držaný aktivuje sa skrolovanie smerom nadol"
+
+#: data/key-mapper.glade:1080
+msgid "m"
+msgstr "m"
+
+#: data/key-mapper.glade:1273
+msgid "m(Control_L, k(a).k(x))"
+msgstr "m(Control_L, k(a).k(x))"
+
+#: data/key-mapper.glade:1152
+msgid "mouse"
+msgstr "mouse"
+
+#: data/key-mapper.glade:1372
+msgid "mouse(right, 4)"
+msgstr "mouse(right, 4)"
+
+#: data/key-mapper.glade:1311
+msgid "moves the mouse cursor 10px to the right"
+msgstr "posunie kurzor myši o 10 pixelov doprava"
+
+#: data/key-mapper.glade:984
+msgid "r"
+msgstr "r"
+
+#: data/key-mapper.glade:1260
+msgid "r(3, k(a).w(500))"
+msgstr "r(3, k(a).w(500))"
+
+#: data/key-mapper.glade:1526
+msgid "refreshes the device list"
+msgstr "aktualizuje zoznam zariadení"
+
+#: data/key-mapper.glade:1092
+msgid "repeats the execution of the second parameter"
+msgstr "zopakuje spustenie druhého parametra"
+
+#: data/key-mapper.glade:1188
+msgid "same as mouse"
+msgstr "tie isté ako pri myši"
+
+#: data/key-mapper.glade:1538
+msgid "stops the injection"
+msgstr "zastaví injektáž"
+
+#: data/key-mapper.glade:1176
+msgid "takes direction (up, left, ...) and speed as parameters"
+msgstr "prijíma smer (hore, vľavo, ...) a rýchlosť ako parametre"
+
+#: data/key-mapper.glade:1008
+msgid "w"
+msgstr "w"
+
+#: data/key-mapper.glade:996
+msgid "waits in milliseconds"
+msgstr "čakanie (v milisekundách)"
+
+#: data/key-mapper.glade:1164
+msgid "wheel"
+msgstr "wheel"
+
+#: data/key-mapper.glade:1385
+msgid "wheel(down, 1)"
+msgstr "wheel(down, 1)"
+
+#: data/key-mapper.glade:1360
+msgid "which keeps moving the mouse while pressed"
+msgstr "kým je stlačený, kurzor myši sa bude posúvať"
+
+#: data/key-mapper.glade:1323
+msgid "writes 1 2 2 ... 2 2 3 while the key is pressed"
+msgstr "zapíše 1 2 2 ... 2 2 3, kým je kláves stlačený"
+
+#: data/key-mapper.glade:1032
+msgid "writes a single keystroke"
+msgstr "zapíše jedno stlačenie klávesu"
+
+#: data/key-mapper.glade:1068
+msgid "writes an event"
+msgstr "zapíše udalosť"
+
+#: data/key-mapper.glade:880
+msgid ""
+"© 2021 Sezanzeb proxima@sezanzeb.de\n"
+"This program comes with absolutely no warranty.\n"
+"See the <a href=\"https://www.gnu.org/licenses/gpl-3.0.html\">GNU General "
+"Public License, version 3 or later</a> for details."
+msgstr ""
+"© 2021 Sezanzeb proxima@sezanzeb.de\n"
+"Tento program je poskytovaný bez akýchkoľvek záruk.\n"
+"Podrobnosti nájdete v podmienkach licencie <a href=\"https://www.gnu.org/"
+"licenses/gpl-3.0.html\">GNU General Public License, version 3 alebo novšej</"
+"a>."
