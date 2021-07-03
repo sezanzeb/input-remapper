@@ -206,7 +206,7 @@ To give your keys back their original mapping.</property>
                         <property name="homogeneous">True</property>
                         <child>
                           <object class="GtkButton" id="apply_preset">
-                            <property name="label">Apply</property>
+                            <property name="label" translatable="yes">Apply</property>
                             <property name="width-request">80</property>
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
@@ -225,7 +225,7 @@ To give your keys back their original mapping.</property>
                         </child>
                         <child>
                           <object class="GtkButton" id="copy_preset">
-                            <property name="label">Copy</property>
+                            <property name="label" translatable="yes">Copy</property>
                             <property name="width-request">80</property>
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
@@ -243,7 +243,7 @@ To give your keys back their original mapping.</property>
                         </child>
                         <child>
                           <object class="GtkButton" id="create_preset">
-                            <property name="label">New</property>
+                            <property name="label" translatable="yes">New</property>
                             <property name="width-request">80</property>
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
@@ -262,7 +262,7 @@ To give your keys back their original mapping.</property>
                         </child>
                         <child>
                           <object class="GtkButton" id="delete_preset">
-                            <property name="label">Delete</property>
+                            <property name="label" translatable="yes">Delete</property>
                             <property name="width-request">80</property>
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
