@@ -41,6 +41,9 @@ LOCALE_DIR = os.path.join(get_data_path(), 'lang')
 locale.bindtextdomain(APP_NAME, LOCALE_DIR)
 locale.textdomain(APP_NAME)
 
+translate = gettext.translation(APP_NAME, LOCALE_DIR, fallback=True)
+_ = translate.gettext
+
 
 # https://github.com/Nuitka/Nuitka/issues/607#issuecomment-650217096
 Gtk.init()
@@ -52,7 +55,7 @@ if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument(
         '-d', '--debug', action='store_true', dest='debug',
-        help='Displays additional debug information',
+        help=_('Displays additional debug information'),
         default=False
     )
 
