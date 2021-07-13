@@ -64,7 +64,7 @@ msgid ""
 "Defaults\" button beforehand."
 msgstr ""
 "Fai clic su una cella in basso e premi un tasto sul dispositivo. Fai clic su \"Ripristina "
-"Pulsante "Predefiniti\" in anticipo."
+"Pulsante \"Predefiniti\" in anticipo."
 
 #: data/key-mapper.glade:228
 msgid "Copy"
