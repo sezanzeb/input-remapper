@@ -238,7 +238,6 @@ if __name__ == '__main__':
 
     if options.command is not None:
         if options.command in INTERNALS:
-            options.debug = True
             internals(options)
         elif options.command in COMMANDS:
             from keymapper.daemon import Daemon
