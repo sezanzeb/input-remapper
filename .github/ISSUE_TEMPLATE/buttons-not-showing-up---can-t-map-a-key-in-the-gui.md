@@ -17,4 +17,4 @@ Share some logs please:
 4. `sudo ls -l /proc/1/exe`
 
 5. If a button on your device doesn't show up in the GUI, verify that the button is reporting an event via `sudo evtest`. If not, key-mapper won't be able to map that button.
-6. If yes, please run `sudo pkill -f key-mapper-service && key-mapper-gtk -d`, reproduce the problem and then share the logs.
+6. If yes, please run `key-mapper-gtk -d`, reproduce the problem and then share the logs.
