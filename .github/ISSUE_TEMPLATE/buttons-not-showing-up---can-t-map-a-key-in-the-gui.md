@@ -14,7 +14,5 @@ Share some logs please:
 1. `key-mapper-control --version`
 2. which linux distro (ubuntu 20.04, manjaro, etc.)
 3. which desktop environment (gnome, plasma, xfce4, etc.)
-4. `sudo ls -l /proc/1/exe`
-
-5. If a button on your device doesn't show up in the GUI, verify that the button is reporting an event via `sudo evtest`. If not, key-mapper won't be able to map that button.
-6. If yes, please run `key-mapper-gtk -d`, reproduce the problem and then share the logs.
+4. If a button on your device doesn't show up in the GUI, verify that the button is reporting an event via `sudo evtest`. If not, key-mapper won't be able to map that button.
+5. If yes, please run `key-mapper-gtk -d`, reproduce the problem and then share the logs.
