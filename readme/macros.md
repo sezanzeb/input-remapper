@@ -70,7 +70,7 @@ when the macro gets compiled.
 ## Combinations spanning multiple devices
 
 For regular combinations on only single devices it is not required to
-configure macros. See [readme/usage.md](usage.md).
+configure macros. See [readme/usage.md](usage.md#combinations).
 
 **Keyboard** `space` `set(foo, bar).h(space).set(foo, 0)`
 
