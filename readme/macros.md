@@ -30,7 +30,7 @@ Examples:
 - `mouse(right, 4)` which keeps moving the mouse while pressed.
   Made out of `h(e(...))` internally
 - `wheel(down, 1)` keeps scrolling down while held
-- `set(foo, 1)` set "foo" to 1
+- `set(foo, 1)` set  "[foo](https://en.wikipedia.org/wiki/Foobar)" to 1
 - `ifeq(foo, 1, k(x), k(y))` if "foo" is 1, write x, otherwise y
 - `h()` does nothing as long as your key is held down
 - `h(a)` holds down "a" as long as the key is pressed, just like a
