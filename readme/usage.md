@@ -39,15 +39,16 @@ Select the key in your row (`click here`) and hold a few buttons down.
 Releasing them will make your text cursor jump into the mapping column
 to type in what you want to map it to.
 
-Combinations involving Ctrl might not work, I think the desktop environment
-grabs them or something. Combinations with Shift might not work the way
-you would expect. If it outputs the keycode for a, you are going to get an
-'A', because X11 still sees the enabled shift button.
+Combinations involving Modifiers might not work. Configuring a combination
+of two keys to output a single key will require you to push down the first
+key, which of course ends up injecting that first key. Then the second key
+will trigger the mapping, because the combination is complete. This is
+not a bug. Otherwise every combination would have to automatically disable
+all keys that are involved in it.
 
-This happens, because all key-mapper does is either forwarding or mapping
-your keycodes (which is easier said than done), and X11/Wayland has to decide
-what to do with it. And it decides, that if shift is pressed down, it will
-capitalize your stuff.
+For example a combination of `LEFTSHIFT + a` for `b` would write "B" insetad,
+because shift will be activated before you hit the "a". Therefore the
+environment will see shift and a "b", which will then be capitalized.
 
 A better option for a key combination would be `KP1 + a` instead of 
 `LEFTSHIFT + a`, because there won't be any side effect. You can disable
