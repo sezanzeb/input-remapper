@@ -205,6 +205,22 @@ line numbers remain valid.
 
 This stuff is going on as a daemon in the background
 
+Here is an example how combinations are injected:
+
+```
+a -> x
+a + b -> y
+```
+
+1. the `a` button is pressed with your finger, `a 1` arrives via evdev in key-mapper
+2. key-mapper maps it to `x 1` and injects it
+3. `b` is pressed with your finger, `b 1` arrives via evdev in key-mapper
+4. key-mapper sees a triggered combination and maps it to `y 1` and injects it
+5. `b` is released, `b 0` arrives at key-mapper
+6. key-mapper remembered that it was the trigger for a combination and maps that release to `y 0` and injects it
+7. the `a` button is released, `a 0` arrives at key-mapper
+8. key-mapper maps that release to `x 0` and injects it
+
 ## Resources
 
 - [Guidelines for device capabilities](https://www.kernel.org/doc/Documentation/input/event-codes.txt)
