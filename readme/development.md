@@ -5,6 +5,10 @@ requests. If you have questions about the code and architecture, feel free
 to [open an issue](https://github.com/sezanzeb/key-mapper/issues). This
 file should give an overview about some internals of key-mapper.
 
+All pull requests will at some point require unittests, the code
+coverage may only be improved, not decreased. It also has to be mostly
+compliant with pylint.
+
 ## Roadmap
 
 - [x] show a dropdown to select valid devices
