@@ -32,7 +32,7 @@ def _raise(error):
     raise error
 
 
-class TestPaths(unittest.TestCase):
+class TestUser(unittest.TestCase):
     def tearDown(self):
         quick_cleanup()
 
