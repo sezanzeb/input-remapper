@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2021-07-03 22:39+0200\n"
-"PO-Revision-Date: 2021-07-12 19:23+0200\n"
+"PO-Revision-Date: 2021-07-18 19:23+0200\n"
 "Last-Translator: ALbano Battistella <albano_battistella@hotmail.com>\n"
 "Language-Team: ITALIAN <LL@li.org>\n"
 "Language: it\n"
@@ -31,6 +31,10 @@ msgid ""
 "\n"
 "\"disable\" disables a key."
 msgstr ""
+"Sintassi\"tasti + tasti + ... + tasti\"puoi usare per entrare nella combinazioni di tasti. "
+"Ad esempio \"control_l + a\".\n"
+"\n"
+"\"disabilita\"disabilitato la mappatura dei tasti."
 
 #: data/key-mapper.glade:898
 msgid "About"
@@ -49,6 +53,8 @@ msgid ""
 "Between calls to k, key down and key up events, macros will sleep for 10ms "
 "by default, which can be configured in ~/.config/key-mapper/config"
 msgstr ""
+"Tra chiamate a k, battitura ed eventi rilasciati,le macro dormiranno per 10 ms "
+"per impostazione predefinita, che può essere configurato in ~/.config/key-mapper/config"
 
 #: data/key-mapper.glade:482 data/key-mapper.glade:526
 msgid "Buttons"
@@ -100,7 +106,7 @@ msgstr "Joystick"
 
 #: data/key-mapper.glade:709
 msgid "Key"
-msgstr "Chiave"
+msgstr "Tasto"
 
 #: data/key-mapper.glade:54 data/key-mapper.glade:1583
 #: data/key-mapper.glade:1695
