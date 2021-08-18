@@ -40,7 +40,7 @@ compliant with pylint.
 - [x] inject in an additional device instead to avoid clashing capabilities
 - [x] don't run any GUI code as root for improved wayland compatibility
 - [ ] plugin support
-- [ ] getting it into the official debian repo
+- [x] getting it into the official debian repo
 
 ## Tests
 
