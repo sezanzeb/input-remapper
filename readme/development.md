@@ -209,6 +209,8 @@ line numbers remain valid.
 
 This stuff is going on as a daemon in the background
 
+## How combinations are injected
+
 Here is an example how combinations are injected:
 
 ```
@@ -224,6 +226,33 @@ a + b -> y
 6. key-mapper remembered that it was the trigger for a combination and maps that release to `y 0` and injects it
 7. the `a` button is released, `a 0` arrives at key-mapper
 8. key-mapper maps that release to `x 0` and injects it
+
+## Multiple sources, single UInput
+
+https://github.com/sezanzeb/key-mapper/blob/1.0.0/keymapper/injection/injector.py
+
+This "Injector" process is the only process that injects if key-mapper is used for a single device.
+
+Inside `run` of that process there is an iteration of `for source in sources:`,
+which runs an event loop for each possible source for events.
+Each event loop has convenient access to the "context" to read some globals.
+
+Consider this typical example of device capabilities:
+
+"BrandXY Mouse" -> EV_REL, BTN_LEFT, ...
+"BrandXY Mouse" -> KEY_1, KEY_2
+
+There are two devices called "BrandXY Mouse", and they report different events.
+Key-mapper creates a single uinput to inject all mapped events to. For example
+
+BTN_LEFT -> a
+KEY_2 -> b
+
+so you end up with a new device with the following capabilities
+
+"key-mapper BrandXY Mouse mapped" -> KEY_A, KEY_B
+
+while key-mapper reads from multiple InputDevices it injects the mapped letters into a single UInput.
 
 ## Resources
 
