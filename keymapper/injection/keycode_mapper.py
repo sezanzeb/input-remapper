@@ -25,7 +25,7 @@
 import itertools
 import asyncio
 
-from evdev.ecodes import EV_KEY, EV_ABS
+from evdev.ecodes import EV_KEY, EV_ABS, EV_LED, EV_SND
 
 from keymapper.logger import logger
 from keymapper.mapping import DISABLE_CODE
@@ -223,6 +223,7 @@ class KeycodeMapper:
 
         self.context = context
         self.forward_to = forward_to
+        self.context.source = source
 
         # some type checking, prevents me from forgetting what that stuff
         # is supposed to be when writing tests.
@@ -236,8 +237,11 @@ class KeycodeMapper:
 
     def macro_write(self, ev_type, code, value):
         """Handler for macros."""
-        self.context.uinput.write(ev_type, code, value)
-        self.context.uinput.syn()
+        if ev_type==EV_LED or ev_type==EV_SND:
+            self.context.source.write(ev_type, code, value)
+        else: 
+            self.context.uinput.write(ev_type, code, value)
+            self.context.uinput.syn()
 
     def write(self, key):
         """Shorthand to write stuff."""
