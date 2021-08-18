@@ -85,7 +85,7 @@ class Context:
         self.update_purposes()
 
         self.uinput = None
-        self.source = None
+        self.sources = None
 
     def update_purposes(self):
         """Read joystick purposes from the configuration."""

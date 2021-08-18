@@ -344,7 +344,7 @@ class Injector(multiprocessing.Process):
         # grab devices as early as possible. If events appear that won't get
         # released anymore before the grab they appear to be held down
         # forever
-        sources = self._grab_devices()
+        self.context.sources = self._grab_devices()
 
         self._event_producer = EventProducer(self.context)
 
@@ -359,7 +359,7 @@ class Injector(multiprocessing.Process):
             events=self._construct_capabilities(GAMEPAD in self.group.types)
         )
 
-        for source in sources:
+        for source in self.context.sources:
             # certain capabilities can have side effects apparently. with an
             # EV_ABS capability, EV_REL won't move the mouse pointer anymore.
             # so don't merge all InputDevices into one UInput device.
@@ -409,7 +409,7 @@ class Injector(multiprocessing.Process):
             # reached otherwise.
             logger.debug('asyncio coroutines ended')
 
-        for source in sources:
+        for source in self.context.sources:
             # ungrab at the end to make the next injection process not fail
             # its grabs
             source.ungrab()

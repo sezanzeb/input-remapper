@@ -25,7 +25,8 @@
 import itertools
 import asyncio
 
-from evdev.ecodes import EV_KEY, EV_ABS, EV_LED, EV_SND
+from evdev.ecodes import EV_KEY, EV_ABS, EV_LED, EV_SND, EV_FF
+from evdev import ecodes
 
 from keymapper.logger import logger
 from keymapper.mapping import DISABLE_CODE
@@ -223,7 +224,6 @@ class KeycodeMapper:
 
         self.context = context
         self.forward_to = forward_to
-        self.context.source = source
 
         # some type checking, prevents me from forgetting what that stuff
         # is supposed to be when writing tests.
@@ -237,11 +237,22 @@ class KeycodeMapper:
 
     def macro_write(self, ev_type, code, value):
         """Handler for macros."""
-        if ev_type==EV_LED or ev_type==EV_SND:
-            self.context.source.write(ev_type, code, value)
-        else: 
-            self.context.uinput.write(ev_type, code, value)
-            self.context.uinput.syn()
+        #TODO: fully split from e() to its own function
+        if ev_type in [EV_LED, EV_SND, EV_FF]:
+            self.device_write(ev_type, code, value)
+            return
+        self.context.uinput.write(ev_type, code, value)
+        self.context.uinput.syn()
+
+    def device_write(self, ev_type, code, value, dev=None):
+        """Handler for devices."""
+        #TODO: When no capability, seach other mappings or devices
+        #TODO: when dev parameter, locate that specific device
+        for source in self.context.sources:
+            if code in source.capabilities().get(ev_type, []):
+                source.write(ev_type, code, value)
+                return
+        logger.warning('No device with capability %s', ecodes.bytype[ev_type][code])
 
     def write(self, key):
         """Shorthand to write stuff."""
