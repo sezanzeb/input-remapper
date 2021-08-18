@@ -239,14 +239,14 @@ Each event loop has convenient access to the "context" to read some globals.
 
 Consider this typical example of device capabilities:
 
-"BrandXY Mouse" -> EV_REL, BTN_LEFT, ...
-"BrandXY Mouse" -> KEY_1, KEY_2
+- "BrandXY Mouse" -> EV_REL, BTN_LEFT, ...
+- "BrandXY Mouse" -> KEY_1, KEY_2
 
 There are two devices called "BrandXY Mouse", and they report different events.
 Key-mapper creates a single uinput to inject all mapped events to. For example
 
-BTN_LEFT -> a
-KEY_2 -> b
+- BTN_LEFT -> a
+- KEY_2 -> b
 
 so you end up with a new device with the following capabilities
 
