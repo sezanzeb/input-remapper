@@ -44,7 +44,7 @@ import atexit
 import select
 
 from evdev.ecodes import ecodes, EV_KEY, EV_REL, REL_X, REL_Y, REL_WHEEL, \
-    REL_HWHEEL
+    REL_HWHEEL, EV_LED
 
 from keymapper.logger import logger
 from keymapper.state import system_mapping
@@ -411,6 +411,30 @@ class _Macro:
         self.tasks.append(lambda handler: handler(ev_type, code, value))
         self.tasks.append(self._keycode_pause)
 
+    def todevice(self, ev_type, code, value, device=None):
+        """Write any event to source or other device.
+
+        Parameters
+        ----------
+        ev_type: str or int
+            examples: 17, 'EV_LED', 18, 'EV_SND'
+        code : int or int
+            examples: 0, 'LED_NUML', 0, 'SND_CLICK'
+        value : int
+        device : None or str
+            device to send to (TODO)
+            None means mapping source device
+        """
+        if isinstance(ev_type, str):
+            ev_type = ecodes[ev_type.upper()]
+        if isinstance(code, str):
+            code = ecodes[code.upper()]
+        self.tasks.append(lambda handler: handler(ev_type, code, value, device))
+
+    def led(self, code, value):
+        """Shortcut for todevice(EV_LED, code, value, None)."""
+        self.todevice(EV_LED, code, value, None)
+
     def mouse(self, direction, speed):
         """Shortcut for h(e(...))."""
         code, value = {
@@ -601,6 +625,8 @@ def _parse_recurse(macro, mapping, macro_instance=None, depth=0):
             'wheel': (macro_instance.wheel, 2, 2),
             'ifeq': (macro_instance.ifeq, 3, 4),
             'set': (macro_instance.set, 2, 2),
+            'todevice': (macro_instance.todevice, 3, 4),
+            'led': (macro_instance.led, 2, 2),
         }
 
         function = functions.get(call)
