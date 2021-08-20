@@ -25,7 +25,7 @@
 import itertools
 import asyncio
 
-from evdev.ecodes import EV_KEY, EV_ABS, EV_LED, EV_SND, EV_FF
+from evdev.ecodes import EV_KEY, EV_ABS
 from evdev import ecodes
 
 from keymapper.logger import logger
