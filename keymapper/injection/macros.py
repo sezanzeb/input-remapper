@@ -421,9 +421,6 @@ class _Macro:
         code : int or int
             examples: 0, 'LED_NUML', 0, 'SND_CLICK'
         value : int
-        device : None or str
-            device to send to (TODO)
-            None means mapping source device
         """
         if isinstance(ev_type, str):
             ev_type = ecodes[ev_type.upper()]
