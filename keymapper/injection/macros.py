@@ -411,7 +411,7 @@ class _Macro:
         self.tasks.append(lambda handler: handler(ev_type, code, value))
         self.tasks.append(self._keycode_pause)
 
-    def todevice(self, ev_type, code, value, device=None):
+    def todevice(self, ev_type, code, value):
         """Write any event to source or other device.
 
         Parameters
@@ -429,11 +429,11 @@ class _Macro:
             ev_type = ecodes[ev_type.upper()]
         if isinstance(code, str):
             code = ecodes[code.upper()]
-        self.tasks.append(lambda handler: handler(ev_type, code, value, device))
+        self.tasks.append(lambda handler: handler(ev_type, code, value, True))
 
     def led(self, code, value):
-        """Shortcut for todevice(EV_LED, code, value, None)."""
-        self.todevice(EV_LED, code, value, None)
+        """Shortcut for todevice(EV_LED, code, value)."""
+        self.todevice(EV_LED, code, value)
 
     def mouse(self, direction, speed):
         """Shortcut for h(e(...))."""

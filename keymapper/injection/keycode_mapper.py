@@ -235,18 +235,16 @@ class KeycodeMapper:
                         f'but got {key}'
                     )
 
-    def macro_write(self, ev_type, code, value, device=False):
-        """Handler for macros.
-        When device is not False, pass on to separate function for clarity"""
-        if not type(device)==bool:
-            self.device_write(ev_type, code, value, device)
+    def macro_write(self, ev_type, code, value, to_device=False):
+        """Handler for macros."""
+        if to_device:
+            self.device_write(ev_type, code, value)
             return
         self.context.uinput.write(ev_type, code, value)
         self.context.uinput.syn()
 
-    def device_write(self, ev_type, code, value, device):
+    def device_write(self, ev_type, code, value):
         """Handler for source devices."""
-        #TODO: when dev parameter, locate that specific device
         for source in self.context.sources:
             if code in source.capabilities().get(ev_type, []):
                 source.write(ev_type, code, value)
