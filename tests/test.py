@@ -40,6 +40,7 @@ import gi
 gi.require_version('Gtk', '3.0')
 gi.require_version('GLib', '2.0')
 
+from xmodmap import xmodmap
 
 assert not os.getcwd().endswith('tests')
 
@@ -487,6 +488,18 @@ def patch_os_system():
     os.system = system
 
 
+def patch_check_output():
+    """xmodmap -pke should always return a fixed set of symbols."""
+    original_check_output = subprocess.check_output
+
+    def check_output(command, *args, **kwargs):
+        if 'xmodmap' in command and '-pke' in command:
+            return xmodmap
+        return original_check_output(command, *args, **kwargs)
+
+    subprocess.check_output = check_output
+
+
 def clear_write_history():
     """Empty the history in preparation for the next test."""
     while len(uinput_write_history) > 0:
@@ -501,6 +514,7 @@ patch_paths()
 patch_evdev()
 patch_events()
 patch_os_system()
+patch_check_output()
 
 from keymapper.logger import update_verbosity
 
@@ -576,6 +590,7 @@ def quick_cleanup(log=True):
     config.save_config()
 
     system_mapping.populate()
+
     custom_mapping.empty()
     custom_mapping.clear_config()
     custom_mapping.changed = False
