@@ -489,7 +489,11 @@ def patch_os_system():
 
 
 def patch_check_output():
-    """xmodmap -pke should always return a fixed set of symbols."""
+    """xmodmap -pke should always return a fixed set of symbols.
+
+    On some installations the `xmodmap` command might be missig completely,
+    which would break the tests.
+    """
     original_check_output = subprocess.check_output
 
     def check_output(command, *args, **kwargs):
