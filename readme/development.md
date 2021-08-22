@@ -5,9 +5,9 @@ requests. If you have questions about the code and architecture, feel free
 to [open an issue](https://github.com/sezanzeb/key-mapper/issues). This
 file should give an overview about some internals of key-mapper.
 
-All pull requests will at some point require unittests, the code
-coverage may only be improved, not decreased. It also has to be mostly
-compliant with pylint.
+All pull requests will at some point require unittests (see below for more
+info), the code coverage may only be improved, not decreased. It also has to
+be mostly compliant with pylint.
 
 ## Roadmap
 
@@ -39,6 +39,7 @@ compliant with pylint.
 - [x] map keys using a `modifier + modifier + ... + key` syntax
 - [x] inject in an additional device instead to avoid clashing capabilities
 - [x] don't run any GUI code as root for improved wayland compatibility
+- [ ] macro editor with easier to read function names
 - [ ] plugin support
 - [x] getting it into the official debian repo
 
@@ -63,6 +64,19 @@ python3 tests/test.py test_paths.TestPaths.test_mkdir
 
 Don't use your computer during integration tests to avoid interacting
 with the gui, which might make tests fail.
+
+## Writing Tests
+
+Tests are in https://github.com/sezanzeb/key-mapper/tree/main/tests
+
+https://github.com/sezanzeb/key-mapper/blob/main/tests/test.py patches some modules and runs tests. The tests need
+patches because every environment that runs them will be different. By using patches they all look the same to the
+individual tests. Some patches also allow to make some handy assertions, like the `write_history` of `UInput`.
+
+Test files are usually named after the module they are in.
+
+In the tearDown functions, usually one of `quick_cleanup` or `cleanup` should be called. This avoids making a test
+fail that comes after your new test, because some state variables might still be modified by yours.
 
 ## Releasing
 
@@ -187,25 +201,24 @@ modify `should_map_as_btn`. If not, the button cannot be mapped.
 
 ## How it works
 
-It uses evdev. The links below point to older code in 0.7.0 so that their
-line numbers remain valid.
+It uses evdev. The links below point to the 1.0.0 release, line numbers might have changed in the current main.
 
 1. It grabs a device (e.g. /dev/input/event3), so that the key events won't
    reach X11/Wayland anymore
-   [source](https://github.com/sezanzeb/key-mapper/blob/0.7.0/keymapper/injection/injector.py#L182)
+   [source](https://github.com/sezanzeb/key-mapper/blob/1.0.0/keymapper/injection/injector.py#L197)
 2. Reads the events from it (`evtest` can do it, you can also do
    `cat /dev/input/event3` which yields binary stuff)
-   [source](https://github.com/sezanzeb/key-mapper/blob/0.7.0/keymapper/injection/injector.py#L413)
+   [source](https://github.com/sezanzeb/key-mapper/blob/1.0.0/keymapper/injection/injector.py#L443)
 3. Looks up the mapping if that event maps to anything
-   [source](https://github.com/sezanzeb/key-mapper/blob/0.7.0/keymapper/injection/keycode_mapper.py#L421)
+   [source](https://github.com/sezanzeb/key-mapper/blob/1.0.0/keymapper/injection/keycode_mapper.py#L434)
 4. Injects the output event in a new device that key-mapper created (another
    new path in /dev/input, device name is suffixed by "mapped")
-   [source](https://github.com/sezanzeb/key-mapper/blob/0.7.0/keymapper/injection/keycode_mapper.py#L227),
-   [new device](https://github.com/sezanzeb/key-mapper/blob/0.7.0/keymapper/injection/injector.py#L324)
+   [source](https://github.com/sezanzeb/key-mapper/blob/1.0.0/keymapper/injection/keycode_mapper.py#L242),
+   [new device](https://github.com/sezanzeb/key-mapper/blob/1.0.0/keymapper/injection/injector.py#L356)
 5. Forwards any events that should not be mapped to anything in another new
    device (device name is suffixed by "forwarded")
-   [source](https://github.com/sezanzeb/key-mapper/blob/0.7.0/keymapper/injection/keycode_mapper.py#L232),
-   [new device](https://github.com/sezanzeb/key-mapper/blob/0.7.0/keymapper/injection/injector.py#L342)
+   [source](https://github.com/sezanzeb/key-mapper/blob/1.0.0/keymapper/injection/keycode_mapper.py#L247),
+   [new device](https://github.com/sezanzeb/key-mapper/blob/1.0.0/keymapper/injection/injector.py#L367)
 
 This stuff is going on as a daemon in the background
 
