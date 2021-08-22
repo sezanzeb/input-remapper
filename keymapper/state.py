@@ -22,7 +22,6 @@
 """Create some singleton objects that are needed for the app to work."""
 
 
-import stat
 import re
 import json
 import subprocess
@@ -72,9 +71,11 @@ class SystemMapping:
             xmodmap = xmodmap
             self._xmodmap = re.findall(r'(\d+) = (.+)\n', xmodmap + '\n')
             xmodmap_dict = self._find_legit_mappings()
+            if len(xmodmap_dict) == 0:
+                logger.info('`xmodmap -pke` did not yield any symbol')
         except (subprocess.CalledProcessError, FileNotFoundError):
             # might be within a tty
-            pass
+            logger.info('`xmodmap` command not found')
 
         if USER != 'root':
             # write this stuff into the key-mapper config directory, because

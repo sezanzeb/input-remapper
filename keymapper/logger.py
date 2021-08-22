@@ -92,6 +92,13 @@ LOG_PATH = (
     else f'{HOME}/.log/key-mapper'
 )
 
+logger = logging.getLogger()
+
+
+def is_debug():
+    """True, if the logger is currently in DEBUG or SPAM mode."""
+    return logger.level <= logging.DEBUG
+
 
 class Formatter(logging.Formatter):
     """Overwritten Formatter to print nicer logs."""
@@ -132,7 +139,6 @@ class Formatter(logging.Formatter):
         return super().format(record)
 
 
-logger = logging.getLogger()
 handler = logging.StreamHandler()
 handler.setFormatter(Formatter())
 logger.addHandler(handler)
@@ -147,11 +153,6 @@ except pkg_resources.DistributionNotFound as error:
     EVDEV_VERSION = None
     logger.info('Could not figure out the version')
     logger.debug(error)
-
-
-def is_debug():
-    """True, if the logger is currently in DEBUG or SPAM mode."""
-    return logger.level <= logging.DEBUG
 
 
 def log_info(name='key-mapper'):
