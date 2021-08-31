@@ -58,8 +58,18 @@ def get_user():
     return user
 
 
+def get_home(user):
+    """Try to find the user's home directory."""
+    try:
+        return pwd.getpwnam(user).pw_dir
+    except:
+        pass
+
+    return '/root' if USER == 'root' else f'/home/{user}'
+
+
 USER = get_user()
 
-HOME = '/root' if USER == 'root' else f'/home/{USER}'
+HOME = get_home(USER)
 
 CONFIG_PATH = os.path.join(HOME, '.config/key-mapper')
