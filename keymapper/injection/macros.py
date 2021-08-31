@@ -727,4 +727,4 @@ def parse(macro, mapping, return_errors=False):
         logger.error('Failed to parse macro "%s": %s', macro, error.__repr__())
         # print the traceback in case this is a bug of key-mapper
         logger.debug(''.join(traceback.format_tb(error.__traceback__)).strip())
-        return str(error) if return_errors else None
+        return f'{error.__class__.__name__}: {str(error)}' if return_errors else None
