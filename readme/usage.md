@@ -59,6 +59,16 @@ your focused application.
   <img src="combination.png"/>
 </p>
 
+But you can also work around it by releasing the modifier in your
+combination. This is a bit weird to use right now and there is probably
+room for improvement:
+
+<p align="center">
+  <img src="combination_workaround.png"/>
+</p>
+
+This will write lowercase "a" characters.
+
 ## Writing Combinations
 
 You can write `Control_L + a` as mapping, which will inject those two
