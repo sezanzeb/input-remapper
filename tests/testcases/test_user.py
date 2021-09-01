@@ -62,6 +62,6 @@ class TestUser(unittest.TestCase):
 
         property_mock = mock.Mock()
         property_mock.configure_mock(pw_dir='/custom/home/foo')
-        with mock.patch('pwd.getpwnam', return_value = property_mock):
+        with mock.patch('pwd.getpwnam', return_value=property_mock):
             self.assertEqual(get_home('foo'), '/custom/home/foo')
 
