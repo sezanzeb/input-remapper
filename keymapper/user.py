@@ -60,13 +60,7 @@ def get_user():
 
 def get_home(user):
     """Try to find the user's home directory."""
-    try:
-        return pwd.getpwnam(user).pw_dir
-    except:
-        pass
-
-    return '/root' if USER == 'root' else f'/home/{user}'
-
+    return pwd.getpwnam(user).pw_dir
 
 USER = get_user()
 
