@@ -46,7 +46,7 @@ class TestUser(unittest.TestCase):
 
         property_mock = mock.Mock()
         property_mock.configure_mock(pw_name='quix')
-        with mock.patch('os.getlogin', lambda: _raise(OSError())), mock.patch('pwd.getpwuid', return_value = property_mock):
+        with mock.patch('os.getlogin', lambda: _raise(OSError())), mock.patch('pwd.getpwuid', return_value=property_mock):
             os.environ['USER'] = 'root'
             os.environ['SUDO_USER'] = 'qux'
             self.assertEqual(get_user(), 'qux')
