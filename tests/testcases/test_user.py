@@ -23,8 +23,7 @@ import os
 import unittest
 from unittest import mock
 
-from keymapper.user import get_user
-from keymapper.user import get_home
+from keymapper.user import get_user, get_home
 
 from tests.test import quick_cleanup
 
