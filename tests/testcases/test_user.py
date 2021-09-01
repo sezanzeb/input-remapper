@@ -55,6 +55,7 @@ class TestUser(unittest.TestCase):
             os.environ['PKEXEC_UID'] = '1000'
             self.assertNotEqual(get_user(), 'root')
 
+    def test_get_home(self):
         property_mock = mock.Mock()
         property_mock.configure_mock(pw_dir='/custom/home/foo')
         with mock.patch('pwd.getpwnam', return_value=property_mock):
