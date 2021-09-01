@@ -23,7 +23,7 @@ import os
 import unittest
 from unittest import mock
 
-from keymapper.user import get_user
+from keymapper.user import get_user, get_home
 
 from tests.test import quick_cleanup
 
@@ -43,7 +43,9 @@ class TestUser(unittest.TestCase):
         with mock.patch('os.getlogin', lambda: 'root'):
             self.assertEqual(get_user(), 'root')
 
-        with mock.patch('os.getlogin', lambda: _raise(OSError())):
+        property_mock = mock.Mock()
+        property_mock.configure_mock(pw_name='quix')
+        with mock.patch('os.getlogin', lambda: _raise(OSError())), mock.patch('pwd.getpwuid', return_value=property_mock):
             os.environ['USER'] = 'root'
             os.environ['SUDO_USER'] = 'qux'
             self.assertEqual(get_user(), 'qux')
@@ -52,3 +54,10 @@ class TestUser(unittest.TestCase):
             del os.environ['SUDO_USER']
             os.environ['PKEXEC_UID'] = '1000'
             self.assertNotEqual(get_user(), 'root')
+
+    def test_get_home(self):
+        property_mock = mock.Mock()
+        property_mock.configure_mock(pw_dir='/custom/home/foo')
+        with mock.patch('pwd.getpwnam', return_value=property_mock):
+            self.assertEqual(get_home('foo'), '/custom/home/foo')
+
