@@ -40,6 +40,7 @@ from keymapper.ipc.pipe import Pipe
 from keymapper.logger import logger
 from keymapper.groups import groups
 from keymapper import utils
+from keymapper.user import USER
 
 
 TERMINATE = 'terminate'
@@ -65,8 +66,8 @@ class RootHelper:
     """
     def __init__(self):
         """Construct the helper and initialize its sockets."""
-        self._results = Pipe('/tmp/key-mapper/results')
-        self._commands = Pipe('/tmp/key-mapper/commands')
+        self._results = Pipe(f'/tmp/key-mapper-{USER}/results')
+        self._commands = Pipe(f'/tmp/key-mapper-{USER}/commands')
 
         self._send_groups()
 
