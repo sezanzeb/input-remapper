@@ -103,7 +103,7 @@ class TestSocket(unittest.TestCase):
 
 class TestPipe(unittest.TestCase):
     def test_pipe_single(self):
-        p1 = Pipe('/tmp/key-mapper-test/pipe')
+        p1 = Pipe(f'/tmp/key-mapper-test/pipe')
         self.assertEqual(p1.recv(), None)
 
         p1.send(1)
@@ -123,8 +123,8 @@ class TestPipe(unittest.TestCase):
         self.assertEqual(p1.recv(), None)
 
     def test_pipe_duo(self):
-        p1 = Pipe('/tmp/key-mapper-test/pipe')
-        p2 = Pipe('/tmp/key-mapper-test/pipe')
+        p1 = Pipe(f'/tmp/key-mapper-test/pipe')
+        p2 = Pipe(f'/tmp/key-mapper-test/pipe')
         self.assertEqual(p2.recv(), None)
 
         p1.send(1)

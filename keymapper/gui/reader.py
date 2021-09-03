@@ -35,6 +35,7 @@ from keymapper.ipc.pipe import Pipe
 from keymapper.gui.helper import TERMINATE, REFRESH_GROUPS
 from keymapper import utils
 from keymapper.state import custom_mapping
+from keymapper.user import USER
 
 
 DEBOUNCE_TICKS = 3
@@ -69,8 +70,8 @@ class Reader:
 
     def connect(self):
         """Connect to the helper."""
-        self._results = Pipe('/tmp/key-mapper/results')
-        self._commands = Pipe('/tmp/key-mapper/commands')
+        self._results = Pipe(f'/tmp/key-mapper-{USER}/results')
+        self._commands = Pipe(f'/tmp/key-mapper-{USER}/commands')
 
     def are_new_devices_available(self):
         """Check if groups contains new devices.
