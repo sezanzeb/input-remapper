@@ -106,9 +106,6 @@ def will_report_key_up(event):
 def should_map_as_btn(event, mapping, gamepad):
     """Does this event describe a button.
 
-    If it does, this function will make sure its value is one of [-1, 0, 1],
-    so that it matches the possible values in a mapping object if needed.
-
     If a new kind of event should be mappable to buttons, this is the place
     to add it.
 

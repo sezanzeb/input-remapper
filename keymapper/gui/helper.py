@@ -25,6 +25,11 @@ It should be started via key-mapper-control and pkexec.
 
 GUIs should not run as root
 https://wiki.archlinux.org/index.php/Running_GUI_applications_as_root
+
+The service shouldn't do that even though it has root rights, because that
+would provide a key-logger that can be accessed by any user at all times,
+whereas for the helper to start a password is needed and it stops when the ui
+closes.
 """
 
 
