@@ -208,7 +208,7 @@ class Daemon:
         try:
             bus.publish(BUS_NAME, self)
         except RuntimeError as error:
-            logger.error('Is the service is already running? %s', str(error))
+            logger.error('Is the service already running? (%s)', str(error))
             sys.exit(1)
 
     def run(self):
