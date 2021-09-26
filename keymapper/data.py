@@ -33,7 +33,7 @@ from keymapper.logger import logger
 logged = False
 
 
-def get_data_path(filename=''):
+def get_data_path(filename=""):
     """Depending on the installation prefix, return the data dir.
 
     Since it is a nightmare to get stuff installed with pip across
@@ -44,7 +44,7 @@ def get_data_path(filename=''):
 
     source = None
     try:
-        source = pkg_resources.require('key-mapper')[0].location
+        source = pkg_resources.require("key-mapper")[0].location
         # failed in some ubuntu installations
     except pkg_resources.DistributionNotFound:
         pass
@@ -56,18 +56,18 @@ def get_data_path(filename=''):
     data = None
     # python3.8/dist-packages python3.7/site-packages, /usr/share,
     # /usr/local/share, endless options
-    if source and '-packages' not in source and 'python' not in source:
+    if source and "-packages" not in source and "python" not in source:
         # probably installed with -e, running from the cloned git source
-        data = os.path.join(source, 'data')
+        data = os.path.join(source, "data")
         if not os.path.exists(data):
             if not logged:
                 logger.debug('-e, but data missing at "%s"', data)
             data = None
 
     candidates = [
-        '/usr/share/key-mapper',
-        '/usr/local/share/key-mapper',
-        os.path.join(site.USER_BASE, 'share/key-mapper'),
+        "/usr/share/key-mapper",
+        "/usr/local/share/key-mapper",
+        os.path.join(site.USER_BASE, "share/key-mapper"),
     ]
 
     if data is None:
@@ -78,7 +78,7 @@ def get_data_path(filename=''):
                 break
 
         if data is None:
-            logger.error('Could not find the application data')
+            logger.error("Could not find the application data")
             sys.exit(1)
 
     if not logged:

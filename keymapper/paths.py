@@ -40,8 +40,8 @@ def chown(path):
 
 def touch(path, log=True):
     """Create an empty file and all its parent dirs, give it to the user."""
-    if path.endswith('/'):
-        raise ValueError(f'Expected path to not end with a slash: {path}')
+    if path.endswith("/"):
+        raise ValueError(f"Expected path to not end with a slash: {path}")
 
     if os.path.exists(path):
         return
@@ -57,7 +57,7 @@ def touch(path, log=True):
 
 def mkdir(path, log=True):
     """Create a folder, give it to the user."""
-    if path == '' or path is None:
+    if path == "" or path is None:
         return
 
     if os.path.exists(path):
@@ -88,7 +88,7 @@ def remove(path):
 
 def get_preset_path(group_name=None, preset=None):
     """Get a path to the stored preset, or to store a preset to."""
-    presets_base = os.path.join(CONFIG_PATH, 'presets')
+    presets_base = os.path.join(CONFIG_PATH, "presets")
 
     if group_name is None:
         return presets_base
@@ -97,8 +97,8 @@ def get_preset_path(group_name=None, preset=None):
         # the extension of the preset should not be shown in the ui.
         # if a .json extension arrives this place, it has not been
         # stripped away properly prior to this.
-        assert not preset.endswith('.json')
-        preset = f'{preset}.json'
+        assert not preset.endswith(".json")
+        preset = f"{preset}.json"
 
     if preset is None:
         return os.path.join(presets_base, group_name)

@@ -22,8 +22,16 @@
 import unittest
 
 from evdev import ecodes
-from evdev.ecodes import EV_KEY, EV_ABS, ABS_HAT0X, KEY_A, \
-    EV_REL, REL_X, REL_WHEEL, REL_HWHEEL
+from evdev.ecodes import (
+    EV_KEY,
+    EV_ABS,
+    ABS_HAT0X,
+    KEY_A,
+    EV_REL,
+    REL_X,
+    REL_WHEEL,
+    REL_HWHEEL,
+)
 
 from keymapper.config import config, BUTTONS
 from keymapper.mapping import Mapping
@@ -34,17 +42,16 @@ from tests.test import new_event, InputDevice, MAX_ABS, MIN_ABS
 
 class TestDevUtils(unittest.TestCase):
     def test_max_abs(self):
-        self.assertEqual(utils.get_abs_range(InputDevice('/dev/input/event30'))[1], MAX_ABS)
-        self.assertIsNone(utils.get_abs_range(InputDevice('/dev/input/event10')))
+        self.assertEqual(
+            utils.get_abs_range(InputDevice("/dev/input/event30"))[1], MAX_ABS
+        )
+        self.assertIsNone(utils.get_abs_range(InputDevice("/dev/input/event10")))
 
     def test_will_report_key_up(self):
-        self.assertFalse(
-            utils.will_report_key_up(new_event(EV_REL, REL_WHEEL, 1)))
-        self.assertFalse(
-            utils.will_report_key_up(new_event(EV_REL, REL_HWHEEL, -1)))
+        self.assertFalse(utils.will_report_key_up(new_event(EV_REL, REL_WHEEL, 1)))
+        self.assertFalse(utils.will_report_key_up(new_event(EV_REL, REL_HWHEEL, -1)))
         self.assertTrue(utils.will_report_key_up(new_event(EV_KEY, KEY_A, 1)))
-        self.assertTrue(
-            utils.will_report_key_up(new_event(EV_ABS, ABS_HAT0X, -1)))
+        self.assertTrue(utils.will_report_key_up(new_event(EV_ABS, ABS_HAT0X, -1)))
 
     def test_is_wheel(self):
         self.assertTrue(utils.is_wheel(new_event(EV_REL, REL_WHEEL, 1)))
@@ -113,8 +120,8 @@ class TestDevUtils(unittest.TestCase):
         self.assertFalse(do(0, new_event(EV_ABS, ecodes.ABS_RY, -1)))
         self.assertFalse(do(1, new_event(EV_ABS, ecodes.ABS_RY, -1)))
 
-        mapping.set('gamepad.joystick.right_purpose', BUTTONS)
-        config.set('gamepad.joystick.left_purpose', BUTTONS)
+        mapping.set("gamepad.joystick.right_purpose", BUTTONS)
+        config.set("gamepad.joystick.left_purpose", BUTTONS)
         # but only for gamepads
         self.assertFalse(do(0, new_event(EV_ABS, ecodes.ABS_Y, -1)))
         self.assertTrue(do(1, new_event(EV_ABS, ecodes.ABS_Y, -1)))

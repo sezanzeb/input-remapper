@@ -22,16 +22,34 @@
 import unittest
 import asyncio
 
-from evdev.ecodes import EV_REL, REL_X, REL_Y, REL_WHEEL, REL_HWHEEL, \
-    EV_ABS, ABS_X, ABS_Y, ABS_RX, ABS_RY
+from evdev.ecodes import (
+    EV_REL,
+    REL_X,
+    REL_Y,
+    REL_WHEEL,
+    REL_HWHEEL,
+    EV_ABS,
+    ABS_X,
+    ABS_Y,
+    ABS_RX,
+    ABS_RY,
+)
 
 from keymapper.config import config
 from keymapper.mapping import Mapping
 from keymapper.injection.context import Context
 from keymapper.injection.event_producer import EventProducer, MOUSE, WHEEL
 
-from tests.test import InputDevice, UInput, MAX_ABS, clear_write_history, \
-    uinput_write_history, quick_cleanup, new_event, MIN_ABS
+from tests.test import (
+    InputDevice,
+    UInput,
+    MAX_ABS,
+    clear_write_history,
+    uinput_write_history,
+    quick_cleanup,
+    new_event,
+    MIN_ABS,
+)
 
 
 abs_state = [0, 0, 0, 0]
@@ -48,13 +66,13 @@ class TestEventProducer(unittest.TestCase):
         uinput = UInput()
         self.context.uinput = uinput
 
-        device = InputDevice('/dev/input/event30')
+        device = InputDevice("/dev/input/event30")
         self.event_producer = EventProducer(self.context)
         self.event_producer.set_abs_range_from(device)
         asyncio.ensure_future(self.event_producer.run())
 
-        config.set('gamepad.joystick.x_scroll_speed', 1)
-        config.set('gamepad.joystick.y_scroll_speed', 1)
+        config.set("gamepad.joystick.x_scroll_speed", 1)
+        config.set("gamepad.joystick.y_scroll_speed", 1)
 
     def tearDown(self):
         quick_cleanup()
@@ -155,10 +173,10 @@ class TestEventProducer(unittest.TestCase):
 
     def test_joystick_purpose_1(self):
         speed = 20
-        self.mapping.set('gamepad.joystick.non_linearity', 1)
-        self.mapping.set('gamepad.joystick.pointer_speed', speed)
-        self.mapping.set('gamepad.joystick.left_purpose', MOUSE)
-        self.mapping.set('gamepad.joystick.right_purpose', WHEEL)
+        self.mapping.set("gamepad.joystick.non_linearity", 1)
+        self.mapping.set("gamepad.joystick.pointer_speed", speed)
+        self.mapping.set("gamepad.joystick.left_purpose", MOUSE)
+        self.mapping.set("gamepad.joystick.right_purpose", WHEEL)
 
         min_abs = 0
         # if `rest` is not exactly `max_abs / 2` decimal places might add up
@@ -181,12 +199,12 @@ class TestEventProducer(unittest.TestCase):
 
     def test_joystick_purpose_2(self):
         speed = 30
-        config.set('gamepad.joystick.non_linearity', 1)
-        config.set('gamepad.joystick.pointer_speed', speed)
-        config.set('gamepad.joystick.left_purpose', WHEEL)
-        config.set('gamepad.joystick.right_purpose', MOUSE)
-        config.set('gamepad.joystick.x_scroll_speed', 1)
-        config.set('gamepad.joystick.y_scroll_speed', 2)
+        config.set("gamepad.joystick.non_linearity", 1)
+        config.set("gamepad.joystick.pointer_speed", speed)
+        config.set("gamepad.joystick.left_purpose", WHEEL)
+        config.set("gamepad.joystick.right_purpose", MOUSE)
+        config.set("gamepad.joystick.x_scroll_speed", 1)
+        config.set("gamepad.joystick.y_scroll_speed", 2)
 
         # vertical wheel event values are negative
         self.do(MAX_ABS, 0, 0, 0, (EV_REL, REL_HWHEEL, 1))
@@ -201,10 +219,10 @@ class TestEventProducer(unittest.TestCase):
 
     def test_joystick_purpose_3(self):
         speed = 40
-        self.mapping.set('gamepad.joystick.non_linearity', 1)
-        config.set('gamepad.joystick.pointer_speed', speed)
-        self.mapping.set('gamepad.joystick.left_purpose', MOUSE)
-        config.set('gamepad.joystick.right_purpose', MOUSE)
+        self.mapping.set("gamepad.joystick.non_linearity", 1)
+        config.set("gamepad.joystick.pointer_speed", speed)
+        self.mapping.set("gamepad.joystick.left_purpose", MOUSE)
+        config.set("gamepad.joystick.right_purpose", MOUSE)
 
         self.do(MAX_ABS, 0, 0, 0, (EV_REL, REL_X, speed))
         self.do(MIN_ABS, 0, 0, 0, (EV_REL, REL_X, -speed))
@@ -217,10 +235,10 @@ class TestEventProducer(unittest.TestCase):
         self.do(0, 0, 0, MIN_ABS, (EV_REL, REL_Y, -speed))
 
     def test_joystick_purpose_4(self):
-        config.set('gamepad.joystick.left_purpose', WHEEL)
-        config.set('gamepad.joystick.right_purpose', WHEEL)
-        self.mapping.set('gamepad.joystick.x_scroll_speed', 2)
-        self.mapping.set('gamepad.joystick.y_scroll_speed', 3)
+        config.set("gamepad.joystick.left_purpose", WHEEL)
+        config.set("gamepad.joystick.right_purpose", WHEEL)
+        self.mapping.set("gamepad.joystick.x_scroll_speed", 2)
+        self.mapping.set("gamepad.joystick.y_scroll_speed", 3)
 
         self.do(MAX_ABS, 0, 0, 0, (EV_REL, REL_HWHEEL, 2))
         self.do(MIN_ABS, 0, 0, 0, (EV_REL, REL_HWHEEL, -2))

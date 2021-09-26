@@ -29,19 +29,19 @@ from keymapper.data import get_data_path
 class TestData(unittest.TestCase):
     def test_data_editable(self):
         path = os.getcwd()
-        pkg_resources.require('key-mapper')[0].location = path
-        self.assertEqual(get_data_path(), path + '/data/')
-        self.assertEqual(get_data_path('a'), path + '/data/a')
+        pkg_resources.require("key-mapper")[0].location = path
+        self.assertEqual(get_data_path(), path + "/data/")
+        self.assertEqual(get_data_path("a"), path + "/data/a")
 
     def test_data_usr(self):
-        path = '/usr/some/where/python3.8/dist-packages/'
-        pkg_resources.require('key-mapper')[0].location = path
+        path = "/usr/some/where/python3.8/dist-packages/"
+        pkg_resources.require("key-mapper")[0].location = path
 
-        self.assertTrue(get_data_path().startswith('/usr/'))
-        self.assertTrue(get_data_path().endswith('key-mapper/'))
+        self.assertTrue(get_data_path().startswith("/usr/"))
+        self.assertTrue(get_data_path().endswith("key-mapper/"))
 
-        self.assertTrue(get_data_path('a').startswith('/usr/'))
-        self.assertTrue(get_data_path('a').endswith('key-mapper/a'))
+        self.assertTrue(get_data_path("a").startswith("/usr/"))
+        self.assertTrue(get_data_path("a").endswith("key-mapper/a"))
 
 
 if __name__ == "__main__":

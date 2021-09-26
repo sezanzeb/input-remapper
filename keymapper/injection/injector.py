@@ -36,11 +36,14 @@ from keymapper.mapping import DISABLE_CODE
 from keymapper.injection.keycode_mapper import KeycodeMapper
 from keymapper.injection.context import Context
 from keymapper.injection.event_producer import EventProducer
-from keymapper.injection.numlock import set_numlock, is_numlock_on, \
-    ensure_numlock
+from keymapper.injection.numlock import (
+    set_numlock,
+    is_numlock_on,
+    ensure_numlock,
+)
 
 
-DEV_NAME = 'key-mapper'
+DEV_NAME = "key-mapper"
 
 # messages
 CLOSE = 0
@@ -78,6 +81,7 @@ class Injector(multiprocessing.Process):
     make running multiple injector easier. There is one process per
     hardware-device that is being mapped.
     """
+
     regrab_timeout = 0.2
 
     def __init__(self, group, mapping):
@@ -126,7 +130,7 @@ class Injector(multiprocessing.Process):
 
         if self._state in [STARTING, RUNNING] and not alive:
             self._state = FAILED
-            logger.error('Injector was unexpectedly found stopped')
+            logger.error("Injector was unexpectedly found stopped")
 
         return self._state
 
@@ -136,10 +140,7 @@ class Injector(multiprocessing.Process):
 
         Can be safely called from the main procss.
         """
-        logger.info(
-            'Stopping injecting keycodes for group "%s"',
-            self.group.key
-        )
+        logger.info('Stopping injecting keycodes for group "%s"', self.group.key)
         self._msg_pipe[1].send(CLOSE)
         self._state = STOPPED
 
@@ -188,24 +189,24 @@ class Injector(multiprocessing.Process):
         if not needed:
             # skipping reading and checking on events from those devices
             # may be beneficial for performance.
-            logger.debug('No need to grab %s', path)
+            logger.debug("No need to grab %s", path)
             return None
 
         attempts = 0
         while True:
             try:
                 device.grab()
-                logger.debug('Grab %s', path)
+                logger.debug("Grab %s", path)
                 break
             except IOError as error:
                 attempts += 1
 
                 # it might take a little time until the device is free if
                 # it was previously grabbed.
-                logger.debug('Failed attempts to grab %s: %d', path, attempts)
+                logger.debug("Failed attempts to grab %s: %d", path, attempts)
 
                 if attempts >= 10:
-                    logger.error('Cannot grab %s, it is possibly in use', path)
+                    logger.error("Cannot grab %s, it is possibly in use", path)
                     logger.error(str(error))
                     return None
 
@@ -253,9 +254,7 @@ class Injector(multiprocessing.Process):
         """
         ecodes = evdev.ecodes
 
-        capabilities = {
-            EV_KEY: []
-        }
+        capabilities = {EV_KEY: []}
 
         # support all injected keycodes
         for code in self.context.key_to_code.values():
@@ -305,7 +304,7 @@ class Injector(multiprocessing.Process):
             frame_available.clear()
             msg = self._msg_pipe[0].recv()
             if msg == CLOSE:
-                logger.debug('Received close signal')
+                logger.debug("Received close signal")
                 # stop the event loop and cause the process to reach its end
                 # cleanly. Using .terminate prevents coverage from working.
                 loop.stop()
@@ -316,7 +315,7 @@ class Injector(multiprocessing.Process):
         max_len = 80  # based on error messages
         remaining_len = max_len - len(DEV_NAME) - len(suffix) - 2
         middle = name[:remaining_len]
-        name = f'{DEV_NAME} {middle} {suffix}'
+        name = f"{DEV_NAME} {middle} {suffix}"
         return name
 
     def run(self):
@@ -354,9 +353,9 @@ class Injector(multiprocessing.Process):
         # where mapped events go to.
         # See the Context docstring on why this is needed.
         self.context.uinput = evdev.UInput(
-            name=self.get_udev_name(self.group.key, 'mapped'),
+            name=self.get_udev_name(self.group.key, "mapped"),
             phys=DEV_NAME,
-            events=self._construct_capabilities(GAMEPAD in self.group.types)
+            events=self._construct_capabilities(GAMEPAD in self.group.types),
         )
 
         for source in sources:
@@ -365,9 +364,9 @@ class Injector(multiprocessing.Process):
             # so don't merge all InputDevices into one UInput device.
             gamepad = classify(source) == GAMEPAD
             forward_to = evdev.UInput(
-                name=self.get_udev_name(source.name, 'forwarded'),
+                name=self.get_udev_name(source.name, "forwarded"),
                 phys=DEV_NAME,
-                events=self._copy_capabilities(source)
+                events=self._copy_capabilities(source),
             )
 
             # actual reading of events
@@ -380,7 +379,7 @@ class Injector(multiprocessing.Process):
                 self._event_producer.set_abs_range_from(source)
 
         if len(coroutines) == 0:
-            logger.error('Did not grab any device')
+            logger.error("Did not grab any device")
             self._msg_pipe[0].send(NO_GRAB)
             return
 
@@ -407,7 +406,7 @@ class Injector(multiprocessing.Process):
             # expected when stop_injecting is called,
             # during normal operation as well as tests this point is not
             # reached otherwise.
-            logger.debug('asyncio coroutines ended')
+            logger.debug("asyncio coroutines ended")
 
         for source in sources:
             # ungrab at the end to make the next injection process not fail
@@ -431,10 +430,7 @@ class Injector(multiprocessing.Process):
             Should be an UInput with capabilities that work for all forwarded
             events, so ideally they should be copied from source.
         """
-        logger.debug(
-            'Started consumer to inject for %s, fd %s',
-            source.path, source.fd
-        )
+        logger.debug("Started consumer to inject for %s, fd %s", source.path, source.fd)
 
         gamepad = classify(source) == GAMEPAD
 

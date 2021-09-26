@@ -27,9 +27,18 @@ import evdev
 from evdev.ecodes import EV_KEY, KEY_A
 
 from keymapper.paths import CONFIG_PATH
-from keymapper.groups import _FindGroups, groups, classify, \
-    GAMEPAD, MOUSE, UNKNOWN, GRAPHICS_TABLET, TOUCHPAD, \
-    KEYBOARD, _Group
+from keymapper.groups import (
+    _FindGroups,
+    groups,
+    classify,
+    GAMEPAD,
+    MOUSE,
+    UNKNOWN,
+    GRAPHICS_TABLET,
+    TOUCHPAD,
+    KEYBOARD,
+    _Group,
+)
 
 from tests.test import quick_cleanup, fixtures
 
@@ -47,16 +56,16 @@ class TestGroups(unittest.TestCase):
 
     def test_group(self):
         group = _Group(
-            paths=['/dev/a', '/dev/b', '/dev/c'],
-            names=['name_bar', 'name_a', 'name_foo'],
+            paths=["/dev/a", "/dev/b", "/dev/c"],
+            names=["name_bar", "name_a", "name_foo"],
             types=[MOUSE, KEYBOARD, UNKNOWN],
-            key='key'
+            key="key",
         )
-        self.assertEqual(group.name, 'name_a')
-        self.assertEqual(group.key, 'key')
+        self.assertEqual(group.name, "name_a")
+        self.assertEqual(group.key, "key")
         self.assertEqual(
-            group.get_preset_path('preset1234'),
-            os.path.join(CONFIG_PATH, 'presets', group.name, 'preset1234.json')
+            group.get_preset_path("preset1234"),
+            os.path.join(CONFIG_PATH, "presets", group.name, "preset1234.json"),
         )
 
     def test_find_groups(self):
@@ -66,129 +75,138 @@ class TestGroups(unittest.TestCase):
 
         groups.loads(pipe.groups)
         self.maxDiff = None
-        self.assertEqual(groups.dumps(), json.dumps([
-            json.dumps({
-                'paths': [
-                    '/dev/input/event1',
-                ],
-                'names': [
-                    'Foo Device'
-                ],
-                'types': [KEYBOARD],
-                'key': 'Foo Device'
-            }),
-            json.dumps({
-                'paths': [
-                    '/dev/input/event11',
-                    '/dev/input/event10',
-                    '/dev/input/event13'
-                ],
-                'names': [
-                    'Foo Device foo',
-                    'Foo Device',
-                    'Foo Device'
-                ],
-                'types': [KEYBOARD, MOUSE],
-                'key': 'Foo Device 2'
-            }),
-            json.dumps({
-                'paths': ['/dev/input/event20'],
-                'names': ['Bar Device'],
-                'types': [KEYBOARD],
-                'key': 'Bar Device'
-            }),
-            json.dumps({
-                'paths': ['/dev/input/event30'],
-                'names': ['gamepad'],
-                'types': [GAMEPAD],
-                'key': 'gamepad'
-            }),
-            json.dumps({
-                'paths': ['/dev/input/event40'],
-                'names': ['key-mapper Bar Device'],
-                'types': [KEYBOARD],
-                'key': 'key-mapper Bar Device'
-            }),
-        ]))
+        self.assertEqual(
+            groups.dumps(),
+            json.dumps(
+                [
+                    json.dumps(
+                        {
+                            "paths": [
+                                "/dev/input/event1",
+                            ],
+                            "names": ["Foo Device"],
+                            "types": [KEYBOARD],
+                            "key": "Foo Device",
+                        }
+                    ),
+                    json.dumps(
+                        {
+                            "paths": [
+                                "/dev/input/event11",
+                                "/dev/input/event10",
+                                "/dev/input/event13",
+                            ],
+                            "names": [
+                                "Foo Device foo",
+                                "Foo Device",
+                                "Foo Device",
+                            ],
+                            "types": [KEYBOARD, MOUSE],
+                            "key": "Foo Device 2",
+                        }
+                    ),
+                    json.dumps(
+                        {
+                            "paths": ["/dev/input/event20"],
+                            "names": ["Bar Device"],
+                            "types": [KEYBOARD],
+                            "key": "Bar Device",
+                        }
+                    ),
+                    json.dumps(
+                        {
+                            "paths": ["/dev/input/event30"],
+                            "names": ["gamepad"],
+                            "types": [GAMEPAD],
+                            "key": "gamepad",
+                        }
+                    ),
+                    json.dumps(
+                        {
+                            "paths": ["/dev/input/event40"],
+                            "names": ["key-mapper Bar Device"],
+                            "types": [KEYBOARD],
+                            "key": "key-mapper Bar Device",
+                        }
+                    ),
+                ]
+            ),
+        )
 
-        groups2 = json.dumps([
-            group.dumps() for group in
-            groups.filter(include_keymapper=True)
-        ])
+        groups2 = json.dumps(
+            [group.dumps() for group in groups.filter(include_keymapper=True)]
+        )
         self.assertEqual(pipe.groups, groups2)
 
     def test_list_group_names(self):
-        self.assertListEqual(groups.list_group_names(), [
-            'Foo Device',
-            'Foo Device',
-            'Bar Device',
-            'gamepad',
-        ])
+        self.assertListEqual(
+            groups.list_group_names(),
+            [
+                "Foo Device",
+                "Foo Device",
+                "Bar Device",
+                "gamepad",
+            ],
+        )
 
     def test_filter(self):
         # by default no key-mapper devices are present
         filtered = groups.filter()
         keys = [group.key for group in filtered]
-        self.assertIn('Foo Device 2', keys)
-        self.assertNotIn('key-mapper Bar Device', keys)
+        self.assertIn("Foo Device 2", keys)
+        self.assertNotIn("key-mapper Bar Device", keys)
 
     def test_skip_camera(self):
-        fixtures['/foo/bar'] = {
-            'name': 'camera', 'phys': 'abcd1',
-            'info': evdev.DeviceInfo(1, 2, 3, 4),
-            'capabilities': {
-                evdev.ecodes.EV_KEY: [
-                    evdev.ecodes.KEY_CAMERA
-                ]
-            }
+        fixtures["/foo/bar"] = {
+            "name": "camera",
+            "phys": "abcd1",
+            "info": evdev.DeviceInfo(1, 2, 3, 4),
+            "capabilities": {evdev.ecodes.EV_KEY: [evdev.ecodes.KEY_CAMERA]},
         }
 
         groups.refresh()
-        self.assertIsNone(groups.find(name='camera'))
-        self.assertIsNotNone(groups.find(name='gamepad'))
+        self.assertIsNone(groups.find(name="camera"))
+        self.assertIsNotNone(groups.find(name="gamepad"))
 
     def test_device_with_only_ev_abs(self):
         # could be anything, a lot of devices have ABS_X capabilities,
         # so it is not treated as gamepad joystick and since it also
         # doesn't have key capabilities, there is nothing to map.
-        fixtures['/foo/bar'] = {
-            'name': 'qux', 'phys': 'abcd2',
-            'info': evdev.DeviceInfo(1, 2, 3, 4),
-            'capabilities': {
-                evdev.ecodes.EV_ABS: [
-                    evdev.ecodes.ABS_X
-                ]
-            }
+        fixtures["/foo/bar"] = {
+            "name": "qux",
+            "phys": "abcd2",
+            "info": evdev.DeviceInfo(1, 2, 3, 4),
+            "capabilities": {evdev.ecodes.EV_ABS: [evdev.ecodes.ABS_X]},
         }
 
         groups.refresh()
-        self.assertIsNotNone(groups.find(name='gamepad'))
-        self.assertIsNone(groups.find(name='qux'))
+        self.assertIsNotNone(groups.find(name="gamepad"))
+        self.assertIsNone(groups.find(name="qux"))
 
         # verify this test even works at all
-        fixtures['/foo/bar']['capabilities'][EV_KEY] = [KEY_A]
+        fixtures["/foo/bar"]["capabilities"][EV_KEY] = [KEY_A]
         groups.refresh()
-        self.assertIsNotNone(groups.find(name='qux'))
+        self.assertIsNotNone(groups.find(name="qux"))
 
     def test_duplicate_device(self):
-        fixtures['/dev/input/event20']['name'] = 'Foo Device'
+        fixtures["/dev/input/event20"]["name"] = "Foo Device"
         groups.refresh()
 
-        group1 = groups.find(key='Foo Device')
-        group2 = groups.find(key='Foo Device 2')
-        group3 = groups.find(key='Foo Device 3')
+        group1 = groups.find(key="Foo Device")
+        group2 = groups.find(key="Foo Device 2")
+        group3 = groups.find(key="Foo Device 3")
 
-        self.assertIn('/dev/input/event1', group1.paths)
-        self.assertIn('/dev/input/event10', group2.paths)
-        self.assertIn('/dev/input/event20', group3.paths)
+        self.assertIn("/dev/input/event1", group1.paths)
+        self.assertIn("/dev/input/event10", group2.paths)
+        self.assertIn("/dev/input/event20", group3.paths)
 
-        self.assertEqual(group1.key, 'Foo Device')
-        self.assertEqual(group2.key, 'Foo Device 2')
-        self.assertEqual(group3.key, 'Foo Device 3')
+        self.assertEqual(group1.key, "Foo Device")
+        self.assertEqual(group2.key, "Foo Device 2")
+        self.assertEqual(group3.key, "Foo Device 3")
 
-        self.assertEqual(group1.name, 'Foo Device')
-        self.assertEqual(group2.name, 'Foo Device')
-        self.assertEqual(group3.name, 'Foo Device')
+        self.assertEqual(group1.name, "Foo Device")
+        self.assertEqual(group2.name, "Foo Device")
+        self.assertEqual(group3.name, "Foo Device")
 
     def test_classify(self):
         # properly detects if the device is a gamepad
@@ -206,57 +224,97 @@ class TestGroups(unittest.TestCase):
 
         """gamepads"""
 
-        self.assertEqual(classify(FakeDevice({
-            EV_ABS: [evdev.ecodes.ABS_X, evdev.ecodes.ABS_Y],
-            EV_KEY: [evdev.ecodes.BTN_A]
-        })), GAMEPAD)
+        self.assertEqual(
+            classify(
+                FakeDevice(
+                    {
+                        EV_ABS: [evdev.ecodes.ABS_X, evdev.ecodes.ABS_Y],
+                        EV_KEY: [evdev.ecodes.BTN_A],
+                    }
+                )
+            ),
+            GAMEPAD,
+        )
 
         """mice"""
 
-        self.assertEqual(classify(FakeDevice({
-            EV_REL: [evdev.ecodes.REL_X, evdev.ecodes.REL_Y, evdev.ecodes.REL_WHEEL],
-            EV_KEY: [evdev.ecodes.BTN_LEFT]
-        })), MOUSE)
+        self.assertEqual(
+            classify(
+                FakeDevice(
+                    {
+                        EV_REL: [
+                            evdev.ecodes.REL_X,
+                            evdev.ecodes.REL_Y,
+                            evdev.ecodes.REL_WHEEL,
+                        ],
+                        EV_KEY: [evdev.ecodes.BTN_LEFT],
+                    }
+                )
+            ),
+            MOUSE,
+        )
 
         """keyboard"""
 
-        self.assertEqual(classify(FakeDevice({
-            EV_KEY: [evdev.ecodes.KEY_A]
-        })), KEYBOARD)
+        self.assertEqual(classify(FakeDevice({EV_KEY: [evdev.ecodes.KEY_A]})), KEYBOARD)
 
         """touchpads"""
 
-        self.assertEqual(classify(FakeDevice({
-            EV_KEY: [evdev.ecodes.KEY_A],
-            EV_ABS: [evdev.ecodes.ABS_MT_POSITION_X]
-        })), TOUCHPAD)
+        self.assertEqual(
+            classify(
+                FakeDevice(
+                    {
+                        EV_KEY: [evdev.ecodes.KEY_A],
+                        EV_ABS: [evdev.ecodes.ABS_MT_POSITION_X],
+                    }
+                )
+            ),
+            TOUCHPAD,
+        )
 
         """graphics tablets"""
 
-        self.assertEqual(classify(FakeDevice({
-            EV_ABS: [evdev.ecodes.ABS_X, evdev.ecodes.ABS_Y],
-            EV_KEY: [evdev.ecodes.BTN_STYLUS]
-        })), GRAPHICS_TABLET)
+        self.assertEqual(
+            classify(
+                FakeDevice(
+                    {
+                        EV_ABS: [evdev.ecodes.ABS_X, evdev.ecodes.ABS_Y],
+                        EV_KEY: [evdev.ecodes.BTN_STYLUS],
+                    }
+                )
+            ),
+            GRAPHICS_TABLET,
+        )
 
         """weird combos"""
 
-        self.assertEqual(classify(FakeDevice({
-            EV_ABS: [evdev.ecodes.ABS_X, evdev.ecodes.ABS_Y],
-            EV_KEY: [evdev.ecodes.KEY_1]
-        })), UNKNOWN)
+        self.assertEqual(
+            classify(
+                FakeDevice(
+                    {
+                        EV_ABS: [evdev.ecodes.ABS_X, evdev.ecodes.ABS_Y],
+                        EV_KEY: [evdev.ecodes.KEY_1],
+                    }
+                )
+            ),
+            UNKNOWN,
+        )
 
-        self.assertEqual(classify(FakeDevice({
-            EV_ABS: [evdev.ecodes.ABS_X],
-            EV_KEY: [evdev.ecodes.BTN_A]
-        })), UNKNOWN)
+        self.assertEqual(
+            classify(
+                FakeDevice(
+                    {
+                        EV_ABS: [evdev.ecodes.ABS_X],
+                        EV_KEY: [evdev.ecodes.BTN_A],
+                    }
+                )
+            ),
+            UNKNOWN,
+        )
 
-        self.assertEqual(classify(FakeDevice({
-            EV_KEY: [evdev.ecodes.BTN_A]
-        })), UNKNOWN)
+        self.assertEqual(classify(FakeDevice({EV_KEY: [evdev.ecodes.BTN_A]})), UNKNOWN)
 
-        self.assertEqual(classify(FakeDevice({
-            EV_ABS: [evdev.ecodes.ABS_X]
-        })), UNKNOWN)
+        self.assertEqual(classify(FakeDevice({EV_ABS: [evdev.ecodes.ABS_X]})), UNKNOWN)
 
 
 if __name__ == "__main__":

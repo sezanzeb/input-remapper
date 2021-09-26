@@ -37,9 +37,9 @@ def migrate_path():
 
     Move existing presets into the new subfolder "presets"
     """
-    new_preset_folder = os.path.join(CONFIG_PATH, 'presets')
+    new_preset_folder = os.path.join(CONFIG_PATH, "presets")
     if not os.path.exists(get_preset_path()) and os.path.exists(CONFIG_PATH):
-        logger.info('Migrating presets from < 0.4.0...')
+        logger.info("Migrating presets from < 0.4.0...")
         devices = os.listdir(CONFIG_PATH)
         mkdir(get_preset_path())
         for device in devices:
@@ -48,38 +48,38 @@ def migrate_path():
                 target = path.replace(CONFIG_PATH, new_preset_folder)
                 logger.info('Moving "%s" to "%s"', path, target)
                 os.rename(path, target)
-        logger.info('done')
+        logger.info("done")
 
 
 migrate_path()
 
 
-def get_available_preset_name(group_name, preset='new preset', copy=False):
+def get_available_preset_name(group_name, preset="new preset", copy=False):
     """Increment the preset name until it is available."""
     if group_name is None:
         # endless loop otherwise
-        raise ValueError('group_name may not be None')
+        raise ValueError("group_name may not be None")
 
     preset = preset.strip()
 
-    if copy and not re.match(r'^.+\scopy( \d+)?$', preset):
-        preset = f'{preset} copy'
+    if copy and not re.match(r"^.+\scopy( \d+)?$", preset):
+        preset = f"{preset} copy"
 
     # find a name that is not already taken
     if os.path.exists(get_preset_path(group_name, preset)):
         # if there already is a trailing number, increment it instead of
         # adding another one
-        match = re.match(r'^(.+) (\d+)$', preset)
+        match = re.match(r"^(.+) (\d+)$", preset)
         if match:
             preset = match[1]
             i = int(match[2]) + 1
         else:
             i = 2
 
-        while os.path.exists(get_preset_path(group_name, f'{preset} {i}')):
+        while os.path.exists(get_preset_path(group_name, f"{preset} {i}")):
             i += 1
 
-        return f'{preset} {i}'
+        return f"{preset} {i}"
 
     return preset
 
@@ -94,7 +94,7 @@ def get_presets(group_name):
     device_folder = get_preset_path(group_name)
     mkdir(device_folder)
 
-    paths = glob.glob(os.path.join(device_folder, '*.json'))
+    paths = glob.glob(os.path.join(device_folder, "*.json"))
     presets = [
         os.path.splitext(os.path.basename(path))[0]
         for path in sorted(paths, key=os.path.getmtime)
@@ -128,17 +128,17 @@ def find_newest_preset(group_name=None):
     # sort the oldest files to the front in order to use pop to get the newest
     if group_name is None:
         paths = sorted(
-            glob.glob(os.path.join(get_preset_path(), '*/*.json')),
-            key=os.path.getmtime
+            glob.glob(os.path.join(get_preset_path(), "*/*.json")),
+            key=os.path.getmtime,
         )
     else:
         paths = sorted(
-            glob.glob(os.path.join(get_preset_path(group_name), '*.json')),
-            key=os.path.getmtime
+            glob.glob(os.path.join(get_preset_path(group_name), "*.json")),
+            key=os.path.getmtime,
         )
 
     if len(paths) == 0:
-        logger.debug('No presets found')
+        logger.debug("No presets found")
         return get_any_preset()
 
     group_names = groups.list_group_names()
@@ -154,7 +154,7 @@ def find_newest_preset(group_name=None):
             break
 
     if newest_path is None:
-        logger.debug('None of the configured devices is currently online')
+        logger.debug("None of the configured devices is currently online")
         return get_any_preset()
 
     preset = os.path.splitext(preset)[0]
@@ -188,7 +188,7 @@ def rename_preset(group_name, old_preset_name, new_preset_name):
     logger.info('Moving "%s" to "%s"', old_preset_name, new_preset_name)
     os.rename(
         get_preset_path(group_name, old_preset_name),
-        get_preset_path(group_name, new_preset_name)
+        get_preset_path(group_name, new_preset_name),
     )
     # set the modification date to now
     now = time.time()

@@ -47,16 +47,14 @@ from keymapper.paths import mkdir, chown
 
 class Pipe:
     """Pipe object."""
+
     def __init__(self, path):
         """Create a pipe, or open it if it already exists."""
         self._path = path
         self._unread = []
         self._created_at = time.time()
 
-        paths = (
-            f'{path}r',
-            f'{path}w'
-        )
+        paths = (f"{path}r", f"{path}w")
 
         mkdir(os.path.dirname(path))
 
@@ -70,13 +68,13 @@ class Pipe:
                 os.remove(paths[1])
 
             self._fds = os.pipe()
-            fds_dir = f'/proc/{os.getpid()}/fd/'
-            chown(f'{fds_dir}{self._fds[0]}')
-            chown(f'{fds_dir}{self._fds[1]}')
+            fds_dir = f"/proc/{os.getpid()}/fd/"
+            chown(f"{fds_dir}{self._fds[0]}")
+            chown(f"{fds_dir}{self._fds[1]}")
 
             # to make it accessible by path constants, create symlinks
-            os.symlink(f'{fds_dir}{self._fds[0]}', paths[0])
-            os.symlink(f'{fds_dir}{self._fds[1]}', paths[1])
+            os.symlink(f"{fds_dir}{self._fds[0]}", paths[0])
+            os.symlink(f"{fds_dir}{self._fds[1]}", paths[1])
         else:
             logger.spam('Using existing pipe for "%s"', path)
 
@@ -84,13 +82,10 @@ class Pipe:
         # is nothing to read
         self._fds = (
             os.open(paths[0], os.O_RDONLY | os.O_NONBLOCK),
-            os.open(paths[1], os.O_WRONLY | os.O_NONBLOCK)
+            os.open(paths[1], os.O_WRONLY | os.O_NONBLOCK),
         )
 
-        self._handles = (
-            open(self._fds[0], 'r'),
-            open(self._fds[1], 'w')
-        )
+        self._handles = (open(self._fds[0], "r"), open(self._fds[1], "w"))
 
     def recv(self):
         """Read an object from the pipe or None if nothing available.
@@ -107,11 +102,11 @@ class Pipe:
             return None
 
         parsed = json.loads(line)
-        if parsed[0] < self._created_at and os.environ.get('UNITTEST'):
+        if parsed[0] < self._created_at and os.environ.get("UNITTEST"):
             # important to avoid race conditions between multiple unittests,
             # for example old terminate messages reaching a new instance of
             # the helper.
-            logger.spam('Ignoring old message %s', parsed)
+            logger.spam("Ignoring old message %s", parsed)
             return None
 
         return parsed[1]
@@ -121,8 +116,8 @@ class Pipe:
         dump = json.dumps((time.time(), message))
         # there aren't any newlines supposed to be,
         # but if there are it breaks readline().
-        self._handles[1].write(dump.replace('\n', ''))
-        self._handles[1].write('\n')
+        self._handles[1].write(dump.replace("\n", ""))
+        self._handles[1].write("\n")
         self._handles[1].flush()
 
     def poll(self):

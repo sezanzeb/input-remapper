@@ -36,16 +36,12 @@ def is_numlock_on():
     """Get the current state of the numlock."""
     try:
         xset_q = subprocess.check_output(
-            ['xset', 'q'],
-            stderr=subprocess.STDOUT
+            ["xset", "q"], stderr=subprocess.STDOUT
         ).decode()
-        num_lock_status = re.search(
-            r'Num Lock:\s+(.+?)\s',
-            xset_q
-        )
+        num_lock_status = re.search(r"Num Lock:\s+(.+?)\s", xset_q)
 
         if num_lock_status is not None:
-            return num_lock_status[1] == 'on'
+            return num_lock_status[1] == "on"
 
         return False
     except (FileNotFoundError, subprocess.CalledProcessError):
@@ -58,23 +54,21 @@ def set_numlock(state):
     if state is None:
         return
 
-    value = {
-        True: 'on',
-        False: 'off'
-    }[state]
+    value = {True: "on", False: "off"}[state]
 
     try:
-        subprocess.check_output(['numlockx', value])
+        subprocess.check_output(["numlockx", value])
     except subprocess.CalledProcessError:
         # might be in a tty
         pass
     except FileNotFoundError:
         # doesn't seem to be installed everywhere
-        logger.debug('numlockx not found')
+        logger.debug("numlockx not found")
 
 
 def ensure_numlock(func):
     """Decorator to reset the numlock to its initial state afterwards."""
+
     def wrapped(*args, **kwargs):
         # for some reason, grabbing a device can modify the num lock state.
         # remember it and apply back later
@@ -85,4 +79,5 @@ def ensure_numlock(func):
         set_numlock(numlock_before)
 
         return result
+
     return wrapped
