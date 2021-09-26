@@ -25,8 +25,17 @@
 import math
 
 import evdev
-from evdev.ecodes import EV_KEY, EV_ABS, ABS_X, ABS_Y, ABS_RX, ABS_RY, \
-    EV_REL, REL_WHEEL, REL_HWHEEL
+from evdev.ecodes import (
+    EV_KEY,
+    EV_ABS,
+    ABS_X,
+    ABS_Y,
+    ABS_RX,
+    ABS_RY,
+    EV_REL,
+    REL_WHEEL,
+    REL_HWHEEL,
+)
 
 from keymapper.logger import logger
 from keymapper.config import BUTTONS
@@ -47,7 +56,7 @@ STYLUS = [
     (EV_ABS, evdev.ecodes.ABS_TILT_X),
     (EV_ABS, evdev.ecodes.ABS_TILT_Y),
     (EV_KEY, evdev.ecodes.BTN_DIGI),
-    (EV_ABS, evdev.ecodes.ABS_PRESSURE)
+    (EV_ABS, evdev.ecodes.ABS_PRESSURE),
 ]
 
 
@@ -73,8 +82,9 @@ def normalize_value(event, abs_range=None):
     if event.type == EV_ABS and event.code in JOYSTICK:
         if abs_range is None:
             logger.error(
-                'Got %s, but abs_range is %s',
-                (event.type, event.code, event.value), abs_range
+                "Got %s, but abs_range is %s",
+                (event.type, event.code, event.value),
+                abs_range,
             )
             return event.value
 
@@ -136,8 +146,8 @@ def should_map_as_btn(event, mapping, gamepad):
             if not gamepad:
                 return False
 
-            l_purpose = mapping.get('gamepad.joystick.left_purpose')
-            r_purpose = mapping.get('gamepad.joystick.right_purpose')
+            l_purpose = mapping.get("gamepad.joystick.left_purpose")
+            r_purpose = mapping.get("gamepad.joystick.right_purpose")
 
             if event.code in [ABS_X, ABS_Y] and l_purpose == BUTTONS:
                 return True
@@ -175,8 +185,8 @@ def get_abs_range(device, code=ABS_X):
         return None
 
     absinfo = [
-        entry[1] for entry in
-        capabilities[EV_ABS]
+        entry[1]
+        for entry in capabilities[EV_ABS]
         if (
             entry[0] == code
             and isinstance(entry, tuple)
@@ -187,7 +197,9 @@ def get_abs_range(device, code=ABS_X):
     if len(absinfo) == 0:
         logger.error(
             'Failed to get ABS info of "%s" for key %d: %s',
-            device, code, capabilities
+            device,
+            code,
+            capabilities,
         )
         return None
 

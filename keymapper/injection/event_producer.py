@@ -25,8 +25,18 @@
 import asyncio
 import time
 
-from evdev.ecodes import EV_REL, REL_X, REL_Y, REL_WHEEL, REL_HWHEEL, \
-    EV_ABS, ABS_X, ABS_Y, ABS_RX, ABS_RY
+from evdev.ecodes import (
+    EV_REL,
+    REL_X,
+    REL_Y,
+    REL_WHEEL,
+    REL_HWHEEL,
+    EV_ABS,
+    ABS_X,
+    ABS_Y,
+    ABS_RX,
+    ABS_RY,
+)
 
 from keymapper.logger import logger
 from keymapper.config import MOUSE, WHEEL
@@ -51,6 +61,7 @@ class EventProducer:
     This class does not handle injecting macro stuff over time, that is done
     by the keycode_mapper.
     """
+
     def __init__(self, context):
         """Construct the event producer without it doing anything yet."""
         self.context = context
@@ -82,7 +93,7 @@ class EventProducer:
             self.context.uinput.syn()
         except OverflowError:
             # screwed up the calculation of mouse movements
-            logger.error('OverflowError (%s, %s, %s)', ev_type, keycode, value)
+            logger.error("OverflowError (%s, %s, %s)", ev_type, keycode, value)
 
     def debounce(self, debounce_id, func, args, ticks):
         """Debounce a function call.
@@ -119,7 +130,7 @@ class EventProducer:
         """
         if device is None:
             # I don't think this ever happened
-            logger.error('Expected device to not be None')
+            logger.error("Expected device to not be None")
             return
 
         abs_range = utils.get_abs_range(device)
@@ -146,7 +157,7 @@ class EventProducer:
             ABS_X: center,
             ABS_Y: center,
             ABS_RX: center,
-            ABS_RY: center
+            ABS_RY: center,
         }
 
     def get_abs_values(self):
@@ -218,17 +229,17 @@ class EventProducer:
         """
         abs_range = self.abs_range
         mapping = self.context.mapping
-        pointer_speed = mapping.get('gamepad.joystick.pointer_speed')
-        non_linearity = mapping.get('gamepad.joystick.non_linearity')
-        x_scroll_speed = mapping.get('gamepad.joystick.x_scroll_speed')
-        y_scroll_speed = mapping.get('gamepad.joystick.y_scroll_speed')
+        pointer_speed = mapping.get("gamepad.joystick.pointer_speed")
+        non_linearity = mapping.get("gamepad.joystick.non_linearity")
+        x_scroll_speed = mapping.get("gamepad.joystick.x_scroll_speed")
+        y_scroll_speed = mapping.get("gamepad.joystick.y_scroll_speed")
         max_speed = 2 ** 0.5  # for normalized abs event values
 
         if abs_range is not None:
             logger.info(
-                'Left joystick as %s, right joystick as %s',
+                "Left joystick as %s, right joystick as %s",
                 self.context.left_purpose,
-                self.context.right_purpose
+                self.context.right_purpose,
             )
 
         start = time.time()
@@ -259,7 +270,7 @@ class EventProducer:
             abs_values = self.get_abs_values()
 
             if len([val for val in abs_values if not -1 <= val <= 1]) > 0:
-                logger.error('Inconsistent values: %s', abs_values)
+                logger.error("Inconsistent values: %s", abs_values)
                 continue
 
             mouse_x, mouse_y, wheel_x, wheel_y = abs_values

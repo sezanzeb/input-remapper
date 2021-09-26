@@ -31,88 +31,82 @@ from keymapper.state import system_mapping
 class TestContext(unittest.TestCase):
     def setUp(self):
         self.mapping = Mapping()
-        self.mapping.set('gamepad.joystick.left_purpose', WHEEL)
-        self.mapping.set('gamepad.joystick.right_purpose', WHEEL)
-        self.mapping.change(Key(1, 31, 1), 'k(a)')
-        self.mapping.change(Key(1, 32, 1), 'b')
-        self.mapping.change(Key((1, 33, 1), (1, 34, 1), (1, 35, 1)), 'c')
+        self.mapping.set("gamepad.joystick.left_purpose", WHEEL)
+        self.mapping.set("gamepad.joystick.right_purpose", WHEEL)
+        self.mapping.change(Key(1, 31, 1), "k(a)")
+        self.mapping.change(Key(1, 32, 1), "b")
+        self.mapping.change(Key((1, 33, 1), (1, 34, 1), (1, 35, 1)), "c")
         self.context = Context(self.mapping)
 
     def test_update_purposes(self):
-        self.mapping.set('gamepad.joystick.left_purpose', BUTTONS)
-        self.mapping.set('gamepad.joystick.right_purpose', MOUSE)
+        self.mapping.set("gamepad.joystick.left_purpose", BUTTONS)
+        self.mapping.set("gamepad.joystick.right_purpose", MOUSE)
         self.context.update_purposes()
         self.assertEqual(self.context.left_purpose, BUTTONS)
         self.assertEqual(self.context.right_purpose, MOUSE)
 
     def test_parse_macros(self):
         self.assertEqual(len(self.context.macros), 1)
-        self.assertEqual(self.context.macros[((1, 31, 1),)].code, 'k(a)')
+        self.assertEqual(self.context.macros[((1, 31, 1),)].code, "k(a)")
 
     def test_map_keys_to_codes(self):
-        b = system_mapping.get('b')
-        c = system_mapping.get('c')
+        b = system_mapping.get("b")
+        c = system_mapping.get("c")
         self.assertEqual(len(self.context.key_to_code), 3)
         self.assertEqual(self.context.key_to_code[((1, 32, 1),)], b)
-        self.assertEqual(self.context.key_to_code[(1, 33, 1), (1, 34, 1), (1, 35, 1)], c)
-        self.assertEqual(self.context.key_to_code[(1, 34, 1), (1, 33, 1), (1, 35, 1)], c)
+        self.assertEqual(
+            self.context.key_to_code[(1, 33, 1), (1, 34, 1), (1, 35, 1)], c
+        )
+        self.assertEqual(
+            self.context.key_to_code[(1, 34, 1), (1, 33, 1), (1, 35, 1)], c
+        )
 
     def test_is_mapped(self):
-        self.assertTrue(self.context.is_mapped(
-            ((1, 32, 1),)
-        ))
-        self.assertTrue(self.context.is_mapped(
-            ((1, 33, 1), (1, 34, 1), (1, 35, 1))
-        ))
-        self.assertTrue(self.context.is_mapped(
-            ((1, 34, 1), (1, 33, 1), (1, 35, 1))
-        ))
+        self.assertTrue(self.context.is_mapped(((1, 32, 1),)))
+        self.assertTrue(self.context.is_mapped(((1, 33, 1), (1, 34, 1), (1, 35, 1))))
+        self.assertTrue(self.context.is_mapped(((1, 34, 1), (1, 33, 1), (1, 35, 1))))
 
-        self.assertFalse(self.context.is_mapped(
-            ((1, 34, 1), (1, 35, 1), (1, 33, 1))
-        ))
-        self.assertFalse(self.context.is_mapped(
-            ((1, 36, 1),)
-        ))
+        self.assertFalse(self.context.is_mapped(((1, 34, 1), (1, 35, 1), (1, 33, 1))))
+        self.assertFalse(self.context.is_mapped(((1, 36, 1),)))
 
     def test_maps_joystick(self):
         self.assertTrue(self.context.maps_joystick())
-        self.mapping.set('gamepad.joystick.left_purpose', NONE)
-        self.mapping.set('gamepad.joystick.right_purpose', NONE)
+        self.mapping.set("gamepad.joystick.left_purpose", NONE)
+        self.mapping.set("gamepad.joystick.right_purpose", NONE)
         self.context.update_purposes()
         self.assertFalse(self.context.maps_joystick())
 
     def test_joystick_as_dpad(self):
         self.assertTrue(self.context.maps_joystick())
 
-        self.mapping.set('gamepad.joystick.left_purpose', WHEEL)
-        self.mapping.set('gamepad.joystick.right_purpose', MOUSE)
+        self.mapping.set("gamepad.joystick.left_purpose", WHEEL)
+        self.mapping.set("gamepad.joystick.right_purpose", MOUSE)
         self.context.update_purposes()
         self.assertFalse(self.context.joystick_as_dpad())
 
-        self.mapping.set('gamepad.joystick.left_purpose', BUTTONS)
-        self.mapping.set('gamepad.joystick.right_purpose', NONE)
+        self.mapping.set("gamepad.joystick.left_purpose", BUTTONS)
+        self.mapping.set("gamepad.joystick.right_purpose", NONE)
         self.context.update_purposes()
         self.assertTrue(self.context.joystick_as_dpad())
 
-        self.mapping.set('gamepad.joystick.left_purpose', MOUSE)
-        self.mapping.set('gamepad.joystick.right_purpose', BUTTONS)
+        self.mapping.set("gamepad.joystick.left_purpose", MOUSE)
+        self.mapping.set("gamepad.joystick.right_purpose", BUTTONS)
         self.context.update_purposes()
         self.assertTrue(self.context.joystick_as_dpad())
 
     def test_joystick_as_mouse(self):
         self.assertTrue(self.context.maps_joystick())
 
-        self.mapping.set('gamepad.joystick.right_purpose', MOUSE)
+        self.mapping.set("gamepad.joystick.right_purpose", MOUSE)
         self.context.update_purposes()
         self.assertTrue(self.context.joystick_as_mouse())
 
-        self.mapping.set('gamepad.joystick.left_purpose', NONE)
-        self.mapping.set('gamepad.joystick.right_purpose', NONE)
+        self.mapping.set("gamepad.joystick.left_purpose", NONE)
+        self.mapping.set("gamepad.joystick.right_purpose", NONE)
         self.context.update_purposes()
         self.assertFalse(self.context.joystick_as_mouse())
 
-        self.mapping.set('gamepad.joystick.right_purpose', BUTTONS)
+        self.mapping.set("gamepad.joystick.right_purpose", BUTTONS)
         self.context.update_purposes()
         self.assertFalse(self.context.joystick_as_mouse())
 

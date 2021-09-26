@@ -23,19 +23,39 @@ import unittest
 import asyncio
 import time
 
-from evdev.ecodes import EV_KEY, EV_ABS, KEY_A, BTN_TL, \
-    ABS_HAT0X, ABS_HAT0Y, ABS_HAT1X, ABS_HAT1Y, ABS_Y
+from evdev.ecodes import (
+    EV_KEY,
+    EV_ABS,
+    KEY_A,
+    BTN_TL,
+    ABS_HAT0X,
+    ABS_HAT0Y,
+    ABS_HAT1X,
+    ABS_HAT1Y,
+    ABS_Y,
+)
 
-from keymapper.injection.keycode_mapper import active_macros, KeycodeMapper, \
-    unreleased, subsets
+from keymapper.injection.keycode_mapper import (
+    active_macros,
+    KeycodeMapper,
+    unreleased,
+    subsets,
+)
 from keymapper.state import system_mapping
 from keymapper.injection.macros import parse
 from keymapper.injection.context import Context
 from keymapper.config import config, BUTTONS
 from keymapper.mapping import Mapping, DISABLE_CODE
 
-from tests.test import new_event, UInput, uinput_write_history, \
-    quick_cleanup, InputDevice, MAX_ABS, MIN_ABS
+from tests.test import (
+    new_event,
+    UInput,
+    uinput_write_history,
+    quick_cleanup,
+    InputDevice,
+    MAX_ABS,
+    MIN_ABS,
+)
 
 
 def wait(func, timeout=1.0):
@@ -46,7 +66,7 @@ def wait(func, timeout=1.0):
         time.sleep(sleepytime)
         iterations += 1
         if iterations * sleepytime > timeout:
-            raise Exception('Timeout')
+            raise Exception("Timeout")
 
 
 def calculate_event_number(holdtime, before, after):
@@ -60,7 +80,7 @@ def calculate_event_number(holdtime, before, after):
     after : int
         how many extra k() calls are executed after h()
     """
-    keystroke_sleep = config.get('macros.keystroke_sleep_ms', 10)
+    keystroke_sleep = config.get("macros.keystroke_sleep_ms", 10)
     # down and up: two sleeps per k
     # one initial k(a):
     events = before * 2
@@ -75,7 +95,7 @@ def calculate_event_number(holdtime, before, after):
 class TestKeycodeMapper(unittest.TestCase):
     def setUp(self):
         self.mapping = Mapping()
-        self.source = InputDevice('/dev/input/event11')
+        self.source = InputDevice("/dev/input/event11")
 
     def tearDown(self):
         # make sure all macros are stopped by tests
@@ -130,14 +150,17 @@ class TestKeycodeMapper(unittest.TestCase):
 
         self.assertEqual(
             unreleased.get(ev_1[:2]).target_type_code,
-            (EV_KEY, context.key_to_code[(ev_1,)])
+            (EV_KEY, context.key_to_code[(ev_1,)]),
         )
         self.assertEqual(unreleased.get(ev_1[:2]).input_event_tuple, ev_1)
-        self.assertEqual(unreleased.get(ev_1[:2]).triggered_key, (ev_1,))  # as seen in key_to_code
+        self.assertEqual(
+            unreleased.get(ev_1[:2]).triggered_key, (ev_1,)
+        )  # as seen in key_to_code
 
         self.assertEqual(
             unreleased.get(ev_4[:2]).target_type_code,
-            (EV_KEY, context.key_to_code[(ev_4,)]), ev_4
+            (EV_KEY, context.key_to_code[(ev_4,)]),
+            ev_4,
         )
         self.assertEqual(unreleased.get(ev_4[:2]).input_event_tuple, ev_4)
         self.assertEqual(unreleased.get(ev_4[:2]).triggered_key, (ev_4,))
@@ -153,20 +176,14 @@ class TestKeycodeMapper(unittest.TestCase):
         self.assertEqual(len(unreleased), 2)
         self.assertEqual(
             unreleased.get(ev_2[:2]).target_type_code,
-            (EV_KEY, context.key_to_code[(ev_2,)])
+            (EV_KEY, context.key_to_code[(ev_2,)]),
         )
-        self.assertEqual(
-            unreleased.get(ev_2[:2]).input_event_tuple,
-            ev_2
-        )
+        self.assertEqual(unreleased.get(ev_2[:2]).input_event_tuple, ev_2)
         self.assertEqual(
             unreleased.get(ev_5[:2]).target_type_code,
-            (EV_KEY, context.key_to_code[(ev_5,)])
+            (EV_KEY, context.key_to_code[(ev_5,)]),
         )
-        self.assertEqual(
-            unreleased.get(ev_5[:2]).input_event_tuple,
-            ev_5
-        )
+        self.assertEqual(unreleased.get(ev_5[:2]).input_event_tuple, ev_5)
 
         # release all of them again
         keycode_mapper.handle_keycode(new_event(*ev_3))
@@ -214,14 +231,12 @@ class TestKeycodeMapper(unittest.TestCase):
 
         uinput = UInput()
 
-        _key_to_code = {
-            ((3, 0, -1),): 73
-        }
+        _key_to_code = {((3, 0, -1),): 73}
 
-        self.mapping.set('gamepad.joystick.left_purpose', BUTTONS)
+        self.mapping.set("gamepad.joystick.left_purpose", BUTTONS)
 
         # something with gamepad capabilities
-        source = InputDevice('/dev/input/event30')
+        source = InputDevice("/dev/input/event30")
 
         context = Context(self.mapping)
         context.uinput = uinput
@@ -281,9 +296,7 @@ class TestKeycodeMapper(unittest.TestCase):
 
         output = 71
 
-        key_to_code = {
-            (down_1, down_2): 71
-        }
+        key_to_code = {(down_1, down_2): 71}
 
         context = Context(self.mapping)
         context.uinput = uinput
@@ -355,10 +368,7 @@ class TestKeycodeMapper(unittest.TestCase):
         # this also makes sure that the keycode_mapper doesn't get confused
         # when input and output codes are the same (because it at some point
         # screwed it up because of that)
-        _key_to_code = {
-            ((EV_KEY, 1, 1),): 101,
-            ((EV_KEY, code_2, 1),): code_2
-        }
+        _key_to_code = {((EV_KEY, 1, 1),): 101, ((EV_KEY, code_2, 1),): code_2}
 
         uinput_mapped = UInput()
         uinput_forwarded = UInput()
@@ -382,9 +392,7 @@ class TestKeycodeMapper(unittest.TestCase):
 
     def test_combination_keycode(self):
         combination = ((EV_KEY, 1, 1), (EV_KEY, 2, 1))
-        _key_to_code = {
-            combination: 101
-        }
+        _key_to_code = {combination: 101}
 
         uinput = UInput()
 
@@ -424,14 +432,14 @@ class TestKeycodeMapper(unittest.TestCase):
             (EV_KEY, 1, 1),
             (EV_ABS, ABS_Y, MIN_ABS),
             (EV_KEY, 3, 1),
-            (EV_KEY, 4, 1)
+            (EV_KEY, 4, 1),
         )
         combination_2 = (
             # should not be triggered, combination_1 should be prioritized
             # when all of its keys are down
             (EV_KEY, 2, 1),
             (EV_KEY, 3, 1),
-            (EV_KEY, 4, 1)
+            (EV_KEY, 4, 1),
         )
 
         down_5 = (EV_KEY, 5, 1)
@@ -445,16 +453,16 @@ class TestKeycodeMapper(unittest.TestCase):
             # key_to_code is supposed to only contain normalized values
             tuple([sign_value(a) for a in combination_1]): 101,
             combination_2: 102,
-            (down_5,): 103
+            (down_5,): 103,
         }
 
         uinput = UInput()
 
-        source = InputDevice('/dev/input/event30')
+        source = InputDevice("/dev/input/event30")
 
         # ABS_Y is part of the combination, which only works if the joystick
         # is configured as D-Pad
-        self.mapping.set('gamepad.joystick.left_purpose', BUTTONS)
+        self.mapping.set("gamepad.joystick.left_purpose", BUTTONS)
         context = Context(self.mapping)
         context.uinput = uinput
         context.key_to_code = _key_to_code
@@ -496,9 +504,7 @@ class TestKeycodeMapper(unittest.TestCase):
         self.assertEqual(uinput_write_history[8].t, (EV_KEY, 103, 0))
 
     def test_macro_writes_to_context_uinput(self):
-        macro_mapping = {
-            ((EV_KEY, 1, 1),): parse('k(a)', self.mapping)
-        }
+        macro_mapping = {((EV_KEY, 1, 1),): parse("k(a)", self.mapping)}
 
         context = Context(self.mapping)
         context.macros = macro_mapping
@@ -509,7 +515,7 @@ class TestKeycodeMapper(unittest.TestCase):
         keycode_mapper.handle_keycode(new_event(EV_KEY, 1, 1))
 
         loop = asyncio.get_event_loop()
-        sleeptime = config.get('macros.keystroke_sleep_ms', 10) * 12
+        sleeptime = config.get("macros.keystroke_sleep_ms", 10) * 12
         loop.run_until_complete(asyncio.sleep(sleeptime / 1000 + 0.1))
 
         self.assertEqual(context.uinput.write_count, 2)  # down and up
@@ -524,12 +530,12 @@ class TestKeycodeMapper(unittest.TestCase):
         code_a = 100
         code_b = 101
         system_mapping.clear()
-        system_mapping._set('a', code_a)
-        system_mapping._set('b', code_b)
+        system_mapping._set("a", code_a)
+        system_mapping._set("b", code_b)
 
         macro_mapping = {
-            ((EV_KEY, 1, 1),): parse('k(a)', self.mapping),
-            ((EV_KEY, 2, 1),): parse('r(5, k(b))', self.mapping)
+            ((EV_KEY, 1, 1),): parse("k(a)", self.mapping),
+            ((EV_KEY, 2, 1),): parse("r(5, k(b))", self.mapping),
         }
 
         context = Context(self.mapping)
@@ -544,7 +550,7 @@ class TestKeycodeMapper(unittest.TestCase):
 
         loop = asyncio.get_event_loop()
 
-        sleeptime = config.get('macros.keystroke_sleep_ms', 10) * 12
+        sleeptime = config.get("macros.keystroke_sleep_ms", 10) * 12
 
         # let the mainloop run for some time so that the macro does its stuff
         loop.run_until_complete(asyncio.sleep(sleeptime / 1000 + 0.1))
@@ -573,13 +579,11 @@ class TestKeycodeMapper(unittest.TestCase):
         code_b = 101
         code_c = 102
         system_mapping.clear()
-        system_mapping._set('a', code_a)
-        system_mapping._set('b', code_b)
-        system_mapping._set('c', code_c)
+        system_mapping._set("a", code_a)
+        system_mapping._set("b", code_b)
+        system_mapping._set("c", code_c)
 
-        macro_mapping = {
-            ((EV_KEY, 1, 1),): parse('k(a).h(k(b)).k(c)', self.mapping)
-        }
+        macro_mapping = {((EV_KEY, 1, 1),): parse("k(a).h(k(b)).k(c)", self.mapping)}
 
         def handler(*args):
             history.append(args)
@@ -598,7 +602,7 @@ class TestKeycodeMapper(unittest.TestCase):
 
         # let the mainloop run for some time so that the macro does its stuff
         sleeptime = 500
-        keystroke_sleep = config.get('macros.keystroke_sleep_ms', 10)
+        keystroke_sleep = config.get("macros.keystroke_sleep_ms", 10)
         loop.run_until_complete(asyncio.sleep(sleeptime / 1000))
 
         self.assertTrue(active_macros[(EV_KEY, 1)].is_holding())
@@ -640,15 +644,17 @@ class TestKeycodeMapper(unittest.TestCase):
         code_c = 102
         code_d = 103
         system_mapping.clear()
-        system_mapping._set('a', code_a)
-        system_mapping._set('b', code_b)
-        system_mapping._set('c', code_c)
-        system_mapping._set('d', code_d)
+        system_mapping._set("a", code_a)
+        system_mapping._set("b", code_b)
+        system_mapping._set("c", code_c)
+        system_mapping._set("d", code_d)
 
         macro_mapping = {
-            ((EV_KEY, 1, 1),): parse('h(k(b))', self.mapping),
-            ((EV_KEY, 2, 1),): parse('k(c).r(1, r(1, r(1, h(k(a))))).k(d)', self.mapping),
-            ((EV_KEY, 3, 1),): parse('h(k(b))', self.mapping)
+            ((EV_KEY, 1, 1),): parse("h(k(b))", self.mapping),
+            ((EV_KEY, 2, 1),): parse(
+                "k(c).r(1, r(1, r(1, h(k(a))))).k(d)", self.mapping
+            ),
+            ((EV_KEY, 3, 1),): parse("h(k(b))", self.mapping),
         }
 
         history = []
@@ -768,12 +774,12 @@ class TestKeycodeMapper(unittest.TestCase):
         code_b = 101
         code_c = 102
         system_mapping.clear()
-        system_mapping._set('a', code_a)
-        system_mapping._set('b', code_b)
-        system_mapping._set('c', code_c)
+        system_mapping._set("a", code_a)
+        system_mapping._set("b", code_b)
+        system_mapping._set("c", code_c)
 
         macro_mapping = {
-            ((EV_KEY, 1, 1),): parse('k(a).h(k(b)).k(c)', self.mapping),
+            ((EV_KEY, 1, 1),): parse("k(a).h(k(b)).k(c)", self.mapping),
         }
 
         history = []
@@ -831,12 +837,12 @@ class TestKeycodeMapper(unittest.TestCase):
         code_b = 104
         code_c = 105
         system_mapping.clear()
-        system_mapping._set('1', code_1)
-        system_mapping._set('2', code_2)
-        system_mapping._set('3', code_3)
-        system_mapping._set('a', code_a)
-        system_mapping._set('b', code_b)
-        system_mapping._set('c', code_c)
+        system_mapping._set("1", code_1)
+        system_mapping._set("2", code_2)
+        system_mapping._set("3", code_3)
+        system_mapping._set("a", code_a)
+        system_mapping._set("b", code_b)
+        system_mapping._set("c", code_c)
 
         key_0 = (EV_KEY, 10)
         key_1 = (EV_KEY, 11)
@@ -849,8 +855,8 @@ class TestKeycodeMapper(unittest.TestCase):
         up_2 = (*key_2, 0)
 
         macro_mapping = {
-            (down_0, down_1): parse('k(1).h(k(2)).k(3)', self.mapping),
-            (down_2,): parse('k(a).h(k(b)).k(c)', self.mapping)
+            (down_0, down_1): parse("k(1).h(k(2)).k(3)", self.mapping),
+            (down_2,): parse("k(a).h(k(b)).k(c)", self.mapping),
         }
 
         def handler(*args):
@@ -892,7 +898,7 @@ class TestKeycodeMapper(unittest.TestCase):
 
         # let the mainloop run for some time so that the macro does its stuff
         sleeptime = 500
-        keystroke_sleep = config.get('macros.keystroke_sleep_ms', 10)
+        keystroke_sleep = config.get("macros.keystroke_sleep_ms", 10)
         loop.run_until_complete(asyncio.sleep(sleeptime / 1000))
 
         self.assertEqual(len(active_macros), 2)
@@ -958,8 +964,8 @@ class TestKeycodeMapper(unittest.TestCase):
         code_1 = 61
         code_2 = 62
         system_mapping.clear()
-        system_mapping._set('1', code_1)
-        system_mapping._set('2', code_2)
+        system_mapping._set("1", code_1)
+        system_mapping._set("2", code_2)
 
         # try two concurrent macros with D-Pad events because they are
         # more difficult to manage, since their only difference is their
@@ -971,8 +977,8 @@ class TestKeycodeMapper(unittest.TestCase):
         repeats = 10
 
         macro_mapping = {
-            (right,): parse(f'r({repeats}, k(1))', self.mapping),
-            (left,): parse(f'r({repeats}, k(2))', self.mapping)
+            (right,): parse(f"r({repeats}, k(1))", self.mapping),
+            (left,): parse(f"r({repeats}, k(2))", self.mapping),
         }
 
         history = []
@@ -995,7 +1001,7 @@ class TestKeycodeMapper(unittest.TestCase):
         self.assertIn((EV_ABS, ABS_HAT0X), unreleased)
 
         loop = asyncio.get_event_loop()
-        sleeptime = config.get('macros.keystroke_sleep_ms') / 1000
+        sleeptime = config.get("macros.keystroke_sleep_ms") / 1000
         loop.run_until_complete(asyncio.sleep(1.1 * repeats * 2 * sleeptime))
 
         self.assertEqual(history.count((EV_KEY, code_1, 1)), 10)
@@ -1008,10 +1014,7 @@ class TestKeycodeMapper(unittest.TestCase):
         # test_filter_duplicates
         trigger = (EV_KEY, BTN_TL)
 
-        _key_to_code = {
-            ((*trigger, 1),): 51,
-            ((*trigger, -1),): 52
-        }
+        _key_to_code = {((*trigger, 1),): 51, ((*trigger, -1),): 52}
 
         uinput = UInput()
 
@@ -1097,7 +1100,7 @@ class TestKeycodeMapper(unittest.TestCase):
             (ev_1,): 61,
             (ev_3,): DISABLE_CODE,
             combi_1: 62,
-            combi_2: 63
+            combi_2: 63,
         }
 
         uinput = UInput()
@@ -1193,17 +1196,18 @@ class TestKeycodeMapper(unittest.TestCase):
         # ev_1 triggers macro, ev_1 + ev_2 triggers key while the macro is
         # still running
         system_mapping.clear()
-        system_mapping._set('a', 92)
+        system_mapping._set("a", 92)
 
         down_1 = (EV_ABS, ABS_HAT1X, 1)
         down_2 = (EV_ABS, ABS_HAT1Y, -1)
         up_1 = (EV_ABS, ABS_HAT1X, 0)
         up_2 = (EV_ABS, ABS_HAT1Y, 0)
 
-        macro_mapping = {(down_1,): parse('h(k(a))', self.mapping)}
+        macro_mapping = {(down_1,): parse("h(k(a))", self.mapping)}
         _key_to_code = {(down_1, down_2): 91}
 
         macro_history = []
+
         def handler(*args):
             # handler prevents uinput_write_history form growing
             macro_history.append(args)
@@ -1278,7 +1282,7 @@ class TestKeycodeMapper(unittest.TestCase):
         combination = ((1, 276, 1), (2, 8, -1))
 
         system_mapping.clear()
-        system_mapping._set('a', 30)
+        system_mapping._set("a", 30)
         k2c = {combination: 30}
 
         uinput = UInput()

@@ -48,14 +48,14 @@ from keymapper import utils
 from keymapper.user import USER
 
 
-TERMINATE = 'terminate'
-REFRESH_GROUPS = 'refresh_groups'
+TERMINATE = "terminate"
+REFRESH_GROUPS = "refresh_groups"
 
 
 def is_helper_running():
     """Check if the helper is running."""
     try:
-        subprocess.check_output(['pgrep', '-f', 'key-mapper-helper'])
+        subprocess.check_output(["pgrep", "-f", "key-mapper-helper"])
     except subprocess.CalledProcessError:
         return False
     return True
@@ -69,10 +69,11 @@ class RootHelper:
     Commands are either numbers for generic commands,
     or strings to start listening on a specific device.
     """
+
     def __init__(self):
         """Construct the helper and initialize its sockets."""
-        self._results = Pipe(f'/tmp/key-mapper-{USER}/results')
-        self._commands = Pipe(f'/tmp/key-mapper-{USER}/commands')
+        self._results = Pipe(f"/tmp/key-mapper-{USER}/results")
+        self._commands = Pipe(f"/tmp/key-mapper-{USER}/commands")
 
         self._send_groups()
 
@@ -87,10 +88,7 @@ class RootHelper:
 
     def _send_groups(self):
         """Send the groups to the gui."""
-        self._results.send({
-            'type': 'groups',
-            'message': groups.dumps()
-        })
+        self._results.send({"type": "groups", "message": groups.dumps()})
 
     def _handle_commands(self):
         """Handle all unread commands."""
@@ -102,7 +100,7 @@ class RootHelper:
             logger.debug('Received command "%s"', cmd)
 
             if cmd == TERMINATE:
-                logger.debug('Helper terminates')
+                logger.debug("Helper terminates")
                 sys.exit(0)
 
             if cmd == REFRESH_GROUPS:
@@ -132,7 +130,7 @@ class RootHelper:
         rlist = {}
 
         if self.group is None:
-            logger.error('group is None')
+            logger.error("group is None")
             return
 
         virtual_devices = []
@@ -156,7 +154,7 @@ class RootHelper:
 
         logger.debug(
             'Starting reading keycodes from "%s"',
-            '", "'.join([device.name for device in virtual_devices])
+            '", "'.join([device.name for device in virtual_devices]),
         )
 
         rlist[self._commands] = self._commands
@@ -198,9 +196,7 @@ class RootHelper:
             # ignore hold-down events
             return
 
-        blacklisted_keys = [
-            evdev.ecodes.BTN_TOOL_DOUBLETAP
-        ]
+        blacklisted_keys = [evdev.ecodes.BTN_TOOL_DOUBLETAP]
 
         if event.type == EV_KEY and event.code in blacklisted_keys:
             return
@@ -211,10 +207,15 @@ class RootHelper:
         else:
             event.value = utils.normalize_value(event)
 
-        self._results.send({
-            'type': 'event',
-            'message': (
-                event.sec, event.usec,
-                event.type, event.code, event.value
-            )
-        })
+        self._results.send(
+            {
+                "type": "event",
+                "message": (
+                    event.sec,
+                    event.usec,
+                    event.type,
+                    event.code,
+                    event.value,
+                ),
+            }
+        )

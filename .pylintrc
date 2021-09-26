@@ -1,5 +1,9 @@
 [_]
 
+max-line-length=88 # black
+
+extension-pkg-whitelist=evdev
+
 disable=
     # that is the standard way to import GTK afaik
     wrong-import-position,

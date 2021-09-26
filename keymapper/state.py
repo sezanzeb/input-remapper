@@ -35,11 +35,12 @@ from keymapper.paths import get_config_path, touch, USER
 # xkb uses keycodes that are 8 higher than those from evdev
 XKB_KEYCODE_OFFSET = 8
 
-XMODMAP_FILENAME = 'xmodmap.json'
+XMODMAP_FILENAME = "xmodmap.json"
 
 
 class SystemMapping:
     """Stores information about all available keycodes."""
+
     def __init__(self):
         """Construct the system_mapping."""
         self._mapping = {}
@@ -60,29 +61,28 @@ class SystemMapping:
 
     def populate(self):
         """Get a mapping of all available names to their keycodes."""
-        logger.debug('Gathering available keycodes')
+        logger.debug("Gathering available keycodes")
         self.clear()
         xmodmap_dict = {}
         try:
             xmodmap = subprocess.check_output(
-                ['xmodmap', '-pke'],
-                stderr=subprocess.STDOUT
+                ["xmodmap", "-pke"], stderr=subprocess.STDOUT
             ).decode()
             xmodmap = xmodmap
-            self._xmodmap = re.findall(r'(\d+) = (.+)\n', xmodmap + '\n')
+            self._xmodmap = re.findall(r"(\d+) = (.+)\n", xmodmap + "\n")
             xmodmap_dict = self._find_legit_mappings()
             if len(xmodmap_dict) == 0:
-                logger.info('`xmodmap -pke` did not yield any symbol')
+                logger.info("`xmodmap -pke` did not yield any symbol")
         except (subprocess.CalledProcessError, FileNotFoundError):
             # might be within a tty
-            logger.info('`xmodmap` command not found')
+            logger.info("`xmodmap` command not found")
 
-        if USER != 'root':
+        if USER != "root":
             # write this stuff into the key-mapper config directory, because
             # the systemd service won't know the user sessions xmodmap
             path = get_config_path(XMODMAP_FILENAME)
             touch(path)
-            with open(path, 'w') as file:
+            with open(path, "w") as file:
                 logger.debug('Writing "%s"', path)
                 json.dump(xmodmap_dict, file, indent=4)
 
@@ -90,7 +90,7 @@ class SystemMapping:
             self._set(name, code)
 
         for name, ecode in evdev.ecodes.ecodes.items():
-            if name.startswith('KEY') or name.startswith('BTN'):
+            if name.startswith("KEY") or name.startswith("BTN"):
                 self._set(name, ecode)
 
         self._set(DISABLE_NAME, DISABLE_CODE)

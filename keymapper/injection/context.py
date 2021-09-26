@@ -72,6 +72,7 @@ class Context:
         So this uinput should not have EV_ABS capabilities. Only EV_REL
         and EV_KEY is allowed.
     """
+
     def __init__(self, mapping):
         self.mapping = mapping
 
@@ -88,12 +89,12 @@ class Context:
 
     def update_purposes(self):
         """Read joystick purposes from the configuration."""
-        self.left_purpose = self.mapping.get('gamepad.joystick.left_purpose')
-        self.right_purpose = self.mapping.get('gamepad.joystick.right_purpose')
+        self.left_purpose = self.mapping.get("gamepad.joystick.left_purpose")
+        self.right_purpose = self.mapping.get("gamepad.joystick.right_purpose")
 
     def _parse_macros(self):
         """To quickly get the target macro during operation."""
-        logger.debug('Parsing macros')
+        logger.debug("Parsing macros")
         macros = {}
         for key, output in self.mapping:
             if is_this_a_macro(output):
@@ -105,7 +106,7 @@ class Context:
                     macros[permutation.keys] = macro
 
         if len(macros) == 0:
-            logger.debug('No macros configured')
+            logger.debug("No macros configured")
 
         return macros
 
@@ -130,8 +131,8 @@ class Context:
             for permutation in key.get_permutations():
                 if permutation.keys[-1][-1] not in [-1, 1]:
                     logger.error(
-                        'Expected values to be -1 or 1 at this point: %s',
-                        permutation.keys
+                        "Expected values to be -1 or 1 at this point: %s",
+                        permutation.keys,
                     )
                 key_to_code[permutation.keys] = target_code
 

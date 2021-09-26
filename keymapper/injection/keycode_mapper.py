@@ -92,18 +92,20 @@ def subsets(combination):
     combination = list(combination)
     lengths = list(range(2, len(combination) + 1))
     lengths.reverse()
-    return list(itertools.chain.from_iterable(
-        itertools.combinations(combination, length)
-        for length in lengths
-    ))
+    return list(
+        itertools.chain.from_iterable(
+            itertools.combinations(combination, length) for length in lengths
+        )
+    )
 
 
 class Unreleased:
     """This represents a key that has been pressed but not released yet."""
+
     __slots__ = (
-        'target_type_code',
-        'input_event_tuple',
-        'triggered_key',
+        "target_type_code",
+        "input_event_tuple",
+        "triggered_key",
     )
 
     def __init__(self, target_type_code, input_event_tuple, triggered_key):
@@ -124,13 +126,10 @@ class Unreleased:
         self.input_event_tuple = input_event_tuple
         self.triggered_key = triggered_key
 
-        if (
-            not isinstance(input_event_tuple[0], int) or
-            len(input_event_tuple) != 3
-        ):
+        if not isinstance(input_event_tuple[0], int) or len(input_event_tuple) != 3:
             raise ValueError(
-                'Expected input_event_tuple to be a 3-tuple of ints, but '
-                f'got {input_event_tuple}'
+                "Expected input_event_tuple to be a 3-tuple of ints, but "
+                f"got {input_event_tuple}"
             )
 
         unreleased[input_event_tuple[:2]] = self
@@ -146,11 +145,11 @@ class Unreleased:
 
     def __str__(self):
         return (
-            'Unreleased('
-            f'target{self.target_type_code},'
-            f'input{self.input_event_tuple},'
+            "Unreleased("
+            f"target{self.target_type_code},"
+            f"input{self.input_event_tuple},"
             f'key{self.triggered_key or "(None)"}'
-            ')'
+            ")"
         )
 
     def __repr__(self):
@@ -192,14 +191,15 @@ def find_by_key(key):
 
 def print_unreleased():
     """For debugging purposes."""
-    logger.debug('unreleased:')
-    logger.debug('\n'.join([
-        f'    {key}: {str(value)}' for key, value in unreleased.items()
-    ]))
+    logger.debug("unreleased:")
+    logger.debug(
+        "\n".join([f"    {key}: {str(value)}" for key, value in unreleased.items()])
+    )
 
 
 class KeycodeMapper:
     """Injects keycodes and starts macros."""
+
     def __init__(self, context, source, forward_to):
         """Create a keycode mapper for one virtual device.
 
@@ -230,8 +230,7 @@ class KeycodeMapper:
             for sub_key in key:
                 if abs(sub_key[2]) > 1:
                     raise ValueError(
-                        f'Expected values to be one of -1, 0 or 1, '
-                        f'but got {key}'
+                        f"Expected values to be one of -1, 0 or 1, " f"but got {key}"
                     )
 
     def macro_write(self, ev_type, code, value):
@@ -289,8 +288,7 @@ class KeycodeMapper:
             # releases. Do not check if key in macros and such, if it is an
             # up event. It's going to be False.
             combination = tuple(
-                value.input_event_tuple for value
-                in unreleased.values()
+                value.input_event_tuple for value in unreleased.values()
             )
             if key[0] not in combination:  # might be a duplicate-down event
                 combination += key
@@ -312,7 +310,7 @@ class KeycodeMapper:
                 # no subset found, just use the key. all indices are tuples of
                 # tuples, both for combinations and single keys.
                 if value == 1 and len(combination) > 1:
-                    logger.key_spam(combination, 'unknown combination')
+                    logger.key_spam(combination, "unknown combination")
 
         return key
 
@@ -360,7 +358,7 @@ class KeycodeMapper:
                 # Tell the macro for that keycode that the key is released and
                 # let it decide what to do with that information.
                 active_macro.release_key()
-                logger.key_spam(key, 'releasing macro')
+                logger.key_spam(key, "releasing macro")
 
             if type_code in unreleased:
                 # figure out what this release event was for
@@ -369,23 +367,23 @@ class KeycodeMapper:
                 del unreleased[type_code]
 
                 if target_code == DISABLE_CODE:
-                    logger.key_spam(key, 'releasing disabled key')
+                    logger.key_spam(key, "releasing disabled key")
                 elif target_code is None:
-                    logger.key_spam(key, 'releasing key')
+                    logger.key_spam(key, "releasing key")
                 elif unreleased_entry.is_mapped():
                     # release what the input is mapped to
-                    logger.key_spam(key, 'releasing %s', target_code)
+                    logger.key_spam(key, "releasing %s", target_code)
                     self.write((target_type, target_code, 0))
                 elif forward:
                     # forward the release event
-                    logger.key_spam((original_tuple,), 'forwarding release')
+                    logger.key_spam((original_tuple,), "forwarding release")
                     self.forward(original_tuple)
                 else:
-                    logger.key_spam(key, 'not forwarding release')
+                    logger.key_spam(key, "not forwarding release")
             elif event.type != EV_ABS:
                 # ABS events might be spammed like crazy every time the
                 # position slightly changes
-                logger.key_spam(key, 'unexpected key up')
+                logger.key_spam(key, "unexpected key up")
 
             # everything that can be released is released now
             return
@@ -401,7 +399,7 @@ class KeycodeMapper:
                 # duplicate key-down. skip this event. Avoid writing millions
                 # of key-down events when a continuous value is reported, for
                 # example for gamepad triggers or mouse-wheel-side buttons
-                logger.key_spam(key, 'duplicate key down')
+                logger.key_spam(key, "duplicate key down")
                 return
 
             # it would start a macro usually
@@ -412,7 +410,7 @@ class KeycodeMapper:
                 # This avoids spawning a second macro while the first one is
                 # not finished, especially since gamepad-triggers report a ton
                 # of events with a positive value.
-                logger.key_spam(key, 'macro already running')
+                logger.key_spam(key, "macro already running")
                 return
 
         """starting new macros or injecting new keys"""
@@ -427,7 +425,7 @@ class KeycodeMapper:
                 active_macros[type_code] = macro
                 Unreleased((None, None), event_tuple, key)
                 macro.press_key()
-                logger.key_spam(key, 'maps to macro %s', macro.code)
+                logger.key_spam(key, "maps to macro %s", macro.code)
                 asyncio.ensure_future(macro.run(self.macro_write))
                 return
 
@@ -438,22 +436,22 @@ class KeycodeMapper:
                 Unreleased((EV_KEY, target_code), event_tuple, key)
 
                 if target_code == DISABLE_CODE:
-                    logger.key_spam(key, 'disabled')
+                    logger.key_spam(key, "disabled")
                     return
 
-                logger.key_spam(key, 'maps to %s', target_code)
+                logger.key_spam(key, "maps to %s", target_code)
                 self.write((EV_KEY, target_code, 1))
                 return
 
             if forward:
-                logger.key_spam((original_tuple,), 'forwarding')
+                logger.key_spam((original_tuple,), "forwarding")
                 self.forward(original_tuple)
             else:
-                logger.key_spam((event_tuple,), 'not forwarding')
+                logger.key_spam((event_tuple,), "not forwarding")
 
             # unhandled events may still be important for triggering
             # combinations later, so remember them as well.
             Unreleased((event_tuple[:2]), event_tuple, None)
             return
 
-        logger.error('%s unhandled', key)
+        logger.error("%s unhandled", key)

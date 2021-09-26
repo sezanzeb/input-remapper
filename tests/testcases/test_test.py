@@ -31,19 +31,27 @@ from keymapper.groups import groups
 from keymapper.gui.reader import reader
 from keymapper.gui.helper import RootHelper
 
-from tests.test import InputDevice, quick_cleanup, cleanup, fixtures,\
-    new_event, push_events, EVENT_READ_TIMEOUT, START_READING_DELAY
+from tests.test import (
+    InputDevice,
+    quick_cleanup,
+    cleanup,
+    fixtures,
+    new_event,
+    push_events,
+    EVENT_READ_TIMEOUT,
+    START_READING_DELAY,
+)
 
 
 class TestTest(unittest.TestCase):
     def test_stubs(self):
-        self.assertIsNotNone(groups.find(key='Foo Device 2'))
+        self.assertIsNotNone(groups.find(key="Foo Device 2"))
 
     def tearDown(self):
         quick_cleanup()
 
     def test_fake_capabilities(self):
-        device = InputDevice('/dev/input/event30')
+        device = InputDevice("/dev/input/event30")
         capabilities = device.capabilities(absinfo=False)
         self.assertIsInstance(capabilities, dict)
         self.assertIsInstance(capabilities[EV_ABS], list)
@@ -62,18 +70,18 @@ class TestTest(unittest.TestCase):
 
     def test_restore_fixtures(self):
         fixtures[1] = [1234]
-        del fixtures['/dev/input/event11']
+        del fixtures["/dev/input/event11"]
         cleanup()
         self.assertIsNone(fixtures.get(1))
-        self.assertIsNotNone(fixtures.get('/dev/input/event11'))
+        self.assertIsNotNone(fixtures.get("/dev/input/event11"))
 
     def test_restore_os_environ(self):
-        os.environ['foo'] = 'bar'
-        del os.environ['USER']
+        os.environ["foo"] = "bar"
+        del os.environ["USER"]
         environ = os.environ
         cleanup()
-        self.assertIn('USER', environ)
-        self.assertNotIn('foo', environ)
+        self.assertIn("USER", environ)
+        self.assertNotIn("foo", environ)
 
     def test_push_events(self):
         """Test that push_event works properly between helper and reader.
@@ -81,6 +89,7 @@ class TestTest(unittest.TestCase):
         Using push_events after the helper is already forked should work,
         as well as using push_event twice
         """
+
         def create_helper():
             # this will cause pending events to be copied over to the helper
             # process
@@ -101,10 +110,10 @@ class TestTest(unittest.TestCase):
 
         event = new_event(EV_KEY, 102, 1)
         create_helper()
-        reader.start_reading(groups.find(key='Foo Device 2'))
+        reader.start_reading(groups.find(key="Foo Device 2"))
         time.sleep(START_READING_DELAY)
 
-        push_events('Foo Device 2', [event])
+        push_events("Foo Device 2", [event])
         wait_for_results()
         self.assertTrue(reader._results.poll())
 
@@ -113,7 +122,7 @@ class TestTest(unittest.TestCase):
 
         # can push more events to the helper that is inside a separate
         # process, which end up being sent to the reader
-        push_events('Foo Device 2', [event])
+        push_events("Foo Device 2", [event])
         wait_for_results()
         self.assertTrue(reader._results.poll())
 

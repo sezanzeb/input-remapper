@@ -33,7 +33,8 @@ import atexit
 
 from pydbus import SystemBus
 import gi
-gi.require_version('GLib', '2.0')
+
+gi.require_version("GLib", "2.0")
 from gi.repository import GLib
 
 from keymapper.logger import logger, is_debug
@@ -44,11 +45,12 @@ from keymapper.state import system_mapping
 from keymapper.groups import groups
 
 
-BUS_NAME = 'keymapper.Control'
+BUS_NAME = "keymapper.Control"
 
 
 class AutoloadHistory:
     """Contains the autoloading history and constraints."""
+
     def __init__(self):
         """Construct this with an empty history."""
         # mapping of device -> (timestamp, preset)
@@ -142,7 +144,7 @@ class Daemon:
 
     def __init__(self):
         """Constructs the daemon."""
-        logger.debug('Creating daemon')
+        logger.debug("Creating daemon")
         self.injectors = {}
         self.config_dir = None
 
@@ -164,24 +166,24 @@ class Daemon:
         try:
             bus = SystemBus()
             interface = bus.get(BUS_NAME)
-            logger.info('Connected to the service')
+            logger.info("Connected to the service")
         except GLib.GError as error:
             if not fallback:
-                logger.error('Service not running? %s', error)
+                logger.error("Service not running? %s", error)
                 return None
 
-            logger.info('Starting the service')
+            logger.info("Starting the service")
             # Blocks until pkexec is done asking for the password.
             # Runs via key-mapper-control so that auth_admin_keep works
             # for all pkexec calls of the gui
-            debug = ' -d' if is_debug() else ''
-            cmd = f'pkexec key-mapper-control --command start-daemon {debug}'
+            debug = " -d" if is_debug() else ""
+            cmd = f"pkexec key-mapper-control --command start-daemon {debug}"
 
             # using pkexec will also cause the service to continue running in
             # the background after the gui has been closed, which will keep
             # the injections ongoing
 
-            logger.debug('Running `%s`', cmd)
+            logger.debug("Running `%s`", cmd)
             os.system(cmd)
             time.sleep(0.2)
 
@@ -193,11 +195,12 @@ class Daemon:
                 except GLib.GError as error:
                     logger.debug(
                         'Attempt %d to connect to the service failed: "%s"',
-                        attempt + 1, error
+                        attempt + 1,
+                        error,
                     )
                 time.sleep(0.2)
             else:
-                logger.error('Failed to connect to the service')
+                logger.error("Failed to connect to the service")
                 sys.exit(1)
 
         return interface
@@ -208,13 +211,13 @@ class Daemon:
         try:
             bus.publish(BUS_NAME, self)
         except RuntimeError as error:
-            logger.error('Is the service already running? (%s)', str(error))
+            logger.error("Is the service already running? (%s)", str(error))
             sys.exit(1)
 
     def run(self):
         """Start the daemons loop. Blocks until the daemon stops."""
         loop = GLib.MainLoop()
-        logger.debug('Running daemon')
+        logger.debug("Running daemon")
         loop.run()
 
     def refresh(self, group_key=None):
@@ -227,7 +230,7 @@ class Daemon:
         """
         now = time.time()
         if now - 10 > self.refreshed_devices_at:
-            logger.debug('Refreshing because last info is too old')
+            logger.debug("Refreshing because last info is too old")
             groups.refresh()
             self.refreshed_devices_at = now
             return
@@ -242,7 +245,7 @@ class Daemon:
         if self.injectors.get(group_key) is None:
             logger.debug(
                 'Tried to stop injector, but none is running for group "%s"',
-                group_key
+                group_key,
             )
             return
 
@@ -266,7 +269,7 @@ class Daemon:
             This path contains config.json, xmodmap.json and the
             presets directory
         """
-        config_path = os.path.join(config_dir, 'config.json')
+        config_path = os.path.join(config_dir, "config.json")
         if not os.path.exists(config_path):
             logger.error('"%s" does not exist', config_path)
             return
@@ -290,7 +293,7 @@ class Daemon:
             # either not relevant for key-mapper, or not connected yet
             return
 
-        preset = config.get(['autoload', group.key], log_unknown=False)
+        preset = config.get(["autoload", group.key], log_unknown=False)
 
         if preset is None:
             # no autoloading is configured for this device
@@ -298,7 +301,7 @@ class Daemon:
 
         if not isinstance(preset, str):
             # might be broken due to a previous bug
-            config.remove(['autoload', group.key])
+            config.remove(["autoload", group.key])
             config.save_config()
             return
 
@@ -307,7 +310,8 @@ class Daemon:
         if not self.autoload_history.may_autoload(group.key, preset):
             logger.info(
                 'Not autoloading the same preset "%s" again for group "%s"',
-                preset, group.key
+                preset,
+                group.key,
             )
             return
 
@@ -325,7 +329,7 @@ class Daemon:
             unique identifier used by the groups object
         """
         # avoid some confusing logs and filter obviously invalid requests
-        if group_key.startswith('key-mapper'):
+        if group_key.startswith("key-mapper"):
             return
 
         logger.info('Request to autoload for "%s"', group_key)
@@ -334,8 +338,8 @@ class Daemon:
             # spams on boot, when no user is logged in yet
             logger.debug(
                 'Tried to autoload "%s" without configuring the daemon '
-                'first via set_config_dir.',
-                group_key
+                "first via set_config_dir.",
+                group_key,
             )
             return
 
@@ -348,17 +352,17 @@ class Daemon:
         """
         if self.config_dir is None:
             logger.error(
-                'Tried to autoload without configuring the daemon first '
-                'via set_config_dir.'
+                "Tried to autoload without configuring the daemon first "
+                "via set_config_dir."
             )
             return
 
         autoload_presets = list(config.iterate_autoload_presets())
 
-        logger.info('Autoloading for all devices')
+        logger.info("Autoloading for all devices")
 
         if len(autoload_presets) == 0:
-            logger.error('No presets configured to autoload')
+            logger.error("No presets configured to autoload")
             return
 
         for group_key, _ in autoload_presets:
@@ -381,8 +385,8 @@ class Daemon:
 
         if self.config_dir is None:
             logger.error(
-                'Tried to start an injection without configuring the daemon '
-                'first via set_config_dir.'
+                "Tried to start an injection without configuring the daemon "
+                "first via set_config_dir."
             )
             return False
 
@@ -393,10 +397,7 @@ class Daemon:
             return False
 
         preset_path = os.path.join(
-            self.config_dir,
-            'presets',
-            group.name,
-            f'{preset}.json'
+            self.config_dir, "presets", group.name, f"{preset}.json"
         )
 
         mapping = Mapping()
@@ -413,9 +414,9 @@ class Daemon:
         # readable keys in the correct keyboard layout to the service.
         # The service cannot use `xmodmap -pke` because it's running via
         # systemd.
-        xmodmap_path = os.path.join(self.config_dir, 'xmodmap.json')
+        xmodmap_path = os.path.join(self.config_dir, "xmodmap.json")
         try:
-            with open(xmodmap_path, 'r') as file:
+            with open(xmodmap_path, "r") as file:
                 # do this for each injection to make sure it is up to
                 # date when the system layout changes.
                 xmodmap = json.load(file)
@@ -439,7 +440,7 @@ class Daemon:
 
     def stop_all(self):
         """Stop all injections."""
-        logger.info('Stopping all injections')
+        logger.info("Stopping all injections")
         for group_key in list(self.injectors.keys()):
             self.stop_injecting(group_key)
 
