@@ -24,12 +24,7 @@ import shutil
 import unittest
 import logging
 
-from keymapper.logger import (
-    logger,
-    add_filehandler,
-    update_verbosity,
-    log_info,
-)
+from keymapper.logger import logger, add_filehandler, update_verbosity, log_info
 from keymapper.paths import remove
 
 from tests.test import tmp

@@ -46,6 +46,7 @@ from evdev.ecodes import (
     KEY_C,
 )
 
+from keymapper.injection.consumers.event_producer import EventProducer
 from keymapper.injection.injector import (
     Injector,
     is_in_capabilities,
@@ -55,11 +56,7 @@ from keymapper.injection.injector import (
     NO_GRAB,
     UNKNOWN,
 )
-from keymapper.injection.numlock import (
-    is_numlock_on,
-    set_numlock,
-    ensure_numlock,
-)
+from keymapper.injection.numlock import is_numlock_on, set_numlock, ensure_numlock
 from keymapper.state import custom_mapping, system_mapping
 from keymapper.mapping import Mapping, DISABLE_CODE, DISABLE_NAME
 from keymapper.config import config, NONE, MOUSE, WHEEL, BUTTONS
@@ -84,13 +81,14 @@ from tests.test import (
 )
 
 
-class TestInjector(unittest.TestCase):
+class TestInjector(unittest.IsolatedAsyncioTestCase):
     new_gamepad_path = "/dev/input/event100"
 
     @classmethod
     def setUpClass(cls):
         cls.injector = None
         cls.grab = evdev.InputDevice.grab
+        quick_cleanup()
 
     def setUp(self):
         self.failed = 0
@@ -111,6 +109,14 @@ class TestInjector(unittest.TestCase):
         evdev.InputDevice.grab = self.grab
 
         quick_cleanup()
+
+    def find_event_producer(self):
+        # this object became somewhat a pain to retreive
+        return [
+            consumer
+            for consumer in self.injector._consumer_controls[0]._consumers
+            if isinstance(consumer, EventProducer)
+        ][0]
 
     def test_grab(self):
         # path is from the fixtures
@@ -465,37 +471,33 @@ class TestInjector(unittest.TestCase):
         # will be initialized though, so that stuff can be tested
         self.injector.stop_injecting()
 
-        # the context serves no purpose in the main process
+        # the context serves no purpose in the main process (which runs the
+        # tests). The context is only accessible in the newly created process.
         self.assertIsNone(self.injector.context)
 
+        # not in a process because this doesn't call start, so the
+        # event_producer state can be checked
         self.injector.run()
-        # not in a process, so the event_producer state can be checked
-        self.assertEqual(self.injector._event_producer.abs_range[0], MIN_ABS)
-        self.assertEqual(self.injector._event_producer.abs_range[1], MAX_ABS)
+
+        event_producer = self.find_event_producer()
+
+        self.assertEqual(event_producer._abs_range[0], MIN_ABS)
+        self.assertEqual(event_producer._abs_range[1], MAX_ABS)
         self.assertEqual(
-            self.injector.context.mapping.get("gamepad.joystick.left_purpose"),
-            MOUSE,
+            self.injector.context.mapping.get("gamepad.joystick.left_purpose"), MOUSE
         )
 
         self.assertEqual(ungrab_patch.call_count, 1)
 
-    def test_gamepad_to_buttons_event_producer(self):
-        custom_mapping.set("gamepad.joystick.left_purpose", BUTTONS)
-        custom_mapping.set("gamepad.joystick.right_purpose", BUTTONS)
-        self.injector = Injector(groups.find(name="gamepad"), custom_mapping)
-        self.injector.stop_injecting()
-        self.injector.run()
-        self.assertIsNone(self.injector._event_producer.abs_range)
-
-    def test_device1_event_producer(self):
+    def test_device1_not_a_gamepad(self):
         custom_mapping.set("gamepad.joystick.left_purpose", MOUSE)
         custom_mapping.set("gamepad.joystick.right_purpose", WHEEL)
         self.injector = Injector(groups.find(key="Foo Device 2"), custom_mapping)
         self.injector.stop_injecting()
         self.injector.run()
-        # not a gamepad, so _event_producer is not initialized for that.
-        # it can still debounce stuff though
-        self.assertIsNone(self.injector._event_producer.abs_range)
+
+        # not a gamepad, so nothing should happen
+        self.assertEqual(len(self.injector._consumer_controls), 0)
 
     def test_get_udev_name(self):
         self.injector = Injector(groups.find(key="Foo Device 2"), custom_mapping)
@@ -520,19 +522,16 @@ class TestInjector(unittest.TestCase):
         self.injector.run()
 
         self.assertEqual(
-            self.injector.context.mapping.get_symbol(Key(EV_KEY, KEY_A, 1)),
-            "c",
+            self.injector.context.mapping.get_symbol(Key(EV_KEY, KEY_A, 1)), "c"
         )
         self.assertEqual(
             self.injector.context.key_to_code[((EV_KEY, KEY_A, 1),)], KEY_C
         )
         self.assertEqual(
-            self.injector.context.mapping.get_symbol(Key(EV_REL, REL_HWHEEL, 1)),
-            "k(b)",
+            self.injector.context.mapping.get_symbol(Key(EV_REL, REL_HWHEEL, 1)), "k(b)"
         )
         self.assertEqual(
-            self.injector.context.macros[((EV_REL, REL_HWHEEL, 1),)].code,
-            "k(b)",
+            self.injector.context.macros[((EV_REL, REL_HWHEEL, 1),)].code, "k(b)"
         )
 
         self.assertListEqual(
@@ -770,17 +769,11 @@ class TestInjector(unittest.TestCase):
         system_mapping._set("c", code_c)
 
         group_key = "Foo Device 2"
+
         push_events(
             group_key,
-            [
-                new_event(*w_up),
-            ]
-            * 10
-            + [
-                new_event(*hw_right),
-                new_event(*w_up),
-            ]
-            * 5
+            [new_event(*w_up)] * 10
+            + [new_event(*hw_right), new_event(*w_up)] * 5
             + [new_event(*hw_left)],
         )
 
@@ -906,6 +899,10 @@ class TestInjector(unittest.TestCase):
 
 
 class TestModifyCapabilities(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        quick_cleanup()
+
     def setUp(self):
         class FakeDevice:
             def __init__(self):

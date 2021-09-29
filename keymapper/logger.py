@@ -56,7 +56,7 @@ def key_spam(self, key, msg, *args):
 
     Parameters
     ----------
-    key : tuple
+    key : tuple of int
         anything that can be string formatted, but usually a tuple of
         (type, code, value) tuples
     """
@@ -161,10 +161,7 @@ except pkg_resources.DistributionNotFound as error:
 def log_info(name="key-mapper"):
     """Log version and name to the console."""
     logger.info(
-        "%s %s %s https://github.com/sezanzeb/key-mapper",
-        name,
-        VERSION,
-        COMMIT_HASH,
+        "%s %s %s https://github.com/sezanzeb/key-mapper", name, VERSION, COMMIT_HASH
     )
 
     if EVDEV_VERSION:

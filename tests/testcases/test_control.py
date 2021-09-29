@@ -59,15 +59,7 @@ communicate, utils, internals = import_control()
 
 options = collections.namedtuple(
     "options",
-    [
-        "command",
-        "config_dir",
-        "preset",
-        "device",
-        "list_devices",
-        "key_names",
-        "debug",
-    ],
+    ["command", "config_dir", "preset", "device", "list_devices", "key_names", "debug"],
 )
 
 
@@ -136,8 +128,7 @@ class TestControl(unittest.TestCase):
 
         # unless the injection in question ist stopped
         communicate(
-            options("stop", None, None, groups_[0].key, False, False, False),
-            daemon,
+            options("stop", None, None, groups_[0].key, False, False, False), daemon
         )
         self.assertEqual(stop_counter, 1)
         self.assertTrue(
@@ -168,8 +159,7 @@ class TestControl(unittest.TestCase):
         config.set_autoload_preset(groups_[1].key, presets[2])
         config.save_config()
         communicate(
-            options("autoload", None, None, groups_[1].key, False, False, False),
-            daemon,
+            options("autoload", None, None, groups_[1].key, False, False, False), daemon
         )
         self.assertEqual(len(start_history), 4)
         self.assertEqual(start_history[3], (groups_[1].key, presets[2]))
@@ -183,8 +173,7 @@ class TestControl(unittest.TestCase):
         # autoloading for the same device again redundantly will not autoload
         # again
         communicate(
-            options("autoload", None, None, groups_[1].key, False, False, False),
-            daemon,
+            options("autoload", None, None, groups_[1].key, False, False, False), daemon
         )
         self.assertEqual(len(start_history), 4)
         self.assertEqual(stop_counter, 3)
@@ -229,8 +218,7 @@ class TestControl(unittest.TestCase):
         config.save_config()
 
         communicate(
-            options("autoload", config_dir, None, None, False, False, False),
-            daemon,
+            options("autoload", config_dir, None, None, False, False, False), daemon
         )
 
         self.assertEqual(len(start_history), 2)
@@ -251,15 +239,13 @@ class TestControl(unittest.TestCase):
         daemon.stop_all = lambda *args: stop_all_history.append(args)
 
         communicate(
-            options("start", None, preset, group.paths[0], False, False, False),
-            daemon,
+            options("start", None, preset, group.paths[0], False, False, False), daemon
         )
         self.assertEqual(len(start_history), 1)
         self.assertEqual(start_history[0], (group.key, preset))
 
         communicate(
-            options("stop", None, None, group.paths[1], False, False, False),
-            daemon,
+            options("stop", None, None, group.paths[1], False, False, False), daemon
         )
         self.assertEqual(len(stop_history), 1)
         # provided any of the groups paths as --device argument, figures out

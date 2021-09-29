@@ -278,11 +278,7 @@ class TestReader(unittest.TestCase):
 
         self.assertEqual(
             reader.read(),
-            (
-                (EV_KEY, CODE_1, 1),
-                (EV_KEY, CODE_3, 1),
-                (EV_ABS, ABS_HAT0X, -1),
-            ),
+            ((EV_KEY, CODE_1, 1), (EV_KEY, CODE_3, 1), (EV_ABS, ABS_HAT0X, -1)),
         )
         self.assertEqual(reader.read(), None)
         self.assertEqual(len(reader._unreleased), 3)

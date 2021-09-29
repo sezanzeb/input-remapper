@@ -294,12 +294,7 @@ class _Group:
     def dumps(self):
         """Return a string representing this object."""
         return json.dumps(
-            dict(
-                paths=self.paths,
-                names=self.names,
-                types=self.types,
-                key=self.key,
-            )
+            dict(paths=self.paths, names=self.names, types=self.types, key=self.key)
         )
 
     @classmethod
@@ -370,11 +365,7 @@ class _FindGroups(threading.Thread):
                 grouped[key] = []
 
             logger.spam(
-                'Found "%s", "%s", "%s", type: %s',
-                key,
-                path,
-                device.name,
-                device_type,
+                'Found "%s", "%s", "%s", type: %s', key, path, device.name, device_type
             )
 
             grouped[key].append((device.name, path, device_type))

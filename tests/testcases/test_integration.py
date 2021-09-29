@@ -363,8 +363,7 @@ class TestIntegration(unittest.TestCase):
         self.assertTrue(config.is_autoloaded(self.window.group.key, "new preset"))
         self.assertFalse(config.is_autoloaded("Bar Device", "new preset"))
         self.assertListEqual(
-            list(config.iterate_autoload_presets()),
-            [("Foo Device 2", "new preset")],
+            list(config.iterate_autoload_presets()), [("Foo Device 2", "new preset")]
         )
 
         # create a new preset, the switch should be correctly off and the
@@ -397,8 +396,7 @@ class TestIntegration(unittest.TestCase):
         self.assertFalse(config.is_autoloaded("Foo Device", "new preset"))
         self.assertFalse(config.is_autoloaded("Bar Device", "new preset"))
         self.assertListEqual(
-            list(config.iterate_autoload_presets()),
-            [("Foo Device 2", "new preset")],
+            list(config.iterate_autoload_presets()), [("Foo Device 2", "new preset")]
         )
 
     def test_select_device(self):
@@ -1422,10 +1420,7 @@ class TestIntegration(unittest.TestCase):
 
         push_events(
             "gamepad",
-            [
-                new_event(EV_ABS, ABS_RX, MIN_ABS),
-                new_event(EV_ABS, ABS_X, MAX_ABS),
-            ]
+            [new_event(EV_ABS, ABS_RX, MIN_ABS), new_event(EV_ABS, ABS_X, MAX_ABS)]
             * 100,
         )
 

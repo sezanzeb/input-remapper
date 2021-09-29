@@ -45,20 +45,25 @@ class Install(install):
         install.run(self)
 
 
-def get_packages():
+def get_packages(base='keymapper'):
     """Return all modules used in key-mapper.
 
-    For example 'keymapper.gui'.
+    For example 'keymapper.gui' or 'keymapper.injection.consumers'
     """
-    result = ['keymapper']
-    for name in os.listdir('keymapper'):
-        if not os.path.isdir(f'keymapper/{name}'):
+    if not os.path.exists(os.path.join(base, '__init__.py')):
+        # only python modules
+        return []
+
+    result = [base.replace('/', '.')]
+    for name in os.listdir(base):
+        if not os.path.isdir(os.path.join(base, name)):
             continue
 
         if name == '__pycache__':
             continue
 
-        result.append(f'keymapper.{name}')
+        # find more python submodules in that directory
+        result += get_packages(os.path.join(base, name))
 
     return result
 

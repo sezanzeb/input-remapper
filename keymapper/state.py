@@ -19,7 +19,7 @@
 # along with key-mapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
-"""Create some singleton objects that are needed for the app to work."""
+"""Make the systems/environments mapping of keys and codes accessible."""
 
 
 import re

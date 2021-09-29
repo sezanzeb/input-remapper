@@ -66,6 +66,13 @@ STYLUS = [
 JOYSTICK_BUTTON_THRESHOLD = math.sin((math.pi / 2) / 3 * 1)
 
 
+PRESS = 1
+# D-Pads and joysticks can have a second press event, which moves the knob to the
+# opposite side, reporting a negative value
+PRESS_NEGATIVE = -1
+RELEASE = 0
+
+
 def sign(value):
     """Return -1, 0 or 1 depending on the input value."""
     if value > 0:
@@ -77,8 +84,14 @@ def sign(value):
     return 0
 
 
-def normalize_value(event, abs_range=None):
-    """Fit the event value to one of 0, 1 or -1."""
+def classify_action(event, abs_range=None):
+    """Fit the event value to one of PRESS, PRESS_NEGATIVE or RELEASE
+
+    A joystick that is pushed to the very side will probably send a high value, whereas
+    having it close to the middle might send values close to 0 with some noise. A value
+    of 1 is usually noise or from touching the joystick very gently and considered in
+    resting position.
+    """
     if event.type == EV_ABS and event.code in JOYSTICK:
         if abs_range is None:
             logger.error(
@@ -103,6 +116,16 @@ def normalize_value(event, abs_range=None):
     return sign(event.value)
 
 
+def is_key_down(action):
+    """Is this action a key press."""
+    return action in [PRESS, PRESS_NEGATIVE]
+
+
+def is_key_up(action):
+    """Is this action a key release."""
+    return action == RELEASE
+
+
 def is_wheel(event):
     """Check if this is a wheel event."""
     return event.type == EV_REL and event.code in [REL_WHEEL, REL_HWHEEL]
@@ -114,7 +137,7 @@ def will_report_key_up(event):
 
 
 def should_map_as_btn(event, mapping, gamepad):
-    """Does this event describe a button.
+    """Does this event describe a button that is or can be mapped.
 
     If a new kind of event should be mappable to buttons, this is the place
     to add it.
@@ -196,10 +219,7 @@ def get_abs_range(device, code=ABS_X):
 
     if len(absinfo) == 0:
         logger.error(
-            'Failed to get ABS info of "%s" for key %d: %s',
-            device,
-            code,
-            capabilities,
+            'Failed to get ABS info of "%s" for key %d: %s', device, code, capabilities
         )
         return None
 

@@ -31,16 +31,10 @@ from evdev.ecodes import EV_KEY, EV_REL
 
 from keymapper.logger import logger
 from keymapper.groups import classify, GAMEPAD
-from keymapper import utils
 from keymapper.mapping import DISABLE_CODE
-from keymapper.injection.keycode_mapper import KeycodeMapper
 from keymapper.injection.context import Context
-from keymapper.injection.event_producer import EventProducer
-from keymapper.injection.numlock import (
-    set_numlock,
-    is_numlock_on,
-    ensure_numlock,
-)
+from keymapper.injection.numlock import set_numlock, is_numlock_on, ensure_numlock
+from keymapper.injection.consumer_control import ConsumerControl
 
 
 DEV_NAME = "key-mapper"
@@ -75,7 +69,7 @@ def is_in_capabilities(key, capabilities):
 
 
 class Injector(multiprocessing.Process):
-    """Keeps injecting events in the background based on mapping and config.
+    """Initializes, starts and stops injections.
 
     Is a process to make it non-blocking for the rest of the code and to
     make running multiple injector easier. There is one process per
@@ -94,11 +88,17 @@ class Injector(multiprocessing.Process):
         mapping : Mapping
         """
         self.group = group
-        self._event_producer = None
         self._state = UNKNOWN
+
+        # used to interact with the parts of this class that are running within
+        # the new process
         self._msg_pipe = multiprocessing.Pipe()
+
         self.mapping = mapping
         self.context = None  # only needed inside the injection process
+
+        self._consumer_controls = []
+
         super().__init__()
 
     """Functions to interact with the running process"""
@@ -327,6 +327,24 @@ class Injector(multiprocessing.Process):
         Use this function as starting point in a process. It creates
         the loops needed to read and map events and keeps running them.
         """
+        # TODO run all injections in a single process via asyncio
+        #   - Make sure that closing asyncio fds won't lag the service
+        #   - SharedDict becomes obsolete
+        #   - quick_cleanup needs to be able to reliably stop the injection
+        #   - I think I want an event listener architecture so that macros,
+        #     event_producer, keycode_mapper and possibly other modules can get
+        #     what they filter for whenever they want, without having to wire
+        #     things through multiple other objects all the time
+        #   - _new_event_arrived moves to the place where events are emitted. injector?
+        #   - active macros and unreleased need to be per injection. it probably
+        #     should move into the keycode_mapper class, but that only works if there
+        #     is only one keycode_mapper per injection, and not per source. Problem was
+        #     that I had to excessively pass around to which device to forward to...
+        #     I also need to have information somewhere which source is a gamepad, I
+        #     probably don't want to evaluate that from scratch each time `notify` is
+        #     called.
+        #   - benefit: writing macros that listen for events from other devices
+
         logger.info('Starting injecting the mapping for "%s"', self.group.key)
 
         # create a new event loop, because somehow running an infinite loop
@@ -345,7 +363,10 @@ class Injector(multiprocessing.Process):
         # forever
         sources = self._grab_devices()
 
-        self._event_producer = EventProducer(self.context)
+        if len(sources) == 0:
+            logger.error("Did not grab any device")
+            self._msg_pipe[0].send(NO_GRAB)
+            return
 
         numlock_state = is_numlock_on()
         coroutines = []
@@ -362,31 +383,18 @@ class Injector(multiprocessing.Process):
             # certain capabilities can have side effects apparently. with an
             # EV_ABS capability, EV_REL won't move the mouse pointer anymore.
             # so don't merge all InputDevices into one UInput device.
-            gamepad = classify(source) == GAMEPAD
             forward_to = evdev.UInput(
                 name=self.get_udev_name(source.name, "forwarded"),
                 phys=DEV_NAME,
                 events=self._copy_capabilities(source),
             )
 
-            # actual reading of events
-            coroutines.append(self._event_consumer(source, forward_to))
-
-            # The event source of the current iteration will deliver events
-            # that are needed for this. It is that one that will be mapped
-            # to a mouse-like devnode.
-            if gamepad and self.context.joystick_as_mouse():
-                self._event_producer.set_abs_range_from(source)
-
-        if len(coroutines) == 0:
-            logger.error("Did not grab any device")
-            self._msg_pipe[0].send(NO_GRAB)
-            return
+            # actually doing things
+            consumer_control = ConsumerControl(self.context, source, forward_to)
+            coroutines.append(consumer_control.run())
+            self._consumer_controls.append(consumer_control)
 
         coroutines.append(self._msg_listener())
-
-        # run besides this stuff
-        coroutines.append(self._event_producer.run())
 
         # set the numlock state to what it was before injecting, because
         # grabbing devices screws this up
@@ -412,60 +420,3 @@ class Injector(multiprocessing.Process):
             # ungrab at the end to make the next injection process not fail
             # its grabs
             source.ungrab()
-
-    async def _event_consumer(self, source, forward_to):
-        """Reads input events to inject keycodes or talk to the event_producer.
-
-        Can be stopped by stopping the asyncio loop. This loop
-        reads events from a single device only. Other devnodes may be
-        present for the hardware device, in which case this needs to be
-        started multiple times.
-
-        Parameters
-        ----------
-        source : evdev.InputDevice
-            where to read keycodes from
-        forward_to : evdev.UInput
-            where to write keycodes to that were not mapped to anything.
-            Should be an UInput with capabilities that work for all forwarded
-            events, so ideally they should be copied from source.
-        """
-        logger.debug("Started consumer to inject for %s, fd %s", source.path, source.fd)
-
-        gamepad = classify(source) == GAMEPAD
-
-        keycode_handler = KeycodeMapper(self.context, source, forward_to)
-
-        async for event in source.async_read_loop():
-            if self._event_producer.is_handled(event):
-                # the event_producer will take care of it
-                self._event_producer.notify(event)
-                continue
-
-            # for mapped stuff
-            if utils.should_map_as_btn(event, self.context.mapping, gamepad):
-                will_report_key_up = utils.will_report_key_up(event)
-
-                keycode_handler.handle_keycode(event)
-
-                if not will_report_key_up:
-                    # simulate a key-up event if no down event arrives anymore.
-                    # this may release macros, combinations or keycodes.
-                    release = evdev.InputEvent(0, 0, event.type, event.code, 0)
-                    self._event_producer.debounce(
-                        debounce_id=(event.type, event.code, event.value),
-                        func=keycode_handler.handle_keycode,
-                        args=(release, False),
-                        ticks=3,
-                    )
-
-                continue
-
-            # forward the rest
-            forward_to.write(event.type, event.code, event.value)
-            # this already includes SYN events, so need to syn here again
-
-        # This happens all the time in tests because the async_read_loop
-        # stops when there is nothing to read anymore. Otherwise tests
-        # would block.
-        logger.error('The consumer for "%s" stopped early', source.path)
