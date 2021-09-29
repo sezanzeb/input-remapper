@@ -36,20 +36,20 @@ def get_user():
         pass
 
     try:
-        user = os.environ['USER']
+        user = os.environ["USER"]
     except KeyError:
         # possibly the systemd service. no sudo was used
         return getpass.getuser()
 
-    if user == 'root':
+    if user == "root":
         try:
-            return os.environ['SUDO_USER']
+            return os.environ["SUDO_USER"]
         except KeyError:
             # no sudo was used
             pass
 
         try:
-            pkexec_uid = int(os.environ['PKEXEC_UID'])
+            pkexec_uid = int(os.environ["PKEXEC_UID"])
             return pwd.getpwuid(pkexec_uid).pw_name
         except KeyError:
             # no pkexec was used or the uid is unknown
@@ -58,8 +58,13 @@ def get_user():
     return user
 
 
+def get_home(user):
+    """Try to find the user's home directory."""
+    return pwd.getpwnam(user).pw_dir
+
+
 USER = get_user()
 
-HOME = '/root' if USER == 'root' else f'/home/{USER}'
+HOME = get_home(USER)
 
-CONFIG_PATH = os.path.join(HOME, '.config/key-mapper')
+CONFIG_PATH = os.path.join(HOME, ".config/key-mapper")

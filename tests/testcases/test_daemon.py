@@ -31,7 +31,8 @@ from evdev.ecodes import EV_KEY, EV_ABS
 from gi.repository import Gtk
 from pydbus import SystemBus
 
-from keymapper.state import custom_mapping, system_mapping
+from keymapper.system_mapping import system_mapping
+from keymapper.gui.custom_mapping import custom_mapping
 from keymapper.config import config
 from keymapper.groups import groups
 from keymapper.paths import get_config_path, mkdir, get_preset_path
@@ -40,8 +41,15 @@ from keymapper.mapping import Mapping
 from keymapper.injection.injector import STARTING, RUNNING, STOPPED, UNKNOWN
 from keymapper.daemon import Daemon, BUS_NAME
 
-from tests.test import cleanup, uinput_write_history_pipe, new_event, \
-    push_events, is_service_running, fixtures, tmp
+from tests.test import (
+    cleanup,
+    uinput_write_history_pipe,
+    new_event,
+    push_events,
+    is_service_running,
+    fixtures,
+    tmp,
+)
 
 
 def gtk_iteration():
@@ -53,8 +61,7 @@ def gtk_iteration():
 class TestDBusDaemon(unittest.TestCase):
     def setUp(self):
         self.process = multiprocessing.Process(
-            target=os.system,
-            args=('key-mapper-service -d',)
+            target=os.system, args=("key-mapper-service -d",)
         )
         self.process.start()
         time.sleep(0.5)
@@ -65,7 +72,7 @@ class TestDBusDaemon(unittest.TestCase):
 
     def tearDown(self):
         self.interface.stop_all()
-        os.system('pkill -f key-mapper-service')
+        os.system("pkill -f key-mapper-service")
 
         for _ in range(10):
             time.sleep(0.1)
@@ -78,7 +85,7 @@ class TestDBusDaemon(unittest.TestCase):
         # it's a remote dbus object
         self.assertEqual(self.interface._bus_name, BUS_NAME)
         self.assertFalse(isinstance(self.interface, Daemon))
-        self.assertEqual(self.interface.hello('foo'), 'foo')
+        self.assertEqual(self.interface.hello("foo"), "foo")
 
 
 check_output = subprocess.check_output
@@ -87,7 +94,7 @@ dbus_get = type(SystemBus()).get
 
 
 class TestDaemon(unittest.TestCase):
-    new_fixture_path = '/dev/input/event9876'
+    new_fixture_path = "/dev/input/event9876"
 
     def setUp(self):
         self.grab = evdev.InputDevice.grab
@@ -128,29 +135,29 @@ class TestDaemon(unittest.TestCase):
 
     def test_daemon(self):
         # remove the existing system mapping to force our own into it
-        if os.path.exists(get_config_path('xmodmap.json')):
-            os.remove(get_config_path('xmodmap.json'))
+        if os.path.exists(get_config_path("xmodmap.json")):
+            os.remove(get_config_path("xmodmap.json"))
 
         ev_1 = (EV_KEY, 9)
         ev_2 = (EV_ABS, 12)
         keycode_to_1 = 100
         keycode_to_2 = 101
 
-        group = groups.find(name='Bar Device')
+        group = groups.find(name="Bar Device")
 
         # unrelated group that shouldn't be affected at all
-        group2 = groups.find(name='gamepad')
+        group2 = groups.find(name="gamepad")
 
-        custom_mapping.change(Key(*ev_1, 1), 'a')
-        custom_mapping.change(Key(*ev_2, -1), 'b')
+        custom_mapping.change(Key(*ev_1, 1), "a")
+        custom_mapping.change(Key(*ev_2, -1), "b")
 
         system_mapping.clear()
         # since this is in the same memory as the daemon, there is no need
         # to save it to disk
-        system_mapping._set('a', keycode_to_1)
-        system_mapping._set('b', keycode_to_2)
+        system_mapping._set("a", keycode_to_1)
+        system_mapping._set("b", keycode_to_2)
 
-        preset = 'foo'
+        preset = "foo"
 
         custom_mapping.save(group.get_preset_path(preset))
         config.set_autoload_preset(group.key, preset)
@@ -158,9 +165,7 @@ class TestDaemon(unittest.TestCase):
         """injection 1"""
 
         # should forward the event unchanged
-        push_events(group.key, [
-            new_event(EV_KEY, 13, 1)
-        ])
+        push_events(group.key, [new_event(EV_KEY, 13, 1)])
 
         self.daemon = Daemon()
         self.daemon.set_config_dir(get_config_path())
@@ -184,16 +189,14 @@ class TestDaemon(unittest.TestCase):
         try:
             self.assertFalse(uinput_write_history_pipe[0].poll())
         except AssertionError:
-            print('Unexpected', uinput_write_history_pipe[0].recv())
+            print("Unexpected", uinput_write_history_pipe[0].recv())
             # possibly a duplicate write!
             raise
 
         """injection 2"""
 
-        # -1234 will be normalized to -1 by the injector
-        push_events(group.key, [
-            new_event(*ev_2, -1234)
-        ])
+        # -1234 will be classified as -1 by the injector
+        push_events(group.key, [new_event(*ev_2, -1234)])
 
         self.daemon.start_injecting(group.key, preset)
 
@@ -209,12 +212,12 @@ class TestDaemon(unittest.TestCase):
         self.assertEqual(event.value, 1)
 
     def test_refresh_on_start(self):
-        if os.path.exists(get_config_path('xmodmap.json')):
-            os.remove(get_config_path('xmodmap.json'))
+        if os.path.exists(get_config_path("xmodmap.json")):
+            os.remove(get_config_path("xmodmap.json"))
 
         ev = (EV_KEY, 9)
         keycode_to = 100
-        group_name = '9876 name'
+        group_name = "9876 name"
 
         # expected key of the group
         group_key = group_name
@@ -222,21 +225,19 @@ class TestDaemon(unittest.TestCase):
         group = groups.find(name=group_name)
         # this test only makes sense if this device is unknown yet
         self.assertIsNone(group)
-        custom_mapping.change(Key(*ev, 1), 'a')
+        custom_mapping.change(Key(*ev, 1), "a")
         system_mapping.clear()
-        system_mapping._set('a', keycode_to)
+        system_mapping._set("a", keycode_to)
 
         # make the daemon load the file instead
-        with open(get_config_path('xmodmap.json'), 'w') as file:
+        with open(get_config_path("xmodmap.json"), "w") as file:
             json.dump(system_mapping._mapping, file, indent=4)
         system_mapping.clear()
 
-        preset = 'foo'
+        preset = "foo"
         custom_mapping.save(get_preset_path(group_name, preset))
         config.set_autoload_preset(group_key, preset)
-        push_events(group_key, [
-            new_event(*ev, 1)
-        ])
+        push_events(group_key, [new_event(*ev, 1)])
         self.daemon = Daemon()
 
         # make sure the devices are populated
@@ -244,10 +245,10 @@ class TestDaemon(unittest.TestCase):
 
         # the daemon is supposed to find this device by calling refresh
         fixtures[self.new_fixture_path] = {
-            'capabilities': {evdev.ecodes.EV_KEY: [ev[1]]},
-            'phys': '9876 phys',
-            'info': evdev.device.DeviceInfo(4, 5, 6, 7),
-            'name': group_name
+            "capabilities": {evdev.ecodes.EV_KEY: [ev[1]]},
+            "phys": "9876 phys",
+            "info": evdev.device.DeviceInfo(4, 5, 6, 7),
+            "name": group_name,
         }
 
         self.daemon.set_config_dir(get_config_path())
@@ -268,7 +269,7 @@ class TestDaemon(unittest.TestCase):
         self.assertEqual(self.daemon.get_state(group_key), STOPPED)
 
     def test_refresh_for_unknown_key(self):
-        device = '9876 name'
+        device = "9876 name"
         # this test only makes sense if this device is unknown yet
         self.assertIsNone(groups.find(name=device))
 
@@ -280,13 +281,13 @@ class TestDaemon(unittest.TestCase):
         self.daemon.refresh()
 
         fixtures[self.new_fixture_path] = {
-            'capabilities': {evdev.ecodes.EV_KEY: [evdev.ecodes.KEY_A]},
-            'phys': '9876 phys',
-            'info': evdev.device.DeviceInfo(4, 5, 6, 7),
-            'name': device
+            "capabilities": {evdev.ecodes.EV_KEY: [evdev.ecodes.KEY_A]},
+            "phys": "9876 phys",
+            "info": evdev.device.DeviceInfo(4, 5, 6, 7),
+            "name": device,
         }
 
-        self.daemon._autoload('25v7j9q4vtj')
+        self.daemon._autoload("25v7j9q4vtj")
         # this is unknown, so the daemon will scan the devices again
 
         # test if the injector called groups.refresh successfully
@@ -294,35 +295,33 @@ class TestDaemon(unittest.TestCase):
 
     def test_xmodmap_file(self):
         from_keycode = evdev.ecodes.KEY_A
-        to_name = 'qux'
+        to_name = "qux"
         to_keycode = 100
         event = (EV_KEY, from_keycode, 1)
 
-        name = 'Bar Device'
-        preset = 'foo'
+        name = "Bar Device"
+        preset = "foo"
         group = groups.find(name=name)
 
-        config_dir = os.path.join(tmp, 'foo')
+        config_dir = os.path.join(tmp, "foo")
 
-        path = os.path.join(config_dir, 'presets', name, f'{preset}.json')
+        path = os.path.join(config_dir, "presets", name, f"{preset}.json")
 
         custom_mapping.change(Key(event), to_name)
         custom_mapping.save(path)
 
         system_mapping.clear()
 
-        push_events(group.key, [
-            new_event(*event)
-        ])
+        push_events(group.key, [new_event(*event)])
 
         # an existing config file is needed otherwise set_config_dir refuses
         # to use the directory
-        config_path = os.path.join(config_dir, 'config.json')
+        config_path = os.path.join(config_dir, "config.json")
         config.path = config_path
         config.save_config()
 
-        xmodmap_path = os.path.join(config_dir, 'xmodmap.json')
-        with open(xmodmap_path, 'w') as file:
+        xmodmap_path = os.path.join(config_dir, "xmodmap.json")
+        with open(xmodmap_path, "w") as file:
             file.write(f'{{"{to_name}":{to_keycode}}}')
 
         self.daemon = Daemon()
@@ -339,14 +338,14 @@ class TestDaemon(unittest.TestCase):
         self.assertEqual(event.value, 1)
 
     def test_start_stop(self):
-        group = groups.find(key='Foo Device 2')
-        preset = 'preset8'
+        group = groups.find(key="Foo Device 2")
+        preset = "preset8"
 
         daemon = Daemon()
         self.daemon = daemon
 
         mapping = Mapping()
-        mapping.change(Key(3, 2, 1), 'a')
+        mapping.change(Key(3, 2, 1), "a")
         mapping.save(group.get_preset_path(preset))
 
         # the daemon needs set_config_dir first before doing anything
@@ -380,13 +379,13 @@ class TestDaemon(unittest.TestCase):
         # trying to inject a non existing preset keeps the previous inejction
         # alive
         injector = daemon.injectors[group.key]
-        daemon.start_injecting(group.key, 'qux')
+        daemon.start_injecting(group.key, "qux")
         self.assertEqual(injector, daemon.injectors[group.key])
         self.assertNotEqual(daemon.injectors[group.key].get_state(), STOPPED)
 
         # trying to start injecting for an unknown device also just does
         # nothing
-        daemon.start_injecting('quux', 'qux')
+        daemon.start_injecting("quux", "qux")
         self.assertNotEqual(daemon.injectors[group.key].get_state(), STOPPED)
 
         # after all that stuff autoload_history is still unharmed
@@ -400,15 +399,15 @@ class TestDaemon(unittest.TestCase):
         self.assertTrue(daemon.autoload_history.may_autoload(group.key, preset))
 
     def test_autoload(self):
-        preset = 'preset7'
-        group = groups.find(key='Foo Device 2')
+        preset = "preset7"
+        group = groups.find(key="Foo Device 2")
 
         daemon = Daemon()
         self.daemon = daemon
         self.daemon.set_config_dir(get_config_path())
 
         mapping = Mapping()
-        mapping.change(Key(3, 2, 1), 'a')
+        mapping.change(Key(3, 2, 1), "a")
         mapping.save(group.get_preset_path(preset))
 
         # no autoloading is configured yet
@@ -423,14 +422,18 @@ class TestDaemon(unittest.TestCase):
         # now autoloading is configured, so it will autoload
         self.daemon._autoload(group.key)
         len_after = len(self.daemon.autoload_history._autoload_history)
-        self.assertEqual(daemon.autoload_history._autoload_history[group.key][1], preset)
+        self.assertEqual(
+            daemon.autoload_history._autoload_history[group.key][1], preset
+        )
         self.assertFalse(daemon.autoload_history.may_autoload(group.key, preset))
         injector = daemon.injectors[group.key]
         self.assertEqual(len_before + 1, len_after)
 
         # calling duplicate _autoload does nothing
         self.daemon._autoload(group.key)
-        self.assertEqual(daemon.autoload_history._autoload_history[group.key][1], preset)
+        self.assertEqual(
+            daemon.autoload_history._autoload_history[group.key][1], preset
+        )
         self.assertEqual(injector, daemon.injectors[group.key])
         self.assertFalse(daemon.autoload_history.may_autoload(group.key, preset))
 
@@ -440,13 +443,13 @@ class TestDaemon(unittest.TestCase):
 
         # calling autoload for (yet) unknown devices does nothing
         len_before = len(self.daemon.autoload_history._autoload_history)
-        self.daemon._autoload('unknown-key-1234')
+        self.daemon._autoload("unknown-key-1234")
         len_after = len(self.daemon.autoload_history._autoload_history)
         self.assertEqual(len_before, len_after)
 
         # autoloading key-mapper devices does nothing
         len_before = len(self.daemon.autoload_history._autoload_history)
-        self.daemon.autoload_single('Bar Device')
+        self.daemon.autoload_single("Bar Device")
         len_after = len(self.daemon.autoload_history._autoload_history)
         self.assertEqual(len_before, len_after)
 
@@ -455,15 +458,15 @@ class TestDaemon(unittest.TestCase):
         history = self.daemon.autoload_history._autoload_history
 
         # existing device
-        preset = 'preset7'
-        group = groups.find(key='Foo Device 2')
+        preset = "preset7"
+        group = groups.find(key="Foo Device 2")
         mapping = Mapping()
-        mapping.change(Key(3, 2, 1), 'a')
+        mapping.change(Key(3, 2, 1), "a")
         mapping.save(group.get_preset_path(preset))
         config.set_autoload_preset(group.key, preset)
 
         # ignored, won't cause problems:
-        config.set_autoload_preset('non-existant-key', 'foo')
+        config.set_autoload_preset("non-existant-key", "foo")
 
         # daemon is missing the config directory yet
         self.daemon.autoload()
@@ -477,11 +480,11 @@ class TestDaemon(unittest.TestCase):
 
     def test_autoload_3(self):
         # based on a bug
-        preset = 'preset7'
-        group = groups.find(key='Foo Device 2')
+        preset = "preset7"
+        group = groups.find(key="Foo Device 2")
 
         mapping = Mapping()
-        mapping.change(Key(3, 2, 1), 'a')
+        mapping.change(Key(3, 2, 1), "a")
         mapping.save(group.get_preset_path(preset))
 
         config.set_autoload_preset(group.key, preset)
@@ -490,7 +493,7 @@ class TestDaemon(unittest.TestCase):
         self.daemon = Daemon()
         self.daemon.set_config_dir(get_config_path())
         groups.set_groups([])  # caused the bug
-        self.assertIsNone(groups.find(key='Foo Device 2'))
+        self.assertIsNone(groups.find(key="Foo Device 2"))
         self.daemon.autoload()
 
         # it should try to refresh the groups because all the
@@ -498,7 +501,7 @@ class TestDaemon(unittest.TestCase):
         history = self.daemon.autoload_history._autoload_history
         self.assertEqual(history[group.key][1], preset)
         self.assertEqual(self.daemon.get_state(group.key), STARTING)
-        self.assertIsNotNone(groups.find(key='Foo Device 2'))
+        self.assertIsNotNone(groups.find(key="Foo Device 2"))
 
 
 if __name__ == "__main__":

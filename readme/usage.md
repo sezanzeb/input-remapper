@@ -50,13 +50,19 @@ For example a combination of `LEFTSHIFT + a` for `b` would write "B" insetad,
 because shift will be activated before you hit the "a". Therefore the
 environment will see shift and a "b", which will then be capitalized.
 
-A better option for a key combination would be `KP1 + a` instead of 
-`LEFTSHIFT + a`, because there won't be any side effect. You can disable
-`KP1` by mapping it to `disable`, so you won't trigger writing a "1" into
-your focused application.
+The first option to work around this issue is to use `KP1 + a` instead of 
+`LEFTSHIFT + a`. You can disable `KP1` by mapping it to `disable`, so you
+won't trigger writing a "1" into your focused application.
 
 <p align="center">
   <img src="combination.png"/>
+</p>
+
+The second option is to release the modifier in your combination by writing
+the modifier one more time. This will write lowercase "a" characters.
+
+<p align="center">
+  <img src="combination_workaround.png"/>
 </p>
 
 ## Writing Combinations
@@ -147,7 +153,7 @@ configuration files.
 
 The default configuration is stored at `~/.config/key-mapper/config.json`,
 which doesn't include any mappings, but rather other parameters that
-are interesting for injections. The current default configuration as of 1.0.0
+are interesting for injections. The current default configuration as of 1.1.0
 looks like, with  an example autoload entry:
 
 ```json

@@ -18,10 +18,11 @@
 # You should have received a copy of the GNU General Public License
 # along with key-mapper.  If not, see <https://www.gnu.org/licenses/>.
 
-"""The injection process.
 
-This folder contains all classes that are only relevant for the injection
-process. There is one process for each hardware device that is being injected
-for, and one context object per process that is being passed around for all
-classes to use.
-"""
+"""One mapping object for the GUI application."""
+
+
+from keymapper.mapping import Mapping
+
+
+custom_mapping = Mapping()

@@ -63,9 +63,9 @@ from keymapper.paths import mkdir, chown
 # something funny that most likely won't appear in messages.
 # also add some ones so that 01 in the payload won't offset
 # a match by 2 bits
-END = b'\x55\x55\xff\x55'  # should be 01010101 01010101 11111111 01010101
+END = b"\x55\x55\xff\x55"  # should be 01010101 01010101 11111111 01010101
 
-ENCODING = 'utf8'
+ENCODING = "utf8"
 
 
 # reusing existing objects makes tests easier, no headaches about closing
@@ -77,6 +77,7 @@ existing_clients = {}
 
 class Base:
     """Abstract base class for Socket and Client."""
+
     def __init__(self, path):
         self._path = path
         self._unread = []
@@ -107,10 +108,10 @@ class Base:
 
     def _receive_new_messages(self):
         if not self.connect():
-            logger.spam('Not connected')
+            logger.spam("Not connected")
             return
 
-        messages = b''
+        messages = b""
         attempts = 0
         while True:
             try:
@@ -137,7 +138,7 @@ class Base:
                     # important to avoid race conditions between multiple
                     # unittests, for example old terminate messages reaching
                     # a new instance of the helper.
-                    logger.spam('Ignoring old message %s', parsed)
+                    logger.spam("Ignoring old message %s", parsed)
                     continue
 
                 self._unread.append(parsed[1])
@@ -170,7 +171,7 @@ class Base:
         self.unsent.append(dump)
 
         if not self.connect():
-            logger.spam('Not connected')
+            logger.spam("Not connected")
             return
 
         def send_all():
@@ -187,7 +188,8 @@ class Base:
             if not self.reconnect():
                 logger.error(
                     '%s: The other side of "%s" disappeared',
-                    type(self).__name__, self._path
+                    type(self).__name__,
+                    self._path,
                 )
                 return
 
@@ -196,12 +198,15 @@ class Base:
             except BrokenPipeError as error:
                 logger.error(
                     '%s: Failed to send via "%s": %s',
-                    type(self).__name__, self._path, error
+                    type(self).__name__,
+                    self._path,
+                    error,
                 )
 
 
 class _Client(Base):
     """A socket that can be written to and read from."""
+
     def connect(self):
         if self.socket is not None:
             return True
@@ -246,6 +251,7 @@ class _Server(Base):
     It accepts one connection at a time, and drops old connections if
     a new one is in sight.
     """
+
     def connect(self):
         if self.socket is None:
             if os.path.exists(self._path):

@@ -34,7 +34,8 @@ from keymapper.groups import groups, GAMEPAD
 from keymapper.ipc.pipe import Pipe
 from keymapper.gui.helper import TERMINATE, REFRESH_GROUPS
 from keymapper import utils
-from keymapper.state import custom_mapping
+from keymapper.gui.custom_mapping import custom_mapping
+from keymapper.user import USER
 
 
 DEBOUNCE_TICKS = 3
@@ -54,6 +55,7 @@ class Reader:
     object. GTK has get_key for keyboard keys, but Reader also
     has knowledge of buttons like the middle-mouse button.
     """
+
     def __init__(self):
         self.previous_event = None
         self.previous_result = None
@@ -69,8 +71,8 @@ class Reader:
 
     def connect(self):
         """Connect to the helper."""
-        self._results = Pipe('/tmp/key-mapper/results')
-        self._commands = Pipe('/tmp/key-mapper/commands')
+        self._results = Pipe(f"/tmp/key-mapper-{USER}/results")
+        self._commands = Pipe(f"/tmp/key-mapper-{USER}/commands")
 
     def are_new_devices_available(self):
         """Check if groups contains new devices.
@@ -83,17 +85,17 @@ class Reader:
 
     def _get_event(self, message):
         """Return an InputEvent if the message contains one. None otherwise."""
-        message_type = message['type']
-        message_body = message['message']
+        message_type = message["type"]
+        message_body = message["message"]
 
-        if message_type == 'groups':
+        if message_type == "groups":
             if message_body != groups.dumps():
                 groups.loads(message_body)
-                logger.debug('Received %d devices', len(groups))
+                logger.debug("Received %d devices", len(groups))
                 self._devices_updated = True
             return None
 
-        if message_type == 'event':
+        if message_type == "event":
             return evdev.InputEvent(*message_body)
 
         logger.error('Received unknown message "%s"', message)
@@ -141,12 +143,12 @@ class Reader:
             type_code = (event.type, event.code)
 
             if event.value == 0:
-                logger.key_spam(event_tuple, 'release')
+                logger.key_spam(event_tuple, "release")
                 self._release(type_code)
                 continue
 
             if self._unreleased.get(type_code) == event_tuple:
-                logger.key_spam(event_tuple, 'duplicate key down')
+                logger.key_spam(event_tuple, "duplicate key down")
                 self._debounce_start(event_tuple)
                 continue
 
@@ -156,7 +158,7 @@ class Reader:
             # from release to input in order to remember it. Since all release
             # events have value 0, the value is not used in the key.
             key_down_received = True
-            logger.key_spam(event_tuple, 'down')
+            logger.key_spam(event_tuple, "down")
             self._unreleased[type_code] = event_tuple
             self._debounce_start(event_tuple)
             previous_event = event
@@ -176,7 +178,7 @@ class Reader:
                 return None
 
             self.previous_result = result
-            logger.key_spam(result.keys, 'read result')
+            logger.key_spam(result.keys, "read result")
 
             return result
 
@@ -191,7 +193,7 @@ class Reader:
 
     def terminate(self):
         """Stop reading keycodes for good."""
-        logger.debug('Sending close msg to helper')
+        logger.debug("Sending close msg to helper")
         self._commands.send(TERMINATE)
 
     def refresh_groups(self):
@@ -200,7 +202,7 @@ class Reader:
 
     def clear(self):
         """Next time when reading don't return the previous keycode."""
-        logger.debug('Clearing reader')
+        logger.debug("Clearing reader")
         while self._results.poll():
             # clear the results pipe and handle any non-event messages,
             # otherwise a 'groups' message might get lost
@@ -240,10 +242,7 @@ class Reader:
 
             # clear wheel events from unreleased after some time
             if self._debounce_remove[type_code] == 0:
-                logger.key_spam(
-                    self._unreleased[type_code],
-                    'Considered as released'
-                )
+                logger.key_spam(self._unreleased[type_code], "Considered as released")
                 self._release(type_code)
             else:
                 self._debounce_remove[type_code] -= 1

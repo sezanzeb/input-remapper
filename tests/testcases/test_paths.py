@@ -36,22 +36,23 @@ class TestPaths(unittest.TestCase):
         quick_cleanup()
 
     def test_touch(self):
-        touch('/tmp/a/b/c/d/e')
-        self.assertTrue(os.path.exists('/tmp/a/b/c/d/e'))
-        self.assertTrue(os.path.isfile('/tmp/a/b/c/d/e'))
-        self.assertRaises(ValueError, lambda: touch('/tmp/a/b/c/d/f/'))
+        touch("/tmp/a/b/c/d/e")
+        self.assertTrue(os.path.exists("/tmp/a/b/c/d/e"))
+        self.assertTrue(os.path.isfile("/tmp/a/b/c/d/e"))
+        self.assertRaises(ValueError, lambda: touch("/tmp/a/b/c/d/f/"))
 
     def test_mkdir(self):
-        mkdir('/tmp/b/c/d/e')
-        self.assertTrue(os.path.exists('/tmp/b/c/d/e'))
-        self.assertTrue(os.path.isdir('/tmp/b/c/d/e'))
+        mkdir("/tmp/b/c/d/e")
+        self.assertTrue(os.path.exists("/tmp/b/c/d/e"))
+        self.assertTrue(os.path.isdir("/tmp/b/c/d/e"))
 
     def test_get_preset_path(self):
-        self.assertEqual(get_preset_path(), os.path.join(tmp, 'presets'))
-        self.assertEqual(get_preset_path('a'), os.path.join(tmp, 'presets/a'))
-        self.assertEqual(get_preset_path('a', 'b'), os.path.join(tmp, 'presets/a/b.json'))
+        self.assertEqual(get_preset_path(), os.path.join(tmp, "presets"))
+        self.assertEqual(get_preset_path("a"), os.path.join(tmp, "presets/a"))
+        self.assertEqual(
+            get_preset_path("a", "b"), os.path.join(tmp, "presets/a/b.json")
+        )
 
     def test_get_config_path(self):
         self.assertEqual(get_config_path(), tmp)
-        self.assertEqual(get_config_path('a', 'b'), os.path.join(tmp, 'a/b'))
-
+        self.assertEqual(get_config_path("a", "b"), os.path.join(tmp, "a/b"))

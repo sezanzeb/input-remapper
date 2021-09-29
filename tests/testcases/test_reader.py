@@ -24,19 +24,38 @@ from unittest import mock
 import time
 import multiprocessing
 
-from evdev.ecodes import EV_KEY, EV_ABS, ABS_HAT0X, KEY_COMMA, \
-    BTN_TOOL_DOUBLETAP, ABS_Z, ABS_Y, KEY_A, \
-    EV_REL, REL_WHEEL, REL_X, ABS_X, ABS_RZ
+from evdev.ecodes import (
+    EV_KEY,
+    EV_ABS,
+    ABS_HAT0X,
+    KEY_COMMA,
+    BTN_TOOL_DOUBLETAP,
+    ABS_Z,
+    ABS_Y,
+    KEY_A,
+    EV_REL,
+    REL_WHEEL,
+    REL_X,
+    ABS_X,
+    ABS_RZ,
+)
 
 from keymapper.gui.reader import reader, will_report_up
-from keymapper.state import custom_mapping
+from keymapper.gui.custom_mapping import custom_mapping
 from keymapper.config import BUTTONS, MOUSE
 from keymapper.key import Key
 from keymapper.gui.helper import RootHelper
 from keymapper.groups import groups
 
-from tests.test import new_event, push_events, send_event_to_reader, \
-    EVENT_READ_TIMEOUT, START_READING_DELAY, quick_cleanup, MAX_ABS
+from tests.test import (
+    new_event,
+    push_events,
+    send_event_to_reader,
+    EVENT_READ_TIMEOUT,
+    START_READING_DELAY,
+    quick_cleanup,
+    MAX_ABS,
+)
 
 
 CODE_1 = 100
@@ -83,10 +102,12 @@ class TestReader(unittest.TestCase):
 
     def test_reading_1(self):
         # a single event
-        push_events('Foo Device 2', [new_event(EV_ABS, ABS_HAT0X, 1)])
-        push_events('Foo Device 2', [new_event(EV_ABS, REL_X, 1)])  # mouse movements are ignored
+        push_events("Foo Device 2", [new_event(EV_ABS, ABS_HAT0X, 1)])
+        push_events(
+            "Foo Device 2", [new_event(EV_ABS, REL_X, 1)]
+        )  # mouse movements are ignored
         self.create_helper()
-        reader.start_reading(groups.find(key='Foo Device 2'))
+        reader.start_reading(groups.find(key="Foo Device 2"))
         time.sleep(0.2)
         self.assertEqual(reader.read(), (EV_ABS, ABS_HAT0X, 1))
         self.assertEqual(reader.read(), None)
@@ -95,7 +116,7 @@ class TestReader(unittest.TestCase):
     def test_reading_wheel(self):
         # will be treated as released automatically at some point
         self.create_helper()
-        reader.start_reading(groups.find(key='Foo Device 2'))
+        reader.start_reading(groups.find(key="Foo Device 2"))
 
         send_event_to_reader(new_event(EV_REL, REL_WHEEL, 0))
         self.assertIsNone(reader.read())
@@ -145,7 +166,7 @@ class TestReader(unittest.TestCase):
         while len(reader._unreleased) == 2:
             read = reader.read()
             if i == 100:
-                raise AssertionError('Did not release the wheel')
+                raise AssertionError("Did not release the wheel")
             i += 1
         # and only the comma remains. However, a changed combination is
         # only returned when a new key is pressed. Only then the pressed
@@ -174,7 +195,7 @@ class TestReader(unittest.TestCase):
         self.assertEqual(reader.read(), None)
         self.create_helper()
         self.assertEqual(reader.read(), None)
-        reader.start_reading(groups.find(key='Foo Device 2'))
+        reader.start_reading(groups.find(key="Foo Device 2"))
         self.assertEqual(reader.read(), None)
 
         send_event_to_reader(new_event(EV_REL, REL_WHEEL, 1))
@@ -191,21 +212,29 @@ class TestReader(unittest.TestCase):
         self.assertEqual(reader.read(), None)
 
     def test_change_device(self):
-        push_events('Foo Device 2', [
-            new_event(EV_KEY, 1, 1),
-        ] * 100)
+        push_events(
+            "Foo Device 2",
+            [
+                new_event(EV_KEY, 1, 1),
+            ]
+            * 100,
+        )
 
-        push_events('Bar Device', [
-            new_event(EV_KEY, 2, 1),
-        ] * 100)
+        push_events(
+            "Bar Device",
+            [
+                new_event(EV_KEY, 2, 1),
+            ]
+            * 100,
+        )
 
         self.create_helper()
 
-        reader.start_reading(groups.find(key='Foo Device 2'))
+        reader.start_reading(groups.find(key="Foo Device 2"))
         time.sleep(0.1)
         self.assertEqual(reader.read(), Key(EV_KEY, 1, 1))
 
-        reader.start_reading(groups.find(name='Bar Device'))
+        reader.start_reading(groups.find(name="Bar Device"))
 
         # it's plausible that right after sending the new read command more
         # events from the old device might still appear. Give the helper
@@ -218,23 +247,26 @@ class TestReader(unittest.TestCase):
 
     def test_reading_2(self):
         # a combination of events
-        push_events('Foo Device 2', [
-            new_event(EV_KEY, CODE_1, 1, 10000.1234),
-            new_event(EV_KEY, CODE_3, 1, 10001.1234),
-            new_event(EV_ABS, ABS_HAT0X, -1, 10002.1234)
-        ])
+        push_events(
+            "Foo Device 2",
+            [
+                new_event(EV_KEY, CODE_1, 1, 10000.1234),
+                new_event(EV_KEY, CODE_3, 1, 10001.1234),
+                new_event(EV_ABS, ABS_HAT0X, -1, 10002.1234),
+            ],
+        )
 
         pipe = multiprocessing.Pipe()
 
         def refresh():
             # from within the helper process notify this test that
             # refresh was called as expected
-            pipe[1].send('refreshed')
+            pipe[1].send("refreshed")
 
-        with mock.patch.object(groups, 'refresh', refresh):
+        with mock.patch.object(groups, "refresh", refresh):
             self.create_helper()
 
-        reader.start_reading(groups.find(key='Foo Device 2'))
+        reader.start_reading(groups.find(key="Foo Device 2"))
 
         # sending anything arbitrary does not stop the helper
         reader._commands.send(856794)
@@ -242,39 +274,32 @@ class TestReader(unittest.TestCase):
         # but it makes it look for new devices because maybe its list of
         # groups is not up-to-date
         self.assertTrue(pipe[0].poll())
-        self.assertEqual(pipe[0].recv(), 'refreshed')
+        self.assertEqual(pipe[0].recv(), "refreshed")
 
-        self.assertEqual(reader.read(), (
-            (EV_KEY, CODE_1, 1),
-            (EV_KEY, CODE_3, 1),
-            (EV_ABS, ABS_HAT0X, -1)
-        ))
+        self.assertEqual(
+            reader.read(),
+            ((EV_KEY, CODE_1, 1), (EV_KEY, CODE_3, 1), (EV_ABS, ABS_HAT0X, -1)),
+        )
         self.assertEqual(reader.read(), None)
         self.assertEqual(len(reader._unreleased), 3)
 
     def test_reading_3(self):
         self.create_helper()
         # a combination of events via Socket with reads inbetween
-        reader.start_reading(groups.find(name='gamepad'))
+        reader.start_reading(groups.find(name="gamepad"))
 
         send_event_to_reader(new_event(EV_KEY, CODE_1, 1, 1001))
-        self.assertEqual(reader.read(), (
-            (EV_KEY, CODE_1, 1)
-        ))
+        self.assertEqual(reader.read(), ((EV_KEY, CODE_1, 1)))
 
-        custom_mapping.set('gamepad.joystick.left_purpose', BUTTONS)
+        custom_mapping.set("gamepad.joystick.left_purpose", BUTTONS)
         send_event_to_reader(new_event(EV_ABS, ABS_Y, 1, 1002))
-        self.assertEqual(reader.read(), (
-            (EV_KEY, CODE_1, 1),
-            (EV_ABS, ABS_Y, 1)
-        ))
+        self.assertEqual(reader.read(), ((EV_KEY, CODE_1, 1), (EV_ABS, ABS_Y, 1)))
 
         send_event_to_reader(new_event(EV_ABS, ABS_HAT0X, -1, 1003))
-        self.assertEqual(reader.read(), (
-            (EV_KEY, CODE_1, 1),
-            (EV_ABS, ABS_Y, 1),
-            (EV_ABS, ABS_HAT0X, -1)
-        ))
+        self.assertEqual(
+            reader.read(),
+            ((EV_KEY, CODE_1, 1), (EV_ABS, ABS_Y, 1), (EV_ABS, ABS_HAT0X, -1)),
+        )
 
         # adding duplicate down events won't report a different combination.
         # import for triggers, as they keep reporting more down-events before
@@ -296,35 +321,36 @@ class TestReader(unittest.TestCase):
 
     def test_reads_joysticks(self):
         # if their purpose is "buttons"
-        custom_mapping.set('gamepad.joystick.left_purpose', BUTTONS)
-        push_events('gamepad', [
-            new_event(EV_ABS, ABS_Y, MAX_ABS),
-            # the value of that one is interpreted as release, because
-            # it is too small
-            new_event(EV_ABS, ABS_X, MAX_ABS // 10)
-        ])
+        custom_mapping.set("gamepad.joystick.left_purpose", BUTTONS)
+        push_events(
+            "gamepad",
+            [
+                new_event(EV_ABS, ABS_Y, MAX_ABS),
+                # the value of that one is interpreted as release, because
+                # it is too small
+                new_event(EV_ABS, ABS_X, MAX_ABS // 10),
+            ],
+        )
         self.create_helper()
 
-        reader.start_reading(groups.find(name='gamepad'))
+        reader.start_reading(groups.find(name="gamepad"))
         time.sleep(0.2)
         self.assertEqual(reader.read(), (EV_ABS, ABS_Y, 1))
         self.assertEqual(reader.read(), None)
         self.assertEqual(len(reader._unreleased), 1)
 
         reader._unreleased = {}
-        custom_mapping.set('gamepad.joystick.left_purpose', MOUSE)
-        push_events('gamepad', [
-            new_event(EV_ABS, ABS_Y, MAX_ABS)
-        ])
+        custom_mapping.set("gamepad.joystick.left_purpose", MOUSE)
+        push_events("gamepad", [new_event(EV_ABS, ABS_Y, MAX_ABS)])
         self.create_helper()
 
-        reader.start_reading(groups.find(name='gamepad'))
+        reader.start_reading(groups.find(name="gamepad"))
         time.sleep(0.1)
         self.assertEqual(reader.read(), None)
         self.assertEqual(len(reader._unreleased), 0)
 
     def test_combine_triggers(self):
-        reader.start_reading(groups.find(key='Foo Device 2'))
+        reader.start_reading(groups.find(key="Foo Device 2"))
 
         i = 0
 
@@ -354,13 +380,16 @@ class TestReader(unittest.TestCase):
         self.assertEqual(reader.read(), None)
 
     def test_blacklisted_events(self):
-        push_events('Foo Device 2', [
-            new_event(EV_KEY, BTN_TOOL_DOUBLETAP, 1),
-            new_event(EV_KEY, CODE_2, 1),
-            new_event(EV_KEY, BTN_TOOL_DOUBLETAP, 1),
-        ])
+        push_events(
+            "Foo Device 2",
+            [
+                new_event(EV_KEY, BTN_TOOL_DOUBLETAP, 1),
+                new_event(EV_KEY, CODE_2, 1),
+                new_event(EV_KEY, BTN_TOOL_DOUBLETAP, 1),
+            ],
+        )
         self.create_helper()
-        reader.start_reading(groups.find(key='Foo Device 2'))
+        reader.start_reading(groups.find(key="Foo Device 2"))
         time.sleep(0.1)
         self.assertEqual(reader.read(), (EV_KEY, CODE_2, 1))
         self.assertEqual(reader.read(), None)
@@ -368,25 +397,28 @@ class TestReader(unittest.TestCase):
 
     def test_ignore_value_2(self):
         # this is not a combination, because (EV_KEY CODE_3, 2) is ignored
-        push_events('Foo Device 2', [
-            new_event(EV_ABS, ABS_HAT0X, 1),
-            new_event(EV_KEY, CODE_3, 2)
-        ])
+        push_events(
+            "Foo Device 2",
+            [new_event(EV_ABS, ABS_HAT0X, 1), new_event(EV_KEY, CODE_3, 2)],
+        )
         self.create_helper()
-        reader.start_reading(groups.find(key='Foo Device 2'))
+        reader.start_reading(groups.find(key="Foo Device 2"))
         time.sleep(0.2)
         self.assertEqual(reader.read(), (EV_ABS, ABS_HAT0X, 1))
         self.assertEqual(reader.read(), None)
         self.assertEqual(len(reader._unreleased), 1)
 
     def test_reading_ignore_up(self):
-        push_events('Foo Device 2', [
-            new_event(EV_KEY, CODE_1, 0, 10),
-            new_event(EV_KEY, CODE_2, 1, 11),
-            new_event(EV_KEY, CODE_3, 0, 12),
-        ])
+        push_events(
+            "Foo Device 2",
+            [
+                new_event(EV_KEY, CODE_1, 0, 10),
+                new_event(EV_KEY, CODE_2, 1, 11),
+                new_event(EV_KEY, CODE_3, 0, 12),
+            ],
+        )
         self.create_helper()
-        reader.start_reading(groups.find(key='Foo Device 2'))
+        reader.start_reading(groups.find(key="Foo Device 2"))
         time.sleep(0.1)
         self.assertEqual(reader.read(), (EV_KEY, CODE_2, 1))
         self.assertEqual(reader.read(), None)
@@ -412,13 +444,16 @@ class TestReader(unittest.TestCase):
         self.assertIsNone(reader.get_unreleased_keys())
 
     def test_wrong_device(self):
-        push_events('Foo Device 2', [
-            new_event(EV_KEY, CODE_1, 1),
-            new_event(EV_KEY, CODE_2, 1),
-            new_event(EV_KEY, CODE_3, 1)
-        ])
+        push_events(
+            "Foo Device 2",
+            [
+                new_event(EV_KEY, CODE_1, 1),
+                new_event(EV_KEY, CODE_2, 1),
+                new_event(EV_KEY, CODE_3, 1),
+            ],
+        )
         self.create_helper()
-        reader.start_reading(groups.find(name='Bar Device'))
+        reader.start_reading(groups.find(name="Bar Device"))
         time.sleep(EVENT_READ_TIMEOUT * 5)
         self.assertEqual(reader.read(), None)
         self.assertEqual(len(reader._unreleased), 0)
@@ -428,26 +463,33 @@ class TestReader(unittest.TestCase):
         # representative for the original key. As long as this is not
         # intentionally programmed it won't even do that. But it was at some
         # point.
-        push_events('key-mapper Bar Device', [
-            new_event(EV_KEY, CODE_1, 1),
-            new_event(EV_KEY, CODE_2, 1),
-            new_event(EV_KEY, CODE_3, 1)
-        ])
+        push_events(
+            "key-mapper Bar Device",
+            [
+                new_event(EV_KEY, CODE_1, 1),
+                new_event(EV_KEY, CODE_2, 1),
+                new_event(EV_KEY, CODE_3, 1),
+            ],
+        )
         self.create_helper()
-        reader.start_reading(groups.find(name='Bar Device'))
+        reader.start_reading(groups.find(name="Bar Device"))
         time.sleep(EVENT_READ_TIMEOUT * 5)
         self.assertEqual(reader.read(), None)
         self.assertEqual(len(reader._unreleased), 0)
 
     def test_clear(self):
-        push_events('Foo Device 2', [
-            new_event(EV_KEY, CODE_1, 1),
-            new_event(EV_KEY, CODE_2, 1),
-            new_event(EV_KEY, CODE_3, 1)
-        ] * 15)
+        push_events(
+            "Foo Device 2",
+            [
+                new_event(EV_KEY, CODE_1, 1),
+                new_event(EV_KEY, CODE_2, 1),
+                new_event(EV_KEY, CODE_3, 1),
+            ]
+            * 15,
+        )
 
         self.create_helper()
-        reader.start_reading(groups.find(key='Foo Device 2'))
+        reader.start_reading(groups.find(key="Foo Device 2"))
         time.sleep(START_READING_DELAY + EVENT_READ_TIMEOUT * 3)
 
         reader.read()
@@ -469,18 +511,18 @@ class TestReader(unittest.TestCase):
         self.tearDown()
 
     def test_switch_device(self):
-        push_events('Bar Device', [new_event(EV_KEY, CODE_1, 1)])
-        push_events('Foo Device 2', [new_event(EV_KEY, CODE_3, 1)])
+        push_events("Bar Device", [new_event(EV_KEY, CODE_1, 1)])
+        push_events("Foo Device 2", [new_event(EV_KEY, CODE_3, 1)])
         self.create_helper()
 
-        reader.start_reading(groups.find(name='Bar Device'))
+        reader.start_reading(groups.find(name="Bar Device"))
         self.assertFalse(reader._results.poll())
-        self.assertEqual(reader.group.name, 'Bar Device')
+        self.assertEqual(reader.group.name, "Bar Device")
         time.sleep(EVENT_READ_TIMEOUT * 5)
 
         self.assertTrue(reader._results.poll())
-        reader.start_reading(groups.find(key='Foo Device 2'))
-        self.assertEqual(reader.group.name, 'Foo Device')
+        reader.start_reading(groups.find(key="Foo Device 2"))
+        self.assertEqual(reader.group.name, "Foo Device")
         self.assertFalse(reader._results.poll())  # pipe resets
 
         time.sleep(EVENT_READ_TIMEOUT * 5)
@@ -492,9 +534,9 @@ class TestReader(unittest.TestCase):
 
     def test_terminate(self):
         self.create_helper()
-        reader.start_reading(groups.find(key='Foo Device 2'))
+        reader.start_reading(groups.find(key="Foo Device 2"))
 
-        push_events('Foo Device 2', [new_event(EV_KEY, CODE_3, 1)])
+        push_events("Foo Device 2", [new_event(EV_KEY, CODE_3, 1)])
         time.sleep(START_READING_DELAY + EVENT_READ_TIMEOUT)
         self.assertTrue(reader._results.poll())
 
@@ -503,7 +545,7 @@ class TestReader(unittest.TestCase):
         time.sleep(EVENT_READ_TIMEOUT)
 
         # no new events arrive after terminating
-        push_events('Foo Device 2', [new_event(EV_KEY, CODE_3, 1)])
+        push_events("Foo Device 2", [new_event(EV_KEY, CODE_3, 1)])
         time.sleep(EVENT_READ_TIMEOUT * 3)
         self.assertFalse(reader._results.poll())
 
@@ -521,19 +563,13 @@ class TestReader(unittest.TestCase):
         self.assertFalse(reader.are_new_devices_available())
 
         # send the same devices again
-        reader._get_event({
-            'type': 'groups',
-            'message': groups.dumps()
-        })
+        reader._get_event({"type": "groups", "message": groups.dumps()})
         self.assertFalse(reader.are_new_devices_available())
 
         # send changed devices
         message = groups.dumps()
-        message = message.replace('Foo Device', 'foo_device')
-        reader._get_event({
-            'type': 'groups',
-            'message': message
-        })
+        message = message.replace("Foo Device", "foo_device")
+        reader._get_event({"type": "groups", "message": message})
         self.assertTrue(reader.are_new_devices_available())
         self.assertFalse(reader.are_new_devices_available())
 

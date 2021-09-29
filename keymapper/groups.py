@@ -39,8 +39,19 @@ import asyncio
 import json
 
 import evdev
-from evdev.ecodes import EV_KEY, EV_ABS, KEY_CAMERA, EV_REL, BTN_STYLUS, \
-    ABS_MT_POSITION_X, REL_X, KEY_A, BTN_LEFT, REL_Y, REL_WHEEL
+from evdev.ecodes import (
+    EV_KEY,
+    EV_ABS,
+    KEY_CAMERA,
+    EV_REL,
+    BTN_STYLUS,
+    ABS_MT_POSITION_X,
+    REL_X,
+    KEY_A,
+    BTN_LEFT,
+    REL_Y,
+    REL_WHEEL,
+)
 
 from keymapper.logger import logger
 from keymapper.paths import get_preset_path
@@ -50,19 +61,19 @@ TABLET_KEYS = [
     evdev.ecodes.BTN_STYLUS,
     evdev.ecodes.BTN_TOOL_BRUSH,
     evdev.ecodes.BTN_TOOL_PEN,
-    evdev.ecodes.BTN_TOOL_RUBBER
+    evdev.ecodes.BTN_TOOL_RUBBER,
 ]
 
-GAMEPAD = 'gamepad'
-KEYBOARD = 'keyboard'
-MOUSE = 'mouse'
-TOUCHPAD = 'touchpad'
-GRAPHICS_TABLET = 'graphics-tablet'
-CAMERA = 'camera'
-UNKNOWN = 'unknown'
+GAMEPAD = "gamepad"
+KEYBOARD = "keyboard"
+MOUSE = "mouse"
+TOUCHPAD = "touchpad"
+GRAPHICS_TABLET = "graphics-tablet"
+CAMERA = "camera"
+UNKNOWN = "unknown"
 
 
-if not hasattr(evdev.InputDevice, 'path'):
+if not hasattr(evdev.InputDevice, "path"):
     # for evdev < 1.0.0 patch the path property
     @property
     def path(device):
@@ -178,10 +189,7 @@ def classify(device):
     return UNKNOWN
 
 
-DENYLIST = [
-    '.*Yubico.*YubiKey.*',
-    'Eee PC WMI hotkeys'
-]
+DENYLIST = [".*Yubico.*YubiKey.*", "Eee PC WMI hotkeys"]
 
 
 def is_denylisted(device):
@@ -216,9 +224,9 @@ def get_unique_key(device):
         # device.info bustype, vendor and product are unique for
         # a product, but multiple similar device models would be grouped
         # in the same group
-        f'{device.info.bustype}_'
-        f'{device.info.vendor}_'
-        f'{device.info.product}_'
+        f"{device.info.bustype}_"
+        f"{device.info.vendor}_"
+        f"{device.info.product}_"
         # deivce.phys if "/input..." is removed from it, because the first
         # chunk seems to be unique per hardware (if it's not completely empty)
         f'{device.phys.split("/")[0] or "-"}'
@@ -242,6 +250,7 @@ class _Group:
         look the same for a device model. It is used to generate the
         presets folder structure
     """
+
     def __init__(self, paths, names, types, key):
         """Specify a group
 
@@ -284,12 +293,9 @@ class _Group:
 
     def dumps(self):
         """Return a string representing this object."""
-        return json.dumps(dict(
-            paths=self.paths,
-            names=self.names,
-            types=self.types,
-            key=self.key
-        ))
+        return json.dumps(
+            dict(paths=self.paths, names=self.names, types=self.types, key=self.key)
+        )
 
     @classmethod
     def loads(cls, serialized):
@@ -298,7 +304,7 @@ class _Group:
         return group
 
     def __repr__(self):
-        return f'Group({self.key})'
+        return f"Group({self.key})"
 
 
 class _FindGroups(threading.Thread):
@@ -308,6 +314,7 @@ class _FindGroups(threading.Thread):
     asynchronously so that they can take as much time as they want without
     slowing down the initialization.
     """
+
     def __init__(self, pipe):
         """Construct the process.
 
@@ -325,7 +332,7 @@ class _FindGroups(threading.Thread):
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
 
-        logger.debug('Discovering device paths')
+        logger.debug("Discovering device paths")
 
         # group them together by usb device because there could be stuff like
         # "Logitech USB Keyboard" and "Logitech USB Keyboard Consumer Control"
@@ -333,7 +340,7 @@ class _FindGroups(threading.Thread):
         for path in evdev.list_devices():
             device = evdev.InputDevice(path)
 
-            if device.name == 'Power Button':
+            if device.name == "Power Button":
                 continue
 
             device_type = classify(device)
@@ -358,8 +365,7 @@ class _FindGroups(threading.Thread):
                 grouped[key] = []
 
             logger.spam(
-                'Found "%s", "%s", "%s", type: %s',
-                key, path, device.name, device_type
+                'Found "%s", "%s", "%s", type: %s', key, path, device.name, device_type
             )
 
             grouped[key].append((device.name, path, device_type))
@@ -376,7 +382,7 @@ class _FindGroups(threading.Thread):
             key = shortest_name
             i = 2
             while key in used_keys:
-                key = f'{shortest_name} {i}'
+                key = f"{shortest_name} {i}"
                 i += 1
             used_keys.add(key)
 
@@ -384,10 +390,7 @@ class _FindGroups(threading.Thread):
                 key=key,
                 paths=devs,
                 names=names,
-                types=sorted(list({
-                    item[2] for item in group
-                    if item[2] != UNKNOWN
-                }))
+                types=sorted(list({item[2] for item in group if item[2] != UNKNOWN})),
             )
 
             result.append(group.dumps())
@@ -400,6 +403,7 @@ class _FindGroups(threading.Thread):
 
 class _Groups:
     """Contains and manages all groups."""
+
     def __init__(self):
         self._groups = {}
         self._find_groups()
@@ -428,17 +432,17 @@ class _Groups:
         self.loads(pipe[0].recv())
 
         if len(self._groups) == 0:
-            logger.debug('Did not find any input device')
+            logger.debug("Did not find any input device")
         else:
             keys = [f'"{group.key}"' for group in self._groups]
-            logger.info('Found %s', ', '.join(keys))
+            logger.info("Found %s", ", ".join(keys))
 
     def filter(self, include_keymapper=False):
         """Filter groups."""
         result = []
         for group in self._groups:
             name = group.name
-            if not include_keymapper and name.startswith('key-mapper'):
+            if not include_keymapper and name.startswith("key-mapper"):
                 continue
 
             result.append(group)
@@ -452,8 +456,9 @@ class _Groups:
     def list_group_names(self):
         """Return a list of all 'name' properties of the groups."""
         return [
-            group.name for group in self._groups
-            if not group.name.startswith('key-mapper')
+            group.name
+            for group in self._groups
+            if not group.name.startswith("key-mapper")
         ]
 
     def __len__(self):

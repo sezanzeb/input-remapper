@@ -25,7 +25,8 @@
 import evdev
 from gi.repository import Gtk, GLib, Gdk
 
-from keymapper.state import custom_mapping, system_mapping
+from keymapper.system_mapping import system_mapping
+from keymapper.gui.custom_mapping import custom_mapping
 from keymapper.logger import logger
 from keymapper.key import Key
 from keymapper.gui.reader import reader
@@ -43,8 +44,14 @@ def populate_store():
         store.append([name])
 
     extra = [
-        'mouse(up, 1)', 'mouse(down, 1)', 'mouse(left, 1)', 'mouse(right, 1)',
-        'wheel(up, 1)', 'wheel(down, 1)', 'wheel(left, 1)', 'wheel(right, 1)'
+        "mouse(up, 1)",
+        "mouse(down, 1)",
+        "mouse(left, 1)",
+        "mouse(right, 1)",
+        "wheel(up, 1)",
+        "wheel(down, 1)",
+        "wheel(left, 1)",
+        "wheel(right, 1)",
     ]
 
     for key in extra:
@@ -58,20 +65,20 @@ populate_store()
 def to_string(key):
     """A nice to show description of the pressed key."""
     if isinstance(key, Key):
-        return ' + '.join([to_string(sub_key) for sub_key in key])
+        return " + ".join([to_string(sub_key) for sub_key in key])
 
     if isinstance(key[0], tuple):
-        raise Exception('deprecated stuff')
+        raise Exception("deprecated stuff")
 
     ev_type, code, value = key
 
     if ev_type not in evdev.ecodes.bytype:
-        logger.error('Unknown key type for %s', key)
-        return 'unknown'
+        logger.error("Unknown key type for %s", key)
+        return "unknown"
 
     if code not in evdev.ecodes.bytype[ev_type]:
-        logger.error('Unknown key code for %s', key)
-        return 'unknown'
+        logger.error("Unknown key code for %s", key)
+        return "unknown"
 
     key_name = None
 
@@ -91,60 +98,60 @@ def to_string(key):
     if ev_type != evdev.ecodes.EV_KEY:
         direction = {
             # D-Pad
-            (evdev.ecodes.ABS_HAT0X, -1): 'Left',
-            (evdev.ecodes.ABS_HAT0X, 1): 'Right',
-            (evdev.ecodes.ABS_HAT0Y, -1): 'Up',
-            (evdev.ecodes.ABS_HAT0Y, 1): 'Down',
-            (evdev.ecodes.ABS_HAT1X, -1): 'Left',
-            (evdev.ecodes.ABS_HAT1X, 1): 'Right',
-            (evdev.ecodes.ABS_HAT1Y, -1): 'Up',
-            (evdev.ecodes.ABS_HAT1Y, 1): 'Down',
-            (evdev.ecodes.ABS_HAT2X, -1): 'Left',
-            (evdev.ecodes.ABS_HAT2X, 1): 'Right',
-            (evdev.ecodes.ABS_HAT2Y, -1): 'Up',
-            (evdev.ecodes.ABS_HAT2Y, 1): 'Down',
+            (evdev.ecodes.ABS_HAT0X, -1): "Left",
+            (evdev.ecodes.ABS_HAT0X, 1): "Right",
+            (evdev.ecodes.ABS_HAT0Y, -1): "Up",
+            (evdev.ecodes.ABS_HAT0Y, 1): "Down",
+            (evdev.ecodes.ABS_HAT1X, -1): "Left",
+            (evdev.ecodes.ABS_HAT1X, 1): "Right",
+            (evdev.ecodes.ABS_HAT1Y, -1): "Up",
+            (evdev.ecodes.ABS_HAT1Y, 1): "Down",
+            (evdev.ecodes.ABS_HAT2X, -1): "Left",
+            (evdev.ecodes.ABS_HAT2X, 1): "Right",
+            (evdev.ecodes.ABS_HAT2Y, -1): "Up",
+            (evdev.ecodes.ABS_HAT2Y, 1): "Down",
             # joystick
-            (evdev.ecodes.ABS_X, 1): 'Right',
-            (evdev.ecodes.ABS_X, -1): 'Left',
-            (evdev.ecodes.ABS_Y, 1): 'Down',
-            (evdev.ecodes.ABS_Y, -1): 'Up',
-            (evdev.ecodes.ABS_RX, 1): 'Right',
-            (evdev.ecodes.ABS_RX, -1): 'Left',
-            (evdev.ecodes.ABS_RY, 1): 'Down',
-            (evdev.ecodes.ABS_RY, -1): 'Up',
+            (evdev.ecodes.ABS_X, 1): "Right",
+            (evdev.ecodes.ABS_X, -1): "Left",
+            (evdev.ecodes.ABS_Y, 1): "Down",
+            (evdev.ecodes.ABS_Y, -1): "Up",
+            (evdev.ecodes.ABS_RX, 1): "Right",
+            (evdev.ecodes.ABS_RX, -1): "Left",
+            (evdev.ecodes.ABS_RY, 1): "Down",
+            (evdev.ecodes.ABS_RY, -1): "Up",
             # wheel
-            (evdev.ecodes.REL_WHEEL, -1): 'Down',
-            (evdev.ecodes.REL_WHEEL, 1): 'Up',
-            (evdev.ecodes.REL_HWHEEL, -1): 'Left',
-            (evdev.ecodes.REL_HWHEEL, 1): 'Right',
+            (evdev.ecodes.REL_WHEEL, -1): "Down",
+            (evdev.ecodes.REL_WHEEL, 1): "Up",
+            (evdev.ecodes.REL_HWHEEL, -1): "Left",
+            (evdev.ecodes.REL_HWHEEL, 1): "Right",
         }.get((code, value))
         if direction is not None:
-            key_name += f' {direction}'
+            key_name += f" {direction}"
 
-    key_name = key_name.replace('ABS_Z', 'Trigger Left')
-    key_name = key_name.replace('ABS_RZ', 'Trigger Right')
+    key_name = key_name.replace("ABS_Z", "Trigger Left")
+    key_name = key_name.replace("ABS_RZ", "Trigger Right")
 
-    key_name = key_name.replace('ABS_HAT0X', 'DPad')
-    key_name = key_name.replace('ABS_HAT0Y', 'DPad')
-    key_name = key_name.replace('ABS_HAT1X', 'DPad 2')
-    key_name = key_name.replace('ABS_HAT1Y', 'DPad 2')
-    key_name = key_name.replace('ABS_HAT2X', 'DPad 3')
-    key_name = key_name.replace('ABS_HAT2Y', 'DPad 3')
+    key_name = key_name.replace("ABS_HAT0X", "DPad")
+    key_name = key_name.replace("ABS_HAT0Y", "DPad")
+    key_name = key_name.replace("ABS_HAT1X", "DPad 2")
+    key_name = key_name.replace("ABS_HAT1Y", "DPad 2")
+    key_name = key_name.replace("ABS_HAT2X", "DPad 3")
+    key_name = key_name.replace("ABS_HAT2Y", "DPad 3")
 
-    key_name = key_name.replace('ABS_X', 'Joystick')
-    key_name = key_name.replace('ABS_Y', 'Joystick')
-    key_name = key_name.replace('ABS_RX', 'Joystick 2')
-    key_name = key_name.replace('ABS_RY', 'Joystick 2')
+    key_name = key_name.replace("ABS_X", "Joystick")
+    key_name = key_name.replace("ABS_Y", "Joystick")
+    key_name = key_name.replace("ABS_RX", "Joystick 2")
+    key_name = key_name.replace("ABS_RY", "Joystick 2")
 
-    key_name = key_name.replace('BTN_', 'Button ')
-    key_name = key_name.replace('KEY_', '')
+    key_name = key_name.replace("BTN_", "Button ")
+    key_name = key_name.replace("KEY_", "")
 
-    key_name = key_name.replace('REL_', '')
-    key_name = key_name.replace('HWHEEL', 'Wheel')
-    key_name = key_name.replace('WHEEL', 'Wheel')
+    key_name = key_name.replace("REL_", "")
+    key_name = key_name.replace("HWHEEL", "Wheel")
+    key_name = key_name.replace("WHEEL", "Wheel")
 
-    key_name = key_name.replace('_', ' ')
-    key_name = key_name.replace('  ', ' ')
+    key_name = key_name.replace("_", " ")
+    key_name = key_name.replace("  ", " ")
 
     return key_name
 
@@ -155,7 +162,8 @@ HOLDING = 1
 
 class Row(Gtk.ListBoxRow):
     """A single, configurable key mapping."""
-    __gtype_name__ = 'ListBoxRow'
+
+    __gtype_name__ = "ListBoxRow"
 
     def __init__(self, delete_callback, window, key=None, symbol=None):
         """Construct a row widget.
@@ -165,7 +173,7 @@ class Row(Gtk.ListBoxRow):
         key : Key
         """
         if key is not None and not isinstance(key, Key):
-            raise TypeError('Expected key to be a Key object')
+            raise TypeError("Expected key to be a Key object")
 
         super().__init__()
         self.device = window.group
@@ -227,7 +235,7 @@ class Row(Gtk.ListBoxRow):
         new_key : Key
         """
         if new_key is not None and not isinstance(new_key, Key):
-            raise TypeError('Expected new_key to be a Key object')
+            raise TypeError("Expected new_key to be a Key object")
 
         # the newest_keycode is populated since the ui regularly polls it
         # in order to display it in the status bar.
@@ -267,11 +275,7 @@ class Row(Gtk.ListBoxRow):
             return
 
         # else, the keycode has changed, the symbol is set, all good
-        custom_mapping.change(
-            new_key=new_key,
-            symbol=symbol,
-            previous_key=previous_key
-        )
+        custom_mapping.change(new_key=new_key, symbol=symbol, previous_key=previous_key)
 
     def on_symbol_input_change(self, _):
         """When the output symbol for that keycode is typed in."""
@@ -282,11 +286,7 @@ class Row(Gtk.ListBoxRow):
             return
 
         if key is not None:
-            custom_mapping.change(
-                new_key=key,
-                symbol=symbol,
-                previous_key=None
-            )
+            custom_mapping.change(new_key=key, symbol=symbol, previous_key=None)
 
     def match(self, _, key, tree_iter):
         """Search the avilable names."""
@@ -298,7 +298,7 @@ class Row(Gtk.ListBoxRow):
         if self.get_key() is not None:
             return
 
-        self.set_keycode_input_label('click here')
+        self.set_keycode_input_label("click here")
         self.keycode_input.set_opacity(0.3)
 
     def show_press_key(self):
@@ -306,7 +306,7 @@ class Row(Gtk.ListBoxRow):
         if self.get_key() is not None:
             return
 
-        self.set_keycode_input_label('press key')
+        self.set_keycode_input_label("press key")
         self.keycode_input.set_opacity(1)
 
     def on_keycode_input_focus(self, *_):
@@ -345,14 +345,10 @@ class Row(Gtk.ListBoxRow):
     def put_together(self, symbol):
         """Create all child GTK widgets and connect their signals."""
         delete_button = Gtk.EventBox()
-        delete_button.add(Gtk.Image.new_from_icon_name(
-            'window-close',
-            Gtk.IconSize.BUTTON
-        ))
-        delete_button.connect(
-            'button-press-event',
-            self.on_delete_button_clicked
+        delete_button.add(
+            Gtk.Image.new_from_icon_name("window-close", Gtk.IconSize.BUTTON)
         )
+        delete_button.connect("button-press-event", self.on_delete_button_clicked)
         delete_button.set_size_request(50, -1)
 
         keycode_input = Gtk.ToggleButton()
@@ -366,20 +362,11 @@ class Row(Gtk.ListBoxRow):
 
         # make the togglebutton go back to its normal state when doing
         # something else in the UI
-        keycode_input.connect(
-            'focus-in-event',
-            self.on_keycode_input_focus
-        )
-        keycode_input.connect(
-            'focus-out-event',
-            self.on_keycode_input_unfocus
-        )
+        keycode_input.connect("focus-in-event", self.on_keycode_input_focus)
+        keycode_input.connect("focus-out-event", self.on_keycode_input_unfocus)
         # don't leave the input when using arrow keys or tab. wait for the
         # window to consume the keycode from the reader
-        keycode_input.connect(
-            'key-press-event',
-            lambda *args: Gdk.EVENT_STOP
-        )
+        keycode_input.connect("key-press-event", lambda *args: Gdk.EVENT_STOP)
 
         symbol_input = Gtk.Entry()
         self.symbol_input = symbol_input
@@ -395,14 +382,8 @@ class Row(Gtk.ListBoxRow):
         if symbol is not None:
             symbol_input.set_text(symbol)
 
-        symbol_input.connect(
-            'changed',
-            self.on_symbol_input_change
-        )
-        symbol_input.connect(
-            'focus-out-event',
-            self.on_symbol_input_unfocus
-        )
+        symbol_input.connect("changed", self.on_symbol_input_change)
+        symbol_input.connect("focus-out-event", self.on_symbol_input_unfocus)
 
         box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
         box.set_homogeneous(False)
@@ -411,7 +392,7 @@ class Row(Gtk.ListBoxRow):
         box.pack_start(symbol_input, expand=True, fill=True, padding=0)
         box.pack_start(delete_button, expand=False, fill=True, padding=0)
         box.show_all()
-        box.get_style_context().add_class('row-box')
+        box.get_style_context().add_class("row-box")
 
         self.add(box)
         self.show_all()
@@ -422,7 +403,7 @@ class Row(Gtk.ListBoxRow):
         if key is not None:
             custom_mapping.clear(key)
 
-        self.symbol_input.set_text('')
-        self.set_keycode_input_label('')
+        self.symbol_input.set_text("")
+        self.set_keycode_input_label("")
         self.key = None
         self.delete_callback(self)

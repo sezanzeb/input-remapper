@@ -30,17 +30,20 @@ from evdev import ecodes
 def verify(key):
     """Check if the key is an int 3-tuple of type, code, value"""
     if not isinstance(key, tuple) or len(key) != 3:
-        raise ValueError(f'Expected key to be a 3-tuple, but got {key}')
+        raise ValueError(f"Expected key to be a 3-tuple, but got {key}")
     if sum([not isinstance(value, int) for value in key]) != 0:
-        raise ValueError(f'Can only use integers, but got {key}')
+        raise ValueError(f"Can only use integers, but got {key}")
 
 
 # having shift in combinations modifies the configured output,
 # ctrl might not work at all
 DIFFICULT_COMBINATIONS = [
-    ecodes.KEY_LEFTSHIFT, ecodes.KEY_RIGHTSHIFT,
-    ecodes.KEY_LEFTCTRL, ecodes.KEY_RIGHTCTRL,
-    ecodes.KEY_LEFTALT, ecodes.KEY_RIGHTALT
+    ecodes.KEY_LEFTSHIFT,
+    ecodes.KEY_RIGHTSHIFT,
+    ecodes.KEY_LEFTCTRL,
+    ecodes.KEY_RIGHTCTRL,
+    ecodes.KEY_LEFTALT,
+    ecodes.KEY_RIGHTALT,
 ]
 
 
@@ -49,6 +52,7 @@ class Key:
 
     Can be used in hashmaps/dicts as key
     """
+
     def __init__(self, *keys):
         """
         Parameters
@@ -66,7 +70,7 @@ class Key:
         or Key objects, which will flatten all of them into one combination
         """
         if len(keys) == 0:
-            raise ValueError('At least one key is required')
+            raise ValueError("At least one key is required")
 
         if isinstance(keys[0], int):
             # type, code, value was provided instead of a tuple
@@ -103,7 +107,7 @@ class Key:
         return len(self.keys)
 
     def __str__(self):
-        return f'Key{str(self.keys)}'
+        return f"Key{str(self.keys)}"
 
     def __repr__(self):
         # used in the AssertionError output of tests

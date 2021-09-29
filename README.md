@@ -25,10 +25,10 @@ Get a .deb file from the [release page](https://github.com/sezanzeb/key-mapper/r
 or install the latest changes via:
 
 ```bash
-sudo apt install git python3-setuptools
+sudo apt install git python3-setuptools gettext
 git clone https://github.com/sezanzeb/key-mapper.git
-cd key-mapper; ./scripts/build.sh
-sudo apt install ./dist/key-mapper-1.0.0.deb
+cd key-mapper && ./scripts/build.sh
+sudo apt install ./dist/key-mapper-1.1.0.deb
 ```
 
 ##### pip

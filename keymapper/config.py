@@ -30,32 +30,32 @@ from keymapper.paths import CONFIG_PATH, USER, touch
 from keymapper.logger import logger
 
 
-MOUSE = 'mouse'
-WHEEL = 'wheel'
-BUTTONS = 'buttons'
-NONE = 'none'
+MOUSE = "mouse"
+WHEEL = "wheel"
+BUTTONS = "buttons"
+NONE = "none"
 
 INITIAL_CONFIG = {
-    'autoload': {},
-    'macros': {
+    "autoload": {},
+    "macros": {
         # some time between keystrokes might be required for them to be
         # detected properly in software.
-        'keystroke_sleep_ms': 10
+        "keystroke_sleep_ms": 10
     },
-    'gamepad': {
-        'joystick': {
+    "gamepad": {
+        "joystick": {
             # very small movements of the joystick should result in very
             # small mouse movements. With a non_linearity of 1 it is
             # impossible/hard to even find a resting position that won't
             # move the cursor.
-            'non_linearity': 4,
-            'pointer_speed': 80,
-            'left_purpose': NONE,
-            'right_purpose': NONE,
-            'x_scroll_speed': 2,
-            'y_scroll_speed': 0.5
+            "non_linearity": 4,
+            "pointer_speed": 80,
+            "left_purpose": NONE,
+            "right_purpose": NONE,
+            "x_scroll_speed": 2,
+            "y_scroll_speed": 0.5,
         },
-    }
+    },
 }
 
 
@@ -65,6 +65,7 @@ class ConfigBase:
     Loading and saving is optional and handled by classes that derive from
     this base.
     """
+
     def __init__(self, fallback=None):
         """Set up the needed members to turn your object into a config.
 
@@ -85,7 +86,7 @@ class ConfigBase:
         config : dict
             The dictionary to search. Defaults to self._config.
         """
-        chunks = path.copy() if isinstance(path, list) else path.split('.')
+        chunks = path.copy() if isinstance(path, list) else path.split(".")
 
         if config is None:
             child = self._config
@@ -113,6 +114,7 @@ class ConfigBase:
         path : string or string[]
             For example 'macros.keystroke_sleep_ms'
         """
+
         def callback(parent, child, chunk):
             if child is not None:
                 del parent[chunk]
@@ -129,10 +131,7 @@ class ConfigBase:
             or ['macros', 'keystroke_sleep_ms']
         value : any
         """
-        logger.info(
-            'Changing "%s" to "%s" in %s',
-            path, value, self.__class__.__name__
-        )
+        logger.info('Changing "%s" to "%s" in %s', path, value, self.__class__.__name__)
 
         def callback(parent, child, chunk):
             parent[chunk] = value
@@ -149,6 +148,7 @@ class ConfigBase:
         log_unknown : bool
             If True, write an error if `path` does not exist in the config
         """
+
         def callback(parent, child, chunk):
             return child
 
@@ -179,14 +179,15 @@ class GlobalConfig(ConfigBase):
     the default global configuration for that one. If none of the configs
     have the key set, a hardcoded default value will be used.
     """
+
     def __init__(self):
-        self.path = os.path.join(CONFIG_PATH, 'config.json')
+        self.path = os.path.join(CONFIG_PATH, "config.json")
 
         # migrate from < 0.4.0, add the .json ending
-        deprecated_path = os.path.join(CONFIG_PATH, 'config')
+        deprecated_path = os.path.join(CONFIG_PATH, "config")
         if os.path.exists(deprecated_path) and not os.path.exists(self.path):
             logger.info('Moving "%s" to "%s"', deprecated_path, self.path)
-            os.rename(os.path.join(CONFIG_PATH, 'config'), self.path)
+            os.rename(os.path.join(CONFIG_PATH, "config"), self.path)
 
         super().__init__()
 
@@ -203,21 +204,18 @@ class GlobalConfig(ConfigBase):
             if None, don't autoload something for this device.
         """
         if preset is not None:
-            self.set(['autoload', group_key], preset)
+            self.set(["autoload", group_key], preset)
         else:
-            logger.info(
-                'Not injecting for "%s" automatically anmore',
-                group_key
-            )
-            self.remove(['autoload', group_key])
+            logger.info('Not injecting for "%s" automatically anmore', group_key)
+            self.remove(["autoload", group_key])
 
     def iterate_autoload_presets(self):
         """Get tuples of (device, preset)."""
-        return self._config.get('autoload', {}).items()
+        return self._config.get("autoload", {}).items()
 
     def is_autoloaded(self, group_key, preset):
         """Should this preset be loaded automatically?"""
-        return self.get(['autoload', group_key], log_unknown=False) == preset
+        return self.get(["autoload", group_key], log_unknown=False) == preset
 
     def load_config(self, path=None):
         """Load the config from the file system.
@@ -244,30 +242,31 @@ class GlobalConfig(ConfigBase):
             self.save_config()
             return
 
-        with open(self.path, 'r') as file:
+        with open(self.path, "r") as file:
             try:
                 self._config.update(json.load(file))
                 logger.info('Loaded config from "%s"', self.path)
             except json.decoder.JSONDecodeError as error:
                 logger.error(
                     'Failed to parse config "%s": %s. Using defaults',
-                    self.path, str(error)
+                    self.path,
+                    str(error),
                 )
                 # uses the default configuration when the config object
                 # is empty automatically
 
     def save_config(self):
         """Save the config to the file system."""
-        if USER == 'root':
-            logger.debug('Skipping config file creation for the root user')
+        if USER == "root":
+            logger.debug("Skipping config file creation for the root user")
             return
 
         touch(self.path)
 
-        with open(self.path, 'w') as file:
+        with open(self.path, "w") as file:
             json.dump(self._config, file, indent=4)
-            logger.info('Saved config to %s', self.path)
-            file.write('\n')
+            logger.info("Saved config to %s", self.path)
+            file.write("\n")
 
 
 config = GlobalConfig()

@@ -24,51 +24,64 @@ import unittest
 import shutil
 import time
 
-from keymapper.presets import find_newest_preset, rename_preset, \
-    get_any_preset, delete_preset, get_available_preset_name, get_presets, \
-    migrate_path
+from keymapper.presets import (
+    find_newest_preset,
+    rename_preset,
+    get_any_preset,
+    delete_preset,
+    get_available_preset_name,
+    get_presets,
+    migrate_path,
+)
 from keymapper.paths import CONFIG_PATH, get_preset_path, touch, mkdir
-from keymapper.state import custom_mapping
+from keymapper.gui.custom_mapping import custom_mapping
 
 from tests.test import tmp
 
 
-def create_preset(group_name, name='new preset'):
+def create_preset(group_name, name="new preset"):
     name = get_available_preset_name(group_name, name)
     custom_mapping.empty()
     custom_mapping.save(get_preset_path(group_name, name))
 
 
-PRESETS = os.path.join(CONFIG_PATH, 'presets')
+PRESETS = os.path.join(CONFIG_PATH, "presets")
 
 
 class TestPresets(unittest.TestCase):
     def test_get_available_preset_name(self):
         # no filename conflict
-        self.assertEqual(get_available_preset_name('_', 'qux 2'), 'qux 2')
+        self.assertEqual(get_available_preset_name("_", "qux 2"), "qux 2")
 
-        touch(get_preset_path('_', 'qux 5'))
-        self.assertEqual(get_available_preset_name('_', 'qux 5'), 'qux 6')
-        touch(get_preset_path('_', 'qux'))
-        self.assertEqual(get_available_preset_name('_', 'qux'), 'qux 2')
-        touch(get_preset_path('_', 'qux1'))
-        self.assertEqual(get_available_preset_name('_', 'qux1'), 'qux1 2')
-        touch(get_preset_path('_', 'qux 2 3'))
-        self.assertEqual(get_available_preset_name('_', 'qux 2 3'), 'qux 2 4')
+        touch(get_preset_path("_", "qux 5"))
+        self.assertEqual(get_available_preset_name("_", "qux 5"), "qux 6")
+        touch(get_preset_path("_", "qux"))
+        self.assertEqual(get_available_preset_name("_", "qux"), "qux 2")
+        touch(get_preset_path("_", "qux1"))
+        self.assertEqual(get_available_preset_name("_", "qux1"), "qux1 2")
+        touch(get_preset_path("_", "qux 2 3"))
+        self.assertEqual(get_available_preset_name("_", "qux 2 3"), "qux 2 4")
 
-        touch(get_preset_path('_', 'qux 5'))
-        self.assertEqual(get_available_preset_name('_', 'qux 5', True), 'qux 5 copy')
-        touch(get_preset_path('_', 'qux 5 copy'))
-        self.assertEqual(get_available_preset_name('_', 'qux 5', True), 'qux 5 copy 2')
-        touch(get_preset_path('_', 'qux 5 copy 2'))
-        self.assertEqual(get_available_preset_name('_', 'qux 5', True), 'qux 5 copy 3')
+        touch(get_preset_path("_", "qux 5"))
+        self.assertEqual(get_available_preset_name("_", "qux 5", True), "qux 5 copy")
+        touch(get_preset_path("_", "qux 5 copy"))
+        self.assertEqual(get_available_preset_name("_", "qux 5", True), "qux 5 copy 2")
+        touch(get_preset_path("_", "qux 5 copy 2"))
+        self.assertEqual(get_available_preset_name("_", "qux 5", True), "qux 5 copy 3")
 
-        touch(get_preset_path('_', 'qux 5copy'))
-        self.assertEqual(get_available_preset_name('_', 'qux 5copy', True), 'qux 5copy copy')
-        touch(get_preset_path('_', 'qux 5copy 2'))
-        self.assertEqual(get_available_preset_name('_', 'qux 5copy 2', True), 'qux 5copy 2 copy')
-        touch(get_preset_path('_', 'qux 5copy 2 copy'))
-        self.assertEqual(get_available_preset_name('_', 'qux 5copy 2 copy', True), 'qux 5copy 2 copy 2')
+        touch(get_preset_path("_", "qux 5copy"))
+        self.assertEqual(
+            get_available_preset_name("_", "qux 5copy", True), "qux 5copy copy"
+        )
+        touch(get_preset_path("_", "qux 5copy 2"))
+        self.assertEqual(
+            get_available_preset_name("_", "qux 5copy 2", True), "qux 5copy 2 copy"
+        )
+        touch(get_preset_path("_", "qux 5copy 2 copy"))
+        self.assertEqual(
+            get_available_preset_name("_", "qux 5copy 2 copy", True),
+            "qux 5copy 2 copy 2",
+        )
 
 
 class TestMigrate(unittest.TestCase):
@@ -76,34 +89,42 @@ class TestMigrate(unittest.TestCase):
         if os.path.exists(tmp):
             shutil.rmtree(tmp)
 
-        touch(os.path.join(tmp, 'foo1', 'bar1.json'))
-        touch(os.path.join(tmp, 'foo2', 'bar2.json'))
+        touch(os.path.join(tmp, "foo1", "bar1.json"))
+        touch(os.path.join(tmp, "foo2", "bar2.json"))
 
         migrate_path()
 
-        self.assertFalse(os.path.exists(os.path.join(tmp, 'foo1', 'bar1.json')))
-        self.assertFalse(os.path.exists(os.path.join(tmp, 'foo2', 'bar2.json')))
+        self.assertFalse(os.path.exists(os.path.join(tmp, "foo1", "bar1.json")))
+        self.assertFalse(os.path.exists(os.path.join(tmp, "foo2", "bar2.json")))
 
-        self.assertTrue(os.path.exists(os.path.join(tmp, 'presets', 'foo1', 'bar1.json')))
-        self.assertTrue(os.path.exists(os.path.join(tmp, 'presets', 'foo2', 'bar2.json')))
+        self.assertTrue(
+            os.path.exists(os.path.join(tmp, "presets", "foo1", "bar1.json"))
+        )
+        self.assertTrue(
+            os.path.exists(os.path.join(tmp, "presets", "foo2", "bar2.json"))
+        )
 
     def test_doesnt_migrate(self):
         if os.path.exists(tmp):
             shutil.rmtree(tmp)
 
-        touch(os.path.join(tmp, 'foo1', 'bar1.json'))
-        touch(os.path.join(tmp, 'foo2', 'bar2.json'))
+        touch(os.path.join(tmp, "foo1", "bar1.json"))
+        touch(os.path.join(tmp, "foo2", "bar2.json"))
 
         # already migrated
-        mkdir(os.path.join(tmp, 'presets'))
+        mkdir(os.path.join(tmp, "presets"))
 
         migrate_path()
 
-        self.assertTrue(os.path.exists(os.path.join(tmp, 'foo1', 'bar1.json')))
-        self.assertTrue(os.path.exists(os.path.join(tmp, 'foo2', 'bar2.json')))
+        self.assertTrue(os.path.exists(os.path.join(tmp, "foo1", "bar1.json")))
+        self.assertTrue(os.path.exists(os.path.join(tmp, "foo2", "bar2.json")))
 
-        self.assertFalse(os.path.exists(os.path.join(tmp, 'presets', 'foo1', 'bar1.json')))
-        self.assertFalse(os.path.exists(os.path.join(tmp, 'presets', 'foo2', 'bar2.json')))
+        self.assertFalse(
+            os.path.exists(os.path.join(tmp, "presets", "foo1", "bar1.json"))
+        )
+        self.assertFalse(
+            os.path.exists(os.path.join(tmp, "presets", "foo2", "bar2.json"))
+        )
 
 
 class TestCreatePreset(unittest.TestCase):
@@ -112,24 +133,24 @@ class TestCreatePreset(unittest.TestCase):
             shutil.rmtree(tmp)
 
     def test_create_preset_1(self):
-        self.assertEqual(get_any_preset(), ('Foo Device', None))
-        create_preset('Foo Device')
-        self.assertEqual(get_any_preset(), ('Foo Device', 'new preset'))
-        self.assertTrue(os.path.exists(f'{PRESETS}/Foo Device/new preset.json'))
+        self.assertEqual(get_any_preset(), ("Foo Device", None))
+        create_preset("Foo Device")
+        self.assertEqual(get_any_preset(), ("Foo Device", "new preset"))
+        self.assertTrue(os.path.exists(f"{PRESETS}/Foo Device/new preset.json"))
 
     def test_create_preset_2(self):
-        create_preset('Foo Device')
-        create_preset('Foo Device')
-        self.assertTrue(os.path.exists(f'{PRESETS}/Foo Device/new preset.json'))
-        self.assertTrue(os.path.exists(f'{PRESETS}/Foo Device/new preset 2.json'))
+        create_preset("Foo Device")
+        create_preset("Foo Device")
+        self.assertTrue(os.path.exists(f"{PRESETS}/Foo Device/new preset.json"))
+        self.assertTrue(os.path.exists(f"{PRESETS}/Foo Device/new preset 2.json"))
 
     def test_create_preset_3(self):
-        create_preset('Foo Device', 'pre set')
-        create_preset('Foo Device', 'pre set')
-        create_preset('Foo Device', 'pre set')
-        self.assertTrue(os.path.exists(f'{PRESETS}/Foo Device/pre set.json'))
-        self.assertTrue(os.path.exists(f'{PRESETS}/Foo Device/pre set 2.json'))
-        self.assertTrue(os.path.exists(f'{PRESETS}/Foo Device/pre set 3.json'))
+        create_preset("Foo Device", "pre set")
+        create_preset("Foo Device", "pre set")
+        create_preset("Foo Device", "pre set")
+        self.assertTrue(os.path.exists(f"{PRESETS}/Foo Device/pre set.json"))
+        self.assertTrue(os.path.exists(f"{PRESETS}/Foo Device/pre set 2.json"))
+        self.assertTrue(os.path.exists(f"{PRESETS}/Foo Device/pre set 3.json"))
 
 
 class TestDeletePreset(unittest.TestCase):
@@ -138,17 +159,17 @@ class TestDeletePreset(unittest.TestCase):
             shutil.rmtree(tmp)
 
     def test_delete_preset(self):
-        create_preset('Foo Device')
-        create_preset('Foo Device')
-        self.assertTrue(os.path.exists(f'{PRESETS}/Foo Device/new preset.json'))
-        delete_preset('Foo Device', 'new preset')
-        self.assertFalse(os.path.exists(f'{PRESETS}/Foo Device/new preset.json'))
-        self.assertTrue(os.path.exists(f'{PRESETS}/Foo Device'))
-        delete_preset('Foo Device', 'new preset 2')
-        self.assertFalse(os.path.exists(f'{PRESETS}/Foo Device/new preset.json'))
-        self.assertFalse(os.path.exists(f'{PRESETS}/Foo Device/new preset 2.json'))
+        create_preset("Foo Device")
+        create_preset("Foo Device")
+        self.assertTrue(os.path.exists(f"{PRESETS}/Foo Device/new preset.json"))
+        delete_preset("Foo Device", "new preset")
+        self.assertFalse(os.path.exists(f"{PRESETS}/Foo Device/new preset.json"))
+        self.assertTrue(os.path.exists(f"{PRESETS}/Foo Device"))
+        delete_preset("Foo Device", "new preset 2")
+        self.assertFalse(os.path.exists(f"{PRESETS}/Foo Device/new preset.json"))
+        self.assertFalse(os.path.exists(f"{PRESETS}/Foo Device/new preset 2.json"))
         # if no preset in the directory, remove the directory
-        self.assertFalse(os.path.exists(f'{PRESETS}/Foo Device'))
+        self.assertFalse(os.path.exists(f"{PRESETS}/Foo Device"))
 
 
 class TestRenamePreset(unittest.TestCase):
@@ -157,15 +178,15 @@ class TestRenamePreset(unittest.TestCase):
             shutil.rmtree(tmp)
 
     def test_rename_preset(self):
-        create_preset('Foo Device', 'preset 1')
-        create_preset('Foo Device', 'preset 2')
-        create_preset('Foo Device', 'foobar')
-        rename_preset('Foo Device', 'preset 1', 'foobar')
-        rename_preset('Foo Device', 'preset 2', 'foobar')
-        self.assertFalse(os.path.exists(f'{PRESETS}/Foo Device/preset 1.json'))
-        self.assertTrue(os.path.exists(f'{PRESETS}/Foo Device/foobar.json'))
-        self.assertTrue(os.path.exists(f'{PRESETS}/Foo Device/foobar 2.json'))
-        self.assertTrue(os.path.exists(f'{PRESETS}/Foo Device/foobar 3.json'))
+        create_preset("Foo Device", "preset 1")
+        create_preset("Foo Device", "preset 2")
+        create_preset("Foo Device", "foobar")
+        rename_preset("Foo Device", "preset 1", "foobar")
+        rename_preset("Foo Device", "preset 2", "foobar")
+        self.assertFalse(os.path.exists(f"{PRESETS}/Foo Device/preset 1.json"))
+        self.assertTrue(os.path.exists(f"{PRESETS}/Foo Device/foobar.json"))
+        self.assertTrue(os.path.exists(f"{PRESETS}/Foo Device/foobar 2.json"))
+        self.assertTrue(os.path.exists(f"{PRESETS}/Foo Device/foobar 3.json"))
 
 
 class TestFindPresets(unittest.TestCase):
@@ -174,67 +195,64 @@ class TestFindPresets(unittest.TestCase):
             shutil.rmtree(tmp)
 
     def test_get_presets(self):
-        os.makedirs(os.path.join(PRESETS, '1234'))
+        os.makedirs(os.path.join(PRESETS, "1234"))
 
-        os.mknod(os.path.join(PRESETS, '1234', 'picture.png'))
-        self.assertEqual(len(get_presets('1234')), 0)
+        os.mknod(os.path.join(PRESETS, "1234", "picture.png"))
+        self.assertEqual(len(get_presets("1234")), 0)
 
-        os.mknod(os.path.join(PRESETS, '1234', 'foo bar 1.json'))
+        os.mknod(os.path.join(PRESETS, "1234", "foo bar 1.json"))
         time.sleep(0.01)
-        os.mknod(os.path.join(PRESETS, '1234', 'foo bar 2.json'))
+        os.mknod(os.path.join(PRESETS, "1234", "foo bar 2.json"))
         # the newest to the front
-        self.assertListEqual(get_presets('1234'), ['foo bar 2', 'foo bar 1'])
+        self.assertListEqual(get_presets("1234"), ["foo bar 2", "foo bar 1"])
 
     def test_find_newest_preset_1(self):
-        create_preset('Foo Device', 'preset 1')
+        create_preset("Foo Device", "preset 1")
         time.sleep(0.01)
-        create_preset('Bar Device', 'preset 2')
+        create_preset("Bar Device", "preset 2")
 
         # not a preset, ignore
         time.sleep(0.01)
-        path = os.path.join(PRESETS, 'Bar Device', 'picture.png')
+        path = os.path.join(PRESETS, "Bar Device", "picture.png")
         os.mknod(path)
 
-        self.assertEqual(find_newest_preset(), ('Bar Device', 'preset 2'))
+        self.assertEqual(find_newest_preset(), ("Bar Device", "preset 2"))
 
     def test_find_newest_preset_2(self):
-        os.makedirs(f'{PRESETS}/Foo Device')
+        os.makedirs(f"{PRESETS}/Foo Device")
         time.sleep(0.01)
-        os.makedirs(f'{PRESETS}/device_2')
+        os.makedirs(f"{PRESETS}/device_2")
         # takes the first one that the test-fake returns
-        self.assertEqual(find_newest_preset(), ('Foo Device', None))
+        self.assertEqual(find_newest_preset(), ("Foo Device", None))
 
     def test_find_newest_preset_3(self):
-        os.makedirs(f'{PRESETS}/Foo Device')
-        self.assertEqual(find_newest_preset(), ('Foo Device', None))
+        os.makedirs(f"{PRESETS}/Foo Device")
+        self.assertEqual(find_newest_preset(), ("Foo Device", None))
 
     def test_find_newest_preset_4(self):
-        create_preset('Foo Device', 'preset 1')
-        self.assertEqual(find_newest_preset(), ('Foo Device', 'preset 1'))
+        create_preset("Foo Device", "preset 1")
+        self.assertEqual(find_newest_preset(), ("Foo Device", "preset 1"))
 
     def test_find_newest_preset_5(self):
-        create_preset('Foo Device', 'preset 1')
+        create_preset("Foo Device", "preset 1")
         time.sleep(0.01)
-        create_preset('unknown device 3', 'preset 3')
-        self.assertEqual(find_newest_preset(), ('Foo Device', 'preset 1'))
+        create_preset("unknown device 3", "preset 3")
+        self.assertEqual(find_newest_preset(), ("Foo Device", "preset 1"))
 
     def test_find_newest_preset_6(self):
         # takes the first one that the test-fake returns
-        self.assertEqual(find_newest_preset(), ('Foo Device', None))
+        self.assertEqual(find_newest_preset(), ("Foo Device", None))
 
     def test_find_newest_preset_7(self):
-        self.assertEqual(find_newest_preset('Foo Device'), ('Foo Device', None))
+        self.assertEqual(find_newest_preset("Foo Device"), ("Foo Device", None))
 
     def test_find_newest_preset_8(self):
-        create_preset('Foo Device', 'preset 1')
+        create_preset("Foo Device", "preset 1")
         time.sleep(0.01)
-        create_preset('Foo Device', 'preset 3')
+        create_preset("Foo Device", "preset 3")
         time.sleep(0.01)
-        create_preset('Bar Device', 'preset 2')
-        self.assertEqual(
-            find_newest_preset('Foo Device'),
-            ('Foo Device', 'preset 3')
-        )
+        create_preset("Bar Device", "preset 2")
+        self.assertEqual(find_newest_preset("Foo Device"), ("Foo Device", "preset 3"))
 
 
 if __name__ == "__main__":

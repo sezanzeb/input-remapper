@@ -22,22 +22,40 @@
 import unittest
 import asyncio
 
-from evdev.ecodes import EV_REL, REL_X, REL_Y, REL_WHEEL, REL_HWHEEL, \
-    EV_ABS, ABS_X, ABS_Y, ABS_RX, ABS_RY
+from evdev.ecodes import (
+    EV_REL,
+    REL_X,
+    REL_Y,
+    REL_WHEEL,
+    REL_HWHEEL,
+    EV_ABS,
+    ABS_X,
+    ABS_Y,
+    ABS_RX,
+    ABS_RY,
+)
 
 from keymapper.config import config
 from keymapper.mapping import Mapping
 from keymapper.injection.context import Context
-from keymapper.injection.event_producer import EventProducer, MOUSE, WHEEL
+from keymapper.injection.consumers.event_producer import EventProducer, MOUSE, WHEEL
 
-from tests.test import InputDevice, UInput, MAX_ABS, clear_write_history, \
-    uinput_write_history, quick_cleanup, new_event, MIN_ABS
+from tests.test import (
+    InputDevice,
+    UInput,
+    MAX_ABS,
+    clear_write_history,
+    uinput_write_history,
+    quick_cleanup,
+    new_event,
+    MIN_ABS,
+)
 
 
 abs_state = [0, 0, 0, 0]
 
 
-class TestEventProducer(unittest.TestCase):
+class TestEventProducer(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
@@ -48,76 +66,21 @@ class TestEventProducer(unittest.TestCase):
         uinput = UInput()
         self.context.uinput = uinput
 
-        device = InputDevice('/dev/input/event30')
-        self.event_producer = EventProducer(self.context)
-        self.event_producer.set_abs_range_from(device)
-        asyncio.ensure_future(self.event_producer.run())
+        source = InputDevice("/dev/input/event30")
+        self.event_producer = EventProducer(self.context, source)
 
-        config.set('gamepad.joystick.x_scroll_speed', 1)
-        config.set('gamepad.joystick.y_scroll_speed', 1)
+        config.set("gamepad.joystick.x_scroll_speed", 1)
+        config.set("gamepad.joystick.y_scroll_speed", 1)
 
     def tearDown(self):
         quick_cleanup()
-
-    def test_debounce_1(self):
-        loop = asyncio.get_event_loop()
-        tick_time = 1 / 60
-        history = []
-
-        self.event_producer.debounce(1234, history.append, (1,), 10)
-        asyncio.ensure_future(self.event_producer.run())
-        loop.run_until_complete(asyncio.sleep(6 * tick_time))
-        self.assertEqual(len(history), 0)
-        loop.run_until_complete(asyncio.sleep(6 * tick_time))
-        self.assertEqual(len(history), 1)
-        # won't get called a second time
-        loop.run_until_complete(asyncio.sleep(11 * tick_time))
-        self.assertEqual(len(history), 1)
-        self.assertEqual(history[0], 1)
-
-    def test_debounce_2(self):
-        loop = asyncio.get_event_loop()
-        tick_time = 1 / 60
-        history = []
-
-        self.event_producer.debounce(1234, history.append, (1,), 10)
-        asyncio.ensure_future(self.event_producer.run())
-        loop.run_until_complete(asyncio.sleep(6 * tick_time))
-        self.assertEqual(len(history), 0)
-        # replaces
-        self.event_producer.debounce(1234, history.append, (2,), 20)
-        loop.run_until_complete(asyncio.sleep(6 * tick_time))
-        self.assertEqual(len(history), 0)
-        loop.run_until_complete(asyncio.sleep(11 * tick_time))
-        self.assertEqual(len(history), 1)
-        # won't get called a second time
-        loop.run_until_complete(asyncio.sleep(21 * tick_time))
-        self.assertEqual(len(history), 1)
-        self.assertEqual(history[0], 2)
-
-    def test_debounce_3(self):
-        loop = asyncio.get_event_loop()
-        tick_time = 1 / 60
-        history = []
-
-        self.event_producer.debounce(1234, history.append, (1,), 10)
-        self.event_producer.debounce(5678, history.append, (2,), 20)
-        asyncio.ensure_future(self.event_producer.run())
-        loop.run_until_complete(asyncio.sleep(11 * tick_time))
-        self.assertEqual(len(history), 1)
-        loop.run_until_complete(asyncio.sleep(11 * tick_time))
-        self.assertEqual(len(history), 2)
-        loop.run_until_complete(asyncio.sleep(21 * tick_time))
-        self.assertEqual(len(history), 2)
-        self.assertEqual(history[0], 1)
-        self.assertEqual(history[1], 2)
 
     def assertClose(self, a, b, within):
         """a has to be within b - b * within, b + b * within."""
         self.assertLess(a - abs(a) * within, b)
         self.assertGreater(a + abs(a) * within, b)
 
-    def test_assertClose(self):
+    async def test_assertClose(self):
         self.assertClose(5, 5, 0.1)
         self.assertClose(5, 5, 1)
         self.assertClose(6, 5, 0.2)
@@ -132,19 +95,22 @@ class TestEventProducer(unittest.TestCase):
         self.assertRaises(AssertionError, lambda: self.assertClose(-6, -5, 0.1))
         self.assertRaises(AssertionError, lambda: self.assertClose(-4, -5, 0.1))
 
-    def do(self, a, b, c, d, expectation):
-        """Present fake values to the loop and observe the outcome."""
+    async def do(self, a, b, c, d, expectation):
+        """Present fake values to the loop and observe the outcome.
+
+        Depending on the configuration, the cursor or wheel should move.
+        """
         clear_write_history()
         self.event_producer.context.update_purposes()
-        self.event_producer.notify(new_event(EV_ABS, ABS_X, a))
-        self.event_producer.notify(new_event(EV_ABS, ABS_Y, b))
-        self.event_producer.notify(new_event(EV_ABS, ABS_RX, c))
-        self.event_producer.notify(new_event(EV_ABS, ABS_RY, d))
-        # 3 frames
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(asyncio.sleep(3 / 60))
-        history = [h.t for h in uinput_write_history]
+        await self.event_producer.notify(new_event(EV_ABS, ABS_X, a))
+        await self.event_producer.notify(new_event(EV_ABS, ABS_Y, b))
+        await self.event_producer.notify(new_event(EV_ABS, ABS_RX, c))
+        await self.event_producer.notify(new_event(EV_ABS, ABS_RY, d))
+
         # sleep long enough to test if multiple events are written
+        await asyncio.sleep(5 / 60)
+
+        history = [h.t for h in uinput_write_history]
         self.assertGreater(len(history), 1)
         self.assertIn(expectation, history)
 
@@ -153,12 +119,14 @@ class TestEventProducer(unittest.TestCase):
             # if the injected cursor movement is 19 or 20 doesn't really matter
             self.assertClose(history_entry[2], expectation[2], 0.1)
 
-    def test_joystick_purpose_1(self):
+    async def test_joystick_purpose_1(self):
+        asyncio.ensure_future(self.event_producer.run())
+
         speed = 20
-        self.mapping.set('gamepad.joystick.non_linearity', 1)
-        self.mapping.set('gamepad.joystick.pointer_speed', speed)
-        self.mapping.set('gamepad.joystick.left_purpose', MOUSE)
-        self.mapping.set('gamepad.joystick.right_purpose', WHEEL)
+        self.mapping.set("gamepad.joystick.non_linearity", 1)
+        self.mapping.set("gamepad.joystick.pointer_speed", speed)
+        self.mapping.set("gamepad.joystick.left_purpose", MOUSE)
+        self.mapping.set("gamepad.joystick.right_purpose", WHEEL)
 
         min_abs = 0
         # if `rest` is not exactly `max_abs / 2` decimal places might add up
@@ -168,70 +136,76 @@ class TestEventProducer(unittest.TestCase):
         rest = 128  # resting position of the cursor
         self.event_producer.set_abs_range(min_abs, max_abs)
 
-        self.do(max_abs, rest, rest, rest, (EV_REL, REL_X, speed))
-        self.do(min_abs, rest, rest, rest, (EV_REL, REL_X, -speed))
-        self.do(rest, max_abs, rest, rest, (EV_REL, REL_Y, speed))
-        self.do(rest, min_abs, rest, rest, (EV_REL, REL_Y, -speed))
+        await self.do(max_abs, rest, rest, rest, (EV_REL, REL_X, speed))
+        await self.do(min_abs, rest, rest, rest, (EV_REL, REL_X, -speed))
+        await self.do(rest, max_abs, rest, rest, (EV_REL, REL_Y, speed))
+        await self.do(rest, min_abs, rest, rest, (EV_REL, REL_Y, -speed))
 
         # vertical wheel event values are negative
-        self.do(rest, rest, max_abs, rest, (EV_REL, REL_HWHEEL, 1))
-        self.do(rest, rest, min_abs, rest, (EV_REL, REL_HWHEEL, -1))
-        self.do(rest, rest, rest, max_abs, (EV_REL, REL_WHEEL, -1))
-        self.do(rest, rest, rest, min_abs, (EV_REL, REL_WHEEL, 1))
+        await self.do(rest, rest, max_abs, rest, (EV_REL, REL_HWHEEL, 1))
+        await self.do(rest, rest, min_abs, rest, (EV_REL, REL_HWHEEL, -1))
+        await self.do(rest, rest, rest, max_abs, (EV_REL, REL_WHEEL, -1))
+        await self.do(rest, rest, rest, min_abs, (EV_REL, REL_WHEEL, 1))
 
-    def test_joystick_purpose_2(self):
+    async def test_joystick_purpose_2(self):
+        asyncio.ensure_future(self.event_producer.run())
+
         speed = 30
-        config.set('gamepad.joystick.non_linearity', 1)
-        config.set('gamepad.joystick.pointer_speed', speed)
-        config.set('gamepad.joystick.left_purpose', WHEEL)
-        config.set('gamepad.joystick.right_purpose', MOUSE)
-        config.set('gamepad.joystick.x_scroll_speed', 1)
-        config.set('gamepad.joystick.y_scroll_speed', 2)
+        config.set("gamepad.joystick.non_linearity", 1)
+        config.set("gamepad.joystick.pointer_speed", speed)
+        config.set("gamepad.joystick.left_purpose", WHEEL)
+        config.set("gamepad.joystick.right_purpose", MOUSE)
+        config.set("gamepad.joystick.x_scroll_speed", 1)
+        config.set("gamepad.joystick.y_scroll_speed", 2)
 
         # vertical wheel event values are negative
-        self.do(MAX_ABS, 0, 0, 0, (EV_REL, REL_HWHEEL, 1))
-        self.do(MIN_ABS, 0, 0, 0, (EV_REL, REL_HWHEEL, -1))
-        self.do(0, MAX_ABS, 0, 0, (EV_REL, REL_WHEEL, -2))
-        self.do(0, MIN_ABS, 0, 0, (EV_REL, REL_WHEEL, 2))
+        await self.do(MAX_ABS, 0, 0, 0, (EV_REL, REL_HWHEEL, 1))
+        await self.do(MIN_ABS, 0, 0, 0, (EV_REL, REL_HWHEEL, -1))
+        await self.do(0, MAX_ABS, 0, 0, (EV_REL, REL_WHEEL, -2))
+        await self.do(0, MIN_ABS, 0, 0, (EV_REL, REL_WHEEL, 2))
 
-        self.do(0, 0, MAX_ABS, 0, (EV_REL, REL_X, speed))
-        self.do(0, 0, MIN_ABS, 0, (EV_REL, REL_X, -speed))
-        self.do(0, 0, 0, MAX_ABS, (EV_REL, REL_Y, speed))
-        self.do(0, 0, 0, MIN_ABS, (EV_REL, REL_Y, -speed))
+        await self.do(0, 0, MAX_ABS, 0, (EV_REL, REL_X, speed))
+        await self.do(0, 0, MIN_ABS, 0, (EV_REL, REL_X, -speed))
+        await self.do(0, 0, 0, MAX_ABS, (EV_REL, REL_Y, speed))
+        await self.do(0, 0, 0, MIN_ABS, (EV_REL, REL_Y, -speed))
 
-    def test_joystick_purpose_3(self):
+    async def test_joystick_purpose_3(self):
+        asyncio.ensure_future(self.event_producer.run())
+
         speed = 40
-        self.mapping.set('gamepad.joystick.non_linearity', 1)
-        config.set('gamepad.joystick.pointer_speed', speed)
-        self.mapping.set('gamepad.joystick.left_purpose', MOUSE)
-        config.set('gamepad.joystick.right_purpose', MOUSE)
+        self.mapping.set("gamepad.joystick.non_linearity", 1)
+        config.set("gamepad.joystick.pointer_speed", speed)
+        self.mapping.set("gamepad.joystick.left_purpose", MOUSE)
+        config.set("gamepad.joystick.right_purpose", MOUSE)
 
-        self.do(MAX_ABS, 0, 0, 0, (EV_REL, REL_X, speed))
-        self.do(MIN_ABS, 0, 0, 0, (EV_REL, REL_X, -speed))
-        self.do(0, MAX_ABS, 0, 0, (EV_REL, REL_Y, speed))
-        self.do(0, MIN_ABS, 0, 0, (EV_REL, REL_Y, -speed))
+        await self.do(MAX_ABS, 0, 0, 0, (EV_REL, REL_X, speed))
+        await self.do(MIN_ABS, 0, 0, 0, (EV_REL, REL_X, -speed))
+        await self.do(0, MAX_ABS, 0, 0, (EV_REL, REL_Y, speed))
+        await self.do(0, MIN_ABS, 0, 0, (EV_REL, REL_Y, -speed))
 
-        self.do(0, 0, MAX_ABS, 0, (EV_REL, REL_X, speed))
-        self.do(0, 0, MIN_ABS, 0, (EV_REL, REL_X, -speed))
-        self.do(0, 0, 0, MAX_ABS, (EV_REL, REL_Y, speed))
-        self.do(0, 0, 0, MIN_ABS, (EV_REL, REL_Y, -speed))
+        await self.do(0, 0, MAX_ABS, 0, (EV_REL, REL_X, speed))
+        await self.do(0, 0, MIN_ABS, 0, (EV_REL, REL_X, -speed))
+        await self.do(0, 0, 0, MAX_ABS, (EV_REL, REL_Y, speed))
+        await self.do(0, 0, 0, MIN_ABS, (EV_REL, REL_Y, -speed))
 
-    def test_joystick_purpose_4(self):
-        config.set('gamepad.joystick.left_purpose', WHEEL)
-        config.set('gamepad.joystick.right_purpose', WHEEL)
-        self.mapping.set('gamepad.joystick.x_scroll_speed', 2)
-        self.mapping.set('gamepad.joystick.y_scroll_speed', 3)
+    async def test_joystick_purpose_4(self):
+        asyncio.ensure_future(self.event_producer.run())
 
-        self.do(MAX_ABS, 0, 0, 0, (EV_REL, REL_HWHEEL, 2))
-        self.do(MIN_ABS, 0, 0, 0, (EV_REL, REL_HWHEEL, -2))
-        self.do(0, MAX_ABS, 0, 0, (EV_REL, REL_WHEEL, -3))
-        self.do(0, MIN_ABS, 0, 0, (EV_REL, REL_WHEEL, 3))
+        config.set("gamepad.joystick.left_purpose", WHEEL)
+        config.set("gamepad.joystick.right_purpose", WHEEL)
+        self.mapping.set("gamepad.joystick.x_scroll_speed", 2)
+        self.mapping.set("gamepad.joystick.y_scroll_speed", 3)
+
+        await self.do(MAX_ABS, 0, 0, 0, (EV_REL, REL_HWHEEL, 2))
+        await self.do(MIN_ABS, 0, 0, 0, (EV_REL, REL_HWHEEL, -2))
+        await self.do(0, MAX_ABS, 0, 0, (EV_REL, REL_WHEEL, -3))
+        await self.do(0, MIN_ABS, 0, 0, (EV_REL, REL_WHEEL, 3))
 
         # vertical wheel event values are negative
-        self.do(0, 0, MAX_ABS, 0, (EV_REL, REL_HWHEEL, 2))
-        self.do(0, 0, MIN_ABS, 0, (EV_REL, REL_HWHEEL, -2))
-        self.do(0, 0, 0, MAX_ABS, (EV_REL, REL_WHEEL, -3))
-        self.do(0, 0, 0, MIN_ABS, (EV_REL, REL_WHEEL, 3))
+        await self.do(0, 0, MAX_ABS, 0, (EV_REL, REL_HWHEEL, 2))
+        await self.do(0, 0, MIN_ABS, 0, (EV_REL, REL_HWHEEL, -2))
+        await self.do(0, 0, 0, MAX_ABS, (EV_REL, REL_WHEEL, -3))
+        await self.do(0, 0, 0, MIN_ABS, (EV_REL, REL_WHEEL, 3))
 
 
 if __name__ == "__main__":

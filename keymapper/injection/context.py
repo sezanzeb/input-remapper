@@ -23,8 +23,8 @@
 
 
 from keymapper.logger import logger
-from keymapper.injection.macros import parse, is_this_a_macro
-from keymapper.state import system_mapping
+from keymapper.injection.macros.parse import parse, is_this_a_macro
+from keymapper.system_mapping import system_mapping
 from keymapper.config import NONE, MOUSE, WHEEL, BUTTONS
 
 
@@ -33,6 +33,8 @@ class Context:
 
     In some ways this is a wrapper for the mapping that derives some
     information that is specifically important to the injection.
+
+    The information in the context does not change during the injection.
 
     One Context exists for each injection process, which is shared
     with all coroutines and used objects.
@@ -57,7 +59,7 @@ class Context:
         This is needed to query keycodes more efficiently without having
         to search mapping each time.
     macros : dict
-        Mapping of ((type, code, value),) to _Macro objects.
+        Mapping of ((type, code, value),) to Macro objects.
         Combinations work similar as in key_to_code
     uinput : evdev.UInput
         Where to inject stuff to. This is an extra node in /dev so that
@@ -72,6 +74,7 @@ class Context:
         So this uinput should not have EV_ABS capabilities. Only EV_REL
         and EV_KEY is allowed.
     """
+
     def __init__(self, mapping):
         self.mapping = mapping
 
@@ -88,17 +91,21 @@ class Context:
         self.sources = None
 
     def update_purposes(self):
-        """Read joystick purposes from the configuration."""
-        self.left_purpose = self.mapping.get('gamepad.joystick.left_purpose')
-        self.right_purpose = self.mapping.get('gamepad.joystick.right_purpose')
+        """Read joystick purposes from the configuration.
+
+        For efficiency, so that the config doesn't have to be read during
+        runtime repeatedly.
+        """
+        self.left_purpose = self.mapping.get("gamepad.joystick.left_purpose")
+        self.right_purpose = self.mapping.get("gamepad.joystick.right_purpose")
 
     def _parse_macros(self):
         """To quickly get the target macro during operation."""
-        logger.debug('Parsing macros')
+        logger.debug("Parsing macros")
         macros = {}
         for key, output in self.mapping:
             if is_this_a_macro(output):
-                macro = parse(output, self.mapping)
+                macro = parse(output, self)
                 if macro is None:
                     continue
 
@@ -106,7 +113,7 @@ class Context:
                     macros[permutation.keys] = macro
 
         if len(macros) == 0:
-            logger.debug('No macros configured')
+            logger.debug("No macros configured")
 
         return macros
 
@@ -131,8 +138,8 @@ class Context:
             for permutation in key.get_permutations():
                 if permutation.keys[-1][-1] not in [-1, 1]:
                     logger.error(
-                        'Expected values to be -1 or 1 at this point: %s',
-                        permutation.keys
+                        "Expected values to be -1 or 1 at this point: %s",
+                        permutation.keys,
                     )
                 key_to_code[permutation.keys] = target_code
 
@@ -143,8 +150,10 @@ class Context:
 
         Parameters
         ----------
-        key : ((int, int, int),)
-            One or more 3-tuples of type, code, value
+        key : tuple of tuple of int
+            One or more 3-tuples of type, code, action,
+            for example ((EV_KEY, KEY_A, 1), (EV_ABS, ABS_X, -1))
+            or ((EV_KEY, KEY_B, 1),)
         """
         return key in self.macros or key in self.key_to_code
 

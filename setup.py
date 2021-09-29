@@ -34,10 +34,17 @@ PO_FILES = 'po/*.po'
 class Install(install):
     """Add the commit hash and build .mo translations."""
     def run(self):
-        commit = os.popen('git rev-parse HEAD').read().strip()
-        if re.match(r'^([a-z]|[0-9])+$', commit):
-            with open('keymapper/commit_hash.py', 'w') as f:
-                f.write(f"COMMIT_HASH = '{commit}'\n")
+        try:
+            commit = os.popen('git rev-parse HEAD').read().strip()
+            if re.match(r'^([a-z]|[0-9])+$', commit):
+                # for whatever reason different systems have different paths here
+                build_dir = ''
+                if os.path.exists('build/lib/keymapper'):
+                    build_dir = 'build/lib/'
+                with open(f'{build_dir}keymapper/commit_hash.py', 'w+') as f:
+                    f.write(f"COMMIT_HASH = '{commit}'\n")
+        except Exception as e:
+            print('Failed to save the commit hash:', e)
 
         # generate .mo files
         make_lang()
@@ -45,20 +52,25 @@ class Install(install):
         install.run(self)
 
 
-def get_packages():
+def get_packages(base='keymapper'):
     """Return all modules used in key-mapper.
 
-    For example 'keymapper.gui'.
+    For example 'keymapper.gui' or 'keymapper.injection.consumers'
     """
-    result = ['keymapper']
-    for name in os.listdir('keymapper'):
-        if not os.path.isdir(f'keymapper/{name}'):
+    if not os.path.exists(os.path.join(base, '__init__.py')):
+        # only python modules
+        return []
+
+    result = [base.replace('/', '.')]
+    for name in os.listdir(base):
+        if not os.path.isdir(os.path.join(base, name)):
             continue
 
         if name == '__pycache__':
             continue
 
-        result.append(f'keymapper.{name}')
+        # find more python submodules in that directory
+        result += get_packages(os.path.join(base, name))
 
     return result
 
@@ -84,7 +96,7 @@ for po_file in glob.glob(PO_FILES):
 
 setup(
     name='key-mapper',
-    version='1.0.0',
+    version='1.1.0',
     description='A tool to change the mapping of your input device buttons',
     author='Sezanzeb',
     author_email='proxima@sezanzeb.de',
