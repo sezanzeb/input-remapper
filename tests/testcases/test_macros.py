@@ -38,7 +38,7 @@ from keymapper.injection.macros import (
 from keymapper.injection.context import Context
 from keymapper.config import config
 from keymapper.mapping import Mapping
-from keymapper.state import system_mapping
+from keymapper.system_mapping import system_mapping
 from keymapper.utils import PRESS, RELEASE
 
 from tests.test import quick_cleanup, new_event

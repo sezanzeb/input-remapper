@@ -34,7 +34,7 @@ from keymapper.key import Key
 from keymapper.injection.consumer_control import ConsumerControl, consumer_classes
 from keymapper.injection.consumers.consumer import Consumer
 from keymapper.injection.consumers.keycode_mapper import KeycodeMapper
-from keymapper.state import system_mapping
+from keymapper.system_mapping import system_mapping
 
 from tests.test import new_event, quick_cleanup
 

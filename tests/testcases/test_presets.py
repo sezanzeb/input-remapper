@@ -34,7 +34,7 @@ from keymapper.presets import (
     migrate_path,
 )
 from keymapper.paths import CONFIG_PATH, get_preset_path, touch, mkdir
-from keymapper.state import custom_mapping
+from keymapper.gui.custom_mapping import custom_mapping
 
 from tests.test import tmp
 

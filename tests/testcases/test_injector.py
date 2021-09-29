@@ -57,7 +57,8 @@ from keymapper.injection.injector import (
     UNKNOWN,
 )
 from keymapper.injection.numlock import is_numlock_on, set_numlock, ensure_numlock
-from keymapper.state import custom_mapping, system_mapping
+from keymapper.system_mapping import system_mapping
+from keymapper.gui.custom_mapping import custom_mapping
 from keymapper.mapping import Mapping, DISABLE_CODE, DISABLE_NAME
 from keymapper.config import config, NONE, MOUSE, WHEEL, BUTTONS
 from keymapper.key import Key

@@ -25,7 +25,8 @@
 import evdev
 from gi.repository import Gtk, GLib, Gdk
 
-from keymapper.state import custom_mapping, system_mapping
+from keymapper.system_mapping import system_mapping
+from keymapper.gui.custom_mapping import custom_mapping
 from keymapper.logger import logger
 from keymapper.key import Key
 from keymapper.gui.reader import reader

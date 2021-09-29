@@ -41,7 +41,7 @@ from keymapper.logger import logger, is_debug
 from keymapper.injection.injector import Injector, UNKNOWN
 from keymapper.mapping import Mapping
 from keymapper.config import config
-from keymapper.state import system_mapping
+from keymapper.system_mapping import system_mapping
 from keymapper.groups import groups
 
 

@@ -30,7 +30,7 @@ import collections
 from importlib.util import spec_from_loader, module_from_spec
 from importlib.machinery import SourceFileLoader
 
-from keymapper.state import custom_mapping
+from keymapper.gui.custom_mapping import custom_mapping
 from keymapper.config import config
 from keymapper.daemon import Daemon
 from keymapper.mapping import Mapping

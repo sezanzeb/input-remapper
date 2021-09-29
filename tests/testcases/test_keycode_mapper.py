@@ -41,7 +41,7 @@ from keymapper.injection.consumers.keycode_mapper import (
     unreleased,
     subsets,
 )
-from keymapper.state import system_mapping
+from keymapper.system_mapping import system_mapping
 from keymapper.injection.macros import parse
 from keymapper.injection.context import Context
 from keymapper.utils import RELEASE, PRESS

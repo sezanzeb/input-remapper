@@ -34,7 +34,7 @@ from keymapper.groups import groups, GAMEPAD
 from keymapper.ipc.pipe import Pipe
 from keymapper.gui.helper import TERMINATE, REFRESH_GROUPS
 from keymapper import utils
-from keymapper.state import custom_mapping
+from keymapper.gui.custom_mapping import custom_mapping
 from keymapper.user import USER
 
 

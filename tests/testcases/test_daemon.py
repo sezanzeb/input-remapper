@@ -31,7 +31,8 @@ from evdev.ecodes import EV_KEY, EV_ABS
 from gi.repository import Gtk
 from pydbus import SystemBus
 
-from keymapper.state import custom_mapping, system_mapping
+from keymapper.system_mapping import system_mapping
+from keymapper.gui.custom_mapping import custom_mapping
 from keymapper.config import config
 from keymapper.groups import groups
 from keymapper.paths import get_config_path, mkdir, get_preset_path

@@ -78,7 +78,7 @@ def utils(options):
         sys.exit(0)
 
     if options.key_names:
-        from keymapper.state import system_mapping
+        from keymapper.system_mapping import system_mapping
         print('\n'.join(system_mapping.list_names()))
         sys.exit(0)
 
