@@ -34,10 +34,17 @@ PO_FILES = 'po/*.po'
 class Install(install):
     """Add the commit hash and build .mo translations."""
     def run(self):
-        commit = os.popen('git rev-parse HEAD').read().strip()
-        if re.match(r'^([a-z]|[0-9])+$', commit):
-            with open('keymapper/commit_hash.py', 'w') as f:
-                f.write(f"COMMIT_HASH = '{commit}'\n")
+        try:
+            commit = os.popen('git rev-parse HEAD').read().strip()
+            if re.match(r'^([a-z]|[0-9])+$', commit):
+                # for whatever reason different systems have different paths here
+                build_dir = ''
+                if os.path.exists('build/lib/keymapper'):
+                    build_dir = 'build/lib/'
+                with open(f'{build_dir}keymapper/commit_hash.py', 'w+') as f:
+                    f.write(f"COMMIT_HASH = '{commit}'\n")
+        except Exception as e:
+            print('Failed to save the commit hash:', e)
 
         # generate .mo files
         make_lang()
