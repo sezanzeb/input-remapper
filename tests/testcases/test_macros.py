@@ -26,9 +26,9 @@ import multiprocessing
 
 from evdev.ecodes import EV_REL, EV_KEY, REL_Y, REL_X, REL_WHEEL, REL_HWHEEL
 
-from keymapper.injection.macros import (
+from keymapper.injection.macros.macro import Macro, type_check
+from keymapper.injection.macros.parse import (
     parse,
-    _Macro,
     _extract_params,
     is_this_a_macro,
     _parse_recurse,
@@ -67,6 +67,23 @@ class TestMacros(unittest.IsolatedAsyncioTestCase):
         """Where macros should write codes to."""
         print(f"\033[90mmacro wrote{(ev_type, code, value)}\033[0m")
         self.result.append((ev_type, code, value))
+
+    def test_type_check(self):
+        # allows params that can be cast to the target type
+        self.assertEqual(type_check("foo", 1, [str, None], 0), "1")
+        self.assertEqual(type_check("foo", "1", [int, None], 1), 1)
+        self.assertEqual(type_check("foo", 1.2, [str], 2), "1.2")
+
+        self.assertRaises(TypeError, lambda: type_check("foo", "1.2", [int], 3), 1.2)
+        self.assertRaises(TypeError, lambda: type_check("foo", "a", [None], 0))
+        self.assertRaises(TypeError, lambda: type_check("foo", "a", [int], 1))
+        self.assertRaises(TypeError, lambda: type_check("foo", "a", [int, float], 2))
+        self.assertRaises(TypeError, lambda: type_check("foo", "a", [int, float, None], 3))
+        self.assertEqual(type_check("foo", "a", [int, float, None, str], 4), "a")
+
+        self.assertRaises(TypeError, lambda: type_check("foo", "a", [Macro], 0))
+        self.assertRaises(TypeError, lambda: type_check("foo", 1, [Macro], 0))
+        self.assertEqual(type_check("foo", "1", [Macro, int], 4), 1)
 
     async def test_is_this_a_macro(self):
         self.assertTrue(is_this_a_macro("k(1)"))
@@ -214,35 +231,79 @@ class TestMacros(unittest.IsolatedAsyncioTestCase):
         self.assertIn("bracket", error)
         error = parse("k((1).k)", self.context, return_errors=True)
         self.assertIsNotNone(error)
-        error = parse("r(a, k(1))", self.context, return_errors=True)
-        self.assertIsNotNone(error)
         error = parse("k()", self.context, return_errors=True)
         self.assertIsNotNone(error)
         error = parse("k(1)", self.context, return_errors=True)
         self.assertIsNone(error)
         error = parse("k(1, 1)", self.context, return_errors=True)
         self.assertIsNotNone(error)
+
         error = parse("h(1, 1)", self.context, return_errors=True)
         self.assertIsNotNone(error)
         error = parse("h(h(h(1, 1)))", self.context, return_errors=True)
         self.assertIsNotNone(error)
+
         error = parse("r(1)", self.context, return_errors=True)
+        self.assertIsNotNone(error)
+        error = parse("r(a, k(1))", self.context, return_errors=True)
         self.assertIsNotNone(error)
         error = parse("r(1, 1)", self.context, return_errors=True)
         self.assertIsNotNone(error)
         error = parse("r(k(1), 1)", self.context, return_errors=True)
         self.assertIsNotNone(error)
+        error = parse("r(1.2, k(1))", self.context, return_errors=True)
+        self.assertIsNotNone(error)
         error = parse("r(1, k(1))", self.context, return_errors=True)
         self.assertIsNone(error)
+
         error = parse("m(asdf, k(a))", self.context, return_errors=True)
         self.assertIsNotNone(error)
+
         error = parse("if_tap(, k(a), 1000)", self.context, return_errors=True)
         self.assertIsNone(error)
+        error = parse("if_tap(, k(a))", self.context, return_errors=True)
+        self.assertIsNone(error)
+        error = parse("if_tap(k(a),)", self.context, return_errors=True)
+        self.assertIsNone(error)
+        error = parse("if_tap(k(a), b)", self.context, return_errors=True)
+        self.assertIsNotNone(error)
+
         error = parse("if_single(k(a),)", self.context, return_errors=True)
         self.assertIsNone(error)
+        error = parse("if_single(1,)", self.context, return_errors=True)
+        self.assertIsNotNone(error)
+        error = parse("if_single(,1)", self.context, return_errors=True)
+        self.assertIsNotNone(error)
+
+        error = parse("mouse(up, 3)", self.context, return_errors=True)
+        self.assertIsNone(error)
+        error = parse("mouse(3, up)", self.context, return_errors=True)
+        self.assertIsNotNone(error)
+
+        error = parse("wheel(left, 3)", self.context, return_errors=True)
+        self.assertIsNone(error)
+        error = parse("wheel(3, left)", self.context, return_errors=True)
+        self.assertIsNotNone(error)
+
+        error = parse("w(2)", self.context, return_errors=True)
+        self.assertIsNone(error)
+        error = parse("w(a)", self.context, return_errors=True)
+        self.assertIsNotNone(error)
+
+        error = parse("ifeq(a, 2, k(a),)", self.context, return_errors=True)
+        self.assertIsNone(error)
+        error = parse("ifeq(a, 2, , k(a))", self.context, return_errors=True)
+        self.assertIsNone(error)
+        error = parse("ifeq(a, 2, 1,)", self.context, return_errors=True)
+        self.assertIsNotNone(error)
+        error = parse("ifeq(a, 2, , 2)", self.context, return_errors=True)
+        self.assertIsNotNone(error)
+
         error = parse("foo(a)", self.context, return_errors=True)
         self.assertIn("unknown", error.lower())
         self.assertIn("foo", error)
+
+
 
     async def test_hold(self):
         # repeats k(a) as long as the key is held down
@@ -490,7 +551,7 @@ class TestMacros(unittest.IsolatedAsyncioTestCase):
     async def test_6(self):
         # does nothing without .run
         macro = parse("k(a).r(3, k(b))", self.context)
-        self.assertIsInstance(macro, _Macro)
+        self.assertIsInstance(macro, Macro)
         self.assertListEqual(self.result, [])
 
     async def test_keystroke_sleep_config(self):

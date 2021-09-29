@@ -42,7 +42,7 @@ from keymapper.injection.consumers.keycode_mapper import (
     subsets,
 )
 from keymapper.system_mapping import system_mapping
-from keymapper.injection.macros import parse
+from keymapper.injection.macros.parse import parse
 from keymapper.injection.context import Context
 from keymapper.utils import RELEASE, PRESS
 from keymapper.config import config, BUTTONS

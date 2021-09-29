@@ -56,7 +56,7 @@ from keymapper.gui.helper import is_helper_running
 from keymapper.injection.injector import RUNNING, FAILED, NO_GRAB
 from keymapper.daemon import Daemon
 from keymapper.config import config
-from keymapper.injection.macros import is_this_a_macro, parse
+from keymapper.injection.macros.parse import is_this_a_macro, parse
 
 
 def gtk_iteration():
