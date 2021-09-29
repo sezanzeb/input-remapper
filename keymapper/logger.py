@@ -147,12 +147,13 @@ logger.addHandler(handler)
 logger.setLevel(logging.INFO)
 logging.getLogger("asyncio").setLevel(logging.WARNING)
 
+
+VERSION = ""
+EVDEV_VERSION = None
 try:
     VERSION = pkg_resources.require("key-mapper")[0].version
     EVDEV_VERSION = pkg_resources.require("evdev")[0].version
 except pkg_resources.DistributionNotFound as error:
-    VERSION = ""
-    EVDEV_VERSION = None
     logger.info("Could not figure out the version")
     logger.debug(error)
 
