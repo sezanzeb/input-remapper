@@ -84,7 +84,7 @@ for po_file in glob.glob(PO_FILES):
 
 setup(
     name='key-mapper',
-    version='1.0.0',
+    version='1.1.0',
     description='A tool to change the mapping of your input device buttons',
     author='Sezanzeb',
     author_email='proxima@sezanzeb.de',
