@@ -203,19 +203,13 @@ class RootHelper:
 
         if event.type == EV_ABS:
             abs_range = utils.get_abs_range(device, event.code)
-            event.value = utils.normalize_value(event, abs_range)
+            event.value = utils.classify_action(event, abs_range)
         else:
-            event.value = utils.normalize_value(event)
+            event.value = utils.classify_action(event)
 
         self._results.send(
             {
                 "type": "event",
-                "message": (
-                    event.sec,
-                    event.usec,
-                    event.type,
-                    event.code,
-                    event.value,
-                ),
+                "message": (event.sec, event.usec, event.type, event.code, event.value),
             }
         )

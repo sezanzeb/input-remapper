@@ -41,6 +41,8 @@ from evdev.ecodes import (
 from keymapper.logger import logger
 from keymapper.config import MOUSE, WHEEL
 from keymapper import utils
+from keymapper.injection.consumers.consumer import Consumer
+from keymapper.groups import classify, GAMEPAD
 
 # miniscule movements on the joystick should not trigger a mouse wheel event
 WHEEL_THRESHOLD = 0.15
@@ -53,36 +55,31 @@ def abs_max(value_1, value_2):
     return value_2
 
 
-class EventProducer:
+class EventProducer(Consumer):
     """Keeps producing events at 60hz if needed.
 
-    Can debounce arbitrary functions. Maps joysticks to mouse movements.
+    Maps joysticks to mouse movements.
 
     This class does not handle injecting macro stuff over time, that is done
     by the keycode_mapper.
     """
 
-    def __init__(self, context):
+    def __init__(self, *args, **kwargs):
         """Construct the event producer without it doing anything yet."""
-        self.context = context
+        super().__init__(*args, **kwargs)
 
-        self.abs_range = None
+        self._abs_range = None
+        self._set_abs_range_from(self.source)
+
         # events only take ints, so a movement of 0.3 needs to add
         # up to 1.2 to affect the cursor, with 0.2 remaining
         self.pending_rel = {REL_X: 0, REL_Y: 0, REL_WHEEL: 0, REL_HWHEEL: 0}
         # the last known position of the joystick
         self.abs_state = {ABS_X: 0, ABS_Y: 0, ABS_RX: 0, ABS_RY: 0}
 
-        self.debounces = {}
-
-    def notify(self, event):
-        """Tell the EventProducer about the newest ABS event.
-
-        Afterwards, it can continue moving the mouse pointer in the
-        correct direction.
-        """
-        if event.type == EV_ABS and event.code in self.abs_state:
-            self.abs_state[event.code] = event.value
+    def is_enabled(self):
+        gamepad = classify(self.source) == GAMEPAD
+        return gamepad and self.context.joystick_as_mouse()
 
     def _write(self, ev_type, keycode, value):
         """Inject."""
@@ -94,22 +91,6 @@ class EventProducer:
         except OverflowError:
             # screwed up the calculation of mouse movements
             logger.error("OverflowError (%s, %s, %s)", ev_type, keycode, value)
-
-    def debounce(self, debounce_id, func, args, ticks):
-        """Debounce a function call.
-
-        Parameters
-        ----------
-        debounce_id : hashable
-            If this function is called with the same debounce_id again,
-            the previous debouncing is overwritten, and there fore restarted.
-        func : function
-        args : tuple
-        ticks : int
-            After ticks * 1 / 60 seconds the function will be executed,
-            unless debounce is called again with the same debounce_id
-        """
-        self.debounces[debounce_id] = [func, args, ticks]
 
     def accumulate(self, code, input_value):
         """Since devices can't do float values, stuff has to be accumulated.
@@ -123,7 +104,7 @@ class EventProducer:
         self.pending_rel[code] -= output_value
         return output_value
 
-    def set_abs_range_from(self, device):
+    def _set_abs_range_from(self, device):
         """Update the min and max values joysticks will report.
 
         This information is needed for abs -> rel mapping.
@@ -149,16 +130,11 @@ class EventProducer:
 
         This information is needed for abs -> rel mapping.
         """
-        self.abs_range = (min_abs, max_abs)
+        self._abs_range = (min_abs, max_abs)
 
         # all joysticks in resting position by default
-        center = (self.abs_range[1] + self.abs_range[0]) / 2
-        self.abs_state = {
-            ABS_X: center,
-            ABS_Y: center,
-            ABS_RX: center,
-            ABS_RY: center,
-        }
+        center = (self._abs_range[1] + self._abs_range[0]) / 2
+        self.abs_state = {ABS_X: center, ABS_Y: center, ABS_RX: center, ABS_RY: center}
 
     def get_abs_values(self):
         """Get the raw values for wheel and mouse movement.
@@ -169,9 +145,9 @@ class EventProducer:
         absolute values takes over the control.
         """
         # center is the value of the resting position
-        center = (self.abs_range[1] + self.abs_range[0]) / 2
+        center = (self._abs_range[1] + self._abs_range[0]) / 2
         # normalizer is the maximum possible value after centering
-        normalizer = (self.abs_range[1] - self.abs_range[0]) / 2
+        normalizer = (self._abs_range[1] - self._abs_range[0]) / 2
 
         mouse_x = 0
         mouse_y = 0
@@ -206,7 +182,7 @@ class EventProducer:
         if event.type != EV_ABS or event.code not in utils.JOYSTICK:
             return False
 
-        if self.abs_range is None:
+        if self._abs_range is None:
             return False
 
         purposes = [MOUSE, WHEEL]
@@ -221,13 +197,17 @@ class EventProducer:
 
         return False
 
+    async def notify(self, event):
+        if event.type == EV_ABS and event.code in self.abs_state:
+            self.abs_state[event.code] = event.value
+
     async def run(self):
         """Keep writing mouse movements based on the gamepad stick position.
 
         Even if no new input event arrived because the joystick remained at
         its position, this will keep injecting the mouse movement events.
         """
-        abs_range = self.abs_range
+        abs_range = self._abs_range
         mapping = self.context.mapping
         pointer_speed = mapping.get("gamepad.joystick.pointer_speed")
         non_linearity = mapping.get("gamepad.joystick.non_linearity")
@@ -244,24 +224,10 @@ class EventProducer:
 
         start = time.time()
         while True:
-            # production loop. try to do this as close to 60hz as possible
+            # try to do this as close to 60hz as possible
             time_taken = time.time() - start
             await asyncio.sleep(max(0.0, (1 / 60) - time_taken))
             start = time.time()
-
-            """handling debounces"""
-
-            for debounce in self.debounces.values():
-                if debounce[2] == -1:
-                    # has already been triggered
-                    continue
-                if debounce[2] == 0:
-                    debounce[0](*debounce[1])
-                    debounce[2] = -1
-                else:
-                    debounce[2] -= 1
-
-            """mouse movement production"""
 
             if abs_range is None:
                 # no ev_abs events will be mapped to ev_rel

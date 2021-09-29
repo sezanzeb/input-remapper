@@ -312,6 +312,9 @@ class InputDevice:
 
         self.fd = pending_events[self.group_key][1].fileno()
 
+    def push_events(self, events):
+        push_events(self.group_key, events)
+
     def fileno(self):
         """Compatibility to select.select."""
         return self.fd
@@ -519,7 +522,7 @@ from keymapper.groups import groups
 from keymapper.state import system_mapping, custom_mapping
 from keymapper.paths import get_config_path
 from keymapper.injection.macros import macro_variables
-from keymapper.injection.keycode_mapper import active_macros, unreleased
+from keymapper.injection.consumers.keycode_mapper import active_macros, unreleased
 
 # no need for a high number in tests
 Injector.regrab_timeout = 0.05
@@ -534,13 +537,7 @@ def send_event_to_reader(event):
     reader._results._unread.append(
         {
             "type": "event",
-            "message": (
-                event.sec,
-                event.usec,
-                event.type,
-                event.code,
-                event.value,
-            ),
+            "message": (event.sec, event.usec, event.type, event.code, event.value),
         }
     )
 
@@ -566,9 +563,14 @@ def quick_cleanup(log=True):
     except (BrokenPipeError, OSError):
         pass
 
-    if asyncio.get_event_loop().is_running():
-        for task in asyncio.all_tasks():
-            task.cancel()
+    try:
+        if asyncio.get_event_loop().is_running():
+            for task in asyncio.all_tasks():
+                task.cancel()
+    except RuntimeError:
+        # happens when the event loop disappears for magical reasons
+        # create a fresh event loop
+        asyncio.set_event_loop(asyncio.new_event_loop())
 
     if not macro_variables.process.is_alive():
         raise AssertionError("the SharedDict manager is not running anymore")

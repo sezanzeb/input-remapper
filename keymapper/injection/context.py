@@ -34,6 +34,8 @@ class Context:
     In some ways this is a wrapper for the mapping that derives some
     information that is specifically important to the injection.
 
+    The information in the context does not change during the injection.
+
     One Context exists for each injection process, which is shared
     with all coroutines and used objects.
 
@@ -88,7 +90,11 @@ class Context:
         self.uinput = None
 
     def update_purposes(self):
-        """Read joystick purposes from the configuration."""
+        """Read joystick purposes from the configuration.
+
+        For efficiency, so that the config doesn't have to be read during
+        runtime repeatedly.
+        """
         self.left_purpose = self.mapping.get("gamepad.joystick.left_purpose")
         self.right_purpose = self.mapping.get("gamepad.joystick.right_purpose")
 
@@ -98,7 +104,7 @@ class Context:
         macros = {}
         for key, output in self.mapping:
             if is_this_a_macro(output):
-                macro = parse(output, self.mapping)
+                macro = parse(output, self)
                 if macro is None:
                     continue
 
@@ -143,8 +149,10 @@ class Context:
 
         Parameters
         ----------
-        key : ((int, int, int),)
-            One or more 3-tuples of type, code, value
+        key : tuple of tuple of int
+            One or more 3-tuples of type, code, action,
+            for example ((EV_KEY, KEY_A, 1), (EV_ABS, ABS_X, -1))
+            or ((EV_KEY, KEY_B, 1),)
         """
         return key in self.macros or key in self.key_to_code
 

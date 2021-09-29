@@ -96,11 +96,7 @@ class TestGroups(unittest.TestCase):
                                 "/dev/input/event10",
                                 "/dev/input/event13",
                             ],
-                            "names": [
-                                "Foo Device foo",
-                                "Foo Device",
-                                "Foo Device",
-                            ],
+                            "names": ["Foo Device foo", "Foo Device", "Foo Device"],
                             "types": [KEYBOARD, MOUSE],
                             "key": "Foo Device 2",
                         }
@@ -302,12 +298,7 @@ class TestGroups(unittest.TestCase):
 
         self.assertEqual(
             classify(
-                FakeDevice(
-                    {
-                        EV_ABS: [evdev.ecodes.ABS_X],
-                        EV_KEY: [evdev.ecodes.BTN_A],
-                    }
-                )
+                FakeDevice({EV_ABS: [evdev.ecodes.ABS_X], EV_KEY: [evdev.ecodes.BTN_A]})
             ),
             UNKNOWN,
         )

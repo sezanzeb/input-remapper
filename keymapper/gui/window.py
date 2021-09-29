@@ -38,13 +38,7 @@ from keymapper.presets import (
     rename_preset,
     get_available_preset_name,
 )
-from keymapper.logger import (
-    logger,
-    COMMIT_HASH,
-    VERSION,
-    EVDEV_VERSION,
-    is_debug,
-)
+from keymapper.logger import logger, COMMIT_HASH, VERSION, EVDEV_VERSION, is_debug
 from keymapper.groups import (
     groups,
     GAMEPAD,
@@ -89,14 +83,7 @@ ICON_NAMES = {
 }
 
 # sort types that most devices would fall in easily to the right.
-ICON_PRIORITIES = [
-    GRAPHICS_TABLET,
-    TOUCHPAD,
-    GAMEPAD,
-    MOUSE,
-    KEYBOARD,
-    UNKNOWN,
-]
+ICON_PRIORITIES = [GRAPHICS_TABLET, TOUCHPAD, GAMEPAD, MOUSE, KEYBOARD, UNKNOWN]
 
 
 def with_group(func):
@@ -355,8 +342,7 @@ class Window:
             )
             logger.spam("Mapping %s", list(custom_mapping))
             logger.spam(
-                "Rows    %s",
-                [(row.get_key(), row.get_symbol()) for row in rows],
+                "Rows    %s", [(row.get_key(), row.get_symbol()) for row in rows]
             )
 
         # iterating over that 10 times per second is a bit wasteful,
@@ -622,8 +608,7 @@ class Window:
                 # it's super annoying if that happens and may break the user
                 # input in such a way to prevent disabling the mapping
                 logger.error(
-                    "Tried to apply a preset while keys were held down: %s",
-                    unreleased,
+                    "Tried to apply a preset while keys were held down: %s", unreleased
                 )
                 self.show_status(
                     CTX_ERROR,
@@ -776,10 +761,7 @@ class Window:
         key_list = self.get("key_list")
         for key, output in custom_mapping:
             single_key_mapping = Row(
-                window=self,
-                delete_callback=self.on_row_removed,
-                key=key,
-                symbol=output,
+                window=self, delete_callback=self.on_row_removed, key=key, symbol=output
             )
             key_list.insert(single_key_mapping, -1)
 

@@ -43,18 +43,11 @@ import multiprocessing
 import atexit
 import select
 
-from evdev.ecodes import (
-    ecodes,
-    EV_KEY,
-    EV_REL,
-    REL_X,
-    REL_Y,
-    REL_WHEEL,
-    REL_HWHEEL,
-)
+from evdev.ecodes import ecodes, EV_KEY, EV_REL, REL_X, REL_Y, REL_WHEEL, REL_HWHEEL
 
 from keymapper.logger import logger
 from keymapper.state import system_mapping
+from keymapper.utils import PRESS, PRESS_NEGATIVE
 
 
 class SharedDict:
@@ -165,25 +158,25 @@ class _Macro:
     used to inject input events into the system.
     """
 
-    def __init__(self, code, mapping):
+    def __init__(self, code, context):
         """Create a macro instance that can be populated with tasks.
 
         Parameters
         ----------
         code : string or None
             The original parsed code, for logging purposes.
-        mapping : Mapping
-            The preset object, needed for some config stuff
+        context : Context
         """
         self.code = code
-        self.mapping = mapping
+        self.context = context
 
         # List of coroutines that will be called sequentially.
         # This is the compiled code
         self.tasks = []
 
-        # is a lock so that h() can be realized
-        self._holding_lock = asyncio.Lock()
+        # can be used to wait for the release of the event
+        self._holding_event = asyncio.Event()
+        self._holding_event.set()  # released by default
 
         self.running = False
 
@@ -197,9 +190,43 @@ class _Macro:
 
         self.keystroke_sleep_ms = None
 
+        self._new_event_arrived = asyncio.Event()
+        self._newest_event = None
+        self._newest_action = None
+
+    def notify(self, event, action):
+        """Tell the macro about the newest event."""
+        for macro in self.child_macros:
+            macro.notify(event, action)
+
+        self._newest_event = event
+        self._newest_action = action
+        self._new_event_arrived.set()
+
+    async def wait_for_event(self, filter=None):
+        """Wait until a specific event arrives.
+
+        The parameters can be used to provide a filter. It will block
+        until an event arrives that matches them.
+
+        Parameters
+        ----------
+        filter : function
+            Receives the event. Stop waiting if it returns true.
+        """
+        while True:
+            await self._new_event_arrived.wait()
+            self._new_event_arrived.clear()
+
+            if filter is not None:
+                if not filter(self._newest_event, self._newest_action):
+                    continue
+
+            break
+
     def is_holding(self):
         """Check if the macro is waiting for a key to be released."""
-        return self._holding_lock.locked()
+        return not self._holding_event.is_set()
 
     def get_capabilities(self):
         """Resolve all capabilities of the macro and those of its children."""
@@ -227,7 +254,11 @@ class _Macro:
             logger.error('Tried to run already running macro "%s"', self.code)
             return
 
-        self.keystroke_sleep_ms = self.mapping.get("macros.keystroke_sleep_ms")
+        # newly arriving events are only interesting if they arrive after the
+        # macro started
+        self._new_event_arrived.clear()
+
+        self.keystroke_sleep_ms = self.context.mapping.get("macros.keystroke_sleep_ms")
 
         self.running = True
         for task in self.tasks:
@@ -247,44 +278,27 @@ class _Macro:
             logger.error("Already holding")
             return
 
-        asyncio.ensure_future(self._holding_lock.acquire())
+        self._holding_event.clear()
 
         for macro in self.child_macros:
             macro.press_key()
 
     def release_key(self):
         """The user released the key."""
-        if self._holding_lock is not None:
-            self._holding_lock.release()
+        self._holding_event.set()
 
         for macro in self.child_macros:
             macro.release_key()
 
     def hold(self, macro=None):
         """Loops the execution until key release."""
-
-        async def hold_block(_):
-            # wait until the key is released. Only then it will be
-            # able to acquire the lock. Release it right after so that
-            # it can be acquired by press_key again.
-            try:
-                await self._holding_lock.acquire()
-                self._holding_lock.release()
-            except RuntimeError as error:
-                # The specific bug in question has been fixed already,
-                # but lets keep this check here for the future. Not
-                # catching errors here causes the macro to never be
-                # released
-                logger.error("Failed h(): %s", error)
-
         if macro is None:
-            # no parameters: block until released
-            self.tasks.append(hold_block)
+            self.tasks.append(lambda _: self._holding_event.wait())
             return
 
         if not isinstance(macro, _Macro):
-            # if macro is a key name, hold down the key while the actual
-            # keyboard key is held down
+            # if macro is a key name, hold down the key while the
+            # keyboard key is physically held down
             symbol = str(macro)
             code = system_mapping.get(symbol)
 
@@ -293,7 +307,7 @@ class _Macro:
 
             self.capabilities[EV_KEY].add(code)
             self.tasks.append(lambda handler: handler(EV_KEY, code, 1))
-            self.tasks.append(hold_block)
+            self.tasks.append(lambda _: self._holding_event.wait())
             self.tasks.append(lambda handler: handler(EV_KEY, code, 0))
             return
 
@@ -430,7 +444,7 @@ class _Macro:
             "right": (REL_X, 1),
         }[direction.lower()]
         value *= speed
-        child_macro = _Macro(None, self.mapping)
+        child_macro = _Macro(None, self.context)
         child_macro.event(EV_REL, code, value)
         self.hold(child_macro)
 
@@ -442,7 +456,7 @@ class _Macro:
             "left": (REL_HWHEEL, 1),
             "right": (REL_HWHEEL, -1),
         }[direction.lower()]
-        child_macro = _Macro(None, self.mapping)
+        child_macro = _Macro(None, self.context)
         child_macro.event(EV_REL, code, value)
         child_macro.wait(100 / speed)
         self.hold(child_macro)
@@ -480,10 +494,10 @@ class _Macro:
         ----------
         variable : string
         value : string | number
-        then : any
-        otherwise : any
+        then : _Macro | None
+        otherwise : _Macro | None
         """
-        if not isinstance(then, _Macro):
+        if then and not isinstance(then, _Macro):
             raise ValueError(
                 "Expected the third param for ifeq to be "
                 f'a macro (like k(a)), but got "{then}"'
@@ -499,24 +513,116 @@ class _Macro:
             set_value = macro_variables.get(variable)
             logger.debug('"%s" is "%s"', variable, set_value)
             if set_value == value:
-                await then.run(handler)
+                if then is not None:
+                    await then.run(handler)
             elif otherwise is not None:
                 await otherwise.run(handler)
 
-        self.child_macros.append(then)
+        if isinstance(then, _Macro):
+            self.child_macros.append(then)
         if isinstance(otherwise, _Macro):
             self.child_macros.append(otherwise)
 
         self.tasks.append(ifeq)
 
+    def if_tap(self, then=None, otherwise=None, timeout=300):
+        """If a key was pressed quickly.
+
+        Parameters
+        ----------
+        then : _Macro | None
+        otherwise : _Macro | None
+        timeout : int
+        """
+        if then and not isinstance(then, _Macro):
+            raise ValueError(
+                "Expected the first param for if_tap to be "
+                f'a macro (like k(a)), but got "{then}"'
+            )
+
+        if otherwise and not isinstance(otherwise, _Macro):
+            raise ValueError(
+                "Expected the second param for if_tap to be "
+                f'a macro (like k(a)), but got "{otherwise}"'
+            )
+
+        if isinstance(then, _Macro):
+            self.child_macros.append(then)
+        if isinstance(otherwise, _Macro):
+            self.child_macros.append(otherwise)
+
+        async def if_tap(handler):
+            try:
+                coroutine = self._holding_event.wait()
+                await asyncio.wait_for(coroutine, timeout / 1000)
+                if then:
+                    await then.run(handler)
+            except asyncio.TimeoutError:
+                if otherwise:
+                    await otherwise.run(handler)
+
+        self.tasks.append(if_tap)
+
+    def if_single(self, then, otherwise):
+        """If a key was pressed without combining it.
+
+        Parameters
+        ----------
+        then : _Macro | None
+        otherwise : _Macro | None
+        """
+        if then and not isinstance(then, _Macro):
+            raise ValueError(
+                "Expected the first param for if_tap to be "
+                f'a macro (like k(a)), but got "{then}"'
+            )
+
+        if otherwise and not isinstance(otherwise, _Macro):
+            raise ValueError(
+                "Expected the second param for if_tap to be "
+                f'a macro (like k(a)), but got "{otherwise}"'
+            )
+
+        if isinstance(then, _Macro):
+            self.child_macros.append(then)
+        if isinstance(otherwise, _Macro):
+            self.child_macros.append(otherwise)
+
+        async def if_single(handler):
+            mappable_event_1 = (self._newest_event.type, self._newest_event.code)
+
+            def event_filter(event, action):
+                """Which event may wake if_tap up."""
+                # release event of the actual key
+                if (event.type, event.code) == mappable_event_1:
+                    return True
+
+                # press event of another key
+                if action in (PRESS, PRESS_NEGATIVE):
+                    return True
+
+            await self.wait_for_event(event_filter)
+
+            mappable_event_2 = (self._newest_event.type, self._newest_event.code)
+
+            combined = mappable_event_1 != mappable_event_2
+            if then and not combined:
+                await then.run(handler)
+            elif otherwise:
+                await otherwise.run(handler)
+
+        self.tasks.append(if_single)
+
 
 def _extract_params(inner):
     """Extract parameters from the inner contents of a call.
 
+    This does not parse them.
+
     Parameters
     ----------
     inner : string
-        for example 'r, r(2, k(a))' should result in ['r', 'r(2, k(a)']
+        for example '1, r, r(2, k(a))' should result in ['1', 'r', 'r(2, k(a))']
     """
     inner = inner.strip()
     brackets = 0
@@ -566,15 +672,14 @@ def _count_brackets(macro):
     return position
 
 
-def _parse_recurse(macro, mapping, macro_instance=None, depth=0):
+def _parse_recurse(macro, context, macro_instance=None, depth=0):
     """Handle a subset of the macro, e.g. one parameter or function call.
 
     Parameters
     ----------
     macro : string
         Just like parse
-    mapping : Mapping
-        The preset configuration
+    context : Context
     macro_instance : _Macro or None
         A macro instance to add tasks to
     depth : int
@@ -587,7 +692,7 @@ def _parse_recurse(macro, mapping, macro_instance=None, depth=0):
         return None
 
     if macro_instance is None:
-        macro_instance = _Macro(macro, mapping)
+        macro_instance = _Macro(macro, context)
     else:
         assert isinstance(macro_instance, _Macro)
 
@@ -611,6 +716,8 @@ def _parse_recurse(macro, mapping, macro_instance=None, depth=0):
             "wheel": (macro_instance.wheel, 2, 2),
             "ifeq": (macro_instance.ifeq, 3, 4),
             "set": (macro_instance.set, 2, 2),
+            "if_tap": (macro_instance.if_tap, 1, 3),
+            "if_single": (macro_instance.if_single, 1, 2),
         }
 
         function = functions.get(call)
@@ -627,7 +734,7 @@ def _parse_recurse(macro, mapping, macro_instance=None, depth=0):
         logger.spam("%scalls %s with %s", space, call, string_params)
         # evaluate the params
         params = [
-            _parse_recurse(param.strip(), mapping, None, depth + 1)
+            _parse_recurse(param.strip(), context, None, depth + 1)
             for param in string_params
         ]
 
@@ -650,7 +757,7 @@ def _parse_recurse(macro, mapping, macro_instance=None, depth=0):
         if len(macro) > position and macro[position] == ".":
             chain = macro[position + 1 :]
             logger.spam("%sfollowed by %s", space, chain)
-            _parse_recurse(chain, mapping, macro_instance, depth)
+            _parse_recurse(chain, context, macro_instance, depth)
 
         return macro_instance
 
@@ -694,7 +801,7 @@ def handle_plus_syntax(macro):
     return output
 
 
-def parse(macro, mapping, return_errors=False):
+def parse(macro, context, return_errors=False):
     """parse and generate a _Macro that can be run as often as you want.
 
     If it could not be parsed, possibly due to syntax errors, will log the
@@ -706,8 +813,7 @@ def parse(macro, mapping, return_errors=False):
         "r(3, k(a).w(10))"
         "r(2, k(a).k(-)).k(b)"
         "w(1000).m(Shift_L, r(2, k(a))).w(10, 20).k(b)"
-    mapping : Mapping
-        The preset object, needed for some config stuff
+    context : Context
     return_errors : bool
         If True, returns errors as a string or None if parsing worked.
         If False, returns the parsed macro.
@@ -728,7 +834,7 @@ def parse(macro, mapping, return_errors=False):
         logger.spam("preparing macro %s for later execution", macro)
 
     try:
-        macro_object = _parse_recurse(macro, mapping)
+        macro_object = _parse_recurse(macro, context)
         return macro_object if not return_errors else None
     except Exception as error:
         logger.error('Failed to parse macro "%s": %s', macro, error.__repr__())

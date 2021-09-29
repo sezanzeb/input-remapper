@@ -194,7 +194,7 @@ class TestDaemon(unittest.TestCase):
 
         """injection 2"""
 
-        # -1234 will be normalized to -1 by the injector
+        # -1234 will be classified as -1 by the injector
         push_events(group.key, [new_event(*ev_2, -1234)])
 
         self.daemon.start_injecting(group.key, preset)

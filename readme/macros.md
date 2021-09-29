@@ -16,6 +16,10 @@ It is possible to write timed macros into the center column:
 - `mouse` and `wheel` take a direction like "up" and speed as parameters
 - `set` set a variable to a value, visible to all injection processes
 - `ifeq` if that variable is a certain value do something
+- `if_tap` if a key is tapped quickly, execute the first param, otherwise the
+  second. The third param is the time in milliseconds
+- `if_single` if no other key is pressed until the keys release, execute
+  the first param, otherwise the second
 
 The names for the most common functions are kept short, to make it easy to
 write them into the constrained space.
@@ -34,7 +38,11 @@ Examples:
 - `ifeq(foo, 1, k(x), k(y))` if "foo" is 1, write x, otherwise y
 - `h()` does nothing as long as your key is held down
 - `h(a)` holds down "a" as long as the key is pressed, just like a
-  regular mapping
+  regular non-macro mapping
+- `if_tap(k(a), k(b))` writes a if the key is tapped, otherwise b
+- `if_tap(k(a), k(b), 1000)` writes a if the key is released within a second, otherwise b
+- `if_single(k(a), k(b))` writes b if another key is pressed, or a if the key is released
+  and no other key was pressed in the meantime.
 
 Syntax errors are shown in the UI on save. Each `k` function adds a short
 delay of 10ms between key-down, key-up and at the end. See

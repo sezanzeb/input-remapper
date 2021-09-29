@@ -39,8 +39,7 @@ sudo systemctl enable key-mapper
 sudo systemctl restart key-mapper
 ```
 
-If it doesn't seem to install correctly, you can also try `sudo python3 setup.py install`,
-but with this it will be hard to uninstall.
+If it doesn't seem to install, you can also try `sudo python3 setup.py install`
 
 ## Screenshots
 

@@ -148,7 +148,6 @@ class ConfigBase:
         log_unknown : bool
             If True, write an error if `path` does not exist in the config
         """
-
         def callback(parent, child, chunk):
             return child
 

@@ -110,8 +110,7 @@ class TestConfig(unittest.TestCase):
         self.assertTrue(config.is_autoloaded("d2.foo", "c"))
         self.assertEqual(config._config["autoload"]["d2.foo"], "c")
         self.assertListEqual(
-            list(config.iterate_autoload_presets()),
-            [("d1", "a"), ("d2.foo", "c")],
+            list(config.iterate_autoload_presets()), [("d1", "a"), ("d2.foo", "c")]
         )
 
         config.set_autoload_preset("d2.foo", None)
@@ -148,8 +147,7 @@ class TestConfig(unittest.TestCase):
 
         config.load_config()
         self.assertListEqual(
-            list(config.iterate_autoload_presets()),
-            [("d1", "a"), ("d2.foo", "b")],
+            list(config.iterate_autoload_presets()), [("d1", "a"), ("d2.foo", "b")]
         )
 
         config_2 = os.path.join(tmp, "config_2.json")

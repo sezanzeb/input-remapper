@@ -133,13 +133,13 @@ class TestDevUtils(unittest.TestCase):
         self.assertFalse(do(0, new_event(EV_ABS, ecodes.ABS_MISC, -1)))
         self.assertFalse(do(1, new_event(EV_ABS, ecodes.ABS_MISC, -1)))
 
-    def test_normalize_value(self):
+    def test_classify_action(self):
         """"""
 
         """0 to MAX_ABS"""
 
         def do(event):
-            return utils.normalize_value(event, (0, MAX_ABS))
+            return utils.classify_action(event, (0, MAX_ABS))
 
         event = new_event(EV_ABS, ecodes.ABS_RX, MAX_ABS)
         self.assertEqual(do(event), 1)
@@ -155,7 +155,7 @@ class TestDevUtils(unittest.TestCase):
         """MIN_ABS to MAX_ABS"""
 
         def do2(event):
-            return utils.normalize_value(event, (MIN_ABS, MAX_ABS))
+            return utils.classify_action(event, (MIN_ABS, MAX_ABS))
 
         event = new_event(EV_ABS, ecodes.ABS_RX, MAX_ABS)
         self.assertEqual(do2(event), 1)
@@ -174,7 +174,7 @@ class TestDevUtils(unittest.TestCase):
 
         # it just forwards the value
         event = new_event(EV_ABS, ecodes.ABS_RX, MAX_ABS)
-        self.assertEqual(utils.normalize_value(event, None), MAX_ABS)
+        self.assertEqual(utils.classify_action(event, None), MAX_ABS)
 
         """Not a joystick"""
 

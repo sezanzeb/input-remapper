@@ -128,8 +128,7 @@ def find_newest_preset(group_name=None):
     # sort the oldest files to the front in order to use pop to get the newest
     if group_name is None:
         paths = sorted(
-            glob.glob(os.path.join(get_preset_path(), "*/*.json")),
-            key=os.path.getmtime,
+            glob.glob(os.path.join(get_preset_path(), "*/*.json")), key=os.path.getmtime
         )
     else:
         paths = sorted(

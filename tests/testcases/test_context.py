@@ -26,9 +26,14 @@ from keymapper.mapping import Mapping
 from keymapper.key import Key
 from keymapper.config import NONE, MOUSE, WHEEL, BUTTONS
 from keymapper.state import system_mapping
+from tests.test import quick_cleanup
 
 
 class TestContext(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        quick_cleanup()
+
     def setUp(self):
         self.mapping = Mapping()
         self.mapping.set("gamepad.joystick.left_purpose", WHEEL)
