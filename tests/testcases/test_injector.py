@@ -62,7 +62,7 @@ from keymapper.gui.custom_mapping import custom_mapping
 from keymapper.mapping import Mapping, DISABLE_CODE, DISABLE_NAME
 from keymapper.config import config, NONE, MOUSE, WHEEL, BUTTONS
 from keymapper.key import Key
-from keymapper.injection.macros import parse
+from keymapper.injection.macros.parse import parse
 from keymapper.injection.context import Context
 from keymapper.groups import groups, classify, GAMEPAD
 

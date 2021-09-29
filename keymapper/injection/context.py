@@ -23,7 +23,7 @@
 
 
 from keymapper.logger import logger
-from keymapper.injection.macros import parse, is_this_a_macro
+from keymapper.injection.macros.parse import parse, is_this_a_macro
 from keymapper.system_mapping import system_mapping
 from keymapper.config import NONE, MOUSE, WHEEL, BUTTONS
 
@@ -59,7 +59,7 @@ class Context:
         This is needed to query keycodes more efficiently without having
         to search mapping each time.
     macros : dict
-        Mapping of ((type, code, value),) to _Macro objects.
+        Mapping of ((type, code, value),) to Macro objects.
         Combinations work similar as in key_to_code
     uinput : evdev.UInput
         Where to inject stuff to. This is an extra node in /dev so that
