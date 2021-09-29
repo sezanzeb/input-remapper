@@ -25,8 +25,8 @@ import json
 
 from evdev.ecodes import EV_KEY, EV_ABS, ABS_HAT0X, KEY_A
 
-from keymapper.mapping import Mapping
-from keymapper.state import SystemMapping, XMODMAP_FILENAME
+from keymapper.mapping import Mapping, split_key
+from keymapper.system_mapping import SystemMapping, XMODMAP_FILENAME
 from keymapper.config import config
 from keymapper.paths import get_preset_path
 from keymapper.key import Key
@@ -37,6 +37,13 @@ from tests.test import tmp, quick_cleanup
 class TestSystemMapping(unittest.TestCase):
     def tearDown(self):
         quick_cleanup()
+
+    def test_split_key(self):
+        self.assertEqual(split_key("1,2,3"), (1, 2, 3))
+        self.assertEqual(split_key("1,2"), (1, 2, 1))
+        self.assertIsNone(split_key("1"))
+        self.assertIsNone(split_key("1,a,2"))
+        self.assertIsNone(split_key("1,a"))
 
     def test_update(self):
         system_mapping = SystemMapping()
