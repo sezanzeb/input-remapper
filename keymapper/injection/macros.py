@@ -46,7 +46,7 @@ import select
 from evdev.ecodes import ecodes, EV_KEY, EV_REL, REL_X, REL_Y, REL_WHEEL, REL_HWHEEL
 
 from keymapper.logger import logger
-from keymapper.state import system_mapping
+from keymapper.system_mapping import system_mapping
 from keymapper.utils import PRESS, PRESS_NEGATIVE
 
 

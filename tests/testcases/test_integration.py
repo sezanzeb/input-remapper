@@ -46,7 +46,8 @@ import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk, Gdk
 
-from keymapper.state import custom_mapping, system_mapping, XMODMAP_FILENAME
+from keymapper.system_mapping import system_mapping, XMODMAP_FILENAME
+from keymapper.gui.custom_mapping import custom_mapping
 from keymapper.paths import CONFIG_PATH, get_preset_path, get_config_path
 from keymapper.config import config, WHEEL, MOUSE, BUTTONS
 from keymapper.gui.reader import reader

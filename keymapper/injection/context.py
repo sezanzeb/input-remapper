@@ -24,7 +24,7 @@
 
 from keymapper.logger import logger
 from keymapper.injection.macros import parse, is_this_a_macro
-from keymapper.state import system_mapping
+from keymapper.system_mapping import system_mapping
 from keymapper.config import NONE, MOUSE, WHEEL, BUTTONS
 
 

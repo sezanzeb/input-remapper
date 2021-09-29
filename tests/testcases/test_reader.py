@@ -41,7 +41,7 @@ from evdev.ecodes import (
 )
 
 from keymapper.gui.reader import reader, will_report_up
-from keymapper.state import custom_mapping
+from keymapper.gui.custom_mapping import custom_mapping
 from keymapper.config import BUTTONS, MOUSE
 from keymapper.key import Key
 from keymapper.gui.helper import RootHelper

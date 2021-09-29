@@ -150,8 +150,5 @@ class SystemMapping:
         return xmodmap_dict
 
 
-# one mapping object for the GUI application
-custom_mapping = Mapping()
-
 # this mapping represents the xmodmap output, which stays constant
 system_mapping = SystemMapping()

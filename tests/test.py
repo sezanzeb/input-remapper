@@ -519,7 +519,8 @@ from keymapper.injection.injector import Injector
 from keymapper.config import config
 from keymapper.gui.reader import reader
 from keymapper.groups import groups
-from keymapper.state import system_mapping, custom_mapping
+from keymapper.system_mapping import system_mapping
+from keymapper.gui.custom_mapping import custom_mapping
 from keymapper.paths import get_config_path
 from keymapper.injection.macros import macro_variables
 from keymapper.injection.consumers.keycode_mapper import active_macros, unreleased
