@@ -131,8 +131,8 @@ Bear in mind that anti-cheat software might detect macros in games.
 
 ### event
 
-> Writes an event. type, code and value of existing keys be found via the `sudo evtest`
-> command
+> Writes an event. Examples for `type`, `code` and `value` can be found via the
+> `sudo evtest` command
 >
 > Shorthand: `e`
 >
@@ -155,6 +155,10 @@ Bear in mind that anti-cheat software might detect macros in games.
 > Variables can be used in function arguments by adding a `$` in front of their name:
 > `repeat($foo, key(KEY_A))`
 >
+> Their values are available for other injections/devices as well, so you can make them
+> interact with each other. In other words, using `set` on a keyboard and `if_eq` with
+> the previously used variable name on a mouse will work.
+>
 > ```c#
 > set(variable: str, value: str | int)
 > ```
@@ -168,7 +172,7 @@ Bear in mind that anti-cheat software might detect macros in games.
 
 ### if_eq
 
-> Compare two values and run different macros depending on the outcome
+> Compare two values and run different macros depending on the outcome.
 >
 > ```c#
 > if_eq(value_1: str | int, value_2: str | int, then: Macro | None, else: Macro | None)
