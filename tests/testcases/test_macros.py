@@ -23,13 +23,14 @@ import time
 import unittest
 import asyncio
 import multiprocessing
+from unittest import mock
 
 from evdev.ecodes import EV_REL, EV_KEY, REL_Y, REL_X, REL_WHEEL, REL_HWHEEL
 
-from keymapper.injection.macros.macro import Macro, type_check
+from keymapper.injection.macros.macro import Macro, _type_check, macro_variables
 from keymapper.injection.macros.parse import (
     parse,
-    _extract_params,
+    _extract_args,
     is_this_a_macro,
     _parse_recurse,
     handle_plus_syntax,
@@ -68,22 +69,44 @@ class TestMacros(unittest.IsolatedAsyncioTestCase):
         print(f"\033[90mmacro wrote{(ev_type, code, value)}\033[0m")
         self.result.append((ev_type, code, value))
 
-    def test_type_check(self):
+    async def test_named_parameter(self):
+        result = []
+
+        def patch(_, a, b, c, d=400):
+            result.append((a, b, c, d))
+
+        functions = {"k": patch}
+        with mock.patch("keymapper.injection.macros.parse.FUNCTIONS", functions):
+            await parse("k(1, d=4, b=2, c=3)", self.context).run(self.handler)
+            await parse("k(1, b=2, c=3)", self.context).run(self.handler)
+            self.assertListEqual(result, [(1, 2, 3, 4), (1, 2, 3, 400)])
+
+    async def test_count_brackets(self):
+        self.assertEqual(_count_brackets(""), 0)
+        self.assertEqual(_count_brackets("()"), 2)
+        self.assertEqual(_count_brackets("a()"), 3)
+        self.assertEqual(_count_brackets("a(b)"), 4)
+        self.assertEqual(_count_brackets("a(b())"), 6)
+        self.assertEqual(_count_brackets("a(b(c))"), 7)
+        self.assertEqual(_count_brackets("a(b(c))d"), 7)
+        self.assertEqual(_count_brackets("a(b(c))d()"), 7)
+
+    def test__type_check(self):
         # allows params that can be cast to the target type
-        self.assertEqual(type_check("foo", 1, [str, None], 0), "1")
-        self.assertEqual(type_check("foo", "1", [int, None], 1), 1)
-        self.assertEqual(type_check("foo", 1.2, [str], 2), "1.2")
+        self.assertEqual(_type_check(1, [str, None], "foo", 0), "1")
+        self.assertEqual(_type_check("1", [int, None], "foo", 1), 1)
+        self.assertEqual(_type_check(1.2, [str], "foo", 2), "1.2")
 
-        self.assertRaises(TypeError, lambda: type_check("foo", "1.2", [int], 3), 1.2)
-        self.assertRaises(TypeError, lambda: type_check("foo", "a", [None], 0))
-        self.assertRaises(TypeError, lambda: type_check("foo", "a", [int], 1))
-        self.assertRaises(TypeError, lambda: type_check("foo", "a", [int, float], 2))
-        self.assertRaises(TypeError, lambda: type_check("foo", "a", [int, float, None], 3))
-        self.assertEqual(type_check("foo", "a", [int, float, None, str], 4), "a")
+        self.assertRaises(TypeError, lambda: _type_check("1.2", [int], "foo", 3), 1.2)
+        self.assertRaises(TypeError, lambda: _type_check("a", [None], "foo", 0))
+        self.assertRaises(TypeError, lambda: _type_check("a", [int], "foo", 1))
+        self.assertRaises(TypeError, lambda: _type_check("a", [int, float], "foo", 2))
+        self.assertRaises(TypeError, lambda: _type_check("a", [int, None], "foo", 3))
+        self.assertEqual(_type_check("a", [int, float, None, str], "foo", 4), "a")
 
-        self.assertRaises(TypeError, lambda: type_check("foo", "a", [Macro], 0))
-        self.assertRaises(TypeError, lambda: type_check("foo", 1, [Macro], 0))
-        self.assertEqual(type_check("foo", "1", [Macro, int], 4), 1)
+        self.assertRaises(TypeError, lambda: _type_check("a", [Macro], "foo", 0))
+        self.assertRaises(TypeError, lambda: _type_check(1, [Macro], "foo", 0))
+        self.assertEqual(_type_check("1", [Macro, int], "foo", 4), 1)
 
     async def test_is_this_a_macro(self):
         self.assertTrue(is_this_a_macro("k(1)"))
@@ -151,7 +174,7 @@ class TestMacros(unittest.IsolatedAsyncioTestCase):
 
     async def test_extract_params(self):
         def expect(raw, expectation):
-            self.assertListEqual(_extract_params(raw), expectation)
+            self.assertListEqual(_extract_args(raw), expectation)
 
         expect("a", ["a"])
         expect("a,b", ["a", "b"])
@@ -223,87 +246,112 @@ class TestMacros(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(macro.child_macros), 0)
 
     async def test_return_errors(self):
-        error = parse("k(1).h(k(a)).k(3)", self.context, return_errors=True)
+        error = parse("k(1).h(k(a)).k(3)", self.context, True)
         self.assertIsNone(error)
-        error = parse("k(1))", self.context, return_errors=True)
+        error = parse("k(1))", self.context, True)
         self.assertIn("bracket", error)
-        error = parse("k((1)", self.context, return_errors=True)
+        error = parse("key((1)", self.context, True)
         self.assertIn("bracket", error)
-        error = parse("k((1).k)", self.context, return_errors=True)
+        error = parse("k((1).k)", self.context, True)
         self.assertIsNotNone(error)
-        error = parse("k()", self.context, return_errors=True)
+        error = parse("k()", self.context, True)
         self.assertIsNotNone(error)
-        error = parse("k(1)", self.context, return_errors=True)
+        error = parse("key(1)", self.context, True)
         self.assertIsNone(error)
-        error = parse("k(1, 1)", self.context, return_errors=True)
+        error = parse("k(1, 1)", self.context, True)
         self.assertIsNotNone(error)
-
-        error = parse("h(1, 1)", self.context, return_errors=True)
-        self.assertIsNotNone(error)
-        error = parse("h(h(h(1, 1)))", self.context, return_errors=True)
-        self.assertIsNotNone(error)
-
-        error = parse("r(1)", self.context, return_errors=True)
-        self.assertIsNotNone(error)
-        error = parse("r(a, k(1))", self.context, return_errors=True)
-        self.assertIsNotNone(error)
-        error = parse("r(1, 1)", self.context, return_errors=True)
-        self.assertIsNotNone(error)
-        error = parse("r(k(1), 1)", self.context, return_errors=True)
-        self.assertIsNotNone(error)
-        error = parse("r(1.2, k(1))", self.context, return_errors=True)
-        self.assertIsNotNone(error)
-        error = parse("r(1, k(1))", self.context, return_errors=True)
+        error = parse("key($a)", self.context, True)
         self.assertIsNone(error)
 
-        error = parse("m(asdf, k(a))", self.context, return_errors=True)
+        error = parse("h(1, 1)", self.context, True)
+        self.assertIsNotNone(error)
+        error = parse("h(hold(h(1, 1)))", self.context, True)
         self.assertIsNotNone(error)
 
-        error = parse("if_tap(, k(a), 1000)", self.context, return_errors=True)
+        error = parse("r(1)", self.context, True)
+        self.assertIsNotNone(error)
+        error = parse("repeat(a, k(1))", self.context, True)
+        self.assertIsNotNone(error)
+        error = parse("repeat($a, k(1))", self.context, True)
         self.assertIsNone(error)
-        error = parse("if_tap(, k(a))", self.context, return_errors=True)
+        error = parse("r(1, 1)", self.context, True)
+        self.assertIsNotNone(error)
+        error = parse("r(k(1), 1)", self.context, True)
+        self.assertIsNotNone(error)
+        error = parse("r(1.2, key(1))", self.context, True)
+        self.assertIsNotNone(error)
+        error = parse("r(repeats=1, macro=k(1))", self.context, True)
         self.assertIsNone(error)
-        error = parse("if_tap(k(a),)", self.context, return_errors=True)
-        self.assertIsNone(error)
-        error = parse("if_tap(k(a), b)", self.context, return_errors=True)
+        error = parse("r(a=1, b=k(1))", self.context, True)
+        self.assertIsNotNone(error)
+        error = parse("r(repeats=1, macro=k(1), a=2)", self.context, True)
+        self.assertIsNotNone(error)
+        error = parse("r(repeats=1, macro=k(1), repeats=2)", self.context, True)
         self.assertIsNotNone(error)
 
-        error = parse("if_single(k(a),)", self.context, return_errors=True)
-        self.assertIsNone(error)
-        error = parse("if_single(1,)", self.context, return_errors=True)
-        self.assertIsNotNone(error)
-        error = parse("if_single(,1)", self.context, return_errors=True)
+        error = parse("modify(asdf, k(a))", self.context, True)
         self.assertIsNotNone(error)
 
-        error = parse("mouse(up, 3)", self.context, return_errors=True)
+        error = parse("if_tap(, k(a), 1000)", self.context, True)
         self.assertIsNone(error)
-        error = parse("mouse(3, up)", self.context, return_errors=True)
+        error = parse("if_tap(, k(a), timeout=1000)", self.context, True)
+        self.assertIsNone(error)
+        error = parse("if_tap(, k(a), $timeout)", self.context, True)
+        self.assertIsNone(error)
+        error = parse("if_tap(, k(a), timeout=$t)", self.context, True)
+        self.assertIsNone(error)
+        error = parse("if_tap(, key(a))", self.context, True)
+        self.assertIsNone(error)
+        error = parse("if_tap(k(a),)", self.context, True)
+        self.assertIsNone(error)
+        error = parse("if_tap(k(a), b)", self.context, True)
         self.assertIsNotNone(error)
 
-        error = parse("wheel(left, 3)", self.context, return_errors=True)
+        error = parse("if_single(k(a),)", self.context, True)
         self.assertIsNone(error)
-        error = parse("wheel(3, left)", self.context, return_errors=True)
+        error = parse("if_single(1,)", self.context, True)
+        self.assertIsNotNone(error)
+        error = parse("if_single(,1)", self.context, True)
         self.assertIsNotNone(error)
 
-        error = parse("w(2)", self.context, return_errors=True)
+        error = parse("mouse(up, 3)", self.context, True)
         self.assertIsNone(error)
-        error = parse("w(a)", self.context, return_errors=True)
+        error = parse("mouse(up, speed=$a)", self.context, True)
+        self.assertIsNone(error)
+        error = parse("mouse(3, up)", self.context, True)
         self.assertIsNotNone(error)
 
-        error = parse("ifeq(a, 2, k(a),)", self.context, return_errors=True)
+        error = parse("wheel(left, 3)", self.context, True)
         self.assertIsNone(error)
-        error = parse("ifeq(a, 2, , k(a))", self.context, return_errors=True)
-        self.assertIsNone(error)
-        error = parse("ifeq(a, 2, 1,)", self.context, return_errors=True)
-        self.assertIsNotNone(error)
-        error = parse("ifeq(a, 2, , 2)", self.context, return_errors=True)
+        error = parse("wheel(3, left)", self.context, True)
         self.assertIsNotNone(error)
 
-        error = parse("foo(a)", self.context, return_errors=True)
+        error = parse("w(2)", self.context, True)
+        self.assertIsNone(error)
+        error = parse("wait(a)", self.context, True)
+        self.assertIsNotNone(error)
+
+        error = parse("ifeq(a, 2, k(a),)", self.context, True)
+        self.assertIsNone(error)
+        error = parse("ifeq(a, 2, , k(a))", self.context, True)
+        self.assertIsNone(error)
+        error = parse("ifeq(a, 2, 1,)", self.context, True)
+        self.assertIsNotNone(error)
+        error = parse("ifeq(a, 2, , 2)", self.context, True)
+        self.assertIsNotNone(error)
+
+        error = parse("if_eq(2, $a, k(a),)", self.context, True)
+        self.assertIsNone(error)
+        error = parse("if_eq(2, $a, , else=k(a))", self.context, True)
+        self.assertIsNone(error)
+        error = parse("if_eq(2, $a, 1,)", self.context, True)
+        self.assertIsNotNone(error)
+        error = parse("if_eq(2, $a, , 2)", self.context, True)
+        self.assertIsNotNone(error)
+
+        error = parse("foo(a)", self.context, True)
         self.assertIn("unknown", error.lower())
         self.assertIn("foo", error)
-
-
 
     async def test_hold(self):
         # repeats k(a) as long as the key is held down
@@ -474,7 +522,7 @@ class TestMacros(unittest.IsolatedAsyncioTestCase):
         total_time /= 1000
 
         self.assertGreater(time.time() - start, total_time * 0.9)
-        self.assertLess(time.time() - start, total_time * 1.1)
+        self.assertLess(time.time() - start, total_time * 1.2)
         self.assertListEqual(
             self.result,
             [
@@ -539,7 +587,7 @@ class TestMacros(unittest.IsolatedAsyncioTestCase):
         wait_time = 220
         total_time = (keystroke_time + wait_time) / 1000
 
-        self.assertLess(time.time() - start, total_time * 1.1)
+        self.assertLess(time.time() - start, total_time * 1.2)
         self.assertGreater(time.time() - start, total_time * 0.9)
         expected = [(EV_KEY, w, 1)]
         expected += [(EV_KEY, left, 1), (EV_KEY, left, 0)] * 2
@@ -666,7 +714,7 @@ class TestMacros(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(macro.child_macros), 0)
 
     async def test_event_2(self):
-        macro = parse("r(1, e(5421, 324, 154))", self.context)
+        macro = parse("r(1, event(type=5421, code=324, value=154))", self.context)
         code = 324
         self.assertSetEqual(macro.get_capabilities()[5421], {324})
         self.assertSetEqual(macro.get_capabilities()[EV_REL], set())
@@ -719,9 +767,11 @@ class TestMacros(unittest.IsolatedAsyncioTestCase):
         self.assertListEqual(self.result, [(EV_KEY, code_b, 1), (EV_KEY, code_b, 0)])
         self.assertEqual(len(macro.child_macros), 2)
 
+    """if_eq"""
+
     async def test_ifeq_runs_multiprocessed(self):
         """ifeq on variables that have been set in other processes works."""
-        macro = parse("ifeq(foo, 3, k(a), k(b))", self.context)
+        macro = parse("if_eq($foo, 3, k(a), k(b))", self.context)
         code_a = system_mapping.get("a")
         code_b = system_mapping.get("b")
 
@@ -759,15 +809,38 @@ class TestMacros(unittest.IsolatedAsyncioTestCase):
             ],
         )
 
-    async def test_count_brackets(self):
-        self.assertEqual(_count_brackets(""), 0)
-        self.assertEqual(_count_brackets("()"), 2)
-        self.assertEqual(_count_brackets("a()"), 3)
-        self.assertEqual(_count_brackets("a(b)"), 4)
-        self.assertEqual(_count_brackets("a(b())"), 6)
-        self.assertEqual(_count_brackets("a(b(c))"), 7)
-        self.assertEqual(_count_brackets("a(b(c))d"), 7)
-        self.assertEqual(_count_brackets("a(b(c))d()"), 7)
+    async def test_if_eq(self):
+        code_a = system_mapping.get("a")
+        code_b = system_mapping.get("b")
+        a_press = [(EV_KEY, code_a, 1), (EV_KEY, code_a, 0)]
+        b_press = [(EV_KEY, code_b, 1), (EV_KEY, code_b, 0)]
+
+        async def test(macro, expected):
+            # cleanup
+            macro_variables._clear()
+            self.assertIsNone(macro_variables.get("a"))
+            self.result.clear()
+
+            # test
+            macro = parse(macro, self.context)
+            await macro.run(self.handler)
+            self.assertListEqual(self.result, expected)
+
+        await test("if_eq(1, 1, k(a), k(b))", a_press)
+        await test("if_eq(1, 2, k(a), k(b))", b_press)
+        await test('set(a, "foo").if_eq($a, "foo", k(a), k(b))', a_press)
+        await test('set(a, "foo").if_eq("foo", $a, k(a), k(b))', a_press)
+        await test('set(a, "foo").if_eq("foo", $a, , k(b))', [])
+        await test('set(a, "qux").if_eq("foo", $a, k(a), k(b))', b_press)
+        await test('set(a, "qux").if_eq($a, "foo", k(a), k(b))', b_press)
+        await test('set(a, "qux").if_eq($a, "foo", k(a), )', [])
+        await test('set(a, "x").set(b, "y").if_eq($b, $a, k(a), k(b))', b_press)
+        await test('set(a, "x").set(b, "y").if_eq($b, $a, k(a), )', [])
+        await test('set(a, "x").set(b, "x").if_eq($b, $a, k(a), k(b))', a_press)
+        await test('set(a, "x").set(b, "x").if_eq($b, $a, , k(b))', [])
+        await test("if_eq($q, $w, k(a), else=k(b))", a_press)  # both None
+        await test("set(q, 1).if_eq($q, $w, k(a), else=k(b))", b_press)
+        await test("set(q, 1).set(w, 1).if_eq($q, $w, k(a), else=k(b))", a_press)
 
     """if_single"""
 
@@ -917,6 +990,22 @@ class TestMacros(unittest.IsolatedAsyncioTestCase):
 
         self.assertListEqual(self.result, [(EV_KEY, y, 1), (EV_KEY, y, 0)])
 
+    async def test_if_not_tap_named(self):
+        macro = parse("if_tap(k(x), k(y), timeout=50)", self.context)
+        self.assertEqual(len(macro.child_macros), 2)
+
+        x = system_mapping.get("x")
+        y = system_mapping.get("y")
+        self.assertSetEqual(macro.get_capabilities()[EV_KEY], {x, y})
+
+        macro.press_key()
+        asyncio.ensure_future(macro.run(self.handler))
+        await asyncio.sleep(0.1)
+        macro.release_key()
+        await asyncio.sleep(0.05)
+
+        self.assertListEqual(self.result, [(EV_KEY, y, 1), (EV_KEY, y, 0)])
+
     async def test_wait_for_event(self):
         macro = parse("h(a)", self.context)
 
@@ -948,6 +1037,19 @@ class TestMacros(unittest.IsolatedAsyncioTestCase):
             raise AssertionError("Expected asyncio.TimeoutError")
         except asyncio.TimeoutError:
             pass
+
+    async def test_macro_breaks(self):
+        # the first parameter for `repeat` requires an integer, not "foo",
+        # which makes `repeat` throw
+        macro = parse('set(a, "foo").r($a, k(KEY_A)).k(KEY_B)', self.context)
+        await macro.run(self.handler)
+
+        # .run() it will not throw because r() breaks, and it will properly set
+        # it to stopped
+        self.assertFalse(macro.running)
+
+        # k(KEY_B) is not executed, the macro stops
+        self.assertListEqual(self.result, [])
 
 
 if __name__ == "__main__":

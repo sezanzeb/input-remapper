@@ -118,6 +118,7 @@ class SystemMapping:
         if name not in self._mapping:
             # only if not e.g. both "a" and "A" are in the mapping
             name = self._case_insensitive_mapping.get(str(name).lower())
+
         return self._mapping.get(name)
 
     def clear(self):

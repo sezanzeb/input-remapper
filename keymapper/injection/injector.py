@@ -68,6 +68,15 @@ def is_in_capabilities(key, capabilities):
     return False
 
 
+def get_udev_name(name, suffix):
+    """Make sure the generated name is not longer than 80 chars."""
+    max_len = 80  # based on error messages
+    remaining_len = max_len - len(DEV_NAME) - len(suffix) - 2
+    middle = name[:remaining_len]
+    name = f"{DEV_NAME} {middle} {suffix}"
+    return name
+
+
 class Injector(multiprocessing.Process):
     """Initializes, starts and stops injections.
 
@@ -310,14 +319,6 @@ class Injector(multiprocessing.Process):
                 loop.stop()
                 return
 
-    def get_udev_name(self, name, suffix):
-        """Make sure the generated name is not longer than 80 chars."""
-        max_len = 80  # based on error messages
-        remaining_len = max_len - len(DEV_NAME) - len(suffix) - 2
-        middle = name[:remaining_len]
-        name = f"{DEV_NAME} {middle} {suffix}"
-        return name
-
     def run(self):
         """The injection worker that keeps injecting until terminated.
 
@@ -374,7 +375,7 @@ class Injector(multiprocessing.Process):
         # where mapped events go to.
         # See the Context docstring on why this is needed.
         self.context.uinput = evdev.UInput(
-            name=self.get_udev_name(self.group.key, "mapped"),
+            name=get_udev_name(self.group.key, "mapped"),
             phys=DEV_NAME,
             events=self._construct_capabilities(GAMEPAD in self.group.types),
         )
@@ -384,7 +385,7 @@ class Injector(multiprocessing.Process):
             # EV_ABS capability, EV_REL won't move the mouse pointer anymore.
             # so don't merge all InputDevices into one UInput device.
             forward_to = evdev.UInput(
-                name=self.get_udev_name(source.name, "forwarded"),
+                name=get_udev_name(source.name, "forwarded"),
                 phys=DEV_NAME,
                 events=self._copy_capabilities(source),
             )
