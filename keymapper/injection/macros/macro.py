@@ -49,14 +49,22 @@ from keymapper.utils import PRESS, PRESS_NEGATIVE
 macro_variables = SharedDict()
 
 
-def type_check(display_name, value, allowed_types, position):
-    """Validate a parameter used in a macro."""
+def _type_check(value, allowed_types, display_name=None, position=None):
+    """Validate a parameter used in a macro.
+
+    If the value starts with $, it will be returned and should be resolved
+    during runtime with _resolve.
+    """
+    if isinstance(value, str) and value.startswith("$"):
+        # it is a variable and will be read at runtime
+        return value
+
     for allowed_type in allowed_types:
         if allowed_type is None:
             if value is None:
                 return value
-            else:
-                continue
+
+            continue
 
         # try to parse "1" as 1 if possible
         try:
@@ -67,10 +75,49 @@ def type_check(display_name, value, allowed_types, position):
         if isinstance(value, allowed_type):
             return value
 
-    raise TypeError(
-        f"Expected parameter {position} for {display_name} to be "
-        f"one of {allowed_types}, but got {value}"
-    )
+    if display_name is not None and position is not None:
+        raise TypeError(
+            f"Expected parameter {position} for {display_name} to be "
+            f"one of {allowed_types}, but got {value}"
+        )
+
+    raise TypeError(f"Expected parameter to be one of {allowed_types}, but got {value}")
+
+
+def _type_check_keyname(name):
+    """Same as _type_check, but checks if the key-name is valid."""
+    if isinstance(name, str) and name.startswith("$"):
+        # it is a variable and will be read at runtime
+        return name
+
+    symbol = str(name)
+    code = system_mapping.get(symbol)
+
+    if code is None:
+        raise KeyError(f'Unknown key "{symbol}"')
+
+    return code
+
+
+def _resolve(argument, allowed_types=None):
+    """If the argument starts with a $, then figure out its value.
+
+    Use this just-in-time when you need the actual value of the variable
+    during runtime.
+    """
+    if isinstance(argument, str) and argument.startswith("$"):
+        variable_name = argument.split("$", 1)[1]
+        value = macro_variables.get(variable_name)
+        logger.debug('"%s" is "%s"', argument, value)
+        # TODO what will macros do if _type_check fails during runtime?
+        #   apparently the error is only thrown once, future clicks don't print
+        #   stack traces anymore
+        if allowed_types:
+            return _type_check(value, allowed_types)
+        else:
+            return value
+
+    return argument
 
 
 class Macro:
@@ -81,9 +128,21 @@ class Macro:
     queued tasks.
 
     Those functions need to construct an asyncio coroutine and append it to
-    self.tasks. This makes parameter checking during compile time possible.
-    Coroutines receive a handler as argument, which is a function that can be
-    used to inject input events into the system.
+    self.tasks. This makes parameter checking during compile time possible, as long
+    as they are not variables that are resolved durig runtime. Coroutines receive a
+    handler as argument, which is a function that can be used to inject input events
+    into the system.
+
+    1. A few parameters of any time are thrown into a macro function like `repeat`
+    2. `Macro.repeat` will verify the parameter types if possible using `_type_check`
+       (it can't for $variables). This helps debugging macros before the injection
+       starts, but is not mandatory to make things work.
+    3. `Macro.repeat`
+       - adds a task to self.tasks. This task resolves any variables with `_resolve`
+         and does what the macro is supposed to do once `macro.run` is called.
+       - also adds the child macro to self.child_macros.
+       - adds the used keys to the capabilities
+    4. `Macro.run` will run all tasks in self.tasks
     """
 
     def __init__(self, code, context):
@@ -190,12 +249,13 @@ class Macro:
 
         self.running = True
         for task in self.tasks:
-            # one could call tasks the compiled macros. it's lambda functions
-            # that receive the handler as an argument, so that they know
-            # where to send the event to.
-            coroutine = task(handler)
-            if asyncio.iscoroutine(coroutine):
-                await coroutine
+            try:
+                coroutine = task(handler)
+                if asyncio.iscoroutine(coroutine):
+                    await coroutine
+            except Exception as e:
+                logger.error(f'Macro "%s" failed: %s', self.code, e)
+                break
 
         # done
         self.running = False
@@ -218,8 +278,26 @@ class Macro:
         for macro in self.child_macros:
             macro.release_key()
 
-    def hold(self, macro=None):
+    async def _keycode_pause(self, _=None):
+        """To add a pause between keystrokes."""
+        await asyncio.sleep(self.keystroke_sleep_ms / 1000)
+
+    def add_mouse_capabilities(self):
+        """Add all capabilities that are required to recognize the device as mouse."""
+        self.capabilities[EV_REL].add(REL_X)
+        self.capabilities[EV_REL].add(REL_Y)
+        self.capabilities[EV_REL].add(REL_WHEEL)
+        self.capabilities[EV_REL].add(REL_HWHEEL)
+
+    def __repr__(self):
+        return f'<Macro "{self.code}">'
+
+    """Functions that prepare the macro"""
+
+    def add_hold(self, macro=None):
         """Loops the execution until key release."""
+        _type_check(macro, [Macro, str, None], "h (hold)", 1)
+
         if macro is None:
             self.tasks.append(lambda _: self._holding_event.wait())
             return
@@ -227,17 +305,17 @@ class Macro:
         if not isinstance(macro, Macro):
             # if macro is a key name, hold down the key while the
             # keyboard key is physically held down
-            symbol = str(macro)
-            code = system_mapping.get(symbol)
+            code = _type_check_keyname(macro)
 
-            if code is None:
-                raise KeyError(f'Unknown key "{symbol}"')
+            async def task(handler):
+                resolved_code = _resolve(code, [int])
+                self.capabilities[EV_KEY].add(resolved_code)
+                handler(EV_KEY, resolved_code, 1)
+                await self._holding_event.wait()
+                handler(EV_KEY, resolved_code, 0)
 
             self.capabilities[EV_KEY].add(code)
-            self.tasks.append(lambda handler: handler(EV_KEY, code, 1))
-            self.tasks.append(lambda _: self._holding_event.wait())
-            self.tasks.append(lambda handler: handler(EV_KEY, code, 0))
-            return
+            self.tasks.append(task)
 
         if isinstance(macro, Macro):
             # repeat the macro forever while the key is held down
@@ -250,7 +328,7 @@ class Macro:
             self.tasks.append(task)
             self.child_macros.append(macro)
 
-    def modify(self, modifier, macro):
+    def add_modify(self, modifier, macro):
         """Do stuff while a modifier is activated.
 
         Parameters
@@ -258,7 +336,7 @@ class Macro:
         modifier : str
         macro : Macro
         """
-        type_check("m (modify)", macro, [Macro], 2)
+        _type_check(macro, [Macro], "m (modify)", 2)
 
         modifier = str(modifier)
         code = system_mapping.get(modifier)
@@ -270,14 +348,20 @@ class Macro:
 
         self.child_macros.append(macro)
 
-        self.tasks.append(lambda handler: handler(EV_KEY, code, 1))
-        self.tasks.append(self._keycode_pause)
-        self.tasks.append(macro.run)
-        self.tasks.append(self._keycode_pause)
-        self.tasks.append(lambda handler: handler(EV_KEY, code, 0))
-        self.tasks.append(self._keycode_pause)
+        async def task(handler):
+            resolved_code = _resolve(code, [int])
+            self.capabilities[EV_KEY].add(resolved_code)
+            await self._keycode_pause()
+            handler(EV_KEY, resolved_code, 1)
+            await self._keycode_pause()
+            await macro.run(handler)
+            await self._keycode_pause()
+            handler(EV_KEY, resolved_code, 0)
+            await self._keycode_pause()
 
-    def repeat(self, repeats, macro):
+        self.tasks.append(task)
+
+    def add_repeat(self, repeats, macro):
         """Repeat actions.
 
         Parameters
@@ -285,73 +369,67 @@ class Macro:
         repeats : int or Macro
         macro : Macro
         """
-        repeats = type_check("r (repeat)", repeats, [int], 1)
-        type_check("r (repeat)", macro, [Macro], 2)
+        repeats = _type_check(repeats, [int], "r (repeat)", 1)
+        _type_check(macro, [Macro], "r (repeat)", 2)
 
-        async def repeat(handler):
-            for _ in range(repeats):
+        async def task(handler):
+            for _ in range(_resolve(repeats, [int])):
                 await macro.run(handler)
 
-        self.tasks.append(repeat)
+        self.tasks.append(task)
         self.child_macros.append(macro)
 
-    async def _keycode_pause(self, _=None):
-        """To add a pause between keystrokes."""
-        await asyncio.sleep(self.keystroke_sleep_ms / 1000)
-
-    def keycode(self, symbol):
+    def add_key(self, symbol):
         """Write the symbol."""
+        _type_check_keyname(symbol)
+
         symbol = str(symbol)
         code = system_mapping.get(symbol)
-
-        if code is None:
-            raise KeyError(f'Unknown key "{symbol}"')
-
         self.capabilities[EV_KEY].add(code)
 
-        async def keycode(handler):
+        async def task(handler):
             handler(EV_KEY, code, 1)
             await self._keycode_pause()
             handler(EV_KEY, code, 0)
             await self._keycode_pause()
 
-        self.tasks.append(keycode)
+        self.tasks.append(task)
 
-    def event(self, ev_type, code, value):
+    def add_event(self, _type, code, value):
         """Write any event.
 
         Parameters
         ----------
-        ev_type: str or int
+        _type: str or int
             examples: 2, 'EV_KEY'
         code : int or int
             examples: 52, 'KEY_A'
         value : int
         """
-        if isinstance(ev_type, str):
-            ev_type = ecodes[ev_type.upper()]
+        if isinstance(_type, str):
+            _type = ecodes[_type.upper()]
         if isinstance(code, str):
             code = ecodes[code.upper()]
 
-        if ev_type not in self.capabilities:
-            self.capabilities[ev_type] = set()
+        if _type not in self.capabilities:
+            self.capabilities[_type] = set()
 
-        if ev_type == EV_REL:
+        if _type == EV_REL:
             # add all capabilities that are required for the display server
             # to recognize the device as mouse
             self.capabilities[EV_REL].add(REL_X)
             self.capabilities[EV_REL].add(REL_Y)
             self.capabilities[EV_REL].add(REL_WHEEL)
 
-        self.capabilities[ev_type].add(code)
+        self.capabilities[_type].add(code)
 
-        self.tasks.append(lambda handler: handler(ev_type, code, value))
+        self.tasks.append(lambda handler: handler(_type, code, value))
         self.tasks.append(self._keycode_pause)
 
-    def mouse(self, direction, speed):
-        """Shortcut for h(e(...))."""
-        type_check("mouse", direction, [str], 1)
-        speed = type_check("mouse", speed, [int], 2)
+    def add_mouse(self, direction, speed):
+        """Move the mouse cursor."""
+        _type_check(direction, [str], "mouse", 1)
+        speed = _type_check(speed, [int], "mouse", 2)
 
         code, value = {
             "up": (REL_Y, -1),
@@ -359,15 +437,21 @@ class Macro:
             "left": (REL_X, -1),
             "right": (REL_X, 1),
         }[direction.lower()]
-        value *= speed
-        child_macro = Macro(None, self.context)
-        child_macro.event(EV_REL, code, value)
-        self.hold(child_macro)
 
-    def wheel(self, direction, speed):
-        """Shortcut for h(e(...))."""
-        type_check("wheel", direction, [str], 1)
-        speed = type_check("wheel", speed, [int], 2)
+        self.add_mouse_capabilities()
+
+        async def task(handler):
+            resolved_speed = value * _resolve(speed, [int])
+            while self.is_holding():
+                handler(EV_REL, code, resolved_speed)
+                await self._keycode_pause()
+
+        self.tasks.append(task)
+
+    def add_wheel(self, direction, speed):
+        """Move the scroll wheel."""
+        _type_check(direction, [str], "wheel", 1)
+        speed = _type_check(speed, [int], "wheel", 2)
 
         code, value = {
             "up": (REL_WHEEL, 1),
@@ -375,43 +459,50 @@ class Macro:
             "left": (REL_HWHEEL, 1),
             "right": (REL_HWHEEL, -1),
         }[direction.lower()]
-        child_macro = Macro(None, self.context)
-        child_macro.event(EV_REL, code, value)
-        child_macro.wait(100 / speed)
-        self.hold(child_macro)
 
-    def wait(self, sleeptime):
+        self.add_mouse_capabilities()
+
+        async def task(handler):
+            resolved_speed = _resolve(speed, [int])
+            while self.is_holding():
+                handler(EV_REL, code, value)
+                # scrolling moves much faster than mouse, so this
+                # waits between injections instead to make it slower
+                await asyncio.sleep(100 / resolved_speed)
+
+        self.tasks.append(task)
+
+    def add_wait(self, time):
         """Wait time in milliseconds."""
-        sleeptime = type_check("wait", sleeptime, [int, float], 1) / 1000
+        time = _type_check(time, [int, float], "wait", 1)
 
-        async def sleep(_):
-            await asyncio.sleep(sleeptime)
+        async def task(_):
+            await asyncio.sleep(_resolve(time, [int, float]) / 1000)
 
-        self.tasks.append(sleep)
+        self.tasks.append(task)
 
-    def set(self, variable, value):
+    def add_set(self, variable, value):
         """Set a variable to a certain value."""
 
-        async def set(_):
-            logger.debug('"%s" set to "%s"', variable, value)
+        async def task(_):
+            # can also copy with set(a, $b)
+            resolved_value = _resolve(value)
+            logger.debug('"%s" set to "%s"', variable, resolved_value)
             macro_variables[variable] = value
 
-        self.tasks.append(set)
+        self.tasks.append(task)
 
-    def ifeq(self, variable, value, then, otherwise=None):
-        """Perform an equality check.
+    def add_ifeq(self, variable, value, then=None, otherwise=None):
+        """Old version of if_eq, kept for compatibility reasons.
 
-        Parameters
-        ----------
-        variable : string
-        value : string | number
-        then : Macro | None
-        otherwise : Macro | None
+        This can't support a comparison like ifeq("foo", $blub) with blub containing
+        "foo" without breaking old functionality, because "foo" is treated as a
+        variable name.
         """
-        type_check("ifeq", then, [Macro, None], 1)
-        type_check("ifeq", otherwise, [Macro, None], 2)
+        _type_check(then, [Macro, None], "ifeq", 3)
+        _type_check(otherwise, [Macro, None], "ifeq", 4)
 
-        async def ifeq(handler):
+        async def task(handler):
             set_value = macro_variables.get(variable)
             logger.debug('"%s" is "%s"', variable, set_value)
             if set_value == value:
@@ -425,55 +516,64 @@ class Macro:
         if isinstance(otherwise, Macro):
             self.child_macros.append(otherwise)
 
-        self.tasks.append(ifeq)
+        self.tasks.append(task)
 
-    def if_tap(self, then=None, otherwise=None, timeout=300):
-        """If a key was pressed quickly.
+    def add_if_eq(self, value_1, value_2, then=None, _else=None):
+        """Compare two values."""
+        _type_check(then, [Macro, None], "if_eq", 3)
+        _type_check(_else, [Macro, None], "if_eq", 4)
 
-        Parameters
-        ----------
-        then : Macro | None
-        otherwise : Macro | None
-        timeout : int
-        """
-        type_check("if_tap", then, [Macro, None], 1)
-        type_check("if_tap", otherwise, [Macro, None], 2)
-        timeout = type_check("if_tap", timeout, [int], 3)
+        async def task(handler):
+            resolved_value_1 = _resolve(value_1)
+            resolved_value_2 = _resolve(value_2)
+            if resolved_value_1 == resolved_value_2:
+                if then is not None:
+                    await then.run(handler)
+            elif _else is not None:
+                await _else.run(handler)
 
         if isinstance(then, Macro):
             self.child_macros.append(then)
-        if isinstance(otherwise, Macro):
-            self.child_macros.append(otherwise)
+        if isinstance(_else, Macro):
+            self.child_macros.append(_else)
 
-        async def if_tap(handler):
+        self.tasks.append(task)
+
+    def add_if_tap(self, then=None, _else=None, timeout=300):
+        """If a key was pressed quickly."""
+        _type_check(then, [Macro, None], "if_tap", 1)
+        _type_check(_else, [Macro, None], "if_tap", 2)
+        timeout = _type_check(timeout, [int, float], "if_tap", 3)
+
+        if isinstance(then, Macro):
+            self.child_macros.append(then)
+        if isinstance(_else, Macro):
+            self.child_macros.append(_else)
+
+        async def task(handler):
             try:
                 coroutine = self._holding_event.wait()
-                await asyncio.wait_for(coroutine, timeout / 1000)
+                resolved_timeout = _resolve(timeout, [int, float]) / 1000
+                await asyncio.wait_for(coroutine, resolved_timeout)
                 if then:
                     await then.run(handler)
             except asyncio.TimeoutError:
-                if otherwise:
-                    await otherwise.run(handler)
+                if _else:
+                    await _else.run(handler)
 
-        self.tasks.append(if_tap)
+        self.tasks.append(task)
 
-    def if_single(self, then, otherwise):
-        """If a key was pressed without combining it.
-
-        Parameters
-        ----------
-        then : Macro | None
-        otherwise : Macro | None
-        """
-        type_check("if_single", then, [Macro, None], 1)
-        type_check("if_single", otherwise, [Macro, None], 2)
+    def add_if_single(self, then, otherwise):
+        """If a key was pressed without combining it."""
+        _type_check(then, [Macro, None], "if_single", 1)
+        _type_check(otherwise, [Macro, None], "if_single", 2)
 
         if isinstance(then, Macro):
             self.child_macros.append(then)
         if isinstance(otherwise, Macro):
             self.child_macros.append(otherwise)
 
-        async def if_single(handler):
+        async def task(handler):
             mappable_event_1 = (self._newest_event.type, self._newest_event.code)
 
             def event_filter(event, action):
@@ -496,4 +596,4 @@ class Macro:
             elif otherwise:
                 await otherwise.run(handler)
 
-        self.tasks.append(if_single)
+        self.tasks.append(task)

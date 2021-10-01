@@ -43,19 +43,44 @@ def is_this_a_macro(output):
 
 
 FUNCTIONS = {
-    "m": Macro.modify,
-    "r": Macro.repeat,
-    "k": Macro.keycode,
-    "e": Macro.event,
-    "w": Macro.wait,
-    "h": Macro.hold,
-    "mouse": Macro.mouse,
-    "wheel": Macro.wheel,
-    "ifeq": Macro.ifeq,
-    "set": Macro.set,
-    "if_tap": Macro.if_tap,
-    "if_single": Macro.if_single,
+    # shorthands for common functions because the space to type is so constrained
+    "m": Macro.add_modify,
+    "r": Macro.add_repeat,
+    "k": Macro.add_key,
+    "e": Macro.add_event,
+    "w": Macro.add_wait,
+    "h": Macro.add_hold,
+    # add proper full function names for all other future macros
+    "modify": Macro.add_modify,
+    "repeat": Macro.add_repeat,
+    "key": Macro.add_key,
+    "event": Macro.add_event,
+    "wait": Macro.add_wait,
+    "hold": Macro.add_hold,
+    "mouse": Macro.add_mouse,
+    "wheel": Macro.add_wheel,
+    "ifeq": Macro.add_ifeq,  # kept for compatibility with existing old macros
+    "if_eq": Macro.add_if_eq,
+    "set": Macro.add_set,
+    "if_tap": Macro.add_if_tap,
+    "if_single": Macro.add_if_single,
 }
+
+
+def use_safe_argument_names(keyword_args):
+    """Certain names cannot be used internally as parameters, Add _ in front of them.
+
+    For example the macro `if_eq(1, 1, else=k(b))` uses the _else parameter of
+    `def add_if_eq` to work.
+    """
+    # extend this list with parameter names that cannot be used in python, but should
+    # be used in macro code.
+    built_ins = ["else", "type"]
+
+    for built_in in built_ins:
+        if keyword_args.get(built_in) is not None:
+            keyword_args[f"_{built_in}"] = keyword_args[built_in]
+            del keyword_args[built_in]
 
 
 def get_num_parameters(function):
@@ -65,7 +90,7 @@ def get_num_parameters(function):
     return num_args - len(fullargspec.defaults or ()), num_args
 
 
-def _extract_params(inner):
+def _extract_args(inner):
     """Extract parameters from the inner contents of a call.
 
     This does not parse them.
@@ -102,9 +127,7 @@ def _count_brackets(macro):
     openings = macro.count("(")
     closings = macro.count(")")
     if openings != closings:
-        raise Exception(
-            f"You entered {openings} opening and {closings} " "closing brackets"
-        )
+        raise SyntaxError(f"Found {openings} opening and {closings} closing brackets")
 
     brackets = 0
     position = 0
@@ -123,6 +146,19 @@ def _count_brackets(macro):
     return position
 
 
+def _split_keyword_arg(param):
+    """Split "foo=bar" into "foo" and "bar".
+
+    If not a keyward param, return None and the param.
+    """
+    # TODO unittest
+    if re.match(r"[a-zA-Z_][a-zA-Z_\d]*=.+", param):
+        split = param.split("=", 1)
+        return split[0], split[1]
+
+    return None, param
+
+
 def _parse_recurse(macro, context, macro_instance=None, depth=0):
     """Handle a subset of the macro, e.g. one parameter or function call.
 
@@ -134,6 +170,7 @@ def _parse_recurse(macro, context, macro_instance=None, depth=0):
     macro_instance : Macro or None
         A macro instance to add tasks to
     depth : int
+        For logging porposes
     """
     # not using eval for security reasons
     assert isinstance(macro, str)
@@ -155,7 +192,7 @@ def _parse_recurse(macro, context, macro_instance=None, depth=0):
     call = call_match[1] if call_match else None
     if call is not None:
         # available functions in the macro and the minimum and maximum number
-        # of their parameters
+        # of their arguments
         function = FUNCTIONS.get(call)
         if function is None:
             raise Exception(f"Unknown function {call}")
@@ -164,31 +201,51 @@ def _parse_recurse(macro, context, macro_instance=None, depth=0):
         position = _count_brackets(macro)
 
         inner = macro[macro.index("(") + 1 : position - 1]
+        logger.spam("%scalls %s with %s", space, call, inner)
 
-        # split "3, k(a).w(10)" into parameters
-        string_params = _extract_params(inner)
-        logger.spam("%scalls %s with %s", space, call, string_params)
-        # evaluate the params
-        params = [
-            _parse_recurse(param.strip(), context, None, depth + 1)
-            for param in string_params
-        ]
+        # split "3, foo=k(a).w(10)" into arguments
+        raw_string_args = _extract_args(inner)
 
-        logger.spam("%sadd call to %s with %s", space, call, params)
+        # parse and sort the params
+        positional_args = []
+        keyword_args = {}
+        for param in raw_string_args:
+            key, value = _split_keyword_arg(param)
+            parsed = _parse_recurse(value.strip(), context, None, depth + 1)
+            if key is None:
+                if len(keyword_args) > 0:
+                    msg = f'Positional argument "{key}" follows keyword argument'
+                    raise SyntaxError(msg)
+                positional_args.append(parsed)
+            else:
+                if key in keyword_args:
+                    raise SyntaxError(f'The "{key}" argument was specified twice')
+                keyword_args[key] = parsed
 
-        min_params, max_params = get_num_parameters(function)
-        if len(params) < min_params or len(params) > max_params:
-            if min_params != max_params:
+        logger.spam(
+            "%sadd call to %s with %s, %s",
+            space,
+            call,
+            positional_args,
+            keyword_args,
+        )
+
+        min_args, max_args = get_num_parameters(function)
+        num_provided_args = len(raw_string_args)
+        if num_provided_args < min_args or num_provided_args > max_args:
+            if min_args != max_args:
                 msg = (
-                    f"{call} takes between {min_params} and {max_params}, "
-                    f"not {len(params)} parameters"
+                    f"{call} takes between {min_args} and {max_args}, "
+                    f"not {num_provided_args} parameters"
                 )
             else:
-                msg = f"{call} takes {min_params}, " f"not {len(params)} parameters"
+                msg = f"{call} takes {min_args}, " f"not {num_provided_args} parameters"
 
             raise ValueError(msg)
 
-        function(macro_instance, *params)
+        use_safe_argument_names(keyword_args)
+
+        function(macro_instance, *positional_args, **keyword_args)
 
         # is after this another call? Chain it to the macro_instance
         if len(macro) > position and macro[position] == ".":
@@ -198,7 +255,7 @@ def _parse_recurse(macro, context, macro_instance=None, depth=0):
 
         return macro_instance
 
-    # probably a parameter for an outer function
+    # probably a simple parameter
     try:
         # if possible, parse as int
         macro = int(macro)

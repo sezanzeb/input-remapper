@@ -337,7 +337,7 @@ class Window:
         num_maps = len(custom_mapping)
         if num_rows < num_maps or num_rows > num_maps + 1:
             logger.error(
-                "custom_mapping contains %d rows, " "but %d are displayed",
+                "custom_mapping contains %d rows, but %d are displayed",
                 len(custom_mapping),
                 num_rows,
             )

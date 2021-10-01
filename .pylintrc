@@ -11,3 +11,6 @@ disable=
     # using """ for comments highlights them in green for me and makes it
     # a great way to separate stuff into multiple sections
     pointless-string-statement
+
+    # https://github.com/psf/black/blob/main/docs/compatible_configs/pylint/pylintrc
+    C0330, C0326

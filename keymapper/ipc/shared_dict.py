@@ -69,6 +69,9 @@ class SharedDict:
             if message[0] == "set":
                 shared_dict[message[1]] = message[2]
 
+            if message[0] == "clear":
+                shared_dict.clear()
+
             if message[0] == "get":
                 self.pipe[0].send(shared_dict.get(message[1]))
 
@@ -79,8 +82,16 @@ class SharedDict:
         """Stop the managing process."""
         self.pipe[1].send(("stop",))
 
+    def _clear(self):
+        """Clears the memory."""
+        self.pipe[1].send(("clear",))
+
     def get(self, key):
-        """Get a value from the dictionary."""
+        """Get a value from the dictionary.
+
+        If it doesn't exist, returns None.
+        """
+        # TODO it returns None right?
         return self.__getitem__(key)
 
     def is_alive(self, timeout=None):

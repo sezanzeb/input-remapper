@@ -55,6 +55,7 @@ from keymapper.injection.injector import (
     STOPPED,
     NO_GRAB,
     UNKNOWN,
+    get_udev_name,
 )
 from keymapper.injection.numlock import is_numlock_on, set_numlock, ensure_numlock
 from keymapper.system_mapping import system_mapping
@@ -506,11 +507,11 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         prefix = "key-mapper"
         expected = f'{prefix} {"a" * (80 - len(suffix) - len(prefix) - 2)} {suffix}'
         self.assertEqual(len(expected), 80)
-        self.assertEqual(self.injector.get_udev_name("a" * 100, suffix), expected)
+        self.assertEqual(get_udev_name("a" * 100, suffix), expected)
 
         self.injector.device = "abcd"
         self.assertEqual(
-            self.injector.get_udev_name("abcd", "forwarded"),
+            get_udev_name("abcd", "forwarded"),
             "key-mapper abcd forwarded",
         )
 
