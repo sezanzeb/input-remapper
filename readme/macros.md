@@ -131,8 +131,8 @@ Bear in mind that anti-cheat software might detect macros in games.
 
 ### event
 
-> Writes an event. type, code and value of existing keys be found via the `sudo evtest`
-> command
+> Writes an event. Examples for `type`, `code` and `value` can be found via the
+> `sudo evtest` command
 >
 > Shorthand: `e`
 >
