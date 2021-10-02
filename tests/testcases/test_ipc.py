@@ -23,7 +23,26 @@ import unittest
 import select
 
 from keymapper.ipc.pipe import Pipe
+from keymapper.ipc.shared_dict import SharedDict
 from keymapper.ipc.socket import Server, Client, Base
+
+from tests.test import quick_cleanup
+
+
+class TestSharedDict(unittest.TestCase):
+    def tearDown(self):
+        quick_cleanup()
+
+    def test_returns_none(self):
+        shared_dict = SharedDict()
+        self.assertIsNone(shared_dict.get("a"))
+        self.assertIsNone(shared_dict["a"])
+
+    def test_set_get(self):
+        shared_dict = SharedDict()
+        shared_dict["a"] = 3
+        self.assertEqual(shared_dict.get("a"), 3)
+        self.assertEqual(shared_dict["a"], 3)
 
 
 class TestSocket(unittest.TestCase):

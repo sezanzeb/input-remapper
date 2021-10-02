@@ -91,7 +91,6 @@ class SharedDict:
 
         If it doesn't exist, returns None.
         """
-        # TODO it returns None right?
         return self.__getitem__(key)
 
     def is_alive(self, timeout=None):
