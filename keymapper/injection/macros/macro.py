@@ -37,6 +37,7 @@ w(1000).m(Shift_L, r(2, k(a))).w(10).k(b): <1s> A A <10ms> b
 
 import asyncio
 import copy
+import re
 
 from evdev.ecodes import ecodes, EV_KEY, EV_REL, REL_X, REL_Y, REL_WHEEL, REL_HWHEEL
 
@@ -99,6 +100,19 @@ def _type_check_keyname(name):
     return code
 
 
+def _type_check_variablename(name):
+    """Check if this is a legit variable name.
+
+    Because they could clash with language features. If the macro is able to be
+    parsed at all due to a problematic choice of a variable name.
+
+    Allowed examples: "foo", "Foo1234_", "_foo_1234"
+    Not allowed: "1_foo", "foo=blub", "$foo", "foo,1234", "foo()"
+    """
+    if not isinstance(name, str) or not re.match(r"^[A-Za-z_][A-Za-z_0-9]*$", name):
+        raise SyntaxError(f'"{name}" is not a legit variable name')
+
+
 def _resolve(argument, allowed_types=None):
     """If the argument starts with a $, then figure out its value.
 
@@ -109,9 +123,6 @@ def _resolve(argument, allowed_types=None):
         variable_name = argument.split("$", 1)[1]
         value = macro_variables.get(variable_name)
         logger.debug('"%s" is "%s"', argument, value)
-        # TODO what will macros do if _type_check fails during runtime?
-        #   apparently the error is only thrown once, future clicks don't print
-        #   stack traces anymore
         if allowed_types:
             return _type_check(value, allowed_types)
         else:
@@ -483,6 +494,7 @@ class Macro:
 
     def add_set(self, variable, value):
         """Set a variable to a certain value."""
+        _type_check_variablename(variable)  # TODO test
 
         async def task(_):
             # can also copy with set(a, $b)

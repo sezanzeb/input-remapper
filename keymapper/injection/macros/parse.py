@@ -151,7 +151,6 @@ def _split_keyword_arg(param):
 
     If not a keyward param, return None and the param.
     """
-    # TODO unittest
     if re.match(r"[a-zA-Z_][a-zA-Z_\d]*=.+", param):
         split = param.split("=", 1)
         return split[0], split[1]

@@ -27,7 +27,12 @@ from unittest import mock
 
 from evdev.ecodes import EV_REL, EV_KEY, REL_Y, REL_X, REL_WHEEL, REL_HWHEEL
 
-from keymapper.injection.macros.macro import Macro, _type_check, macro_variables
+from keymapper.injection.macros.macro import (
+    Macro,
+    _type_check,
+    macro_variables,
+    _type_check_variablename,
+)
 from keymapper.injection.macros.parse import (
     parse,
     _extract_args,
@@ -35,6 +40,7 @@ from keymapper.injection.macros.parse import (
     _parse_recurse,
     handle_plus_syntax,
     _count_brackets,
+    _split_keyword_arg
 )
 from keymapper.injection.context import Context
 from keymapper.config import config
@@ -107,6 +113,38 @@ class TestMacros(unittest.IsolatedAsyncioTestCase):
         self.assertRaises(TypeError, lambda: _type_check("a", [Macro], "foo", 0))
         self.assertRaises(TypeError, lambda: _type_check(1, [Macro], "foo", 0))
         self.assertEqual(_type_check("1", [Macro, int], "foo", 4), 1)
+
+    def test_type_check_variablename(self):
+        self.assertRaises(SyntaxError, lambda: _type_check_variablename("1a"))
+        self.assertRaises(SyntaxError, lambda: _type_check_variablename("$a"))
+        self.assertRaises(SyntaxError, lambda: _type_check_variablename("a()"))
+        self.assertRaises(SyntaxError, lambda: _type_check_variablename("1"))
+        self.assertRaises(SyntaxError, lambda: _type_check_variablename("+"))
+        self.assertRaises(SyntaxError, lambda: _type_check_variablename("-"))
+        self.assertRaises(SyntaxError, lambda: _type_check_variablename("*"))
+        self.assertRaises(SyntaxError, lambda: _type_check_variablename("a,b"))
+        self.assertRaises(SyntaxError, lambda: _type_check_variablename("a,b"))
+        self.assertRaises(SyntaxError, lambda: _type_check_variablename("#"))
+        self.assertRaises(SyntaxError, lambda: _type_check_variablename(1))
+        self.assertRaises(SyntaxError, lambda: _type_check_variablename(None))
+        self.assertRaises(SyntaxError, lambda: _type_check_variablename([]))
+        self.assertRaises(SyntaxError, lambda: _type_check_variablename(()))
+
+        # doesn't raise
+        _type_check_variablename("a")
+        _type_check_variablename("_a")
+        _type_check_variablename("_A")
+        _type_check_variablename("A")
+        _type_check_variablename("Abcd")
+        _type_check_variablename("Abcd_")
+        _type_check_variablename("Abcd_1234")
+        _type_check_variablename("Abcd1234_")
+
+    def test_split_keyword_arg(self):
+        self.assertTupleEqual(_split_keyword_arg("_A=b"), ("_A", "b"))
+        self.assertTupleEqual(_split_keyword_arg("a_=1"), ("a_", "1"))
+        self.assertTupleEqual(_split_keyword_arg("a=r(2, KEY_A)"), ("a", "r(2, KEY_A)"))
+        self.assertTupleEqual(_split_keyword_arg('a="=,#+."'), ("a", '"=,#+."'))
 
     async def test_is_this_a_macro(self):
         self.assertTrue(is_this_a_macro("k(1)"))
@@ -352,6 +390,21 @@ class TestMacros(unittest.IsolatedAsyncioTestCase):
         error = parse("foo(a)", self.context, True)
         self.assertIn("unknown", error.lower())
         self.assertIn("foo", error)
+
+        error = parse("set($a, 1)", self.context, True)
+        self.assertIsNotNone(error)
+        error = parse("set(1, 2)", self.context, True)
+        self.assertIsNotNone(error)
+        error = parse("set(+, 2)", self.context, True)
+        self.assertIsNotNone(error)
+        error = parse("set(a(), 2)", self.context, True)
+        self.assertIsNotNone(error)
+        error = parse("set('b,c'), 2)", self.context, True)
+        self.assertIsNotNone(error)
+        error = parse('set("b,c"), 2)', self.context, True)
+        self.assertIsNotNone(error)
+        error = parse('set(A, 2)', self.context, True)
+        self.assertIsNone(error)
 
     async def test_hold(self):
         # repeats k(a) as long as the key is held down
