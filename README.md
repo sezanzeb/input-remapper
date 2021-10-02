@@ -4,10 +4,11 @@
 
 <p align="center">
   An easy to use tool to change the mapping of your input device buttons.<br/>
-  Supports mice, keyboards, gamepads, X11, Wayland, combined buttons and programmable macros.
+  Supports mice, keyboards, gamepads, X11, Wayland, combined buttons and programmable macros.<br/>
+  Allows mapping non-keyboard events (click, joystick, wheel) to keys of keyboard devices.
 </p>
 
-<p align="center"><a href="readme/usage.md">Usage</a> - <a href="readme/macros.md">Macros</a> - <a href="#installation">Installation</a> - <a href="readme/development.md">Development</a> - <a href="#screenshots">Screenshots</a></p>
+<p align="center"><a href="readme/usage.md">Usage</a> - <a href="readme/macros.md">Macros</a> - <a href="#installation">Installation</a> - <a href="readme/development.md">Development</a> - <a href="#screenshots">Screenshots</a> - <a href="readme/development.md">Examples</a></p>
 
 <p align="center"><img src="readme/pylint.svg"/> <img src="readme/coverage.svg"/></p>
 
@@ -30,6 +31,8 @@ git clone https://github.com/sezanzeb/key-mapper.git
 cd key-mapper && ./scripts/build.sh
 sudo apt install ./dist/key-mapper-1.1.0.deb
 ```
+
+key-mapper is now part of [Debian Testing](https://packages.debian.org/testing/key-mapper)
 
 ##### pip
 
