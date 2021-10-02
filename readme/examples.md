@@ -119,31 +119,6 @@ while the joystick turns the view (depending on the game).
 Tested with the XBOX 360 Gamepad. On Ubuntu, gamepads worked better in
 Wayland than with X11.
 
-## Combinations spanning multiple devices
-
-For regular combinations on only single devices it is not required to
-configure macros. See [readme/usage.md](usage.md#combinations).
-
-**Keyboard** `space` `set(foo, 1).h(space).set(foo, 0)`
-
-**Mouse** `middle` `if_eq($foo, 1, h(a), h(BTN_MIDDLE))`
-
-Apply both presets. If you press space on your keyboard, it will write a
-space exactly like it used to. If you hold down space and press the middle
-button of your mouse, it will write "a" instead. If you just press the
-middle button of your mouse it behaves like a regular middle mouse button.
-
-**Explanation**
-
-`h(space)` makes your key work exactly like if it was mapped to "space".
-It will inject a key-down event if you press it, does nothing as long you
-hold your key down, and injects a key-up event after releasing.
-`set(foo, 1).set(foo, 0)` sets "foo" to 1 and then sets "foo" to 0.
-`set` and `if_eq` work on shared memory, so all injections will see your
-variables. Combine both to get a key that works like a normal key, but that also
-works as a modifier for other keys of other devices. `if_eq($foo, 1, ..., ...)`
-runs the first param if foo is "bar", or the second one if foo is not "bar".
-
 ## Sequence of Keys with Modifiers
 
 Alt+TAB, Enter, Alt+TAB:
