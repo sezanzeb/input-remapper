@@ -494,7 +494,7 @@ class Macro:
 
     def add_set(self, variable, value):
         """Set a variable to a certain value."""
-        _type_check_variablename(variable)  # TODO test
+        _type_check_variablename(variable)
 
         async def task(_):
             # can also copy with set(a, $b)
@@ -563,9 +563,9 @@ class Macro:
             self.child_macros.append(_else)
 
         async def task(handler):
+            coroutine = self._holding_event.wait()
+            resolved_timeout = _resolve(timeout, [int, float]) / 1000
             try:
-                coroutine = self._holding_event.wait()
-                resolved_timeout = _resolve(timeout, [int, float]) / 1000
                 await asyncio.wait_for(coroutine, resolved_timeout)
                 if then:
                     await then.run(handler)
@@ -575,7 +575,7 @@ class Macro:
 
         self.tasks.append(task)
 
-    def add_if_single(self, then, otherwise):
+    def add_if_single(self, then, otherwise, timeout=None):
         """If a key was pressed without combining it."""
         _type_check(then, [Macro, None], "if_single", 1)
         _type_check(otherwise, [Macro, None], "if_single", 2)
@@ -598,14 +598,25 @@ class Macro:
                 if action in (PRESS, PRESS_NEGATIVE):
                     return True
 
-            await self.wait_for_event(event_filter)
+            coroutine = self.wait_for_event(event_filter)
+            resolved_timeout = _resolve(timeout, allowed_types=[int, float, None])
+            try:
+                if resolved_timeout is not None:
+                    await asyncio.wait_for(coroutine, resolved_timeout / 1000)
+                else:
+                    await coroutine
 
-            mappable_event_2 = (self._newest_event.type, self._newest_event.code)
+                mappable_event_2 = (self._newest_event.type, self._newest_event.code)
+                combined = mappable_event_1 != mappable_event_2
+                if not combined:
+                    # no timeout and not combined
+                    if then:
+                        await then.run(handler)
+                    return
+            except asyncio.TimeoutError:
+                pass
 
-            combined = mappable_event_1 != mappable_event_2
-            if then and not combined:
-                await then.run(handler)
-            elif otherwise:
+            if otherwise:
                 await otherwise.run(handler)
 
         self.tasks.append(task)

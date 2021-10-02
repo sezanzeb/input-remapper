@@ -208,9 +208,12 @@ Bear in mind that anti-cheat software might detect macros in games.
 > If the key that is mapped to the macro is pressed and released, run the `then` macro.
 >
 > If another key is pressed while the triggering key is held down, run the `else` macro.
+> 
+> If a timeout number is provided, the macro will run `else` if no event arrives for
+> more than the configured number in milliseconds.
 >
 > ```c#
-> if_single(then: Macro | None, else: Macro | None)
+> if_single(then: Macro | None, else: Macro | None, timeout: int | None)
 > ```
 >
 > Examples:
@@ -218,6 +221,7 @@ Bear in mind that anti-cheat software might detect macros in games.
 > ```c#
 > if_single(key(KEY_A), key(KEY_B))
 > if_single(then=key(KEY_A), else=key(KEY_B))
+> if_single(key(KEY_A), key(KEY_B), timeout=1000)
 > ```
 
 ## Syntax
