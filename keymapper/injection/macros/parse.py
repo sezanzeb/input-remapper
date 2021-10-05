@@ -27,7 +27,7 @@ import traceback
 import inspect
 
 from keymapper.logger import logger
-from keymapper.injection.macros.macro import Macro
+from keymapper.injection.macros.macro import Macro, Variable
 
 
 def is_this_a_macro(output):
@@ -104,7 +104,15 @@ def _extract_args(inner):
     brackets = 0
     params = []
     start = 0
+    string = False
     for position, char in enumerate(inner):
+        # ignore anything between string quotes
+        if char == '"':
+            string = not string
+        if string:
+            continue
+
+        # ignore commas inside child macros
         if char == "(":
             brackets += 1
         if char == ")":
@@ -161,22 +169,32 @@ def _split_keyword_arg(param):
 def _parse_recurse(macro, context, macro_instance=None, depth=0):
     """Handle a subset of the macro, e.g. one parameter or function call.
 
+    Not using eval for security reasons.
+
     Parameters
     ----------
     macro : string
-        Just like parse
+        Just like parse.
+        A single parameter of a function or the complete macro as string.
     context : Context
     macro_instance : Macro or None
         A macro instance to add tasks to
     depth : int
         For logging porposes
     """
-    # not using eval for security reasons
     assert isinstance(macro, str)
     assert isinstance(depth, int)
 
     if macro == "":
         return None
+
+    if macro.startswith('"'):
+        # a string, don't parse
+        return macro[1:-1]
+
+    if macro.startswith("$"):
+        # will be resolved during the macros runtime
+        return Variable(macro.split("$", 1)[1])
 
     if macro_instance is None:
         macro_instance = Macro(macro, context)
@@ -254,13 +272,22 @@ def _parse_recurse(macro, context, macro_instance=None, depth=0):
 
         return macro_instance
 
-    # probably a simple parameter
+    # at this point it is still a string since no previous rule matched
+    assert isinstance(macro, str)
+
     try:
-        # if possible, parse as int
+        # If it can be parsed as number, then it's probably a parameter to a function.
+        # It isn't really needed to parse it here, but is nice for the logs.
         macro = int(macro)
     except ValueError:
-        # use as string instead
-        pass
+        try:
+            macro = float(macro)
+        except ValueError:
+            # use as string instead
+            # If a string, it is probably either a key name like KEY_A or a variable
+            # name as n `set(var, 1)`, both won't contain special characters that can
+            # break macro syntax so they don't have to be wrapped in quotes.
+            pass
 
     logger.spam("%s%s %s", space, type(macro), macro)
     return macro
@@ -294,6 +321,20 @@ def handle_plus_syntax(macro):
     return output
 
 
+def _remove_whitespaces(macro, delimiter='"'):
+    """Remove whitespaces, tabs, newlines and such outside of string quotes."""
+    result = ""
+    for i, chunk in enumerate(macro.split(delimiter)):
+        if i % 2 == 0:
+            result += re.sub(r"\s", "", chunk)
+        else:
+            result += chunk
+        result += delimiter
+
+    # one extra delimiter was added
+    return result[: -len(delimiter)]
+
+
 def parse(macro, context, return_errors=False):
     """parse and generate a Macro that can be run as often as you want.
 
@@ -304,7 +345,7 @@ def parse(macro, context, return_errors=False):
     ----------
     macro : string
         "r(3, k(a).w(10))"
-        "r(2, k(a).k(-)).k(b)"
+        "r(2, k(a).k(KEY_A)).k(b)"
         "w(1000).m(Shift_L, r(2, k(a))).w(10, 20).k(b)"
     context : Context
     return_errors : bool
@@ -313,13 +354,7 @@ def parse(macro, context, return_errors=False):
     """
     macro = handle_plus_syntax(macro)
 
-    # whitespaces, tabs, newlines and such don't serve a purpose. make
-    # the log output clearer and the parsing easier.
-    macro = re.sub(r"\s", "", macro)
-
-    if '"' in macro or "'" in macro:
-        logger.info("Quotation marks in macros are not needed")
-        macro = macro.replace('"', "").replace("'", "")
+    macro = _remove_whitespaces(macro, '"')
 
     if return_errors:
         logger.spam("checking the syntax of %s", macro)

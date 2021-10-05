@@ -32,6 +32,8 @@ from keymapper.injection.macros.macro import (
     _type_check,
     macro_variables,
     _type_check_variablename,
+    _resolve,
+    Variable,
 )
 from keymapper.injection.macros.parse import (
     parse,
@@ -41,6 +43,7 @@ from keymapper.injection.macros.parse import (
     handle_plus_syntax,
     _count_brackets,
     _split_keyword_arg,
+    _remove_whitespaces,
 )
 from keymapper.injection.context import Context
 from keymapper.config import config
@@ -89,6 +92,25 @@ class TestMacros(MacroTestBase):
             await parse("k(1, b=2, c=3)", self.context).run(self.handler)
             self.assertListEqual(result, [(1, 2, 3, 4), (1, 2, 3, 400)])
 
+    def test_remove_whitespaces(self):
+        self.assertEqual(_remove_whitespaces('foo"bar"foo'), 'foo"bar"foo')
+        self.assertEqual(_remove_whitespaces('foo" bar"foo'), 'foo" bar"foo')
+        self.assertEqual(_remove_whitespaces('foo" bar"fo" "o'), 'foo" bar"fo" "o')
+        self.assertEqual(_remove_whitespaces(' fo o"\nba r "f\noo'), 'foo"\nba r "foo')
+        self.assertEqual(_remove_whitespaces(' a " b " c " '), 'a" b "c" ')
+
+        self.assertEqual(_remove_whitespaces('"""""""""'), '"""""""""')
+        self.assertEqual(_remove_whitespaces('""""""""'), '""""""""')
+
+        self.assertEqual(_remove_whitespaces("      "), "")
+        self.assertEqual(_remove_whitespaces('     " '), '" ')
+        self.assertEqual(_remove_whitespaces('     " " '), '" "')
+
+        self.assertEqual(_remove_whitespaces("a# ##b", delimiter="##"), "a###b")
+        self.assertEqual(_remove_whitespaces("a###b", delimiter="##"), "a###b")
+        self.assertEqual(_remove_whitespaces("a## #b", delimiter="##"), "a## #b")
+        self.assertEqual(_remove_whitespaces("a## ##b", delimiter="##"), "a## ##b")
+
     async def test_count_brackets(self):
         self.assertEqual(_count_brackets(""), 0)
         self.assertEqual(_count_brackets("()"), 2)
@@ -99,7 +121,23 @@ class TestMacros(MacroTestBase):
         self.assertEqual(_count_brackets("a(b(c))d"), 7)
         self.assertEqual(_count_brackets("a(b(c))d()"), 7)
 
-    def test__type_check(self):
+    def test_resolve(self):
+        self.assertEqual(_resolve("a"), "a")
+        self.assertEqual(_resolve(1), 1)
+        self.assertEqual(_resolve(None), None)
+
+        # $ is part of a custom string here
+        self.assertEqual(_resolve('"$a"'), '"$a"')
+        self.assertEqual(_resolve("'$a'"), "'$a'")
+
+        # variables are expected to be of the Variable type here, not a $string
+        self.assertEqual(_resolve("$a"), "$a")
+        variable = Variable("a")
+        self.assertEqual(_resolve(variable), None)
+        macro_variables["a"] = 1
+        self.assertEqual(_resolve(variable), 1)
+
+    def test_type_check(self):
         # allows params that can be cast to the target type
         self.assertEqual(_type_check(1, [str, None], "foo", 0), "1")
         self.assertEqual(_type_check("1", [int, None], "foo", 1), 1)
@@ -111,6 +149,11 @@ class TestMacros(MacroTestBase):
         self.assertRaises(TypeError, lambda: _type_check("a", [int, float], "foo", 2))
         self.assertRaises(TypeError, lambda: _type_check("a", [int, None], "foo", 3))
         self.assertEqual(_type_check("a", [int, float, None, str], "foo", 4), "a")
+
+        # variables are expected to be of the Variable type here, not a $string
+        self.assertRaises(TypeError, lambda: _type_check("$a", [int], "foo", 4))
+        variable = Variable("a")
+        self.assertEqual(_type_check(variable, [int], "foo", 4), variable)
 
         self.assertRaises(TypeError, lambda: _type_check("a", [Macro], "foo", 0))
         self.assertRaises(TypeError, lambda: _type_check(1, [Macro], "foo", 0))
@@ -213,6 +256,7 @@ class TestMacros(MacroTestBase):
         self.assertEqual(self.result[7], (EV_KEY, system_mapping.get("a"), 0))
 
     async def test_extract_params(self):
+        # splits strings, doesn't try to understand their meaning yet
         def expect(raw, expectation):
             self.assertListEqual(_extract_args(raw), expectation)
 
@@ -223,6 +267,11 @@ class TestMacros(MacroTestBase):
         expect("k(a)", ["k(a)"])
         expect("k(a).k(b), k(a)", ["k(a).k(b)", "k(a)"])
         expect("k(a), k(a).k(b)", ["k(a)", "k(a).k(b)"])
+
+        expect(
+            'a("foo(1,2,3)", ",,,,,,    "), , ""',
+            ['a("foo(1,2,3)", ",,,,,,    ")', "", '""'],
+        )
 
         expect(
             ",1,   ,b,x(,a(),).y().z(),,",
@@ -243,8 +292,23 @@ class TestMacros(MacroTestBase):
 
     async def test_parse_params(self):
         self.assertEqual(_parse_recurse("", self.context), None)
-        self.assertEqual(_parse_recurse("5", self.context), 5)
+
+        # strings. If it is wrapped in quotes, don't parse the contents
+        self.assertEqual(_parse_recurse('"foo"', self.context), "foo")
+        self.assertEqual(_parse_recurse('"\tf o o\n"', self.context), "\tf o o\n")
+        self.assertEqual(_parse_recurse('"foo(a,b)"', self.context), "foo(a,b)")
+        self.assertEqual(_parse_recurse('",,,()"', self.context), ",,,()")
+
+        # strings without quotes only work as long as there is no function call or
+        # anything. This is only really acceptable for constants like KEY_A and for
+        # variable names, which are not allowed to contain special characters that may
+        # have a meaning in the macro syntax.
         self.assertEqual(_parse_recurse("foo", self.context), "foo")
+
+        self.assertEqual(_parse_recurse("5", self.context), 5)
+        self.assertEqual(_parse_recurse("5.2", self.context), 5.2)
+        self.assertIsInstance(_parse_recurse("$foo", self.context), Variable)
+        self.assertEqual(_parse_recurse("$foo", self.context).name, "foo")
 
     async def test_fails(self):
         self.assertIsNone(parse("r(1, a)", self.context))
@@ -264,8 +328,7 @@ class TestMacros(MacroTestBase):
         self.assertEqual(len(macro.child_macros), 0)
 
     async def test_1(self):
-        # quotation marks are removed automatically and don't do any harm
-        macro = parse('k(1).k("a").k(3)', self.context)
+        macro = parse('k(1).k("KEY_A").k(3)', self.context)
         self.assertSetEqual(
             macro.get_capabilities()[EV_KEY],
             {system_mapping.get("1"), system_mapping.get("a"), system_mapping.get("3")},
@@ -318,9 +381,7 @@ class TestMacros(MacroTestBase):
         self.assertIsNotNone(error)
         error = parse("r(k(1), 1)", self.context, True)
         self.assertIsNotNone(error)
-        error = parse("r(1.2, key(1))", self.context, True)
-        self.assertIsNotNone(error)
-        error = parse("r(repeats=1, macro=k(1))", self.context, True)
+        error = parse("r(1, macro=k(1))", self.context, True)
         self.assertIsNone(error)
         error = parse("r(a=1, b=k(1))", self.context, True)
         self.assertIsNotNone(error)
@@ -824,6 +885,19 @@ class TestMacros(MacroTestBase):
         # k(KEY_B) is not executed, the macro stops
         self.assertListEqual(self.result, [])
 
+    async def test_set(self):
+        await parse('set(a, "foo")', self.context).run(self.handler)
+        self.assertEqual(macro_variables.get("a"), "foo")
+
+        await parse('set( \t"b" \n, "1")', self.context).run(self.handler)
+        self.assertEqual(macro_variables.get("b"), "1")
+
+        await parse("set(a, 1)", self.context).run(self.handler)
+        self.assertEqual(macro_variables.get("a"), 1)
+
+        await parse("set(a, )", self.context).run(self.handler)
+        self.assertEqual(macro_variables.get("a"), None)
+
 
 class TestIfEq(MacroTestBase):
     async def test_ifeq_runs(self):
@@ -888,6 +962,7 @@ class TestIfEq(MacroTestBase):
 
         await test("if_eq(1, 1, k(a), k(b))", a_press)
         await test("if_eq(1, 2, k(a), k(b))", b_press)
+        await test("if_eq(value_1=1, value_2=1, then=k(a), else=k(b))", a_press)
         await test('set(a, "foo").if_eq($a, "foo", k(a), k(b))', a_press)
         await test('set(a, "foo").if_eq("foo", $a, k(a), k(b))', a_press)
         await test('set(a, "foo").if_eq("foo", $a, , k(b))', [])
@@ -901,6 +976,19 @@ class TestIfEq(MacroTestBase):
         await test("if_eq($q, $w, k(a), else=k(b))", a_press)  # both None
         await test("set(q, 1).if_eq($q, $w, k(a), else=k(b))", b_press)
         await test("set(q, 1).set(w, 1).if_eq($q, $w, k(a), else=k(b))", a_press)
+        await test('set(q, " a b ").if_eq($q, " a b ", k(a), k(b))', a_press)
+        await test('if_eq("\t", "\n", k(a), k(b))', b_press)
+
+        # treats values in quotes as strings, not as code
+        await test('set(q, "$a").if_eq($q, "$a", k(a), k(b))', a_press)
+        await test('set(q, "a,b").if_eq("a,b", $q, k(a), k(b))', a_press)
+        await test('set(q, "c(1, 2)").if_eq("c(1, 2)", $q, k(a), k(b))', a_press)
+        await test('set(q, "c(1, 2)").if_eq("c(1, 2)", "$q", k(a), k(b))', b_press)
+        await test('if_eq("value_1=1", 1, k(a), k(b))', b_press)
+
+        # won't compare strings and int, be similar to python
+        await test('set(a, "1").if_eq($a, 1, k(a), k(b))', b_press)
+        await test('set(a, 1).if_eq($a, "1", k(a), k(b))', b_press)
 
     async def test_if_eq_runs_multiprocessed(self):
         """ifeq on variables that have been set in other processes works."""

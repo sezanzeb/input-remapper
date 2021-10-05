@@ -232,8 +232,8 @@ Unlike other programming languages, `qux(bar())` would not run `bar` and then
 `qux`. Instead, `cux` can decide to run `bar` during runtime depending on various
 other factors. Like `repeat` is running its parameter multiple times.
 
-Whitespaces, newlines and tabs don't have any meaning and are removed  when the macro
-gets compiled.
+Whitespaces, newlines and tabs don't have any meaning and are removed when the macro
+gets compiled, unless you wrap your strings in "quotes".
 
 Similar to python, arguments can be either positional or keyword arguments.
 `key(symbol=KEY_A)` is the same as `key(KEY_A)`.

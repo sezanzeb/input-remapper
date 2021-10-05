@@ -30,7 +30,7 @@ all of the configured stuff.
 Examples
 --------
 r(3, k(a).w(10)): a <10ms> a <10ms> a
-r(2, k(a).k(-)).k(b): a - a - b
+r(2, k(a).k(KEY_A)).k(b): a - a - b
 w(1000).m(Shift_L, r(2, k(a))).w(10).k(b): <1s> A A <10ms> b
 """
 
@@ -50,13 +50,30 @@ from keymapper.utils import PRESS, PRESS_NEGATIVE
 macro_variables = SharedDict()
 
 
+class Variable:
+    """Can be used as function parameter in the various add_... functions.
+
+    Parsed from strings like `$foo` in `repeat($foo, k(KEY_A))`
+
+    Its value is unknown during construction and needs to be set using the `set` macro
+    during runtime.
+    """
+
+    def __init__(self, name):
+        self.name = name
+
+    def resolve(self):
+        """Get the variables value from memory."""
+        return macro_variables.get(self.name)
+
+
 def _type_check(value, allowed_types, display_name=None, position=None):
     """Validate a parameter used in a macro.
 
-    If the value starts with $, it will be returned and should be resolved
+    If the value is a Variable, it will be returned and should be resolved
     during runtime with _resolve.
     """
-    if isinstance(value, str) and value.startswith("$"):
+    if isinstance(value, Variable):
         # it is a variable and will be read at runtime
         return value
 
@@ -85,13 +102,13 @@ def _type_check(value, allowed_types, display_name=None, position=None):
     raise TypeError(f"Expected parameter to be one of {allowed_types}, but got {value}")
 
 
-def _type_check_keyname(name):
+def _type_check_keyname(keyname):
     """Same as _type_check, but checks if the key-name is valid."""
-    if isinstance(name, str) and name.startswith("$"):
+    if isinstance(keyname, Variable):
         # it is a variable and will be read at runtime
-        return name
+        return keyname
 
-    symbol = str(name)
+    symbol = str(keyname)
     code = system_mapping.get(symbol)
 
     if code is None:
@@ -114,14 +131,13 @@ def _type_check_variablename(name):
 
 
 def _resolve(argument, allowed_types=None):
-    """If the argument starts with a $, then figure out its value.
+    """If the argument is a variable, figure out its value and cast it.
 
     Use this just-in-time when you need the actual value of the variable
     during runtime.
     """
-    if isinstance(argument, str) and argument.startswith("$"):
-        variable_name = argument.split("$", 1)[1]
-        value = macro_variables.get(variable_name)
+    if isinstance(argument, Variable):
+        value = argument.resolve()
         logger.debug('"%s" is "%s"', argument, value)
         if allowed_types:
             return _type_check(value, allowed_types)
@@ -227,7 +243,7 @@ class Macro:
         return not self._holding_event.is_set()
 
     def get_capabilities(self):
-        """Resolve all capabilities of the macro and those of its children."""
+        """Get the merged capabilities of the macro and its children."""
         capabilities = copy.deepcopy(self.capabilities)
 
         for macro in self.child_macros:
