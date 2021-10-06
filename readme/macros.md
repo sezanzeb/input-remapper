@@ -240,3 +240,7 @@ Similar to python, arguments can be either positional or keyword arguments.
 
 Using `$` resolves a variable during runtime. For example `set(a, $1)` and
 `if_eq($a, 1, key(KEY_A), key(KEY_B))`.
+
+Comments can be written with '#', like `key(KEY_A) # write an "a"`
+
+

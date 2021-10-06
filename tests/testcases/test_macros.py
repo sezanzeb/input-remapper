@@ -21,11 +21,23 @@
 
 import time
 import unittest
+import re
 import asyncio
 import multiprocessing
 from unittest import mock
 
-from evdev.ecodes import EV_REL, EV_KEY, REL_Y, REL_X, REL_WHEEL, REL_HWHEEL
+from evdev.ecodes import (
+    EV_REL,
+    EV_KEY,
+    REL_Y,
+    REL_X,
+    REL_WHEEL,
+    REL_HWHEEL,
+    KEY_A,
+    KEY_B,
+    KEY_C,
+    KEY_E,
+)
 
 from keymapper.injection.macros.macro import (
     Macro,
@@ -44,6 +56,7 @@ from keymapper.injection.macros.parse import (
     _count_brackets,
     _split_keyword_arg,
     _remove_whitespaces,
+    _remove_comments,
 )
 from keymapper.injection.context import Context
 from keymapper.config import config
@@ -110,6 +123,29 @@ class TestMacros(MacroTestBase):
         self.assertEqual(_remove_whitespaces("a###b", delimiter="##"), "a###b")
         self.assertEqual(_remove_whitespaces("a## #b", delimiter="##"), "a## #b")
         self.assertEqual(_remove_whitespaces("a## ##b", delimiter="##"), "a## ##b")
+
+    def test_remove_comments(self):
+        self.assertEqual(_remove_comments("a#b"), "a")
+        self.assertEqual(_remove_comments('"a#b"'), '"a#b"')
+        self.assertEqual(_remove_comments('a"#"#b'), 'a"#"')
+        self.assertEqual(_remove_comments('a"#""#"#b'), 'a"#""#"')
+        self.assertEqual(_remove_comments('#a"#""#"#b'), "")
+
+        self.assertEqual(
+            re.sub(
+                r"\s",
+                "",
+                _remove_comments(
+                    """
+            # a
+            b
+            # c
+            d
+        """
+                ),
+            ),
+            "bd",
+        )
 
     async def test_count_brackets(self):
         self.assertEqual(_count_brackets(""), 0)
@@ -897,6 +933,41 @@ class TestMacros(MacroTestBase):
 
         await parse("set(a, )", self.context).run(self.handler)
         self.assertEqual(macro_variables.get("a"), None)
+
+    async def test_multiline_macro_and_comments(self):
+        # the parser is not confused by the code in the comments and can use hashtags
+        # in strings in the actual code
+        comment = '# r(1,k(KEY_D)).set(a,"#b")'
+        macro = parse(
+            f"""
+            {comment}
+            key(KEY_A).{comment}
+            key(KEY_B). {comment}
+            repeat({comment}
+                1, {comment}
+                key(KEY_C){comment}
+            ). {comment}
+            {comment}
+            set(a, "#").{comment}
+            if_eq($a, "#", key(KEY_E), key(KEY_F)) {comment}
+            {comment}
+        """,
+            self.context,
+        )
+        await macro.run(self.handler)
+        self.assertListEqual(
+            self.result,
+            [
+                (EV_KEY, KEY_A, 1),
+                (EV_KEY, KEY_A, 0),
+                (EV_KEY, KEY_B, 1),
+                (EV_KEY, KEY_B, 0),
+                (EV_KEY, KEY_C, 1),
+                (EV_KEY, KEY_C, 0),
+                (EV_KEY, KEY_E, 1),
+                (EV_KEY, KEY_E, 0),
+            ],
+        )
 
 
 class TestIfEq(MacroTestBase):

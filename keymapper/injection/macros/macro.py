@@ -66,6 +66,9 @@ class Variable:
         """Get the variables value from memory."""
         return macro_variables.get(self.name)
 
+    def __repr__(self):
+        return f'<Variable "{self.name}">'
+
 
 def _type_check(value, allowed_types, display_name=None, position=None):
     """Validate a parameter used in a macro.
@@ -433,6 +436,10 @@ class Macro:
             examples: 52, 'KEY_A'
         value : int
         """
+        _type = _type_check(_type, [int, str], "e (event)", 1)
+        code = _type_check(code, [int, str], "e (event)", 2)
+        value = _type_check(value, [int, str], "e (event)", 3)
+
         if isinstance(_type, str):
             _type = ecodes[_type.upper()]
         if isinstance(code, str):
