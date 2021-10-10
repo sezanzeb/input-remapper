@@ -29,7 +29,7 @@ or install the latest changes via:
 sudo apt install git python3-setuptools gettext
 git clone https://github.com/sezanzeb/key-mapper.git
 cd key-mapper && ./scripts/build.sh
-sudo apt install ./dist/key-mapper-1.1.0.deb
+sudo apt install ./dist/key-mapper-1.2.0.deb
 ```
 
 key-mapper is now part of [Debian Testing](https://packages.debian.org/testing/key-mapper)
