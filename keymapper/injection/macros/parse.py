@@ -183,8 +183,8 @@ def _parse_recurse(code, context, macro_instance=None, depth=0):
     Parameters
     ----------
     code : string
-        Just like parse.
-        A single parameter of a function or the complete macro as string.
+        Just like parse. A single parameter or the complete macro as string.
+        Comments and redundant whitespace characters are expected to be removed already.
     context : Context
     macro_instance : Macro or None
         A macro instance to add tasks to
