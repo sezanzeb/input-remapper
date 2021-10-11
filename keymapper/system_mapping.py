@@ -75,7 +75,7 @@ class SystemMapping:
                 logger.info("`xmodmap -pke` did not yield any symbol")
         except (subprocess.CalledProcessError, FileNotFoundError):
             # might be within a tty
-            logger.info("`xmodmap` command not found")
+            logger.info("Optional `xmodmap` command not found. This is not critical.")
 
         if USER != "root":
             # write this stuff into the key-mapper config directory, because
