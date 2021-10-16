@@ -97,15 +97,15 @@ class ConsumerControl:
             for consumer in self._consumers:
                 # copy so that the consumer doesn't screw this up for
                 # all other future consumers
-                event = evdev.InputEvent(
+                event_copy = evdev.InputEvent(
                     sec=event.sec,
                     usec=event.usec,
                     type=event.type,
                     code=event.code,
                     value=event.value,
                 )
-                if consumer.is_handled(event):
-                    await consumer.notify(event)
+                if consumer.is_handled(event_copy):
+                    await consumer.notify(event_copy)
                     handled = True
 
             if not handled:

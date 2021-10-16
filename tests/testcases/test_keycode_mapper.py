@@ -106,7 +106,7 @@ class TestKeycodeMapper(unittest.IsolatedAsyncioTestCase):
 
         for macro in active_macros.values():
             if macro.is_holding():
-                macro.release_key()
+                macro.release_trigger()
             asyncio.get_event_loop().run_until_complete(asyncio.sleep(0.01))
             self.assertFalse(macro.is_holding())
             self.assertFalse(macro.running)

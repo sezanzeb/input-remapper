@@ -422,7 +422,7 @@ class KeycodeMapper(Consumer):
             if active_macro is not None and active_macro.is_holding():
                 # Tell the macro for that keycode that the key is released and
                 # let it decide what to do with that information.
-                active_macro.release_key()
+                active_macro.release_trigger()
                 logger.key_spam(key, "releasing macro")
 
             if type_and_code in unreleased:
@@ -476,6 +476,7 @@ class KeycodeMapper(Consumer):
                 # not finished, especially since gamepad-triggers report a ton
                 # of events with a positive value.
                 logger.key_spam(key, "macro already running")
+                self.context.macros[key].press_trigger()
                 return
 
         """starting new macros or injecting new keys"""
@@ -489,7 +490,7 @@ class KeycodeMapper(Consumer):
                 macro = self.context.macros[key]
                 active_macros[type_and_code] = macro
                 Unreleased((None, None), (*type_and_code, action), key)
-                macro.press_key()
+                macro.press_trigger()
                 logger.key_spam(key, "maps to macro %s", macro.code)
                 asyncio.ensure_future(macro.run(self.macro_write))
                 return

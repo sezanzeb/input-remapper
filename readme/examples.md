@@ -11,7 +11,7 @@ Examples for particular devices and/or use cases:
 - Mouse scroll `wheel(down, 1)` `wheel(up, 1)`
 - Mouse move `mouse(left, 1)` `mouse(right, 1)` `mouse(up, 1)` `mouse(down, 1)`
 
-## Macros
+## Quick Overview of Macros
 
 - `k(BTN_LEFT)` a single mouse-click
 - `k(1).k(2)` 1, 2
@@ -30,6 +30,12 @@ Examples for particular devices and/or use cases:
 - `if_tap(k(a), k(b), 1000)` writes a if the key is released within a second, otherwise b
 - `if_single(k(a), k(b))` writes b if another key is pressed, or a if the key is released
   and no other key was pressed in the meantime.
+
+## Double Tap
+
+`if_tap(if_tap(k(a), k(b)), k(c))`
+
+Will write "a" if tapped twice, "b" if tapped once and "c" if held down long enough
 
 ## Combinations Spanning Multiple Devices
 

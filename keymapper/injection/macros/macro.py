@@ -192,8 +192,11 @@ class Macro:
         self.tasks = []
 
         # can be used to wait for the release of the event
-        self._holding_event = asyncio.Event()
-        self._holding_event.set()  # released by default
+        self._trigger_release_event = asyncio.Event()
+        self._trigger_press_event = asyncio.Event()
+        # released by default
+        self._trigger_release_event.set()
+        self._trigger_press_event.clear()
 
         self.running = False
 
@@ -220,7 +223,7 @@ class Macro:
         self._newest_action = action
         self._new_event_arrived.set()
 
-    async def wait_for_event(self, filter=None):
+    async def _wait_for_event(self, filter=None):
         """Wait until a specific event arrives.
 
         The parameters can be used to provide a filter. It will block
@@ -243,7 +246,7 @@ class Macro:
 
     def is_holding(self):
         """Check if the macro is waiting for a key to be released."""
-        return not self._holding_event.is_set()
+        return not self._trigger_release_event.is_set()
 
     def get_capabilities(self):
         """Get the merged capabilities of the macro and its children."""
@@ -290,23 +293,25 @@ class Macro:
         # done
         self.running = False
 
-    def press_key(self):
-        """The user pressed the key down."""
+    def press_trigger(self):
+        """The user pressed the trigger key down."""
         if self.is_holding():
             logger.error("Already holding")
             return
 
-        self._holding_event.clear()
+        self._trigger_release_event.clear()
+        self._trigger_press_event.set()
 
         for macro in self.child_macros:
-            macro.press_key()
+            macro.press_trigger()
 
-    def release_key(self):
-        """The user released the key."""
-        self._holding_event.set()
+    def release_trigger(self):
+        """The user released the trigger key."""
+        self._trigger_release_event.set()
+        self._trigger_press_event.clear()
 
         for macro in self.child_macros:
-            macro.release_key()
+            macro.release_trigger()
 
     async def _keycode_pause(self, _=None):
         """To add a pause between keystrokes."""
@@ -329,7 +334,7 @@ class Macro:
         _type_check(macro, [Macro, str, None], "h (hold)", 1)
 
         if macro is None:
-            self.tasks.append(lambda _: self._holding_event.wait())
+            self.tasks.append(lambda _: self._trigger_release_event.wait())
             return
 
         if not isinstance(macro, Macro):
@@ -341,7 +346,7 @@ class Macro:
                 resolved_code = _resolve(code, [int])
                 self.capabilities[EV_KEY].add(resolved_code)
                 handler(EV_KEY, resolved_code, 1)
-                await self._holding_event.wait()
+                await self._trigger_release_event.wait()
                 handler(EV_KEY, resolved_code, 0)
 
             self.capabilities[EV_KEY].add(code)
@@ -575,7 +580,13 @@ class Macro:
         self.tasks.append(task)
 
     def add_if_tap(self, then=None, _else=None, timeout=300):
-        """If a key was pressed quickly."""
+        """If a key was pressed quickly.
+
+        macro key pressed -> if_tap starts -> key released -> then
+
+        macro key pressed -> released (does other stuff in the meantime)
+        -> if_tap starts -> pressed -> released -> then
+        """
         _type_check(then, [Macro, None], "if_tap", 1)
         _type_check(_else, [Macro, None], "if_tap", 2)
         timeout = _type_check(timeout, [int, float], "if_tap", 3)
@@ -585,11 +596,18 @@ class Macro:
         if isinstance(_else, Macro):
             self.child_macros.append(_else)
 
+        async def wait():
+            """Wait for a release, or if nothing pressed yet, a press and release."""
+            if self.is_holding():
+                await self._trigger_release_event.wait()
+            else:
+                await self._trigger_press_event.wait()
+                await self._trigger_release_event.wait()
+
         async def task(handler):
-            coroutine = self._holding_event.wait()
             resolved_timeout = _resolve(timeout, [int, float]) / 1000
             try:
-                await asyncio.wait_for(coroutine, resolved_timeout)
+                await asyncio.wait_for(wait(), resolved_timeout)
                 if then:
                     await then.run(handler)
             except asyncio.TimeoutError:
@@ -621,7 +639,7 @@ class Macro:
                 if action in (PRESS, PRESS_NEGATIVE):
                     return True
 
-            coroutine = self.wait_for_event(event_filter)
+            coroutine = self._wait_for_event(event_filter)
             resolved_timeout = _resolve(timeout, allowed_types=[int, float, None])
             try:
                 if resolved_timeout is not None:

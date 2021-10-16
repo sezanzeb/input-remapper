@@ -271,7 +271,7 @@ class TestMacros(MacroTestBase):
             },
         )
 
-        macro.press_key()
+        macro.press_trigger()
         asyncio.ensure_future(macro.run(self.handler))
         await asyncio.sleep(0.2)
         self.assertTrue(macro.is_holding())
@@ -283,7 +283,7 @@ class TestMacros(MacroTestBase):
         self.assertEqual(self.result[3], (EV_KEY, system_mapping.get("d"), 1))
 
         # and then releases starting with the previously pressed key
-        macro.release_key()
+        macro.release_trigger()
         await asyncio.sleep(0.2)
         self.assertFalse(macro.is_holding())
         self.assertEqual(self.result[4], (EV_KEY, system_mapping.get("d"), 0))
@@ -515,11 +515,11 @@ class TestMacros(MacroTestBase):
 
         """down"""
 
-        macro.press_key()
+        macro.press_trigger()
         await (asyncio.sleep(0.05))
         self.assertTrue(macro.is_holding())
 
-        macro.press_key()  # redundantly calling doesn't break anything
+        macro.press_trigger()  # redundantly calling doesn't break anything
         asyncio.ensure_future(macro.run(self.handler))
         await asyncio.sleep(0.2)
         self.assertTrue(macro.is_holding())
@@ -527,7 +527,7 @@ class TestMacros(MacroTestBase):
 
         """up"""
 
-        macro.release_key()
+        macro.release_trigger()
         await (asyncio.sleep(0.05))
         self.assertFalse(macro.is_holding())
 
@@ -549,7 +549,7 @@ class TestMacros(MacroTestBase):
         asyncio.ensure_future(macro.run(self.handler))
         await asyncio.sleep(0.2)
         self.assertFalse(macro.is_holding())
-        # press_key was never called, so the macro completes right away
+        # press_trigger was never called, so the macro completes right away
         # and the child macro of hold is never called.
         self.assertEqual(len(self.result), 4)
 
@@ -567,7 +567,7 @@ class TestMacros(MacroTestBase):
 
         """down"""
 
-        macro.press_key()
+        macro.press_trigger()
         asyncio.ensure_future(macro.run(self.handler))
         await (asyncio.sleep(0.1))
         self.assertTrue(macro.is_holding())
@@ -578,7 +578,7 @@ class TestMacros(MacroTestBase):
 
         """up"""
 
-        macro.release_key()
+        macro.release_trigger()
         await (asyncio.sleep(0.05))
         self.assertFalse(macro.is_holding())
         self.assertEqual(len(self.result), 4)
@@ -598,7 +598,7 @@ class TestMacros(MacroTestBase):
         asyncio.ensure_future(macro.run(self.handler))
         await (asyncio.sleep(0.1))
         self.assertFalse(macro.is_holding())
-        # since press_key was never called it just does the macro
+        # since press_trigger was never called it just does the macro
         # completely
         self.assertEqual(len(self.result), 4)
 
@@ -620,12 +620,12 @@ class TestMacros(MacroTestBase):
 
         """down"""
 
-        macro.press_key()
+        macro.press_trigger()
         await (asyncio.sleep(0.05))
         self.assertTrue(macro.is_holding())
 
         asyncio.ensure_future(macro.run(self.handler))
-        macro.press_key()  # redundantly calling doesn't break anything
+        macro.press_trigger()  # redundantly calling doesn't break anything
         await asyncio.sleep(0.2)
         self.assertTrue(macro.is_holding())
         self.assertEqual(len(self.result), 1)
@@ -633,7 +633,7 @@ class TestMacros(MacroTestBase):
 
         """up"""
 
-        macro.release_key()
+        macro.release_trigger()
         await (asyncio.sleep(0.05))
         self.assertFalse(macro.is_holding())
 
@@ -776,7 +776,7 @@ class TestMacros(MacroTestBase):
 
     async def test_duplicate_run(self):
         # it won't restart the macro, because that may screw up the
-        # internal state (in particular the _holding_event).
+        # internal state (in particular the _trigger_release_event).
         # I actually don't know at all what kind of bugs that might produce,
         # lets just avoid it. It might cause it to be held down forever.
         a = system_mapping.get("a")
@@ -790,14 +790,14 @@ class TestMacros(MacroTestBase):
         asyncio.ensure_future(macro.run(self.handler))  # ignored
         self.assertFalse(macro.is_holding())
 
-        macro.press_key()
+        macro.press_trigger()
         await asyncio.sleep(0.2)
         self.assertTrue(macro.is_holding())
 
         asyncio.ensure_future(macro.run(self.handler))  # ignored
         self.assertTrue(macro.is_holding())
 
-        macro.release_key()
+        macro.release_trigger()
         await asyncio.sleep(0.2)
         self.assertFalse(macro.is_holding())
 
@@ -814,10 +814,10 @@ class TestMacros(MacroTestBase):
         """not ignored, since previous run is over"""
 
         asyncio.ensure_future(macro.run(self.handler))
-        macro.press_key()
+        macro.press_trigger()
         await asyncio.sleep(0.2)
         self.assertTrue(macro.is_holding())
-        macro.release_key()
+        macro.release_trigger()
         await asyncio.sleep(0.2)
         self.assertFalse(macro.is_holding())
 
@@ -834,15 +834,15 @@ class TestMacros(MacroTestBase):
     async def test_mouse(self):
         macro_1 = parse("mouse(up, 4)", self.context)
         macro_2 = parse("wheel(left, 3)", self.context)
-        macro_1.press_key()
-        macro_2.press_key()
+        macro_1.press_trigger()
+        macro_2.press_trigger()
         asyncio.ensure_future(macro_1.run(self.handler))
         asyncio.ensure_future(macro_2.run(self.handler))
         await (asyncio.sleep(0.1))
         self.assertTrue(macro_1.is_holding())
         self.assertTrue(macro_2.is_holding())
-        macro_1.release_key()
-        macro_2.release_key()
+        macro_1.release_trigger()
+        macro_2.release_trigger()
 
         self.assertIn((EV_REL, REL_Y, -4), self.result)
         self.assertIn((EV_REL, REL_HWHEEL, 1), self.result)
@@ -876,34 +876,36 @@ class TestMacros(MacroTestBase):
         self.assertListEqual(self.result, [(5421, code, 154)])
         self.assertEqual(len(macro.child_macros), 1)
 
-    async def test_wait_for_event(self):
+    async def test__wait_for_event(self):
         macro = parse("h(a)", self.context)
 
         try:
             # should timeout, no event known
-            await asyncio.wait_for(macro.wait_for_event(), 0.1)
+            await asyncio.wait_for(macro._wait_for_event(), 0.1)
             raise AssertionError("Expected asyncio.TimeoutError")
         except asyncio.TimeoutError:
             pass
 
         # should not timeout because a new event arrived
         macro.notify(new_event(EV_KEY, 1, 1), PRESS)
-        await asyncio.wait_for(macro.wait_for_event(), 0.1)
+        await asyncio.wait_for(macro._wait_for_event(), 0.1)
 
         try:
             # should timeout, because the previous event doesn't match the filter
-            await asyncio.wait_for(macro.wait_for_event(lambda e, a: e.value == 3), 0.1)
+            await asyncio.wait_for(
+                macro._wait_for_event(lambda e, a: e.value == 3), 0.1
+            )
             raise AssertionError("Expected asyncio.TimeoutError")
         except asyncio.TimeoutError:
             pass
 
         # should not timeout because a new event arrived
         macro.notify(new_event(EV_KEY, 1, 3), RELEASE)
-        await asyncio.wait_for(macro.wait_for_event(), 0.1)
+        await asyncio.wait_for(macro._wait_for_event(), 0.1)
 
         try:
             # should timeout, because the previous event doesn't match the filter
-            await asyncio.wait_for(macro.wait_for_event(lambda _, a: a == PRESS), 0.1)
+            await asyncio.wait_for(macro._wait_for_event(lambda _, a: a == PRESS), 0.1)
             raise AssertionError("Expected asyncio.TimeoutError")
         except asyncio.TimeoutError:
             pass
@@ -1228,14 +1230,76 @@ class TestIfTap(MacroTestBase):
         y = system_mapping.get("y")
         self.assertSetEqual(macro.get_capabilities()[EV_KEY], {x, y})
 
-        macro.press_key()
+        # this is the regular routine of how a macro is started. the tigger is pressed
+        # already when the macro runs, and released during if_tap within the timeout.
+        macro.press_trigger()
         asyncio.ensure_future(macro.run(self.handler))
         await asyncio.sleep(0.05)
-        macro.release_key()
+        macro.release_trigger()
         await asyncio.sleep(0.05)
 
         self.assertListEqual(self.result, [(EV_KEY, x, 1), (EV_KEY, x, 0)])
         self.assertFalse(macro.running)
+
+    async def test_if_tap_2(self):
+        # when the press arrives shortly after run.
+        # a tap will happen within the timeout even if the tigger is not pressed when
+        # it does into if_tap
+        macro = parse("if_tap(k(a), k(b), 100)", self.context)
+        asyncio.ensure_future(macro.run(self.handler))
+
+        await asyncio.sleep(0.01)
+        macro.press_trigger()
+        await asyncio.sleep(0.01)
+        macro.release_trigger()
+        await asyncio.sleep(0.2)
+        self.assertListEqual(self.result, [(EV_KEY, KEY_A, 1), (EV_KEY, KEY_A, 0)])
+        self.assertFalse(macro.running)
+        self.result.clear()
+
+    async def test_if_double_tap(self):
+        macro = parse("if_tap(if_tap(k(a), k(b), 100), k(c), 100)", self.context)
+        self.assertEqual(len(macro.child_macros), 2)
+        self.assertEqual(len(macro.child_macros[0].child_macros), 2)
+        self.assertSetEqual(macro.get_capabilities()[EV_KEY], {KEY_A, KEY_B, KEY_C})
+
+        asyncio.ensure_future(macro.run(self.handler))
+
+        # first tap
+        macro.press_trigger()
+        await asyncio.sleep(0.05)
+        macro.release_trigger()
+
+        # second tap
+        await asyncio.sleep(0.04)
+        macro.press_trigger()
+        await asyncio.sleep(0.04)
+        macro.release_trigger()
+
+        await asyncio.sleep(0.05)
+        self.assertListEqual(self.result, [(EV_KEY, KEY_A, 1), (EV_KEY, KEY_A, 0)])
+        self.assertFalse(macro.running)
+        self.result.clear()
+
+        """If the second tap takes too long, runs else there"""
+
+        asyncio.ensure_future(macro.run(self.handler))
+
+        # first tap
+        macro.press_trigger()
+        await asyncio.sleep(0.05)
+        macro.release_trigger()
+
+        # second tap
+        await asyncio.sleep(0.06)
+        macro.press_trigger()
+        await asyncio.sleep(0.06)
+        macro.release_trigger()
+
+        await asyncio.sleep(0.05)
+        self.assertListEqual(self.result, [(EV_KEY, KEY_B, 1), (EV_KEY, KEY_B, 0)])
+        self.assertFalse(macro.running)
+        self.result.clear()
 
     async def test_if_tap_none(self):
         # first param none
@@ -1243,10 +1307,10 @@ class TestIfTap(MacroTestBase):
         self.assertEqual(len(macro.child_macros), 1)
         y = system_mapping.get("y")
         self.assertSetEqual(macro.get_capabilities()[EV_KEY], {y})
-        macro.press_key()
+        macro.press_trigger()
         asyncio.ensure_future(macro.run(self.handler))
         await asyncio.sleep(0.05)
-        macro.release_key()
+        macro.release_trigger()
         await asyncio.sleep(0.05)
         self.assertListEqual(self.result, [])
 
@@ -1255,10 +1319,10 @@ class TestIfTap(MacroTestBase):
         self.assertEqual(len(macro.child_macros), 1)
         y = system_mapping.get("y")
         self.assertSetEqual(macro.get_capabilities()[EV_KEY], {y})
-        macro.press_key()
+        macro.press_trigger()
         asyncio.ensure_future(macro.run(self.handler))
         await asyncio.sleep(0.1)
-        macro.release_key()
+        macro.release_trigger()
         await asyncio.sleep(0.05)
         self.assertListEqual(self.result, [])
 
@@ -1272,10 +1336,10 @@ class TestIfTap(MacroTestBase):
         y = system_mapping.get("y")
         self.assertSetEqual(macro.get_capabilities()[EV_KEY], {x, y})
 
-        macro.press_key()
+        macro.press_trigger()
         asyncio.ensure_future(macro.run(self.handler))
         await asyncio.sleep(0.1)
-        macro.release_key()
+        macro.release_trigger()
         await asyncio.sleep(0.05)
 
         self.assertListEqual(self.result, [(EV_KEY, y, 1), (EV_KEY, y, 0)])
@@ -1289,10 +1353,10 @@ class TestIfTap(MacroTestBase):
         y = system_mapping.get("y")
         self.assertSetEqual(macro.get_capabilities()[EV_KEY], {x, y})
 
-        macro.press_key()
+        macro.press_trigger()
         asyncio.ensure_future(macro.run(self.handler))
         await asyncio.sleep(0.1)
-        macro.release_key()
+        macro.release_trigger()
         await asyncio.sleep(0.05)
 
         self.assertListEqual(self.result, [(EV_KEY, y, 1), (EV_KEY, y, 0)])
