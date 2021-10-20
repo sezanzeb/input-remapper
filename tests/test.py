@@ -574,6 +574,7 @@ def quick_cleanup(log=True):
         asyncio.set_event_loop(asyncio.new_event_loop())
 
     if not macro_variables.process.is_alive():
+        # nothing should stop the process during runtime
         raise AssertionError("the SharedDict manager is not running anymore")
 
     macro_variables._stop()

@@ -37,27 +37,31 @@ class SharedDict:
     def __init__(self):
         """Create a shared dictionary."""
         super().__init__()
-        self.pipe = multiprocessing.Pipe()
-        self.process = None
-        atexit.register(self._stop)
-        self._start()
 
         # To avoid blocking forever if something goes wrong. The maximum
         # observed time communication takes was 0.001 for me on a slow pc
         self._timeout = 0.02
 
+        self.pipe = multiprocessing.Pipe()
+        self.process = None
+        atexit.register(self._stop)
+        self._start()
+
     def _start(self):
         """Ensure the process to manage the dictionary is running."""
         if self.process is not None and self.process.is_alive():
+            logger.spam("SharedDict process already running")
             return
 
         # if the manager has already been running in the past but stopped
-        # for some reason, the dictionary contents are lost
+        # for some reason, the dictionary contents are lost.
+        logger.spam("Starting SharedDict process")
         self.process = multiprocessing.Process(target=self.manage)
         self.process.start()
 
     def manage(self):
         """Manage the dictionary, handle read and write requests."""
+        logger.spam("SharedDict process started")
         shared_dict = dict()
         while True:
             message = self.pipe[0].recv()

@@ -21,6 +21,7 @@
 
 import unittest
 import select
+import time
 
 from keymapper.ipc.pipe import Pipe
 from keymapper.ipc.shared_dict import SharedDict
@@ -30,19 +31,21 @@ from tests.test import quick_cleanup
 
 
 class TestSharedDict(unittest.TestCase):
+    def setUp(self):
+        self.shared_dict = SharedDict()
+        time.sleep(0.02)
+
     def tearDown(self):
         quick_cleanup()
 
     def test_returns_none(self):
-        shared_dict = SharedDict()
-        self.assertIsNone(shared_dict.get("a"))
-        self.assertIsNone(shared_dict["a"])
+        self.assertIsNone(self.shared_dict.get("a"))
+        self.assertIsNone(self.shared_dict["a"])
 
     def test_set_get(self):
-        shared_dict = SharedDict()
-        shared_dict["a"] = 3
-        self.assertEqual(shared_dict.get("a"), 3)
-        self.assertEqual(shared_dict["a"], 3)
+        self.shared_dict["a"] = 3
+        self.assertEqual(self.shared_dict.get("a"), 3)
+        self.assertEqual(self.shared_dict["a"], 3)
 
 
 class TestSocket(unittest.TestCase):

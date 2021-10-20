@@ -30,12 +30,8 @@ Examples for particular devices and/or use cases:
 - `if_tap(k(a), k(b), 1000)` writes a if the key is released within a second, otherwise b
 - `if_single(k(a), k(b))` writes b if another key is pressed, or a if the key is released
   and no other key was pressed in the meantime.
-
-## Double Tap
-
-`if_tap(if_tap(k(a), k(b)), k(c))`
-
-Will write "a" if tapped twice, "b" if tapped once and "c" if held down long enough
+- `if_tap(if_tap(k(a), k(b)), k(c))` "a" if tapped twice, "b" if tapped once and "c" if
+  held down long enough
 
 ## Combinations Spanning Multiple Devices
 
