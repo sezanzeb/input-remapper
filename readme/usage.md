@@ -14,7 +14,8 @@ Hitting a key on the device that is selected in the large dropdown on the top
 should display the key on the bottom of the window, and write it into the selected
 row (as shown in the screenshots).
 
-In "Mapping", type the key to which you would like to map this key. You can also use [combinations](#writing-combinations) or [macros](#macros). For all possible key names, see [Key Names](#key-names)
+In "Mapping", type the key to which you would like to map this key. More information
+can be found [below](#key-names-and-macros).
 
 Changes are saved automatically. Afterwards press the "Apply" button.
 
@@ -85,6 +86,18 @@ names can be chained using ` + `.
 
 Check the autocompletion of the GUI for possible values. You can also
 obtain a complete list of possiblities using `key-mapper-control --symbol-names`.
+
+The available symbols depend on the environments keyboard layout. For example,
+mapping a key to an exclamation mark is not possible if the keyboard layout is set
+to german. However, it is possible to mimic the combination that would be required
+to write it, by writing `Shift_L + 1` into the mapping. This is because key-mapper
+creates a new virtual keyboard and injects numeric keycodes (with the benefit of being
+compatible to all display servers).
+
+Key names that start with `KEY_` are keyboard layout independent constants that might
+not result in the expected output. For example using `KEY_Y` would  result in "z"
+if the layout of the environment is set to german. Using `y` on the other hand would
+correctly result in "y" to be written.
 
 Values for mouse movement and scrolling are actually [macros](macros.md).
 
