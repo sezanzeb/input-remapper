@@ -179,7 +179,6 @@ class TestDaemon(unittest.TestCase):
         push_events(group.key, [new_event(EV_KEY, 13, 1)])
 
         self.daemon = Daemon()
-        self.daemon.set_config_dir(get_config_path())
 
         self.assertFalse(uinput_write_history_pipe[0].poll())
         self.daemon.start_injecting(group.key, preset)
@@ -222,6 +221,17 @@ class TestDaemon(unittest.TestCase):
         self.assertEqual(event.code, keycode_to_2)
         self.assertEqual(event.value, 1)
 
+    def test_config_dir(self):
+        config.set('foo', 'bar')
+        self.assertEqual(config.get('foo'), 'bar')
+
+        # freshly loads the config and therefore removes the previosly added key.
+        # This is important so that if the service is started via sudo or pkexec
+        # it knows where to look for configuration files.
+        self.daemon = Daemon()
+        self.assertEqual(self.daemon.config_dir, get_config_path())
+        self.assertIsNone(config.get('foo'))
+
     def test_refresh_on_start(self):
         if os.path.exists(get_config_path("xmodmap.json")):
             os.remove(get_config_path("xmodmap.json"))
@@ -262,7 +272,6 @@ class TestDaemon(unittest.TestCase):
             "name": group_name,
         }
 
-        self.daemon.set_config_dir(get_config_path())
         self.daemon.start_injecting(group_key, preset)
 
         # test if the injector called groups.refresh successfully
@@ -359,15 +368,7 @@ class TestDaemon(unittest.TestCase):
         mapping.change(Key(3, 2, 1), "a")
         mapping.save(group.get_preset_path(preset))
 
-        # the daemon needs set_config_dir first before doing anything
-        daemon.start_injecting(group.key, preset)
-        self.assertNotIn(group.key, daemon.autoload_history._autoload_history)
-        self.assertNotIn(group.key, daemon.injectors)
-        self.assertTrue(daemon.autoload_history.may_autoload(group.key, preset))
-
         # start
-        config.save_config()
-        daemon.set_config_dir(get_config_path())
         daemon.start_injecting(group.key, preset)
         # explicit start, not autoload, so the history stays empty
         self.assertNotIn(group.key, daemon.autoload_history._autoload_history)
@@ -415,7 +416,6 @@ class TestDaemon(unittest.TestCase):
 
         daemon = Daemon()
         self.daemon = daemon
-        self.daemon.set_config_dir(get_config_path())
 
         mapping = Mapping()
         mapping.change(Key(3, 2, 1), "a")
@@ -428,7 +428,6 @@ class TestDaemon(unittest.TestCase):
 
         config.set_autoload_preset(group.key, preset)
         config.save_config()
-        self.daemon.set_config_dir(get_config_path())
         len_before = len(self.daemon.autoload_history._autoload_history)
         # now autoloading is configured, so it will autoload
         self.daemon._autoload(group.key)
@@ -479,12 +478,6 @@ class TestDaemon(unittest.TestCase):
         # ignored, won't cause problems:
         config.set_autoload_preset("non-existant-key", "foo")
 
-        # daemon is missing the config directory yet
-        self.daemon.autoload()
-        self.assertEqual(len(history), 0)
-
-        config.save_config()
-        self.daemon.set_config_dir(get_config_path())
         self.daemon.autoload()
         self.assertEqual(len(history), 1)
         self.assertEqual(history[group.key][1], preset)
@@ -502,7 +495,6 @@ class TestDaemon(unittest.TestCase):
         config.save_config()
 
         self.daemon = Daemon()
-        self.daemon.set_config_dir(get_config_path())
         groups.set_groups([])  # caused the bug
         self.assertIsNone(groups.find(key="Foo Device 2"))
         self.daemon.autoload()

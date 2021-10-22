@@ -43,7 +43,7 @@ from keymapper.mapping import Mapping
 from keymapper.config import config
 from keymapper.system_mapping import system_mapping
 from keymapper.groups import groups
-from keymapper.paths import get_config_path
+from keymapper.paths import get_config_path, USER
 
 
 BUS_NAME = "keymapper.Control"
@@ -147,7 +147,11 @@ class Daemon:
         """Constructs the daemon."""
         logger.debug("Creating daemon")
         self.injectors = {}
+
         self.config_dir = None
+
+        if USER != 'root':
+            self.set_config_dir(get_config_path())
 
         self.autoload_history = AutoloadHistory()
         self.refreshed_devices_at = 0
