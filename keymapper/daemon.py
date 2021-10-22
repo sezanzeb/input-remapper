@@ -43,6 +43,7 @@ from keymapper.mapping import Mapping
 from keymapper.config import config
 from keymapper.system_mapping import system_mapping
 from keymapper.groups import groups
+from keymapper.paths import get_config_path
 
 
 BUS_NAME = "keymapper.Control"
@@ -202,6 +203,10 @@ class Daemon:
             else:
                 logger.error("Failed to connect to the service")
                 sys.exit(1)
+
+        config_path = get_config_path()
+        logger.debug('Telling service about "%s"', config_path)
+        interface.set_config_dir(get_config_path())
 
         return interface
 

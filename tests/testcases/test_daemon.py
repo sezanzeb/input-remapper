@@ -120,18 +120,29 @@ class TestDaemon(unittest.TestCase):
         os.system = os_system_history.append
 
         self.assertFalse(is_service_running())
+
         # no daemon runs, should try to run it via pkexec instead.
-        # It fails due to the patch and therefore exits the process
+        # It fails due to the patch on os.system and therefore exits the process
         self.assertRaises(SystemExit, Daemon.connect)
         self.assertEqual(len(os_system_history), 1)
         self.assertIsNone(Daemon.connect(False))
 
+        # make the connect command work this time by acting like a connection is
+        # available:
+
+        set_config_dir_callcount = 0
+
         class FakeConnection:
-            pass
+            def set_config_dir(self, *args, **kwargs):
+                nonlocal set_config_dir_callcount
+                set_config_dir_callcount += 1
 
         type(SystemBus()).get = lambda *args: FakeConnection()
         self.assertIsInstance(Daemon.connect(), FakeConnection)
+        self.assertEqual(set_config_dir_callcount, 1)
+
         self.assertIsInstance(Daemon.connect(False), FakeConnection)
+        self.assertEqual(set_config_dir_callcount, 2)
 
     def test_daemon(self):
         # remove the existing system mapping to force our own into it
