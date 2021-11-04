@@ -1,3 +1,0 @@
-# udevadm monitor --property
-# udevadm info --query=all --name=/dev/input/event3
-ACTION=="add", SUBSYSTEM=="input", RUN+="/bin/key-mapper-control --command autoload --device $env{DEVNAME}"

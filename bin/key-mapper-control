@@ -133,10 +133,12 @@ def communicate(options, daemon):
         # if device was specified, autoload for that one. if None autoload
         # for all devices.
         if options.device is None:
-            daemon.autoload()
+            # timeout is not documented, for more info see
+            # https://github.com/LEW21/pydbus/blob/master/pydbus/proxy_method.py
+            daemon.autoload(timeout=10)
         else:
             group = require_group()
-            daemon.autoload_single(group.key)
+            daemon.autoload_single(group.key, timeout=2)
 
     if options.command == START:
         group = require_group()

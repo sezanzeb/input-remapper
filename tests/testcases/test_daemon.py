@@ -222,15 +222,15 @@ class TestDaemon(unittest.TestCase):
         self.assertEqual(event.value, 1)
 
     def test_config_dir(self):
-        config.set('foo', 'bar')
-        self.assertEqual(config.get('foo'), 'bar')
+        config.set("foo", "bar")
+        self.assertEqual(config.get("foo"), "bar")
 
         # freshly loads the config and therefore removes the previosly added key.
         # This is important so that if the service is started via sudo or pkexec
         # it knows where to look for configuration files.
         self.daemon = Daemon()
         self.assertEqual(self.daemon.config_dir, get_config_path())
-        self.assertIsNone(config.get('foo'))
+        self.assertIsNone(config.get("foo"))
 
     def test_refresh_on_start(self):
         if os.path.exists(get_config_path("xmodmap.json")):

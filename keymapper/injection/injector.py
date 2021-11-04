@@ -409,15 +409,19 @@ class Injector(multiprocessing.Process):
             # stopped event loop most likely
             pass
         except OSError as error:
-            logger.error(str(error))
+            logger.error("Failed to run injector coroutines: %s", str(error))
 
         if len(coroutines) > 0:
             # expected when stop_injecting is called,
             # during normal operation as well as tests this point is not
             # reached otherwise.
-            logger.debug("asyncio coroutines ended")
+            logger.debug("Injector coroutines ended")
 
         for source in sources:
             # ungrab at the end to make the next injection process not fail
             # its grabs
-            source.ungrab()
+            try:
+                source.ungrab()
+            except OSError as error:
+                # it might have disappeared
+                logger.debug("OSError for ungrab on %s: %s", source.path, str(error))

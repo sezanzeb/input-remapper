@@ -1,0 +1,7 @@
+# helpful commands:
+#   udevadm monitor --property
+#   udevadm info --query=all --name=/dev/input/event3
+# to test changes:
+#   sudo udevadm control --reload-rules
+#   journalctl -f
+ACTION=="add", SUBSYSTEM=="input", RUN+="/bin/key-mapper-control --command autoload --device $env{DEVNAME}"

@@ -98,6 +98,19 @@ class AutoloadHistory:
         return False
 
 
+def remove_timeout(func):
+    """Remove timeout to ensure the call works if the daemon is not a proxy."""
+    # the timeout kwarg is a feature of pydbus. This is needed to make tests work
+    # that create a Daemon by calling its constructor instead of using pydbus.
+    def wrapped(*args, **kwargs):
+        if "timeout" in kwargs:
+            del kwargs["timeout"]
+
+        return func(*args, **kwargs)
+
+    return wrapped
+
+
 class Daemon:
     """Starts injecting keycodes based on the configuration.
 
@@ -150,7 +163,7 @@ class Daemon:
 
         self.config_dir = None
 
-        if USER != 'root':
+        if USER != "root":
             self.set_config_dir(get_config_path())
 
         self.autoload_history = AutoloadHistory()
@@ -326,6 +339,7 @@ class Daemon:
         self.start_injecting(group.key, preset)
         self.autoload_history.remember(group.key, preset)
 
+    @remove_timeout
     def autoload_single(self, group_key):
         """Inject the configured autoload preset for the device.
 
@@ -353,6 +367,7 @@ class Daemon:
 
         self._autoload(group_key)
 
+    @remove_timeout
     def autoload(self):
         """Load all autoloaded presets for the current config_dir.
 
