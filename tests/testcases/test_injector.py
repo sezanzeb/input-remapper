@@ -748,10 +748,6 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(history.count((EV_KEY, code_d, 0)), 1)
 
     def test_wheel(self):
-        # this tests both keycode_mapper and event_producer, and it seems
-        # to test stuff not covered in test_keycode_mapper, so it's a quite
-        # important one.
-
         # wheel release events are made up with a debouncer
 
         # map those two to stuff

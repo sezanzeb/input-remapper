@@ -832,20 +832,28 @@ class TestMacros(MacroTestBase):
         self.assertListEqual(self.result, expected)
 
     async def test_mouse(self):
+        wheel_speed = 100
         macro_1 = parse("mouse(up, 4)", self.context)
-        macro_2 = parse("wheel(left, 3)", self.context)
+        macro_2 = parse(f"wheel(left, {wheel_speed})", self.context)
         macro_1.press_trigger()
         macro_2.press_trigger()
         asyncio.ensure_future(macro_1.run(self.handler))
         asyncio.ensure_future(macro_2.run(self.handler))
-        await (asyncio.sleep(0.1))
+
+        sleep = 0.1
+        await (asyncio.sleep(sleep))
         self.assertTrue(macro_1.is_holding())
         self.assertTrue(macro_2.is_holding())
         macro_1.release_trigger()
         macro_2.release_trigger()
 
         self.assertIn((EV_REL, REL_Y, -4), self.result)
-        self.assertIn((EV_REL, REL_HWHEEL, 1), self.result)
+        expected_wheel_event_count = sleep / (1 / wheel_speed)
+        actual_wheel_event_count = self.result.count((EV_REL, REL_HWHEEL, 1))
+        # this seems to have a tendency of injecting less wheel events,
+        # especially if the sleep is short
+        self.assertGreater(actual_wheel_event_count, expected_wheel_event_count * 0.8)
+        self.assertLess(actual_wheel_event_count, expected_wheel_event_count * 1.1)
 
         self.assertIn(REL_WHEEL, macro_1.get_capabilities()[EV_REL])
         self.assertIn(REL_Y, macro_1.get_capabilities()[EV_REL])

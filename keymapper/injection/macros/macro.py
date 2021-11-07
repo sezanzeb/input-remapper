@@ -507,7 +507,7 @@ class Macro:
                 handler(EV_REL, code, value)
                 # scrolling moves much faster than mouse, so this
                 # waits between injections instead to make it slower
-                await asyncio.sleep(100 / resolved_speed)
+                await asyncio.sleep(1 / resolved_speed)
 
         self.tasks.append(task)
 

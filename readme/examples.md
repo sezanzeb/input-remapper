@@ -8,7 +8,7 @@ Examples for particular devices and/or use cases:
 - Modifiers `Alt_L` `Control_L` `Control_R` `Shift_L` `Shift_R`
 - Mouse buttons `BTN_LEFT` `BTN_RIGHT` `BTN_MIDDLE` `BTN_SIDE` ...
 - Multimedia keys `KEY_NEXTSONG` `KEY_PLAYPAUSE` `XF86AudioMicMute` ...
-- Mouse scroll `wheel(down, 1)` `wheel(up, 1)`
+- Mouse scroll `wheel(down, 10)` `wheel(up, 10)`
 - Mouse move `mouse(left, 1)` `mouse(right, 1)` `mouse(up, 1)` `mouse(down, 1)`
 
 ## Quick Overview of Macros

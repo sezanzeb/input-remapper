@@ -125,8 +125,8 @@ Bear in mind that anti-cheat software might detect macros in games.
 > Examples:
 >
 > ```c#
-> mouse(up, 1)
-> mouse(left, 2)
+> mouse(up, 10)
+> mouse(left, 20)
 > ```
 
 ### event
