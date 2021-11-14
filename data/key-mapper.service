@@ -1,5 +1,8 @@
 [Unit]
 Description=Service to inject keycodes without the GUI application
+# dbus is required for ipc between gui and key-mapper-control
+Requires=dbus.service
+After=dbus.service
 
 [Service]
 Type=dbus

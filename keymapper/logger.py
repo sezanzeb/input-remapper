@@ -27,6 +27,7 @@ import shutil
 import time
 import logging
 import pkg_resources
+from datetime import datetime
 
 from keymapper.user import HOME
 
@@ -194,28 +195,37 @@ def update_verbosity(debug):
             # since this is optional, just skip all exceptions
             if not isinstance(error, ImportError):
                 logger.debug("Cannot use rich.traceback: %s", error)
+
+        logger.debug("Started debug logs at: %s", str(datetime.now()))
     else:
         logger.setLevel(logging.INFO)
 
 
 def add_filehandler(log_path=LOG_PATH):
     """Clear the existing logfile and start logging to it."""
-    logger.info('This output is also stored in "%s"', LOG_PATH)
+    try:
+        log_path = os.path.expanduser(log_path)
+        os.makedirs(os.path.dirname(log_path), exist_ok=True)
 
-    log_path = os.path.expanduser(log_path)
-    os.makedirs(os.path.dirname(log_path), exist_ok=True)
-
-    if os.path.exists(log_path):
-        # keep the log path small, start from scratch each time
         if os.path.isdir(log_path):
             # used to be a folder < 0.8.0
             shutil.rmtree(log_path)
-        else:
-            os.remove(log_path)
 
-    file_handler = logging.FileHandler(log_path)
-    file_handler.setFormatter(Formatter())
+        if os.path.exists(log_path):
+            # the logfile should not be longer than 1000 lines to avoid overflowing
+            # the storage
+            with open(log_path, "r") as file:
+                content = file.readlines()[-200:] + ["---\n"]
 
-    logger.info('Logging to "%s"', log_path)
+            with open(log_path, "w") as file:
+                file.truncate(0)
+                file.writelines(content)
 
-    logger.addHandler(file_handler)
+        file_handler = logging.FileHandler(log_path)
+        file_handler.setFormatter(Formatter())
+
+        logger.info('Logging to "%s"', log_path)
+
+        logger.addHandler(file_handler)
+    except PermissionError:
+        logger.debug('No permission to log to "%s"', log_path)

@@ -47,6 +47,9 @@ from keymapper.paths import get_config_path, USER
 
 
 BUS_NAME = "keymapper.Control"
+# timeout in seconds, see
+# https://github.com/LEW21/pydbus/blob/cc407c8b1d25b7e28a6d661a29f9e661b1c9b964/pydbus/proxy.py
+BUS_TIMEOUT = 10
 
 
 class AutoloadHistory:
@@ -183,7 +186,7 @@ class Daemon:
         """
         try:
             bus = SystemBus()
-            interface = bus.get(BUS_NAME)
+            interface = bus.get(BUS_NAME, timeout=BUS_TIMEOUT)
             logger.info("Connected to the service")
         except GLib.GError as error:
             if not fallback:
@@ -208,7 +211,7 @@ class Daemon:
             # try a few times if the service was just started
             for attempt in range(3):
                 try:
-                    interface = bus.get(BUS_NAME)
+                    interface = bus.get(BUS_NAME, timeout=BUS_TIMEOUT)
                     break
                 except GLib.GError as error:
                     logger.debug(
@@ -221,9 +224,10 @@ class Daemon:
                 logger.error("Failed to connect to the service")
                 sys.exit(1)
 
-        config_path = get_config_path()
-        logger.debug('Telling service about "%s"', config_path)
-        interface.set_config_dir(get_config_path())
+        if USER != "root":
+            config_path = get_config_path()
+            logger.debug('Telling service about "%s"', config_path)
+            interface.set_config_dir(get_config_path())
 
         return interface
 

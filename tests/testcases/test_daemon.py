@@ -137,7 +137,7 @@ class TestDaemon(unittest.TestCase):
                 nonlocal set_config_dir_callcount
                 set_config_dir_callcount += 1
 
-        type(SystemBus()).get = lambda *args: FakeConnection()
+        type(SystemBus()).get = lambda *args, **kwargs: FakeConnection()
         self.assertIsInstance(Daemon.connect(), FakeConnection)
         self.assertEqual(set_config_dir_callcount, 1)
 

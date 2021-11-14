@@ -75,11 +75,17 @@ class TestLogger(unittest.TestCase):
         path = os.path.join(tmp, "logger-test")
         os.makedirs(os.path.dirname(path), exist_ok=True)
         os.mknod(path)
+
         with open(path, "w") as f:
-            f.write("foo")
+            f.write("line\n" * 1000 + "end")
+
         add_filehandler(os.path.join(tmp, "logger-test"))
         with open(path, "r") as f:
-            self.assertEqual(f.read(), "")
+            # it only keeps the newest information
+            content = f.readlines()
+            self.assertLess(len(content), 500)
+            self.assertEqual(content[-1], "end---\n")
+            # after "---" new log will appear
 
     def test_debug(self):
         path = os.path.join(tmp, "logger-test")

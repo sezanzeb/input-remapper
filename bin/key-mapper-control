@@ -28,7 +28,7 @@ import sys
 import argparse
 import logging
 
-from keymapper.logger import logger, update_verbosity, log_info
+from keymapper.logger import logger, update_verbosity, log_info, add_filehandler
 from keymapper.config import config
 
 # import keymapper modules as late as possible to make sure the correct
@@ -133,11 +133,13 @@ def communicate(options, daemon):
         # if device was specified, autoload for that one. if None autoload
         # for all devices.
         if options.device is None:
+            logger.info('Autoloading all')
             # timeout is not documented, for more info see
             # https://github.com/LEW21/pydbus/blob/master/pydbus/proxy_method.py
             daemon.autoload(timeout=10)
         else:
             group = require_group()
+            logger.info('Autoloading %s', options.device)
             daemon.autoload_single(group.key, timeout=2)
 
     if options.command == START:
@@ -234,7 +236,9 @@ if __name__ == '__main__':
         log_info()
         sys.exit(0)
 
-    update_verbosity(options.debug)
+    if options.debug:
+        add_filehandler('/var/log/key-mapper-control')
+        update_verbosity(True)
 
     logger.debug('Call for "%s"', sys.argv)
 
