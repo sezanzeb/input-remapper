@@ -33,6 +33,7 @@ from tests.test import quick_cleanup
 class TestSharedDict(unittest.TestCase):
     def setUp(self):
         self.shared_dict = SharedDict()
+        self.shared_dict.start()
         time.sleep(0.02)
 
     def tearDown(self):

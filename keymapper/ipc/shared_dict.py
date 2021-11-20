@@ -45,9 +45,8 @@ class SharedDict:
         self.pipe = multiprocessing.Pipe()
         self.process = None
         atexit.register(self._stop)
-        self._start()
 
-    def _start(self):
+    def start(self):
         """Ensure the process to manage the dictionary is running."""
         if self.process is not None and self.process.is_alive():
             logger.spam("SharedDict process already running")

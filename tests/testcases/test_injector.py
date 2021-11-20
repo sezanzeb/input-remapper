@@ -86,7 +86,7 @@ from tests.test import (
 def wait_for_uinput_write():
     start = time.time()
     if not uinput_write_history_pipe[0].poll(timeout=10):
-        raise AssertionError('No event written within 10 seconds')
+        raise AssertionError("No event written within 10 seconds")
     return float(time.time() - start)
 
 
@@ -804,11 +804,15 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         # in 5 more read-loop ticks, nothing new should have happened.
         # add a bit of a head-start of one EVENT_READ_TIMEOUT to avoid race-conditions
         # in tests
-        self.assertFalse(uinput_write_history_pipe[0].poll(timeout=EVENT_READ_TIMEOUT * 6))
+        self.assertFalse(
+            uinput_write_history_pipe[0].poll(timeout=EVENT_READ_TIMEOUT * 6)
+        )
 
         # 5 more and it should be within the second phase in which
         # the horizontal wheel is used. add some tolerance
-        self.assertAlmostEqual(wait_for_uinput_write(), EVENT_READ_TIMEOUT * 5, delta=EVENT_READ_TIMEOUT)
+        self.assertAlmostEqual(
+            wait_for_uinput_write(), EVENT_READ_TIMEOUT * 5, delta=EVENT_READ_TIMEOUT
+        )
         event = uinput_write_history_pipe[0].recv()
         self.assertEqual(event.t, (EV_KEY, code_b, 1))
 
