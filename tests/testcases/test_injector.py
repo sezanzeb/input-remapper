@@ -83,6 +83,13 @@ from tests.test import (
 )
 
 
+def wait_for_uinput_write():
+    start = time.time()
+    if not uinput_write_history_pipe[0].poll(timeout=10):
+        raise AssertionError('No event written within 10 seconds')
+    return float(time.time() - start)
+
+
 class TestInjector(unittest.IsolatedAsyncioTestCase):
     new_gamepad_path = "/dev/input/event100"
 
@@ -794,20 +801,21 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         event = uinput_write_history_pipe[0].recv()
         self.assertEqual(event.t, (EV_KEY, code_c, 1))
 
-        time.sleep(EVENT_READ_TIMEOUT * 5)
-        # in 5 more read-loop ticks, nothing new should have happened
-        self.assertFalse(uinput_write_history_pipe[0].poll())
+        # in 5 more read-loop ticks, nothing new should have happened.
+        # add a bit of a head-start of one EVENT_READ_TIMEOUT to avoid race-conditions
+        # in tests
+        self.assertFalse(uinput_write_history_pipe[0].poll(timeout=EVENT_READ_TIMEOUT * 6))
 
-        time.sleep(EVENT_READ_TIMEOUT * 6)
         # 5 more and it should be within the second phase in which
         # the horizontal wheel is used. add some tolerance
-        self.assertTrue(uinput_write_history_pipe[0].poll())
+        self.assertAlmostEqual(wait_for_uinput_write(), EVENT_READ_TIMEOUT * 5, delta=EVENT_READ_TIMEOUT)
         event = uinput_write_history_pipe[0].recv()
         self.assertEqual(event.t, (EV_KEY, code_b, 1))
 
         time.sleep(EVENT_READ_TIMEOUT * 10 + 5 / 60)
         # after 21 read-loop ticks all events should be consumed, wait for
-        # at least 3 (=5) producer-ticks so that the debouncers are triggered.
+        # at least 3 (lets use 5 so that the test passes even if it lags)
+        # ticks so that the debouncers are triggered.
         # Key-up events for both wheel events should be written now that no
         # new key-down event arrived.
         events = read_write_history_pipe()

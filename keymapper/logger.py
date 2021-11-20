@@ -212,10 +212,9 @@ def add_filehandler(log_path=LOG_PATH):
             shutil.rmtree(log_path)
 
         if os.path.exists(log_path):
-            # the logfile should not be longer than 1000 lines to avoid overflowing
-            # the storage
+            # the logfile should not be too long to avoid overflowing the storage
             with open(log_path, "r") as file:
-                content = file.readlines()[-200:] + ["---\n"]
+                content = file.readlines()[-1000:] + ["---\n"]
 
             with open(log_path, "w") as file:
                 file.truncate(0)

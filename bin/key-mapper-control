@@ -75,12 +75,10 @@ def utils(options):
         from keymapper.groups import groups
         for group in groups:
             print(group.key)
-        sys.exit(0)
 
     if options.key_names:
         from keymapper.system_mapping import system_mapping
         print('\n'.join(system_mapping.list_names()))
-        sys.exit(0)
 
 
 def communicate(options, daemon):
@@ -101,13 +99,15 @@ def communicate(options, daemon):
             group = groups.find(key=options.device)
 
         if group is None:
-            logger.error('unknown device "%s"', options.device)
+            logger.error('Unknown device "%s"', options.device)
             sys.exit(1)
 
         return group
 
     if daemon is None:
-        sys.exit(0)
+        # probably broken tests
+        logger.error('Daemon missing', options.device)
+        sys.exit(1)
 
     if options.config_dir is not None:
         path = os.path.abspath(os.path.expanduser(os.path.join(
@@ -232,24 +232,25 @@ if __name__ == '__main__':
 
     options = parser.parse_args(sys.argv[1:])
 
-    if options.version:
-        log_info()
-        sys.exit(0)
-
     if options.debug:
         add_filehandler('/var/log/key-mapper-control')
         update_verbosity(True)
 
-    logger.debug('Call for "%s"', sys.argv)
-
-    if options.command is not None:
-        if options.command in INTERNALS:
-            internals(options)
-        elif options.command in COMMANDS:
-            from keymapper.daemon import Daemon
-            daemon = Daemon.connect(fallback=False)
-            communicate(options, daemon)
-        else:
-            logger.error('Unknown command "%s"', options.command)
+    if options.version:
+        log_info()
     else:
-        utils(options)
+        logger.debug('Call for "%s"', sys.argv)
+
+        if options.command is not None:
+            if options.command in INTERNALS:
+                internals(options)
+            elif options.command in COMMANDS:
+                from keymapper.daemon import Daemon
+                daemon = Daemon.connect(fallback=False)
+                communicate(options, daemon)
+            else:
+                logger.error('Unknown command "%s"', options.command)
+        else:
+            utils(options)
+
+    logger.info('Finished')
