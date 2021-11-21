@@ -87,12 +87,18 @@ names can be chained using ` + `.
 Check the autocompletion of the GUI for possible values. You can also
 obtain a complete list of possiblities using `key-mapper-control --symbol-names`.
 
-The available symbols depend on the environments keyboard layout. For example,
-mapping a key to an exclamation mark is not possible if the keyboard layout is set
-to german. However, it is possible to mimic the combination that would be required
-to write it, by writing `Shift_L + 1` into the mapping. This is because key-mapper
-creates a new virtual keyboard and injects numeric keycodes (with the benefit of being
-compatible to all display servers).
+The available symbols depend on the environments keyboard layout, and only those that
+don't require a combination to be pressed can be used without workarounds (so most
+special characters need some extra steps to use them). This is because key-mapper
+acts like a keyboard device. Furthermore, if your configured keyboard layout doesn't
+support the special character at all (not even via a combination), then it also won't
+be possible for key-mapper to map that character at all.
+
+For example, mapping a key to an exclamation mark is not possible if the keyboard
+layout is set to german. However, it is possible to mimic the combination that would
+be required to write it, by writing `Shift_L + 1` into the mapping. This is because
+key-mapper creates a new virtual keyboard and injects numeric keycodes (with the
+benefit of being compatible to all display servers).
 
 Key names that start with `KEY_` are keyboard layout independent constants that might
 not result in the expected output. For example using `KEY_Y` would  result in "z"

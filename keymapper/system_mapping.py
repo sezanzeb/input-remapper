@@ -51,7 +51,7 @@ class SystemMapping:
     def __getattribute__(self, key):
         """To lazy load system_mapping info only when needed.
 
-        For example, this helps to keep of key-mapper-control clear when it doesnt
+        For example, this helps to keep logs of key-mapper-control clear when it doesnt
         need it the information.
         """
         if key == "_mapping" and object.__getattribute__(self, "_mapping") is None:

@@ -410,7 +410,7 @@ class _Groups:
     def __getattribute__(self, key):
         """To lazy load group info only when needed.
 
-        For example, this helps to keep of key-mapper-control clear when it doesnt
+        For example, this helps to keep logs of key-mapper-control clear when it doesnt
         need it the information.
         """
         if key == "_groups" and object.__getattribute__(self, "_groups") is None:
