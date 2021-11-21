@@ -373,10 +373,9 @@ class Daemon:
         logger.info('Request to autoload for "%s"', group_key)
 
         if self.config_dir is None:
-            # spams on boot, when no user is logged in yet
-            logger.debug(
-                'Tried to autoload "%s" without configuring the daemon '
-                "first via set_config_dir.",
+            logger.error(
+                'Request to autoload "%s" before a user told the service about their '
+                "session using set_config_dir",
                 group_key,
             )
             return
@@ -391,8 +390,8 @@ class Daemon:
         """
         if self.config_dir is None:
             logger.error(
-                "Tried to autoload without configuring the daemon first "
-                "via set_config_dir."
+                "Request to autoload all before a user told the service about their "
+                "session using set_config_dir",
             )
             return
 
@@ -424,8 +423,8 @@ class Daemon:
 
         if self.config_dir is None:
             logger.error(
-                "Tried to start an injection without configuring the daemon "
-                "first via set_config_dir."
+                "Request to start an injectoin before a user told the service about "
+                "their session using set_config_dir",
             )
             return False
 

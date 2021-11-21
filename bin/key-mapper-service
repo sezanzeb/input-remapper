@@ -22,7 +22,6 @@
 """Starts injecting keycodes based on the configuration."""
 
 
-import os
 import sys
 from argparse import ArgumentParser
 
