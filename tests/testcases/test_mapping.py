@@ -87,6 +87,7 @@ class TestSystemMapping(unittest.TestCase):
 
     def test_system_mapping(self):
         system_mapping = SystemMapping()
+        system_mapping.populate()
         self.assertGreater(len(system_mapping._mapping), 100)
 
         # this is case-insensitive

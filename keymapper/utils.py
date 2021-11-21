@@ -23,6 +23,7 @@
 
 
 import math
+import sys
 
 import evdev
 from evdev.ecodes import (
@@ -218,7 +219,7 @@ def get_abs_range(device, code=ABS_X):
     ]
 
     if len(absinfo) == 0:
-        logger.error(
+        logger.warn(
             'Failed to get ABS info of "%s" for key %d: %s', device, code, capabilities
         )
         return None
@@ -234,3 +235,7 @@ def get_max_abs(device, code=ABS_X):
     """
     abs_range = get_abs_range(device, code)
     return abs_range and abs_range[1]
+
+
+def is_service():
+    return sys.argv[0].endswith("key-mapper-service")

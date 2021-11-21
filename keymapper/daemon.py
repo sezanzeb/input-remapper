@@ -44,6 +44,7 @@ from keymapper.config import config
 from keymapper.system_mapping import system_mapping
 from keymapper.groups import groups
 from keymapper.paths import get_config_path, USER
+from keymapper.injection.macros.macro import macro_variables
 
 
 BUS_NAME = "keymapper.Control"
@@ -169,10 +170,17 @@ class Daemon:
         if USER != "root":
             self.set_config_dir(get_config_path())
 
+        # check privileges
+        if os.getuid() != 0:
+            logger.warn("The service usually needs elevated privileges")
+
         self.autoload_history = AutoloadHistory()
         self.refreshed_devices_at = 0
 
         atexit.register(self.stop_all)
+
+        # initialize stuff that is needed alongside the daemon process
+        macro_variables.start()
 
     @classmethod
     def connect(cls, fallback=True):
@@ -257,12 +265,16 @@ class Daemon:
         now = time.time()
         if now - 10 > self.refreshed_devices_at:
             logger.debug("Refreshing because last info is too old")
+            # it may take a little bit of time until devices are visible after
+            # changes
+            time.sleep(0.1)
             groups.refresh()
             self.refreshed_devices_at = now
             return
 
         if not groups.find(key=group_key):
             logger.debug('Refreshing because "%s" is unknown', group_key)
+            time.sleep(0.1)
             groups.refresh()
             self.refreshed_devices_at = now
 

@@ -28,8 +28,9 @@ import subprocess
 import evdev
 
 from keymapper.logger import logger
-from keymapper.mapping import Mapping, DISABLE_NAME, DISABLE_CODE
-from keymapper.paths import get_config_path, touch, USER
+from keymapper.mapping import DISABLE_NAME, DISABLE_CODE
+from keymapper.paths import get_config_path, touch
+from keymapper.utils import is_service
 
 
 # xkb uses keycodes that are 8 higher than those from evdev
@@ -43,10 +44,21 @@ class SystemMapping:
 
     def __init__(self):
         """Construct the system_mapping."""
-        self._mapping = {}
+        self._mapping = None
         self._xmodmap = {}
         self._case_insensitive_mapping = {}
-        self.populate()
+
+    def __getattribute__(self, key):
+        """To lazy load system_mapping info only when needed.
+
+        For example, this helps to keep of key-mapper-control clear when it doesnt
+        need it the information.
+        """
+        if key == "_mapping" and object.__getattribute__(self, "_mapping") is None:
+            object.__setattr__(self, "_mapping", {})
+            object.__getattribute__(self, "populate")()
+
+        return object.__getattribute__(self, key)
 
     def list_names(self):
         """Return an array of all possible names in the mapping."""
@@ -77,9 +89,10 @@ class SystemMapping:
             # might be within a tty
             logger.info("Optional `xmodmap` command not found. This is not critical.")
 
-        if USER != "root":
-            # write this stuff into the key-mapper config directory, because
-            # the systemd service won't know the user sessions xmodmap
+        if not is_service():
+            # Clients usually take care of that, don't let the service do funny things.
+            # Write this stuff into the key-mapper config directory, because
+            # the systemd service won't know the user sessions xmodmap.
             path = get_config_path(XMODMAP_FILENAME)
             touch(path)
             with open(path, "w") as file:
@@ -103,8 +116,12 @@ class SystemMapping:
         mapping : dict
             maps from name to code. Make sure your keys are lowercase.
         """
+        len_before = len(self._mapping)
         for name, code in mapping.items():
             self._set(name, code)
+        logger.debug(
+            "Updated keycodes with %d new ones", len(self._mapping) - len_before
+        )
 
     def _set(self, name, code):
         """Map name to code."""

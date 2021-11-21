@@ -405,21 +405,21 @@ class _Groups:
     """Contains and manages all groups."""
 
     def __init__(self):
-        self._groups = {}
-        self._find_groups()
+        self._groups = None
+
+    def __getattribute__(self, key):
+        """To lazy load group info only when needed.
+
+        For example, this helps to keep of key-mapper-control clear when it doesnt
+        need it the information.
+        """
+        if key == "_groups" and object.__getattribute__(self, "_groups") is None:
+            object.__setattr__(self, "_groups", {})
+            object.__getattribute__(self, "refresh")()
+
+        return object.__getattribute__(self, key)
 
     def refresh(self):
-        """This can be called to discover new devices.
-
-        Only call this if appropriate permissions are available, otherwise
-        the object may be empty afterwards.
-        """
-        # it may take a little bit of time until devices are visible after
-        # changes
-        time.sleep(0.1)
-        return self._find_groups()
-
-    def _find_groups(self):
         """Look for devices and group them together.
 
         Since this needs to do some stuff with /dev and spawn processes the

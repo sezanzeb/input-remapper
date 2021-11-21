@@ -223,7 +223,7 @@ def add_filehandler(log_path=LOG_PATH):
         file_handler = logging.FileHandler(log_path)
         file_handler.setFormatter(Formatter())
 
-        logger.info('Logging to "%s"', log_path)
+        logger.info('%d Logging to "%s"', os.getpid(), log_path)
 
         logger.addHandler(file_handler)
     except PermissionError:

@@ -27,7 +27,7 @@ import subprocess
 import json
 
 import evdev
-from evdev.ecodes import EV_KEY, EV_ABS
+from evdev.ecodes import EV_KEY, EV_ABS, KEY_B, KEY_A
 from gi.repository import Gtk
 from pydbus import SystemBus
 
@@ -151,8 +151,6 @@ class TestDaemon(unittest.TestCase):
 
         ev_1 = (EV_KEY, 9)
         ev_2 = (EV_ABS, 12)
-        keycode_to_1 = 100
-        keycode_to_2 = 101
 
         group = groups.find(name="Bar Device")
 
@@ -161,12 +159,6 @@ class TestDaemon(unittest.TestCase):
 
         custom_mapping.change(Key(*ev_1, 1), "a")
         custom_mapping.change(Key(*ev_2, -1), "b")
-
-        system_mapping.clear()
-        # since this is in the same memory as the daemon, there is no need
-        # to save it to disk
-        system_mapping._set("a", keycode_to_1)
-        system_mapping._set("b", keycode_to_2)
 
         preset = "foo"
 
@@ -218,7 +210,7 @@ class TestDaemon(unittest.TestCase):
         event = uinput_write_history_pipe[0].recv()
 
         self.assertEqual(event.type, EV_KEY)
-        self.assertEqual(event.code, keycode_to_2)
+        self.assertEqual(event.code, KEY_B)
         self.assertEqual(event.value, 1)
 
     def test_config_dir(self):
@@ -237,7 +229,6 @@ class TestDaemon(unittest.TestCase):
             os.remove(get_config_path("xmodmap.json"))
 
         ev = (EV_KEY, 9)
-        keycode_to = 100
         group_name = "9876 name"
 
         # expected key of the group
@@ -248,7 +239,7 @@ class TestDaemon(unittest.TestCase):
         self.assertIsNone(group)
         custom_mapping.change(Key(*ev, 1), "a")
         system_mapping.clear()
-        system_mapping._set("a", keycode_to)
+        system_mapping._set("a", KEY_A)
 
         # make the daemon load the file instead
         with open(get_config_path("xmodmap.json"), "w") as file:
@@ -283,7 +274,7 @@ class TestDaemon(unittest.TestCase):
         self.assertTrue(uinput_write_history_pipe[0].poll())
 
         event = uinput_write_history_pipe[0].recv()
-        self.assertEqual(event.t, (EV_KEY, keycode_to, 1))
+        self.assertEqual(event.t, (EV_KEY, KEY_A, 1))
 
         self.daemon.stop_injecting(group_key)
         self.assertEqual(self.daemon.get_state(group_key), STOPPED)

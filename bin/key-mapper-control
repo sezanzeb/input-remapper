@@ -216,7 +216,7 @@ if __name__ == '__main__':
         default=False
     )
     parser.add_argument(
-        '-n', '--symbol-names', action='store_true', dest='key_names',
+        '--symbol-names', action='store_true', dest='key_names',
         help='Print all available names for the mapping',
         default=False
     )
@@ -233,8 +233,8 @@ if __name__ == '__main__':
     options = parser.parse_args(sys.argv[1:])
 
     if options.debug:
-        add_filehandler('/var/log/key-mapper-control')
         update_verbosity(True)
+        add_filehandler('/var/log/key-mapper-control')
 
     if options.version:
         log_info()
@@ -253,4 +253,5 @@ if __name__ == '__main__':
         else:
             utils(options)
 
-    logger.info('Finished')
+    if options.command:
+        logger.info('Finished')

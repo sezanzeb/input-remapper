@@ -35,7 +35,6 @@ from keymapper.mapping import DISABLE_CODE
 from keymapper.injection.context import Context
 from keymapper.injection.numlock import set_numlock, is_numlock_on, ensure_numlock
 from keymapper.injection.consumer_control import ConsumerControl
-from keymapper.injection.macros.macro import macro_variables
 
 
 DEV_NAME = "key-mapper"
@@ -89,7 +88,7 @@ class Injector(multiprocessing.Process):
     regrab_timeout = 0.2
 
     def __init__(self, group, mapping):
-        """Setup a process to start injecting keycodes based on custom_mapping.
+        """
 
         Parameters
         ----------
@@ -108,8 +107,6 @@ class Injector(multiprocessing.Process):
         self.context = None  # only needed inside the injection process
 
         self._consumer_controls = []
-
-        macro_variables.start()
 
         super().__init__()
 
