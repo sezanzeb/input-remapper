@@ -235,7 +235,7 @@ class Daemon:
         if USER != "root":
             config_path = get_config_path()
             logger.debug('Telling service about "%s"', config_path)
-            interface.set_config_dir(get_config_path())
+            interface.set_config_dir(get_config_path(), timeout=2)
 
         return interface
 
@@ -294,6 +294,7 @@ class Daemon:
         injector = self.injectors.get(group_key)
         return injector.get_state() if injector else UNKNOWN
 
+    @remove_timeout
     def set_config_dir(self, config_dir):
         """All future operations will use this config dir.
 
