@@ -46,7 +46,7 @@ from evdev.ecodes import (
     KEY_C,
 )
 
-from keymapper.injection.consumers.event_producer import EventProducer
+from keymapper.injection.consumers.joystick_to_mouse import JoystickToMouse
 from keymapper.injection.injector import (
     Injector,
     is_in_capabilities,
@@ -119,12 +119,12 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
 
         quick_cleanup()
 
-    def find_event_producer(self):
+    def find_joystick_to_mouse(self):
         # this object became somewhat a pain to retreive
         return [
             consumer
             for consumer in self.injector._consumer_controls[0]._consumers
-            if isinstance(consumer, EventProducer)
+            if isinstance(consumer, JoystickToMouse)
         ][0]
 
     def test_grab(self):
@@ -471,7 +471,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(history.count((EV_ABS, ABS_RZ, value)), 1)
 
     @mock.patch("evdev.InputDevice.ungrab")
-    def test_gamepad_to_mouse_event_producer(self, ungrab_patch):
+    def test_gamepad_to_mouse_joystick_to_mouse(self, ungrab_patch):
         custom_mapping.set("gamepad.joystick.left_purpose", MOUSE)
         custom_mapping.set("gamepad.joystick.right_purpose", NONE)
         self.injector = Injector(groups.find(name="gamepad"), custom_mapping)
@@ -485,13 +485,13 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         self.assertIsNone(self.injector.context)
 
         # not in a process because this doesn't call start, so the
-        # event_producer state can be checked
+        # joystick_to_mouse state can be checked
         self.injector.run()
 
-        event_producer = self.find_event_producer()
+        joystick_to_mouse = self.find_joystick_to_mouse()
 
-        self.assertEqual(event_producer._abs_range[0], MIN_ABS)
-        self.assertEqual(event_producer._abs_range[1], MAX_ABS)
+        self.assertEqual(joystick_to_mouse._abs_range[0], MIN_ABS)
+        self.assertEqual(joystick_to_mouse._abs_range[1], MAX_ABS)
         self.assertEqual(
             self.injector.context.mapping.get("gamepad.joystick.left_purpose"), MOUSE
         )

@@ -38,7 +38,11 @@ from evdev.ecodes import (
 from keymapper.config import config
 from keymapper.mapping import Mapping
 from keymapper.injection.context import Context
-from keymapper.injection.consumers.event_producer import EventProducer, MOUSE, WHEEL
+from keymapper.injection.consumers.joystick_to_mouse import (
+    JoystickToMouse,
+    MOUSE,
+    WHEEL,
+)
 
 from tests.test import (
     InputDevice,
@@ -55,7 +59,7 @@ from tests.test import (
 abs_state = [0, 0, 0, 0]
 
 
-class TestEventProducer(unittest.IsolatedAsyncioTestCase):
+class TestJoystickToMouse(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
@@ -67,7 +71,7 @@ class TestEventProducer(unittest.IsolatedAsyncioTestCase):
         self.context.uinput = uinput
 
         source = InputDevice("/dev/input/event30")
-        self.event_producer = EventProducer(self.context, source)
+        self.joystick_to_mouse = JoystickToMouse(self.context, source)
 
         config.set("gamepad.joystick.x_scroll_speed", 1)
         config.set("gamepad.joystick.y_scroll_speed", 1)
@@ -101,11 +105,11 @@ class TestEventProducer(unittest.IsolatedAsyncioTestCase):
         Depending on the configuration, the cursor or wheel should move.
         """
         clear_write_history()
-        self.event_producer.context.update_purposes()
-        await self.event_producer.notify(new_event(EV_ABS, ABS_X, a))
-        await self.event_producer.notify(new_event(EV_ABS, ABS_Y, b))
-        await self.event_producer.notify(new_event(EV_ABS, ABS_RX, c))
-        await self.event_producer.notify(new_event(EV_ABS, ABS_RY, d))
+        self.joystick_to_mouse.context.update_purposes()
+        await self.joystick_to_mouse.notify(new_event(EV_ABS, ABS_X, a))
+        await self.joystick_to_mouse.notify(new_event(EV_ABS, ABS_Y, b))
+        await self.joystick_to_mouse.notify(new_event(EV_ABS, ABS_RX, c))
+        await self.joystick_to_mouse.notify(new_event(EV_ABS, ABS_RY, d))
 
         # sleep long enough to test if multiple events are written
         await asyncio.sleep(5 / 60)
@@ -120,7 +124,7 @@ class TestEventProducer(unittest.IsolatedAsyncioTestCase):
             self.assertClose(history_entry[2], expectation[2], 0.1)
 
     async def test_joystick_purpose_1(self):
-        asyncio.ensure_future(self.event_producer.run())
+        asyncio.ensure_future(self.joystick_to_mouse.run())
 
         speed = 20
         self.mapping.set("gamepad.joystick.non_linearity", 1)
@@ -134,7 +138,7 @@ class TestEventProducer(unittest.IsolatedAsyncioTestCase):
         # which might be difficult to test.
         max_abs = 256
         rest = 128  # resting position of the cursor
-        self.event_producer.set_abs_range(min_abs, max_abs)
+        self.joystick_to_mouse.set_abs_range(min_abs, max_abs)
 
         await self.do(max_abs, rest, rest, rest, (EV_REL, REL_X, speed))
         await self.do(min_abs, rest, rest, rest, (EV_REL, REL_X, -speed))
@@ -148,7 +152,7 @@ class TestEventProducer(unittest.IsolatedAsyncioTestCase):
         await self.do(rest, rest, rest, min_abs, (EV_REL, REL_WHEEL, 1))
 
     async def test_joystick_purpose_2(self):
-        asyncio.ensure_future(self.event_producer.run())
+        asyncio.ensure_future(self.joystick_to_mouse.run())
 
         speed = 30
         config.set("gamepad.joystick.non_linearity", 1)
@@ -170,7 +174,7 @@ class TestEventProducer(unittest.IsolatedAsyncioTestCase):
         await self.do(0, 0, 0, MIN_ABS, (EV_REL, REL_Y, -speed))
 
     async def test_joystick_purpose_3(self):
-        asyncio.ensure_future(self.event_producer.run())
+        asyncio.ensure_future(self.joystick_to_mouse.run())
 
         speed = 40
         self.mapping.set("gamepad.joystick.non_linearity", 1)
@@ -189,7 +193,7 @@ class TestEventProducer(unittest.IsolatedAsyncioTestCase):
         await self.do(0, 0, 0, MIN_ABS, (EV_REL, REL_Y, -speed))
 
     async def test_joystick_purpose_4(self):
-        asyncio.ensure_future(self.event_producer.run())
+        asyncio.ensure_future(self.joystick_to_mouse.run())
 
         config.set("gamepad.joystick.left_purpose", WHEEL)
         config.set("gamepad.joystick.right_purpose", WHEEL)

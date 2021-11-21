@@ -336,7 +336,7 @@ class Injector(multiprocessing.Process):
         #   - SharedDict becomes obsolete
         #   - quick_cleanup needs to be able to reliably stop the injection
         #   - I think I want an event listener architecture so that macros,
-        #     event_producer, keycode_mapper and possibly other modules can get
+        #     joystick_to_mouse, keycode_mapper and possibly other modules can get
         #     what they filter for whenever they want, without having to wire
         #     things through multiple other objects all the time
         #   - _new_event_arrived moves to the place where events are emitted. injector?
@@ -352,7 +352,7 @@ class Injector(multiprocessing.Process):
         logger.info('Starting injecting the mapping for "%s"', self.group.key)
 
         # create a new event loop, because somehow running an infinite loop
-        # that sleeps on iterations (event_producer) in one process causes
+        # that sleeps on iterations (joystick_to_mouse) in one process causes
         # another injection process to screw up reading from the grabbed
         # device.
         loop = asyncio.new_event_loop()

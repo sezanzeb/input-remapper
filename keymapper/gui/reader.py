@@ -116,7 +116,7 @@ class Reader:
         the combination to get trimmed.
         """
         # this is in some ways similar to the keycode_mapper and
-        # event_producer, but its much simpler because it doesn't
+        # joystick_to_mouse, but its much simpler because it doesn't
         # have to trigger anything, manage any macros and only
         # reports key-down events. This function is called periodically
         # by the window.

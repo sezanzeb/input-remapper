@@ -55,7 +55,7 @@ def abs_max(value_1, value_2):
     return value_2
 
 
-class EventProducer(Consumer):
+class JoystickToMouse(Consumer):
     """Keeps producing events at 60hz if needed.
 
     Maps joysticks to mouse movements.
