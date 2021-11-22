@@ -77,15 +77,15 @@ class TestLogger(unittest.TestCase):
         os.mknod(path)
 
         with open(path, "w") as f:
-            f.write("line\n" * 2000 + "end")
+            f.write("aaaa\n" * 2000 + "end")
 
         add_filehandler(os.path.join(tmp, "logger-test"))
         with open(path, "r") as f:
             # it only keeps the newest information
             content = f.readlines()
             self.assertLess(len(content), 1100)
-            self.assertEqual(content[-1], "end---\n")
-            # after "---" new log will appear
+            # whatever the logging module decides to log into that file
+            self.assertNotIn("aaaa", content[-1])
 
     def test_debug(self):
         path = os.path.join(tmp, "logger-test")
@@ -116,8 +116,8 @@ class TestLogger(unittest.TestCase):
 
     def test_default(self):
         path = os.path.join(tmp, "logger-test")
-        add_filehandler(path)
         update_verbosity(debug=False)
+        add_filehandler(path)
         logger.error("abc")
         logger.warning("foo")
         logger.info("123")

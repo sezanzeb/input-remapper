@@ -34,7 +34,6 @@ and the injector.
 import re
 import multiprocessing
 import threading
-import time
 import asyncio
 import json
 
@@ -484,7 +483,7 @@ class _Groups:
         """Load a serialized representation created via dumps."""
         self._groups = [_Group.loads(group) for group in json.loads(dump)]
 
-    def find(self, name=None, key=None, path=None):
+    def find(self, name=None, key=None, path=None, include_keymapper=False):
         """Find a group that matches the provided parameters.
 
         Parameters
@@ -498,6 +497,9 @@ class _Groups:
             "/dev/input/event3"
         """
         for group in self._groups:
+            if not include_keymapper and group.name.startswith("key-mapper"):
+                continue
+
             if name and group.name != name:
                 continue
 

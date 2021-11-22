@@ -214,7 +214,7 @@ def add_filehandler(log_path=LOG_PATH):
         if os.path.exists(log_path):
             # the logfile should not be too long to avoid overflowing the storage
             with open(log_path, "r") as file:
-                content = file.readlines()[-1000:] + ["---\n"]
+                content = file.readlines()[-1000:] + ["\n"]
 
             with open(log_path, "w") as file:
                 file.truncate(0)
@@ -222,9 +222,8 @@ def add_filehandler(log_path=LOG_PATH):
 
         file_handler = logging.FileHandler(log_path)
         file_handler.setFormatter(Formatter())
-
-        logger.info('Logging to "%s"', log_path)
-
         logger.addHandler(file_handler)
+
+        logger.info('Starting logging to "%s" at %s', log_path, str(datetime.now()))
     except PermissionError:
         logger.debug('No permission to log to "%s"', log_path)

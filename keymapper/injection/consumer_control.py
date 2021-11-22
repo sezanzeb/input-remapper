@@ -40,7 +40,7 @@ consumer_classes = [
 class ConsumerControl:
     """Reads input events from a single device and distributes them.
 
-    There is one Events object for each source, which tells multiple consumers
+    There is one ConsumerControl object for each source, which tells multiple consumers
     that a new event is ready so that they can inject all sorts of funny
     things.
 
