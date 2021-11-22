@@ -82,33 +82,34 @@ names can be chained using ` + `.
 - `ctrl` + `q` closes the application
 - `ctrl` + `r` refreshes the device list
 
-## Key Names and Macros
+## Key Names
 
 Check the autocompletion of the GUI for possible values. You can also
 obtain a complete list of possiblities using `key-mapper-control --symbol-names`.
 
 The available symbols depend on the environments keyboard layout, and only those that
 don't require a combination to be pressed can be used without workarounds (so most
-special characters need some extra steps to use them). This is because key-mapper
-acts like a keyboard device. Furthermore, if your configured keyboard layout doesn't
-support the special character at all (not even via a combination), then it also won't
-be possible for key-mapper to map that character at all.
+special characters need some extra steps to use them). Furthermore, if your configured
+keyboard layout doesn't support the special character at all (not even via a
+combination), then it also won't be possible for key-mapper to map that character at
+all.
 
 For example, mapping a key to an exclamation mark is not possible if the keyboard
 layout is set to german. However, it is possible to mimic the combination that would
-be required to write it, by writing `Shift_L + 1` into the mapping. This is because
-key-mapper creates a new virtual keyboard and injects numeric keycodes (with the
-benefit of being compatible to all display servers).
+be required to write it, by writing `Shift_L + 1` into the mapping.
+
+This is because key-mapper creates a new virtual keyboard and injects numeric keycodes,
+and it won't be able to inject anything a usb keyboard wouldn't been able to. This has
+the benefit of being compatible to all display servers though.
+
+Key-mapper only recognizes symbol names, but not the symbols themselfes. So for
+example, key-mapper might (depending on the system layout) know what a `minus` is, but
+it doesn't know `-`.
 
 Key names that start with `KEY_` are keyboard layout independent constants that might
 not result in the expected output. For example using `KEY_Y` would  result in "z"
 if the layout of the environment is set to german. Using `y` on the other hand would
 correctly result in "y" to be written.
-
-Values for mouse movement and scrolling are actually [macros](macros.md).
-
-See [examples of use](examples.md) for mapping tips for concrete devices
-and use cases.
 
 <br/>
 <br/>

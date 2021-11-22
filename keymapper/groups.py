@@ -338,7 +338,16 @@ class _FindGroups(threading.Thread):
         # "Logitech USB Keyboard" and "Logitech USB Keyboard Consumer Control"
         grouped = {}
         for path in evdev.list_devices():
-            device = evdev.InputDevice(path)
+            try:
+                device = evdev.InputDevice(path)
+            except Exception as error:
+                # Observed exceptions in journalctl:
+                # - "SystemError: <built-in function ioctl_EVIOCGVERSION> returned NULL
+                # without setting an error"
+                # - "FileNotFoundError: [Errno 2] No such file or directory:
+                # '/dev/input/event12'"
+                logger.error("Failed to access %s: %s", path, str(error))
+                continue
 
             if device.name == "Power Button":
                 continue
