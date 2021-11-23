@@ -202,6 +202,8 @@ def is_denylisted(device):
         if re.match(name, str(device.name), re.IGNORECASE):
             return True
 
+    return False
+
 
 def get_unique_key(device):
     """Find a string key that is unique for a single hardware device.

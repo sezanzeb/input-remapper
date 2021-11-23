@@ -125,7 +125,7 @@ class Formatter(logging.Formatter):
             }.get(record.levelno, 0)
 
             if debug:
-                delta = f"{str(time.time() - start)[:7]}"
+                delta = datetime.now().strftime("%H:%M:%S.%f")
                 self._style._fmt = (  # noqa
                     f"\033[{color}m"  # color
                     f"{os.getpid()} "
@@ -195,8 +195,6 @@ def update_verbosity(debug):
             # since this is optional, just skip all exceptions
             if not isinstance(error, ImportError):
                 logger.debug("Cannot use rich.traceback: %s", error)
-
-        logger.debug("Started debug logs at: %s", str(datetime.now()))
     else:
         logger.setLevel(logging.INFO)
 
@@ -214,7 +212,7 @@ def add_filehandler(log_path=LOG_PATH):
         if os.path.exists(log_path):
             # the logfile should not be too long to avoid overflowing the storage
             with open(log_path, "r") as file:
-                content = file.readlines()[-1000:] + ["\n"]
+                content = file.readlines()[-1000:]
 
             with open(log_path, "w") as file:
                 file.truncate(0)
@@ -224,6 +222,6 @@ def add_filehandler(log_path=LOG_PATH):
         file_handler.setFormatter(Formatter())
         logger.addHandler(file_handler)
 
-        logger.info('Starting logging to "%s" at %s', log_path, str(datetime.now()))
+        logger.info('Starting logging to "%s"', log_path)
     except PermissionError:
         logger.debug('No permission to log to "%s"', log_path)

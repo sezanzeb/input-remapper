@@ -172,7 +172,7 @@ class Daemon:
 
         # check privileges
         if os.getuid() != 0:
-            logger.warn("The service usually needs elevated privileges")
+            logger.warning("The service usually needs elevated privileges")
 
         self.autoload_history = AutoloadHistory()
         self.refreshed_devices_at = 0

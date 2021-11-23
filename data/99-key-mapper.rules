@@ -5,4 +5,4 @@
 #   sudo udevadm control --log-priority=debug
 #   sudo udevadm control --reload-rules
 #   journalctl -f
-ACTION=="add", SUBSYSTEM=="input", RUN+="/bin/key-mapper-control --command autoload --device $env{DEVNAME} -d"
+ACTION=="add", SUBSYSTEM=="input", RUN+="/bin/key-mapper-control --command autoload --device $env{DEVNAME}"

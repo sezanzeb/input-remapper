@@ -61,7 +61,7 @@ class SharedDict:
     def manage(self):
         """Manage the dictionary, handle read and write requests."""
         logger.spam("SharedDict process started")
-        shared_dict = dict()
+        shared_dict = {}
         while True:
             message = self.pipe[0].recv()
             logger.spam("SharedDict got %s", message)

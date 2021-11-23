@@ -32,7 +32,7 @@ cd key-mapper && ./scripts/build.sh
 sudo apt install ./dist/key-mapper-1.2.1.deb
 ```
 
-key-mapper is now part of [Debian Testing](https://packages.debian.org/testing/key-mapper)
+key-mapper is now part of [Debian Unstable](https://packages.debian.org/sid/key-mapper)
 
 ##### pip
 

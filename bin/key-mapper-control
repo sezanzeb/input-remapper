@@ -110,7 +110,7 @@ def communicate(options, daemon):
 
     if daemon is None:
         # probably broken tests
-        logger.error('Daemon missing', options.device)
+        logger.error('Daemon missing')
         sys.exit(1)
 
     if options.config_dir is not None:
@@ -190,7 +190,8 @@ def internals(options):
 def main(options):
     if options.debug:
         update_verbosity(True)
-        add_filehandler('/var/log/key-mapper-control')
+
+    add_filehandler('/var/log/key-mapper-control')
 
     if options.version:
         log_info()
@@ -205,7 +206,7 @@ def main(options):
         # of confusing service logs. And also avoids potential for problems when
         # key-mapper-control stresses about evdev, dbus and multiprocessing already
         # while the system hasn't even booted completely.
-        logger.warn('Skipping autoload command without a logged in user')
+        logger.warning('Skipping autoload command without a logged in user')
         return
 
     if options.command is not None:
@@ -221,7 +222,7 @@ def main(options):
         utils(options)
 
     if options.command:
-        logger.info('Finished')
+        logger.info('Done')
 
 
 if __name__ == '__main__':
