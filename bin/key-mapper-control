@@ -27,7 +27,7 @@ import grp
 import sys
 import argparse
 import logging
-import psutil
+import subprocess
 
 from keymapper.logger import logger, update_verbosity, log_info, add_filehandler
 from keymapper.config import config
@@ -187,6 +187,12 @@ def internals(options):
     os.system(cmd)
 
 
+def num_logged_in_users():
+    """Check how many users are logged in."""
+    who = subprocess.run(['who'], stdout=subprocess.PIPE).stdout.decode()
+    return len([user for user in who.split('\n') if user.strip() != ""])
+
+
 def main(options):
     if options.debug:
         update_verbosity(True)
@@ -199,7 +205,7 @@ def main(options):
 
     logger.debug('Call for "%s"', sys.argv)
 
-    if options.command == AUTOLOAD and len(psutil.users()) == 0:
+    if options.command == AUTOLOAD and num_logged_in_users() == 0:
         # No user logged in, this is probably happening during boot time and got
         # triggered by udev. There is no need to try to inject anything if the
         # service doesn't know where to look for a config file. This avoids a lot
