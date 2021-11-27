@@ -374,7 +374,7 @@ class Macro:
         _type_check(macro, [Macro], "m (modify)", 2)
 
         modifier = str(modifier)
-        code = system_mapping.get(modifier)
+        code = system_mapping.get_or_allocate(modifier)  # TODO test
 
         if code is None:
             raise KeyError(f'Unknown modifier "{modifier}"')
@@ -419,7 +419,7 @@ class Macro:
         _type_check_keyname(symbol)
 
         symbol = str(symbol)
-        code = system_mapping.get(symbol)
+        code = system_mapping.get_or_allocate(symbol)  # TODO test
         self.capabilities[EV_KEY].add(code)
 
         async def task(handler):

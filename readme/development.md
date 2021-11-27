@@ -142,7 +142,7 @@ just need to be commited.
 **Example system startup**
 
 1. systemd loads `key-mapper.service` on boot
-2. on login, `key-mapper-autoload.desktop` is executed, which has knowledge 
+2. on login, `key-mapper-autoload.desktop` is executed, which has knowledge
    of the current user und doesn't run as root  
    2.1 it sends the users config directory to the service  
    2.2 it makes the service stop all ongoing injectings  
@@ -191,7 +191,7 @@ Is the device a gamepad? Does the GUI show joystick configurations?
 - if yes, no: adjust `is_gamepad` to loosen up the constraints
 - if no, yes: adjust `is_gamepad` to tighten up the constraints
 
-Try to do it in such a way that other devices won't break. Also see 
+Try to do it in such a way that other devices won't break. Also see
 readme/capabilities.md
 
 **It won't offer mapping a button**

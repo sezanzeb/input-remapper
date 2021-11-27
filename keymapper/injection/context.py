@@ -22,6 +22,8 @@
 """Stores injection-process wide information."""
 
 
+from evdev.ecodes import EV_KEY
+
 from keymapper.logger import logger
 from keymapper.injection.macros.parse import parse, is_this_a_macro
 from keymapper.system_mapping import system_mapping
@@ -129,9 +131,9 @@ class Context:
             if is_this_a_macro(output):
                 continue
 
-            target_code = system_mapping.get(output)
+            target_code = system_mapping.get_or_allocate(output)
             if target_code is None:
-                logger.error('Don\'t know what "%s" is', output)
+                logger.error('Could not map unknown key "%s"', output)
                 continue
 
             for permutation in key.get_permutations():
@@ -155,6 +157,18 @@ class Context:
             or ((EV_KEY, KEY_B, 1),)
         """
         return key in self.macros or key in self.key_to_code
+
+    def is_written(self, code):
+        """Check if this code will be written during the injection."""
+        # TODO test
+        if code in self.key_to_code.values():
+            return True
+
+        for macro in self.macros.values():
+            if code in macro.capabilities[EV_KEY]:
+                return True
+
+        return False
 
     def maps_joystick(self):
         """If at least one of the joysticks will serve a special purpose."""

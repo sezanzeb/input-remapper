@@ -113,6 +113,7 @@ setup(
         ("/usr/share/key-mapper/", glob.glob("data/*")),
         ("/usr/share/applications/", ["data/key-mapper.desktop"]),
         ("/usr/share/polkit-1/actions/", ["data/key-mapper.policy"]),
+        ("/usr/share/X11/xkb/keycodes/", ["data/key-mapper-keycodes"]),
         ("/usr/lib/systemd/system", ["data/key-mapper.service"]),
         ("/etc/dbus-1/system.d/", ["data/keymapper.Control.conf"]),
         ("/etc/xdg/autostart/", ["data/key-mapper-autoload.desktop"]),

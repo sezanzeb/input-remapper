@@ -23,6 +23,7 @@
 
 
 import asyncio
+import traceback
 import time
 import multiprocessing
 
@@ -33,6 +34,7 @@ from keymapper.logger import logger
 from keymapper.groups import classify, GAMEPAD
 from keymapper.mapping import DISABLE_CODE
 from keymapper.injection.context import Context
+from keymapper.injection.xkb import generate_xkb_config
 from keymapper.injection.numlock import set_numlock, is_numlock_on, ensure_numlock
 from keymapper.injection.consumer_control import ConsumerControl
 
@@ -379,6 +381,14 @@ class Injector(multiprocessing.Process):
             phys=DEV_NAME,
             events=self._construct_capabilities(GAMEPAD in self.group.types),
         )
+
+        if self.mapping.get("generate_xkb_config"):
+            try:
+                generate_xkb_config(self.context, self.group.key)  # TODO test
+            except Exception as error:
+                # since this is optional, catch all exceptions and ignore them
+                logger.error("generate_xkb_config failed: %s", error)
+                logger.debug("".join(traceback.format_tb(error.__traceback__)).strip())
 
         for source in sources:
             # certain capabilities can have side effects apparently. with an

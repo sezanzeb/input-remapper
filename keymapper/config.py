@@ -56,6 +56,10 @@ INITIAL_CONFIG = {
             "y_scroll_speed": 0.5,
         },
     },
+    # if true, will generate symbols and keycodes files and applies them
+    # to the device (setxkbmap) in order to inject keys that are unknown
+    # to the system
+    'generate_xkb_config': True
 }
 
 

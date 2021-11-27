@@ -51,6 +51,7 @@ from keymapper.groups import (
 )
 from keymapper.gui.row import Row, to_string
 from keymapper.key import Key
+from keymapper.gui.xkb import apply_xkb_config
 from keymapper.gui.reader import reader
 from keymapper.gui.helper import is_helper_running
 from keymapper.injection.injector import RUNNING, FAILED, NO_GRAB
@@ -676,6 +677,14 @@ class Window:
                 msg += ", CTRL + DEL to stop"
 
             self.show_status(CTX_APPLY, msg)
+
+            # TODO test
+            if custom_mapping.get('generate_xkb_config'):
+                try:
+                    apply_xkb_config(self.group.key)
+                except Exception as error:
+                    # since this is optional, ignore all exceptions
+                    logger.error('apply_xkb_config failed: %s', error)
 
             self.show_device_mapping_status()
             return False

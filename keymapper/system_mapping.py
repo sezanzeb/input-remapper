@@ -31,6 +31,7 @@ from keymapper.logger import logger
 from keymapper.mapping import DISABLE_NAME, DISABLE_CODE
 from keymapper.paths import get_config_path, touch
 from keymapper.utils import is_service
+from keymapper.valid_symbols import VALID_XKB_SYMBOLS
 
 
 # xkb uses keycodes that are 8 higher than those from evdev
@@ -47,6 +48,13 @@ class SystemMapping:
         self._mapping = None
         self._xmodmap = {}
         self._case_insensitive_mapping = {}
+        self._allocated_unknowns = {}  # int to str  # TODO test
+        self.xmodmap_dict = {}
+
+        # this may contain more entries than _mapping, since _mapping
+        # stores only one code per character, but a keyboard layout can
+        # have one character mapped to multiple keys.
+        self._occupied_keycodes = set()  # TODO test
 
     def __getattribute__(self, key):
         """To lazy load system_mapping info only when needed.
@@ -75,16 +83,21 @@ class SystemMapping:
         """Get a mapping of all available names to their keycodes."""
         logger.debug("Gathering available keycodes")
         self.clear()
-        xmodmap_dict = {}
         try:
             xmodmap = subprocess.check_output(
                 ["xmodmap", "-pke"], stderr=subprocess.STDOUT
             ).decode()
+
             xmodmap = xmodmap
             self._xmodmap = re.findall(r"(\d+) = (.+)\n", xmodmap + "\n")
-            xmodmap_dict = self._find_legit_mappings()
-            if len(xmodmap_dict) == 0:
+            self.xmodmap_dict = self._find_legit_mappings()
+
+            if len(self.xmodmap_dict) == 0:
                 logger.info("`xmodmap -pke` did not yield any symbol")
+
+            for keycode in self.xmodmap_dict.values():
+                self._occupied_keycodes.add(keycode)
+
         except (subprocess.CalledProcessError, FileNotFoundError):
             # might be within a tty
             logger.info("Optional `xmodmap` command not found. This is not critical.")
@@ -97,9 +110,9 @@ class SystemMapping:
             touch(path)
             with open(path, "w") as file:
                 logger.debug('Writing "%s"', path)
-                json.dump(xmodmap_dict, file, indent=4)
+                json.dump(self.xmodmap_dict, file, indent=4)
 
-        for name, code in xmodmap_dict.items():
+        for name, code in self.xmodmap_dict.items():
             self._set(name, code)
 
         for name, ecode in evdev.ecodes.ecodes.items():
@@ -138,11 +151,67 @@ class SystemMapping:
 
         return self._mapping.get(name)
 
+    def get_or_allocate(self, character):
+        """Get a code to inject for that character.
+        If that character does not exist in the systems keyboard layout,
+        remember it and return a free code for that to use.
+        Without modifying the keyboard layout of the display server
+        injecting the returned code won't do anything.
+        Parameters
+        ----------
+        character : string
+            For example F24 or odiaeresis
+        """
+        # TODO test
+        if character is None:
+            return None
+
+        character = str(character)
+
+        # check if part of the system layout
+        from_system_layout = self.get(character)
+        if from_system_layout is not None:
+            return from_system_layout
+
+        if character not in VALID_XKB_SYMBOLS:
+            # not something xkb can do stuff with
+            return None
+
+        # it's not part of the systems keyboard layout yet, allocate instead
+        for key, code in self._allocated_unknowns.items():
+            # check if already asked to allocate before
+            if key == character:
+                return code
+
+        for code in range(1, 256):
+            # find a free keycode in the range of working keycodes
+            # TODO test that keys like key_zenkakuhankaku from the linux
+            #  headers are ignored when finding free codes. only the xmodmap
+            #  layout is relevant
+            if code in self._occupied_keycodes:
+                continue
+
+            self._allocated_unknowns[character] = code
+            self._occupied_keycodes.add(code)  # TODO test that added
+            logger.debug('Using %s for "%s"', code, character)
+            return code
+
+        return None
+
     def clear(self):
         """Remove all mapped keys. Only needed for tests."""
         keys = list(self._mapping.keys())
         for key in keys:
             del self._mapping[key]
+
+    def get_unknown_mappings(self):
+        """Return a mapping of unknown characters to codes.
+        For example, odiaeresis is unknown on US keyboards. The code
+        in that case is just any code that was not used by the systems
+        keyboard layout.
+        """
+        # TODO test
+        return self._allocated_unknowns
 
     def get_name(self, code):
         """Get the first matching name for the code."""
