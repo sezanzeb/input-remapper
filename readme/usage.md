@@ -87,6 +87,19 @@ names can be chained using ` + `.
 Check the autocompletion of the GUI for possible values. You can also
 obtain a complete list of possiblities using `key-mapper-control --symbol-names`.
 
+Key-mapper only recognizes symbol names, but not the symbols themselfes. So for
+example, key-mapper might (depending on the system layout) know what a `minus` is, but
+it doesn't know `-`.
+
+Key names that start with `KEY_` are keyboard layout independent constants that might
+not result in the expected output. For example using `KEY_Y` would  result in "z"
+if the layout of the environment is set to german. Using `y` on the other hand would
+correctly result in "y" to be written.
+
+## Limitations
+
+**If your fingers can't type it on your keyboard, key-mapper can't inject it.**
+
 The available symbols depend on the environments keyboard layout, and only those that
 don't require a combination to be pressed can be used without workarounds (so most
 special characters need some extra steps to use them). Furthermore, if your configured
@@ -100,16 +113,8 @@ be required to write it, by writing `Shift_L + 1` into the mapping.
 
 This is because key-mapper creates a new virtual keyboard and injects numeric keycodes,
 and it won't be able to inject anything a usb keyboard wouldn't been able to. This has
-the benefit of being compatible to all display servers though.
-
-Key-mapper only recognizes symbol names, but not the symbols themselfes. So for
-example, key-mapper might (depending on the system layout) know what a `minus` is, but
-it doesn't know `-`.
-
-Key names that start with `KEY_` are keyboard layout independent constants that might
-not result in the expected output. For example using `KEY_Y` would  result in "z"
-if the layout of the environment is set to german. Using `y` on the other hand would
-correctly result in "y" to be written.
+the benefit of being compatible to all display servers, but means the environment will
+ultimately decide which character to write.
 
 <br/>
 <br/>
