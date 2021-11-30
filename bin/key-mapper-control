@@ -205,7 +205,7 @@ def main(options):
 
     logger.debug('Call for "%s"', sys.argv)
 
-    if options.command == AUTOLOAD and num_logged_in_users() == 0:
+    if options.command == AUTOLOAD and num_logged_in_users() == 0 and options.config_dir is None:
         # No user logged in, this is probably happening during boot time and got
         # triggered by udev. There is no need to try to inject anything if the
         # service doesn't know where to look for a config file. This avoids a lot
