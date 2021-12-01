@@ -80,7 +80,7 @@ class Context:
         This is really important to not cause confusion with modifiers for the
         environment. E.g. having a macro that releases a modifier that has
         previously been injected, but has not been mapped. Instead of putting
-        the first one into the "mapped" device and the other one into the
+        the first one into the "miscellaneous" device and the other one into the
         "forwarded" device, all of them go into the same device.
     """
 

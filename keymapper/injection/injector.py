@@ -271,7 +271,7 @@ class Injector(multiprocessing.Process):
 
                 if ev_type == EV_KEY:
                     # written to the context.keyboard_output device, no need for the
-                    # "mapped" device to support this.
+                    # "miscellaneous" device to support this.
                     # TODO test
                     capabilities[ev_type] += [
                         code for code in macro_capabilities[ev_type]

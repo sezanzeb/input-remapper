@@ -510,7 +510,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
 
     def test_get_udev_name(self):
         self.injector = Injector(groups.find(key="Foo Device 2"), custom_mapping)
-        suffix = "mapped"
+        suffix = "miscellaneous"
         prefix = "key-mapper"
         expected = f'{prefix} {"a" * (80 - len(suffix) - len(prefix) - 2)} {suffix}'
         self.assertEqual(len(expected), 80)

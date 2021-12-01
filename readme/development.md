@@ -212,7 +212,7 @@ It uses evdev. The links below point to the 1.0.0 release, line numbers might ha
 3. Looks up the mapping if that event maps to anything
    [source](https://github.com/sezanzeb/key-mapper/blob/1.0.0/keymapper/injection/keycode_mapper.py#L434)
 4. Injects the output event in a new device that key-mapper created (another
-   new path in /dev/input, device name is suffixed by "mapped")
+   new path in /dev/input, device name is suffixed by "miscellaneous")
    [source](https://github.com/sezanzeb/key-mapper/blob/1.0.0/keymapper/injection/keycode_mapper.py#L242),
    [new device](https://github.com/sezanzeb/key-mapper/blob/1.0.0/keymapper/injection/injector.py#L356)
 5. Forwards any events that should not be mapped to anything in another new
