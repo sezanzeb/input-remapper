@@ -31,11 +31,12 @@ from evdev.ecodes import EV_KEY, EV_REL
 
 from keymapper.logger import logger
 from keymapper.groups import classify, GAMEPAD
-from keymapper.mapping import DISABLE_CODE
 from keymapper.injection.context import Context
 from keymapper.injection.numlock import set_numlock, is_numlock_on, ensure_numlock
 from keymapper.injection.consumer_control import ConsumerControl
-from keymapper.injection.device_factory import DEV_NAME
+
+
+DEV_NAME = "key-mapper"
 
 
 # messages
