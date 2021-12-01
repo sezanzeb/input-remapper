@@ -68,7 +68,7 @@ class TestJoystickToMouse(unittest.IsolatedAsyncioTestCase):
         self.context = Context(self.mapping)
 
         uinput = UInput()
-        self.context.uinput = uinput
+        self.context.miscellaneous_output = uinput
 
         source = InputDevice("/dev/input/event30")
         self.joystick_to_mouse = JoystickToMouse(self.context, source)

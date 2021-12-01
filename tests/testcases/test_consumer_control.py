@@ -70,7 +70,7 @@ class TestConsumerControl(unittest.IsolatedAsyncioTestCase):
         """Set a a ConsumerControl up for the test and run it in the background."""
         forward_to = evdev.UInput()
         context = Context(mapping)
-        context.uinput = evdev.UInput()
+        context.miscellaneous_output = evdev.UInput()
         consumer_control = ConsumerControl(context, source, forward_to)
         for consumer in consumer_control._consumers:
             consumer._abs_range = (-10, 10)
@@ -122,7 +122,7 @@ class TestConsumerControl(unittest.IsolatedAsyncioTestCase):
         )
         await asyncio.sleep(0.1)
         self.assertFalse(active_macros[(EV_KEY, 1)].running)
-        history = [a.t for a in context.uinput.write_history]
+        history = [a.t for a in context.miscellaneous_output.write_history]
         self.assertIn((EV_KEY, code_a, 1), history)
         self.assertIn((EV_KEY, code_a, 0), history)
         self.assertNotIn((EV_KEY, code_shift, 1), history)
@@ -152,7 +152,7 @@ class TestConsumerControl(unittest.IsolatedAsyncioTestCase):
         )
         await asyncio.sleep(0.1)
         self.assertFalse(active_macros[(EV_KEY, 1)].running)
-        history = [a.t for a in context.uinput.write_history]
+        history = [a.t for a in context.miscellaneous_output.write_history]
 
         # the key that triggered if_single should be injected after
         # if_single had a chance to inject keys (if the macro is fast enough),
@@ -189,7 +189,7 @@ class TestConsumerControl(unittest.IsolatedAsyncioTestCase):
         )
         await asyncio.sleep(0.1)
         self.assertFalse(active_macros[(EV_KEY, 1)].running)
-        history = [a.t for a in context.uinput.write_history]
+        history = [a.t for a in context.miscellaneous_output.write_history]
 
         # the key that triggered if_single should be injected after
         # if_single had a chance to inject keys (if the macro is fast enough),

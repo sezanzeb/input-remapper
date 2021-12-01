@@ -68,17 +68,6 @@ def is_in_capabilities(key, capabilities):
     return False
 
 
-def create_keyboard(name):
-    """Create an uinput that can be used like a keyboard."""
-    return evdev.UInput(
-        name=f"key-mapper {name} keyboard",
-        phys=DEV_NAME,
-        events={
-            evdev.ecodes.EV_KEY: evdev.ecodes.keys.keys()
-        },
-    )
-
-
 def get_udev_name(name, suffix):
     """Make sure the generated name is not longer than 80 chars."""
     max_len = 80  # based on error messages
@@ -281,7 +270,7 @@ class Injector(multiprocessing.Process):
                     capabilities[ev_type] = []
 
                 if ev_type == EV_KEY:
-                    # written to the context.keyboard device, no need for the
+                    # written to the context.keyboard_output device, no need for the
                     # "mapped" device to support this.
                     # TODO test
                     capabilities[ev_type] += [
@@ -328,6 +317,22 @@ class Injector(multiprocessing.Process):
                 loop.stop()
                 return
 
+    def _create_outputs(self):
+        # TODO docstring
+        self.context.keyboard_output = evdev.UInput(
+            name=get_udev_name(self.group.key, "keyboard"),
+            phys=DEV_NAME,
+            events={
+                evdev.ecodes.EV_KEY: evdev.ecodes.keys.keys()
+            },
+        )
+
+        self.context.miscellaneous_output = evdev.UInput(
+            name=get_udev_name(self.group.key, "miscellaneous"),
+            phys=DEV_NAME,
+            events=self._construct_capabilities(),
+        )
+
     def run(self):
         """The injection worker that keeps injecting until terminated.
 
@@ -337,7 +342,7 @@ class Injector(multiprocessing.Process):
         Use this function as starting point in a process. It creates
         the loops needed to read and map events and keeps running them.
         """
-        # TODO run all injections in a single process via asyncio
+        # TODO run all injections in a single process via asyncio?
         #   - Make sure that closing asyncio fds won't lag the service
         #   - SharedDict becomes obsolete
         #   - quick_cleanup needs to be able to reliably stop the injection
@@ -381,15 +386,7 @@ class Injector(multiprocessing.Process):
         numlock_state = is_numlock_on()
         coroutines = []
 
-        # where mapped events go to.
-        # See the Context docstring on why this is needed.
-        self.context.uinput = evdev.UInput(
-            name=get_udev_name(self.group.key, "mapped"),
-            phys=DEV_NAME,
-            events=self._construct_capabilities(),
-        )
-
-        self.context.keyboard = create_keyboard(self.group.key)
+        self._create_outputs()
 
         for source in sources:
             # certain capabilities can have side effects apparently. with an
@@ -402,7 +399,6 @@ class Injector(multiprocessing.Process):
                 input_props=source.input_props()  # TODO test
             )
 
-            # actually doing things
             consumer_control = ConsumerControl(self.context, source, forward_to)
             coroutines.append(consumer_control.run())
             self._consumer_controls.append(consumer_control)
@@ -416,6 +412,7 @@ class Injector(multiprocessing.Process):
         self._msg_pipe[0].send(OK)
 
         try:
+            # actually start doing things now
             loop.run_until_complete(asyncio.gather(*coroutines))
         except RuntimeError:
             # stopped event loop most likely

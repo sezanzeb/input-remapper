@@ -86,8 +86,8 @@ class JoystickToMouse(Consumer):
         # if the mouse won't move even though correct stuff is written here,
         # the capabilities are probably wrong
         try:
-            self.context.uinput.write(ev_type, keycode, value)
-            self.context.uinput.syn()
+            self.context.miscellaneous_output.write(ev_type, keycode, value)
+            self.context.miscellaneous_output.syn()
         except OverflowError:
             # screwed up the calculation of mouse movements
             logger.error("OverflowError (%s, %s, %s)", ev_type, keycode, value)

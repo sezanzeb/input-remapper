@@ -130,7 +130,7 @@ class Unreleased:
         unreleased[input_event_tuple[:2]] = self
 
     def is_mapped(self):
-        """If true, the key-down event was written to context.uinput.
+        """If true, the key-down event was written to context.miscellaneous_output.
 
         That means the release event should also be injected into that one.
         If this returns false, just forward the release event instead.

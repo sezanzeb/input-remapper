@@ -61,7 +61,7 @@ class Context:
     macros : dict
         Mapping of ((type, code, value),) to Macro objects.
         Combinations work similar as in key_to_code
-    uinput : evdev.UInput
+    miscellaneous_output : evdev.UInput
         Where to inject stuff to. This is an extra node in /dev so that
         existing capabilities won't clash.
         For example a gamepad can keep being a gamepad, while injected
@@ -74,6 +74,14 @@ class Context:
         keycodes are pretty much ignored and not written to the desktop.
         So this uinput should not have EV_ABS capabilities. Only EV_REL
         and EV_KEY is allowed.
+    keyboard_output : evdev.UInput
+        Where all keyboard events go to (KEY_*, but not BTN_), both mapped and
+        simply forwarded.
+        This is really important to not cause confusion with modifiers for the
+        environment. E.g. having a macro that releases a modifier that has
+        previously been injected, but has not been mapped. Instead of putting
+        the first one into the "mapped" device and the other one into the
+        "forwarded" device, all of them go into the same device.
     """
 
     def __init__(self, mapping):
@@ -88,7 +96,8 @@ class Context:
         self.right_purpose = None
         self.update_purposes()
 
-        self.uinput = None
+        self.miscellaneous_output = None
+        self.keyboard_output = None
 
     def update_purposes(self):
         """Read joystick purposes from the configuration.

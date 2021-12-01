@@ -125,7 +125,7 @@ class TestKeycodeMapper(unittest.IsolatedAsyncioTestCase):
         }
 
         uinput = UInput()
-        self.context.uinput = uinput
+        self.context.miscellaneous_output = uinput
 
         keycode_mapper = KeycodeMapper(self.context, self.source, UInput())
 
@@ -165,7 +165,7 @@ class TestKeycodeMapper(unittest.IsolatedAsyncioTestCase):
         ev_6 = (EV_ABS, ABS_HAT0Y, 0)
 
         uinput = UInput()
-        self.context.uinput = uinput
+        self.context.miscellaneous_output = uinput
         self.context.key_to_code = {
             (ev_1,): 51,
             (ev_2,): 52,
@@ -241,7 +241,7 @@ class TestKeycodeMapper(unittest.IsolatedAsyncioTestCase):
         up = (EV_KEY, 91, 0)
         uinput = UInput()
 
-        self.context.uinput = uinput
+        self.context.miscellaneous_output = uinput
         keycode_mapper = KeycodeMapper(self.context, self.source, uinput)
 
         keycode_mapper.handle_keycode(new_event(*down), PRESS, forward=False)
@@ -269,7 +269,7 @@ class TestKeycodeMapper(unittest.IsolatedAsyncioTestCase):
         # something with gamepad capabilities
         source = InputDevice("/dev/input/event30")
 
-        self.context.uinput = uinput
+        self.context.miscellaneous_output = uinput
         self.context.key_to_code = _key_to_code
         keycode_mapper = KeycodeMapper(self.context, source, uinput)
 
@@ -296,7 +296,7 @@ class TestKeycodeMapper(unittest.IsolatedAsyncioTestCase):
         uinput = UInput()
         forward_to = UInput()
 
-        self.context.uinput = uinput
+        self.context.miscellaneous_output = uinput
         keycode_mapper = KeycodeMapper(self.context, self.source, forward_to)
 
         for _ in range(10):
@@ -327,7 +327,7 @@ class TestKeycodeMapper(unittest.IsolatedAsyncioTestCase):
 
         key_to_code = {(down_1, down_2): 71}
 
-        self.context.uinput = uinput
+        self.context.miscellaneous_output = uinput
         self.context.key_to_code = key_to_code
         keycode_mapper = KeycodeMapper(self.context, self.source, uinput)
 
@@ -362,7 +362,7 @@ class TestKeycodeMapper(unittest.IsolatedAsyncioTestCase):
 
         uinput = UInput()
 
-        self.context.uinput = uinput
+        self.context.miscellaneous_output = uinput
         self.context.key_to_code = _key_to_code
         keycode_mapper = KeycodeMapper(self.context, self.source, uinput)
 
@@ -400,7 +400,7 @@ class TestKeycodeMapper(unittest.IsolatedAsyncioTestCase):
         uinput_mapped = UInput()
         uinput_forwarded = UInput()
 
-        self.context.uinput = uinput_mapped
+        self.context.miscellaneous_output = uinput_mapped
         self.context.key_to_code = _key_to_code
         keycode_mapper = KeycodeMapper(self.context, self.source, uinput_forwarded)
 
@@ -422,7 +422,7 @@ class TestKeycodeMapper(unittest.IsolatedAsyncioTestCase):
 
         uinput = UInput()
 
-        self.context.uinput = uinput
+        self.context.miscellaneous_output = uinput
         self.context.key_to_code = _key_to_code
         keycode_mapper = KeycodeMapper(self.context, self.source, uinput)
 
@@ -489,7 +489,7 @@ class TestKeycodeMapper(unittest.IsolatedAsyncioTestCase):
         # ABS_Y is part of the combination, which only works if the joystick
         # is configured as D-Pad
         self.mapping.set("gamepad.joystick.left_purpose", BUTTONS)
-        self.context.uinput = uinput
+        self.context.miscellaneous_output = uinput
         self.context.key_to_code = _key_to_code
         keycode_mapper = KeycodeMapper(self.context, source, uinput)
         self.assertIsNotNone(keycode_mapper._abs_range)
@@ -533,7 +533,7 @@ class TestKeycodeMapper(unittest.IsolatedAsyncioTestCase):
         macro_mapping = {((EV_KEY, 1, 1),): parse("k(a)", self.context)}
 
         self.context.macros = macro_mapping
-        self.context.uinput = UInput()
+        self.context.miscellaneous_output = UInput()
         forward_to = UInput()
         keycode_mapper = KeycodeMapper(self.context, self.source, forward_to)
 
@@ -542,7 +542,7 @@ class TestKeycodeMapper(unittest.IsolatedAsyncioTestCase):
         sleeptime = config.get("macros.keystroke_sleep_ms", 10) * 12
         await asyncio.sleep(sleeptime / 1000 + 0.1)
 
-        self.assertEqual(self.context.uinput.write_count, 2)  # down and up
+        self.assertEqual(self.context.miscellaneous_output.write_count, 2)  # down and up
         self.assertEqual(forward_to.write_count, 0)
 
         await keycode_mapper.notify(new_event(EV_KEY, 2, 1))
@@ -853,7 +853,7 @@ class TestKeycodeMapper(unittest.IsolatedAsyncioTestCase):
         """start macros"""
 
         uinput_2 = UInput()
-        self.context.uinput = uinput_2
+        self.context.miscellaneous_output = uinput_2
 
         keycode_mapper = KeycodeMapper(self.context, self.source, uinput_2)
 
@@ -936,7 +936,7 @@ class TestKeycodeMapper(unittest.IsolatedAsyncioTestCase):
 
         uinput = UInput()
 
-        self.context.uinput = uinput
+        self.context.miscellaneous_output = uinput
         self.context.key_to_code = _key_to_code
         keycode_mapper = KeycodeMapper(self.context, self.source, uinput)
 
@@ -982,7 +982,7 @@ class TestKeycodeMapper(unittest.IsolatedAsyncioTestCase):
 
         uinput = UInput()
 
-        self.context.uinput = uinput
+        self.context.miscellaneous_output = uinput
         self.context.key_to_code = _key_to_code
         keycode_mapper = KeycodeMapper(self.context, self.source, uinput)
 
@@ -1017,7 +1017,7 @@ class TestKeycodeMapper(unittest.IsolatedAsyncioTestCase):
         uinput = UInput()
         forward_to = UInput()
 
-        self.context.uinput = uinput
+        self.context.miscellaneous_output = uinput
         self.context.key_to_code = _key_to_code
         keycode_mapper = KeycodeMapper(self.context, self.source, forward_to)
 
@@ -1176,7 +1176,7 @@ class TestKeycodeMapper(unittest.IsolatedAsyncioTestCase):
 
         uinput = UInput()
 
-        self.context.uinput = uinput
+        self.context.miscellaneous_output = uinput
         self.context.key_to_code = k2c
         keycode_mapper = KeycodeMapper(self.context, self.source, uinput)
 

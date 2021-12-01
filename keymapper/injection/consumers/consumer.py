@@ -58,12 +58,12 @@ class Consumer:
 
     def write(self, key):
         """Shorthand to write stuff."""
-        uinput = self.context.uinput
+        uinput = self.context.miscellaneous_output
 
         code = key[1]
         if is_keyboard_code(code):
             # TODO test
-            uinput = self.context.keyboard
+            uinput = self.context.keyboard_output
 
         uinput.write(*key)
         uinput.syn()
@@ -75,14 +75,9 @@ class Consumer:
         code = key[1]
         if is_keyboard_code(code):
             # TODO test
-            # This is really important to not cause confusion with modifiers for the
-            # environment. E.g. having a macro that releases a modifier that has
-            # previously been injected, but has not been mapped. Instead of putting
-            # the first one into the "mapped" device and the other one into the
-            # "forwarded" device, all of them go into the same device.
-            # But not BTN_LEFT and such, those can be safely forwarded. Also, they are
-            # not really keyboard events even though being of the EV_KEY events.
-            uinput = self.context.keyboard
+            # BTN_LEFT are not really keyboard events even though being of the
+            # EV_KEY event type.
+            uinput = self.context.keyboard_output
 
         uinput.write(*key)
         uinput.syn()
