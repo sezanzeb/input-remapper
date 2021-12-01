@@ -242,4 +242,9 @@ def is_service():
 
 
 def is_keyboard_code(code):
+    """Check if this code describes a keyboard event.
+
+    KEY_A is, BTN_LEFT isn't, but both are EV_KEY events.
+    """
+    # TODO Test
     return code in evdev.ecodes.KEY
