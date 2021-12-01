@@ -319,11 +319,16 @@ class Injector(multiprocessing.Process):
 
     def _create_outputs(self):
         # TODO docstring
+        # using all EV_KEY codes broke it in one installation, key-mapper only
+        # requires KEY_* codes here anyway and no BTN_* code.
+        # furthermore, pythone-evdev modifies the ecodes.keys list to make it safe
+        # or something, only use KEY_* codes that are in ecodes.keys therefore.
+        ev_key_keys = list(evdev.ecodes.KEY.keys() & evdev.ecodes.keys.keys())
         self.context.keyboard_output = evdev.UInput(
             name=get_udev_name(self.group.key, "keyboard"),
             phys=DEV_NAME,
             events={
-                evdev.ecodes.EV_KEY: evdev.ecodes.keys.keys()
+                evdev.ecodes.EV_KEY: ev_key_keys
             },
         )
 
