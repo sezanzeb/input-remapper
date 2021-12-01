@@ -35,9 +35,8 @@ from keymapper.mapping import DISABLE_CODE
 from keymapper.injection.context import Context
 from keymapper.injection.numlock import set_numlock, is_numlock_on, ensure_numlock
 from keymapper.injection.consumer_control import ConsumerControl
+from keymapper.injection.device_factory import DEV_NAME
 
-
-DEV_NAME = "key-mapper"
 
 # messages
 CLOSE = 0
@@ -66,6 +65,17 @@ def is_in_capabilities(key, capabilities):
             return True
 
     return False
+
+
+def create_keyboard(name):
+    """Create an uinput that can be used like a keyboard."""
+    return evdev.UInput(
+        name=f"key-mapper {name} keyboard",
+        phys=DEV_NAME,
+        events={
+            evdev.ecodes.EV_KEY: evdev.ecodes.keys.keys()
+        },
+    )
 
 
 def get_udev_name(name, suffix):
@@ -245,17 +255,11 @@ class Injector(multiprocessing.Process):
 
         return capabilities
 
-    def _construct_capabilities(self, gamepad):
+    def _construct_capabilities(self):
         """Adds all used keycodes into a copy of a devices capabilities.
 
         Sometimes capabilities are a bit tricky and change how the system
         interprets the device.
-
-        Parameters
-        ----------
-        gamepad : bool
-            If gamepad events can be translated to mouse events. (also
-            depends on the configured purpose)
 
         Returns
         -------
@@ -265,24 +269,22 @@ class Injector(multiprocessing.Process):
 
         capabilities = {EV_KEY: []}
 
-        # support all injected keycodes
-        for code in self.context.key_to_code.values():
-            if code == DISABLE_CODE:
-                continue
-
-            if code not in capabilities[EV_KEY]:
-                capabilities[EV_KEY].append(code)
-
-        # and all keycodes that are injected by macros
+        # all keycodes that are injected by macros that are not EV_KEY
         for macro in self.context.macros.values():
             macro_capabilities = macro.get_capabilities()
             for ev_type in macro_capabilities:
+                if ev_type == EV_KEY:
+                    continue
+
                 if len(macro_capabilities[ev_type]) == 0:
                     continue
+
                 if ev_type not in capabilities:
                     capabilities[ev_type] = []
+
                 capabilities[ev_type] += list(macro_capabilities[ev_type])
 
+        gamepad = GAMEPAD in self.group.types
         if gamepad and self.context.joystick_as_mouse():
             # REL_WHEEL was also required to recognize the gamepad
             # as mouse, even if no joystick is used as wheel.
@@ -377,8 +379,10 @@ class Injector(multiprocessing.Process):
         self.context.uinput = evdev.UInput(
             name=get_udev_name(self.group.key, "mapped"),
             phys=DEV_NAME,
-            events=self._construct_capabilities(GAMEPAD in self.group.types),
+            events=self._construct_capabilities(),
         )
+
+        self.context.keyboard = create_keyboard(self.group.key)
 
         for source in sources:
             # certain capabilities can have side effects apparently. with an
@@ -388,6 +392,7 @@ class Injector(multiprocessing.Process):
                 name=get_udev_name(source.name, "forwarded"),
                 phys=DEV_NAME,
                 events=self._copy_capabilities(source),
+                input_props=source.input_props()  # TODO test
             )
 
             # actually doing things

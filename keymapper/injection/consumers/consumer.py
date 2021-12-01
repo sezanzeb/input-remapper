@@ -26,6 +26,9 @@ inject new events based on them.
 """
 
 
+import evdev
+
+
 class Consumer:
     """Can be notified of new events to inject them. Base class."""
 
@@ -54,12 +57,26 @@ class Consumer:
 
     def write(self, key):
         """Shorthand to write stuff."""
-        self.context.uinput.write(*key)
-        self.context.uinput.syn()
+        self.context.keyboard.write(*key)
+        self.context.keyboard.syn()
 
     def forward(self, key):
         """Shorthand to forward an event."""
-        self.forward_to.write(*key)
+        uinput = self.forward_to
+
+        code = key[1]
+        if code in evdev.ecodes.KEY:
+            # This is really important to not cause confusion with modifiers for the
+            # environment. E.g. having a macro that releases a modifier that has
+            # previously been injected, but has not been mapped. Instead of putting
+            # the first one into the "mapped" device and the other one into the
+            # "forwarded" device, all of them go into the same device.
+            # But not BTN_LEFT and such, those can be safely forwarded. Also, they are
+            # not really keyboard events even though being of the EV_KEY events.
+            uinput = self.context.keyboard
+
+        uinput.write(*key)
+        uinput.syn()
 
     async def notify(self, event):
         """A new event is ready.
