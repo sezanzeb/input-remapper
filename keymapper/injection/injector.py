@@ -34,10 +34,10 @@ from keymapper.groups import classify, GAMEPAD
 from keymapper.injection.context import Context
 from keymapper.injection.numlock import set_numlock, is_numlock_on, ensure_numlock
 from keymapper.injection.consumer_control import ConsumerControl
+from keymapper.utils import is_keyboard_code
 
 
 DEV_NAME = "key-mapper"
-
 
 # messages
 CLOSE = 0
@@ -274,16 +274,22 @@ class Injector(multiprocessing.Process):
         for macro in self.context.macros.values():
             macro_capabilities = macro.get_capabilities()
             for ev_type in macro_capabilities:
-                if ev_type == EV_KEY:
-                    continue
-
                 if len(macro_capabilities[ev_type]) == 0:
                     continue
 
                 if ev_type not in capabilities:
                     capabilities[ev_type] = []
 
-                capabilities[ev_type] += list(macro_capabilities[ev_type])
+                if ev_type == EV_KEY:
+                    # written to the context.keyboard device, no need for the
+                    # "mapped" device to support this.
+                    # TODO test
+                    capabilities[ev_type] += [
+                        code for code in macro_capabilities[ev_type]
+                        if not is_keyboard_code(code)
+                    ]
+                else:
+                    capabilities[ev_type] += list(macro_capabilities[ev_type])
 
         gamepad = GAMEPAD in self.group.types
         if gamepad and self.context.joystick_as_mouse():

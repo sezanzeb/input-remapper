@@ -27,6 +27,7 @@ inject new events based on them.
 
 
 import evdev
+from keymapper.utils import is_keyboard_code
 
 
 class Consumer:
@@ -57,15 +58,23 @@ class Consumer:
 
     def write(self, key):
         """Shorthand to write stuff."""
-        self.context.keyboard.write(*key)
-        self.context.keyboard.syn()
+        uinput = self.context.uinput
+
+        code = key[1]
+        if is_keyboard_code(code):
+            # TODO test
+            uinput = self.context.keyboard
+
+        uinput.write(*key)
+        uinput.syn()
 
     def forward(self, key):
         """Shorthand to forward an event."""
         uinput = self.forward_to
 
         code = key[1]
-        if code in evdev.ecodes.KEY:
+        if is_keyboard_code(code):
+            # TODO test
             # This is really important to not cause confusion with modifiers for the
             # environment. E.g. having a macro that releases a modifier that has
             # previously been injected, but has not been mapped. Instead of putting

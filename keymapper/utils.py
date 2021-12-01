@@ -239,3 +239,7 @@ def get_max_abs(device, code=ABS_X):
 
 def is_service():
     return sys.argv[0].endswith("key-mapper-service")
+
+
+def is_keyboard_code(code):
+    return code in evdev.ecodes.KEY
