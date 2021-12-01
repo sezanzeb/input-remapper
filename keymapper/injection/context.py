@@ -67,8 +67,9 @@ class Context:
         For example a gamepad can keep being a gamepad, while injected
         keycodes appear as keyboard input.
         This way the stylus buttons of a graphics tablet can also be mapped
-        to keys, while the stylus keeps being a stylus.
-        The main issue is, that the window manager handles events differently
+        to keys, while the stylus keeps being a stylus (being forwarded into another
+        uinput).
+        The main issue is, that the environment handles events differently
         depending on the overall capabilities, and with EV_ABS capabilities
         keycodes are pretty much ignored and not written to the desktop.
         So this uinput should not have EV_ABS capabilities. Only EV_REL
