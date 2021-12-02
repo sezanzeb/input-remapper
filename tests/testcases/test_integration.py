@@ -444,7 +444,7 @@ class TestIntegration(unittest.TestCase):
         )
         self.assertEqual(to_string(Key(EV_ABS, evdev.ecodes.ABS_HAT0Y, -1)), "DPad Up")
         self.assertEqual(to_string(Key(EV_KEY, evdev.ecodes.BTN_A, 1)), "Button A")
-        self.assertEqual(to_string(Key(EV_KEY, 1234, 1)), "unknown")
+        self.assertEqual(to_string(Key(EV_KEY, 1234, 1)), "1234")
         self.assertEqual(
             to_string(Key(EV_ABS, evdev.ecodes.ABS_X, 1)), "Joystick Right"
         )

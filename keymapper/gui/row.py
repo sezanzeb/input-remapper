@@ -74,11 +74,11 @@ def to_string(key):
 
     if ev_type not in evdev.ecodes.bytype:
         logger.error("Unknown key type for %s", key)
-        return "unknown"
+        return str(code)
 
     if code not in evdev.ecodes.bytype[ev_type]:
         logger.error("Unknown key code for %s", key)
-        return "unknown"
+        return str(code)
 
     key_name = None
 
