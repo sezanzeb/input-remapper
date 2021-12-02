@@ -319,17 +319,16 @@ class Injector(multiprocessing.Process):
 
     def _create_outputs(self):
         # TODO docstring
-        # using all EV_KEY codes broke it in one installation, key-mapper only
-        # requires KEY_* codes here anyway and no BTN_* code.
-        # furthermore, pythone-evdev modifies the ecodes.keys list to make it safe
-        # or something, only use KEY_* codes that are in ecodes.keys therefore.
-        ev_key_keys = list(evdev.ecodes.KEY.keys() & evdev.ecodes.keys.keys())
+        # Using all EV_KEY codes broke it in one installation, the use case for
+        # keyboard_output (see docstring of Context) only requires KEY_* codes here
+        # anyway and no BTN_* code.
+        # Furthermore, python-evdev modifies the ecodes.keys list to make it usable,
+        # only use KEY_* codes that are in ecodes.keys therefore.
+        keys = list(evdev.ecodes.KEY.keys() & evdev.ecodes.keys.keys())
         self.context.keyboard_output = evdev.UInput(
             name=get_udev_name(self.group.key, "keyboard"),
             phys=DEV_NAME,
-            events={
-                evdev.ecodes.EV_KEY: ev_key_keys
-            },
+            events={evdev.ecodes.EV_KEY: keys},
         )
 
         self.context.miscellaneous_output = evdev.UInput(
