@@ -25,6 +25,7 @@
 import asyncio
 import time
 import multiprocessing
+from threading import Thread
 
 import evdev
 from evdev.ecodes import EV_KEY, EV_REL
@@ -77,7 +78,7 @@ def get_udev_name(name, suffix):
     return name
 
 
-class Injector(multiprocessing.Process):
+class Injector(Thread):
     """Initializes, starts and stops injections.
 
     Is a process to make it non-blocking for the rest of the code and to
@@ -98,7 +99,8 @@ class Injector(multiprocessing.Process):
         """
         self.group = group
         self._state = UNKNOWN
-
+        
+		# TODO replace or remove _msg_pipe we don't have any multiprocessing. 
         # used to interact with the parts of this class that are running within
         # the new process
         self._msg_pipe = multiprocessing.Pipe()
@@ -108,7 +110,7 @@ class Injector(multiprocessing.Process):
 
         self._consumer_controls = []
 
-        super().__init__()
+        super().__init__(name=group)
 
     """Functions to interact with the running process"""
 
