@@ -25,7 +25,6 @@
 import asyncio
 import time
 import multiprocessing
-from threading import Thread
 
 import evdev
 from evdev.ecodes import EV_KEY, EV_REL
@@ -78,7 +77,7 @@ def get_udev_name(name, suffix):
     return name
 
 
-class Injector(Thread):
+class Injector(multiprocessing.Process):
     """Initializes, starts and stops injections.
 
     Is a process to make it non-blocking for the rest of the code and to
