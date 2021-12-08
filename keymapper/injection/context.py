@@ -75,8 +75,9 @@ class Context:
         and EV_KEY is allowed.
     """
 
-    def __init__(self, mapping):
+    def __init__(self, mapping, uinput_devices):
         self.mapping = mapping
+        self.uinput_devices = uinput_devices
 
         # avoid searching through the mapping at runtime,
         # might be a bit expensive
@@ -86,8 +87,6 @@ class Context:
         self.left_purpose = None
         self.right_purpose = None
         self.update_purposes()
-
-        self.uinput = None
 
     def update_purposes(self):
         """Read joystick purposes from the configuration.

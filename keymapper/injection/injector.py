@@ -88,7 +88,7 @@ class Injector(Thread):
 
     regrab_timeout = 0.2
 
-    def __init__(self, group, mapping):
+    def __init__(self, group, mapping, uinput_devices):
         """
 
         Parameters
@@ -107,6 +107,7 @@ class Injector(Thread):
 
         self.mapping = mapping
         self.context = None  # only needed inside the injection process
+        self.uinput_devices = uinput_devices
 
         self._consumer_controls = []
 
@@ -347,6 +348,8 @@ class Injector(Thread):
         #     probably don't want to evaluate that from scratch each time `notify` is
         #     called.
         #   - benefit: writing macros that listen for events from other devices
+        
+        global uinput_devices
 
         logger.info('Starting injecting the mapping for "%s"', self.group.key)
 
@@ -359,7 +362,7 @@ class Injector(Thread):
 
         # create this within the process after the event loop creation,
         # so that the macros use the correct loop
-        self.context = Context(self.mapping)
+        self.context = Context(self.mapping, self.uinput_devices)
 
         # grab devices as early as possible. If events appear that won't get
         # released anymore before the grab they appear to be held down
@@ -373,14 +376,6 @@ class Injector(Thread):
 
         numlock_state = is_numlock_on()
         coroutines = []
-
-        # where mapped events go to.
-        # See the Context docstring on why this is needed.
-        self.context.uinput = evdev.UInput(
-            name=get_udev_name(self.group.key, "mapped"),
-            phys=DEV_NAME,
-            events=self._construct_capabilities(GAMEPAD in self.group.types),
-        )
 
         for source in sources:
             # certain capabilities can have side effects apparently. with an
