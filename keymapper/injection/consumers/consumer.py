@@ -28,7 +28,7 @@ inject new events based on them.
 
 import evdev
 from keymapper.utils import is_keyboard_code
-from keymapper.injection.global_uinputs import globalUInputs
+from keymapper.injection.global_uinputs import global_uinputs
 
 
 class Consumer:
@@ -59,7 +59,7 @@ class Consumer:
 
     def write(self, key):
         """Shorthand to write stuff."""
-        uinput = globalUInputs.get_appropriate_uinput(key)
+        uinput = global_uinputs.get_appropriate_uinput(key)
         if uinput is None:
             uinput = self.context.miscellaneous_output
 
@@ -68,7 +68,7 @@ class Consumer:
 
     def forward(self, key):
         """Shorthand to forward an event."""
-        uinput = globalUInputs.get_appropriate_uinput(key)
+        uinput = global_uinputs.get_appropriate_uinput(key)
         if uinput is None:
             uinput = self.forward_to
 

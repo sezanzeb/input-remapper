@@ -45,7 +45,7 @@ from keymapper.system_mapping import system_mapping
 from keymapper.groups import groups
 from keymapper.paths import get_config_path, USER
 from keymapper.injection.macros.macro import macro_variables
-from keymapper.injection.global_uinputs import globalUInputs
+from keymapper.injection.global_uinputs import global_uinputs
 
 
 BUS_NAME = "keymapper.Control"
@@ -183,7 +183,7 @@ class Daemon:
         # initialize stuff that is needed alongside the daemon process
         macro_variables.start()
 
-        globalUInputs.prepare()
+        global_uinputs.prepare()
 
     @classmethod
     def connect(cls, fallback=True):

@@ -268,7 +268,7 @@ class Injector(multiprocessing.Process):
                     capabilities[ev_type] = []
 
                 if ev_type == EV_KEY:
-                    # written to the globalUInputs.keyboard device, no need for the
+                    # written to the global_uinputs.keyboard device, no need for the
                     # "miscellaneous" device to support this.
                     # TODO test
                     capabilities[ev_type] += [

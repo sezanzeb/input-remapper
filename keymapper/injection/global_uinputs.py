@@ -65,4 +65,4 @@ class GlobalUInputs:
         return None
 
 
-globalUInputs = GlobalUInputs()
+global_uinputs = GlobalUInputs()
