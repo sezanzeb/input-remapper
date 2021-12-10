@@ -20,8 +20,9 @@
 
 
 import evdev
+from evdev.ecodes import EV_KEY
 
-from keymapper.utils import DEV_NAME
+from keymapper.utils import DEV_NAME, is_keyboard_code
 
 
 class GlobalUInputs:
@@ -47,6 +48,21 @@ class GlobalUInputs:
             phys=DEV_NAME,
             events={evdev.ecodes.EV_KEY: keys},
         )
+
+    def get_appropriate_uinput(self, key):
+        """Where to inject the event to.
+
+        Or None if there is no appropriate device.
+
+        Parameters
+        ----------
+        key : tuple of int
+            type, code, action
+        """
+        if key[0] == EV_KEY and is_keyboard_code(key[1]):
+            return self.keyboard
+
+        return None
 
 
 globalUInputs = GlobalUInputs()

@@ -59,26 +59,18 @@ class Consumer:
 
     def write(self, key):
         """Shorthand to write stuff."""
-        uinput = self.context.miscellaneous_output
-
-        code = key[1]
-        if is_keyboard_code(code):
-            # TODO test
-            uinput = globalUInputs.keyboard
+        uinput = globalUInputs.get_appropriate_uinput(key)
+        if uinput is None:
+            uinput = self.context.miscellaneous_output
 
         uinput.write(*key)
         uinput.syn()
 
     def forward(self, key):
         """Shorthand to forward an event."""
-        uinput = self.forward_to
-
-        code = key[1]
-        if is_keyboard_code(code):
-            # TODO test
-            # BTN_LEFT are not really keyboard events even though being of the
-            # EV_KEY event type.
-            uinput = globalUInputs.keyboard
+        uinput = globalUInputs.get_appropriate_uinput(key)
+        if uinput is None:
+            uinput = self.forward_to
 
         uinput.write(*key)
         uinput.syn()
