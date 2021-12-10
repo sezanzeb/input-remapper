@@ -36,7 +36,6 @@ from keymapper.injection.consumers.consumer import Consumer
 from keymapper.utils import RELEASE
 from keymapper.groups import classify, GAMEPAD
 
-
 # this state is shared by all KeycodeMappers of this process
 
 # maps mouse buttons to macro instances that have been executed.

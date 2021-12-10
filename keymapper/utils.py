@@ -248,3 +248,15 @@ def is_keyboard_code(code):
     """
     # TODO Test
     return code in evdev.ecodes.KEY
+
+
+DEV_NAME = "key-mapper"
+
+
+def get_udev_name(name, suffix):
+    """Make sure the generated name is not longer than 80 chars."""
+    max_len = 80  # based on error messages
+    remaining_len = max_len - len(DEV_NAME) - len(suffix) - 2
+    middle = name[:remaining_len]
+    name = f"{DEV_NAME} {middle} {suffix}"
+    return name

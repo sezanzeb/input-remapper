@@ -28,6 +28,7 @@ inject new events based on them.
 
 import evdev
 from keymapper.utils import is_keyboard_code
+from keymapper.injection.global_uinputs import globalUInputs
 
 
 class Consumer:
@@ -63,7 +64,7 @@ class Consumer:
         code = key[1]
         if is_keyboard_code(code):
             # TODO test
-            uinput = self.context.keyboard_output
+            uinput = globalUInputs.keyboard
 
         uinput.write(*key)
         uinput.syn()
@@ -77,7 +78,7 @@ class Consumer:
             # TODO test
             # BTN_LEFT are not really keyboard events even though being of the
             # EV_KEY event type.
-            uinput = self.context.keyboard_output
+            uinput = globalUInputs.keyboard
 
         uinput.write(*key)
         uinput.syn()

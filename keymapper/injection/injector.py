@@ -34,10 +34,8 @@ from keymapper.groups import classify, GAMEPAD
 from keymapper.injection.context import Context
 from keymapper.injection.numlock import set_numlock, is_numlock_on, ensure_numlock
 from keymapper.injection.consumer_control import ConsumerControl
-from keymapper.utils import is_keyboard_code
+from keymapper.utils import is_keyboard_code, DEV_NAME, get_udev_name
 
-
-DEV_NAME = "key-mapper"
 
 # messages
 CLOSE = 0
@@ -270,7 +268,7 @@ class Injector(multiprocessing.Process):
                     capabilities[ev_type] = []
 
                 if ev_type == EV_KEY:
-                    # written to the context.keyboard_output device, no need for the
+                    # written to the globalUInputs.keyboard device, no need for the
                     # "miscellaneous" device to support this.
                     # TODO test
                     capabilities[ev_type] += [
@@ -319,18 +317,6 @@ class Injector(multiprocessing.Process):
 
     def _create_outputs(self):
         # TODO docstring
-        # Using all EV_KEY codes broke it in one installation, the use case for
-        # keyboard_output (see docstring of Context) only requires KEY_* codes here
-        # anyway and no BTN_* code.
-        # Furthermore, python-evdev modifies the ecodes.keys list to make it usable,
-        # only use KEY_* codes that are in ecodes.keys therefore.
-        keys = list(evdev.ecodes.KEY.keys() & evdev.ecodes.keys.keys())
-        self.context.keyboard_output = evdev.UInput(
-            name=get_udev_name(self.group.key, "keyboard"),
-            phys=DEV_NAME,
-            events={evdev.ecodes.EV_KEY: keys},
-        )
-
         self.context.miscellaneous_output = evdev.UInput(
             name=get_udev_name(self.group.key, "miscellaneous"),
             phys=DEV_NAME,
