@@ -62,18 +62,7 @@ class Context:
         Mapping of ((type, code, value),) to Macro objects.
         Combinations work similar as in key_to_code
     miscellaneous_output : evdev.UInput
-        Where to inject stuff to. This is an extra node in /dev so that
-        existing capabilities won't clash.
-        For example a gamepad can keep being a gamepad, while injected
-        keycodes appear as keyboard input.
-        This way the stylus buttons of a graphics tablet can also be mapped
-        to keys, while the stylus keeps being a stylus (being forwarded into another
-        uinput).
-        The main issue is, that the environment handles events differently
-        depending on the overall capabilities, and with EV_ABS capabilities
-        keycodes are pretty much ignored and not written to the desktop.
-        So this uinput should not have EV_ABS capabilities. Only EV_REL
-        and EV_KEY is allowed.
+        Where to inject events to that don't fit any of the global_uinputs
     keyboard_output : evdev.UInput
         Where all keyboard events go to (KEY_*, but not BTN_), both mapped and
         simply forwarded.
