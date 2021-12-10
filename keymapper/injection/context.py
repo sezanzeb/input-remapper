@@ -86,7 +86,6 @@ class Context:
         self.update_purposes()
 
         self.miscellaneous_output = None
-        self.keyboard_output = None
 
     def update_purposes(self):
         """Read joystick purposes from the configuration.
