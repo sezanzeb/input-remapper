@@ -271,6 +271,8 @@ class Injector(multiprocessing.Process):
                     # written to the global_uinputs.keyboard device, no need for the
                     # "miscellaneous" device to support this.
                     # TODO test
+                    # TODO add function to global_uinputs to know if that type,code
+                    #  tuple is handled by them
                     capabilities[ev_type] += [
                         code for code in macro_capabilities[ev_type]
                         if not is_keyboard_code(code)
