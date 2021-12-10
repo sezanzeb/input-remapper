@@ -45,13 +45,14 @@ from keymapper.system_mapping import system_mapping
 from keymapper.groups import groups
 from keymapper.paths import get_config_path, USER
 from keymapper.injection.macros.macro import macro_variables
-from keymapper.uinput_device import UinputDevice
+from keymapper.injection.global_uinputs import global_uinputs
 
 
 BUS_NAME = "keymapper.Control"
 # timeout in seconds, see
 # https://github.com/LEW21/pydbus/blob/cc407c8b1d25b7e28a6d661a29f9e661b1c9b964/pydbus/proxy.py
 BUS_TIMEOUT = 10
+
 
 class AutoloadHistory:
     """Contains the autoloading history and constraints."""
@@ -164,7 +165,6 @@ class Daemon:
         """Constructs the daemon."""
         logger.debug("Creating daemon")
         self.injectors = {}
-        self.uinput_devices = {}
 
         self.config_dir = None
 
@@ -182,6 +182,8 @@ class Daemon:
 
         # initialize stuff that is needed alongside the daemon process
         macro_variables.start()
+
+        global_uinputs.prepare()
 
     @classmethod
     def connect(cls, fallback=True):
@@ -421,7 +423,6 @@ class Daemon:
         preset : string
             The name of the preset
         """
-        
         self.refresh(group_key)
 
         if self.config_dir is None:
@@ -451,11 +452,6 @@ class Daemon:
         if self.injectors.get(group_key) is not None:
             self.stop_injecting(group_key)
 
-        if "keyboard" not in self.uinput_devices.keys():
-            logger.debug("creating UinputDevice keyboard")
-            self.uinput_devices["keyboard"] = UinputDevice("keyboard")
-            self.uinput_devices["keyboard"].plug()
-
         # Path to a dump of the xkb mappings, to provide more human
         # readable keys in the correct keyboard layout to the service.
         # The service cannot use `xmodmap -pke` because it's running via
@@ -474,7 +470,7 @@ class Daemon:
             logger.error('Could not find "%s"', xmodmap_path)
 
         try:
-            injector = Injector(group, mapping, self.uinput_devices)
+            injector = Injector(group, mapping)
             injector.start()
             self.injectors[group.key] = injector
         except OSError:

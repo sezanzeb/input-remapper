@@ -87,7 +87,7 @@ class Injector(multiprocessing.Process):
 
     regrab_timeout = 0.2
 
-    def __init__(self, group, mapping, uinput_devices):
+    def __init__(self, group, mapping):
         """
 
         Parameters
@@ -98,15 +98,13 @@ class Injector(multiprocessing.Process):
         """
         self.group = group
         self._state = UNKNOWN
-        
-		# TODO replace or remove _msg_pipe we don't have any multiprocessing. 
+
         # used to interact with the parts of this class that are running within
         # the new process
         self._msg_pipe = multiprocessing.Pipe()
 
         self.mapping = mapping
         self.context = None  # only needed inside the injection process
-        self.uinput_devices = uinput_devices
 
         self._consumer_controls = []
 
@@ -347,8 +345,6 @@ class Injector(multiprocessing.Process):
         #     probably don't want to evaluate that from scratch each time `notify` is
         #     called.
         #   - benefit: writing macros that listen for events from other devices
-        
-        global uinput_devices
 
         logger.info('Starting injecting the mapping for "%s"', self.group.key)
 
@@ -361,7 +357,7 @@ class Injector(multiprocessing.Process):
 
         # create this within the process after the event loop creation,
         # so that the macros use the correct loop
-        self.context = Context(self.mapping, self.uinput_devices)
+        self.context = Context(self.mapping)
 
         # grab devices as early as possible. If events appear that won't get
         # released anymore before the grab they appear to be held down

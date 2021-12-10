@@ -26,6 +26,9 @@ inject new events based on them.
 """
 
 
+from keymapper.injection.global_uinputs import global_uinputs
+from keymapper.logger import logger
+
 class Consumer:
     """Can be notified of new events to inject them. Base class."""
 
@@ -52,10 +55,21 @@ class Consumer:
         """Check if the consumer will have work to do."""
         raise NotImplementedError
 
-    def write(self, key, target="keyboard"):
+    def write(self, event, target_uinput="keyboard"):
         """Shorthand to write stuff."""
-        self.context.uinput_devices[target].uinput.write(*key)
-        self.context.uinput_devices[target].uinput.syn()
+        uinput = global_uinputs.get_uinput(target_uinput)
+        if uinput is None:
+            logger.debug("no uinput with name %s", target_uinput)
+            # TODO: the uinput is probably unplugged: send original event to forwaded device
+            return
+        
+        if not uinput.can_emit(event):
+            logger.debug("%s can not emit the event %s", target_uinput, event.__str__())
+            # TODO: send original event to forwaded device
+            return
+            
+        uinput.write(*event)
+        uinput.syn()
 
     def forward(self, key):
         """Shorthand to forward an event."""

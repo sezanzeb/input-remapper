@@ -61,23 +61,10 @@ class Context:
     macros : dict
         Mapping of ((type, code, value),) to Macro objects.
         Combinations work similar as in key_to_code
-    uinput : evdev.UInput
-        Where to inject stuff to. This is an extra node in /dev so that
-        existing capabilities won't clash.
-        For example a gamepad can keep being a gamepad, while injected
-        keycodes appear as keyboard input.
-        This way the stylus buttons of a graphics tablet can also be mapped
-        to keys, while the stylus keeps being a stylus.
-        The main issue is, that the window manager handles events differently
-        depending on the overall capabilities, and with EV_ABS capabilities
-        keycodes are pretty much ignored and not written to the desktop.
-        So this uinput should not have EV_ABS capabilities. Only EV_REL
-        and EV_KEY is allowed.
     """
 
-    def __init__(self, mapping, uinput_devices):
+    def __init__(self, mapping):
         self.mapping = mapping
-        self.uinput_devices = uinput_devices
 
         # avoid searching through the mapping at runtime,
         # might be a bit expensive
