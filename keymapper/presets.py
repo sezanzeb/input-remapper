@@ -32,28 +32,6 @@ from keymapper.logger import logger
 from keymapper.groups import groups
 
 
-def migrate_path():
-    """Migrate the folder structure from < 0.4.0.
-
-    Move existing presets into the new subfolder "presets"
-    """
-    new_preset_folder = os.path.join(CONFIG_PATH, "presets")
-    if not os.path.exists(get_preset_path()) and os.path.exists(CONFIG_PATH):
-        logger.info("Migrating presets from < 0.4.0...")
-        devices = os.listdir(CONFIG_PATH)
-        mkdir(get_preset_path())
-        for device in devices:
-            path = os.path.join(CONFIG_PATH, device)
-            if os.path.isdir(path):
-                target = path.replace(CONFIG_PATH, new_preset_folder)
-                logger.info('Moving "%s" to "%s"', path, target)
-                os.rename(path, target)
-        logger.info("done")
-
-
-migrate_path()
-
-
 def get_available_preset_name(group_name, preset="new preset", copy=False):
     """Increment the preset name until it is available."""
     if group_name is None:
