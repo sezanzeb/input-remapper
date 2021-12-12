@@ -38,7 +38,7 @@ class UInput(evdev.UInput):
         """
         # TODO check for event value especially for EV_ABS
         try:
-            return event[0] in self.capabilities().keys() and event[1] in self.capabilities()[event[0]]
+            return event[1] in self.capabilities().get(event[0], [])
         except evdev.uinput.UInputError:
             logger.debug("uinput for %s is not available", self.name)
             self.device = self._find_device()
