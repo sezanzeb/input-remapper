@@ -69,17 +69,20 @@ def _preset_path():
     Move existing presets into the new subfolder "presets"
     """
     new_preset_folder = os.path.join(CONFIG_PATH, "presets")
-    if not os.path.exists(get_preset_path()) and os.path.exists(CONFIG_PATH):
-        logger.info("Migrating presets from < 0.4.0...")
-        groups = os.listdir(CONFIG_PATH)
-        mkdir(get_preset_path())
-        for group in groups:
-            path = os.path.join(CONFIG_PATH, group)
-            if os.path.isdir(path):
-                target = path.replace(CONFIG_PATH, new_preset_folder)
-                logger.info('Moving "%s" to "%s"', path, target)
-                os.rename(path, target)
-        logger.info("done")
+    if os.path.exists(get_preset_path()) or not os.path.exists(CONFIG_PATH):
+        return
+    
+    logger.info("Migrating presets from < 0.4.0...")
+    groups = os.listdir(CONFIG_PATH)
+    mkdir(get_preset_path())
+    for group in groups:
+        path = os.path.join(CONFIG_PATH, group)
+        if os.path.isdir(path):
+            target = path.replace(CONFIG_PATH, new_preset_folder)
+            logger.info('Moving "%s" to "%s"', path, target)
+            os.rename(path, target)
+            
+    logger.info("done")
 
 
 def _mapping_keys():
@@ -93,7 +96,8 @@ def _mapping_keys():
             mapping = copy.deepcopy(preset_dict["mapping"])
             for key in mapping.keys():
                 if key.count(",") == 1:
-                    preset_dict["mapping"][key + ",1"] = preset_dict["mapping"].pop(key)
+                    preset_dict["mapping"][f"{key},1"] = preset_dict["mapping"].pop(key)
+                    
         with open(preset, "w") as file:
             json.dump(preset_dict, file, indent=4)
             file.write("\n")
