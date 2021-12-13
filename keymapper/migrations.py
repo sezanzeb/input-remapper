@@ -27,34 +27,40 @@ import json
 import copy
 
 from pathlib import Path
+from packaging import version
 
-from keymapper.logger import logger
+from keymapper.logger import logger, VERSION
 from keymapper.paths import get_preset_path, mkdir, CONFIG_PATH
 
 
 def all_presets():
-    p = Path(get_preset_path())
+    preset_path = Path(get_preset_path())
     presets = []
-    for folder in p.iterdir():
+    for folder in preset_path.iterdir():
         if not folder.is_dir():
             continue
-                
+
         for preset in folder.iterdir():
             if preset.suffix == ".json":
                 presets.append(preset)
     return presets
 
-def version():
+
+def config_version():
     config_path = os.path.join(CONFIG_PATH, "config.json")
     config = {}
-    
+
     if not os.path.exists(config_path):
-        return 0
+        return version.parse("0.4.0")
+
     with open(config_path, "r") as file:
         config = json.load(file)
-    if "migration" in config.keys():
-        return config["migration"]
-    return 1
+
+    if "version" in config.keys():
+        return version.parse(config["version"])
+
+    return version.parse("0.4.0")
+
 
 def _config_suffix():
     deprecated_path = os.path.join(CONFIG_PATH, "config")
@@ -62,6 +68,7 @@ def _config_suffix():
     if os.path.exists(deprecated_path) and not os.path.exists(config_path):
         logger.info('Moving "%s" to "%s"', deprecated_path, config_path)
         os.rename(deprecated_path, config_path)
+
 
 def _preset_path():
     """Migrate the folder structure from < 0.4.0.
@@ -71,7 +78,7 @@ def _preset_path():
     new_preset_folder = os.path.join(CONFIG_PATH, "presets")
     if os.path.exists(get_preset_path()) or not os.path.exists(CONFIG_PATH):
         return
-    
+
     logger.info("Migrating presets from < 0.4.0...")
     groups = os.listdir(CONFIG_PATH)
     mkdir(get_preset_path())
@@ -81,13 +88,13 @@ def _preset_path():
             target = path.replace(CONFIG_PATH, new_preset_folder)
             logger.info('Moving "%s" to "%s"', path, target)
             os.rename(path, target)
-            
+
     logger.info("done")
 
 
 def _mapping_keys():
     if not os.path.exists(get_preset_path()):
-        return # don't execute if there are no presets
+        return  # don't execute if there are no presets
     for preset in all_presets():
         preset_dict = {}
         with open(preset, "r") as file:
@@ -97,28 +104,30 @@ def _mapping_keys():
             for key in mapping.keys():
                 if key.count(",") == 1:
                     preset_dict["mapping"][f"{key},1"] = preset_dict["mapping"].pop(key)
-                    
+
         with open(preset, "w") as file:
             json.dump(preset_dict, file, indent=4)
             file.write("\n")
 
-def _update_version(version):
-    config_path = os.path.join(CONFIG_PATH, "config.json")
-    if not os.path.exists(config_path):
+
+def _update_version():
+    config_file = os.path.join(CONFIG_PATH, "config.json")
+    if not os.path.exists(config_file):
         return
-    with open(config_path, "r") as file:
+
+    logger.info("version in config file to %s", VERSION)
+    with open(config_file, "r") as file:
         config = json.load(file)
-    config["migration"] = version
-    with open(config_path, "w") as file:
+
+    config["version"] = VERSION
+    with open(config_file, "w") as file:
         json.dump(config, file, indent=4)
-        
+
+
 def migrate():
-    v = version()
-    if v == 0:
+    v = config_version()
+    if v < version.parse("1.2.1"):
         _config_suffix()
-        v = 1
-    if v == 1:
         _preset_path()
         _mapping_keys()
-        v = 2
-        _update_version(2)
+        _update_version()

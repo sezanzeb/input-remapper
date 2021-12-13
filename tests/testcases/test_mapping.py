@@ -40,7 +40,7 @@ class TestSystemMapping(unittest.TestCase):
 
     def test_split_key(self):
         self.assertEqual(split_key("1,2,3"), (1, 2, 3))
-        # self.assertEqual(split_key("1,2"), (1, 2, 1))
+        self.assertIsNone(split_key("1,2"), (1, 2, 1))
         self.assertIsNone(split_key("1"))
         self.assertIsNone(split_key("1,a,2"))
         self.assertIsNone(split_key("1,a"))

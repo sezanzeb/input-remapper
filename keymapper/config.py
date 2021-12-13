@@ -27,7 +27,7 @@ import json
 import copy
 
 from keymapper.paths import CONFIG_PATH, USER, touch
-from keymapper.logger import logger
+from keymapper.logger import logger, VERSION
 from keymapper.migrations import migrate
 
 MOUSE = "mouse"
@@ -36,6 +36,7 @@ BUTTONS = "buttons"
 NONE = "none"
 
 INITIAL_CONFIG = {
+    "version": VERSION,
     "autoload": {},
     "macros": {
         # some time between keystrokes might be required for them to be
