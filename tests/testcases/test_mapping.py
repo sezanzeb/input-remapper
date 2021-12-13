@@ -40,7 +40,7 @@ class TestSystemMapping(unittest.TestCase):
 
     def test_split_key(self):
         self.assertEqual(split_key("1,2,3"), (1, 2, 3))
-        self.assertEqual(split_key("1,2"), (1, 2, 1))
+        # self.assertEqual(split_key("1,2"), (1, 2, 1))
         self.assertIsNone(split_key("1"))
         self.assertIsNone(split_key("1,a,2"))
         self.assertIsNone(split_key("1,a"))
@@ -222,40 +222,6 @@ class TestMapping(unittest.TestCase):
         self.assertEqual(loaded.get_symbol(two), "2")
         self.assertEqual(loaded.get_symbol(Key(two, three)), "3")
         self.assertEqual(loaded._config["foo"], "bar")
-
-    def test_save_load_2(self):
-        # loads mappings with only (type, code) as the key by using 1 as value,
-        # loads combinations chained with +
-        path = os.path.join(tmp, "presets", "Foo Device", "test.json")
-        os.makedirs(os.path.dirname(path), exist_ok=True)
-        with open(path, "w") as file:
-            json.dump(
-                {
-                    "mapping": {
-                        f"{EV_KEY},3": "a",
-                        f"{EV_ABS},{ABS_HAT0X},-1": "b",
-                        f"{EV_ABS},1,1+{EV_ABS},2,-1+{EV_ABS},3,1": "c",
-                        # ignored because broken
-                        f"3,1,1,2": "e",
-                        f"3": "e",
-                        f",,+3,1,2": "g",
-                        f"": "h",
-                    }
-                },
-                file,
-            )
-
-        loaded = Mapping()
-        self.assertEqual(loaded.num_saved_keys, 0)
-        loaded.load(get_preset_path("Foo Device", "test"))
-        self.assertEqual(len(loaded), 3)
-        self.assertEqual(loaded.num_saved_keys, 3)
-        self.assertEqual(loaded.get_symbol(Key(EV_KEY, 3, 1)), "a")
-        self.assertEqual(loaded.get_symbol(Key(EV_ABS, ABS_HAT0X, -1)), "b")
-        self.assertEqual(
-            loaded.get_symbol(Key((EV_ABS, 1, 1), (EV_ABS, 2, -1), Key(EV_ABS, 3, 1))),
-            "c",
-        )
 
     def test_change(self):
         # the reader would not report values like 111 or 222, only 1 or -1.

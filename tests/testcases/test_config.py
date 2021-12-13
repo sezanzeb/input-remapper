@@ -24,6 +24,7 @@ import unittest
 
 from keymapper.config import config, GlobalConfig
 from keymapper.paths import touch, CONFIG_PATH
+from keymapper.logger import logger
 
 from tests.test import quick_cleanup, tmp
 
@@ -32,33 +33,6 @@ class TestConfig(unittest.TestCase):
     def tearDown(self):
         quick_cleanup()
         self.assertEqual(len(config.iterate_autoload_presets()), 0)
-
-    def test_migrate(self):
-        old = os.path.join(CONFIG_PATH, "config")
-        new = os.path.join(CONFIG_PATH, "config.json")
-        os.remove(new)
-        touch(old)
-        with open(old, "w") as f:
-            f.write("{}")
-        GlobalConfig()
-        self.assertTrue(os.path.exists(new))
-        self.assertFalse(os.path.exists(old))
-
-    def test_wont_migrate(self):
-        old = os.path.join(CONFIG_PATH, "config")
-        new = os.path.join(CONFIG_PATH, "config.json")
-
-        touch(new)
-        with open(new, "w") as f:
-            f.write("{}")
-
-        touch(old)
-        with open(old, "w") as f:
-            f.write("{}")
-
-        GlobalConfig()
-        self.assertTrue(os.path.exists(new))
-        self.assertTrue(os.path.exists(old))
 
     def test_get_default(self):
         config._config = {}

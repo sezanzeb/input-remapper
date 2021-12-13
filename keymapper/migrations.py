@@ -31,6 +31,7 @@ from pathlib import Path
 from keymapper.logger import logger
 from keymapper.paths import get_preset_path, mkdir, CONFIG_PATH
 
+
 def all_presets():
     p = Path(get_preset_path())
     presets = []
@@ -78,7 +79,10 @@ def _preset_path():
                 os.rename(path, target)
         logger.info("done")
 
+
 def _mapping_keys():
+    if not os.path.exists(get_preset_path()):
+        return # don't execute if there are no presets
     for preset in all_presets():
         preset_dict = {}
         with open(preset, "r") as file:
@@ -94,6 +98,8 @@ def _mapping_keys():
 
 def _update_version(version):
     config_path = os.path.join(CONFIG_PATH, "config.json")
+    if not os.path.exists(config_path):
+        return
     with open(config_path, "r") as file:
         config = json.load(file)
     config["migration"] = version
