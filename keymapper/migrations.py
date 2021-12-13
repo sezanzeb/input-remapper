@@ -36,10 +36,12 @@ def all_presets():
     p = Path(get_preset_path())
     presets = []
     for folder in p.iterdir():
-        if folder.is_dir():
-            for preset in folder.iterdir():
-                if preset.suffix == ".json":
-                    presets.append(preset)
+        if not folder.is_dir():
+            continue
+                
+        for preset in folder.iterdir():
+            if preset.suffix == ".json":
+                presets.append(preset)
     return presets
 
 def version():
