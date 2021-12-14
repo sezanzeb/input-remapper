@@ -34,6 +34,7 @@ from keymapper.paths import get_preset_path, mkdir, CONFIG_PATH
 
 
 def all_presets():
+    """All presets for all groups as list"""
     preset_path = Path(get_preset_path())
     presets = []
     for folder in preset_path.iterdir():
@@ -47,11 +48,12 @@ def all_presets():
 
 
 def config_version():
+    """Version string in the config.json as packaging.Version"""
     config_path = os.path.join(CONFIG_PATH, "config.json")
     config = {}
 
     if not os.path.exists(config_path):
-        return version.parse("0.4.0")
+        return version.parse("0.0.0")
 
     with open(config_path, "r") as file:
         config = json.load(file)
@@ -59,10 +61,11 @@ def config_version():
     if "version" in config.keys():
         return version.parse(config["version"])
 
-    return version.parse("0.4.0")
+    return version.parse("0.0.0")
 
 
 def _config_suffix():
+    """append .json suffix to config file"""
     deprecated_path = os.path.join(CONFIG_PATH, "config")
     config_path = os.path.join(CONFIG_PATH, "config.json")
     if os.path.exists(deprecated_path) and not os.path.exists(config_path):
@@ -93,6 +96,10 @@ def _preset_path():
 
 
 def _mapping_keys():
+    """update all preset mappings
+
+    Update all keys in mapping to include value e.g.: "1,5"->"1,5,1"
+    """
     if not os.path.exists(get_preset_path()):
         return  # don't execute if there are no presets
     for preset in all_presets():
@@ -111,6 +118,7 @@ def _mapping_keys():
 
 
 def _update_version():
+    """Write current version string to the config file"""
     config_file = os.path.join(CONFIG_PATH, "config.json")
     if not os.path.exists(config_file):
         return
@@ -125,9 +133,16 @@ def _update_version():
 
 
 def migrate():
+    """Migrate config files to the current release"""
     v = config_version()
-    if v < version.parse("1.2.1"):
+    if v < version.parse("0.4.0"):
         _config_suffix()
         _preset_path()
+
+    if v < version.parse("1.2.3.dev1"):
         _mapping_keys()
+
+    # add new migrations here
+
+    if v < version.parse(VERSION):
         _update_version()

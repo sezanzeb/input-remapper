@@ -178,13 +178,13 @@ class TestMigrations(unittest.TestCase):
         path = os.path.join(CONFIG_PATH, "config.json")
         with open(path, "w") as file:
             file.write("{}")
-        self.assertEqual("0.4.0", config_version().public)
+        self.assertEqual("0.0.0", config_version().public)
 
         try:
             os.remove(path)
         except FileNotFoundError:
             pass
-        self.assertEqual("0.4.0", config_version().public)
+        self.assertEqual("0.0.0", config_version().public)
 
 
 if __name__ == "__main__":
