@@ -43,21 +43,11 @@ def split_key(key):
     """Take a key like "1,2,3" and return a 3-tuple of ints."""
     key = key.strip()
 
-    if "," not in key:
+    if key.count(",") != 2:
         logger.error('Found invalid key: "%s"', key)
         return None
 
-    if key.count(",") == 1:
-        # support for legacy mapping objects that didn't include
-        # the value in the key
-        ev_type, code = key.split(",")
-        value = 1
-    elif key.count(",") == 2:
-        ev_type, code, value = key.split(",")
-    else:
-        logger.error('Found more than two commas in the key: "%s"', key)
-        return None
-
+    ev_type, code, value = key.split(",")
     try:
         key = (int(ev_type), int(code), int(value))
     except ValueError:
