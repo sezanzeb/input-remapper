@@ -27,7 +27,7 @@ import json
 import copy
 
 from pathlib import Path
-from packaging import version
+import pkg_resources
 
 from keymapper.logger import logger, VERSION
 from keymapper.paths import get_preset_path, mkdir, CONFIG_PATH
@@ -53,15 +53,15 @@ def config_version():
     config = {}
 
     if not os.path.exists(config_path):
-        return version.parse("0.0.0")
+        return pkg_resources.parse_version("0.0.0")
 
     with open(config_path, "r") as file:
         config = json.load(file)
 
     if "version" in config.keys():
-        return version.parse(config["version"])
+        return pkg_resources.parse_version(config["version"])
 
-    return version.parse("0.0.0")
+    return pkg_resources.parse_version("0.0.0")
 
 
 def _config_suffix():
@@ -135,14 +135,14 @@ def _update_version():
 def migrate():
     """Migrate config files to the current release"""
     v = config_version()
-    if v < version.parse("0.4.0"):
+    if v < pkg_resources.parse_version("0.4.0"):
         _config_suffix()
         _preset_path()
 
-    if v < version.parse("1.2.2"):
+    if v < pkg_resources.parse_version("1.2.2"):
         _mapping_keys()
 
     # add new migrations here
 
-    if v < version.parse(VERSION):
+    if v < pkg_resources.parse_version(VERSION):
         _update_version()
