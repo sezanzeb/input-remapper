@@ -29,6 +29,8 @@ import time
 import evdev
 from evdev.ecodes import EV_KEY, EV_ABS
 
+import keymapper.exceptions
+
 from keymapper.logger import logger
 from keymapper.mapping import DISABLE_CODE
 from keymapper import utils
@@ -320,6 +322,7 @@ class KeycodeMapper(Consumer):
 
     def macro_write(self, ev_type, code, value):
         """Handler for macros."""
+        logger.debug(f"macro_sending {(ev_type, code, value)}")
         self.write((ev_type, code, value))
 
     def _get_key(self, key):
@@ -437,8 +440,13 @@ class KeycodeMapper(Consumer):
                     logger.key_spam(key, "releasing key")
                 elif unreleased_entry.is_mapped():
                     # release what the input is mapped to
-                    logger.key_spam(key, "releasing %s", target_code)
-                    self.write((target_type, target_code, 0))
+                    try:
+                        logger.key_spam(key, "releasing %s", target_code)
+                        self.write((target_type, target_code, 0))
+                    except keymapper.exceptions.Error:
+                        logger.key_spam((original_tuple,), "forwarding release")
+                        self.forward(original_tuple)
+
                 elif forward:
                     # forward the release event
                     logger.key_spam((original_tuple,), "forwarding release")
@@ -505,8 +513,12 @@ class KeycodeMapper(Consumer):
                     logger.key_spam(key, "disabled")
                     return
 
-                logger.key_spam(key, "maps to %s", target_code)
-                self.write((EV_KEY, target_code, 1))
+                try:
+                    logger.key_spam(key, "maps to %s", target_code)
+                    self.write((EV_KEY, target_code, 1))
+                except keymapper.exceptions.Error:
+                    logger.key_spam((original_tuple,), "forwarding")
+                    self.forward(original_tuple)
                 return
 
             if forward:

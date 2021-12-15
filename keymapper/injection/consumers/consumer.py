@@ -25,9 +25,11 @@ Can be notified of new events so that inheriting classes can map them and
 inject new events based on them.
 """
 
+import keymapper.exceptions
 
 from keymapper.injection.global_uinputs import global_uinputs
 from keymapper.logger import logger
+
 
 class Consumer:
     """Can be notified of new events to inject them. Base class."""
@@ -59,15 +61,11 @@ class Consumer:
         """Shorthand to write stuff."""
         uinput = global_uinputs.get_uinput(target_uinput)
         if uinput is None:
-            logger.debug("no uinput with name %s", target_uinput)
-            # TODO: the uinput is probably unplugged: send original event to forwaded device
-            return
-        
+            raise keymapper.exceptions.UinputNotAvailable(target_uinput)
+
         if not uinput.can_emit(event):
-            logger.debug("%s can not emit the event %s", target_uinput, event.__str__())
-            # TODO: send original event to forwaded device
-            return
-            
+            raise keymapper.exceptions.EventNotHandled(event)
+
         uinput.write(*event)
         uinput.syn()
 
