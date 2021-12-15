@@ -139,7 +139,7 @@ def migrate():
         _config_suffix()
         _preset_path()
 
-    if v < version.parse("1.2.3.dev1"):
+    if v < version.parse("1.2.2"):
         _mapping_keys()
 
     # add new migrations here
