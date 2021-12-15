@@ -31,7 +31,6 @@ from keymapper.presets import (
     delete_preset,
     get_available_preset_name,
     get_presets,
-    migrate_path,
 )
 from keymapper.paths import CONFIG_PATH, get_preset_path, touch, mkdir
 from keymapper.gui.custom_mapping import custom_mapping
@@ -81,49 +80,6 @@ class TestPresets(unittest.TestCase):
         self.assertEqual(
             get_available_preset_name("_", "qux 5copy 2 copy", True),
             "qux 5copy 2 copy 2",
-        )
-
-
-class TestMigrate(unittest.TestCase):
-    def test_migrate(self):
-        if os.path.exists(tmp):
-            shutil.rmtree(tmp)
-
-        touch(os.path.join(tmp, "foo1", "bar1.json"))
-        touch(os.path.join(tmp, "foo2", "bar2.json"))
-
-        migrate_path()
-
-        self.assertFalse(os.path.exists(os.path.join(tmp, "foo1", "bar1.json")))
-        self.assertFalse(os.path.exists(os.path.join(tmp, "foo2", "bar2.json")))
-
-        self.assertTrue(
-            os.path.exists(os.path.join(tmp, "presets", "foo1", "bar1.json"))
-        )
-        self.assertTrue(
-            os.path.exists(os.path.join(tmp, "presets", "foo2", "bar2.json"))
-        )
-
-    def test_doesnt_migrate(self):
-        if os.path.exists(tmp):
-            shutil.rmtree(tmp)
-
-        touch(os.path.join(tmp, "foo1", "bar1.json"))
-        touch(os.path.join(tmp, "foo2", "bar2.json"))
-
-        # already migrated
-        mkdir(os.path.join(tmp, "presets"))
-
-        migrate_path()
-
-        self.assertTrue(os.path.exists(os.path.join(tmp, "foo1", "bar1.json")))
-        self.assertTrue(os.path.exists(os.path.join(tmp, "foo2", "bar2.json")))
-
-        self.assertFalse(
-            os.path.exists(os.path.join(tmp, "presets", "foo1", "bar1.json"))
-        )
-        self.assertFalse(
-            os.path.exists(os.path.join(tmp, "presets", "foo2", "bar2.json"))
         )
 
 

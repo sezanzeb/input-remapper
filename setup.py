@@ -99,7 +99,7 @@ for po_file in glob.glob(PO_FILES):
 
 setup(
     name="key-mapper",
-    version="1.2.1",
+    version="1.2.2",
     description="A tool to change the mapping of your input device buttons",
     author="Sezanzeb",
     author_email="proxima@sezanzeb.de",
