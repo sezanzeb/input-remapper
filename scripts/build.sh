@@ -9,8 +9,8 @@ build_deb() {
   mv build/deb/usr/local/lib/python3.*/ build/deb/usr/lib/python3/
   cp ./DEBIAN build/deb/ -r
   mkdir dist -p
-  rm dist/key-mapper-1.2.1.deb || true
-  dpkg -b build/deb dist/key-mapper-1.2.1.deb
+  rm dist/key-mapper-1.2.2.deb || true
+  dpkg -b build/deb dist/key-mapper-1.2.2.deb
 }
 
 build_deb &
