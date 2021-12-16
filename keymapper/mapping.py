@@ -187,7 +187,10 @@ class Mapping(ConfigBase):
 
                 if None in key:
                     continue
-
+                
+                if isinstance(symbol, list):
+                    symbol = tuple(symbol) # use a immutable type
+                
                 logger.spam("%s maps to %s", key, symbol)
                 self._mapping[key] = symbol
 

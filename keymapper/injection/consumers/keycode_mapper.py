@@ -412,7 +412,7 @@ class KeycodeMapper(Consumer):
             mapping
         """
         assert isinstance(action, int)
-
+        
         type_and_code = (event.type, event.code)
         active_macro = active_macros.get(type_and_code)
         original_tuple = (event.type, event.code, event.value)
@@ -433,7 +433,13 @@ class KeycodeMapper(Consumer):
                 unreleased_entry = unreleased[type_and_code]
                 target_type, target_code = unreleased_entry.target_type_code
                 del unreleased[type_and_code]
-
+                
+                target_uinput = None
+                if isinstance(target_code, tuple):
+                    target_uinput = target_code[1]
+                    target_code = target_code[0]
+                    
+                
                 if target_code == DISABLE_CODE:
                     logger.key_spam(key, "releasing disabled key")
                     return
@@ -445,10 +451,11 @@ class KeycodeMapper(Consumer):
                 if unreleased_entry.is_mapped():
                     # release what the input is mapped to
                     try:
-                        logger.key_spam(key, "releasing %s", target_code)
-                        self.write((target_type, target_code, 0), target_uinput="keyboard")
+                        logger.key_spam(key, "releasing (%s, %s)", target_code, target_uinput)
+                        self.write((target_type, target_code, 0), target_uinput)
                         return
                     except keymapper.exceptions.Error:
+                        logger.key_spam(key, "could not map")
                         pass
 
                 if forward:
@@ -516,15 +523,16 @@ class KeycodeMapper(Consumer):
                 # (this combination or this single key)
                 Unreleased((EV_KEY, target_code), (*type_and_code, action), key)
 
-                if target_code == DISABLE_CODE:
+                if target_code[0] == DISABLE_CODE:
                     logger.key_spam(key, "disabled")
                     return
 
                 try:
                     logger.key_spam(key, "maps to %s", target_code)
-                    self.write((EV_KEY, target_code, 1), target_uinput="keyboard")
+                    self.write((EV_KEY, target_code[0], 1), target_code[1])
                     return
                 except keymapper.exceptions.Error:
+                    logger.key_spam(key, "could not map")
                     pass
 
             if forward:

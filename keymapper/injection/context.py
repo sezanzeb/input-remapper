@@ -112,12 +112,12 @@ class Context:
         """
         key_to_code = {}
         for key, output in self.mapping:
-            if is_this_a_macro(output):
+            if is_this_a_macro(output): # TODO change this_is_a_macro() to hanlde target uinput
                 continue
 
-            target_code = system_mapping.get(output)
+            target_code = system_mapping.get(output[0])
             if target_code is None:
-                logger.error('Don\'t know what "%s" is', output)
+                logger.error('Don\'t know what "%s" is', output[0])
                 continue
 
             for permutation in key.get_permutations():
@@ -126,8 +126,8 @@ class Context:
                         "Expected values to be -1 or 1 at this point: %s",
                         permutation.keys,
                     )
-                key_to_code[permutation.keys] = target_code
-
+                key_to_code[permutation.keys] = (target_code, output[1])
+        
         return key_to_code
 
     def is_mapped(self, key):
