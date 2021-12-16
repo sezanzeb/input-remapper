@@ -320,10 +320,10 @@ class KeycodeMapper(Consumer):
 
         await delayed_handle_keycode()
 
-    def macro_write(self, ev_type, code, value):
+    def macro_write(self, ev_type, code, value, target_uinput="keyboard"):
         """Handler for macros."""
         logger.debug(f"macro_sending {(ev_type, code, value)}")
-        self.write((ev_type, code, value))
+        self.write((ev_type, code, value), target_uinput)
 
     def _get_key(self, key):
         """If the event triggers stuff, get the key for that.
@@ -436,24 +436,31 @@ class KeycodeMapper(Consumer):
 
                 if target_code == DISABLE_CODE:
                     logger.key_spam(key, "releasing disabled key")
-                elif target_code is None:
+                    return
+                
+                if target_code is None:
                     logger.key_spam(key, "releasing key")
-                elif unreleased_entry.is_mapped():
+                    return
+                
+                if unreleased_entry.is_mapped():
                     # release what the input is mapped to
                     try:
                         logger.key_spam(key, "releasing %s", target_code)
-                        self.write((target_type, target_code, 0))
+                        self.write((target_type, target_code, 0), target_uinput="keyboard")
+                        return
                     except keymapper.exceptions.Error:
-                        logger.key_spam((original_tuple,), "forwarding release")
-                        self.forward(original_tuple)
+                        pass
 
-                elif forward:
+                if forward:
                     # forward the release event
                     logger.key_spam((original_tuple,), "forwarding release")
                     self.forward(original_tuple)
                 else:
                     logger.key_spam(key, "not forwarding release")
-            elif event.type != EV_ABS:
+                    
+                return
+
+            if event.type != EV_ABS:
                 # ABS events might be spammed like crazy every time the
                 # position slightly changes
                 logger.key_spam(key, "unexpected key up")
@@ -515,11 +522,10 @@ class KeycodeMapper(Consumer):
 
                 try:
                     logger.key_spam(key, "maps to %s", target_code)
-                    self.write((EV_KEY, target_code, 1))
+                    self.write((EV_KEY, target_code, 1), target_uinput="keyboard")
+                    return
                 except keymapper.exceptions.Error:
-                    logger.key_spam((original_tuple,), "forwarding")
-                    self.forward(original_tuple)
-                return
+                    pass
 
             if forward:
                 logger.key_spam((original_tuple,), "forwarding")
