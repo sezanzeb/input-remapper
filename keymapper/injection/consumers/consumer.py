@@ -57,7 +57,7 @@ class Consumer:
         """Check if the consumer will have work to do."""
         raise NotImplementedError
 
-    def write(self, event, target_uinput="keyboard"):
+    def write(self, event, target_uinput):
         """Shorthand to write stuff."""
         uinput = global_uinputs.get_uinput(target_uinput)
         if uinput is None:

@@ -89,13 +89,13 @@ class Context:
         logger.debug("Parsing macros")
         macros = {}
         for key, output in self.mapping:
-            if is_this_a_macro(output):
-                macro = parse(output, self)
+            if is_this_a_macro(output[0]):
+                macro = parse(output[0], self)
                 if macro is None:
                     continue
 
                 for permutation in key.get_permutations():
-                    macros[permutation.keys] = macro
+                    macros[permutation.keys] = (macro, output[1])
 
         if len(macros) == 0:
             logger.debug("No macros configured")
@@ -112,7 +112,7 @@ class Context:
         """
         key_to_code = {}
         for key, output in self.mapping:
-            if is_this_a_macro(output): # TODO change this_is_a_macro() to hanlde target uinput
+            if is_this_a_macro(output[0]):
                 continue
 
             target_code = system_mapping.get(output[0])

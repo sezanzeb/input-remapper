@@ -100,17 +100,18 @@ class Unreleased:
     """This represents a key that has been pressed but not released yet."""
 
     __slots__ = (
-        "target_type_code",
+        "target",
         "input_event_tuple",
         "triggered_key",
     )
 
-    def __init__(self, target_type_code, input_event_tuple, triggered_key):
+    def __init__(self, target, input_event_tuple, triggered_key):
         """
         Parameters
         ----------
-        target_type_code : 2-tuple
-            int type and int code of what was injected or forwarded
+        target : 2- or 3-tuple
+            int type, int code of what was injected or forwarded 
+            and string target_uinput for injected (not forwarded) events
         input_event_tuple : 3-tuple
             int, int, int / type, code, action
         triggered_key : tuple of 3-tuples
@@ -119,7 +120,7 @@ class Unreleased:
             If nothing was triggered and input_event_tuple forwarded,
             insert None.
         """
-        self.target_type_code = target_type_code
+        self.target = target
         self.input_event_tuple = input_event_tuple
         self.triggered_key = triggered_key
 
@@ -143,7 +144,7 @@ class Unreleased:
     def __str__(self):
         return (
             "Unreleased("
-            f"target{self.target_type_code},"
+            f"target{self.target},"
             f"input{self.input_event_tuple},"
             f'key{self.triggered_key or "(None)"}'
             ")"
@@ -278,7 +279,7 @@ class KeycodeMapper(Consumer):
         """Receive the newest event that should be mapped."""
         action = utils.classify_action(event, self._abs_range)
 
-        for macro in self.context.macros.values():
+        for macro, _ in self.context.macros.values():
             macro.notify(event, action)
 
         will_report_key_up = utils.will_report_key_up(event)
@@ -319,11 +320,14 @@ class KeycodeMapper(Consumer):
             self.handle_keycode(event, action)
 
         await delayed_handle_keycode()
-
-    def macro_write(self, ev_type, code, value, target_uinput="keyboard"):
-        """Handler for macros."""
-        logger.debug(f"macro_sending {(ev_type, code, value)}")
-        self.write((ev_type, code, value), target_uinput)
+    
+    def macro_write(self, target_uinput):
+        def f(ev_type, code, value):
+            """Handler for macros."""
+            logger.debug(f"macro_sending {(ev_type, code, value)}")
+            self.write((ev_type, code, value), target_uinput)
+        
+        return f
 
     def _get_key(self, key):
         """If the event triggers stuff, get the key for that.
@@ -431,13 +435,14 @@ class KeycodeMapper(Consumer):
             if type_and_code in unreleased:
                 # figure out what this release event was for
                 unreleased_entry = unreleased[type_and_code]
-                target_type, target_code = unreleased_entry.target_type_code
+                target = unreleased_entry.target
                 del unreleased[type_and_code]
                 
+                target_type = target[0]
+                target_code = target[1]
                 target_uinput = None
-                if isinstance(target_code, tuple):
-                    target_uinput = target_code[1]
-                    target_code = target_code[0]
+                if len(target) == 3:
+                    target_uinput = target[2]
                     
                 
                 if target_code == DISABLE_CODE:
@@ -509,27 +514,27 @@ class KeycodeMapper(Consumer):
             # unreleased
 
             if key in self.context.macros:
-                macro = self.context.macros[key]
+                macro, target_uinput = self.context.macros[key]
                 active_macros[type_and_code] = macro
                 Unreleased((None, None), (*type_and_code, action), key)
                 macro.press_trigger()
-                logger.key_spam(key, "maps to macro %s", macro.code)
-                asyncio.ensure_future(macro.run(self.macro_write))
+                logger.key_spam(key, "maps to macro (%s, %s)", macro.code, target_uinput)
+                asyncio.ensure_future(macro.run(self.macro_write(target_uinput)))
                 return
 
             if key in self.context.key_to_code:
-                target_code = self.context.key_to_code[key]
+                target_code, target_uinput = self.context.key_to_code[key]
                 # remember the key that triggered this
                 # (this combination or this single key)
-                Unreleased((EV_KEY, target_code), (*type_and_code, action), key)
+                Unreleased((EV_KEY, target_code, target_uinput), (*type_and_code, action), key)
 
-                if target_code[0] == DISABLE_CODE:
+                if target_code == DISABLE_CODE:
                     logger.key_spam(key, "disabled")
                     return
 
                 try:
-                    logger.key_spam(key, "maps to %s", target_code)
-                    self.write((EV_KEY, target_code[0], 1), target_code[1])
+                    logger.key_spam(key, "maps to (%s, %s)", target_code, target_uinput)
+                    self.write((EV_KEY, target_code, 1), target_uinput)
                     return
                 except keymapper.exceptions.Error:
                     logger.key_spam(key, "could not map")
