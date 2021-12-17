@@ -364,7 +364,9 @@ class Window:
         group = groups.find(name=device)
         if device is not None:
             self.get("device_selection").set_active_id(group.key)
+            
         if preset is not None:
+            logger.debug(f"selecting preset: {preset}")
             self.get("preset_selection").set_active_id(preset)
 
     def populate_devices(self):
@@ -391,6 +393,7 @@ class Window:
 
         This will destroy unsaved changes in the custom_mapping.
         """
+        #raise KeyError("hier ist dein stacktrace")
         presets = get_presets(self.group.name)
 
         if len(presets) == 0:
@@ -758,11 +761,15 @@ class Window:
         self.preset_name = preset
 
         custom_mapping.load(self.group.get_preset_path(preset))
-
+        
         key_list = self.get("key_list")
         for key, output in custom_mapping:
+            logger.debug(f"creating Row for {key}, {output}")
             single_key_mapping = Row(
-                window=self, delete_callback=self.on_row_removed, key=key, symbol=output
+                window=self, delete_callback=self.on_row_removed, 
+                key=key,
+                target=output[1],
+                symbol=output[0]
             )
             key_list.insert(single_key_mapping, -1)
 

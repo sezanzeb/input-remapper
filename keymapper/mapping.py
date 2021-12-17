@@ -86,12 +86,14 @@ class Mapping(ConfigBase):
         self.changed = True
         return super().remove(*args)
 
-    def change(self, new_key, symbol, previous_key=None):
+    def change(self, new_key, target, symbol, previous_key=None):
         """Replace the mapping of a keycode with a different one.
 
         Parameters
         ----------
         new_key : Key
+        target : string
+            name of target uinput
         symbol : string
             A single symbol known to xkb or linux.
             Examples: KEY_KP1, Shift_L, a, B, BTN_LEFT.
@@ -107,11 +109,16 @@ class Mapping(ConfigBase):
 
         if symbol is None:
             raise ValueError("Expected `symbol` not to be None")
-
+        
+        if target is None:
+            raise ValueError("Expected `target` not to be None")
+        
+        target = target.strip()
         symbol = symbol.strip()
-        logger.debug('%s will map to "%s"', new_key, symbol)
+        output = (symbol, target)
+        logger.debug(f'{new_key} will map to "{output}"')
         self.clear(new_key)  # this also clears all equivalent keys
-        self._mapping[new_key] = symbol
+        self._mapping[new_key] = output
 
         if previous_key is not None:
             code_changed = new_key != previous_key
