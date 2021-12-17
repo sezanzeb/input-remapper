@@ -109,9 +109,10 @@ class Unreleased:
         """
         Parameters
         ----------
-        target : 2- or 3-tuple
+        target : 3-tuple
             int type, int code of what was injected or forwarded 
-            and string target_uinput for injected (not forwarded) events
+            and string target_uinput for injected events,
+            None for forwarded events
         input_event_tuple : 3-tuple
             int, int, int / type, code, action
         triggered_key : tuple of 3-tuples
@@ -435,15 +436,8 @@ class KeycodeMapper(Consumer):
             if type_and_code in unreleased:
                 # figure out what this release event was for
                 unreleased_entry = unreleased[type_and_code]
-                target = unreleased_entry.target
+                target_type, target_code, target_uinput = unreleased_entry.target
                 del unreleased[type_and_code]
-                
-                target_type = target[0]
-                target_code = target[1]
-                target_uinput = None
-                if len(target) == 3:
-                    target_uinput = target[2]
-                    
                 
                 if target_code == DISABLE_CODE:
                     logger.key_spam(key, "releasing disabled key")
@@ -516,7 +510,7 @@ class KeycodeMapper(Consumer):
             if key in self.context.macros:
                 macro, target_uinput = self.context.macros[key]
                 active_macros[type_and_code] = macro
-                Unreleased((None, None), (*type_and_code, action), key)
+                Unreleased((None, None, None), (*type_and_code, action), key)
                 macro.press_trigger()
                 logger.key_spam(key, "maps to macro (%s, %s)", macro.code, target_uinput)
                 asyncio.ensure_future(macro.run(self.macro_write(target_uinput)))
@@ -548,7 +542,7 @@ class KeycodeMapper(Consumer):
 
             # unhandled events may still be important for triggering
             # combinations later, so remember them as well.
-            Unreleased(type_and_code, (*type_and_code, action), None)
+            Unreleased((*type_and_code, None), (*type_and_code, action), None)
             return
 
         logger.error("%s unhandled", key)
