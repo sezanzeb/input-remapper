@@ -30,7 +30,6 @@ DEV_NAME = "key-mapper"
 class UInput(evdev.UInput):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.exception_flag = True
 
     def can_emit(self, event):
         """ceck it a event can be emitted by the uinput
@@ -38,26 +37,7 @@ class UInput(evdev.UInput):
         Wrong events might be injected if the group mappings are wrong
         """
         # TODO check for event value especially for EV_ABS
-        for _ in range(2):
-            try:
-                return event[1] in self.capabilities().get(event[0], [])
-            except evdev.uinput.UInputError:
-                if self.exception_flag:
-                    # sometimes it takes longer for the /dev/input/event* file
-                    # to become available, resulting in a missing UInput.device
-                    # We try once to find it, as it should be available now
-                    # If we still can't find it, it is a permission issue.
-                    logger.debug(
-                        "retrying to find the /dev/input/event* file for %s", self.name
-                    )
-                    self.device = self._find_device()
-                    self.exception_flag = False
-                else:
-                    logger.debug(
-                        "can not read capabilities of %s. Sending the event anyway.",
-                        self.name,
-                    )
-                    return True
+        return event[1] in self.capabilities().get(event[0], [])
 
 
 class GlobalUInputs:
