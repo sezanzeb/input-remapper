@@ -57,6 +57,7 @@ from keymapper.injection.injector import RUNNING, FAILED, NO_GRAB
 from keymapper.daemon import Daemon
 from keymapper.config import config
 from keymapper.injection.macros.parse import is_this_a_macro, parse
+from keymapper.injection.global_uinputs import GlobalUInputs
 
 
 def gtk_iteration():
@@ -160,7 +161,10 @@ class Window:
         builder.add_from_file(gladefile)
         builder.connect_signals(self)
         self.builder = builder
-
+        
+        self.global_uinputs = GlobalUInputs(backend = False)
+        self.global_uinputs.prepare()
+        
         # set up the device selection
         # https://python-gtk-3-tutorial.readthedocs.io/en/latest/treeview.html#the-view
         combobox = self.get("device_selection")
@@ -350,7 +354,7 @@ class Window:
         # but the old approach which involved just counting the number of
         # mappings and rows didn't seem very robust.
         for row in rows:
-            if row.get_key() is None or row.get_symbol() is None:
+            if not row.is_finished():
                 # unfinished row found
                 break
         else:

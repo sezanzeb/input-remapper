@@ -40,12 +40,39 @@ class UInput(evdev.UInput):
         return event[1] in self.capabilities().get(event[0], [])
 
 
+class FrontendUInput:
+    """Uinput which can not actually send events, for use in the frontend"""
+    def __init__(self, *args, **kwargs):
+        defaults = { # see https://python-evdev.readthedocs.io/en/latest/apidoc.html#module-evdev.uinput
+            "events": None,
+            "name": 'py-evdev-uinput',
+            #"vendor": 1,
+            #"product": 1,
+            #"version": 1,
+            #"bustype": 3,
+            #"devnode": '/dev/uinput',
+            #"phys": 'py-evdev-uinput',
+            }
+        for key, value in defaults.items():
+            try:
+                setattr(self, key, kwargs[key])
+            except KeyError:
+                setattr(self, key, value)
+    
+    def capabilities(self):
+        return self.events
+        
+
 class GlobalUInputs:
     """Manages all uinputs that are shared between all injection processes."""
 
-    def __init__(self):
+    def __init__(self, backend = True):
         self.devices = {}
-
+        if backend:
+            self._uinput_factory = UInput
+        else:
+            self._uinput_factory = FrontendUInput
+        
     def prepare(self):
         """Generate uinputs.
 
@@ -57,7 +84,7 @@ class GlobalUInputs:
         # Furthermore, python-evdev modifies the ecodes.keys list to make it usable,
         # only use KEY_* codes that are in ecodes.keys therefore.
         keys = list(evdev.ecodes.KEY.keys() & evdev.ecodes.keys.keys())
-        self.devices["keyboard"] = UInput(
+        self.devices["keyboard"] = self._uinput_factory(
             name="key-mapper keyboard",
             phys=DEV_NAME,
             events={evdev.ecodes.EV_KEY: keys},

@@ -33,7 +33,6 @@ from keymapper.gui.reader import reader
 
 
 CTX_KEYCODE = 2
-UINPUTS = ("keyboard", "gamepad", "mouse")
 
 
 store = Gtk.ListStore(str)
@@ -198,9 +197,14 @@ class Row(Gtk.ListBoxRow):
         target = self.get_target()
         symbol = self.get_symbol()
 
-        if symbol is not None and target is not None and key is not None:
+        if self.is_finished():
             custom_mapping.change(key, target, symbol, previous_key)
     
+    def is_finished(self):
+        key = self.get_key()
+        target = self.get_target()
+        symbol = self.get_symbol()
+        return symbol is not None and target is not None and key is not None
     
     def refresh_state(self):
         """Refresh the state.
@@ -221,6 +225,7 @@ class Row(Gtk.ListBoxRow):
             # keycode event won't write into the target input as well.
             window = self.window.window
             GLib.idle_add(lambda: window.set_focus(self.target_input))
+            
 
         if unreleased_keys is not None:
             self._state = HOLDING
@@ -293,6 +298,11 @@ class Row(Gtk.ListBoxRow):
         
     def on_target_input_change(self, _):
         """When the mapping target is selected"""
+        if self.get_target() not in self.window.global_uinputs.devices:
+            self.target_input.get_style_context().add_class("invalid_input")
+        else:
+            self.target_input.get_style_context().remove_class("invalid_input")
+            
         self.update_mapping()
         self.window.save_preset()
 
@@ -378,7 +388,7 @@ class Row(Gtk.ListBoxRow):
         keycode_input.connect("key-press-event", lambda *args: Gdk.EVENT_STOP)
         
         target_store = Gtk.ListStore(str)
-        for uinput in UINPUTS:
+        for uinput in self.window.global_uinputs.devices:
             target_store.append([uinput])   
             
         target_input = Gtk.ComboBox.new_with_model(target_store)
@@ -404,7 +414,10 @@ class Row(Gtk.ListBoxRow):
             symbol_input.set_text(symbol)
 
         if target is not None:
-            target_input.set_active_id(target)
+            if not target_input.set_active_id(target):
+                target_store.append([target])
+                target_input.set_active_id(target)
+                target_input.get_style_context().add_class("invalid_input")
         
         target_input.connect("changed", self.on_target_input_change)
         symbol_input.connect("changed", self.on_symbol_input_change)
