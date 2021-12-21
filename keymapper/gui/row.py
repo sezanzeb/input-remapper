@@ -33,6 +33,7 @@ from keymapper.gui.reader import reader
 
 
 CTX_KEYCODE = 2
+UINPUTS = ("keyboard", "gamepad", "mouse")
 
 
 store = Gtk.ListStore(str)
@@ -236,7 +237,7 @@ class Row(Gtk.ListBoxRow):
     
     def get_target(self):
         """Get the assigned target"""
-        target = self.target_input.get_text()
+        target = self.target_input.get_active_id()
         return target if target else None
     
     def get_symbol(self):
@@ -291,8 +292,9 @@ class Row(Gtk.ListBoxRow):
         self.update_mapping()
         
     def on_target_input_change(self, _):
-        """When the mapping is selected"""
+        """When the mapping target is selected"""
         self.update_mapping()
+        self.window.save_preset()
 
     def match(self, _, key, tree_iter):
         """Search the avilable names."""
@@ -347,9 +349,6 @@ class Row(Gtk.ListBoxRow):
         if symbol != correct_case:
             symbol_input.set_text(correct_case)
         self.window.save_preset()
-        
-    def on_target_input_unfocus(self, *args):
-        self.window.save_preset()
 
     def put_together(self, target, symbol):
         """Create all child GTK widgets and connect their signals."""
@@ -378,10 +377,17 @@ class Row(Gtk.ListBoxRow):
         # window to consume the keycode from the reader
         keycode_input.connect("key-press-event", lambda *args: Gdk.EVENT_STOP)
         
-        target_input = Gtk.Entry()
+        target_store = Gtk.ListStore(str)
+        for uinput in UINPUTS:
+            target_store.append([uinput])   
+            
+        target_input = Gtk.ComboBox.new_with_model(target_store)
         self.target_input = target_input
         target_input.set_size_request(100, -1)
-        target_input.set_has_frame(False)
+        renderer_text = Gtk.CellRendererText()
+        target_input.pack_start(renderer_text, False)
+        target_input.add_attribute(renderer_text, "text", 0)
+        target_input.set_id_column(0)
         
         symbol_input = Gtk.Entry()
         self.symbol_input = symbol_input
@@ -396,12 +402,11 @@ class Row(Gtk.ListBoxRow):
 
         if symbol is not None:
             symbol_input.set_text(symbol)
-            
+
         if target is not None:
-            target_input.set_text(target)
+            target_input.set_active_id(target)
         
         target_input.connect("changed", self.on_target_input_change)
-        target_input.connect("focus-out-event", self.on_target_input_unfocus)
         symbol_input.connect("changed", self.on_symbol_input_change)
         symbol_input.connect("focus-out-event", self.on_symbol_input_unfocus)
 
@@ -424,7 +429,7 @@ class Row(Gtk.ListBoxRow):
         if key is not None:
             custom_mapping.clear(key)
         
-        self.target_input.set_text("")
+        self.target_input.set_active_id("")
         self.symbol_input.set_text("")
         self.set_keycode_input_label("")
         self.key = None
