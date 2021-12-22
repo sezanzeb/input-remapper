@@ -30,6 +30,7 @@ from keymapper.gui.custom_mapping import custom_mapping
 from keymapper.logger import logger
 from keymapper.key import Key
 from keymapper.gui.reader import reader
+from keymapper.injection.global_uinputs import global_uinputs
 
 
 CTX_KEYCODE = 2
@@ -189,9 +190,8 @@ class Row(Gtk.ListBoxRow):
         self.put_together(target, symbol)
 
         self._state = IDLE
-    
-    
-    def update_mapping(self, previous_key = None):
+
+    def update_mapping(self, previous_key=None):
         """update the mapping/preset"""
         key = self.get_key()
         target = self.get_target()
@@ -225,7 +225,6 @@ class Row(Gtk.ListBoxRow):
             # keycode event won't write into the target input as well.
             window = self.window.window
             GLib.idle_add(lambda: window.set_focus(self.target_input))
-            
 
         if unreleased_keys is not None:
             self._state = HOLDING
@@ -298,7 +297,7 @@ class Row(Gtk.ListBoxRow):
         
     def on_target_input_change(self, _):
         """When the mapping target is selected"""
-        if self.get_target() not in self.window.global_uinputs.devices:
+        if self.get_target() not in global_uinputs.devices:
             self.target_input.get_style_context().add_class("invalid_input")
         else:
             self.target_input.get_style_context().remove_class("invalid_input")
@@ -307,7 +306,7 @@ class Row(Gtk.ListBoxRow):
         self.window.save_preset()
 
     def match(self, _, key, tree_iter):
-        """Search the avilable names."""
+        """Search the available names."""
         value = store.get_value(tree_iter, 0)
         return key in value.lower()
 
@@ -388,7 +387,7 @@ class Row(Gtk.ListBoxRow):
         keycode_input.connect("key-press-event", lambda *args: Gdk.EVENT_STOP)
         
         target_store = Gtk.ListStore(str)
-        for uinput in self.window.global_uinputs.devices:
+        for uinput in global_uinputs.devices:
             target_store.append([uinput])   
             
         target_input = Gtk.ComboBox.new_with_model(target_store)

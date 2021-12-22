@@ -20,6 +20,8 @@
 
 
 import evdev
+import keymapper.utils
+
 from evdev.ecodes import EV_KEY
 
 from keymapper.logger import logger
@@ -43,7 +45,7 @@ class UInput(evdev.UInput):
 class FrontendUInput:
     """Uinput which can not actually send events, for use in the frontend"""
     def __init__(self, *args, **kwargs):
-        defaults = { # see https://python-evdev.readthedocs.io/en/latest/apidoc.html#module-evdev.uinput
+        defaults = {  # see https://python-evdev.readthedocs.io/en/latest/apidoc.html#module-evdev.uinput
             "events": None,
             "name": 'py-evdev-uinput',
             #"vendor": 1,
@@ -66,9 +68,9 @@ class FrontendUInput:
 class GlobalUInputs:
     """Manages all uinputs that are shared between all injection processes."""
 
-    def __init__(self, backend = True):
+    def __init__(self):
         self.devices = {}
-        if backend:
+        if keymapper.utils.is_service():
             self._uinput_factory = UInput
         else:
             self._uinput_factory = FrontendUInput

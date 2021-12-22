@@ -57,7 +57,7 @@ from keymapper.injection.injector import RUNNING, FAILED, NO_GRAB
 from keymapper.daemon import Daemon
 from keymapper.config import config
 from keymapper.injection.macros.parse import is_this_a_macro, parse
-from keymapper.injection.global_uinputs import GlobalUInputs
+from keymapper.injection.global_uinputs import global_uinputs
 
 
 def gtk_iteration():
@@ -146,6 +146,7 @@ class Window:
         self.group = None
         self.preset_name = None
 
+        global_uinputs.prepare()
         css_provider = Gtk.CssProvider()
         with open(get_data_path("style.css"), "r") as file:
             css_provider.load_from_data(bytes(file.read(), encoding="UTF-8"))
@@ -161,10 +162,7 @@ class Window:
         builder.add_from_file(gladefile)
         builder.connect_signals(self)
         self.builder = builder
-        
-        self.global_uinputs = GlobalUInputs(backend = False)
-        self.global_uinputs.prepare()
-        
+
         # set up the device selection
         # https://python-gtk-3-tutorial.readthedocs.io/en/latest/treeview.html#the-view
         combobox = self.get("device_selection")

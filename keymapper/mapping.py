@@ -196,7 +196,7 @@ class Mapping(ConfigBase):
                     continue
                 
                 if isinstance(symbol, list):
-                    symbol = tuple(symbol) # use a immutable type
+                    symbol = tuple(symbol)  # use a immutable type
                 
                 logger.spam("%s maps to %s", key, symbol)
                 self._mapping[key] = symbol
