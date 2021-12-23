@@ -1,4 +1,4 @@
 # for /scripts/build.sh
 recursive-include data *
-include bin/key-mapper-gtk
-include bin/key-mapper-service
+include bin/input-remapper-gtk
+include bin/input-remapper-service

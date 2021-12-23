@@ -1,6 +1,6 @@
 #!/bin/bash
 if [ -d "/run/systemd/system/" ]; then
-  pkill -f key-mapper-service  # might have been started by the gui previously
-  systemctl enable key-mapper
-  systemctl start key-mapper
+  pkill -f input-remapper-service  # might have been started by the gui previously
+  systemctl enable input-remapper
+  systemctl start input-remapper
 fi

@@ -1,0 +1,295 @@
+#!/usr/bin/python3
+# -*- coding: utf-8 -*-
+# input-remapper - GUI for device specific keyboard mappings
+# Copyright (C) 2021 sezanzeb <proxima@sezanzeb.de>
+#
+# This file is part of input-remapper.
+#
+# input-remapper is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# input-remapper is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
+
+
+"""Control the dbus service from the command line."""
+
+
+import os
+import grp
+import sys
+import argparse
+import logging
+import subprocess
+
+from inputremapper.logger import logger, update_verbosity, log_info, add_filehandler
+from inputremapper.config import config
+
+# import inputremapper modules as late as possible to make sure the correct
+# log level is applied before anything is logged
+
+
+AUTOLOAD = 'autoload'
+START = 'start'
+STOP = 'stop'
+STOP_ALL = 'stop-all'
+HELLO = 'hello'
+
+# internal stuff that the gui uses
+START_DAEMON = 'start-daemon'
+HELPER = 'helper'
+
+
+def run(cmd):
+    """Run and log a command."""
+    logger.info('Running `%s`...', cmd)
+    code = os.system(cmd)
+    if code != 0:
+        logger.error('Failed. exit code %d', code)
+
+
+def group_exists(name):
+    """Check if a group with that name exists."""
+    try:
+        grp.getgrnam(name)
+        return True
+    except KeyError:
+        return False
+
+
+COMMANDS = [AUTOLOAD, START, STOP, HELLO, STOP_ALL]
+
+INTERNALS = [START_DAEMON, HELPER]
+
+
+def utils(options):
+    """Listing names, tasks that don't require a running daemon."""
+    if options.list_devices:
+        logger.setLevel(logging.ERROR)
+        from inputremapper.groups import groups
+        for group in groups:
+            print(group.key)
+
+    if options.key_names:
+        from inputremapper.system_mapping import system_mapping
+        print('\n'.join(system_mapping.list_names()))
+
+
+def communicate(options, daemon):
+    """Commands that require a running daemon"""
+    # import stuff late to make sure the correct log level is applied
+    # before anything is logged
+    from inputremapper.groups import groups
+    from inputremapper.paths import USER
+
+    def require_group():
+        if options.device is None:
+            logger.error('--device missing')
+            sys.exit(1)
+
+        if options.device.startswith('/dev'):
+            group = groups.find(path=options.device)
+        else:
+            group = groups.find(key=options.device)
+
+        if group is None:
+            logger.error(
+                'Device "%s" is unknown or not an appropriate input device',
+                options.device
+            )
+            sys.exit(1)
+
+        return group
+
+    if daemon is None:
+        # probably broken tests
+        logger.error('Daemon missing')
+        sys.exit(1)
+
+    if options.config_dir is not None:
+        path = os.path.abspath(os.path.expanduser(os.path.join(
+            options.config_dir,
+            'config.json'
+        )))
+        if not os.path.exists(path):
+            logger.error('"%s" does not exist', path)
+            sys.exit(1)
+
+        logger.info('Using config from "%s" instead', path)
+        config.load_config(path)
+
+    if USER != 'root':
+        # Might be triggered by udev, so skip the root user.
+        # This will also refresh the config of the daemon if the user changed
+        # it in the meantime.
+        # config_dir is either the cli arg or the default path in home
+        config_dir = os.path.dirname(config.path)
+        daemon.set_config_dir(config_dir)
+
+    if options.command == AUTOLOAD:
+        # if device was specified, autoload for that one. if None autoload
+        # for all devices.
+        if options.device is None:
+            logger.info('Autoloading all')
+            # timeout is not documented, for more info see
+            # https://github.com/LEW21/pydbus/blob/master/pydbus/proxy_method.py
+            daemon.autoload(timeout=10)
+        else:
+            group = require_group()
+            logger.info('Asking daemon to autoload for %s', options.device)
+            daemon.autoload_single(group.key, timeout=2)
+
+    if options.command == START:
+        group = require_group()
+
+        logger.info(
+            'Starting injection: "%s", "%s"',
+            options.device, options.preset
+        )
+
+        daemon.start_injecting(group.key, options.preset)
+
+    if options.command == STOP:
+        group = require_group()
+        daemon.stop_injecting(group.key)
+
+    if options.command == STOP_ALL:
+        daemon.stop_all()
+
+    if options.command == HELLO:
+        response = daemon.hello('hello')
+        logger.info('Daemon answered with "%s"', response)
+
+
+def internals(options):
+    """Methods that are needed to get the gui to work and that require root.
+
+    input-remapper-control should be started with sudo or pkexec for this.
+    """
+    debug = ' -d' if options.debug else ''
+
+    if options.command == HELPER:
+        cmd = f'input-remapper-helper{debug}'
+    elif options.command == START_DAEMON:
+        cmd = f'input-remapper-service --hide-info{debug}'
+    else:
+        return
+
+    # daemonize
+    cmd = f'{cmd} &'
+    os.system(cmd)
+
+
+def systemd_finished():
+    """Check if systemd finished booting."""
+    try:
+        systemd_analyze = subprocess.run(['systemd-analyze'], stdout=subprocess.PIPE)
+    except FileNotFoundError:
+        # probably not systemd, lets assume true to not block input-remapper for good
+        # on certain installations
+        return True
+
+    if 'finished' in systemd_analyze.stdout.decode():
+        return True
+
+    return False
+
+
+def main(options):
+    if options.debug:
+        update_verbosity(True)
+
+    add_filehandler('/var/log/input-remapper-control')
+
+    if options.version:
+        log_info()
+        return
+
+    logger.debug('Call for "%s"', sys.argv)
+
+    from inputremapper.paths import USER
+    boot_finished = systemd_finished()
+    is_root = USER == "root"
+    is_autoload = options.command == AUTOLOAD
+    config_dir_set = options.config_dir is not None
+    if is_autoload and not boot_finished and is_root and not config_dir_set:
+        # this is probably happening during boot time and got
+        # triggered by udev. There is no need to try to inject anything if the
+        # service doesn't know where to look for a config file. This avoids a lot
+        # of confusing service logs. And also avoids potential for problems when
+        # input-remapper-control stresses about evdev, dbus and multiprocessing already
+        # while the system hasn't even booted completely.
+        logger.warning('Skipping autoload command without a logged in user')
+        return
+
+    if options.command is not None:
+        if options.command in INTERNALS:
+            internals(options)
+        elif options.command in COMMANDS:
+            from inputremapper.daemon import Daemon
+            daemon = Daemon.connect(fallback=False)
+            communicate(options, daemon)
+        else:
+            logger.error('Unknown command "%s"', options.command)
+    else:
+        utils(options)
+
+    if options.command:
+        logger.info('Done')
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        '--command', action='store', dest='command', help=(
+            'Communicate with the daemon. Available commands are start, '
+            'stop, autoload, hello or stop-all'
+        ), default=None, metavar='NAME'
+    )
+    parser.add_argument(
+        '--config-dir', action='store', dest='config_dir',
+        help=(
+            'path to the config directory containing config.json, '
+            'xmodmap.json and the presets folder. '
+            'defaults to ~/.config/input-remapper/'
+        ),
+        default=None, metavar='PATH',
+    )
+    parser.add_argument(
+        '--preset', action='store', dest='preset',
+        help='The filename of the preset without the .json extension.',
+        default=None, metavar='NAME',
+    )
+    parser.add_argument(
+        '--device', action='store', dest='device',
+        help='One of the device keys from --list-devices',
+        default=None, metavar='NAME'
+    )
+    parser.add_argument(
+        '--list-devices', action='store_true', dest='list_devices',
+        help='List available device keys and exit',
+        default=False
+    )
+    parser.add_argument(
+        '--symbol-names', action='store_true', dest='key_names',
+        help='Print all available names for the mapping',
+        default=False
+    )
+    parser.add_argument(
+        '-d', '--debug', action='store_true', dest='debug',
+        help='Displays additional debug information',
+        default=False
+    )
+    parser.add_argument(
+        '-v', '--version', action='store_true', dest='version',
+        help='Print the version and exit', default=False
+    )
+
+    main(parser.parse_args(sys.argv[1:]))

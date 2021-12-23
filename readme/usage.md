@@ -1,9 +1,9 @@
 # Usage
 
 To open the UI to modify the mappings, look into your applications menu
-and search for 'Key Mapper'. You should be prompted for your sudo password
+and search for 'Input Remapper'. You should be prompted for your sudo password
 as special permissions are needed to read events from `/dev/input/` files.
-You can also start it via `key-mapper-gtk`.
+You can also start it via `input-remapper-gtk`.
 
 <p align="center">
   <img src="usage_1.png"/>
@@ -25,12 +25,12 @@ invisible since the daemon maps it independently of the GUI.
 
 ## Troubleshooting
 
-If stuff doesn't work, check the output of `key-mapper-gtk -d` and feel free
-to [open up an issue here](https://github.com/sezanzeb/key-mapper/issues/new).
+If stuff doesn't work, check the output of `input-remapper-gtk -d` and feel free
+to [open up an issue here](https://github.com/sezanzeb/input-remapper/issues/new).
 Make sure to not post any debug logs that were generated while you entered
 private information with your device. Debug logs are quite verbose.
 
-If key-mapper or your presets prevents your input device from working
+If input-remapper or your presets prevents your input device from working
 at all due to autoload, please try to unplug and plug it in twice.
 No injection should be running anymore.
 
@@ -85,10 +85,10 @@ names can be chained using ` + `.
 ## Key Names
 
 Check the autocompletion of the GUI for possible values. You can also
-obtain a complete list of possiblities using `key-mapper-control --symbol-names`.
+obtain a complete list of possiblities using `input-remapper-control --symbol-names`.
 
 Key-mapper only recognizes symbol names, but not the symbols themselfes. So for
-example, key-mapper might (depending on the system layout) know what a `minus` is, but
+example, input-remapper might (depending on the system layout) know what a `minus` is, but
 it doesn't know `-`.
 
 Key names that start with `KEY_` are keyboard layout independent constants that might
@@ -98,20 +98,20 @@ correctly result in "y" to be written.
 
 ## Limitations
 
-**If your fingers can't type it on your keyboard, key-mapper can't inject it.**
+**If your fingers can't type it on your keyboard, input-remapper can't inject it.**
 
 The available symbols depend on the environments keyboard layout, and only those that
 don't require a combination to be pressed can be used without workarounds (so most
 special characters need some extra steps to use them). Furthermore, if your configured
 keyboard layout doesn't support the special character at all (not even via a
-combination), then it also won't be possible for key-mapper to map that character at
+combination), then it also won't be possible for input-remapper to map that character at
 all.
 
 For example, mapping a key to an exclamation mark is not possible if the keyboard
 layout is set to german. However, it is possible to mimic the combination that would
 be required to write it, by writing `Shift_L + 1` into the mapping.
 
-This is because key-mapper creates a new virtual keyboard and injects numeric keycodes,
+This is because input-remapper creates a new virtual keyboard and injects numeric keycodes,
 and it won't be able to inject anything a usb keyboard wouldn't been able to. This has
 the benefit of being compatible to all display servers, but means the environment will
 ultimately decide which character to write.
@@ -130,7 +130,7 @@ ultimately decide which character to write.
 If you don't have a graphical user interface, you'll need to edit the
 configuration files.
 
-The default configuration is stored at `~/.config/key-mapper/config.json`,
+The default configuration is stored at `~/.config/input-remapper/config.json`,
 which doesn't include any mappings, but rather other parameters that
 are interesting for injections. The current default configuration as of 1.2.1
 looks like, with  an example autoload entry:
@@ -156,12 +156,12 @@ looks like, with  an example autoload entry:
 }
 ```
 
-`preset name` refers to `~/.config/key-mapper/presets/device name/preset name.json`.
-The device name can be found with `sudo key-mapper-control --list-devices`.
+`preset name` refers to `~/.config/input-remapper/presets/device name/preset name.json`.
+The device name can be found with `sudo input-remapper-control --list-devices`.
 
 Anything that is relevant to presets can be overwritten in them as well.
 Here is an example configuration for preset "a" for the "gamepad" device:
-`~/.config/key-mapper/presets/gamepad/a.json`
+`~/.config/input-remapper/presets/gamepad/a.json`
 
 ```json
 {
@@ -182,39 +182,39 @@ consists of two events: down and up. The other mapping is a key combination,
 chained using `+`.
 
 Other than that, it inherits all configurations from
-`~/.config/key-mapper/config.json`. If config.json is missing some stuff,
+`~/.config/input-remapper/config.json`. If config.json is missing some stuff,
 it will query the hardcoded default values.
 
 The event codes can be read using `evtest`. Available names in the mapping
-can be listed with `key-mapper-control --symbol-names`.
+can be listed with `input-remapper-control --symbol-names`.
 
 ## CLI
 
-**key-mapper-control**
+**input-remapper-control**
 
 `--command` requires the service to be running. You can start it via
-`systemctl start key-mapper` or `sudo key-mapper-service` if it isn't already
+`systemctl start input-remapper` or `sudo input-remapper-service` if it isn't already
 running (or without sudo if your user has the appropriate permissions).
 
 Examples:
 
 | Description                                                                                         | Command                                                                               |
 |-----------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------|
-| Load all configured presets for all devices                                                         | `key-mapper-control --command autoload`                                               |
-| If you are running as root user, provide information about the whereabouts of the key-mapper config | `key-mapper-control --command autoload --config-dir "~/.config/key-mapper/"`          |
-| List available device names for the `--device` parameter                                            | `sudo key-mapper-control --list-devices`                                              |
-| Stop injecting                                                                                      | `key-mapper-control --command stop --device "Razer Razer Naga Trinity"`               |
-| Load `~/.config/key-mapper/presets/Razer Razer Naga Trinity/a.json`                                 | `key-mapper-control --command start --device "Razer Razer Naga Trinity" --preset "a"` |
-| Loads the configured preset for whatever device is using this /dev path                             | `/bin/key-mapper-control --command autoload --device /dev/input/event5`               |
+| Load all configured presets for all devices                                                         | `input-remapper-control --command autoload`                                               |
+| If you are running as root user, provide information about the whereabouts of the input-remapper config | `input-remapper-control --command autoload --config-dir "~/.config/input-remapper/"`          |
+| List available device names for the `--device` parameter                                            | `sudo input-remapper-control --list-devices`                                              |
+| Stop injecting                                                                                      | `input-remapper-control --command stop --device "Razer Razer Naga Trinity"`               |
+| Load `~/.config/input-remapper/presets/Razer Razer Naga Trinity/a.json`                                 | `input-remapper-control --command start --device "Razer Razer Naga Trinity" --preset "a"` |
+| Loads the configured preset for whatever device is using this /dev path                             | `/bin/input-remapper-control --command autoload --device /dev/input/event5`               |
 
 **systemctl**
 
 Stopping the service will stop all ongoing injections
 
 ```bash
-sudo systemctl stop key-mapper
-sudo systemctl start key-mapper
-systemctl status key-mapper
+sudo systemctl stop input-remapper
+sudo systemctl start input-remapper
+systemctl status input-remapper
 ```
 
 ## Testing your Installation
@@ -222,15 +222,15 @@ systemctl status key-mapper
 The following commands can be used to make sure it works:
 
 ```bash
-sudo key-mapper-service &
-key-mapper-control --command hello
+sudo input-remapper-service &
+input-remapper-control --command hello
 ```
 
 should print `Daemon answered with "hello"`. And
 
 ```bash
-sudo key-mapper-control --list-devices
+sudo input-remapper-control --list-devices
 ```
 
 should print `Found "...", ...`. If anything looks wrong, feel free to [create
-an issue](https://github.com/sezanzeb/key-mapper/issues/new).
+an issue](https://github.com/sezanzeb/input-remapper/issues/new).

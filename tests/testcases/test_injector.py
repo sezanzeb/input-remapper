@@ -1,22 +1,22 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
-# key-mapper - GUI for device specific keyboard mappings
+# input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2021 sezanzeb <proxima@sezanzeb.de>
 #
-# This file is part of key-mapper.
+# This file is part of input-remapper.
 #
-# key-mapper is free software: you can redistribute it and/or modify
+# input-remapper is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
-# key-mapper is distributed in the hope that it will be useful,
+# input-remapper is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with key-mapper.  If not, see <https://www.gnu.org/licenses/>.
+# along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
 import unittest
@@ -46,8 +46,8 @@ from evdev.ecodes import (
     KEY_C,
 )
 
-from keymapper.injection.consumers.joystick_to_mouse import JoystickToMouse
-from keymapper.injection.injector import (
+from inputremapper.injection.consumers.joystick_to_mouse import JoystickToMouse
+from inputremapper.injection.injector import (
     Injector,
     is_in_capabilities,
     STARTING,
@@ -57,15 +57,15 @@ from keymapper.injection.injector import (
     UNKNOWN,
     get_udev_name,
 )
-from keymapper.injection.numlock import is_numlock_on, set_numlock, ensure_numlock
-from keymapper.system_mapping import system_mapping
-from keymapper.gui.custom_mapping import custom_mapping
-from keymapper.mapping import Mapping, DISABLE_CODE, DISABLE_NAME
-from keymapper.config import config, NONE, MOUSE, WHEEL, BUTTONS
-from keymapper.key import Key
-from keymapper.injection.macros.parse import parse
-from keymapper.injection.context import Context
-from keymapper.groups import groups, classify, GAMEPAD
+from inputremapper.injection.numlock import is_numlock_on, set_numlock, ensure_numlock
+from inputremapper.system_mapping import system_mapping
+from inputremapper.gui.custom_mapping import custom_mapping
+from inputremapper.mapping import Mapping, DISABLE_CODE, DISABLE_NAME
+from inputremapper.config import config, NONE, MOUSE, WHEEL, BUTTONS
+from inputremapper.key import Key
+from inputremapper.injection.macros.parse import parse
+from inputremapper.injection.context import Context
+from inputremapper.groups import groups, classify, GAMEPAD
 
 from tests.test import (
     new_event,
@@ -511,7 +511,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
     def test_get_udev_name(self):
         self.injector = Injector(groups.find(key="Foo Device 2"), custom_mapping)
         suffix = "mapped"
-        prefix = "key-mapper"
+        prefix = "input-remapper"
         expected = f'{prefix} {"a" * (80 - len(suffix) - len(prefix) - 2)} {suffix}'
         self.assertEqual(len(expected), 80)
         self.assertEqual(get_udev_name("a" * 100, suffix), expected)
@@ -519,7 +519,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         self.injector.device = "abcd"
         self.assertEqual(
             get_udev_name("abcd", "forwarded"),
-            "key-mapper abcd forwarded",
+            "input-remapper abcd forwarded",
         )
 
     @mock.patch("evdev.InputDevice.ungrab")
@@ -549,22 +549,22 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
                 [
                     # reading and preventing original events from reaching the
                     # display server
-                    "key-mapper Foo Device foo forwarded",
-                    "key-mapper Foo Device forwarded",
+                    "input-remapper Foo Device foo forwarded",
+                    "input-remapper Foo Device forwarded",
                     # injection
-                    "key-mapper Foo Device 2 mapped",
+                    "input-remapper Foo Device 2 mapped",
                 ]
             ),
         )
 
-        forwarded_foo = uinputs.get("key-mapper Foo Device foo forwarded")
-        forwarded = uinputs.get("key-mapper Foo Device forwarded")
-        mapped = uinputs.get("key-mapper Foo Device 2 mapped")
+        forwarded_foo = uinputs.get("input-remapper Foo Device foo forwarded")
+        forwarded = uinputs.get("input-remapper Foo Device forwarded")
+        mapped = uinputs.get("input-remapper Foo Device 2 mapped")
         self.assertIsNotNone(forwarded_foo)
         self.assertIsNotNone(forwarded)
         self.assertIsNotNone(mapped)
 
-        # puts the needed capabilities into the new key-mapper device
+        # puts the needed capabilities into the new input-remapper device
         self.assertIn(EV_KEY, mapped.capabilities())
         self.assertEqual(len(mapped.capabilities()[EV_KEY]), 2)
         self.assertIn(KEY_C, mapped.capabilities()[EV_KEY])
@@ -747,7 +747,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
 
         """yes"""
 
-        with mock.patch("keymapper.utils.should_map_as_btn", lambda *_: True):
+        with mock.patch("inputremapper.utils.should_map_as_btn", lambda *_: True):
             history = do_stuff()
             self.assertEqual(history.count((EV_KEY, code_w, 1)), 1)
             self.assertEqual(history.count((EV_KEY, code_d, 1)), 1)

@@ -1,22 +1,22 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
-# key-mapper - GUI for device specific keyboard mappings
+# input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2021 sezanzeb <proxima@sezanzeb.de>
 #
-# This file is part of key-mapper.
+# This file is part of input-remapper.
 #
-# key-mapper is free software: you can redistribute it and/or modify
+# input-remapper is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
-# key-mapper is distributed in the hope that it will be useful,
+# input-remapper is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with key-mapper.  If not, see <https://www.gnu.org/licenses/>.
+# along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
 import os
@@ -24,7 +24,7 @@ import unittest
 import shutil
 import time
 
-from keymapper.presets import (
+from inputremapper.presets import (
     find_newest_preset,
     rename_preset,
     get_any_preset,
@@ -32,8 +32,8 @@ from keymapper.presets import (
     get_available_preset_name,
     get_presets,
 )
-from keymapper.paths import CONFIG_PATH, get_preset_path, touch, mkdir
-from keymapper.gui.custom_mapping import custom_mapping
+from inputremapper.paths import CONFIG_PATH, get_preset_path, touch, mkdir
+from inputremapper.gui.custom_mapping import custom_mapping
 
 from tests.test import tmp
 

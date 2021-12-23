@@ -1,4 +1,4 @@
-# Why does key-mapper not use xkb configs?
+# Why does input-remapper not use xkb configs?
 
 **Initial target** You write a symbols file based on your specified mapping,
 and that's pretty much it. There were two mappings: The first one is in the
@@ -11,9 +11,9 @@ pressing that mouse button and that keyboard button at the same time.
 
 This was quite mature, pretty much finished and tested.
 
-It still exists in the [first](https://github.com/sezanzeb/key-mapper/tree/first) branch
+It still exists in the [first](https://github.com/sezanzeb/input-remapper/tree/first) branch
 
-**The second idea** was to write special keycodes known only to key-mapper
+**The second idea** was to write special keycodes known only to input-remapper
 (256 - 511) into the input device of your mouse in /dev/input, and map
 those to SHIFT and such, whenever a button is clicked. A mapping would have
 existed to prevent the original keycode 10 from writing a 1. But this device
@@ -21,15 +21,15 @@ doesn't have the capabilities set for those keycodes, so it won't use them.
 At that time I didn't know about capabilities though.
 
 **The third idea** is to create a new input device that uses 8 - 255, just
-like other layouts, and key-mapper always tries to use the same keycodes for
+like other layouts, and input-remapper always tries to use the same keycodes for
 SHIFT as already used in the system default. The pipeline is like this:
 
 1. A human thumb presses an extra-button of the device "mouse"
-2. key-mapper uses evdev to get the event from "mouse", sees "ahh, it's a
+2. input-remapper uses evdev to get the event from "mouse", sees "ahh, it's a
    10, I know that one and will now write 50 into my own device". 50 is
    the keycode for SHIFT on my regular keyboard, so it won't clash anymore
    with alphanumeric keys and such.
-3. X has key-mappers configs for the key-mapper device loaded and
+3. X has input-remappers configs for the input-remapper device loaded and
    checks in it's keycodes config file "50, that would be <50>", then looks
    into it's symbols config "<50> is mapped to SHIFT", and then it actually
    presses the SHIFT down to modify all other future buttons.
@@ -43,7 +43,7 @@ long
 
 **Fourth idea**: Based on the second idea, instead of using keycodes greater
 than 255, use unused keycodes starting from 255, going down. For example
-pressing key 10 triggers key-mapper to write key 253 into the /dev device
+pressing key 10 triggers input-remapper to write key 253 into the /dev device
 while mapping key 10 to nothing. This has the same problem, the device
 capabilities ignore many of those keycodes. 140 works, 145 won't, 150 works.
 
@@ -51,7 +51,7 @@ capabilities ignore many of those keycodes. 140 works, 145 won't, 150 works.
 mouse buttons with a single symbol file. Key-mapper listens for key events
 in /dev and then writes the mapped keycode into a new device in /dev. For
 example, if 10 should be mapped to Shift_L, xkb configs would disable
-key 10 and key-mapper would write 50 into /dev, which is Shift_L in the system
+key 10 and input-remapper would write 50 into /dev, which is Shift_L in the system
 mapping. This sounds incredibly simple and makes me throw away tons of code.
 
 But somehow writing into the new /dev file makes the original keycode
@@ -80,18 +80,18 @@ the new /dev device. The KB1 keycode comes first and is then realized as
 
 Which means in order to prevent "!!!!!!" being written while holding down
 keycode 10 on the mouse, which is supposed to be shift, the 10 of the
-key-mapper /dev node has to be mapped to none as well. But that would
+input-remapper /dev node has to be mapped to none as well. But that would
 prevent a key that is mapped to "1", which translates to 10, from working.
 So instead of using the output from xmodmap to determine the correct
 keycode, use a custom mapping that starts at 255 and just offsets xmodmap
 by 255. The correct capabilities need to exist this time. Everything below
-255 is disabled. This mapping is applied to key-mappers custom /dev node.
+255 is disabled. This mapping is applied to input-remappers custom /dev node.
 
 However, if you try to map Shift to button 10 of your mouse, and use
 mouse-shift + keyboard-1, you need to press keyboard-1 again to do anything.
 I assume this is because:
 - mouse-10 down
-- keymapper says: 50 down
+- inputremapper says: 50 down
 - xkb mapping: 10 is none. 50 is shift.
 - keyboard-10 down (down again? X/Linux ignores that)
 - keyboard-10 up
@@ -109,7 +109,7 @@ configurations are needed at all anymore.
 
 This solution would have made the macro thing impossible though
 
-setxkbmap -layout ~/.config/key-mapper/mouse -Foo Device3
+setxkbmap -layout ~/.config/input-remapper/mouse -Foo Device3
 
 config looks like:
 ```

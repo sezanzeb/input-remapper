@@ -1,16 +1,16 @@
 #
-# key-mapper is free software: you can redistribute it and/or modify
+# input-remapper is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
-# key-mapper is distributed in the hope that it will be useful,
+# input-remapper is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with key-mapper.  If not, see <https://www.gnu.org/licenses/>.
+# along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
 import os
@@ -20,13 +20,13 @@ import json
 
 from evdev.ecodes import EV_KEY, EV_ABS, ABS_HAT0X, KEY_A
 
-from keymapper.migrations import migrate, config_version
-from keymapper.mapping import Mapping, split_key
-from keymapper.config import config, GlobalConfig
-from keymapper.paths import touch, CONFIG_PATH, mkdir, get_preset_path
-from keymapper.key import Key
+from inputremapper.migrations import migrate, config_version
+from inputremapper.mapping import Mapping, split_key
+from inputremapper.config import config, GlobalConfig
+from inputremapper.paths import touch, CONFIG_PATH, mkdir, get_preset_path
+from inputremapper.key import Key
 
-from keymapper.logger import logger, VERSION
+from inputremapper.logger import logger, VERSION
 
 from tests.test import quick_cleanup, tmp
 

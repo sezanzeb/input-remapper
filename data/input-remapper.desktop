@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=input-remapper
+Icon=/usr/share/input-remapper/input-remapper.svg
+Exec=input-remapper-gtk
+Terminal=false
+Categories=Settings
+Comment=GUI for device specific key mappings

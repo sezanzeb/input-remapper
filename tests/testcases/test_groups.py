@@ -1,22 +1,22 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
-# key-mapper - GUI for device specific keyboard mappings
+# input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2021 sezanzeb <proxima@sezanzeb.de>
 #
-# This file is part of key-mapper.
+# This file is part of input-remapper.
 #
-# key-mapper is free software: you can redistribute it and/or modify
+# input-remapper is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
-# key-mapper is distributed in the hope that it will be useful,
+# input-remapper is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with key-mapper.  If not, see <https://www.gnu.org/licenses/>.
+# along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
 import os
@@ -26,8 +26,8 @@ import json
 import evdev
 from evdev.ecodes import EV_KEY, KEY_A
 
-from keymapper.paths import CONFIG_PATH
-from keymapper.groups import (
+from inputremapper.paths import CONFIG_PATH
+from inputremapper.groups import (
     _FindGroups,
     groups,
     classify,
@@ -120,9 +120,9 @@ class TestGroups(unittest.TestCase):
                     json.dumps(
                         {
                             "paths": ["/dev/input/event40"],
-                            "names": ["key-mapper Bar Device"],
+                            "names": ["input-remapper Bar Device"],
                             "types": [KEYBOARD],
-                            "key": "key-mapper Bar Device",
+                            "key": "input-remapper Bar Device",
                         }
                     ),
                 ]
@@ -130,7 +130,7 @@ class TestGroups(unittest.TestCase):
         )
 
         groups2 = json.dumps(
-            [group.dumps() for group in groups.filter(include_keymapper=True)]
+            [group.dumps() for group in groups.filter(include_inputremapper=True)]
         )
         self.assertEqual(pipe.groups, groups2)
 
@@ -146,11 +146,11 @@ class TestGroups(unittest.TestCase):
         )
 
     def test_filter(self):
-        # by default no key-mapper devices are present
+        # by default no input-remapper devices are present
         filtered = groups.filter()
         keys = [group.key for group in filtered]
         self.assertIn("Foo Device 2", keys)
-        self.assertNotIn("key-mapper Bar Device", keys)
+        self.assertNotIn("input-remapper Bar Device", keys)
 
     def test_skip_camera(self):
         fixtures["/foo/bar"] = {
