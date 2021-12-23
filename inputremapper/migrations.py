@@ -25,16 +25,18 @@
 import os
 import json
 import copy
+import shutil
 
 from pathlib import Path
 import pkg_resources
 
 from inputremapper.logger import logger, VERSION
+from inputremapper.user import HOME
 from inputremapper.paths import get_preset_path, mkdir, CONFIG_PATH
 
 
 def all_presets():
-    """All presets for all groups as list"""
+    """Get all presets for all groups as list."""
     preset_path = Path(get_preset_path())
     presets = []
     for folder in preset_path.iterdir():
@@ -48,7 +50,7 @@ def all_presets():
 
 
 def config_version():
-    """Version string in the config.json as packaging.Version"""
+    """Get the version string in config.json as packaging.Version object."""
     config_path = os.path.join(CONFIG_PATH, "config.json")
     config = {}
 
@@ -65,7 +67,7 @@ def config_version():
 
 
 def _config_suffix():
-    """append .json suffix to config file"""
+    """Append the .json suffix to the config file."""
     deprecated_path = os.path.join(CONFIG_PATH, "config")
     config_path = os.path.join(CONFIG_PATH, "config.json")
     if os.path.exists(deprecated_path) and not os.path.exists(config_path):
@@ -96,7 +98,7 @@ def _preset_path():
 
 
 def _mapping_keys():
-    """update all preset mappings
+    """Update all preset mappings.
 
     Update all keys in mapping to include value e.g.: "1,5"->"1,5,1"
     """
@@ -118,12 +120,12 @@ def _mapping_keys():
 
 
 def _update_version():
-    """Write current version string to the config file"""
+    """Write the current version to the config file."""
     config_file = os.path.join(CONFIG_PATH, "config.json")
     if not os.path.exists(config_file):
         return
 
-    logger.info("version in config file to %s", VERSION)
+    logger.info("Updating version in config to %s", VERSION)
     with open(config_file, "r") as file:
         config = json.load(file)
 
@@ -132,8 +134,16 @@ def _update_version():
         json.dump(config, file, indent=4)
 
 
+def _rename_config():
+    """Rename .config/key-mapper to .config/input-remapper."""
+    old_config_path = os.path.join(HOME, ".config/key-mapper")
+    if not os.path.exists(CONFIG_PATH) and os.path.exists(old_config_path):
+        logger.info("Moving %s to %s", old_config_path, CONFIG_PATH)
+        shutil.move(old_config_path, CONFIG_PATH)
+
+
 def migrate():
-    """Migrate config files to the current release"""
+    """Migrate config files to the current release."""
     v = config_version()
     if v < pkg_resources.parse_version("0.4.0"):
         _config_suffix()
@@ -141,6 +151,9 @@ def migrate():
 
     if v < pkg_resources.parse_version("1.2.2"):
         _mapping_keys()
+
+    if v < pkg_resources.parse_version("1.3.0"):
+        _rename_config()
 
     # add new migrations here
 

@@ -18,15 +18,16 @@ import unittest
 import shutil
 import json
 
-from evdev.ecodes import EV_KEY, EV_ABS, ABS_HAT0X, KEY_A
+from evdev.ecodes import EV_KEY, EV_ABS, ABS_HAT0X
 
 from inputremapper.migrations import migrate, config_version
-from inputremapper.mapping import Mapping, split_key
-from inputremapper.config import config, GlobalConfig
+from inputremapper.mapping import Mapping
+from inputremapper.config import config
 from inputremapper.paths import touch, CONFIG_PATH, mkdir, get_preset_path
 from inputremapper.key import Key
+from inputremapper.user import HOME
 
-from inputremapper.logger import logger, VERSION
+from inputremapper.logger import VERSION
 
 from tests.test import quick_cleanup, tmp
 
@@ -39,16 +40,47 @@ class TestMigrations(unittest.TestCase):
     def test_migrate_suffix(self):
         old = os.path.join(CONFIG_PATH, "config")
         new = os.path.join(CONFIG_PATH, "config.json")
+
         try:
             os.remove(new)
         except FileNotFoundError:
             pass
+
         touch(old)
         with open(old, "w") as f:
             f.write("{}")
+
         migrate()
         self.assertTrue(os.path.exists(new))
         self.assertFalse(os.path.exists(old))
+
+    def test_rename_config(self):
+        old = os.path.join(HOME, ".config", "key-mapper")
+        new = CONFIG_PATH
+
+        # we are not destroying our actual config files with this test
+        self.assertTrue(new.startswith("/tmp"))
+
+        try:
+            os.rmdir(new)
+        except FileNotFoundError:
+            pass
+
+        old_config_json = os.path.join(old, "config.json")
+        touch(old_config_json)
+        with open(old_config_json, "w") as f:
+            f.write('{"foo":"bar"}')
+
+        migrate()
+
+        self.assertTrue(os.path.exists(new))
+        self.assertFalse(os.path.exists(old))
+
+        new_config_json = os.path.join(new, "config.json")
+        with open(new_config_json, "r") as f:
+            moved_config = json.loads(f.read())
+            self.assertEqual(moved_config["foo"], "bar")
+            self.assertIn("version", moved_config)
 
     def test_wont_migrate_suffix(self):
         old = os.path.join(CONFIG_PATH, "config")
