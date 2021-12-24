@@ -4,4 +4,4 @@ Architecture: all
 Maintainer: Sezanzeb <proxima@sezanzeb.de>
 Depends: build-essential, libpython3-dev, libdbus-1-dev, python3, python3-setuptools, python3-evdev, python3-pydbus, python3-gi, gettext, python3-cairo, libgtk-3-0
 Description: A tool to change the mapping of your input device buttons
-Replaces: python3-input-remapper
+Replaces: python3-key-mapper key-mapper
