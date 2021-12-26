@@ -184,6 +184,8 @@ class Row(Gtk.ListBoxRow):
         self.symbol_input = None
         self.keycode_input = None
         self.target_input = None
+        self.completion = None
+        self.completion_store = store
         
         self.key = key
 
@@ -305,9 +307,15 @@ class Row(Gtk.ListBoxRow):
         self.update_mapping()
         self.window.save_preset()
 
+        s = Gtk.ListStore(str)
+        for name in system_mapping.list_names(global_uinputs.get_uinput(self.get_target()).capabilities()[1]):
+            s.append([name])
+        self.completion_store = s
+        self.completion.set_model(s)
+
     def match(self, _, key, tree_iter):
         """Search the available names."""
-        value = store.get_value(tree_iter, 0)
+        value = self.completion_store.get_value(tree_iter, 0)
         return key in value.lower()
 
     def show_click_here(self):
@@ -404,7 +412,8 @@ class Row(Gtk.ListBoxRow):
         symbol_input.set_width_chars(4)
         symbol_input.set_has_frame(False)
         completion = Gtk.EntryCompletion()
-        completion.set_model(store)
+        self.completion = completion
+        completion.set_model(self.completion_store)
         completion.set_text_column(0)
         completion.set_match_func(self.match)
         symbol_input.set_completion(completion)

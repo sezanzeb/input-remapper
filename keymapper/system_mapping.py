@@ -60,9 +60,17 @@ class SystemMapping:
 
         return object.__getattribute__(self, key)
 
-    def list_names(self):
-        """Return an array of all possible names in the mapping."""
-        return self._mapping.keys()
+    def list_names(self, codes=None):
+        """Return an array of all possible names in the mapping, oprionally filtered by codes.
+
+        Parameters
+        ----------
+        codes: list of event codes
+        """
+        if not codes:
+            return self._mapping.keys()
+
+        return [name for name, code in self._mapping.items() if code in codes]
 
     def correct_case(self, symbol):
         """Return the correct casing for a symbol."""
