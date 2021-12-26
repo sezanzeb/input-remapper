@@ -302,8 +302,7 @@ def handle_plus_syntax(macro):
         return macro
 
     if "(" in macro or ")" in macro:
-        logger.error('Mixing "+" and macros is unsupported: "%s"', macro)
-        return macro
+        raise ValueError(f'Mixing "+" and macros is unsupported: "{ macro}"')
 
     chunks = [chunk.strip() for chunk in macro.split("+")]
     output = ""
@@ -311,8 +310,7 @@ def handle_plus_syntax(macro):
     for chunk in chunks:
         if chunk == "":
             # invalid syntax
-            logger.error('Invalid syntax for "%s"', macro)
-            return macro
+            raise ValueError(f'Invalid syntax for "{macro}"')
 
         depth += 1
         output += f"m({chunk},"
@@ -364,7 +362,7 @@ def _remove_comments(macro):
     return result
 
 
-def parse(macro, context, return_errors=False):
+def parse(macro, context=None, return_errors=False):
     """parse and generate a Macro that can be run as often as you want.
 
     If it could not be parsed, possibly due to syntax errors, will log the
@@ -376,21 +374,27 @@ def parse(macro, context, return_errors=False):
         "r(3, k(a).w(10))"
         "r(2, k(a).k(KEY_A)).k(b)"
         "w(1000).m(Shift_L, r(2, k(a))).w(10, 20).k(b)"
-    context : Context
+    context : Context, or None for use in Frontend
     return_errors : bool
         If True, returns errors as a string or None if parsing worked.
         If False, returns the parsed macro.
     """
-    macro = handle_plus_syntax(macro)
-
-    macro = _remove_comments(macro)
-
-    macro = _remove_whitespaces(macro, '"')
-
     if return_errors:
         logger.spam("checking the syntax of %s", macro)
     else:
         logger.spam("preparing macro %s for later execution", macro)
+
+    try:
+        macro = handle_plus_syntax(macro)
+    except Exception as error:
+        logger.error('Failed to parse macro "%s": %s', macro, error.__repr__())
+        # print the traceback in case this is a bug of key-mapper
+        logger.debug("".join(traceback.format_tb(error.__traceback__)).strip())
+        return f"{error.__class__.__name__}: {str(error)}" if return_errors else None
+
+    macro = _remove_comments(macro)
+
+    macro = _remove_whitespaces(macro, '"')
 
     try:
         macro_object = _parse_recurse(macro, context)

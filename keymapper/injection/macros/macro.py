@@ -44,7 +44,7 @@ from evdev.ecodes import ecodes, EV_KEY, EV_REL, REL_X, REL_Y, REL_WHEEL, REL_HW
 from keymapper.logger import logger
 from keymapper.system_mapping import system_mapping
 from keymapper.ipc.shared_dict import SharedDict
-from keymapper.utils import PRESS, PRESS_NEGATIVE
+from keymapper.utils import PRESS, PRESS_NEGATIVE, is_service
 
 
 macro_variables = SharedDict()
@@ -182,7 +182,7 @@ class Macro:
         ----------
         code : string or None
             The original parsed code, for logging purposes.
-        context : Context
+        context : Context, or None for use in frontend
         """
         self.code = code
         self.context = context

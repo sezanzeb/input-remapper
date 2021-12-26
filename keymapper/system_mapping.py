@@ -61,7 +61,7 @@ class SystemMapping:
         return object.__getattribute__(self, key)
 
     def list_names(self, codes=None):
-        """Return an array of all possible names in the mapping, oprionally filtered by codes.
+        """Return a list of all possible names in the mapping, optionally filtered by codes.
 
         Parameters
         ----------
