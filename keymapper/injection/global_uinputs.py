@@ -27,6 +27,20 @@ from evdev.ecodes import EV_KEY
 from keymapper.logger import logger
 
 DEV_NAME = "key-mapper"
+DEFAULT_UINPUTS = {
+    # for event codes see linux/input-event-codes.h
+    "keyboard": {
+        evdev.ecodes.EV_KEY: list(evdev.ecodes.KEY.keys() & evdev.ecodes.keys.keys())
+    },
+    "gamepad": {
+        evdev.ecodes.EV_KEY: [*range(0x130, 0x13f)],  # BTN_SOUTH - BTN_THUMBR
+        evdev.ecodes.EV_ABS: [*range(0x00, 0x06), *range(0x10, 0x12)]  # 6-axis and 1 hat switch
+    },
+    "mouse": {
+        evdev.ecodes.EV_KEY: [*range(0x110, 0x118)],  # BTN_LEFT - BTN_TASK
+        evdev.ecodes.EV_REL: [*range(0x00, 0x0a)]  # all REL axis
+    }
+}
 
 
 class UInput(evdev.UInput):
@@ -80,17 +94,12 @@ class GlobalUInputs:
 
         This has to be done in the main process before injections start.
         """
-        # Using all EV_KEY codes broke it in one installation, the use case for
-        # keyboard_output (see docstring of Context) only requires KEY_* codes here
-        # anyway and no BTN_* code.
-        # Furthermore, python-evdev modifies the ecodes.keys list to make it usable,
-        # only use KEY_* codes that are in ecodes.keys therefore.
-        keys = list(evdev.ecodes.KEY.keys() & evdev.ecodes.keys.keys())
-        self.devices["keyboard"] = self._uinput_factory(
-            name="key-mapper keyboard",
-            phys=DEV_NAME,
-            events={evdev.ecodes.EV_KEY: keys},
-        )
+        for name, events in DEFAULT_UINPUTS.items():
+            self.devices[name] = self._uinput_factory(
+                name=f"{DEV_NAME} {name}",
+                phys=DEV_NAME,
+                events=events,
+            )
 
     def get_uinput(self, name):
         """UInput with name
