@@ -37,6 +37,7 @@ from keymapper import utils
 from keymapper.injection.consumers.consumer import Consumer
 from keymapper.utils import RELEASE
 from keymapper.groups import classify, GAMEPAD
+from keymapper.injection.global_uinputs import global_uinputs
 
 
 # this state is shared by all KeycodeMappers of this process
@@ -326,7 +327,7 @@ class KeycodeMapper(Consumer):
         def f(ev_type, code, value):
             """Handler for macros."""
             logger.debug(f"macro_sending {(ev_type, code, value)}")
-            self.write((ev_type, code, value), target_uinput)
+            global_uinputs.write((ev_type, code, value), target_uinput)
         
         return f
 
@@ -451,7 +452,7 @@ class KeycodeMapper(Consumer):
                     # release what the input is mapped to
                     try:
                         logger.key_spam(key, "releasing (%s, %s)", target_code, target_uinput)
-                        self.write((target_type, target_code, 0), target_uinput)
+                        global_uinputs.write((target_type, target_code, 0), target_uinput)
                         return
                     except keymapper.exceptions.Error:
                         logger.key_spam(key, "could not map")
@@ -528,7 +529,7 @@ class KeycodeMapper(Consumer):
 
                 try:
                     logger.key_spam(key, "maps to (%s, %s)", target_code, target_uinput)
-                    self.write((EV_KEY, target_code, 1), target_uinput)
+                    global_uinputs.write((EV_KEY, target_code, 1), target_uinput)
                     return
                 except keymapper.exceptions.Error:
                     logger.key_spam(key, "could not map")

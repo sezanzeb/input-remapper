@@ -21,10 +21,7 @@
 
 import evdev
 import keymapper.utils
-
-from evdev.ecodes import EV_KEY
-
-from keymapper.logger import logger
+import keymapper.exceptions
 
 DEV_NAME = "key-mapper"
 DEFAULT_UINPUTS = {
@@ -100,6 +97,18 @@ class GlobalUInputs:
                 phys=DEV_NAME,
                 events=events,
             )
+
+    def write(self, event, target_uinput):
+        """write event to target uinput"""
+        uinput = self.get_uinput(target_uinput)
+        if not uinput:
+            raise keymapper.exceptions.UinputNotAvailable(target_uinput)
+
+        if not uinput.can_emit(event):
+            raise keymapper.exceptions.EventNotHandled(event)
+
+        uinput.write(*event)
+        uinput.syn()
 
     def get_uinput(self, name):
         """UInput with name

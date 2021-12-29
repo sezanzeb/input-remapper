@@ -25,11 +25,6 @@ Can be notified of new events so that inheriting classes can map them and
 inject new events based on them.
 """
 
-import keymapper.exceptions
-
-from keymapper.injection.global_uinputs import global_uinputs
-from keymapper.logger import logger
-
 
 class Consumer:
     """Can be notified of new events to inject them. Base class."""
@@ -56,18 +51,6 @@ class Consumer:
     def is_enabled(self):
         """Check if the consumer will have work to do."""
         raise NotImplementedError
-
-    def write(self, event, target_uinput):
-        """Shorthand to write stuff."""
-        uinput = global_uinputs.get_uinput(target_uinput)
-        if uinput is None:
-            raise keymapper.exceptions.UinputNotAvailable(target_uinput)
-
-        if not uinput.can_emit(event):
-            raise keymapper.exceptions.EventNotHandled(event)
-
-        uinput.write(*event)
-        uinput.syn()
 
     def forward(self, key):
         """Shorthand to forward an event."""
