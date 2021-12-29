@@ -297,10 +297,7 @@ class Row(Gtk.ListBoxRow):
     def on_symbol_input_change(self, _):
         """When the output symbol for that keycode is typed in."""
         self.update_mapping()
-        if not self.validate_symbol():
-            self.symbol_input.get_style_context().add_class("invalid_input")
-        else:
-            self.symbol_input.get_style_context().remove_class("invalid_input")
+        self.validate_symbol()
 
     def on_target_input_change(self, _):
         """When the mapping target is selected"""
@@ -312,11 +309,12 @@ class Row(Gtk.ListBoxRow):
         self.update_mapping()
         self.window.save_preset()
         self.update_completion()
+        self.validate_symbol()
 
     def update_completion(self):
         """update the dropdown for key suggestions"""
         target = self.get_target()
-        if target:
+        if target and global_uinputs.get_uinput(target):
             s = Gtk.ListStore(str)
             for name in system_mapping.list_names(global_uinputs.get_uinput(target).capabilities()[1]):
                 s.append([name])
@@ -326,30 +324,39 @@ class Row(Gtk.ListBoxRow):
         self.completion.set_model(s)
 
     def validate_symbol(self):
-        """check if target can handle all event codes in symbol_input"""
-        symbol = self.get_symbol()
-        target = self.get_target()
-        if not symbol or not target:
-            return True
+        """check if target can handle all event codes in symbol_input and color the Gtk.Entry"""
+        def validate():
+            symbol = self.get_symbol()
+            target = self.get_target()
+            if not symbol or not target or not global_uinputs.get_uinput(target):
+                return True
 
-        if is_this_a_macro(symbol):
-            if parse(symbol, return_errors=True):
-                return False
+            if is_this_a_macro(symbol):
+                if parse(symbol, return_errors=True):
+                    return False
 
-            capabilities = parse(symbol).get_capabilities()
+                capabilities = parse(symbol).get_capabilities()
+            else:
+                capabilities = {
+                    1: {system_mapping.get(symbol)},
+                    2: set(),
+                }
+
+            target_capabilities = global_uinputs.get_uinput(target).capabilities()
+            for i in range(1, 3):
+                if i not in target_capabilities.keys():
+                    target_capabilities[i] = []
+
+            return (capabilities[1].issubset(target_capabilities[1]) and
+                    capabilities[2].issubset(target_capabilities[2]))
+
+        rt = validate()
+        if rt:
+            self.symbol_input.get_style_context().remove_class("invalid_input")
         else:
-            capabilities = {
-                1: {system_mapping.get(symbol)},
-                2: set(),
-            }
+            self.symbol_input.get_style_context().add_class("invalid_input")
 
-        target_capabilities = global_uinputs.get_uinput(target).capabilities()
-        for i in range(1, 3):
-            if i not in target_capabilities.keys():
-                target_capabilities[i] = []
-
-        return (capabilities[1].issubset(target_capabilities[1]) and
-                capabilities[2].issubset(target_capabilities[2]))
+        return rt
 
     def match(self, _, key, tree_iter):
         """Search the available names."""
@@ -465,8 +472,7 @@ class Row(Gtk.ListBoxRow):
                 target_input.get_style_context().add_class("invalid_input")
         
         self.update_completion()
-        if not self.validate_symbol():
-            self.symbol_input.get_style_context().add_class("invalid_input")
+        self.validate_symbol()
 
         target_input.connect("changed", self.on_target_input_change)
         symbol_input.connect("changed", self.on_symbol_input_change)
