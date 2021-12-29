@@ -105,10 +105,10 @@ class Context:
     def _map_keys_to_codes(self):
         """To quickly get target keycodes during operation.
 
-        Returns a mapping of one or more 3-tuples to ints.
+        Returns a mapping of one or more 3-tuples to 2-tuples of (int, target_uinput).
         Examples:
-            ((1, 2, 1),): 3
-            ((1, 5, 1), (1, 4, 1)): 4
+            ((1, 2, 1),): (3, "keyboard")
+            ((1, 5, 1), (1, 4, 1)): (4, "gamepad")
         """
         key_to_code = {}
         for key, output in self.mapping:

@@ -22,6 +22,7 @@
 import evdev
 import keymapper.utils
 import keymapper.exceptions
+from keymapper.logger import logger
 
 DEV_NAME = "key-mapper"
 DEFAULT_UINPUTS = {
@@ -42,10 +43,11 @@ DEFAULT_UINPUTS = {
 
 class UInput(evdev.UInput):
     def __init__(self, *args, **kwargs):
+        logger.debug(f"creating UInput device: '{kwargs['name']}'")
         super().__init__(*args, **kwargs)
 
     def can_emit(self, event):
-        """ceck it a event can be emitted by the uinput
+        """check if an event can be emitted by the uinput
 
         Wrong events might be injected if the group mappings are wrong
         """
@@ -66,6 +68,7 @@ class FrontendUInput:
             #"devnode": '/dev/uinput',
             #"phys": 'py-evdev-uinput',
             }
+        logger.debug(f"creating fake UInput device: '{kwargs['name']}'")
         for key, value in defaults.items():
             try:
                 setattr(self, key, kwargs[key])
@@ -74,24 +77,32 @@ class FrontendUInput:
     
     def capabilities(self):
         return self.events
-        
+
 
 class GlobalUInputs:
     """Manages all uinputs that are shared between all injection processes."""
 
     def __init__(self):
         self.devices = {}
+
         if keymapper.utils.is_service():
             self._uinput_factory = UInput
         else:
             self._uinput_factory = FrontendUInput
-        
-    def prepare(self):
+
+    def prepare(self, force_service=False):
         """Generate uinputs.
 
         This has to be done in the main process before injections start.
         """
+
+        # TODO: remove force_service we should find a way to patch keymapper.utils.is_service() in the tests
+        if force_service:
+            self._uinput_factory = UInput
+
         for name, events in DEFAULT_UINPUTS.items():
+            if name in self.devices.keys():
+                continue
             self.devices[name] = self._uinput_factory(
                 name=f"{DEV_NAME} {name}",
                 phys=DEV_NAME,

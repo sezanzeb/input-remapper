@@ -524,6 +524,7 @@ from keymapper.gui.custom_mapping import custom_mapping
 from keymapper.paths import get_config_path
 from keymapper.injection.macros.macro import macro_variables
 from keymapper.injection.consumers.keycode_mapper import active_macros, unreleased
+from keymapper.injection.global_uinputs import global_uinputs
 
 # no need for a high number in tests
 Injector.regrab_timeout = 0.05
@@ -633,13 +634,13 @@ def cleanup():
     Using this is slower, usually quick_cleanup() is sufficient.
     """
     print("cleanup")
-
     os.system("pkill -f key-mapper-service")
     os.system("pkill -f key-mapper-control")
     time.sleep(0.05)
 
     quick_cleanup(log=False)
     groups.refresh()
+    global_uinputs.prepare(force_service=True)
 
 
 def spy(obj, name):

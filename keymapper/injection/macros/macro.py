@@ -287,7 +287,7 @@ class Macro:
                 if asyncio.iscoroutine(coroutine):
                     await coroutine
             except Exception as e:
-                logger.error(f'Macro "%s" failed: %s', self.code, e)
+                logger.error(f'Macro "{self.code}" failed: {e}')
                 break
 
         # done

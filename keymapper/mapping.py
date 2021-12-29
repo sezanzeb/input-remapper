@@ -250,7 +250,7 @@ class Mapping(ConfigBase):
         self.num_saved_keys = len(self)
 
     def get_symbol(self, key):
-        """Read the symbol that is mapped to this keycode.
+        """Read the (symbol, target)-tuple that is mapped to this keycode.
 
         Parameters
         ----------
