@@ -177,30 +177,6 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         # this doesn't exist
         self.assertIsNone(_grab_device("/dev/input/event1234"))
 
-    def test_gamepad_capabilities(self):
-        self.injector = Injector(groups.find(name="gamepad"), custom_mapping)
-        # give the injector a reason to grab the device
-        custom_mapping.set("gamepad.joystick.left_purpose", MOUSE)
-        self.injector.context = Context(custom_mapping)
-
-        path = "/dev/input/event30"
-        device = self.injector._grab_device(path)
-        gamepad = classify(device) == GAMEPAD
-        self.assertIsNotNone(device)
-        self.assertTrue(gamepad)
-
-        capabilities = self.injector._construct_capabilities(gamepad)
-        self.assertNotIn(EV_ABS, capabilities)
-        self.assertIn(EV_REL, capabilities)
-
-        self.assertIn(evdev.ecodes.REL_X, capabilities.get(EV_REL))
-        self.assertIn(evdev.ecodes.REL_Y, capabilities.get(EV_REL))
-        self.assertIn(evdev.ecodes.REL_WHEEL, capabilities.get(EV_REL))
-        self.assertIn(evdev.ecodes.REL_HWHEEL, capabilities.get(EV_REL))
-
-        self.assertIn(EV_KEY, capabilities)
-        self.assertIn(evdev.ecodes.BTN_LEFT, capabilities[EV_KEY])
-
     def test_gamepad_purpose_none(self):
         # forward abs joystick events
         custom_mapping.set("gamepad.joystick.left_purpose", NONE)
@@ -218,8 +194,6 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         self.assertIsNotNone(device)
         gamepad = classify(device) == GAMEPAD
         self.assertTrue(gamepad)
-        capabilities = self.injector._construct_capabilities(gamepad)
-        self.assertNotIn(EV_ABS, capabilities)
 
     def test_gamepad_purpose_none_2(self):
         # forward abs joystick events for the left joystick only
@@ -236,19 +210,12 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         self.assertIsNotNone(device)
         gamepad = classify(device) == GAMEPAD
         self.assertTrue(gamepad)
-        capabilities = self.injector._construct_capabilities(gamepad)
-        self.assertNotIn(EV_ABS, capabilities)
-        self.assertIn(EV_REL, capabilities)
 
         custom_mapping.change(Key(EV_KEY, BTN_A, 1), "keyboard", "a")
         device = self.injector._grab_device(path)
         gamepad = classify(device) == GAMEPAD
         self.assertIsNotNone(device)
         self.assertTrue(gamepad)
-        capabilities = self.injector._construct_capabilities(gamepad)
-        self.assertNotIn(EV_ABS, capabilities)
-        self.assertIn(EV_REL, capabilities)
-        self.assertIn(EV_KEY, capabilities)
 
     def test_skip_unused_device(self):
         # skips a device because its capabilities are not used in the mapping
@@ -477,16 +444,16 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         self.injector.run()
 
         self.assertEqual(
-            self.injector.context.mapping.get_symbol(Key(EV_KEY, KEY_A, 1)), "c"
+            self.injector.context.mapping.get_symbol(Key(EV_KEY, KEY_A, 1)), ("c", "keyboard")
         )
         self.assertEqual(
-            self.injector.context.key_to_code[((EV_KEY, KEY_A, 1),)], KEY_C
+            self.injector.context.key_to_code[((EV_KEY, KEY_A, 1),)], (KEY_C, "keyboard")
         )
         self.assertEqual(
-            self.injector.context.mapping.get_symbol(Key(EV_REL, REL_HWHEEL, 1)), "k(b)"
+            self.injector.context.mapping.get_symbol(Key(EV_REL, REL_HWHEEL, 1)), ("k(b)", "keyboard")
         )
         self.assertEqual(
-            self.injector.context.macros[((EV_REL, REL_HWHEEL, 1),)].code, "k(b)"
+            self.injector.context.macros[((EV_REL, REL_HWHEEL, 1),)][0].code, "k(b)"
         )
 
         self.assertListEqual(
@@ -497,26 +464,14 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
                     # display server
                     "key-mapper Foo Device foo forwarded",
                     "key-mapper Foo Device forwarded",
-                    # injection
-                    "key-mapper Foo Device 2 mapped",
                 ]
             ),
         )
 
         forwarded_foo = uinputs.get("key-mapper Foo Device foo forwarded")
         forwarded = uinputs.get("key-mapper Foo Device forwarded")
-        mapped = uinputs.get("key-mapper Foo Device 2 mapped")
         self.assertIsNotNone(forwarded_foo)
         self.assertIsNotNone(forwarded)
-        self.assertIsNotNone(mapped)
-
-        # puts the needed capabilities into the new key-mapper device
-        self.assertIn(EV_KEY, mapped.capabilities())
-        self.assertEqual(len(mapped.capabilities()[EV_KEY]), 2)
-        self.assertIn(KEY_C, mapped.capabilities()[EV_KEY])
-        self.assertIn(KEY_B, mapped.capabilities()[EV_KEY])
-        # not a gamepad that maps joysticks to mouse movements
-        self.assertNotIn(EV_REL, mapped.capabilities())
 
         # copies capabilities for all other forwarded devices
         self.assertIn(EV_REL, forwarded_foo.capabilities())
