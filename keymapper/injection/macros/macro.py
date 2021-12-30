@@ -270,6 +270,9 @@ class Macro:
         handler : function
             Will receive int type, code and value for an event to write
         """
+        if not callable(handler):
+            raise ValueError("handler is not callable")
+
         if self.running:
             logger.error('Tried to run already running macro "%s"', self.code)
             return

@@ -631,6 +631,9 @@ def quick_cleanup(log=True):
         assert not pipe.poll()
 
     assert macro_variables.is_alive(1)
+    for uinput in global_uinputs.devices.values():
+        uinput.write_count = 0
+        uinput.write_history = []
 
 
 def cleanup():
