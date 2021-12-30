@@ -20,10 +20,17 @@
 
 
 """Sets up key-mapper for the tests and runs them."""
-
-
 import os
 import sys
+
+# make sure the "tests" module visible
+sys.path.append(os.getcwd())
+if __name__ == "__main__":
+    # import this file to itself to make sure is not run twice and all global variables end up in sys.modules
+    import tests.test
+    tests.test.main()
+    sys.exit(0)
+
 import shutil
 import time
 import copy
@@ -84,9 +91,6 @@ if is_service_running():
     # let tests control daemon existance
     raise Exception("Expected the service not to be running already.")
 
-
-# make sure the "tests" module visible
-sys.path.append(os.getcwd())
 
 # give tests some time to test stuff while the process
 # is still running
@@ -640,7 +644,8 @@ def cleanup():
 
     quick_cleanup(log=False)
     groups.refresh()
-    global_uinputs.prepare(force_service=True)
+    with patch.object(sys, "argv", ["key-mapper-service"]):
+        global_uinputs.prepare()
 
 
 def spy(obj, name):
@@ -676,7 +681,3 @@ def main():
 
     unittest.TextTestResult.startTest = start_test
     unittest.TextTestRunner(verbosity=2).run(testsuite)
-
-
-if __name__ == "__main__":
-    main()

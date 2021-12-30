@@ -245,64 +245,6 @@ class Injector(multiprocessing.Process):
 
         return capabilities
 
-    def _construct_capabilities(self, gamepad):
-        """Adds all used keycodes into a copy of a devices capabilities.
-
-        Sometimes capabilities are a bit tricky and change how the system
-        interprets the device.
-
-        Parameters
-        ----------
-        gamepad : bool
-            If gamepad events can be translated to mouse events. (also
-            depends on the configured purpose)
-
-        Returns
-        -------
-        a mapping of int event type to an array of int event codes.
-        """
-        ecodes = evdev.ecodes
-
-        capabilities = {EV_KEY: []}
-
-        # support all injected keycodes
-        for code in self.context.key_to_code.values():
-            if code == DISABLE_CODE:
-                continue
-
-            if code not in capabilities[EV_KEY]:
-                capabilities[EV_KEY].append(code)
-
-        # and all keycodes that are injected by macros
-        for macro in self.context.macros.values():
-            macro_capabilities = macro.get_capabilities()
-            for ev_type in macro_capabilities:
-                if len(macro_capabilities[ev_type]) == 0:
-                    continue
-                if ev_type not in capabilities:
-                    capabilities[ev_type] = []
-                capabilities[ev_type] += list(macro_capabilities[ev_type])
-
-        if gamepad and self.context.joystick_as_mouse():
-            # REL_WHEEL was also required to recognize the gamepad
-            # as mouse, even if no joystick is used as wheel.
-            capabilities[EV_REL] = [
-                evdev.ecodes.REL_X,
-                evdev.ecodes.REL_Y,
-                evdev.ecodes.REL_WHEEL,
-                evdev.ecodes.REL_HWHEEL,
-            ]
-
-            if capabilities.get(EV_KEY) is None:
-                capabilities[EV_KEY] = []
-
-            if ecodes.BTN_MOUSE not in capabilities[EV_KEY]:
-                # to be able to move the cursor, this key capability is
-                # needed
-                capabilities[EV_KEY].append(ecodes.BTN_MOUSE)
-
-        return capabilities
-
     async def _msg_listener(self):
         """Wait for messages from the main process to do special stuff."""
         loop = asyncio.get_event_loop()

@@ -250,60 +250,6 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         self.assertIn(EV_REL, capabilities)
         self.assertIn(EV_KEY, capabilities)
 
-    def test_adds_ev_key(self):
-        # for some reason, having any EV_KEY capability is needed to
-        # be able to control the mouse. it probably wants the mouse click.
-        custom_mapping.change(Key(EV_KEY, BTN_A, 1), "keyboard", "a")
-        self.injector = Injector(groups.find(name="gamepad"), custom_mapping)
-        custom_mapping.set("gamepad.joystick.left_purpose", MOUSE)
-        self.injector.context = Context(custom_mapping)
-
-        """ABS device without any key capability"""
-
-        path = self.new_gamepad_path
-        gamepad_template = copy.deepcopy(fixtures["/dev/input/event30"])
-        fixtures[path] = {
-            "name": "qux 2",
-            "phys": "abcd",
-            "info": "1234",
-            "capabilities": gamepad_template["capabilities"],
-        }
-        del fixtures[path]["capabilities"][EV_KEY]
-        device = self.injector._grab_device(path)
-        # no reason to grab, BTN_A capability is missing in the device
-        self.assertIsNone(device)
-
-        """ABS device with a btn_mouse capability"""
-
-        path = self.new_gamepad_path
-        gamepad_template = copy.deepcopy(fixtures["/dev/input/event30"])
-        fixtures[path] = {
-            "name": "qux 3",
-            "phys": "abcd",
-            "info": "1234",
-            "capabilities": gamepad_template["capabilities"],
-        }
-        fixtures[path]["capabilities"][EV_KEY].append(BTN_LEFT)
-        fixtures[path]["capabilities"][EV_KEY].append(KEY_A)
-        device = self.injector._grab_device(path)
-        gamepad = classify(device) == GAMEPAD
-        capabilities = self.injector._construct_capabilities(gamepad)
-        self.assertIn(EV_KEY, capabilities)
-        self.assertIn(evdev.ecodes.BTN_MOUSE, capabilities[EV_KEY])
-        self.assertIn(evdev.ecodes.KEY_A, capabilities[EV_KEY])
-
-        """a gamepad"""
-
-        path = "/dev/input/event30"
-        device = self.injector._grab_device(path)
-        gamepad = classify(device) == GAMEPAD
-        self.assertIn(EV_KEY, device.capabilities())
-        self.assertNotIn(evdev.ecodes.BTN_MOUSE, device.capabilities()[EV_KEY])
-        capabilities = self.injector._construct_capabilities(gamepad)
-        self.assertIn(EV_KEY, capabilities)
-        self.assertGreater(len(capabilities), 1)
-        self.assertIn(evdev.ecodes.BTN_MOUSE, capabilities[EV_KEY])
-
     def test_skip_unused_device(self):
         # skips a device because its capabilities are not used in the mapping
         custom_mapping.change(Key(EV_KEY, 10, 1), "keyboard", "a")
@@ -632,6 +578,8 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         self.injector._msg_pipe[1].send(1234)
 
         # convert the write history to some easier to manage list
+        sleep = 0.5
+        time.sleep(sleep)
         history = read_write_history_pipe()
 
         # 1 event before the combination was triggered (+1 for release)
@@ -847,13 +795,13 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         class Stop(Exception):
             pass
 
-        def _construct_capabilities(*args):
+        def _copy_capabilities(*args):
             history.append(args)
             # avoid going into any mainloop
             raise Stop()
 
         with mock.patch.object(
-            self.injector, "_construct_capabilities", _construct_capabilities
+            self.injector, "_copy_capabilities", _copy_capabilities
         ):
             try:
                 self.injector.run()
@@ -865,8 +813,8 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
             # first argument of the first call
             macros = self.injector.context.macros
             self.assertEqual(len(macros), 2)
-            self.assertEqual(macros[(ev_1, ev_2, ev_3)].code, "k(a)")
-            self.assertEqual(macros[(ev_2, ev_1, ev_3)].code, "k(a)")
+            self.assertEqual(macros[(ev_1, ev_2, ev_3)][0].code, "k(a)")
+            self.assertEqual(macros[(ev_2, ev_1, ev_3)][0].code, "k(a)")
 
     def test_key_to_code(self):
         mapping = Mapping()

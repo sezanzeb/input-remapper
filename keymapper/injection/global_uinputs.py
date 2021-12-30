@@ -84,21 +84,17 @@ class GlobalUInputs:
 
     def __init__(self):
         self.devices = {}
+        self._uinput_factory = None
 
-        if keymapper.utils.is_service():
-            self._uinput_factory = UInput
-        else:
-            self._uinput_factory = FrontendUInput
-
-    def prepare(self, force_service=False):
+    def prepare(self):
         """Generate uinputs.
 
         This has to be done in the main process before injections start.
         """
-
-        # TODO: remove force_service we should find a way to patch keymapper.utils.is_service() in the tests
-        if force_service:
+        if keymapper.utils.is_service():
             self._uinput_factory = UInput
+        else:
+            self._uinput_factory = FrontendUInput
 
         for name, events in DEFAULT_UINPUTS.items():
             if name in self.devices.keys():
