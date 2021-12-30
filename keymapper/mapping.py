@@ -269,7 +269,7 @@ class Mapping(ConfigBase):
     def dangerously_mapped_btn_left(self):
         """Return True if this mapping disables BTN_Left."""
         if self.get_symbol(Key(EV_KEY, BTN_LEFT, 1)) is not None:
-            values = [value.lower() for value in self._mapping.values()]
+            values = [value[0].lower() for value in self._mapping.values()]
             return "btn_left" not in values
 
         return False

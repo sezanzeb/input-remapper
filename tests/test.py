@@ -27,6 +27,7 @@ import sys
 sys.path.append(os.getcwd())
 if __name__ == "__main__":
     # import this file to itself to make sure is not run twice and all global variables end up in sys.modules
+    # https://stackoverflow.com/questions/13181559/importing-modules-main-vs-import-as-module
     import tests.test
     tests.test.main()
     sys.exit(0)
