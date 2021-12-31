@@ -556,6 +556,8 @@ class Window:
         is_autoloaded = config.is_autoloaded(self.group.key, self.preset_name)
         if is_autoloaded:
             config.set_autoload_preset(self.group.key, new_name)
+            # TODO always save_config in set_autoload_preset?
+            config.save_config()
 
         self.get("preset_name_input").set_text("")
         self.populate_presets()

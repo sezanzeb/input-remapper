@@ -904,7 +904,11 @@ class TestIntegration(unittest.TestCase):
         preset_path = f"{CONFIG_PATH}/presets/Foo Device/asdf.json"
         self.assertTrue(os.path.exists(preset_path))
         self.assertEqual(custom_mapping.get_symbol(Key(EV_KEY, 14, 1)), "b")
+
         # after renaming the preset it is still set to autoload
+        self.assertTrue(config.is_autoloaded("Foo Device", "asdf"))
+        # ALSO IN THE ACTUAL CONFIG FILE!
+        config.load_config()
         self.assertTrue(config.is_autoloaded("Foo Device", "asdf"))
 
         error_icon = self.window.get("error_status_icon")
