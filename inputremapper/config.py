@@ -84,6 +84,9 @@ class ConfigBase:
 
         Parameters
         ----------
+        path : string or string[]
+            For example 'macros.keystroke_sleep_ms'
+            or ['macros', 'keystroke_sleep_ms']
         config : dict
             The dictionary to search. Defaults to self._config.
         """
@@ -114,6 +117,7 @@ class ConfigBase:
         ----------
         path : string or string[]
             For example 'macros.keystroke_sleep_ms'
+            or ['macros', 'keystroke_sleep_ms']
         """
 
         def callback(parent, child, chunk):
