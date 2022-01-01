@@ -1,4 +1,0 @@
-# for /scripts/build.sh
-recursive-include data *
-include bin/input-remapper-gtk
-include bin/input-remapper-service
