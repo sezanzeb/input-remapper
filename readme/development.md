@@ -256,7 +256,7 @@ Consider this typical example of device capabilities:
 - "BrandXY Mouse" -> KEY_1, KEY_2
 
 There are two devices called "BrandXY Mouse", and they report different events.
-Key-mapper creates a single uinput to inject all mapped events to. For example
+Input-remapper creates a single uinput to inject all mapped events to. For example
 
 - BTN_LEFT -> a
 - KEY_2 -> b

@@ -87,7 +87,7 @@ names can be chained using ` + `.
 Check the autocompletion of the GUI for possible values. You can also
 obtain a complete list of possiblities using `input-remapper-control --symbol-names`.
 
-Key-mapper only recognizes symbol names, but not the symbols themselfes. So for
+Input-remapper only recognizes symbol names, but not the symbols themselfes. So for
 example, input-remapper might (depending on the system layout) know what a `minus` is, but
 it doesn't know `-`.
 

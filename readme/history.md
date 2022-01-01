@@ -48,7 +48,7 @@ while mapping key 10 to nothing. This has the same problem, the device
 capabilities ignore many of those keycodes. 140 works, 145 won't, 150 works.
 
 **Fifth idea**: Instead of writing xkb symbol files, just disable all
-mouse buttons with a single symbol file. Key-mapper listens for key events
+mouse buttons with a single symbol file. Input-remapper listens for key events
 in /dev and then writes the mapped keycode into a new device in /dev. For
 example, if 10 should be mapped to Shift_L, xkb configs would disable
 key 10 and input-remapper would write 50 into /dev, which is Shift_L in the system
