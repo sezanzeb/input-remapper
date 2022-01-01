@@ -1,5 +1,10 @@
 #!/bin/bash
 if [ -d "/run/systemd/system/" ]; then
+  # old name, those lines should at some point be removed from postinst
+  pkill -f key-mapper-service
+  systemctl disable key-mapper
+  systemctl stop key-mapper
+
   pkill -f input-remapper-service  # might have been started by the gui previously
   systemctl enable input-remapper
   systemctl start input-remapper
