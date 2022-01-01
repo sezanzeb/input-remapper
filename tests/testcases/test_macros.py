@@ -1,22 +1,22 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
-# key-mapper - GUI for device specific keyboard mappings
+# input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2021 sezanzeb <proxima@sezanzeb.de>
 #
-# This file is part of key-mapper.
+# This file is part of input-remapper.
 #
-# key-mapper is free software: you can redistribute it and/or modify
+# input-remapper is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
-# key-mapper is distributed in the hope that it will be useful,
+# input-remapper is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with key-mapper.  If not, see <https://www.gnu.org/licenses/>.
+# along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
 import time
@@ -39,7 +39,7 @@ from evdev.ecodes import (
     KEY_E,
 )
 
-from keymapper.injection.macros.macro import (
+from inputremapper.injection.macros.macro import (
     Macro,
     _type_check,
     macro_variables,
@@ -47,7 +47,7 @@ from keymapper.injection.macros.macro import (
     _resolve,
     Variable,
 )
-from keymapper.injection.macros.parse import (
+from inputremapper.injection.macros.parse import (
     parse,
     _extract_args,
     is_this_a_macro,
@@ -58,11 +58,11 @@ from keymapper.injection.macros.parse import (
     _remove_whitespaces,
     _remove_comments,
 )
-from keymapper.injection.context import Context
-from keymapper.config import config
-from keymapper.mapping import Mapping
-from keymapper.system_mapping import system_mapping
-from keymapper.utils import PRESS, RELEASE
+from inputremapper.injection.context import Context
+from inputremapper.config import config
+from inputremapper.mapping import Mapping
+from inputremapper.system_mapping import system_mapping
+from inputremapper.utils import PRESS, RELEASE
 
 from tests.test import quick_cleanup, new_event
 
@@ -100,7 +100,7 @@ class TestMacros(MacroTestBase):
             result.append((a, b, c, d))
 
         functions = {"k": patch}
-        with mock.patch("keymapper.injection.macros.parse.FUNCTIONS", functions):
+        with mock.patch("inputremapper.injection.macros.parse.FUNCTIONS", functions):
             await parse("k(1, d=4, b=2, c=3)", self.context).run(self.handler)
             await parse("k(1, b=2, c=3)", self.context).run(self.handler)
             self.assertListEqual(result, [(1, 2, 3, 4), (1, 2, 3, 400)])

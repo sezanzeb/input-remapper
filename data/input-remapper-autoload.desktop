@@ -1,0 +1,6 @@
+[Desktop Entry]
+Type=Application
+Exec=bash -c "input-remapper-control --command stop-all && input-remapper-control --command autoload"
+Name=input-remapper-autoload
+Icon=/usr/share/input-remapper/input-remapper.svg
+Comment=Starts injecting all presets that are set to automatically load for the user

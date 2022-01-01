@@ -1,22 +1,22 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
-# key-mapper - GUI for device specific keyboard mappings
+# input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2021 sezanzeb <proxima@sezanzeb.de>
 #
-# This file is part of key-mapper.
+# This file is part of input-remapper.
 #
-# key-mapper is free software: you can redistribute it and/or modify
+# input-remapper is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
-# key-mapper is distributed in the hope that it will be useful,
+# input-remapper is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with key-mapper.  If not, see <https://www.gnu.org/licenses/>.
+# along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
 import os
@@ -31,15 +31,15 @@ from evdev.ecodes import EV_KEY, EV_ABS, KEY_B, KEY_A
 from gi.repository import Gtk
 from pydbus import SystemBus
 
-from keymapper.system_mapping import system_mapping
-from keymapper.gui.custom_mapping import custom_mapping
-from keymapper.config import config
-from keymapper.groups import groups
-from keymapper.paths import get_config_path, mkdir, get_preset_path
-from keymapper.key import Key
-from keymapper.mapping import Mapping
-from keymapper.injection.injector import STARTING, RUNNING, STOPPED, UNKNOWN
-from keymapper.daemon import Daemon, BUS_NAME
+from inputremapper.system_mapping import system_mapping
+from inputremapper.gui.custom_mapping import custom_mapping
+from inputremapper.config import config
+from inputremapper.groups import groups
+from inputremapper.paths import get_config_path, mkdir, get_preset_path
+from inputremapper.key import Key
+from inputremapper.mapping import Mapping
+from inputremapper.injection.injector import STARTING, RUNNING, STOPPED, UNKNOWN
+from inputremapper.daemon import Daemon, BUS_NAME
 
 from tests.test import (
     cleanup,
@@ -61,7 +61,7 @@ def gtk_iteration():
 class TestDBusDaemon(unittest.TestCase):
     def setUp(self):
         self.process = multiprocessing.Process(
-            target=os.system, args=("key-mapper-service -d",)
+            target=os.system, args=("input-remapper-service -d",)
         )
         self.process.start()
         time.sleep(0.5)
@@ -72,7 +72,7 @@ class TestDBusDaemon(unittest.TestCase):
 
     def tearDown(self):
         self.interface.stop_all()
-        os.system("pkill -f key-mapper-service")
+        os.system("pkill -f input-remapper-service")
 
         for _ in range(10):
             time.sleep(0.1)
@@ -448,7 +448,7 @@ class TestDaemon(unittest.TestCase):
         len_after = len(self.daemon.autoload_history._autoload_history)
         self.assertEqual(len_before, len_after)
 
-        # autoloading key-mapper devices does nothing
+        # autoloading input-remapper devices does nothing
         len_before = len(self.daemon.autoload_history._autoload_history)
         self.daemon.autoload_single("Bar Device")
         len_after = len(self.daemon.autoload_history._autoload_history)

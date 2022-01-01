@@ -14,7 +14,7 @@ coverage_badge() {
 }
 
 pylint_badge() {
-  pylint_output=$(pylint keymapper --extension-pkg-whitelist=evdev)
+  pylint_output=$(pylint inputremapper --extension-pkg-whitelist=evdev)
   rating=$(echo $pylint_output | grep -Po "rated at .+?/" | grep -Po "\d+.\d+")
   rm readme/pylint.svg
   anybadge -l pylint -v $rating -f readme/pylint.svg pylint

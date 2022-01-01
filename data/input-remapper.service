@@ -1,0 +1,14 @@
+[Unit]
+Description=Service to inject keycodes without the GUI application
+# dbus is required for ipc between gui and input-remapper-control
+Requires=dbus.service
+After=dbus.service
+
+[Service]
+Type=dbus
+BusName=inputremapper.Control
+ExecStart=/usr/bin/input-remapper-service
+
+[Install]
+WantedBy=default.target
+Alias=input-remapper.service

@@ -1,31 +1,31 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
-# key-mapper - GUI for device specific keyboard mappings
+# input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2021 sezanzeb <proxima@sezanzeb.de>
 #
-# This file is part of key-mapper.
+# This file is part of input-remapper.
 #
-# key-mapper is free software: you can redistribute it and/or modify
+# input-remapper is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
-# key-mapper is distributed in the hope that it will be useful,
+# input-remapper is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with key-mapper.  If not, see <https://www.gnu.org/licenses/>.
+# along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
 import unittest
 import select
 import time
 
-from keymapper.ipc.pipe import Pipe
-from keymapper.ipc.shared_dict import SharedDict
-from keymapper.ipc.socket import Server, Client, Base
+from inputremapper.ipc.pipe import Pipe
+from inputremapper.ipc.shared_dict import SharedDict
+from inputremapper.ipc.socket import Server, Client, Base
 
 from tests.test import quick_cleanup
 
@@ -70,21 +70,21 @@ class TestSocket(unittest.TestCase):
             self.assertFalse(s2.poll())
             self.assertEqual(s2.recv(), None)
 
-        server = Server("/tmp/key-mapper-test/socket1")
-        client = Client("/tmp/key-mapper-test/socket1")
+        server = Server("/tmp/input-remapper-test/socket1")
+        client = Client("/tmp/input-remapper-test/socket1")
         test(server, client)
 
-        client = Client("/tmp/key-mapper-test/socket2")
-        server = Server("/tmp/key-mapper-test/socket2")
+        client = Client("/tmp/input-remapper-test/socket2")
+        server = Server("/tmp/input-remapper-test/socket2")
         test(client, server)
 
     def test_not_connected_1(self):
         # client discards old message, because it might have had a purpose
         # for a different client and not for the current one
-        server = Server("/tmp/key-mapper-test/socket3")
+        server = Server("/tmp/input-remapper-test/socket3")
         server.send(1)
 
-        client = Client("/tmp/key-mapper-test/socket3")
+        client = Client("/tmp/input-remapper-test/socket3")
         server.send(2)
 
         self.assertTrue(client.poll())
@@ -93,10 +93,10 @@ class TestSocket(unittest.TestCase):
         self.assertEqual(client.recv(), None)
 
     def test_not_connected_2(self):
-        client = Client("/tmp/key-mapper-test/socket4")
+        client = Client("/tmp/input-remapper-test/socket4")
         client.send(1)
 
-        server = Server("/tmp/key-mapper-test/socket4")
+        server = Server("/tmp/input-remapper-test/socket4")
         client.send(2)
 
         self.assertTrue(server.poll())
@@ -106,8 +106,8 @@ class TestSocket(unittest.TestCase):
 
     def test_select(self):
         """is compatible to select.select"""
-        server = Server("/tmp/key-mapper-test/socket6")
-        client = Client("/tmp/key-mapper-test/socket6")
+        server = Server("/tmp/input-remapper-test/socket6")
+        client = Client("/tmp/input-remapper-test/socket6")
 
         server.send(1)
         ready = select.select([client], [], [], 0)[0][0]
@@ -126,7 +126,7 @@ class TestSocket(unittest.TestCase):
 
 class TestPipe(unittest.TestCase):
     def test_pipe_single(self):
-        p1 = Pipe(f"/tmp/key-mapper-test/pipe")
+        p1 = Pipe(f"/tmp/input-remapper-test/pipe")
         self.assertEqual(p1.recv(), None)
 
         p1.send(1)
@@ -146,8 +146,8 @@ class TestPipe(unittest.TestCase):
         self.assertEqual(p1.recv(), None)
 
     def test_pipe_duo(self):
-        p1 = Pipe(f"/tmp/key-mapper-test/pipe")
-        p2 = Pipe(f"/tmp/key-mapper-test/pipe")
+        p1 = Pipe(f"/tmp/input-remapper-test/pipe")
+        p2 = Pipe(f"/tmp/input-remapper-test/pipe")
         self.assertEqual(p2.recv(), None)
 
         p1.send(1)

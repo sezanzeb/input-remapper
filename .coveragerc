@@ -1,8 +1,8 @@
 [run]
 branch = True
-source = /usr/lib/python3.9/site-packages/keymapper
+source = /usr/lib/python3.9/site-packages/inputremapper
 concurrency = multiprocessing
 debug = multiproc
 omit =
     # not used currently due to problems
-    /usr/lib/python3.9/site-packages/keymapper/ipc/socket.py
+    /usr/lib/python3.9/site-packages/inputremapper/ipc/socket.py

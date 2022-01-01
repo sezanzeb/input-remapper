@@ -143,7 +143,7 @@ for available symbols.
 
 ```
 xmodmap keyboard_layout
-key-mapper-gtk
+input-remapper-gtk
 ```
 
 "kana_YA" should be in the dropdown of available symbols now. Map it
