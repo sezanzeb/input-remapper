@@ -1,5 +1,5 @@
 # Slovak translation of input-remapper.
-# Copyright (C) 2021.
+# Copyright (C) 2022.
 # This file is distributed under the same license as the input-remapper package.
 # Jose Riha <jose 1711 gmail com>, 2021.
 #
