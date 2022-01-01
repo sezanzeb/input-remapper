@@ -39,6 +39,7 @@ input-remapper is now part of [Debian Unstable](https://packages.debian.org/sid/
 ##### pip
 
 ```bash
+sudo pip uninstall key-mapper
 sudo pip install --no-binary :all: git+https://github.com/sezanzeb/input-remapper.git
 sudo systemctl enable input-remapper
 sudo systemctl restart input-remapper
