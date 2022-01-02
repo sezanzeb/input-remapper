@@ -34,7 +34,7 @@ cd input-remapper && ./scripts/build.sh
 sudo apt install ./dist/input-remapper-1.2.2.deb
 ```
 
-input-remapper is now part of [Debian Unstable](https://packages.debian.org/sid/input-remapper)
+input-remapper is now part of [Debian Unstable](https://packages.debian.org/sid/key-mapper)
 
 ##### pip
 
