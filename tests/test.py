@@ -1,25 +1,25 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
-# key-mapper - GUI for device specific keyboard mappings
-# Copyright (C) 2021 sezanzeb <proxima@sezanzeb.de>
+# input-remapper - GUI for device specific keyboard mappings
+# Copyright (C) 2022 sezanzeb <proxima@sezanzeb.de>
 #
-# This file is part of key-mapper.
+# This file is part of input-remapper.
 #
-# key-mapper is free software: you can redistribute it and/or modify
+# input-remapper is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
-# key-mapper is distributed in the hope that it will be useful,
+# input-remapper is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with key-mapper.  If not, see <https://www.gnu.org/licenses/>.
+# along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
-"""Sets up key-mapper for the tests and runs them."""
+"""Sets up inputremapper for the tests and runs them."""
 import os
 import sys
 
@@ -64,7 +64,7 @@ def grey_log(*msgs):
 def is_service_running():
     """Check if the daemon is running."""
     try:
-        subprocess.check_output(["pgrep", "-f", "key-mapper-service"])
+        subprocess.check_output(["pgrep", "-f", "input-remapper-service"])
         return True
     except subprocess.CalledProcessError:
         return False
@@ -107,7 +107,7 @@ MIN_ABS = -(2 ** 15)
 MAX_ABS = 2 ** 15
 
 
-tmp = "/tmp/key-mapper-test"
+tmp = "/tmp/input-remapper-test"
 uinput_write_history = []
 # for tests that makes the injector create its processes
 uinput_write_history_pipe = multiprocessing.Pipe()
@@ -127,7 +127,7 @@ def read_write_history_pipe():
     return history
 
 
-# key-mapper is only interested in devices that have EV_KEY, add some
+# input-remapper is only interested in devices that have EV_KEY, add some
 # random other stuff to test that they are ignored.
 phys_foo = "usb-0000:03:00.0-1/input2"
 info_foo = evdev.device.DeviceInfo(1, 1, 1, 1)
@@ -215,13 +215,13 @@ fixtures = {
         "info": evdev.device.DeviceInfo(4, 1, 4, 1),
         "name": "Power Button",
     },
-    # key-mapper devices are not displayed in the ui, some instance
-    # of key-mapper started injecting apparently.
+    # input-remapper devices are not displayed in the ui, some instance
+    # of input-remapper started injecting apparently.
     "/dev/input/event40": {
         "capabilities": {evdev.ecodes.EV_KEY: keyboard_keys},
-        "phys": "key-mapper/input1",
+        "phys": "input-remapper/input1",
         "info": evdev.device.DeviceInfo(5, 1, 5, 1),
-        "name": "key-mapper Bar Device",
+        "name": "input-remapper Bar Device",
     },
     # denylisted
     "/dev/input/event51": {
@@ -287,9 +287,9 @@ def new_event(type, code, value, timestamp=None, offset=0):
 
 
 def patch_paths():
-    from keymapper import paths
+    from inputremapper import paths
 
-    paths.CONFIG_PATH = "/tmp/key-mapper-test"
+    paths.CONFIG_PATH = "/tmp/input-remapper-test"
 
 
 class InputDevice:
@@ -516,20 +516,20 @@ patch_events()
 patch_os_system()
 patch_check_output()
 
-from keymapper.logger import update_verbosity
+from inputremapper.logger import update_verbosity
 
 update_verbosity(True)
 
-from keymapper.injection.injector import Injector
-from keymapper.config import config
-from keymapper.gui.reader import reader
-from keymapper.groups import groups
-from keymapper.system_mapping import system_mapping
-from keymapper.gui.custom_mapping import custom_mapping
-from keymapper.paths import get_config_path
-from keymapper.injection.macros.macro import macro_variables
-from keymapper.injection.consumers.keycode_mapper import active_macros, unreleased
-from keymapper.injection.global_uinputs import global_uinputs
+from inputremapper.injection.injector import Injector
+from inputremapper.config import config
+from inputremapper.gui.reader import reader
+from inputremapper.groups import groups
+from inputremapper.system_mapping import system_mapping
+from inputremapper.gui.custom_mapping import custom_mapping
+from inputremapper.paths import get_config_path
+from inputremapper.injection.macros.macro import macro_variables
+from inputremapper.injection.consumers.keycode_mapper import active_macros, unreleased
+from inputremapper.injection.global_uinputs import global_uinputs
 
 # no need for a high number in tests
 Injector.regrab_timeout = 0.05
@@ -642,13 +642,14 @@ def cleanup():
     Using this is slower, usually quick_cleanup() is sufficient.
     """
     print("cleanup")
-    os.system("pkill -f key-mapper-service")
-    os.system("pkill -f key-mapper-control")
+
+    os.system("pkill -f input-remapper-service")
+    os.system("pkill -f input-remapper-control")
     time.sleep(0.05)
 
     quick_cleanup(log=False)
     groups.refresh()
-    with patch.object(sys, "argv", ["key-mapper-service"]):
+    with patch.object(sys, "argv", ["input-remapper-service"]):
         global_uinputs.prepare()
 
 
@@ -685,3 +686,4 @@ def main():
 
     unittest.TextTestResult.startTest = start_test
     unittest.TextTestRunner(verbosity=2).run(testsuite)
+

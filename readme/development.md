@@ -2,8 +2,8 @@
 
 Contributions are very welcome, I will gladly review and discuss any merge
 requests. If you have questions about the code and architecture, feel free
-to [open an issue](https://github.com/sezanzeb/key-mapper/issues). This
-file should give an overview about some internals of key-mapper.
+to [open an issue](https://github.com/sezanzeb/input-remapper/issues). This
+file should give an overview about some internals of input-remapper.
 
 All pull requests will at some point require unittests (see below for more
 info), the code coverage may only be improved, not decreased. It also has to
@@ -47,13 +47,13 @@ be mostly compliant with pylint.
 
 ```bash
 sudo pip install coverage
-pylint keymapper --extension-pkg-whitelist=evdev
-sudo pkill -f key-mapper
+pylint inputremapper --extension-pkg-whitelist=evdev
+sudo pkill -f input-remapper
 sudo pip install . && coverage run tests/test.py
 coverage combine && coverage report -m
 ```
 
-To read events, `evtest` is very helpful. Add `-d` to `key-mapper-gtk`
+To read events, `evtest` is very helpful. Add `-d` to `input-remapper-gtk`
 to get debug output.
 
 Single tests can be executed via
@@ -67,9 +67,9 @@ with the gui, which might make tests fail.
 
 ## Writing Tests
 
-Tests are in https://github.com/sezanzeb/key-mapper/tree/main/tests
+Tests are in https://github.com/sezanzeb/input-remapper/tree/main/tests
 
-https://github.com/sezanzeb/key-mapper/blob/main/tests/test.py patches some modules and runs tests. The tests need
+https://github.com/sezanzeb/input-remapper/blob/main/tests/test.py patches some modules and runs tests. The tests need
 patches because every environment that runs them will be different. By using patches they all look the same to the
 individual tests. Some patches also allow to make some handy assertions, like the `write_history` of `UInput`.
 
@@ -86,7 +86,7 @@ ssh/login into a debian/ubuntu environment
 ./scripts/build.sh
 ```
 
-This will generate `key-mapper/deb/key-mapper-1.2.2.deb`
+This will generate `input-remapper/deb/input-remapper-1.2.2.deb`
 
 ## Badges
 
@@ -102,19 +102,19 @@ just need to be commited.
 
 **gui**
 
-- `bin/key-mapper-gtk` the executable that starts the gui. It also sends
+- `bin/input-remapper-gtk` the executable that starts the gui. It also sends
   messages to the service via dbus if certain buttons are clicked.
-- `bin/key-mapper-helper` provides information to the gui that requires
+- `bin/input-remapper-helper` provides information to the gui that requires
   root rights. Is stopped when the gui closes.
-- `data/key-mapper.policy` configures pkexec. By using auth_admin_keep
+- `data/input-remapper.policy` configures pkexec. By using auth_admin_keep
   the user is not asked multiple times for each task that needs elevated
   rights. This is done instead of granting the whole application root rights
   because it is [considered problematic](https://wiki.archlinux.org/index.php/Running_GUI_applications_as_root).
-- `data/key-mapper.desktop` is the entry in the start menu
+- `data/input-remapper.desktop` is the entry in the start menu
 
 **cli**
 
-- `bin/key-mapper-control` is an executable to send messages to the service
+- `bin/input-remapper-control` is an executable to send messages to the service
   via dbus. It can be used to start and stop injection without a GUI.
   The gui also uses it to run the service (if not already running) and
   helper, because by using one single command for both the polkit rules file
@@ -122,37 +122,37 @@ just need to be commited.
 
 **service**
 
-- `bin/key-mapper-service` executable that starts listening for
+- `bin/input-remapper-service` executable that starts listening for
   commands via dbus and runs the injector when needed. It shouldn't matter how
   it is started as long as it manages to start without throwing errors. It
   usually needs root rights.
-- `data/key-mapper.service` starts key-mapper-service automatically on boot
+- `data/input-remapper.service` starts input-remapper-service automatically on boot
   on distros using systemd.
-- `data/keymapper.Control.conf` is needed to connect to dbus services started
+- `data/inputremapper.Control.conf` is needed to connect to dbus services started
   by systemd from other applications.
 
 **autoload**
 
-- `data/key-mapper-autoload.desktop` executes on login and tells the systemd
+- `data/input-remapper-autoload.desktop` executes on login and tells the systemd
   service to stop injecting (possibly the presets of another user) and to
   inject the users autoloaded presets instead (if any are configured)
-- `data/key-mapper.rules` udev rule that sends a message to the service to
+- `data/input-remapper.rules` udev rule that sends a message to the service to
   start injecting for new devices when they are seen for the first time.
 
 **Example system startup**
 
-1. systemd loads `key-mapper.service` on boot
-2. on login, `key-mapper-autoload.desktop` is executed, which has knowledge 
+1. systemd loads `input-remapper.service` on boot
+2. on login, `input-remapper-autoload.desktop` is executed, which has knowledge 
    of the current user und doesn't run as root  
    2.1 it sends the users config directory to the service  
    2.2 it makes the service stop all ongoing injectings  
    2.3 it tells the service to start loading all of the configured presets
-3. a bluetooth device gets connected, so udev runs `key-mapper.rules` which
+3. a bluetooth device gets connected, so udev runs `input-remapper.rules` which
    tells the service to start injecting for that device if it has a preset
    assigned. Works because step 2 told the service about the current users
    config.
 
-Communication to the service always happens via `key-mapper-control`
+Communication to the service always happens via `input-remapper-control`
 
 ## Permissions
 
@@ -205,20 +205,20 @@ It uses evdev. The links below point to the 1.0.0 release, line numbers might ha
 
 1. It grabs a device (e.g. /dev/input/event3), so that the key events won't
    reach X11/Wayland anymore
-   [source](https://github.com/sezanzeb/key-mapper/blob/1.0.0/keymapper/injection/injector.py#L197)
+   [source](https://github.com/sezanzeb/input-remapper/blob/1.0.0/inputremapper/injection/injector.py#L197)
 2. Reads the events from it (`evtest` can do it, you can also do
    `cat /dev/input/event3` which yields binary stuff)
-   [source](https://github.com/sezanzeb/key-mapper/blob/1.0.0/keymapper/injection/injector.py#L443)
+   [source](https://github.com/sezanzeb/input-remapper/blob/1.0.0/inputremapper/injection/injector.py#L443)
 3. Looks up the mapping if that event maps to anything
-   [source](https://github.com/sezanzeb/key-mapper/blob/1.0.0/keymapper/injection/keycode_mapper.py#L434)
-4. Injects the output event in a new device that key-mapper created (another
+   [source](https://github.com/sezanzeb/input-remapper/blob/1.0.0/inputremapper/injection/keycode_mapper.py#L434)
+4. Injects the output event in a new device that input-remapper created (another
    new path in /dev/input, device name is suffixed by "mapped")
-   [source](https://github.com/sezanzeb/key-mapper/blob/1.0.0/keymapper/injection/keycode_mapper.py#L242),
-   [new device](https://github.com/sezanzeb/key-mapper/blob/1.0.0/keymapper/injection/injector.py#L356)
+   [source](https://github.com/sezanzeb/input-remapper/blob/1.0.0/inputremapper/injection/keycode_mapper.py#L242),
+   [new device](https://github.com/sezanzeb/input-remapper/blob/1.0.0/inputremapper/injection/injector.py#L356)
 5. Forwards any events that should not be mapped to anything in another new
    device (device name is suffixed by "forwarded")
-   [source](https://github.com/sezanzeb/key-mapper/blob/1.0.0/keymapper/injection/keycode_mapper.py#L247),
-   [new device](https://github.com/sezanzeb/key-mapper/blob/1.0.0/keymapper/injection/injector.py#L367)
+   [source](https://github.com/sezanzeb/input-remapper/blob/1.0.0/inputremapper/injection/keycode_mapper.py#L247),
+   [new device](https://github.com/sezanzeb/input-remapper/blob/1.0.0/inputremapper/injection/injector.py#L367)
 
 This stuff is going on as a daemon in the background
 
@@ -231,20 +231,20 @@ a -> x
 a + b -> y
 ```
 
-1. the `a` button is pressed with your finger, `a 1` arrives via evdev in key-mapper
-2. key-mapper maps it to `x 1` and injects it
-3. `b` is pressed with your finger, `b 1` arrives via evdev in key-mapper
-4. key-mapper sees a triggered combination and maps it to `y 1` and injects it
-5. `b` is released, `b 0` arrives at key-mapper
-6. key-mapper remembered that it was the trigger for a combination and maps that release to `y 0` and injects it
-7. the `a` button is released, `a 0` arrives at key-mapper
-8. key-mapper maps that release to `x 0` and injects it
+1. the `a` button is pressed with your finger, `a 1` arrives via evdev in input-remapper
+2. input-remapper maps it to `x 1` and injects it
+3. `b` is pressed with your finger, `b 1` arrives via evdev in input-remapper
+4. input-remapper sees a triggered combination and maps it to `y 1` and injects it
+5. `b` is released, `b 0` arrives at input-remapper
+6. input-remapper remembered that it was the trigger for a combination and maps that release to `y 0` and injects it
+7. the `a` button is released, `a 0` arrives at input-remapper
+8. input-remapper maps that release to `x 0` and injects it
 
 ## Multiple sources, single UInput
 
-https://github.com/sezanzeb/key-mapper/blob/1.0.0/keymapper/injection/injector.py
+https://github.com/sezanzeb/input-remapper/blob/1.0.0/inputremapper/injection/injector.py
 
-This "Injector" process is the only process that injects if key-mapper is used for a single device.
+This "Injector" process is the only process that injects if input-remapper is used for a single device.
 
 Inside `run` of that process there is an iteration of `for source in sources:`,
 which runs an event loop for each possible source for events.
@@ -256,16 +256,16 @@ Consider this typical example of device capabilities:
 - "BrandXY Mouse" -> KEY_1, KEY_2
 
 There are two devices called "BrandXY Mouse", and they report different events.
-Key-mapper creates a single uinput to inject all mapped events to. For example
+Input-remapper creates a single uinput to inject all mapped events to. For example
 
 - BTN_LEFT -> a
 - KEY_2 -> b
 
 so you end up with a new device with the following capabilities
 
-"key-mapper BrandXY Mouse mapped" -> KEY_A, KEY_B
+"input-remapper BrandXY Mouse mapped" -> KEY_A, KEY_B
 
-while key-mapper reads from multiple InputDevices it injects the mapped letters into a single UInput.
+while input-remapper reads from multiple InputDevices it injects the mapped letters into a single UInput.
 
 ## Resources
 

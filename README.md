@@ -1,6 +1,8 @@
-<p align="center"><img src="data/key-mapper.svg" width=100/></p>
+<p align="center"><img src="data/input-remapper.svg" width=100/></p>
 
-<h1 align="center">Key Mapper</h1>
+<h1 align="center">Input Remapper</h1>
+
+<p align="center"><b>Formerly Key Mapper</b></p>
 
 <p align="center">
   An easy to use tool to change the mapping of your input device buttons.<br/>
@@ -17,29 +19,30 @@
 ##### Manjaro/Arch
 
 ```bash
-pacaur -S key-mapper-git
+pacaur -S input-remapper-git
 ```
 
 ##### Ubuntu/Debian
 
-Get a .deb file from the [release page](https://github.com/sezanzeb/key-mapper/releases)
+Get a .deb file from the [release page](https://github.com/sezanzeb/input-remapper/releases)
 or install the latest changes via:
 
 ```bash
 sudo apt install git python3-setuptools gettext
-git clone https://github.com/sezanzeb/key-mapper.git
-cd key-mapper && ./scripts/build.sh
-sudo apt install ./dist/key-mapper-1.2.2.deb
+git clone https://github.com/sezanzeb/input-remapper.git
+cd input-remapper && ./scripts/build.sh
+sudo apt install ./dist/input-remapper-1.2.2.deb
 ```
 
-key-mapper is now part of [Debian Unstable](https://packages.debian.org/sid/key-mapper)
+input-remapper is now part of [Debian Unstable](https://packages.debian.org/sid/key-mapper)
 
 ##### pip
 
 ```bash
-sudo pip install --no-binary :all: git+https://github.com/sezanzeb/key-mapper.git
-sudo systemctl enable key-mapper
-sudo systemctl restart key-mapper
+sudo pip uninstall key-mapper
+sudo pip install --no-binary :all: git+https://github.com/sezanzeb/input-remapper.git
+sudo systemctl enable input-remapper
+sudo systemctl restart input-remapper
 ```
 
 If it doesn't seem to install, you can also try `sudo python3 setup.py install`

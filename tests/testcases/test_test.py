@@ -1,22 +1,22 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
-# key-mapper - GUI for device specific keyboard mappings
-# Copyright (C) 2021 sezanzeb <proxima@sezanzeb.de>
+# input-remapper - GUI for device specific keyboard mappings
+# Copyright (C) 2022 sezanzeb <proxima@sezanzeb.de>
 #
-# This file is part of key-mapper.
+# This file is part of input-remapper.
 #
-# key-mapper is free software: you can redistribute it and/or modify
+# input-remapper is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
-# key-mapper is distributed in the hope that it will be useful,
+# input-remapper is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with key-mapper.  If not, see <https://www.gnu.org/licenses/>.
+# along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
 import os
@@ -27,9 +27,9 @@ import multiprocessing
 import evdev
 from evdev.ecodes import EV_ABS, EV_KEY
 
-from keymapper.groups import groups
-from keymapper.gui.reader import reader
-from keymapper.gui.helper import RootHelper
+from inputremapper.groups import groups
+from inputremapper.gui.reader import reader
+from inputremapper.gui.helper import RootHelper
 
 from tests.test import (
     InputDevice,

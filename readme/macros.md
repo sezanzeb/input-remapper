@@ -1,6 +1,6 @@
 # Macros
 
-key-mapper comes with an optional custom macro language with support for cross-device
+input-remapper comes with an optional custom macro language with support for cross-device
 variables, conditions and named parameters.
 
 Syntax errors are shown in the UI on save. Each `k` function adds a short delay of 10ms

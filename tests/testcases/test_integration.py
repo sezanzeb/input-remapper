@@ -1,22 +1,22 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
-# key-mapper - GUI for device specific keyboard mappings
-# Copyright (C) 2021 sezanzeb <proxima@sezanzeb.de>
+# input-remapper - GUI for device specific keyboard mappings
+# Copyright (C) 2022 sezanzeb <proxima@sezanzeb.de>
 #
-# This file is part of key-mapper.
+# This file is part of input-remapper.
 #
-# key-mapper is free software: you can redistribute it and/or modify
+# input-remapper is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
-# key-mapper is distributed in the hope that it will be useful,
+# input-remapper is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with key-mapper.  If not, see <https://www.gnu.org/licenses/>.
+# along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
 import sys
@@ -46,18 +46,18 @@ import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk, Gdk
 
-from keymapper.system_mapping import system_mapping, XMODMAP_FILENAME
-from keymapper.gui.custom_mapping import custom_mapping
-from keymapper.paths import CONFIG_PATH, get_preset_path, get_config_path
-from keymapper.config import config, WHEEL, MOUSE, BUTTONS
-from keymapper.gui.reader import reader
-from keymapper.injection.injector import RUNNING, FAILED, UNKNOWN
-from keymapper.gui.row import Row, to_string, HOLDING, IDLE
-from keymapper.gui.window import Window
-from keymapper.key import Key
-from keymapper.daemon import Daemon
-from keymapper.groups import groups
-from keymapper.gui.helper import RootHelper
+from inputremapper.system_mapping import system_mapping, XMODMAP_FILENAME
+from inputremapper.gui.custom_mapping import custom_mapping
+from inputremapper.paths import CONFIG_PATH, get_preset_path, get_config_path
+from inputremapper.config import config, WHEEL, MOUSE, BUTTONS
+from inputremapper.gui.reader import reader
+from inputremapper.injection.injector import RUNNING, FAILED, UNKNOWN
+from inputremapper.gui.row import Row, to_string, HOLDING, IDLE
+from inputremapper.gui.window import Window
+from inputremapper.key import Key
+from inputremapper.daemon import Daemon
+from inputremapper.groups import groups
+from inputremapper.gui.helper import RootHelper
 
 from tests.test import (
     tmp,
@@ -89,13 +89,13 @@ Gtk.main_quit = lambda: None
 
 
 def launch(argv=None):
-    """Start key-mapper-gtk with the command line argument array argv."""
-    bin_path = os.path.join(os.getcwd(), "bin", "key-mapper-gtk")
+    """Start input-remapper-gtk with the command line argument array argv."""
+    bin_path = os.path.join(os.getcwd(), "bin", "input-remapper-gtk")
 
     if not argv:
         argv = ["-d"]
 
-    with patch("keymapper.gui.window.Window.setup_timeouts", lambda *args: None):
+    with patch("inputremapper.gui.window.Window.setup_timeouts", lambda *args: None):
         with patch.object(sys, "argv", [""] + [str(arg) for arg in argv]):
             loader = SourceFileLoader("__main__", bin_path)
             spec = spec_from_loader("__main__", loader)
@@ -191,7 +191,7 @@ class TestGroupsFromHelper(unittest.TestCase):
         def os_system(cmd):
             # instead of running pkexec, fork instead. This will make
             # the helper aware of all the test patches
-            if "pkexec key-mapper-control --command helper" in cmd:
+            if "pkexec input-remapper-control --command helper" in cmd:
                 # the forked process should get the initial groups
                 groups.refresh()
                 multiprocessing.Process(target=RootHelper).start()
@@ -219,7 +219,7 @@ class TestGroupsFromHelper(unittest.TestCase):
         os.system = cls.original_os_system
         Daemon.connect = cls.original_connect
 
-    @patch("keymapper.gui.window.Window.on_select_preset")
+    @patch("inputremapper.gui.window.Window.on_select_preset")
     def test_knows_devices(self, on_select_preset_patch):
         # verify that it is working as expected
         gtk_iteration()
@@ -904,7 +904,11 @@ class TestIntegration(unittest.TestCase):
         preset_path = f"{CONFIG_PATH}/presets/Foo Device/asdf.json"
         self.assertTrue(os.path.exists(preset_path))
         self.assertEqual(custom_mapping.get_symbol(Key(EV_KEY, 14, 1)), "b")
+
         # after renaming the preset it is still set to autoload
+        self.assertTrue(config.is_autoloaded("Foo Device", "asdf"))
+        # ALSO IN THE ACTUAL CONFIG FILE!
+        config.load_config()
         self.assertTrue(config.is_autoloaded("Foo Device", "asdf"))
 
         error_icon = self.window.get("error_status_icon")
@@ -1397,12 +1401,12 @@ class TestIntegration(unittest.TestCase):
         self.assertEqual(event.code, keycode_to)
         self.assertEqual(event.value, 0)
 
-        # the key-mapper device will not be shown
+        # the input-remapper device will not be shown
         groups.refresh()
         self.window.populate_devices()
         for entry in self.window.device_store:
-            # whichever attribute contains "key-mapper"
-            self.assertNotIn("key-mapper", "".join(entry))
+            # whichever attribute contains "input-remapper"
+            self.assertNotIn("input-remapper", "".join(entry))
 
     def test_gamepad_purpose_mouse_and_button(self):
         self.window.on_select_device(FakeDeviceDropdown("gamepad"))

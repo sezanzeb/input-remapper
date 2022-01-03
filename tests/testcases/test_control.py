@@ -1,25 +1,25 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
-# key-mapper - GUI for device specific keyboard mappings
-# Copyright (C) 2021 sezanzeb <proxima@sezanzeb.de>
+# input-remapper - GUI for device specific keyboard mappings
+# Copyright (C) 2022 sezanzeb <proxima@sezanzeb.de>
 #
-# This file is part of key-mapper.
+# This file is part of input-remapper.
 #
-# key-mapper is free software: you can redistribute it and/or modify
+# input-remapper is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
-# key-mapper is distributed in the hope that it will be useful,
+# input-remapper is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with key-mapper.  If not, see <https://www.gnu.org/licenses/>.
+# along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
-"""Testing the key-mapper-control command"""
+"""Testing the input-remapper-control command"""
 
 
 import os
@@ -30,21 +30,21 @@ import collections
 from importlib.util import spec_from_loader, module_from_spec
 from importlib.machinery import SourceFileLoader
 
-from keymapper.gui.custom_mapping import custom_mapping
-from keymapper.config import config
-from keymapper.daemon import Daemon
-from keymapper.mapping import Mapping
-from keymapper.paths import get_preset_path
-from keymapper.groups import groups
+from inputremapper.gui.custom_mapping import custom_mapping
+from inputremapper.config import config
+from inputremapper.daemon import Daemon
+from inputremapper.mapping import Mapping
+from inputremapper.paths import get_preset_path
+from inputremapper.groups import groups
 
 from tests.test import quick_cleanup, tmp
 
 
 def import_control():
-    """Import the core function of the key-mapper-control command."""
+    """Import the core function of the input-remapper-control command."""
     custom_mapping.empty()
 
-    bin_path = os.path.join(os.getcwd(), "bin", "key-mapper-control")
+    bin_path = os.path.join(os.getcwd(), "bin", "input-remapper-control")
 
     loader = SourceFileLoader("__not_main_idk__", bin_path)
     spec = spec_from_loader("__not_main_idk__", loader)
@@ -300,13 +300,13 @@ class TestControl(unittest.TestCase):
         with mock.patch("os.system") as os_system_patch:
             internals(options("helper", None, None, None, False, False, False))
             os_system_patch.assert_called_once()
-            self.assertIn("key-mapper-helper", os_system_patch.call_args.args[0])
+            self.assertIn("input-remapper-helper", os_system_patch.call_args.args[0])
             self.assertNotIn("-d", os_system_patch.call_args.args[0])
 
         with mock.patch("os.system") as os_system_patch:
             internals(options("start-daemon", None, None, None, False, False, True))
             os_system_patch.assert_called_once()
-            self.assertIn("key-mapper-service", os_system_patch.call_args.args[0])
+            self.assertIn("input-remapper-service", os_system_patch.call_args.args[0])
             self.assertIn("-d", os_system_patch.call_args.args[0])
 
 
