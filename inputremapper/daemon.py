@@ -45,7 +45,7 @@ from inputremapper.system_mapping import system_mapping
 from inputremapper.groups import groups
 from inputremapper.paths import get_config_path, USER
 from inputremapper.injection.macros.macro import macro_variables
-from keymapper.injection.global_uinputs import global_uinputs
+from inputremapper.injection.global_uinputs import global_uinputs
 
 
 

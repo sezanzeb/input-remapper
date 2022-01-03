@@ -454,7 +454,7 @@ class KeycodeMapper(Consumer):
                         logger.key_spam(key, "releasing (%s, %s)", target_code, target_uinput)
                         global_uinputs.write((target_type, target_code, 0), target_uinput)
                         return
-                    except keymapper.exceptions.Error:
+                    except inputremapper.exceptions.Error:
                         logger.key_spam(key, "could not map")
                         pass
 
@@ -531,7 +531,7 @@ class KeycodeMapper(Consumer):
                     logger.key_spam(key, "maps to (%s, %s)", target_code, target_uinput)
                     global_uinputs.write((EV_KEY, target_code, 1), target_uinput)
                     return
-                except keymapper.exceptions.Error:
+                except inputremapper.exceptions.Error:
                     logger.key_spam(key, "could not map")
                     pass
 

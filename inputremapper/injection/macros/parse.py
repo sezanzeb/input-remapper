@@ -388,7 +388,7 @@ def parse(macro, context=None, return_errors=False):
         macro = handle_plus_syntax(macro)
     except Exception as error:
         logger.error('Failed to parse macro "%s": %s', macro, error.__repr__())
-        # print the traceback in case this is a bug of key-mapper
+        # print the traceback in case this is a bug of input-remapper
         logger.debug("".join(traceback.format_tb(error.__traceback__)).strip())
         return f"{error.__class__.__name__}: {str(error)}" if return_errors else None
 
