@@ -886,25 +886,6 @@ class TestModifyCapabilities(unittest.TestCase):
     def tearDown(self):
         quick_cleanup()
 
-    def test_construct_capabilities(self):
-        self.mapping.change(Key(EV_KEY, 60, 1), "keyboard", self.macro.code)
-
-        self.injector = Injector(groups.find(name="foo"), self.mapping)
-        self.injector.context = Context(self.mapping)
-
-        capabilities = self.injector._construct_capabilities(gamepad=False)
-        self.assertNotIn(EV_ABS, capabilities)
-
-        self.check_keys(capabilities)
-        keys = capabilities[EV_KEY]
-        # mouse capabilities were not present in the fake_device and are
-        # still not needed
-        self.assertNotIn(self.left, keys)
-
-        self.assertNotIn(evdev.ecodes.EV_SYN, capabilities)
-        self.assertNotIn(evdev.ecodes.EV_FF, capabilities)
-        self.assertNotIn(EV_REL, capabilities)
-
     def test_copy_capabilities(self):
         self.mapping.change(Key(EV_KEY, 60, 1), "keyboard", self.macro.code)
 
@@ -926,79 +907,6 @@ class TestModifyCapabilities(unittest.TestCase):
         self.assertListEqual(capabilities[EV_KEY], [1, 2, 3])
         self.assertListEqual(capabilities[EV_REL], [11, 12, 13])
         self.assertEqual(capabilities[EV_ABS][0][1].max, 500)
-
-    def test_construct_capabilities_gamepad(self):
-        self.mapping.change(Key((EV_KEY, 60, 1)), "keyboard", self.macro.code)
-
-        config.set("gamepad.joystick.left_purpose", MOUSE)
-        self.mapping.set("gamepad.joystick.right_purpose", WHEEL)
-
-        self.injector = Injector(groups.find(name="foo"), self.mapping)
-        self.injector.context = Context(self.mapping)
-        self.assertTrue(self.injector.context.maps_joystick())
-        self.assertTrue(self.injector.context.joystick_as_mouse())
-        self.assertFalse(self.injector.context.joystick_as_dpad())
-
-        capabilities = self.injector._construct_capabilities(gamepad=True)
-        self.assertNotIn(EV_ABS, capabilities)
-
-        self.check_keys(capabilities)
-        keys = capabilities[EV_KEY]
-
-        # now that it is told that it is a gamepad, btn_left is inserted
-        # to ensure the operating system interprets it as mouse.
-        self.assertIn(self.left, keys)
-
-    def test_construct_capabilities_gamepad_none_none(self):
-        self.mapping.change(Key(EV_KEY, 60, 1), "keyboard", self.macro.code)
-
-        config.set("gamepad.joystick.left_purpose", NONE)
-        self.mapping.set("gamepad.joystick.right_purpose", NONE)
-
-        self.injector = Injector(groups.find(name="foo"), self.mapping)
-        self.injector.context = Context(self.mapping)
-        self.assertFalse(self.injector.context.maps_joystick())
-        self.assertFalse(self.injector.context.joystick_as_mouse())
-        self.assertFalse(self.injector.context.joystick_as_dpad())
-
-        capabilities = self.injector._construct_capabilities(gamepad=True)
-        self.assertNotIn(EV_ABS, capabilities)
-
-        self.check_keys(capabilities)
-
-    def test_construct_capabilities_gamepad_buttons_buttons(self):
-        self.mapping.change(Key((EV_KEY, 60, 1)), "keyboard", self.macro.code)
-
-        config.set("gamepad.joystick.left_purpose", BUTTONS)
-        self.mapping.set("gamepad.joystick.right_purpose", BUTTONS)
-
-        self.injector = Injector(groups.find(name="foo"), self.mapping)
-        self.injector.context = Context(self.mapping)
-        self.assertTrue(self.injector.context.maps_joystick())
-        self.assertFalse(self.injector.context.joystick_as_mouse())
-        self.assertTrue(self.injector.context.joystick_as_dpad())
-
-        capabilities = self.injector._construct_capabilities(gamepad=True)
-
-        self.check_keys(capabilities)
-        self.assertNotIn(EV_ABS, capabilities)
-        self.assertNotIn(EV_REL, capabilities)
-
-    def test_construct_capabilities_buttons_buttons(self):
-        self.mapping.change(Key(EV_KEY, 60, 1), "keyboard", self.macro.code)
-
-        # those settings shouldn't have an effect with gamepad=False
-        config.set("gamepad.joystick.left_purpose", BUTTONS)
-        self.mapping.set("gamepad.joystick.right_purpose", BUTTONS)
-
-        self.injector = Injector(groups.find(name="foo"), self.mapping)
-        self.injector.context = Context(self.mapping)
-
-        capabilities = self.injector._construct_capabilities(gamepad=False)
-
-        self.check_keys(capabilities)
-        self.assertNotIn(EV_ABS, capabilities)
-        self.assertNotIn(EV_REL, capabilities)
 
 
 if __name__ == "__main__":
