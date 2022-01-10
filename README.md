@@ -31,12 +31,14 @@ or install the latest changes via:
 sudo apt install git python3-setuptools gettext
 git clone https://github.com/sezanzeb/input-remapper.git
 cd input-remapper && ./scripts/build.sh
-sudo apt install ./dist/input-remapper-1.2.2.deb
+sudo apt install ./dist/input-remapper-1.3.0.deb
 ```
 
 input-remapper is now part of [Debian Unstable](https://packages.debian.org/sid/key-mapper)
 
 ##### pip
+
+Dependencies from your distros repo: `gtksourceview4`
 
 ```bash
 sudo pip uninstall key-mapper

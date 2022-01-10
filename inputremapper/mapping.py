@@ -32,11 +32,7 @@ from inputremapper.logger import logger
 from inputremapper.paths import touch
 from inputremapper.config import ConfigBase, config
 from inputremapper.key import Key
-
-
-DISABLE_NAME = "disable"
-
-DISABLE_CODE = -1
+from inputremapper.injection.macros.parse import clean
 
 
 def split_key(key):
@@ -62,7 +58,7 @@ class Mapping(ConfigBase):
 
     def __init__(self):
         self._mapping = {}  # a mapping of Key objects to strings
-        self.changed = False
+        self._changed = False
 
         # are there actually any keys set in the mapping file?
         self.num_saved_keys = 0
@@ -78,12 +74,12 @@ class Mapping(ConfigBase):
 
     def set(self, *args):
         """Set a config value. See `ConfigBase.set`."""
-        self.changed = True
+        self._changed = True
         return super().set(*args)
 
     def remove(self, *args):
         """Remove a config value. See `ConfigBase.remove`."""
-        self.changed = True
+        self._changed = True
         return super().remove(*args)
 
     def change(self, new_key, target, symbol, previous_key=None):
@@ -107,27 +103,45 @@ class Mapping(ConfigBase):
         if not isinstance(new_key, Key):
             raise TypeError(f"Expected {new_key} to be a Key object")
 
-        if symbol is None:
-            raise ValueError("Expected `symbol` not to be None")
-        
-        if target is None:
+        if symbol is None or symbol.strip() == "":
+            raise ValueError("Expected `symbol` not to be empty")
+
+        if target is None or target.strip() == "":
             raise ValueError("Expected `target` not to be None")
         
         target = target.strip()
         symbol = symbol.strip()
         output = (symbol, target)
-        logger.debug(f'{new_key} will map to "{output}"')
+
+        if previous_key is None and self._mapping.get(new_key):
+            # the key didn't change
+            previous_key = new_key
+
+        key_changed = new_key != previous_key
+        if not key_changed and symbol == self._mapping.get(new_key):
+            # nothing was changed, no need to act
+            return
+
         self.clear(new_key)  # this also clears all equivalent keys
+
+        logger.debug('changing %s to "%s"', new_key, clean(symbol))
+
         self._mapping[new_key] = output
 
-        if previous_key is not None:
-            code_changed = new_key != previous_key
-            if code_changed:
-                # clear previous mapping of that code, because the line
-                # representing that one will now represent a different one
-                self.clear(previous_key)
+        if key_changed and previous_key is not None:
+            # clear previous mapping of that code, because the line
+            # representing that one will now represent a different one
+            self.clear(previous_key)
 
-        self.changed = True
+        self._changed = True
+
+    def has_unsaved_changes(self):
+        """Check if there are unsaved changed."""
+        return self._changed
+
+    def set_has_unsaved_changes(self, changed):
+        """Write down if there are unsaved changes, or if they have been saved."""
+        self._changed = changed
 
     def clear(self, key):
         """Remove a keycode from the mapping.
@@ -137,20 +151,20 @@ class Mapping(ConfigBase):
         key : Key
         """
         if not isinstance(key, Key):
-            raise TypeError("Expected key to be a Key object")
+            raise TypeError(f"Expected key to be a Key object but got {key}")
 
         for permutation in key.get_permutations():
             if permutation in self._mapping:
-                logger.debug("%s will be cleared", permutation)
+                logger.debug("%s cleared", permutation)
                 del self._mapping[permutation]
-                self.changed = True
+                self._changed = True
                 # there should be only one variation of the permutations
                 # in the mapping actually
 
     def empty(self):
         """Remove all mappings and custom configs without saving."""
         self._mapping = {}
-        self.changed = True
+        self._changed = True
         self.clear_config()
 
     def load(self, path):
@@ -165,7 +179,8 @@ class Mapping(ConfigBase):
         if not os.path.exists(path):
             raise FileNotFoundError(f'Tried to load non-existing preset "{path}"')
 
-        self.clear_config()
+        self.empty()
+        self._changed = False
 
         with open(path, "r") as file:
             preset_dict = json.load(file)
@@ -207,14 +222,14 @@ class Mapping(ConfigBase):
                     continue
                 self._config[key] = preset_dict[key]
 
-        self.changed = False
+        self._changed = False
         self.num_saved_keys = len(self)
 
     def clone(self):
         """Create a copy of the mapping."""
         mapping = Mapping()
         mapping._mapping = copy.deepcopy(self._mapping)
-        mapping.changed = self.changed
+        mapping.set_has_unsaved_changes(self._changed)
         return mapping
 
     def save(self, path):
@@ -246,7 +261,7 @@ class Mapping(ConfigBase):
             json.dump(preset_dict, file, indent=4)
             file.write("\n")
 
-        self.changed = False
+        self._changed = False
         self.num_saved_keys = len(self)
 
     def get_symbol(self, key):
@@ -257,7 +272,7 @@ class Mapping(ConfigBase):
         key : Key
         """
         if not isinstance(key, Key):
-            raise TypeError("Expected key to be a Key object")
+            raise TypeError(f"Expected key to be a Key object but got {key}")
 
         for permutation in key.get_permutations():
             existing = self._mapping.get(permutation)

@@ -55,8 +55,8 @@ from inputremapper.injection.macros.parse import (
     handle_plus_syntax,
     _count_brackets,
     _split_keyword_arg,
-    _remove_whitespaces,
-    _remove_comments,
+    remove_whitespaces,
+    remove_comments,
 )
 from inputremapper.injection.context import Context
 from inputremapper.config import config
@@ -105,37 +105,37 @@ class TestMacros(MacroTestBase):
             await parse("k(1, b=2, c=3)", self.context).run(self.handler)
             self.assertListEqual(result, [(1, 2, 3, 4), (1, 2, 3, 400)])
 
-    def test_remove_whitespaces(self):
-        self.assertEqual(_remove_whitespaces('foo"bar"foo'), 'foo"bar"foo')
-        self.assertEqual(_remove_whitespaces('foo" bar"foo'), 'foo" bar"foo')
-        self.assertEqual(_remove_whitespaces('foo" bar"fo" "o'), 'foo" bar"fo" "o')
-        self.assertEqual(_remove_whitespaces(' fo o"\nba r "f\noo'), 'foo"\nba r "foo')
-        self.assertEqual(_remove_whitespaces(' a " b " c " '), 'a" b "c" ')
+    def testremove_whitespaces(self):
+        self.assertEqual(remove_whitespaces('foo"bar"foo'), 'foo"bar"foo')
+        self.assertEqual(remove_whitespaces('foo" bar"foo'), 'foo" bar"foo')
+        self.assertEqual(remove_whitespaces('foo" bar"fo" "o'), 'foo" bar"fo" "o')
+        self.assertEqual(remove_whitespaces(' fo o"\nba r "f\noo'), 'foo"\nba r "foo')
+        self.assertEqual(remove_whitespaces(' a " b " c " '), 'a" b "c" ')
 
-        self.assertEqual(_remove_whitespaces('"""""""""'), '"""""""""')
-        self.assertEqual(_remove_whitespaces('""""""""'), '""""""""')
+        self.assertEqual(remove_whitespaces('"""""""""'), '"""""""""')
+        self.assertEqual(remove_whitespaces('""""""""'), '""""""""')
 
-        self.assertEqual(_remove_whitespaces("      "), "")
-        self.assertEqual(_remove_whitespaces('     " '), '" ')
-        self.assertEqual(_remove_whitespaces('     " " '), '" "')
+        self.assertEqual(remove_whitespaces("      "), "")
+        self.assertEqual(remove_whitespaces('     " '), '" ')
+        self.assertEqual(remove_whitespaces('     " " '), '" "')
 
-        self.assertEqual(_remove_whitespaces("a# ##b", delimiter="##"), "a###b")
-        self.assertEqual(_remove_whitespaces("a###b", delimiter="##"), "a###b")
-        self.assertEqual(_remove_whitespaces("a## #b", delimiter="##"), "a## #b")
-        self.assertEqual(_remove_whitespaces("a## ##b", delimiter="##"), "a## ##b")
+        self.assertEqual(remove_whitespaces("a# ##b", delimiter="##"), "a###b")
+        self.assertEqual(remove_whitespaces("a###b", delimiter="##"), "a###b")
+        self.assertEqual(remove_whitespaces("a## #b", delimiter="##"), "a## #b")
+        self.assertEqual(remove_whitespaces("a## ##b", delimiter="##"), "a## ##b")
 
-    def test_remove_comments(self):
-        self.assertEqual(_remove_comments("a#b"), "a")
-        self.assertEqual(_remove_comments('"a#b"'), '"a#b"')
-        self.assertEqual(_remove_comments('a"#"#b'), 'a"#"')
-        self.assertEqual(_remove_comments('a"#""#"#b'), 'a"#""#"')
-        self.assertEqual(_remove_comments('#a"#""#"#b'), "")
+    def testremove_comments(self):
+        self.assertEqual(remove_comments("a#b"), "a")
+        self.assertEqual(remove_comments('"a#b"'), '"a#b"')
+        self.assertEqual(remove_comments('a"#"#b'), 'a"#"')
+        self.assertEqual(remove_comments('a"#""#"#b'), 'a"#""#"')
+        self.assertEqual(remove_comments('#a"#""#"#b'), "")
 
         self.assertEqual(
             re.sub(
                 r"\s",
                 "",
-                _remove_comments(
+                remove_comments(
                     """
             # a
             b
@@ -179,7 +179,7 @@ class TestMacros(MacroTestBase):
         self.assertEqual(_type_check("1", [int, None], "foo", 1), 1)
         self.assertEqual(_type_check(1.2, [str], "foo", 2), "1.2")
 
-        self.assertRaises(TypeError, lambda: _type_check("1.2", [int], "foo", 3), 1.2)
+        self.assertRaises(TypeError, lambda: _type_check("1.2", [int], "foo", 3))
         self.assertRaises(TypeError, lambda: _type_check("a", [None], "foo", 0))
         self.assertRaises(TypeError, lambda: _type_check("a", [int], "foo", 1))
         self.assertRaises(TypeError, lambda: _type_check("a", [int, float], "foo", 2))

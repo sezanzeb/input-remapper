@@ -18,17 +18,37 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-print(
-    "\033[31m"
-    "key-mapper-gtk is deprecated, please use input-remapper-gtk instead"
-    "\033[0m"
-)
 
-from importlib.util import spec_from_loader, module_from_spec
-from importlib.machinery import SourceFileLoader
+from gi.repository import Gtk
 
-bin_path = "/bin/input-remapper-gtk"
-loader = SourceFileLoader("__main__", bin_path)
-spec = spec_from_loader("__main__", loader)
-module = module_from_spec(spec)
-spec.loader.exec_module(module)
+
+# status ctx ids
+CTX_SAVE = 0
+CTX_APPLY = 1
+CTX_KEYCODE = 2
+CTX_ERROR = 3
+CTX_WARNING = 4
+CTX_MAPPING = 5
+
+
+class HandlerDisabled:
+    """Safely modify a widget without causing handlers to be called.
+
+    Use in a with statement.
+    """
+
+    def __init__(self, widget, handler):
+        self.widget = widget
+        self.handler = handler
+
+    def __enter__(self):
+        self.widget.handler_block_by_func(self.handler)
+
+    def __exit__(self, *_):
+        self.widget.handler_unblock_by_func(self.handler)
+
+
+def gtk_iteration():
+    """Iterate while events are pending."""
+    while Gtk.events_pending():
+        Gtk.main_iteration()

@@ -172,6 +172,7 @@ class TestFindPresets(unittest.TestCase):
         path = os.path.join(PRESETS, "Bar Device", "picture.png")
         os.mknod(path)
 
+        os.system("find /tmp/input-remapper-test/")
         self.assertEqual(find_newest_preset(), ("Bar Device", "preset 2"))
 
     def test_find_newest_preset_2(self):

@@ -24,7 +24,11 @@
 
 import itertools
 
+import evdev
 from evdev import ecodes
+
+from inputremapper.system_mapping import system_mapping
+from inputremapper.logger import logger
 
 
 def verify(key):
@@ -162,3 +166,100 @@ class Key:
             permutations.append(Key(*permutation, self.keys[-1]))
 
         return permutations
+
+    def beautify(self):
+        """Get a human readable string representation."""
+        result = []
+
+        for sub_key in self:
+            if isinstance(sub_key[0], tuple):
+                raise Exception("deprecated stuff")
+
+            ev_type, code, value = sub_key
+
+            if ev_type not in evdev.ecodes.bytype:
+                logger.error("Unknown key type for %s", sub_key)
+                result.append(str(code))
+                continue
+
+            if code not in evdev.ecodes.bytype[ev_type]:
+                logger.error("Unknown key code for %s", sub_key)
+                result.append(str(code))
+                continue
+
+            key_name = None
+
+            # first try to find the name in xmodmap to not display wrong
+            # names due to the keyboard layout
+            if ev_type == evdev.ecodes.EV_KEY:
+                key_name = system_mapping.get_name(code)
+
+            if key_name is None:
+                # if no result, look in the linux key constants. On a german
+                # keyboard for example z and y are switched, which will therefore
+                # cause the wrong letter to be displayed.
+                key_name = evdev.ecodes.bytype[ev_type][code]
+                if isinstance(key_name, list):
+                    key_name = key_name[0]
+
+            if ev_type != evdev.ecodes.EV_KEY:
+                direction = {
+                    # D-Pad
+                    (evdev.ecodes.ABS_HAT0X, -1): "Left",
+                    (evdev.ecodes.ABS_HAT0X, 1): "Right",
+                    (evdev.ecodes.ABS_HAT0Y, -1): "Up",
+                    (evdev.ecodes.ABS_HAT0Y, 1): "Down",
+                    (evdev.ecodes.ABS_HAT1X, -1): "Left",
+                    (evdev.ecodes.ABS_HAT1X, 1): "Right",
+                    (evdev.ecodes.ABS_HAT1Y, -1): "Up",
+                    (evdev.ecodes.ABS_HAT1Y, 1): "Down",
+                    (evdev.ecodes.ABS_HAT2X, -1): "Left",
+                    (evdev.ecodes.ABS_HAT2X, 1): "Right",
+                    (evdev.ecodes.ABS_HAT2Y, -1): "Up",
+                    (evdev.ecodes.ABS_HAT2Y, 1): "Down",
+                    # joystick
+                    (evdev.ecodes.ABS_X, 1): "Right",
+                    (evdev.ecodes.ABS_X, -1): "Left",
+                    (evdev.ecodes.ABS_Y, 1): "Down",
+                    (evdev.ecodes.ABS_Y, -1): "Up",
+                    (evdev.ecodes.ABS_RX, 1): "Right",
+                    (evdev.ecodes.ABS_RX, -1): "Left",
+                    (evdev.ecodes.ABS_RY, 1): "Down",
+                    (evdev.ecodes.ABS_RY, -1): "Up",
+                    # wheel
+                    (evdev.ecodes.REL_WHEEL, -1): "Down",
+                    (evdev.ecodes.REL_WHEEL, 1): "Up",
+                    (evdev.ecodes.REL_HWHEEL, -1): "Left",
+                    (evdev.ecodes.REL_HWHEEL, 1): "Right",
+                }.get((code, value))
+                if direction is not None:
+                    key_name += f" {direction}"
+
+            key_name = key_name.replace("ABS_Z", "Trigger Left")
+            key_name = key_name.replace("ABS_RZ", "Trigger Right")
+
+            key_name = key_name.replace("ABS_HAT0X", "DPad")
+            key_name = key_name.replace("ABS_HAT0Y", "DPad")
+            key_name = key_name.replace("ABS_HAT1X", "DPad 2")
+            key_name = key_name.replace("ABS_HAT1Y", "DPad 2")
+            key_name = key_name.replace("ABS_HAT2X", "DPad 3")
+            key_name = key_name.replace("ABS_HAT2Y", "DPad 3")
+
+            key_name = key_name.replace("ABS_X", "Joystick")
+            key_name = key_name.replace("ABS_Y", "Joystick")
+            key_name = key_name.replace("ABS_RX", "Joystick 2")
+            key_name = key_name.replace("ABS_RY", "Joystick 2")
+
+            key_name = key_name.replace("BTN_", "Button ")
+            key_name = key_name.replace("KEY_", "")
+
+            key_name = key_name.replace("REL_", "")
+            key_name = key_name.replace("HWHEEL", "Wheel")
+            key_name = key_name.replace("WHEEL", "Wheel")
+
+            key_name = key_name.replace("_", " ")
+            key_name = key_name.replace("  ", " ")
+
+            result.append(key_name)
+
+        return " + ".join(result)

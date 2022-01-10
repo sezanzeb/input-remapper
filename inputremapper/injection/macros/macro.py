@@ -630,12 +630,12 @@ class Macro:
             self.child_macros.append(otherwise)
 
         async def task(handler):
-            mappable_event_1 = (self._newest_event.type, self._newest_event.code)
+            triggering_event = (self._newest_event.type, self._newest_event.code)
 
             def event_filter(event, action):
-                """Which event may wake if_tap up."""
+                """Which event may wake if_single up."""
                 # release event of the actual key
-                if (event.type, event.code) == mappable_event_1:
+                if (event.type, event.code) == triggering_event:
                     return True
 
                 # press event of another key
@@ -650,9 +650,12 @@ class Macro:
                 else:
                     await coroutine
 
-                mappable_event_2 = (self._newest_event.type, self._newest_event.code)
-                combined = mappable_event_1 != mappable_event_2
-                if not combined:
+                newest_event = (self._newest_event.type, self._newest_event.code)
+                # if newest_event == triggering_event, then no other key was pressed.
+                # if it is !=, then a new key was pressed in the meantime.
+                new_key_pressed = triggering_event != newest_event
+
+                if not new_key_pressed:
                     # no timeout and not combined
                     if then:
                         await then.run(handler)

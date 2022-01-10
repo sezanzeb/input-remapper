@@ -32,7 +32,7 @@ from evdev.ecodes import EV_KEY, EV_ABS
 import inputremapper.exceptions
 
 from inputremapper.logger import logger
-from inputremapper.mapping import DISABLE_CODE
+from inputremapper.system_mapping import DISABLE_CODE
 from inputremapper import utils
 from inputremapper.injection.consumers.consumer import Consumer
 from inputremapper.utils import RELEASE

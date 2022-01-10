@@ -62,7 +62,7 @@ class TestMigrations(unittest.TestCase):
         self.assertTrue(new.startswith("/tmp"))
 
         try:
-            os.rmdir(new)
+            shutil.rmtree(new)
         except FileNotFoundError:
             pass
 

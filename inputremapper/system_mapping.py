@@ -28,10 +28,12 @@ import subprocess
 import evdev
 
 from inputremapper.logger import logger
-from inputremapper.mapping import DISABLE_NAME, DISABLE_CODE
 from inputremapper.paths import get_config_path, touch
 from inputremapper.utils import is_service
 
+DISABLE_NAME = "disable"
+
+DISABLE_CODE = -1
 
 # xkb uses keycodes that are 8 higher than those from evdev
 XKB_KEYCODE_OFFSET = 8
@@ -45,20 +47,25 @@ class SystemMapping:
     def __init__(self):
         """Construct the system_mapping."""
         self._mapping = None
-        self._xmodmap = {}
-        self._case_insensitive_mapping = {}
+        self._xmodmap = None
+        self._case_insensitive_mapping = None
 
-    def __getattribute__(self, key):
+    def __getattribute__(self, wanted):
         """To lazy load system_mapping info only when needed.
 
-        For example, this helps to keep logs of input-remapper-control clear when it doesnt
-        need it the information.
+        For example, this helps to keep logs of input-remapper-control clear when it
+        doesnt need it the information.
         """
-        if key == "_mapping" and object.__getattribute__(self, "_mapping") is None:
-            object.__setattr__(self, "_mapping", {})
-            object.__getattribute__(self, "populate")()
+        lazy_loaded_attributes = ["_mapping", "_xmodmap", "_case_insensitive_mapping"]
+        for lazy_loaded_attribute in lazy_loaded_attributes:
+            if wanted != lazy_loaded_attribute:
+                continue
 
-        return object.__getattribute__(self, key)
+            if object.__getattribute__(self, lazy_loaded_attribute) is None:
+                object.__setattr__(self, lazy_loaded_attribute, {})
+                object.__getattribute__(self, "populate")()
+
+        return object.__getattribute__(self, wanted)
 
     def list_names(self, codes=None):
         """Return a list of all possible names in the mapping, optionally filtered by codes.

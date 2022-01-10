@@ -29,7 +29,7 @@ list entry {
     box-shadow: none;
 }
 
-list button:not(:focus) {
+list.basic-editor button:not(:focus) {
     border-color: transparent;
     background: transparent;
     box-shadow: none;
@@ -43,8 +43,39 @@ list button {
     background-color: #ea9697;
 }
 
+.transparent {
+    background: transparent;
+}
+
+.code-editor-text-view > * {
+    border-radius: 2px;
+}
+
 .copyright {
     font-size: 7pt;
+}
+
+.editor-key-list label {
+    padding: 11px;
+}
+
+.autocompletion label {
+    padding: 11px;
+}
+
+.autocompletion {
+    padding: 0px;
+    box-shadow: none;
+}
+
+.no-border {
+    border: 0px;
+    box-shadow: none;
+}
+
+.code-editor-text-view.multiline {
+  /* extra space between text editor and line numbers */
+  padding-left: 18px;
 }
 
 /* @theme_bg_color, @theme_fg_color */

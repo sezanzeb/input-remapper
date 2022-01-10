@@ -93,13 +93,16 @@ lang_data = []
 for po_file in glob.glob(PO_FILES):
     lang = splitext(basename(po_file))[0]
     lang_data.append(
-        (f"/usr/share/input-remapper/lang/{lang}/LC_MESSAGES", [f"mo/{lang}/input-remapper.mo"])
+        (
+            f"/usr/share/input-remapper/lang/{lang}/LC_MESSAGES",
+            [f"mo/{lang}/input-remapper.mo"],
+        )
     )
 
 
 setup(
     name="input-remapper",
-    version="1.2.2",
+    version="1.3.0",
     description="A tool to change the mapping of your input device buttons",
     author="Sezanzeb",
     author_email="proxima@sezanzeb.de",

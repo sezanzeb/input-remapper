@@ -39,7 +39,7 @@ be mostly compliant with pylint.
 - [x] map keys using a `modifier + modifier + ... + key` syntax
 - [x] inject in an additional device instead to avoid clashing capabilities
 - [x] don't run any GUI code as root for improved wayland compatibility
-- [ ] macro editor with easier to read function names
+- [x] advanced multiline editor
 - [ ] plugin support
 - [x] getting it into the official debian repo
 
@@ -86,7 +86,7 @@ ssh/login into a debian/ubuntu environment
 ./scripts/build.sh
 ```
 
-This will generate `input-remapper/deb/input-remapper-1.2.2.deb`
+This will generate `input-remapper/deb/input-remapper-1.3.0.deb`
 
 ## Badges
 
@@ -274,3 +274,4 @@ while input-remapper reads from multiple InputDevices it injects the mapped lett
 - [python-evdev](https://python-evdev.readthedocs.io/en/stable/)
 - [Python Unix Domain Sockets](https://pymotw.com/2/socket/uds.html)
 - [GNOME HIG](https://developer.gnome.org/hig/stable/)
+- [GtkSource Example](https://github.com/wolfthefallen/py-GtkSourceCompletion-example)

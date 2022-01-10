@@ -58,9 +58,9 @@ from inputremapper.injection.injector import (
     get_udev_name,
 )
 from inputremapper.injection.numlock import is_numlock_on, set_numlock, ensure_numlock
-from inputremapper.system_mapping import system_mapping
+from inputremapper.system_mapping import system_mapping, DISABLE_CODE, DISABLE_NAME
 from inputremapper.gui.custom_mapping import custom_mapping
-from inputremapper.mapping import Mapping, DISABLE_CODE, DISABLE_NAME
+from inputremapper.mapping import Mapping
 from inputremapper.config import config, NONE, MOUSE, WHEEL, BUTTONS
 from inputremapper.key import Key
 from inputremapper.injection.macros.parse import parse
@@ -891,7 +891,7 @@ class TestModifyCapabilities(unittest.TestCase):
 
         # I don't know what ABS_VOLUME is, for now I would like to just always
         # remove it until somebody complains, since its presence broke stuff
-        self.injector = Injector(groups.find(name="foo"), self.mapping)
+        self.injector = Injector(None, self.mapping)
         self.fake_device._capabilities = {
             EV_ABS: [ABS_VOLUME, (ABS_X, evdev.AbsInfo(0, 0, 500, 0, 0, 0))],
             EV_KEY: [1, 2, 3],

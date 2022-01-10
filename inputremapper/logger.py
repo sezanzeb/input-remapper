@@ -162,7 +162,10 @@ except pkg_resources.DistributionNotFound as error:
 def log_info(name="input-remapper"):
     """Log version and name to the console."""
     logger.info(
-        "%s %s %s https://github.com/sezanzeb/input-remapper", name, VERSION, COMMIT_HASH
+        "%s %s %s https://github.com/sezanzeb/input-remapper",
+        name,
+        VERSION,
+        COMMIT_HASH,
     )
 
     if EVDEV_VERSION:
