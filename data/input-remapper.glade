@@ -2,6 +2,7 @@
 <!-- Generated with glade 3.38.2 -->
 <interface>
   <requires lib="gtk+" version="3.22"/>
+  <requires lib="gtksourceview" version="4.0"/>
   <object class="GtkImage" id="about-icon">
     <property name="visible">True</property>
     <property name="can-focus">False</property>
@@ -10,27 +11,120 @@
   <object class="GtkImage" id="check-icon">
     <property name="visible">True</property>
     <property name="can-focus">False</property>
+    <property name="margin-end">2</property>
     <property name="icon-name">dialog-ok</property>
   </object>
   <object class="GtkImage" id="copy-icon">
     <property name="visible">True</property>
     <property name="can-focus">False</property>
+    <property name="margin-end">2</property>
     <property name="icon-name">edit-copy</property>
   </object>
   <object class="GtkImage" id="delete-icon">
     <property name="visible">True</property>
     <property name="can-focus">False</property>
+    <property name="margin-end">2</property>
     <property name="icon-name">edit-delete</property>
   </object>
-  <object class="GtkImage" id="gtk-delete-icon1">
+  <object class="GtkImage" id="delete-icon-1">
     <property name="visible">True</property>
     <property name="can-focus">False</property>
     <property name="icon-name">gtk-delete</property>
   </object>
+  <object class="GtkMessageDialog" id="confirm-delete">
+    <property name="can-focus">False</property>
+    <property name="type-hint">dialog</property>
+    <child internal-child="vbox">
+      <object class="GtkBox" id="error_dialog_lkdjfa">
+        <property name="can-focus">False</property>
+        <property name="orientation">vertical</property>
+        <property name="spacing">1</property>
+        <property name="baseline-position">top</property>
+        <child internal-child="action_area">
+          <object class="GtkButtonBox">
+            <property name="can-focus">False</property>
+            <property name="homogeneous">True</property>
+            <property name="layout-style">expand</property>
+            <child>
+              <object class="GtkButton" id="button1">
+                <property name="label">Delete</property>
+                <property name="use-action-appearance">False</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="image">delete-icon-1</property>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="button2">
+                <property name="label" translatable="yes">Cancel</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="can-default">True</property>
+                <property name="has-default">True</property>
+                <property name="receives-default">True</property>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">True</property>
+            <property name="fill">True</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkLabel" id="confirm-delete-label">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <property name="margin-start">50</property>
+            <property name="margin-end">50</property>
+            <property name="margin-top">32</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">1</property>
+          </packing>
+        </child>
+      </object>
+    </child>
+    <action-widgets>
+      <action-widget response="-3">button1</action-widget>
+      <action-widget response="-6">button2</action-widget>
+    </action-widgets>
+  </object>
+  <object class="GtkImage" id="edit_icon">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <property name="icon-name">input-keyboard</property>
+  </object>
   <object class="GtkImage" id="gtk-redo-icon">
     <property name="visible">True</property>
     <property name="can-focus">False</property>
-    <property name="stock">gtk-redo</property>
+    <property name="margin-end">2</property>
+    <property name="icon-name">edit-undo</property>
+  </object>
+  <object class="GtkImage" id="icon-delete-row">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <property name="margin-end">2</property>
+    <property name="icon-name">window-close</property>
+  </object>
+  <object class="GtkImage" id="image1">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <property name="margin-end">2</property>
+    <property name="icon-name">object-rotate-right</property>
   </object>
   <object class="GtkAdjustment" id="mouse_speed_adjustment">
     <property name="lower">2</property>
@@ -41,6 +135,7 @@
   <object class="GtkImage" id="new-icon">
     <property name="visible">True</property>
     <property name="can-focus">False</property>
+    <property name="margin-end">2</property>
     <property name="icon-name">document-new</property>
   </object>
   <object class="GtkImage" id="save-icon">
@@ -49,13 +144,15 @@
     <property name="icon-name">document-save</property>
   </object>
   <object class="GtkWindow" id="window">
-    <property name="width-request">750</property>
+    <property name="width-request">800</property>
     <property name="can-focus">False</property>
     <property name="title" translatable="yes">Input Remapper</property>
+    <property name="default-width">1000</property>
+    <property name="default-height">450</property>
     <property name="icon">input-remapper.svg</property>
     <signal name="delete-event" handler="on_close" swapped="no"/>
-    <signal name="key-press-event" handler="key_press" swapped="no"/>
-    <signal name="key-release-event" handler="key_release" swapped="no"/>
+    <signal name="key-press-event" handler="on_key_press" swapped="no"/>
+    <signal name="key-release-event" handler="on_key_release" swapped="no"/>
     <child>
       <object class="GtkBox" id="vertical-wrapper">
         <property name="visible">True</property>
@@ -117,12 +214,12 @@
                 </child>
                 <child>
                   <object class="GtkButton" id="apply_system_layout">
-                    <property name="label" translatable="yes">Restore Defaults</property>
+                    <property name="label" translatable="yes">Stop Injection</property>
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
                     <property name="receives-default">True</property>
                     <property name="tooltip-text" translatable="yes">Shortcut: ctrl + del
-To give your keys back their original mapping.</property>
+Gives your keys back their original function</property>
                     <property name="halign">end</property>
                     <property name="image">gtk-redo-icon</property>
                     <property name="always-show-image">True</property>
@@ -139,6 +236,7 @@ To give your keys back their original mapping.</property>
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
                     <property name="receives-default">True</property>
+                    <property name="tooltip-text" translatable="yes">Help</property>
                     <property name="halign">end</property>
                     <property name="image">about-icon</property>
                     <property name="always-show-image">True</property>
@@ -147,7 +245,7 @@ To give your keys back their original mapping.</property>
                   <packing>
                     <property name="expand">False</property>
                     <property name="fill">False</property>
-                    <property name="position">3</property>
+                    <property name="position">5</property>
                   </packing>
                 </child>
               </object>
@@ -211,7 +309,7 @@ To give your keys back their original mapping.</property>
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
                             <property name="receives-default">True</property>
-                            <property name="tooltip-text" translatable="yes">Don't hold down any keys while the injection starts.</property>
+                            <property name="tooltip-text" translatable="yes">Start injecting. Don't hold down any keys while the injection starts</property>
                             <property name="image">check-icon</property>
                             <property name="relief">none</property>
                             <property name="always-show-image">True</property>
@@ -230,6 +328,7 @@ To give your keys back their original mapping.</property>
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
                             <property name="receives-default">True</property>
+                            <property name="tooltip-text" translatable="yes">Duplicate this preset</property>
                             <property name="image">copy-icon</property>
                             <property name="relief">none</property>
                             <property name="always-show-image">True</property>
@@ -248,6 +347,7 @@ To give your keys back their original mapping.</property>
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
                             <property name="receives-default">True</property>
+                            <property name="tooltip-text" translatable="yes">Create a new preset</property>
                             <property name="image">new-icon</property>
                             <property name="relief">none</property>
                             <property name="always-show-image">True</property>
@@ -267,6 +367,7 @@ To give your keys back their original mapping.</property>
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
                             <property name="receives-default">True</property>
+                            <property name="tooltip-text" translatable="yes">Delete this preset</property>
                             <property name="image">delete-icon</property>
                             <property name="relief">none</property>
                             <property name="always-show-image">True</property>
@@ -395,11 +496,11 @@ To give your keys back their original mapping.</property>
                       <object class="GtkBox">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
+                        <property name="tooltip-text" translatable="yes">To automatically apply the preset after your login or when it connects.</property>
                         <child>
                           <object class="GtkLabel">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
-                            <property name="tooltip-text" translatable="yes">To automatically apply the preset after your login or when it connects.</property>
                             <property name="label" translatable="yes">Autoload</property>
                             <property name="xalign">0</property>
                           </object>
@@ -695,18 +796,31 @@ To give your keys back their original mapping.</property>
                 <property name="can-focus">False</property>
                 <property name="orientation">vertical</property>
                 <child>
-                  <object class="GtkBox">
+                  <object class="GtkBox" id="editor">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
                     <child>
-                      <object class="GtkLabel">
-                        <property name="width-request">140</property>
+                      <object class="GtkScrolledWindow">
+                        <property name="width-request">160</property>
                         <property name="visible">True</property>
-                        <property name="can-focus">False</property>
-                        <property name="tooltip-text" translatable="yes">Click on a cell below and hit a key on your device. Click the "Restore Defaults" button beforehand.</property>
-                        <property name="margin-top">5</property>
-                        <property name="margin-bottom">5</property>
-                        <property name="label" translatable="yes">Key</property>
+                        <property name="can-focus">True</property>
+                        <child>
+                          <object class="GtkViewport">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="shadow-type">none</property>
+                            <child>
+                              <object class="GtkListBox" id="selection_label_listbox">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="selection-mode">browse</property>
+                                <style>
+                                  <class name="editor-key-list"/>
+                                </style>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
                       </object>
                       <packing>
                         <property name="expand">False</property>
@@ -715,74 +829,130 @@ To give your keys back their original mapping.</property>
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkLabel">
-                        <property name="visible">True</property>
-                        <property name="can-focus">False</property>
-                        <property name="margin-top">5</property>
-                        <property name="margin-bottom">5</property>
-                        <property name="label" translatable="yes">Mapping</property>
-                      </object>
-                      <packing>
-                        <property name="expand">True</property>
-                        <property name="fill">True</property>
-                        <property name="position">1</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkLabel">
-                        <property name="width-request">50</property>
+                      <object class="GtkSeparator">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
                       </object>
                       <packing>
                         <property name="expand">False</property>
                         <property name="fill">True</property>
-                        <property name="position">2</property>
+                        <property name="position">1</property>
                       </packing>
                     </child>
-                    <style>
-                      <class name="table-header"/>
-                    </style>
-                  </object>
-                  <packing>
-                    <property name="expand">False</property>
-                    <property name="fill">True</property>
-                    <property name="position">0</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkSeparator">
-                    <property name="visible">True</property>
-                    <property name="can-focus">False</property>
-                  </object>
-                  <packing>
-                    <property name="expand">False</property>
-                    <property name="fill">True</property>
-                    <property name="position">1</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkScrolledWindow">
-                    <property name="visible">True</property>
-                    <property name="can-focus">True</property>
                     <child>
-                      <object class="GtkViewport">
+                      <object class="GtkBox">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
+                        <property name="margin-start">18</property>
+                        <property name="margin-end">18</property>
+                        <property name="margin-top">18</property>
+                        <property name="margin-bottom">18</property>
+                        <property name="orientation">vertical</property>
+                        <property name="spacing">18</property>
                         <child>
-                          <object class="GtkListBox" id="key_list">
+                          <object class="GtkBox" id="editor-controls">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
-                            <property name="selection-mode">none</property>
+                            <property name="spacing">12</property>
+                            <child>
+                              <object class="GtkToggleButton" id="key_recording_toggle">
+                                <property name="label" translatable="yes">Change Key</property>
+                                <property name="width-request">100</property>
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="receives-default">True</property>
+                                <property name="tooltip-text" translatable="yes">Record a button of your device that should be remapped</property>
+                                <property name="image">image1</property>
+                                <property name="relief">none</property>
+                                <property name="always-show-image">True</property>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkLabel">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                              </object>
+                              <packing>
+                                <property name="expand">True</property>
+                                <property name="fill">True</property>
+                                <property name="position">1</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkButton" id="delete-mapping">
+                                <property name="label" translatable="yes">Delete</property>
+                                <property name="width-request">80</property>
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="receives-default">True</property>
+                                <property name="tooltip-text" translatable="yes">Delete this entry</property>
+                                <property name="image">icon-delete-row</property>
+                                <property name="relief">none</property>
+                                <property name="always-show-image">True</property>
+                                <style>
+                                  <class name="delete-mapping-button"/>
+                                </style>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">2</property>
+                              </packing>
+                            </child>
                           </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkScrolledWindow" id="code_editor_container">
+                            <property name="visible">True</property>
+                            <property name="can-focus">True</property>
+                            <child>
+                              <object class="GtkSourceView" id="code_editor">
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="valign">start</property>
+                                <property name="resize-mode">immediate</property>
+                                <property name="wrap-mode">word</property>
+                                <property name="left-margin">10</property>
+                                <property name="right-margin">10</property>
+                                <property name="top-margin">10</property>
+                                <property name="bottom-margin">10</property>
+                                <property name="monospace">True</property>
+                                <property name="tab-width">2</property>
+                                <property name="auto-indent">True</property>
+                                <style>
+                                  <class name="code-editor-text-view"/>
+                                </style>
+                              </object>
+                            </child>
+                          </object>
+                          <packing>
+                            <property name="expand">True</property>
+                            <property name="fill">True</property>
+                            <property name="position">1</property>
+                          </packing>
                         </child>
                       </object>
+                      <packing>
+                        <property name="expand">True</property>
+                        <property name="fill">True</property>
+                        <property name="position">2</property>
+                      </packing>
                     </child>
                   </object>
                   <packing>
                     <property name="expand">True</property>
                     <property name="fill">True</property>
-                    <property name="position">2</property>
+                    <property name="position">0</property>
                   </packing>
                 </child>
               </object>
@@ -1087,237 +1257,5 @@ Macros allow multiple characters to be written with a single key-press. Informat
         </child>
       </object>
     </child>
-  </object>
-  <object class="GtkDialog" id="confirm-delete">
-    <property name="can-focus">False</property>
-    <property name="border-width">4</property>
-    <property name="title" translatable="yes">Input Remapper</property>
-    <property name="modal">True</property>
-    <property name="icon">input-remapper.svg</property>
-    <property name="type-hint">dialog</property>
-    <property name="urgency-hint">True</property>
-    <property name="transient-for">window</property>
-    <property name="attached-to">window</property>
-    <child internal-child="vbox">
-      <object class="GtkBox">
-        <property name="visible">True</property>
-        <property name="can-focus">False</property>
-        <property name="orientation">vertical</property>
-        <child internal-child="action_area">
-          <object class="GtkButtonBox">
-            <property name="visible">True</property>
-            <property name="can-focus">False</property>
-            <property name="halign">end</property>
-            <property name="margin-top">6</property>
-            <property name="layout-style">end</property>
-            <child>
-              <object class="GtkButton" id="go_ahead1">
-                <property name="label" translatable="yes">Go Back</property>
-                <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="receives-default">True</property>
-              </object>
-              <packing>
-                <property name="expand">True</property>
-                <property name="fill">True</property>
-                <property name="position">0</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkButton" id="go_back1">
-                <property name="label">Delete</property>
-                <property name="use-action-appearance">False</property>
-                <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="can-default">True</property>
-                <property name="receives-default">False</property>
-                <property name="image">gtk-delete-icon1</property>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">False</property>
-                <property name="position">1</property>
-              </packing>
-            </child>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="pack-type">end</property>
-            <property name="position">0</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkBox">
-            <property name="visible">True</property>
-            <property name="can-focus">False</property>
-            <child>
-              <object class="GtkImage" id="error-image2">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="margin-right">6</property>
-                <property name="margin-end">6</property>
-                <property name="yalign">0</property>
-                <property name="icon-name">dialog-warning</property>
-                <property name="icon_size">6</property>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">False</property>
-                <property name="position">0</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkLabel" id="confirm-delete-label">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="margin-left">6</property>
-                <property name="margin-right">6</property>
-                <property name="margin-start">6</property>
-                <property name="margin-end">6</property>
-                <property name="ypad">6</property>
-                <property name="use-markup">True</property>
-                <property name="xalign">0</property>
-                <property name="yalign">0.5</property>
-              </object>
-              <packing>
-                <property name="expand">True</property>
-                <property name="fill">True</property>
-                <property name="position">1</property>
-              </packing>
-            </child>
-          </object>
-          <packing>
-            <property name="expand">True</property>
-            <property name="fill">True</property>
-            <property name="position">2</property>
-          </packing>
-        </child>
-      </object>
-    </child>
-    <action-widgets>
-      <action-widget response="-6">go_ahead1</action-widget>
-      <action-widget response="-3">go_back1</action-widget>
-    </action-widgets>
-  </object>
-  <object class="GtkDialog" id="error_dialog">
-    <property name="can-focus">False</property>
-    <property name="border-width">4</property>
-    <property name="title" translatable="yes">Input Remapper</property>
-    <property name="modal">True</property>
-    <property name="icon">input-remapper.svg</property>
-    <property name="type-hint">dialog</property>
-    <property name="urgency-hint">True</property>
-    <property name="transient-for">window</property>
-    <property name="attached-to">window</property>
-    <child internal-child="vbox">
-      <object class="GtkBox">
-        <property name="visible">True</property>
-        <property name="can-focus">False</property>
-        <property name="orientation">vertical</property>
-        <child internal-child="action_area">
-          <object class="GtkButtonBox">
-            <property name="visible">True</property>
-            <property name="can-focus">False</property>
-            <property name="halign">center</property>
-            <property name="margin-top">6</property>
-            <property name="layout-style">end</property>
-            <child>
-              <object class="GtkButton" id="close_error_dialog">
-                <property name="label">gtk-close</property>
-                <property name="use-action-appearance">False</property>
-                <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="can-default">True</property>
-                <property name="receives-default">False</property>
-                <property name="use-stock">True</property>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">False</property>
-                <property name="position">0</property>
-              </packing>
-            </child>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="pack-type">end</property>
-            <property name="position">0</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkBox">
-            <property name="visible">True</property>
-            <property name="can-focus">False</property>
-            <child>
-              <object class="GtkImage" id="error-image">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="margin-end">6</property>
-                <property name="yalign">0</property>
-                <property name="icon-name">dialog-error</property>
-                <property name="icon_size">6</property>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">False</property>
-                <property name="position">0</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkBox">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="margin-end">6</property>
-                <property name="orientation">vertical</property>
-                <child>
-                  <object class="GtkLabel" id="primary_error_label">
-                    <property name="visible">True</property>
-                    <property name="can-focus">False</property>
-                    <property name="ypad">6</property>
-                    <property name="use-markup">True</property>
-                    <property name="xalign">0</property>
-                  </object>
-                  <packing>
-                    <property name="expand">False</property>
-                    <property name="fill">False</property>
-                    <property name="position">0</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkLabel" id="secondary_error_label">
-                    <property name="visible">True</property>
-                    <property name="can-focus">False</property>
-                    <property name="ypad">6</property>
-                    <property name="use-markup">True</property>
-                    <property name="xalign">0</property>
-                    <property name="yalign">0</property>
-                  </object>
-                  <packing>
-                    <property name="expand">True</property>
-                    <property name="fill">True</property>
-                    <property name="position">1</property>
-                  </packing>
-                </child>
-              </object>
-              <packing>
-                <property name="expand">True</property>
-                <property name="fill">True</property>
-                <property name="position">1</property>
-              </packing>
-            </child>
-          </object>
-          <packing>
-            <property name="expand">True</property>
-            <property name="fill">True</property>
-            <property name="position">2</property>
-          </packing>
-        </child>
-      </object>
-    </child>
-    <action-widgets>
-      <action-widget response="-7">close_error_dialog</action-widget>
-    </action-widgets>
   </object>
 </interface>

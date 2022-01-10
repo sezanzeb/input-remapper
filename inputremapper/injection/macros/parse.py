@@ -83,6 +83,18 @@ def use_safe_argument_names(keyword_args):
             del keyword_args[built_in]
 
 
+def get_macro_argument_names(function):
+    """Certain names, like "else" or "type" cannot be used as parameters in python.
+
+    Removes the "_" in from of them for displaying them correctly.
+    """
+    # don't include "self"
+    return [
+        name[1:] if name.startswith("_") else name
+        for name in inspect.getfullargspec(function).args[1:]
+    ]
+
+
 def get_num_parameters(function):
     """Get the number of required parameters and the maximum number of parameters."""
     fullargspec = inspect.getfullargspec(function)
@@ -224,8 +236,10 @@ def _parse_recurse(code, context, macro_instance=None, depth=0):
     call = call_match[1] if call_match else None
     if call is not None:
         if macro_instance is None:
+            # start a new chain
             macro_instance = Macro(code, context)
         else:
+            # chain this call to the existing instance
             assert isinstance(macro_instance, Macro)
 
         function = FUNCTIONS.get(call)
@@ -324,7 +338,7 @@ def handle_plus_syntax(macro):
     return output
 
 
-def _remove_whitespaces(macro, delimiter='"'):
+def remove_whitespaces(macro, delimiter='"'):
     """Remove whitespaces, tabs, newlines and such outside of string quotes."""
     result = ""
     for i, chunk in enumerate(macro.split(delimiter)):
@@ -339,7 +353,7 @@ def _remove_whitespaces(macro, delimiter='"'):
     return result[: -len(delimiter)]
 
 
-def _remove_comments(macro):
+def remove_comments(macro):
     """Remove comments from the macro and return the resulting code."""
     # keep hashtags inside quotes intact
     result = ""
@@ -364,6 +378,11 @@ def _remove_comments(macro):
     return result
 
 
+def clean(code):
+    """Remove everything irrelevant for the macro."""
+    return remove_whitespaces(remove_comments(code), '"')
+
+
 def parse(macro, context, return_errors=False):
     """parse and generate a Macro that can be run as often as you want.
 
@@ -383,9 +402,7 @@ def parse(macro, context, return_errors=False):
     """
     macro = handle_plus_syntax(macro)
 
-    macro = _remove_comments(macro)
-
-    macro = _remove_whitespaces(macro, '"')
+    macro = clean(macro)
 
     if return_errors:
         logger.spam("checking the syntax of %s", macro)

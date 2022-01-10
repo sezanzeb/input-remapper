@@ -93,7 +93,10 @@ lang_data = []
 for po_file in glob.glob(PO_FILES):
     lang = splitext(basename(po_file))[0]
     lang_data.append(
-        (f"/usr/share/input-remapper/lang/{lang}/LC_MESSAGES", [f"mo/{lang}/input-remapper.mo"])
+        (
+            f"/usr/share/input-remapper/lang/{lang}/LC_MESSAGES",
+            [f"mo/{lang}/input-remapper.mo"],
+        )
     )
 
 

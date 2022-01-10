@@ -40,6 +40,7 @@ import gi
 
 gi.require_version("Gtk", "3.0")
 gi.require_version("GLib", "2.0")
+gi.require_version("GtkSource", "4")
 
 from xmodmap import xmodmap
 
@@ -590,13 +591,13 @@ def quick_cleanup(log=True):
 
     config.path = os.path.join(get_config_path(), "config.json")
     config.clear_config()
-    config.save_config()
+    config._save_config()
 
     system_mapping.populate()
 
     custom_mapping.empty()
     custom_mapping.clear_config()
-    custom_mapping.changed = False
+    custom_mapping.set_has_unsaved_changes(False)
 
     clear_write_history()
 
@@ -656,7 +657,7 @@ def main():
     # so provide both options.
     if len(modules) > 0:
         # for example
-        # `tests/test.py test_integration.TestIntegration.test_can_start`
+        # `tests/test.py test_integration.TestGui.test_can_start`
         # or `tests/test.py test_integration test_daemon`
         testsuite = unittest.defaultTestLoader.loadTestsFromNames(
             [f"testcases.{module}" for module in modules]

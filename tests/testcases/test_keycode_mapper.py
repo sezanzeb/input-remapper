@@ -46,7 +46,8 @@ from inputremapper.injection.macros.parse import parse
 from inputremapper.injection.context import Context
 from inputremapper.utils import RELEASE, PRESS
 from inputremapper.config import config, BUTTONS
-from inputremapper.mapping import Mapping, DISABLE_CODE
+from inputremapper.mapping import Mapping
+from inputremapper.system_mapping import DISABLE_CODE
 
 from tests.test import (
     new_event,

@@ -549,29 +549,29 @@ class TestReader(unittest.TestCase):
         time.sleep(EVENT_READ_TIMEOUT * 3)
         self.assertFalse(reader._results.poll())
 
-    def test_are_new_devices_available(self):
+    def test_are_new_groups_available(self):
         self.create_helper()
         groups.set_groups({})
 
         # read stuff from the helper, which includes the devices
-        self.assertFalse(reader.are_new_devices_available())
+        self.assertFalse(reader.are_new_groups_available())
         reader.read()
 
-        self.assertTrue(reader.are_new_devices_available())
+        self.assertTrue(reader.are_new_groups_available())
         # a bit weird, but it assumes the gui handled that and returns
         # false afterwards
-        self.assertFalse(reader.are_new_devices_available())
+        self.assertFalse(reader.are_new_groups_available())
 
         # send the same devices again
         reader._get_event({"type": "groups", "message": groups.dumps()})
-        self.assertFalse(reader.are_new_devices_available())
+        self.assertFalse(reader.are_new_groups_available())
 
         # send changed devices
         message = groups.dumps()
         message = message.replace("Foo Device", "foo_device")
         reader._get_event({"type": "groups", "message": message})
-        self.assertTrue(reader.are_new_devices_available())
-        self.assertFalse(reader.are_new_devices_available())
+        self.assertTrue(reader.are_new_groups_available())
+        self.assertFalse(reader.are_new_groups_available())
 
 
 if __name__ == "__main__":

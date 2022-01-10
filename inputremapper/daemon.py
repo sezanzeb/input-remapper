@@ -338,9 +338,8 @@ class Daemon:
             return
 
         if not isinstance(preset, str):
-            # might be broken due to a previous bug
-            config.remove(["autoload", group.key])
-            config.save_config()
+            # maybe another dict or something, who knows. Broken config
+            logger.error("Expected a string for autoload, but got %s", preset)
             return
 
         logger.info('Autoloading for "%s"', group.key)

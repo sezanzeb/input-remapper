@@ -33,6 +33,7 @@ from argparse import ArgumentParser
 import gi
 gi.require_version('Gtk', '3.0')
 gi.require_version('GLib', '2.0')
+gi.require_version('GtkSource', '4')
 from gi.repository import Gtk
 
 APP_NAME = 'input-remapper'
@@ -65,21 +66,20 @@ if __name__ == '__main__':
     logger.debug('Using locale directory: {}'.format(LOCALE_DIR))
 
     # import input-remapper stuff after setting the log verbosity
-    from inputremapper.gui.window import Window
+    from inputremapper.gui.user_interface import UserInterface
     from inputremapper.daemon import Daemon
     from inputremapper.daemon import config
 
     config.load_config()
 
-    window = Window()
+    user_interface = UserInterface()
 
     def stop():
-        if isinstance(window.dbus, Daemon):
-            # it created its own temporary daemon inside the process
-            # because none was running
-            window.dbus.stop_all()
+        if isinstance(user_interface.dbus, Daemon):
+            # have fun debugging completely unrelated tests if you remove this
+            user_interface.dbus.stop_all()
 
-        window.on_close()
+        user_interface.on_close()
 
     atexit.register(stop)
 

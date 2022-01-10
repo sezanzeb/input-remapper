@@ -19,7 +19,7 @@ can be found [below](#key-names-and-macros).
 
 Changes are saved automatically. Afterwards press the "Apply" button.
 
-To change the mapping, you need to use the "Restore Defaults" button, so that
+To change the mapping, you need to use the "Stop Injection" button, so that
 the application can read the original keycode. It would otherwise be
 invisible since the daemon maps it independently of the GUI.
 

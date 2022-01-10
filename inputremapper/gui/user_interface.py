@@ -24,14 +24,16 @@
 
 import math
 import os
+import re
 import sys
 
-from gi.repository import Gtk, Gdk, GLib
+from gi.repository import Gtk, GtkSource, Gdk, GLib, GObject
 
 from inputremapper.data import get_data_path
 from inputremapper.paths import get_config_path
 from inputremapper.system_mapping import system_mapping
 from inputremapper.gui.custom_mapping import custom_mapping
+from inputremapper.gui.utils import HandlerDisabled
 from inputremapper.presets import (
     find_newest_preset,
     get_presets,
@@ -49,7 +51,7 @@ from inputremapper.groups import (
     TOUCHPAD,
     MOUSE,
 )
-from inputremapper.gui.row import Row, to_string
+from inputremapper.gui.editor.editor import Editor
 from inputremapper.key import Key
 from inputremapper.gui.reader import reader
 from inputremapper.gui.helper import is_helper_running
@@ -57,19 +59,21 @@ from inputremapper.injection.injector import RUNNING, FAILED, NO_GRAB
 from inputremapper.daemon import Daemon
 from inputremapper.config import config
 from inputremapper.injection.macros.parse import is_this_a_macro, parse
+from inputremapper.gui.utils import (
+    CTX_ERROR,
+    CTX_MAPPING,
+    CTX_APPLY,
+    CTX_WARNING,
+    gtk_iteration,
+)
 
 
-def gtk_iteration():
-    """Iterate while events are pending."""
-    while Gtk.events_pending():
-        Gtk.main_iteration()
+# TODO add to .deb and AUR dependencies
+# https://cjenkins.wordpress.com/2012/05/08/use-gtksourceview-widget-in-glade/
+GObject.type_register(GtkSource.View)
+# GtkSource.View() also works:
+# https://stackoverflow.com/questions/60126579/gtk-builder-error-quark-invalid-object-type-webkitwebview
 
-
-CTX_SAVE = 0
-CTX_APPLY = 1
-CTX_ERROR = 3
-CTX_WARNING = 4
-CTX_MAPPING = 5
 
 CONTINUE = True
 GO_BACK = False
@@ -87,45 +91,28 @@ ICON_NAMES = {
 ICON_PRIORITIES = [GRAPHICS_TABLET, TOUCHPAD, GAMEPAD, MOUSE, KEYBOARD, UNKNOWN]
 
 
-def with_group(func):
+def if_group_selected(func):
     """Decorate a function to only execute if a device is selected."""
     # this should only happen if no device was found at all
-    def wrapped(window, *args):
-        if window.group is None:
+    def wrapped(self, *args, **kwargs):
+        if self.group is None:
             return True  # work with timeout_add
 
-        return func(window, *args)
+        return func(self, *args, **kwargs)
 
     return wrapped
 
 
-def with_preset_name(func):
+def if_preset_selected(func):
     """Decorate a function to only execute if a preset is selected."""
     # this should only happen if no device was found at all
-    def wrapped(window, *args):
-        if window.preset_name is None or window.group is None:
+    def wrapped(self, *args, **kwargs):
+        if self.preset_name is None or self.group is None:
             return True  # work with timeout_add
 
-        return func(window, *args)
+        return func(self, *args, **kwargs)
 
     return wrapped
-
-
-class HandlerDisabled:
-    """Safely modify a widget without causing handlers to be called.
-
-    Use in a with statement.
-    """
-
-    def __init__(self, widget, handler):
-        self.widget = widget
-        self.handler = handler
-
-    def __enter__(self):
-        self.widget.handler_block_by_func(self.handler)
-
-    def __exit__(self, *_):
-        self.widget.handler_unblock_by_func(self.handler)
 
 
 def on_close_about(about, _):
@@ -134,8 +121,20 @@ def on_close_about(about, _):
     return True
 
 
-class Window:
-    """User Interface."""
+def ensure_everything_saved(func):
+    """Make sure the editor has written its changes to custom_mapping and save."""
+
+    def wrapped(self, *args, **kwargs):
+        if self.preset_name:
+            self.editor.gather_changes_and_save()
+
+        return func(self, *args, **kwargs)
+
+    return wrapped
+
+
+class UserInterface:
+    """The key mapper gtk window."""
 
     def __init__(self):
         self.dbus = None
@@ -161,6 +160,8 @@ class Window:
         builder.connect_signals(self)
         self.builder = builder
 
+        self.editor = Editor(self)
+
         # set up the device selection
         # https://python-gtk-3-tutorial.readthedocs.io/en/latest/treeview.html#the-view
         combobox = self.get("device_selection")
@@ -183,7 +184,8 @@ class Window:
         self.about.set_position(Gtk.WindowPosition.CENTER_ON_PARENT)
 
         self.get("version-label").set_text(
-            f"input-remapper {VERSION} {COMMIT_HASH[:7]}" f"\npython-evdev {EVDEV_VERSION}"
+            f"input-remapper {VERSION} {COMMIT_HASH[:7]}"
+            f"\npython-evdev {EVDEV_VERSION}"
             if EVDEV_VERSION
             else ""
         )
@@ -221,7 +223,6 @@ class Window:
     def setup_timeouts(self):
         """Setup all GLib timeouts."""
         self.timeouts = [
-            GLib.timeout_add(100, self.check_add_row),
             GLib.timeout_add(1000 / 30, self.consume_newest_keycode),
         ]
 
@@ -250,13 +251,13 @@ class Window:
         self.confirm_delete.hide()
         return response
 
-    def key_press(self, _, event):
+    def on_key_press(self, _, event):
         """To execute shortcuts.
 
         This has nothing to do with the keycode reader.
         """
-        _, focused = self.get_focused_row()
-        if isinstance(focused, Gtk.ToggleButton):
+        if self.editor.is_waiting_for_input():
+            # don't perform shortcuts while keys are being recorded
             return
 
         gdk_keycode = event.get_keyval()[1]
@@ -275,7 +276,7 @@ class Window:
             if gdk_keycode == Gdk.KEY_Delete:
                 self.on_restore_defaults_clicked()
 
-    def key_release(self, _, event):
+    def on_key_release(self, _, event):
         """To execute shortcuts.
 
         This has nothing to do with the keycode reader.
@@ -316,10 +317,10 @@ class Window:
         """Get a widget from the window"""
         return self.builder.get_object(name)
 
+    @ensure_everything_saved
     def on_close(self, *_):
         """Safely close the application."""
         logger.debug("Closing window")
-        self.save_preset()
         self.window.hide()
         for timeout in self.timeouts:
             GLib.source_remove(timeout)
@@ -327,46 +328,16 @@ class Window:
         reader.terminate()
         Gtk.main_quit()
 
-    def check_add_row(self):
-        """Ensure that one empty row is available at all times."""
-        rows = self.get("key_list").get_children()
-
-        # verify that all mappings are displayed.
-        # One of them is possibly the empty row
-        num_rows = len(rows)
-        num_maps = len(custom_mapping)
-        if num_rows < num_maps or num_rows > num_maps + 1:
-            logger.error(
-                "custom_mapping contains %d rows, but %d are displayed",
-                len(custom_mapping),
-                num_rows,
-            )
-            logger.spam("Mapping %s", list(custom_mapping))
-            logger.spam(
-                "Rows    %s", [(row.get_key(), row.get_symbol()) for row in rows]
-            )
-
-        # iterating over that 10 times per second is a bit wasteful,
-        # but the old approach which involved just counting the number of
-        # mappings and rows didn't seem very robust.
-        for row in rows:
-            if row.get_key() is None or row.get_symbol() is None:
-                # unfinished row found
-                break
-        else:
-            self.add_empty()
-
-        return True
-
+    @ensure_everything_saved
     def select_newest_preset(self):
         """Find and select the newest preset (and its device)."""
-        device, preset = find_newest_preset()
-        group = groups.find(name=device)
-        if device is not None:
-            self.get("device_selection").set_active_id(group.key)
+        group_name, preset = find_newest_preset()
+        if group_name is not None:
+            self.get("device_selection").set_active_id(group_name)
         if preset is not None:
             self.get("preset_selection").set_active_id(preset)
 
+    @ensure_everything_saved
     def populate_devices(self):
         """Make the devices selectable."""
         device_selection = self.get("device_selection")
@@ -385,7 +356,8 @@ class Window:
 
         self.select_newest_preset()
 
-    @with_group
+    @if_group_selected
+    @ensure_everything_saved
     def populate_presets(self):
         """Show the available presets for the selected device.
 
@@ -410,14 +382,9 @@ class Window:
 
         for preset in presets:
             preset_selection.append(preset, preset)
+
         # and select the newest one (on the top). triggers on_select_preset
         preset_selection.set_active(0)
-
-    def clear_mapping_table(self):
-        """Remove all rows from the mappings table."""
-        key_list = self.get("key_list")
-        key_list.forall(key_list.remove)
-        custom_mapping.empty()
 
     def can_modify_mapping(self, *_):
         """Show a message if changing the mapping is not possible."""
@@ -427,23 +394,7 @@ class Window:
         # because the device is in grab mode by the daemon and
         # therefore the original keycode inaccessible
         logger.info("Cannot change keycodes while injecting")
-        self.show_status(CTX_ERROR, 'Use "Restore Defaults" to stop before editing')
-
-    def get_focused_row(self):
-        """Get the Row and its child that is currently in focus."""
-        focused = self.window.get_focus()
-        if focused is None:
-            return None, None
-
-        box = focused.get_parent()
-        if box is None:
-            return None, None
-
-        row = box.get_parent()
-        if not isinstance(row, Row):
-            return None, None
-
-        return row, focused
+        self.show_status(CTX_ERROR, 'Use "Stop Injection" to stop before editing')
 
     def consume_newest_keycode(self):
         """To capture events from keyboards, mice and gamepads."""
@@ -456,32 +407,14 @@ class Window:
         # they have already been read.
         key = reader.read()
 
-        if reader.are_new_devices_available():
+        if reader.are_new_groups_available():
             self.populate_devices()
 
-        # TODO highlight if a row for that key exists or something
-
-        # inform the currently selected row about the new keycode
-        row, focused = self.get_focused_row()
-        if key is not None:
-            if isinstance(focused, Gtk.ToggleButton):
-                row.set_new_key(key)
-
-            if key.is_problematic() and isinstance(focused, Gtk.ToggleButton):
-                self.show_status(
-                    CTX_WARNING,
-                    "ctrl, alt and shift may not combine properly",
-                    "Your system might reinterpret combinations "
-                    + "with those after they are injected, and by doing so "
-                    + "break them.",
-                )
-
-        if row is not None:
-            row.refresh_state()
+        self.editor.consume_newest_keycode(key)
 
         return True
 
-    @with_group
+    @if_group_selected
     def on_restore_defaults_clicked(self, *_):
         """Stop injecting the mapping."""
         self.dbus.stop_injecting(self.group.key)
@@ -519,8 +452,9 @@ class Window:
             if context_id == CTX_WARNING:
                 self.get("warning_status_icon").show()
 
-            if len(message) > 55:
-                message = message[:52] + "..."
+            max_length = 45
+            if len(message) > max_length:
+                message = message[: max_length - 3] + "..."
 
             status_bar.push(context_id, message)
             status_bar.set_tooltip_text(tooltip)
@@ -536,18 +470,17 @@ class Window:
             if error is None:
                 continue
 
-            position = to_string(key)
+            position = key.beautify()
             msg = f"Syntax error at {position}, hover for info"
             self.show_status(CTX_MAPPING, msg, error)
 
+    @ensure_everything_saved
     def on_rename_button_clicked(self, _):
         """Rename the preset based on the contents of the name input."""
         new_name = self.get("preset_name_input").get_text()
 
         if new_name in ["", self.preset_name]:
             return
-
-        self.save_preset()
 
         new_name = rename_preset(self.group.name, self.preset_name, new_name)
 
@@ -556,24 +489,26 @@ class Window:
         is_autoloaded = config.is_autoloaded(self.group.key, self.preset_name)
         if is_autoloaded:
             config.set_autoload_preset(self.group.key, new_name)
-            # TODO always save_config in set_autoload_preset?
-            config.save_config()
 
         self.get("preset_name_input").set_text("")
         self.populate_presets()
 
-    @with_preset_name
-    def on_delete_preset_clicked(self, _):
+    @if_preset_selected
+    def on_delete_preset_clicked(self, *_):
         """Delete a preset from the file system."""
         accept = Gtk.ResponseType.ACCEPT
         if len(custom_mapping) > 0 and self.show_confirm_delete() != accept:
             return
 
-        custom_mapping.changed = False
+        # avoid having the text of the symbol input leak into the custom_mapping again
+        # via a gazillion hooks, causing the preset to be saved again after deleting.
+        self.editor.clear()
+
         delete_preset(self.group.name, self.preset_name)
+
         self.populate_presets()
 
-    @with_preset_name
+    @if_preset_selected
     def on_apply_preset_clicked(self, _):
         """Apply a preset without saving changes."""
         self.save_preset()
@@ -581,14 +516,7 @@ class Window:
         if custom_mapping.num_saved_keys == 0:
             logger.error("Cannot apply empty preset file")
             # also helpful for first time use
-            if custom_mapping.changed:
-                self.show_status(
-                    CTX_ERROR,
-                    "You need to save your changes first",
-                    "No mappings are stored in the preset .json file yet",
-                )
-            else:
-                self.show_status(CTX_ERROR, "You need to add keys and save first")
+            self.show_status(CTX_ERROR, "You need to add keys and save first")
             return
 
         preset = self.preset_name
@@ -636,25 +564,21 @@ class Window:
         key = self.group.key
         preset = self.preset_name
         config.set_autoload_preset(key, preset if active else None)
-        config.save_config()
         # tell the service to refresh its config
         self.dbus.set_config_dir(get_config_path())
 
+    @ensure_everything_saved
     def on_select_device(self, dropdown):
         """List all presets, create one if none exist yet."""
-        self.save_preset()
-
         if self.group and dropdown.get_active_id() == self.group.key:
             return
-
-        # selecting a device will also automatically select a different
-        # preset. Prevent another unsaved-changes dialog to pop up
-        custom_mapping.changed = False
 
         group_key = dropdown.get_active_id()
 
         if group_key is None:
             return
+
+        self.editor.clear()
 
         logger.debug('Selecting device "%s"', group_key)
 
@@ -709,19 +633,19 @@ class Window:
         else:
             self.get("apply_system_layout").set_opacity(0.4)
 
-    @with_preset_name
-    def on_copy_preset_clicked(self, _):
+    @if_preset_selected
+    def on_copy_preset_clicked(self, *_):
         """Copy the current preset and select it."""
-        self.create_preset(True)
+        self.create_preset(copy=True)
 
-    @with_group
-    def on_create_preset_clicked(self, _):
-        """Create a new preset and select it."""
+    @if_group_selected
+    def on_create_preset_clicked(self, *_):
+        """Create a new empty preset and select it."""
         self.create_preset()
 
+    @ensure_everything_saved
     def create_preset(self, copy=False):
         """Create a new preset and select it."""
-        self.save_preset()
         name = self.group.name
         preset = self.preset_name
 
@@ -730,57 +654,54 @@ class Window:
                 new_preset = get_available_preset_name(name, preset, copy)
             else:
                 new_preset = get_available_preset_name(name)
+                self.editor.clear()
                 custom_mapping.empty()
 
             path = self.group.get_preset_path(new_preset)
             custom_mapping.save(path)
             self.get("preset_selection").append(new_preset, new_preset)
+            # triggers on_select_preset
             self.get("preset_selection").set_active_id(new_preset)
+            if self.get("preset_selection").get_active_id() != new_preset:
+                # for whatever reason I have to use set_active_id twice for this
+                # to work in tests all of the sudden
+                self.get("preset_selection").set_active_id(new_preset)
         except PermissionError as error:
             error = str(error)
             self.show_status(CTX_ERROR, "Permission denied!", error)
             logger.error(error)
 
+    @ensure_everything_saved
     def on_select_preset(self, dropdown):
         """Show the mappings of the preset."""
         # beware in tests that this function won't be called at all if the
         # active_id stays the same
-        self.save_preset()
-
         if dropdown.get_active_id() == self.preset_name:
             return
-
-        self.clear_mapping_table()
 
         preset = dropdown.get_active_text()
         if preset is None:
             return
 
         logger.debug('Selecting preset "%s"', preset)
+        self.editor.clear()
         self.preset_name = preset
 
         custom_mapping.load(self.group.get_preset_path(preset))
 
-        key_list = self.get("key_list")
-        for key, output in custom_mapping:
-            single_key_mapping = Row(
-                window=self, delete_callback=self.on_row_removed, key=key, symbol=output
-            )
-            key_list.insert(single_key_mapping, -1)
+        self.editor.load_custom_mapping()
 
         autoload_switch = self.get("preset_autoload_switch")
 
         with HandlerDisabled(autoload_switch, self.on_autoload_switch):
-            autoload_switch.set_active(
-                config.is_autoloaded(self.group.key, self.preset_name)
-            )
+            is_autoloaded = config.is_autoloaded(self.group.key, self.preset_name)
+            autoload_switch.set_active(is_autoloaded)
 
         self.get("preset_name_input").set_text("")
-        self.add_empty()
 
         self.initialize_gamepad_config()
 
-        custom_mapping.changed = False
+        custom_mapping.set_has_unsaved_changes(False)
 
     def on_left_joystick_changed(self, dropdown):
         """Set the purpose of the left joystick."""
@@ -799,33 +720,17 @@ class Window:
         speed = 2 ** gtk_range.get_value()
         custom_mapping.set("gamepad.joystick.pointer_speed", speed)
 
-    def add_empty(self):
-        """Add one empty row for a single mapped key."""
-        empty = Row(window=self, delete_callback=self.on_row_removed)
-        key_list = self.get("key_list")
-        key_list.insert(empty, -1)
-
-    def on_row_removed(self, single_key_mapping):
-        """Stuff to do when a row was removed
-
-        Parameters
-        ----------
-        single_key_mapping : Row
-        """
-        key_list = self.get("key_list")
-        # https://stackoverflow.com/a/30329591/4417769
-        key_list.remove(single_key_mapping)
-
     def save_preset(self, *_):
-        """Write changes to presets to disk."""
-        if not custom_mapping.changed:
+        """Write changes in the custom_mapping to disk."""
+        if not custom_mapping.has_unsaved_changes():
+            # optimization, and also avoids tons of redundant logs
+            logger.spam("Not saving because mapping did not change")
             return
 
         try:
+            assert self.preset_name is not None
             path = self.group.get_preset_path(self.preset_name)
             custom_mapping.save(path)
-
-            custom_mapping.changed = False
 
             # after saving the config, its modification date will be the
             # newest, so populate_presets will automatically select the
@@ -837,11 +742,15 @@ class Window:
             logger.error(error)
 
         for _, symbol in custom_mapping:
+            if not symbol:
+                continue
+
             if is_this_a_macro(symbol):
                 continue
 
             if system_mapping.get(symbol) is None:
-                self.show_status(CTX_MAPPING, f'Unknown mapping "{symbol}"')
+                trimmed = re.sub(r"\s+", " ", symbol).strip()
+                self.show_status(CTX_MAPPING, f'Unknown mapping "{trimmed}"')
                 break
         else:
             # no broken mappings found

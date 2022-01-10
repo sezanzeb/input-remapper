@@ -131,7 +131,6 @@ def find_newest_preset(group_name=None):
             break
 
     if newest_path is None:
-        logger.debug("None of the configured devices is currently online")
         return get_any_preset()
 
     preset = os.path.splitext(preset)[0]

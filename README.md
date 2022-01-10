@@ -38,6 +38,8 @@ input-remapper is now part of [Debian Unstable](https://packages.debian.org/sid/
 
 ##### pip
 
+Dependencies from your distros repo: `gtksourceview4`
+
 ```bash
 sudo pip uninstall key-mapper
 sudo pip install --no-binary :all: git+https://github.com/sezanzeb/input-remapper.git

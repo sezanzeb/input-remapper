@@ -100,7 +100,7 @@ class TestDaemon(unittest.TestCase):
         self.grab = evdev.InputDevice.grab
         self.daemon = None
         mkdir(get_config_path())
-        config.save_config()
+        config._save_config()
 
     def tearDown(self):
         # avoid race conditions with other tests, daemon may run processes
@@ -329,7 +329,7 @@ class TestDaemon(unittest.TestCase):
         # to use the directory
         config_path = os.path.join(config_dir, "config.json")
         config.path = config_path
-        config.save_config()
+        config._save_config()
 
         xmodmap_path = os.path.join(config_dir, "xmodmap.json")
         with open(xmodmap_path, "w") as file:
@@ -418,7 +418,6 @@ class TestDaemon(unittest.TestCase):
         self.assertTrue(daemon.autoload_history.may_autoload(group.key, preset))
 
         config.set_autoload_preset(group.key, preset)
-        config.save_config()
         len_before = len(self.daemon.autoload_history._autoload_history)
         # now autoloading is configured, so it will autoload
         self.daemon._autoload(group.key)
@@ -483,7 +482,6 @@ class TestDaemon(unittest.TestCase):
         mapping.save(group.get_preset_path(preset))
 
         config.set_autoload_preset(group.key, preset)
-        config.save_config()
 
         self.daemon = Daemon()
         groups.set_groups([])  # caused the bug

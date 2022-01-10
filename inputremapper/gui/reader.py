@@ -61,7 +61,7 @@ class Reader:
         self.previous_result = None
         self._unreleased = {}
         self._debounce_remove = {}
-        self._devices_updated = False
+        self._groups_updated = False
         self._cleared_at = 0
         self.group = None
 
@@ -74,13 +74,13 @@ class Reader:
         self._results = Pipe(f"/tmp/input-remapper-{USER}/results")
         self._commands = Pipe(f"/tmp/input-remapper-{USER}/commands")
 
-    def are_new_devices_available(self):
+    def are_new_groups_available(self):
         """Check if groups contains new devices.
 
         The ui should then update its list.
         """
-        outdated = self._devices_updated
-        self._devices_updated = False  # assume the ui will react accordingly
+        outdated = self._groups_updated
+        self._groups_updated = False  # assume the ui will react accordingly
         return outdated
 
     def _get_event(self, message):
@@ -92,7 +92,7 @@ class Reader:
             if message_body != groups.dumps():
                 groups.loads(message_body)
                 logger.debug("Received %d devices", len(groups))
-                self._devices_updated = True
+                self._groups_updated = True
             return None
 
         if message_type == "event":

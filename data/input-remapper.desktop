@@ -1,6 +1,6 @@
 [Desktop Entry]
 Type=Application
-Name=input-remapper
+Name=Input Remapper
 Icon=/usr/share/input-remapper/input-remapper.svg
 Exec=input-remapper-gtk
 Terminal=false

@@ -207,6 +207,8 @@ class GlobalConfig(ConfigBase):
             logger.info('Not injecting for "%s" automatically anmore', group_key)
             self.remove(["autoload", group_key])
 
+        self._save_config()
+
     def iterate_autoload_presets(self):
         """Get tuples of (device, preset)."""
         return self._config.get("autoload", {}).items()
@@ -237,7 +239,7 @@ class GlobalConfig(ConfigBase):
             logger.debug('Config "%s" doesn\'t exist yet', self.path)
             self.clear_config()
             self._config = copy.deepcopy(INITIAL_CONFIG)
-            self.save_config()
+            self._save_config()
             return
 
         with open(self.path, "r") as file:
@@ -253,7 +255,7 @@ class GlobalConfig(ConfigBase):
                 # uses the default configuration when the config object
                 # is empty automatically
 
-    def save_config(self):
+    def _save_config(self):
         """Save the config to the file system."""
         if USER == "root":
             logger.debug("Skipping config file creation for the root user")
@@ -265,6 +267,7 @@ class GlobalConfig(ConfigBase):
             json.dump(self._config, file, indent=4)
             logger.info("Saved config to %s", self.path)
             file.write("\n")
+
 
 migrate()
 config = GlobalConfig()

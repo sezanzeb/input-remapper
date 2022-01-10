@@ -143,7 +143,7 @@ msgid "Rename"
 msgstr ""
 
 #: data/input-remapper.glade:120
-msgid "Restore Defaults"
+msgid "Stop Injection"
 msgstr ""
 
 #: data/input-remapper.glade:509

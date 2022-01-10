@@ -18,7 +18,11 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-print('key-mapper-control is deprecated, please use input-remapper-control instead')
+print(
+    "\033[31m"
+    "key-mapper-control is deprecated, please use input-remapper-control instead"
+    "\033[0m"
+)
 
 from importlib.util import spec_from_loader, module_from_spec
 from importlib.machinery import SourceFileLoader
