@@ -266,7 +266,8 @@ class TestMapping(unittest.TestCase):
     def test_rejects_empty(self):
         key = Key(EV_KEY, 1, 111)
         self.assertEqual(len(self.mapping), 0)
-        self.assertRaises(ValueError, lambda: self.mapping.change(key, " \n "))
+        self.assertRaises(ValueError, lambda: self.mapping.change(key, "keyboard", " \n "))
+        self.assertRaises(ValueError, lambda: self.mapping.change(key, " \n ", "b"))
         self.assertEqual(len(self.mapping), 0)
 
     def test_avoids_redundant_changes(self):
@@ -276,12 +277,13 @@ class TestMapping(unittest.TestCase):
             raise AssertionError
 
         key = Key(EV_KEY, 987, 1)
+        target = "keyboard"
         symbol = "foo"
 
-        self.mapping.change(key, symbol)
+        self.mapping.change(key, target, symbol)
         with patch.object(self.mapping, "clear", clear):
-            self.mapping.change(key, symbol)
-            self.mapping.change(key, symbol, previous_key=key)
+            self.mapping.change(key, target, symbol)
+            self.mapping.change(key, target, symbol, previous_key=key)
 
     def test_combinations(self):
         ev_1 = Key(EV_KEY, 1, 111)
