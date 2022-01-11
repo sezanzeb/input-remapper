@@ -600,7 +600,7 @@ class UserInterface:
         if state == RUNNING:
             msg = f'Applied preset "{self.preset_name}"'
 
-            if custom_mapping.get_symbol(Key.btn_left()):
+            if custom_mapping.get_mapping(Key.btn_left()):
                 msg += ", CTRL + DEL to stop"
 
             self.show_status(CTX_APPLY, msg)

@@ -723,7 +723,7 @@ class TestGui(GuiTestBase, unittest.TestCase):
             2,
         )
 
-        self.assertEqual(custom_mapping.get_symbol(Key(EV_KEY, 30, 1)), "Shift_L")
+        self.assertEqual(custom_mapping.get_mapping(Key(EV_KEY, 30, 1)), "Shift_L")
         self.assertEqual(self.editor.get_symbol_input_text(), "Shift_L")
         self.assertEqual(selection_label.get_key(), (EV_KEY, 30, 1))
 
@@ -811,8 +811,8 @@ class TestGui(GuiTestBase, unittest.TestCase):
         gtk_iteration()
         self.assertEqual(len(self.get_selection_labels()), num_selection_labels_target)
 
-        self.assertEqual(custom_mapping.get_symbol(ev_1), "Foo_BAR")
-        self.assertEqual(custom_mapping.get_symbol(ev_2), "k(b).k(c)")
+        self.assertEqual(custom_mapping.get_mapping(ev_1), "Foo_BAR")
+        self.assertEqual(custom_mapping.get_mapping(ev_2), "k(b).k(c)")
 
         """edit first selection_label"""
 
@@ -830,14 +830,14 @@ class TestGui(GuiTestBase, unittest.TestCase):
         preset_path = self.user_interface.group.get_preset_path(preset_name)
         custom_mapping.load(preset_path)
 
-        self.assertEqual(custom_mapping.get_symbol(ev_1), "c")
-        self.assertEqual(custom_mapping.get_symbol(ev_2), "k(b).k(c)")
+        self.assertEqual(custom_mapping.get_mapping(ev_1), "c")
+        self.assertEqual(custom_mapping.get_mapping(ev_2), "k(b).k(c)")
 
         """add duplicate"""
 
         # try to add a duplicate keycode, it should be ignored
         self.add_mapping_via_ui(ev_2, "d", expect_success=False)
-        self.assertEqual(custom_mapping.get_symbol(ev_2), "k(b).k(c)")
+        self.assertEqual(custom_mapping.get_mapping(ev_2), "k(b).k(c)")
         # and the number of selection_labels shouldn't change
         self.assertEqual(len(self.get_selection_labels()), num_selection_labels_target)
 
@@ -853,10 +853,10 @@ class TestGui(GuiTestBase, unittest.TestCase):
         self.add_mapping_via_ui(ev_3, "c")
         self.add_mapping_via_ui(ev_4, "d")
 
-        self.assertEqual(custom_mapping.get_symbol(ev_1), "a")
-        self.assertEqual(custom_mapping.get_symbol(ev_2), "b")
-        self.assertEqual(custom_mapping.get_symbol(ev_3), "c")
-        self.assertEqual(custom_mapping.get_symbol(ev_4), "d")
+        self.assertEqual(custom_mapping.get_mapping(ev_1), "a")
+        self.assertEqual(custom_mapping.get_mapping(ev_2), "b")
+        self.assertEqual(custom_mapping.get_mapping(ev_3), "c")
+        self.assertEqual(custom_mapping.get_mapping(ev_4), "d")
 
         # and trying to add them as duplicate selection_labels will be ignored for each
         # of them
@@ -865,10 +865,10 @@ class TestGui(GuiTestBase, unittest.TestCase):
         self.add_mapping_via_ui(ev_3, "g", expect_success=False)
         self.add_mapping_via_ui(ev_4, "h", expect_success=False)
 
-        self.assertEqual(custom_mapping.get_symbol(ev_1), "a")
-        self.assertEqual(custom_mapping.get_symbol(ev_2), "b")
-        self.assertEqual(custom_mapping.get_symbol(ev_3), "c")
-        self.assertEqual(custom_mapping.get_symbol(ev_4), "d")
+        self.assertEqual(custom_mapping.get_mapping(ev_1), "a")
+        self.assertEqual(custom_mapping.get_mapping(ev_2), "b")
+        self.assertEqual(custom_mapping.get_mapping(ev_3), "c")
+        self.assertEqual(custom_mapping.get_mapping(ev_4), "d")
 
     def test_combination(self):
         # it should be possible to write a key combination
@@ -888,49 +888,49 @@ class TestGui(GuiTestBase, unittest.TestCase):
         combination_6 = Key(ev_3, ev_1, ev_2)
 
         self.add_mapping_via_ui(combination_1, "a")
-        self.assertEqual(custom_mapping.get_symbol(combination_1), "a")
-        self.assertEqual(custom_mapping.get_symbol(combination_2), "a")
-        self.assertIsNone(custom_mapping.get_symbol(combination_3))
-        self.assertIsNone(custom_mapping.get_symbol(combination_4))
-        self.assertIsNone(custom_mapping.get_symbol(combination_5))
-        self.assertIsNone(custom_mapping.get_symbol(combination_6))
+        self.assertEqual(custom_mapping.get_mapping(combination_1), "a")
+        self.assertEqual(custom_mapping.get_mapping(combination_2), "a")
+        self.assertIsNone(custom_mapping.get_mapping(combination_3))
+        self.assertIsNone(custom_mapping.get_mapping(combination_4))
+        self.assertIsNone(custom_mapping.get_mapping(combination_5))
+        self.assertIsNone(custom_mapping.get_mapping(combination_6))
 
         # it won't write the same combination again, even if the
         # first two events are in a different order
         self.add_mapping_via_ui(combination_2, "b", expect_success=False)
-        self.assertEqual(custom_mapping.get_symbol(combination_1), "a")
-        self.assertEqual(custom_mapping.get_symbol(combination_2), "a")
-        self.assertIsNone(custom_mapping.get_symbol(combination_3))
-        self.assertIsNone(custom_mapping.get_symbol(combination_4))
-        self.assertIsNone(custom_mapping.get_symbol(combination_5))
-        self.assertIsNone(custom_mapping.get_symbol(combination_6))
+        self.assertEqual(custom_mapping.get_mapping(combination_1), "a")
+        self.assertEqual(custom_mapping.get_mapping(combination_2), "a")
+        self.assertIsNone(custom_mapping.get_mapping(combination_3))
+        self.assertIsNone(custom_mapping.get_mapping(combination_4))
+        self.assertIsNone(custom_mapping.get_mapping(combination_5))
+        self.assertIsNone(custom_mapping.get_mapping(combination_6))
 
         self.add_mapping_via_ui(combination_3, "c")
-        self.assertEqual(custom_mapping.get_symbol(combination_1), "a")
-        self.assertEqual(custom_mapping.get_symbol(combination_2), "a")
-        self.assertEqual(custom_mapping.get_symbol(combination_3), "c")
-        self.assertEqual(custom_mapping.get_symbol(combination_4), "c")
-        self.assertIsNone(custom_mapping.get_symbol(combination_5))
-        self.assertIsNone(custom_mapping.get_symbol(combination_6))
+        self.assertEqual(custom_mapping.get_mapping(combination_1), "a")
+        self.assertEqual(custom_mapping.get_mapping(combination_2), "a")
+        self.assertEqual(custom_mapping.get_mapping(combination_3), "c")
+        self.assertEqual(custom_mapping.get_mapping(combination_4), "c")
+        self.assertIsNone(custom_mapping.get_mapping(combination_5))
+        self.assertIsNone(custom_mapping.get_mapping(combination_6))
 
         # same as with combination_2, the existing combination_3 blocks
         # combination_4 because they have the same keys and end in the
         # same key.
         self.add_mapping_via_ui(combination_4, "d", expect_success=False)
-        self.assertEqual(custom_mapping.get_symbol(combination_1), "a")
-        self.assertEqual(custom_mapping.get_symbol(combination_2), "a")
-        self.assertEqual(custom_mapping.get_symbol(combination_3), "c")
-        self.assertEqual(custom_mapping.get_symbol(combination_4), "c")
-        self.assertIsNone(custom_mapping.get_symbol(combination_5))
-        self.assertIsNone(custom_mapping.get_symbol(combination_6))
+        self.assertEqual(custom_mapping.get_mapping(combination_1), "a")
+        self.assertEqual(custom_mapping.get_mapping(combination_2), "a")
+        self.assertEqual(custom_mapping.get_mapping(combination_3), "c")
+        self.assertEqual(custom_mapping.get_mapping(combination_4), "c")
+        self.assertIsNone(custom_mapping.get_mapping(combination_5))
+        self.assertIsNone(custom_mapping.get_mapping(combination_6))
 
         self.add_mapping_via_ui(combination_5, "e")
-        self.assertEqual(custom_mapping.get_symbol(combination_1), "a")
-        self.assertEqual(custom_mapping.get_symbol(combination_2), "a")
-        self.assertEqual(custom_mapping.get_symbol(combination_3), "c")
-        self.assertEqual(custom_mapping.get_symbol(combination_4), "c")
-        self.assertEqual(custom_mapping.get_symbol(combination_5), "e")
-        self.assertEqual(custom_mapping.get_symbol(combination_6), "e")
+        self.assertEqual(custom_mapping.get_mapping(combination_1), "a")
+        self.assertEqual(custom_mapping.get_mapping(combination_2), "a")
+        self.assertEqual(custom_mapping.get_mapping(combination_3), "c")
+        self.assertEqual(custom_mapping.get_mapping(combination_4), "c")
+        self.assertEqual(custom_mapping.get_mapping(combination_5), "e")
+        self.assertEqual(custom_mapping.get_mapping(combination_6), "e")
 
         error_icon = self.user_interface.get("error_status_icon")
         warning_icon = self.user_interface.get("warning_status_icon")
@@ -958,7 +958,7 @@ class TestGui(GuiTestBase, unittest.TestCase):
 
             if code is not None and symbol is not None:
                 self.assertEqual(
-                    custom_mapping.get_symbol(Key(EV_KEY, code, 1)),
+                    custom_mapping.get_mapping(Key(EV_KEY, code, 1)),
                     symbol,
                 )
 
@@ -981,7 +981,7 @@ class TestGui(GuiTestBase, unittest.TestCase):
             # information that is supposed to be deleted
             self.assertIsNone(selection_label.get_key())
             if code is not None:
-                self.assertIsNone(custom_mapping.get_symbol(Key(EV_KEY, code, 1)))
+                self.assertIsNone(custom_mapping.get_mapping(Key(EV_KEY, code, 1)))
 
             self.assertEqual(
                 len(self.get_selection_labels()),
@@ -998,7 +998,7 @@ class TestGui(GuiTestBase, unittest.TestCase):
         gtk_iteration()
         self.assertEqual(len(self.get_selection_labels()), 3)
 
-        self.assertEqual(custom_mapping.get_symbol(Key(EV_KEY, 11, 1)), "b")
+        self.assertEqual(custom_mapping.get_mapping(Key(EV_KEY, 11, 1)), "b")
 
         remove(selection_label_1, 10, "a", 2)
         remove(selection_label_2, 11, "b", 1)
@@ -1027,7 +1027,7 @@ class TestGui(GuiTestBase, unittest.TestCase):
         custom_mapping.change(Key(EV_KEY, 14, 1), "a", None)
         self.assertEqual(self.user_interface.preset_name, "new preset")
         self.user_interface.save_preset()
-        self.assertEqual(custom_mapping.get_symbol(Key(EV_KEY, 14, 1)), "a")
+        self.assertEqual(custom_mapping.get_mapping(Key(EV_KEY, 14, 1)), "a")
         config.set_autoload_preset("Foo Device", "new preset")
         self.assertTrue(config.is_autoloaded("Foo Device", "new preset"))
 
@@ -1038,7 +1038,7 @@ class TestGui(GuiTestBase, unittest.TestCase):
         self.assertEqual(self.user_interface.preset_name, "asdf")
         preset_path = f"{CONFIG_PATH}/presets/Foo Device/asdf.json"
         self.assertTrue(os.path.exists(preset_path))
-        self.assertEqual(custom_mapping.get_symbol(Key(EV_KEY, 14, 1)), "b")
+        self.assertEqual(custom_mapping.get_mapping(Key(EV_KEY, 14, 1)), "b")
 
         # after renaming the preset it is still set to autoload
         self.assertTrue(config.is_autoloaded("Foo Device", "asdf"))
@@ -1088,7 +1088,7 @@ class TestGui(GuiTestBase, unittest.TestCase):
         # selecting the first preset again loads the saved mapping, and saves
         # the current changes in the gui
         self.user_interface.on_select_preset(FakePresetDropdown("asdf"))
-        self.assertEqual(custom_mapping.get_symbol(Key(EV_KEY, 14, 1)), "a")
+        self.assertEqual(custom_mapping.get_mapping(Key(EV_KEY, 14, 1)), "a")
         self.assertEqual(len(custom_mapping), 1)
         self.assertEqual(len(self.selection_label_listbox.get_children()), 2)
         config.set_autoload_preset("Foo Device", "new preset")
@@ -1101,7 +1101,7 @@ class TestGui(GuiTestBase, unittest.TestCase):
         # and that added number is correctly used in the autoload
         # configuration as well
         self.assertTrue(config.is_autoloaded("Foo Device", "asdf 2"))
-        self.assertEqual(custom_mapping.get_symbol(Key(EV_KEY, 15, 1)), "b")
+        self.assertEqual(custom_mapping.get_mapping(Key(EV_KEY, 15, 1)), "b")
         self.assertEqual(len(custom_mapping), 1)
         self.assertEqual(len(self.selection_label_listbox.get_children()), 2)
 
@@ -1191,7 +1191,7 @@ class TestGui(GuiTestBase, unittest.TestCase):
         self.assertFalse(error_icon.get_visible())
         self.assertFalse(warning_icon.get_visible())
 
-        self.assertEqual(custom_mapping.get_symbol(Key(EV_KEY, 9, 1)), "k(1)")
+        self.assertEqual(custom_mapping.get_mapping(Key(EV_KEY, 9, 1)), "k(1)")
 
     def test_select_device_and_preset(self):
         foo_device_path = f"{CONFIG_PATH}/presets/Foo Device"
@@ -1225,7 +1225,7 @@ class TestGui(GuiTestBase, unittest.TestCase):
         self.assertEqual(self.user_interface.preset_name, "new preset")
 
         self.assertEqual(len(custom_mapping), 1)
-        self.assertEqual(custom_mapping.get_symbol(key_10), "a")
+        self.assertEqual(custom_mapping.get_mapping(key_10), "a")
 
         self.assertListEqual(
             sorted(os.listdir(f"{foo_device_path}")),

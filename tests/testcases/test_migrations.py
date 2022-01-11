@@ -181,10 +181,10 @@ class TestMigrations(unittest.TestCase):
         loaded.load(get_preset_path("Foo Device", "test"))
         self.assertEqual(len(loaded), 3)
         self.assertEqual(loaded.num_saved_keys, 3)
-        self.assertEqual(loaded.get_symbol(Key(EV_KEY, 3, 1)), "a")
-        self.assertEqual(loaded.get_symbol(Key(EV_ABS, ABS_HAT0X, -1)), "b")
+        self.assertEqual(loaded.get_mapping(Key(EV_KEY, 3, 1)), "a")
+        self.assertEqual(loaded.get_mapping(Key(EV_ABS, ABS_HAT0X, -1)), "b")
         self.assertEqual(
-            loaded.get_symbol(Key((EV_ABS, 1, 1), (EV_ABS, 2, -1), Key(EV_ABS, 3, 1))),
+            loaded.get_mapping(Key((EV_ABS, 1, 1), (EV_ABS, 2, -1), Key(EV_ABS, 3, 1))),
             "c",
         )
 

@@ -444,13 +444,13 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         self.injector.run()
 
         self.assertEqual(
-            self.injector.context.mapping.get_symbol(Key(EV_KEY, KEY_A, 1)), ("c", "keyboard")
+            self.injector.context.mapping.get_mapping(Key(EV_KEY, KEY_A, 1)), ("c", "keyboard")
         )
         self.assertEqual(
             self.injector.context.key_to_code[((EV_KEY, KEY_A, 1),)], (KEY_C, "keyboard")
         )
         self.assertEqual(
-            self.injector.context.mapping.get_symbol(Key(EV_REL, REL_HWHEEL, 1)), ("k(b)", "keyboard")
+            self.injector.context.mapping.get_mapping(Key(EV_REL, REL_HWHEEL, 1)), ("k(b)", "keyboard")
         )
         self.assertEqual(
             self.injector.context.macros[((EV_REL, REL_HWHEEL, 1),)][0].code, "k(b)"
@@ -778,7 +778,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         mapping.change(Key(ev_1), "keyboard", "a")
         # a combination
         mapping.change(Key(ev_2, ev_3, ev_4), "keyboard", "b")
-        self.assertEqual(mapping.get_symbol(Key(ev_2, ev_3, ev_4)), ("b", "keyboard"))
+        self.assertEqual(mapping.get_mapping(Key(ev_2, ev_3, ev_4)), ("b", "keyboard"))
 
         system_mapping.clear()
         system_mapping._set("a", 51)

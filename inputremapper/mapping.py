@@ -118,7 +118,7 @@ class Mapping(ConfigBase):
             previous_key = new_key
 
         key_changed = new_key != previous_key
-        if not key_changed and symbol == self._mapping.get(new_key):
+        if not key_changed and (symbol, target) == self._mapping.get(new_key):
             # nothing was changed, no need to act
             return
 
@@ -209,10 +209,10 @@ class Mapping(ConfigBase):
 
                 if None in key:
                     continue
-                
+
                 if isinstance(symbol, list):
                     symbol = tuple(symbol)  # use a immutable type
-                
+
                 logger.spam("%s maps to %s", key, symbol)
                 self._mapping[key] = symbol
 
@@ -264,7 +264,7 @@ class Mapping(ConfigBase):
         self._changed = False
         self.num_saved_keys = len(self)
 
-    def get_symbol(self, key):
+    def get_mapping(self, key):
         """Read the (symbol, target)-tuple that is mapped to this keycode.
 
         Parameters
@@ -283,7 +283,7 @@ class Mapping(ConfigBase):
 
     def dangerously_mapped_btn_left(self):
         """Return True if this mapping disables BTN_Left."""
-        if self.get_symbol(Key(EV_KEY, BTN_LEFT, 1)) is not None:
+        if self.get_mapping(Key(EV_KEY, BTN_LEFT, 1)) is not None:
             values = [value[0].lower() for value in self._mapping.values()]
             return "btn_left" not in values
 

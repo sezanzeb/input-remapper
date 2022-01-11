@@ -873,12 +873,12 @@ Gives your keys back their original function</property>
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkLabel">
+                              <object class="GtkComboBox" id="target-selector">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
                               </object>
                               <packing>
-                                <property name="expand">True</property>
+                                <property name="expand">False</property>
                                 <property name="fill">True</property>
                                 <property name="position">1</property>
                               </packing>

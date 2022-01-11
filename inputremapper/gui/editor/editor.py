@@ -33,6 +33,7 @@ from inputremapper.key import Key
 from inputremapper.logger import logger
 from inputremapper.gui.reader import reader
 from inputremapper.gui.utils import CTX_KEYCODE, CTX_WARNING
+from inputremapper.injection.global_uinputs import global_uinputs
 
 
 class SelectionLabel(Gtk.ListBoxRow):
@@ -113,6 +114,7 @@ class Editor:
 
         self.autocompletion = None
 
+        self._setup_target_selector()
         self._setup_source_view()
         self._setup_recording_toggle()
 
@@ -143,6 +145,9 @@ class Editor:
         delete_button = self.get_delete_button()
         delete_button.connect("clicked", self._on_delete_button_clicked)
 
+        target_selector = self.get_target_selector()
+        target_selector.connect("changed", self._on_target_input_changed)
+
     @ensure_everything_saved
     def on_text_input_unfocus(self, *_):
         """When unfocusing the text it saves.
@@ -168,6 +173,11 @@ class Editor:
         """
         pass
 
+    @ensure_everything_saved
+    def _on_target_input_changed(self, *_):
+        """save when target changed"""
+        pass
+
     def clear(self):
         """Clear all inputs, labels, etc. Reset the state.
 
@@ -179,6 +189,8 @@ class Editor:
 
         self.set_symbol_input_text("")
         self.disable_symbol_input()
+        self.set_target_selection("keyboard")  # hopefully a sane default
+        self.disable_target_selector()
         self._reset_keycode_consumption()
 
         selection_label_listbox = self.get("selection_label_listbox")
@@ -186,6 +198,19 @@ class Editor:
         self.add_empty()
 
         selection_label_listbox.select_row(selection_label_listbox.get_children()[0])
+
+    def _setup_target_selector(self):
+        """Prepare the target selector combobox"""
+        target_store = Gtk.ListStore(str)
+        for uinput in global_uinputs.devices:
+            target_store.append([uinput])
+
+        target_input = self.get_target_selector()
+        target_input.set_model(target_store)
+        renderer_text = Gtk.CellRendererText()
+        target_input.pack_start(renderer_text, False)
+        target_input.add_attribute(renderer_text, "text", 0)
+        target_input.set_id_column(0)
 
     def _setup_recording_toggle(self):
         """Prepare the toggle button for recording key inputs."""
@@ -276,7 +301,7 @@ class Editor:
         return True
 
     def disable_symbol_input(self):
-        """Display help information and dont allow entering a symbol yet.
+        """Display help information and dont allow entering a symbol.
 
         Without this, maybe a user enters a symbol or writes a macro, switches
         presets accidentally before configuring the key and then it's gone. It can
@@ -302,6 +327,17 @@ class Editor:
             # don't overwrite user input
             self.set_symbol_input_text("")
 
+    def disable_target_selector(self):
+        """don't allow any selection"""
+        selector = self.get_target_selector()
+        selector.set_sensitive(False)
+        selector.set_opacity(0.5)
+
+    def enable_target_selector(self):
+        selector = self.get_target_selector()
+        selector.set_sensitive(True)
+        selector.set_opacity(1)
+
     @ensure_everything_saved
     def on_mapping_selected(self, _=None, selection_label=None):
         """One of the buttons in the left "key" column was clicked.
@@ -319,10 +355,14 @@ class Editor:
         if key is None:
             self.set_symbol_input_text("")
             self.disable_symbol_input()
+            self.set_target_selection("keyboard")  # default target should fit in most cases
+            self.disable_target_selector()
             # symbol input disabled until a key is configured
         else:
-            self.set_symbol_input_text(custom_mapping.get_symbol(key))
+            self.set_symbol_input_text(custom_mapping.get_mapping(key)[0])
+            self.set_target_selection(custom_mapping.get_mapping(key)[1])
             self.enable_symbol_input()
+            self.enable_target_selector()
 
         self.get("window").set_focus(self.get_text_input())
 
@@ -365,6 +405,13 @@ class Editor:
     def get_text_input(self):
         return self.get("code_editor")
 
+    def get_target_selector(self):
+        return self.get("target-selector")
+
+    def set_key(self, key):
+        """Show what the user is currently pressing in the user interface."""
+        self.active_selection_label.set_key(key)
+
     def get_key(self):
         """Get the Key object from the left column.
 
@@ -403,9 +450,12 @@ class Editor:
 
         return symbol
 
-    def set_key(self, key):
-        """Show what the user is currently pressing in the user interface."""
-        self.active_selection_label.set_key(key)
+    def set_target_selection(self, target):
+        selector = self.get_target_selector()
+        selector.set_active_id(target)
+
+    def get_target_selection(self):
+        return self.get_target_selector().get_active_id()
 
     def get(self, name):
         """Get a widget from the window"""
@@ -451,8 +501,9 @@ class Editor:
         """Look into the ui if new changes should be written, and save the preset."""
         # correct case
         symbol = self.get_symbol_input_text()
+        target = self.get_target_selection()
 
-        if not symbol:
+        if not symbol or not target:
             return
 
         correct_case = system_mapping.correct_case(symbol)
@@ -461,8 +512,8 @@ class Editor:
 
         # make sure the custom_mapping is up to date
         key = self.get_key()
-        if correct_case is not None and key is not None:
-            custom_mapping.change(key, correct_case)
+        if correct_case is not None and key is not None and target is not None:
+            custom_mapping.change(key, target, correct_case)
 
         # save to disk if required
         if custom_mapping.has_unsaved_changes():
@@ -491,9 +542,9 @@ class Editor:
             raise TypeError("Expected new_key to be a Key object")
 
         # keycode is already set by some other row
-        existing = custom_mapping.get_symbol(key)
+        existing = custom_mapping.get_mapping(key)
         if existing is not None:
-            existing = re.sub(r"\s", "", existing)
+            existing[0] = re.sub(r"\s", "", existing[0])
             msg = f'"{key.beautify()}" already mapped to "{existing}"'
             logger.info("%s %s", key, msg)
             self.user_interface.show_status(CTX_KEYCODE, msg)
@@ -529,6 +580,7 @@ class Editor:
             return
 
         # else, the keycode has changed, the symbol is set, all good
+        logger.error("calling change")
         custom_mapping.change(new_key=key, symbol=symbol, previous_key=previous_key)
 
     def _switch_focus_if_complete(self):
