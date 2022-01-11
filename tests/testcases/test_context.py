@@ -38,9 +38,9 @@ class TestContext(unittest.TestCase):
         self.mapping = Mapping()
         self.mapping.set("gamepad.joystick.left_purpose", WHEEL)
         self.mapping.set("gamepad.joystick.right_purpose", WHEEL)
-        self.mapping.change(Key(1, 31, 1), "k(a)")
-        self.mapping.change(Key(1, 32, 1), "b")
-        self.mapping.change(Key((1, 33, 1), (1, 34, 1), (1, 35, 1)), "c")
+        self.mapping.change(Key(1, 31, 1), "keyboard", "k(a)")
+        self.mapping.change(Key(1, 32, 1), "keyboard", "b")
+        self.mapping.change(Key((1, 33, 1), (1, 34, 1), (1, 35, 1)), "keyboard", "c")
         self.context = Context(self.mapping)
 
     def test_update_purposes(self):
@@ -52,18 +52,19 @@ class TestContext(unittest.TestCase):
 
     def test_parse_macros(self):
         self.assertEqual(len(self.context.macros), 1)
-        self.assertEqual(self.context.macros[((1, 31, 1),)].code, "k(a)")
+        self.assertEqual(self.context.macros[((1, 31, 1),)][1], "keyboard")
+        self.assertEqual(self.context.macros[((1, 31, 1),)][0].code, "k(a)")
 
     def test_map_keys_to_codes(self):
         b = system_mapping.get("b")
         c = system_mapping.get("c")
         self.assertEqual(len(self.context.key_to_code), 3)
-        self.assertEqual(self.context.key_to_code[((1, 32, 1),)], b)
+        self.assertEqual(self.context.key_to_code[((1, 32, 1),)], (b, "keyboard"))
         self.assertEqual(
-            self.context.key_to_code[(1, 33, 1), (1, 34, 1), (1, 35, 1)], c
+            self.context.key_to_code[(1, 33, 1), (1, 34, 1), (1, 35, 1)], (c, "keyboard")
         )
         self.assertEqual(
-            self.context.key_to_code[(1, 34, 1), (1, 33, 1), (1, 35, 1)], c
+            self.context.key_to_code[(1, 34, 1), (1, 33, 1), (1, 35, 1)], (c, "keyboard")
         )
 
     def test_is_mapped(self):
