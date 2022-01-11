@@ -743,10 +743,11 @@ class UserInterface:
             self.show_status(CTX_ERROR, "Permission denied!", error)
             logger.error(error)
 
-        for _, symbol in custom_mapping:
-            if not symbol:
+        for _, mapping in custom_mapping:
+            if not mapping:
                 continue
 
+            symbol = mapping[0]
             if is_this_a_macro(symbol):
                 continue
 

@@ -359,8 +359,9 @@ class Editor:
             self.disable_target_selector()
             # symbol input disabled until a key is configured
         else:
-            self.set_symbol_input_text(custom_mapping.get_mapping(key)[0])
-            self.set_target_selection(custom_mapping.get_mapping(key)[1])
+            if custom_mapping.get_mapping(key):
+                self.set_symbol_input_text(custom_mapping.get_mapping(key)[0])
+                self.set_target_selection(custom_mapping.get_mapping(key)[1])
             self.enable_symbol_input()
             self.enable_target_selector()
 
@@ -604,6 +605,7 @@ class Editor:
             # keycode event won't write into the symbol input as well.
             window = self.user_interface.window
             self.enable_symbol_input()
+            self.enable_target_selector()
             GLib.idle_add(lambda: window.set_focus(self.get_text_input()))
 
         if not all_keys_released:

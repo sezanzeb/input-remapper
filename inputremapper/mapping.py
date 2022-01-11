@@ -66,7 +66,7 @@ class Mapping(ConfigBase):
         super().__init__(fallback=config)
 
     def __iter__(self):
-        """Iterate over Key objects and their symbol."""
+        """Iterate over Key objects and their mappings."""
         return iter(self._mapping.items())
 
     def __len__(self):
