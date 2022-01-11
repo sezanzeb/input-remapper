@@ -465,6 +465,7 @@ class UserInterface:
         """Check if the programmed macros are allright."""
         self.show_status(CTX_MAPPING, None)
         for key, output in custom_mapping:
+            output = output[0]
             if not is_this_a_macro(output):
                 continue
 

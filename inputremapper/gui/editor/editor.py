@@ -545,8 +545,9 @@ class Editor:
         # keycode is already set by some other row
         existing = custom_mapping.get_mapping(key)
         if existing is not None:
+            existing = list(existing)
             existing[0] = re.sub(r"\s", "", existing[0])
-            msg = f'"{key.beautify()}" already mapped to "{existing}"'
+            msg = f'"{key.beautify()}" already mapped to "{tuple(existing)}"'
             logger.info("%s %s", key, msg)
             self.user_interface.show_status(CTX_KEYCODE, msg)
             return True
