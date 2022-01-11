@@ -263,7 +263,7 @@ class Editor:
         # TODO there are some similarities with python, but overall it's quite useless.
         #  commented out until there is proper highlighting for input-remappers syntax.
 
-        autocompletion = Autocompletion(source_view)
+        autocompletion = Autocompletion(source_view, self.get_target_selector())
         autocompletion.set_relative_to(self.get("code_editor_container"))
         autocompletion.connect("suggestion-inserted", self.gather_changes_and_save)
         self.autocompletion = autocompletion

@@ -27,7 +27,6 @@ import json
 import copy
 import shutil
 
-from evdev.ecodes import EV_KEY, EV_REL
 from pathlib import Path
 import pkg_resources
 
@@ -149,11 +148,16 @@ def _add_target():
     Always use "keyboard" as target. This will break mappings which map codes not in the capabilities of keyboard.
     We can not check code names or capabilities of the available targets due to circular imports
     """
+    if not os.path.exists(get_preset_path()):
+        return  # don't execute if there are no presets
 
     for preset in all_presets():
         logger.info("Updating preset: %s", preset)
         with open(preset, "r") as f:
             preset_dict = json.load(f)
+
+        if "mapping" not in preset_dict.keys():
+            continue
 
         for key, symbol in preset_dict["mapping"].copy().items():
             if isinstance(symbol, list):
