@@ -86,6 +86,9 @@ class GlobalUInputs:
         self.devices = {}
         self._uinput_factory = None
 
+    def __iter__(self):
+        return self.devices
+
     def prepare(self):
         """Generate uinputs.
 

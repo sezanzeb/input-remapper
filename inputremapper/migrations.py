@@ -27,6 +27,7 @@ import json
 import copy
 import shutil
 
+from evdev.ecodes import EV_KEY, EV_REL
 from pathlib import Path
 import pkg_resources
 
@@ -142,6 +143,32 @@ def _rename_config():
         shutil.move(old_config_path, CONFIG_PATH)
 
 
+def _add_target():
+    """add the target field to each preset mapping
+
+    Always use "keyboard" as target. This will break mappings which map codes not in the capabilities of keyboard.
+    We can not check code names or capabilities of the available targets due to circular imports
+    """
+
+    for preset in all_presets():
+        logger.info("Updating preset: %s", preset)
+        with open(preset, "r") as f:
+            preset_dict = json.load(f)
+
+        for key, symbol in preset_dict["mapping"].copy().items():
+            if isinstance(symbol, list):
+                continue
+
+            target = "keyboard"
+            logger.info("setting '%s' as target for '%s'", target, symbol)
+            symbol = [symbol, target]
+            preset_dict["mapping"][key] = symbol
+
+        with open(preset, "w") as file:
+            json.dump(preset_dict, file, indent=4)
+            file.write("\n")
+
+
 def migrate():
     """Migrate config files to the current release."""
     v = config_version()
@@ -154,6 +181,9 @@ def migrate():
 
     if v < pkg_resources.parse_version("1.3.0"):
         _rename_config()
+
+    if v < pkg_resources.parse_version("1.3.1"):
+        _add_target()
 
     # add new migrations here
 
