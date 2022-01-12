@@ -355,9 +355,9 @@ class Editor:
         if key is None:
             self.set_symbol_input_text("")
             self.disable_symbol_input()
-            self.set_target_selection(
-                "keyboard"
-            )  # default target should fit in most cases
+            # default target should fit in most cases
+            self.set_target_selection("keyboard")
+            # symbol input disabled until a key is configured
             self.disable_target_selector()
             # symbol input disabled until a key is configured
         else:

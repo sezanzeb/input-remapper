@@ -1322,7 +1322,17 @@ class TestKeycodeMapper(unittest.IsolatedAsyncioTestCase):
         # all key down and key up events get forwarded
         self.assertEqual(forward.write_count, 4)
         self.assertEqual(keyboard.write_count, 2)
+        forward_history = [event.t for event in forward.write_history]
+        self.assertIn(ev_1, forward_history)
+        self.assertIn(ev_2, forward_history)
+        self.assertIn(ev_4, forward_history)
+        self.assertIn(ev_5, forward_history)
+        self.assertNotIn(ev_3, forward_history)
+        self.assertNotIn(ev_6, forward_history)
 
+        keyboard_history = [event.t for event in keyboard.write_history]
+        self.assertIn((EV_KEY, KEY_A, 1), keyboard_history)
+        self.assertIn((EV_KEY, KEY_A, 0), keyboard_history)
 
 if __name__ == "__main__":
     unittest.main()

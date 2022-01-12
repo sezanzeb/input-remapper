@@ -186,7 +186,7 @@ def migrate():
     if v < pkg_resources.parse_version("1.3.0"):
         _rename_config()
 
-    if v < pkg_resources.parse_version("1.3.1"):
+    if v < pkg_resources.parse_version("1.4.0"):
         _add_target()
 
     # add new migrations here
