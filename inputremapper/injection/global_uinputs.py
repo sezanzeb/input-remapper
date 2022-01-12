@@ -61,22 +61,10 @@ class UInput(evdev.UInput):
 class FrontendUInput:
     """Uinput which can not actually send events, for use in the frontend"""
 
-    def __init__(self, *args, **kwargs):
-        defaults = {  # see https://python-evdev.readthedocs.io/en/latest/apidoc.html#module-evdev.uinput
-            "events": None,
-            "name": "py-evdev-uinput",
-            # "vendor": 1,
-            # "product": 1,
-            # "version": 1,
-            # "bustype": 3,
-            # "devnode": '/dev/uinput',
-            # "phys": 'py-evdev-uinput',
-        }
-        for key, value in defaults.items():
-            try:
-                setattr(self, key, kwargs[key])
-            except KeyError:
-                setattr(self, key, value)
+    def __init__(self, *args, events=None, name="py-evdev-uinput", **kwargs):
+        # see https://python-evdev.readthedocs.io/en/latest/apidoc.html#module-evdev.uinput
+        self.events = events
+        self.name = name
 
         logger.debug(f"creating fake UInput device: '{self.name}'")
 
