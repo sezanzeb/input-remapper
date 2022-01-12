@@ -27,6 +27,8 @@ from evdev.ecodes import (
     EV_KEY,
     EV_ABS,
     KEY_A,
+    KEY_B,
+    KEY_C,
     BTN_TL,
     ABS_HAT0X,
     ABS_HAT0Y,
@@ -1276,6 +1278,40 @@ class TestKeycodeMapper(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(self.history), 2)
         self.assertEqual(self.history[0], 1)
         self.assertEqual(self.history[1], 2)
+
+    async def test_can_not_map(self):
+        """inject events to wrong or invalid uinput"""
+        ev_1 = (EV_KEY, KEY_A, 1)
+        ev_2 = (EV_KEY, KEY_B, 1)
+        ev_3 = (EV_KEY, KEY_C, 1)
+
+        ev_4 = (EV_KEY, KEY_A, 0)
+        ev_5 = (EV_KEY, KEY_B, 0)
+        ev_6 = (EV_KEY, KEY_C, 0)
+
+        self.context.key_to_code = {
+            (ev_1,): (51, "foo"),           # invalid
+            (ev_2,): (BTN_TL, "keyboard"),  # invalid
+            (ev_3,): (KEY_A, "keyboard"),   # valid
+        }
+
+        keyboard = global_uinputs.get_uinput("keyboard")
+        forward = UInput()
+        keycode_mapper = KeycodeMapper(self.context, self.source, forward)
+
+        # send key-down
+        await keycode_mapper.notify(new_event(*ev_1))
+        await keycode_mapper.notify(new_event(*ev_2))
+        await keycode_mapper.notify(new_event(*ev_3))
+        self.assertEqual(len(unreleased), 3)
+        # send key-up
+        await keycode_mapper.notify(new_event(*ev_4))
+        await keycode_mapper.notify(new_event(*ev_5))
+        await keycode_mapper.notify(new_event(*ev_6))
+
+        # all key down and key up events get forwarded
+        self.assertEqual(forward.write_count, 4)
+        self.assertEqual(keyboard.write_count, 2)
 
 
 if __name__ == "__main__":

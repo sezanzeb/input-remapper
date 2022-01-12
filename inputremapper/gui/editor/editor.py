@@ -582,7 +582,6 @@ class Editor:
             return
 
         # else, the keycode has changed, the symbol is set, all good
-        logger.error("calling change")
         custom_mapping.change(new_key=key, symbol=symbol, previous_key=previous_key)
 
     def _switch_focus_if_complete(self):

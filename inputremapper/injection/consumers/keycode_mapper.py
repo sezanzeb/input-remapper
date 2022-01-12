@@ -190,14 +190,6 @@ def find_by_key(key):
     return None
 
 
-def print_unreleased():
-    """For debugging purposes."""
-    logger.debug("unreleased:")
-    logger.debug(
-        "\n".join([f"    {key}: {str(value)}" for key, value in unreleased.items()])
-    )
-
-
 class KeycodeMapper(Consumer):
     """Injects keycodes and starts macros.
 

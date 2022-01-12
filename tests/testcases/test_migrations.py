@@ -170,6 +170,7 @@ class TestMigrations(unittest.TestCase):
                 {
                     "mapping": {
                         f"{EV_KEY},3": "a",
+                        f"{EV_KEY}, 4, 1": ("a", "foo"),
                         f"{EV_ABS},{ABS_HAT0X},-1": "b",
                         f"{EV_ABS},1,1+{EV_ABS},2,-1+{EV_ABS},3,1": "c",
                         # ignored because broken
@@ -185,9 +186,10 @@ class TestMigrations(unittest.TestCase):
         loaded = Mapping()
         self.assertEqual(loaded.num_saved_keys, 0)
         loaded.load(get_preset_path("Foo Device", "test"))
-        self.assertEqual(len(loaded), 3)
-        self.assertEqual(loaded.num_saved_keys, 3)
+        self.assertEqual(len(loaded), 4)
+        self.assertEqual(loaded.num_saved_keys, 4)
         self.assertEqual(loaded.get_mapping(Key(EV_KEY, 3, 1)), ("a", "keyboard"))
+        self.assertEqual(loaded.get_mapping(Key(EV_KEY, 4, 1)), ("a", "foo"))
         self.assertEqual(loaded.get_mapping(Key(EV_ABS, ABS_HAT0X, -1)), ("b", "keyboard"))
         self.assertEqual(
             loaded.get_mapping(Key((EV_ABS, 1, 1), (EV_ABS, 2, -1), Key(EV_ABS, 3, 1))),

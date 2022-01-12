@@ -68,12 +68,13 @@ class FrontendUInput:
             #"devnode": '/dev/uinput',
             #"phys": 'py-evdev-uinput',
             }
-        logger.debug(f"creating fake UInput device: '{kwargs['name']}'")
         for key, value in defaults.items():
             try:
                 setattr(self, key, kwargs[key])
             except KeyError:
                 setattr(self, key, value)
+
+        logger.debug(f"creating fake UInput device: '{self.name}'")
     
     def capabilities(self):
         return self.events
@@ -87,7 +88,7 @@ class GlobalUInputs:
         self._uinput_factory = None
 
     def __iter__(self):
-        return self.devices
+        return iter(uinput for _, uinput in self.devices.items())
 
     def prepare(self):
         """Generate uinputs.
