@@ -189,7 +189,7 @@ class Editor:
 
         self.set_symbol_input_text("")
         self.disable_symbol_input()
-        self.set_target_selection("keyboard")  # hopefully a sane default
+        self.set_target_selection("keyboard")  # sane default
         self.disable_target_selector()
         self._reset_keycode_consumption()
 
@@ -578,13 +578,14 @@ class Editor:
         self.set_key(key)
 
         symbol = self.get_symbol_input_text()
+        target = self.get_target_selection()
 
         # the symbol is empty and therefore the mapping is not complete
-        if not symbol:
+        if not symbol or not target:
             return
 
         # else, the keycode has changed, the symbol is set, all good
-        custom_mapping.change(new_key=key, symbol=symbol, previous_key=previous_key)
+        custom_mapping.change(new_key=key, target=target, symbol=symbol, previous_key=previous_key)
 
     def _switch_focus_if_complete(self):
         """If keys are released, it will switch to the text_input.
