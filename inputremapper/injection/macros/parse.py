@@ -316,7 +316,9 @@ def handle_plus_syntax(macro):
         return macro
 
     if "(" in macro or ")" in macro:
-        raise ValueError(f'Mixing "+" and macros is unsupported: "{ macro}"') #TODO: MacroParsingError
+        raise ValueError(
+            f'Mixing "+" and macros is unsupported: "{ macro}"'
+        )  # TODO: MacroParsingError
 
     chunks = [chunk.strip() for chunk in macro.split("+")]
     output = ""

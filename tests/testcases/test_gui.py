@@ -732,7 +732,9 @@ class TestGui(GuiTestBase, unittest.TestCase):
             2,
         )
 
-        self.assertEqual(custom_mapping.get_mapping(Key(EV_KEY, 30, 1)), ("Shift_L", "keyboard"))
+        self.assertEqual(
+            custom_mapping.get_mapping(Key(EV_KEY, 30, 1)), ("Shift_L", "keyboard")
+        )
         self.assertEqual(self.editor.get_target_selection(), "keyboard")
         self.assertEqual(self.editor.get_symbol_input_text(), "Shift_L")
         self.assertEqual(selection_label.get_key(), (EV_KEY, 30, 1))
@@ -744,7 +746,9 @@ class TestGui(GuiTestBase, unittest.TestCase):
             len(self.selection_label_listbox.get_children()),
             2,
         )
-        self.assertEqual(custom_mapping.get_mapping(Key(EV_KEY, 30, 1)), ("Shift_L", "mouse"))
+        self.assertEqual(
+            custom_mapping.get_mapping(Key(EV_KEY, 30, 1)), ("Shift_L", "mouse")
+        )
         self.assertEqual(self.editor.get_target_selection(), "mouse")
         self.assertEqual(self.editor.get_symbol_input_text(), "Shift_L")
         self.assertEqual(selection_label.get_key(), (EV_KEY, 30, 1))
@@ -963,7 +967,9 @@ class TestGui(GuiTestBase, unittest.TestCase):
     def test_remove_selection_label(self):
         """Comprehensive test for selection_labels 2."""
 
-        def remove(selection_label, code, symbol, num_selection_labels_after, target="keyboard"):
+        def remove(
+            selection_label, code, symbol, num_selection_labels_after, target="keyboard"
+        ):
             """Remove a selection_label by clicking the delete button.
 
             Parameters
@@ -982,8 +988,7 @@ class TestGui(GuiTestBase, unittest.TestCase):
 
             if code is not None and symbol is not None:
                 self.assertEqual(
-                    custom_mapping.get_mapping(Key(EV_KEY, code, 1)),
-                    (symbol, target)
+                    custom_mapping.get_mapping(Key(EV_KEY, code, 1)), (symbol, target)
                 )
 
             if symbol is not None:
@@ -1024,7 +1029,9 @@ class TestGui(GuiTestBase, unittest.TestCase):
         gtk_iteration()
         self.assertEqual(len(self.get_selection_labels()), 3)
 
-        self.assertEqual(custom_mapping.get_mapping(Key(EV_KEY, 11, 1)), ("b", "keyboard"))
+        self.assertEqual(
+            custom_mapping.get_mapping(Key(EV_KEY, 11, 1)), ("b", "keyboard")
+        )
 
         remove(selection_label_1, 10, "a", 2)
         remove(selection_label_2, 11, "b", 1)
@@ -1053,7 +1060,9 @@ class TestGui(GuiTestBase, unittest.TestCase):
         custom_mapping.change(Key(EV_KEY, 14, 1), "keyboard", "a", None)
         self.assertEqual(self.user_interface.preset_name, "new preset")
         self.user_interface.save_preset()
-        self.assertEqual(custom_mapping.get_mapping(Key(EV_KEY, 14, 1)), ("a", "keyboard"))
+        self.assertEqual(
+            custom_mapping.get_mapping(Key(EV_KEY, 14, 1)), ("a", "keyboard")
+        )
         config.set_autoload_preset("Foo Device", "new preset")
         self.assertTrue(config.is_autoloaded("Foo Device", "new preset"))
 
@@ -1064,7 +1073,9 @@ class TestGui(GuiTestBase, unittest.TestCase):
         self.assertEqual(self.user_interface.preset_name, "asdf")
         preset_path = f"{CONFIG_PATH}/presets/Foo Device/asdf.json"
         self.assertTrue(os.path.exists(preset_path))
-        self.assertEqual(custom_mapping.get_mapping(Key(EV_KEY, 14, 1)), ("b", "keyboard"))
+        self.assertEqual(
+            custom_mapping.get_mapping(Key(EV_KEY, 14, 1)), ("b", "keyboard")
+        )
 
         # after renaming the preset it is still set to autoload
         self.assertTrue(config.is_autoloaded("Foo Device", "asdf"))
@@ -1114,7 +1125,9 @@ class TestGui(GuiTestBase, unittest.TestCase):
         # selecting the first preset again loads the saved mapping, and saves
         # the current changes in the gui
         self.user_interface.on_select_preset(FakePresetDropdown("asdf"))
-        self.assertEqual(custom_mapping.get_mapping(Key(EV_KEY, 14, 1)), ("a", "keyboard"))
+        self.assertEqual(
+            custom_mapping.get_mapping(Key(EV_KEY, 14, 1)), ("a", "keyboard")
+        )
         self.assertEqual(len(custom_mapping), 1)
         self.assertEqual(len(self.selection_label_listbox.get_children()), 2)
         config.set_autoload_preset("Foo Device", "new preset")
@@ -1127,7 +1140,9 @@ class TestGui(GuiTestBase, unittest.TestCase):
         # and that added number is correctly used in the autoload
         # configuration as well
         self.assertTrue(config.is_autoloaded("Foo Device", "asdf 2"))
-        self.assertEqual(custom_mapping.get_mapping(Key(EV_KEY, 15, 1)), ("b", "keyboard"))
+        self.assertEqual(
+            custom_mapping.get_mapping(Key(EV_KEY, 15, 1)), ("b", "keyboard")
+        )
         self.assertEqual(len(custom_mapping), 1)
         self.assertEqual(len(self.selection_label_listbox.get_children()), 2)
 
@@ -1217,7 +1232,9 @@ class TestGui(GuiTestBase, unittest.TestCase):
         self.assertFalse(error_icon.get_visible())
         self.assertFalse(warning_icon.get_visible())
 
-        self.assertEqual(custom_mapping.get_mapping(Key(EV_KEY, 9, 1)), ("k(1)", "keyboard"))
+        self.assertEqual(
+            custom_mapping.get_mapping(Key(EV_KEY, 9, 1)), ("k(1)", "keyboard")
+        )
 
     def test_select_device_and_preset(self):
         foo_device_path = f"{CONFIG_PATH}/presets/Foo Device"

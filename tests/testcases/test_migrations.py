@@ -190,7 +190,9 @@ class TestMigrations(unittest.TestCase):
         self.assertEqual(loaded.num_saved_keys, 4)
         self.assertEqual(loaded.get_mapping(Key(EV_KEY, 3, 1)), ("a", "keyboard"))
         self.assertEqual(loaded.get_mapping(Key(EV_KEY, 4, 1)), ("a", "foo"))
-        self.assertEqual(loaded.get_mapping(Key(EV_ABS, ABS_HAT0X, -1)), ("b", "keyboard"))
+        self.assertEqual(
+            loaded.get_mapping(Key(EV_ABS, ABS_HAT0X, -1)), ("b", "keyboard")
+        )
         self.assertEqual(
             loaded.get_mapping(Key((EV_ABS, 1, 1), (EV_ABS, 2, -1), Key(EV_ABS, 3, 1))),
             ("c", "keyboard"),

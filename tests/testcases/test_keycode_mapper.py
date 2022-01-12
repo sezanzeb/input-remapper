@@ -125,7 +125,8 @@ class TestKeycodeMapper(unittest.IsolatedAsyncioTestCase):
 
         # parse requires an intact system_mapping!
         self.context.macros = {
-            key: (parse(code, self.context), "keyboard") for key, code in macro_mapping.items()
+            key: (parse(code, self.context), "keyboard")
+            for key, code in macro_mapping.items()
         }
 
         uinput = UInput()
@@ -398,7 +399,8 @@ class TestKeycodeMapper(unittest.IsolatedAsyncioTestCase):
         # screwed it up because of that)
         _key_to_code = {
             ((EV_KEY, 1, 1),): (101, "keyboard"),
-            ((EV_KEY, code_2, 1),): (code_2, "keyboard")}
+            ((EV_KEY, code_2, 1),): (code_2, "keyboard"),
+        }
 
         uinput_mapped = global_uinputs.devices["keyboard"]
         uinput_forwarded = UInput()
@@ -532,7 +534,9 @@ class TestKeycodeMapper(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(uinput_write_history[8].t, (EV_KEY, 103, 0))
 
     async def test_macro_writes_to_global_uinput(self):
-        macro_mapping = {((EV_KEY, 1, 1),): (parse("k(a)", self.context), "keyboard"), }
+        macro_mapping = {
+            ((EV_KEY, 1, 1),): (parse("k(a)", self.context), "keyboard"),
+        }
 
         self.context.macros = macro_mapping
         forward_to = UInput()
@@ -543,7 +547,9 @@ class TestKeycodeMapper(unittest.IsolatedAsyncioTestCase):
         sleeptime = config.get("macros.keystroke_sleep_ms", 10) * 12
         await asyncio.sleep(sleeptime / 1000 + 0.1)
 
-        self.assertEqual(global_uinputs.devices["keyboard"].write_count, 2)  # down and up
+        self.assertEqual(
+            global_uinputs.devices["keyboard"].write_count, 2
+        )  # down and up
         self.assertEqual(forward_to.write_count, 0)
 
         await keycode_mapper.notify(new_event(EV_KEY, 2, 1))
@@ -935,7 +941,8 @@ class TestKeycodeMapper(unittest.IsolatedAsyncioTestCase):
 
         _key_to_code = {
             ((*trigger, 1),): (51, "keyboard"),
-            ((*trigger, -1),): (52, "keyboard")}
+            ((*trigger, -1),): (52, "keyboard"),
+        }
 
         uinput = UInput()
 
@@ -1019,7 +1026,8 @@ class TestKeycodeMapper(unittest.IsolatedAsyncioTestCase):
             (ev_1,): (61, "keyboard"),
             (ev_3,): (DISABLE_CODE, "keyboard"),
             combi_1: (62, "keyboard"),
-            combi_2: (63, "keyboard")}
+            combi_2: (63, "keyboard"),
+        }
 
         forward_to = UInput()
 
@@ -1027,7 +1035,9 @@ class TestKeycodeMapper(unittest.IsolatedAsyncioTestCase):
         keycode_mapper = KeycodeMapper(self.context, self.source, forward_to)
 
         def expect_writecounts(uinput_count, forwarded_count):
-            self.assertEqual(global_uinputs.devices['keyboard'].write_count, uinput_count)
+            self.assertEqual(
+                global_uinputs.devices["keyboard"].write_count, uinput_count
+            )
             self.assertEqual(forward_to.write_count, forwarded_count)
 
         """single keys"""
@@ -1290,9 +1300,9 @@ class TestKeycodeMapper(unittest.IsolatedAsyncioTestCase):
         ev_6 = (EV_KEY, KEY_C, 0)
 
         self.context.key_to_code = {
-            (ev_1,): (51, "foo"),           # invalid
+            (ev_1,): (51, "foo"),  # invalid
             (ev_2,): (BTN_TL, "keyboard"),  # invalid
-            (ev_3,): (KEY_A, "keyboard"),   # valid
+            (ev_3,): (KEY_A, "keyboard"),  # valid
         }
 
         keyboard = global_uinputs.get_uinput("keyboard")

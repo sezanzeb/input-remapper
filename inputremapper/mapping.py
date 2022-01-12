@@ -108,7 +108,7 @@ class Mapping(ConfigBase):
 
         if target is None or target.strip() == "":
             raise ValueError("Expected `target` not to be None")
-        
+
         target = target.strip()
         symbol = symbol.strip()
         output = (symbol, target)

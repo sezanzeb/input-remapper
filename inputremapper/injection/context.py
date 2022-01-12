@@ -127,7 +127,7 @@ class Context:
                         permutation.keys,
                     )
                 key_to_code[permutation.keys] = (target_code, output[1])
-        
+
         return key_to_code
 
     def is_mapped(self, key):

@@ -111,7 +111,7 @@ class Unreleased:
         Parameters
         ----------
         target : 3-tuple
-            int type, int code of what was injected or forwarded 
+            int type, int code of what was injected or forwarded
             and string target_uinput for injected events,
             None for forwarded events
         input_event_tuple : 3-tuple
@@ -314,13 +314,13 @@ class KeycodeMapper(Consumer):
             self.handle_keycode(event, action)
 
         await delayed_handle_keycode()
-    
+
     def macro_write(self, target_uinput):
         def f(ev_type, code, value):
             """Handler for macros."""
             logger.debug(f"macro_sending {(ev_type, code, value)}")
             global_uinputs.write((ev_type, code, value), target_uinput)
-        
+
         return f
 
     def _get_key(self, key):
@@ -435,16 +435,20 @@ class KeycodeMapper(Consumer):
                 if target_code == DISABLE_CODE:
                     logger.key_spam(key, "releasing disabled key")
                     return
-                
+
                 if target_code is None:
                     logger.key_spam(key, "releasing key")
                     return
-                
+
                 if unreleased_entry.is_mapped():
                     # release what the input is mapped to
                     try:
-                        logger.key_spam(key, "releasing (%s, %s)", target_code, target_uinput)
-                        global_uinputs.write((target_type, target_code, 0), target_uinput)
+                        logger.key_spam(
+                            key, "releasing (%s, %s)", target_code, target_uinput
+                        )
+                        global_uinputs.write(
+                            (target_type, target_code, 0), target_uinput
+                        )
                         return
                     except inputremapper.exceptions.Error:
                         logger.key_spam(key, "could not map")
@@ -456,7 +460,7 @@ class KeycodeMapper(Consumer):
                     self.forward(original_tuple)
                 else:
                     logger.key_spam(key, "not forwarding release")
-                    
+
                 return
 
             if event.type != EV_ABS:
@@ -505,7 +509,9 @@ class KeycodeMapper(Consumer):
                 active_macros[type_and_code] = macro
                 Unreleased((None, None, None), (*type_and_code, action), key)
                 macro.press_trigger()
-                logger.key_spam(key, "maps to macro (%s, %s)", macro.code, target_uinput)
+                logger.key_spam(
+                    key, "maps to macro (%s, %s)", macro.code, target_uinput
+                )
                 asyncio.ensure_future(macro.run(self.macro_write(target_uinput)))
                 return
 
@@ -513,7 +519,9 @@ class KeycodeMapper(Consumer):
                 target_code, target_uinput = self.context.key_to_code[key]
                 # remember the key that triggered this
                 # (this combination or this single key)
-                Unreleased((EV_KEY, target_code, target_uinput), (*type_and_code, action), key)
+                Unreleased(
+                    (EV_KEY, target_code, target_uinput), (*type_and_code, action), key
+                )
 
                 if target_code == DISABLE_CODE:
                     logger.key_spam(key, "disabled")

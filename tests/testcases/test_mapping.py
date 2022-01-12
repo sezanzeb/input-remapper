@@ -165,7 +165,9 @@ class TestMapping(unittest.TestCase):
         self.assertEqual(self.mapping.num_saved_keys, len(self.mapping))
         self.assertFalse(self.mapping.has_unsaved_changes())
         self.mapping.load(get_preset_path("foo", "bar"))
-        self.assertEqual(self.mapping.get_mapping(Key(EV_KEY, 81, 1)), ("a", "keyboard"))
+        self.assertEqual(
+            self.mapping.get_mapping(Key(EV_KEY, 81, 1)), ("a", "keyboard")
+        )
         self.assertIsNone(self.mapping.get("mapping.a"))
         self.assertFalse(self.mapping.has_unsaved_changes())
 
@@ -266,7 +268,9 @@ class TestMapping(unittest.TestCase):
     def test_rejects_empty(self):
         key = Key(EV_KEY, 1, 111)
         self.assertEqual(len(self.mapping), 0)
-        self.assertRaises(ValueError, lambda: self.mapping.change(key, "keyboard", " \n "))
+        self.assertRaises(
+            ValueError, lambda: self.mapping.change(key, "keyboard", " \n ")
+        )
         self.assertRaises(ValueError, lambda: self.mapping.change(key, " \n ", "b"))
         self.assertEqual(len(self.mapping), 0)
 

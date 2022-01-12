@@ -31,13 +31,16 @@ DEFAULT_UINPUTS = {
         evdev.ecodes.EV_KEY: list(evdev.ecodes.KEY.keys() & evdev.ecodes.keys.keys())
     },
     "gamepad": {
-        evdev.ecodes.EV_KEY: [*range(0x130, 0x13f)],  # BTN_SOUTH - BTN_THUMBR
-        evdev.ecodes.EV_ABS: [*range(0x00, 0x06), *range(0x10, 0x12)]  # 6-axis and 1 hat switch
+        evdev.ecodes.EV_KEY: [*range(0x130, 0x13F)],  # BTN_SOUTH - BTN_THUMBR
+        evdev.ecodes.EV_ABS: [
+            *range(0x00, 0x06),
+            *range(0x10, 0x12),
+        ],  # 6-axis and 1 hat switch
     },
     "mouse": {
         evdev.ecodes.EV_KEY: [*range(0x110, 0x118)],  # BTN_LEFT - BTN_TASK
-        evdev.ecodes.EV_REL: [*range(0x00, 0x0a)]  # all REL axis
-    }
+        evdev.ecodes.EV_REL: [*range(0x00, 0x0A)],  # all REL axis
+    },
 }
 
 
@@ -57,17 +60,18 @@ class UInput(evdev.UInput):
 
 class FrontendUInput:
     """Uinput which can not actually send events, for use in the frontend"""
+
     def __init__(self, *args, **kwargs):
         defaults = {  # see https://python-evdev.readthedocs.io/en/latest/apidoc.html#module-evdev.uinput
             "events": None,
-            "name": 'py-evdev-uinput',
-            #"vendor": 1,
-            #"product": 1,
-            #"version": 1,
-            #"bustype": 3,
-            #"devnode": '/dev/uinput',
-            #"phys": 'py-evdev-uinput',
-            }
+            "name": "py-evdev-uinput",
+            # "vendor": 1,
+            # "product": 1,
+            # "version": 1,
+            # "bustype": 3,
+            # "devnode": '/dev/uinput',
+            # "phys": 'py-evdev-uinput',
+        }
         for key, value in defaults.items():
             try:
                 setattr(self, key, kwargs[key])
@@ -75,7 +79,7 @@ class FrontendUInput:
                 setattr(self, key, value)
 
         logger.debug(f"creating fake UInput device: '{self.name}'")
-    
+
     def capabilities(self):
         return self.events
 

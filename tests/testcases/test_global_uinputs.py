@@ -11,7 +11,12 @@ from evdev.ecodes import (
 )
 from tests.test import cleanup
 
-from inputremapper.injection.global_uinputs import global_uinputs, FrontendUInput, UInput, GlobalUInputs
+from inputremapper.injection.global_uinputs import (
+    global_uinputs,
+    FrontendUInput,
+    UInput,
+    GlobalUInputs,
+)
 from inputremapper.exceptions import EventNotHandled, UinputNotAvailable
 
 
@@ -21,14 +26,11 @@ class TestFrontendUinput(unittest.TestCase):
 
     def test_init(self):
         name = "foo"
-        capabilities = {
-            1: [1, 2, 3],
-            2: [4, 5, 6]
-        }
+        capabilities = {1: [1, 2, 3], 2: [4, 5, 6]}
         uinput_defaults = FrontendUInput()
         uinput_custom = FrontendUInput(name=name, events=capabilities)
 
-        self.assertEqual(uinput_defaults.name, 'py-evdev-uinput')
+        self.assertEqual(uinput_defaults.name, "py-evdev-uinput")
         self.assertIsNone(uinput_defaults.capabilities())
 
         self.assertEqual(uinput_custom.name, name)

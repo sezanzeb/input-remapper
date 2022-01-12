@@ -48,7 +48,6 @@ from inputremapper.injection.macros.macro import macro_variables
 from inputremapper.injection.global_uinputs import global_uinputs
 
 
-
 BUS_NAME = "inputremapper.Control"
 # timeout in seconds, see
 # https://github.com/LEW21/pydbus/blob/cc407c8b1d25b7e28a6d661a29f9e661b1c9b964/pydbus/proxy.py

@@ -444,13 +444,16 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         self.injector.run()
 
         self.assertEqual(
-            self.injector.context.mapping.get_mapping(Key(EV_KEY, KEY_A, 1)), ("c", "keyboard")
+            self.injector.context.mapping.get_mapping(Key(EV_KEY, KEY_A, 1)),
+            ("c", "keyboard"),
         )
         self.assertEqual(
-            self.injector.context.key_to_code[((EV_KEY, KEY_A, 1),)], (KEY_C, "keyboard")
+            self.injector.context.key_to_code[((EV_KEY, KEY_A, 1),)],
+            (KEY_C, "keyboard"),
         )
         self.assertEqual(
-            self.injector.context.mapping.get_mapping(Key(EV_REL, REL_HWHEEL, 1)), ("k(b)", "keyboard")
+            self.injector.context.mapping.get_mapping(Key(EV_REL, REL_HWHEEL, 1)),
+            ("k(b)", "keyboard"),
         )
         self.assertEqual(
             self.injector.context.macros[((EV_REL, REL_HWHEEL, 1),)][0].code, "k(b)"
@@ -753,9 +756,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
             # avoid going into any mainloop
             raise Stop()
 
-        with mock.patch.object(
-            self.injector, "_copy_capabilities", _copy_capabilities
-        ):
+        with mock.patch.object(self.injector, "_copy_capabilities", _copy_capabilities):
             try:
                 self.injector.run()
             except Stop:
@@ -788,8 +789,12 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         injector.context = Context(mapping)
         self.assertEqual(injector.context.key_to_code.get((ev_1,)), (51, "keyboard"))
         # permutations to make matching combinations easier
-        self.assertEqual(injector.context.key_to_code.get((ev_2, ev_3, ev_4)), (52, "keyboard"))
-        self.assertEqual(injector.context.key_to_code.get((ev_3, ev_2, ev_4)), (52, "keyboard"))
+        self.assertEqual(
+            injector.context.key_to_code.get((ev_2, ev_3, ev_4)), (52, "keyboard")
+        )
+        self.assertEqual(
+            injector.context.key_to_code.get((ev_3, ev_2, ev_4)), (52, "keyboard")
+        )
         self.assertEqual(len(injector.context.key_to_code), 3)
 
     def test_is_in_capabilities(self):

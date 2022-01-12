@@ -61,10 +61,12 @@ class TestContext(unittest.TestCase):
         self.assertEqual(len(self.context.key_to_code), 3)
         self.assertEqual(self.context.key_to_code[((1, 32, 1),)], (b, "keyboard"))
         self.assertEqual(
-            self.context.key_to_code[(1, 33, 1), (1, 34, 1), (1, 35, 1)], (c, "keyboard")
+            self.context.key_to_code[(1, 33, 1), (1, 34, 1), (1, 35, 1)],
+            (c, "keyboard"),
         )
         self.assertEqual(
-            self.context.key_to_code[(1, 34, 1), (1, 33, 1), (1, 35, 1)], (c, "keyboard")
+            self.context.key_to_code[(1, 34, 1), (1, 33, 1), (1, 35, 1)],
+            (c, "keyboard"),
         )
 
     def test_is_mapped(self):
