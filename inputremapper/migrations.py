@@ -152,7 +152,6 @@ def _add_target():
         return  # don't execute if there are no presets
 
     for preset in all_presets():
-        logger.info("Updating preset: %s", preset)
         with open(preset, "r") as f:
             preset_dict = json.load(f)
 
@@ -164,7 +163,7 @@ def _add_target():
                 continue
 
             target = "keyboard"
-            logger.info("setting '%s' as target for '%s'", target, symbol)
+            logger.info("In preset '%s' setting '%s' as target for '%s'", preset, target, symbol)
             symbol = [symbol, target]
             preset_dict["mapping"][key] = symbol
 
