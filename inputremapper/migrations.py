@@ -21,18 +21,21 @@
 
 """Migration functions"""
 
-
 import os
 import json
 import copy
 import shutil
+import pkg_resources
 
 from pathlib import Path
-import pkg_resources
+from evdev.ecodes import EV_KEY, EV_REL
 
 from inputremapper.logger import logger, VERSION
 from inputremapper.user import HOME
 from inputremapper.paths import get_preset_path, mkdir, CONFIG_PATH
+from inputremapper.system_mapping import system_mapping
+from inputremapper.injection.global_uinputs import global_uinputs
+from inputremapper.injection.macros.parse import parse, is_this_a_macro
 
 
 def all_presets():
@@ -52,7 +55,6 @@ def all_presets():
 def config_version():
     """Get the version string in config.json as packaging.Version object."""
     config_path = os.path.join(CONFIG_PATH, "config.json")
-    config = {}
 
     if not os.path.exists(config_path):
         return pkg_resources.parse_version("0.0.0")
@@ -105,9 +107,12 @@ def _mapping_keys():
     if not os.path.exists(get_preset_path()):
         return  # don't execute if there are no presets
     for preset in all_presets():
-        preset_dict = {}
-        with open(preset, "r") as file:
-            preset_dict = json.load(file)
+        try:
+            with open(preset, "r") as f:
+                preset_dict = json.load(f)
+        except json.decoder.JSONDecodeError:
+            continue
+
         if "mapping" in preset_dict.keys():
             mapping = copy.deepcopy(preset_dict["mapping"])
             for key in mapping.keys():
@@ -142,18 +147,39 @@ def _rename_config():
         shutil.move(old_config_path, CONFIG_PATH)
 
 
-def _add_target():
-    """add the target field to each preset mapping
+def _find_target(symbol):
+    """try to find a uinput with the required capabilities for the symbol.
 
-    Always use "keyboard" as target. This will break mappings which map codes not in the capabilities of keyboard.
-    We can not check code names or capabilities of the available targets due to circular imports
+    return "keyboard" as a fallback
     """
+    capabilities = {EV_KEY: set(), EV_REL: set()}
+    if is_this_a_macro(symbol):
+        capabilities = parse(symbol).get_capabilities()
+    else:
+        capabilities[EV_KEY] = {system_mapping.get(symbol)}
+
+    if len(capabilities[EV_REL]) > 0:
+        return "mouse"
+
+    for name, uinput in global_uinputs.devices.items():
+        if capabilities[EV_KEY].issubset(uinput.capabilities()[EV_KEY]):
+            return name
+
+    logger.info("could not find a suitable target UInput for '%s'", symbol)
+    return "keyboard"
+
+
+def _add_target():
+    """add the target field to each preset mapping"""
     if not os.path.exists(get_preset_path()):
         return  # don't execute if there are no presets
 
     for preset in all_presets():
-        with open(preset, "r") as f:
-            preset_dict = json.load(f)
+        try:
+            with open(preset, "r") as f:
+                preset_dict = json.load(f)
+        except json.decoder.JSONDecodeError:
+            continue
 
         if "mapping" not in preset_dict.keys():
             continue
@@ -162,7 +188,7 @@ def _add_target():
             if isinstance(symbol, list):
                 continue
 
-            target = "keyboard"
+            target = _find_target(symbol)
             logger.info("In preset '%s' setting '%s' as target for '%s'", preset, target, symbol)
             symbol = [symbol, target]
             preset_dict["mapping"][key] = symbol
@@ -186,6 +212,7 @@ def migrate():
         _rename_config()
 
     if v < pkg_resources.parse_version("1.4.0"):
+        global_uinputs.prepare()
         _add_target()
 
     # add new migrations here

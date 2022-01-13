@@ -50,6 +50,7 @@ _ = translate.gettext
 Gtk.init()
 
 from inputremapper.logger import logger, update_verbosity, log_info
+from inputremapper.migrations import migrate
 
 
 if __name__ == '__main__':
@@ -70,6 +71,7 @@ if __name__ == '__main__':
     from inputremapper.daemon import Daemon
     from inputremapper.daemon import config
 
+    migrate()
     config.load_config()
 
     user_interface = UserInterface()
