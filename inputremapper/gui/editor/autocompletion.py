@@ -378,7 +378,9 @@ class Autocompletion(Gtk.Popover):
 
     def _update_target_key_capabilities(self, *_):
         target = self.target_selector.get_active_id()
-        self._target_key_capabilities = global_uinputs.get_uinput(target).capabilities()[EV_KEY]
+        self._target_key_capabilities = global_uinputs.get_uinput(
+            target
+        ).capabilities()[EV_KEY]
 
     def _on_suggestion_clicked(self, _, selected_row):
         """An autocompletion suggestion was selected and should be inserted."""

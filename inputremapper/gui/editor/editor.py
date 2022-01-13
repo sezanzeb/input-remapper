@@ -585,7 +585,9 @@ class Editor:
             return
 
         # else, the keycode has changed, the symbol is set, all good
-        custom_mapping.change(new_key=key, target=target, symbol=symbol, previous_key=previous_key)
+        custom_mapping.change(
+            new_key=key, target=target, symbol=symbol, previous_key=previous_key
+        )
 
     def _switch_focus_if_complete(self):
         """If keys are released, it will switch to the text_input.

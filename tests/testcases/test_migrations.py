@@ -169,7 +169,9 @@ class TestMigrations(unittest.TestCase):
             json.dump(
                 {
                     "mapping": {
-                        f"{EV_KEY},3": "a",
+                        f"{EV_KEY},1": "a",
+                        f"{EV_KEY}, 2, 1": "BTN_B",  # can be mapped to "gamepad"
+                        f"{EV_KEY}, 3, 1": "BTN_1",  # can not be mapped
                         f"{EV_KEY}, 4, 1": ("a", "foo"),
                         f"{EV_ABS},{ABS_HAT0X},-1": "b",
                         f"{EV_ABS},1,1+{EV_ABS},2,-1+{EV_ABS},3,1": "c",
@@ -186,9 +188,12 @@ class TestMigrations(unittest.TestCase):
         loaded = Mapping()
         self.assertEqual(loaded.num_saved_keys, 0)
         loaded.load(get_preset_path("Foo Device", "test"))
-        self.assertEqual(len(loaded), 4)
-        self.assertEqual(loaded.num_saved_keys, 4)
-        self.assertEqual(loaded.get_mapping(Key(EV_KEY, 3, 1)), ("a", "keyboard"))
+        self.assertEqual(len(loaded), 6)
+        self.assertEqual(loaded.num_saved_keys, 6)
+
+        self.assertEqual(loaded.get_mapping(Key(EV_KEY, 1, 1)), ("a", "keyboard"))
+        self.assertEqual(loaded.get_mapping(Key(EV_KEY, 2, 1)), ("BTN_B", "gamepad"))
+        self.assertEqual(loaded.get_mapping(Key(EV_KEY, 3, 1)), ("BTN_1", "keyboard"))
         self.assertEqual(loaded.get_mapping(Key(EV_KEY, 4, 1)), ("a", "foo"))
         self.assertEqual(
             loaded.get_mapping(Key(EV_ABS, ABS_HAT0X, -1)), ("b", "keyboard")

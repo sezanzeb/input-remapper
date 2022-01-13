@@ -189,7 +189,9 @@ def _add_target():
                 continue
 
             target = _find_target(symbol)
-            logger.info("In preset '%s' setting '%s' as target for '%s'", preset, target, symbol)
+            logger.info(
+                "In preset '%s' setting '%s' as target for '%s'", preset, target, symbol
+            )
             symbol = [symbol, target]
             preset_dict["mapping"][key] = symbol
 

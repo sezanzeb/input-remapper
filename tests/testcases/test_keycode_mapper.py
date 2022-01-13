@@ -1334,5 +1334,6 @@ class TestKeycodeMapper(unittest.IsolatedAsyncioTestCase):
         self.assertIn((EV_KEY, KEY_A, 1), keyboard_history)
         self.assertIn((EV_KEY, KEY_A, 0), keyboard_history)
 
+
 if __name__ == "__main__":
     unittest.main()
