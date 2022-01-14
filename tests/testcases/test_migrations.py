@@ -193,7 +193,13 @@ class TestMigrations(unittest.TestCase):
 
         self.assertEqual(loaded.get_mapping(Key(EV_KEY, 1, 1)), ("a", "keyboard"))
         self.assertEqual(loaded.get_mapping(Key(EV_KEY, 2, 1)), ("BTN_B", "gamepad"))
-        self.assertEqual(loaded.get_mapping(Key(EV_KEY, 3, 1)), ("BTN_1", "keyboard"))
+        self.assertEqual(
+            loaded.get_mapping(Key(EV_KEY, 3, 1)),
+            (
+                "BTN_1\n# Broken mapping:\n# No target can handle all specified keycodes",
+                "keyboard",
+            ),
+        )
         self.assertEqual(loaded.get_mapping(Key(EV_KEY, 4, 1)), ("a", "foo"))
         self.assertEqual(
             loaded.get_mapping(Key(EV_ABS, ABS_HAT0X, -1)), ("b", "keyboard")

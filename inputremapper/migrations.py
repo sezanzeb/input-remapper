@@ -148,10 +148,7 @@ def _rename_config():
 
 
 def _find_target(symbol):
-    """try to find a uinput with the required capabilities for the symbol.
-
-    return "keyboard" as a fallback
-    """
+    """try to find a uinput with the required capabilities for the symbol."""
     capabilities = {EV_KEY: set(), EV_REL: set()}
     if is_this_a_macro(symbol):
         capabilities = parse(symbol).get_capabilities()
@@ -166,7 +163,7 @@ def _find_target(symbol):
             return name
 
     logger.info("could not find a suitable target UInput for '%s'", symbol)
-    return "keyboard"
+    return None
 
 
 def _add_target():
@@ -179,6 +176,7 @@ def _add_target():
             with open(preset, "r") as f:
                 preset_dict = json.load(f)
         except json.decoder.JSONDecodeError:
+            logger.info(f"invalid preset{preset}")
             continue
 
         if "mapping" not in preset_dict.keys():
@@ -189,6 +187,10 @@ def _add_target():
                 continue
 
             target = _find_target(symbol)
+            if target is None:
+                target = "keyboard"
+                symbol = f"{symbol}\n# Broken mapping:\n# No target can handle all specified keycodes"
+
             logger.info(
                 "In preset '%s' setting '%s' as target for '%s'", preset, target, symbol
             )

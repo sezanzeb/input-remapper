@@ -27,6 +27,7 @@ import os
 import re
 import sys
 
+from evdev._ecodes import EV_KEY
 from gi.repository import Gtk, GtkSource, Gdk, GLib, GObject
 
 from inputremapper.data import get_data_path
@@ -749,10 +750,15 @@ class UserInterface:
                 continue
 
             symbol = mapping[0]
+            target = mapping[1]
             if is_this_a_macro(symbol):
                 continue
 
-            if system_mapping.get(symbol) is None:
+            code = system_mapping.get(symbol)
+            if (
+                code is None
+                or code not in global_uinputs.get_uinput(target).capabilities()[EV_KEY]
+            ):
                 trimmed = re.sub(r"\s+", " ", symbol).strip()
                 self.show_status(CTX_MAPPING, f'Unknown mapping "{trimmed}"')
                 break
