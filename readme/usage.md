@@ -36,9 +36,9 @@ No injection should be running anymore.
 
 ## Combinations
 
-Select the key in your row (`click here`) and hold a few buttons down.
-Releasing them will make your text cursor jump into the mapping column
-to type in what you want to map it to.
+Change the key of your mapping (`Change Key` - Button) and hold a few of your
+device keys down. Releasing them will make your text cursor jump into the
+mapping column  to type in what you want to map it to.
 
 Combinations involving Modifiers might not work. Configuring a combination
 of two keys to output a single key will require you to push down the first
@@ -51,20 +51,16 @@ For example a combination of `LEFTSHIFT + a` for `b` would write "B" insetad,
 because shift will be activated before you hit the "a". Therefore the
 environment will see shift and a "b", which will then be capitalized.
 
-The first option to work around this issue is to use `KP1 + a` instead of
-`LEFTSHIFT + a`. You can disable `KP1` by mapping it to `disable`, so you
-won't trigger writing a "1" into your focused application.
-
-<p align="center">
-  <img src="combination.png"/>
-</p>
+Consider using a different key for the combination than shift. You could use
+`KP1 + a` and map `KP1` to `disable`.
 
 The second option is to release the modifier in your combination by writing
-the modifier one more time. This will write lowercase "a" characters.
+the modifier one more time. This will write lowercase "b" characters. To make
+this work shift has to be injected via key-mappers devices though, which just
+means it has to be forwarded. So the complete mapping for this would look like:
 
-<p align="center">
-  <img src="combination_workaround.png"/>
-</p>
+- `Shift L + a` -> `key(Shift_L).hold(b)`
+- `Shift L` -> `Shift_L`
 
 ## Writing Combinations
 
