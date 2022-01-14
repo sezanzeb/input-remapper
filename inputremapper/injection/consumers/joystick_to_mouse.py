@@ -43,6 +43,7 @@ from inputremapper.config import MOUSE, WHEEL
 from inputremapper import utils
 from inputremapper.injection.consumers.consumer import Consumer
 from inputremapper.groups import classify, GAMEPAD
+from inputremapper.injection.global_uinputs import global_uinputs
 
 # miniscule movements on the joystick should not trigger a mouse wheel event
 WHEEL_THRESHOLD = 0.15
@@ -86,8 +87,7 @@ class JoystickToMouse(Consumer):
         # if the mouse won't move even though correct stuff is written here,
         # the capabilities are probably wrong
         try:
-            self.context.uinput.write(ev_type, keycode, value)
-            self.context.uinput.syn()
+            global_uinputs.write((ev_type, keycode, value), "mouse")
         except OverflowError:
             # screwed up the calculation of mouse movements
             logger.error("OverflowError (%s, %s, %s)", ev_type, keycode, value)

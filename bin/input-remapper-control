@@ -30,7 +30,9 @@ import logging
 import subprocess
 
 from inputremapper.logger import logger, update_verbosity, log_info, add_filehandler
+from inputremapper.migrations import migrate
 from inputremapper.config import config
+
 
 # import inputremapper modules as late as possible to make sure the correct
 # log level is applied before anything is logged
@@ -132,6 +134,7 @@ def communicate(options, daemon):
         # config_dir is either the cli arg or the default path in home
         config_dir = os.path.dirname(config.path)
         daemon.set_config_dir(config_dir)
+        migrate()
 
     if options.command == AUTOLOAD:
         # if device was specified, autoload for that one. if None autoload

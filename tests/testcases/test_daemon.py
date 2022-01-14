@@ -157,8 +157,8 @@ class TestDaemon(unittest.TestCase):
         # unrelated group that shouldn't be affected at all
         group2 = groups.find(name="gamepad")
 
-        custom_mapping.change(Key(*ev_1, 1), "a")
-        custom_mapping.change(Key(*ev_2, -1), "b")
+        custom_mapping.change(Key(*ev_1, 1), "keyboard", "a")
+        custom_mapping.change(Key(*ev_2, -1), "keyboard", "b")
 
         preset = "foo"
 
@@ -237,7 +237,7 @@ class TestDaemon(unittest.TestCase):
         group = groups.find(name=group_name)
         # this test only makes sense if this device is unknown yet
         self.assertIsNone(group)
-        custom_mapping.change(Key(*ev, 1), "a")
+        custom_mapping.change(Key(*ev, 1), "keyboard", "a")
         system_mapping.clear()
         system_mapping._set("a", KEY_A)
 
@@ -306,6 +306,7 @@ class TestDaemon(unittest.TestCase):
 
     def test_xmodmap_file(self):
         from_keycode = evdev.ecodes.KEY_A
+        target = "keyboard"
         to_name = "qux"
         to_keycode = 100
         event = (EV_KEY, from_keycode, 1)
@@ -318,7 +319,7 @@ class TestDaemon(unittest.TestCase):
 
         path = os.path.join(config_dir, "presets", name, f"{preset}.json")
 
-        custom_mapping.change(Key(event), to_name)
+        custom_mapping.change(Key(event), target, to_name)
         custom_mapping.save(path)
 
         system_mapping.clear()
@@ -356,7 +357,7 @@ class TestDaemon(unittest.TestCase):
         self.daemon = daemon
 
         mapping = Mapping()
-        mapping.change(Key(3, 2, 1), "a")
+        mapping.change(Key(3, 2, 1), "keyboard", "a")
         mapping.save(group.get_preset_path(preset))
 
         # start
@@ -409,7 +410,7 @@ class TestDaemon(unittest.TestCase):
         self.daemon = daemon
 
         mapping = Mapping()
-        mapping.change(Key(3, 2, 1), "a")
+        mapping.change(Key(3, 2, 1), "keyboard", "a")
         mapping.save(group.get_preset_path(preset))
 
         # no autoloading is configured yet
@@ -461,7 +462,7 @@ class TestDaemon(unittest.TestCase):
         preset = "preset7"
         group = groups.find(key="Foo Device 2")
         mapping = Mapping()
-        mapping.change(Key(3, 2, 1), "a")
+        mapping.change(Key(3, 2, 1), "keyboard", "a")
         mapping.save(group.get_preset_path(preset))
         config.set_autoload_preset(group.key, preset)
 
@@ -478,7 +479,7 @@ class TestDaemon(unittest.TestCase):
         group = groups.find(key="Foo Device 2")
 
         mapping = Mapping()
-        mapping.change(Key(3, 2, 1), "a")
+        mapping.change(Key(3, 2, 1), "keyboard", "a")
         mapping.save(group.get_preset_path(preset))
 
         config.set_autoload_preset(group.key, preset)

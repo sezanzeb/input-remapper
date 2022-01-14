@@ -52,11 +52,6 @@ class Consumer:
         """Check if the consumer will have work to do."""
         raise NotImplementedError
 
-    def write(self, key):
-        """Shorthand to write stuff."""
-        self.context.uinput.write(*key)
-        self.context.uinput.syn()
-
     def forward(self, key):
         """Shorthand to forward an event."""
         self.forward_to.write(*key)

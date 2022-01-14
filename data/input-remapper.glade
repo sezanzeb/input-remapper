@@ -854,10 +854,10 @@ Gives your keys back their original function</property>
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
                             <property name="spacing">12</property>
+                            <property name="homogeneous">True</property>
                             <child>
                               <object class="GtkToggleButton" id="key_recording_toggle">
                                 <property name="label" translatable="yes">Change Key</property>
-                                <property name="width-request">100</property>
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
                                 <property name="receives-default">True</property>
@@ -873,9 +873,10 @@ Gives your keys back their original function</property>
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkLabel">
+                              <object class="GtkComboBox" id="target-selector">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
+                                <property name="tooltip-text" translatable="yes">The type of device this mapping is emulating.</property>
                               </object>
                               <packing>
                                 <property name="expand">True</property>
@@ -901,6 +902,7 @@ Gives your keys back their original function</property>
                               <packing>
                                 <property name="expand">False</property>
                                 <property name="fill">True</property>
+                                <property name="pack-type">end</property>
                                 <property name="position">2</property>
                               </packing>
                             </child>

@@ -25,6 +25,7 @@
 import re
 
 from gi.repository import Gdk, Gtk, GLib, GObject, GtkSource
+from evdev.ecodes import EV_KEY
 
 from inputremapper.system_mapping import system_mapping
 from inputremapper.injection.macros.parse import (
@@ -32,6 +33,7 @@ from inputremapper.injection.macros.parse import (
     get_macro_argument_names,
     remove_comments,
 )
+from inputremapper.injection.global_uinputs import global_uinputs
 from inputremapper.logger import logger
 
 
@@ -85,7 +87,7 @@ def get_incomplete_parameter(iter):
     #  foo
     #  bar + foo
     match = re.match(rf"(?:{PARAMETER}|^)(\w+)$", left_text)
-    print("get_incomplete_parameter", left_text, match)
+    logger.debug(f"get_incomplete_parameter text: %s match: %s", left_text, match)
 
     if match is None:
         return None
@@ -93,8 +95,8 @@ def get_incomplete_parameter(iter):
     return match[1]
 
 
-def propose_symbols(text_iter):
-    """Find key names that match the input at the cursor."""
+def propose_symbols(text_iter, codes):
+    """Find key names that match the input at the cursor and are mapped to the codes."""
     incomplete_name = get_incomplete_parameter(text_iter)
 
     if incomplete_name is None or len(incomplete_name) <= 1:
@@ -104,7 +106,7 @@ def propose_symbols(text_iter):
 
     return [
         (name, name)
-        for name in list(system_mapping.list_names())
+        for name in list(system_mapping.list_names(codes=codes))
         if incomplete_name in name.lower() and incomplete_name != name.lower()
     ]
 
@@ -166,7 +168,7 @@ class Autocompletion(Gtk.Popover):
 
     __gtype_name__ = "Autocompletion"
 
-    def __init__(self, text_input):
+    def __init__(self, text_input, target_selector):
         """Create an autocompletion popover.
 
         It will remain hidden until there is something to autocomplete.
@@ -187,6 +189,9 @@ class Autocompletion(Gtk.Popover):
         self.debounce_timeout = 100
 
         self.text_input = text_input
+        self.target_selector = target_selector
+        self._target_key_capabilities = []
+        target_selector.connect("changed", self._update_target_key_capabilities)
 
         self.scrolled_window = Gtk.ScrolledWindow(
             min_content_width=200,
@@ -357,7 +362,7 @@ class Autocompletion(Gtk.Popover):
 
         text_iter = self._get_text_iter_at_cursor()
         suggested_names = propose_function_names(text_iter)
-        suggested_names += propose_symbols(text_iter)
+        suggested_names += propose_symbols(text_iter, self._target_key_capabilities)
 
         if len(suggested_names) == 0:
             self.popdown()
@@ -370,6 +375,12 @@ class Autocompletion(Gtk.Popover):
             label = SuggestionLabel(display_name, suggestion)
             self.list_box.insert(label, -1)
             label.show_all()
+
+    def _update_target_key_capabilities(self, *_):
+        target = self.target_selector.get_active_id()
+        self._target_key_capabilities = global_uinputs.get_uinput(
+            target
+        ).capabilities()[EV_KEY]
 
     def _on_suggestion_clicked(self, _, selected_row):
         """An autocompletion suggestion was selected and should be inserted."""

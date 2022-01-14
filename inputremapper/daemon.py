@@ -45,6 +45,7 @@ from inputremapper.system_mapping import system_mapping
 from inputremapper.groups import groups
 from inputremapper.paths import get_config_path, USER
 from inputremapper.injection.macros.macro import macro_variables
+from inputremapper.injection.global_uinputs import global_uinputs
 
 
 BUS_NAME = "inputremapper.Control"
@@ -181,6 +182,8 @@ class Daemon:
 
         # initialize stuff that is needed alongside the daemon process
         macro_variables.start()
+
+        global_uinputs.prepare()
 
     @classmethod
     def connect(cls, fallback=True):

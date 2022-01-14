@@ -27,6 +27,7 @@ import os
 import re
 import sys
 
+from evdev._ecodes import EV_KEY
 from gi.repository import Gtk, GtkSource, Gdk, GLib, GObject
 
 from inputremapper.data import get_data_path
@@ -59,6 +60,7 @@ from inputremapper.injection.injector import RUNNING, FAILED, NO_GRAB
 from inputremapper.daemon import Daemon
 from inputremapper.config import config
 from inputremapper.injection.macros.parse import is_this_a_macro, parse
+from inputremapper.injection.global_uinputs import global_uinputs
 from inputremapper.gui.utils import (
     CTX_ERROR,
     CTX_MAPPING,
@@ -144,6 +146,7 @@ class UserInterface:
         self.group = None
         self.preset_name = None
 
+        global_uinputs.prepare()
         css_provider = Gtk.CssProvider()
         with open(get_data_path("style.css"), "r") as file:
             css_provider.load_from_data(bytes(file.read(), encoding="UTF-8"))
@@ -463,6 +466,7 @@ class UserInterface:
         """Check if the programmed macros are allright."""
         self.show_status(CTX_MAPPING, None)
         for key, output in custom_mapping:
+            output = output[0]
             if not is_this_a_macro(output):
                 continue
 
@@ -598,7 +602,7 @@ class UserInterface:
         if state == RUNNING:
             msg = f'Applied preset "{self.preset_name}"'
 
-            if custom_mapping.get_symbol(Key.btn_left()):
+            if custom_mapping.get_mapping(Key.btn_left()):
                 msg += ", CTRL + DEL to stop"
 
             self.show_status(CTX_APPLY, msg)
@@ -741,14 +745,20 @@ class UserInterface:
             self.show_status(CTX_ERROR, "Permission denied!", error)
             logger.error(error)
 
-        for _, symbol in custom_mapping:
-            if not symbol:
+        for _, mapping in custom_mapping:
+            if not mapping:
                 continue
 
+            symbol = mapping[0]
+            target = mapping[1]
             if is_this_a_macro(symbol):
                 continue
 
-            if system_mapping.get(symbol) is None:
+            code = system_mapping.get(symbol)
+            if (
+                code is None
+                or code not in global_uinputs.get_uinput(target).capabilities()[EV_KEY]
+            ):
                 trimmed = re.sub(r"\s+", " ", symbol).strip()
                 self.show_status(CTX_MAPPING, f'Unknown mapping "{trimmed}"')
                 break

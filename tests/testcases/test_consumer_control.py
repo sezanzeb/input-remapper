@@ -35,6 +35,7 @@ from inputremapper.injection.consumer_control import ConsumerControl, consumer_c
 from inputremapper.injection.consumers.consumer import Consumer
 from inputremapper.injection.consumers.keycode_mapper import KeycodeMapper
 from inputremapper.system_mapping import system_mapping
+from inputremapper.injection.global_uinputs import global_uinputs
 
 from tests.test import new_event, quick_cleanup
 
@@ -78,7 +79,7 @@ class TestConsumerControl(unittest.IsolatedAsyncioTestCase):
         return context, consumer_control
 
     async def test_no_keycode_mapper_needed(self):
-        self.mapping.change(Key(EV_KEY, 1, 1), "b")
+        self.mapping.change(Key(EV_KEY, 1, 1), "keyboard", "b")
         _, consumer_control = self.setup(self.gamepad_source, self.mapping)
         consumer_types = [type(consumer) for consumer in consumer_control._consumers]
         self.assertIn(KeycodeMapper, consumer_types)
@@ -88,7 +89,7 @@ class TestConsumerControl(unittest.IsolatedAsyncioTestCase):
         consumer_types = [type(consumer) for consumer in consumer_control._consumers]
         self.assertNotIn(KeycodeMapper, consumer_types)
 
-        self.mapping.change(Key(EV_KEY, 1, 1), "k(a)")
+        self.mapping.change(Key(EV_KEY, 1, 1), "keyboard", "k(a)")
         _, consumer_control = self.setup(self.gamepad_source, self.mapping)
         consumer_types = [type(consumer) for consumer in consumer_control._consumers]
         self.assertIn(KeycodeMapper, consumer_types)
@@ -100,9 +101,9 @@ class TestConsumerControl(unittest.IsolatedAsyncioTestCase):
         code_shift = system_mapping.get("KEY_LEFTSHIFT")
         trigger = 1
         self.mapping.change(
-            Key(EV_KEY, trigger, 1), "if_single(k(a), k(KEY_LEFTSHIFT))"
+            Key(EV_KEY, trigger, 1), "keyboard", "if_single(k(a), k(KEY_LEFTSHIFT))"
         )
-        self.mapping.change(Key(EV_ABS, ABS_Y, 1), "b")
+        self.mapping.change(Key(EV_ABS, ABS_Y, 1), "keyboard", "b")
 
         self.mapping.set("gamepad.joystick.left_purpose", MOUSE)
         self.mapping.set("gamepad.joystick.right_purpose", WHEEL)
@@ -122,7 +123,7 @@ class TestConsumerControl(unittest.IsolatedAsyncioTestCase):
         )
         await asyncio.sleep(0.1)
         self.assertFalse(active_macros[(EV_KEY, 1)].running)
-        history = [a.t for a in context.uinput.write_history]
+        history = [a.t for a in global_uinputs.get_uinput("keyboard").write_history]
         self.assertIn((EV_KEY, code_a, 1), history)
         self.assertIn((EV_KEY, code_a, 0), history)
         self.assertNotIn((EV_KEY, code_shift, 1), history)
@@ -136,9 +137,9 @@ class TestConsumerControl(unittest.IsolatedAsyncioTestCase):
         code_shift = system_mapping.get("KEY_LEFTSHIFT")
         trigger = 1
         self.mapping.change(
-            Key(EV_KEY, trigger, 1), "if_single(k(a), k(KEY_LEFTSHIFT))"
+            Key(EV_KEY, trigger, 1), "keyboard", "if_single(k(a), k(KEY_LEFTSHIFT))"
         )
-        self.mapping.change(Key(EV_ABS, ABS_Y, 1), "b")
+        self.mapping.change(Key(EV_ABS, ABS_Y, 1), "keyboard", "b")
 
         self.mapping.set("gamepad.joystick.left_purpose", BUTTONS)
         self.mapping.set("gamepad.joystick.right_purpose", BUTTONS)
@@ -152,7 +153,7 @@ class TestConsumerControl(unittest.IsolatedAsyncioTestCase):
         )
         await asyncio.sleep(0.1)
         self.assertFalse(active_macros[(EV_KEY, 1)].running)
-        history = [a.t for a in context.uinput.write_history]
+        history = [a.t for a in global_uinputs.get_uinput("keyboard").write_history]
 
         # the key that triggered if_single should be injected after
         # if_single had a chance to inject keys (if the macro is fast enough),
@@ -172,9 +173,9 @@ class TestConsumerControl(unittest.IsolatedAsyncioTestCase):
         code_a = system_mapping.get("a")
         trigger = 1
         self.mapping.change(
-            Key(EV_KEY, trigger, 1), "if_single(k(a), k(KEY_LEFTSHIFT))"
+            Key(EV_KEY, trigger, 1), "keyboard", "if_single(k(a), k(KEY_LEFTSHIFT))"
         )
-        self.mapping.change(Key(EV_ABS, ABS_Y, 1), "b")
+        self.mapping.change(Key(EV_ABS, ABS_Y, 1), "keyboard", "b")
 
         self.mapping.set("gamepad.joystick.left_purpose", BUTTONS)
         self.mapping.set("gamepad.joystick.right_purpose", BUTTONS)
@@ -189,7 +190,7 @@ class TestConsumerControl(unittest.IsolatedAsyncioTestCase):
         )
         await asyncio.sleep(0.1)
         self.assertFalse(active_macros[(EV_KEY, 1)].running)
-        history = [a.t for a in context.uinput.write_history]
+        history = [a.t for a in global_uinputs.get_uinput("keyboard").write_history]
 
         # the key that triggered if_single should be injected after
         # if_single had a chance to inject keys (if the macro is fast enough),

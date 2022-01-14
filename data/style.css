@@ -39,6 +39,10 @@ list button {
     border-color: transparent;
 }
 
+.invalid_input {
+    background-color: #ea9697;
+}
+
 .transparent {
     background: transparent;
 }

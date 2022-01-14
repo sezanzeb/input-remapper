@@ -19,11 +19,20 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
-"""Sets up input-remapper for the tests and runs them."""
-
-
+"""Sets up inputremapper for the tests and runs them."""
 import os
 import sys
+
+# make sure the "tests" module visible
+sys.path.append(os.getcwd())
+if __name__ == "__main__":
+    # import this file to itself to make sure is not run twice and all global variables end up in sys.modules
+    # https://stackoverflow.com/questions/13181559/importing-modules-main-vs-import-as-module
+    import tests.test
+
+    tests.test.main()
+    sys.exit(0)
+
 import shutil
 import time
 import copy
@@ -85,9 +94,6 @@ if is_service_running():
     # let tests control daemon existance
     raise Exception("Expected the service not to be running already.")
 
-
-# make sure the "tests" module visible
-sys.path.append(os.getcwd())
 
 # give tests some time to test stuff while the process
 # is still running
@@ -525,6 +531,7 @@ from inputremapper.gui.custom_mapping import custom_mapping
 from inputremapper.paths import get_config_path
 from inputremapper.injection.macros.macro import macro_variables
 from inputremapper.injection.consumers.keycode_mapper import active_macros, unreleased
+from inputremapper.injection.global_uinputs import global_uinputs
 
 # no need for a high number in tests
 Injector.regrab_timeout = 0.05
@@ -626,6 +633,9 @@ def quick_cleanup(log=True):
         assert not pipe.poll()
 
     assert macro_variables.is_alive(1)
+    for uinput in global_uinputs.devices.values():
+        uinput.write_count = 0
+        uinput.write_history = []
 
 
 def cleanup():
@@ -641,6 +651,8 @@ def cleanup():
 
     quick_cleanup(log=False)
     groups.refresh()
+    with patch.object(sys, "argv", ["input-remapper-service"]):
+        global_uinputs.prepare()
 
 
 def spy(obj, name):
@@ -676,7 +688,3 @@ def main():
 
     unittest.TextTestResult.startTest = start_test
     unittest.TextTestRunner(verbosity=2).run(testsuite)
-
-
-if __name__ == "__main__":
-    main()

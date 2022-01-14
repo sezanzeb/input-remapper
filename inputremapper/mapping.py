@@ -66,7 +66,7 @@ class Mapping(ConfigBase):
         super().__init__(fallback=config)
 
     def __iter__(self):
-        """Iterate over Key objects and their symbol."""
+        """Iterate over Key objects and their mappings."""
         return iter(self._mapping.items())
 
     def __len__(self):
@@ -82,12 +82,14 @@ class Mapping(ConfigBase):
         self._changed = True
         return super().remove(*args)
 
-    def change(self, new_key, symbol, previous_key=None):
+    def change(self, new_key, target, symbol, previous_key=None):
         """Replace the mapping of a keycode with a different one.
 
         Parameters
         ----------
         new_key : Key
+        target : string
+            name of target uinput
         symbol : string
             A single symbol known to xkb or linux.
             Examples: KEY_KP1, Shift_L, a, B, BTN_LEFT.
@@ -104,14 +106,19 @@ class Mapping(ConfigBase):
         if symbol is None or symbol.strip() == "":
             raise ValueError("Expected `symbol` not to be empty")
 
+        if target is None or target.strip() == "":
+            raise ValueError("Expected `target` not to be None")
+
+        target = target.strip()
         symbol = symbol.strip()
+        output = (symbol, target)
 
         if previous_key is None and self._mapping.get(new_key):
             # the key didn't change
             previous_key = new_key
 
         key_changed = new_key != previous_key
-        if not key_changed and symbol == self._mapping.get(new_key):
+        if not key_changed and (symbol, target) == self._mapping.get(new_key):
             # nothing was changed, no need to act
             return
 
@@ -119,7 +126,7 @@ class Mapping(ConfigBase):
 
         logger.debug('changing %s to "%s"', new_key, clean(symbol))
 
-        self._mapping[new_key] = symbol
+        self._mapping[new_key] = output
 
         if key_changed and previous_key is not None:
             # clear previous mapping of that code, because the line
@@ -203,7 +210,10 @@ class Mapping(ConfigBase):
                 if None in key:
                     continue
 
-                logger.spam("%s maps to %s", key, clean(symbol))
+                if isinstance(symbol, list):
+                    symbol = tuple(symbol)  # use a immutable type
+
+                logger.spam("%s maps to %s", key, symbol)
                 self._mapping[key] = symbol
 
             # add any metadata of the mapping
@@ -254,8 +264,8 @@ class Mapping(ConfigBase):
         self._changed = False
         self.num_saved_keys = len(self)
 
-    def get_symbol(self, key):
-        """Read the symbol that is mapped to this keycode.
+    def get_mapping(self, key):
+        """Read the (symbol, target)-tuple that is mapped to this keycode.
 
         Parameters
         ----------
@@ -273,8 +283,8 @@ class Mapping(ConfigBase):
 
     def dangerously_mapped_btn_left(self):
         """Return True if this mapping disables BTN_Left."""
-        if self.get_symbol(Key(EV_KEY, BTN_LEFT, 1)) is not None:
-            values = [value.lower() for value in self._mapping.values()]
+        if self.get_mapping(Key(EV_KEY, BTN_LEFT, 1)) is not None:
+            values = [value[0].lower() for value in self._mapping.values()]
             return "btn_left" not in values
 
         return False

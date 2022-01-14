@@ -155,15 +155,24 @@ class TestMigrations(unittest.TestCase):
             os.path.exists(os.path.join(tmp, "presets", "foo2", "bar2.json"))
         )
 
-    def test_migrate_mapping_keys(self):
-        # migrates mappings with only (type, code)
+    def test_migrate_mappings(self):
+        """test if mappings are migrated correctly
+
+        mappings like
+        {(type, code): symbol} or {(type, code, value): symbol} should migrate to
+        {(type, code, value): (symbol, "keyboard")}
+        """
+
         path = os.path.join(tmp, "presets", "Foo Device", "test.json")
         os.makedirs(os.path.dirname(path), exist_ok=True)
         with open(path, "w") as file:
             json.dump(
                 {
                     "mapping": {
-                        f"{EV_KEY},3": "a",
+                        f"{EV_KEY},1": "a",
+                        f"{EV_KEY}, 2, 1": "BTN_B",  # can be mapped to "gamepad"
+                        f"{EV_KEY}, 3, 1": "BTN_1",  # can not be mapped
+                        f"{EV_KEY}, 4, 1": ("a", "foo"),
                         f"{EV_ABS},{ABS_HAT0X},-1": "b",
                         f"{EV_ABS},1,1+{EV_ABS},2,-1+{EV_ABS},3,1": "c",
                         # ignored because broken
@@ -179,13 +188,25 @@ class TestMigrations(unittest.TestCase):
         loaded = Mapping()
         self.assertEqual(loaded.num_saved_keys, 0)
         loaded.load(get_preset_path("Foo Device", "test"))
-        self.assertEqual(len(loaded), 3)
-        self.assertEqual(loaded.num_saved_keys, 3)
-        self.assertEqual(loaded.get_symbol(Key(EV_KEY, 3, 1)), "a")
-        self.assertEqual(loaded.get_symbol(Key(EV_ABS, ABS_HAT0X, -1)), "b")
+        self.assertEqual(len(loaded), 6)
+        self.assertEqual(loaded.num_saved_keys, 6)
+
+        self.assertEqual(loaded.get_mapping(Key(EV_KEY, 1, 1)), ("a", "keyboard"))
+        self.assertEqual(loaded.get_mapping(Key(EV_KEY, 2, 1)), ("BTN_B", "gamepad"))
         self.assertEqual(
-            loaded.get_symbol(Key((EV_ABS, 1, 1), (EV_ABS, 2, -1), Key(EV_ABS, 3, 1))),
-            "c",
+            loaded.get_mapping(Key(EV_KEY, 3, 1)),
+            (
+                "BTN_1\n# Broken mapping:\n# No target can handle all specified keycodes",
+                "keyboard",
+            ),
+        )
+        self.assertEqual(loaded.get_mapping(Key(EV_KEY, 4, 1)), ("a", "foo"))
+        self.assertEqual(
+            loaded.get_mapping(Key(EV_ABS, ABS_HAT0X, -1)), ("b", "keyboard")
+        )
+        self.assertEqual(
+            loaded.get_mapping(Key((EV_ABS, 1, 1), (EV_ABS, 2, -1), Key(EV_ABS, 3, 1))),
+            ("c", "keyboard"),
         )
 
     def test_add_version(self):

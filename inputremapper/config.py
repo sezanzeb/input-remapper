@@ -28,7 +28,6 @@ import copy
 
 from inputremapper.paths import CONFIG_PATH, USER, touch
 from inputremapper.logger import logger, VERSION
-from inputremapper.migrations import migrate
 
 MOUSE = "mouse"
 WHEEL = "wheel"
@@ -269,5 +268,4 @@ class GlobalConfig(ConfigBase):
             file.write("\n")
 
 
-migrate()
 config = GlobalConfig()

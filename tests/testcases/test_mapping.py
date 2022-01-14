@@ -158,14 +158,16 @@ class TestMapping(unittest.TestCase):
 
         # setting mapping.whatever does not overwrite the mapping
         # after saving. It should be ignored.
-        self.mapping.change(Key(EV_KEY, 81, 1), " a ")
+        self.mapping.change(Key(EV_KEY, 81, 1), "keyboard", " a ")
         self.mapping.set("mapping.a", 2)
         self.assertEqual(self.mapping.num_saved_keys, 0)
         self.mapping.save(get_preset_path("foo", "bar"))
         self.assertEqual(self.mapping.num_saved_keys, len(self.mapping))
         self.assertFalse(self.mapping.has_unsaved_changes())
         self.mapping.load(get_preset_path("foo", "bar"))
-        self.assertEqual(self.mapping.get_symbol(Key(EV_KEY, 81, 1)), "a")
+        self.assertEqual(
+            self.mapping.get_mapping(Key(EV_KEY, 81, 1)), ("a", "keyboard")
+        )
         self.assertIsNone(self.mapping.get("mapping.a"))
         self.assertFalse(self.mapping.has_unsaved_changes())
 
@@ -187,27 +189,27 @@ class TestMapping(unittest.TestCase):
         ev_2 = Key(EV_KEY, 2, 0)
 
         mapping1 = Mapping()
-        mapping1.change(ev_1, " a")
+        mapping1.change(ev_1, "keyboard", " a")
         mapping2 = mapping1.clone()
-        mapping1.change(ev_2, "b ")
+        mapping1.change(ev_2, "keyboard", "b ")
 
-        self.assertEqual(mapping1.get_symbol(ev_1), "a")
-        self.assertEqual(mapping1.get_symbol(ev_2), "b")
+        self.assertEqual(mapping1.get_mapping(ev_1), ("a", "keyboard"))
+        self.assertEqual(mapping1.get_mapping(ev_2), ("b", "keyboard"))
 
-        self.assertEqual(mapping2.get_symbol(ev_1), "a")
-        self.assertIsNone(mapping2.get_symbol(ev_2))
+        self.assertEqual(mapping2.get_mapping(ev_1), ("a", "keyboard"))
+        self.assertIsNone(mapping2.get_mapping(ev_2))
 
-        self.assertIsNone(mapping2.get_symbol(Key(EV_KEY, 2, 3)))
-        self.assertIsNone(mapping2.get_symbol(Key(EV_KEY, 1, 3)))
+        self.assertIsNone(mapping2.get_mapping(Key(EV_KEY, 2, 3)))
+        self.assertIsNone(mapping2.get_mapping(Key(EV_KEY, 1, 3)))
 
     def test_save_load(self):
         one = Key(EV_KEY, 10, 1)
         two = Key(EV_KEY, 11, 1)
         three = Key(EV_KEY, 12, 1)
 
-        self.mapping.change(one, "1")
-        self.mapping.change(two, "2")
-        self.mapping.change(Key(two, three), "3")
+        self.mapping.change(one, "keyboard", "1")
+        self.mapping.change(two, "keyboard", "2")
+        self.mapping.change(Key(two, three), "keyboard", "3")
         self.mapping._config["foo"] = "bar"
         self.mapping.save(get_preset_path("Foo Device", "test"))
 
@@ -219,9 +221,9 @@ class TestMapping(unittest.TestCase):
         loaded.load(get_preset_path("Foo Device", "test"))
 
         self.assertEqual(len(loaded), 3)
-        self.assertEqual(loaded.get_symbol(one), "1")
-        self.assertEqual(loaded.get_symbol(two), "2")
-        self.assertEqual(loaded.get_symbol(Key(two, three)), "3")
+        self.assertEqual(loaded.get_mapping(one), ("1", "keyboard"))
+        self.assertEqual(loaded.get_mapping(two), ("2", "keyboard"))
+        self.assertEqual(loaded.get_mapping(Key(two, three)), ("3", "keyboard"))
         self.assertEqual(loaded._config["foo"], "bar")
 
     def test_change(self):
@@ -233,32 +235,32 @@ class TestMapping(unittest.TestCase):
         ev_4 = Key(EV_ABS, 1, 111)
 
         # 1 is not assigned yet, ignore it
-        self.mapping.change(ev_1, "a", ev_2)
+        self.mapping.change(ev_1, "keyboard", "a", ev_2)
         self.assertTrue(self.mapping.has_unsaved_changes())
-        self.assertIsNone(self.mapping.get_symbol(ev_2))
-        self.assertEqual(self.mapping.get_symbol(ev_1), "a")
+        self.assertIsNone(self.mapping.get_mapping(ev_2))
+        self.assertEqual(self.mapping.get_mapping(ev_1), ("a", "keyboard"))
         self.assertEqual(len(self.mapping), 1)
 
         # change ev_1 to ev_3 and change a to b
-        self.mapping.change(ev_3, "b", ev_1)
-        self.assertIsNone(self.mapping.get_symbol(ev_1))
-        self.assertEqual(self.mapping.get_symbol(ev_3), "b")
+        self.mapping.change(ev_3, "keyboard", "b", ev_1)
+        self.assertIsNone(self.mapping.get_mapping(ev_1))
+        self.assertEqual(self.mapping.get_mapping(ev_3), ("b", "keyboard"))
         self.assertEqual(len(self.mapping), 1)
 
         # add 4
-        self.mapping.change(ev_4, "c", None)
-        self.assertEqual(self.mapping.get_symbol(ev_3), "b")
-        self.assertEqual(self.mapping.get_symbol(ev_4), "c")
+        self.mapping.change(ev_4, "keyboard", "c", None)
+        self.assertEqual(self.mapping.get_mapping(ev_3), ("b", "keyboard"))
+        self.assertEqual(self.mapping.get_mapping(ev_4), ("c", "keyboard"))
         self.assertEqual(len(self.mapping), 2)
 
         # change the mapping of 4 to d
-        self.mapping.change(ev_4, "d", None)
-        self.assertEqual(self.mapping.get_symbol(ev_4), "d")
+        self.mapping.change(ev_4, "keyboard", "d", None)
+        self.assertEqual(self.mapping.get_mapping(ev_4), ("d", "keyboard"))
         self.assertEqual(len(self.mapping), 2)
 
         # this also works in the same way
-        self.mapping.change(ev_4, "e", ev_4)
-        self.assertEqual(self.mapping.get_symbol(ev_4), "e")
+        self.mapping.change(ev_4, "keyboard", "e", ev_4)
+        self.assertEqual(self.mapping.get_mapping(ev_4), ("e", "keyboard"))
         self.assertEqual(len(self.mapping), 2)
 
         self.assertEqual(self.mapping.num_saved_keys, 0)
@@ -266,7 +268,10 @@ class TestMapping(unittest.TestCase):
     def test_rejects_empty(self):
         key = Key(EV_KEY, 1, 111)
         self.assertEqual(len(self.mapping), 0)
-        self.assertRaises(ValueError, lambda: self.mapping.change(key, " \n "))
+        self.assertRaises(
+            ValueError, lambda: self.mapping.change(key, "keyboard", " \n ")
+        )
+        self.assertRaises(ValueError, lambda: self.mapping.change(key, " \n ", "b"))
         self.assertEqual(len(self.mapping), 0)
 
     def test_avoids_redundant_changes(self):
@@ -276,12 +281,13 @@ class TestMapping(unittest.TestCase):
             raise AssertionError
 
         key = Key(EV_KEY, 987, 1)
+        target = "keyboard"
         symbol = "foo"
 
-        self.mapping.change(key, symbol)
+        self.mapping.change(key, target, symbol)
         with patch.object(self.mapping, "clear", clear):
-            self.mapping.change(key, symbol)
-            self.mapping.change(key, symbol, previous_key=key)
+            self.mapping.change(key, target, symbol)
+            self.mapping.change(key, target, symbol, previous_key=key)
 
     def test_combinations(self):
         ev_1 = Key(EV_KEY, 1, 111)
@@ -292,23 +298,23 @@ class TestMapping(unittest.TestCase):
         combi_2 = Key(ev_2, ev_1, ev_3)
         combi_3 = Key(ev_1, ev_2, ev_4)
 
-        self.mapping.change(combi_1, "a")
-        self.assertEqual(self.mapping.get_symbol(combi_1), "a")
-        self.assertEqual(self.mapping.get_symbol(combi_2), "a")
+        self.mapping.change(combi_1, "keyboard", "a")
+        self.assertEqual(self.mapping.get_mapping(combi_1), ("a", "keyboard"))
+        self.assertEqual(self.mapping.get_mapping(combi_2), ("a", "keyboard"))
         # since combi_1 and combi_2 are equivalent, a changes to b
-        self.mapping.change(combi_2, "b")
-        self.assertEqual(self.mapping.get_symbol(combi_1), "b")
-        self.assertEqual(self.mapping.get_symbol(combi_2), "b")
+        self.mapping.change(combi_2, "keyboard", "b")
+        self.assertEqual(self.mapping.get_mapping(combi_1), ("b", "keyboard"))
+        self.assertEqual(self.mapping.get_mapping(combi_2), ("b", "keyboard"))
 
-        self.mapping.change(combi_3, "c")
-        self.assertEqual(self.mapping.get_symbol(combi_1), "b")
-        self.assertEqual(self.mapping.get_symbol(combi_2), "b")
-        self.assertEqual(self.mapping.get_symbol(combi_3), "c")
+        self.mapping.change(combi_3, "keyboard", "c")
+        self.assertEqual(self.mapping.get_mapping(combi_1), ("b", "keyboard"))
+        self.assertEqual(self.mapping.get_mapping(combi_2), ("b", "keyboard"))
+        self.assertEqual(self.mapping.get_mapping(combi_3), ("c", "keyboard"))
 
-        self.mapping.change(combi_3, "c", combi_1)
-        self.assertIsNone(self.mapping.get_symbol(combi_1))
-        self.assertIsNone(self.mapping.get_symbol(combi_2))
-        self.assertEqual(self.mapping.get_symbol(combi_3), "c")
+        self.mapping.change(combi_3, "keyboard", "c", combi_1)
+        self.assertIsNone(self.mapping.get_mapping(combi_1))
+        self.assertIsNone(self.mapping.get_mapping(combi_2))
+        self.assertEqual(self.mapping.get_mapping(combi_3), ("c", "keyboard"))
 
     def test_clear(self):
         # does nothing
@@ -327,39 +333,39 @@ class TestMapping(unittest.TestCase):
         self.assertEqual(len(self.mapping), 0)
         self.assertTrue(self.mapping.has_unsaved_changes())
 
-        self.mapping.change(ev_4, "KEY_KP1", None)
+        self.mapping.change(ev_4, "keyboard", "KEY_KP1", None)
         self.assertTrue(self.mapping.has_unsaved_changes())
-        self.mapping.change(ev_3, "KEY_KP2", None)
-        self.mapping.change(ev_2, "KEY_KP3", None)
+        self.mapping.change(ev_3, "keyboard", "KEY_KP2", None)
+        self.mapping.change(ev_2, "keyboard", "KEY_KP3", None)
         self.assertEqual(len(self.mapping), 3)
         self.mapping.clear(ev_3)
         self.assertEqual(len(self.mapping), 2)
-        self.assertEqual(self.mapping.get_symbol(ev_4), "KEY_KP1")
-        self.assertIsNone(self.mapping.get_symbol(ev_3))
-        self.assertEqual(self.mapping.get_symbol(ev_2), "KEY_KP3")
+        self.assertEqual(self.mapping.get_mapping(ev_4), ("KEY_KP1", "keyboard"))
+        self.assertIsNone(self.mapping.get_mapping(ev_3))
+        self.assertEqual(self.mapping.get_mapping(ev_2), ("KEY_KP3", "keyboard"))
 
     def test_empty(self):
-        self.mapping.change(Key(EV_KEY, 10, 1), "1")
-        self.mapping.change(Key(EV_KEY, 11, 1), "2")
-        self.mapping.change(Key(EV_KEY, 12, 1), "3")
+        self.mapping.change(Key(EV_KEY, 10, 1), "keyboard", "1")
+        self.mapping.change(Key(EV_KEY, 11, 1), "keyboard", "2")
+        self.mapping.change(Key(EV_KEY, 12, 1), "keyboard", "3")
         self.assertEqual(len(self.mapping), 3)
         self.mapping.empty()
         self.assertEqual(len(self.mapping), 0)
 
     def test_dangerously_mapped_btn_left(self):
-        self.mapping.change(Key.btn_left(), "1")
+        self.mapping.change(Key.btn_left(), "keyboard", "1")
         self.assertTrue(self.mapping.dangerously_mapped_btn_left())
 
-        self.mapping.change(Key(EV_KEY, 41, 1), "2")
+        self.mapping.change(Key(EV_KEY, 41, 1), "keyboard", "2")
         self.assertTrue(self.mapping.dangerously_mapped_btn_left())
 
-        self.mapping.change(Key(EV_KEY, 42, 1), "btn_left")
+        self.mapping.change(Key(EV_KEY, 42, 1), "gamepad", "btn_left")
         self.assertFalse(self.mapping.dangerously_mapped_btn_left())
 
-        self.mapping.change(Key(EV_KEY, 42, 1), "BTN_Left")
+        self.mapping.change(Key(EV_KEY, 42, 1), "gamepad", "BTN_Left")
         self.assertFalse(self.mapping.dangerously_mapped_btn_left())
 
-        self.mapping.change(Key(EV_KEY, 42, 1), "3")
+        self.mapping.change(Key(EV_KEY, 42, 1), "keyboard", "3")
         self.assertTrue(self.mapping.dangerously_mapped_btn_left())
 
 

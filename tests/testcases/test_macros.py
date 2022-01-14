@@ -251,10 +251,12 @@ class TestMacros(MacroTestBase):
         self.assertEqual(handle_plus_syntax(" a+b+c "), "m(a,m(b,m(c,h())))")
 
         # invalid
-        self.assertEqual(handle_plus_syntax("+"), "+")
-        self.assertEqual(handle_plus_syntax("a+"), "a+")
-        self.assertEqual(handle_plus_syntax("+b"), "+b")
-        self.assertEqual(handle_plus_syntax("k(a + b)"), "k(a + b)")
+        strings = ["+", "a+", "+b", "k(a + b)"]
+        for s in strings:
+            with self.assertRaises(ValueError):
+                print(f"testing '{s}'")
+                handle_plus_syntax(s)
+
         self.assertEqual(handle_plus_syntax("a"), "a")
         self.assertEqual(handle_plus_syntax("k(a)"), "k(a)")
         self.assertEqual(handle_plus_syntax(""), "")

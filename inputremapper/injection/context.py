@@ -61,18 +61,6 @@ class Context:
     macros : dict
         Mapping of ((type, code, value),) to Macro objects.
         Combinations work similar as in key_to_code
-    uinput : evdev.UInput
-        Where to inject stuff to. This is an extra node in /dev so that
-        existing capabilities won't clash.
-        For example a gamepad can keep being a gamepad, while injected
-        keycodes appear as keyboard input.
-        This way the stylus buttons of a graphics tablet can also be mapped
-        to keys, while the stylus keeps being a stylus.
-        The main issue is, that the window manager handles events differently
-        depending on the overall capabilities, and with EV_ABS capabilities
-        keycodes are pretty much ignored and not written to the desktop.
-        So this uinput should not have EV_ABS capabilities. Only EV_REL
-        and EV_KEY is allowed.
     """
 
     def __init__(self, mapping):
@@ -86,8 +74,6 @@ class Context:
         self.left_purpose = None
         self.right_purpose = None
         self.update_purposes()
-
-        self.uinput = None
 
     def update_purposes(self):
         """Read joystick purposes from the configuration.
@@ -103,13 +89,13 @@ class Context:
         logger.debug("Parsing macros")
         macros = {}
         for key, output in self.mapping:
-            if is_this_a_macro(output):
-                macro = parse(output, self)
+            if is_this_a_macro(output[0]):
+                macro = parse(output[0], self)
                 if macro is None:
                     continue
 
                 for permutation in key.get_permutations():
-                    macros[permutation.keys] = macro
+                    macros[permutation.keys] = (macro, output[1])
 
         if len(macros) == 0:
             logger.debug("No macros configured")
@@ -119,19 +105,19 @@ class Context:
     def _map_keys_to_codes(self):
         """To quickly get target keycodes during operation.
 
-        Returns a mapping of one or more 3-tuples to ints.
+        Returns a mapping of one or more 3-tuples to 2-tuples of (int, target_uinput).
         Examples:
-            ((1, 2, 1),): 3
-            ((1, 5, 1), (1, 4, 1)): 4
+            ((1, 2, 1),): (3, "keyboard")
+            ((1, 5, 1), (1, 4, 1)): (4, "gamepad")
         """
         key_to_code = {}
         for key, output in self.mapping:
-            if is_this_a_macro(output):
+            if is_this_a_macro(output[0]):
                 continue
 
-            target_code = system_mapping.get(output)
+            target_code = system_mapping.get(output[0])
             if target_code is None:
-                logger.error('Don\'t know what "%s" is', output)
+                logger.error('Don\'t know what "%s" is', output[0])
                 continue
 
             for permutation in key.get_permutations():
@@ -140,7 +126,7 @@ class Context:
                         "Expected values to be -1 or 1 at this point: %s",
                         permutation.keys,
                     )
-                key_to_code[permutation.keys] = target_code
+                key_to_code[permutation.keys] = (target_code, output[1])
 
         return key_to_code
 

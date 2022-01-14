@@ -44,7 +44,7 @@ from evdev.ecodes import ecodes, EV_KEY, EV_REL, REL_X, REL_Y, REL_WHEEL, REL_HW
 from inputremapper.logger import logger
 from inputremapper.system_mapping import system_mapping
 from inputremapper.ipc.shared_dict import SharedDict
-from inputremapper.utils import PRESS, PRESS_NEGATIVE
+from inputremapper.utils import PRESS, PRESS_NEGATIVE, is_service
 
 
 macro_variables = SharedDict()
@@ -182,7 +182,7 @@ class Macro:
         ----------
         code : string or None
             The original parsed code, for logging purposes.
-        context : Context
+        context : Context, or None for use in frontend
         """
         self.code = code
         self.context = context
@@ -270,6 +270,9 @@ class Macro:
         handler : function
             Will receive int type, code and value for an event to write
         """
+        if not callable(handler):
+            raise ValueError("handler is not callable")
+
         if self.running:
             logger.error('Tried to run already running macro "%s"', self.code)
             return
