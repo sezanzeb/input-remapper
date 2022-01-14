@@ -390,7 +390,7 @@ class UserInterface:
         preset_selection.set_active(0)
 
     def can_modify_mapping(self, *_) -> bool:
-        """Show a message if changing the mapping is not possible."""
+        """if changing the mapping is possible."""
         return self.dbus.get_state(self.group.key) != RUNNING
 
     def consume_newest_keycode(self):
