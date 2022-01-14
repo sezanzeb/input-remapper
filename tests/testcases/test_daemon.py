@@ -64,7 +64,7 @@ class TestDBusDaemon(unittest.TestCase):
             target=os.system, args=("input-remapper-service -d",)
         )
         self.process.start()
-        time.sleep(0.5)
+        time.sleep(1)
 
         # should not use pkexec, but rather connect to the previously
         # spawned process
