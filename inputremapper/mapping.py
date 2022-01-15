@@ -225,13 +225,6 @@ class Mapping(ConfigBase):
         self._changed = False
         self.num_saved_keys = len(self)
 
-    def clone(self):
-        """Create a copy of the mapping."""
-        mapping = Mapping()
-        mapping._mapping = copy.deepcopy(self._mapping)
-        mapping.set_has_unsaved_changes(self._changed)
-        return mapping
-
     def save(self, path):
         """Dump as JSON into home."""
         logger.info("Saving preset to %s", path)
