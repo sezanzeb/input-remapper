@@ -25,6 +25,7 @@ import sys
 
 # the working directory should be the project root
 assert not os.getcwd().endswith("tests")
+assert not os.getcwd().endswith("testcases")
 
 # make sure the "tests" module visible
 sys.path.append(os.getcwd())
