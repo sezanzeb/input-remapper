@@ -23,6 +23,9 @@
 import os
 import sys
 
+# the working directory should be the project root
+assert not os.getcwd().endswith("tests")
+
 # make sure the "tests" module visible
 sys.path.append(os.getcwd())
 if __name__ == "__main__":
@@ -51,10 +54,7 @@ gi.require_version("Gtk", "3.0")
 gi.require_version("GLib", "2.0")
 gi.require_version("GtkSource", "4")
 
-from xmodmap import xmodmap
-
-assert not os.getcwd().endswith("tests")
-
+from tests.xmodmap import xmodmap
 
 os.environ["UNITTEST"] = "1"
 
@@ -660,9 +660,10 @@ def spy(obj, name):
     return patch.object(obj, name, wraps=obj.__getattribute__(name))
 
 
-def main():
-    cleanup()
+cleanup()
 
+
+def main():
     modules = sys.argv[1:]
     # discoverer is really convenient, but it can't find a specific test
     # in all of the available tests like unittest.main() does...,
