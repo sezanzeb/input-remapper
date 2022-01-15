@@ -50,11 +50,7 @@ from inputremapper.injection.consumers.joystick_to_mouse import JoystickToMouse
 from inputremapper.injection.injector import (
     Injector,
     is_in_capabilities,
-    STARTING,
-    RUNNING,
-    STOPPED,
-    NO_GRAB,
-    UNKNOWN,
+    InjectorStates,
     get_udev_name,
 )
 from inputremapper.injection.numlock import is_numlock_on, set_numlock, ensure_numlock
@@ -113,7 +109,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
     def tearDown(self):
         if self.injector is not None:
             self.injector.stop_injecting()
-            self.assertEqual(self.injector.get_state(), STOPPED)
+            self.assertEqual(self.injector.get_state(), InjectorStates.STOPPED)
             self.injector = None
         evdev.InputDevice.grab = self.grab
 
@@ -155,14 +151,14 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         self.assertIsNone(device)
         self.assertGreaterEqual(self.failed, 1)
 
-        self.assertEqual(self.injector.get_state(), UNKNOWN)
+        self.assertEqual(self.injector.get_state(), InjectorStates.UNKNOWN)
         self.injector.start()
-        self.assertEqual(self.injector.get_state(), STARTING)
+        self.assertEqual(self.injector.get_state(), InjectorStates.STARTING)
         # since none can be grabbed, the process will terminate. But that
         # actually takes quite some time.
         time.sleep(self.injector.regrab_timeout * 12)
         self.assertFalse(self.injector.is_alive())
-        self.assertEqual(self.injector.get_state(), NO_GRAB)
+        self.assertEqual(self.injector.get_state(), InjectorStates.NO_GRAB)
 
     def test_grab_device_1(self):
         custom_mapping.change(Key(EV_ABS, ABS_HAT0X, 1), "keyboard", "a")
@@ -523,12 +519,12 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         )
 
         self.injector = Injector(groups.find(name="Bar Device"), custom_mapping)
-        self.assertEqual(self.injector.get_state(), UNKNOWN)
+        self.assertEqual(self.injector.get_state(), InjectorStates.UNKNOWN)
         self.injector.start()
-        self.assertEqual(self.injector.get_state(), STARTING)
+        self.assertEqual(self.injector.get_state(), InjectorStates.STARTING)
 
         uinput_write_history_pipe[0].poll(timeout=1)
-        self.assertEqual(self.injector.get_state(), RUNNING)
+        self.assertEqual(self.injector.get_state(), InjectorStates.RUNNING)
         time.sleep(EVENT_READ_TIMEOUT * 10)
 
         # sending anything arbitrary does not stop the process
@@ -587,7 +583,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
 
         numlock_after = is_numlock_on()
         self.assertEqual(numlock_before, numlock_after)
-        self.assertEqual(self.injector.get_state(), RUNNING)
+        self.assertEqual(self.injector.get_state(), InjectorStates.RUNNING)
 
     def test_any_funky_event_as_button(self):
         # as long as should_map_as_btn says it should be a button,

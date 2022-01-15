@@ -58,6 +58,9 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 
+# pyreverse graphs
+*.dot
+
 # Translations
 *.mo
 

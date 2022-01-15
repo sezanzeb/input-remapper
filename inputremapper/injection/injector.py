@@ -23,19 +23,26 @@
 
 
 import asyncio
+import os
 import time
 import multiprocessing
+import enum
 
 import evdev
-from evdev.ecodes import EV_KEY, EV_REL
+
+from typing import Dict, List, Optional
+
+from inputremapper.mapping import Mapping
 
 from inputremapper.logger import logger
-from inputremapper.groups import classify, GAMEPAD
-from inputremapper.system_mapping import DISABLE_CODE
+from inputremapper.groups import classify, GAMEPAD, _Group
 from inputremapper.injection.context import Context
 from inputremapper.injection.numlock import set_numlock, is_numlock_on, ensure_numlock
 from inputremapper.injection.consumer_control import ConsumerControl
+from inputremapper.key import Key
 
+CapabilitiesDict = Dict[int, List[int]]
+GroupSources = List[evdev.InputDevice]
 
 DEV_NAME = "input-remapper"
 
@@ -43,23 +50,19 @@ DEV_NAME = "input-remapper"
 CLOSE = 0
 OK = 1
 
-# states
-UNKNOWN = -1
-STARTING = 2
-FAILED = 3
-RUNNING = 4
-STOPPED = 5
 
-# for both states and messages
-NO_GRAB = 6
+class InjectorStates(enum.Enum):
+    UNKNOWN = -1
+    STARTING = 2
+    FAILED = 3
+    RUNNING = 4
+    STOPPED = 5
+    # for both states and messages
+    NO_GRAB = 6
 
 
-def is_in_capabilities(key, capabilities):
+def is_in_capabilities(key: Key, capabilities: CapabilitiesDict) -> bool:
     """Are this key or one of its sub keys in the capabilities?
-
-    Parameters
-    ----------
-    key : Key
     """
     for sub_key in key:
         if sub_key[1] in capabilities.get(sub_key[0], []):
@@ -68,7 +71,7 @@ def is_in_capabilities(key, capabilities):
     return False
 
 
-def get_udev_name(name, suffix):
+def get_udev_name(name: str, suffix: str) -> str:
     """Make sure the generated name is not longer than 80 chars."""
     max_len = 80  # based on error messages
     remaining_len = max_len - len(DEV_NAME) - len(suffix) - 2
@@ -85,9 +88,16 @@ class Injector(multiprocessing.Process):
     hardware-device that is being mapped.
     """
 
+    group: _Group
+    mapping: Mapping
+    context: Optional[Context]
+    _state: InjectorStates
+    _msg_pipe: multiprocessing.Pipe
+    _consumer_controls: List[ConsumerControl]
+
     regrab_timeout = 0.2
 
-    def __init__(self, group, mapping):
+    def __init__(self, group: _Group, mapping: Mapping) -> None:
         """
 
         Parameters
@@ -97,7 +107,7 @@ class Injector(multiprocessing.Process):
         mapping : Mapping
         """
         self.group = group
-        self._state = UNKNOWN
+        self._state = InjectorStates.UNKNOWN
 
         # used to interact with the parts of this class that are running within
         # the new process
@@ -108,11 +118,11 @@ class Injector(multiprocessing.Process):
 
         self._consumer_controls = []
 
-        super().__init__(name=group)
+        super().__init__(name=group.name)
 
     """Functions to interact with the running process"""
 
-    def get_state(self):
+    def get_state(self) -> InjectorStates:
         """Get the state of the injection.
 
         Can be safely called from the main process.
@@ -120,42 +130,43 @@ class Injector(multiprocessing.Process):
         # slowly figure out what is going on
         alive = self.is_alive()
 
-        if self._state == UNKNOWN and not alive:
+        if self._state == InjectorStates.UNKNOWN and not alive:
             # didn't start yet
             return self._state
 
         # if it is alive, it is definitely at least starting up
-        if self._state == UNKNOWN and alive:
-            self._state = STARTING
+        if self._state == InjectorStates.UNKNOWN and alive:
+            self._state = InjectorStates.STARTING
 
         # if there is a message available, it might have finished starting up
-        if self._state == STARTING and self._msg_pipe[1].poll():
+        if self._state == InjectorStates.STARTING and self._msg_pipe[1].poll():
             msg = self._msg_pipe[1].recv()
             if msg == OK:
-                self._state = RUNNING
+                self._state = InjectorStates.RUNNING
 
-            if msg == NO_GRAB:
-                self._state = NO_GRAB
+            if msg == InjectorStates.NO_GRAB:
+                self._state = InjectorStates.NO_GRAB
 
-        if self._state in [STARTING, RUNNING] and not alive:
-            self._state = FAILED
+        if self._state in [InjectorStates.STARTING, InjectorStates.RUNNING] \
+                and not alive:
+            self._state = InjectorStates.FAILED
             logger.error("Injector was unexpectedly found stopped")
 
         return self._state
 
     @ensure_numlock
-    def stop_injecting(self):
+    def stop_injecting(self) -> None:
         """Stop injecting keycodes.
 
         Can be safely called from the main procss.
         """
         logger.info('Stopping injecting keycodes for group "%s"', self.group.key)
         self._msg_pipe[1].send(CLOSE)
-        self._state = STOPPED
+        self._state = InjectorStates.STOPPED
 
     """Process internal stuff"""
 
-    def _grab_devices(self):
+    def _grab_devices(self) -> GroupSources:
         """Grab all devices that are needed for the injection."""
         sources = []
         for path in self.group.paths:
@@ -168,7 +179,7 @@ class Injector(multiprocessing.Process):
 
         return sources
 
-    def _grab_device(self, path):
+    def _grab_device(self, path: os.PathLike) -> Optional[evdev.InputDevice]:
         """Try to grab the device, return None if not needed/possible.
 
         Without grab, original events from it would reach the display server
@@ -223,7 +234,7 @@ class Injector(multiprocessing.Process):
 
         return device
 
-    def _copy_capabilities(self, input_device):
+    def _copy_capabilities(self, input_device: evdev.InputDevice) -> CapabilitiesDict:
         """Copy capabilities for a new device."""
         ecodes = evdev.ecodes
 
@@ -245,7 +256,7 @@ class Injector(multiprocessing.Process):
 
         return capabilities
 
-    async def _msg_listener(self):
+    async def _msg_listener(self) -> None:
         """Wait for messages from the main process to do special stuff."""
         loop = asyncio.get_event_loop()
         while True:
@@ -261,7 +272,7 @@ class Injector(multiprocessing.Process):
                 loop.stop()
                 return
 
-    def run(self):
+    def run(self) -> None:
         """The injection worker that keeps injecting until terminated.
 
         Stuff is non-blocking by using asyncio in order to do multiple things
@@ -308,7 +319,7 @@ class Injector(multiprocessing.Process):
 
         if len(sources) == 0:
             logger.error("Did not grab any device")
-            self._msg_pipe[0].send(NO_GRAB)
+            self._msg_pipe[0].send(InjectorStates.NO_GRAB)
             return
 
         numlock_state = is_numlock_on()

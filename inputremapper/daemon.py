@@ -38,7 +38,7 @@ gi.require_version("GLib", "2.0")
 from gi.repository import GLib
 
 from inputremapper.logger import logger, is_debug
-from inputremapper.injection.injector import Injector, UNKNOWN
+from inputremapper.injection.injector import Injector, InjectorStates
 from inputremapper.mapping import Mapping
 from inputremapper.config import config
 from inputremapper.system_mapping import system_mapping
@@ -295,7 +295,7 @@ class Daemon:
     def get_state(self, group_key):
         """Get the injectors state."""
         injector = self.injectors.get(group_key)
-        return injector.get_state() if injector else UNKNOWN
+        return injector.get_state() if injector else InjectorStates.UNKNOWN
 
     @remove_timeout
     def set_config_dir(self, config_dir):
