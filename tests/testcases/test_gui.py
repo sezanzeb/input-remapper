@@ -83,7 +83,7 @@ Gtk.main = gtk_iteration
 Gtk.main_quit = lambda: None
 
 
-def launch(argv=None):
+def launch(argv=None) -> UserInterface:
     """Start input-remapper-gtk with the command line argument array argv."""
     bin_path = os.path.join(os.getcwd(), "bin", "input-remapper-gtk")
 
@@ -1558,14 +1558,24 @@ class TestGui(GuiTestBase, unittest.TestCase):
             time.sleep(0.1)
             gtk_iteration()
             if "Starting" not in self.get_status_text():
-                return
+                break
 
         self.assertEqual(
             self.user_interface.dbus.get_state(self.user_interface.group.key), RUNNING
         )
 
         # the mapping cannot be changed anymore
-        self.user_interface.can_modify_mapping()
+        self.assertFalse(self.user_interface.can_modify_mapping())
+
+        # the toggle button should reset itself shortly
+        self.user_interface.editor.get_recording_toggle().set_active(True)
+        for _ in range(10):
+            time.sleep(0.1)
+            gtk_iteration()
+            if not self.user_interface.editor.get_recording_toggle().get_active():
+                break
+
+        self.assertFalse(self.user_interface.editor.get_recording_toggle().get_active())
         text = self.get_status_text()
         self.assertIn("Stop Injection", text)
 
