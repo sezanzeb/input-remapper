@@ -21,8 +21,10 @@
 
 """A button or a key combination."""
 
+from __future__ import annotations
 
 import itertools
+from typing import Tuple
 
 import evdev
 from evdev import ecodes
@@ -56,6 +58,8 @@ class Key:
 
     Can be used in hashmaps/dicts as key
     """
+
+    keys: Tuple[Tuple[int]]
 
     def __init__(self, *keys):
         """
@@ -100,7 +104,7 @@ class Key:
         """Construct a Key object representing a left click on a mouse."""
         return cls(ecodes.EV_KEY, ecodes.BTN_LEFT, 1)
 
-    def __iter__(self):
+    def __iter__(self) -> Key.keys:
         return iter(self.keys)
 
     def __getitem__(self, item):
@@ -137,6 +141,13 @@ class Key:
 
         # compare two instances of Key
         return self.keys == other.keys
+
+    def contains_event(self, event_type, event_code) -> bool:
+        """if self contains the event type, and code"""
+        for key in self.keys:
+            if (event_type, event_code) == key[:2]:
+                return True
+        return False
 
     def is_problematic(self):
         """Is this combination going to work properly on all systems?"""

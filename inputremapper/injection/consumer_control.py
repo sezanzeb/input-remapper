@@ -23,7 +23,6 @@
 
 
 import asyncio
-
 import evdev
 
 from inputremapper.injection.consumers.joystick_to_mouse import JoystickToMouse
@@ -31,11 +30,19 @@ from inputremapper.injection.consumers.keycode_mapper import KeycodeMapper
 from inputremapper.logger import logger
 from inputremapper.injection.context import Context
 
-
 consumer_classes = [
     KeycodeMapper,
     JoystickToMouse,
 ]
+
+def copy_event(event: evdev.InputEvent) -> evdev.InputEvent:
+    return evdev.InputEvent(
+        sec=event.sec,
+        usec=event.usec,
+        type=event.type,
+        code=event.code,
+        value=event.value,
+    )
 
 
 class ConsumerControl:
@@ -67,6 +74,7 @@ class ConsumerControl:
         """
         self._source = source
         self._forward_to = forward_to
+        self.context = context
 
         # add all consumers that are enabled for this particular configuration
         self._consumers = []
@@ -98,17 +106,21 @@ class ConsumerControl:
                 # won't appear, no need to forward or map them.
                 continue
 
+            tasks = []
+            for callback in self.context.callbacks:
+                tasks.append(callback(copy_event(event)))
+            results = await asyncio.gather(*tasks)
+
+            if True in results:
+                continue
+
+            # try legacy injection if the new injection did not do anything
+            # TODO: Remove. only keep the call to forward
             handled = False
             for consumer in self._consumers:
                 # copy so that the consumer doesn't screw this up for
                 # all other future consumers
-                event_copy = evdev.InputEvent(
-                    sec=event.sec,
-                    usec=event.usec,
-                    type=event.type,
-                    code=event.code,
-                    value=event.value,
-                )
+                event_copy = copy_event(event)
                 if consumer.is_handled(event_copy):
                     await consumer.notify(event_copy)
                     handled = True

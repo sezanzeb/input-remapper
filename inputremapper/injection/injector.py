@@ -26,7 +26,6 @@ import asyncio
 import os
 import time
 import multiprocessing
-import enum
 
 import evdev
 
@@ -41,6 +40,8 @@ from inputremapper.injection.numlock import set_numlock, is_numlock_on, ensure_n
 from inputremapper.injection.consumer_control import ConsumerControl
 from inputremapper.key import Key
 
+
+
 CapabilitiesDict = Dict[int, List[int]]
 GroupSources = List[evdev.InputDevice]
 
@@ -50,15 +51,13 @@ DEV_NAME = "input-remapper"
 CLOSE = 0
 OK = 1
 
-
-class InjectorStates(enum.Enum):
-    UNKNOWN = -1
-    STARTING = 2
-    FAILED = 3
-    RUNNING = 4
-    STOPPED = 5
-    # for both states and messages
-    NO_GRAB = 6
+UNKNOWN = -1
+STARTING = 2
+FAILED = 3
+RUNNING = 4
+STOPPED = 5
+# for both states and messages
+NO_GRAB = 6
 
 
 def is_in_capabilities(key: Key, capabilities: CapabilitiesDict) -> bool:
@@ -91,7 +90,7 @@ class Injector(multiprocessing.Process):
     group: _Group
     mapping: Mapping
     context: Optional[Context]
-    _state: InjectorStates
+    _state: int
     _msg_pipe: multiprocessing.Pipe
     _consumer_controls: List[ConsumerControl]
 
@@ -107,7 +106,7 @@ class Injector(multiprocessing.Process):
         mapping : Mapping
         """
         self.group = group
-        self._state = InjectorStates.UNKNOWN
+        self._state = UNKNOWN
 
         # used to interact with the parts of this class that are running within
         # the new process
@@ -122,7 +121,7 @@ class Injector(multiprocessing.Process):
 
     """Functions to interact with the running process"""
 
-    def get_state(self) -> InjectorStates:
+    def get_state(self) -> int:
         """Get the state of the injection.
 
         Can be safely called from the main process.
@@ -130,26 +129,25 @@ class Injector(multiprocessing.Process):
         # slowly figure out what is going on
         alive = self.is_alive()
 
-        if self._state == InjectorStates.UNKNOWN and not alive:
+        if self._state == UNKNOWN and not alive:
             # didn't start yet
             return self._state
 
         # if it is alive, it is definitely at least starting up
-        if self._state == InjectorStates.UNKNOWN and alive:
-            self._state = InjectorStates.STARTING
+        if self._state == UNKNOWN and alive:
+            self._state = STARTING
 
         # if there is a message available, it might have finished starting up
-        if self._state == InjectorStates.STARTING and self._msg_pipe[1].poll():
+        if self._state == STARTING and self._msg_pipe[1].poll():
             msg = self._msg_pipe[1].recv()
             if msg == OK:
-                self._state = InjectorStates.RUNNING
+                self._state = RUNNING
 
-            if msg == InjectorStates.NO_GRAB:
-                self._state = InjectorStates.NO_GRAB
+            if msg == NO_GRAB:
+                self._state = NO_GRAB
 
-        if self._state in [InjectorStates.STARTING, InjectorStates.RUNNING] \
-                and not alive:
-            self._state = InjectorStates.FAILED
+        if self._state in [STARTING, RUNNING] and not alive:
+            self._state = FAILED
             logger.error("Injector was unexpectedly found stopped")
 
         return self._state
@@ -162,7 +160,7 @@ class Injector(multiprocessing.Process):
         """
         logger.info('Stopping injecting keycodes for group "%s"', self.group.key)
         self._msg_pipe[1].send(CLOSE)
-        self._state = InjectorStates.STOPPED
+        self._state = STOPPED
 
     """Process internal stuff"""
 
@@ -319,7 +317,7 @@ class Injector(multiprocessing.Process):
 
         if len(sources) == 0:
             logger.error("Did not grab any device")
-            self._msg_pipe[0].send(InjectorStates.NO_GRAB)
+            self._msg_pipe[0].send(NO_GRAB)
             return
 
         numlock_state = is_numlock_on()

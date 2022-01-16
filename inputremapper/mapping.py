@@ -17,14 +17,14 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
-
+from __future__ import annotations
 
 """Contains and manages mappings."""
 
 
 import os
 import json
-import copy
+from typing import Iterator, Union, List, Tuple, Dict
 
 from evdev.ecodes import EV_KEY, BTN_LEFT
 
@@ -55,6 +55,7 @@ def split_key(key):
 
 class Mapping(ConfigBase):
     """Contains and manages mappings and config of a single preset."""
+    _mapping: Dict[Key, Tuple[str, str]]
 
     def __init__(self):
         self._mapping = {}  # a mapping of Key objects to strings
@@ -65,7 +66,7 @@ class Mapping(ConfigBase):
 
         super().__init__(fallback=config)
 
-    def __iter__(self):
+    def __iter__(self) -> Mapping._mapping.items:
         """Iterate over Key objects and their mappings."""
         return iter(self._mapping.items())
 

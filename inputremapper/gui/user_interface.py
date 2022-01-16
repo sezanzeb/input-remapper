@@ -56,7 +56,7 @@ from inputremapper.gui.editor.editor import Editor
 from inputremapper.key import Key
 from inputremapper.gui.reader import reader
 from inputremapper.gui.helper import is_helper_running
-from inputremapper.injection.injector import InjectorStates
+from inputremapper.injection.injector import RUNNING, FAILED, NO_GRAB
 from inputremapper.daemon import Daemon
 from inputremapper.config import config
 from inputremapper.injection.macros.parse import is_this_a_macro, parse
@@ -391,7 +391,7 @@ class UserInterface:
 
     def can_modify_mapping(self, *_) -> bool:
         """if changing the mapping is possible."""
-        return self.dbus.get_state(self.group.key) != InjectorStates.RUNNING
+        return self.dbus.get_state(self.group.key) != RUNNING
 
     def consume_newest_keycode(self):
         """To capture events from keyboards, mice and gamepads."""
@@ -593,7 +593,7 @@ class UserInterface:
         """Show if the injection was successfully started."""
         state = self.dbus.get_state(self.group.key)
 
-        if state == InjectorStates.RUNNING:
+        if state == RUNNING:
             msg = f'Applied preset "{self.preset_name}"'
 
             if custom_mapping.get_mapping(Key.btn_left()):
@@ -604,11 +604,11 @@ class UserInterface:
             self.show_device_mapping_status()
             return False
 
-        if state == InjectorStates.FAILED:
+        if state == FAILED:
             self.show_status(CTX_ERROR, f'Failed to apply preset "{self.preset_name}"')
             return False
 
-        if state == InjectorStates.NO_GRAB:
+        if state == NO_GRAB:
             self.show_status(
                 CTX_ERROR,
                 "The device was not grabbed",
@@ -625,7 +625,7 @@ class UserInterface:
         """Figure out if this device is currently under inputremappers control."""
         group_key = self.group.key
         state = self.dbus.get_state(group_key)
-        if state == InjectorStates.RUNNING:
+        if state == RUNNING:
             logger.info('Group "%s" is currently mapped', group_key)
             self.get("apply_system_layout").set_opacity(1)
         else:

@@ -20,12 +20,32 @@
 
 
 """Stores injection-process wide information."""
+from typing import Callable, Awaitable, List, Dict, Optional
 
+import evdev
+from evdev.ecodes import EV_KEY
 
+from inputremapper.injection.consumers.mapping_handler import MappingHandler, create_handler
+from inputremapper.key import Key
 from inputremapper.logger import logger
 from inputremapper.injection.macros.parse import parse, is_this_a_macro
 from inputremapper.system_mapping import system_mapping
 from inputremapper.config import NONE, MOUSE, WHEEL, BUTTONS
+
+Callback = Callable[[evdev.InputEvent], Awaitable[bool]]
+
+
+def classify_config(config: Dict[str, any]) -> Optional[str]:
+    """return the mapping_handler type"""
+    key = Key(config["key"])
+    for sub_key in key:
+        if sub_key[0] is not EV_KEY:  # handler not yet implemented
+            return
+
+    if is_this_a_macro(config['symbol']):
+        return
+
+    return "keys_to_key"
 
 
 class Context:
@@ -61,6 +81,8 @@ class Context:
     macros : dict
         Mapping of ((type, code, value),) to Macro objects.
         Combinations work similar as in key_to_code
+    key_map : dict
+        on the input pressed down keys
     """
 
     def __init__(self, mapping):
@@ -75,6 +97,12 @@ class Context:
         self.right_purpose = None
         self.update_purposes()
 
+        # new stuff
+        self.callbacks: List[Callback] = []
+        self._mappings: Dict[Key, MappingHandler] = {}
+        self._create_mapping_handlers()
+        self.update_callbacks()
+
     def update_purposes(self):
         """Read joystick purposes from the configuration.
 
@@ -83,6 +111,25 @@ class Context:
         """
         self.left_purpose = self.mapping.get("gamepad.joystick.left_purpose")
         self.right_purpose = self.mapping.get("gamepad.joystick.right_purpose")
+
+    def update_callbacks(self) -> None:
+        """add the notify method from all mapping_handlers to self.callbacks"""
+        for handler in self._mappings.values():
+            if handler.notify not in self.callbacks:
+                self.callbacks.append(handler.notify)
+
+    def _create_mapping_handlers(self):
+        for key, mapping in self.mapping:
+            config = {
+                "key": key,
+                "target": mapping[1],
+                "symbol": mapping[0],
+            }
+            handler_type = classify_config(config)
+            if handler_type:
+                config["type"] = handler_type
+                _key = Key(config["key"])
+                self._mappings[_key] = create_handler(config)
 
     def _parse_macros(self):
         """To quickly get the target macro during operation."""
