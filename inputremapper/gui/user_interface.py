@@ -389,15 +389,9 @@ class UserInterface:
         # and select the newest one (on the top). triggers on_select_preset
         preset_selection.set_active(0)
 
-    def can_modify_mapping(self, *_):
-        """Show a message if changing the mapping is not possible."""
-        if self.dbus.get_state(self.group.key) != RUNNING:
-            return
-
-        # because the device is in grab mode by the daemon and
-        # therefore the original keycode inaccessible
-        logger.info("Cannot change keycodes while injecting")
-        self.show_status(CTX_ERROR, 'Use "Stop Injection" to stop before editing')
+    def can_modify_mapping(self, *_) -> bool:
+        """if changing the mapping is possible."""
+        return self.dbus.get_state(self.group.key) != RUNNING
 
     def consume_newest_keycode(self):
         """To capture events from keyboards, mice and gamepads."""

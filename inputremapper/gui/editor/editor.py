@@ -32,7 +32,7 @@ from inputremapper.gui.custom_mapping import custom_mapping
 from inputremapper.key import Key
 from inputremapper.logger import logger
 from inputremapper.gui.reader import reader
-from inputremapper.gui.utils import CTX_KEYCODE, CTX_WARNING
+from inputremapper.gui.utils import CTX_KEYCODE, CTX_WARNING, CTX_ERROR
 from inputremapper.injection.global_uinputs import global_uinputs
 
 
@@ -133,7 +133,7 @@ class Editor:
         toggle = self.get_recording_toggle()
         toggle.connect("focus-out-event", self._reset_keycode_consumption)
         toggle.connect("focus-out-event", lambda *_: toggle.set_active(False))
-        toggle.connect("focus-in-event", self._on_recording_toggle_focus)
+        toggle.connect("toggled", self._on_recording_toggle_toggle)
         # Don't leave the input when using arrow keys or tab. wait for the
         # window to consume the keycode from the reader. I.e. a tab input should
         # be recorded, instead of causing the recording to stop.
@@ -402,7 +402,7 @@ class Editor:
 
         selection_label_listbox.select_row(selection_labels[0])
 
-    def get_recording_toggle(self):
+    def get_recording_toggle(self) -> Gtk.ToggleButton:
         return self.get("key_recording_toggle")
 
     def get_text_input(self):
@@ -464,11 +464,18 @@ class Editor:
         """Get a widget from the window"""
         return self.user_interface.builder.get_object(name)
 
-    def _on_recording_toggle_focus(self, *_):
+    def _on_recording_toggle_toggle(self, *_):
         """Refresh useful usage information."""
+        if not self.get_recording_toggle().get_active():
+            return
         self._reset_keycode_consumption()
         reader.clear()
-        self.user_interface.can_modify_mapping()
+        if not self.user_interface.can_modify_mapping():
+            # because the device is in grab mode by the daemon and
+            # therefore the original keycode inaccessible
+            logger.info("Cannot change keycodes while injecting")
+            self.user_interface.show_status(CTX_ERROR, 'Use "Stop Injection" to stop before editing')
+            self.get_recording_toggle().set_active(False)
 
     def _on_delete_button_clicked(self, *_):
         """Destroy the row and remove it from the config."""
