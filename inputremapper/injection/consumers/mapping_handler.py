@@ -24,8 +24,9 @@
 Can be notified of new events so that inheriting classes can map them and
 inject new events based on them.
 """
+import asyncio
 import copy
-from typing import Dict, Tuple, Type
+from typing import Dict, Tuple, Type, List
 
 import evdev
 
@@ -76,7 +77,7 @@ class MappingHandler:
         global_uinputs.write(event_tuple, self.target)
 
 
-class KeysToKey(MappingHandler):
+class KeysToKeyHandler(MappingHandler):
 
     _key_map: Dict[Tuple[int, int], bool]
     _active: bool  # keep track if the target key is pressed down
@@ -127,9 +128,56 @@ class KeysToKey(MappingHandler):
         return False not in self._key_map.values()
 
 
+class HierarchyKeyHandler(MappingHandler):
+    """handler consisting of an ordered list of KeysToKeyHandler
+
+    only the first handler which successfully handles a key_down event will execute the key_down
+    all other handlers will receive a key up event.
+    All handlers receive key up events.
+    """
+    def __init__(self, target: str, handlers: List[KeysToKeyHandler]) -> None:
+        cfg = {
+            "key": None,
+            "target": target,
+        }
+        super().__init__(cfg)
+        self.handlers = handlers
+
+    async def run(self) -> None:
+        pass
+
+    async def notify(self, event: evdev.InputEvent) -> bool:
+        if event.value == 1:
+            return self.handle_key_down(event)
+        else:
+            return self.handle_key_up(event)
+
+    def handle_key_up(self, event: evdev.InputEvent) -> bool:
+        success = False
+        for handler in self.handlers:
+            success = await handler.notify(event)
+        return success
+
+    def handle_key_down(self, event: evdev.InputEvent) -> bool:
+        successful_handler = None
+        success = False
+        for handler in self.handlers:
+            success = await handler.notify(event)
+            if success:
+                successful_handler = handler
+                break
+
+        event.value = 0
+        for handler in self.handlers:
+            if handler is successful_handler:
+                continue
+            asyncio.ensure_future(handler.notify(event))  # we don't care if they did anything with that
+        return success
+
+
 mapping_handler_classes: Dict[str, Type[MappingHandler]] = {
     # all available mapping_handlers
-    "keys_to_key": KeysToKey,
+    "keys_to_key": KeysToKeyHandler,
 }
 
 

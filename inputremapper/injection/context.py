@@ -35,6 +35,15 @@ from inputremapper.config import NONE, MOUSE, WHEEL, BUTTONS
 Callback = Callable[[evdev.InputEvent], Awaitable[bool]]
 
 
+def order_keys(keys: List[Key], key: Key) -> List[Key]:
+    """reorder the keys according to some improvised rules
+
+    such that a combination a+b+c is in front of a+b
+    for a+b+c vs. c+d+e  ¯\_(ツ)_/¯
+    """
+    # TODO
+
+
 def classify_config(config: Dict[str, any]) -> Optional[str]:
     """return the mapping_handler type"""
     key = Key(config["key"])
@@ -98,6 +107,8 @@ class Context:
         self.update_purposes()
 
         # new stuff
+        #  TODO make this a Dict[Tuple[int, int], List[Callback]]
+        #   consumer_control does not need to notify all of them
         self.callbacks: List[Callback] = []
         self._mappings: Dict[Key, MappingHandler] = {}
         self._create_mapping_handlers()
@@ -114,6 +125,8 @@ class Context:
 
     def update_callbacks(self) -> None:
         """add the notify method from all mapping_handlers to self.callbacks"""
+        # TODO: sort through the handlers and create HierarchyKeyHandlers for
+        #  reused events use order_keys() for that
         for handler in self._mappings.values():
             if handler.notify not in self.callbacks:
                 self.callbacks.append(handler.notify)
