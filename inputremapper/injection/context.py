@@ -133,6 +133,8 @@ class Context:
 
     def _create_mapping_handlers(self):
         for key, mapping in self.mapping:
+            # TODO: move all this to the preset config
+            #  we should be able to obtain the config dict directly from the mapping
             config = {
                 "key": key,
                 "target": mapping[1],
