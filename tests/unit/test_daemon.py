@@ -20,7 +20,6 @@
 
 
 import os
-import multiprocessing
 import unittest
 import time
 import subprocess
@@ -39,7 +38,7 @@ from inputremapper.paths import get_config_path, mkdir, get_preset_path
 from inputremapper.key import Key
 from inputremapper.mapping import Mapping
 from inputremapper.injection.injector import STARTING, RUNNING, STOPPED, UNKNOWN
-from inputremapper.daemon import Daemon, BUS_NAME
+from inputremapper.daemon import Daemon
 
 from tests.test import (
     cleanup,
@@ -56,36 +55,6 @@ def gtk_iteration():
     """Iterate while events are pending."""
     while Gtk.events_pending():
         Gtk.main_iteration()
-
-
-class TestDBusDaemon(unittest.TestCase):
-    def setUp(self):
-        self.process = multiprocessing.Process(
-            target=os.system, args=("input-remapper-service -d",)
-        )
-        self.process.start()
-        time.sleep(1)
-
-        # should not use pkexec, but rather connect to the previously
-        # spawned process
-        self.interface = Daemon.connect()
-
-    def tearDown(self):
-        self.interface.stop_all()
-        os.system("pkill -f input-remapper-service")
-
-        for _ in range(10):
-            time.sleep(0.1)
-            if not is_service_running():
-                break
-
-        self.assertFalse(is_service_running())
-
-    def test_can_connect(self):
-        # it's a remote dbus object
-        self.assertEqual(self.interface._bus_name, BUS_NAME)
-        self.assertFalse(isinstance(self.interface, Daemon))
-        self.assertEqual(self.interface.hello("foo"), "foo")
 
 
 check_output = subprocess.check_output

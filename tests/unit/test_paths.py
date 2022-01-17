@@ -27,6 +27,7 @@ from inputremapper.paths import touch, mkdir, get_preset_path, get_config_path
 
 from tests.test import quick_cleanup, tmp
 
+
 def _raise(error):
     raise error
 
@@ -41,7 +42,9 @@ class TestPaths(unittest.TestCase):
             touch(path_abcde)
             self.assertTrue(os.path.exists(path_abcde))
             self.assertTrue(os.path.isfile(path_abcde))
-            self.assertRaises(ValueError, lambda: touch(os.path.join(local_tmp, "a/b/c/d/f/")))
+            self.assertRaises(
+                ValueError, lambda: touch(os.path.join(local_tmp, "a/b/c/d/f/"))
+            )
 
     def test_mkdir(self):
         with tempfile.TemporaryDirectory() as local_tmp:

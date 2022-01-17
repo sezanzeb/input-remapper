@@ -474,7 +474,9 @@ class Editor:
             # because the device is in grab mode by the daemon and
             # therefore the original keycode inaccessible
             logger.info("Cannot change keycodes while injecting")
-            self.user_interface.show_status(CTX_ERROR, 'Use "Stop Injection" to stop before editing')
+            self.user_interface.show_status(
+                CTX_ERROR, 'Use "Stop Injection" to stop before editing'
+            )
             self.get_recording_toggle().set_active(False)
 
     def _on_delete_button_clicked(self, *_):

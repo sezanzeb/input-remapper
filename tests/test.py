@@ -26,7 +26,8 @@ import tempfile
 
 # the working directory should be the project root
 assert not os.getcwd().endswith("tests")
-assert not os.getcwd().endswith("testcases")
+assert not os.getcwd().endswith("unit")
+assert not os.getcwd().endswith("integration")
 
 # make sure the "tests" module visible
 sys.path.append(os.getcwd())
@@ -670,14 +671,12 @@ def main():
     # so provide both options.
     if len(modules) > 0:
         # for example
-        # `tests/test.py test_integration.TestGui.test_can_start`
-        # or `tests/test.py test_integration test_daemon`
-        testsuite = unittest.defaultTestLoader.loadTestsFromNames(
-            [f"testcases.{module}" for module in modules]
-        )
+        # `tests/test.py integration.test_gui.TestGui.test_can_start`
+        # or `tests/test.py integration.test_gui integration.test_daemon`
+        testsuite = unittest.defaultTestLoader.loadTestsFromNames(modules)
     else:
         # run all tests by default
-        testsuite = unittest.defaultTestLoader.discover("testcases", pattern="*.py")
+        testsuite = unittest.defaultTestLoader.discover(".", pattern="test_*.py")
 
     # add a newline to each "qux (foo.bar)..." output before each test,
     # because the first log will be on the same line otherwise
