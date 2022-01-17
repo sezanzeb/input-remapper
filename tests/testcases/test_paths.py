@@ -21,11 +21,11 @@
 
 import os
 import unittest
+import tempfile
 
 from inputremapper.paths import touch, mkdir, get_preset_path, get_config_path
 
 from tests.test import quick_cleanup, tmp
-
 
 def _raise(error):
     raise error
@@ -36,15 +36,19 @@ class TestPaths(unittest.TestCase):
         quick_cleanup()
 
     def test_touch(self):
-        touch("/tmp/a/b/c/d/e")
-        self.assertTrue(os.path.exists("/tmp/a/b/c/d/e"))
-        self.assertTrue(os.path.isfile("/tmp/a/b/c/d/e"))
-        self.assertRaises(ValueError, lambda: touch("/tmp/a/b/c/d/f/"))
+        with tempfile.TemporaryDirectory() as local_tmp:
+            path_abcde = os.path.join(local_tmp, "a/b/c/d/e")
+            touch(path_abcde)
+            self.assertTrue(os.path.exists(path_abcde))
+            self.assertTrue(os.path.isfile(path_abcde))
+            self.assertRaises(ValueError, lambda: touch(os.path.join(local_tmp, "a/b/c/d/f/")))
 
     def test_mkdir(self):
-        mkdir("/tmp/b/c/d/e")
-        self.assertTrue(os.path.exists("/tmp/b/c/d/e"))
-        self.assertTrue(os.path.isdir("/tmp/b/c/d/e"))
+        with tempfile.TemporaryDirectory() as local_tmp:
+            path_bcde = os.path.join(local_tmp, "b/c/d/e")
+            mkdir(path_bcde)
+            self.assertTrue(os.path.exists(path_bcde))
+            self.assertTrue(os.path.isdir(path_bcde))
 
     def test_get_preset_path(self):
         self.assertEqual(get_preset_path(), os.path.join(tmp, "presets"))
