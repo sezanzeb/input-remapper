@@ -24,6 +24,7 @@
 Can be notified of new events so that inheriting classes can map them and
 inject new events based on them.
 """
+import asyncio
 import copy
 from typing import Dict, Tuple, Type, List
 
@@ -58,7 +59,7 @@ class MappingHandler:
         """Check if the handler cares about this at all"""
         return self._key.contains_event(event_type, event_code)
 
-    async def notify(self, event: evdev.InputEvent) -> bool:
+    async def notify(self, event: evdev.InputEvent, supress: bool = False) -> bool:
         """A new event is ready.
 
         return if the event was actually taken care of
@@ -99,7 +100,7 @@ class KeysToKeyHandler(MappingHandler):
 
         self.maps_to = (evdev.ecodes.EV_KEY, system_mapping.get(self._config["symbol"]))
 
-    async def notify(self, event: evdev.InputEvent) -> bool:
+    async def notify(self, event: evdev.InputEvent, supress: bool = False) -> bool:
         map_key = (event.type, event.code)
         if map_key not in self._key_map.keys():
             return False  # we are not responsible for the event
@@ -107,6 +108,9 @@ class KeysToKeyHandler(MappingHandler):
         self._key_map[map_key] = event.value == 1
         if self.get_active() == self._active:
             return False  # nothing changed ignore this event
+
+        if supress:
+            return False
 
         self._active = self.get_active() and not utils.is_key_up(event.value)
         if self._active:
@@ -130,7 +134,7 @@ class HierarchyHandler(MappingHandler):
     """handler consisting of an ordered list of KeysToKeyHandler
 
     only the first handler which successfully handles a key_down event will execute the key_down.
-    All handlers receive key up events, but in reversed order.
+    Handlers receive key up events in reversed order.
     """
     hierarich = False
 
@@ -145,7 +149,7 @@ class HierarchyHandler(MappingHandler):
     async def run(self) -> None:
         pass
 
-    async def notify(self, event: evdev.InputEvent) -> bool:
+    async def notify(self, event: evdev.InputEvent, supress: bool = False) -> bool:
         if event.value == 1:
             return self.handle_key_down(event)
         else:
@@ -155,6 +159,8 @@ class HierarchyHandler(MappingHandler):
         success = False
         for handler in self.handlers[::-1]:
             success = await handler.notify(event)
+            if success:
+                asyncio.ensure_future(handler.notify(event, supress=True))
         return success
 
     def handle_key_down(self, event: evdev.InputEvent) -> bool:
