@@ -120,10 +120,6 @@ uinput_write_history_pipe = multiprocessing.Pipe()
 pending_events = {}
 
 
-if os.path.exists(tmp):
-    shutil.rmtree(tmp)
-
-
 def read_write_history_pipe():
     """convert the write history from the pipe to some easier to manage list"""
     history = []
