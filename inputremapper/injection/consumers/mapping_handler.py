@@ -119,8 +119,6 @@ class KeysToKeyHandler(MappingHandler):
             return False  # nothing changed ignore this event
 
         self._active = self.get_active() and not utils.is_key_up(event.value)
-        if supress:
-            return False
 
         if self._active:
             value = 1
@@ -128,6 +126,9 @@ class KeysToKeyHandler(MappingHandler):
                 self.forward_release(forward)
         else:
             value = 0
+
+        if supress:
+            return False
 
         logger.key_spam(self._key, "maps to (%s)", [(*self.maps_to, value), self._target])
         self.inject((*self.maps_to, value))
@@ -185,7 +186,9 @@ class HierarchyHandler(MappingHandler):
             if not success:
                 success = await handler.notify(event, forward=forward)
             else:
-                asyncio.ensure_future(handler.notify(event, supress=True))
+                asyncio.ensure_future(handler.notify(event,
+                                                     forward=forward,
+                                                     supress=True))
         return success
 
     async def handle_key_up(self, event: evdev.InputEvent) -> bool:
