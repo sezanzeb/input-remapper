@@ -35,7 +35,6 @@ if __name__ == "__main__":
     import tests.test
 
     tests.test.main()
-    sys.exit(0)
 
 import shutil
 import time
@@ -689,4 +688,5 @@ def main():
         print()
 
     unittest.TextTestResult.startTest = start_test
-    unittest.TextTestRunner(verbosity=2).run(testsuite)
+    result = unittest.TextTestRunner(verbosity=2).run(testsuite)
+    sys.exit(not result.wasSuccessful())
