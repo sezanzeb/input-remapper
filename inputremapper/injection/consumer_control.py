@@ -107,12 +107,12 @@ class ConsumerControl:
                 continue
 
             tasks = []
-            for callback in self.context.callbacks:
-                tasks.append(callback(copy_event(event)))
-            results = await asyncio.gather(*tasks)
-
-            if True in results:
-                continue
+            if (event.type, event.code) in self.context.callbacks.keys():
+                for callback in self.context.callbacks[(event.type, event.code)]:
+                    tasks.append(callback(copy_event(event)))
+                results = await asyncio.gather(*tasks)
+                if True in results:
+                    continue
 
             # try legacy injection if the new injection did not do anything
             # TODO: Remove. only keep the call to forward

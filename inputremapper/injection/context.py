@@ -20,7 +20,7 @@
 
 
 """Stores injection-process wide information."""
-from typing import Callable, Awaitable, List, Dict, Optional
+from typing import Callable, Awaitable, List, Dict, Optional, Tuple
 
 import evdev
 from evdev.ecodes import EV_KEY
@@ -53,7 +53,28 @@ def order_keys(keys: List[Key], key: Key) -> List[Key]:
     key: Key
         the Key all members of Keys have in common
     """
-    # TODO
+    keys.sort(key=len, reverse=True)  # sort by descending length
+
+    # sort keys with same length by the sum of their keycodes
+    # this is hopefully most of the time unique.
+    # to get at least a consistent behaviour
+    def rank(_key: Key) -> int:
+        value = 0
+        for sub_key in _key:
+            value += sub_key[1]
+        return value
+
+    last_key = keys[0]
+    last_idx = 0
+    for i, key in enumerate(keys[1:]):
+        i += 1
+        if len(key) == len(last_key):
+            last_key = key
+            continue
+
+        assert len(key) < len(last_key)
+        keys[last_idx: i].sort(key=rank)
+    return keys
 
 
 def classify_config(config: Dict[str, any]) -> Optional[str]:
@@ -119,9 +140,7 @@ class Context:
         self.update_purposes()
 
         # new stuff
-        #  TODO make this a Dict[Tuple[int, int], List[Callback]]
-        #   consumer_control does not need to notify all of them
-        self.callbacks: List[Callback] = []
+        self.callbacks: Dict[Tuple[int, int], List[Callback]] = {}
         self._original_handlers: Dict[Key, MappingHandler] = {}
         self._sorted_handlers: Dict[Key, List[MappingHandler]] = {}  # Key has len 1
 
@@ -140,10 +159,10 @@ class Context:
 
     def update_callbacks(self) -> None:
         """add the notify method from all sorted_handlers to self.callbacks"""
-        # TODO: use the _sorted_handlers
-        for handler in self._original_handlers.values():
-            if handler.notify not in self.callbacks:
-                self.callbacks.append(handler.notify)
+        for key, handler_list in self._sorted_handlers.items():
+            self.callbacks[key[:2]] = []
+            for handler in handler_list:
+                self.callbacks[key[:2]].append(handler.notify)
 
     def _create_mapping_handlers(self):
         for key, mapping in self.mapping:
@@ -176,12 +195,12 @@ class Context:
             assert len(containing_keys) != 0
             if len(containing_keys) == 1:
                 # there was only one handler containing that key
-                self._sorted_handlers[key].append(self._original_handlers[key])
+                self._sorted_handlers[key].append(self._original_handlers[containing_keys[0]])
                 continue
 
             keys_to_sort = []
             for og_key in containing_keys:
-                if self._original_handlers[og_key].hierarich:
+                if self._original_handlers[og_key].hierarchic:
                     # gather all keys which need ranking
                     keys_to_sort.append(og_key)
                     continue
