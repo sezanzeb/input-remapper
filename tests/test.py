@@ -111,7 +111,7 @@ MIN_ABS = -(2 ** 15)
 MAX_ABS = 2 ** 15
 
 tmp_TemporaryDirectory = tempfile.TemporaryDirectory(prefix="input-remapper-test")
-tmp = str(tmp_TemporaryDirectory)
+tmp = tmp_TemporaryDirectory.name
 uinput_write_history = []
 # for tests that makes the injector create its processes
 uinput_write_history_pipe = multiprocessing.Pipe()
