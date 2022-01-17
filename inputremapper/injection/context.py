@@ -20,7 +20,7 @@
 
 
 """Stores injection-process wide information."""
-from typing import Callable, Awaitable, List, Dict, Optional, Tuple
+from typing import Callable, Awaitable, List, Dict, Optional, Tuple, Protocol
 
 import evdev
 from evdev.ecodes import EV_KEY
@@ -36,7 +36,13 @@ from inputremapper.injection.macros.parse import parse, is_this_a_macro
 from inputremapper.system_mapping import system_mapping
 from inputremapper.config import NONE, MOUSE, WHEEL, BUTTONS
 
-Callback = Callable[[evdev.InputEvent], Awaitable[bool]]
+
+class NotifyCallback(Protocol):
+    """type signature of MappingHandler.notify"""
+    def __call__(self, event: evdev.InputEvent,
+                 source: evdev.InputDevice = None,
+                 forward: evdev.UInput = None,
+                 supress: bool = False) -> Awaitable[bool]: ...
 
 
 def order_keys(keys: List[Key], key: Key) -> List[Key]:
@@ -140,7 +146,7 @@ class Context:
         self.update_purposes()
 
         # new stuff
-        self.callbacks: Dict[Tuple[int, int], List[Callback]] = {}
+        self.callbacks: Dict[Tuple[int, int], List[NotifyCallback]] = {}
         self._original_handlers: Dict[Key, MappingHandler] = {}
         self._sorted_handlers: Dict[Key, List[MappingHandler]] = {}  # Key has len 1
 

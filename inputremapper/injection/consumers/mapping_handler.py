@@ -26,6 +26,7 @@ inject new events based on them.
 """
 import asyncio
 import copy
+from abc import abstractmethod, ABC
 from typing import Dict, Tuple, Type, List, Optional
 
 import evdev
@@ -37,7 +38,7 @@ from inputremapper.key import Key
 from inputremapper.injection.global_uinputs import global_uinputs
 
 
-class MappingHandler:
+class MappingHandler(ABC):
     """Can be notified of new events to inject them. Base class."""
     # hierarchic mapping handlers e.g. KeysToKeyHandler will get sorted to make sure
     # only one handler will receive the event. This allows mapping of combinations
@@ -58,7 +59,13 @@ class MappingHandler:
             self._target = None
             self._key = None
 
-    async def notify(self, event: evdev.InputEvent, supress: bool = False) -> bool:
+    @abstractmethod
+    async def notify(self,
+                     event: evdev.InputEvent,
+                     source: evdev.InputDevice = None,
+                     forward: evdev.UInput = None,
+                     supress: bool = False) -> bool:
+
         """A new event is ready.
 
         return if the event was actually taken care of
@@ -66,8 +73,8 @@ class MappingHandler:
         Overwrite this function if the consumer should do something each time
         a new event arrives. E.g. mapping a single button once clicked.
         """
-        raise NotImplementedError
 
+    @abstractmethod
     async def run(self) -> None:
         """Start doing things.
 
@@ -75,7 +82,6 @@ class MappingHandler:
         continuously even if no new event arrives. e.g. continuously injecting
         mouse movement events.
         """
-        raise NotImplementedError
 
     def inject(self, event_tuple: Tuple) -> None:
         logger.debug("injecting form new mapping handler: %s", event_tuple)
@@ -98,7 +104,12 @@ class KeysToKeyHandler(MappingHandler):
 
         self.maps_to = (evdev.ecodes.EV_KEY, system_mapping.get(self._config["symbol"]))
 
-    async def notify(self, event: evdev.InputEvent, supress: bool = False) -> bool:
+    async def notify(self,
+                     event: evdev.InputEvent,
+                     source: evdev.InputDevice = None,
+                     forward: evdev.UInput = None,
+                     supress: bool = False) -> bool:
+
         map_key = (event.type, event.code)
         if map_key not in self._key_map.keys():
             return False  # we are not responsible for the event
@@ -113,11 +124,12 @@ class KeysToKeyHandler(MappingHandler):
 
         if self._active:
             value = 1
+            if forward:
+                self.forward_release(forward)
         else:
             value = 0
 
-        print("warum kommt der folgende key_spam nicht immer an?")
-        logger.key_spam(self._key, "maps to (%s)", self.maps_to)
+        logger.key_spam(self._key, "maps to (%s)", [(*self.maps_to, value), self._target])
         self.inject((*self.maps_to, value))
         return True
 
@@ -126,6 +138,17 @@ class KeysToKeyHandler(MappingHandler):
 
     def get_active(self) -> bool:
         return False not in self._key_map.values()
+
+    def forward_release(self, forward: evdev.UInput) -> None:
+        """forward a button release for all keys if this is a combination
+
+        this might cause duplicate key-up events but those are ignored by evdev anyway
+        """
+        if len(self._key) == 1:
+            return
+        for key in self._key:
+            forward.write(*key[:2], 0)
+        forward.syn()
 
 
 class HierarchyHandler(MappingHandler):
@@ -143,17 +166,24 @@ class HierarchyHandler(MappingHandler):
     async def run(self) -> None:
         pass
 
-    async def notify(self, event: evdev.InputEvent, supress: bool = False) -> bool:
+    async def notify(self,
+                     event: evdev.InputEvent,
+                     source: evdev.InputDevice = None,
+                     forward: evdev.UInput = None,
+                     supress: bool = False) -> bool:
+
         if event.value == 1:
-            return await self.handle_key_down(event)
+            return await self.handle_key_down(event, forward)
         else:
             return await self.handle_key_up(event)
 
-    async def handle_key_down(self, event: evdev.InputEvent) -> bool:
+    async def handle_key_down(self,
+                              event: evdev.InputEvent,
+                              forward: evdev.UInput) -> bool:
         success = False
         for handler in self.handlers:
             if not success:
-                success = await handler.notify(event)
+                success = await handler.notify(event, forward=forward)
             else:
                 asyncio.ensure_future(handler.notify(event, supress=True))
         return success
@@ -165,6 +195,7 @@ class HierarchyHandler(MappingHandler):
                 success = await handler.notify(event)
             else:
                 asyncio.ensure_future(handler.notify(event))
+
         return success
 
 

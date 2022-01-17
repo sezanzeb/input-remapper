@@ -20,8 +20,6 @@
 
 
 """Because multiple calls to async_read_loop won't work."""
-
-
 import asyncio
 import evdev
 
@@ -34,6 +32,7 @@ consumer_classes = [
     KeycodeMapper,
     JoystickToMouse,
 ]
+
 
 def copy_event(event: evdev.InputEvent) -> evdev.InputEvent:
     return evdev.InputEvent(
@@ -109,7 +108,10 @@ class ConsumerControl:
             tasks = []
             if (event.type, event.code) in self.context.callbacks.keys():
                 for callback in self.context.callbacks[(event.type, event.code)]:
-                    tasks.append(callback(copy_event(event)))
+                    tasks.append(callback(copy_event(event),
+                                          source=self._source,
+                                          forward=self._forward_to
+                                          ))
                 results = await asyncio.gather(*tasks)
                 if True in results:
                     continue
