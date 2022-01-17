@@ -22,6 +22,7 @@
 """Sets up inputremapper for the tests and runs them."""
 import os
 import sys
+import tempfile
 
 # the working directory should be the project root
 assert not os.getcwd().endswith("tests")
@@ -109,8 +110,8 @@ START_READING_DELAY = 0.05
 MIN_ABS = -(2 ** 15)
 MAX_ABS = 2 ** 15
 
-
-tmp = "/tmp/input-remapper-test"
+tmp_TemporaryDirectory = tempfile.TemporaryDirectory(prefix="input-remapper-test")
+tmp = str(tmp_TemporaryDirectory)
 uinput_write_history = []
 # for tests that makes the injector create its processes
 uinput_write_history_pipe = multiprocessing.Pipe()
@@ -292,7 +293,7 @@ def new_event(type, code, value, timestamp=None, offset=0):
 def patch_paths():
     from inputremapper import paths
 
-    paths.CONFIG_PATH = "/tmp/input-remapper-test"
+    paths.CONFIG_PATH = tmp
 
 
 class InputDevice:

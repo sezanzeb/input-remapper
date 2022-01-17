@@ -27,7 +27,7 @@ from inputremapper.ipc.pipe import Pipe
 from inputremapper.ipc.shared_dict import SharedDict
 from inputremapper.ipc.socket import Server, Client, Base
 
-from tests.test import quick_cleanup
+from tests.test import quick_cleanup, tmp
 
 
 class TestSharedDict(unittest.TestCase):
@@ -70,21 +70,21 @@ class TestSocket(unittest.TestCase):
             self.assertFalse(s2.poll())
             self.assertEqual(s2.recv(), None)
 
-        server = Server("/tmp/input-remapper-test/socket1")
-        client = Client("/tmp/input-remapper-test/socket1")
+        server = Server(tmp + "/socket1")
+        client = Client(tmp + "/socket1")
         test(server, client)
 
-        client = Client("/tmp/input-remapper-test/socket2")
-        server = Server("/tmp/input-remapper-test/socket2")
+        client = Client(tmp + "/socket2")
+        server = Server(tmp + "/socket2")
         test(client, server)
 
     def test_not_connected_1(self):
         # client discards old message, because it might have had a purpose
         # for a different client and not for the current one
-        server = Server("/tmp/input-remapper-test/socket3")
+        server = Server(tmp + "/socket3")
         server.send(1)
 
-        client = Client("/tmp/input-remapper-test/socket3")
+        client = Client(tmp + "/socket3")
         server.send(2)
 
         self.assertTrue(client.poll())
@@ -93,10 +93,10 @@ class TestSocket(unittest.TestCase):
         self.assertEqual(client.recv(), None)
 
     def test_not_connected_2(self):
-        client = Client("/tmp/input-remapper-test/socket4")
+        client = Client(tmp + "/socket4")
         client.send(1)
 
-        server = Server("/tmp/input-remapper-test/socket4")
+        server = Server(tmp + "/socket4")
         client.send(2)
 
         self.assertTrue(server.poll())
@@ -106,8 +106,8 @@ class TestSocket(unittest.TestCase):
 
     def test_select(self):
         """is compatible to select.select"""
-        server = Server("/tmp/input-remapper-test/socket6")
-        client = Client("/tmp/input-remapper-test/socket6")
+        server = Server(tmp + "/socket6")
+        client = Client(tmp + "/socket6")
 
         server.send(1)
         ready = select.select([client], [], [], 0)[0][0]
@@ -126,7 +126,7 @@ class TestSocket(unittest.TestCase):
 
 class TestPipe(unittest.TestCase):
     def test_pipe_single(self):
-        p1 = Pipe(f"/tmp/input-remapper-test/pipe")
+        p1 = Pipe(tmp + "/pipe")
         self.assertEqual(p1.recv(), None)
 
         p1.send(1)
@@ -146,8 +146,8 @@ class TestPipe(unittest.TestCase):
         self.assertEqual(p1.recv(), None)
 
     def test_pipe_duo(self):
-        p1 = Pipe(f"/tmp/input-remapper-test/pipe")
-        p2 = Pipe(f"/tmp/input-remapper-test/pipe")
+        p1 = Pipe(tmp + "/pipe")
+        p2 = Pipe(tmp + "/pipe")
         self.assertEqual(p2.recv(), None)
 
         p1.send(1)

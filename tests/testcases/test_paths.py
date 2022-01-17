@@ -26,7 +26,6 @@ from inputremapper.paths import touch, mkdir, get_preset_path, get_config_path
 
 from tests.test import quick_cleanup, tmp
 
-
 def _raise(error):
     raise error
 
@@ -36,15 +35,15 @@ class TestPaths(unittest.TestCase):
         quick_cleanup()
 
     def test_touch(self):
-        touch("/tmp/a/b/c/d/e")
-        self.assertTrue(os.path.exists("/tmp/a/b/c/d/e"))
-        self.assertTrue(os.path.isfile("/tmp/a/b/c/d/e"))
-        self.assertRaises(ValueError, lambda: touch("/tmp/a/b/c/d/f/"))
+        touch(tmp + "/a/b/c/d/e")
+        self.assertTrue(os.path.exists(tmp + "/a/b/c/d/e"))
+        self.assertTrue(os.path.isfile(tmp + "/a/b/c/d/e"))
+        self.assertRaises(ValueError, lambda: touch(tmp + "/a/b/c/d/f/"))
 
     def test_mkdir(self):
-        mkdir("/tmp/b/c/d/e")
-        self.assertTrue(os.path.exists("/tmp/b/c/d/e"))
-        self.assertTrue(os.path.isdir("/tmp/b/c/d/e"))
+        mkdir(tmp + "/b/c/d/e")
+        self.assertTrue(os.path.exists(tmp + "/b/c/d/e"))
+        self.assertTrue(os.path.isdir(tmp + "/b/c/d/e"))
 
     def test_get_preset_path(self):
         self.assertEqual(get_preset_path(), os.path.join(tmp, "presets"))

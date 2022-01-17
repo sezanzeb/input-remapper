@@ -59,7 +59,7 @@ class TestMigrations(unittest.TestCase):
         new = CONFIG_PATH
 
         # we are not destroying our actual config files with this test
-        self.assertTrue(new.startswith("/tmp"))
+        self.assertTrue(new.startswith(tmp))
 
         try:
             shutil.rmtree(new)
