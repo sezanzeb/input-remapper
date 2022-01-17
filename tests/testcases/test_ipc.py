@@ -22,6 +22,7 @@
 import unittest
 import select
 import time
+import os
 
 from inputremapper.ipc.pipe import Pipe
 from inputremapper.ipc.shared_dict import SharedDict
@@ -70,21 +71,21 @@ class TestSocket(unittest.TestCase):
             self.assertFalse(s2.poll())
             self.assertEqual(s2.recv(), None)
 
-        server = Server(tmp + "/socket1")
-        client = Client(tmp + "/socket1")
+        server = Server(os.path.join(tmp, "socket1"))
+        client = Client(os.path.join(tmp, "socket1"))
         test(server, client)
 
-        client = Client(tmp + "/socket2")
-        server = Server(tmp + "/socket2")
+        client = Client(os.path.join(tmp, "socket2"))
+        server = Server(os.path.join(tmp, "socket2"))
         test(client, server)
 
     def test_not_connected_1(self):
         # client discards old message, because it might have had a purpose
         # for a different client and not for the current one
-        server = Server(tmp + "/socket3")
+        server = Server(os.path.join(tmp, "socket3"))
         server.send(1)
 
-        client = Client(tmp + "/socket3")
+        client = Client(os.path.join(tmp, "socket3"))
         server.send(2)
 
         self.assertTrue(client.poll())
@@ -93,10 +94,10 @@ class TestSocket(unittest.TestCase):
         self.assertEqual(client.recv(), None)
 
     def test_not_connected_2(self):
-        client = Client(tmp + "/socket4")
+        client = Client(os.path.join(tmp, "socket4"))
         client.send(1)
 
-        server = Server(tmp + "/socket4")
+        server = Server(os.path.join(tmp, "socket4"))
         client.send(2)
 
         self.assertTrue(server.poll())
@@ -106,8 +107,8 @@ class TestSocket(unittest.TestCase):
 
     def test_select(self):
         """is compatible to select.select"""
-        server = Server(tmp + "/socket6")
-        client = Client(tmp + "/socket6")
+        server = Server(os.path.join(tmp, "socket6"))
+        client = Client(os.path.join(tmp, "socket6"))
 
         server.send(1)
         ready = select.select([client], [], [], 0)[0][0]
@@ -126,7 +127,7 @@ class TestSocket(unittest.TestCase):
 
 class TestPipe(unittest.TestCase):
     def test_pipe_single(self):
-        p1 = Pipe(tmp + "/pipe")
+        p1 = Pipe(os.path.join(tmp, "pipe"))
         self.assertEqual(p1.recv(), None)
 
         p1.send(1)
@@ -146,8 +147,8 @@ class TestPipe(unittest.TestCase):
         self.assertEqual(p1.recv(), None)
 
     def test_pipe_duo(self):
-        p1 = Pipe(tmp + "/pipe")
-        p2 = Pipe(tmp + "/pipe")
+        p1 = Pipe(os.path.join(tmp, "pipe"))
+        p2 = Pipe(os.path.join(tmp, "pipe"))
         self.assertEqual(p2.recv(), None)
 
         p1.send(1)
