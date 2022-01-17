@@ -24,7 +24,6 @@
 Can be notified of new events so that inheriting classes can map them and
 inject new events based on them.
 """
-import asyncio
 import copy
 from typing import Dict, Tuple, Type, List
 
@@ -41,13 +40,19 @@ class MappingHandler:
     """Can be notified of new events to inject them. Base class."""
     _config: Dict[str, any]
     _key: Key
-    target: str
+    _target: str
+
+    # hierarich mapping handlers e.g. KeysToKeyHandler will get sorted to make sure
+    # only one handler will receive the event. This allows mapping of combinations
+    # to override other combinations.
+    # Non hierarich handlers will always receive all events they care about
+    hierarich = False
 
     def __init__(self, config_dict: Dict[str, any]) -> None:
         """Initialize event consuming functionality."""
         self._config = copy.deepcopy(config_dict)
         self._key = Key(self._config['key'])
-        self.target = self._config["target"]
+        self._target = self._config["target"]
 
     def might_handle(self, event_type: int, event_code: int) -> bool:
         """Check if the handler cares about this at all"""
@@ -74,7 +79,7 @@ class MappingHandler:
 
     def inject(self, event_tuple: Tuple) -> None:
         logger.debug("injecting form new mapping handler: %s", event_tuple)
-        global_uinputs.write(event_tuple, self.target)
+        global_uinputs.write(event_tuple, self._target)
 
 
 class KeysToKeyHandler(MappingHandler):
@@ -82,6 +87,7 @@ class KeysToKeyHandler(MappingHandler):
     _key_map: Dict[Tuple[int, int], bool]
     _active: bool  # keep track if the target key is pressed down
     maps_to: Tuple[int, int]
+    hierarich = True
 
     def __init__(self, config: Dict[str, any]) -> None:
         super().__init__(config)
@@ -98,11 +104,9 @@ class KeysToKeyHandler(MappingHandler):
         if map_key not in self._key_map.keys():
             return False  # we are not responsible for the event
 
-        if not self.update_key_map(map_key, event.value == 1):
-            return False  # nothing changed ignore this event
-
+        self._key_map[map_key] = event.value == 1
         if self.get_active() == self._active:
-            return False
+            return False  # nothing changed ignore this event
 
         self._active = self.get_active() and not utils.is_key_up(event.value)
         if self._active:
@@ -118,27 +122,22 @@ class KeysToKeyHandler(MappingHandler):
     async def run(self) -> None:  # no debouncer or anything (yet)
         pass
 
-    def update_key_map(self, map_key: Tuple[int, int], value: bool) -> bool:
-        """update the keymap and return if it changed"""
-        old = self._key_map[map_key]
-        self._key_map[map_key] = value
-        return old != value
-
     def get_active(self) -> bool:
         return False not in self._key_map.values()
 
 
-class HierarchyKeyHandler(MappingHandler):
+class HierarchyHandler(MappingHandler):
     """handler consisting of an ordered list of KeysToKeyHandler
 
-    only the first handler which successfully handles a key_down event will execute the key_down
-    all other handlers will receive a key up event.
-    All handlers receive key up events.
+    only the first handler which successfully handles a key_down event will execute the key_down.
+    All handlers receive key up events, but in reversed order.
     """
-    def __init__(self, target: str, handlers: List[KeysToKeyHandler]) -> None:
+    hierarich = False
+
+    def __init__(self, handlers: List[MappingHandler]) -> None:
         cfg = {
             "key": None,
-            "target": target,
+            "target": None,
         }
         super().__init__(cfg)
         self.handlers = handlers
@@ -154,24 +153,17 @@ class HierarchyKeyHandler(MappingHandler):
 
     def handle_key_up(self, event: evdev.InputEvent) -> bool:
         success = False
-        for handler in self.handlers:
+        for handler in self.handlers[::-1]:
             success = await handler.notify(event)
         return success
 
     def handle_key_down(self, event: evdev.InputEvent) -> bool:
-        successful_handler = None
         success = False
         for handler in self.handlers:
             success = await handler.notify(event)
             if success:
-                successful_handler = handler
                 break
 
-        event.value = 0
-        for handler in self.handlers:
-            if handler is successful_handler:
-                continue
-            asyncio.ensure_future(handler.notify(event))  # we don't care if they did anything with that
         return success
 
 

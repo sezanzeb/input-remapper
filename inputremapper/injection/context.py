@@ -25,7 +25,11 @@ from typing import Callable, Awaitable, List, Dict, Optional
 import evdev
 from evdev.ecodes import EV_KEY
 
-from inputremapper.injection.consumers.mapping_handler import MappingHandler, create_handler
+from inputremapper.injection.consumers.mapping_handler import (
+    MappingHandler,
+    HierarchyHandler,
+    create_handler,
+     )
 from inputremapper.key import Key
 from inputremapper.logger import logger
 from inputremapper.injection.macros.parse import parse, is_this_a_macro
@@ -38,8 +42,16 @@ Callback = Callable[[evdev.InputEvent], Awaitable[bool]]
 def order_keys(keys: List[Key], key: Key) -> List[Key]:
     """reorder the keys according to some improvised rules
 
-    such that a combination a+b+c is in front of a+b
-    for a+b+c vs. c+d+e  ¯\_(ツ)_/¯
+    such that a combination a+b+c is in front of a+b which is in front of b
+    for a+b+c vs. b+d+e  ¯\_(ツ)_/¯
+    in this example b would be the common key
+
+    Parameters
+    ----------
+    keys : List[Key]
+        the list which needs ordering
+    key: Key
+        the Key all members of Keys have in common
     """
     # TODO
 
@@ -110,8 +122,11 @@ class Context:
         #  TODO make this a Dict[Tuple[int, int], List[Callback]]
         #   consumer_control does not need to notify all of them
         self.callbacks: List[Callback] = []
-        self._mappings: Dict[Key, MappingHandler] = {}
+        self._original_handlers: Dict[Key, MappingHandler] = {}
+        self._sorted_handlers: Dict[Key, List[MappingHandler]] = {}  # Key has len 1
+
         self._create_mapping_handlers()
+        self._create_sorted_handlers()
         self.update_callbacks()
 
     def update_purposes(self):
@@ -124,10 +139,9 @@ class Context:
         self.right_purpose = self.mapping.get("gamepad.joystick.right_purpose")
 
     def update_callbacks(self) -> None:
-        """add the notify method from all mapping_handlers to self.callbacks"""
-        # TODO: sort through the handlers and create HierarchyKeyHandlers for
-        #  reused events use order_keys() for that
-        for handler in self._mappings.values():
+        """add the notify method from all sorted_handlers to self.callbacks"""
+        # TODO: use the _sorted_handlers
+        for handler in self._original_handlers.values():
             if handler.notify not in self.callbacks:
                 self.callbacks.append(handler.notify)
 
@@ -144,7 +158,51 @@ class Context:
             if handler_type:
                 config["type"] = handler_type
                 _key = Key(config["key"])
-                self._mappings[_key] = create_handler(config)
+                self._original_handlers[_key] = create_handler(config)
+
+    def _create_sorted_handlers(self) -> None:
+        """sort all handlers by sub_keys and create Hierarchy handlers"""
+        # gather all single keys in all mappings
+        all_keys = self._original_handlers.keys()
+        keys = set()  # set of keys with len 1
+        for key in all_keys:
+            for sub_key in key:
+                keys.add(sub_key)
+
+        for key in keys:
+            self._sorted_handlers[key] = []
+            # find all original keys (from _original_handlers) which contain the key
+            containing_keys = [og_key for og_key in all_keys if og_key.contains_event(*key[:2])]
+            assert len(containing_keys) != 0
+            if len(containing_keys) == 1:
+                # there was only one handler containing that key
+                self._sorted_handlers[key].append(self._original_handlers[key])
+                continue
+
+            keys_to_sort = []
+            for og_key in containing_keys:
+                if self._original_handlers[og_key].hierarich:
+                    # gather all keys which need ranking
+                    keys_to_sort.append(og_key)
+                    continue
+
+                # this key does not need ranking append its handler
+                self._sorted_handlers[key].append(self._original_handlers[og_key])
+
+            assert len(keys_to_sort) != 0
+            if len(keys_to_sort) == 1:
+                # there was only one key which needed ranking append it
+                self._sorted_handlers[key].append(self._original_handlers[keys_to_sort[0]])
+                continue
+
+            # rank the keys and create the HierarchyHandler
+            sorted_keys = order_keys(keys_to_sort, key)
+            handlers = []
+            for og_key in sorted_keys:
+                handlers.append(self._original_handlers[og_key])
+
+            hierarchy_handler = HierarchyHandler(handlers)
+            self._sorted_handlers[key].append(hierarchy_handler)
 
     def _parse_macros(self):
         """To quickly get the target macro during operation."""
