@@ -45,41 +45,45 @@ class NotifyCallback(Protocol):
                  supress: bool = False) -> Awaitable[bool]: ...
 
 
-def order_keys(keys: List[Key], key: Key) -> List[Key]:
-    """reorder the keys according to some improvised rules
+def order_keys(keys: List[Key], common_key: Key) -> List[Key]:
+    """reorder the keys according to some rules
 
     such that a combination a+b+c is in front of a+b which is in front of b
-    for a+b+c vs. b+d+e  ¯\_(ツ)_/¯
+    for a+b+c vs. b+d+e: a+b+c would be in front of b+d+e, because the common key b
+    has the higher index in the a+b+c (1), than in the b+c+d (0) list
     in this example b would be the common key
+    as for combinations like a+b+c and e+d+c with the common key c: ¯\_(ツ)_/¯
 
     Parameters
     ----------
     keys : List[Key]
         the list which needs ordering
-    key: Key
+    common_key : Key
         the Key all members of Keys have in common
     """
     keys.sort(key=len, reverse=True)  # sort by descending length
 
-    # sort keys with same length by the sum of their keycodes
-    # this is hopefully most of the time unique.
-    # to get at least a consistent behaviour
-    def rank(_key: Key) -> int:
-        value = 0
-        for sub_key in _key:
-            value += sub_key[1]
-        return value
+    def idx_of_common_key(_key: Key) -> int:
+        """get the index of the common key in _key"""
+        for j, sub_key in enumerate(_key):
+            logger.debug(f"idx: {j}, sub_key: {sub_key}")
+            if sub_key == common_key:
+                logger.debug(f"return: {j}")
+                return j
 
     last_key = keys[0]
     last_idx = 0
-    for i, key in enumerate(keys[1:]):
+    for i, key in enumerate([*keys[1:], ((None, None, None),)]):
         i += 1
         if len(key) == len(last_key):
             last_key = key
             continue
 
         assert len(key) < len(last_key)
-        keys[last_idx: i].sort(key=rank)
+        sub_list = keys[last_idx: i]
+        sub_list.sort(key=idx_of_common_key, reverse=True)
+        keys[last_idx: i] = sub_list
+
     return keys
 
 
