@@ -225,11 +225,8 @@ class Daemon:
                     interface = bus.get(BUS_NAME, timeout=BUS_TIMEOUT)
                     break
                 except GLib.GError as error:
-                    logger.debug(
-                        'Attempt %d to connect to the service failed: "%s"',
-                        attempt + 1,
-                        error,
-                    )
+                    logger.debug("Attempt %d to reach the service failed:", attempt + 1)
+                    logger.debug('"%s"', error)
                 time.sleep(0.2)
             else:
                 logger.error("Failed to connect to the service")

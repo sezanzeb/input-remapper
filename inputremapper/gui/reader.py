@@ -143,12 +143,12 @@ class Reader:
             type_code = (event.type, event.code)
 
             if event.value == 0:
-                logger.key_spam(event_tuple, "release")
+                logger.debug_key(event_tuple, "release")
                 self._release(type_code)
                 continue
 
             if self._unreleased.get(type_code) == event_tuple:
-                logger.key_spam(event_tuple, "duplicate key down")
+                logger.debug_key(event_tuple, "duplicate key down")
                 self._debounce_start(event_tuple)
                 continue
 
@@ -158,7 +158,7 @@ class Reader:
             # from release to input in order to remember it. Since all release
             # events have value 0, the value is not used in the key.
             key_down_received = True
-            logger.key_spam(event_tuple, "down")
+            logger.debug_key(event_tuple, "down")
             self._unreleased[type_code] = event_tuple
             self._debounce_start(event_tuple)
             previous_event = event
@@ -178,7 +178,7 @@ class Reader:
                 return None
 
             self.previous_result = result
-            logger.key_spam(result.keys, "read result")
+            logger.debug_key(result.keys, "read result")
 
             return result
 
@@ -242,7 +242,7 @@ class Reader:
 
             # clear wheel events from unreleased after some time
             if self._debounce_remove[type_code] == 0:
-                logger.key_spam(self._unreleased[type_code], "Considered as released")
+                logger.debug_key(self._unreleased[type_code], "Considered as released")
                 self._release(type_code)
             else:
                 self._debounce_remove[type_code] -= 1

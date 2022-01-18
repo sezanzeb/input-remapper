@@ -140,6 +140,7 @@ class SystemMapping:
         len_before = len(self._mapping)
         for name, code in mapping.items():
             self._set(name, code)
+
         logger.debug(
             "Updated keycodes with %d new ones", len(self._mapping) - len_before
         )

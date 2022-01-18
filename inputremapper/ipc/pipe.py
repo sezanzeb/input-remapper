@@ -59,7 +59,7 @@ class Pipe:
         mkdir(os.path.dirname(path))
 
         if not os.path.exists(paths[0]):
-            logger.spam('Creating new pipe for "%s"', path)
+            logger.debug('Creating new pipe for "%s"', path)
             # The fd the link points to is closed, or none ever existed
             # If there is a link, remove it.
             if os.path.islink(paths[0]):
@@ -76,7 +76,7 @@ class Pipe:
             os.symlink(f"{fds_dir}{self._fds[0]}", paths[0])
             os.symlink(f"{fds_dir}{self._fds[1]}", paths[1])
         else:
-            logger.spam('Using existing pipe for "%s"', path)
+            logger.debug('Using existing pipe for "%s"', path)
 
         # thanks to os.O_NONBLOCK, readline will return b'' when there
         # is nothing to read
@@ -106,7 +106,7 @@ class Pipe:
             # important to avoid race conditions between multiple unittests,
             # for example old terminate messages reaching a new instance of
             # the helper.
-            logger.spam("Ignoring old message %s", parsed)
+            logger.debug("Ignoring old message %s", parsed)
             return None
 
         return parsed[1]

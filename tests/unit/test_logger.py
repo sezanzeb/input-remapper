@@ -43,11 +43,11 @@ class TestLogger(unittest.TestCase):
         path = os.path.join(tmp, "logger-test")
         remove(path)
 
-    def test_key_spam(self):
+    def test_key_debug(self):
         path = os.path.join(tmp, "logger-test")
         add_filehandler(path)
-        logger.key_spam(((1, 2, 1),), "foo %s bar", 1234)
-        logger.key_spam(((1, 200, -1), (1, 5, 1)), "foo %s", (1, 2))
+        logger.debug_key(((1, 2, 1),), "foo %s bar", 1234)
+        logger.debug_key(((1, 200, -1), (1, 5, 1)), "foo %s", (1, 2))
         with open(path, "r") as f:
             content = f.read().lower()
             self.assertIn("((1, 2, 1)) ------------------- foo 1234 bar", content)
@@ -94,7 +94,7 @@ class TestLogger(unittest.TestCase):
         logger.warning("foo")
         logger.info("123")
         logger.debug("456")
-        logger.spam("789")
+        logger.debug("789")
         with open(path, "r") as f:
             content = f.read().lower()
             self.assertIn("logger.py", content)
@@ -111,7 +111,7 @@ class TestLogger(unittest.TestCase):
             self.assertIn("debug", content)
             self.assertIn("456", content)
 
-            self.assertIn("spam", content)
+            self.assertIn("debug", content)
             self.assertIn("789", content)
 
     def test_default(self):
@@ -122,7 +122,7 @@ class TestLogger(unittest.TestCase):
         logger.warning("foo")
         logger.info("123")
         logger.debug("456")
-        logger.spam("789")
+        logger.debug("789")
         with open(path, "r") as f:
             content = f.read().lower()
             self.assertNotIn("logger.py", content)
@@ -140,7 +140,7 @@ class TestLogger(unittest.TestCase):
             self.assertNotIn("debug", content)
             self.assertNotIn("456", content)
 
-            self.assertNotIn("spam", content)
+            self.assertNotIn("debug", content)
             self.assertNotIn("789", content)
 
 

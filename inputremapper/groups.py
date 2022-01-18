@@ -374,7 +374,7 @@ class _FindGroups(threading.Thread):
             if grouped.get(key) is None:
                 grouped[key] = []
 
-            logger.spam(
+            logger.debug(
                 'Found "%s", "%s", "%s", type: %s', key, path, device.name, device_type
             )
 

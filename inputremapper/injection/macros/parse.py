@@ -216,7 +216,7 @@ def _parse_recurse(code, context, macro_instance=None, depth=0):
     if code.startswith('"'):
         # a string, don't parse. remove quotes
         string = code[1:-1]
-        logger.spam("%sstring %s", space, string)
+        logger.debug("%sstring %s", space, string)
         return string
 
     if code.startswith("$"):
@@ -228,7 +228,7 @@ def _parse_recurse(code, context, macro_instance=None, depth=0):
             code = float(code)
         else:
             code = int(code)
-        logger.spam("%snumber %s", space, code)
+        logger.debug("%snumber %s", space, code)
         return code
 
     # is it another macro?
@@ -249,7 +249,7 @@ def _parse_recurse(code, context, macro_instance=None, depth=0):
         # get all the stuff inbetween
         position = _count_brackets(code)
         inner = code[code.index("(") + 1 : position - 1]
-        logger.spam("%scalls %s with %s", space, call, inner)
+        logger.debug("%scalls %s with %s", space, call, inner)
 
         # split "3, foo=a(2, k(a).w(10))" into arguments
         raw_string_args = _extract_args(inner)
@@ -270,7 +270,7 @@ def _parse_recurse(code, context, macro_instance=None, depth=0):
                     raise SyntaxError(f'The "{key}" argument was specified twice')
                 keyword_args[key] = parsed
 
-        logger.spam(
+        logger.debug(
             "%sadd call to %s with %s, %s",
             space,
             call,
@@ -298,7 +298,7 @@ def _parse_recurse(code, context, macro_instance=None, depth=0):
         # is after this another call? Chain it to the macro_instance
         if len(code) > position and code[position] == ".":
             chain = code[position + 1 :]
-            logger.spam("%sfollowed by %s", space, chain)
+            logger.debug("%sfollowed by %s", space, chain)
             _parse_recurse(chain, context, macro_instance, depth)
 
         return macro_instance
@@ -306,7 +306,7 @@ def _parse_recurse(code, context, macro_instance=None, depth=0):
     # It is probably either a key name like KEY_A or a variable name as in `set(var,1)`,
     # both won't contain special characters that can break macro syntax so they don't
     # have to be wrapped in quotes.
-    logger.spam("%sstring %s", space, code)
+    logger.debug("%sstring %s", space, code)
     return code
 
 
@@ -411,9 +411,9 @@ def parse(macro, context=None, return_errors=False):
     macro = clean(macro)
 
     if return_errors:
-        logger.spam("checking the syntax of %s", macro)
+        logger.debug("checking the syntax of %s", macro)
     else:
-        logger.spam("preparing macro %s for later execution", macro)
+        logger.debug("preparing macro %s for later execution", macro)
 
     try:
         macro_object = _parse_recurse(macro, context)
