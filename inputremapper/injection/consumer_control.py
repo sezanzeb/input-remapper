@@ -29,7 +29,7 @@ from inputremapper.logger import logger
 from inputremapper.injection.context import Context
 
 consumer_classes = [
-    KeycodeMapper,
+   # KeycodeMapper,
     JoystickToMouse,
 ]
 
