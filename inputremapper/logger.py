@@ -91,12 +91,14 @@ def is_debug():
     return logger.level <= logging.DEBUG
 
 
-def get_ansi_code(r, g, b):
-    return 16 + b + (6 * g) + (36 * r)
+class ColorfulFormatter(logging.Formatter):
+    """Overwritten Formatter to print nicer logs.
 
+    It colors all logs from the same filename in the same color to visually group them
+    together. It also adds process name, process id, file, line-number and time.
 
-class Formatter(logging.Formatter):
-    """Overwritten Formatter to print nicer logs."""
+    If debug mode is not active, it will not do any of this.
+    """
 
     def __init__(self):
         super().__init__()
@@ -111,18 +113,19 @@ class Formatter(logging.Formatter):
                     # https://stackoverflow.com/a/596243
                     brightness = 0.2126 * r + 0.7152 * g + 0.0722 * b
                     if brightness < 1:
-                        # prefer light colors, because most people have a dark terminal background
+                        # prefer light colors, because most people have a dark
+                        # terminal background
                         continue
 
                     if g + b <= 1:
-                        # red is reserved for errors
+                        # red makes it look like it's an error
                         continue
 
                     if abs(g - b) < 2 and abs(b - r) < 2 and abs(r - g) < 2:
                         # no colors that are too grey
                         continue
 
-                    self.allowed_colors.append(get_ansi_code(r, g, b))
+                    self.allowed_colors.append(self._get_ansi_code(r, g, b))
 
         self.level_based_colors = {
             logging.WARNING: 11,
@@ -130,32 +133,37 @@ class Formatter(logging.Formatter):
             logging.FATAL: 9,
         }
 
-        self.process_name = {
-            "gtk": "GUI",
-            "helper": "GUI-Helper",
-            "service": "Service",
-            "control": "Control",
-        }.get(sys.argv[0].split("-")[-1], sys.argv[0])
-        self.process_color = self.word_to_color(sys.argv[0])
+    def _get_ansi_code(self, r, g, b):
+        return 16 + b + (6 * g) + (36 * r)
 
-    def word_to_color(self, word):
+    def _word_to_color(self, word):
         """Convert a word to a 8bit ansi color code."""
         digit_sum = sum([ord(char) for char in word])
         index = digit_sum % len(self.allowed_colors)
         return self.allowed_colors[index]
 
-    def allocate_debug_log_color(self, record):
-        """Pick a random color that ideally has enough contrast to the previously picked colors."""
-        if self.file_color_mapping.get(record.pathname) is not None:
-            return self.file_color_mapping[record.pathname]
+    def _allocate_debug_log_color(self, record):
+        """Get the color that represents the source file of the log."""
+        if self.file_color_mapping.get(record.filename) is not None:
+            return self.file_color_mapping[record.filename]
 
-        color = self.word_to_color(record.pathname)
+        color = self._word_to_color(record.filename)
 
-        if self.file_color_mapping.get(record.pathname) is None:
+        if self.file_color_mapping.get(record.filename) is None:
             # calculate the color for each file only once
-            self.file_color_mapping[record.pathname] = color
+            self.file_color_mapping[record.filename] = color
 
         return color
+
+    def _get_process_name(self):
+        """Generate a beaitiful to read name for this process."""
+        name = sys.argv[0].split("/")[-1].split("-")[-1]
+        return {
+            "gtk": "GUI",
+            "helper": "GUI-Helper",
+            "service": "Service",
+            "control": "Control",
+        }.get(name, name)
 
     def _get_format(self, record):
         """Generate a message format string."""
@@ -169,23 +177,27 @@ class Formatter(logging.Formatter):
             color = self.level_based_colors[record.levelno]
             return f"\033[38;5;{color}m%(levelname)s\033[0m: %(message)s"
 
+        color = self._allocate_debug_log_color(record)
         if record.levelno in [logging.ERROR, logging.WARNING, logging.FATAL]:
-            color = self.level_based_colors[record.levelno]
+            # underline
+            style = f"\033[4;38;5;{color}m"
         else:
-            color = self.allocate_debug_log_color(record)
+            style = f"\033[38;5;{color}m"
+
+        process_color = self._word_to_color(f"{os.getpid()}{sys.argv[0]}")
 
         return (  # noqa
             f'{datetime.now().strftime("%H:%M:%S.%f")} '
-            f"\033[38;5;{self.process_color}m"  # color
+            f"\033[38;5;{process_color}m"  # color
             f"{os.getpid()} "
-            f"{self.process_name} "
+            f"{self._get_process_name()} "
             "\033[0m"  # end style
-            f"\033[38;5;{color}m"  # color
+            f"{style}"
             f"%(levelname)s "
             f"%(filename)s:%(lineno)d: "
             "%(message)s"
             "\033[0m"  # end style
-        )
+        ).replace("  ", " ")
 
     def format(self, record):
         """Overwritten format function."""
@@ -195,7 +207,7 @@ class Formatter(logging.Formatter):
 
 
 handler = logging.StreamHandler()
-handler.setFormatter(Formatter())
+handler.setFormatter(ColorfulFormatter())
 logger.addHandler(handler)
 logger.setLevel(logging.INFO)
 logging.getLogger("asyncio").setLevel(logging.WARNING)
@@ -274,7 +286,7 @@ def add_filehandler(log_path=LOG_PATH):
                 file.writelines(content)
 
         file_handler = logging.FileHandler(log_path)
-        file_handler.setFormatter(Formatter())
+        file_handler.setFormatter(ColorfulFormatter())
         logger.addHandler(file_handler)
 
         logger.info('Starting logging to "%s"', log_path)
