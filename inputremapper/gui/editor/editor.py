@@ -386,7 +386,7 @@ class Editor:
 
         selection_label_listbox.forall(selection_label_listbox.remove)
 
-        for key, output in custom_mapping:
+        for key, _ in custom_mapping:
             selection_label = SelectionLabel()
             selection_label.set_key(key)
             selection_label_listbox.insert(selection_label, -1)
@@ -474,7 +474,9 @@ class Editor:
             # because the device is in grab mode by the daemon and
             # therefore the original keycode inaccessible
             logger.info("Cannot change keycodes while injecting")
-            self.user_interface.show_status(CTX_ERROR, 'Use "Stop Injection" to stop before editing')
+            self.user_interface.show_status(
+                CTX_ERROR, 'Use "Stop Injection" to stop before editing'
+            )
             self.get_recording_toggle().set_active(False)
 
     def _on_delete_button_clicked(self, *_):

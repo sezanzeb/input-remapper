@@ -51,11 +51,13 @@ DEV_NAME = "input-remapper"
 CLOSE = 0
 OK = 1
 
+# states
 UNKNOWN = -1
 STARTING = 2
 FAILED = 3
 RUNNING = 4
 STOPPED = 5
+
 # for both states and messages
 NO_GRAB = 6
 

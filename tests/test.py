@@ -22,10 +22,12 @@
 """Sets up inputremapper for the tests and runs them."""
 import os
 import sys
+import tempfile
 
 # the working directory should be the project root
 assert not os.getcwd().endswith("tests")
-assert not os.getcwd().endswith("testcases")
+assert not os.getcwd().endswith("unit")
+assert not os.getcwd().endswith("integration")
 
 # make sure the "tests" module visible
 sys.path.append(os.getcwd())
@@ -35,7 +37,6 @@ if __name__ == "__main__":
     import tests.test
 
     tests.test.main()
-    sys.exit(0)
 
 import shutil
 import time
@@ -109,16 +110,15 @@ START_READING_DELAY = 0.05
 MIN_ABS = -(2 ** 15)
 MAX_ABS = 2 ** 15
 
+# When it gets garbage collected it cleans up the temporary directory so it needs to
+# stay reachable while the tests are ran.
+temporary_directory = tempfile.TemporaryDirectory(prefix="input-remapper-test")
+tmp = temporary_directory.name
 
-tmp = "/tmp/input-remapper-test"
 uinput_write_history = []
 # for tests that makes the injector create its processes
 uinput_write_history_pipe = multiprocessing.Pipe()
 pending_events = {}
-
-
-if os.path.exists(tmp):
-    shutil.rmtree(tmp)
 
 
 def read_write_history_pipe():
@@ -292,7 +292,7 @@ def new_event(type, code, value, timestamp=None, offset=0):
 def patch_paths():
     from inputremapper import paths
 
-    paths.CONFIG_PATH = "/tmp/input-remapper-test"
+    paths.CONFIG_PATH = tmp
 
 
 class InputDevice:
@@ -671,14 +671,12 @@ def main():
     # so provide both options.
     if len(modules) > 0:
         # for example
-        # `tests/test.py test_integration.TestGui.test_can_start`
-        # or `tests/test.py test_integration test_daemon`
-        testsuite = unittest.defaultTestLoader.loadTestsFromNames(
-            [f"testcases.{module}" for module in modules]
-        )
+        # `tests/test.py integration.test_gui.TestGui.test_can_start`
+        # or `tests/test.py integration.test_gui integration.test_daemon`
+        testsuite = unittest.defaultTestLoader.loadTestsFromNames(modules)
     else:
         # run all tests by default
-        testsuite = unittest.defaultTestLoader.discover("testcases", pattern="*.py")
+        testsuite = unittest.defaultTestLoader.discover(".", pattern="test_*.py")
 
     # add a newline to each "qux (foo.bar)..." output before each test,
     # because the first log will be on the same line otherwise
@@ -689,4 +687,5 @@ def main():
         print()
 
     unittest.TextTestResult.startTest = start_test
-    unittest.TextTestRunner(verbosity=2).run(testsuite)
+    result = unittest.TextTestRunner(verbosity=2).run(testsuite)
+    sys.exit(not result.wasSuccessful())

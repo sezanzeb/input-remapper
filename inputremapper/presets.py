@@ -27,7 +27,7 @@ import time
 import glob
 import re
 
-from inputremapper.paths import get_preset_path, mkdir, CONFIG_PATH
+from inputremapper.paths import get_preset_path, mkdir
 from inputremapper.logger import logger
 from inputremapper.groups import groups
 
