@@ -44,7 +44,7 @@ from evdev.ecodes import ecodes, EV_KEY, EV_REL, REL_X, REL_Y, REL_WHEEL, REL_HW
 from inputremapper.logger import logger
 from inputremapper.system_mapping import system_mapping
 from inputremapper.ipc.shared_dict import SharedDict
-from inputremapper.utils import PRESS, PRESS_NEGATIVE, is_service
+from inputremapper.utils import PRESS, PRESS_NEGATIVE
 
 
 macro_variables = SharedDict()

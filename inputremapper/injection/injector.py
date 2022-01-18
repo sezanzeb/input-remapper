@@ -27,11 +27,9 @@ import time
 import multiprocessing
 
 import evdev
-from evdev.ecodes import EV_KEY, EV_REL
 
 from inputremapper.logger import logger
 from inputremapper.groups import classify, GAMEPAD
-from inputremapper.system_mapping import DISABLE_CODE
 from inputremapper.injection.context import Context
 from inputremapper.injection.numlock import set_numlock, is_numlock_on, ensure_numlock
 from inputremapper.injection.consumer_control import ConsumerControl

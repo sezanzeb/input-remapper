@@ -24,7 +24,7 @@
 
 import re
 
-from gi.repository import Gdk, Gtk, GLib, GObject, GtkSource
+from gi.repository import Gdk, Gtk, GLib, GObject
 from evdev.ecodes import EV_KEY
 
 from inputremapper.system_mapping import system_mapping

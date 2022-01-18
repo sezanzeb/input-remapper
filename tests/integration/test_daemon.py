@@ -23,10 +23,8 @@ import os
 import multiprocessing
 import unittest
 import time
-import subprocess
 
 from gi.repository import Gtk
-from pydbus import SystemBus
 
 from inputremapper.daemon import Daemon, BUS_NAME
 
@@ -67,11 +65,6 @@ class TestDBusDaemon(unittest.TestCase):
         self.assertEqual(self.interface._bus_name, BUS_NAME)
         self.assertFalse(isinstance(self.interface, Daemon))
         self.assertEqual(self.interface.hello("foo"), "foo")
-
-
-check_output = subprocess.check_output
-os_system = os.system
-dbus_get = type(SystemBus()).get
 
 
 if __name__ == "__main__":

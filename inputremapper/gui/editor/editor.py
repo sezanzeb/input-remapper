@@ -386,7 +386,7 @@ class Editor:
 
         selection_label_listbox.forall(selection_label_listbox.remove)
 
-        for key, output in custom_mapping:
+        for key, _ in custom_mapping:
             selection_label = SelectionLabel()
             selection_label.set_key(key)
             selection_label_listbox.insert(selection_label, -1)
