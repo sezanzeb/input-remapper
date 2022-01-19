@@ -94,10 +94,7 @@ def classify_config(config: Dict[str, any]) -> Optional[str]:
         if sub_key[0] is not EV_KEY:  # handler not yet implemented
             return
 
-    if is_this_a_macro(config['symbol']):
-        return
-
-    return "keys_to_key"
+    return "combination"
 
 
 class Context:
@@ -137,19 +134,19 @@ class Context:
         on the input pressed down keys
     """
 
+    # TODO: add a last_action and last_event parameter for the
+    #  if_single method on macros
+
     def __init__(self, mapping):
         self.mapping = mapping
-
-        # avoid searching through the mapping at runtime,
-        # might be a bit expensive
-        self.key_to_code = self._map_keys_to_codes()
-        self.macros = self._parse_macros()
 
         self.left_purpose = None
         self.right_purpose = None
         self.update_purposes()
 
         # new stuff
+        self.last_btn_down_event: Tuple = (None, None)  # useful in macros
+        self.last_btn_up_event: Tuple = (None, None)  # might be useful in macros
         self.callbacks: Dict[Tuple[int, int], List[NotifyCallback]] = {}
         self._original_handlers: Dict[Key, MappingHandler] = {}
         self._sorted_handlers: Dict[Key, List[MappingHandler]] = {}  # Key has len 1
@@ -187,7 +184,7 @@ class Context:
             if handler_type:
                 config["type"] = handler_type
                 _key = Key(config["key"])
-                self._original_handlers[_key] = create_handler(config)
+                self._original_handlers[_key] = create_handler(config, self)
 
     def _create_sorted_handlers(self) -> None:
         """sort all handlers by sub_keys and create Hierarchy handlers"""

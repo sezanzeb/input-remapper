@@ -29,6 +29,11 @@ from abc import abstractmethod, ABC
 from typing import Dict, Tuple, Type, List, Protocol
 
 import evdev
+#from inputremapper.injection.context import Context
+
+from inputremapper.injection.macros.macro import Macro
+from inputremapper.injection.macros.parse import parse
+
 from inputremapper.injection.macros.parse import is_this_a_macro
 
 from inputremapper import utils
@@ -59,6 +64,7 @@ class CombinationSubHandler(Protocol):
 
 class MappingHandler(ABC):
     """Can be notified of new events to inject them. Base class."""
+    # TODO: make this a protocol
     # hierarchic mapping handlers e.g. KeysToKeyHandler will get sorted to make sure
     # only one handler will receive the event. This allows mapping of combinations
     # to override other combinations.
@@ -98,16 +104,17 @@ class CombinationHandler(MappingHandler):
     _sub_handler: CombinationSubHandler
     hierarchic = True
 
-    def __init__(self, config: Dict[str, any]) -> None:
+    def __init__(self, config: Dict[str, any], context) -> None:  # TODO: type hint for context
         """initialize the handler
 
         Parameters
         ----------
         config : Dict = {
-            "key": Key
+            "key": str
             "target": str
             "symbol": str
         }
+        context : Context
         """
         super().__init__()
         self._key = Key(config["key"])
@@ -116,7 +123,7 @@ class CombinationHandler(MappingHandler):
             self._key_map[sub_key[:2]] = False
 
         if is_this_a_macro(config['symbol']):
-            raise NotImplementedError
+            self._sub_handler = MacroHandler(config, context)
         else:
             self._sub_handler = KeyHandler(config)
 
@@ -183,9 +190,10 @@ class KeyHandler(MappingHandler):
 
         Parameters
         ----------
-        config : Dict[str, any]
-            configuration dict with the keys:
-            "target", "symbol"
+        config : Dict = {
+            "target": str
+            "symbol": str
+        }
         """
         super().__init__()
         self._target = config['target']
@@ -210,6 +218,65 @@ class KeyHandler(MappingHandler):
             return True
         except exceptions.Error:
             return False
+
+    @property
+    def active(self) -> bool:
+        return self._active
+
+
+class MacroHandler(MappingHandler):
+    """runs the target macro if notified
+
+    adheres to the CombinationSubHandler protocol
+    """
+    # TODO: replace this by the macro itself
+    _target: str
+    _macro: Macro
+    _active: bool
+
+    def __init__(self, config: Dict[str, any], context):  # TODO: type hint
+        """initialize the handler
+
+        Parameters
+        ----------
+        config : Dict = {
+            "target": str
+            "symbol": str
+        }
+        """
+        super().__init__()
+        self._target = config['target']
+        self._active = False
+        self._macro = parse(config["symbol"], context)
+
+    async def notify(self,
+                     event: evdev.InputEvent,
+                     source: evdev.InputDevice = None,
+                     forward: evdev.UInput = None,
+                     supress: bool = False) -> bool:
+
+        if event.value == 1:
+            self._active = True
+            self._macro.press_trigger(event)
+            if self._macro.running:
+                return True
+
+            def f(ev_type, code, value):
+                """Handler for macros."""
+                logger.key_spam((ev_type, code, value), "sending from macro to %s", self._target)
+                global_uinputs.write((ev_type, code, value), self._target)
+
+            asyncio.ensure_future(self._macro.run(f))
+            return True
+        else:
+            self._active = False
+            if self._macro.is_holding():
+                self._macro.release_trigger()
+
+            return True
+
+    async def run(self) -> None:
+        pass
 
     @property
     def active(self) -> bool:
@@ -251,10 +318,12 @@ class HierarchyHandler(MappingHandler):
 
 mapping_handler_classes: Dict[str, Type[MappingHandler]] = {
     # all available mapping_handlers
-    "keys_to_key": CombinationHandler,
+    "combination": CombinationHandler,
 }
 
 
-def create_handler(config: Dict[str, any]) -> MappingHandler:
+# TODO: move Handler creation to a separate file
+
+def create_handler(config: Dict[str, any], context) -> MappingHandler:
     """return the MappingHandler"""
-    return mapping_handler_classes[config['type']](config)
+    return mapping_handler_classes[config['type']](config, context)

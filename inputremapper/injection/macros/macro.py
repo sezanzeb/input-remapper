@@ -38,7 +38,9 @@ w(1000).m(Shift_L, r(2, k(a))).w(10).k(b): <1s> A A <10ms> b
 import asyncio
 import copy
 import re
+from typing import Optional
 
+import evdev
 from evdev.ecodes import ecodes, EV_KEY, EV_REL, REL_X, REL_Y, REL_WHEEL, REL_HWHEEL
 
 from inputremapper.logger import logger
@@ -175,6 +177,8 @@ class Macro:
     4. `Macro.run` will run all tasks in self.tasks
     """
 
+    _triggering_event: Optional[evdev.InputEvent]
+
     def __init__(self, code, context):
         """Create a macro instance that can be populated with tasks.
 
@@ -209,40 +213,7 @@ class Macro:
         self.child_macros = []
 
         self.keystroke_sleep_ms = None
-
-        self._new_event_arrived = asyncio.Event()
-        self._newest_event = None
-        self._newest_action = None
-
-    def notify(self, event, action):
-        """Tell the macro about the newest event."""
-        for macro in self.child_macros:
-            macro.notify(event, action)
-
-        self._newest_event = event
-        self._newest_action = action
-        self._new_event_arrived.set()
-
-    async def _wait_for_event(self, filter=None):
-        """Wait until a specific event arrives.
-
-        The parameters can be used to provide a filter. It will block
-        until an event arrives that matches them.
-
-        Parameters
-        ----------
-        filter : function
-            Receives the event. Stop waiting if it returns true.
-        """
-        while True:
-            await self._new_event_arrived.wait()
-            self._new_event_arrived.clear()
-
-            if filter is not None:
-                if not filter(self._newest_event, self._newest_action):
-                    continue
-
-            break
+        self._triggering_event = None
 
     def is_holding(self):
         """Check if the macro is waiting for a key to be released."""
@@ -277,10 +248,6 @@ class Macro:
             logger.error('Tried to run already running macro "%s"', self.code)
             return
 
-        # newly arriving events are only interesting if they arrive after the
-        # macro started
-        self._new_event_arrived.clear()
-
         self.keystroke_sleep_ms = self.context.mapping.get("macros.keystroke_sleep_ms")
 
         self.running = True
@@ -296,17 +263,18 @@ class Macro:
         # done
         self.running = False
 
-    def press_trigger(self):
+    def press_trigger(self, event: evdev.InputEvent):
         """The user pressed the trigger key down."""
         if self.is_holding():
             logger.error("Already holding")
             return
 
+        self._triggering_event = event
         self._trigger_release_event.clear()
         self._trigger_press_event.set()
 
         for macro in self.child_macros:
-            macro.press_trigger()
+            macro.press_trigger(event)
 
     def release_trigger(self):
         """The user released the trigger key."""
@@ -629,32 +597,19 @@ class Macro:
         if isinstance(otherwise, Macro):
             self.child_macros.append(otherwise)
 
+        resolved_timeout = _resolve(timeout, allowed_types=[int, float, None])
+
         async def task(handler):
-            triggering_event = (self._newest_event.type, self._newest_event.code)
-
-            def event_filter(event, action):
-                """Which event may wake if_single up."""
-                # release event of the actual key
-                if (event.type, event.code) == triggering_event:
-                    return True
-
-                # press event of another key
-                if action in (PRESS, PRESS_NEGATIVE):
-                    return True
-
-            coroutine = self._wait_for_event(event_filter)
-            resolved_timeout = _resolve(timeout, allowed_types=[int, float, None])
             try:
                 if resolved_timeout is not None:
-                    await asyncio.wait_for(coroutine, resolved_timeout / 1000)
+                    await asyncio.wait_for(self._trigger_release_event.wait(), resolved_timeout / 1000)
                 else:
-                    await coroutine
+                    await self._trigger_release_event.wait()
 
-                newest_event = (self._newest_event.type, self._newest_event.code)
-                # if newest_event == triggering_event, then no other key was pressed.
+                triggering_event = (self._triggering_event.type, self._triggering_event.code)
+                # if last_btn_down in context == triggering_event, then no other key was pressed.
                 # if it is !=, then a new key was pressed in the meantime.
-                new_key_pressed = triggering_event != newest_event
-
+                new_key_pressed = self.context.last_btn_down_event != triggering_event
                 if not new_key_pressed:
                     # no timeout and not combined
                     if then:
@@ -667,3 +622,5 @@ class Macro:
                 await otherwise.run(handler)
 
         self.tasks.append(task)
+
+

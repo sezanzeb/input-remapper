@@ -104,6 +104,7 @@ class ConsumerControl:
                 continue
 
             tasks = []
+            results = []
             if (event.type, event.code) in self.context.callbacks.keys():
                 for callback in self.context.callbacks[(event.type, event.code)]:
                     tasks.append(callback(copy_event(event),
@@ -111,8 +112,15 @@ class ConsumerControl:
                                           forward=self._forward_to
                                           ))
                 results = await asyncio.gather(*tasks)
-                if True in results:
-                    continue
+
+            if event.type == evdev.ecodes.EV_KEY:
+                if event.value == 1:
+                    self.context.last_btn_down_event = (event.type, event.code)
+                else:
+                    self.context.last_btn_up_event = (event.type, event.code)
+
+            if True in results:
+                continue
 
             # try legacy injection if the new injection did not do anything
             # TODO: Remove. only keep the call to forward
