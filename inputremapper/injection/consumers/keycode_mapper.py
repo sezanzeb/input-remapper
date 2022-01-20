@@ -318,7 +318,9 @@ class KeycodeMapper(Consumer):
     def macro_write(self, target_uinput):
         def f(ev_type, code, value):
             """Handler for macros."""
-            logger.debug(f"macro_sending {(ev_type, code, value)}")
+            logger.debug(
+                f"Macro sending %s to %s", (ev_type, code, value), target_uinput
+            )
             global_uinputs.write((ev_type, code, value), target_uinput)
 
         return f
@@ -386,7 +388,7 @@ class KeycodeMapper(Consumer):
                 # no subset found, just use the key. all indices are tuples of
                 # tuples, both for combinations and single keys.
                 if len(combination) > 1:
-                    logger.key_spam(combination, "unknown combination")
+                    logger.debug_key(combination, "unknown combination")
 
         return key
 
@@ -424,7 +426,7 @@ class KeycodeMapper(Consumer):
                 # Tell the macro for that keycode that the key is released and
                 # let it decide what to do with that information.
                 active_macro.release_trigger()
-                logger.key_spam(key, "releasing macro")
+                logger.debug_key(key, "releasing macro")
 
             if type_and_code in unreleased:
                 # figure out what this release event was for
@@ -433,17 +435,17 @@ class KeycodeMapper(Consumer):
                 del unreleased[type_and_code]
 
                 if target_code == DISABLE_CODE:
-                    logger.key_spam(key, "releasing disabled key")
+                    logger.debug_key(key, "releasing disabled key")
                     return
 
                 if target_code is None:
-                    logger.key_spam(key, "releasing key")
+                    logger.debug_key(key, "releasing key")
                     return
 
                 if unreleased_entry.is_mapped():
                     # release what the input is mapped to
                     try:
-                        logger.key_spam(
+                        logger.debug_key(
                             key, "releasing (%s, %s)", target_code, target_uinput
                         )
                         global_uinputs.write(
@@ -451,22 +453,22 @@ class KeycodeMapper(Consumer):
                         )
                         return
                     except inputremapper.exceptions.Error:
-                        logger.key_spam(key, "could not map")
+                        logger.debug_key(key, "could not map")
                         pass
 
                 if forward:
                     # forward the release event
-                    logger.key_spam((original_tuple,), "forwarding release")
+                    logger.debug_key((original_tuple,), "forwarding release")
                     self.forward(original_tuple)
                 else:
-                    logger.key_spam(key, "not forwarding release")
+                    logger.debug_key(key, "not forwarding release")
 
                 return
 
             if event.type != EV_ABS:
                 # ABS events might be spammed like crazy every time the
                 # position slightly changes
-                logger.key_spam(key, "unexpected key up")
+                logger.debug_key(key, "unexpected key up")
 
             # everything that can be released is released now
             return
@@ -482,7 +484,7 @@ class KeycodeMapper(Consumer):
                 # duplicate key-down. skip this event. Avoid writing millions
                 # of key-down events when a continuous value is reported, for
                 # example for gamepad triggers or mouse-wheel-side buttons
-                logger.key_spam(key, "duplicate key down")
+                logger.debug_key(key, "duplicate key down")
                 return
 
             # it would start a macro usually
@@ -493,7 +495,7 @@ class KeycodeMapper(Consumer):
                 # This avoids spawning a second macro while the first one is
                 # not finished, especially since gamepad-triggers report a ton
                 # of events with a positive value.
-                logger.key_spam(key, "macro already running")
+                logger.debug_key(key, "macro already running")
                 self.context.macros[key].press_trigger()
                 return
 
@@ -509,7 +511,7 @@ class KeycodeMapper(Consumer):
                 active_macros[type_and_code] = macro
                 Unreleased((None, None, None), (*type_and_code, action), key)
                 macro.press_trigger()
-                logger.key_spam(
+                logger.debug_key(
                     key, "maps to macro (%s, %s)", macro.code, target_uinput
                 )
                 asyncio.ensure_future(macro.run(self.macro_write(target_uinput)))
@@ -524,22 +526,24 @@ class KeycodeMapper(Consumer):
                 )
 
                 if target_code == DISABLE_CODE:
-                    logger.key_spam(key, "disabled")
+                    logger.debug_key(key, "disabled")
                     return
 
                 try:
-                    logger.key_spam(key, "maps to (%s, %s)", target_code, target_uinput)
+                    logger.debug_key(
+                        key, "maps to (%s, %s)", target_code, target_uinput
+                    )
                     global_uinputs.write((EV_KEY, target_code, 1), target_uinput)
                     return
                 except inputremapper.exceptions.Error:
-                    logger.key_spam(key, "could not map")
+                    logger.debug_key(key, "could not map")
                     pass
 
             if forward:
-                logger.key_spam((original_tuple,), "forwarding")
+                logger.debug_key((original_tuple,), "forwarding")
                 self.forward(original_tuple)
             else:
-                logger.key_spam(((*type_and_code, action),), "not forwarding")
+                logger.debug_key(((*type_and_code, action),), "not forwarding")
 
             # unhandled events may still be important for triggering
             # combinations later, so remember them as well.

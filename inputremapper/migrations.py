@@ -182,6 +182,7 @@ def _add_target():
         if "mapping" not in preset_dict.keys():
             continue
 
+        changed = False
         for key, symbol in preset_dict["mapping"].copy().items():
             if isinstance(symbol, list):
                 continue
@@ -196,6 +197,10 @@ def _add_target():
             )
             symbol = [symbol, target]
             preset_dict["mapping"][key] = symbol
+            changed = True
+
+        if not changed:
+            continue
 
         with open(preset, "w") as file:
             json.dump(preset_dict, file, indent=4)

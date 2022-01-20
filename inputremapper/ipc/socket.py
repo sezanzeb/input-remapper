@@ -108,7 +108,7 @@ class Base:
 
     def _receive_new_messages(self):
         if not self.connect():
-            logger.spam("Not connected")
+            logger.debug("Not connected")
             return
 
         messages = b""
@@ -138,7 +138,7 @@ class Base:
                     # important to avoid race conditions between multiple
                     # unittests, for example old terminate messages reaching
                     # a new instance of the helper.
-                    logger.spam("Ignoring old message %s", parsed)
+                    logger.debug("Ignoring old message %s", parsed)
                     continue
 
                 self._unread.append(parsed[1])
@@ -171,7 +171,7 @@ class Base:
         self.unsent.append(dump)
 
         if not self.connect():
-            logger.spam("Not connected")
+            logger.debug("Not connected")
             return
 
         def send_all():
@@ -214,10 +214,10 @@ class _Client(Base):
         try:
             _socket = socket.socket(socket.AF_UNIX)
             _socket.connect(self._path)
-            logger.spam('Connected to socket: "%s"', self._path)
+            logger.debug('Connected to socket: "%s"', self._path)
             _socket.setblocking(False)
         except Exception as error:
-            logger.spam('Failed to connect to "%s": "%s"', self._path, error)
+            logger.debug('Failed to connect to "%s": "%s"', self._path, error)
             return False
 
         self.socket = _socket
@@ -262,7 +262,7 @@ class _Server(Base):
             _socket.bind(self._path)
             _socket.listen(1)
             chown(self._path)
-            logger.spam('Created socket: "%s"', self._path)
+            logger.debug('Created socket: "%s"', self._path)
             self.socket = _socket
             self.socket.setblocking(False)
             existing_servers[self._path] = self
@@ -277,7 +277,7 @@ class _Server(Base):
             return True
 
         if incoming:
-            logger.spam('Incoming connection: "%s"', self._path)
+            logger.debug('Incoming connection: "%s"', self._path)
             connection = self.socket.accept()[0]
             self.connection = connection
             self.connection.setblocking(False)

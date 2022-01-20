@@ -46,6 +46,7 @@ import subprocess
 import multiprocessing
 import asyncio
 import psutil
+import logging
 from pickle import UnpicklingError
 from unittest.mock import patch
 
@@ -60,9 +61,11 @@ from tests.xmodmap import xmodmap
 
 os.environ["UNITTEST"] = "1"
 
-
-def grey_log(*msgs):
-    print(f'\033[90m{" ".join(msgs)}\033[0m')
+logger = logging.getLogger("input-remapper-test")
+handler = logging.StreamHandler()
+handler.setFormatter(logging.Formatter("\033[90mTest: %(message)s\033[0m"))
+logger.addHandler(handler)
+logger.setLevel(logging.INFO)
 
 
 def is_service_running():
@@ -85,7 +88,7 @@ def join_children():
         for child in children:
             if i > 10:
                 child.kill()
-                grey_log(f"Killed pid {child.pid} because it didn't finish in time")
+                logger.info("Killed pid %s because it didn't finish in time", child.pid)
 
         children = this.children(recursive=True)
         time.sleep(EVENT_READ_TIMEOUT)
@@ -328,16 +331,16 @@ class InputDevice:
         return self.fd
 
     def log(self, key, msg):
-        grey_log(f'{msg} "{self.name}" "{self.path}" {key}')
+        logger.info(f'%s "%s" "%s" %s', msg, self.name, self.path, key)
 
     def absinfo(self, *args):
         raise Exception("Ubuntus version of evdev doesn't support .absinfo")
 
     def grab(self):
-        grey_log("grab", self.name, self.path)
+        logger.info("grab %s %s", self.name, self.path)
 
     def ungrab(self):
-        grey_log("ungrab", self.name, self.path)
+        logger.info("ungrab %s %s", self.name, self.path)
 
     async def async_read_loop(self):
         if pending_events.get(self.group_key) is None:
@@ -440,7 +443,7 @@ class UInput:
         uinput_write_history.append(event)
         uinput_write_history_pipe[1].send(event)
         self.write_history.append(event)
-        grey_log(f"{(type, code, value)} written")
+        logger.info("%s written", (type, code, value))
 
     def syn(self):
         pass
