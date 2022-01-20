@@ -154,7 +154,7 @@ class CombinationHandler:
             value = 0
         ev = copy_event(event)
         ev.value = value
-        logger.key_spam(self._key, "triggered: sending to sub-handler")
+        logger.debug_key(self._key, "triggered: sending to sub-handler")
         return await self._sub_handler.notify(ev)
 
     async def run(self) -> None:  # no debouncer or anything (yet)
@@ -210,7 +210,7 @@ class KeyHandler:
         event_tuple = (*self._maps_to, event.value)
         try:
             global_uinputs.write(event_tuple, self._target)
-            logger.key_spam(event_tuple, "sending to %s", self._target)
+            logger.debug_key(event_tuple, "sending to %s", self._target)
             self._active = event.value == 1
             return True
         except exceptions.Error:
@@ -257,7 +257,7 @@ class MacroHandler:
 
             def f(ev_type, code, value):
                 """Handler for macros."""
-                logger.key_spam(
+                logger.debug_key(
                     (ev_type, code, value), "sending from macro to %s", self._target
                 )
                 global_uinputs.write((ev_type, code, value), self._target)
