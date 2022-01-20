@@ -52,6 +52,7 @@ def copy_event(event: evdev.InputEvent) -> evdev.InputEvent:
 
 class ContextProtocol(Protocol):
     """the parst from context needed for macros"""
+
     mapping: Mapping
     last_btn_down_event: Tuple[int, int]
     last_btn_up_event: Tuple[int, int]
@@ -59,23 +60,35 @@ class ContextProtocol(Protocol):
 
 class CombinationSubHandler(Protocol):
     """Protocol any handler which can be triggered by a combination must implement"""
+
     @property
-    def active(self) -> bool: ...
-    async def notify(self, event: evdev.InputEvent) -> bool: ...
-    async def run(self) -> None: ...
+    def active(self) -> bool:
+        ...
+
+    async def notify(self, event: evdev.InputEvent) -> bool:
+        ...
+
+    async def run(self) -> None:
+        ...
 
 
 class MappingHandler(Protocol):
     """the protocol a mapping handler must follow"""
-    def __init__(self, config: Dict[str, int], context: ContextProtocol): ...
 
-    async def notify(self,
-                     event: evdev.InputEvent,
-                     source: evdev.InputDevice = None,
-                     forward: evdev.UInput = None,
-                     supress: bool = False) -> bool: ...
+    def __init__(self, config: Dict[str, int], context: ContextProtocol):
+        ...
 
-    async def run(self) -> None: ...
+    async def notify(
+        self,
+        event: evdev.InputEvent,
+        source: evdev.InputDevice = None,
+        forward: evdev.UInput = None,
+        supress: bool = False,
+    ) -> bool:
+        ...
+
+    async def run(self) -> None:
+        ...
 
 
 class CombinationHandler:
@@ -107,16 +120,18 @@ class CombinationHandler:
         for sub_key in self._key:  # prepare key_map
             self._key_map[sub_key[:2]] = False
 
-        if is_this_a_macro(config['symbol']):
+        if is_this_a_macro(config["symbol"]):
             self._sub_handler = MacroHandler(config, context)
         else:
             self._sub_handler = KeyHandler(config)
 
-    async def notify(self,
-                     event: evdev.InputEvent,
-                     source: evdev.InputDevice = None,
-                     forward: evdev.UInput = None,
-                     supress: bool = False) -> bool:
+    async def notify(
+        self,
+        event: evdev.InputEvent,
+        source: evdev.InputDevice = None,
+        forward: evdev.UInput = None,
+        supress: bool = False,
+    ) -> bool:
 
         map_key = (event.type, event.code)
         if map_key not in self._key_map.keys():
@@ -166,6 +181,7 @@ class KeyHandler:
 
     adheres to the CombinationSubHandler protocol
     """
+
     _target: str
     _maps_to: Tuple[int, int]
     _active: bool
@@ -181,7 +197,7 @@ class KeyHandler:
         }
         """
         super().__init__()
-        self._target = config['target']
+        self._target = config["target"]
         self._maps_to = (evdev.ecodes.EV_KEY, system_mapping.get(config["symbol"]))
         self._active = False
 
@@ -210,6 +226,7 @@ class MacroHandler:
 
     adheres to the CombinationSubHandler protocol
     """
+
     # TODO: replace this by the macro itself
     _target: str
     _macro: Macro
@@ -226,7 +243,7 @@ class MacroHandler:
         }
         """
         super().__init__()
-        self._target = config['target']
+        self._target = config["target"]
         self._active = False
         self._macro = parse(config["symbol"], context)
 
@@ -240,7 +257,9 @@ class MacroHandler:
 
             def f(ev_type, code, value):
                 """Handler for macros."""
-                logger.key_spam((ev_type, code, value), "sending from macro to %s", self._target)
+                logger.key_spam(
+                    (ev_type, code, value), "sending from macro to %s", self._target
+                )
                 global_uinputs.write((ev_type, code, value), self._target)
 
             asyncio.ensure_future(self._macro.run(f))
@@ -268,6 +287,7 @@ class HierarchyHandler:
 
     adheres to the MappingHandler protocol
     """
+
     hierarchic = False
 
     def __init__(self, handlers: List[MappingHandler]) -> None:
@@ -278,18 +298,20 @@ class HierarchyHandler:
         for handler in self.handlers:
             asyncio.ensure_future(handler.run())
 
-    async def notify(self,
-                     event: evdev.InputEvent,
-                     source: evdev.InputDevice = None,
-                     forward: evdev.UInput = None,
-                     supress: bool = False) -> bool:
+    async def notify(
+        self,
+        event: evdev.InputEvent,
+        source: evdev.InputDevice = None,
+        forward: evdev.UInput = None,
+        supress: bool = False,
+    ) -> bool:
 
         success = False
         for handler in self.handlers:
             if not success:
                 success = await handler.notify(event, forward=forward)
             else:
-                asyncio.ensure_future(handler.notify(event,
-                                                     forward=forward,
-                                                     supress=True))
+                asyncio.ensure_future(
+                    handler.notify(event, forward=forward, supress=True)
+                )
         return success

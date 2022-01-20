@@ -38,10 +38,15 @@ class NotifyCallback(Protocol):
 
     return True if the event was actually taken care of
     """
-    def __call__(self, event: evdev.InputEvent,
-                 source: evdev.InputDevice = None,
-                 forward: evdev.UInput = None,
-                 supress: bool = False) -> Awaitable[bool]: ...
+
+    def __call__(
+        self,
+        event: evdev.InputEvent,
+        source: evdev.InputDevice = None,
+        forward: evdev.UInput = None,
+        supress: bool = False,
+    ) -> Awaitable[bool]:
+        ...
 
 
 class Context:

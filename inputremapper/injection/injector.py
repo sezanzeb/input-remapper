@@ -41,7 +41,6 @@ from inputremapper.injection.consumer_control import ConsumerControl
 from inputremapper.key import Key
 
 
-
 CapabilitiesDict = Dict[int, List[int]]
 GroupSources = List[evdev.InputDevice]
 
@@ -63,8 +62,7 @@ NO_GRAB = 6
 
 
 def is_in_capabilities(key: Key, capabilities: CapabilitiesDict) -> bool:
-    """Are this key or one of its sub keys in the capabilities?
-    """
+    """Are this key or one of its sub keys in the capabilities?"""
     for sub_key in key:
         if sub_key[1] in capabilities.get(sub_key[0], []):
             return True

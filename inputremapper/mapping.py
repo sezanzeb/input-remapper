@@ -55,6 +55,7 @@ def split_key(key):
 
 class Mapping(ConfigBase):
     """Contains and manages mappings and config of a single preset."""
+
     _mapping: Dict[Key, Tuple[str, str]]
 
     def __init__(self):

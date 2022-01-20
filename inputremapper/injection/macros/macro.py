@@ -602,11 +602,16 @@ class Macro:
         async def task(handler):
             try:
                 if resolved_timeout is not None:
-                    await asyncio.wait_for(self._trigger_release_event.wait(), resolved_timeout / 1000)
+                    await asyncio.wait_for(
+                        self._trigger_release_event.wait(), resolved_timeout / 1000
+                    )
                 else:
                     await self._trigger_release_event.wait()
 
-                triggering_event = (self._triggering_event.type, self._triggering_event.code)
+                triggering_event = (
+                    self._triggering_event.type,
+                    self._triggering_event.code,
+                )
                 # if last_btn_down in context == triggering_event, then no other key was pressed.
                 # if it is !=, then a new key was pressed in the meantime.
                 new_key_pressed = self.context.last_btn_down_event != triggering_event
@@ -622,5 +627,3 @@ class Macro:
                 await otherwise.run(handler)
 
         self.tasks.append(task)
-
-

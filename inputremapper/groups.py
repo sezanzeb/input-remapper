@@ -485,12 +485,13 @@ class _Groups:
         """Load a serialized representation created via dumps."""
         self._groups = [_Group.loads(group) for group in json.loads(dump)]
 
-    def find(self,
-             name: str = None,
-             key: str = None,
-             path: str = None,
-             include_inputremapper: bool = False
-             ) -> _Group:
+    def find(
+        self,
+        name: str = None,
+        key: str = None,
+        path: str = None,
+        include_inputremapper: bool = False,
+    ) -> _Group:
         """Find a group that matches the provided parameters.
 
         Parameters

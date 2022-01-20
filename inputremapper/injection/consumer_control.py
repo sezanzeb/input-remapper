@@ -53,11 +53,12 @@ class ConsumerControl:
     needs to be created multiple times.
     """
 
-    def __init__(self,
-                 context: Context,
-                 source: evdev.InputDevice,
-                 forward_to: evdev.UInput,
-                 ) -> None:
+    def __init__(
+        self,
+        context: Context,
+        source: evdev.InputDevice,
+        forward_to: evdev.UInput,
+    ) -> None:
         """Initialize all consumers
 
         Parameters
@@ -107,10 +108,11 @@ class ConsumerControl:
             results = []
             if (event.type, event.code) in self.context.callbacks.keys():
                 for callback in self.context.callbacks[(event.type, event.code)]:
-                    tasks.append(callback(copy_event(event),
-                                          source=self._source,
-                                          forward=self._forward_to
-                                          ))
+                    ev = copy_event(event)
+                    coroutine = callback(
+                        ev, source=self._source, forward=self._forward_to
+                    )
+                    tasks.append(coroutine)
                 results = await asyncio.gather(*tasks)
 
             if event.type == evdev.ecodes.EV_KEY:

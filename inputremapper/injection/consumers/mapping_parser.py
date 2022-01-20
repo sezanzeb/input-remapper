@@ -29,7 +29,7 @@ from inputremapper.injection.consumers.mapping_handler import (
     CombinationHandler,
     ContextProtocol,
     HierarchyHandler,
-    )
+)
 from inputremapper.mapping import Mapping
 
 MappingHandlers = Dict[Key, List[MappingHandler]]
@@ -77,7 +77,7 @@ def parse_mapping(mapping: Mapping, context: ContextProtocol) -> MappingHandlers
 
 def _create_handler(config: Dict[str, any], context) -> MappingHandler:
     """return the MappingHandler"""
-    return mapping_handler_classes[config['type']](config, context)
+    return mapping_handler_classes[config["type"]](config, context)
 
 
 def _create_hierarchy_handlers(handlers: Dict[Key, MappingHandler]) -> MappingHandlers:
@@ -92,7 +92,9 @@ def _create_hierarchy_handlers(handlers: Dict[Key, MappingHandler]) -> MappingHa
 
     for single_key in keys:
         # find all original keys (from _original_handlers) which contain the key
-        containing_keys = [og_key for og_key in all_keys if og_key.contains_event(*single_key[:2])]
+        containing_keys = [
+            og_key for og_key in all_keys if og_key.contains_event(*single_key[:2])
+        ]
         assert len(containing_keys) != 0
         if len(containing_keys) == 1:
             # there was only one handler containing that key
@@ -150,9 +152,9 @@ def _order_keys(keys: List[Key], common_key: Key) -> List[Key]:
             continue
 
         assert len(key) < len(last_key)
-        sub_list = keys[last_idx: i]
+        sub_list = keys[last_idx:i]
         sub_list.sort(key=idx_of_common_key, reverse=True)
-        keys[last_idx: i] = sub_list
+        keys[last_idx:i] = sub_list
 
     return keys
 
