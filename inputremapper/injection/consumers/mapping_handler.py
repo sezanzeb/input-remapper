@@ -25,23 +25,19 @@ Can be notified of new events so that inheriting classes can map them and
 inject new events based on them.
 """
 import asyncio
-from abc import abstractmethod, ABC
-from typing import Dict, Tuple, Type, List, Protocol
-
 import evdev
-#from inputremapper.injection.context import Context
 
-from inputremapper.injection.macros.macro import Macro
-from inputremapper.injection.macros.parse import parse
-
-from inputremapper.injection.macros.parse import is_this_a_macro
+from typing import Dict, Tuple, List, Protocol
 
 from inputremapper import utils
-from inputremapper.logger import logger
-from inputremapper.system_mapping import system_mapping
-from inputremapper.key import Key
-from inputremapper.injection.global_uinputs import global_uinputs
 from inputremapper import exceptions
+from inputremapper.logger import logger
+from inputremapper.key import Key
+from inputremapper.mapping import Mapping
+from inputremapper.system_mapping import system_mapping
+from inputremapper.injection.macros.macro import Macro
+from inputremapper.injection.macros.parse import parse, is_this_a_macro
+from inputremapper.injection.global_uinputs import global_uinputs
 
 
 def copy_event(event: evdev.InputEvent) -> evdev.InputEvent:
@@ -54,6 +50,13 @@ def copy_event(event: evdev.InputEvent) -> evdev.InputEvent:
     )
 
 
+class ContextProtocol(Protocol):
+    """the parst from context needed for macros"""
+    mapping: Mapping
+    last_btn_down_event: Tuple[int, int]
+    last_btn_up_event: Tuple[int, int]
+
+
 class CombinationSubHandler(Protocol):
     """Protocol any handler which can be triggered by a combination must implement"""
     @property
@@ -62,49 +65,31 @@ class CombinationSubHandler(Protocol):
     async def run(self) -> None: ...
 
 
-class MappingHandler(ABC):
-    """Can be notified of new events to inject them. Base class."""
-    # TODO: make this a protocol
-    # hierarchic mapping handlers e.g. KeysToKeyHandler will get sorted to make sure
-    # only one handler will receive the event. This allows mapping of combinations
-    # to override other combinations.
-    # Non-hierarchic handlers will always receive all events they care about
-    hierarchic = False
+class MappingHandler(Protocol):
+    """the protocol a mapping handler must follow"""
+    def __init__(self, config: Dict[str, int], context: ContextProtocol): ...
 
-    @abstractmethod
     async def notify(self,
                      event: evdev.InputEvent,
                      source: evdev.InputDevice = None,
                      forward: evdev.UInput = None,
-                     supress: bool = False) -> bool:
+                     supress: bool = False) -> bool: ...
 
-        """A new event is ready.
-
-        return if the event was actually taken care of
-
-        Overwrite this function if the consumer should do something each time
-        a new event arrives. E.g. mapping a single button once clicked.
-        """
-
-    @abstractmethod
-    async def run(self) -> None:
-        """Start doing things.
-
-        Overwrite this function if the consumer should do something
-        continuously even if no new event arrives. e.g. continuously injecting
-        mouse movement events.
-        """
+    async def run(self) -> None: ...
 
 
-class CombinationHandler(MappingHandler):
-    """keeps track of a combination and notifies a sub handler"""
+class CombinationHandler:
+    """keeps track of a combination and notifies a sub handler
+
+    adheres to the MappingHandler protocol
+    """
 
     _key: Key
     _key_map: Dict[Tuple[int, int], bool]
     _sub_handler: CombinationSubHandler
     hierarchic = True
 
-    def __init__(self, config: Dict[str, any], context) -> None:  # TODO: type hint for context
+    def __init__(self, config: Dict[str, any], context: ContextProtocol) -> None:
         """initialize the handler
 
         Parameters
@@ -176,7 +161,7 @@ class CombinationHandler(MappingHandler):
         forward.syn()
 
 
-class KeyHandler(MappingHandler):
+class KeyHandler:
     """injects the target key if notified
 
     adheres to the CombinationSubHandler protocol
@@ -203,11 +188,7 @@ class KeyHandler(MappingHandler):
     async def run(self) -> None:
         pass
 
-    async def notify(self,
-                     event: evdev.InputEvent,
-                     source: evdev.InputDevice = None,
-                     forward: evdev.UInput = None,
-                     supress: bool = False) -> bool:
+    async def notify(self, event: evdev.InputEvent) -> bool:
         """inject event.value to the target key"""
 
         event_tuple = (*self._maps_to, event.value)
@@ -224,7 +205,7 @@ class KeyHandler(MappingHandler):
         return self._active
 
 
-class MacroHandler(MappingHandler):
+class MacroHandler:
     """runs the target macro if notified
 
     adheres to the CombinationSubHandler protocol
@@ -234,7 +215,7 @@ class MacroHandler(MappingHandler):
     _macro: Macro
     _active: bool
 
-    def __init__(self, config: Dict[str, any], context):  # TODO: type hint
+    def __init__(self, config: Dict[str, any], context: ContextProtocol):
         """initialize the handler
 
         Parameters
@@ -249,11 +230,7 @@ class MacroHandler(MappingHandler):
         self._active = False
         self._macro = parse(config["symbol"], context)
 
-    async def notify(self,
-                     event: evdev.InputEvent,
-                     source: evdev.InputDevice = None,
-                     forward: evdev.UInput = None,
-                     supress: bool = False) -> bool:
+    async def notify(self, event: evdev.InputEvent) -> bool:
 
         if event.value == 1:
             self._active = True
@@ -283,11 +260,13 @@ class MacroHandler(MappingHandler):
         return self._active
 
 
-class HierarchyHandler(MappingHandler):
+class HierarchyHandler:
     """handler consisting of an ordered list of MappingHandler
 
     only the first handler which successfully handles the event will execute it,
     all other handlers will be notified, but suppressed
+
+    adheres to the MappingHandler protocol
     """
     hierarchic = False
 
@@ -314,16 +293,3 @@ class HierarchyHandler(MappingHandler):
                                                      forward=forward,
                                                      supress=True))
         return success
-
-
-mapping_handler_classes: Dict[str, Type[MappingHandler]] = {
-    # all available mapping_handlers
-    "combination": CombinationHandler,
-}
-
-
-# TODO: move Handler creation to a separate file
-
-def create_handler(config: Dict[str, any], context) -> MappingHandler:
-    """return the MappingHandler"""
-    return mapping_handler_classes[config['type']](config, context)
