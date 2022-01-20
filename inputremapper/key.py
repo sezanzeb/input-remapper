@@ -58,7 +58,6 @@ class Key:
 
     Can be used in hashmaps/dicts as key
     """
-    # TODO: fixme, Key[0][0] sometimes is valid, and sometimes is not
     keys: Tuple[Tuple[int]]
 
     def __init__(self, *keys):

@@ -126,10 +126,14 @@ class CombinationHandler:
             self._sub_handler = KeyHandler(config)
 
     def __str__(self):
-        return f"CombinationHandler <{id(self)}> for {self._sub_handler}"
+        return f"CombinationHandler for {self._key[:]} <{id(self)}>:"
 
     def __repr__(self):
         return self.__str__()
+
+    @property
+    def child(self):  # used for logging
+        return self._sub_handler
 
     async def notify(
         self,
@@ -208,10 +212,14 @@ class KeyHandler:
         self._active = False
 
     def __str__(self):
-        return f"KeyHandler <{id(self)}> for {(self._maps_to, self._target)}"
+        return f"KeyHandler <{id(self)}>:"
 
     def __repr__(self):
         return self.__str__()
+
+    @property
+    def child(self):  # used for logging
+        return f"maps to: {self._maps_to} on {self._target}"
 
     async def run(self) -> None:
         pass
@@ -260,10 +268,14 @@ class MacroHandler:
         self._macro = parse(config["symbol"], context)
 
     def __str__(self):
-        return f"MacroHandler <{id(self)}> for {self._macro}"
+        return f"MacroHandler <{id(self)}>:"
 
     def __repr__(self):
         return self.__str__()
+
+    @property
+    def child(self):  # used for logging
+        return f"maps to {self._macro} on {self._target}"
 
     async def notify(self, event: evdev.InputEvent) -> bool:
 
@@ -305,16 +317,21 @@ class HierarchyHandler:
 
     adheres to the MappingHandler protocol
     """
+    _key: Tuple[int, int]
 
-    def __init__(self, handlers: List[MappingHandler]) -> None:
+    def __init__(self, handlers: List[MappingHandler], key: Tuple[int, int]) -> None:
         self.handlers = handlers
-        super().__init__()
+        self._key = key
 
     def __str__(self):
-        return f"HierarchyHandler <{id(self)}> for {self.handlers}"
+        return f"HierarchyHandler for {self._key} <{id(self)}>:"
 
     def __repr__(self):
         return self.__str__()
+
+    @property
+    def child(self):  # used for logging
+        return self.handlers
 
     async def run(self) -> None:
         for handler in self.handlers:
@@ -327,6 +344,8 @@ class HierarchyHandler:
         forward: evdev.UInput = None,
         supress: bool = False,
     ) -> bool:
+        if (event.type, event.code) != self._key:
+            return False
 
         success = False
         for handler in self.handlers:
@@ -349,8 +368,9 @@ class AbsToBtnHandler:
     _handler: MappingHandler
     _trigger_percent: int
     _active: bool
+    _key: Key
 
-    def __init__(self, sub_handler: MappingHandler, trigger_percent: int) -> None:
+    def __init__(self, sub_handler: MappingHandler, trigger_percent: int, key: Key) -> None:
         self._handler = sub_handler
         if trigger_percent not in range(-99, 100):
             raise ValueError(f"trigger_percent must be between -100 and 100")
@@ -358,13 +378,18 @@ class AbsToBtnHandler:
             raise ValueError(f"trigger_percent can not be 0")
 
         self._trigger_percent = trigger_percent
+        self._key = key
         self._active = False
 
     def __str__(self):
-        return f"AbsToBtnHandler <{id(self)}> for {self._handler}"
+        return f"AbsToBtnHandler for {self._key[0]} <{id(self)}>:"
 
     def __repr__(self):
         return self.__str__()
+
+    @property
+    def child(self):  # used for logging
+        return self._handler
 
     async def run(self) -> None:
         asyncio.ensure_future(self._handler.run())
@@ -388,6 +413,9 @@ class AbsToBtnHandler:
             ) -> bool:
 
         assert event.type == EV_ABS
+        if (event.type, event.code) != self._key[0][:2]:
+            return False
+
         absinfo = source.absinfo(event.code)
         ev_copy = copy_event(event)
         trigger_point = self._trigger_point(absinfo.min, absinfo.max)

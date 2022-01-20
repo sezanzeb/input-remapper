@@ -71,12 +71,12 @@ def parse_mapping(mapping: Mapping, context: ContextProtocol) -> MappingHandlers
     logger.debug(hierarchy_handlers.keys())
     handlers = {}
     for key, handler in hierarchy_handlers.items():
-        assert len(key) == 3
-        if key[0] == EV_KEY:
+        assert len(key) == 1
+        if key[0][0] == EV_KEY:
             handlers[key] = [handler]
             continue
-        if key[0] == EV_ABS:
-            handlers[key] = [AbsToBtnHandler(handler, trigger_percent=key[2])]
+        if key[0][0] == EV_ABS:
+            handlers[key] = [AbsToBtnHandler(handler, trigger_percent=key[0][2], key=key)]
 
     for key, handler in normal_handlers.items():
         assert len(key) == 1
@@ -111,7 +111,7 @@ def _create_hierarchy_handlers(handlers: Dict[Key, MappingHandler]) -> Dict[Key,
         assert len(containing_keys) != 0
         if len(containing_keys) == 1:
             # there was only one handler containing that key
-            sorted_handlers[single_key] = handlers[containing_keys[0]]
+            sorted_handlers[Key(single_key)] = handlers[containing_keys[0]]
             continue
 
         keys_to_sort = []
@@ -125,8 +125,8 @@ def _create_hierarchy_handlers(handlers: Dict[Key, MappingHandler]) -> Dict[Key,
         for og_key in sorted_keys:
             sub_handlers.append(handlers[og_key])
 
-        hierarchy_handler = HierarchyHandler(sub_handlers)
-        sorted_handlers[single_key] = hierarchy_handler
+        hierarchy_handler = HierarchyHandler(sub_handlers, single_key[:2])
+        sorted_handlers[Key(single_key)] = hierarchy_handler
     return sorted_handlers
 
 

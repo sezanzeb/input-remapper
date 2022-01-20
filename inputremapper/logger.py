@@ -43,6 +43,46 @@ start = time.time()
 previous_key_debug_log = None
 
 
+def parse_mapping_handler(mapping_handler):
+    indent = 0
+    lines_and_indent = []
+    while True:
+        if isinstance(handler, str):
+            lines_and_indent.append([mapping_handler, indent])
+            break
+
+        if isinstance(mapping_handler, list):
+            for sub_handler in mapping_handler:
+                sub_list = parse_mapping_handler(sub_handler)
+                for line in sub_list:
+                    line[1] += indent
+                lines_and_indent.extend(sub_list)
+            break
+
+        lines_and_indent.append([mapping_handler.__str__(), indent])
+        try:
+            mapping_handler = mapping_handler.child
+        except AttributeError:
+            break
+
+        indent += 1
+    return lines_and_indent
+
+
+def debug_mapping_handler(self, mapping_handler):
+    """
+    parse the structure of a mapping_handler an log it
+    """
+    if not self.isEnabledFor(logging.DEBUG):
+        return
+
+    lines_and_indent = parse_mapping_handler(mapping_handler)
+    for line in lines_and_indent:
+        indent = "    "
+        msg = indent*line[1] + line[0]
+        self._log(logging.DEBUG, msg, args=None)
+
+
 def debug_key(self, key, msg, *args):
     """Log a spam message custom tailored to keycode_mapper.
 
@@ -75,6 +115,7 @@ def debug_key(self, key, msg, *args):
     self._log(logging.DEBUG, msg, args=None)
 
 
+logging.Logger.debug_mapping_handler = debug_mapping_handler
 logging.Logger.debug_key = debug_key
 
 LOG_PATH = (

@@ -113,10 +113,12 @@ class Context:
     def create_callbacks(self) -> None:
         """add the notify method from all _handlers to self.callbacks"""
         for key, handler_list in self._handlers.items():
-            if key[:2] not in self.callbacks.keys():
-                self.callbacks[key[:2]] = []
+            if key[0][:2] not in self.callbacks.keys():
+                self.callbacks[key[0][:2]] = []
             for handler in handler_list:
-                self.callbacks[key[:2]].append(handler.notify)
+                logger.debug("added callback for:")
+                logger.debug_mapping_handler(handler)
+                self.callbacks[key[0][:2]].append(handler.notify)
 
     def _parse_macros(self):
         """To quickly get the target macro during operation."""
