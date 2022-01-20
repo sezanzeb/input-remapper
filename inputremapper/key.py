@@ -58,7 +58,7 @@ class Key:
 
     Can be used in hashmaps/dicts as key
     """
-
+    # TODO: fixme, Key[0][0] sometimes is valid, and sometimes is not
     keys: Tuple[Tuple[int]]
 
     def __init__(self, *keys):
@@ -146,6 +146,13 @@ class Key:
         """if self contains the event type, and code"""
         for key in self.keys:
             if (event_type, event_code) == key[:2]:
+                return True
+        return False
+
+    def contains_key(self, key: Key) -> bool:
+        """if self contains the key"""
+        for my_key in self.keys:
+            if my_key == key:
                 return True
         return False
 

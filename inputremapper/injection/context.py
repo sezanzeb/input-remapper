@@ -99,7 +99,7 @@ class Context:
         self.callbacks: Dict[Tuple[int, int], List[NotifyCallback]] = {}
         self._handlers: Dict[Key, List[MappingHandler]] = parse_mapping(mapping, self)
 
-        self.update_callbacks()
+        self.create_callbacks()
 
     def update_purposes(self):
         """Read joystick purposes from the configuration.
@@ -110,10 +110,11 @@ class Context:
         self.left_purpose = self.mapping.get("gamepad.joystick.left_purpose")
         self.right_purpose = self.mapping.get("gamepad.joystick.right_purpose")
 
-    def update_callbacks(self) -> None:
-        """add the notify method from all sorted_handlers to self.callbacks"""
+    def create_callbacks(self) -> None:
+        """add the notify method from all _handlers to self.callbacks"""
         for key, handler_list in self._handlers.items():
-            self.callbacks[key[:2]] = []
+            if key[:2] not in self.callbacks.keys():
+                self.callbacks[key[:2]] = []
             for handler in handler_list:
                 self.callbacks[key[:2]].append(handler.notify)
 

@@ -19,8 +19,9 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 """functions to assemble the mapping handlers"""
 
-from typing import Dict, List, Optional, Type
-from evdev.ecodes import EV_KEY
+from typing import Dict, List, Type
+
+from evdev.ecodes import EV_KEY, EV_ABS
 
 from inputremapper.logger import logger
 from inputremapper.key import Key
@@ -29,6 +30,7 @@ from inputremapper.injection.consumers.mapping_handler import (
     CombinationHandler,
     ContextProtocol,
     HierarchyHandler,
+    AbsToBtnHandler,
 )
 from inputremapper.mapping import Mapping
 
@@ -63,8 +65,19 @@ def parse_mapping(mapping: Mapping, context: ContextProtocol) -> MappingHandlers
             assert _key not in normal_handlers.keys()
             normal_handlers[_key] = _create_handler(config, context)
 
-    # create handlers for each key
-    handlers = _create_hierarchy_handlers(combination_handlers)
+    # combine all combination handlers such that there is only one handler per single key
+    # if multiple handlers contain the same key, a Hierarchy handler will be created
+    hierarchy_handlers = _create_hierarchy_handlers(combination_handlers)
+    logger.debug(hierarchy_handlers.keys())
+    handlers = {}
+    for key, handler in hierarchy_handlers.items():
+        assert len(key) == 3
+        if key[0] == EV_KEY:
+            handlers[key] = [handler]
+            continue
+        if key[0] == EV_ABS:
+            handlers[key] = [AbsToBtnHandler(handler, trigger_percent=key[2])]
+
     for key, handler in normal_handlers.items():
         assert len(key) == 1
         if key in handlers.keys():
@@ -80,7 +93,7 @@ def _create_handler(config: Dict[str, any], context) -> MappingHandler:
     return mapping_handler_classes[config["type"]](config, context)
 
 
-def _create_hierarchy_handlers(handlers: Dict[Key, MappingHandler]) -> MappingHandlers:
+def _create_hierarchy_handlers(handlers: Dict[Key, MappingHandler]) -> Dict[Key, MappingHandler]:
     """sort handlers by sub_keys and create Hierarchy handlers"""
     # gather all single keys in all mappings
     sorted_handlers = {}
@@ -91,14 +104,14 @@ def _create_hierarchy_handlers(handlers: Dict[Key, MappingHandler]) -> MappingHa
             keys.add(sub_key)
 
     for single_key in keys:
-        # find all original keys (from _original_handlers) which contain the key
+        # find all original keys (from handlers) which contain the key
         containing_keys = [
-            og_key for og_key in all_keys if og_key.contains_event(*single_key[:2])
+            og_key for og_key in all_keys if og_key.contains_key(single_key)
         ]
         assert len(containing_keys) != 0
         if len(containing_keys) == 1:
             # there was only one handler containing that key
-            sorted_handlers[single_key] = [handlers[containing_keys[0]]]
+            sorted_handlers[single_key] = handlers[containing_keys[0]]
             continue
 
         keys_to_sort = []
@@ -113,7 +126,7 @@ def _create_hierarchy_handlers(handlers: Dict[Key, MappingHandler]) -> MappingHa
             sub_handlers.append(handlers[og_key])
 
         hierarchy_handler = HierarchyHandler(sub_handlers)
-        sorted_handlers[single_key] = [hierarchy_handler]
+        sorted_handlers[single_key] = hierarchy_handler
     return sorted_handlers
 
 
@@ -161,23 +174,26 @@ def _order_keys(keys: List[Key], common_key: Key) -> List[Key]:
 
 def _create_new_config(key, symbol_and_target) -> Dict:
     # TODO: make this obsolete by migrating to new config structure
+    sub_keys = []
+    for sub_key in key:
+        if sub_key[0] != EV_ABS:
+            sub_keys.append(sub_key)
+            continue
+        if sub_key[2] == 1:
+            sub_keys.append((*sub_key[:2], 10))  # trigger point at 10%
+        else:
+            assert sub_key[2] == -1
+            sub_keys.append((*sub_key[:2], -10))  # trigger point at -10%
+    new_key = Key(*sub_keys)
+
     config = {
-        "key": key,
+        "key": new_key,
         "symbol": symbol_and_target[0],
         "target": symbol_and_target[1],
+        "type": "combination"
     }
-    handler_type = _classify_config(config)
-    if handler_type:
-        config["type"] = handler_type
-        return config
+    logger.debug(f"creating handler for {config}")
+    return config
 
 
-def _classify_config(config: Dict[str, any]) -> Optional[str]:
-    """return the mapping_handler type"""
-    # TODO: make this obsolete by including the type in the config
-    key = Key(config["key"])
-    for sub_key in key:
-        if sub_key[0] is not EV_KEY:  # handler not yet implemented
-            return
 
-    return "combination"

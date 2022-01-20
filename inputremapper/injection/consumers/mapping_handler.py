@@ -125,6 +125,12 @@ class CombinationHandler:
         else:
             self._sub_handler = KeyHandler(config)
 
+    def __str__(self):
+        return f"CombinationHandler <{id(self)}> for {self._sub_handler}"
+
+    def __repr__(self):
+        return self.__str__()
+
     async def notify(
         self,
         event: evdev.InputEvent,
@@ -201,6 +207,12 @@ class KeyHandler:
         self._maps_to = (evdev.ecodes.EV_KEY, system_mapping.get(config["symbol"]))
         self._active = False
 
+    def __str__(self):
+        return f"KeyHandler <{id(self)}> for {(self._maps_to, self._target)}"
+
+    def __repr__(self):
+        return self.__str__()
+
     async def run(self) -> None:
         pass
 
@@ -247,6 +259,12 @@ class MacroHandler:
         self._active = False
         self._macro = parse(config["symbol"], context)
 
+    def __str__(self):
+        return f"MacroHandler <{id(self)}> for {self._macro}"
+
+    def __repr__(self):
+        return self.__str__()
+
     async def notify(self, event: evdev.InputEvent) -> bool:
 
         if event.value == 1:
@@ -292,6 +310,12 @@ class HierarchyHandler:
         self.handlers = handlers
         super().__init__()
 
+    def __str__(self):
+        return f"HierarchyHandler <{id(self)}> for {self.handlers}"
+
+    def __repr__(self):
+        return self.__str__()
+
     async def run(self) -> None:
         for handler in self.handlers:
             asyncio.ensure_future(handler.run())
@@ -324,6 +348,7 @@ class AbsToBtnHandler:
     """
     _handler: MappingHandler
     _trigger_percent: int
+    _active: bool
 
     def __init__(self, sub_handler: MappingHandler, trigger_percent: int) -> None:
         self._handler = sub_handler
@@ -333,6 +358,13 @@ class AbsToBtnHandler:
             raise ValueError(f"trigger_percent can not be 0")
 
         self._trigger_percent = trigger_percent
+        self._active = False
+
+    def __str__(self):
+        return f"AbsToBtnHandler <{id(self)}> for {self._handler}"
+
+    def __repr__(self):
+        return self.__str__()
 
     async def run(self) -> None:
         asyncio.ensure_future(self._handler.run())
@@ -371,6 +403,11 @@ class AbsToBtnHandler:
             else:
                 ev_copy.value = 0
 
+        if (ev_copy.value == 1 and self._active) or (ev_copy.value != 1 and not self._active):
+            return True
+
+        self._active = bool(ev_copy.value)
+        logger.debug_key((ev_copy.type, ev_copy.code, ev_copy.value), "sending to sub_handler")
         return await self._handler.notify(
             ev_copy,
             source=source,
