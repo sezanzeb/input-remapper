@@ -116,8 +116,6 @@ class Context:
             if key[0][:2] not in self.callbacks.keys():
                 self.callbacks[key[0][:2]] = []
             for handler in handler_list:
-                logger.debug("added callback for:")
-                logger.debug_mapping_handler(handler)
                 self.callbacks[key[0][:2]].append(handler.notify)
 
     def _parse_macros(self):

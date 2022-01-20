@@ -68,21 +68,29 @@ def parse_mapping(mapping: Mapping, context: ContextProtocol) -> MappingHandlers
     # combine all combination handlers such that there is only one handler per single key
     # if multiple handlers contain the same key, a Hierarchy handler will be created
     hierarchy_handlers = _create_hierarchy_handlers(combination_handlers)
-    logger.debug(hierarchy_handlers.keys())
     handlers = {}
     for key, handler in hierarchy_handlers.items():
         assert len(key) == 1
         if key[0][0] == EV_KEY:
+            logger.debug("created mapping handler:")
+            logger.debug_mapping_handler(handler)
             handlers[key] = [handler]
             continue
         if key[0][0] == EV_ABS:
-            handlers[key] = [AbsToBtnHandler(handler, trigger_percent=key[0][2], key=key)]
+            handler = AbsToBtnHandler(handler, trigger_percent=key[0][2], key=key)
+            logger.debug("created mapping handler:")
+            logger.debug_mapping_handler(handler)
+            handlers[key] = [handler]
 
     for key, handler in normal_handlers.items():
         assert len(key) == 1
         if key in handlers.keys():
+            logger.debug("created mapping handler:")
+            logger.debug_mapping_handler(handler)
             handlers[key].append(handler)
         else:
+            logger.debug("created mapping handler:")
+            logger.debug_mapping_handler(handler)
             handlers[key] = [handler]
 
     return handlers
@@ -151,9 +159,7 @@ def _order_keys(keys: List[Key], common_key: Key) -> List[Key]:
     def idx_of_common_key(_key: Key) -> int:
         """get the index of the common key in _key"""
         for j, sub_key in enumerate(_key):
-            logger.debug(f"idx: {j}, sub_key: {sub_key}")
             if sub_key == common_key:
-                logger.debug(f"return: {j}")
                 return j
 
     last_key = keys[0]
@@ -192,7 +198,6 @@ def _create_new_config(key, symbol_and_target) -> Dict:
         "target": symbol_and_target[1],
         "type": "combination"
     }
-    logger.debug(f"creating handler for {config}")
     return config
 
 
