@@ -28,6 +28,7 @@ import asyncio
 import evdev
 
 from typing import Dict, Tuple, List, Protocol
+from evdev.ecodes import EV_ABS
 
 from inputremapper import utils
 from inputremapper import exceptions
@@ -100,7 +101,6 @@ class CombinationHandler:
     _key: Key
     _key_map: Dict[Tuple[int, int], bool]
     _sub_handler: CombinationSubHandler
-    hierarchic = True
 
     def __init__(self, config: Dict[str, any], context: ContextProtocol) -> None:
         """initialize the handler
@@ -288,8 +288,6 @@ class HierarchyHandler:
     adheres to the MappingHandler protocol
     """
 
-    hierarchic = False
-
     def __init__(self, handlers: List[MappingHandler]) -> None:
         self.handlers = handlers
         super().__init__()
@@ -315,3 +313,67 @@ class HierarchyHandler:
                     handler.notify(event, forward=forward, supress=True)
                 )
         return success
+
+
+class AbsToBtnHandler:
+    """
+    Handler which transforms an EV_ABS to a button event
+    and sends that to a sub_handler
+
+    adheres to the MappingHandler protocol
+    """
+    _handler: MappingHandler
+    _trigger_percent: int
+
+    def __init__(self, sub_handler: MappingHandler, trigger_percent: int) -> None:
+        self._handler = sub_handler
+        if trigger_percent not in range(-99, 100):
+            raise ValueError(f"trigger_percent must be between -100 and 100")
+        if trigger_percent == 0:
+            raise ValueError(f"trigger_percent can not be 0")
+
+        self._trigger_percent = trigger_percent
+
+    async def run(self) -> None:
+        asyncio.ensure_future(self._handler.run())
+
+    def _trigger_point(self, abs_min: int, abs_max: int) -> int:
+        #  TODO: potentially cash this function
+        if abs_min == -1 and abs_max == 1:
+            return 0  # this is a hat switch
+
+        half_range = (abs_max - abs_min) / 2
+        middle = half_range + abs_min
+        trigger_offset = half_range * self._trigger_percent / 100
+        return int(middle + trigger_offset)
+
+    async def notify(
+            self,
+            event: evdev.InputEvent,
+            source: evdev.InputDevice = None,
+            forward: evdev.UInput = None,
+            supress: bool = False,
+            ) -> bool:
+
+        assert event.type == EV_ABS
+        absinfo = source.absinfo(event.code)
+        ev_copy = copy_event(event)
+        trigger_point = self._trigger_point(absinfo.min, absinfo.max)
+
+        if self._trigger_percent > 0:
+            if event.value > trigger_point:
+                ev_copy.value = 1
+            else:
+                ev_copy.value = 0
+        else:
+            if event.value < trigger_point:
+                ev_copy.value = 1
+            else:
+                ev_copy.value = 0
+
+        return await self._handler.notify(
+            ev_copy,
+            source=source,
+            forward=forward,
+            supress=supress,
+            )
