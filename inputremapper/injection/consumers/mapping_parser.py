@@ -21,7 +21,7 @@
 
 from typing import Dict, List, Type
 
-from evdev.ecodes import EV_KEY, EV_ABS
+from evdev.ecodes import EV_KEY, EV_ABS, EV_REL
 
 from inputremapper.logger import logger
 from inputremapper.key import Key
@@ -31,6 +31,7 @@ from inputremapper.injection.consumers.mapping_handler import (
     ContextProtocol,
     HierarchyHandler,
     AbsToBtnHandler,
+    RelToBtnHandler,
 )
 from inputremapper.mapping import Mapping
 
@@ -81,6 +82,13 @@ def parse_mapping(mapping: Mapping, context: ContextProtocol) -> MappingHandlers
             logger.debug("created mapping handler:")
             logger.debug_mapping_handler(handler)
             handlers[key] = [handler]
+            continue
+        if key[0][0] == EV_REL:
+            handler = RelToBtnHandler(handler, trigger_point=key[0][2], key=key)
+            logger.debug("created mapping handler:")
+            logger.debug_mapping_handler(handler)
+            handlers[key] = [handler]
+            continue
 
     for key, handler in normal_handlers.items():
         assert len(key) == 1

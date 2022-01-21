@@ -25,10 +25,12 @@ Can be notified of new events so that inheriting classes can map them and
 inject new events based on them.
 """
 import asyncio
+import time
+
 import evdev
 
 from typing import Dict, Tuple, List, Protocol, Set
-from evdev.ecodes import EV_ABS
+from evdev.ecodes import EV_ABS, EV_REL
 
 from inputremapper import utils
 from inputremapper import exceptions
@@ -73,9 +75,6 @@ class CombinationSubHandler(Protocol):
     async def notify(self, event: evdev.InputEvent) -> bool:
         ...
 
-    async def run(self) -> None:
-        ...
-
 
 class MappingHandler(Protocol):
     """the protocol a mapping handler must follow"""
@@ -90,9 +89,6 @@ class MappingHandler(Protocol):
         forward: evdev.UInput = None,
         supress: bool = False,
     ) -> bool:
-        ...
-
-    async def run(self) -> None:
         ...
 
 
@@ -171,9 +167,6 @@ class CombinationHandler:
         logger.debug_key(self._key, "triggered: sending to sub-handler")
         return await self._sub_handler.notify(ev)
 
-    async def run(self) -> None:  # no debouncer or anything (yet)
-        asyncio.ensure_future(self._sub_handler.run())
-
     def get_active(self) -> bool:
         """return if all keys in the keymap are set to True"""
         return False not in self._key_map.values()
@@ -224,9 +217,6 @@ class KeyHandler:
     @property
     def child(self):  # used for logging
         return f"maps to: {self._maps_to} on {self._target}"
-
-    async def run(self) -> None:
-        pass
 
     async def notify(self, event: evdev.InputEvent) -> bool:
         """inject event.value to the target key"""
@@ -337,10 +327,6 @@ class HierarchyHandler:
     def child(self):  # used for logging
         return self.handlers
 
-    async def run(self) -> None:
-        for handler in self.handlers:
-            asyncio.ensure_future(handler.run())
-
     async def notify(
         self,
         event: evdev.InputEvent,
@@ -395,9 +381,6 @@ class AbsToBtnHandler:
     def child(self):  # used for logging
         return self._handler
 
-    async def run(self) -> None:
-        asyncio.ensure_future(self._handler.run())
-
     def _trigger_point(self, abs_min: int, abs_max: int) -> int:
         #  TODO: potentially cash this function
         if abs_min == -1 and abs_max == 1:
@@ -440,6 +423,81 @@ class AbsToBtnHandler:
 
         self._active = bool(ev_copy.value)
         logger.debug_key((ev_copy.type, ev_copy.code, ev_copy.value), "sending to sub_handler")
+        return await self._handler.notify(
+            ev_copy,
+            source=source,
+            forward=forward,
+            supress=supress,
+            )
+
+
+class RelToBtnHandler:
+    """
+    Handler which transforms an EV_REL to a button event
+    and sends that to a sub_handler
+
+    adheres to the MappingHandler protocol
+    """
+    _handler: MappingHandler
+    _trigger_point: int
+    _active: bool
+    _key: Key
+    _last_activation: float
+
+    def __init__(self, sub_handler: MappingHandler, trigger_point: int, key: Key) -> None:
+        if trigger_point == 0:
+            raise ValueError("trigger_point can not be 0")
+
+        self._handler = sub_handler
+        self._trigger_point = trigger_point
+        self._key = key
+        self._active = False
+        self._last_activation = time.time()
+
+    def __str__(self):
+        return f"RelToBtnHandler for {self._key[0]} <{id(self)}>:"
+
+    def __repr__(self):
+        return self.__str__()
+
+    @property
+    def child(self):  # used for logging
+        return self._handler
+
+    async def stage_release(self):
+        while time.time() < self._last_activation + 0.05:
+            await asyncio.sleep(1/60)
+
+        event = evdev.InputEvent(0, 0, *self._key[0][:2], 0)
+        asyncio.ensure_future(self._handler.notify(event))
+        self._active = False
+
+    async def notify(
+            self,
+            event: evdev.InputEvent,
+            source: evdev.InputDevice = None,
+            forward: evdev.UInput = None,
+            supress: bool = False,
+            ) -> bool:
+
+        assert event.type == EV_REL
+        if (event.type, event.code) != self._key[0][:2]:
+            return False
+
+        value = event.value
+        if (value < self._trigger_point > 0) or (value > self._trigger_point < 0):
+            return True
+
+        if self._active:
+            self._last_activation = time.time()
+            return True
+
+        ev_copy = copy_event(event)
+        ev_copy.value = 1
+        logger.debug_key((ev_copy.type, ev_copy.code, ev_copy.value), "sending to sub_handler")
+        self._active = True
+        self._last_activation = time.time()
+        asyncio.ensure_future(self.stage_release())
         return await self._handler.notify(
             ev_copy,
             source=source,
