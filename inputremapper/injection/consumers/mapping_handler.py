@@ -27,7 +27,7 @@ inject new events based on them.
 import asyncio
 import evdev
 
-from typing import Dict, Tuple, List, Protocol
+from typing import Dict, Tuple, List, Protocol, Set
 from evdev.ecodes import EV_ABS
 
 from inputremapper import utils
@@ -51,12 +51,16 @@ def copy_event(event: evdev.InputEvent) -> evdev.InputEvent:
     )
 
 
+class EventListener(Protocol):
+    async def __call__(self, event: evdev.InputEvent) -> None:
+        ...
+
+
 class ContextProtocol(Protocol):
-    """the parst from context needed for macros"""
+    """the parts from context needed for macros"""
 
     mapping: Mapping
-    last_btn_down_event: Tuple[int, int]
-    last_btn_up_event: Tuple[int, int]
+    listeners: Set[EventListener]
 
 
 class CombinationSubHandler(Protocol):

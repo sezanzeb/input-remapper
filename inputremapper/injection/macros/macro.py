@@ -600,6 +600,18 @@ class Macro:
         resolved_timeout = _resolve(timeout, allowed_types=[int, float, None])
 
         async def task(handler):
+            trigger_code = self._triggering_event.code
+
+            async def listener(event: evdev.InputEvent):
+                """receives every event from consumer_control"""
+                if event.type != EV_KEY:
+                    return  # ignore anything that is not a key
+                if event.code != trigger_code and event.value == 1:
+                    self.context.listeners.remove(listener)
+                    await otherwise.run(handler)
+
+            self.context.listeners.add(listener)
+            timed_out = False
             try:
                 if resolved_timeout is not None:
                     await asyncio.wait_for(
@@ -608,22 +620,23 @@ class Macro:
                 else:
                     await self._trigger_release_event.wait()
 
-                triggering_event = (
-                    self._triggering_event.type,
-                    self._triggering_event.code,
-                )
-                # if last_btn_down in context == triggering_event, then no other key was pressed.
-                # if it is !=, then a new key was pressed in the meantime.
-                new_key_pressed = self.context.last_btn_down_event != triggering_event
-                if not new_key_pressed:
-                    # no timeout and not combined
-                    if then:
-                        await then.run(handler)
-                    return
             except asyncio.TimeoutError:
-                pass
+                timed_out = True
 
-            if otherwise:
-                await otherwise.run(handler)
+            otherwise_has_run = False
+            try:
+                self.context.listeners.remove(listener)
+            except KeyError:
+                otherwise_has_run = True
+
+            if timed_out and not otherwise_has_run:
+                if otherwise:
+                    await otherwise.run(handler)
+                    return
+
+            if not timed_out and not otherwise_has_run:
+                if then:
+                    await then.run(handler)
+                    return
 
         self.tasks.append(task)

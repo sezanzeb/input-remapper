@@ -20,12 +20,12 @@
 
 
 """Stores injection-process wide information."""
-from typing import Awaitable, List, Dict, Tuple, Protocol
+from typing import Awaitable, List, Dict, Tuple, Protocol, Set
 
 import evdev
 
 from inputremapper.injection.consumers.mapping_parser import parse_mapping
-from inputremapper.injection.consumers.mapping_handler import MappingHandler
+from inputremapper.injection.consumers.mapping_handler import MappingHandler, EventListener
 from inputremapper.key import Key
 from inputremapper.logger import logger
 from inputremapper.injection.macros.parse import parse, is_this_a_macro
@@ -93,9 +93,9 @@ class Context:
         self.right_purpose = None
         self.update_purposes()
 
-        # new stuff
-        self.last_btn_down_event: Tuple = (None, None)  # useful in macros
-        self.last_btn_up_event: Tuple = (None, None)  # might be useful in macros
+        # new stuff ##################################################################
+        # get notified of each event, before any callback
+        self.listeners: Set[EventListener] = set()
         self.callbacks: Dict[Tuple[int, int], List[NotifyCallback]] = {}
         self._handlers: Dict[Key, List[MappingHandler]] = parse_mapping(mapping, self)
 

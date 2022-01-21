@@ -104,6 +104,9 @@ class ConsumerControl:
                 # won't appear, no need to forward or map them.
                 continue
 
+            for listener in self.context.listeners:
+                asyncio.create_task(listener(event))
+
             tasks = []
             results = []
             if (event.type, event.code) in self.context.callbacks.keys():
@@ -114,12 +117,6 @@ class ConsumerControl:
                     )
                     tasks.append(coroutine)
                 results = await asyncio.gather(*tasks)
-
-            if event.type == evdev.ecodes.EV_KEY:
-                if event.value == 1:
-                    self.context.last_btn_down_event = (event.type, event.code)
-                else:
-                    self.context.last_btn_up_event = (event.type, event.code)
 
             if True in results:
                 continue
