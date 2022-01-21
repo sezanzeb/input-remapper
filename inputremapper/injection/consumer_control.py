@@ -106,6 +106,8 @@ class ConsumerControl:
 
             for listener in self.context.listeners:
                 asyncio.create_task(listener(event))
+                # allow the just created task to do some stuff
+                await asyncio.sleep(0)
 
             tasks = []
             results = []
@@ -134,6 +136,8 @@ class ConsumerControl:
 
             if not handled:
                 # forward the rest
+                if event.type == evdev.ecodes.EV_KEY:
+                    logger.debug_key((event.type, event.code, event.value), "forwarding")
                 self._forward_to.write(event.type, event.code, event.value)
                 # this already includes SYN events, so need to syn here again
 
