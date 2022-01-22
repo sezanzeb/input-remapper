@@ -247,8 +247,5 @@ class Reader:
             else:
                 self._debounce_remove[type_code] -= 1
 
-    def __del__(self):
-        self.terminate()
-
 
 reader = Reader()
