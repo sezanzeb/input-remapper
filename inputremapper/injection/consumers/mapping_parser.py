@@ -21,7 +21,19 @@
 
 from typing import Dict, List, Type
 
-from evdev.ecodes import EV_KEY, EV_ABS, EV_REL
+from evdev.ecodes import (
+    EV_KEY,
+    EV_ABS,
+    EV_REL,
+    ABS_X,
+    ABS_Y,
+    ABS_RX,
+    ABS_RY,
+    REL_X,
+    REL_Y,
+    REL_WHEEL_HI_RES,
+    REL_HWHEEL_HI_RES,
+)
 
 from inputremapper.logger import logger
 from inputremapper.key import Key
@@ -32,6 +44,7 @@ from inputremapper.injection.consumers.mapping_handler import (
     HierarchyHandler,
     AbsToBtnHandler,
     RelToBtnHandler,
+    AbsToRelHandler,
 )
 from inputremapper.mapping import Mapping
 
@@ -40,6 +53,7 @@ MappingHandlers = Dict[Key, List[MappingHandler]]
 mapping_handler_classes: Dict[str, Type[MappingHandler]] = {
     # all available mapping_handlers
     "combination": CombinationHandler,
+    "abs_to_rel": AbsToRelHandler,
 }
 
 
@@ -65,6 +79,13 @@ def parse_mapping(mapping: Mapping, context: ContextProtocol) -> MappingHandlers
         else:
             assert _key not in normal_handlers.keys()
             normal_handlers[_key] = _create_handler(config, context)
+
+    for config in _create_abs_to_rel_configs(mapping):
+        _key = Key(config["key"])
+        handler_type = config["type"]
+        assert handler_type == "abs_to_rel"
+        assert _key not in normal_handlers.keys()
+        normal_handlers[_key] = _create_handler(config, context)
 
     # combine all combination handlers such that there is only one handler per single key
     # if multiple handlers contain the same key, a Hierarchy handler will be created
@@ -209,4 +230,93 @@ def _create_new_config(key, symbol_and_target) -> Dict:
     return config
 
 
+def _create_abs_to_rel_configs(mapping: Mapping) -> list[Dict[str, any]]:
+    """ return a list of configs with the keys:
+    config : Dict = {
+        "key": str
+        "output": int
+        "target": str
+        "deadzone" : int
+        "output" : int
+        "gain" : float
+        "rate" : int
+    }
+    """
+    left_purpose = mapping.get("gamepad.joystick.left_purpose")
+    right_purpose = mapping.get("gamepad.joystick.right_purpose")
+    pointer_speed = mapping.get("gamepad.joystick.pointer_speed") / 100
+    non_linearity = mapping.get("gamepad.joystick.non_linearity")
+    x_scroll_speed = mapping.get("gamepad.joystick.x_scroll_speed")
+    y_scroll_speed = mapping.get("gamepad.joystick.y_scroll_speed")
 
+    mouse_x_config = {
+        "key": None,
+        "target": "mouse",
+        "deadzone": 0.1,
+        "output": REL_X,
+        "gain": pointer_speed,
+        "expo": 0,
+        "rate": 100,
+        "type": "abs_to_rel"
+    }
+    mouse_y_config = {
+        "key": None,
+        "target": "mouse",
+        "deadzone": 0.1,
+        "output": REL_Y,
+        "gain": pointer_speed,
+        "expo": 0,
+        "rate": 100,
+        "type": "abs_to_rel"
+    }
+    wheel_x_config = {
+        "key": None,
+        "target": "mouse",
+        "deadzone": 0.1,
+        "output": REL_HWHEEL_HI_RES,
+        "gain": 1,
+        "expo": 0.5,
+        "rate": 100,
+        "type": "abs_to_rel"
+    }
+    wheel_y_config = {
+        "key": None,
+        "target": "mouse",
+        "deadzone": 0.1,
+        "output": REL_WHEEL_HI_RES,
+        "gain": 1,
+        "expo": 0.5,
+        "rate": 100,
+        "type": "abs_to_rel"
+    }
+    configs = []
+
+    if left_purpose == "mouse":
+        x_config = mouse_x_config.copy()
+        y_config = mouse_y_config.copy()
+        x_config["key"] = Key((EV_ABS, ABS_X, 0))
+        y_config["key"] = Key((EV_ABS, ABS_Y, 0))
+        configs.extend([x_config, y_config])
+
+    if left_purpose == "wheel":
+        w_x_config = wheel_x_config.copy()
+        w_y_config = wheel_y_config.copy()
+        w_x_config["key"] = Key((EV_ABS, ABS_X, 0))
+        w_y_config["key"] = Key((EV_ABS, ABS_Y, 0))
+        configs.extend([w_x_config, w_y_config])
+
+    if right_purpose == "mouse":
+        x_config = mouse_x_config.copy()
+        y_config = mouse_y_config.copy()
+        x_config["key"] = Key((EV_ABS, ABS_RX, 0))
+        y_config["key"] = Key((EV_ABS, ABS_RY, 0))
+        configs.extend([x_config, y_config])
+
+    if right_purpose == "wheel":
+        w_x_config = wheel_x_config.copy()
+        w_y_config = wheel_y_config.copy()
+        w_x_config["key"] = Key((EV_ABS, ABS_RX, 0))
+        w_y_config["key"] = Key((EV_ABS, ABS_RY, 0))
+        configs.extend([w_x_config, w_y_config])
+
+    return configs

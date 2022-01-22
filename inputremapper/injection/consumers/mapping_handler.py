@@ -521,31 +521,42 @@ class AbsToRelHandler:
     _running: bool  # if the run method is active
     _stop: bool  # if the run loop should return
 
-    def __init__(self, config: Dict[str, any]) -> None:
+    def __init__(self, config: Dict[str, any], _) -> None:
         """initialize the handler
 
         Parameters
         ----------
         config : Dict = {
             "key": str
-            "output": int
             "target": str
-            "deadzone" : int
+            "deadzone" : float
             "output" : int
             "gain" : float
+            "expo" : float
             "rate" : int
         }
         """
         self._key = Key(config["key"])
         self._target = config["target"]
-        self._deadzone = config["deadzone"] / 100
+        self._deadzone = config["deadzone"]
         self._output = config["output"]
         self._gain = config["gain"]
+        self._expo = config["expo"]
         self._rate = config["rate"]
 
         self._last_value = 0
         self._running = False
         self._stop = True
+
+    def __str__(self):
+        return f"AbsToRelHandler for {self._key[0]} <{id(self)}>:"
+
+    def __repr__(self):
+        return self.__str__()
+
+    @property
+    def child(self):  # used for logging
+        return f"maps to: {self._output} at {self._target}"
 
     async def notify(
             self,
@@ -563,7 +574,8 @@ class AbsToRelHandler:
             source.absinfo(event.code).min,
             source.absinfo(event.code).max,
             )
-        if input_value < self._deadzone:
+
+        if abs(input_value) < self._deadzone:
             self._stop = True
             return True
 
@@ -643,17 +655,28 @@ class AbsToRelHandler:
         """start injecting events"""
         self._running = True
         self._stop = False
+        # logger.debug("starting AbsToRel loop")
         remainder = 0.0
         start = time.time()
         while not self._stop:
             float_value = self._last_value * self._gain + remainder
             remainder = float_value % 1
             value = int(float_value)
-            event_tuple = (EV_REL, self._output, value)
-            global_uinputs.write(event_tuple, self._target)
+            self._write(EV_REL, self._output, value)
 
             time_taken = time.time() - start
             await asyncio.sleep(max(0.0, (1 / self._rate) - time_taken))
             start = time.time()
 
+        # logger.debug("stopping AbsToRel loop")
         self._running = False
+
+    def _write(self, ev_type, keycode, value):
+        """Inject."""
+        # if the mouse won't move even though correct stuff is written here,
+        # the capabilities are probably wrong
+        try:
+            global_uinputs.write((ev_type, keycode, value), self._target)
+        except OverflowError:
+            # screwed up the calculation of mouse movements
+            logger.error("OverflowError (%s, %s, %s)", ev_type, keycode, value)

@@ -22,14 +22,8 @@
 """Because multiple calls to async_read_loop won't work."""
 import asyncio
 import evdev
-
-from inputremapper.injection.consumers.joystick_to_mouse import JoystickToMouse
 from inputremapper.logger import logger
 from inputremapper.injection.context import Context
-
-consumer_classes = [
-    JoystickToMouse,
-]
 
 
 def copy_event(event: evdev.InputEvent) -> evdev.InputEvent:
@@ -74,23 +68,12 @@ class ConsumerControl:
         self._forward_to = forward_to
         self.context = context
 
-        # add all consumers that are enabled for this particular configuration
-        self._consumers = []
-        for Consumer in consumer_classes:
-            consumer = Consumer(context, source, forward_to)
-            if consumer.is_enabled():
-                self._consumers.append(consumer)
-
     async def run(self):
         """Start doing things.
 
         Can be stopped by stopping the asyncio loop. This loop
         reads events from a single device only.
         """
-        for consumer in self._consumers:
-            # run all of them in parallel
-            asyncio.ensure_future(consumer.run())
-
         logger.debug(
             "Starting to listen for events from %s, fd %s",
             self._source.path,
@@ -123,23 +106,11 @@ class ConsumerControl:
             if True in results:
                 continue
 
-            # try legacy injection if the new injection did not do anything
-            # TODO: Remove. only keep the call to forward
-            handled = False
-            for consumer in self._consumers:
-                # copy so that the consumer doesn't screw this up for
-                # all other future consumers
-                event_copy = copy_event(event)
-                if consumer.is_handled(event_copy):
-                    await consumer.notify(event_copy)
-                    handled = True
-
-            if not handled:
-                # forward the rest
-                if event.type == evdev.ecodes.EV_KEY:
-                    logger.debug_key((event.type, event.code, event.value), "forwarding")
-                self._forward_to.write(event.type, event.code, event.value)
-                # this already includes SYN events, so need to syn here again
+            # forward the rest
+            if event.type == evdev.ecodes.EV_KEY:
+                logger.debug_key((event.type, event.code, event.value), "forwarding")
+            self._forward_to.write(event.type, event.code, event.value)
+            # this already includes SYN events, so need to syn here again
 
         # This happens all the time in tests because the async_read_loop stops when
         # there is nothing to read anymore. Otherwise tests would block.

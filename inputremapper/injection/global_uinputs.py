@@ -39,7 +39,7 @@ DEFAULT_UINPUTS = {
     },
     "mouse": {
         evdev.ecodes.EV_KEY: [*range(0x110, 0x118)],  # BTN_LEFT - BTN_TASK
-        evdev.ecodes.EV_REL: [*range(0x00, 0x0A)],  # all REL axis
+        evdev.ecodes.EV_REL: [*range(0x00, 0x0D)],  # all REL axis
     },
 }
 
