@@ -231,6 +231,7 @@ def _create_new_config(key, symbol_and_target) -> Dict:
 
 
 def _create_abs_to_rel_configs(mapping: Mapping) -> list[Dict[str, any]]:
+    # TODO: make this obsolete by migrating to new config structure
     """ return a list of configs with the keys:
     config : Dict = {
         "key": str

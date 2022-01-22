@@ -597,6 +597,8 @@ class AbsToRelHandler:
         -1 < k < 0 : will yield high sensitivity for low x values
             and low sensitivity for high x values
 
+        see also: https://www.geogebra.org/calculator/mkdqueky
+
         Mathematical definition:
         f(x,d) = d * x + (1 - d) * x ** 3 | d = 1 - k | k ∈ [0,1]
         the function is designed such that if follows these constraints:
