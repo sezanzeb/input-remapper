@@ -88,9 +88,21 @@ class ConsumerControl:
                 continue
 
             for listener in self.context.listeners:
-                asyncio.create_task(listener(event))
-                # allow the just created task to do some stuff
-                await asyncio.sleep(0)
+                # fire and forget, run them in parallel and don't wait for them, since
+                # a listener might be blocking forever while waiting for more events.
+                asyncio.ensure_future(listener(event))
+                
+            # Running macros have priority, give them a head-start for processing the
+            # event.  If if_single injects a modifier, this modifier should be active
+            # before the next handler injects an "a" or something, so that it is
+            # possible to capitalize it via if_single.
+            # 1. Event from keyboard arrives (e.g. an "a")
+            # 2. the listener for if_single is called
+            # 3. if_single decides runs then (e.g. injects shift_L)
+            # 4. The original event is forwarded (or whatever it is supposed to do)
+            # 5. Capitalized "A" is injected.
+            # So make sure to call the listeners before notifying the handlers.
+            await asyncio.sleep(0)
 
             tasks = []
             results = []
