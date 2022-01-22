@@ -348,6 +348,9 @@ class Injector(multiprocessing.Process):
 
         try:
             loop.run_until_complete(asyncio.gather(*coroutines))
+        except RuntimeError as error:
+            if error.__str__() != "Event loop stopped before Future completed.":
+                raise error
         except OSError as error:
             logger.error("Failed to run injector coroutines: %s", str(error))
 

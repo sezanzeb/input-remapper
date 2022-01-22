@@ -87,7 +87,9 @@ class ConsumerControl:
                 # won't appear, no need to forward or map them.
                 continue
 
-            for listener in self.context.listeners:
+            for listener in self.context.listeners.copy():
+                # use a copy, since the listeners might remove themselves form the set
+
                 # fire and forget, run them in parallel and don't wait for them, since
                 # a listener might be blocking forever while waiting for more events.
                 asyncio.ensure_future(listener(event))
