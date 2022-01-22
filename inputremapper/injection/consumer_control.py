@@ -108,9 +108,12 @@ class ConsumerControl:
             results = []
             if (event.type, event.code) in self.context.callbacks.keys():
                 for callback in self.context.callbacks[(event.type, event.code)]:
-                    ev = copy_event(event)
+                    # copy so that the handler doesn't screw this up for
+                    # all other future handlers
                     coroutine = callback(
-                        ev, source=self._source, forward=self._forward_to
+                        copy_event(event),
+                        source=self._source,
+                        forward=self._forward_to,
                     )
                     tasks.append(coroutine)
                 results = await asyncio.gather(*tasks)
