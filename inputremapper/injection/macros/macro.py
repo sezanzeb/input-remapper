@@ -613,12 +613,10 @@ class Macro:
                     return
 
                 if event.code != trigger_code and event.value == 1:
-                    logger.debug("combined")
                     listener_done.set()
                     return
 
                 if event.code == trigger_code and event.value == 0:
-                    logger.debug("released")
                     # the trigger was released
                     success = True
                     listener_done.set()
