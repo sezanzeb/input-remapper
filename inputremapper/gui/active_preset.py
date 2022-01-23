@@ -22,7 +22,7 @@
 """One mapping object for the GUI application."""
 
 
-from inputremapper.mapping import Mapping
+from inputremapper.preset import Preset
 
 
-custom_mapping = Mapping()
+active_preset = Preset()

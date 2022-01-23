@@ -69,25 +69,25 @@ class Context:
 
     Members
     -------
-    mapping : Mapping
+    preset : Preset
         The mapping that is the source of key_to_code and macros,
         only used to query config values.
     key_to_code : dict
-        Mapping of ((type, code, value),) to linux-keycode
+        Preset of ((type, code, value),) to linux-keycode
         or multiple of those like ((...), (...), ...) for combinations.
         Combinations need to be present in every possible valid ordering.
         e.g. shift + alt + a and alt + shift + a.
         This is needed to query keycodes more efficiently without having
         to search mapping each time.
     macros : dict
-        Mapping of ((type, code, value),) to Macro objects.
+        Preset of ((type, code, value),) to Macro objects.
         Combinations work similar as in key_to_code
     key_map : dict
         on the input pressed down keys
     """
 
-    def __init__(self, mapping):
-        self.mapping = mapping
+    def __init__(self, preset):
+        self.mapping = preset
 
         self.left_purpose = None
         self.right_purpose = None
@@ -97,7 +97,7 @@ class Context:
         # get notified of each event, before any callback
         self.listeners: Set[EventListener] = set()
         self.callbacks: Dict[Tuple[int, int], List[NotifyCallback]] = {}
-        self._handlers: Dict[Key, List[MappingHandler]] = parse_mapping(mapping, self)
+        self._handlers: Dict[Key, List[MappingHandler]] = parse_mapping(preset, self)
 
         self.create_callbacks()
 

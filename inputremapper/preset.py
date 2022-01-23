@@ -24,7 +24,7 @@ from __future__ import annotations
 
 import os
 import json
-from typing import Iterator, Union, List, Tuple, Dict
+from typing import Tuple, Dict
 
 from evdev.ecodes import EV_KEY, BTN_LEFT
 
@@ -53,7 +53,7 @@ def split_key(key):
     return key
 
 
-class Mapping(ConfigBase):
+class Preset(ConfigBase):
     """Contains and manages mappings and config of a single preset."""
 
     _mapping: Dict[Key, Tuple[str, str]]
@@ -67,7 +67,7 @@ class Mapping(ConfigBase):
 
         super().__init__(fallback=config)
 
-    def __iter__(self) -> Mapping._mapping.items:
+    def __iter__(self) -> Preset._mapping.items:
         """Iterate over Key objects and their mappings."""
         return iter(self._mapping.items())
 

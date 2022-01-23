@@ -26,7 +26,7 @@ from unittest.mock import patch
 
 from evdev.ecodes import EV_KEY, EV_ABS, KEY_A
 
-from inputremapper.mapping import Mapping, split_key
+from inputremapper.preset import Preset, split_key
 from inputremapper.system_mapping import SystemMapping, XMODMAP_FILENAME
 from inputremapper.config import config
 from inputremapper.paths import get_preset_path
@@ -129,7 +129,7 @@ class TestSystemMapping(unittest.TestCase):
 
 class TestMapping(unittest.TestCase):
     def setUp(self):
-        self.mapping = Mapping()
+        self.mapping = Preset()
         self.assertFalse(self.mapping.has_unsaved_changes())
 
     def tearDown(self):
@@ -198,7 +198,7 @@ class TestMapping(unittest.TestCase):
         path = os.path.join(tmp, "presets", "Foo Device", "test.json")
         self.assertTrue(os.path.exists(path))
 
-        loaded = Mapping()
+        loaded = Preset()
         self.assertEqual(len(loaded), 0)
         loaded.load(get_preset_path("Foo Device", "test"))
 

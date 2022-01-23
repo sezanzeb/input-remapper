@@ -28,7 +28,7 @@ from gi.repository import Gtk, GLib, GtkSource, Gdk
 
 from inputremapper.gui.editor.autocompletion import Autocompletion
 from inputremapper.system_mapping import system_mapping
-from inputremapper.gui.custom_mapping import custom_mapping
+from inputremapper.gui.active_preset import active_preset
 from inputremapper.key import Key
 from inputremapper.logger import logger
 from inputremapper.gui.reader import reader
@@ -92,7 +92,7 @@ class SelectionLabel(Gtk.ListBoxRow):
 
 
 def ensure_everything_saved(func):
-    """Make sure the editor has written its changes to custom_mapping and save."""
+    """Make sure the editor has written its changes to active_preset and save."""
 
     def wrapped(self, *args, **kwargs):
         if self.user_interface.preset_name:
@@ -153,7 +153,7 @@ class Editor:
         """When unfocusing the text it saves.
 
         Input Remapper doesn't save the editor on change, because that would cause
-        an incredible amount of logs for every single input. The custom_mapping would
+        an incredible amount of logs for every single input. The active_preset would
         need to be changed, which causes two logs, then it has to be saved
         to disk which is another two log messages. So every time a single character
         is typed it writes 4 lines.
@@ -361,9 +361,9 @@ class Editor:
             self.disable_target_selector()
             # symbol input disabled until a key is configured
         else:
-            if custom_mapping.get_mapping(key):
-                self.set_symbol_input_text(custom_mapping.get_mapping(key)[0])
-                self.set_target_selection(custom_mapping.get_mapping(key)[1])
+            if active_preset.get_mapping(key):
+                self.set_symbol_input_text(active_preset.get_mapping(key)[0])
+                self.set_target_selection(active_preset.get_mapping(key)[1])
             self.enable_symbol_input()
             self.enable_target_selector()
 
@@ -379,14 +379,14 @@ class Editor:
 
     @ensure_everything_saved
     def load_custom_mapping(self):
-        """Display the entries in custom_mapping."""
+        """Display the entries in active_preset."""
         self.set_symbol_input_text("")
 
         selection_label_listbox = self.get("selection_label_listbox")
 
         selection_label_listbox.forall(selection_label_listbox.remove)
 
-        for key, _ in custom_mapping:
+        for key, _ in active_preset:
             selection_label = SelectionLabel()
             selection_label.set_key(key)
             selection_label_listbox.insert(selection_label, -1)
@@ -438,11 +438,11 @@ class Editor:
     def get_symbol_input_text(self):
         """Get the assigned symbol from the text input.
 
-        This might not be stored in custom_mapping yet, and might therefore also not
+        This might not be stored in active_preset yet, and might therefore also not
         be part of the preset json file yet.
 
         If there is no symbol, this returns None. This is important for some other
-        logic down the road in custom_mapping or something.
+        logic down the road in active_preset or something.
         """
         buffer = self.get("code_editor").get_buffer()
         symbol = buffer.get_text(buffer.get_start_iter(), buffer.get_end_iter(), True)
@@ -490,7 +490,7 @@ class Editor:
 
         key = self.get_key()
         if key is not None:
-            custom_mapping.clear(key)
+            active_preset.clear(key)
 
         # make sure there is no outdated information lying around in memory
         self.set_key(None)
@@ -522,13 +522,13 @@ class Editor:
         if symbol != correct_case:
             self.get_text_input().get_buffer().set_text(correct_case)
 
-        # make sure the custom_mapping is up to date
+        # make sure the active_preset is up to date
         key = self.get_key()
         if correct_case is not None and key is not None and target is not None:
-            custom_mapping.change(key, target, correct_case)
+            active_preset.change(key, target, correct_case)
 
         # save to disk if required
-        if custom_mapping.has_unsaved_changes():
+        if active_preset.has_unsaved_changes():
             self.user_interface.save_preset()
 
     def is_waiting_for_input(self):
@@ -554,7 +554,7 @@ class Editor:
             raise TypeError("Expected new_key to be a Key object")
 
         # keycode is already set by some other row
-        existing = custom_mapping.get_mapping(key)
+        existing = active_preset.get_mapping(key)
         if existing is not None:
             existing = list(existing)
             existing[0] = re.sub(r"\s", "", existing[0])
@@ -594,7 +594,7 @@ class Editor:
             return
 
         # else, the keycode has changed, the symbol is set, all good
-        custom_mapping.change(
+        active_preset.change(
             new_key=key, target=target, symbol=symbol, previous_key=previous_key
         )
 

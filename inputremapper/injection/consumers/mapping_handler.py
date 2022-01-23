@@ -29,7 +29,7 @@ from inputremapper import utils
 from inputremapper import exceptions
 from inputremapper.logger import logger
 from inputremapper.key import Key
-from inputremapper.mapping import Mapping
+from inputremapper.preset import Preset
 from inputremapper.system_mapping import system_mapping
 from inputremapper.injection.macros.macro import Macro
 from inputremapper.injection.macros.parse import parse, is_this_a_macro
@@ -54,7 +54,7 @@ class EventListener(Protocol):
 class ContextProtocol(Protocol):
     """the parts from context needed for macros"""
 
-    mapping: Mapping
+    preset: Preset
     listeners: Set[EventListener]
 
 

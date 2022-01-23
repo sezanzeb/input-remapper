@@ -531,7 +531,7 @@ from inputremapper.config import config
 from inputremapper.gui.reader import reader
 from inputremapper.groups import groups
 from inputremapper.system_mapping import system_mapping
-from inputremapper.gui.custom_mapping import custom_mapping
+from inputremapper.gui.active_preset import active_preset
 from inputremapper.paths import get_config_path
 from inputremapper.injection.macros.macro import macro_variables
 from inputremapper.injection.consumers.keycode_mapper import active_macros, unreleased
@@ -606,9 +606,9 @@ def quick_cleanup(log=True):
 
     system_mapping.populate()
 
-    custom_mapping.empty()
-    custom_mapping.clear_config()
-    custom_mapping.set_has_unsaved_changes(False)
+    active_preset.empty()
+    active_preset.clear_config()
+    active_preset.set_has_unsaved_changes(False)
 
     clear_write_history()
 

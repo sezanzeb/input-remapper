@@ -34,7 +34,7 @@ from evdev.ecodes import (
 )
 
 from inputremapper.config import config, BUTTONS
-from inputremapper.mapping import Mapping
+from inputremapper.preset import Preset
 from inputremapper import utils
 
 from tests.test import new_event, InputDevice, MAX_ABS, MIN_ABS
@@ -60,7 +60,7 @@ class TestDevUtils(unittest.TestCase):
         self.assertFalse(utils.is_wheel(new_event(EV_ABS, ABS_HAT0X, -1)))
 
     def test_should_map_as_btn(self):
-        mapping = Mapping()
+        mapping = Preset()
 
         def do(gamepad, event):
             return utils.should_map_as_btn(event, mapping, gamepad)

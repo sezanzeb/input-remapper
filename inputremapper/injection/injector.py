@@ -31,7 +31,7 @@ import evdev
 
 from typing import Dict, List, Optional
 
-from inputremapper.mapping import Mapping
+from inputremapper.preset import Preset
 
 from inputremapper.logger import logger
 from inputremapper.groups import classify, GAMEPAD, _Group
@@ -88,7 +88,7 @@ class Injector(multiprocessing.Process):
     """
 
     group: _Group
-    mapping: Mapping
+    mapping: Preset
     context: Optional[Context]
     _state: int
     _msg_pipe: multiprocessing.Pipe
@@ -96,14 +96,14 @@ class Injector(multiprocessing.Process):
 
     regrab_timeout = 0.2
 
-    def __init__(self, group: _Group, mapping: Mapping) -> None:
+    def __init__(self, group: _Group, preset: Preset) -> None:
         """
 
         Parameters
         ----------
         group : _Group
             the device group
-        mapping : Mapping
+        preset : Preset
         """
         self.group = group
         self._state = UNKNOWN
@@ -112,7 +112,7 @@ class Injector(multiprocessing.Process):
         # the new process
         self._msg_pipe = multiprocessing.Pipe()
 
-        self.mapping = mapping
+        self.mapping = preset
         self.context = None  # only needed inside the injection process
 
         self._consumer_controls = []

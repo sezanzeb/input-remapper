@@ -21,7 +21,7 @@ import json
 from evdev.ecodes import EV_KEY, EV_ABS, ABS_HAT0X
 
 from inputremapper.migrations import migrate, config_version
-from inputremapper.mapping import Mapping
+from inputremapper.preset import Preset
 from inputremapper.config import config
 from inputremapper.paths import touch, CONFIG_PATH, mkdir, get_preset_path
 from inputremapper.key import Key
@@ -185,7 +185,7 @@ class TestMigrations(unittest.TestCase):
                 file,
             )
         migrate()
-        loaded = Mapping()
+        loaded = Preset()
         self.assertEqual(loaded.num_saved_keys, 0)
         loaded.load(get_preset_path("Foo Device", "test"))
         self.assertEqual(len(loaded), 6)

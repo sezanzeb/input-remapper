@@ -39,7 +39,7 @@ from gi.repository import GLib
 
 from inputremapper.logger import logger, is_debug
 from inputremapper.injection.injector import Injector, UNKNOWN
-from inputremapper.mapping import Mapping
+from inputremapper.preset import Preset
 from inputremapper.config import config
 from inputremapper.system_mapping import system_mapping
 from inputremapper.groups import groups
@@ -438,9 +438,9 @@ class Daemon:
             self.config_dir, "presets", group.name, f"{preset}.json"
         )
 
-        mapping = Mapping()
+        preset = Preset()
         try:
-            mapping.load(preset_path)
+            preset.load(preset_path)
         except FileNotFoundError as error:
             logger.error(str(error))
             return False
@@ -466,7 +466,7 @@ class Daemon:
             logger.error('Could not find "%s"', xmodmap_path)
 
         try:
-            injector = Injector(group, mapping)
+            injector = Injector(group, preset)
             injector.start()
             self.injectors[group.key] = injector
         except OSError:

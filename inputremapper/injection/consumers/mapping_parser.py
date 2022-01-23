@@ -46,7 +46,7 @@ from inputremapper.injection.consumers.mapping_handler import (
     RelToBtnHandler,
     AbsToRelHandler,
 )
-from inputremapper.mapping import Mapping
+from inputremapper.preset import Preset
 
 MappingHandlers = Dict[Key, List[MappingHandler]]
 
@@ -57,7 +57,7 @@ mapping_handler_classes: Dict[str, Type[MappingHandler]] = {
 }
 
 
-def parse_mapping(mapping: Mapping, context: ContextProtocol) -> MappingHandlers:
+def parse_mapping(preset: Preset, context: ContextProtocol) -> MappingHandlers:
     """create dict with a list of MappingHandlers for each key
 
     Key is of len 1
@@ -67,8 +67,8 @@ def parse_mapping(mapping: Mapping, context: ContextProtocol) -> MappingHandlers
     combination_handlers = {}
     normal_handlers = {}
 
-    for key, sub_mapping in mapping:
-        config = _create_new_config(key, sub_mapping)
+    for key, mapping in preset:
+        config = _create_new_config(key, mapping)
         if config is None:
             continue
 
@@ -80,7 +80,7 @@ def parse_mapping(mapping: Mapping, context: ContextProtocol) -> MappingHandlers
             assert _key not in normal_handlers.keys()
             normal_handlers[_key] = _create_handler(config, context)
 
-    for config in _create_abs_to_rel_configs(mapping):
+    for config in _create_abs_to_rel_configs(preset):
         _key = Key(config["key"])
         handler_type = config["type"]
         assert handler_type == "abs_to_rel"
@@ -230,7 +230,7 @@ def _create_new_config(key, symbol_and_target) -> Dict:
     return config
 
 
-def _create_abs_to_rel_configs(mapping: Mapping) -> list[Dict[str, any]]:
+def _create_abs_to_rel_configs(preset: Preset) -> list[Dict[str, any]]:
     # TODO: make this obsolete by migrating to new config structure
     """ return a list of configs with the keys:
     config : Dict = {
@@ -243,12 +243,12 @@ def _create_abs_to_rel_configs(mapping: Mapping) -> list[Dict[str, any]]:
         "rate" : int
     }
     """
-    left_purpose = mapping.get("gamepad.joystick.left_purpose")
-    right_purpose = mapping.get("gamepad.joystick.right_purpose")
-    pointer_speed = mapping.get("gamepad.joystick.pointer_speed") / 100
-    non_linearity = mapping.get("gamepad.joystick.non_linearity")
-    x_scroll_speed = mapping.get("gamepad.joystick.x_scroll_speed")
-    y_scroll_speed = mapping.get("gamepad.joystick.y_scroll_speed")
+    left_purpose = preset.get("gamepad.joystick.left_purpose")
+    right_purpose = preset.get("gamepad.joystick.right_purpose")
+    pointer_speed = preset.get("gamepad.joystick.pointer_speed") / 100
+    non_linearity = preset.get("gamepad.joystick.non_linearity")
+    x_scroll_speed = preset.get("gamepad.joystick.x_scroll_speed")
+    y_scroll_speed = preset.get("gamepad.joystick.y_scroll_speed")
 
     mouse_x_config = {
         "key": None,
