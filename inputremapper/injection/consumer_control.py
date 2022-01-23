@@ -21,7 +21,6 @@
 
 """Because multiple calls to async_read_loop won't work."""
 import asyncio
-import time
 import evdev
 from inputremapper.logger import logger
 from inputremapper.injection.context import Context
