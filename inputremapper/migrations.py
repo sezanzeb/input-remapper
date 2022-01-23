@@ -30,6 +30,7 @@ import pkg_resources
 from pathlib import Path
 from evdev.ecodes import EV_KEY, EV_REL
 
+from inputremapper.exceptions import MacroParsingError
 from inputremapper.logger import logger, VERSION
 from inputremapper.user import HOME
 from inputremapper.paths import get_preset_path, mkdir, CONFIG_PATH
@@ -151,7 +152,10 @@ def _find_target(symbol):
     """try to find a uinput with the required capabilities for the symbol."""
     capabilities = {EV_KEY: set(), EV_REL: set()}
     if is_this_a_macro(symbol):
-        capabilities = parse(symbol).get_capabilities()
+        try:
+            capabilities = parse(symbol).get_capabilities()
+        except MacroParsingError:
+            pass
     else:
         capabilities[EV_KEY] = {system_mapping.get(symbol)}
 

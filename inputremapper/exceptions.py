@@ -39,3 +39,10 @@ class UinputNotAvailable(Error):
 class EventNotHandled(Error):
     def __init__(self, event):
         super().__init__(f"the event {event} can not be handled")
+
+
+class MacroParsingError(Error):
+    def __init__(self, symbol=None, msg="Error while parsing a macro"):
+        self.symbol = symbol
+        super().__init__(msg)
+

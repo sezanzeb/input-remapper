@@ -31,6 +31,7 @@ from evdev._ecodes import EV_KEY
 from gi.repository import Gtk, GtkSource, Gdk, GLib, GObject
 
 from inputremapper.data import get_data_path
+from inputremapper.exceptions import MacroParsingError
 from inputremapper.paths import get_config_path
 from inputremapper.system_mapping import system_mapping
 from inputremapper.gui.active_preset import active_preset
@@ -464,13 +465,18 @@ class UserInterface:
             if not is_this_a_macro(output):
                 continue
 
-            error = parse(output, active_preset, return_errors=True)
-            if error is None:
+            error_sting = None
+            try:
+                parse(output, active_preset)
+            except MacroParsingError as error:
+                error_sting = f"{error.__class__.__name__}: {str(error)}"
+
+            if error_sting is None:
                 continue
 
             position = key.beautify()
             msg = f"Syntax error at {position}, hover for info"
-            self.show_status(CTX_MAPPING, msg, error)
+            self.show_status(CTX_MAPPING, msg, str(error_sting))
 
     @ensure_everything_saved
     def on_rename_button_clicked(self, _):

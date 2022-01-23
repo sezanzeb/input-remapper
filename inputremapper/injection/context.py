@@ -118,24 +118,6 @@ class Context:
             for handler in handler_list:
                 self.callbacks[key[0][:2]].append(handler.notify)
 
-    def _parse_macros(self):
-        """To quickly get the target macro during operation."""
-        logger.debug("Parsing macros")
-        macros = {}
-        for key, output in self.preset:
-            if is_this_a_macro(output[0]):
-                macro = parse(output[0], self)
-                if macro is None:
-                    continue
-
-                for permutation in key.get_permutations():
-                    macros[permutation.keys] = (macro, output[1])
-
-        if len(macros) == 0:
-            logger.debug("No macros configured")
-
-        return macros
-
     def is_mapped(self, key):
         """Check if this key is used for macros or mappings.
 

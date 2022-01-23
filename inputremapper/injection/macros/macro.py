@@ -46,7 +46,7 @@ from evdev.ecodes import ecodes, EV_KEY, EV_REL, REL_X, REL_Y, REL_WHEEL, REL_HW
 from inputremapper.logger import logger
 from inputremapper.system_mapping import system_mapping
 from inputremapper.ipc.shared_dict import SharedDict
-from inputremapper.utils import PRESS, PRESS_NEGATIVE
+from inputremapper.exceptions import MacroParsingError
 
 
 macro_variables = SharedDict()
@@ -99,12 +99,12 @@ def _type_check(value, allowed_types, display_name=None, position=None):
             return value
 
     if display_name is not None and position is not None:
-        raise TypeError(
-            f"Expected parameter {position} for {display_name} to be "
+        raise MacroParsingError(
+            msg=f"Expected parameter {position} for {display_name} to be "
             f"one of {allowed_types}, but got {value}"
         )
 
-    raise TypeError(f"Expected parameter to be one of {allowed_types}, but got {value}")
+    raise MacroParsingError(msg=f"Expected parameter to be one of {allowed_types}, but got {value}")
 
 
 def _type_check_keyname(keyname):
@@ -117,7 +117,7 @@ def _type_check_keyname(keyname):
     code = system_mapping.get(symbol)
 
     if code is None:
-        raise KeyError(f'Unknown key "{symbol}"')
+        raise MacroParsingError(msg=f'Unknown key "{symbol}"')
 
     return code
 
@@ -132,7 +132,7 @@ def _type_check_variablename(name):
     Not allowed: "1_foo", "foo=blub", "$foo", "foo,1234", "foo()"
     """
     if not isinstance(name, str) or not re.match(r"^[A-Za-z_][A-Za-z_0-9]*$", name):
-        raise SyntaxError(f'"{name}" is not a legit variable name')
+        raise MacroParsingError(msg=f'"{name}" is not a legit variable name')
 
 
 def _resolve(argument, allowed_types=None):
@@ -348,7 +348,7 @@ class Macro:
         code = system_mapping.get(modifier)
 
         if code is None:
-            raise KeyError(f'Unknown modifier "{modifier}"')
+            raise MacroParsingError(self.code, f'Unknown modifier "{modifier}"')
 
         self.capabilities[EV_KEY].add(code)
 

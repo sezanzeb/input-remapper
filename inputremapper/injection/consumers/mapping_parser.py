@@ -19,7 +19,8 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 """functions to assemble the mapping handlers"""
 
-from typing import Dict, List, Type
+import traceback
+from typing import Dict, List, Type, Optional
 
 from evdev.ecodes import (
     EV_KEY,
@@ -47,6 +48,7 @@ from inputremapper.injection.consumers.mapping_handler import (
     AbsToRelHandler,
 )
 from inputremapper.preset import Preset
+from inputremapper.exceptions import Error
 
 MappingHandlers = Dict[Key, List[MappingHandler]]
 
@@ -75,17 +77,24 @@ def parse_mapping(preset: Preset, context: ContextProtocol) -> MappingHandlers:
         _key = Key(config["key"])
         handler_type = config["type"]
         if handler_type == "combination":
-            combination_handlers[_key] = _create_handler(config, context)
+            handler = _create_handler(config, context)
+            if handler:
+                combination_handlers[_key] = handler
         else:
             assert _key not in normal_handlers.keys()
-            normal_handlers[_key] = _create_handler(config, context)
+            handler = _create_handler(config, context)
+            if handler:
+                normal_handlers[_key] = handler
 
+    # TODO: remove this for loop when Preset is done
     for config in _create_abs_to_rel_configs(preset):
         _key = Key(config["key"])
         handler_type = config["type"]
         assert handler_type == "abs_to_rel"
         assert _key not in normal_handlers.keys()
-        normal_handlers[_key] = _create_handler(config, context)
+        handler = _create_handler(config, context)
+        if handler:
+            normal_handlers[_key] = handler
 
     # combine all combination handlers such that there is only one handler per single key
     # if multiple handlers contain the same key, a Hierarchy handler will be created
@@ -125,9 +134,14 @@ def parse_mapping(preset: Preset, context: ContextProtocol) -> MappingHandlers:
     return handlers
 
 
-def _create_handler(config: Dict[str, any], context) -> MappingHandler:
+def _create_handler(config: Dict[str, any], context) -> Optional[MappingHandler]:
     """return the MappingHandler"""
-    return mapping_handler_classes[config["type"]](config, context)
+    try:
+        return mapping_handler_classes[config["type"]](config, context)
+    except Error as error:  # only catch inputremapper.exceptions
+        logger.error(f"{error.__class__.__name__}: {str(error)}")
+        logger.debug("".join(traceback.format_tb(error.__traceback__)).strip())
+        return None
 
 
 def _create_hierarchy_handlers(handlers: Dict[Key, MappingHandler]) -> Dict[Key, MappingHandler]:
