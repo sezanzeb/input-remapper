@@ -102,7 +102,7 @@ def _preset_path():
 def _mapping_keys():
     """Update all preset mappings.
 
-    Update all keys in mapping to include value e.g.: "1,5"->"1,5,1"
+    Update all keys in preset to include value e.g.: "1,5"->"1,5,1"
     """
     if not os.path.exists(get_preset_path()):
         return  # don't execute if there are no presets

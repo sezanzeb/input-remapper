@@ -52,7 +52,7 @@ class NotifyCallback(Protocol):
 class Context:
     """Stores injection-process wide information.
 
-    In some ways this is a wrapper for the mapping that derives some
+    In some ways this is a wrapper for the preset that derives some
     information that is specifically important to the injection.
 
     The information in the context does not change during the injection.
@@ -70,7 +70,7 @@ class Context:
     Members
     -------
     preset : Preset
-        The mapping that is the source of key_to_code and macros,
+        The preset that is the source of key_to_code and macros,
         only used to query config values.
     key_to_code : dict
         Preset of ((type, code, value),) to linux-keycode
@@ -78,7 +78,7 @@ class Context:
         Combinations need to be present in every possible valid ordering.
         e.g. shift + alt + a and alt + shift + a.
         This is needed to query keycodes more efficiently without having
-        to search mapping each time.
+        to search preset each time.
     macros : dict
         Preset of ((type, code, value),) to Macro objects.
         Combinations work similar as in key_to_code
@@ -87,7 +87,7 @@ class Context:
     """
 
     def __init__(self, preset):
-        self.mapping = preset
+        self.preset = preset
 
         self.left_purpose = None
         self.right_purpose = None
@@ -107,8 +107,8 @@ class Context:
         For efficiency, so that the config doesn't have to be read during
         runtime repeatedly.
         """
-        self.left_purpose = self.mapping.get("gamepad.joystick.left_purpose")
-        self.right_purpose = self.mapping.get("gamepad.joystick.right_purpose")
+        self.left_purpose = self.preset.get("gamepad.joystick.left_purpose")
+        self.right_purpose = self.preset.get("gamepad.joystick.right_purpose")
 
     def create_callbacks(self) -> None:
         """add the notify method from all _handlers to self.callbacks"""
@@ -122,7 +122,7 @@ class Context:
         """To quickly get the target macro during operation."""
         logger.debug("Parsing macros")
         macros = {}
-        for key, output in self.mapping:
+        for key, output in self.preset:
             if is_this_a_macro(output[0]):
                 macro = parse(output[0], self)
                 if macro is None:
@@ -135,34 +135,6 @@ class Context:
             logger.debug("No macros configured")
 
         return macros
-
-    def _map_keys_to_codes(self):
-        """To quickly get target keycodes during operation.
-
-        Returns a mapping of one or more 3-tuples to 2-tuples of (int, target_uinput).
-        Examples:
-            ((1, 2, 1),): (3, "keyboard")
-            ((1, 5, 1), (1, 4, 1)): (4, "gamepad")
-        """
-        key_to_code = {}
-        for key, output in self.mapping:
-            if is_this_a_macro(output[0]):
-                continue
-
-            target_code = system_mapping.get(output[0])
-            if target_code is None:
-                logger.error('Don\'t know what "%s" is', output[0])
-                continue
-
-            for permutation in key.get_permutations():
-                if permutation.keys[-1][-1] not in [-1, 1]:
-                    logger.error(
-                        "Expected values to be -1 or 1 at this point: %s",
-                        permutation.keys,
-                    )
-                key_to_code[permutation.keys] = (target_code, output[1])
-
-        return key_to_code
 
     def is_mapped(self, key):
         """Check if this key is used for macros or mappings.

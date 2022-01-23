@@ -1545,7 +1545,7 @@ class TestGui(GuiTestBase, unittest.TestCase):
         self.assertNotEqual(
             self.user_interface.dbus.get_state(self.user_interface.group.key), RUNNING
         )
-        self.user_interface.can_modify_mapping()
+        self.user_interface.can_modify_preset()
         text = self.get_status_text()
         self.assertNotIn("Stop Injection", text)
 
@@ -1564,8 +1564,8 @@ class TestGui(GuiTestBase, unittest.TestCase):
             self.user_interface.dbus.get_state(self.user_interface.group.key), RUNNING
         )
 
-        # the mapping cannot be changed anymore
-        self.assertFalse(self.user_interface.can_modify_mapping())
+        # the preset cannot be changed anymore
+        self.assertFalse(self.user_interface.can_modify_preset())
 
         # the toggle button should reset itself shortly
         self.user_interface.editor.get_recording_toggle().set_active(True)
