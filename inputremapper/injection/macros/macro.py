@@ -248,9 +248,7 @@ class Macro:
             logger.error('Tried to run already running macro "%s"', self.code)
             return
 
-        logger.debug('Running "%s"', self.code)
-
-        self.keystroke_sleep_ms = self.context.mapping.get("macros.keystroke_sleep_ms")
+        self.keystroke_sleep_ms = self.context.preset.get("macros.keystroke_sleep_ms")
 
         self.running = True
         for task in self.tasks:

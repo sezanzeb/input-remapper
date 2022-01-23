@@ -24,7 +24,7 @@ from __future__ import annotations
 
 import os
 import json
-from typing import Iterator, Union, List, Tuple, Dict
+from typing import Tuple, Dict
 
 from evdev.ecodes import EV_KEY, BTN_LEFT
 
@@ -53,7 +53,7 @@ def split_key(key):
     return key
 
 
-class Mapping(ConfigBase):
+class Preset(ConfigBase):
     """Contains and manages mappings and config of a single preset."""
 
     _mapping: Dict[Key, Tuple[str, str]]
@@ -62,12 +62,12 @@ class Mapping(ConfigBase):
         self._mapping = {}  # a mapping of Key objects to strings
         self._changed = False
 
-        # are there actually any keys set in the mapping file?
+        # are there actually any keys set in the preset file?
         self.num_saved_keys = 0
 
         super().__init__(fallback=config)
 
-    def __iter__(self) -> Mapping._mapping.items:
+    def __iter__(self) -> Preset._mapping.items:
         """Iterate over Key objects and their mappings."""
         return iter(self._mapping.items())
 
@@ -146,7 +146,7 @@ class Mapping(ConfigBase):
         self._changed = changed
 
     def clear(self, key):
-        """Remove a keycode from the mapping.
+        """Remove a keycode from the preset.
 
         Parameters
         ----------
@@ -161,7 +161,7 @@ class Mapping(ConfigBase):
                 del self._mapping[permutation]
                 self._changed = True
                 # there should be only one variation of the permutations
-                # in the mapping actually
+                # in the preset actually
 
     def empty(self):
         """Remove all mappings and custom configs without saving."""
@@ -218,7 +218,7 @@ class Mapping(ConfigBase):
                 logger.debug("%s maps to %s", key, symbol)
                 self._mapping[key] = symbol
 
-            # add any metadata of the mapping
+            # add any metadata of the preset
             for key in preset_dict:
                 if key == "mapping":
                     continue

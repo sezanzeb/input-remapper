@@ -19,7 +19,7 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
-"""Keeps injecting keycodes in the background based on the mapping."""
+"""Keeps injecting keycodes in the background based on the preset."""
 
 
 import asyncio
@@ -31,7 +31,7 @@ import evdev
 
 from typing import Dict, List, Optional
 
-from inputremapper.mapping import Mapping
+from inputremapper.preset import Preset
 
 from inputremapper.logger import logger
 from inputremapper.groups import classify, GAMEPAD, _Group
@@ -88,7 +88,7 @@ class Injector(multiprocessing.Process):
     """
 
     group: _Group
-    mapping: Mapping
+    mapping: Preset
     context: Optional[Context]
     _state: int
     _msg_pipe: multiprocessing.Pipe
@@ -96,14 +96,14 @@ class Injector(multiprocessing.Process):
 
     regrab_timeout = 0.2
 
-    def __init__(self, group: _Group, mapping: Mapping) -> None:
+    def __init__(self, group: _Group, preset: Preset) -> None:
         """
 
         Parameters
         ----------
         group : _Group
             the device group
-        mapping : Mapping
+        preset : Preset
         """
         self.group = group
         self._state = UNKNOWN
@@ -112,7 +112,7 @@ class Injector(multiprocessing.Process):
         # the new process
         self._msg_pipe = multiprocessing.Pipe()
 
-        self.mapping = mapping
+        self.mapping = preset
         self.context = None  # only needed inside the injection process
 
         self._consumer_controls = []
@@ -171,7 +171,7 @@ class Injector(multiprocessing.Process):
             source = self._grab_device(path)
             if source is None:
                 # this path doesn't need to be grabbed for injection, because
-                # it doesn't provide the events needed to execute the mapping
+                # it doesn't provide the events needed to execute the preset
                 continue
             sources.append(source)
 
@@ -192,7 +192,7 @@ class Injector(multiprocessing.Process):
         capabilities = device.capabilities(absinfo=False)
 
         needed = False
-        for key, _ in self.context.mapping:
+        for key, _ in self.context.preset:
             if is_in_capabilities(key, capabilities):
                 logger.debug('Grabbing "%s" because of "%s"', path, key)
                 needed = True
@@ -297,7 +297,7 @@ class Injector(multiprocessing.Process):
         #     called.
         #   - benefit: writing macros that listen for events from other devices
 
-        logger.info('Starting injecting the mapping for "%s"', self.group.key)
+        logger.info('Starting injecting the preset for "%s"', self.group.key)
 
         # create a new event loop, because somehow running an infinite loop
         # that sleeps on iterations (joystick_to_mouse) in one process causes

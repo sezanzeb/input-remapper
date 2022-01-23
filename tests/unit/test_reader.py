@@ -41,7 +41,7 @@ from evdev.ecodes import (
 )
 
 from inputremapper.gui.reader import reader, will_report_up
-from inputremapper.gui.custom_mapping import custom_mapping
+from inputremapper.gui.active_preset import active_preset
 from inputremapper.config import BUTTONS, MOUSE
 from inputremapper.key import Key
 from inputremapper.gui.helper import RootHelper
@@ -291,7 +291,7 @@ class TestReader(unittest.TestCase):
         send_event_to_reader(new_event(EV_KEY, CODE_1, 1, 1001))
         self.assertEqual(reader.read(), ((EV_KEY, CODE_1, 1)))
 
-        custom_mapping.set("gamepad.joystick.left_purpose", BUTTONS)
+        active_preset.set("gamepad.joystick.left_purpose", BUTTONS)
         send_event_to_reader(new_event(EV_ABS, ABS_Y, 1, 1002))
         self.assertEqual(reader.read(), ((EV_KEY, CODE_1, 1), (EV_ABS, ABS_Y, 1)))
 
@@ -321,7 +321,7 @@ class TestReader(unittest.TestCase):
 
     def test_reads_joysticks(self):
         # if their purpose is "buttons"
-        custom_mapping.set("gamepad.joystick.left_purpose", BUTTONS)
+        active_preset.set("gamepad.joystick.left_purpose", BUTTONS)
         push_events(
             "gamepad",
             [
@@ -340,7 +340,7 @@ class TestReader(unittest.TestCase):
         self.assertEqual(len(reader._unreleased), 1)
 
         reader._unreleased = {}
-        custom_mapping.set("gamepad.joystick.left_purpose", MOUSE)
+        active_preset.set("gamepad.joystick.left_purpose", MOUSE)
         push_events("gamepad", [new_event(EV_ABS, ABS_Y, MAX_ABS)])
         self.create_helper()
 

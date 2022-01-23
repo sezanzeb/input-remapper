@@ -34,7 +34,7 @@ from inputremapper.groups import groups, GAMEPAD
 from inputremapper.ipc.pipe import Pipe
 from inputremapper.gui.helper import TERMINATE, REFRESH_GROUPS
 from inputremapper import utils
-from inputremapper.gui.custom_mapping import custom_mapping
+from inputremapper.gui.active_preset import active_preset
 from inputremapper.user import USER
 
 
@@ -135,7 +135,7 @@ class Reader:
                 continue
 
             gamepad = GAMEPAD in self.group.types
-            if not utils.should_map_as_btn(event, custom_mapping, gamepad):
+            if not utils.should_map_as_btn(event, active_preset, gamepad):
                 continue
 
             event_tuple = (event.type, event.code, event.value)

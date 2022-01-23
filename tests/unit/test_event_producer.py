@@ -36,7 +36,7 @@ from evdev.ecodes import (
 )
 
 from inputremapper.config import config
-from inputremapper.mapping import Mapping
+from inputremapper.preset import Preset
 from inputremapper.injection.context import Context
 from inputremapper.injection.consumers.joystick_to_mouse import (
     JoystickToMouse,
@@ -64,7 +64,7 @@ class TestJoystickToMouse(unittest.IsolatedAsyncioTestCase):
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
 
-        self.mapping = Mapping()
+        self.mapping = Preset()
         self.context = Context(self.mapping)
 
         uinput = UInput()

@@ -22,7 +22,7 @@
 import unittest
 
 from inputremapper.injection.context import Context
-from inputremapper.mapping import Mapping
+from inputremapper.preset import Preset
 from inputremapper.key import Key
 from inputremapper.config import NONE, MOUSE, WHEEL, BUTTONS
 from inputremapper.system_mapping import system_mapping
@@ -35,7 +35,7 @@ class TestContext(unittest.TestCase):
         quick_cleanup()
 
     def setUp(self):
-        self.mapping = Mapping()
+        self.mapping = Preset()
         self.mapping.set("gamepad.joystick.left_purpose", WHEEL)
         self.mapping.set("gamepad.joystick.right_purpose", WHEEL)
         self.mapping.change(Key(1, 31, 1), "keyboard", "k(a)")
@@ -120,7 +120,7 @@ class TestContext(unittest.TestCase):
 
     def test_writes_keys(self):
         self.assertTrue(self.context.writes_keys())
-        self.assertFalse(Context(Mapping()).writes_keys())
+        self.assertFalse(Context(Preset()).writes_keys())
 
 
 if __name__ == "__main__":

@@ -48,7 +48,7 @@ from inputremapper.injection.macros.parse import parse
 from inputremapper.injection.context import Context
 from inputremapper.utils import RELEASE, PRESS
 from inputremapper.config import config, BUTTONS
-from inputremapper.mapping import Mapping
+from inputremapper.preset import Preset
 from inputremapper.system_mapping import DISABLE_CODE
 from inputremapper.injection.global_uinputs import global_uinputs
 
@@ -99,7 +99,7 @@ def calculate_event_number(holdtime, before, after):
 
 class TestKeycodeMapper(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
-        self.mapping = Mapping()
+        self.mapping = Preset()
         self.context = Context(self.mapping)
         self.source = InputDevice("/dev/input/event11")
         self.history = []

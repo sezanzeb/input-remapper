@@ -82,7 +82,7 @@ if not hasattr(evdev.InputDevice, "path"):
 
 
 def _is_gamepad(capabilities):
-    """Check if joystick movements are available for mapping."""
+    """Check if joystick movements are available for preset."""
     # A few buttons that indicate a gamepad
     buttons = {
         evdev.ecodes.BTN_BASE,
