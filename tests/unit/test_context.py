@@ -24,7 +24,7 @@ import unittest
 from inputremapper.injection.context import Context
 from inputremapper.preset import Preset
 from inputremapper.key import Key
-from inputremapper.config import NONE, MOUSE, WHEEL, BUTTONS
+from inputremapper.global_config import NONE, MOUSE, WHEEL, BUTTONS
 from inputremapper.system_mapping import system_mapping
 from tests.test import quick_cleanup
 

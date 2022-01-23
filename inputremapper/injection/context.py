@@ -30,7 +30,7 @@ from inputremapper.key import Key
 from inputremapper.logger import logger
 from inputremapper.injection.macros.parse import parse, is_this_a_macro
 from inputremapper.system_mapping import system_mapping
-from inputremapper.config import NONE, MOUSE, WHEEL, BUTTONS
+from inputremapper.global_config import NONE, MOUSE, WHEEL, BUTTONS
 
 
 class NotifyCallback(Protocol):

@@ -59,7 +59,7 @@ from inputremapper.injection.macros.parse import (
     remove_comments,
 )
 from inputremapper.injection.context import Context
-from inputremapper.config import global_config
+from inputremapper.global_config import global_config
 from inputremapper.preset import Preset
 from inputremapper.system_mapping import system_mapping
 from inputremapper.utils import PRESS, RELEASE

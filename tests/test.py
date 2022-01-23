@@ -527,7 +527,7 @@ from inputremapper.logger import update_verbosity
 update_verbosity(True)
 
 from inputremapper.injection.injector import Injector
-from inputremapper.config import global_config
+from inputremapper.global_config import global_config
 from inputremapper.gui.reader import reader
 from inputremapper.groups import groups
 from inputremapper.system_mapping import system_mapping
