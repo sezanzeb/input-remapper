@@ -47,7 +47,7 @@ from inputremapper.injection.mapping_handlers.mapping_handler import (
     RelToBtnHandler,
     AbsToRelHandler,
 )
-from inputremapper.preset import Preset
+from inputremapper.configs.preset import Preset
 from inputremapper.exceptions import Error
 
 MappingHandlers = Dict[Key, List[MappingHandler]]

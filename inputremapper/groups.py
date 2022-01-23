@@ -54,7 +54,7 @@ from evdev.ecodes import (
 )
 
 from inputremapper.logger import logger
-from inputremapper.paths import get_preset_path
+from inputremapper.configs.paths import get_preset_path
 
 
 TABLET_KEYS = [

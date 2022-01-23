@@ -23,7 +23,7 @@ import os
 import unittest
 
 from inputremapper.configs.global_config import global_config
-from inputremapper.paths import touch
+from inputremapper.configs.paths import touch
 
 from tests.test import quick_cleanup, tmp
 

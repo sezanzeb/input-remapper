@@ -26,10 +26,10 @@ from unittest.mock import patch
 
 from evdev.ecodes import EV_KEY, EV_ABS, KEY_A
 
-from inputremapper.preset import Preset, split_key
-from inputremapper.system_mapping import SystemMapping, XMODMAP_FILENAME
+from inputremapper.configs.preset import Preset, split_key
+from inputremapper.configs.system_mapping import SystemMapping, XMODMAP_FILENAME
 from inputremapper.configs.global_config import global_config
-from inputremapper.paths import get_preset_path
+from inputremapper.configs.paths import get_preset_path
 from inputremapper.key import Key
 
 from tests.test import tmp, quick_cleanup

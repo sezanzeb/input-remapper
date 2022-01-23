@@ -30,13 +30,13 @@ import sys
 from evdev._ecodes import EV_KEY
 from gi.repository import Gtk, GtkSource, Gdk, GLib, GObject
 
-from inputremapper.data import get_data_path
+from inputremapper.configs.data import get_data_path
 from inputremapper.exceptions import MacroParsingError
-from inputremapper.paths import get_config_path
-from inputremapper.system_mapping import system_mapping
+from inputremapper.configs.paths import get_config_path
+from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.gui.active_preset import active_preset
 from inputremapper.gui.utils import HandlerDisabled
-from inputremapper.preset import (
+from inputremapper.configs.preset import (
     find_newest_preset,
     get_presets,
     delete_preset,

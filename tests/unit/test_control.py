@@ -33,8 +33,8 @@ from importlib.machinery import SourceFileLoader
 from inputremapper.gui.active_preset import active_preset
 from inputremapper.configs.global_config import global_config
 from inputremapper.daemon import Daemon
-from inputremapper.preset import Preset
-from inputremapper.paths import get_preset_path
+from inputremapper.configs.preset import Preset
+from inputremapper.configs.paths import get_preset_path
 from inputremapper.groups import groups
 
 from tests.test import quick_cleanup, tmp

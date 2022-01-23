@@ -29,12 +29,12 @@ from inputremapper.injection.mapping_handlers.keycode_mapper import active_macro
 from inputremapper.configs.global_config import BUTTONS, MOUSE, WHEEL
 
 from inputremapper.injection.context import Context
-from inputremapper.preset import Preset
+from inputremapper.configs.preset import Preset
 from inputremapper.key import Key
 from inputremapper.injection.consumer_control import ConsumerControl, consumer_classes
 from inputremapper.injection.mapping_handlers.consumer import Consumer
 from inputremapper.injection.mapping_handlers.keycode_mapper import KeycodeMapper
-from inputremapper.system_mapping import system_mapping
+from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.injection.global_uinputs import global_uinputs
 
 from tests.test import new_event, quick_cleanup

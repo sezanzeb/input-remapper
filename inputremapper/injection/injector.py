@@ -31,7 +31,7 @@ import evdev
 
 from typing import Dict, List, Optional
 
-from inputremapper.preset import Preset
+from inputremapper.configs.preset import Preset
 
 from inputremapper.logger import logger
 from inputremapper.groups import classify, GAMEPAD, _Group

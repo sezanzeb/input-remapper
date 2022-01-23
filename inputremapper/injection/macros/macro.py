@@ -44,7 +44,7 @@ import evdev
 from evdev.ecodes import ecodes, EV_KEY, EV_REL, REL_X, REL_Y, REL_WHEEL, REL_HWHEEL
 
 from inputremapper.logger import logger
-from inputremapper.system_mapping import system_mapping
+from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.ipc.shared_dict import SharedDict
 from inputremapper.exceptions import MacroParsingError
 

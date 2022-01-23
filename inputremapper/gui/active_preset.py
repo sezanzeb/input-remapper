@@ -22,7 +22,7 @@
 """One preset object for the GUI application."""
 
 
-from inputremapper.preset import Preset
+from inputremapper.configs.preset import Preset
 
 
 active_preset = Preset()

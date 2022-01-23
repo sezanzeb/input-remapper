@@ -30,13 +30,13 @@ from evdev.ecodes import EV_KEY, EV_ABS, KEY_B, KEY_A
 from gi.repository import Gtk
 from pydbus import SystemBus
 
-from inputremapper.system_mapping import system_mapping
+from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.gui.active_preset import active_preset
 from inputremapper.configs.global_config import global_config
 from inputremapper.groups import groups
-from inputremapper.paths import get_config_path, mkdir, get_preset_path
+from inputremapper.configs.paths import get_config_path, mkdir, get_preset_path
 from inputremapper.key import Key
-from inputremapper.preset import Preset
+from inputremapper.configs.preset import Preset
 from inputremapper.injection.injector import STARTING, RUNNING, STOPPED, UNKNOWN
 from inputremapper.daemon import Daemon
 

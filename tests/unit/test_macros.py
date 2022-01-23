@@ -60,8 +60,8 @@ from inputremapper.injection.macros.parse import (
 )
 from inputremapper.injection.context import Context
 from inputremapper.configs.global_config import global_config
-from inputremapper.preset import Preset
-from inputremapper.system_mapping import system_mapping
+from inputremapper.configs.preset import Preset
+from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.utils import PRESS, RELEASE
 
 from tests.test import quick_cleanup, new_event
