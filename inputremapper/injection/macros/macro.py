@@ -613,6 +613,7 @@ class Macro:
                     return
 
                 if event.code != trigger_code and event.value == 1:
+                    # another key was pressed, trigger else
                     listener_done.set()
                     return
 
