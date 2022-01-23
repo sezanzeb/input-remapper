@@ -39,7 +39,7 @@ from evdev.ecodes import (
 )
 
 from inputremapper.logger import logger
-from inputremapper.global_config import BUTTONS
+from inputremapper.configs.global_config import BUTTONS
 
 
 # other events for ABS include buttons

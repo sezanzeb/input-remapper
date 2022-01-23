@@ -28,7 +28,7 @@ from evdev.ecodes import EV_KEY, EV_ABS, KEY_A
 
 from inputremapper.preset import Preset, split_key
 from inputremapper.system_mapping import SystemMapping, XMODMAP_FILENAME
-from inputremapper.global_config import global_config
+from inputremapper.configs.global_config import global_config
 from inputremapper.paths import get_preset_path
 from inputremapper.key import Key
 

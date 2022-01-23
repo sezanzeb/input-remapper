@@ -26,7 +26,7 @@ import evdev
 from evdev.ecodes import EV_KEY, EV_ABS, ABS_Y, EV_REL
 
 from inputremapper.injection.mapping_handlers.keycode_mapper import active_macros
-from inputremapper.global_config import BUTTONS, MOUSE, WHEEL
+from inputremapper.configs.global_config import BUTTONS, MOUSE, WHEEL
 
 from inputremapper.injection.context import Context
 from inputremapper.preset import Preset

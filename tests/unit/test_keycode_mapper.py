@@ -47,7 +47,7 @@ from inputremapper.system_mapping import system_mapping
 from inputremapper.injection.macros.parse import parse
 from inputremapper.injection.context import Context
 from inputremapper.utils import RELEASE, PRESS
-from inputremapper.global_config import global_config, BUTTONS
+from inputremapper.configs.global_config import global_config, BUTTONS
 from inputremapper.preset import Preset
 from inputremapper.system_mapping import DISABLE_CODE
 from inputremapper.injection.global_uinputs import global_uinputs

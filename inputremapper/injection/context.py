@@ -27,10 +27,7 @@ import evdev
 from inputremapper.injection.mapping_handlers.mapping_parser import parse_mapping
 from inputremapper.injection.mapping_handlers.mapping_handler import MappingHandler, EventListener
 from inputremapper.key import Key
-from inputremapper.logger import logger
-from inputremapper.injection.macros.parse import parse, is_this_a_macro
-from inputremapper.system_mapping import system_mapping
-from inputremapper.global_config import NONE, MOUSE, WHEEL, BUTTONS
+from inputremapper.configs.global_config import NONE, MOUSE, WHEEL, BUTTONS
 
 
 class NotifyCallback(Protocol):

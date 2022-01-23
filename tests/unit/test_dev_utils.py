@@ -33,7 +33,7 @@ from evdev.ecodes import (
     REL_HWHEEL,
 )
 
-from inputremapper.global_config import global_config, BUTTONS
+from inputremapper.configs.global_config import global_config, BUTTONS
 from inputremapper.preset import Preset
 from inputremapper import utils
 

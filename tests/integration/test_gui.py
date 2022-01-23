@@ -44,12 +44,12 @@ from importlib.machinery import SourceFileLoader
 import gi
 
 gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk, GLib, Gdk, GtkSource
+from gi.repository import Gtk, GLib, Gdk
 
 from inputremapper.system_mapping import system_mapping, XMODMAP_FILENAME
 from inputremapper.gui.active_preset import active_preset
 from inputremapper.paths import CONFIG_PATH, get_preset_path, get_config_path
-from inputremapper.global_config import global_config, WHEEL, MOUSE, BUTTONS
+from inputremapper.configs.global_config import global_config, WHEEL, MOUSE, BUTTONS
 from inputremapper.gui.reader import reader
 from inputremapper.gui.helper import RootHelper
 from inputremapper.gui.utils import gtk_iteration
