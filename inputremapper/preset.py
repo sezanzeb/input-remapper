@@ -32,7 +32,7 @@ from evdev.ecodes import EV_KEY, BTN_LEFT
 
 from inputremapper.logger import logger
 from inputremapper.paths import touch, get_preset_path, mkdir
-from inputremapper.config import ConfigBase, config
+from inputremapper.config import ConfigBase, global_config
 from inputremapper.key import Key
 from inputremapper.injection.macros.parse import clean
 from inputremapper.groups import groups
@@ -57,7 +57,7 @@ def split_key(key):
 
 
 class Preset(ConfigBase):
-    """Contains and manages mappings and config of a single preset."""
+    """Contains and manages mappings of a single preset."""
 
     _mapping: Dict[Key, Tuple[str, str]]
 
@@ -68,7 +68,7 @@ class Preset(ConfigBase):
         # are there actually any keys set in the preset file?
         self.num_saved_keys = 0
 
-        super().__init__(fallback=config)
+        super().__init__(fallback=global_config)
 
     def __iter__(self) -> Preset._mapping.items:
         """Iterate over Key objects and their mappings."""

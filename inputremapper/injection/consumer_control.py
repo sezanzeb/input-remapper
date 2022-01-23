@@ -39,7 +39,7 @@ def copy_event(event: evdev.InputEvent) -> evdev.InputEvent:
 class ConsumerControl:
     """Reads input events from a single device and distributes them.
 
-    There is one ConsumerControl object for each source, which tells multiple consumers
+    There is one ConsumerControl object for each source, which tells multiple mapping_handlers
     that a new event is ready so that they can inject all sorts of funny
     things.
 
@@ -53,7 +53,7 @@ class ConsumerControl:
         source: evdev.InputDevice,
         forward_to: evdev.UInput,
     ) -> None:
-        """Initialize all consumers
+        """Initialize all mapping_handlers
 
         Parameters
         ----------

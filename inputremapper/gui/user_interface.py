@@ -59,7 +59,7 @@ from inputremapper.gui.reader import reader
 from inputremapper.gui.helper import is_helper_running
 from inputremapper.injection.injector import RUNNING, FAILED, NO_GRAB
 from inputremapper.daemon import Daemon
-from inputremapper.config import config
+from inputremapper.config import global_config
 from inputremapper.injection.macros.parse import is_this_a_macro, parse
 from inputremapper.injection.global_uinputs import global_uinputs
 from inputremapper.gui.utils import (
@@ -490,9 +490,9 @@ class UserInterface:
 
         # if the old preset was being autoloaded, change the
         # name there as well
-        is_autoloaded = config.is_autoloaded(self.group.key, self.preset_name)
+        is_autoloaded = global_config.is_autoloaded(self.group.key, self.preset_name)
         if is_autoloaded:
-            config.set_autoload_preset(self.group.key, new_name)
+            global_config.set_autoload_preset(self.group.key, new_name)
 
         self.get("preset_name_input").set_text("")
         self.populate_presets()
@@ -567,7 +567,7 @@ class UserInterface:
         """Load the preset automatically next time the user logs in."""
         key = self.group.key
         preset = self.preset_name
-        config.set_autoload_preset(key, preset if active else None)
+        global_config.set_autoload_preset(key, preset if active else None)
         # tell the service to refresh its config
         self.dbus.set_config_dir(get_config_path())
 
@@ -698,7 +698,7 @@ class UserInterface:
         autoload_switch = self.get("preset_autoload_switch")
 
         with HandlerDisabled(autoload_switch, self.on_autoload_switch):
-            is_autoloaded = config.is_autoloaded(self.group.key, self.preset_name)
+            is_autoloaded = global_config.is_autoloaded(self.group.key, self.preset_name)
             autoload_switch.set_active(is_autoloaded)
 
         self.get("preset_name_input").set_text("")
@@ -736,7 +736,7 @@ class UserInterface:
             path = self.group.get_preset_path(self.preset_name)
             active_preset.save(path)
 
-            # after saving the config, its modification date will be the
+            # after saving the preset, its modification date will be the
             # newest, so populate_presets will automatically select the
             # right one again.
             self.populate_presets()

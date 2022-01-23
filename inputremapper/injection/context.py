@@ -24,8 +24,8 @@ from typing import Awaitable, List, Dict, Tuple, Protocol, Set
 
 import evdev
 
-from inputremapper.injection.consumers.mapping_parser import parse_mapping
-from inputremapper.injection.consumers.mapping_handler import MappingHandler, EventListener
+from inputremapper.injection.mapping_handlers.mapping_parser import parse_mapping
+from inputremapper.injection.mapping_handlers.mapping_handler import MappingHandler, EventListener
 from inputremapper.key import Key
 from inputremapper.logger import logger
 from inputremapper.injection.macros.parse import parse, is_this_a_macro

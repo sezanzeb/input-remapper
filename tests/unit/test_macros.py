@@ -59,7 +59,7 @@ from inputremapper.injection.macros.parse import (
     remove_comments,
 )
 from inputremapper.injection.context import Context
-from inputremapper.config import config
+from inputremapper.config import global_config
 from inputremapper.preset import Preset
 from inputremapper.system_mapping import system_mapping
 from inputremapper.utils import PRESS, RELEASE
@@ -757,8 +757,8 @@ class TestMacros(MacroTestBase):
         self.assertListEqual(self.result, [])
 
     async def test_keystroke_sleep_config(self):
-        # global config as fallback
-        config.set("macros.keystroke_sleep_ms", 100)
+        # global_config as fallback
+        global_config.set("macros.keystroke_sleep_ms", 100)
         start = time.time()
         macro = parse("k(a).k(b)", self.context)
         await macro.run(self.handler)

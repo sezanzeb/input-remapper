@@ -33,7 +33,7 @@ from evdev.ecodes import (
     REL_HWHEEL,
 )
 
-from inputremapper.config import config, BUTTONS
+from inputremapper.config import global_config, BUTTONS
 from inputremapper.preset import Preset
 from inputremapper import utils
 
@@ -121,7 +121,7 @@ class TestDevUtils(unittest.TestCase):
         self.assertFalse(do(1, new_event(EV_ABS, ecodes.ABS_RY, -1)))
 
         mapping.set("gamepad.joystick.right_purpose", BUTTONS)
-        config.set("gamepad.joystick.left_purpose", BUTTONS)
+        global_config.set("gamepad.joystick.left_purpose", BUTTONS)
         # but only for gamepads
         self.assertFalse(do(0, new_event(EV_ABS, ecodes.ABS_Y, -1)))
         self.assertTrue(do(1, new_event(EV_ABS, ecodes.ABS_Y, -1)))

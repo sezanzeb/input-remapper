@@ -527,14 +527,14 @@ from inputremapper.logger import update_verbosity
 update_verbosity(True)
 
 from inputremapper.injection.injector import Injector
-from inputremapper.config import config
+from inputremapper.config import global_config
 from inputremapper.gui.reader import reader
 from inputremapper.groups import groups
 from inputremapper.system_mapping import system_mapping
 from inputremapper.gui.active_preset import active_preset
 from inputremapper.paths import get_config_path
 from inputremapper.injection.macros.macro import macro_variables
-from inputremapper.injection.consumers.keycode_mapper import active_macros, unreleased
+from inputremapper.injection.mapping_handlers.keycode_mapper import active_macros, unreleased
 from inputremapper.injection.global_uinputs import global_uinputs
 
 # no need for a high number in tests
@@ -600,9 +600,9 @@ def quick_cleanup(log=True):
     if os.path.exists(tmp):
         shutil.rmtree(tmp)
 
-    config.path = os.path.join(get_config_path(), "config.json")
-    config.clear_config()
-    config._save_config()
+    global_config.path = os.path.join(get_config_path(), "config.json")
+    global_config.clear_config()
+    global_config._save_config()
 
     system_mapping.populate()
 

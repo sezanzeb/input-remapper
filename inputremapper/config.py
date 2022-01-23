@@ -268,4 +268,4 @@ class GlobalConfig(ConfigBase):
             file.write("\n")
 
 
-config = GlobalConfig()
+global_config = GlobalConfig()

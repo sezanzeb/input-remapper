@@ -37,7 +37,7 @@ from evdev.ecodes import (
     ABS_Y,
 )
 
-from inputremapper.injection.consumers.keycode_mapper import (
+from inputremapper.injection.mapping_handlers.keycode_mapper import (
     active_macros,
     KeycodeMapper,
     unreleased,
@@ -47,7 +47,7 @@ from inputremapper.system_mapping import system_mapping
 from inputremapper.injection.macros.parse import parse
 from inputremapper.injection.context import Context
 from inputremapper.utils import RELEASE, PRESS
-from inputremapper.config import config, BUTTONS
+from inputremapper.config import global_config, BUTTONS
 from inputremapper.preset import Preset
 from inputremapper.system_mapping import DISABLE_CODE
 from inputremapper.injection.global_uinputs import global_uinputs
@@ -85,7 +85,7 @@ def calculate_event_number(holdtime, before, after):
     after : int
         how many extra k() calls are executed after h()
     """
-    keystroke_sleep = config.get("macros.keystroke_sleep_ms", 10)
+    keystroke_sleep = global_config.get("macros.keystroke_sleep_ms", 10)
     # down and up: two sleeps per k
     # one initial k(a):
     events = before * 2
@@ -544,7 +544,7 @@ class TestKeycodeMapper(unittest.IsolatedAsyncioTestCase):
 
         await keycode_mapper.notify(new_event(EV_KEY, 1, 1))
 
-        sleeptime = config.get("macros.keystroke_sleep_ms", 10) * 12
+        sleeptime = global_config.get("macros.keystroke_sleep_ms", 10) * 12
         await asyncio.sleep(sleeptime / 1000 + 0.1)
 
         self.assertEqual(
@@ -568,7 +568,7 @@ class TestKeycodeMapper(unittest.IsolatedAsyncioTestCase):
         await keycode_mapper.notify(new_event(EV_KEY, 1, 1))
         await keycode_mapper.notify(new_event(EV_KEY, 2, 1))
 
-        sleeptime = config.get("macros.keystroke_sleep_ms", 10) * 12
+        sleeptime = global_config.get("macros.keystroke_sleep_ms", 10) * 12
 
         # let the mainloop run for some time so that the macro does its stuff
         await asyncio.sleep(sleeptime / 1000 + 0.1)
@@ -645,7 +645,7 @@ class TestKeycodeMapper(unittest.IsolatedAsyncioTestCase):
 
         # let the mainloop run for some time so that the macro does its stuff
         sleeptime = 500
-        keystroke_sleep = config.get("macros.keystroke_sleep_ms", 10)
+        keystroke_sleep = global_config.get("macros.keystroke_sleep_ms", 10)
         await asyncio.sleep(sleeptime / 1000)
 
         self.assertTrue(active_macros[(EV_KEY, 1)].is_holding())
@@ -874,7 +874,7 @@ class TestKeycodeMapper(unittest.IsolatedAsyncioTestCase):
 
         # let the mainloop run for some time so that the macro does its stuff
         sleeptime = 500
-        keystroke_sleep = config.get("macros.keystroke_sleep_ms", 10)
+        keystroke_sleep = global_config.get("macros.keystroke_sleep_ms", 10)
         await asyncio.sleep(sleeptime / 1000)
 
         # test that two macros are really running at the same time

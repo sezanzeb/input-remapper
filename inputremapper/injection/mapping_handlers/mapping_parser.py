@@ -38,7 +38,7 @@ from evdev.ecodes import (
 
 from inputremapper.logger import logger
 from inputremapper.key import Key
-from inputremapper.injection.consumers.mapping_handler import (
+from inputremapper.injection.mapping_handlers.mapping_handler import (
     MappingHandler,
     CombinationHandler,
     ContextProtocol,
