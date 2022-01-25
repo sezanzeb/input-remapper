@@ -17,10 +17,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
-
-
 """Make the systems/environments mapping of keys and codes accessible."""
-
 
 import re
 import json

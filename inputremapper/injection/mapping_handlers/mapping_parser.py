@@ -144,7 +144,9 @@ def _create_handler(config: Dict[str, any], context) -> Optional[MappingHandler]
         return None
 
 
-def _create_hierarchy_handlers(handlers: Dict[Key, MappingHandler]) -> Dict[Key, MappingHandler]:
+def _create_hierarchy_handlers(
+    handlers: Dict[Key, MappingHandler]
+) -> Dict[Key, MappingHandler]:
     """sort handlers by sub_keys and create Hierarchy handlers"""
     # gather all single keys in all mappings
     sorted_handlers = {}
@@ -239,20 +241,20 @@ def _create_new_config(key, symbol_and_target) -> Dict:
         "key": new_key,
         "symbol": symbol_and_target[0],
         "target": symbol_and_target[1],
-        "type": "combination"
+        "type": "combination",
     }
     return config
 
 
 def _create_abs_to_rel_configs(preset: Preset) -> list[Dict[str, any]]:
     # TODO: make this obsolete by migrating to new config structure
-    """ return a list of configs with the keys:
+    """return a list of configs with the keys:
     config : Dict = {
         "key": str
         "output": int
         "target": str
-        "deadzone" : int
-        "output" : int
+        "deadzone" : float
+        "expo" : float
         "gain" : float
         "rate" : int
     }
@@ -272,7 +274,7 @@ def _create_abs_to_rel_configs(preset: Preset) -> list[Dict[str, any]]:
         "gain": pointer_speed,
         "expo": 0,
         "rate": 100,
-        "type": "abs_to_rel"
+        "type": "abs_to_rel",
     }
     mouse_y_config = {
         "key": None,
@@ -282,7 +284,7 @@ def _create_abs_to_rel_configs(preset: Preset) -> list[Dict[str, any]]:
         "gain": pointer_speed,
         "expo": 0,
         "rate": 100,
-        "type": "abs_to_rel"
+        "type": "abs_to_rel",
     }
     wheel_x_config = {
         "key": None,
@@ -292,7 +294,7 @@ def _create_abs_to_rel_configs(preset: Preset) -> list[Dict[str, any]]:
         "gain": 1,
         "expo": 0.5,
         "rate": 100,
-        "type": "abs_to_rel"
+        "type": "abs_to_rel",
     }
     wheel_y_config = {
         "key": None,
@@ -302,7 +304,7 @@ def _create_abs_to_rel_configs(preset: Preset) -> list[Dict[str, any]]:
         "gain": 1,
         "expo": 0.5,
         "rate": 100,
-        "type": "abs_to_rel"
+        "type": "abs_to_rel",
     }
     configs = []
 

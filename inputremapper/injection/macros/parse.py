@@ -148,8 +148,7 @@ def _count_brackets(macro):
     closings = macro.count(")")
     if openings != closings:
         raise MacroParsingError(
-            macro,
-            f"Found {openings} opening and {closings} closing brackets"
+            macro, f"Found {openings} opening and {closings} closing brackets"
         )
 
     brackets = 0
@@ -251,7 +250,7 @@ def _parse_recurse(code, context, macro_instance=None, depth=0):
 
         # get all the stuff inbetween
         position = _count_brackets(code)
-        inner = code[code.index("(") + 1: position - 1]
+        inner = code[code.index("(") + 1 : position - 1]
         logger.debug("%scalls %s with %s", space, call, inner)
 
         # split "3, foo=a(2, k(a).w(10))" into arguments
@@ -270,7 +269,9 @@ def _parse_recurse(code, context, macro_instance=None, depth=0):
                 positional_args.append(parsed)
             else:
                 if key in keyword_args:
-                    raise MacroParsingError(code, f'The "{key}" argument was specified twice')
+                    raise MacroParsingError(
+                        code, f'The "{key}" argument was specified twice'
+                    )
                 keyword_args[key] = parsed
 
         logger.debug(
@@ -320,8 +321,7 @@ def handle_plus_syntax(macro):
 
     if "(" in macro or ")" in macro:
         raise MacroParsingError(
-            macro,
-            f'Mixing "+" and macros is unsupported: "{ macro}"'
+            macro, f'Mixing "+" and macros is unsupported: "{ macro}"'
         )
 
     chunks = [chunk.strip() for chunk in macro.split("+")]

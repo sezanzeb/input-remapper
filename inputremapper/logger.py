@@ -79,7 +79,7 @@ def debug_mapping_handler(self, mapping_handler):
     lines_and_indent = parse_mapping_handler(mapping_handler)
     for line in lines_and_indent:
         indent = "    "
-        msg = indent*line[1] + line[0]
+        msg = indent * line[1] + line[0]
         self._log(logging.DEBUG, msg, args=None)
 
 

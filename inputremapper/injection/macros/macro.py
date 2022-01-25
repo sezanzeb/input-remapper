@@ -104,7 +104,9 @@ def _type_check(value, allowed_types, display_name=None, position=None):
             f"one of {allowed_types}, but got {value}"
         )
 
-    raise MacroParsingError(msg=f"Expected parameter to be one of {allowed_types}, but got {value}")
+    raise MacroParsingError(
+        msg=f"Expected parameter to be one of {allowed_types}, but got {value}"
+    )
 
 
 def _type_check_keyname(keyname):

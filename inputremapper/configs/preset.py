@@ -18,6 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
+
 """Contains and manages mappings."""
 
 import os
@@ -293,6 +294,7 @@ class Preset(ConfigBase):
 # TODO: See what can be implemented as classmethod or
 #  member function of Preset
 ###########################################################################
+
 
 def get_available_preset_name(group_name, preset="new preset", copy=False):
     """Increment the preset name until it is available."""

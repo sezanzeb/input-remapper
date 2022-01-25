@@ -93,7 +93,7 @@ class ConsumerControl:
                 # fire and forget, run them in parallel and don't wait for them, since
                 # a listener might be blocking forever while waiting for more events.
                 asyncio.ensure_future(listener(event))
-                
+
                 # Running macros have priority, give them a head-start for processing the
                 # event.  If if_single injects a modifier, this modifier should be active
                 # before the next handler injects an "a" or something, so that it is

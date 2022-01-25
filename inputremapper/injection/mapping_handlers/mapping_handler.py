@@ -304,6 +304,7 @@ class HierarchyHandler:
 
     adheres to the MappingHandler protocol
     """
+
     _key: Tuple[int, int]
 
     def __init__(self, handlers: List[MappingHandler], key: Tuple[int, int]) -> None:
@@ -348,12 +349,15 @@ class AbsToBtnHandler:
 
     adheres to the MappingHandler protocol
     """
+
     _handler: MappingHandler
     _trigger_percent: int
     _active: bool
     _key: Key
 
-    def __init__(self, sub_handler: MappingHandler, trigger_percent: int, key: Key) -> None:
+    def __init__(
+        self, sub_handler: MappingHandler, trigger_percent: int, key: Key
+    ) -> None:
         self._handler = sub_handler
         if trigger_percent not in range(-99, 100):
             raise ValueError(f"trigger_percent must be between -100 and 100")
@@ -385,12 +389,12 @@ class AbsToBtnHandler:
         return int(middle + trigger_offset)
 
     async def notify(
-            self,
-            event: evdev.InputEvent,
-            source: evdev.InputDevice = None,
-            forward: evdev.UInput = None,
-            supress: bool = False,
-            ) -> bool:
+        self,
+        event: evdev.InputEvent,
+        source: evdev.InputDevice = None,
+        forward: evdev.UInput = None,
+        supress: bool = False,
+    ) -> bool:
 
         assert event.type == EV_ABS
         if (event.type, event.code) != self._key[0][:2]:
@@ -411,17 +415,21 @@ class AbsToBtnHandler:
             else:
                 ev_copy.value = 0
 
-        if (ev_copy.value == 1 and self._active) or (ev_copy.value != 1 and not self._active):
+        if (ev_copy.value == 1 and self._active) or (
+            ev_copy.value != 1 and not self._active
+        ):
             return True
 
         self._active = bool(ev_copy.value)
-        logger.debug_key((ev_copy.type, ev_copy.code, ev_copy.value), "sending to sub_handler")
+        logger.debug_key(
+            (ev_copy.type, ev_copy.code, ev_copy.value), "sending to sub_handler"
+        )
         return await self._handler.notify(
             ev_copy,
             source=source,
             forward=forward,
             supress=supress,
-            )
+        )
 
 
 class RelToBtnHandler:
@@ -431,13 +439,16 @@ class RelToBtnHandler:
 
     adheres to the MappingHandler protocol
     """
+
     _handler: MappingHandler
     _trigger_point: int
     _active: bool
     _key: Key
     _last_activation: float
 
-    def __init__(self, sub_handler: MappingHandler, trigger_point: int, key: Key) -> None:
+    def __init__(
+        self, sub_handler: MappingHandler, trigger_point: int, key: Key
+    ) -> None:
         if trigger_point == 0:
             raise ValueError("trigger_point can not be 0")
 
@@ -459,19 +470,19 @@ class RelToBtnHandler:
 
     async def stage_release(self):
         while time.time() < self._last_activation + 0.05:
-            await asyncio.sleep(1/60)
+            await asyncio.sleep(1 / 60)
 
         event = evdev.InputEvent(0, 0, *self._key[0][:2], 0)
         asyncio.ensure_future(self._handler.notify(event))
         self._active = False
 
     async def notify(
-            self,
-            event: evdev.InputEvent,
-            source: evdev.InputDevice = None,
-            forward: evdev.UInput = None,
-            supress: bool = False,
-            ) -> bool:
+        self,
+        event: evdev.InputEvent,
+        source: evdev.InputDevice = None,
+        forward: evdev.UInput = None,
+        supress: bool = False,
+    ) -> bool:
 
         assert event.type == EV_REL
         if (event.type, event.code) != self._key[0][:2]:
@@ -487,7 +498,9 @@ class RelToBtnHandler:
 
         ev_copy = copy_event(event)
         ev_copy.value = 1
-        logger.debug_key((ev_copy.type, ev_copy.code, ev_copy.value), "sending to sub_handler")
+        logger.debug_key(
+            (ev_copy.type, ev_copy.code, ev_copy.value), "sending to sub_handler"
+        )
         self._active = True
         self._last_activation = time.time()
         asyncio.ensure_future(self.stage_release())
@@ -496,7 +509,7 @@ class RelToBtnHandler:
             source=source,
             forward=forward,
             supress=supress,
-            )
+        )
 
 
 class AbsToRelHandler:
@@ -506,6 +519,7 @@ class AbsToRelHandler:
 
     adheres to the MappingHandler protocol
     """
+
     _key: Key  # key of len 1 for the event to
     _target: str  # name of target UInput
     _deadzone: float  # deadzone
@@ -559,12 +573,12 @@ class AbsToRelHandler:
         return f"maps to: {self._output} at {self._target}"
 
     async def notify(
-            self,
-            event: evdev.InputEvent,
-            source: evdev.InputDevice = None,
-            forward: evdev.UInput = None,
-            supress: bool = False,
-            ) -> bool:
+        self,
+        event: evdev.InputEvent,
+        source: evdev.InputDevice = None,
+        forward: evdev.UInput = None,
+        supress: bool = False,
+    ) -> bool:
 
         if (event.type, event.code) != self._key[0][:2]:
             return False
@@ -573,7 +587,7 @@ class AbsToRelHandler:
             event.value,
             source.absinfo(event.code).min,
             source.absinfo(event.code).max,
-            )
+        )
 
         if abs(input_value) < self._deadzone:
             self._stop = True
@@ -632,9 +646,12 @@ class AbsToRelHandler:
             d = 1 + k
             a = 1 - d
             b = d
-            c = (math.sqrt(27 * x ** 2 + (4 * b ** 3) / a)+3 ** (3/2) * x) ** (1/3)
-            y = c / (2 ** (1 / 3) * math.sqrt(3) * a ** (1 / 3)) \
-                - (2 ** (1 / 3) * b) / (math.sqrt(3) * a ** (2 / 3) * c)
+            c = (math.sqrt(27 * x ** 2 + (4 * b ** 3) / a) + 3 ** (3 / 2) * x) ** (
+                1 / 3
+            )
+            y = c / (2 ** (1 / 3) * math.sqrt(3) * a ** (1 / 3)) - (
+                2 ** (1 / 3) * b
+            ) / (math.sqrt(3) * a ** (2 / 3) * c)
             return y * sign
 
         raise ValueError("k must be between -1 and 1")

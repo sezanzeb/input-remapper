@@ -45,4 +45,3 @@ class MacroParsingError(Error):
     def __init__(self, symbol=None, msg="Error while parsing a macro"):
         self.symbol = symbol
         super().__init__(msg)
-
