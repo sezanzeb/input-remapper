@@ -117,7 +117,8 @@ class ConsumerControl:
             # 4. The original event is forwarded (or whatever it is supposed to do)
             # 5. Capitalized "A" is injected.
             # So make sure to call the listeners before notifying the handlers.
-            await asyncio.sleep(0)
+            for _ in range(5):
+                await asyncio.sleep(0)
 
     def forward(self, event):
         """Forward an event, which injects it unmodified."""
@@ -152,7 +153,7 @@ class ConsumerControl:
         )
 
         async for event in self._source.async_read_loop():
-            asyncio.ensure_future(self.handle(event))
+            await self.handle(event)
 
         # This happens all the time in tests because the async_read_loop stops when
         # there is nothing to read anymore. Otherwise tests would block.
