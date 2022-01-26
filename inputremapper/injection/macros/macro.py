@@ -601,45 +601,31 @@ class Macro:
             self.child_macros.append(_else)
 
         async def task(handler):
-            trigger_code = self._triggering_event.code
-
             listener_done = asyncio.Event()
 
-            success = False
-
             async def listener(event):
-                nonlocal success
-
                 if event.type != EV_KEY:
                     # ignore anything that is not a key
                     return
 
-                if event.code != trigger_code and event.value == 1:
+                if event.value == 1:
                     # another key was pressed, trigger else
-                    listener_done.set()
-                    return
-
-                if event.code == trigger_code and event.value == 0:
-                    # the trigger was released
-                    success = True
                     listener_done.set()
                     return
 
             self.context.listeners.add(listener)
 
-            try:
-                resolved_timeout = _resolve(timeout, allowed_types=[int, float, None])
-                await asyncio.wait_for(
-                    listener_done.wait(),
-                    resolved_timeout / 1000 if resolved_timeout else None,
-                )
-            except asyncio.TimeoutError:
-                pass
+            resolved_timeout = _resolve(timeout, allowed_types=[int, float, None])
+            await asyncio.wait(
+                [listener_done.wait(), self._trigger_release_event.wait()],
+                timeout=resolved_timeout / 1000 if resolved_timeout else None,
+                return_when=asyncio.FIRST_COMPLETED,
+            )
 
             self.context.listeners.remove(listener)
 
-            if success:
-                await then.run(handler)
+            if not listener_done.is_set() and self._trigger_release_event.is_set():
+                await then.run(handler)  # was trigger release
             else:
                 await _else.run(handler)
 
