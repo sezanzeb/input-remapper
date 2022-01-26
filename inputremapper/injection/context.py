@@ -134,16 +134,3 @@ class Context:
         """If at least one of the joysticks will serve a special purpose."""
         return (self.left_purpose, self.right_purpose) != (NONE, NONE)
 
-    def joystick_as_mouse(self):
-        """If at least one joystick maps to an EV_REL capability."""
-        purposes = (self.left_purpose, self.right_purpose)
-        return MOUSE in purposes or WHEEL in purposes
-
-    def joystick_as_dpad(self):
-        """If at least one joystick may be mapped to keys."""
-        purposes = (self.left_purpose, self.right_purpose)
-        return BUTTONS in purposes
-
-    def writes_keys(self):
-        """Check if anything is being mapped to keys."""
-        return len(self.macros) > 0 and len(self.key_to_code) > 0

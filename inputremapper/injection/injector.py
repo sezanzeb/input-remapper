@@ -37,7 +37,7 @@ from inputremapper.logger import logger
 from inputremapper.groups import classify, GAMEPAD, _Group
 from inputremapper.injection.context import Context
 from inputremapper.injection.numlock import set_numlock, is_numlock_on, ensure_numlock
-from inputremapper.injection.consumer_control import ConsumerControl
+from inputremapper.injection.event_reader import EventReader
 from inputremapper.key import Key
 
 
@@ -92,7 +92,7 @@ class Injector(multiprocessing.Process):
     context: Optional[Context]
     _state: int
     _msg_pipe: multiprocessing.Pipe
-    _consumer_controls: List[ConsumerControl]
+    _consumer_controls: List[EventReader]
 
     regrab_timeout = 0.2
 
@@ -334,7 +334,7 @@ class Injector(multiprocessing.Process):
             )
 
             # actually doing things
-            consumer_control = ConsumerControl(self.context, source, forward_to)
+            consumer_control = EventReader(self.context, source, forward_to)
             coroutines.append(consumer_control.run())
             self._consumer_controls.append(consumer_control)
 

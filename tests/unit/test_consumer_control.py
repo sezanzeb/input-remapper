@@ -31,7 +31,7 @@ from inputremapper.configs.global_config import BUTTONS, MOUSE, WHEEL
 from inputremapper.injection.context import Context
 from inputremapper.configs.preset import Preset
 from inputremapper.key import Key
-from inputremapper.injection.consumer_control import ConsumerControl, consumer_classes
+from inputremapper.injection.event_reader import EventReader, consumer_classes
 from inputremapper.injection.mapping_handlers.consumer import Consumer
 from inputremapper.injection.mapping_handlers.keycode_mapper import KeycodeMapper
 from inputremapper.configs.system_mapping import system_mapping
@@ -68,11 +68,11 @@ class TestConsumerControl(unittest.IsolatedAsyncioTestCase):
         consumer_classes.remove(ExampleConsumer)
 
     def setup(self, source, mapping):
-        """Set a a ConsumerControl up for the test and run it in the background."""
+        """Set a a EventReader up for the test and run it in the background."""
         forward_to = evdev.UInput()
         context = Context(mapping)
         context.uinput = evdev.UInput()
-        consumer_control = ConsumerControl(context, source, forward_to)
+        consumer_control = EventReader(context, source, forward_to)
         for consumer in consumer_control._consumers:
             consumer._abs_range = (-10, 10)
         asyncio.ensure_future(consumer_control.run())
