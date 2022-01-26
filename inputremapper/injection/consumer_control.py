@@ -68,6 +68,77 @@ class ConsumerControl:
         self._forward_to = forward_to
         self.context = context
 
+    async def send_to_handlers(self, event):
+        """Send the event to callback."""
+        if event.type == evdev.ecodes.EV_MSC:
+            return False
+
+        if event.type == evdev.ecodes.EV_SYN:
+            return False
+
+        tasks = []
+        results = []
+        if (event.type, event.code) in self.context.callbacks.keys():
+            for callback in self.context.callbacks[(event.type, event.code)]:
+                # copy so that the handler doesn't screw this up for
+                # all other future handlers
+                coroutine = callback(
+                    copy_event(event),
+                    source=self._source,
+                    forward=self._forward_to,
+                )
+                tasks.append(coroutine)
+            results = await asyncio.gather(*tasks)
+
+        return True in results
+
+    async def send_to_listeners(self, event):
+        """Send the event to listeners."""
+        if event.type == evdev.ecodes.EV_MSC:
+            return False
+
+        if event.type == evdev.ecodes.EV_SYN:
+            return False
+
+        for listener in self.context.listeners.copy():
+            # use a copy, since the listeners might remove themselves form the set
+
+            # fire and forget, run them in parallel and don't wait for them, since
+            # a listener might be blocking forever while waiting for more events.
+            asyncio.ensure_future(listener(event))
+
+            # Running macros have priority, give them a head-start for processing the
+            # event.  If if_single injects a modifier, this modifier should be active
+            # before the next handler injects an "a" or something, so that it is
+            # possible to capitalize it via if_single.
+            # 1. Event from keyboard arrives (e.g. an "a")
+            # 2. the listener for if_single is called
+            # 3. if_single decides runs then (e.g. injects shift_L)
+            # 4. The original event is forwarded (or whatever it is supposed to do)
+            # 5. Capitalized "A" is injected.
+            # So make sure to call the listeners before notifying the handlers.
+            await asyncio.sleep(0)
+
+    def forward(self, event):
+        """Forward an event, which injects it unmodified."""
+        if event.type == evdev.ecodes.EV_KEY:
+            logger.debug_key((event.type, event.code, event.value), "forwarding")
+
+        self._forward_to.write(event.type, event.code, event.value)
+
+    async def handle(self, event):
+        if event.type == evdev.ecodes.EV_KEY and event.value == 2:
+            # button-hold event. Environments (gnome, etc.) create them on
+            # their own for the injection-fake-device if the release event
+            # won't appear, no need to forward or map them.
+            return
+
+        await self.send_to_listeners(event)
+
+        if not await self.send_to_handlers(event):
+            # no handler took care of it, forward it
+            self.forward(event)
+
     async def run(self):
         """Start doing things.
 
@@ -81,53 +152,7 @@ class ConsumerControl:
         )
 
         async for event in self._source.async_read_loop():
-            if event.type == evdev.ecodes.EV_KEY and event.value == 2:
-                # button-hold event. Environments (gnome, etc.) create them on
-                # their own for the injection-fake-device if the release event
-                # won't appear, no need to forward or map them.
-                continue
-
-            for listener in self.context.listeners.copy():
-                # use a copy, since the listeners might remove themselves form the set
-
-                # fire and forget, run them in parallel and don't wait for them, since
-                # a listener might be blocking forever while waiting for more events.
-                asyncio.ensure_future(listener(event))
-
-                # Running macros have priority, give them a head-start for processing the
-                # event.  If if_single injects a modifier, this modifier should be active
-                # before the next handler injects an "a" or something, so that it is
-                # possible to capitalize it via if_single.
-                # 1. Event from keyboard arrives (e.g. an "a")
-                # 2. the listener for if_single is called
-                # 3. if_single decides runs then (e.g. injects shift_L)
-                # 4. The original event is forwarded (or whatever it is supposed to do)
-                # 5. Capitalized "A" is injected.
-                # So make sure to call the listeners before notifying the handlers.
-                await asyncio.sleep(0)
-
-            tasks = []
-            results = []
-            if (event.type, event.code) in self.context.callbacks.keys():
-                for callback in self.context.callbacks[(event.type, event.code)]:
-                    # copy so that the handler doesn't screw this up for
-                    # all other future handlers
-                    coroutine = callback(
-                        copy_event(event),
-                        source=self._source,
-                        forward=self._forward_to,
-                    )
-                    tasks.append(coroutine)
-                results = await asyncio.gather(*tasks)
-
-            if True in results:
-                continue
-
-            # forward the rest
-            if event.type == evdev.ecodes.EV_KEY:
-                logger.debug_key((event.type, event.code, event.value), "forwarding")
-            self._forward_to.write(event.type, event.code, event.value)
-            # this already includes SYN events, so need to syn here again
+            await self.handle(event)
 
         # This happens all the time in tests because the async_read_loop stops when
         # there is nothing to read anymore. Otherwise tests would block.

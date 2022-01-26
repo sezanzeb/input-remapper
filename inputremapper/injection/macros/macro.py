@@ -589,56 +589,58 @@ class Macro:
 
         self.tasks.append(task)
 
-    def add_if_single(self, then, otherwise, timeout=None):
+    def add_if_single(self, then, _else, timeout=None):
         """If a key was pressed without combining it."""
+        # TODO migrate "otherwise" to "else"
         _type_check(then, [Macro, None], "if_single", 1)
-        _type_check(otherwise, [Macro, None], "if_single", 2)
+        _type_check(_else, [Macro, None], "if_single", 2)
 
         if isinstance(then, Macro):
             self.child_macros.append(then)
-        if isinstance(otherwise, Macro):
-            self.child_macros.append(otherwise)
-
-        resolved_timeout = _resolve(timeout, allowed_types=[int, float, None])
+        if isinstance(_else, Macro):
+            self.child_macros.append(_else)
 
         async def task(handler):
             trigger_code = self._triggering_event.code
 
-            async def listener(event: evdev.InputEvent):
-                """receives every event from consumer_control"""
+            listener_done = asyncio.Event()
+
+            success = False
+
+            async def listener(event):
+                nonlocal success
+
                 if event.type != EV_KEY:
-                    return  # ignore anything that is not a key
+                    # ignore anything that is not a key
+                    return
+
                 if event.code != trigger_code and event.value == 1:
-                    self.context.listeners.remove(listener)
-                    await otherwise.run(handler)
+                    # another key was pressed, trigger else
+                    listener_done.set()
+                    return
+
+                if event.code == trigger_code and event.value == 0:
+                    # the trigger was released
+                    success = True
+                    listener_done.set()
+                    return
 
             self.context.listeners.add(listener)
-            timed_out = False
-            try:
-                if resolved_timeout is not None:
-                    await asyncio.wait_for(
-                        self._trigger_release_event.wait(), resolved_timeout / 1000
-                    )
-                else:
-                    await self._trigger_release_event.wait()
 
+            try:
+                resolved_timeout = _resolve(timeout, allowed_types=[int, float, None])
+                await asyncio.wait_for(
+                    listener_done.wait(),
+                    resolved_timeout / 1000 if resolved_timeout else None,
+                )
             except asyncio.TimeoutError:
-                timed_out = True
+                pass
 
-            otherwise_has_run = False
-            try:
-                self.context.listeners.remove(listener)
-            except KeyError:
-                otherwise_has_run = True
+            self.context.listeners.remove(listener)
 
-            if timed_out and not otherwise_has_run:
-                if otherwise:
-                    await otherwise.run(handler)
-                    return
-
-            if not timed_out and not otherwise_has_run:
-                if then:
-                    await then.run(handler)
-                    return
+            if success:
+                await then.run(handler)
+            else:
+                await _else.run(handler)
 
         self.tasks.append(task)
