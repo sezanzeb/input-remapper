@@ -318,8 +318,13 @@ class Injector(multiprocessing.Process):
             # so don't merge all InputDevices into one UInput device.
             forward_to = evdev.UInput(
                 name=get_udev_name(source.name, "forwarded"),
-                phys=DEV_NAME,
                 events=self._copy_capabilities(source),
+                phys=source.phys,
+                vendor=source.info.vendor,
+                product=source.info.product,
+                version=source.info.version,
+                bustype=source.info.bustype,
+                input_props=source.input_props(),
             )
 
             # actually doing things
