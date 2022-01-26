@@ -24,10 +24,8 @@ from evdev.ecodes import EV_ABS
 
 from inputremapper.logger import logger
 from inputremapper.key import Key
-from inputremapper.injection.mapping_handlers.mapping_handler import (
-    MappingHandler,
-    copy_event,
-)
+from inputremapper.input_event import InputEvent
+from inputremapper.injection.mapping_handlers.mapping_handler import MappingHandler
 
 
 class AbsToBtnHandler:
@@ -78,42 +76,39 @@ class AbsToBtnHandler:
 
     async def notify(
         self,
-        event: evdev.InputEvent,
+        event: InputEvent,
         source: evdev.InputDevice = None,
         forward: evdev.UInput = None,
         supress: bool = False,
     ) -> bool:
 
         assert event.type == EV_ABS
-        if (event.type, event.code) != self._key[0][:2]:
+        if event.type_and_code != self._key[0][:2]:
             return False
 
         absinfo = source.absinfo(event.code)
-        ev_copy = copy_event(event)
         trigger_point = self._trigger_point(absinfo.min, absinfo.max)
 
         if self._trigger_percent > 0:
             if event.value > trigger_point:
-                ev_copy.value = 1
+                event = event.modify(value=1)
             else:
-                ev_copy.value = 0
+                event = event.modify(value=0)
         else:
             if event.value < trigger_point:
-                ev_copy.value = 1
+                event = event.modify(value=1)
             else:
-                ev_copy.value = 0
+                event = event.modify(value=0)
 
-        if (ev_copy.value == 1 and self._active) or (
-            ev_copy.value != 1 and not self._active
+        if (event.value == 1 and self._active) or (
+            event.value != 1 and not self._active
         ):
             return True
 
-        self._active = bool(ev_copy.value)
-        logger.debug_key(
-            (ev_copy.type, ev_copy.code, ev_copy.value), "sending to sub_handler"
-        )
+        self._active = bool(event.value)
+        logger.debug_key(event.event_tuple, "sending to sub_handler")
         return await self._handler.notify(
-            ev_copy,
+            event,
             source=source,
             forward=forward,
             supress=supress,

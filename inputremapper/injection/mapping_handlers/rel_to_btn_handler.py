@@ -25,11 +25,9 @@ import asyncio
 from evdev.ecodes import EV_REL
 
 from inputremapper.logger import logger
+from inputremapper.input_event import InputEvent
 from inputremapper.key import Key
-from inputremapper.injection.mapping_handlers.mapping_handler import (
-    MappingHandler,
-    copy_event,
-)
+from inputremapper.injection.mapping_handlers.mapping_handler import MappingHandler
 
 
 class RelToBtnHandler:
@@ -72,20 +70,20 @@ class RelToBtnHandler:
         while time.time() < self._last_activation + 0.05:
             await asyncio.sleep(1 / 60)
 
-        event = evdev.InputEvent(0, 0, *self._key[0][:2], 0)
+        event = InputEvent(0, 0, *self._key[0][:2], 0)
         asyncio.ensure_future(self._handler.notify(event))
         self._active = False
 
     async def notify(
         self,
-        event: evdev.InputEvent,
+        event: InputEvent,
         source: evdev.InputDevice = None,
         forward: evdev.UInput = None,
         supress: bool = False,
     ) -> bool:
 
         assert event.type == EV_REL
-        if (event.type, event.code) != self._key[0][:2]:
+        if event.type_and_code != self._key[0][:2]:
             return False
 
         value = event.value
@@ -96,16 +94,13 @@ class RelToBtnHandler:
             self._last_activation = time.time()
             return True
 
-        ev_copy = copy_event(event)
-        ev_copy.value = 1
-        logger.debug_key(
-            (ev_copy.type, ev_copy.code, ev_copy.value), "sending to sub_handler"
-        )
+        event = event.modify(value=1)
+        logger.debug_key(event.event_tuple, "sending to sub_handler")
         self._active = True
         self._last_activation = time.time()
         asyncio.ensure_future(self.stage_release())
         return await self._handler.notify(
-            ev_copy,
+            event,
             source=source,
             forward=forward,
             supress=supress,

@@ -28,6 +28,7 @@ from evdev.ecodes import EV_REL
 
 from inputremapper.logger import logger
 from inputremapper.key import Key
+from inputremapper.input_event import InputEvent
 from inputremapper.injection.global_uinputs import global_uinputs
 
 
@@ -93,13 +94,13 @@ class AbsToRelHandler:
 
     async def notify(
         self,
-        event: evdev.InputEvent,
+        event: InputEvent,
         source: evdev.InputDevice = None,
         forward: evdev.UInput = None,
         supress: bool = False,
     ) -> bool:
 
-        if (event.type, event.code) != self._key[0][:2]:
+        if event.type_and_code != self._key[0][:2]:
             return False
 
         input_value, scale_factor = self._normalize(

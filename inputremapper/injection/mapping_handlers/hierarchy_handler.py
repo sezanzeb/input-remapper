@@ -21,7 +21,7 @@ import asyncio
 import evdev
 
 from typing import Tuple, List
-
+from inputremapper.input_event import InputEvent
 from inputremapper.injection.mapping_handlers.mapping_handler import MappingHandler
 
 
@@ -52,12 +52,12 @@ class HierarchyHandler:
 
     async def notify(
         self,
-        event: evdev.InputEvent,
+        event: InputEvent,
         source: evdev.InputDevice = None,
         forward: evdev.UInput = None,
         supress: bool = False,
     ) -> bool:
-        if (event.type, event.code) != self._key:
+        if event.type_and_code != self._key:
             return False
 
         success = False

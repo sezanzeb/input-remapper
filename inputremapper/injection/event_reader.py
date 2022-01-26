@@ -23,17 +23,8 @@
 import asyncio
 import evdev
 from inputremapper.logger import logger
+from inputremapper.input_event import InputEvent
 from inputremapper.injection.context import Context
-
-
-def copy_event(event: evdev.InputEvent) -> evdev.InputEvent:
-    return evdev.InputEvent(
-        sec=event.sec,
-        usec=event.usec,
-        type=event.type,
-        code=event.code,
-        value=event.value,
-    )
 
 
 class EventReader:
@@ -68,7 +59,7 @@ class EventReader:
         self._forward_to = forward_to
         self.context = context
 
-    async def send_to_handlers(self, event):
+    async def send_to_handlers(self, event: InputEvent) -> bool:
         """Send the event to callback."""
         if event.type == evdev.ecodes.EV_MSC:
             return False
@@ -77,28 +68,24 @@ class EventReader:
             return False
 
         tasks = []
-        results = []
-        if (event.type, event.code) in self.context.callbacks.keys():
-            for callback in self.context.callbacks[(event.type, event.code)]:
-                # copy so that the handler doesn't screw this up for
-                # all other future handlers
-                coroutine = callback(
-                    copy_event(event),
-                    source=self._source,
-                    forward=self._forward_to,
-                )
-                tasks.append(coroutine)
-            results = await asyncio.gather(*tasks)
+        for callback in self.context.callbacks.get(event.type_and_code) or ():
+            coroutine = callback(
+                event,
+                source=self._source,
+                forward=self._forward_to,
+            )
+            tasks.append(coroutine)
+        results = await asyncio.gather(*tasks)
 
         return True in results
 
-    async def send_to_listeners(self, event):
+    async def send_to_listeners(self, event: InputEvent) -> None:
         """Send the event to listeners."""
         if event.type == evdev.ecodes.EV_MSC:
-            return False
+            return
 
         if event.type == evdev.ecodes.EV_SYN:
-            return False
+            return
 
         for listener in self.context.listeners.copy():
             # use a copy, since the listeners might remove themselves form the set
@@ -119,14 +106,14 @@ class EventReader:
             # So make sure to call the listeners before notifying the handlers.
             await asyncio.sleep(0)
 
-    def forward(self, event):
+    def forward(self, event: InputEvent) -> None:
         """Forward an event, which injects it unmodified."""
         if event.type == evdev.ecodes.EV_KEY:
-            logger.debug_key((event.type, event.code, event.value), "forwarding")
+            logger.debug_key(event.event_tuple, "forwarding")
 
-        self._forward_to.write(event.type, event.code, event.value)
+        self._forward_to.write(*event.event_tuple)
 
-    async def handle(self, event):
+    async def handle(self, event: InputEvent) -> None:
         if event.type == evdev.ecodes.EV_KEY and event.value == 2:
             # button-hold event. Environments (gnome, etc.) create them on
             # their own for the injection-fake-device if the release event
@@ -152,7 +139,7 @@ class EventReader:
         )
 
         async for event in self._source.async_read_loop():
-            await self.handle(event)
+            await self.handle(InputEvent.from_event(event))
 
         # This happens all the time in tests because the async_read_loop stops when
         # there is nothing to read anymore. Otherwise tests would block.

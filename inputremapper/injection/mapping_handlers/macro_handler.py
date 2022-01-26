@@ -24,6 +24,7 @@ import asyncio
 from typing import Dict
 
 from inputremapper.logger import logger
+from inputremapper.input_event import InputEvent
 from inputremapper.injection.global_uinputs import global_uinputs
 from inputremapper.injection.macros.parse import parse
 from inputremapper.injection.macros.macro import Macro
@@ -66,7 +67,7 @@ class MacroHandler:
     def child(self):  # used for logging
         return f"maps to {self._macro} on {self._target}"
 
-    async def notify(self, event: evdev.InputEvent) -> bool:
+    async def notify(self, event: InputEvent) -> bool:
 
         if event.value == 1:
             self._active = True

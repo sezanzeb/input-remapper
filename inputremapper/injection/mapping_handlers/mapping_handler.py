@@ -21,16 +21,7 @@
 import evdev
 from typing import Dict, Protocol, Set
 from inputremapper.configs.preset import Preset
-
-
-def copy_event(event: evdev.InputEvent) -> evdev.InputEvent:
-    return evdev.InputEvent(
-        sec=event.sec,
-        usec=event.usec,
-        type=event.type,
-        code=event.code,
-        value=event.value,
-    )
+from inputremapper.input_event import InputEvent
 
 
 class EventListener(Protocol):
@@ -53,7 +44,7 @@ class MappingHandler(Protocol):
 
     async def notify(
         self,
-        event: evdev.InputEvent,
+        event: InputEvent,
         source: evdev.InputDevice = None,
         forward: evdev.UInput = None,
         supress: bool = False,

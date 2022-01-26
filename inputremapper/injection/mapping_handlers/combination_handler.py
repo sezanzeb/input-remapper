@@ -25,11 +25,9 @@ from typing import Protocol, Dict, Tuple
 from inputremapper import utils
 from inputremapper.key import Key
 from inputremapper.logger import logger
+from inputremapper.input_event import InputEvent
 from inputremapper.injection.macros.parse import is_this_a_macro
-from inputremapper.injection.mapping_handlers.mapping_handler import (
-    ContextProtocol,
-    copy_event,
-)
+from inputremapper.injection.mapping_handlers.mapping_handler import ContextProtocol
 from inputremapper.injection.mapping_handlers.key_handler import KeyHandler
 from inputremapper.injection.mapping_handlers.macro_handler import MacroHandler
 
@@ -90,13 +88,13 @@ class CombinationHandler:
 
     async def notify(
         self,
-        event: evdev.InputEvent,
+        event: InputEvent,
         source: evdev.InputDevice = None,
         forward: evdev.UInput = None,
         supress: bool = False,
     ) -> bool:
 
-        map_key = (event.type, event.code)
+        map_key = event.type_and_code
         if map_key not in self._key_map.keys():
             return False  # we are not responsible for the event
 
@@ -115,10 +113,10 @@ class CombinationHandler:
             value = 1
         else:
             value = 0
-        ev = copy_event(event)
-        ev.value = value
+
+        event = event.modify(value=value)
         logger.debug_key(self._key, "triggered: sending to sub-handler")
-        return await self._sub_handler.notify(ev)
+        return await self._sub_handler.notify(event)
 
     def get_active(self) -> bool:
         """return if all keys in the keymap are set to True"""

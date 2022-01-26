@@ -24,6 +24,7 @@ from typing import Tuple, Dict
 
 from inputremapper import exceptions
 from inputremapper.logger import logger
+from inputremapper.input_event import InputEvent
 from inputremapper.injection.global_uinputs import global_uinputs
 from inputremapper.configs.system_mapping import system_mapping
 
@@ -63,14 +64,14 @@ class KeyHandler:
     def child(self):  # used for logging
         return f"maps to: {self._maps_to} on {self._target}"
 
-    async def notify(self, event: evdev.InputEvent) -> bool:
+    async def notify(self, event: InputEvent) -> bool:
         """inject event.value to the target key"""
 
         event_tuple = (*self._maps_to, event.value)
         try:
             global_uinputs.write(event_tuple, self._target)
             logger.debug_key(event_tuple, "sending to %s", self._target)
-            self._active = event.value == 1
+            self._active = bool(event.value)
             return True
         except exceptions.Error:
             return False
