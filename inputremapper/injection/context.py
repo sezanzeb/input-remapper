@@ -133,4 +133,3 @@ class Context:
     def maps_joystick(self):
         """If at least one of the joysticks will serve a special purpose."""
         return (self.left_purpose, self.right_purpose) != (NONE, NONE)
-

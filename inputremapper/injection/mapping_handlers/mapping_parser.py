@@ -40,13 +40,15 @@ from inputremapper.logger import logger
 from inputremapper.key import Key
 from inputremapper.injection.mapping_handlers.mapping_handler import (
     MappingHandler,
-    CombinationHandler,
     ContextProtocol,
-    HierarchyHandler,
-    AbsToBtnHandler,
-    RelToBtnHandler,
-    AbsToRelHandler,
 )
+from inputremapper.injection.mapping_handlers.combination_handler import (
+    CombinationHandler,
+)
+from inputremapper.injection.mapping_handlers.hierarchy_handler import HierarchyHandler
+from inputremapper.injection.mapping_handlers.abs_to_btn_handler import AbsToBtnHandler
+from inputremapper.injection.mapping_handlers.rel_to_btn_handler import RelToBtnHandler
+from inputremapper.injection.mapping_handlers.abs_to_rel_handler import AbsToRelHandler
 from inputremapper.configs.preset import Preset
 from inputremapper.exceptions import Error
 
