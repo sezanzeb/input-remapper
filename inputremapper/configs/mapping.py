@@ -23,7 +23,7 @@ from evdev.ecodes import EV_KEY
 from pydantic import BaseModel, PositiveInt, confloat, root_validator, validator
 from typing import Optional
 
-from inputremapper.key import Key
+from inputremapper.event_combination import EventCombination
 from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.injection.macros.parse import is_this_a_macro, parse
 
@@ -42,7 +42,7 @@ class Mapping(BaseModel):
     """
 
     # Required attributes
-    event_combination: Key  # The InputEvent or InputEvent combination which is mapped
+    event_combination: EventCombination  # The InputEvent or InputEvent combination which is mapped
     target_uinput: KnownUinput  # The UInput to which the mapped event will be sent
 
     # Either `output_symbol` or `output_type` and `output_code` is required
@@ -125,6 +125,6 @@ class Mapping(BaseModel):
         return values
 
     class Config:
-        # TODO: implement Key.__get_validators__(), so we don't need arbitrary_types_allowed anymore
+        # TODO: implement EventCombination.__get_validators__(), so we don't need arbitrary_types_allowed anymore
         arbitrary_types_allowed = True
         validate_assignment = True

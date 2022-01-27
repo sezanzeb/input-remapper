@@ -43,7 +43,7 @@ from evdev.ecodes import (
 from inputremapper.gui.reader import reader, will_report_up
 from inputremapper.gui.active_preset import active_preset
 from inputremapper.configs.global_config import BUTTONS, MOUSE
-from inputremapper.key import Key
+from inputremapper.event_combination import EventCombination
 from inputremapper.gui.helper import RootHelper
 from inputremapper.groups import groups
 
@@ -123,7 +123,7 @@ class TestReader(unittest.TestCase):
 
         send_event_to_reader(new_event(EV_REL, REL_WHEEL, 1))
         result = reader.read()
-        self.assertIsInstance(result, Key)
+        self.assertIsInstance(result, EventCombination)
         self.assertEqual(result, (EV_REL, REL_WHEEL, 1))
         self.assertEqual(result, ((EV_REL, REL_WHEEL, 1),))
         self.assertNotEqual(result, ((EV_REL, REL_WHEEL, 1), (1, 1, 1)))
@@ -135,7 +135,7 @@ class TestReader(unittest.TestCase):
         # but it is still remembered unreleased
         self.assertEqual(len(reader._unreleased), 1)
         self.assertEqual(reader.get_unreleased_keys(), (EV_REL, REL_WHEEL, 1))
-        self.assertIsInstance(reader.get_unreleased_keys(), Key)
+        self.assertIsInstance(reader.get_unreleased_keys(), EventCombination)
 
         # as long as new wheel events arrive, it is considered unreleased
         for _ in range(10):
@@ -232,7 +232,7 @@ class TestReader(unittest.TestCase):
 
         reader.start_reading(groups.find(key="Foo Device 2"))
         time.sleep(0.1)
-        self.assertEqual(reader.read(), Key(EV_KEY, 1, 1))
+        self.assertEqual(reader.read(), EventCombination(EV_KEY, 1, 1))
 
         reader.start_reading(groups.find(name="Bar Device"))
 
@@ -243,7 +243,7 @@ class TestReader(unittest.TestCase):
         reader.clear()
 
         time.sleep(0.1)
-        self.assertEqual(reader.read(), Key(EV_KEY, 2, 1))
+        self.assertEqual(reader.read(), EventCombination(EV_KEY, 2, 1))
 
     def test_reading_2(self):
         # a combination of events
@@ -435,7 +435,7 @@ class TestReader(unittest.TestCase):
         self.assertEqual(reader.read(), None)
         self.assertEqual(len(reader._unreleased), 1)
         self.assertEqual(len(reader.get_unreleased_keys()), 1)
-        self.assertIsInstance(reader.get_unreleased_keys(), Key)
+        self.assertIsInstance(reader.get_unreleased_keys(), EventCombination)
 
         # release
         send_event_to_reader(new_event(EV_ABS, ABS_Z, 0, 10))

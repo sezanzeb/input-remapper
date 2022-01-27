@@ -19,7 +19,7 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
-"""A button or a key combination."""
+"""A button or a combination combination."""
 
 from __future__ import annotations
 
@@ -34,9 +34,9 @@ from inputremapper.logger import logger
 
 
 def verify(key):
-    """Check if the key is an int 3-tuple of type, code, value"""
+    """Check if the combination is an int 3-tuple of type, code, value"""
     if not isinstance(key, tuple) or len(key) != 3:
-        raise ValueError(f"Expected key to be a 3-tuple, but got {key}")
+        raise ValueError(f"Expected combination to be a 3-tuple, but got {key}")
     if sum([not isinstance(value, int) for value in key]) != 0:
         raise ValueError(f"Can only use integers, but got {key}")
 
@@ -53,7 +53,7 @@ DIFFICULT_COMBINATIONS = [
 ]
 
 
-class Key:
+class EventCombination:
     """Represents one or more pressed down keys.
 
     Can be used in hashmaps/dicts as key
@@ -75,19 +75,19 @@ class Key:
             other value that the device reports. Gamepads use a continuous
             space of values for joysticks and triggers.
 
-        or Key objects, which will flatten all of them into one combination
+        or EventCombination objects, which will flatten all of them into one combination
         """
         if len(keys) == 0:
-            raise ValueError("At least one key is required")
+            raise ValueError("At least one combination is required")
 
         if isinstance(keys[0], int):
             # type, code, value was provided instead of a tuple
             keys = (keys,)
 
-        # multiple objects of Key get flattened into one tuple
+        # multiple objects of EventCombination get flattened into one tuple
         flattened = ()
         for key in keys:
-            if isinstance(key, Key):
+            if isinstance(key, EventCombination):
                 flattened += key.keys  # pylint: disable=no-member
             else:
                 flattened += (key,)
@@ -101,10 +101,10 @@ class Key:
 
     @classmethod
     def btn_left(cls):
-        """Construct a Key object representing a left click on a mouse."""
+        """Construct a EventCombination object representing a left click on a mouse."""
         return cls(ecodes.EV_KEY, ecodes.BTN_LEFT, 1)
 
-    def __iter__(self) -> Key.keys:
+    def __iter__(self) -> EventCombination.keys:
         return iter(self.keys)
 
     def __getitem__(self, item):
@@ -115,7 +115,7 @@ class Key:
         return len(self.keys)
 
     def __str__(self):
-        return f"Key{str(self.keys)}"
+        return f"EventCombination{str(self.keys)}"
 
     def __repr__(self):
         # used in the AssertionError output of tests
@@ -133,13 +133,13 @@ class Key:
                 # a combination ((1, 5, 1), (1, 3, 1))
                 return self.keys == other
 
-            # otherwise, self needs to represent a single key as well
+            # otherwise, self needs to represent a single combination as well
             return len(self.keys) == 1 and self.keys[0] == other
 
-        if not isinstance(other, Key):
+        if not isinstance(other, EventCombination):
             return False
 
-        # compare two instances of Key
+        # compare two instances of EventCombination
         return self.keys == other.keys
 
     def contains_event(self, event_type, event_code) -> bool:
@@ -149,8 +149,8 @@ class Key:
                 return True
         return False
 
-    def contains_key(self, key: Key) -> bool:
-        """if self contains the key"""
+    def contains_key(self, key: EventCombination) -> bool:
+        """if self contains the combination"""
         for my_key in self.keys:
             if my_key == key:
                 return True
@@ -171,17 +171,17 @@ class Key:
         return False
 
     def get_permutations(self):
-        """Get a list of Key objects representing all possible permutations.
+        """Get a list of EventCombination objects representing all possible permutations.
 
         combining a + b + c should have the same result as b + a + c.
-        Only the last key remains the same in the returned result.
+        Only the last combination remains the same in the returned result.
         """
         if len(self.keys) <= 2:
             return [self]
 
         permutations = []
         for permutation in itertools.permutations(self.keys[:-1]):
-            permutations.append(Key(*permutation, self.keys[-1]))
+            permutations.append(EventCombination(*permutation, self.keys[-1]))
 
         return permutations
 
@@ -196,12 +196,12 @@ class Key:
             ev_type, code, value = sub_key
 
             if ev_type not in evdev.ecodes.bytype:
-                logger.error("Unknown key type for %s", sub_key)
+                logger.error("Unknown combination type for %s", sub_key)
                 result.append(str(code))
                 continue
 
             if code not in evdev.ecodes.bytype[ev_type]:
-                logger.error("Unknown key code for %s", sub_key)
+                logger.error("Unknown combination code for %s", sub_key)
                 result.append(str(code))
                 continue
 
@@ -213,7 +213,7 @@ class Key:
                 key_name = system_mapping.get_name(code)
 
             if key_name is None:
-                # if no result, look in the linux key constants. On a german
+                # if no result, look in the linux combination constants. On a german
                 # keyboard for example z and y are switched, which will therefore
                 # cause the wrong letter to be displayed.
                 key_name = evdev.ecodes.bytype[ev_type][code]

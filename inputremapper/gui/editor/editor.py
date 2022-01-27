@@ -29,7 +29,7 @@ from gi.repository import Gtk, GLib, Gdk
 from inputremapper.gui.editor.autocompletion import Autocompletion
 from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.gui.active_preset import active_preset
-from inputremapper.key import Key
+from inputremapper.event_combination import EventCombination
 from inputremapper.logger import logger
 from inputremapper.gui.reader import reader
 from inputremapper.gui.utils import CTX_KEYCODE, CTX_WARNING, CTX_ERROR
@@ -46,7 +46,7 @@ class SelectionLabel(Gtk.ListBoxRow):
 
     def __init__(self):
         super().__init__()
-        self.key = None
+        self.combination = None
         self.symbol = ""
 
         label = Gtk.Label()
@@ -62,21 +62,21 @@ class SelectionLabel(Gtk.ListBoxRow):
 
         self.show_all()
 
-    def set_key(self, key):
-        """Set the key this button represents
+    def set_combination(self, combination):
+        """Set the combination this button represents
 
         Parameters
         ----------
-        key : Key
+        combination : EventCombination
         """
-        self.key = key
-        if key:
-            self.label.set_label(key.beautify())
+        self.combination = combination
+        if combination:
+            self.label.set_label(combination.beautify())
         else:
             self.label.set_label("new entry")
 
-    def get_key(self):
-        return self.key
+    def get_combination(self):
+        return self.combination
 
     def set_label(self, label):
         return self.label.set_label(label)
@@ -85,7 +85,7 @@ class SelectionLabel(Gtk.ListBoxRow):
         return self.label.get_label()
 
     def __str__(self):
-        return f"SelectionLabel({str(self.key)})"
+        return f"SelectionLabel({str(self.combination)})"
 
     def __repr__(self):
         return self.__str__()
@@ -120,7 +120,7 @@ class Editor:
 
         self.window = self.get("window")
         self.timeout = GLib.timeout_add(100, self.check_add_new_key)
-        self.active_selection_label = None
+        self.active_selection_label: SelectionLabel = None
 
         selection_label_listbox = self.get("selection_label_listbox")
         selection_label_listbox.connect("row-selected", self.on_mapping_selected)
@@ -185,7 +185,7 @@ class Editor:
         Otherwise the inputs will be read and then saved into the next preset.
         """
         if self.active_selection_label:
-            self.set_key(None)
+            self.set_combination(None)
 
         self.set_symbol_input_text("")
         self.disable_symbol_input()
@@ -292,7 +292,7 @@ class Editor:
         selection_label_listbox = selection_label_listbox.get_children()
 
         for selection_label in selection_label_listbox:
-            if selection_label.get_key() is None:
+            if selection_label.get_combination() is None:
                 # unfinished row found
                 break
         else:
@@ -340,7 +340,7 @@ class Editor:
 
     @ensure_everything_saved
     def on_mapping_selected(self, _=None, selection_label=None):
-        """One of the buttons in the left "key" column was clicked.
+        """One of the buttons in the left "combination" column was clicked.
 
         Load the information from that mapping entry into the editor.
         """
@@ -349,21 +349,21 @@ class Editor:
         if selection_label is None:
             return
 
-        key = selection_label.key
-        self.set_key(key)
+        combination = selection_label.combination
+        self.set_combination(combination)
 
-        if key is None:
+        if combination is None:
             self.set_symbol_input_text("")
             self.disable_symbol_input()
             # default target should fit in most cases
             self.set_target_selection("keyboard")
-            # symbol input disabled until a key is configured
+            # symbol input disabled until a combination is configured
             self.disable_target_selector()
-            # symbol input disabled until a key is configured
+            # symbol input disabled until a combination is configured
         else:
-            if active_preset.get_mapping(key):
-                self.set_symbol_input_text(active_preset.get_mapping(key)[0])
-                self.set_target_selection(active_preset.get_mapping(key)[1])
+            if active_preset.get_mapping(combination):
+                self.set_symbol_input_text(active_preset.get_mapping(combination)[0])
+                self.set_target_selection(active_preset.get_mapping(combination)[1])
             self.enable_symbol_input()
             self.enable_target_selector()
 
@@ -388,7 +388,7 @@ class Editor:
 
         for key, _ in active_preset:
             selection_label = SelectionLabel()
-            selection_label.set_key(key)
+            selection_label.set_combination(key)
             selection_label_listbox.insert(selection_label, -1)
 
         self.check_add_new_key()
@@ -411,19 +411,19 @@ class Editor:
     def get_target_selector(self):
         return self.get("target-selector")
 
-    def set_key(self, key):
+    def set_combination(self, combination):
         """Show what the user is currently pressing in the user interface."""
-        self.active_selection_label.set_key(key)
+        self.active_selection_label.set_combination(combination)
 
-    def get_key(self):
-        """Get the Key object from the left column.
+    def get_combination(self):
+        """Get the EventCombination object from the left column.
 
         Or None if no code is mapped on this row.
         """
         if self.active_selection_label is None:
             return None
 
-        return self.active_selection_label.key
+        return self.active_selection_label.combination
 
     def set_symbol_input_text(self, symbol):
         self.get("code_editor").get_buffer().set_text(symbol or "")
@@ -488,12 +488,12 @@ class Editor:
         ):
             return
 
-        key = self.get_key()
+        key = self.get_combination()
         if key is not None:
             active_preset.clear(key)
 
         # make sure there is no outdated information lying around in memory
-        self.set_key(None)
+        self.set_combination(None)
 
         self.load_custom_mapping()
 
@@ -523,7 +523,7 @@ class Editor:
             self.get_text_input().get_buffer().set_text(correct_case)
 
         # make sure the active_preset is up to date
-        key = self.get_key()
+        key = self.get_combination()
         if correct_case is not None and key is not None and target is not None:
             active_preset.change(key, target, correct_case)
 
@@ -532,38 +532,38 @@ class Editor:
             self.user_interface.save_preset()
 
     def is_waiting_for_input(self):
-        """Check if the user is interacting with the ToggleButton for key recording."""
+        """Check if the user is interacting with the ToggleButton for combination recording."""
         return self.get_recording_toggle().get_active()
 
-    def consume_newest_keycode(self, key):
+    def consume_newest_keycode(self, combination):
         """To capture events from keyboards, mice and gamepads.
 
         Parameters
         ----------
-        key : Key or None
+        combination : EventCombination or None
         """
         self._switch_focus_if_complete()
 
-        if key is None:
+        if combination is None:
             return
 
         if not self.is_waiting_for_input():
             return
 
-        if not isinstance(key, Key):
-            raise TypeError("Expected new_key to be a Key object")
+        if not isinstance(combination, EventCombination):
+            raise TypeError("Expected new_key to be a EventCombination object")
 
         # keycode is already set by some other row
-        existing = active_preset.get_mapping(key)
+        existing = active_preset.get_mapping(combination)
         if existing is not None:
             existing = list(existing)
             existing[0] = re.sub(r"\s", "", existing[0])
-            msg = f'"{key.beautify()}" already mapped to "{tuple(existing)}"'
-            logger.info("%s %s", key, msg)
+            msg = f'"{combination.beautify()}" already mapped to "{tuple(existing)}"'
+            logger.info("%s %s", combination, msg)
             self.user_interface.show_status(CTX_KEYCODE, msg)
             return True
 
-        if key.is_problematic():
+        if combination.is_problematic():
             self.user_interface.show_status(
                 CTX_WARNING,
                 "ctrl, alt and shift may not combine properly",
@@ -574,17 +574,17 @@ class Editor:
 
         # the newest_keycode is populated since the ui regularly polls it
         # in order to display it in the status bar.
-        previous_key = self.get_key()
+        previous_key = self.get_combination()
 
         # it might end up being a key combination, wait for more
         self._input_has_arrived = True
 
         # keycode didn't change, do nothing
-        if key == previous_key:
+        if combination == previous_key:
             logger.debug("%s didn't change", previous_key)
             return
 
-        self.set_key(key)
+        self.set_combination(combination)
 
         symbol = self.get_symbol_input_text()
         target = self.get_target_selection()
@@ -594,9 +594,7 @@ class Editor:
             return
 
         # else, the keycode has changed, the symbol is set, all good
-        active_preset.change(
-            new_key=key, target=target, symbol=symbol, previous_key=previous_key
-        )
+        active_preset.change(new_combination=combination, target=target, symbol=symbol, previous_combination=previous_key)
 
     def _switch_focus_if_complete(self):
         """If keys are released, it will switch to the text_input.
@@ -613,7 +611,7 @@ class Editor:
             return
 
         all_keys_released = reader.get_unreleased_keys() is None
-        if all_keys_released and self._input_has_arrived and self.get_key():
+        if all_keys_released and self._input_has_arrived and self.get_combination():
             # A key was pressed and then released.
             # Switch to the symbol. idle_add this so that the
             # keycode event won't write into the symbol input as well.

@@ -27,7 +27,7 @@ from typing import Dict, Tuple
 from evdev.ecodes import EV_REL
 
 from inputremapper.logger import logger
-from inputremapper.key import Key
+from inputremapper.event_combination import EventCombination
 from inputremapper.input_event import InputEvent
 from inputremapper.injection.global_uinputs import global_uinputs
 
@@ -40,7 +40,7 @@ class AbsToRelHandler:
     adheres to the MappingHandler protocol
     """
 
-    _key: Key  # key of len 1 for the event to
+    _key: EventCombination  # combination of len 1 for the event to
     _target: str  # name of target UInput
     _deadzone: float  # deadzone
     _output: int  # target event code
@@ -61,7 +61,7 @@ class AbsToRelHandler:
         Parameters
         ----------
         config : Dict = {
-            "key": str
+            "combination": str
             "target": str
             "deadzone" : float
             "output" : int
@@ -70,7 +70,7 @@ class AbsToRelHandler:
             "rate" : int
         }
         """
-        self._key = Key(config["key"])
+        self._key = EventCombination(config["combination"])
         self._target = config["target"]
         self._deadzone = config["deadzone"]
         self._output = config["output"]

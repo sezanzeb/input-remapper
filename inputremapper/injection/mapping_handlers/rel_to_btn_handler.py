@@ -26,7 +26,7 @@ from evdev.ecodes import EV_REL
 
 from inputremapper.logger import logger
 from inputremapper.input_event import InputEvent
-from inputremapper.key import Key
+from inputremapper.event_combination import EventCombination
 from inputremapper.injection.mapping_handlers.mapping_handler import MappingHandler
 
 
@@ -41,11 +41,11 @@ class RelToBtnHandler:
     _handler: MappingHandler
     _trigger_point: int
     _active: bool
-    _key: Key
+    _key: EventCombination
     _last_activation: float
 
     def __init__(
-        self, sub_handler: MappingHandler, trigger_point: int, key: Key
+        self, sub_handler: MappingHandler, trigger_point: int, key: EventCombination
     ) -> None:
         if trigger_point == 0:
             raise ValueError("trigger_point can not be 0")

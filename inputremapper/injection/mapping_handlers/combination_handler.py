@@ -23,7 +23,7 @@ import evdev
 from typing import Protocol, Dict, Tuple
 
 from inputremapper import utils
-from inputremapper.key import Key
+from inputremapper.event_combination import EventCombination
 from inputremapper.logger import logger
 from inputremapper.input_event import InputEvent
 from inputremapper.injection.macros.parse import is_this_a_macro
@@ -49,7 +49,7 @@ class CombinationHandler:
     adheres to the MappingHandler protocol
     """
 
-    _key: Key
+    _key: EventCombination
     _key_map: Dict[Tuple[int, int], bool]
     _sub_handler: CombinationSubHandler
 
@@ -59,14 +59,14 @@ class CombinationHandler:
         Parameters
         ----------
         config : Dict = {
-            "key": str
+            "combination": str
             "target": str
             "symbol": str
         }
         context : Context
         """
         super().__init__()
-        self._key = Key(config["key"])
+        self._key = EventCombination(config["combination"])
         self._key_map = {}
         for sub_key in self._key:  # prepare key_map
             self._key_map[sub_key[:2]] = False

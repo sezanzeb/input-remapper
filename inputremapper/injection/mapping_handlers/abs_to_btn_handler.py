@@ -23,7 +23,7 @@ import evdev
 from evdev.ecodes import EV_ABS
 
 from inputremapper.logger import logger
-from inputremapper.key import Key
+from inputremapper.event_combination import EventCombination
 from inputremapper.input_event import InputEvent
 from inputremapper.injection.mapping_handlers.mapping_handler import MappingHandler
 
@@ -39,10 +39,10 @@ class AbsToBtnHandler:
     _handler: MappingHandler
     _trigger_percent: int
     _active: bool
-    _key: Key
+    _key: EventCombination
 
     def __init__(
-        self, sub_handler: MappingHandler, trigger_percent: int, key: Key
+        self, sub_handler: MappingHandler, trigger_percent: int, key: EventCombination
     ) -> None:
         self._handler = sub_handler
         if trigger_percent not in range(-99, 100):

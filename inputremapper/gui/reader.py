@@ -29,7 +29,7 @@ import evdev
 from evdev.ecodes import EV_REL
 
 from inputremapper.logger import logger
-from inputremapper.key import Key
+from inputremapper.event_combination import EventCombination
 from inputremapper.groups import groups, GAMEPAD
 from inputremapper.ipc.pipe import Pipe
 from inputremapper.gui.helper import TERMINATE, REFRESH_GROUPS
@@ -102,7 +102,7 @@ class Reader:
         return None
 
     def read(self):
-        """Get the newest key/combination as Key object.
+        """Get the newest key/combination as EventCombination object.
 
         Only reports keys from down-events.
 
@@ -156,7 +156,7 @@ class Reader:
             # "I have got this release event, what was this for?" A release
             # event for a D-Pad axis might be any direction, hence this maps
             # from release to input in order to remember it. Since all release
-            # events have value 0, the value is not used in the key.
+            # events have value 0, the value is not used in the combination.
             key_down_received = True
             logger.debug_key(event_tuple, "down")
             self._unreleased[type_code] = event_tuple
@@ -172,7 +172,7 @@ class Reader:
         self.previous_event = previous_event
 
         if len(self._unreleased) > 0:
-            result = Key(*self._unreleased.values())
+            result = EventCombination(*self._unreleased.values())
             if result == self.previous_result:
                 # don't return the same stuff twice
                 return None
@@ -214,13 +214,13 @@ class Reader:
         self.previous_result = None
 
     def get_unreleased_keys(self):
-        """Get a Key object of the current keyboard state."""
+        """Get a EventCombination object of the current keyboard state."""
         unreleased = list(self._unreleased.values())
 
         if len(unreleased) == 0:
             return None
 
-        return Key(*unreleased)
+        return EventCombination(*unreleased)
 
     def _release(self, type_code):
         """Modify the state to recognize the releasing of the key."""

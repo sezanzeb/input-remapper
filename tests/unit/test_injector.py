@@ -55,7 +55,7 @@ from inputremapper.configs.system_mapping import system_mapping, DISABLE_CODE, D
 from inputremapper.gui.active_preset import active_preset
 from inputremapper.configs.preset import Preset
 from inputremapper.configs.global_config import global_config, NONE, MOUSE, WHEEL
-from inputremapper.key import Key
+from inputremapper.event_combination import EventCombination
 from inputremapper.injection.macros.parse import parse
 from inputremapper.injection.context import Context
 from inputremapper.groups import groups, classify, GAMEPAD
@@ -124,7 +124,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         # path is from the fixtures
         path = "/dev/input/event10"
 
-        active_preset.change(Key(EV_KEY, 10, 1), "keyboard", "a")
+        active_preset.change(EventCombination(EV_KEY, 10, 1), "keyboard", "a")
 
         self.injector = Injector(groups.find(key="Foo Device 2"), active_preset)
         # this test needs to pass around all other constraints of
@@ -139,7 +139,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
 
     def test_fail_grab(self):
         self.make_it_fail = 999
-        active_preset.change(Key(EV_KEY, 10, 1), "keyboard", "a")
+        active_preset.change(EventCombination(EV_KEY, 10, 1), "keyboard", "a")
 
         self.injector = Injector(groups.find(key="Foo Device 2"), active_preset)
         path = "/dev/input/event10"
@@ -158,7 +158,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.injector.get_state(), InjectorStates.NO_GRAB)
 
     def test_grab_device_1(self):
-        active_preset.change(Key(EV_ABS, ABS_HAT0X, 1), "keyboard", "a")
+        active_preset.change(EventCombination(EV_ABS, ABS_HAT0X, 1), "keyboard", "a")
         self.injector = Injector(groups.find(name="gamepad"), active_preset)
         self.injector.context = Context(active_preset)
 
@@ -182,7 +182,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         device = self.injector._grab_device(path)
         self.assertIsNone(device)  # no capability is used, so it won't grab
 
-        active_preset.change(Key(EV_KEY, BTN_A, 1), "keyboard", "a")
+        active_preset.change(EventCombination(EV_KEY, BTN_A, 1), "keyboard", "a")
         device = self.injector._grab_device(path)
         self.assertIsNotNone(device)
         gamepad = classify(device) == GAMEPAD
@@ -204,7 +204,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         gamepad = classify(device) == GAMEPAD
         self.assertTrue(gamepad)
 
-        active_preset.change(Key(EV_KEY, BTN_A, 1), "keyboard", "a")
+        active_preset.change(EventCombination(EV_KEY, BTN_A, 1), "keyboard", "a")
         device = self.injector._grab_device(path)
         gamepad = classify(device) == GAMEPAD
         self.assertIsNotNone(device)
@@ -212,7 +212,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
 
     def test_skip_unused_device(self):
         # skips a device because its capabilities are not used in the preset
-        active_preset.change(Key(EV_KEY, 10, 1), "keyboard", "a")
+        active_preset.change(EventCombination(EV_KEY, 10, 1), "keyboard", "a")
         self.injector = Injector(groups.find(key="Foo Device 2"), active_preset)
         self.injector.context = Context(active_preset)
         path = "/dev/input/event11"
@@ -221,7 +221,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.failed, 0)
 
     def test_skip_unknown_device(self):
-        active_preset.change(Key(EV_KEY, 10, 1), "keyboard", "a")
+        active_preset.change(EventCombination(EV_KEY, 10, 1), "keyboard", "a")
 
         # skips a device because its capabilities are not used in the preset
         self.injector = Injector(groups.find(key="Foo Device 2"), active_preset)
@@ -328,7 +328,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         active_preset.set("gamepad.joystick.left_purpose", NONE)
         active_preset.set("gamepad.joystick.right_purpose", NONE)
         # BTN_A -> 77
-        active_preset.change(Key((1, BTN_A, 1)), "keyboard", "b")
+        active_preset.change(EventCombination((1, BTN_A, 1)), "keyboard", "b")
         system_mapping._set("b", 77)
         self.injector = Injector(groups.find(name="gamepad"), active_preset)
         self.injector.start()
@@ -361,7 +361,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
 
         # ABS_Z -> 77
         # ABS_RZ is not mapped
-        active_preset.change(Key((EV_ABS, ABS_Z, 1)), "keyboard", "b")
+        active_preset.change(EventCombination((EV_ABS, ABS_Z, 1)), "keyboard", "b")
         system_mapping._set("b", 77)
         self.injector = Injector(groups.find(name="gamepad"), active_preset)
         self.injector.start()
@@ -430,14 +430,14 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
 
     @mock.patch("evdev.InputDevice.ungrab")
     def test_capabilities_and_uinput_presence(self, ungrab_patch):
-        active_preset.change(Key(EV_KEY, KEY_A, 1), "keyboard", "c")
-        active_preset.change(Key(EV_REL, REL_HWHEEL, 1), "keyboard", "k(b)")
+        active_preset.change(EventCombination(EV_KEY, KEY_A, 1), "keyboard", "c")
+        active_preset.change(EventCombination(EV_REL, REL_HWHEEL, 1), "keyboard", "k(b)")
         self.injector = Injector(groups.find(key="Foo Device 2"), active_preset)
         self.injector.stop_injecting()
         self.injector.run()
 
         self.assertEqual(
-            self.injector.context.preset.get_mapping(Key(EV_KEY, KEY_A, 1)),
+            self.injector.context.preset.get_mapping(EventCombination(EV_KEY, KEY_A, 1)),
             ("c", "keyboard"),
         )
         self.assertEqual(
@@ -445,7 +445,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
             (KEY_C, "keyboard"),
         )
         self.assertEqual(
-            self.injector.context.preset.get_mapping(Key(EV_REL, REL_HWHEEL, 1)),
+            self.injector.context.preset.get_mapping(EventCombination(EV_REL, REL_HWHEEL, 1)),
             ("k(b)", "keyboard"),
         )
         self.assertEqual(
@@ -481,12 +481,12 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
 
         numlock_before = is_numlock_on()
 
-        combination = Key((EV_KEY, 8, 1), (EV_KEY, 9, 1))
+        combination = EventCombination((EV_KEY, 8, 1), (EV_KEY, 9, 1))
         active_preset.change(combination, "keyboard", "k(KEY_Q).k(w)")
-        active_preset.change(Key(EV_ABS, ABS_HAT0X, -1), "keyboard", "a")
+        active_preset.change(EventCombination(EV_ABS, ABS_HAT0X, -1), "keyboard", "a")
         # one mapping that is unknown in the system_mapping on purpose
         input_b = 10
-        active_preset.change(Key(EV_KEY, input_b, 1), "keyboard", "b")
+        active_preset.change(EventCombination(EV_KEY, input_b, 1), "keyboard", "b")
 
         # stuff the active_preset outputs (except for the unknown b)
         system_mapping.clear()
@@ -595,8 +595,8 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         d_down = (EV_TYPE, CODE_2, 1)
         d_up = (EV_TYPE, CODE_2, 0)
 
-        active_preset.change(Key(*w_down[:2], -1), "keyboard", "w")
-        active_preset.change(Key(*d_down[:2], 1), "keyboard", "k(d)")
+        active_preset.change(EventCombination(*w_down[:2], -1), "keyboard", "w")
+        active_preset.change(EventCombination(*d_down[:2], 1), "keyboard", "k(d)")
 
         system_mapping.clear()
         code_w = 71
@@ -661,8 +661,8 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         # should be forwarded and present in the capabilities
         hw_left = (EV_REL, REL_HWHEEL, -1)
 
-        active_preset.change(Key(*hw_right), "keyboard", "k(b)")
-        active_preset.change(Key(*w_up), "keyboard", "c")
+        active_preset.change(EventCombination(*hw_right), "keyboard", "k(b)")
+        active_preset.change(EventCombination(*w_up), "keyboard", "c")
 
         system_mapping.clear()
         code_b = 91
@@ -736,7 +736,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         ev_2 = (EV_KEY, 42, 1)
         ev_3 = (EV_KEY, 43, 1)
         # a combination
-        mapping.change(Key(ev_1, ev_2, ev_3), "keyboard", "k(a)")
+        mapping.change(EventCombination(ev_1, ev_2, ev_3), "keyboard", "k(a)")
         self.injector = Injector(groups.find(key="Foo Device 2"), mapping)
 
         history = []
@@ -769,10 +769,10 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         ev_2 = (EV_KEY, 42, 1)
         ev_3 = (EV_KEY, 43, 1)
         ev_4 = (EV_KEY, 44, 1)
-        mapping.change(Key(ev_1), "keyboard", "a")
+        mapping.change(EventCombination(ev_1), "keyboard", "a")
         # a combination
-        mapping.change(Key(ev_2, ev_3, ev_4), "keyboard", "b")
-        self.assertEqual(mapping.get_mapping(Key(ev_2, ev_3, ev_4)), ("b", "keyboard"))
+        mapping.change(EventCombination(ev_2, ev_3, ev_4), "keyboard", "b")
+        self.assertEqual(mapping.get_mapping(EventCombination(ev_2, ev_3, ev_4)), ("b", "keyboard"))
 
         system_mapping.clear()
         system_mapping._set("a", 51)
@@ -791,18 +791,18 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(injector.context.key_to_code), 3)
 
     def test_is_in_capabilities(self):
-        key = Key(1, 2, 1)
+        key = EventCombination(1, 2, 1)
         capabilities = {1: [9, 2, 5]}
         self.assertTrue(is_in_capabilities(key, capabilities))
 
-        key = Key((1, 2, 1), (1, 3, 1))
+        key = EventCombination((1, 2, 1), (1, 3, 1))
         capabilities = {1: [9, 2, 5]}
         # only one of the codes of the combination is required.
         # The goal is to make combinations across those sub-devices possible,
         # that make up one hardware device
         self.assertTrue(is_in_capabilities(key, capabilities))
 
-        key = Key((1, 2, 1), (1, 5, 1))
+        key = EventCombination((1, 2, 1), (1, 5, 1))
         capabilities = {1: [9, 2, 5]}
         self.assertTrue(is_in_capabilities(key, capabilities))
 
@@ -850,17 +850,17 @@ class TestModifyCapabilities(unittest.TestCase):
                 return self._capabilities
 
         mapping = Preset()
-        mapping.change(Key(EV_KEY, 80, 1), "keyboard", "a")
-        mapping.change(Key(EV_KEY, 81, 1), "keyboard", DISABLE_NAME)
+        mapping.change(EventCombination(EV_KEY, 80, 1), "keyboard", "a")
+        mapping.change(EventCombination(EV_KEY, 81, 1), "keyboard", DISABLE_NAME)
 
         macro_code = "r(2, m(sHiFt_l, r(2, k(1).k(2))))"
         macro = parse(macro_code, mapping)
 
-        mapping.change(Key(EV_KEY, 60, 111), "keyboard", macro_code)
+        mapping.change(EventCombination(EV_KEY, 60, 111), "keyboard", macro_code)
 
         # going to be ignored, because EV_REL cannot be mapped, that's
         # mouse movements.
-        mapping.change(Key(EV_REL, 1234, 3), "keyboard", "b")
+        mapping.change(EventCombination(EV_REL, 1234, 3), "keyboard", "b")
 
         self.a = system_mapping.get("a")
         self.shift_l = system_mapping.get("ShIfT_L")
@@ -885,7 +885,7 @@ class TestModifyCapabilities(unittest.TestCase):
         quick_cleanup()
 
     def test_copy_capabilities(self):
-        self.mapping.change(Key(EV_KEY, 60, 1), "keyboard", self.macro.code)
+        self.mapping.change(EventCombination(EV_KEY, 60, 1), "keyboard", self.macro.code)
 
         # I don't know what ABS_VOLUME is, for now I would like to just always
         # remove it until somebody complains, since its presence broke stuff

@@ -30,7 +30,7 @@ from inputremapper.configs.preset import Preset, split_key
 from inputremapper.configs.system_mapping import SystemMapping, XMODMAP_FILENAME
 from inputremapper.configs.global_config import global_config
 from inputremapper.configs.paths import get_preset_path
-from inputremapper.key import Key
+from inputremapper.event_combination import EventCombination
 
 from tests.test import tmp, quick_cleanup
 
@@ -158,7 +158,7 @@ class TestMapping(unittest.TestCase):
 
         # setting mapping.whatever does not overwrite the mapping
         # after saving. It should be ignored.
-        self.mapping.change(Key(EV_KEY, 81, 1), "keyboard", " a ")
+        self.mapping.change(EventCombination(EV_KEY, 81, 1), "keyboard", " a ")
         self.mapping.set("mapping.a", 2)
         self.assertEqual(self.mapping.num_saved_keys, 0)
         self.mapping.save(get_preset_path("foo", "bar"))
@@ -166,7 +166,7 @@ class TestMapping(unittest.TestCase):
         self.assertFalse(self.mapping.has_unsaved_changes())
         self.mapping.load(get_preset_path("foo", "bar"))
         self.assertEqual(
-            self.mapping.get_mapping(Key(EV_KEY, 81, 1)), ("a", "keyboard")
+            self.mapping.get_mapping(EventCombination(EV_KEY, 81, 1)), ("a", "keyboard")
         )
         self.assertIsNone(self.mapping.get("mapping.a"))
         self.assertFalse(self.mapping.has_unsaved_changes())
@@ -185,13 +185,13 @@ class TestMapping(unittest.TestCase):
         self.assertEqual(self.mapping.get("d.e.f"), 3)
 
     def test_save_load(self):
-        one = Key(EV_KEY, 10, 1)
-        two = Key(EV_KEY, 11, 1)
-        three = Key(EV_KEY, 12, 1)
+        one = EventCombination(EV_KEY, 10, 1)
+        two = EventCombination(EV_KEY, 11, 1)
+        three = EventCombination(EV_KEY, 12, 1)
 
         self.mapping.change(one, "keyboard", "1")
         self.mapping.change(two, "keyboard", "2")
-        self.mapping.change(Key(two, three), "keyboard", "3")
+        self.mapping.change(EventCombination(two, three), "keyboard", "3")
         self.mapping._config["foo"] = "bar"
         self.mapping.save(get_preset_path("Foo Device", "test"))
 
@@ -205,16 +205,16 @@ class TestMapping(unittest.TestCase):
         self.assertEqual(len(loaded), 3)
         self.assertEqual(loaded.get_mapping(one), ("1", "keyboard"))
         self.assertEqual(loaded.get_mapping(two), ("2", "keyboard"))
-        self.assertEqual(loaded.get_mapping(Key(two, three)), ("3", "keyboard"))
+        self.assertEqual(loaded.get_mapping(EventCombination(two, three)), ("3", "keyboard"))
         self.assertEqual(loaded._config["foo"], "bar")
 
     def test_change(self):
         # the reader would not report values like 111 or 222, only 1 or -1.
         # the preset just does what it is told, so it accepts them.
-        ev_1 = Key(EV_KEY, 1, 111)
-        ev_2 = Key(EV_KEY, 1, 222)
-        ev_3 = Key(EV_KEY, 2, 111)
-        ev_4 = Key(EV_ABS, 1, 111)
+        ev_1 = EventCombination(EV_KEY, 1, 111)
+        ev_2 = EventCombination(EV_KEY, 1, 222)
+        ev_3 = EventCombination(EV_KEY, 2, 111)
+        ev_4 = EventCombination(EV_ABS, 1, 111)
 
         # 1 is not assigned yet, ignore it
         self.mapping.change(ev_1, "keyboard", "a", ev_2)
@@ -248,7 +248,7 @@ class TestMapping(unittest.TestCase):
         self.assertEqual(self.mapping.num_saved_keys, 0)
 
     def test_rejects_empty(self):
-        key = Key(EV_KEY, 1, 111)
+        key = EventCombination(EV_KEY, 1, 111)
         self.assertEqual(len(self.mapping), 0)
         self.assertRaises(
             ValueError, lambda: self.mapping.change(key, "keyboard", " \n ")
@@ -262,23 +262,23 @@ class TestMapping(unittest.TestCase):
             # should not be called
             raise AssertionError
 
-        key = Key(EV_KEY, 987, 1)
+        key = EventCombination(EV_KEY, 987, 1)
         target = "keyboard"
         symbol = "foo"
 
         self.mapping.change(key, target, symbol)
         with patch.object(self.mapping, "clear", clear):
             self.mapping.change(key, target, symbol)
-            self.mapping.change(key, target, symbol, previous_key=key)
+            self.mapping.change(key, target, symbol, previous_combination=key)
 
     def test_combinations(self):
-        ev_1 = Key(EV_KEY, 1, 111)
-        ev_2 = Key(EV_KEY, 1, 222)
-        ev_3 = Key(EV_KEY, 2, 111)
-        ev_4 = Key(EV_ABS, 1, 111)
-        combi_1 = Key(ev_1, ev_2, ev_3)
-        combi_2 = Key(ev_2, ev_1, ev_3)
-        combi_3 = Key(ev_1, ev_2, ev_4)
+        ev_1 = EventCombination(EV_KEY, 1, 111)
+        ev_2 = EventCombination(EV_KEY, 1, 222)
+        ev_3 = EventCombination(EV_KEY, 2, 111)
+        ev_4 = EventCombination(EV_ABS, 1, 111)
+        combi_1 = EventCombination(ev_1, ev_2, ev_3)
+        combi_2 = EventCombination(ev_2, ev_1, ev_3)
+        combi_3 = EventCombination(ev_1, ev_2, ev_4)
 
         self.mapping.change(combi_1, "keyboard", "a")
         self.assertEqual(self.mapping.get_mapping(combi_1), ("a", "keyboard"))
@@ -300,10 +300,10 @@ class TestMapping(unittest.TestCase):
 
     def test_clear(self):
         # does nothing
-        ev_1 = Key(EV_KEY, 40, 1)
-        ev_2 = Key(EV_KEY, 30, 1)
-        ev_3 = Key(EV_KEY, 20, 1)
-        ev_4 = Key(EV_KEY, 10, 1)
+        ev_1 = EventCombination(EV_KEY, 40, 1)
+        ev_2 = EventCombination(EV_KEY, 30, 1)
+        ev_3 = EventCombination(EV_KEY, 20, 1)
+        ev_4 = EventCombination(EV_KEY, 10, 1)
 
         self.mapping.clear(ev_1)
         self.assertFalse(self.mapping.has_unsaved_changes())
@@ -327,27 +327,27 @@ class TestMapping(unittest.TestCase):
         self.assertEqual(self.mapping.get_mapping(ev_2), ("KEY_KP3", "keyboard"))
 
     def test_empty(self):
-        self.mapping.change(Key(EV_KEY, 10, 1), "keyboard", "1")
-        self.mapping.change(Key(EV_KEY, 11, 1), "keyboard", "2")
-        self.mapping.change(Key(EV_KEY, 12, 1), "keyboard", "3")
+        self.mapping.change(EventCombination(EV_KEY, 10, 1), "keyboard", "1")
+        self.mapping.change(EventCombination(EV_KEY, 11, 1), "keyboard", "2")
+        self.mapping.change(EventCombination(EV_KEY, 12, 1), "keyboard", "3")
         self.assertEqual(len(self.mapping), 3)
         self.mapping.empty()
         self.assertEqual(len(self.mapping), 0)
 
     def test_dangerously_mapped_btn_left(self):
-        self.mapping.change(Key.btn_left(), "keyboard", "1")
+        self.mapping.change(EventCombination.btn_left(), "keyboard", "1")
         self.assertTrue(self.mapping.dangerously_mapped_btn_left())
 
-        self.mapping.change(Key(EV_KEY, 41, 1), "keyboard", "2")
+        self.mapping.change(EventCombination(EV_KEY, 41, 1), "keyboard", "2")
         self.assertTrue(self.mapping.dangerously_mapped_btn_left())
 
-        self.mapping.change(Key(EV_KEY, 42, 1), "gamepad", "btn_left")
+        self.mapping.change(EventCombination(EV_KEY, 42, 1), "gamepad", "btn_left")
         self.assertFalse(self.mapping.dangerously_mapped_btn_left())
 
-        self.mapping.change(Key(EV_KEY, 42, 1), "gamepad", "BTN_Left")
+        self.mapping.change(EventCombination(EV_KEY, 42, 1), "gamepad", "BTN_Left")
         self.assertFalse(self.mapping.dangerously_mapped_btn_left())
 
-        self.mapping.change(Key(EV_KEY, 42, 1), "keyboard", "3")
+        self.mapping.change(EventCombination(EV_KEY, 42, 1), "keyboard", "3")
         self.assertTrue(self.mapping.dangerously_mapped_btn_left())
 
 
