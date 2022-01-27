@@ -70,7 +70,7 @@ class InputEvent:
                code: int = None,
                value: int = None,
                ) -> InputEvent:
-        """return modified event"""
+        """return a new modified event"""
         return InputEvent(
             sec or self.sec,
             usec or self.usec,
