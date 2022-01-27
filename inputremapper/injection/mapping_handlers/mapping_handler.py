@@ -91,7 +91,7 @@ class InputEventHandler(Protocol):
         ...
 
 
-class MappingHandler(Protocol, InputEventHandler):
+class MappingHandler(InputEventHandler, Protocol):
     """"""
     def __init__(self, config: Dict[str, int], context: ContextProtocol):
         ...
