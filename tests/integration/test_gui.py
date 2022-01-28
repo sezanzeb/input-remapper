@@ -42,6 +42,7 @@ from importlib.util import spec_from_loader, module_from_spec
 from importlib.machinery import SourceFileLoader
 
 import gi
+from inputremapper.input_event import InputEvent
 
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk, GLib, Gdk
@@ -357,7 +358,7 @@ class GuiTestBase:
             # modifies the keycode in the selection_label not by writing into the input,
             # but by sending an event. press down all the keys of a combination
             for sub_key in key:
-                send_event_to_reader(new_event(*sub_key))
+                send_event_to_reader(new_event(*sub_key.event_tuple))
                 # this will be consumed all at once, since no gtk_iteration
                 # is done
 
@@ -372,7 +373,7 @@ class GuiTestBase:
 
             # release all the keys
             for sub_key in key:
-                send_event_to_reader(new_event(*sub_key[:2], 0))
+                send_event_to_reader(new_event(*sub_key.type_and_code, 0))
 
             # wait for the window to consume the keycode
             self.sleep(len(key))
@@ -616,9 +617,9 @@ class TestGui(GuiTestBase, unittest.TestCase):
     def test_select_device(self):
         # creates a new empty preset when no preset exists for the device
         self.user_interface.on_select_device(FakeDeviceDropdown("Foo Device"))
-        active_preset.change(EventCombination(EV_KEY, 50, 1), "keyboard", "q")
-        active_preset.change(EventCombination(EV_KEY, 51, 1), "keyboard", "u")
-        active_preset.change(EventCombination(EV_KEY, 52, 1), "keyboard", "x")
+        active_preset.change(EventCombination([EV_KEY, 50, 1]), "keyboard", "q")
+        active_preset.change(EventCombination([EV_KEY, 51, 1]), "keyboard", "u")
+        active_preset.change(EventCombination([EV_KEY, 52, 1]), "keyboard", "x")
         self.assertEqual(len(active_preset), 3)
         self.user_interface.on_select_device(FakeDeviceDropdown("Bar Device"))
         self.assertEqual(len(active_preset), 0)
@@ -651,24 +652,24 @@ class TestGui(GuiTestBase, unittest.TestCase):
 
     def test_editor_keycode_to_string(self):
         # not an integration test, but I have all the selection_label tests here already
-        self.assertEqual(EventCombination(EV_KEY, evdev.ecodes.KEY_A, 1).beautify(), "a")
+        self.assertEqual(EventCombination([EV_KEY, evdev.ecodes.KEY_A, 1]).beautify(), "a")
         self.assertEqual(
-            EventCombination(EV_ABS, evdev.ecodes.ABS_HAT0X, -1).beautify(), "DPad Left"
+            EventCombination([EV_ABS, evdev.ecodes.ABS_HAT0X, -1]).beautify(), "DPad Left"
         )
-        self.assertEqual(EventCombination(EV_ABS, evdev.ecodes.ABS_HAT0Y, -1).beautify(), "DPad Up")
-        self.assertEqual(EventCombination(EV_KEY, evdev.ecodes.BTN_A, 1).beautify(), "Button A")
-        self.assertEqual(EventCombination(EV_KEY, 1234, 1).beautify(), "1234")
+        self.assertEqual(EventCombination([EV_ABS, evdev.ecodes.ABS_HAT0Y, -1]).beautify(), "DPad Up")
+        self.assertEqual(EventCombination([EV_KEY, evdev.ecodes.BTN_A, 1]).beautify(), "Button A")
+        self.assertEqual(EventCombination([EV_KEY, 1234, 1]).beautify(), "1234")
         self.assertEqual(
-            EventCombination(EV_ABS, evdev.ecodes.ABS_X, 1).beautify(), "Joystick Right"
-        )
-        self.assertEqual(
-            EventCombination(EV_ABS, evdev.ecodes.ABS_RY, 1).beautify(), "Joystick 2 Down"
+            EventCombination([EV_ABS, evdev.ecodes.ABS_X, 1]).beautify(), "Joystick Right"
         )
         self.assertEqual(
-            EventCombination(EV_REL, evdev.ecodes.REL_HWHEEL, 1).beautify(), "Wheel Right"
+            EventCombination([EV_ABS, evdev.ecodes.ABS_RY, 1]).beautify(), "Joystick 2 Down"
         )
         self.assertEqual(
-            EventCombination(EV_REL, evdev.ecodes.REL_WHEEL, -1).beautify(), "Wheel Down"
+            EventCombination([EV_REL, evdev.ecodes.REL_HWHEEL, 1]).beautify(), "Wheel Right"
+        )
+        self.assertEqual(
+            EventCombination([EV_REL, evdev.ecodes.REL_WHEEL, -1]).beautify(), "Wheel Down"
         )
 
         # combinations
@@ -697,19 +698,21 @@ class TestGui(GuiTestBase, unittest.TestCase):
         self.assertEqual(len(active_preset), 0)
         self.assertEqual(self.toggle.get_label(), "Press Key")
 
-        self.editor.consume_newest_keycode(EventCombination(EV_KEY, 30, 1))
+        self.editor.consume_newest_keycode(EventCombination([EV_KEY, 30, 1]))
         # no symbol configured yet, so the active_preset remains empty
         self.assertEqual(len(active_preset), 0)
-        self.assertEqual(selection_label.get_combination(), (EV_KEY, 30, 1))
+        self.assertEqual(len(selection_label.get_combination()), 1)
+        self.assertEqual(selection_label.get_combination()[0], (EV_KEY, 30, 1))
         # this is KEY_A in linux/input-event-codes.h,
         # but KEY_ is removed from the text for display purposes
         self.assertEqual(selection_label.get_label(), "a")
 
         # providing the same key again (Maybe this could happen for gamepads or
         # something, idk) doesn't do any harm
-        self.editor.consume_newest_keycode(EventCombination(EV_KEY, 30, 1))
+        self.editor.consume_newest_keycode(EventCombination([EV_KEY, 30, 1]))
         self.assertEqual(len(active_preset), 0)  # not released yet
-        self.assertEqual(selection_label.get_combination(), (EV_KEY, 30, 1))
+        self.assertEqual(len(selection_label.get_combination()), 1)
+        self.assertEqual(selection_label.get_combination()[0], (EV_KEY, 30, 1))
 
         time.sleep(0.11)
         # new empty entry was added
@@ -733,11 +736,12 @@ class TestGui(GuiTestBase, unittest.TestCase):
         )
 
         self.assertEqual(
-            active_preset.get_mapping(EventCombination(EV_KEY, 30, 1)), ("Shift_L", "keyboard")
+            active_preset.get_mapping(EventCombination([EV_KEY, 30, 1])), ("Shift_L", "keyboard")
         )
         self.assertEqual(self.editor.get_target_selection(), "keyboard")
         self.assertEqual(self.editor.get_symbol_input_text(), "Shift_L")
-        self.assertEqual(selection_label.get_combination(), (EV_KEY, 30, 1))
+        self.assertEqual(len(selection_label.get_combination()), 1)
+        self.assertEqual(selection_label.get_combination()[0], (EV_KEY, 30, 1))
 
         self.editor.set_target_selection("mouse")
         time.sleep(0.1)
@@ -747,11 +751,11 @@ class TestGui(GuiTestBase, unittest.TestCase):
             2,
         )
         self.assertEqual(
-            active_preset.get_mapping(EventCombination(EV_KEY, 30, 1)), ("Shift_L", "mouse")
+            active_preset.get_mapping(EventCombination([EV_KEY, 30, 1])), ("Shift_L", "mouse")
         )
         self.assertEqual(self.editor.get_target_selection(), "mouse")
         self.assertEqual(self.editor.get_symbol_input_text(), "Shift_L")
-        self.assertEqual(selection_label.get_combination(), (EV_KEY, 30, 1))
+        self.assertEqual(selection_label.get_combination()[0], (EV_KEY, 30, 1))
 
     def test_editor_not_focused(self):
         # focus anything that is not the selection_label,
@@ -785,11 +789,11 @@ class TestGui(GuiTestBase, unittest.TestCase):
         self.assertNotIn("...", text)
 
     def test_clears_unreleased_on_focus_change(self):
-        ev_1 = EventCombination(EV_KEY, 41, 1)
+        ev_1 = EventCombination([EV_KEY, 41, 1])
 
         # focus
         self.set_focus(self.toggle)
-        send_event_to_reader(new_event(*ev_1.keys[0]))
+        send_event_to_reader(new_event(*ev_1[0].event_tuple))
         reader.read()
         self.assertEqual(reader.get_unreleased_keys(), ev_1)
 
@@ -821,8 +825,8 @@ class TestGui(GuiTestBase, unittest.TestCase):
         # how many selection_labels there should be in the end
         num_selection_labels_target = 3
 
-        ev_1 = EventCombination(EV_KEY, 10, 1)
-        ev_2 = EventCombination(EV_ABS, evdev.ecodes.ABS_HAT0X, -1)
+        ev_1 = EventCombination([EV_KEY, 10, 1])
+        ev_2 = EventCombination([EV_ABS, evdev.ecodes.ABS_HAT0X, -1])
 
         """edit"""
 
@@ -869,10 +873,10 @@ class TestGui(GuiTestBase, unittest.TestCase):
 
     def test_hat0x(self):
         # it should be possible to add all of them
-        ev_1 = EventCombination(EV_ABS, evdev.ecodes.ABS_HAT0X, -1)
-        ev_2 = EventCombination(EV_ABS, evdev.ecodes.ABS_HAT0X, 1)
-        ev_3 = EventCombination(EV_ABS, evdev.ecodes.ABS_HAT0Y, -1)
-        ev_4 = EventCombination(EV_ABS, evdev.ecodes.ABS_HAT0Y, 1)
+        ev_1 = EventCombination([EV_ABS, evdev.ecodes.ABS_HAT0X, -1])
+        ev_2 = EventCombination([EV_ABS, evdev.ecodes.ABS_HAT0X, 1])
+        ev_3 = EventCombination([EV_ABS, evdev.ecodes.ABS_HAT0Y, -1])
+        ev_4 = EventCombination([EV_ABS, evdev.ecodes.ABS_HAT0Y, 1])
 
         self.add_mapping_via_ui(ev_1, "a")
         self.add_mapping_via_ui(ev_2, "b")
@@ -898,10 +902,10 @@ class TestGui(GuiTestBase, unittest.TestCase):
 
     def test_combination(self):
         # it should be possible to write a combination combination
-        ev_1 = EventCombination(EV_KEY, evdev.ecodes.KEY_A, 1)
-        ev_2 = EventCombination(EV_ABS, evdev.ecodes.ABS_HAT0X, 1)
-        ev_3 = EventCombination(EV_KEY, evdev.ecodes.KEY_C, 1)
-        ev_4 = EventCombination(EV_ABS, evdev.ecodes.ABS_HAT0X, -1)
+        ev_1 = InputEvent.from_event_tuple((EV_KEY, evdev.ecodes.KEY_A, 1))
+        ev_2 = InputEvent.from_event_tuple((EV_ABS, evdev.ecodes.ABS_HAT0X, 1))
+        ev_3 = InputEvent.from_event_tuple((EV_KEY, evdev.ecodes.KEY_C, 1))
+        ev_4 = InputEvent.from_event_tuple((EV_ABS, evdev.ecodes.ABS_HAT0X, -1))
         combination_1 = EventCombination(ev_1, ev_2, ev_3)
         combination_2 = EventCombination(ev_2, ev_1, ev_3)
 
@@ -988,7 +992,7 @@ class TestGui(GuiTestBase, unittest.TestCase):
 
             if code is not None and symbol is not None:
                 self.assertEqual(
-                    active_preset.get_mapping(EventCombination(EV_KEY, code, 1)), (symbol, target)
+                    active_preset.get_mapping(EventCombination([EV_KEY, code, 1])), (symbol, target)
                 )
 
             if symbol is not None:
@@ -999,7 +1003,7 @@ class TestGui(GuiTestBase, unittest.TestCase):
             if code is None:
                 self.assertIsNone(selection_label.get_combination())
             else:
-                self.assertEqual(selection_label.get_combination(), EventCombination(EV_KEY, code, 1))
+                self.assertEqual(selection_label.get_combination(), EventCombination([EV_KEY, code, 1]))
 
             with PatchedConfirmDelete(self.user_interface):
                 self.editor._on_delete_button_clicked()
@@ -1012,7 +1016,7 @@ class TestGui(GuiTestBase, unittest.TestCase):
             # information that is supposed to be deleted
             self.assertIsNone(selection_label.get_combination())
             if code is not None:
-                self.assertIsNone(active_preset.get_mapping(EventCombination(EV_KEY, code, 1)))
+                self.assertIsNone(active_preset.get_mapping(EventCombination([EV_KEY, code, 1])))
 
             self.assertEqual(
                 len(self.get_selection_labels()),
@@ -1021,8 +1025,8 @@ class TestGui(GuiTestBase, unittest.TestCase):
 
         # sleeps are added to be able to visually follow and debug the test. Add two
         # selection_labels by modifiying the one empty selection_label that exists
-        selection_label_1 = self.add_mapping_via_ui(EventCombination(EV_KEY, 10, 1), "a")
-        selection_label_2 = self.add_mapping_via_ui(EventCombination(EV_KEY, 11, 1), "b")
+        selection_label_1 = self.add_mapping_via_ui(EventCombination([EV_KEY, 10, 1]), "a")
+        selection_label_2 = self.add_mapping_via_ui(EventCombination([EV_KEY, 11, 1]), "b")
 
         # no empty selection_label added because one is unfinished
         time.sleep(0.2)
@@ -1030,7 +1034,7 @@ class TestGui(GuiTestBase, unittest.TestCase):
         self.assertEqual(len(self.get_selection_labels()), 3)
 
         self.assertEqual(
-            active_preset.get_mapping(EventCombination(EV_KEY, 11, 1)), ("b", "keyboard")
+            active_preset.get_mapping(EventCombination([EV_KEY, 11, 1])), ("b", "keyboard")
         )
 
         remove(selection_label_1, 10, "a", 2)
@@ -1057,16 +1061,16 @@ class TestGui(GuiTestBase, unittest.TestCase):
         self.assertEqual(self.user_interface.group.name, "Foo Device")
         self.assertFalse(global_config.is_autoloaded("Foo Device", "new preset"))
 
-        active_preset.change(EventCombination(EV_KEY, 14, 1), "keyboard", "a", None)
+        active_preset.change(EventCombination([EV_KEY, 14, 1]), "keyboard", "a", None)
         self.assertEqual(self.user_interface.preset_name, "new preset")
         self.user_interface.save_preset()
         self.assertEqual(
-            active_preset.get_mapping(EventCombination(EV_KEY, 14, 1)), ("a", "keyboard")
+            active_preset.get_mapping(EventCombination([EV_KEY, 14, 1])), ("a", "keyboard")
         )
         global_config.set_autoload_preset("Foo Device", "new preset")
         self.assertTrue(global_config.is_autoloaded("Foo Device", "new preset"))
 
-        active_preset.change(EventCombination(EV_KEY, 14, 1), "keyboard", "b", None)
+        active_preset.change(EventCombination([EV_KEY, 14, 1]), "keyboard", "b", None)
         self.user_interface.get("preset_name_input").set_text("asdf")
         self.user_interface.save_preset()
         self.user_interface.on_rename_button_clicked(None)
@@ -1074,7 +1078,7 @@ class TestGui(GuiTestBase, unittest.TestCase):
         preset_path = f"{CONFIG_PATH}/presets/Foo Device/asdf.json"
         self.assertTrue(os.path.exists(preset_path))
         self.assertEqual(
-            active_preset.get_mapping(EventCombination(EV_KEY, 14, 1)), ("b", "keyboard")
+            active_preset.get_mapping(EventCombination([EV_KEY, 14, 1])), ("b", "keyboard")
         )
 
         # after renaming the preset it is still set to autoload
@@ -1087,7 +1091,7 @@ class TestGui(GuiTestBase, unittest.TestCase):
         self.assertFalse(error_icon.get_visible())
 
         # otherwise save won't do anything
-        active_preset.change(EventCombination(EV_KEY, 14, 1), "keyboard", "c", None)
+        active_preset.change(EventCombination([EV_KEY, 14, 1]), "keyboard", "c", None)
         self.assertTrue(active_preset.has_unsaved_changes())
 
         def save(_):
@@ -1105,7 +1109,7 @@ class TestGui(GuiTestBase, unittest.TestCase):
     def test_rename_create_switch(self):
         # after renaming a preset and saving it, new presets
         # start with "new preset" again
-        active_preset.change(EventCombination(EV_KEY, 14, 1), "keyboard", "a", None)
+        active_preset.change(EventCombination([EV_KEY, 14, 1]), "keyboard", "a", None)
         self.user_interface.get("preset_name_input").set_text("asdf")
         self.user_interface.save_preset()
         self.user_interface.on_rename_button_clicked(None)
@@ -1119,14 +1123,14 @@ class TestGui(GuiTestBase, unittest.TestCase):
         self.user_interface.save_preset()
 
         # symbol and code in the gui won't be carried over after selecting a preset
-        self.editor.set_combination(EventCombination(EV_KEY, 15, 1))
+        self.editor.set_combination(EventCombination([EV_KEY, 15, 1]))
         self.editor.set_symbol_input_text("b")
 
         # selecting the first preset again loads the saved mapping, and saves
         # the current changes in the gui
         self.user_interface.on_select_preset(FakePresetDropdown("asdf"))
         self.assertEqual(
-            active_preset.get_mapping(EventCombination(EV_KEY, 14, 1)), ("a", "keyboard")
+            active_preset.get_mapping(EventCombination([EV_KEY, 14, 1])), ("a", "keyboard")
         )
         self.assertEqual(len(active_preset), 1)
         self.assertEqual(len(self.selection_label_listbox.get_children()), 2)
@@ -1141,7 +1145,7 @@ class TestGui(GuiTestBase, unittest.TestCase):
         # configuration as well
         self.assertTrue(global_config.is_autoloaded("Foo Device", "asdf 2"))
         self.assertEqual(
-            active_preset.get_mapping(EventCombination(EV_KEY, 15, 1)), ("b", "keyboard")
+            active_preset.get_mapping(EventCombination([EV_KEY, 15, 1])), ("b", "keyboard")
         )
         self.assertEqual(len(active_preset), 1)
         self.assertEqual(len(self.selection_label_listbox.get_children()), 2)
@@ -1164,7 +1168,7 @@ class TestGui(GuiTestBase, unittest.TestCase):
             self.assertEqual(self.user_interface.preset_name, "asdf 2")
 
     def test_avoids_redundant_saves(self):
-        active_preset.change(EventCombination(EV_KEY, 14, 1), "keyboard", "abcd", None)
+        active_preset.change(EventCombination([EV_KEY, 14, 1]), "keyboard", "abcd", None)
 
         active_preset.set_has_unsaved_changes(False)
         self.user_interface.save_preset()
@@ -1185,8 +1189,8 @@ class TestGui(GuiTestBase, unittest.TestCase):
         error_icon = self.user_interface.get("error_status_icon")
         warning_icon = self.user_interface.get("warning_status_icon")
 
-        active_preset.change(EventCombination(EV_KEY, 71, 1), "keyboard", "qux", None)
-        active_preset.change(EventCombination(EV_KEY, 72, 1), "keyboard", "foo", None)
+        active_preset.change(EventCombination([EV_KEY, 71, 1]), "keyboard", "qux", None)
+        active_preset.change(EventCombination([EV_KEY, 72, 1]), "keyboard", "foo", None)
         self.user_interface.save_preset()
         tooltip = status.get_tooltip_text().lower()
         self.assertIn("qux", tooltip)
@@ -1199,14 +1203,14 @@ class TestGui(GuiTestBase, unittest.TestCase):
             self.assertIn("qux", content)
             self.assertIn("foo", content)
 
-        active_preset.change(EventCombination(EV_KEY, 71, 1), "keyboard", "a", None)
+        active_preset.change(EventCombination([EV_KEY, 71, 1]), "keyboard", "a", None)
         self.user_interface.save_preset()
         tooltip = status.get_tooltip_text().lower()
         self.assertIn("foo", tooltip)
         self.assertTrue(error_icon.get_visible())
         self.assertFalse(warning_icon.get_visible())
 
-        active_preset.change(EventCombination(EV_KEY, 72, 1), "keyboard", "b", None)
+        active_preset.change(EventCombination([EV_KEY, 72, 1]), "keyboard", "b", None)
         self.user_interface.save_preset()
         tooltip = status.get_tooltip_text()
         self.assertIsNone(tooltip)
@@ -1218,14 +1222,14 @@ class TestGui(GuiTestBase, unittest.TestCase):
         error_icon = self.user_interface.get("error_status_icon")
         warning_icon = self.user_interface.get("warning_status_icon")
 
-        active_preset.change(EventCombination(EV_KEY, 9, 1), "keyboard", "k(1))", None)
+        active_preset.change(EventCombination([EV_KEY, 9, 1]), "keyboard", "k(1))", None)
         self.user_interface.save_preset()
         tooltip = status.get_tooltip_text().lower()
         self.assertIn("brackets", tooltip)
         self.assertTrue(error_icon.get_visible())
         self.assertFalse(warning_icon.get_visible())
 
-        active_preset.change(EventCombination(EV_KEY, 9, 1), "keyboard", "k(1)", None)
+        active_preset.change(EventCombination([EV_KEY, 9, 1]), "keyboard", "k(1)", None)
         self.user_interface.save_preset()
         tooltip = (status.get_tooltip_text() or "").lower()
         self.assertNotIn("brackets", tooltip)
@@ -1233,13 +1237,13 @@ class TestGui(GuiTestBase, unittest.TestCase):
         self.assertFalse(warning_icon.get_visible())
 
         self.assertEqual(
-            active_preset.get_mapping(EventCombination(EV_KEY, 9, 1)), ("k(1)", "keyboard")
+            active_preset.get_mapping(EventCombination([EV_KEY, 9, 1])), ("k(1)", "keyboard")
         )
 
     def test_select_device_and_preset(self):
         foo_device_path = f"{CONFIG_PATH}/presets/Foo Device"
-        key_10 = EventCombination(EV_KEY, 10, 1)
-        key_11 = EventCombination(EV_KEY, 11, 1)
+        key_10 = EventCombination([EV_KEY, 10, 1])
+        key_11 = EventCombination([EV_KEY, 11, 1])
 
         # created on start because the first device is selected and some empty
         # preset prepared.
@@ -1285,7 +1289,7 @@ class TestGui(GuiTestBase, unittest.TestCase):
         # putting new information into the editor does not lead to some weird
         # problems. when doing the rename everything will be saved and then moved
         # to the new path
-        self.editor.set_combination(EventCombination(EV_KEY, 10, 1))
+        self.editor.set_combination(EventCombination([EV_KEY, 10, 1]))
         self.editor.set_symbol_input_text("1")
 
         self.assertEqual(self.user_interface.preset_name, "new preset")
@@ -1306,7 +1310,7 @@ class TestGui(GuiTestBase, unittest.TestCase):
 
     def test_copy_preset(self):
         selection_labels = self.selection_label_listbox
-        self.add_mapping_via_ui(EventCombination(EV_KEY, 81, 1), "a")
+        self.add_mapping_via_ui(EventCombination([EV_KEY, 81, 1]), "a")
         time.sleep(0.1)
         gtk_iteration()
         self.user_interface.save_preset()
@@ -1324,7 +1328,7 @@ class TestGui(GuiTestBase, unittest.TestCase):
         self.assertIsNone(active_preset.get("a.b"))
 
         # add one new selection_label again and a setting
-        self.add_mapping_via_ui(EventCombination(EV_KEY, 81, 1), "b")
+        self.add_mapping_via_ui(EventCombination([EV_KEY, 81, 1]), "b")
         time.sleep(0.1)
         gtk_iteration()
         self.user_interface.save_preset()
@@ -1413,7 +1417,7 @@ class TestGui(GuiTestBase, unittest.TestCase):
 
         # not empty, but keys are held down
 
-        active_preset.change(EventCombination(EV_KEY, KEY_A, 1), "keyboard", "a")
+        active_preset.change(EventCombination([EV_KEY, KEY_A, 1]), "keyboard", "a")
         self.user_interface.save_preset()
         send_event_to_reader(new_event(EV_KEY, KEY_A, 1))
         reader.read()
@@ -1500,7 +1504,7 @@ class TestGui(GuiTestBase, unittest.TestCase):
                     return
 
         # btn_left mapped
-        active_preset.change(EventCombination.btn_left(), "keyboard", "a")
+        active_preset.change(EventCombination(InputEvent.btn_left()), "keyboard", "a")
         self.user_interface.save_preset()
 
         # and combination held down
@@ -1549,7 +1553,7 @@ class TestGui(GuiTestBase, unittest.TestCase):
         text = self.get_status_text()
         self.assertNotIn("Stop Injection", text)
 
-        active_preset.change(EventCombination(EV_KEY, KEY_A, 1), "keyboard", "b")
+        active_preset.change(EventCombination([EV_KEY, KEY_A, 1]), "keyboard", "b")
         active_preset.save(get_preset_path(group_name, preset_name))
         self.user_interface.on_apply_preset_clicked(None)
 
@@ -1583,7 +1587,7 @@ class TestGui(GuiTestBase, unittest.TestCase):
         keycode_from = 9
         keycode_to = 200
 
-        self.add_mapping_via_ui(EventCombination(EV_KEY, keycode_from, 1), "a")
+        self.add_mapping_via_ui(EventCombination([EV_KEY, keycode_from, 1]), "a")
         system_mapping.clear()
         system_mapping._set("a", keycode_to)
 
@@ -1661,7 +1665,7 @@ class TestGui(GuiTestBase, unittest.TestCase):
             * 100,
         )
 
-        active_preset.change(EventCombination(EV_ABS, ABS_X, 1), "keyboard", "a")
+        active_preset.change(EventCombination([EV_ABS, ABS_X, 1]), "keyboard", "a")
         self.user_interface.save_preset()
 
         gtk_iteration()
@@ -1685,7 +1689,7 @@ class TestGui(GuiTestBase, unittest.TestCase):
         keycode_from = 16
         keycode_to = 90
 
-        self.add_mapping_via_ui(EventCombination(EV_KEY, keycode_from, 1), "t")
+        self.add_mapping_via_ui(EventCombination([EV_KEY, keycode_from, 1]), "t")
         system_mapping.clear()
         system_mapping._set("t", keycode_to)
 
@@ -1723,7 +1727,7 @@ class TestGui(GuiTestBase, unittest.TestCase):
         self.assertEqual(len(write_history), len_before)
 
     def test_delete_preset(self):
-        self.editor.set_combination(EventCombination(EV_KEY, 71, 1))
+        self.editor.set_combination(EventCombination([EV_KEY, 71, 1]))
         self.editor.set_symbol_input_text("a")
         self.user_interface.get("preset_name_input").set_text("asdf")
         self.user_interface.on_rename_button_clicked(None)
@@ -1800,7 +1804,7 @@ class TestGui(GuiTestBase, unittest.TestCase):
         # 1. create a preset
         self.user_interface.on_select_device(FakeDeviceDropdown("Foo Device 2"))
         self.user_interface.on_create_preset_clicked()
-        self.add_mapping_via_ui(EventCombination(3, 2, 1), "qux")
+        self.add_mapping_via_ui(EventCombination([3, 2, 1]), "qux")
         self.user_interface.get("preset_name_input").set_text("asdf")
         self.user_interface.on_rename_button_clicked(None)
         self.user_interface.save_preset()
@@ -1822,7 +1826,7 @@ class TestGui(GuiTestBase, unittest.TestCase):
         with PatchedConfirmDelete(self.user_interface):
             # add some rows
             for code in range(3):
-                self.add_mapping_via_ui(EventCombination(1, code, 1), "qux")
+                self.add_mapping_via_ui(EventCombination([1, code, 1]), "qux")
 
             self.user_interface.on_delete_preset_clicked()
             # the ui should be clear now
@@ -1859,7 +1863,7 @@ class TestAutocompletion(GuiTestBase, unittest.TestCase):
         self.editor.autocompletion.navigate(None, event)
 
     def test_autocomplete_key(self):
-        self.add_mapping_via_ui(EventCombination(1, 99, 1), "")
+        self.add_mapping_via_ui(EventCombination([1, 99, 1]), "")
         source_view = self.editor.get_text_input()
         self.set_focus(source_view)
 
@@ -1902,7 +1906,7 @@ class TestAutocompletion(GuiTestBase, unittest.TestCase):
         self.assertFalse(autocompletion.visible)
 
     def test_autocomplete_function(self):
-        self.add_mapping_via_ui(EventCombination(1, 99, 1), "")
+        self.add_mapping_via_ui(EventCombination([1, 99, 1]), "")
         source_view = self.editor.get_text_input()
         self.set_focus(source_view)
 
@@ -1923,7 +1927,7 @@ class TestAutocompletion(GuiTestBase, unittest.TestCase):
         self.assertEqual(modified_symbol, "key(KEY_A).\nrepeat")
 
     def test_close_autocompletion(self):
-        self.add_mapping_via_ui(EventCombination(1, 99, 1), "")
+        self.add_mapping_via_ui(EventCombination([1, 99, 1]), "")
         source_view = self.editor.get_text_input()
         self.set_focus(source_view)
 
@@ -1944,7 +1948,7 @@ class TestAutocompletion(GuiTestBase, unittest.TestCase):
         self.assertEqual(symbol, "KEY_")
 
     def test_writing_still_works(self):
-        self.add_mapping_via_ui(EventCombination(1, 99, 1), "")
+        self.add_mapping_via_ui(EventCombination([1, 99, 1]), "")
         source_view = self.editor.get_text_input()
         self.set_focus(source_view)
 
@@ -1973,7 +1977,7 @@ class TestAutocompletion(GuiTestBase, unittest.TestCase):
         self.assertFalse(autocompletion.visible)
 
     def test_cycling(self):
-        self.add_mapping_via_ui(EventCombination(1, 99, 1), "")
+        self.add_mapping_via_ui(EventCombination([1, 99, 1]), "")
         source_view = self.editor.get_text_input()
         self.set_focus(source_view)
 

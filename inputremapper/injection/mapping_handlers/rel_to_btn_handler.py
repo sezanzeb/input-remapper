@@ -41,23 +41,23 @@ class RelToBtnHandler:
     _handler: MappingHandler
     _trigger_point: int
     _active: bool
-    _key: EventCombination
+    _event: InputEvent
     _last_activation: float
 
     def __init__(
-        self, sub_handler: MappingHandler, trigger_point: int, key: EventCombination
+        self, sub_handler: MappingHandler, trigger_point: int, event: InputEvent
     ) -> None:
         if trigger_point == 0:
             raise ValueError("trigger_point can not be 0")
 
         self._handler = sub_handler
         self._trigger_point = trigger_point
-        self._key = key
+        self._event = event
         self._active = False
         self._last_activation = time.time()
 
     def __str__(self):
-        return f"RelToBtnHandler for {self._key[0]} <{id(self)}>:"
+        return f"RelToBtnHandler for {self._event} <{id(self)}>:"
 
     def __repr__(self):
         return self.__str__()
@@ -70,7 +70,7 @@ class RelToBtnHandler:
         while time.time() < self._last_activation + 0.05:
             await asyncio.sleep(1 / 60)
 
-        event = InputEvent(0, 0, *self._key[0][:2], 0)
+        event = self._event.modify(value=0)
         asyncio.ensure_future(self._handler.notify(event))
         self._active = False
 
@@ -83,7 +83,7 @@ class RelToBtnHandler:
     ) -> bool:
 
         assert event.type == EV_REL
-        if event.type_and_code != self._key[0][:2]:
+        if event.type_and_code != self._event.type_and_code:
             return False
 
         value = event.value

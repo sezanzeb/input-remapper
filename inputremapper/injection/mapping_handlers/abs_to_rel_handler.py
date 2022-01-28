@@ -40,7 +40,7 @@ class AbsToRelHandler:
     adheres to the MappingHandler protocol
     """
 
-    _key: EventCombination  # combination of len 1 for the event to
+    _event: InputEvent  # combination of len 1 for the event to
     _target: str  # name of target UInput
     _deadzone: float  # deadzone
     _output: int  # target event code
@@ -70,7 +70,7 @@ class AbsToRelHandler:
             "rate" : int
         }
         """
-        self._key = EventCombination(config["combination"])
+        self._event = InputEvent.from_string(config["combination"])
         self._target = config["target"]
         self._deadzone = config["deadzone"]
         self._output = config["output"]
@@ -83,7 +83,7 @@ class AbsToRelHandler:
         self._stop = True
 
     def __str__(self):
-        return f"AbsToRelHandler for {self._key[0]} <{id(self)}>:"
+        return f"AbsToRelHandler for {self._event} <{id(self)}>:"
 
     def __repr__(self):
         return self.__str__()
@@ -100,7 +100,7 @@ class AbsToRelHandler:
         supress: bool = False,
     ) -> bool:
 
-        if event.type_and_code != self._key[0][:2]:
+        if event.type_and_code != self._event.type_and_code:
             return False
 
         input_value, scale_factor = self._normalize(

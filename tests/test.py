@@ -288,7 +288,7 @@ def new_event(type, code, value, timestamp=None, offset=0):
 
     sec = int(timestamp)
     usec = timestamp % 1 * 1000000
-    event = evdev.InputEvent(sec, usec, type, code, value)
+    event = InputEvent(sec, usec, type, code, value)
     return event
 
 

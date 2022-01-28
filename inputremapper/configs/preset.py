@@ -39,31 +39,14 @@ from inputremapper.injection.macros.parse import clean
 from inputremapper.groups import groups
 
 
-def split_key(key):
-    """Take a key like "1,2,3" and return a 3-tuple of ints."""
-    key = key.strip()
-
-    if key.count(",") != 2:
-        logger.error('Found invalid key: "%s"', key)
-        return None
-
-    ev_type, code, value = key.split(",")
-    try:
-        key = (int(ev_type), int(code), int(value))
-    except ValueError:
-        logger.error('Found non-int in: "%s"', key)
-        return None
-
-    return key
-
-
 class Preset(ConfigBase):
     """Contains and manages mappings of a single preset."""
 
     _mapping: Dict[EventCombination, Tuple[str, str]]
 
     def __init__(self):
-        self._mapping = {}  # a mapping of a EventCombination object to strings
+        # a mapping of a EventCombination object to (symbol, target) tuple
+        self._mapping: Dict[EventCombination, Tuple[str, str]] = {}
         self._changed = False
 
         # are there actually any keys set in the preset file?
@@ -202,18 +185,9 @@ class Preset(ConfigBase):
 
             for combination, symbol in preset_dict["mapping"].items():
                 try:
-                    combination = EventCombination(
-                        *[
-                            split_key(chunk)
-                            for chunk in combination.split("+")
-                            if chunk.strip() != ""
-                        ]
-                    )
+                    combination = EventCombination.from_string(combination)
                 except ValueError as error:
                     logger.error(str(error))
-                    continue
-
-                if None in combination:
                     continue
 
                 if isinstance(symbol, list):
@@ -251,9 +225,7 @@ class Preset(ConfigBase):
             json_ready_mapping = {}
             # tuple keys are not possible in json, encode them as string
             for combination, value in self._mapping.items():
-                new_key = "+".join(
-                    [",".join([str(value) for value in sub_key]) for sub_key in combination]
-                )
+                new_key = combination.json_str()
                 json_ready_mapping[new_key] = value
 
             preset_dict["mapping"] = json_ready_mapping
@@ -263,7 +235,7 @@ class Preset(ConfigBase):
         self._changed = False
         self.num_saved_keys = len(self)
 
-    def get_mapping(self, combination):
+    def get_mapping(self, combination: EventCombination):
         """Read the (symbol, target)-tuple that is mapped to this keycode.
 
         Parameters
@@ -282,7 +254,7 @@ class Preset(ConfigBase):
 
     def dangerously_mapped_btn_left(self):
         """Return True if this mapping disables BTN_Left."""
-        if self.get_mapping(EventCombination(EV_KEY, BTN_LEFT, 1)) is not None:
+        if self.get_mapping(EventCombination([EV_KEY, BTN_LEFT, 1])) is not None:
             values = [value[0].lower() for value in self._mapping.values()]
             return "btn_left" not in values
 

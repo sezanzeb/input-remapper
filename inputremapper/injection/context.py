@@ -24,12 +24,12 @@ from typing import Awaitable, List, Dict, Tuple, Protocol, Set
 
 import evdev
 
+from inputremapper.input_event import InputEvent
 from inputremapper.injection.mapping_handlers.mapping_parser import parse_mapping
 from inputremapper.injection.mapping_handlers.mapping_handler import (
     MappingHandler,
     EventListener,
 )
-from inputremapper.event_combination import EventCombination
 from inputremapper.configs.global_config import NONE, MOUSE, WHEEL, BUTTONS
 
 
@@ -72,16 +72,6 @@ class Context:
     preset : Preset
         The preset that is the source of key_to_code and macros,
         only used to query config values.
-    key_to_code : dict
-        Preset of ((type, code, value),) to linux-keycode
-        or multiple of those like ((...), (...), ...) for combinations.
-        Combinations need to be present in every possible valid ordering.
-        e.g. shift + alt + a and alt + shift + a.
-        This is needed to query keycodes more efficiently without having
-        to search preset each time.
-    macros : dict
-        Preset of ((type, code, value),) to Macro objects.
-        Combinations work similar as in key_to_code
     key_map : dict
         on the input pressed down keys
     """
@@ -97,7 +87,7 @@ class Context:
         # get notified of each event, before any callback
         self.listeners: Set[EventListener] = set()
         self.callbacks: Dict[Tuple[int, int], List[NotifyCallback]] = {}
-        self._handlers: Dict[EventCombination, List[MappingHandler]] = parse_mapping(preset, self)
+        self._handlers: Dict[InputEvent, List[MappingHandler]] = parse_mapping(preset, self)
 
         self.create_callbacks()
 
@@ -112,23 +102,11 @@ class Context:
 
     def create_callbacks(self) -> None:
         """add the notify method from all _handlers to self.callbacks"""
-        for key, handler_list in self._handlers.items():
-            if key[0][:2] not in self.callbacks.keys():
-                self.callbacks[key[0][:2]] = []
+        for event, handler_list in self._handlers.items():
+            if event.type_and_code not in self.callbacks.keys():
+                self.callbacks[event.type_and_code] = []
             for handler in handler_list:
-                self.callbacks[key[0][:2]].append(handler.notify)
-
-    def is_mapped(self, combination):
-        """Check if this combination is used for macros or mappings.
-
-        Parameters
-        ----------
-        combination : tuple of tuple of int
-            One or more 3-tuples of type, code, action,
-            for example ((EV_KEY, KEY_A, 1), (EV_ABS, ABS_X, -1))
-            or ((EV_KEY, KEY_B, 1),)
-        """
-        return combination in self.macros or combination in self.key_to_code
+                self.callbacks[event.type_and_code].append(handler.notify)
 
     def maps_joystick(self):
         """If at least one of the joysticks will serve a special purpose."""

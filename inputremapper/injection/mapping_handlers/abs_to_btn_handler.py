@@ -23,7 +23,6 @@ import evdev
 from evdev.ecodes import EV_ABS
 
 from inputremapper.logger import logger
-from inputremapper.event_combination import EventCombination
 from inputremapper.input_event import InputEvent
 from inputremapper.injection.mapping_handlers.mapping_handler import MappingHandler
 
@@ -39,10 +38,10 @@ class AbsToBtnHandler:
     _handler: MappingHandler
     _trigger_percent: int
     _active: bool
-    _key: EventCombination
+    _event: InputEvent
 
     def __init__(
-        self, sub_handler: MappingHandler, trigger_percent: int, key: EventCombination
+        self, sub_handler: MappingHandler, trigger_percent: int, event: InputEvent
     ) -> None:
         self._handler = sub_handler
         if trigger_percent not in range(-99, 100):
@@ -51,11 +50,11 @@ class AbsToBtnHandler:
             raise ValueError(f"trigger_percent can not be 0")
 
         self._trigger_percent = trigger_percent
-        self._key = key
+        self._event = event
         self._active = False
 
     def __str__(self):
-        return f"AbsToBtnHandler for {self._key[0]} <{id(self)}>:"
+        return f"AbsToBtnHandler for {self._event} <{id(self)}>:"
 
     def __repr__(self):
         return self.__str__()
@@ -83,7 +82,7 @@ class AbsToBtnHandler:
     ) -> bool:
 
         assert event.type == EV_ABS
-        if event.type_and_code != self._key[0][:2]:
+        if event.type_and_code != self._event.type_and_code:
             return False
 
         absinfo = source.absinfo(event.code)

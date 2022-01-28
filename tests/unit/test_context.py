@@ -38,8 +38,8 @@ class TestContext(unittest.TestCase):
         self.mapping = Preset()
         self.mapping.set("gamepad.joystick.left_purpose", WHEEL)
         self.mapping.set("gamepad.joystick.right_purpose", WHEEL)
-        self.mapping.change(EventCombination(1, 31, 1), "keyboard", "k(a)")
-        self.mapping.change(EventCombination(1, 32, 1), "keyboard", "b")
+        self.mapping.change(EventCombination([1, 31, 1]), "keyboard", "k(a)")
+        self.mapping.change(EventCombination([1, 32, 1]), "keyboard", "b")
         self.mapping.change(EventCombination((1, 33, 1), (1, 34, 1), (1, 35, 1)), "keyboard", "c")
         self.context = Context(self.mapping)
 

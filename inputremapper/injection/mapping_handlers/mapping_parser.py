@@ -20,7 +20,7 @@
 """functions to assemble the mapping handlers"""
 
 import traceback
-from typing import Dict, List, Type, Optional
+from typing import Dict, List, Type, Optional, Tuple
 
 from evdev.ecodes import (
     EV_KEY,
@@ -38,6 +38,7 @@ from evdev.ecodes import (
 
 from inputremapper.logger import logger
 from inputremapper.event_combination import EventCombination
+from inputremapper.input_event import InputEvent
 from inputremapper.injection.mapping_handlers.mapping_handler import (
     MappingHandler,
     ContextProtocol,
@@ -52,7 +53,7 @@ from inputremapper.injection.mapping_handlers.abs_to_rel_handler import AbsToRel
 from inputremapper.configs.preset import Preset
 from inputremapper.exceptions import Error
 
-MappingHandlers = Dict[EventCombination, List[MappingHandler]]
+MappingHandlers = Dict[InputEvent, List[MappingHandler]]
 
 mapping_handler_classes: Dict[str, Type[MappingHandler]] = {
     # all available mapping_handlers
@@ -62,76 +63,79 @@ mapping_handler_classes: Dict[str, Type[MappingHandler]] = {
 
 
 def parse_mapping(preset: Preset, context: ContextProtocol) -> MappingHandlers:
-    """create dict with a list of MappingHandlers for each combination
+    """create dict with a list of MappingHandlers for each InputEvent
 
     EventCombination is of len 1
     """
 
     # create a handler for each mapping
-    combination_handlers = {}
-    normal_handlers = {}
+    combination_handlers: Dict[EventCombination, MappingHandler] = {}
+    normal_handlers: Dict[EventCombination, MappingHandler] = {}
 
-    for key, mapping in preset:
-        config = _create_new_config(key, mapping)
+    for event, mapping in preset:
+        config = _create_new_config(event, mapping)
         if config is None:
             continue
 
-        _key = EventCombination(config["combination"])
+        combination = EventCombination.from_string(config["combination"])
         handler_type = config["type"]
         if handler_type == "combination":
             handler = _create_handler(config, context)
             if handler:
-                combination_handlers[_key] = handler
+                combination_handlers[combination] = handler
         else:
-            assert _key not in normal_handlers.keys()
+            assert combination not in normal_handlers.keys()
             handler = _create_handler(config, context)
             if handler:
-                normal_handlers[_key] = handler
+                normal_handlers[combination] = handler
 
     # TODO: remove this for loop when Preset is done
     for config in _create_abs_to_rel_configs(preset):
-        _key = EventCombination(config["combination"])
+        combination = EventCombination.from_string(config["combination"])
         handler_type = config["type"]
         assert handler_type == "abs_to_rel"
-        assert _key not in normal_handlers.keys()
+        assert combination not in normal_handlers.keys()
         handler = _create_handler(config, context)
         if handler:
-            normal_handlers[_key] = handler
+            normal_handlers[combination] = handler
 
-    # combine all combination handlers such that there is only one handler per single key
-    # if multiple handlers contain the same key, a Hierarchy handler will be created
+    # combine all combination-handlers such that there is only one handler per event
+    # if multiple handlers contain the same event, a Hierarchy handler will be created
     hierarchy_handlers = _create_hierarchy_handlers(combination_handlers)
     handlers = {}
-    for key, handler in hierarchy_handlers.items():
-        assert len(key) == 1
-        if key[0][0] == EV_KEY:
+    for event, handler in hierarchy_handlers.items():
+        if event.type == EV_KEY:
             logger.debug("created mapping handler:")
             logger.debug_mapping_handler(handler)
-            handlers[key] = [handler]
+            handlers[event] = [handler]
             continue
-        if key[0][0] == EV_ABS:
-            handler = AbsToBtnHandler(handler, trigger_percent=key[0][2], key=key)
+        if event.type == EV_ABS:
+            # wrap the hierarchy handler in a AbsToBtnHandler
+            handler = AbsToBtnHandler(handler, trigger_percent=event.value, event=event)
             logger.debug("created mapping handler:")
             logger.debug_mapping_handler(handler)
-            handlers[key] = [handler]
+            handlers[event] = [handler]
             continue
-        if key[0][0] == EV_REL:
-            handler = RelToBtnHandler(handler, trigger_point=key[0][2], key=key)
+        if event.type == EV_REL:
+            # wrap the hierarchy handler in a RelToBtnHandler
+            handler = RelToBtnHandler(handler, trigger_point=event.value, event=event)
             logger.debug("created mapping handler:")
             logger.debug_mapping_handler(handler)
-            handlers[key] = [handler]
+            handlers[event] = [handler]
             continue
 
-    for key, handler in normal_handlers.items():
-        assert len(key) == 1
-        if key in handlers.keys():
-            logger.debug("created mapping handler:")
-            logger.debug_mapping_handler(handler)
-            handlers[key].append(handler)
-        else:
-            logger.debug("created mapping handler:")
-            logger.debug_mapping_handler(handler)
-            handlers[key] = [handler]
+    # add all other handlers to the handlers dict,
+    # once for each event the handler cares about
+    for combination, handler in normal_handlers.items():
+        for event in combination:
+            if event in handlers.keys():
+                logger.debug("created mapping handler:")
+                logger.debug_mapping_handler(handler)
+                handlers[event].append(handler)
+            else:
+                logger.debug("created mapping handler:")
+                logger.debug_mapping_handler(handler)
+                handlers[event] = [handler]
 
     return handlers
 
@@ -148,44 +152,40 @@ def _create_handler(config: Dict[str, any], context) -> Optional[MappingHandler]
 
 def _create_hierarchy_handlers(
     handlers: Dict[EventCombination, MappingHandler]
-) -> Dict[EventCombination, MappingHandler]:
+) -> Dict[InputEvent, MappingHandler]:
     """sort handlers by sub_keys and create Hierarchy handlers"""
-    # gather all single keys in all mappings
+    # gather all InputEvents from all mappings
     sorted_handlers = {}
-    all_keys = handlers.keys()
-    keys = set()  # set of keys with len 1
-    for key in all_keys:
-        for sub_key in key:
-            keys.add(sub_key)
+    all_combinations = handlers.keys()
+    events = set()  # set of keys with len 1
+    for combination in all_combinations:
+        for event in combination:
+            events.add(event)
 
-    for single_key in keys:
-        # find all original keys (from handlers) which contain the combination
-        containing_keys = [
-            og_key for og_key in all_keys if og_key.contains_key(single_key)
+    for event in events:
+        # find all combinations (from handlers) which contain the event
+        combinations_with_event = [
+            combination for combination in all_combinations if event in combination
         ]
-        assert len(containing_keys) != 0
-        if len(containing_keys) == 1:
-            # there was only one handler containing that combination
-            sorted_handlers[EventCombination(single_key)] = handlers[containing_keys[0]]
+        assert len(combinations_with_event) != 0
+        if len(combinations_with_event) == 1:
+            # there was only one handler containing that event
+            sorted_handlers[event] = handlers[combinations_with_event[0]]
             continue
 
-        keys_to_sort = []
-        for og_key in containing_keys:
-            keys_to_sort.append(og_key)
-
-        assert len(keys_to_sort) > 1
-        # rank the keys and create the HierarchyHandler
-        sorted_keys = _order_keys(keys_to_sort, single_key)
+        # there are multiple handler with the same event.
+        # rank them and create the HierarchyHandler
+        sorted_combinations = _order_combinations(combinations_with_event, event)
         sub_handlers = []
-        for og_key in sorted_keys:
-            sub_handlers.append(handlers[og_key])
+        for combination in sorted_combinations:
+            sub_handlers.append(handlers[combination])
 
-        hierarchy_handler = HierarchyHandler(sub_handlers, single_key[:2])
-        sorted_handlers[EventCombination(single_key)] = hierarchy_handler
+        hierarchy_handler = HierarchyHandler(sub_handlers, event)
+        sorted_handlers[event] = hierarchy_handler
     return sorted_handlers
 
 
-def _order_keys(keys: List[EventCombination], common_key: EventCombination) -> List[EventCombination]:
+def _order_combinations(combinations: List[EventCombination], common_event: InputEvent) -> List[EventCombination]:
     """reorder the keys according to some rules
 
     such that a combination a+b+c is in front of a+b which is in front of b
@@ -196,51 +196,52 @@ def _order_keys(keys: List[EventCombination], common_key: EventCombination) -> L
 
     Parameters
     ----------
-    keys : List[Key]
+    combinations : List[Key]
         the list which needs ordering
-    common_key : EventCombination
+    common_event : InputEvent
         the Key all members of Keys have in common
     """
-    keys.sort(key=len, reverse=True)  # sort by descending length
+    combinations.sort(key=len, reverse=True)  # sort by descending length
 
-    def idx_of_common_key(_key: EventCombination) -> int:
-        """get the index of the common combination in _key"""
-        for j, sub_key in enumerate(_key):
-            if sub_key == common_key:
+    def idx_of_common_event(_combination: EventCombination) -> int:
+        """get the index of the common event in _combination"""
+        for j, event in enumerate(_combination):
+            if event == common_event:
                 return j
 
-    last_key = keys[0]
+    last_combination = combinations[0]
     last_idx = 0
-    for i, key in enumerate([*keys[1:], ((None, None, None),)]):
+    for i, combination in enumerate([*combinations[1:], ((None, None, None),)]):
         i += 1
-        if len(key) == len(last_key):
-            last_key = key
+        if len(combination) == len(last_combination):
+            last_combination = combination
             continue
 
-        assert len(key) < len(last_key)
-        sub_list = keys[last_idx:i]
-        sub_list.sort(key=idx_of_common_key, reverse=True)
-        keys[last_idx:i] = sub_list
+        assert len(combination) < len(last_combination)
+        sub_list = combinations[last_idx:i]
+        sub_list.sort(key=idx_of_common_event, reverse=True)
+        combinations[last_idx:i] = sub_list
 
-    return keys
+    return combinations
 
 
-def _create_new_config(key, symbol_and_target) -> Dict:
+def _create_new_config(combination: EventCombination, symbol_and_target: Tuple[str, str]) -> Dict:
     # TODO: make this obsolete by migrating to new config structure
-    sub_keys = []
-    for sub_key in key:
-        if sub_key[0] != EV_ABS:
-            sub_keys.append(sub_key)
+    events = []
+    for event in combination:
+        if event.type != EV_ABS:
+            events.append(event)
             continue
-        if sub_key[2] == 1:
-            sub_keys.append((*sub_key[:2], 10))  # trigger point at 10%
+
+        if event.value == 1:
+            events.append(event.modify(value=10))  # trigger point at 10%
         else:
-            assert sub_key[2] == -1
-            sub_keys.append((*sub_key[:2], -10))  # trigger point at -10%
-    new_key = EventCombination(*sub_keys)
+            assert event.value == -1
+            events.append(event.modify(value=-10))  # trigger point at -10%
+    combination = EventCombination.from_events(events)
 
     config = {
-        "combination": new_key,
+        "combination": combination.json_str(),
         "symbol": symbol_and_target[0],
         "target": symbol_and_target[1],
         "type": "combination",
@@ -313,29 +314,29 @@ def _create_abs_to_rel_configs(preset: Preset) -> list[Dict[str, any]]:
     if left_purpose == "mouse":
         x_config = mouse_x_config.copy()
         y_config = mouse_y_config.copy()
-        x_config["combination"] = EventCombination((EV_ABS, ABS_X, 0))
-        y_config["combination"] = EventCombination((EV_ABS, ABS_Y, 0))
+        x_config["combination"] = ",".join((str(EV_ABS), str(ABS_X), "0"))
+        y_config["combination"] = ",".join((str(EV_ABS), str(ABS_Y), "0"))
         configs.extend([x_config, y_config])
 
     if left_purpose == "wheel":
         w_x_config = wheel_x_config.copy()
         w_y_config = wheel_y_config.copy()
-        w_x_config["combination"] = EventCombination((EV_ABS, ABS_X, 0))
-        w_y_config["combination"] = EventCombination((EV_ABS, ABS_Y, 0))
+        w_x_config["combination"] = ",".join((str(EV_ABS), str(ABS_X), "0"))
+        w_y_config["combination"] = ",".join((str(EV_ABS), str(ABS_Y), "0"))
         configs.extend([w_x_config, w_y_config])
 
     if right_purpose == "mouse":
         x_config = mouse_x_config.copy()
         y_config = mouse_y_config.copy()
-        x_config["combination"] = EventCombination((EV_ABS, ABS_RX, 0))
-        y_config["combination"] = EventCombination((EV_ABS, ABS_RY, 0))
+        x_config["combination"] = ",".join((str(EV_ABS), str(ABS_RX), "0"))
+        y_config["combination"] = ",".join((str(EV_ABS), str(ABS_RY), "0"))
         configs.extend([x_config, y_config])
 
     if right_purpose == "wheel":
         w_x_config = wheel_x_config.copy()
         w_y_config = wheel_y_config.copy()
-        w_x_config["combination"] = EventCombination((EV_ABS, ABS_RX, 0))
-        w_y_config["combination"] = EventCombination((EV_ABS, ABS_RY, 0))
+        w_x_config["combination"] = ",".join((str(EV_ABS), str(ABS_RX), "0"))
+        w_y_config["combination"] = ",".join((str(EV_ABS), str(ABS_RY), "0"))
         configs.extend([w_x_config, w_y_config])
 
     return configs

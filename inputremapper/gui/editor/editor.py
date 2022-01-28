@@ -62,7 +62,7 @@ class SelectionLabel(Gtk.ListBoxRow):
 
         self.show_all()
 
-    def set_combination(self, combination):
+    def set_combination(self, combination: EventCombination):
         """Set the combination this button represents
 
         Parameters
@@ -75,7 +75,7 @@ class SelectionLabel(Gtk.ListBoxRow):
         else:
             self.label.set_label("new entry")
 
-    def get_combination(self):
+    def get_combination(self) -> EventCombination:
         return self.combination
 
     def set_label(self, label):

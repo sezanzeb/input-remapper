@@ -79,7 +79,7 @@ class TestConsumerControl(unittest.IsolatedAsyncioTestCase):
         return context, consumer_control
 
     async def test_no_keycode_mapper_needed(self):
-        self.mapping.change(EventCombination(EV_KEY, 1, 1), "keyboard", "b")
+        self.mapping.change(EventCombination([EV_KEY, 1, 1]), "keyboard", "b")
         _, consumer_control = self.setup(self.gamepad_source, self.mapping)
         consumer_types = [type(consumer) for consumer in consumer_control._consumers]
         self.assertIn(KeycodeMapper, consumer_types)
@@ -89,7 +89,7 @@ class TestConsumerControl(unittest.IsolatedAsyncioTestCase):
         consumer_types = [type(consumer) for consumer in consumer_control._consumers]
         self.assertNotIn(KeycodeMapper, consumer_types)
 
-        self.mapping.change(EventCombination(EV_KEY, 1, 1), "keyboard", "k(a)")
+        self.mapping.change(EventCombination([EV_KEY, 1, 1]), "keyboard", "k(a)")
         _, consumer_control = self.setup(self.gamepad_source, self.mapping)
         consumer_types = [type(consumer) for consumer in consumer_control._consumers]
         self.assertIn(KeycodeMapper, consumer_types)
@@ -100,8 +100,8 @@ class TestConsumerControl(unittest.IsolatedAsyncioTestCase):
         code_a = system_mapping.get("a")
         code_shift = system_mapping.get("KEY_LEFTSHIFT")
         trigger = 1
-        self.mapping.change(EventCombination(EV_KEY, trigger, 1), "keyboard", "if_single(k(a), k(KEY_LEFTSHIFT))")
-        self.mapping.change(EventCombination(EV_ABS, ABS_Y, 1), "keyboard", "b")
+        self.mapping.change(EventCombination([EV_KEY, trigger, 1]), "keyboard", "if_single(k(a), k(KEY_LEFTSHIFT))")
+        self.mapping.change(EventCombination([EV_ABS, ABS_Y, 1]), "keyboard", "b")
 
         self.mapping.set("gamepad.joystick.left_purpose", MOUSE)
         self.mapping.set("gamepad.joystick.right_purpose", WHEEL)
@@ -134,8 +134,8 @@ class TestConsumerControl(unittest.IsolatedAsyncioTestCase):
         code_b = system_mapping.get("b")
         code_shift = system_mapping.get("KEY_LEFTSHIFT")
         trigger = 1
-        self.mapping.change(EventCombination(EV_KEY, trigger, 1), "keyboard", "if_single(k(a), k(KEY_LEFTSHIFT))")
-        self.mapping.change(EventCombination(EV_ABS, ABS_Y, 1), "keyboard", "b")
+        self.mapping.change(EventCombination([EV_KEY, trigger, 1]), "keyboard", "if_single(k(a), k(KEY_LEFTSHIFT))")
+        self.mapping.change(EventCombination([EV_ABS, ABS_Y, 1]), "keyboard", "b")
 
         self.mapping.set("gamepad.joystick.left_purpose", BUTTONS)
         self.mapping.set("gamepad.joystick.right_purpose", BUTTONS)
@@ -168,8 +168,8 @@ class TestConsumerControl(unittest.IsolatedAsyncioTestCase):
         """triggers then because the joystick events value is too low."""
         code_a = system_mapping.get("a")
         trigger = 1
-        self.mapping.change(EventCombination(EV_KEY, trigger, 1), "keyboard", "if_single(k(a), k(KEY_LEFTSHIFT))")
-        self.mapping.change(EventCombination(EV_ABS, ABS_Y, 1), "keyboard", "b")
+        self.mapping.change(EventCombination([EV_KEY, trigger, 1]), "keyboard", "if_single(k(a), k(KEY_LEFTSHIFT))")
+        self.mapping.change(EventCombination([EV_ABS, ABS_Y, 1]), "keyboard", "b")
 
         self.mapping.set("gamepad.joystick.left_purpose", BUTTONS)
         self.mapping.set("gamepad.joystick.right_purpose", BUTTONS)

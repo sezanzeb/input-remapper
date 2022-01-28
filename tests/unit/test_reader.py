@@ -232,7 +232,7 @@ class TestReader(unittest.TestCase):
 
         reader.start_reading(groups.find(key="Foo Device 2"))
         time.sleep(0.1)
-        self.assertEqual(reader.read(), EventCombination(EV_KEY, 1, 1))
+        self.assertEqual(reader.read(), EventCombination([EV_KEY, 1, 1]))
 
         reader.start_reading(groups.find(name="Bar Device"))
 
@@ -243,7 +243,7 @@ class TestReader(unittest.TestCase):
         reader.clear()
 
         time.sleep(0.1)
-        self.assertEqual(reader.read(), EventCombination(EV_KEY, 2, 1))
+        self.assertEqual(reader.read(), EventCombination([EV_KEY, 2, 1]))
 
     def test_reading_2(self):
         # a combination of events

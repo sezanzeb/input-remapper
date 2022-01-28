@@ -49,7 +49,7 @@ class CombinationHandler:
     adheres to the MappingHandler protocol
     """
 
-    _key: EventCombination
+    _combination: EventCombination
     _key_map: Dict[Tuple[int, int], bool]
     _sub_handler: CombinationSubHandler
 
@@ -66,10 +66,10 @@ class CombinationHandler:
         context : Context
         """
         super().__init__()
-        self._key = EventCombination(config["combination"])
+        self._combination = EventCombination.from_string(config["combination"])
         self._key_map = {}
-        for sub_key in self._key:  # prepare key_map
-            self._key_map[sub_key[:2]] = False
+        for event in self._combination:  # prepare key_map
+            self._key_map[event.type_and_code] = False
 
         if is_this_a_macro(config["symbol"]):
             self._sub_handler = MacroHandler(config, context)
@@ -77,7 +77,7 @@ class CombinationHandler:
             self._sub_handler = KeyHandler(config)
 
     def __str__(self):
-        return f"CombinationHandler for {self._key[:]} <{id(self)}>:"
+        return f"CombinationHandler for {self._combination} <{id(self)}>:"
 
     def __repr__(self):
         return self.__str__()
@@ -115,7 +115,7 @@ class CombinationHandler:
             value = 0
 
         event = event.modify(value=value)
-        logger.debug_key(self._key, "triggered: sending to sub-handler")
+        logger.debug_key(self._combination, "triggered: sending to sub-handler")
         return await self._sub_handler.notify(event)
 
     def get_active(self) -> bool:
@@ -127,8 +127,8 @@ class CombinationHandler:
 
         this might cause duplicate key-up events but those are ignored by evdev anyway
         """
-        if len(self._key) == 1:
+        if len(self._combination) == 1:
             return
-        for key in self._key:
-            forward.write(*key[:2], 0)
+        for event in self._combination:
+            forward.write(*event.type_and_code, 0)
         forward.syn()

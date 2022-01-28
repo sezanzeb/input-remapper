@@ -20,7 +20,7 @@
 import asyncio
 import evdev
 
-from typing import Tuple, List
+from typing import List
 from inputremapper.input_event import InputEvent
 from inputremapper.injection.mapping_handlers.mapping_handler import MappingHandler
 
@@ -34,14 +34,14 @@ class HierarchyHandler:
     adheres to the MappingHandler protocol
     """
 
-    _key: Tuple[int, int]
+    _event: InputEvent
 
-    def __init__(self, handlers: List[MappingHandler], key: Tuple[int, int]) -> None:
+    def __init__(self, handlers: List[MappingHandler], event: InputEvent) -> None:
         self.handlers = handlers
-        self._key = key
+        self._event = event
 
     def __str__(self):
-        return f"HierarchyHandler for {self._key} <{id(self)}>:"
+        return f"HierarchyHandler for {self._event} <{id(self)}>:"
 
     def __repr__(self):
         return self.__str__()
@@ -57,7 +57,7 @@ class HierarchyHandler:
         forward: evdev.UInput = None,
         supress: bool = False,
     ) -> bool:
-        if event.type_and_code != self._key:
+        if event.type_and_code != self._event.type_and_code:
             return False
 
         success = False
