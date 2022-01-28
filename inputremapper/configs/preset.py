@@ -90,7 +90,9 @@ class Preset(ConfigBase):
             (1, 11, 1), provide (1, 10, 1) here.
         """
         if not isinstance(new_combination, EventCombination):
-            raise TypeError(f"Expected {new_combination} to be a EventCombination object")
+            raise TypeError(
+                f"Expected {new_combination} to be a EventCombination object"
+            )
 
         if symbol is None or symbol.strip() == "":
             raise ValueError("Expected `symbol` not to be empty")
@@ -140,7 +142,9 @@ class Preset(ConfigBase):
         combination : EventCombination
         """
         if not isinstance(combination, EventCombination):
-            raise TypeError(f"Expected combination to be a EventCombination object but got {combination}")
+            raise TypeError(
+                f"Expected combination to be a EventCombination object but got {combination}"
+            )
 
         for permutation in combination.get_permutations():
             if permutation in self._mapping:
@@ -243,7 +247,9 @@ class Preset(ConfigBase):
         combination : EventCombination
         """
         if not isinstance(combination, EventCombination):
-            raise TypeError(f"Expected combination to be a EventCombination object but got {combination}")
+            raise TypeError(
+                f"Expected combination to be a EventCombination object but got {combination}"
+            )
 
         for permutation in combination.get_permutations():
             existing = self._mapping.get(permutation)

@@ -594,7 +594,12 @@ class Editor:
             return
 
         # else, the keycode has changed, the symbol is set, all good
-        active_preset.change(new_combination=combination, target=target, symbol=symbol, previous_combination=previous_key)
+        active_preset.change(
+            new_combination=combination,
+            target=target,
+            symbol=symbol,
+            previous_combination=previous_key,
+        )
 
     def _switch_focus_if_complete(self):
         """If keys are released, it will switch to the text_input.

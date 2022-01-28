@@ -540,7 +540,9 @@ class UserInterface:
 
         if not self.unreleased_warn:
             unreleased = reader.get_unreleased_keys()
-            if unreleased is not None and unreleased != EventCombination(InputEvent.btn_left()):
+            if unreleased is not None and unreleased != EventCombination(
+                InputEvent.btn_left()
+            ):
                 # it's super annoying if that happens and may break the user
                 # input in such a way to prevent disabling the preset
                 logger.error(

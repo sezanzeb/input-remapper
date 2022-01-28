@@ -185,7 +185,9 @@ def _create_hierarchy_handlers(
     return sorted_handlers
 
 
-def _order_combinations(combinations: List[EventCombination], common_event: InputEvent) -> List[EventCombination]:
+def _order_combinations(
+    combinations: List[EventCombination], common_event: InputEvent
+) -> List[EventCombination]:
     """reorder the keys according to some rules
 
     such that a combination a+b+c is in front of a+b which is in front of b
@@ -225,7 +227,9 @@ def _order_combinations(combinations: List[EventCombination], common_event: Inpu
     return combinations
 
 
-def _create_new_config(combination: EventCombination, symbol_and_target: Tuple[str, str]) -> Dict:
+def _create_new_config(
+    combination: EventCombination, symbol_and_target: Tuple[str, str]
+) -> Dict:
     # TODO: make this obsolete by migrating to new config structure
     events = []
     for event in combination:

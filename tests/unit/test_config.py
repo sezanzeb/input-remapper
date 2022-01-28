@@ -91,7 +91,9 @@ class TestConfig(unittest.TestCase):
         self.assertTrue(global_config.is_autoloaded("d1", "a"))
         self.assertFalse(global_config.is_autoloaded("d2.foo", "b"))
         self.assertFalse(global_config.is_autoloaded("d2.foo", "c"))
-        self.assertListEqual(list(global_config.iterate_autoload_presets()), [("d1", "a")])
+        self.assertListEqual(
+            list(global_config.iterate_autoload_presets()), [("d1", "a")]
+        )
         self.assertEqual(global_config.get(["autoload", "d1"]), "a")
 
     def test_initial(self):

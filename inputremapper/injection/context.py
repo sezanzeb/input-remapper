@@ -87,7 +87,9 @@ class Context:
         # get notified of each event, before any callback
         self.listeners: Set[EventListener] = set()
         self.callbacks: Dict[Tuple[int, int], List[NotifyCallback]] = {}
-        self._handlers: Dict[InputEvent, List[MappingHandler]] = parse_mapping(preset, self)
+        self._handlers: Dict[InputEvent, List[MappingHandler]] = parse_mapping(
+            preset, self
+        )
 
         self.create_callbacks()
 

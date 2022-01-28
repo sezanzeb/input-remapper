@@ -100,7 +100,11 @@ class TestConsumerControl(unittest.IsolatedAsyncioTestCase):
         code_a = system_mapping.get("a")
         code_shift = system_mapping.get("KEY_LEFTSHIFT")
         trigger = 1
-        self.mapping.change(EventCombination([EV_KEY, trigger, 1]), "keyboard", "if_single(k(a), k(KEY_LEFTSHIFT))")
+        self.mapping.change(
+            EventCombination([EV_KEY, trigger, 1]),
+            "keyboard",
+            "if_single(k(a), k(KEY_LEFTSHIFT))",
+        )
         self.mapping.change(EventCombination([EV_ABS, ABS_Y, 1]), "keyboard", "b")
 
         self.mapping.set("gamepad.joystick.left_purpose", MOUSE)
@@ -134,7 +138,11 @@ class TestConsumerControl(unittest.IsolatedAsyncioTestCase):
         code_b = system_mapping.get("b")
         code_shift = system_mapping.get("KEY_LEFTSHIFT")
         trigger = 1
-        self.mapping.change(EventCombination([EV_KEY, trigger, 1]), "keyboard", "if_single(k(a), k(KEY_LEFTSHIFT))")
+        self.mapping.change(
+            EventCombination([EV_KEY, trigger, 1]),
+            "keyboard",
+            "if_single(k(a), k(KEY_LEFTSHIFT))",
+        )
         self.mapping.change(EventCombination([EV_ABS, ABS_Y, 1]), "keyboard", "b")
 
         self.mapping.set("gamepad.joystick.left_purpose", BUTTONS)
@@ -168,7 +176,11 @@ class TestConsumerControl(unittest.IsolatedAsyncioTestCase):
         """triggers then because the joystick events value is too low."""
         code_a = system_mapping.get("a")
         trigger = 1
-        self.mapping.change(EventCombination([EV_KEY, trigger, 1]), "keyboard", "if_single(k(a), k(KEY_LEFTSHIFT))")
+        self.mapping.change(
+            EventCombination([EV_KEY, trigger, 1]),
+            "keyboard",
+            "if_single(k(a), k(KEY_LEFTSHIFT))",
+        )
         self.mapping.change(EventCombination([EV_ABS, ABS_Y, 1]), "keyboard", "b")
 
         self.mapping.set("gamepad.joystick.left_purpose", BUTTONS)

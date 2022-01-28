@@ -167,7 +167,8 @@ class TestMapping(unittest.TestCase):
         self.assertFalse(self.mapping.has_unsaved_changes())
         self.mapping.load(get_preset_path("foo", "bar"))
         self.assertEqual(
-            self.mapping.get_mapping(EventCombination([EV_KEY, 81, 1])), ("a", "keyboard")
+            self.mapping.get_mapping(EventCombination([EV_KEY, 81, 1])),
+            ("a", "keyboard"),
         )
         self.assertIsNone(self.mapping.get("mapping.a"))
         self.assertFalse(self.mapping.has_unsaved_changes())
@@ -206,7 +207,9 @@ class TestMapping(unittest.TestCase):
         self.assertEqual(len(loaded), 3)
         self.assertEqual(loaded.get_mapping(one), ("1", "keyboard"))
         self.assertEqual(loaded.get_mapping(two), ("2", "keyboard"))
-        self.assertEqual(loaded.get_mapping(EventCombination([two, three])), ("3", "keyboard"))
+        self.assertEqual(
+            loaded.get_mapping(EventCombination([two, three])), ("3", "keyboard")
+        )
         self.assertEqual(loaded._config["foo"], "bar")
 
     def test_change(self):

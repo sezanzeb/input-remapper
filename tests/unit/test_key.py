@@ -76,7 +76,8 @@ class TestKey(unittest.TestCase):
         key_3 = EventCombination((1, 3, 1), (1, 5, 1), (1, 7, 1))
         self.assertEqual(len(key_3.get_permutations()), 2)
         self.assertEqual(
-            key_3.get_permutations()[0], EventCombination((1, 3, 1), (1, 5, 1), (1, 7, 1))
+            key_3.get_permutations()[0],
+            EventCombination((1, 3, 1), (1, 5, 1), (1, 7, 1)),
         )
         self.assertEqual(key_3.get_permutations()[1], ((1, 5, 1), (1, 3, 1), (1, 7, 1)))
 
@@ -106,7 +107,9 @@ class TestKey(unittest.TestCase):
         self.assertRaises(ValueError, lambda: EventCombination("1"))
         self.assertRaises(ValueError, lambda: EventCombination("(1,2,3)"))
         self.assertRaises(ValueError, lambda: EventCombination((1, 2, 3), (1, 2, "3")))
-        self.assertRaises(ValueError, lambda: EventCombination((1, 2, 3), (1, 2, 3), None))
+        self.assertRaises(
+            ValueError, lambda: EventCombination((1, 2, 3), (1, 2, 3), None)
+        )
 
         # those don't raise errors
         EventCombination((1, 2, 3), (1, 2, 3))
