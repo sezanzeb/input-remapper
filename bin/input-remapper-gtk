@@ -26,7 +26,7 @@ import sys
 import atexit
 import gettext
 import locale
-from inputremapper.data import get_data_path
+from inputremapper.configs.data import get_data_path
 import os.path
 from argparse import ArgumentParser
 
@@ -50,7 +50,7 @@ _ = translate.gettext
 Gtk.init()
 
 from inputremapper.logger import logger, update_verbosity, log_info
-from inputremapper.migrations import migrate
+from inputremapper.configs.migrations import migrate
 
 
 if __name__ == '__main__':

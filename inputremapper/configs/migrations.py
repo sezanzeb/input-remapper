@@ -32,8 +32,8 @@ from evdev.ecodes import EV_KEY, EV_REL
 
 from inputremapper.logger import logger, VERSION
 from inputremapper.user import HOME
-from inputremapper.paths import get_preset_path, mkdir, CONFIG_PATH
-from inputremapper.system_mapping import system_mapping
+from inputremapper.configs.paths import get_preset_path, mkdir, CONFIG_PATH
+from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.injection.global_uinputs import global_uinputs
 from inputremapper.injection.macros.parse import parse, is_this_a_macro
 

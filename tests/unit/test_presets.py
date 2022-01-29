@@ -24,7 +24,7 @@ import unittest
 import shutil
 import time
 
-from inputremapper.preset import (
+from inputremapper.configs.preset import (
     find_newest_preset,
     rename_preset,
     get_any_preset,
@@ -32,7 +32,7 @@ from inputremapper.preset import (
     get_available_preset_name,
     get_presets,
 )
-from inputremapper.paths import CONFIG_PATH, get_preset_path, touch, mkdir
+from inputremapper.configs.paths import CONFIG_PATH, get_preset_path, touch
 from inputremapper.gui.active_preset import active_preset
 
 from tests.test import tmp

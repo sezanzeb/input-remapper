@@ -55,9 +55,9 @@ from inputremapper.injection.injector import (
     get_udev_name,
 )
 from inputremapper.injection.numlock import is_numlock_on, set_numlock, ensure_numlock
-from inputremapper.system_mapping import system_mapping, DISABLE_CODE, DISABLE_NAME
+from inputremapper.configs.system_mapping import system_mapping, DISABLE_CODE, DISABLE_NAME
 from inputremapper.gui.active_preset import active_preset
-from inputremapper.preset import Preset
+from inputremapper.configs.preset import Preset
 from inputremapper.configs.global_config import global_config, NONE, MOUSE, WHEEL
 from inputremapper.key import Key
 from inputremapper.injection.macros.parse import parse

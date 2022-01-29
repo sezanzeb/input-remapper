@@ -22,10 +22,10 @@
 import unittest
 
 from inputremapper.injection.context import Context
-from inputremapper.preset import Preset
+from inputremapper.configs.preset import Preset
 from inputremapper.key import Key
 from inputremapper.configs.global_config import NONE, MOUSE, WHEEL, BUTTONS
-from inputremapper.system_mapping import system_mapping
+from inputremapper.configs.system_mapping import system_mapping
 from tests.test import quick_cleanup
 
 

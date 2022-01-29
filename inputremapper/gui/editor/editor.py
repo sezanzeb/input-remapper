@@ -24,10 +24,10 @@
 
 import re
 
-from gi.repository import Gtk, GLib, GtkSource, Gdk
+from gi.repository import Gtk, GLib, Gdk
 
 from inputremapper.gui.editor.autocompletion import Autocompletion
-from inputremapper.system_mapping import system_mapping
+from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.gui.active_preset import active_preset
 from inputremapper.key import Key
 from inputremapper.logger import logger

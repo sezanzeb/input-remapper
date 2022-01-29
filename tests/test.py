@@ -293,7 +293,7 @@ def new_event(type, code, value, timestamp=None, offset=0):
 
 
 def patch_paths():
-    from inputremapper import paths
+    from inputremapper.configs import paths
 
     paths.CONFIG_PATH = tmp
 
@@ -530,9 +530,9 @@ from inputremapper.injection.injector import Injector
 from inputremapper.configs.global_config import global_config
 from inputremapper.gui.reader import reader
 from inputremapper.groups import groups
-from inputremapper.system_mapping import system_mapping
+from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.gui.active_preset import active_preset
-from inputremapper.paths import get_config_path
+from inputremapper.configs.paths import get_config_path
 from inputremapper.injection.macros.macro import macro_variables
 from inputremapper.injection.mapping_handlers.keycode_mapper import active_macros, unreleased
 from inputremapper.injection.global_uinputs import global_uinputs

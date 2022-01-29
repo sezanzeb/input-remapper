@@ -27,7 +27,7 @@ import itertools
 import evdev
 from evdev import ecodes
 
-from inputremapper.system_mapping import system_mapping
+from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.logger import logger
 
 

@@ -23,7 +23,7 @@ import unittest
 import os
 import pkg_resources
 
-from inputremapper.data import get_data_path
+from inputremapper.configs.data import get_data_path
 
 
 class TestData(unittest.TestCase):

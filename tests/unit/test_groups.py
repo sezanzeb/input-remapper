@@ -26,7 +26,7 @@ import json
 import evdev
 from evdev.ecodes import EV_KEY, KEY_A
 
-from inputremapper.paths import CONFIG_PATH
+from inputremapper.configs.paths import CONFIG_PATH
 from inputremapper.groups import (
     _FindGroups,
     groups,

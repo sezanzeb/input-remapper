@@ -34,7 +34,7 @@ from evdev.ecodes import (
 )
 
 from inputremapper.configs.global_config import global_config, BUTTONS
-from inputremapper.preset import Preset
+from inputremapper.configs.preset import Preset
 from inputremapper import utils
 
 from tests.test import new_event, InputDevice, MAX_ABS, MIN_ABS

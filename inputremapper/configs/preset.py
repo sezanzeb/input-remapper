@@ -21,7 +21,6 @@ from __future__ import annotations
 
 """Contains and manages mappings."""
 
-
 import os
 import re
 import json
@@ -32,8 +31,9 @@ from typing import Tuple, Dict, List
 from evdev.ecodes import EV_KEY, BTN_LEFT
 
 from inputremapper.logger import logger
-from inputremapper.paths import touch, get_preset_path, mkdir
-from inputremapper.configs.global_config import ConfigBase, global_config
+from inputremapper.configs.paths import touch, get_preset_path, mkdir
+from inputremapper.configs.global_config import global_config
+from inputremapper.configs.base_config import ConfigBase
 from inputremapper.key import Key
 from inputremapper.injection.macros.parse import clean
 from inputremapper.groups import groups

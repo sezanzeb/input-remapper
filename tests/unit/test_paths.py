@@ -23,7 +23,7 @@ import os
 import unittest
 import tempfile
 
-from inputremapper.paths import touch, mkdir, get_preset_path, get_config_path
+from inputremapper.configs.paths import touch, mkdir, get_preset_path, get_config_path
 
 from tests.test import quick_cleanup, tmp
 
