@@ -24,7 +24,7 @@ import unittest
 import shutil
 import time
 
-from inputremapper.presets import (
+from inputremapper.preset import (
     find_newest_preset,
     rename_preset,
     get_any_preset,

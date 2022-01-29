@@ -35,7 +35,7 @@ from inputremapper.paths import get_config_path
 from inputremapper.system_mapping import system_mapping
 from inputremapper.gui.active_preset import active_preset
 from inputremapper.gui.utils import HandlerDisabled
-from inputremapper.presets import (
+from inputremapper.preset import (
     find_newest_preset,
     get_presets,
     delete_preset,
