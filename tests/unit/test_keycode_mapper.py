@@ -36,6 +36,7 @@ from evdev.ecodes import (
     ABS_HAT1Y,
     ABS_Y,
 )
+from inputremapper.event_combination import EventCombination
 
 from inputremapper.injection.mapping_handlers.keycode_mapper import (
     active_macros,
@@ -171,10 +172,10 @@ class TestKeycodeMapper(unittest.IsolatedAsyncioTestCase):
         uinput = UInput()
         self.context.uinput = uinput
         self.context.key_to_code = {
-            (ev_1,): (51, "keyboard"),
-            (ev_2,): (52, "keyboard"),
-            (ev_4,): (54, "keyboard"),
-            (ev_5,): (55, "keyboard"),
+            EventCombination(ev_1): (51, "keyboard"),
+            EventCombination(ev_2): (52, "keyboard"),
+            EventCombination(ev_4): (54, "keyboard"),
+            EventCombination(ev_5): (55, "keyboard"),
         }
 
         keycode_mapper = KeycodeMapper(self.context, self.source, uinput)
@@ -265,7 +266,7 @@ class TestKeycodeMapper(unittest.IsolatedAsyncioTestCase):
 
         uinput = UInput()
 
-        _key_to_code = {((3, 0, -1),): (73, "keyboard")}
+        _key_to_code = {EventCombination((3, 0, -1)): (73, "keyboard")}
 
         self.mapping.set("gamepad.joystick.left_purpose", BUTTONS)
 
@@ -328,7 +329,7 @@ class TestKeycodeMapper(unittest.IsolatedAsyncioTestCase):
 
         output = 71
 
-        key_to_code = {(down_1, down_2): (71, "keyboard")}
+        key_to_code = {EventCombination(down_1, down_2): (71, "keyboard")}
 
         self.context.key_to_code = key_to_code
         keycode_mapper = KeycodeMapper(self.context, self.source, forward)
@@ -358,8 +359,8 @@ class TestKeycodeMapper(unittest.IsolatedAsyncioTestCase):
         ev_4 = (EV_ABS, ABS_HAT0Y, 0)
 
         _key_to_code = {
-            (ev_1, ev_2): (51, "keyboard"),
-            (ev_2,): (52, "keyboard"),
+            EventCombination(ev_1, ev_2): (51, "keyboard"),
+            EventCombination(ev_2): (52, "keyboard"),
         }
 
         uinput = UInput()
@@ -398,8 +399,8 @@ class TestKeycodeMapper(unittest.IsolatedAsyncioTestCase):
         # when input and output codes are the same (because it at some point
         # screwed it up because of that)
         _key_to_code = {
-            ((EV_KEY, 1, 1),): (101, "keyboard"),
-            ((EV_KEY, code_2, 1),): (code_2, "keyboard"),
+            EventCombination((EV_KEY, 1, 1)): (101, "keyboard"),
+            EventCombination((EV_KEY, code_2, 1)): (code_2, "keyboard"),
         }
 
         uinput_mapped = global_uinputs.devices["keyboard"]
@@ -421,7 +422,7 @@ class TestKeycodeMapper(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(uinput_forwarded.write_history[0].t, (EV_KEY, 3, 1))
 
     async def test_combination_keycode(self):
-        combination = ((EV_KEY, 1, 1), (EV_KEY, 2, 1))
+        combination = EventCombination((EV_KEY, 1, 1), (EV_KEY, 2, 1))
         _key_to_code = {combination: (101, "keyboard")}
 
         uinput = UInput()
@@ -430,8 +431,8 @@ class TestKeycodeMapper(unittest.IsolatedAsyncioTestCase):
         self.context.key_to_code = _key_to_code
         keycode_mapper = KeycodeMapper(self.context, self.source, uinput)
 
-        await keycode_mapper.notify(new_event(*combination[0]))
-        await keycode_mapper.notify(new_event(*combination[1]))
+        await keycode_mapper.notify(combination[0])
+        await keycode_mapper.notify(combination[1])
 
         self.assertEqual(len(uinput_write_history), 2)
         # the first event is written and then the triggered combination
@@ -439,8 +440,8 @@ class TestKeycodeMapper(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(uinput_write_history[1].t, (EV_KEY, 101, 1))
 
         # release them
-        await keycode_mapper.notify(new_event(*combination[0][:2], 0))
-        await keycode_mapper.notify(new_event(*combination[1][:2], 0))
+        await keycode_mapper.notify(combination[0].modify(value=0))
+        await keycode_mapper.notify(combination[1].modify(value=0))
         # the first key writes its release event. The second key is hidden
         # behind the executed combination. The result of the combination is
         # also released, because it acts like a key.
@@ -450,20 +451,20 @@ class TestKeycodeMapper(unittest.IsolatedAsyncioTestCase):
 
         # press them in the wrong order (the wrong key at the end, the order
         # of all other keys won't matter). no combination should be triggered
-        await keycode_mapper.notify(new_event(*combination[1]))
-        await keycode_mapper.notify(new_event(*combination[0]))
+        await keycode_mapper.notify(combination[1])
+        await keycode_mapper.notify(combination[0])
         self.assertEqual(len(uinput_write_history), 6)
         self.assertEqual(uinput_write_history[4].t, (EV_KEY, 2, 1))
         self.assertEqual(uinput_write_history[5].t, (EV_KEY, 1, 1))
 
     async def test_combination_keycode_2(self):
-        combination_1 = (
+        combination_1 = EventCombination(
             (EV_KEY, 1, 1),
             (EV_ABS, ABS_Y, MIN_ABS),
             (EV_KEY, 3, 1),
             (EV_KEY, 4, 1),
         )
-        combination_2 = (
+        combination_2 = EventCombination(
             # should not be triggered, combination_1 should be prioritized
             # when all of its keys are down
             (EV_KEY, 2, 1),
@@ -475,15 +476,18 @@ class TestKeycodeMapper(unittest.IsolatedAsyncioTestCase):
         up_5 = (EV_KEY, 5, 0)
         up_4 = (EV_KEY, 4, 0)
 
-        def sign_value(key):
-            return key[0], key[1], key[2] / abs(key[2])
+        def sign_value(event):
+            return event.modify(value=event.value / abs(event.value))
 
         _key_to_code = {
             # key_to_code is supposed to only contain values classified into PRESS,
             # PRESS_NEGATIVE and RELEASE
-            tuple([sign_value(a) for a in combination_1]): (101, "keyboard"),
+            EventCombination(*[sign_value(a) for a in combination_1]): (
+                101,
+                "keyboard",
+            ),
             combination_2: (102, "keyboard"),
-            (down_5,): (103, "keyboard"),
+            EventCombination(down_5): (103, "keyboard"),
         }
 
         uinput = UInput()
@@ -501,11 +505,11 @@ class TestKeycodeMapper(unittest.IsolatedAsyncioTestCase):
         # 10 and 11: insert some more arbitrary key-down events,
         # they should not break the combinations
         await keycode_mapper.notify(new_event(EV_KEY, 10, 1))
-        await keycode_mapper.notify(new_event(*combination_1[0]))
-        await keycode_mapper.notify(new_event(*combination_1[1]))
-        await keycode_mapper.notify(new_event(*combination_1[2]))
+        await keycode_mapper.notify(combination_1[0])
+        await keycode_mapper.notify(combination_1[1])
+        await keycode_mapper.notify(combination_1[2])
         await keycode_mapper.notify(new_event(EV_KEY, 11, 1))
-        await keycode_mapper.notify(new_event(*combination_1[3]))
+        await keycode_mapper.notify(combination_1[3])
         # combination_1 should have been triggered now
 
         self.assertEqual(len(uinput_write_history), 6)
@@ -940,8 +944,8 @@ class TestKeycodeMapper(unittest.IsolatedAsyncioTestCase):
         trigger = (EV_KEY, BTN_TL)
 
         _key_to_code = {
-            ((*trigger, 1),): (51, "keyboard"),
-            ((*trigger, -1),): (52, "keyboard"),
+            EventCombination((*trigger, 1)): (51, "keyboard"),
+            EventCombination((*trigger, -1)): (52, "keyboard"),
         }
 
         uinput = UInput()
@@ -987,7 +991,7 @@ class TestKeycodeMapper(unittest.IsolatedAsyncioTestCase):
         ev_3 = (*key, 0)
 
         _key_to_code = {
-            ((*key, 1),): (21, "keyboard"),
+            EventCombination((*key, 1)): (21, "keyboard"),
         }
 
         uinput = UInput()
@@ -1019,12 +1023,12 @@ class TestKeycodeMapper(unittest.IsolatedAsyncioTestCase):
         ev_5 = (EV_KEY, KEY_A, 1)
         ev_6 = (EV_KEY, KEY_A, 0)
 
-        combi_1 = (ev_5, ev_3)
-        combi_2 = (ev_3, ev_5)
+        combi_1 = EventCombination(ev_5, ev_3)
+        combi_2 = EventCombination(ev_3, ev_5)
 
         _key_to_code = {
-            (ev_1,): (61, "keyboard"),
-            (ev_3,): (DISABLE_CODE, "keyboard"),
+            EventCombination(ev_1): (61, "keyboard"),
+            EventCombination(ev_3): (DISABLE_CODE, "keyboard"),
             combi_1: (62, "keyboard"),
             combi_2: (63, "keyboard"),
         }
@@ -1062,49 +1066,49 @@ class TestKeycodeMapper(unittest.IsolatedAsyncioTestCase):
         """a combination that ends in a disabled key"""
 
         # ev_5 should be forwarded and the combination triggered
-        await keycode_mapper.notify(new_event(*combi_1[0]))  # ev_5
-        await keycode_mapper.notify(new_event(*combi_1[1]))  # ev_3
+        await keycode_mapper.notify(new_event(*combi_1[0].event_tuple))  # ev_5
+        await keycode_mapper.notify(new_event(*combi_1[1].event_tuple))  # ev_3
         expect_writecounts(3, 1)
         self.assertEqual(len(uinput_write_history), 4)
         self.assertEqual(uinput_write_history[2].t, (EV_KEY, KEY_A, 1))
         self.assertEqual(uinput_write_history[3].t, (EV_KEY, 62, 1))
-        self.assertIn(combi_1[0][:2], unreleased)
-        self.assertIn(combi_1[1][:2], unreleased)
+        self.assertIn(combi_1[0].type_and_code, unreleased)
+        self.assertIn(combi_1[1].type_and_code, unreleased)
         # since this event did not trigger anything, key is None
-        self.assertEqual(unreleased[combi_1[0][:2]].triggered_key, None)
+        self.assertEqual(unreleased[combi_1[0].type_and_code].triggered_key, None)
         # that one triggered something from _key_to_code, so the key is that
-        self.assertEqual(unreleased[combi_1[1][:2]].triggered_key, combi_1)
+        self.assertEqual(unreleased[combi_1[1].type_and_code].triggered_key, combi_1)
 
         # release the last key of the combi first, it should
         # release what the combination maps to
-        event = new_event(combi_1[1][0], combi_1[1][1], 0)
+        event = combi_1[1].modify(value=0)
         await keycode_mapper.notify(event)
         expect_writecounts(4, 1)
         self.assertEqual(len(uinput_write_history), 5)
         self.assertEqual(uinput_write_history[-1].t, (EV_KEY, 62, 0))
-        self.assertIn(combi_1[0][:2], unreleased)
-        self.assertNotIn(combi_1[1][:2], unreleased)
+        self.assertIn(combi_1[0].type_and_code, unreleased)
+        self.assertNotIn(combi_1[1].type_and_code, unreleased)
 
-        event = new_event(combi_1[0][0], combi_1[0][1], 0)
+        event = combi_1[0].modify(value=0)
         await keycode_mapper.notify(event)
         expect_writecounts(4, 2)
         self.assertEqual(len(uinput_write_history), 6)
         self.assertEqual(uinput_write_history[-1].t, (EV_KEY, KEY_A, 0))
-        self.assertNotIn(combi_1[0][:2], unreleased)
-        self.assertNotIn(combi_1[1][:2], unreleased)
+        self.assertNotIn(combi_1[0].type_and_code, unreleased)
+        self.assertNotIn(combi_1[1].type_and_code, unreleased)
 
         """a combination that starts with a disabled key"""
 
         # only the combination should get triggered
-        await keycode_mapper.notify(new_event(*combi_2[0]))
-        await keycode_mapper.notify(new_event(*combi_2[1]))
+        await keycode_mapper.notify(combi_2[0])
+        await keycode_mapper.notify(combi_2[1])
         expect_writecounts(5, 2)
         self.assertEqual(len(uinput_write_history), 7)
         self.assertEqual(uinput_write_history[-1].t, (EV_KEY, 63, 1))
 
         # release the last key of the combi first, it should
         # release what the combination maps to
-        event = new_event(combi_2[1][0], combi_2[1][1], 0)
+        event = combi_2[1].modify(value=0)
         await keycode_mapper.notify(event)
         self.assertEqual(len(uinput_write_history), 8)
         self.assertEqual(uinput_write_history[-1].t, (EV_KEY, 63, 0))
@@ -1112,7 +1116,7 @@ class TestKeycodeMapper(unittest.IsolatedAsyncioTestCase):
 
         # the first key of combi_2 is disabled, so it won't write another
         # key-up event
-        event = new_event(combi_2[0][0], combi_2[0][1], 0)
+        event = combi_2[0].modify(value=0)
         await keycode_mapper.notify(event)
         self.assertEqual(len(uinput_write_history), 8)
         expect_writecounts(6, 2)
@@ -1183,7 +1187,7 @@ class TestKeycodeMapper(unittest.IsolatedAsyncioTestCase):
         scroll_release = (2, 8, 0)
         btn_down = (1, 276, 1)
         btn_up = (1, 276, 0)
-        combination = ((1, 276, 1), (2, 8, -1))
+        combination = EventCombination((1, 276, 1), (2, 8, -1))
 
         system_mapping.clear()
         system_mapping._set("a", 30)
@@ -1300,9 +1304,9 @@ class TestKeycodeMapper(unittest.IsolatedAsyncioTestCase):
         ev_6 = (EV_KEY, KEY_C, 0)
 
         self.context.key_to_code = {
-            (ev_1,): (51, "foo"),  # invalid
-            (ev_2,): (BTN_TL, "keyboard"),  # invalid
-            (ev_3,): (KEY_A, "keyboard"),  # valid
+            EventCombination(ev_1): (51, "foo"),  # invalid
+            EventCombination(ev_2): (BTN_TL, "keyboard"),  # invalid
+            EventCombination(ev_3): (KEY_A, "keyboard"),  # valid
         }
 
         keyboard = global_uinputs.get_uinput("keyboard")

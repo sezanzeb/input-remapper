@@ -66,6 +66,10 @@ class EventCombination(Tuple[InputEvent]):
 
         return super().__new__(cls, events)
 
+    def __str__(self):
+        #  only used in tests and logging
+        return f"EventCombination({', '.join([str(e.event_tuple) for e in self])})"
+
     @classmethod
     def __get_validators__(cls):
         """used by pydantic to create EventCombination objects"""

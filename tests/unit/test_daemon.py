@@ -288,7 +288,7 @@ class TestDaemon(unittest.TestCase):
 
         path = os.path.join(config_dir, "presets", name, f"{preset}.json")
 
-        active_preset.change(EventCombination([event]), target, to_name)
+        active_preset.change(EventCombination(event), target, to_name)
         active_preset.save(path)
 
         system_mapping.clear()

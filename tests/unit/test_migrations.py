@@ -213,9 +213,7 @@ class TestMigrations(unittest.TestCase):
         )
         self.assertEqual(
             loaded.get_mapping(
-                EventCombination(
-                    (EV_ABS, 1, 1), (EV_ABS, 2, -1), EventCombination([EV_ABS, 3, 1])
-                )
+                EventCombination((EV_ABS, 1, 1), (EV_ABS, 2, -1), (EV_ABS, 3, 1))
             ),
             ("c", "keyboard"),
         )

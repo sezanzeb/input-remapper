@@ -591,7 +591,6 @@ class Macro:
 
     def add_if_single(self, then, _else, timeout=None):
         """If a key was pressed without combining it."""
-        # TODO migrate "otherwise" to "else"
         _type_check(then, [Macro, None], "if_single", 1)
         _type_check(_else, [Macro, None], "if_single", 2)
 

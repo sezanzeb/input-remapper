@@ -90,7 +90,7 @@ class Injector(multiprocessing.Process):
     """
 
     group: _Group
-    mapping: Preset
+    preset: Preset
     context: Optional[Context]
     _state: int
     _msg_pipe: multiprocessing.Pipe
@@ -114,12 +114,12 @@ class Injector(multiprocessing.Process):
         # the new process
         self._msg_pipe = multiprocessing.Pipe()
 
-        self.mapping = preset
+        self.preset = preset
         self.context = None  # only needed inside the injection process
 
         self._consumer_controls = []
 
-        super().__init__(name=group.name)
+        super().__init__(name=group)
 
     """Functions to interact with the running process"""
 
@@ -310,7 +310,7 @@ class Injector(multiprocessing.Process):
 
         # create this within the process after the event loop creation,
         # so that the macros use the correct loop
-        self.context = Context(self.mapping)
+        self.context = Context(self.preset)
 
         # grab devices as early as possible. If events appear that won't get
         # released anymore before the grab they appear to be held down

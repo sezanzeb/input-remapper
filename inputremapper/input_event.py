@@ -124,8 +124,8 @@ class InputEvent:
     ) -> InputEvent:
         """return a new modified event"""
         return InputEvent(
-            sec or self.sec,
-            usec or self.usec,
+            sec if sec is not None else self.sec,
+            usec if usec is not None else self.usec,
             type if type is not None else self.type,
             code if code is not None else self.code,
             value if value is not None else self.value,
