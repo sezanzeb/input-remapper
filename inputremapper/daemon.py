@@ -40,7 +40,7 @@ from gi.repository import GLib
 from inputremapper.logger import logger, is_debug
 from inputremapper.injection.injector import Injector, UNKNOWN
 from inputremapper.preset import Preset
-from inputremapper.config import config
+from inputremapper.config import global_config
 from inputremapper.system_mapping import system_mapping
 from inputremapper.groups import groups
 from inputremapper.paths import get_config_path, USER
@@ -313,7 +313,7 @@ class Daemon:
             return
 
         self.config_dir = config_dir
-        config.load_config(config_path)
+        global_config.load_config(config_path)
 
     def _autoload(self, group_key):
         """Check if autoloading is a good idea, and if so do it.
@@ -331,7 +331,7 @@ class Daemon:
             # either not relevant for input-remapper, or not connected yet
             return
 
-        preset = config.get(["autoload", group.key], log_unknown=False)
+        preset = global_config.get(["autoload", group.key], log_unknown=False)
 
         if preset is None:
             # no autoloading is configured for this device
@@ -395,7 +395,7 @@ class Daemon:
             )
             return
 
-        autoload_presets = list(config.iterate_autoload_presets())
+        autoload_presets = list(global_config.iterate_autoload_presets())
 
         logger.info("Autoloading for all devices")
 

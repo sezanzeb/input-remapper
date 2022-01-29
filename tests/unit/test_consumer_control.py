@@ -25,15 +25,15 @@ import asyncio
 import evdev
 from evdev.ecodes import EV_KEY, EV_ABS, ABS_Y, EV_REL
 
-from inputremapper.injection.consumers.keycode_mapper import active_macros
+from inputremapper.injection.mapping_handlers.keycode_mapper import active_macros
 from inputremapper.config import BUTTONS, MOUSE, WHEEL
 
 from inputremapper.injection.context import Context
 from inputremapper.preset import Preset
 from inputremapper.key import Key
 from inputremapper.injection.consumer_control import ConsumerControl, consumer_classes
-from inputremapper.injection.consumers.consumer import Consumer
-from inputremapper.injection.consumers.keycode_mapper import KeycodeMapper
+from inputremapper.injection.mapping_handlers.consumer import Consumer
+from inputremapper.injection.mapping_handlers.keycode_mapper import KeycodeMapper
 from inputremapper.system_mapping import system_mapping
 from inputremapper.injection.global_uinputs import global_uinputs
 

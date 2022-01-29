@@ -31,7 +31,7 @@ import subprocess
 
 from inputremapper.logger import logger, update_verbosity, log_info, add_filehandler
 from inputremapper.migrations import migrate
-from inputremapper.config import config
+from inputremapper.config import global_config
 
 
 # import inputremapper modules as late as possible to make sure the correct
@@ -125,14 +125,14 @@ def communicate(options, daemon):
             sys.exit(1)
 
         logger.info('Using config from "%s" instead', path)
-        config.load_config(path)
+        global_config.load_config(path)
 
     if USER != 'root':
         # Might be triggered by udev, so skip the root user.
         # This will also refresh the config of the daemon if the user changed
         # it in the meantime.
         # config_dir is either the cli arg or the default path in home
-        config_dir = os.path.dirname(config.path)
+        config_dir = os.path.dirname(global_config.path)
         daemon.set_config_dir(config_dir)
         migrate()
 

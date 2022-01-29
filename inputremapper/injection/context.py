@@ -21,7 +21,6 @@
 
 """Stores injection-process wide information."""
 
-
 from inputremapper.logger import logger
 from inputremapper.injection.macros.parse import parse, is_this_a_macro
 from inputremapper.system_mapping import system_mapping

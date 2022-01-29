@@ -31,7 +31,7 @@ from importlib.util import spec_from_loader, module_from_spec
 from importlib.machinery import SourceFileLoader
 
 from inputremapper.gui.active_preset import active_preset
-from inputremapper.config import config
+from inputremapper.config import global_config
 from inputremapper.daemon import Daemon
 from inputremapper.preset import Preset
 from inputremapper.paths import get_preset_path
@@ -98,8 +98,8 @@ class TestControl(unittest.TestCase):
 
         daemon.start_injecting = start_injecting
 
-        config.set_autoload_preset(groups_[0].key, presets[0])
-        config.set_autoload_preset(groups_[1].key, presets[1])
+        global_config.set_autoload_preset(groups_[0].key, presets[0])
+        global_config.set_autoload_preset(groups_[1].key, presets[1])
 
         communicate(options("autoload", None, None, None, False, False, False), daemon)
         self.assertEqual(len(start_history), 2)
@@ -155,7 +155,7 @@ class TestControl(unittest.TestCase):
             daemon.autoload_history.may_autoload(groups_[1].key, presets[1])
         )
         self.assertEqual(stop_counter, 3)
-        config.set_autoload_preset(groups_[1].key, presets[2])
+        global_config.set_autoload_preset(groups_[1].key, presets[2])
         communicate(
             options("autoload", None, None, groups_[1].key, False, False, False), daemon
         )
@@ -209,10 +209,10 @@ class TestControl(unittest.TestCase):
         start_history = []
         daemon.start_injecting = lambda *args: start_history.append(args)
 
-        config.path = os.path.join(config_dir, "config.json")
-        config.load_config()
-        config.set_autoload_preset(device_names[0], presets[0])
-        config.set_autoload_preset(device_names[1], presets[1])
+        global_config.path = os.path.join(config_dir, "config.json")
+        global_config.load_config()
+        global_config.set_autoload_preset(device_names[0], presets[0])
+        global_config.set_autoload_preset(device_names[1], presets[1])
 
         communicate(
             options("autoload", config_dir, None, None, False, False, False),
@@ -282,19 +282,19 @@ class TestControl(unittest.TestCase):
         with open(os.path.join(path, "config.json"), "w") as file:
             file.write('{"foo":"bar"}')
 
-        self.assertIsNone(config.get("foo"))
+        self.assertIsNone(global_config.get("foo"))
         daemon.set_config_dir(path)
-        # since daemon and this test share the same memory, the config
+        # since daemon and this test share the same memory, the global_config
         # object that this test can access will be modified
-        self.assertEqual(config.get("foo"), "bar")
+        self.assertEqual(global_config.get("foo"), "bar")
 
         # passing a path that doesn't exist or a path that doesn't contain
         # a config.json file won't do anything
         os.makedirs(os.path.join(tmp, "bar"))
         daemon.set_config_dir(os.path.join(tmp, "bar"))
-        self.assertEqual(config.get("foo"), "bar")
+        self.assertEqual(global_config.get("foo"), "bar")
         daemon.set_config_dir(os.path.join(tmp, "qux"))
-        self.assertEqual(config.get("foo"), "bar")
+        self.assertEqual(global_config.get("foo"), "bar")
 
     def test_internals(self):
         with mock.patch("os.system") as os_system_patch:

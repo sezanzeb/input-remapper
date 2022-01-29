@@ -28,7 +28,7 @@ from evdev.ecodes import EV_KEY, EV_ABS, KEY_A
 
 from inputremapper.preset import Preset, split_key
 from inputremapper.system_mapping import SystemMapping, XMODMAP_FILENAME
-from inputremapper.config import config
+from inputremapper.config import global_config
 from inputremapper.paths import get_preset_path
 from inputremapper.key import Key
 
@@ -179,7 +179,7 @@ class TestMapping(unittest.TestCase):
         self.assertIsNone(self.mapping.get("a.b.c"))
 
     def test_fallback(self):
-        config.set("d.e.f", 5)
+        global_config.set("d.e.f", 5)
         self.assertEqual(self.mapping.get("d.e.f"), 5)
         self.mapping.set("d.e.f", 3)
         self.assertEqual(self.mapping.get("d.e.f"), 3)

@@ -41,7 +41,7 @@ from evdev.ecodes import (
 from inputremapper.logger import logger
 from inputremapper.config import MOUSE, WHEEL
 from inputremapper import utils
-from inputremapper.injection.consumers.consumer import Consumer
+from inputremapper.injection.mapping_handlers.consumer import Consumer
 from inputremapper.groups import classify, GAMEPAD
 from inputremapper.injection.global_uinputs import global_uinputs
 

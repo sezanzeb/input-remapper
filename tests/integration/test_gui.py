@@ -49,7 +49,7 @@ from gi.repository import Gtk, GLib, Gdk, GtkSource
 from inputremapper.system_mapping import system_mapping, XMODMAP_FILENAME
 from inputremapper.gui.active_preset import active_preset
 from inputremapper.paths import CONFIG_PATH, get_preset_path, get_config_path
-from inputremapper.config import config, WHEEL, MOUSE, BUTTONS
+from inputremapper.config import global_config, WHEEL, MOUSE, BUTTONS
 from inputremapper.gui.reader import reader
 from inputremapper.gui.helper import RootHelper
 from inputremapper.gui.utils import gtk_iteration
@@ -284,7 +284,7 @@ class GuiTestBase:
 
         evdev.InputDevice.grab = grab
 
-        config._save_config()
+        global_config._save_config()
 
     def tearDown(self):
         clean_up_integration(self)
@@ -556,7 +556,7 @@ class TestGui(GuiTestBase, unittest.TestCase):
             set_config_dir.assert_called_once()
 
         self.assertFalse(
-            config.is_autoloaded(
+            global_config.is_autoloaded(
                 self.user_interface.group.key, self.user_interface.preset_name
             )
         )
@@ -572,44 +572,44 @@ class TestGui(GuiTestBase, unittest.TestCase):
         self.assertEqual(self.user_interface.group.key, "Foo Device 2")
         self.assertEqual(self.user_interface.group.name, "Foo Device")
         self.assertTrue(
-            config.is_autoloaded(self.user_interface.group.key, "new preset")
+            global_config.is_autoloaded(self.user_interface.group.key, "new preset")
         )
-        self.assertFalse(config.is_autoloaded("Bar Device", "new preset"))
+        self.assertFalse(global_config.is_autoloaded("Bar Device", "new preset"))
         self.assertListEqual(
-            list(config.iterate_autoload_presets()), [("Foo Device 2", "new preset")]
+            list(global_config.iterate_autoload_presets()), [("Foo Device 2", "new preset")]
         )
 
         # create a new preset, the switch should be correctly off and the
-        # config not changed.
+        # global_config not changed.
         self.user_interface.on_create_preset_clicked()
         gtk_iteration()
         self.assertEqual(self.user_interface.preset_name, "new preset 2")
         self.assertFalse(self.user_interface.get("preset_autoload_switch").get_active())
-        self.assertTrue(config.is_autoloaded("Foo Device 2", "new preset"))
-        self.assertFalse(config.is_autoloaded("Foo Device", "new preset"))
-        self.assertFalse(config.is_autoloaded("Foo Device", "new preset 2"))
-        self.assertFalse(config.is_autoloaded("Foo Device 2", "new preset 2"))
+        self.assertTrue(global_config.is_autoloaded("Foo Device 2", "new preset"))
+        self.assertFalse(global_config.is_autoloaded("Foo Device", "new preset"))
+        self.assertFalse(global_config.is_autoloaded("Foo Device", "new preset 2"))
+        self.assertFalse(global_config.is_autoloaded("Foo Device 2", "new preset 2"))
 
         # select a preset for the second device
         self.user_interface.on_select_device(FakeDeviceDropdown("Bar Device"))
         self.user_interface.get("preset_autoload_switch").set_active(True)
         gtk_iteration()
-        self.assertTrue(config.is_autoloaded("Foo Device 2", "new preset"))
-        self.assertFalse(config.is_autoloaded("Foo Device", "new preset"))
-        self.assertTrue(config.is_autoloaded("Bar Device", "new preset"))
+        self.assertTrue(global_config.is_autoloaded("Foo Device 2", "new preset"))
+        self.assertFalse(global_config.is_autoloaded("Foo Device", "new preset"))
+        self.assertTrue(global_config.is_autoloaded("Bar Device", "new preset"))
         self.assertListEqual(
-            list(config.iterate_autoload_presets()),
+            list(global_config.iterate_autoload_presets()),
             [("Foo Device 2", "new preset"), ("Bar Device", "new preset")],
         )
 
         # disable autoloading for the second device
         self.user_interface.get("preset_autoload_switch").set_active(False)
         gtk_iteration()
-        self.assertTrue(config.is_autoloaded("Foo Device 2", "new preset"))
-        self.assertFalse(config.is_autoloaded("Foo Device", "new preset"))
-        self.assertFalse(config.is_autoloaded("Bar Device", "new preset"))
+        self.assertTrue(global_config.is_autoloaded("Foo Device 2", "new preset"))
+        self.assertFalse(global_config.is_autoloaded("Foo Device", "new preset"))
+        self.assertFalse(global_config.is_autoloaded("Bar Device", "new preset"))
         self.assertListEqual(
-            list(config.iterate_autoload_presets()),
+            list(global_config.iterate_autoload_presets()),
             [("Foo Device 2", "new preset")],
         )
 
@@ -1055,7 +1055,7 @@ class TestGui(GuiTestBase, unittest.TestCase):
 
     def test_rename_and_save(self):
         self.assertEqual(self.user_interface.group.name, "Foo Device")
-        self.assertFalse(config.is_autoloaded("Foo Device", "new preset"))
+        self.assertFalse(global_config.is_autoloaded("Foo Device", "new preset"))
 
         active_preset.change(Key(EV_KEY, 14, 1), "keyboard", "a", None)
         self.assertEqual(self.user_interface.preset_name, "new preset")
@@ -1063,8 +1063,8 @@ class TestGui(GuiTestBase, unittest.TestCase):
         self.assertEqual(
             active_preset.get_mapping(Key(EV_KEY, 14, 1)), ("a", "keyboard")
         )
-        config.set_autoload_preset("Foo Device", "new preset")
-        self.assertTrue(config.is_autoloaded("Foo Device", "new preset"))
+        global_config.set_autoload_preset("Foo Device", "new preset")
+        self.assertTrue(global_config.is_autoloaded("Foo Device", "new preset"))
 
         active_preset.change(Key(EV_KEY, 14, 1), "keyboard", "b", None)
         self.user_interface.get("preset_name_input").set_text("asdf")
@@ -1078,10 +1078,10 @@ class TestGui(GuiTestBase, unittest.TestCase):
         )
 
         # after renaming the preset it is still set to autoload
-        self.assertTrue(config.is_autoloaded("Foo Device", "asdf"))
+        self.assertTrue(global_config.is_autoloaded("Foo Device", "asdf"))
         # ALSO IN THE ACTUAL CONFIG FILE!
-        config.load_config()
-        self.assertTrue(config.is_autoloaded("Foo Device", "asdf"))
+        global_config.load_config()
+        self.assertTrue(global_config.is_autoloaded("Foo Device", "asdf"))
 
         error_icon = self.user_interface.get("error_status_icon")
         self.assertFalse(error_icon.get_visible())
@@ -1130,7 +1130,7 @@ class TestGui(GuiTestBase, unittest.TestCase):
         )
         self.assertEqual(len(active_preset), 1)
         self.assertEqual(len(self.selection_label_listbox.get_children()), 2)
-        config.set_autoload_preset("Foo Device", "new preset")
+        global_config.set_autoload_preset("Foo Device", "new preset")
 
         # renaming a preset to an existing name appends a number
         self.user_interface.on_select_preset(FakePresetDropdown("new preset"))
@@ -1139,7 +1139,7 @@ class TestGui(GuiTestBase, unittest.TestCase):
         self.assertEqual(self.user_interface.preset_name, "asdf 2")
         # and that added number is correctly used in the autoload
         # configuration as well
-        self.assertTrue(config.is_autoloaded("Foo Device", "asdf 2"))
+        self.assertTrue(global_config.is_autoloaded("Foo Device", "asdf 2"))
         self.assertEqual(
             active_preset.get_mapping(Key(EV_KEY, 15, 1)), ("b", "keyboard")
         )
@@ -1375,10 +1375,10 @@ class TestGui(GuiTestBase, unittest.TestCase):
         self.user_interface.get("joystick_mouse_speed").set_value(joystick_mouse_speed)
 
         # it should be stored in active_preset, which overwrites the
-        # global config
-        config.set("gamepad.joystick.left_purpose", MOUSE)
-        config.set("gamepad.joystick.right_purpose", MOUSE)
-        config.set("gamepad.joystick.pointer_speed", 50)
+        # global_config
+        global_config.set("gamepad.joystick.left_purpose", MOUSE)
+        global_config.set("gamepad.joystick.right_purpose", MOUSE)
+        global_config.set("gamepad.joystick.pointer_speed", 50)
         self.assertTrue(active_preset.has_unsaved_changes())
         left_purpose = active_preset.get("gamepad.joystick.left_purpose")
         right_purpose = active_preset.get("gamepad.joystick.right_purpose")

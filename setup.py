@@ -56,7 +56,7 @@ class Install(install):
 def get_packages(base="inputremapper"):
     """Return all modules used in input-remapper.
 
-    For example 'inputremapper.gui' or 'inputremapper.injection.consumers'
+    For example 'inputremapper.gui' or 'inputremapper.injection.mapping_handlers'
     """
     if not os.path.exists(os.path.join(base, "__init__.py")):
         # only python modules

@@ -46,7 +46,7 @@ from evdev.ecodes import (
     KEY_C,
 )
 
-from inputremapper.injection.consumers.joystick_to_mouse import JoystickToMouse
+from inputremapper.injection.mapping_handlers.joystick_to_mouse import JoystickToMouse
 from inputremapper.injection.injector import (
     Injector,
     is_in_capabilities,
@@ -61,7 +61,7 @@ from inputremapper.injection.numlock import is_numlock_on, set_numlock, ensure_n
 from inputremapper.system_mapping import system_mapping, DISABLE_CODE, DISABLE_NAME
 from inputremapper.gui.active_preset import active_preset
 from inputremapper.preset import Preset
-from inputremapper.config import config, NONE, MOUSE, WHEEL, BUTTONS
+from inputremapper.config import global_config, NONE, MOUSE, WHEEL, BUTTONS
 from inputremapper.key import Key
 from inputremapper.injection.macros.parse import parse
 from inputremapper.injection.context import Context
@@ -180,7 +180,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
     def test_gamepad_purpose_none(self):
         # forward abs joystick events
         active_preset.set("gamepad.joystick.left_purpose", NONE)
-        config.set("gamepad.joystick.right_purpose", NONE)
+        global_config.set("gamepad.joystick.right_purpose", NONE)
 
         self.injector = Injector(groups.find(name="gamepad"), active_preset)
         self.injector.context = Context(active_preset)
@@ -198,7 +198,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
     def test_gamepad_purpose_none_2(self):
         # forward abs joystick events for the left joystick only
         active_preset.set("gamepad.joystick.left_purpose", NONE)
-        config.set("gamepad.joystick.right_purpose", MOUSE)
+        global_config.set("gamepad.joystick.right_purpose", MOUSE)
 
         self.injector = Injector(groups.find(name="gamepad"), active_preset)
         self.injector.context = Context(active_preset)
@@ -266,10 +266,10 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
 
     def test_gamepad_to_mouse(self):
         # maps gamepad joystick events to mouse events
-        config.set("gamepad.joystick.non_linearity", 1)
+        global_config.set("gamepad.joystick.non_linearity", 1)
         pointer_speed = 80
-        config.set("gamepad.joystick.pointer_speed", pointer_speed)
-        config.set("gamepad.joystick.left_purpose", MOUSE)
+        global_config.set("gamepad.joystick.pointer_speed", pointer_speed)
+        global_config.set("gamepad.joystick.left_purpose", MOUSE)
 
         # they need to sum up before something is written
         divisor = 10
