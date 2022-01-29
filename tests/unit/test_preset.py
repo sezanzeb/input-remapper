@@ -26,7 +26,7 @@ from unittest.mock import patch
 
 from evdev.ecodes import EV_KEY, EV_ABS, KEY_A
 
-from inputremapper.mapping import Mapping, split_key
+from inputremapper.preset import Preset, split_key
 from inputremapper.system_mapping import SystemMapping, XMODMAP_FILENAME
 from inputremapper.config import config
 from inputremapper.paths import get_preset_path
@@ -129,7 +129,7 @@ class TestSystemMapping(unittest.TestCase):
 
 class TestMapping(unittest.TestCase):
     def setUp(self):
-        self.mapping = Mapping()
+        self.mapping = Preset()
         self.assertFalse(self.mapping.has_unsaved_changes())
 
     def tearDown(self):
@@ -184,24 +184,6 @@ class TestMapping(unittest.TestCase):
         self.mapping.set("d.e.f", 3)
         self.assertEqual(self.mapping.get("d.e.f"), 3)
 
-    def test_clone(self):
-        ev_1 = Key(EV_KEY, 1, 1)
-        ev_2 = Key(EV_KEY, 2, 0)
-
-        mapping1 = Mapping()
-        mapping1.change(ev_1, "keyboard", " a")
-        mapping2 = mapping1.clone()
-        mapping1.change(ev_2, "keyboard", "b ")
-
-        self.assertEqual(mapping1.get_mapping(ev_1), ("a", "keyboard"))
-        self.assertEqual(mapping1.get_mapping(ev_2), ("b", "keyboard"))
-
-        self.assertEqual(mapping2.get_mapping(ev_1), ("a", "keyboard"))
-        self.assertIsNone(mapping2.get_mapping(ev_2))
-
-        self.assertIsNone(mapping2.get_mapping(Key(EV_KEY, 2, 3)))
-        self.assertIsNone(mapping2.get_mapping(Key(EV_KEY, 1, 3)))
-
     def test_save_load(self):
         one = Key(EV_KEY, 10, 1)
         two = Key(EV_KEY, 11, 1)
@@ -216,7 +198,7 @@ class TestMapping(unittest.TestCase):
         path = os.path.join(tmp, "presets", "Foo Device", "test.json")
         self.assertTrue(os.path.exists(path))
 
-        loaded = Mapping()
+        loaded = Preset()
         self.assertEqual(len(loaded), 0)
         loaded.load(get_preset_path("Foo Device", "test"))
 

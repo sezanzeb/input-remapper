@@ -29,7 +29,7 @@ from inputremapper.injection.consumers.keycode_mapper import active_macros
 from inputremapper.config import BUTTONS, MOUSE, WHEEL
 
 from inputremapper.injection.context import Context
-from inputremapper.mapping import Mapping
+from inputremapper.preset import Preset
 from inputremapper.key import Key
 from inputremapper.injection.consumer_control import ConsumerControl, consumer_classes
 from inputremapper.injection.consumers.consumer import Consumer
@@ -61,7 +61,7 @@ class TestConsumerControl(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         consumer_classes.append(ExampleConsumer)
         self.gamepad_source = evdev.InputDevice("/dev/input/event30")
-        self.mapping = Mapping()
+        self.mapping = Preset()
 
     def tearDown(self):
         quick_cleanup()

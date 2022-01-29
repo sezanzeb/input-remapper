@@ -60,7 +60,7 @@ from inputremapper.injection.macros.parse import (
 )
 from inputremapper.injection.context import Context
 from inputremapper.config import config
-from inputremapper.mapping import Mapping
+from inputremapper.preset import Preset
 from inputremapper.system_mapping import system_mapping
 from inputremapper.utils import PRESS, RELEASE
 
@@ -79,7 +79,7 @@ class MacroTestBase(unittest.IsolatedAsyncioTestCase):
             self.loop = asyncio.new_event_loop()
             asyncio.set_event_loop(self.loop)
 
-        self.context = Context(Mapping())
+        self.context = Context(Preset())
 
     def tearDown(self):
         self.result = []

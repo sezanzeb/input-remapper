@@ -48,25 +48,24 @@ class Context:
 
     Members
     -------
-    mapping : Mapping
+    preset : Preset
         The mapping that is the source of key_to_code and macros,
         only used to query config values.
     key_to_code : dict
-        Mapping of ((type, code, value),) to linux-keycode
+        Preset of ((type, code, value),) to linux-keycode
         or multiple of those like ((...), (...), ...) for combinations.
         Combinations need to be present in every possible valid ordering.
         e.g. shift + alt + a and alt + shift + a.
         This is needed to query keycodes more efficiently without having
         to search mapping each time.
     macros : dict
-        Mapping of ((type, code, value),) to Macro objects.
+        Preset of ((type, code, value),) to Macro objects.
         Combinations work similar as in key_to_code
     """
 
-    def __init__(self, mapping):
-        self.mapping = mapping
-
-        # avoid searching through the mapping at runtime,
+    def __init__(self, preset):
+        self.mapping = preset
+        # avoid searching through the preset at runtime,
         # might be a bit expensive
         self.key_to_code = self._map_keys_to_codes()
         self.macros = self._parse_macros()

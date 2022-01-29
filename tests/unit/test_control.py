@@ -30,10 +30,10 @@ import collections
 from importlib.util import spec_from_loader, module_from_spec
 from importlib.machinery import SourceFileLoader
 
-from inputremapper.gui.custom_mapping import custom_mapping
+from inputremapper.gui.active_preset import active_preset
 from inputremapper.config import config
 from inputremapper.daemon import Daemon
-from inputremapper.mapping import Mapping
+from inputremapper.preset import Preset
 from inputremapper.paths import get_preset_path
 from inputremapper.groups import groups
 
@@ -42,7 +42,7 @@ from tests.test import quick_cleanup, tmp
 
 def import_control():
     """Import the core function of the input-remapper-control command."""
-    custom_mapping.empty()
+    active_preset.empty()
 
     bin_path = os.path.join(os.getcwd(), "bin", "input-remapper-control")
 
@@ -77,9 +77,9 @@ class TestControl(unittest.TestCase):
             get_preset_path(groups_[1].name, presets[2]),
         ]
 
-        Mapping().save(paths[0])
-        Mapping().save(paths[1])
-        Mapping().save(paths[2])
+        Preset().save(paths[0])
+        Preset().save(paths[1])
+        Preset().save(paths[2])
 
         daemon = Daemon()
 
@@ -201,8 +201,8 @@ class TestControl(unittest.TestCase):
             os.path.join(config_dir, "presets", device_names[1], presets[1] + ".json"),
         ]
 
-        Mapping().save(paths[0])
-        Mapping().save(paths[1])
+        Preset().save(paths[0])
+        Preset().save(paths[1])
 
         daemon = Daemon()
 

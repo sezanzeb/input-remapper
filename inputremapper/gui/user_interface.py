@@ -33,7 +33,7 @@ from gi.repository import Gtk, GtkSource, Gdk, GLib, GObject
 from inputremapper.data import get_data_path
 from inputremapper.paths import get_config_path
 from inputremapper.system_mapping import system_mapping
-from inputremapper.gui.custom_mapping import custom_mapping
+from inputremapper.gui.active_preset import active_preset
 from inputremapper.gui.utils import HandlerDisabled
 from inputremapper.presets import (
     find_newest_preset,
@@ -124,7 +124,7 @@ def on_close_about(about, _):
 
 
 def ensure_everything_saved(func):
-    """Make sure the editor has written its changes to custom_mapping and save."""
+    """Make sure the editor has written its changes to active_preset and save."""
 
     def wrapped(self, *args, **kwargs):
         if self.preset_name:
@@ -304,15 +304,15 @@ class UserInterface:
         speed = self.get("joystick_mouse_speed")
 
         with HandlerDisabled(left_purpose, self.on_left_joystick_changed):
-            value = custom_mapping.get("gamepad.joystick.left_purpose")
+            value = active_preset.get("gamepad.joystick.left_purpose")
             left_purpose.set_active_id(value)
 
         with HandlerDisabled(right_purpose, self.on_right_joystick_changed):
-            value = custom_mapping.get("gamepad.joystick.right_purpose")
+            value = active_preset.get("gamepad.joystick.right_purpose")
             right_purpose.set_active_id(value)
 
         with HandlerDisabled(speed, self.on_joystick_mouse_speed_changed):
-            value = custom_mapping.get("gamepad.joystick.pointer_speed")
+            value = active_preset.get("gamepad.joystick.pointer_speed")
             range_value = math.log(value, 2)
             speed.set_value(range_value)
 
@@ -364,15 +364,15 @@ class UserInterface:
     def populate_presets(self):
         """Show the available presets for the selected device.
 
-        This will destroy unsaved changes in the custom_mapping.
+        This will destroy unsaved changes in the active_preset.
         """
         presets = get_presets(self.group.name)
 
         if len(presets) == 0:
             new_preset = get_available_preset_name(self.group.name)
-            custom_mapping.empty()
+            active_preset.empty()
             path = self.group.get_preset_path(new_preset)
-            custom_mapping.save(path)
+            active_preset.save(path)
             presets = [new_preset]
         else:
             logger.debug('"%s" presets: "%s"', self.group.name, '", "'.join(presets))
@@ -459,12 +459,12 @@ class UserInterface:
     def check_macro_syntax(self):
         """Check if the programmed macros are allright."""
         self.show_status(CTX_MAPPING, None)
-        for key, output in custom_mapping:
+        for key, output in active_preset:
             output = output[0]
             if not is_this_a_macro(output):
                 continue
 
-            error = parse(output, custom_mapping, return_errors=True)
+            error = parse(output, active_preset, return_errors=True)
             if error is None:
                 continue
 
@@ -495,10 +495,10 @@ class UserInterface:
     def on_delete_preset_clicked(self, *_):
         """Delete a preset from the file system."""
         accept = Gtk.ResponseType.ACCEPT
-        if len(custom_mapping) > 0 and self.show_confirm_delete() != accept:
+        if len(active_preset) > 0 and self.show_confirm_delete() != accept:
             return
 
-        # avoid having the text of the symbol input leak into the custom_mapping again
+        # avoid having the text of the symbol input leak into the active_preset again
         # via a gazillion hooks, causing the preset to be saved again after deleting.
         self.editor.clear()
 
@@ -511,7 +511,7 @@ class UserInterface:
         """Apply a preset without saving changes."""
         self.save_preset()
 
-        if custom_mapping.num_saved_keys == 0:
+        if active_preset.num_saved_keys == 0:
             logger.error("Cannot apply empty preset file")
             # also helpful for first time use
             self.show_status(CTX_ERROR, "You need to add keys and save first")
@@ -521,7 +521,7 @@ class UserInterface:
         logger.info('Applying preset "%s" for "%s"', preset, self.group.key)
 
         if not self.button_left_warn:
-            if custom_mapping.dangerously_mapped_btn_left():
+            if active_preset.dangerously_mapped_btn_left():
                 self.show_status(
                     CTX_ERROR,
                     "This would disable your click button",
@@ -596,7 +596,7 @@ class UserInterface:
         if state == RUNNING:
             msg = f'Applied preset "{self.preset_name}"'
 
-            if custom_mapping.get_mapping(Key.btn_left()):
+            if active_preset.get_mapping(Key.btn_left()):
                 msg += ", CTRL + DEL to stop"
 
             self.show_status(CTX_APPLY, msg)
@@ -653,10 +653,10 @@ class UserInterface:
             else:
                 new_preset = get_available_preset_name(name)
                 self.editor.clear()
-                custom_mapping.empty()
+                active_preset.empty()
 
             path = self.group.get_preset_path(new_preset)
-            custom_mapping.save(path)
+            active_preset.save(path)
             self.get("preset_selection").append(new_preset, new_preset)
             # triggers on_select_preset
             self.get("preset_selection").set_active_id(new_preset)
@@ -685,7 +685,7 @@ class UserInterface:
         self.editor.clear()
         self.preset_name = preset
 
-        custom_mapping.load(self.group.get_preset_path(preset))
+        active_preset.load(self.group.get_preset_path(preset))
 
         self.editor.load_custom_mapping()
 
@@ -699,28 +699,28 @@ class UserInterface:
 
         self.initialize_gamepad_config()
 
-        custom_mapping.set_has_unsaved_changes(False)
+        active_preset.set_has_unsaved_changes(False)
 
     def on_left_joystick_changed(self, dropdown):
         """Set the purpose of the left joystick."""
         purpose = dropdown.get_active_id()
-        custom_mapping.set("gamepad.joystick.left_purpose", purpose)
+        active_preset.set("gamepad.joystick.left_purpose", purpose)
         self.save_preset()
 
     def on_right_joystick_changed(self, dropdown):
         """Set the purpose of the right joystick."""
         purpose = dropdown.get_active_id()
-        custom_mapping.set("gamepad.joystick.right_purpose", purpose)
+        active_preset.set("gamepad.joystick.right_purpose", purpose)
         self.save_preset()
 
     def on_joystick_mouse_speed_changed(self, gtk_range):
         """Set how fast the joystick moves the mouse."""
         speed = 2 ** gtk_range.get_value()
-        custom_mapping.set("gamepad.joystick.pointer_speed", speed)
+        active_preset.set("gamepad.joystick.pointer_speed", speed)
 
     def save_preset(self, *_):
-        """Write changes in the custom_mapping to disk."""
-        if not custom_mapping.has_unsaved_changes():
+        """Write changes in the active_preset to disk."""
+        if not active_preset.has_unsaved_changes():
             # optimization, and also avoids tons of redundant logs
             logger.debug("Not saving because mapping did not change")
             return
@@ -728,7 +728,7 @@ class UserInterface:
         try:
             assert self.preset_name is not None
             path = self.group.get_preset_path(self.preset_name)
-            custom_mapping.save(path)
+            active_preset.save(path)
 
             # after saving the config, its modification date will be the
             # newest, so populate_presets will automatically select the
@@ -739,7 +739,7 @@ class UserInterface:
             self.show_status(CTX_ERROR, "Permission denied!", error)
             logger.error(error)
 
-        for _, mapping in custom_mapping:
+        for _, mapping in active_preset:
             if not mapping:
                 continue
 

@@ -31,12 +31,12 @@ from gi.repository import Gtk
 from pydbus import SystemBus
 
 from inputremapper.system_mapping import system_mapping
-from inputremapper.gui.custom_mapping import custom_mapping
+from inputremapper.gui.active_preset import active_preset
 from inputremapper.config import config
 from inputremapper.groups import groups
 from inputremapper.paths import get_config_path, mkdir, get_preset_path
 from inputremapper.key import Key
-from inputremapper.mapping import Mapping
+from inputremapper.preset import Preset
 from inputremapper.injection.injector import STARTING, RUNNING, STOPPED, UNKNOWN
 from inputremapper.daemon import Daemon
 
@@ -126,12 +126,12 @@ class TestDaemon(unittest.TestCase):
         # unrelated group that shouldn't be affected at all
         group2 = groups.find(name="gamepad")
 
-        custom_mapping.change(Key(*ev_1, 1), "keyboard", "a")
-        custom_mapping.change(Key(*ev_2, -1), "keyboard", "b")
+        active_preset.change(Key(*ev_1, 1), "keyboard", "a")
+        active_preset.change(Key(*ev_2, -1), "keyboard", "b")
 
         preset = "foo"
 
-        custom_mapping.save(group.get_preset_path(preset))
+        active_preset.save(group.get_preset_path(preset))
         config.set_autoload_preset(group.key, preset)
 
         """injection 1"""
@@ -206,7 +206,7 @@ class TestDaemon(unittest.TestCase):
         group = groups.find(name=group_name)
         # this test only makes sense if this device is unknown yet
         self.assertIsNone(group)
-        custom_mapping.change(Key(*ev, 1), "keyboard", "a")
+        active_preset.change(Key(*ev, 1), "keyboard", "a")
         system_mapping.clear()
         system_mapping._set("a", KEY_A)
 
@@ -216,7 +216,7 @@ class TestDaemon(unittest.TestCase):
         system_mapping.clear()
 
         preset = "foo"
-        custom_mapping.save(get_preset_path(group_name, preset))
+        active_preset.save(get_preset_path(group_name, preset))
         config.set_autoload_preset(group_key, preset)
         push_events(group_key, [new_event(*ev, 1)])
         self.daemon = Daemon()
@@ -288,8 +288,8 @@ class TestDaemon(unittest.TestCase):
 
         path = os.path.join(config_dir, "presets", name, f"{preset}.json")
 
-        custom_mapping.change(Key(event), target, to_name)
-        custom_mapping.save(path)
+        active_preset.change(Key(event), target, to_name)
+        active_preset.save(path)
 
         system_mapping.clear()
 
@@ -325,7 +325,7 @@ class TestDaemon(unittest.TestCase):
         daemon = Daemon()
         self.daemon = daemon
 
-        mapping = Mapping()
+        mapping = Preset()
         mapping.change(Key(3, 2, 1), "keyboard", "a")
         mapping.save(group.get_preset_path(preset))
 
@@ -378,7 +378,7 @@ class TestDaemon(unittest.TestCase):
         daemon = Daemon()
         self.daemon = daemon
 
-        mapping = Mapping()
+        mapping = Preset()
         mapping.change(Key(3, 2, 1), "keyboard", "a")
         mapping.save(group.get_preset_path(preset))
 
@@ -430,7 +430,7 @@ class TestDaemon(unittest.TestCase):
         # existing device
         preset = "preset7"
         group = groups.find(key="Foo Device 2")
-        mapping = Mapping()
+        mapping = Preset()
         mapping.change(Key(3, 2, 1), "keyboard", "a")
         mapping.save(group.get_preset_path(preset))
         config.set_autoload_preset(group.key, preset)
@@ -447,7 +447,7 @@ class TestDaemon(unittest.TestCase):
         preset = "preset7"
         group = groups.find(key="Foo Device 2")
 
-        mapping = Mapping()
+        mapping = Preset()
         mapping.change(Key(3, 2, 1), "keyboard", "a")
         mapping.save(group.get_preset_path(preset))
 
