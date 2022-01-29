@@ -22,7 +22,7 @@ from evdev.ecodes import EV_KEY, EV_ABS, ABS_HAT0X
 
 from inputremapper.migrations import migrate, config_version
 from inputremapper.preset import Preset
-from inputremapper.global_config import global_config
+from inputremapper.configs.global_config import global_config
 from inputremapper.paths import touch, CONFIG_PATH, mkdir, get_preset_path
 from inputremapper.key import Key
 from inputremapper.user import HOME

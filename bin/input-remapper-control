@@ -31,8 +31,7 @@ import subprocess
 
 from inputremapper.logger import logger, update_verbosity, log_info, add_filehandler
 from inputremapper.migrations import migrate
-from inputremapper.global_config import global_config
-
+from inputremapper.configs.global_config import global_config
 
 # import inputremapper modules as late as possible to make sure the correct
 # log level is applied before anything is logged

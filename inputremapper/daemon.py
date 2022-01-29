@@ -40,7 +40,7 @@ from gi.repository import GLib
 from inputremapper.logger import logger, is_debug
 from inputremapper.injection.injector import Injector, UNKNOWN
 from inputremapper.preset import Preset
-from inputremapper.global_config import global_config
+from inputremapper.configs.global_config import global_config
 from inputremapper.system_mapping import system_mapping
 from inputremapper.groups import groups
 from inputremapper.paths import get_config_path, USER

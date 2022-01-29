@@ -58,7 +58,7 @@ from inputremapper.gui.reader import reader
 from inputremapper.gui.helper import is_helper_running
 from inputremapper.injection.injector import RUNNING, FAILED, NO_GRAB
 from inputremapper.daemon import Daemon
-from inputremapper.global_config import global_config
+from inputremapper.configs.global_config import global_config
 from inputremapper.injection.macros.parse import is_this_a_macro, parse
 from inputremapper.injection.global_uinputs import global_uinputs
 from inputremapper.gui.utils import (
