@@ -126,8 +126,8 @@ class TestDaemon(unittest.TestCase):
         # unrelated group that shouldn't be affected at all
         group2 = groups.find(name="gamepad")
 
-        active_preset.change(EventCombination(*ev_1, 1), "keyboard", "a")
-        active_preset.change(EventCombination(*ev_2, -1), "keyboard", "b")
+        active_preset.change(EventCombination([*ev_1, 1]), "keyboard", "a")
+        active_preset.change(EventCombination([*ev_2, -1]), "keyboard", "b")
 
         preset = "foo"
 
@@ -206,7 +206,7 @@ class TestDaemon(unittest.TestCase):
         group = groups.find(name=group_name)
         # this test only makes sense if this device is unknown yet
         self.assertIsNone(group)
-        active_preset.change(EventCombination(*ev, 1), "keyboard", "a")
+        active_preset.change(EventCombination([*ev, 1]), "keyboard", "a")
         system_mapping.clear()
         system_mapping._set("a", KEY_A)
 
@@ -326,7 +326,7 @@ class TestDaemon(unittest.TestCase):
         self.daemon = daemon
 
         mapping = Preset()
-        mapping.change(EventCombination(3, 2, 1), "keyboard", "a")
+        mapping.change(EventCombination([3, 2, 1]), "keyboard", "a")
         mapping.save(group.get_preset_path(preset))
 
         # start
@@ -379,7 +379,7 @@ class TestDaemon(unittest.TestCase):
         self.daemon = daemon
 
         mapping = Preset()
-        mapping.change(EventCombination(3, 2, 1), "keyboard", "a")
+        mapping.change(EventCombination([3, 2, 1]), "keyboard", "a")
         mapping.save(group.get_preset_path(preset))
 
         # no autoloading is configured yet
@@ -431,7 +431,7 @@ class TestDaemon(unittest.TestCase):
         preset = "preset7"
         group = groups.find(key="Foo Device 2")
         mapping = Preset()
-        mapping.change(EventCombination(3, 2, 1), "keyboard", "a")
+        mapping.change(EventCombination([3, 2, 1]), "keyboard", "a")
         mapping.save(group.get_preset_path(preset))
         global_config.set_autoload_preset(group.key, preset)
 
@@ -448,7 +448,7 @@ class TestDaemon(unittest.TestCase):
         group = groups.find(key="Foo Device 2")
 
         mapping = Preset()
-        mapping.change(EventCombination(3, 2, 1), "keyboard", "a")
+        mapping.change(EventCombination([3, 2, 1]), "keyboard", "a")
         mapping.save(group.get_preset_path(preset))
 
         global_config.set_autoload_preset(group.key, preset)

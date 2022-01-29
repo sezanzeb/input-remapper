@@ -29,6 +29,7 @@ import sys
 
 from evdev._ecodes import EV_KEY
 from gi.repository import Gtk, GtkSource, Gdk, GLib, GObject
+from inputremapper.input_event import InputEvent
 
 from inputremapper.configs.data import get_data_path
 from inputremapper.configs.paths import get_config_path
@@ -533,7 +534,7 @@ class UserInterface:
 
         if not self.unreleased_warn:
             unreleased = reader.get_unreleased_keys()
-            if unreleased is not None and unreleased != EventCombination.btn_left():
+            if unreleased is not None and unreleased != EventCombination(InputEvent.btn_left()):
                 # it's super annoying if that happens and may break the user
                 # input in such a way to prevent disabling the preset
                 logger.error(
@@ -596,7 +597,7 @@ class UserInterface:
         if state == RUNNING:
             msg = f'Applied preset "{self.preset_name}"'
 
-            if active_preset.get_mapping(EventCombination.btn_left()):
+            if active_preset.get_mapping(EventCombination(InputEvent.btn_left())):
                 msg += ", CTRL + DEL to stop"
 
             self.show_status(CTX_APPLY, msg)

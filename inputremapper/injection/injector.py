@@ -62,8 +62,8 @@ NO_GRAB = 6
 
 def is_in_capabilities(combination: EventCombination, capabilities: CapabilitiesDict) -> bool:
     """Are this combination or one of its sub keys in the capabilities?"""
-    for sub_key in combination:
-        if sub_key[1] in capabilities.get(sub_key[0], []):
+    for event in combination:
+        if event.code in capabilities.get(event.type, []):
             return True
 
     return False

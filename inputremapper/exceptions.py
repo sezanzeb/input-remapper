@@ -39,3 +39,8 @@ class UinputNotAvailable(Error):
 class EventNotHandled(Error):
     def __init__(self, event):
         super().__init__(f"the event {event} can not be handled")
+
+
+class InputEventCreationError(Error):
+    def __init__(self, msg):
+        super().__init__(msg)

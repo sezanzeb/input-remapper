@@ -24,9 +24,9 @@
 see gui.helper.helper
 """
 
-
-import evdev
+from typing import Optional
 from evdev.ecodes import EV_REL
+from inputremapper.input_event import InputEvent
 
 from inputremapper.logger import logger
 from inputremapper.event_combination import EventCombination
@@ -83,7 +83,7 @@ class Reader:
         self._groups_updated = False  # assume the ui will react accordingly
         return outdated
 
-    def _get_event(self, message):
+    def _get_event(self, message) -> Optional[InputEvent]:
         """Return an InputEvent if the message contains one. None otherwise."""
         message_type = message["type"]
         message_body = message["message"]
@@ -96,7 +96,7 @@ class Reader:
             return None
 
         if message_type == "event":
-            return evdev.InputEvent(*message_body)
+            return InputEvent(*message_body)
 
         logger.error('Received unknown message "%s"', message)
         return None
@@ -138,18 +138,14 @@ class Reader:
             if not utils.should_map_as_btn(event, active_preset, gamepad):
                 continue
 
-            event_tuple = (event.type, event.code, event.value)
-
-            type_code = (event.type, event.code)
-
             if event.value == 0:
-                logger.debug_key(event_tuple, "release")
-                self._release(type_code)
+                logger.debug_key(event.event_tuple, "release")
+                self._release(event.type_and_code)
                 continue
 
-            if self._unreleased.get(type_code) == event_tuple:
-                logger.debug_key(event_tuple, "duplicate key down")
-                self._debounce_start(event_tuple)
+            if self._unreleased.get(event.type_and_code) == event.event_tuple:
+                logger.debug_key(event.event_tuple, "duplicate key down")
+                self._debounce_start(event.event_tuple)
                 continue
 
             # to keep track of combinations.
@@ -158,9 +154,9 @@ class Reader:
             # from release to input in order to remember it. Since all release
             # events have value 0, the value is not used in the combination.
             key_down_received = True
-            logger.debug_key(event_tuple, "down")
-            self._unreleased[type_code] = event_tuple
-            self._debounce_start(event_tuple)
+            logger.debug_key(event.event_tuple, "down")
+            self._unreleased[event.type_and_code] = event.event_tuple
+            self._debounce_start(event.event_tuple)
             previous_event = event
 
         if not key_down_received:
@@ -172,13 +168,13 @@ class Reader:
         self.previous_event = previous_event
 
         if len(self._unreleased) > 0:
-            result = EventCombination(*self._unreleased.values())
+            result = EventCombination.from_events(self._unreleased.values())
             if result == self.previous_result:
                 # don't return the same stuff twice
                 return None
 
             self.previous_result = result
-            logger.debug_key(result.keys, "read result")
+            logger.debug_key(result, "read result")
 
             return result
 
@@ -220,7 +216,7 @@ class Reader:
         if len(unreleased) == 0:
             return None
 
-        return EventCombination(*unreleased)
+        return EventCombination.from_events(unreleased)
 
     def _release(self, type_code):
         """Modify the state to recognize the releasing of the key."""

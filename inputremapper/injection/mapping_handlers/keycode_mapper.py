@@ -219,11 +219,11 @@ class KeycodeMapper(Consumer):
 
         # some type checking, prevents me from forgetting what that stuff
         # is supposed to be when writing tests.
-        for key in self.context.key_to_code:
-            for sub_key in key:
-                if abs(sub_key[2]) > 1:
+        for combination in self.context.key_to_code:
+            for event in combination:
+                if abs(event.value) > 1:
                     raise ValueError(
-                        f"Expected values to be one of -1, 0 or 1, " f"but got {key}"
+                        f"Expected values to be one of -1, 0 or 1, " f"but got {combination}"
                     )
 
     def is_enabled(self):

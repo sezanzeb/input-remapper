@@ -20,10 +20,12 @@
 
 
 """Stores injection-process wide information."""
+from typing import Awaitable, List, Dict, Tuple, Protocol, Set
 
 from inputremapper.logger import logger
 from inputremapper.injection.macros.parse import parse, is_this_a_macro
 from inputremapper.configs.system_mapping import system_mapping
+from inputremapper.event_combination import EventCombination
 from inputremapper.configs.global_config import NONE, MOUSE, WHEEL, BUTTONS
 
 
@@ -87,14 +89,14 @@ class Context:
         """To quickly get the target macro during operation."""
         logger.debug("Parsing macros")
         macros = {}
-        for key, output in self.preset:
+        for combination, output in self.preset:
             if is_this_a_macro(output[0]):
                 macro = parse(output[0], self)
                 if macro is None:
                     continue
 
-                for permutation in key.get_permutations():
-                    macros[permutation.keys] = (macro, output[1])
+                for permutation in combination.get_permutations():
+                    macros[permutation] = (macro, output[1])
 
         if len(macros) == 0:
             logger.debug("No macros configured")
@@ -110,7 +112,7 @@ class Context:
             ((1, 5, 1), (1, 4, 1)): (4, "gamepad")
         """
         key_to_code = {}
-        for key, output in self.preset:
+        for combination, output in self.preset:
             if is_this_a_macro(output[0]):
                 continue
 
@@ -119,13 +121,13 @@ class Context:
                 logger.error('Don\'t know what "%s" is', output[0])
                 continue
 
-            for permutation in key.get_permutations():
-                if permutation.keys[-1][-1] not in [-1, 1]:
+            for permutation in combination.get_permutations():
+                if permutation[-1].value not in [-1, 1]:
                     logger.error(
                         "Expected values to be -1 or 1 at this point: %s",
-                        permutation.keys,
+                        permutation,
                     )
-                key_to_code[permutation.keys] = (target_code, output[1])
+                key_to_code[permutation] = (target_code, output[1])
 
         return key_to_code
 
