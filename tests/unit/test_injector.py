@@ -43,7 +43,7 @@ from evdev.ecodes import (
     KEY_C,
 )
 
-from inputremapper.injection.mapping_handlers.joystick_to_mouse import JoystickToMouse
+from inputremapper.injection.consumers.joystick_to_mouse import JoystickToMouse
 from inputremapper.injection.injector import (
     Injector,
     is_in_capabilities,

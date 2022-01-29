@@ -123,71 +123,71 @@ class TestSystemMapping(unittest.TestCase):
 
 class TestMapping(unittest.TestCase):
     def setUp(self):
-        self.mapping = Preset()
-        self.assertFalse(self.mapping.has_unsaved_changes())
+        self.preset = Preset()
+        self.assertFalse(self.preset.has_unsaved_changes())
 
     def tearDown(self):
         quick_cleanup()
 
     def test_config(self):
-        self.mapping.save(get_preset_path("foo", "bar2"))
+        self.preset.save(get_preset_path("foo", "bar2"))
 
-        self.assertEqual(self.mapping.get("a"), None)
+        self.assertEqual(self.preset.get("a"), None)
 
-        self.assertFalse(self.mapping.has_unsaved_changes())
+        self.assertFalse(self.preset.has_unsaved_changes())
 
-        self.mapping.set("a", 1)
-        self.assertEqual(self.mapping.get("a"), 1)
-        self.assertTrue(self.mapping.has_unsaved_changes())
+        self.preset.set("a", 1)
+        self.assertEqual(self.preset.get("a"), 1)
+        self.assertTrue(self.preset.has_unsaved_changes())
 
-        self.mapping.remove("a")
-        self.mapping.set("a.b", 2)
-        self.assertEqual(self.mapping.get("a.b"), 2)
-        self.assertEqual(self.mapping._config["a"]["b"], 2)
+        self.preset.remove("a")
+        self.preset.set("a.b", 2)
+        self.assertEqual(self.preset.get("a.b"), 2)
+        self.assertEqual(self.preset._config["a"]["b"], 2)
 
-        self.mapping.remove("a.b")
-        self.mapping.set("a.b.c", 3)
-        self.assertEqual(self.mapping.get("a.b.c"), 3)
-        self.assertEqual(self.mapping._config["a"]["b"]["c"], 3)
+        self.preset.remove("a.b")
+        self.preset.set("a.b.c", 3)
+        self.assertEqual(self.preset.get("a.b.c"), 3)
+        self.assertEqual(self.preset._config["a"]["b"]["c"], 3)
 
-        # setting mapping.whatever does not overwrite the mapping
+        # setting preset.whatever does not overwrite the preset
         # after saving. It should be ignored.
-        self.mapping.change(EventCombination([EV_KEY, 81, 1]), "keyboard", " a ")
-        self.mapping.set("mapping.a", 2)
-        self.assertEqual(self.mapping.num_saved_keys, 0)
-        self.mapping.save(get_preset_path("foo", "bar"))
-        self.assertEqual(self.mapping.num_saved_keys, len(self.mapping))
-        self.assertFalse(self.mapping.has_unsaved_changes())
-        self.mapping.load(get_preset_path("foo", "bar"))
+        self.preset.change(EventCombination([EV_KEY, 81, 1]), "keyboard", " a ")
+        self.preset.set("mapping.a", 2)
+        self.assertEqual(self.preset.num_saved_keys, 0)
+        self.preset.save(get_preset_path("foo", "bar"))
+        self.assertEqual(self.preset.num_saved_keys, len(self.preset))
+        self.assertFalse(self.preset.has_unsaved_changes())
+        self.preset.load(get_preset_path("foo", "bar"))
         self.assertEqual(
-            self.mapping.get_mapping(EventCombination([EV_KEY, 81, 1])), ("a", "keyboard")
+            self.preset.get_mapping(EventCombination([EV_KEY, 81, 1])), ("a", "keyboard")
         )
-        self.assertIsNone(self.mapping.get("mapping.a"))
-        self.assertFalse(self.mapping.has_unsaved_changes())
+        self.assertIsNone(self.preset.get("mapping.a"))
+        self.assertFalse(self.preset.has_unsaved_changes())
 
         # loading a different preset also removes the configs from memory
-        self.mapping.remove("a")
-        self.assertTrue(self.mapping.has_unsaved_changes())
-        self.mapping.set("a.b.c", 6)
-        self.mapping.load(get_preset_path("foo", "bar2"))
-        self.assertIsNone(self.mapping.get("a.b.c"))
+        self.preset.remove("a")
+        self.assertTrue(self.preset.has_unsaved_changes())
+        self.preset.set("a.b.c", 6)
+        self.preset.load(get_preset_path("foo", "bar2"))
+        self.assertIsNone(self.preset.get("a.b.c"))
 
     def test_fallback(self):
         global_config.set("d.e.f", 5)
-        self.assertEqual(self.mapping.get("d.e.f"), 5)
-        self.mapping.set("d.e.f", 3)
-        self.assertEqual(self.mapping.get("d.e.f"), 3)
+        self.assertEqual(self.preset.get("d.e.f"), 5)
+        self.preset.set("d.e.f", 3)
+        self.assertEqual(self.preset.get("d.e.f"), 3)
 
     def test_save_load(self):
         one = InputEvent.from_event_tuple((EV_KEY, 10, 1))
         two = InputEvent.from_event_tuple((EV_KEY, 11, 1))
         three = InputEvent.from_event_tuple((EV_KEY, 12, 1))
 
-        self.mapping.change(EventCombination(one), "keyboard", "1")
-        self.mapping.change(EventCombination(two), "keyboard", "2")
-        self.mapping.change(EventCombination(two, three), "keyboard", "3")
-        self.mapping._config["foo"] = "bar"
-        self.mapping.save(get_preset_path("Foo Device", "test"))
+        self.preset.change(EventCombination(one), "keyboard", "1")
+        self.preset.change(EventCombination(two), "keyboard", "2")
+        self.preset.change(EventCombination(two, three), "keyboard", "3")
+        self.preset._config["foo"] = "bar"
+        self.preset.save(get_preset_path("Foo Device", "test"))
 
         path = os.path.join(tmp, "presets", "Foo Device", "test.json")
         self.assertTrue(os.path.exists(path))
@@ -211,48 +211,48 @@ class TestMapping(unittest.TestCase):
         ev_3 = EventCombination((EV_KEY, 2, 111))
         ev_4 = EventCombination((EV_ABS, 1, 111))
 
-        self.assertRaises(TypeError, self.mapping.change, [(EV_KEY, 10, 1), "keyboard", "a", ev_2])
-        self.assertRaises(TypeError, self.mapping.change, [ev_1, "keyboard", "a", (EV_KEY, 1, 222)])
+        self.assertRaises(TypeError, self.preset.change, [(EV_KEY, 10, 1), "keyboard", "a", ev_2])
+        self.assertRaises(TypeError, self.preset.change, [ev_1, "keyboard", "a", (EV_KEY, 1, 222)])
 
         # 1 is not assigned yet, ignore it
-        self.mapping.change(ev_1, "keyboard", "a", ev_2)
-        self.assertTrue(self.mapping.has_unsaved_changes())
-        self.assertIsNone(self.mapping.get_mapping(ev_2))
-        self.assertEqual(self.mapping.get_mapping(ev_1), ("a", "keyboard"))
-        self.assertEqual(len(self.mapping), 1)
+        self.preset.change(ev_1, "keyboard", "a", ev_2)
+        self.assertTrue(self.preset.has_unsaved_changes())
+        self.assertIsNone(self.preset.get_mapping(ev_2))
+        self.assertEqual(self.preset.get_mapping(ev_1), ("a", "keyboard"))
+        self.assertEqual(len(self.preset), 1)
 
         # change ev_1 to ev_3 and change a to b
-        self.mapping.change(ev_3, "keyboard", "b", ev_1)
-        self.assertIsNone(self.mapping.get_mapping(ev_1))
-        self.assertEqual(self.mapping.get_mapping(ev_3), ("b", "keyboard"))
-        self.assertEqual(len(self.mapping), 1)
+        self.preset.change(ev_3, "keyboard", "b", ev_1)
+        self.assertIsNone(self.preset.get_mapping(ev_1))
+        self.assertEqual(self.preset.get_mapping(ev_3), ("b", "keyboard"))
+        self.assertEqual(len(self.preset), 1)
 
         # add 4
-        self.mapping.change(ev_4, "keyboard", "c", None)
-        self.assertEqual(self.mapping.get_mapping(ev_3), ("b", "keyboard"))
-        self.assertEqual(self.mapping.get_mapping(ev_4), ("c", "keyboard"))
-        self.assertEqual(len(self.mapping), 2)
+        self.preset.change(ev_4, "keyboard", "c", None)
+        self.assertEqual(self.preset.get_mapping(ev_3), ("b", "keyboard"))
+        self.assertEqual(self.preset.get_mapping(ev_4), ("c", "keyboard"))
+        self.assertEqual(len(self.preset), 2)
 
-        # change the mapping of 4 to d
-        self.mapping.change(ev_4, "keyboard", "d", None)
-        self.assertEqual(self.mapping.get_mapping(ev_4), ("d", "keyboard"))
-        self.assertEqual(len(self.mapping), 2)
+        # change the preset of 4 to d
+        self.preset.change(ev_4, "keyboard", "d", None)
+        self.assertEqual(self.preset.get_mapping(ev_4), ("d", "keyboard"))
+        self.assertEqual(len(self.preset), 2)
 
         # this also works in the same way
-        self.mapping.change(ev_4, "keyboard", "e", ev_4)
-        self.assertEqual(self.mapping.get_mapping(ev_4), ("e", "keyboard"))
-        self.assertEqual(len(self.mapping), 2)
+        self.preset.change(ev_4, "keyboard", "e", ev_4)
+        self.assertEqual(self.preset.get_mapping(ev_4), ("e", "keyboard"))
+        self.assertEqual(len(self.preset), 2)
 
-        self.assertEqual(self.mapping.num_saved_keys, 0)
+        self.assertEqual(self.preset.num_saved_keys, 0)
 
     def test_rejects_empty(self):
         key = EventCombination([EV_KEY, 1, 111])
-        self.assertEqual(len(self.mapping), 0)
+        self.assertEqual(len(self.preset), 0)
         self.assertRaises(
-            ValueError, lambda: self.mapping.change(key, "keyboard", " \n ")
+            ValueError, lambda: self.preset.change(key, "keyboard", " \n ")
         )
-        self.assertRaises(ValueError, lambda: self.mapping.change(key, " \n ", "b"))
-        self.assertEqual(len(self.mapping), 0)
+        self.assertRaises(ValueError, lambda: self.preset.change(key, " \n ", "b"))
+        self.assertEqual(len(self.preset), 0)
 
     def test_avoids_redundant_changes(self):
         # to avoid logs that don't add any value
@@ -264,10 +264,10 @@ class TestMapping(unittest.TestCase):
         target = "keyboard"
         symbol = "foo"
 
-        self.mapping.change(key, target, symbol)
-        with patch.object(self.mapping, "clear", clear):
-            self.mapping.change(key, target, symbol)
-            self.mapping.change(key, target, symbol, previous_combination=key)
+        self.preset.change(key, target, symbol)
+        with patch.object(self.preset, "clear", clear):
+            self.preset.change(key, target, symbol)
+            self.preset.change(key, target, symbol, previous_combination=key)
 
     def test_combinations(self):
         ev_1 = InputEvent.from_event_tuple((EV_KEY, 1, 111))
@@ -278,23 +278,23 @@ class TestMapping(unittest.TestCase):
         combi_2 = EventCombination(ev_2, ev_1, ev_3)
         combi_3 = EventCombination(ev_1, ev_2, ev_4)
 
-        self.mapping.change(combi_1, "keyboard", "a")
-        self.assertEqual(self.mapping.get_mapping(combi_1), ("a", "keyboard"))
-        self.assertEqual(self.mapping.get_mapping(combi_2), ("a", "keyboard"))
+        self.preset.change(combi_1, "keyboard", "a")
+        self.assertEqual(self.preset.get_mapping(combi_1), ("a", "keyboard"))
+        self.assertEqual(self.preset.get_mapping(combi_2), ("a", "keyboard"))
         # since combi_1 and combi_2 are equivalent, a changes to b
-        self.mapping.change(combi_2, "keyboard", "b")
-        self.assertEqual(self.mapping.get_mapping(combi_1), ("b", "keyboard"))
-        self.assertEqual(self.mapping.get_mapping(combi_2), ("b", "keyboard"))
+        self.preset.change(combi_2, "keyboard", "b")
+        self.assertEqual(self.preset.get_mapping(combi_1), ("b", "keyboard"))
+        self.assertEqual(self.preset.get_mapping(combi_2), ("b", "keyboard"))
 
-        self.mapping.change(combi_3, "keyboard", "c")
-        self.assertEqual(self.mapping.get_mapping(combi_1), ("b", "keyboard"))
-        self.assertEqual(self.mapping.get_mapping(combi_2), ("b", "keyboard"))
-        self.assertEqual(self.mapping.get_mapping(combi_3), ("c", "keyboard"))
+        self.preset.change(combi_3, "keyboard", "c")
+        self.assertEqual(self.preset.get_mapping(combi_1), ("b", "keyboard"))
+        self.assertEqual(self.preset.get_mapping(combi_2), ("b", "keyboard"))
+        self.assertEqual(self.preset.get_mapping(combi_3), ("c", "keyboard"))
 
-        self.mapping.change(combi_3, "keyboard", "c", combi_1)
-        self.assertIsNone(self.mapping.get_mapping(combi_1))
-        self.assertIsNone(self.mapping.get_mapping(combi_2))
-        self.assertEqual(self.mapping.get_mapping(combi_3), ("c", "keyboard"))
+        self.preset.change(combi_3, "keyboard", "c", combi_1)
+        self.assertIsNone(self.preset.get_mapping(combi_1))
+        self.assertIsNone(self.preset.get_mapping(combi_2))
+        self.assertEqual(self.preset.get_mapping(combi_3), ("c", "keyboard"))
 
     def test_clear(self):
         # does nothing
@@ -303,51 +303,51 @@ class TestMapping(unittest.TestCase):
         ev_3 = EventCombination((EV_KEY, 20, 1))
         ev_4 = EventCombination((EV_KEY, 10, 1))
 
-        self.assertRaises(TypeError, self.mapping.clear, (EV_KEY, 10, 1))
-        self.mapping.clear(ev_1)
-        self.assertFalse(self.mapping.has_unsaved_changes())
-        self.assertEqual(len(self.mapping), 0)
+        self.assertRaises(TypeError, self.preset.clear, (EV_KEY, 10, 1))
+        self.preset.clear(ev_1)
+        self.assertFalse(self.preset.has_unsaved_changes())
+        self.assertEqual(len(self.preset), 0)
 
-        self.mapping._mapping[ev_1] = "b"
-        self.assertEqual(len(self.mapping), 1)
-        self.mapping.clear(ev_1)
-        self.assertEqual(len(self.mapping), 0)
-        self.assertTrue(self.mapping.has_unsaved_changes())
+        self.preset._mapping[ev_1] = "b"
+        self.assertEqual(len(self.preset), 1)
+        self.preset.clear(ev_1)
+        self.assertEqual(len(self.preset), 0)
+        self.assertTrue(self.preset.has_unsaved_changes())
 
-        self.mapping.change(ev_4, "keyboard", "KEY_KP1", None)
-        self.assertTrue(self.mapping.has_unsaved_changes())
-        self.mapping.change(ev_3, "keyboard", "KEY_KP2", None)
-        self.mapping.change(ev_2, "keyboard", "KEY_KP3", None)
-        self.assertEqual(len(self.mapping), 3)
-        self.mapping.clear(ev_3)
-        self.assertEqual(len(self.mapping), 2)
-        self.assertEqual(self.mapping.get_mapping(ev_4), ("KEY_KP1", "keyboard"))
-        self.assertIsNone(self.mapping.get_mapping(ev_3))
-        self.assertEqual(self.mapping.get_mapping(ev_2), ("KEY_KP3", "keyboard"))
+        self.preset.change(ev_4, "keyboard", "KEY_KP1", None)
+        self.assertTrue(self.preset.has_unsaved_changes())
+        self.preset.change(ev_3, "keyboard", "KEY_KP2", None)
+        self.preset.change(ev_2, "keyboard", "KEY_KP3", None)
+        self.assertEqual(len(self.preset), 3)
+        self.preset.clear(ev_3)
+        self.assertEqual(len(self.preset), 2)
+        self.assertEqual(self.preset.get_mapping(ev_4), ("KEY_KP1", "keyboard"))
+        self.assertIsNone(self.preset.get_mapping(ev_3))
+        self.assertEqual(self.preset.get_mapping(ev_2), ("KEY_KP3", "keyboard"))
 
     def test_empty(self):
-        self.mapping.change(EventCombination([EV_KEY, 10, 1]), "keyboard", "1")
-        self.mapping.change(EventCombination([EV_KEY, 11, 1]), "keyboard", "2")
-        self.mapping.change(EventCombination([EV_KEY, 12, 1]), "keyboard", "3")
-        self.assertEqual(len(self.mapping), 3)
-        self.mapping.empty()
-        self.assertEqual(len(self.mapping), 0)
+        self.preset.change(EventCombination([EV_KEY, 10, 1]), "keyboard", "1")
+        self.preset.change(EventCombination([EV_KEY, 11, 1]), "keyboard", "2")
+        self.preset.change(EventCombination([EV_KEY, 12, 1]), "keyboard", "3")
+        self.assertEqual(len(self.preset), 3)
+        self.preset.empty()
+        self.assertEqual(len(self.preset), 0)
 
     def test_dangerously_mapped_btn_left(self):
-        self.mapping.change(EventCombination(InputEvent.btn_left()), "keyboard", "1")
-        self.assertTrue(self.mapping.dangerously_mapped_btn_left())
+        self.preset.change(EventCombination(InputEvent.btn_left()), "keyboard", "1")
+        self.assertTrue(self.preset.dangerously_mapped_btn_left())
 
-        self.mapping.change(EventCombination([EV_KEY, 41, 1]), "keyboard", "2")
-        self.assertTrue(self.mapping.dangerously_mapped_btn_left())
+        self.preset.change(EventCombination([EV_KEY, 41, 1]), "keyboard", "2")
+        self.assertTrue(self.preset.dangerously_mapped_btn_left())
 
-        self.mapping.change(EventCombination([EV_KEY, 42, 1]), "gamepad", "btn_left")
-        self.assertFalse(self.mapping.dangerously_mapped_btn_left())
+        self.preset.change(EventCombination([EV_KEY, 42, 1]), "gamepad", "btn_left")
+        self.assertFalse(self.preset.dangerously_mapped_btn_left())
 
-        self.mapping.change(EventCombination([EV_KEY, 42, 1]), "gamepad", "BTN_Left")
-        self.assertFalse(self.mapping.dangerously_mapped_btn_left())
+        self.preset.change(EventCombination([EV_KEY, 42, 1]), "gamepad", "BTN_Left")
+        self.assertFalse(self.preset.dangerously_mapped_btn_left())
 
-        self.mapping.change(EventCombination([EV_KEY, 42, 1]), "keyboard", "3")
-        self.assertTrue(self.mapping.dangerously_mapped_btn_left())
+        self.preset.change(EventCombination([EV_KEY, 42, 1]), "keyboard", "3")
+        self.assertTrue(self.preset.dangerously_mapped_btn_left())
 
 
 if __name__ == "__main__":

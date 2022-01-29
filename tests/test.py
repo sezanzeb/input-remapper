@@ -534,7 +534,7 @@ from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.gui.active_preset import active_preset
 from inputremapper.configs.paths import get_config_path
 from inputremapper.injection.macros.macro import macro_variables
-from inputremapper.injection.mapping_handlers.keycode_mapper import active_macros, unreleased
+from inputremapper.injection.consumers.keycode_mapper import active_macros, unreleased
 from inputremapper.injection.global_uinputs import global_uinputs
 
 # no need for a high number in tests

@@ -34,7 +34,7 @@ import inputremapper.exceptions
 from inputremapper.logger import logger
 from inputremapper.configs.system_mapping import DISABLE_CODE
 from inputremapper import utils
-from inputremapper.injection.mapping_handlers.consumer import Consumer
+from inputremapper.injection.consumers.consumer import Consumer
 from inputremapper.utils import RELEASE
 from inputremapper.groups import classify, GAMEPAD
 from inputremapper.injection.global_uinputs import global_uinputs

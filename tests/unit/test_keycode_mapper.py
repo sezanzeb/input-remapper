@@ -38,7 +38,7 @@ from evdev.ecodes import (
 )
 from inputremapper.event_combination import EventCombination
 
-from inputremapper.injection.mapping_handlers.keycode_mapper import (
+from inputremapper.injection.consumers.keycode_mapper import (
     active_macros,
     KeycodeMapper,
     unreleased,

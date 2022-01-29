@@ -23,8 +23,8 @@
 import asyncio
 import evdev
 
-from inputremapper.injection.mapping_handlers.joystick_to_mouse import JoystickToMouse
-from inputremapper.injection.mapping_handlers.keycode_mapper import KeycodeMapper
+from inputremapper.injection.consumers.joystick_to_mouse import JoystickToMouse
+from inputremapper.injection.consumers.keycode_mapper import KeycodeMapper
 from inputremapper.logger import logger
 from inputremapper.injection.context import Context
 
