@@ -129,17 +129,17 @@ class Context:
 
         return key_to_code
 
-    def is_mapped(self, key):
-        """Check if this key is used for macros or mappings.
+    def is_mapped(self, combination):
+        """Check if this combination is used for macros or mappings.
 
         Parameters
         ----------
-        key : tuple of tuple of int
+        combination : tuple of tuple of int
             One or more 3-tuples of type, code, action,
             for example ((EV_KEY, KEY_A, 1), (EV_ABS, ABS_X, -1))
             or ((EV_KEY, KEY_B, 1),)
         """
-        return key in self.macros or key in self.key_to_code
+        return combination in self.macros or combination in self.key_to_code
 
     def maps_joystick(self):
         """If at least one of the joysticks will serve a special purpose."""

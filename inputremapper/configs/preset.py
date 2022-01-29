@@ -34,7 +34,7 @@ from inputremapper.logger import logger
 from inputremapper.configs.paths import touch, get_preset_path, mkdir
 from inputremapper.configs.global_config import global_config
 from inputremapper.configs.base_config import ConfigBase
-from inputremapper.key import Key
+from inputremapper.event_combination import EventCombination
 from inputremapper.injection.macros.parse import clean
 from inputremapper.groups import groups
 
@@ -60,10 +60,10 @@ def split_key(key):
 class Preset(ConfigBase):
     """Contains and manages mappings of a single preset."""
 
-    _mapping: Dict[Key, Tuple[str, str]]
+    _mapping: Dict[EventCombination, Tuple[str, str]]
 
     def __init__(self):
-        self._mapping = {}  # a mapping of Key objects to strings
+        self._mapping = {}  # a mapping of a EventCombination object to strings
         self._changed = False
 
         # are there actually any keys set in the preset file?
@@ -72,7 +72,7 @@ class Preset(ConfigBase):
         super().__init__(fallback=global_config)
 
     def __iter__(self) -> Preset._mapping.items:
-        """Iterate over Key objects and their mappings."""
+        """Iterate over EventCombination objects and their mappings."""
         return iter(self._mapping.items())
 
     def __len__(self):
@@ -88,26 +88,26 @@ class Preset(ConfigBase):
         self._changed = True
         return super().remove(*args)
 
-    def change(self, new_key, target, symbol, previous_key=None):
+    def change(self, new_combination, target, symbol, previous_combination=None):
         """Replace the mapping of a keycode with a different one.
 
         Parameters
         ----------
-        new_key : Key
+        new_combination : EventCombination
         target : string
             name of target uinput
         symbol : string
             A single symbol known to xkb or linux.
             Examples: KEY_KP1, Shift_L, a, B, BTN_LEFT.
-        previous_key : Key or None
-            the previous key
+        previous_combination : EventCombination or None
+            the previous combination
 
             If not set, will not remove any previous mapping. If you recently
             used (1, 10, 1) for new_key and want to overwrite that with
             (1, 11, 1), provide (1, 10, 1) here.
         """
-        if not isinstance(new_key, Key):
-            raise TypeError(f"Expected {new_key} to be a Key object")
+        if not isinstance(new_combination, EventCombination):
+            raise TypeError(f"Expected {new_combination} to be a EventCombination object")
 
         if symbol is None or symbol.strip() == "":
             raise ValueError("Expected `symbol` not to be empty")
@@ -119,25 +119,25 @@ class Preset(ConfigBase):
         symbol = symbol.strip()
         output = (symbol, target)
 
-        if previous_key is None and self._mapping.get(new_key):
-            # the key didn't change
-            previous_key = new_key
+        if previous_combination is None and self._mapping.get(new_combination):
+            # the combination didn't change
+            previous_combination = new_combination
 
-        key_changed = new_key != previous_key
-        if not key_changed and (symbol, target) == self._mapping.get(new_key):
+        key_changed = new_combination != previous_combination
+        if not key_changed and (symbol, target) == self._mapping.get(new_combination):
             # nothing was changed, no need to act
             return
 
-        self.clear(new_key)  # this also clears all equivalent keys
+        self.clear(new_combination)  # this also clears all equivalent keys
 
-        logger.debug('changing %s to "%s"', new_key, clean(symbol))
+        logger.debug('changing %s to "%s"', new_combination, clean(symbol))
 
-        self._mapping[new_key] = output
+        self._mapping[new_combination] = output
 
-        if key_changed and previous_key is not None:
+        if key_changed and previous_combination is not None:
             # clear previous mapping of that code, because the line
             # representing that one will now represent a different one
-            self.clear(previous_key)
+            self.clear(previous_combination)
 
         self._changed = True
 
@@ -149,17 +149,17 @@ class Preset(ConfigBase):
         """Write down if there are unsaved changes, or if they have been saved."""
         self._changed = changed
 
-    def clear(self, key):
+    def clear(self, combination):
         """Remove a keycode from the preset.
 
         Parameters
         ----------
-        key : Key
+        combination : EventCombination
         """
-        if not isinstance(key, Key):
-            raise TypeError(f"Expected key to be a Key object but got {key}")
+        if not isinstance(combination, EventCombination):
+            raise TypeError(f"Expected combination to be a EventCombination object but got {combination}")
 
-        for permutation in key.get_permutations():
+        for permutation in combination.get_permutations():
             if permutation in self._mapping:
                 logger.debug("%s cleared", permutation)
                 del self._mapping[permutation]
@@ -200,12 +200,12 @@ class Preset(ConfigBase):
                 )
                 return
 
-            for key, symbol in preset_dict["mapping"].items():
+            for combination, symbol in preset_dict["mapping"].items():
                 try:
-                    key = Key(
+                    combination = EventCombination(
                         *[
                             split_key(chunk)
-                            for chunk in key.split("+")
+                            for chunk in combination.split("+")
                             if chunk.strip() != ""
                         ]
                     )
@@ -213,14 +213,14 @@ class Preset(ConfigBase):
                     logger.error(str(error))
                     continue
 
-                if None in key:
+                if None in combination:
                     continue
 
                 if isinstance(symbol, list):
                     symbol = tuple(symbol)  # use a immutable type
 
-                logger.debug("%s maps to %s", key, symbol)
-                self._mapping[key] = symbol
+                logger.debug("%s maps to %s", combination, symbol)
+                self._mapping[combination] = symbol
 
             # add any metadata of the preset
             for key in preset_dict:
@@ -250,9 +250,9 @@ class Preset(ConfigBase):
             # so put the mapping into a special key
             json_ready_mapping = {}
             # tuple keys are not possible in json, encode them as string
-            for key, value in self._mapping.items():
+            for combination, value in self._mapping.items():
                 new_key = "+".join(
-                    [",".join([str(value) for value in sub_key]) for sub_key in key]
+                    [",".join([str(value) for value in sub_key]) for sub_key in combination]
                 )
                 json_ready_mapping[new_key] = value
 
@@ -263,17 +263,17 @@ class Preset(ConfigBase):
         self._changed = False
         self.num_saved_keys = len(self)
 
-    def get_mapping(self, key):
+    def get_mapping(self, combination):
         """Read the (symbol, target)-tuple that is mapped to this keycode.
 
         Parameters
         ----------
-        key : Key
+        combination : EventCombination
         """
-        if not isinstance(key, Key):
-            raise TypeError(f"Expected key to be a Key object but got {key}")
+        if not isinstance(combination, EventCombination):
+            raise TypeError(f"Expected combination to be a EventCombination object but got {combination}")
 
-        for permutation in key.get_permutations():
+        for permutation in combination.get_permutations():
             existing = self._mapping.get(permutation)
             if existing is not None:
                 return existing
@@ -282,7 +282,7 @@ class Preset(ConfigBase):
 
     def dangerously_mapped_btn_left(self):
         """Return True if this mapping disables BTN_Left."""
-        if self.get_mapping(Key(EV_KEY, BTN_LEFT, 1)) is not None:
+        if self.get_mapping(EventCombination(EV_KEY, BTN_LEFT, 1)) is not None:
             values = [value[0].lower() for value in self._mapping.values()]
             return "btn_left" not in values
 

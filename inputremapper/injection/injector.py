@@ -37,7 +37,7 @@ from inputremapper.groups import classify, GAMEPAD, _Group
 from inputremapper.injection.context import Context
 from inputremapper.injection.numlock import set_numlock, is_numlock_on, ensure_numlock
 from inputremapper.injection.consumer_control import ConsumerControl
-from inputremapper.key import Key
+from inputremapper.event_combination import EventCombination
 
 
 CapabilitiesDict = Dict[int, List[int]]
@@ -60,9 +60,9 @@ STOPPED = 5
 NO_GRAB = 6
 
 
-def is_in_capabilities(key: Key, capabilities: CapabilitiesDict) -> bool:
-    """Are this key or one of its sub keys in the capabilities?"""
-    for sub_key in key:
+def is_in_capabilities(combination: EventCombination, capabilities: CapabilitiesDict) -> bool:
+    """Are this combination or one of its sub keys in the capabilities?"""
+    for sub_key in combination:
         if sub_key[1] in capabilities.get(sub_key[0], []):
             return True
 

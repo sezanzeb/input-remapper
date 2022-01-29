@@ -23,7 +23,7 @@ import unittest
 
 from inputremapper.injection.context import Context
 from inputremapper.configs.preset import Preset
-from inputremapper.key import Key
+from inputremapper.event_combination import EventCombination
 from inputremapper.configs.global_config import NONE, MOUSE, WHEEL, BUTTONS
 from inputremapper.configs.system_mapping import system_mapping
 from tests.test import quick_cleanup
@@ -38,9 +38,9 @@ class TestContext(unittest.TestCase):
         self.mapping = Preset()
         self.mapping.set("gamepad.joystick.left_purpose", WHEEL)
         self.mapping.set("gamepad.joystick.right_purpose", WHEEL)
-        self.mapping.change(Key(1, 31, 1), "keyboard", "k(a)")
-        self.mapping.change(Key(1, 32, 1), "keyboard", "b")
-        self.mapping.change(Key((1, 33, 1), (1, 34, 1), (1, 35, 1)), "keyboard", "c")
+        self.mapping.change(EventCombination(1, 31, 1), "keyboard", "k(a)")
+        self.mapping.change(EventCombination(1, 32, 1), "keyboard", "b")
+        self.mapping.change(EventCombination((1, 33, 1), (1, 34, 1), (1, 35, 1)), "keyboard", "c")
         self.context = Context(self.mapping)
 
     def test_update_purposes(self):

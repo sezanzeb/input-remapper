@@ -53,7 +53,7 @@ from inputremapper.groups import (
     MOUSE,
 )
 from inputremapper.gui.editor.editor import Editor
-from inputremapper.key import Key
+from inputremapper.event_combination import EventCombination
 from inputremapper.gui.reader import reader
 from inputremapper.gui.helper import is_helper_running
 from inputremapper.injection.injector import RUNNING, FAILED, NO_GRAB
@@ -136,7 +136,7 @@ def ensure_everything_saved(func):
 
 
 class UserInterface:
-    """The key mapper gtk window."""
+    """The input-remapper gtk window."""
 
     def __init__(self):
         self.dbus = None
@@ -533,7 +533,7 @@ class UserInterface:
 
         if not self.unreleased_warn:
             unreleased = reader.get_unreleased_keys()
-            if unreleased is not None and unreleased != Key.btn_left():
+            if unreleased is not None and unreleased != EventCombination.btn_left():
                 # it's super annoying if that happens and may break the user
                 # input in such a way to prevent disabling the preset
                 logger.error(
@@ -596,7 +596,7 @@ class UserInterface:
         if state == RUNNING:
             msg = f'Applied preset "{self.preset_name}"'
 
-            if active_preset.get_mapping(Key.btn_left()):
+            if active_preset.get_mapping(EventCombination.btn_left()):
                 msg += ", CTRL + DEL to stop"
 
             self.show_status(CTX_APPLY, msg)
