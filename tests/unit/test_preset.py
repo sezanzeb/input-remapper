@@ -160,7 +160,8 @@ class TestMapping(unittest.TestCase):
         self.assertFalse(self.preset.has_unsaved_changes())
         self.preset.load(get_preset_path("foo", "bar"))
         self.assertEqual(
-            self.preset.get_mapping(EventCombination([EV_KEY, 81, 1])), ("a", "keyboard")
+            self.preset.get_mapping(EventCombination([EV_KEY, 81, 1])),
+            ("a", "keyboard"),
         )
         self.assertIsNone(self.preset.get("mapping.a"))
         self.assertFalse(self.preset.has_unsaved_changes())
@@ -200,7 +201,9 @@ class TestMapping(unittest.TestCase):
         self.assertRaises(TypeError, loaded.get_mapping, one)
         self.assertEqual(loaded.get_mapping(EventCombination(one)), ("1", "keyboard"))
         self.assertEqual(loaded.get_mapping(EventCombination(two)), ("2", "keyboard"))
-        self.assertEqual(loaded.get_mapping(EventCombination(two, three)), ("3", "keyboard"))
+        self.assertEqual(
+            loaded.get_mapping(EventCombination(two, three)), ("3", "keyboard")
+        )
         self.assertEqual(loaded._config["foo"], "bar")
 
     def test_change(self):
@@ -211,8 +214,12 @@ class TestMapping(unittest.TestCase):
         ev_3 = EventCombination((EV_KEY, 2, 111))
         ev_4 = EventCombination((EV_ABS, 1, 111))
 
-        self.assertRaises(TypeError, self.preset.change, [(EV_KEY, 10, 1), "keyboard", "a", ev_2])
-        self.assertRaises(TypeError, self.preset.change, [ev_1, "keyboard", "a", (EV_KEY, 1, 222)])
+        self.assertRaises(
+            TypeError, self.preset.change, [(EV_KEY, 10, 1), "keyboard", "a", ev_2]
+        )
+        self.assertRaises(
+            TypeError, self.preset.change, [ev_1, "keyboard", "a", (EV_KEY, 1, 222)]
+        )
 
         # 1 is not assigned yet, ignore it
         self.preset.change(ev_1, "keyboard", "a", ev_2)

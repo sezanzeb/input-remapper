@@ -60,7 +60,9 @@ STOPPED = 5
 NO_GRAB = 6
 
 
-def is_in_capabilities(combination: EventCombination, capabilities: CapabilitiesDict) -> bool:
+def is_in_capabilities(
+    combination: EventCombination, capabilities: CapabilitiesDict
+) -> bool:
     """Are this combination or one of its sub keys in the capabilities?"""
     for event in combination:
         if event.code in capabilities.get(event.type, []):

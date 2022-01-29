@@ -482,7 +482,10 @@ class TestKeycodeMapper(unittest.IsolatedAsyncioTestCase):
         _key_to_code = {
             # key_to_code is supposed to only contain values classified into PRESS,
             # PRESS_NEGATIVE and RELEASE
-            EventCombination(*[sign_value(a) for a in combination_1]): (101, "keyboard"),
+            EventCombination(*[sign_value(a) for a in combination_1]): (
+                101,
+                "keyboard",
+            ),
             combination_2: (102, "keyboard"),
             EventCombination(down_5): (103, "keyboard"),
         }

@@ -134,7 +134,9 @@ class TestReader(unittest.TestCase):
 
         # but it is still remembered unreleased
         self.assertEqual(len(reader._unreleased), 1)
-        self.assertEqual(reader.get_unreleased_keys(), EventCombination((EV_REL, REL_WHEEL, 1)))
+        self.assertEqual(
+            reader.get_unreleased_keys(), EventCombination((EV_REL, REL_WHEEL, 1))
+        )
         self.assertIsInstance(reader.get_unreleased_keys(), EventCombination)
 
         # as long as new wheel events arrive, it is considered unreleased
@@ -293,12 +295,16 @@ class TestReader(unittest.TestCase):
 
         active_preset.set("gamepad.joystick.left_purpose", BUTTONS)
         send_event_to_reader(new_event(EV_ABS, ABS_Y, 1, 1002))
-        self.assertEqual(reader.read(), EventCombination((EV_KEY, CODE_1, 1), (EV_ABS, ABS_Y, 1)))
+        self.assertEqual(
+            reader.read(), EventCombination((EV_KEY, CODE_1, 1), (EV_ABS, ABS_Y, 1))
+        )
 
         send_event_to_reader(new_event(EV_ABS, ABS_HAT0X, -1, 1003))
         self.assertEqual(
             reader.read(),
-            EventCombination((EV_KEY, CODE_1, 1), (EV_ABS, ABS_Y, 1), (EV_ABS, ABS_HAT0X, -1)),
+            EventCombination(
+                (EV_KEY, CODE_1, 1), (EV_ABS, ABS_Y, 1), (EV_ABS, ABS_HAT0X, -1)
+            ),
         )
 
         # adding duplicate down events won't report a different combination.
@@ -366,7 +372,9 @@ class TestReader(unittest.TestCase):
         self.assertEqual(reader.read(), EventCombination((EV_ABS, ABS_Z, 1)))
         send_event_to_reader(new_event(3, 0, 0, next_timestamp()))
         send_event_to_reader(new_event(3, 5, 1, next_timestamp()))
-        self.assertEqual(reader.read(), EventCombination((EV_ABS, ABS_Z, 1), (EV_ABS, ABS_RZ, 1)))
+        self.assertEqual(
+            reader.read(), EventCombination((EV_ABS, ABS_Z, 1), (EV_ABS, ABS_RZ, 1))
+        )
         send_event_to_reader(new_event(3, 5, 0, next_timestamp()))
         send_event_to_reader(new_event(3, 0, 0, next_timestamp()))
         send_event_to_reader(new_event(3, 1, 0, next_timestamp()))

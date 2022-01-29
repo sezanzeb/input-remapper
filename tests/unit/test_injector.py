@@ -55,7 +55,11 @@ from inputremapper.injection.injector import (
     get_udev_name,
 )
 from inputremapper.injection.numlock import is_numlock_on, set_numlock, ensure_numlock
-from inputremapper.configs.system_mapping import system_mapping, DISABLE_CODE, DISABLE_NAME
+from inputremapper.configs.system_mapping import (
+    system_mapping,
+    DISABLE_CODE,
+    DISABLE_NAME,
+)
 from inputremapper.gui.active_preset import active_preset
 from inputremapper.configs.preset import Preset
 from inputremapper.configs.global_config import global_config, NONE, MOUSE, WHEEL
@@ -435,13 +439,17 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
     @mock.patch("evdev.InputDevice.ungrab")
     def test_capabilities_and_uinput_presence(self, ungrab_patch):
         active_preset.change(EventCombination([EV_KEY, KEY_A, 1]), "keyboard", "c")
-        active_preset.change(EventCombination([EV_REL, REL_HWHEEL, 1]), "keyboard", "k(b)")
+        active_preset.change(
+            EventCombination([EV_REL, REL_HWHEEL, 1]), "keyboard", "k(b)"
+        )
         self.injector = Injector(groups.find(key="Foo Device 2"), active_preset)
         self.injector.stop_injecting()
         self.injector.run()
 
         self.assertEqual(
-            self.injector.context.preset.get_mapping(EventCombination([EV_KEY, KEY_A, 1])),
+            self.injector.context.preset.get_mapping(
+                EventCombination([EV_KEY, KEY_A, 1])
+            ),
             ("c", "keyboard"),
         )
         self.assertEqual(
@@ -449,7 +457,9 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
             (KEY_C, "keyboard"),
         )
         self.assertEqual(
-            self.injector.context.preset.get_mapping(EventCombination([EV_REL, REL_HWHEEL, 1])),
+            self.injector.context.preset.get_mapping(
+                EventCombination([EV_REL, REL_HWHEEL, 1])
+            ),
             ("k(b)", "keyboard"),
         )
         self.assertEqual(
@@ -776,7 +786,9 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         mapping.change(EventCombination(ev_1), "keyboard", "a")
         # a combination
         mapping.change(EventCombination(ev_2, ev_3, ev_4), "keyboard", "b")
-        self.assertEqual(mapping.get_mapping(EventCombination(ev_2, ev_3, ev_4)), ("b", "keyboard"))
+        self.assertEqual(
+            mapping.get_mapping(EventCombination(ev_2, ev_3, ev_4)), ("b", "keyboard")
+        )
 
         system_mapping.clear()
         system_mapping._set("a", 51)
@@ -889,7 +901,9 @@ class TestModifyCapabilities(unittest.TestCase):
         quick_cleanup()
 
     def test_copy_capabilities(self):
-        self.mapping.change(EventCombination([EV_KEY, 60, 1]), "keyboard", self.macro.code)
+        self.mapping.change(
+            EventCombination([EV_KEY, 60, 1]), "keyboard", self.macro.code
+        )
 
         # I don't know what ABS_VOLUME is, for now I would like to just always
         # remove it until somebody complains, since its presence broke stuff

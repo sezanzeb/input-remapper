@@ -223,7 +223,8 @@ class KeycodeMapper(Consumer):
             for event in combination:
                 if abs(event.value) > 1:
                     raise ValueError(
-                        f"Expected values to be one of -1, 0 or 1, " f"but got {combination}"
+                        f"Expected values to be one of -1, 0 or 1, "
+                        f"but got {combination}"
                     )
 
     def is_enabled(self):

@@ -82,7 +82,9 @@ class EventCombination(Tuple[InputEvent]):
         return cls(*init_args)
 
     @classmethod
-    def from_events(cls, init_events: Iterable[InputEvent | evdev.InputEvent]) -> EventCombination:
+    def from_events(
+        cls, init_events: Iterable[InputEvent | evdev.InputEvent]
+    ) -> EventCombination:
         return cls(*init_events)
 
     def contains_type_and_code(self, type, code) -> bool:

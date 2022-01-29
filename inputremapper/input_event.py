@@ -64,29 +64,41 @@ class InputEvent:
         try:
             return cls(event.sec, event.usec, event.type, event.code, event.value)
         except AttributeError:
-            raise InputEventCreationError(f"failed to create InputEvent from {event = }")
+            raise InputEventCreationError(
+                f"failed to create InputEvent from {event = }"
+            )
 
     @classmethod
     def from_string(cls, string: str) -> InputEvent:
-        """create a InputEvent from a string like 'type, code, value' """
+        """create a InputEvent from a string like 'type, code, value'"""
         try:
             t, c, v = string.split(",")
             return cls(0, 0, int(t), int(c), int(v))
         except (ValueError, AttributeError):
-            raise InputEventCreationError(f"failed to create InputEvent from {string = !r}")
+            raise InputEventCreationError(
+                f"failed to create InputEvent from {string = !r}"
+            )
 
     @classmethod
     def from_event_tuple(cls, event_tuple: Tuple[int, int, int]) -> InputEvent:
         """create a InputEvent from a (type, code, value) tuple"""
         try:
             if len(event_tuple) != 3:
-                raise InputEventCreationError(f"failed to create InputEvent {event_tuple = }"
-                                              f" must have length 3")
-            return cls(0, 0, int(event_tuple[0]), int(event_tuple[1]), int(event_tuple[2]))
+                raise InputEventCreationError(
+                    f"failed to create InputEvent {event_tuple = }"
+                    f" must have length 3"
+                )
+            return cls(
+                0, 0, int(event_tuple[0]), int(event_tuple[1]), int(event_tuple[2])
+            )
         except ValueError:
-            raise InputEventCreationError(f"failed to create InputEvent from {event_tuple = }")
+            raise InputEventCreationError(
+                f"failed to create InputEvent from {event_tuple = }"
+            )
         except TypeError:
-            raise InputEventCreationError(f"failed to create InputEvent from {type(event_tuple) = }")
+            raise InputEventCreationError(
+                f"failed to create InputEvent from {type(event_tuple) = }"
+            )
 
     @classmethod
     def btn_left(cls):
@@ -102,13 +114,14 @@ class InputEvent:
         """event type, code, value"""
         return self.type, self.code, self.value
 
-    def modify(self,
-               sec: int = None,
-               usec: int = None,
-               type: int = None,
-               code: int = None,
-               value: int = None,
-               ) -> InputEvent:
+    def modify(
+        self,
+        sec: int = None,
+        usec: int = None,
+        type: int = None,
+        code: int = None,
+        value: int = None,
+    ) -> InputEvent:
         """return a new modified event"""
         return InputEvent(
             sec if sec is not None else self.sec,

@@ -534,7 +534,9 @@ class UserInterface:
 
         if not self.unreleased_warn:
             unreleased = reader.get_unreleased_keys()
-            if unreleased is not None and unreleased != EventCombination(InputEvent.btn_left()):
+            if unreleased is not None and unreleased != EventCombination(
+                InputEvent.btn_left()
+            ):
                 # it's super annoying if that happens and may break the user
                 # input in such a way to prevent disabling the preset
                 logger.error(
@@ -693,7 +695,9 @@ class UserInterface:
         autoload_switch = self.get("preset_autoload_switch")
 
         with HandlerDisabled(autoload_switch, self.on_autoload_switch):
-            is_autoloaded = global_config.is_autoloaded(self.group.key, self.preset_name)
+            is_autoloaded = global_config.is_autoloaded(
+                self.group.key, self.preset_name
+            )
             autoload_switch.set_active(is_autoloaded)
 
         self.get("preset_name_input").set_text("")
