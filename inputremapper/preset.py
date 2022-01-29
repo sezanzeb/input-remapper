@@ -33,7 +33,7 @@ from evdev.ecodes import EV_KEY, BTN_LEFT
 
 from inputremapper.logger import logger
 from inputremapper.paths import touch, get_preset_path, mkdir
-from inputremapper.config import ConfigBase, global_config
+from inputremapper.global_config import ConfigBase, global_config
 from inputremapper.key import Key
 from inputremapper.injection.macros.parse import clean
 from inputremapper.groups import groups

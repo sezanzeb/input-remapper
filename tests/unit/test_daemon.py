@@ -32,7 +32,7 @@ from pydbus import SystemBus
 
 from inputremapper.system_mapping import system_mapping
 from inputremapper.gui.active_preset import active_preset
-from inputremapper.config import global_config
+from inputremapper.global_config import global_config
 from inputremapper.groups import groups
 from inputremapper.paths import get_config_path, mkdir, get_preset_path
 from inputremapper.key import Key

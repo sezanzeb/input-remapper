@@ -31,7 +31,7 @@ from importlib.util import spec_from_loader, module_from_spec
 from importlib.machinery import SourceFileLoader
 
 from inputremapper.gui.active_preset import active_preset
-from inputremapper.config import global_config
+from inputremapper.global_config import global_config
 from inputremapper.daemon import Daemon
 from inputremapper.preset import Preset
 from inputremapper.paths import get_preset_path

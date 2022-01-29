@@ -42,7 +42,7 @@ from evdev.ecodes import (
 
 from inputremapper.gui.reader import reader, will_report_up
 from inputremapper.gui.active_preset import active_preset
-from inputremapper.config import BUTTONS, MOUSE
+from inputremapper.global_config import BUTTONS, MOUSE
 from inputremapper.key import Key
 from inputremapper.gui.helper import RootHelper
 from inputremapper.groups import groups

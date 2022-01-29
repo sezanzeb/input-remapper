@@ -35,7 +35,7 @@ from evdev.ecodes import (
     ABS_RY,
 )
 
-from inputremapper.config import global_config
+from inputremapper.global_config import global_config
 from inputremapper.preset import Preset
 from inputremapper.injection.context import Context
 from inputremapper.injection.mapping_handlers.joystick_to_mouse import (
