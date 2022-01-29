@@ -31,7 +31,7 @@ from inputremapper.config import NONE, MOUSE, WHEEL, BUTTONS
 class Context:
     """Stores injection-process wide information.
 
-    In some ways this is a wrapper for the mapping that derives some
+    In some ways this is a wrapper for the preset that derives some
     information that is specifically important to the injection.
 
     The information in the context does not change during the injection.
@@ -49,7 +49,7 @@ class Context:
     Members
     -------
     preset : Preset
-        The mapping that is the source of key_to_code and macros,
+        The preset that is the source of key_to_code and macros,
         only used to query config values.
     key_to_code : dict
         Preset of ((type, code, value),) to linux-keycode
@@ -57,15 +57,16 @@ class Context:
         Combinations need to be present in every possible valid ordering.
         e.g. shift + alt + a and alt + shift + a.
         This is needed to query keycodes more efficiently without having
-        to search mapping each time.
+        to search preset each time.
     macros : dict
         Preset of ((type, code, value),) to Macro objects.
         Combinations work similar as in key_to_code
     """
 
     def __init__(self, preset):
-        self.mapping = preset
-        # avoid searching through the preset at runtime,
+        self.preset = preset
+
+        # avoid searching through the mapping at runtime,
         # might be a bit expensive
         self.key_to_code = self._map_keys_to_codes()
         self.macros = self._parse_macros()
@@ -80,14 +81,14 @@ class Context:
         For efficiency, so that the config doesn't have to be read during
         runtime repeatedly.
         """
-        self.left_purpose = self.mapping.get("gamepad.joystick.left_purpose")
-        self.right_purpose = self.mapping.get("gamepad.joystick.right_purpose")
+        self.left_purpose = self.preset.get("gamepad.joystick.left_purpose")
+        self.right_purpose = self.preset.get("gamepad.joystick.right_purpose")
 
     def _parse_macros(self):
         """To quickly get the target macro during operation."""
         logger.debug("Parsing macros")
         macros = {}
-        for key, output in self.mapping:
+        for key, output in self.preset:
             if is_this_a_macro(output[0]):
                 macro = parse(output[0], self)
                 if macro is None:
@@ -110,7 +111,7 @@ class Context:
             ((1, 5, 1), (1, 4, 1)): (4, "gamepad")
         """
         key_to_code = {}
-        for key, output in self.mapping:
+        for key, output in self.preset:
             if is_this_a_macro(output[0]):
                 continue
 

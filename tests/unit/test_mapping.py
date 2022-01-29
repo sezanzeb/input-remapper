@@ -210,7 +210,7 @@ class TestMapping(unittest.TestCase):
 
     def test_change(self):
         # the reader would not report values like 111 or 222, only 1 or -1.
-        # the mapping just does what it is told, so it accepts them.
+        # the preset just does what it is told, so it accepts them.
         ev_1 = Key(EV_KEY, 1, 111)
         ev_2 = Key(EV_KEY, 1, 222)
         ev_3 = Key(EV_KEY, 2, 111)

@@ -280,8 +280,7 @@ class Macro:
         # newly arriving events are only interesting if they arrive after the
         # macro started
         self._new_event_arrived.clear()
-
-        self.keystroke_sleep_ms = self.context.mapping.get("macros.keystroke_sleep_ms")
+        self.keystroke_sleep_ms = self.context.preset.get("macros.keystroke_sleep_ms")
 
         self.running = True
         for task in self.tasks:

@@ -470,7 +470,7 @@ class Editor:
             return
         self._reset_keycode_consumption()
         reader.clear()
-        if not self.user_interface.can_modify_mapping():
+        if not self.user_interface.can_modify_preset():
             # because the device is in grab mode by the daemon and
             # therefore the original keycode inaccessible
             logger.info("Cannot change keycodes while injecting")

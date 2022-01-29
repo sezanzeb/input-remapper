@@ -282,7 +282,7 @@ if __name__ == '__main__':
     )
     parser.add_argument(
         '--symbol-names', action='store_true', dest='key_names',
-        help='Print all available names for the mapping',
+        help='Print all available names for the preset',
         default=False
     )
     parser.add_argument(

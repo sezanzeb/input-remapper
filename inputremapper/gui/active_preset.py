@@ -19,7 +19,7 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
-"""One mapping object for the GUI application."""
+"""One preset object for the GUI application."""
 
 
 from inputremapper.preset import Preset

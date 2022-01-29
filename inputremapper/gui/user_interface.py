@@ -389,8 +389,8 @@ class UserInterface:
         # and select the newest one (on the top). triggers on_select_preset
         preset_selection.set_active(0)
 
-    def can_modify_mapping(self, *_) -> bool:
-        """if changing the mapping is possible."""
+    def can_modify_preset(self, *_) -> bool:
+        """if changing the preset is possible."""
         return self.dbus.get_state(self.group.key) != RUNNING
 
     def consume_newest_keycode(self):
@@ -413,7 +413,7 @@ class UserInterface:
 
     @if_group_selected
     def on_restore_defaults_clicked(self, *_):
-        """Stop injecting the mapping."""
+        """Stop injecting the preset."""
         self.dbus.stop_injecting(self.group.key)
         self.show_status(CTX_APPLY, "Applied the system default")
         GLib.timeout_add(100, self.show_device_mapping_status)
@@ -535,7 +535,7 @@ class UserInterface:
             unreleased = reader.get_unreleased_keys()
             if unreleased is not None and unreleased != Key.btn_left():
                 # it's super annoying if that happens and may break the user
-                # input in such a way to prevent disabling the mapping
+                # input in such a way to prevent disabling the preset
                 logger.error(
                     "Tried to apply a preset while keys were held down: %s", unreleased
                 )
@@ -722,7 +722,7 @@ class UserInterface:
         """Write changes in the active_preset to disk."""
         if not active_preset.has_unsaved_changes():
             # optimization, and also avoids tons of redundant logs
-            logger.debug("Not saving because mapping did not change")
+            logger.debug("Not saving because preset did not change")
             return
 
         try:

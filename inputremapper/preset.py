@@ -63,7 +63,7 @@ class Preset(ConfigBase):
         self._mapping = {}  # a mapping of Key objects to strings
         self._changed = False
 
-        # are there actually any keys set in the mapping file?
+        # are there actually any keys set in the preset file?
         self.num_saved_keys = 0
 
         super().__init__(fallback=config)
@@ -147,7 +147,7 @@ class Preset(ConfigBase):
         self._changed = changed
 
     def clear(self, key):
-        """Remove a keycode from the mapping.
+        """Remove a keycode from the preset.
 
         Parameters
         ----------
@@ -162,7 +162,7 @@ class Preset(ConfigBase):
                 del self._mapping[permutation]
                 self._changed = True
                 # there should be only one variation of the permutations
-                # in the mapping actually
+                # in the preset actually
 
     def empty(self):
         """Remove all mappings and custom configs without saving."""
@@ -219,7 +219,7 @@ class Preset(ConfigBase):
                 logger.debug("%s maps to %s", key, symbol)
                 self._mapping[key] = symbol
 
-            # add any metadata of the mapping
+            # add any metadata of the preset
             for key in preset_dict:
                 if key == "mapping":
                     continue

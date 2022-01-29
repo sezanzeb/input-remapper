@@ -208,11 +208,11 @@ class JoystickToMouse(Consumer):
         its position, this will keep injecting the mouse movement events.
         """
         abs_range = self._abs_range
-        mapping = self.context.mapping
-        pointer_speed = mapping.get("gamepad.joystick.pointer_speed")
-        non_linearity = mapping.get("gamepad.joystick.non_linearity")
-        x_scroll_speed = mapping.get("gamepad.joystick.x_scroll_speed")
-        y_scroll_speed = mapping.get("gamepad.joystick.y_scroll_speed")
+        preset = self.context.preset
+        pointer_speed = preset.get("gamepad.joystick.pointer_speed")
+        non_linearity = preset.get("gamepad.joystick.non_linearity")
+        x_scroll_speed = preset.get("gamepad.joystick.x_scroll_speed")
+        y_scroll_speed = preset.get("gamepad.joystick.y_scroll_speed")
         max_speed = 2 ** 0.5  # for normalized abs event values
 
         if abs_range is not None:

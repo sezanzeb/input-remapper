@@ -206,7 +206,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         path = "/dev/input/event30"
         device = self.injector._grab_device(path)
         # the right joystick maps as mouse, so it is grabbed
-        # even with an empty mapping
+        # even with an empty preset
         self.assertIsNotNone(device)
         gamepad = classify(device) == GAMEPAD
         self.assertTrue(gamepad)
@@ -218,7 +218,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(gamepad)
 
     def test_skip_unused_device(self):
-        # skips a device because its capabilities are not used in the mapping
+        # skips a device because its capabilities are not used in the preset
         active_preset.change(Key(EV_KEY, 10, 1), "keyboard", "a")
         self.injector = Injector(groups.find(key="Foo Device 2"), active_preset)
         self.injector.context = Context(active_preset)
@@ -230,7 +230,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
     def test_skip_unknown_device(self):
         active_preset.change(Key(EV_KEY, 10, 1), "keyboard", "a")
 
-        # skips a device because its capabilities are not used in the mapping
+        # skips a device because its capabilities are not used in the preset
         self.injector = Injector(groups.find(key="Foo Device 2"), active_preset)
         self.injector.context = Context(active_preset)
         path = "/dev/input/event11"
@@ -406,7 +406,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(joystick_to_mouse._abs_range[0], MIN_ABS)
         self.assertEqual(joystick_to_mouse._abs_range[1], MAX_ABS)
         self.assertEqual(
-            self.injector.context.mapping.get("gamepad.joystick.left_purpose"), MOUSE
+            self.injector.context.preset.get("gamepad.joystick.left_purpose"), MOUSE
         )
 
         self.assertEqual(ungrab_patch.call_count, 1)
@@ -444,7 +444,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         self.injector.run()
 
         self.assertEqual(
-            self.injector.context.mapping.get_mapping(Key(EV_KEY, KEY_A, 1)),
+            self.injector.context.preset.get_mapping(Key(EV_KEY, KEY_A, 1)),
             ("c", "keyboard"),
         )
         self.assertEqual(
@@ -452,7 +452,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
             (KEY_C, "keyboard"),
         )
         self.assertEqual(
-            self.injector.context.mapping.get_mapping(Key(EV_REL, REL_HWHEEL, 1)),
+            self.injector.context.preset.get_mapping(Key(EV_REL, REL_HWHEEL, 1)),
             ("k(b)", "keyboard"),
         )
         self.assertEqual(

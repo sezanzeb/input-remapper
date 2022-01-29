@@ -59,7 +59,7 @@ class AutoloadHistory:
 
     def __init__(self):
         """Construct this with an empty history."""
-        # mapping of device -> (timestamp, preset)
+        # preset of device -> (timestamp, preset)
         self._autoload_history = {}
 
     def remember(self, group_key, preset):
@@ -279,7 +279,7 @@ class Daemon:
             self.refreshed_devices_at = now
 
     def stop_injecting(self, group_key):
-        """Stop injecting the mapping for a single device."""
+        """Stop injecting the preset mappings for a single device."""
         if self.injectors.get(group_key) is None:
             logger.debug(
                 'Tried to stop injector, but none is running for group "%s"', group_key
