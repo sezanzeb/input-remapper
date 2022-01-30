@@ -496,7 +496,7 @@ class KeycodeMapper(Consumer):
                 # not finished, especially since gamepad-triggers report a ton
                 # of events with a positive value.
                 logger.debug_key(key, "macro already running")
-                self.context.macros[key].press_trigger()
+                self.context.macros[key][0].press_trigger()
                 return
 
         """starting new macros or injecting new keys"""
