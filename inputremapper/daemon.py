@@ -39,11 +39,11 @@ from gi.repository import GLib
 
 from inputremapper.logger import logger, is_debug
 from inputremapper.injection.injector import Injector, UNKNOWN
-from inputremapper.mapping import Mapping
-from inputremapper.config import config
-from inputremapper.system_mapping import system_mapping
+from inputremapper.configs.preset import Preset
+from inputremapper.configs.global_config import global_config
+from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.groups import groups
-from inputremapper.paths import get_config_path, USER
+from inputremapper.configs.paths import get_config_path, USER
 from inputremapper.injection.macros.macro import macro_variables
 from inputremapper.injection.global_uinputs import global_uinputs
 
@@ -59,7 +59,7 @@ class AutoloadHistory:
 
     def __init__(self):
         """Construct this with an empty history."""
-        # mapping of device -> (timestamp, preset)
+        # preset of device -> (timestamp, preset)
         self._autoload_history = {}
 
     def remember(self, group_key, preset):
@@ -279,7 +279,7 @@ class Daemon:
             self.refreshed_devices_at = now
 
     def stop_injecting(self, group_key):
-        """Stop injecting the mapping for a single device."""
+        """Stop injecting the preset mappings for a single device."""
         if self.injectors.get(group_key) is None:
             logger.debug(
                 'Tried to stop injector, but none is running for group "%s"', group_key
@@ -313,7 +313,7 @@ class Daemon:
             return
 
         self.config_dir = config_dir
-        config.load_config(config_path)
+        global_config.load_config(config_path)
 
     def _autoload(self, group_key):
         """Check if autoloading is a good idea, and if so do it.
@@ -331,7 +331,7 @@ class Daemon:
             # either not relevant for input-remapper, or not connected yet
             return
 
-        preset = config.get(["autoload", group.key], log_unknown=False)
+        preset = global_config.get(["autoload", group.key], log_unknown=False)
 
         if preset is None:
             # no autoloading is configured for this device
@@ -395,7 +395,7 @@ class Daemon:
             )
             return
 
-        autoload_presets = list(config.iterate_autoload_presets())
+        autoload_presets = list(global_config.iterate_autoload_presets())
 
         logger.info("Autoloading for all devices")
 
@@ -438,9 +438,9 @@ class Daemon:
             self.config_dir, "presets", group.name, f"{preset}.json"
         )
 
-        mapping = Mapping()
+        preset = Preset()
         try:
-            mapping.load(preset_path)
+            preset.load(preset_path)
         except FileNotFoundError as error:
             logger.error(str(error))
             return False
@@ -466,7 +466,7 @@ class Daemon:
             logger.error('Could not find "%s"', xmodmap_path)
 
         try:
-            injector = Injector(group, mapping)
+            injector = Injector(group, preset)
             injector.start()
             self.injectors[group.key] = injector
         except OSError:

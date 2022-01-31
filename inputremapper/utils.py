@@ -39,7 +39,7 @@ from evdev.ecodes import (
 )
 
 from inputremapper.logger import logger
-from inputremapper.config import BUTTONS
+from inputremapper.configs.global_config import BUTTONS
 
 
 # other events for ABS include buttons
@@ -137,7 +137,7 @@ def will_report_key_up(event):
     return not is_wheel(event)
 
 
-def should_map_as_btn(event, mapping, gamepad):
+def should_map_as_btn(event, preset, gamepad):
     """Does this event describe a button that is or can be mapped.
 
     If a new kind of event should be mappable to buttons, this is the place
@@ -149,7 +149,7 @@ def should_map_as_btn(event, mapping, gamepad):
     Parameters
     ----------
     event : evdev.InputEvent
-    mapping : Mapping
+    preset : Preset
     gamepad : bool
         If the device is treated as gamepad
     """
@@ -170,8 +170,8 @@ def should_map_as_btn(event, mapping, gamepad):
             if not gamepad:
                 return False
 
-            l_purpose = mapping.get("gamepad.joystick.left_purpose")
-            r_purpose = mapping.get("gamepad.joystick.right_purpose")
+            l_purpose = preset.get("gamepad.joystick.left_purpose")
+            r_purpose = preset.get("gamepad.joystick.right_purpose")
 
             if event.code in [ABS_X, ABS_Y] and l_purpose == BUTTONS:
                 return True

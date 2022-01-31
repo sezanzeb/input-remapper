@@ -20,15 +20,13 @@
 
 
 """Because multiple calls to async_read_loop won't work."""
-
-
 import asyncio
-
 import evdev
 
 from inputremapper.injection.consumers.joystick_to_mouse import JoystickToMouse
 from inputremapper.injection.consumers.keycode_mapper import KeycodeMapper
 from inputremapper.logger import logger
+from inputremapper.injection.context import Context
 
 
 consumer_classes = [
@@ -48,7 +46,12 @@ class ConsumerControl:
     needs to be created multiple times.
     """
 
-    def __init__(self, context, source, forward_to):
+    def __init__(
+        self,
+        context: Context,
+        source: evdev.InputDevice,
+        forward_to: evdev.UInput,
+    ) -> None:
         """Initialize all consumers
 
         Parameters

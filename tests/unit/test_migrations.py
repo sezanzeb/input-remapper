@@ -20,11 +20,11 @@ import json
 
 from evdev.ecodes import EV_KEY, EV_ABS, ABS_HAT0X
 
-from inputremapper.migrations import migrate, config_version
-from inputremapper.mapping import Mapping
-from inputremapper.config import config
-from inputremapper.paths import touch, CONFIG_PATH, mkdir, get_preset_path
-from inputremapper.key import Key
+from inputremapper.configs.migrations import migrate, config_version
+from inputremapper.configs.preset import Preset
+from inputremapper.configs.global_config import global_config
+from inputremapper.configs.paths import touch, CONFIG_PATH, mkdir, get_preset_path
+from inputremapper.event_combination import EventCombination
 from inputremapper.user import HOME
 
 from inputremapper.logger import VERSION
@@ -35,7 +35,7 @@ from tests.test import quick_cleanup, tmp
 class TestMigrations(unittest.TestCase):
     def tearDown(self):
         quick_cleanup()
-        self.assertEqual(len(config.iterate_autoload_presets()), 0)
+        self.assertEqual(len(global_config.iterate_autoload_presets()), 0)
 
     def test_migrate_suffix(self):
         old = os.path.join(CONFIG_PATH, "config")
@@ -185,27 +185,36 @@ class TestMigrations(unittest.TestCase):
                 file,
             )
         migrate()
-        loaded = Mapping()
+        loaded = Preset()
         self.assertEqual(loaded.num_saved_keys, 0)
         loaded.load(get_preset_path("Foo Device", "test"))
         self.assertEqual(len(loaded), 6)
         self.assertEqual(loaded.num_saved_keys, 6)
 
-        self.assertEqual(loaded.get_mapping(Key(EV_KEY, 1, 1)), ("a", "keyboard"))
-        self.assertEqual(loaded.get_mapping(Key(EV_KEY, 2, 1)), ("BTN_B", "gamepad"))
         self.assertEqual(
-            loaded.get_mapping(Key(EV_KEY, 3, 1)),
+            loaded.get_mapping(EventCombination([EV_KEY, 1, 1])), ("a", "keyboard")
+        )
+        self.assertEqual(
+            loaded.get_mapping(EventCombination([EV_KEY, 2, 1])), ("BTN_B", "gamepad")
+        )
+        self.assertEqual(
+            loaded.get_mapping(EventCombination([EV_KEY, 3, 1])),
             (
                 "BTN_1\n# Broken mapping:\n# No target can handle all specified keycodes",
                 "keyboard",
             ),
         )
-        self.assertEqual(loaded.get_mapping(Key(EV_KEY, 4, 1)), ("a", "foo"))
         self.assertEqual(
-            loaded.get_mapping(Key(EV_ABS, ABS_HAT0X, -1)), ("b", "keyboard")
+            loaded.get_mapping(EventCombination([EV_KEY, 4, 1])), ("a", "foo")
         )
         self.assertEqual(
-            loaded.get_mapping(Key((EV_ABS, 1, 1), (EV_ABS, 2, -1), Key(EV_ABS, 3, 1))),
+            loaded.get_mapping(EventCombination([EV_ABS, ABS_HAT0X, -1])),
+            ("b", "keyboard"),
+        )
+        self.assertEqual(
+            loaded.get_mapping(
+                EventCombination((EV_ABS, 1, 1), (EV_ABS, 2, -1), (EV_ABS, 3, 1))
+            ),
             ("c", "keyboard"),
         )
 

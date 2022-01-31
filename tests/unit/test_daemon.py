@@ -30,13 +30,13 @@ from evdev.ecodes import EV_KEY, EV_ABS, KEY_B, KEY_A
 from gi.repository import Gtk
 from pydbus import SystemBus
 
-from inputremapper.system_mapping import system_mapping
-from inputremapper.gui.custom_mapping import custom_mapping
-from inputremapper.config import config
+from inputremapper.configs.system_mapping import system_mapping
+from inputremapper.gui.active_preset import active_preset
+from inputremapper.configs.global_config import global_config
 from inputremapper.groups import groups
-from inputremapper.paths import get_config_path, mkdir, get_preset_path
-from inputremapper.key import Key
-from inputremapper.mapping import Mapping
+from inputremapper.configs.paths import get_config_path, mkdir, get_preset_path
+from inputremapper.event_combination import EventCombination
+from inputremapper.configs.preset import Preset
 from inputremapper.injection.injector import STARTING, RUNNING, STOPPED, UNKNOWN
 from inputremapper.daemon import Daemon
 
@@ -69,7 +69,7 @@ class TestDaemon(unittest.TestCase):
         self.grab = evdev.InputDevice.grab
         self.daemon = None
         mkdir(get_config_path())
-        config._save_config()
+        global_config._save_config()
 
     def tearDown(self):
         # avoid race conditions with other tests, daemon may run processes
@@ -126,13 +126,13 @@ class TestDaemon(unittest.TestCase):
         # unrelated group that shouldn't be affected at all
         group2 = groups.find(name="gamepad")
 
-        custom_mapping.change(Key(*ev_1, 1), "keyboard", "a")
-        custom_mapping.change(Key(*ev_2, -1), "keyboard", "b")
+        active_preset.change(EventCombination([*ev_1, 1]), "keyboard", "a")
+        active_preset.change(EventCombination([*ev_2, -1]), "keyboard", "b")
 
         preset = "foo"
 
-        custom_mapping.save(group.get_preset_path(preset))
-        config.set_autoload_preset(group.key, preset)
+        active_preset.save(group.get_preset_path(preset))
+        global_config.set_autoload_preset(group.key, preset)
 
         """injection 1"""
 
@@ -183,15 +183,15 @@ class TestDaemon(unittest.TestCase):
         self.assertEqual(event.value, 1)
 
     def test_config_dir(self):
-        config.set("foo", "bar")
-        self.assertEqual(config.get("foo"), "bar")
+        global_config.set("foo", "bar")
+        self.assertEqual(global_config.get("foo"), "bar")
 
         # freshly loads the config and therefore removes the previosly added key.
         # This is important so that if the service is started via sudo or pkexec
         # it knows where to look for configuration files.
         self.daemon = Daemon()
         self.assertEqual(self.daemon.config_dir, get_config_path())
-        self.assertIsNone(config.get("foo"))
+        self.assertIsNone(global_config.get("foo"))
 
     def test_refresh_on_start(self):
         if os.path.exists(get_config_path("xmodmap.json")):
@@ -206,7 +206,7 @@ class TestDaemon(unittest.TestCase):
         group = groups.find(name=group_name)
         # this test only makes sense if this device is unknown yet
         self.assertIsNone(group)
-        custom_mapping.change(Key(*ev, 1), "keyboard", "a")
+        active_preset.change(EventCombination([*ev, 1]), "keyboard", "a")
         system_mapping.clear()
         system_mapping._set("a", KEY_A)
 
@@ -216,8 +216,8 @@ class TestDaemon(unittest.TestCase):
         system_mapping.clear()
 
         preset = "foo"
-        custom_mapping.save(get_preset_path(group_name, preset))
-        config.set_autoload_preset(group_key, preset)
+        active_preset.save(get_preset_path(group_name, preset))
+        global_config.set_autoload_preset(group_key, preset)
         push_events(group_key, [new_event(*ev, 1)])
         self.daemon = Daemon()
 
@@ -288,8 +288,8 @@ class TestDaemon(unittest.TestCase):
 
         path = os.path.join(config_dir, "presets", name, f"{preset}.json")
 
-        custom_mapping.change(Key(event), target, to_name)
-        custom_mapping.save(path)
+        active_preset.change(EventCombination(event), target, to_name)
+        active_preset.save(path)
 
         system_mapping.clear()
 
@@ -298,8 +298,8 @@ class TestDaemon(unittest.TestCase):
         # an existing config file is needed otherwise set_config_dir refuses
         # to use the directory
         config_path = os.path.join(config_dir, "config.json")
-        config.path = config_path
-        config._save_config()
+        global_config.path = config_path
+        global_config._save_config()
 
         xmodmap_path = os.path.join(config_dir, "xmodmap.json")
         with open(xmodmap_path, "w") as file:
@@ -325,8 +325,8 @@ class TestDaemon(unittest.TestCase):
         daemon = Daemon()
         self.daemon = daemon
 
-        mapping = Mapping()
-        mapping.change(Key(3, 2, 1), "keyboard", "a")
+        mapping = Preset()
+        mapping.change(EventCombination([3, 2, 1]), "keyboard", "a")
         mapping.save(group.get_preset_path(preset))
 
         # start
@@ -378,8 +378,8 @@ class TestDaemon(unittest.TestCase):
         daemon = Daemon()
         self.daemon = daemon
 
-        mapping = Mapping()
-        mapping.change(Key(3, 2, 1), "keyboard", "a")
+        mapping = Preset()
+        mapping.change(EventCombination([3, 2, 1]), "keyboard", "a")
         mapping.save(group.get_preset_path(preset))
 
         # no autoloading is configured yet
@@ -387,7 +387,7 @@ class TestDaemon(unittest.TestCase):
         self.assertNotIn(group.key, daemon.autoload_history._autoload_history)
         self.assertTrue(daemon.autoload_history.may_autoload(group.key, preset))
 
-        config.set_autoload_preset(group.key, preset)
+        global_config.set_autoload_preset(group.key, preset)
         len_before = len(self.daemon.autoload_history._autoload_history)
         # now autoloading is configured, so it will autoload
         self.daemon._autoload(group.key)
@@ -430,13 +430,13 @@ class TestDaemon(unittest.TestCase):
         # existing device
         preset = "preset7"
         group = groups.find(key="Foo Device 2")
-        mapping = Mapping()
-        mapping.change(Key(3, 2, 1), "keyboard", "a")
+        mapping = Preset()
+        mapping.change(EventCombination([3, 2, 1]), "keyboard", "a")
         mapping.save(group.get_preset_path(preset))
-        config.set_autoload_preset(group.key, preset)
+        global_config.set_autoload_preset(group.key, preset)
 
         # ignored, won't cause problems:
-        config.set_autoload_preset("non-existant-key", "foo")
+        global_config.set_autoload_preset("non-existant-key", "foo")
 
         self.daemon.autoload()
         self.assertEqual(len(history), 1)
@@ -447,11 +447,11 @@ class TestDaemon(unittest.TestCase):
         preset = "preset7"
         group = groups.find(key="Foo Device 2")
 
-        mapping = Mapping()
-        mapping.change(Key(3, 2, 1), "keyboard", "a")
+        mapping = Preset()
+        mapping.change(EventCombination([3, 2, 1]), "keyboard", "a")
         mapping.save(group.get_preset_path(preset))
 
-        config.set_autoload_preset(group.key, preset)
+        global_config.set_autoload_preset(group.key, preset)
 
         self.daemon = Daemon()
         groups.set_groups([])  # caused the bug

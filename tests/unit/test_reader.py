@@ -41,9 +41,9 @@ from evdev.ecodes import (
 )
 
 from inputremapper.gui.reader import reader, will_report_up
-from inputremapper.gui.custom_mapping import custom_mapping
-from inputremapper.config import BUTTONS, MOUSE
-from inputremapper.key import Key
+from inputremapper.gui.active_preset import active_preset
+from inputremapper.configs.global_config import BUTTONS, MOUSE
+from inputremapper.event_combination import EventCombination
 from inputremapper.gui.helper import RootHelper
 from inputremapper.groups import groups
 
@@ -109,7 +109,7 @@ class TestReader(unittest.TestCase):
         self.create_helper()
         reader.start_reading(groups.find(key="Foo Device 2"))
         time.sleep(0.2)
-        self.assertEqual(reader.read(), (EV_ABS, ABS_HAT0X, 1))
+        self.assertEqual(reader.read(), EventCombination((EV_ABS, ABS_HAT0X, 1)))
         self.assertEqual(reader.read(), None)
         self.assertEqual(len(reader._unreleased), 1)
 
@@ -123,19 +123,21 @@ class TestReader(unittest.TestCase):
 
         send_event_to_reader(new_event(EV_REL, REL_WHEEL, 1))
         result = reader.read()
-        self.assertIsInstance(result, Key)
-        self.assertEqual(result, (EV_REL, REL_WHEEL, 1))
+        self.assertIsInstance(result, EventCombination)
+        self.assertIsInstance(result, tuple)
+        self.assertEqual(result, EventCombination((EV_REL, REL_WHEEL, 1)))
         self.assertEqual(result, ((EV_REL, REL_WHEEL, 1),))
-        self.assertNotEqual(result, ((EV_REL, REL_WHEEL, 1), (1, 1, 1)))
-        self.assertEqual(result.keys, ((EV_REL, REL_WHEEL, 1),))
+        self.assertNotEqual(result, EventCombination((EV_REL, REL_WHEEL, 1), (1, 1, 1)))
 
         # it won't return the same event twice
         self.assertEqual(reader.read(), None)
 
         # but it is still remembered unreleased
         self.assertEqual(len(reader._unreleased), 1)
-        self.assertEqual(reader.get_unreleased_keys(), (EV_REL, REL_WHEEL, 1))
-        self.assertIsInstance(reader.get_unreleased_keys(), Key)
+        self.assertEqual(
+            reader.get_unreleased_keys(), EventCombination((EV_REL, REL_WHEEL, 1))
+        )
+        self.assertIsInstance(reader.get_unreleased_keys(), EventCombination)
 
         # as long as new wheel events arrive, it is considered unreleased
         for _ in range(10):
@@ -153,8 +155,8 @@ class TestReader(unittest.TestCase):
 
         send_event_to_reader(new_event(EV_REL, REL_WHEEL, 1, 1000))
         send_event_to_reader(new_event(EV_KEY, KEY_COMMA, 1, 1001))
-        combi_1 = ((EV_REL, REL_WHEEL, 1), (EV_KEY, KEY_COMMA, 1))
-        combi_2 = ((EV_KEY, KEY_COMMA, 1), (EV_KEY, KEY_A, 1))
+        combi_1 = EventCombination((EV_REL, REL_WHEEL, 1), (EV_KEY, KEY_COMMA, 1))
+        combi_2 = EventCombination((EV_KEY, KEY_COMMA, 1), (EV_KEY, KEY_A, 1))
         read = reader.read()
         self.assertEqual(read, combi_1)
         self.assertEqual(reader.read(), None)
@@ -174,7 +176,7 @@ class TestReader(unittest.TestCase):
         self.assertEqual(read, None)
         self.assertEqual(reader.read(), None)
         self.assertEqual(len(reader._unreleased), 1)
-        self.assertEqual(reader.get_unreleased_keys(), combi_1[1])
+        self.assertEqual(reader.get_unreleased_keys(), EventCombination(combi_1[1]))
 
         # press down a new key, now it will return a different combination
         send_event_to_reader(new_event(EV_KEY, KEY_A, 1, 1002))
@@ -199,12 +201,12 @@ class TestReader(unittest.TestCase):
         self.assertEqual(reader.read(), None)
 
         send_event_to_reader(new_event(EV_REL, REL_WHEEL, 1))
-        self.assertEqual(reader.read(), (EV_REL, REL_WHEEL, 1))
+        self.assertEqual(reader.read(), EventCombination((EV_REL, REL_WHEEL, 1)))
         self.assertEqual(len(reader._unreleased), 1)
         self.assertEqual(reader.read(), None)
 
         send_event_to_reader(new_event(EV_REL, REL_WHEEL, -1))
-        self.assertEqual(reader.read(), (EV_REL, REL_WHEEL, -1))
+        self.assertEqual(reader.read(), EventCombination((EV_REL, REL_WHEEL, -1)))
         # notice that this is no combination of two sides, the previous
         # entry in unreleased has to get overwritten. So there is still only
         # one element in it.
@@ -232,7 +234,7 @@ class TestReader(unittest.TestCase):
 
         reader.start_reading(groups.find(key="Foo Device 2"))
         time.sleep(0.1)
-        self.assertEqual(reader.read(), Key(EV_KEY, 1, 1))
+        self.assertEqual(reader.read(), EventCombination((EV_KEY, 1, 1)))
 
         reader.start_reading(groups.find(name="Bar Device"))
 
@@ -243,7 +245,7 @@ class TestReader(unittest.TestCase):
         reader.clear()
 
         time.sleep(0.1)
-        self.assertEqual(reader.read(), Key(EV_KEY, 2, 1))
+        self.assertEqual(reader.read(), EventCombination((EV_KEY, 2, 1)))
 
     def test_reading_2(self):
         # a combination of events
@@ -289,16 +291,20 @@ class TestReader(unittest.TestCase):
         reader.start_reading(groups.find(name="gamepad"))
 
         send_event_to_reader(new_event(EV_KEY, CODE_1, 1, 1001))
-        self.assertEqual(reader.read(), ((EV_KEY, CODE_1, 1)))
+        self.assertEqual(reader.read(), EventCombination((EV_KEY, CODE_1, 1)))
 
-        custom_mapping.set("gamepad.joystick.left_purpose", BUTTONS)
+        active_preset.set("gamepad.joystick.left_purpose", BUTTONS)
         send_event_to_reader(new_event(EV_ABS, ABS_Y, 1, 1002))
-        self.assertEqual(reader.read(), ((EV_KEY, CODE_1, 1), (EV_ABS, ABS_Y, 1)))
+        self.assertEqual(
+            reader.read(), EventCombination((EV_KEY, CODE_1, 1), (EV_ABS, ABS_Y, 1))
+        )
 
         send_event_to_reader(new_event(EV_ABS, ABS_HAT0X, -1, 1003))
         self.assertEqual(
             reader.read(),
-            ((EV_KEY, CODE_1, 1), (EV_ABS, ABS_Y, 1), (EV_ABS, ABS_HAT0X, -1)),
+            EventCombination(
+                (EV_KEY, CODE_1, 1), (EV_ABS, ABS_Y, 1), (EV_ABS, ABS_HAT0X, -1)
+            ),
         )
 
         # adding duplicate down events won't report a different combination.
@@ -321,7 +327,7 @@ class TestReader(unittest.TestCase):
 
     def test_reads_joysticks(self):
         # if their purpose is "buttons"
-        custom_mapping.set("gamepad.joystick.left_purpose", BUTTONS)
+        active_preset.set("gamepad.joystick.left_purpose", BUTTONS)
         push_events(
             "gamepad",
             [
@@ -335,12 +341,12 @@ class TestReader(unittest.TestCase):
 
         reader.start_reading(groups.find(name="gamepad"))
         time.sleep(0.2)
-        self.assertEqual(reader.read(), (EV_ABS, ABS_Y, 1))
+        self.assertEqual(reader.read(), EventCombination((EV_ABS, ABS_Y, 1)))
         self.assertEqual(reader.read(), None)
         self.assertEqual(len(reader._unreleased), 1)
 
         reader._unreleased = {}
-        custom_mapping.set("gamepad.joystick.left_purpose", MOUSE)
+        active_preset.set("gamepad.joystick.left_purpose", MOUSE)
         push_events("gamepad", [new_event(EV_ABS, ABS_Y, MAX_ABS)])
         self.create_helper()
 
@@ -363,10 +369,12 @@ class TestReader(unittest.TestCase):
         send_event_to_reader(new_event(3, 1, 0, next_timestamp()))
         send_event_to_reader(new_event(3, 0, 0, next_timestamp()))
         send_event_to_reader(new_event(3, 2, 1, next_timestamp()))
-        self.assertEqual(reader.read(), (EV_ABS, ABS_Z, 1))
+        self.assertEqual(reader.read(), EventCombination((EV_ABS, ABS_Z, 1)))
         send_event_to_reader(new_event(3, 0, 0, next_timestamp()))
         send_event_to_reader(new_event(3, 5, 1, next_timestamp()))
-        self.assertEqual(reader.read(), ((EV_ABS, ABS_Z, 1), (EV_ABS, ABS_RZ, 1)))
+        self.assertEqual(
+            reader.read(), EventCombination((EV_ABS, ABS_Z, 1), (EV_ABS, ABS_RZ, 1))
+        )
         send_event_to_reader(new_event(3, 5, 0, next_timestamp()))
         send_event_to_reader(new_event(3, 0, 0, next_timestamp()))
         send_event_to_reader(new_event(3, 1, 0, next_timestamp()))
@@ -391,7 +399,7 @@ class TestReader(unittest.TestCase):
         self.create_helper()
         reader.start_reading(groups.find(key="Foo Device 2"))
         time.sleep(0.1)
-        self.assertEqual(reader.read(), (EV_KEY, CODE_2, 1))
+        self.assertEqual(reader.read(), EventCombination((EV_KEY, CODE_2, 1)))
         self.assertEqual(reader.read(), None)
         self.assertEqual(len(reader._unreleased), 1)
 
@@ -404,7 +412,7 @@ class TestReader(unittest.TestCase):
         self.create_helper()
         reader.start_reading(groups.find(key="Foo Device 2"))
         time.sleep(0.2)
-        self.assertEqual(reader.read(), (EV_ABS, ABS_HAT0X, 1))
+        self.assertEqual(reader.read(), EventCombination((EV_ABS, ABS_HAT0X, 1)))
         self.assertEqual(reader.read(), None)
         self.assertEqual(len(reader._unreleased), 1)
 
@@ -420,14 +428,14 @@ class TestReader(unittest.TestCase):
         self.create_helper()
         reader.start_reading(groups.find(key="Foo Device 2"))
         time.sleep(0.1)
-        self.assertEqual(reader.read(), (EV_KEY, CODE_2, 1))
+        self.assertEqual(reader.read(), EventCombination((EV_KEY, CODE_2, 1)))
         self.assertEqual(reader.read(), None)
         self.assertEqual(len(reader._unreleased), 1)
 
     def test_reading_ignore_duplicate_down(self):
         send_event_to_reader(new_event(EV_ABS, ABS_Z, 1, 10))
 
-        self.assertEqual(reader.read(), (EV_ABS, ABS_Z, 1))
+        self.assertEqual(reader.read(), EventCombination((EV_ABS, ABS_Z, 1)))
         self.assertEqual(reader.read(), None)
 
         # duplicate
@@ -435,7 +443,7 @@ class TestReader(unittest.TestCase):
         self.assertEqual(reader.read(), None)
         self.assertEqual(len(reader._unreleased), 1)
         self.assertEqual(len(reader.get_unreleased_keys()), 1)
-        self.assertIsInstance(reader.get_unreleased_keys(), Key)
+        self.assertIsInstance(reader.get_unreleased_keys(), EventCombination)
 
         # release
         send_event_to_reader(new_event(EV_ABS, ABS_Z, 0, 10))
@@ -528,7 +536,7 @@ class TestReader(unittest.TestCase):
         time.sleep(EVENT_READ_TIMEOUT * 5)
         self.assertTrue(reader._results.poll())
 
-        self.assertEqual(reader.read(), (EV_KEY, CODE_3, 1))
+        self.assertEqual(reader.read(), EventCombination((EV_KEY, CODE_3, 1)))
         self.assertEqual(reader.read(), None)
         self.assertEqual(len(reader._unreleased), 1)
 

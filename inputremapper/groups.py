@@ -36,6 +36,7 @@ import multiprocessing
 import threading
 import asyncio
 import json
+from typing import List
 
 import evdev
 from evdev.ecodes import (
@@ -53,7 +54,7 @@ from evdev.ecodes import (
 )
 
 from inputremapper.logger import logger
-from inputremapper.paths import get_preset_path
+from inputremapper.configs.paths import get_preset_path
 
 
 TABLET_KEYS = [
@@ -82,7 +83,7 @@ if not hasattr(evdev.InputDevice, "path"):
 
 
 def _is_gamepad(capabilities):
-    """Check if joystick movements are available for mapping."""
+    """Check if joystick movements are available for preset."""
     # A few buttons that indicate a gamepad
     buttons = {
         evdev.ecodes.BTN_BASE,
@@ -252,7 +253,7 @@ class _Group:
         presets folder structure
     """
 
-    def __init__(self, paths, names, types, key):
+    def __init__(self, paths: List[str], names: List[str], types: List[str], key: str):
         """Specify a group
 
         Parameters
@@ -276,7 +277,7 @@ class _Group:
         """
         # There might be multiple groups with the same name here when two
         # similar devices are connected to the computer.
-        self.name = sorted(names, key=len)[0]
+        self.name: str = sorted(names, key=len)[0]
 
         self.key = key
 
@@ -415,7 +416,7 @@ class _Groups:
     """Contains and manages all groups."""
 
     def __init__(self):
-        self._groups = None
+        self._groups: List[_Group] = None
 
     def __getattribute__(self, key):
         """To lazy load group info only when needed.
@@ -463,7 +464,7 @@ class _Groups:
         """Overwrite all groups."""
         self._groups = new_groups
 
-    def list_group_names(self):
+    def list_group_names(self) -> List[str]:
         """Return a list of all 'name' properties of the groups."""
         return [
             group.name

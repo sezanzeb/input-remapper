@@ -35,8 +35,8 @@ from evdev.ecodes import (
     ABS_RY,
 )
 
-from inputremapper.config import config
-from inputremapper.mapping import Mapping
+from inputremapper.configs.global_config import global_config
+from inputremapper.configs.preset import Preset
 from inputremapper.injection.context import Context
 from inputremapper.injection.consumers.joystick_to_mouse import (
     JoystickToMouse,
@@ -64,7 +64,7 @@ class TestJoystickToMouse(unittest.IsolatedAsyncioTestCase):
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
 
-        self.mapping = Mapping()
+        self.mapping = Preset()
         self.context = Context(self.mapping)
 
         uinput = UInput()
@@ -73,8 +73,8 @@ class TestJoystickToMouse(unittest.IsolatedAsyncioTestCase):
         source = InputDevice("/dev/input/event30")
         self.joystick_to_mouse = JoystickToMouse(self.context, source)
 
-        config.set("gamepad.joystick.x_scroll_speed", 1)
-        config.set("gamepad.joystick.y_scroll_speed", 1)
+        global_config.set("gamepad.joystick.x_scroll_speed", 1)
+        global_config.set("gamepad.joystick.y_scroll_speed", 1)
 
     def tearDown(self):
         quick_cleanup()
@@ -155,12 +155,12 @@ class TestJoystickToMouse(unittest.IsolatedAsyncioTestCase):
         asyncio.ensure_future(self.joystick_to_mouse.run())
 
         speed = 30
-        config.set("gamepad.joystick.non_linearity", 1)
-        config.set("gamepad.joystick.pointer_speed", speed)
-        config.set("gamepad.joystick.left_purpose", WHEEL)
-        config.set("gamepad.joystick.right_purpose", MOUSE)
-        config.set("gamepad.joystick.x_scroll_speed", 1)
-        config.set("gamepad.joystick.y_scroll_speed", 2)
+        global_config.set("gamepad.joystick.non_linearity", 1)
+        global_config.set("gamepad.joystick.pointer_speed", speed)
+        global_config.set("gamepad.joystick.left_purpose", WHEEL)
+        global_config.set("gamepad.joystick.right_purpose", MOUSE)
+        global_config.set("gamepad.joystick.x_scroll_speed", 1)
+        global_config.set("gamepad.joystick.y_scroll_speed", 2)
 
         # vertical wheel event values are negative
         await self.do(MAX_ABS, 0, 0, 0, (EV_REL, REL_HWHEEL, 1))
@@ -178,9 +178,9 @@ class TestJoystickToMouse(unittest.IsolatedAsyncioTestCase):
 
         speed = 40
         self.mapping.set("gamepad.joystick.non_linearity", 1)
-        config.set("gamepad.joystick.pointer_speed", speed)
+        global_config.set("gamepad.joystick.pointer_speed", speed)
         self.mapping.set("gamepad.joystick.left_purpose", MOUSE)
-        config.set("gamepad.joystick.right_purpose", MOUSE)
+        global_config.set("gamepad.joystick.right_purpose", MOUSE)
 
         await self.do(MAX_ABS, 0, 0, 0, (EV_REL, REL_X, speed))
         await self.do(MIN_ABS, 0, 0, 0, (EV_REL, REL_X, -speed))
@@ -195,8 +195,8 @@ class TestJoystickToMouse(unittest.IsolatedAsyncioTestCase):
     async def test_joystick_purpose_4(self):
         asyncio.ensure_future(self.joystick_to_mouse.run())
 
-        config.set("gamepad.joystick.left_purpose", WHEEL)
-        config.set("gamepad.joystick.right_purpose", WHEEL)
+        global_config.set("gamepad.joystick.left_purpose", WHEEL)
+        global_config.set("gamepad.joystick.right_purpose", WHEEL)
         self.mapping.set("gamepad.joystick.x_scroll_speed", 2)
         self.mapping.set("gamepad.joystick.y_scroll_speed", 3)
 

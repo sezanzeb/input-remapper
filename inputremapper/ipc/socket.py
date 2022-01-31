@@ -57,7 +57,7 @@ import time
 import json
 
 from inputremapper.logger import logger
-from inputremapper.paths import mkdir, chown
+from inputremapper.configs.paths import mkdir, chown
 
 
 # something funny that most likely won't appear in messages.
