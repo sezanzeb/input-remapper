@@ -25,9 +25,13 @@ import copy
 import shutil
 import pkg_resources
 
+from typing import List
 from pathlib import Path
 from evdev.ecodes import EV_KEY, EV_REL
 
+from inputremapper.configs.preset import Preset
+from inputremapper.configs.mapping import Mapping
+from inputremapper.event_combination import EventCombination
 from inputremapper.exceptions import MacroParsingError
 from inputremapper.logger import logger, VERSION
 from inputremapper.user import HOME
@@ -37,7 +41,7 @@ from inputremapper.injection.global_uinputs import global_uinputs
 from inputremapper.injection.macros.parse import parse, is_this_a_macro
 
 
-def all_presets():
+def all_presets() -> List[os.PathLike]:
     """Get all presets for all groups as list."""
     preset_path = Path(get_preset_path())
     presets = []
@@ -209,6 +213,41 @@ def _add_target():
             file.write("\n")
 
 
+def _convert_to_individual_mappings():
+    """
+    convert preset.json
+    from {key: [symbol, target]}
+    to {key: {target: target, symbol: symbol, ...}}
+    """
+    if not os.path.exists(get_preset_path()):
+        return  # don't execute if there are no presets
+
+    for preset_path in all_presets():
+        preset = Preset(preset_path)
+
+        try:
+            with open(preset_path, "r") as file:
+                old_preset = json.load(file)
+        except json.decoder.JSONDecodeError:
+            logger.info(f"invalid preset{preset}")
+            continue
+
+        if "mapping" in old_preset.keys():
+            for combination, symbol_target in old_preset["mapping"].items():
+                combination = EventCombination.from_string(combination)
+                mapping = Mapping(
+                    event_combination=combination,
+                    target_uinput=symbol_target[1],
+                    output_symbol=symbol_target[0],
+                )
+                preset.add(mapping)
+
+        if "gamepad" in old_preset.keys():
+            raise NotImplementedError
+
+        preset.save()
+
+
 def migrate():
     """Migrate config files to the current release."""
     v = config_version()
@@ -225,6 +264,9 @@ def migrate():
     if v < pkg_resources.parse_version("1.4.0"):
         global_uinputs.prepare()
         _add_target()
+
+    if v < pkg_resources.parse_version("1.5.0"):
+        _convert_to_individual_mappings()
 
     # add new migrations here
 

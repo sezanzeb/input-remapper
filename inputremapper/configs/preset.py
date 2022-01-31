@@ -27,7 +27,7 @@ import json
 import glob
 import time
 
-from typing import Tuple, Dict, List
+from typing import Tuple, Dict, List, Optional, Iterator
 
 from pydantic import ValidationError
 from inputremapper.logger import logger
@@ -39,56 +39,60 @@ from inputremapper.event_combination import EventCombination
 from inputremapper.groups import groups
 
 
-class Preset(Dict[EventCombination, Mapping]):
+class Preset:
+    """Contains and manages mappings of a single preset."""
 
-    # a copy of self for keeping track of changes
+    _mappings: Dict[EventCombination, Mapping]
+    # a copy of mappings for keeping track of changes
     _saved_mappings: Dict[EventCombination, Mapping]
-    _path: os.PathLike
+    _path: Optional[os.PathLike]
 
-    def __new__(cls, path: os.PathLike = None) -> Preset:
-        # make sure the Preset can not be constructed with initial values
-        obj = super().__new__(cls)
-        setattr(obj, "_saved_mappings", {})
-        setattr(obj, "_path", path)
-        return obj
+    def __init__(self, path: Optional[os.PathLike] = None):
+        self._path = path
 
-    def __setitem__(self, combination: EventCombination, mapping: Mapping) -> None:
-        if not isinstance(combination, EventCombination):
-            raise TypeError(f"combination must be a EventCombination got {type(combination)} instead")
+    def __iter__(self) -> Iterator[Mapping]:
+        """Iterate over Mapping objects."""
+        return iter(self._mappings.values())
 
-        if not isinstance(mapping, Mapping):
-            raise TypeError(f"mapping must be Mapping got {type(mapping)}")
+    def __len__(self):
+        return len(self._mappings)
+
+    def has_unsaved_changes(self) -> bool:
+        """Check if there are unsaved changed."""
+        return self._mappings != self._saved_mappings
+
+    def remove(
+            self,
+            combination: EventCombination = None,
+            mapping: Mapping = None,
+    ) -> None:
+        """remove a mapping from the preset, either by providing the mapping or the EventCombination"""
+        if mapping:
+            combination = mapping.event_combination
 
         for permutation in combination.get_permutations():
-            if permutation in self:
-                raise KeyError(f"the combination {permutation} already exists")
+            if permutation in self._mappings.keys():
+                combination = permutation
+                break
 
-        mapping.set_combination_changed_callback(self._combination_changed_callback)
-        super(dict, self)[combination] = mapping
+        mapping = self._mappings.pop(combination)
+        mapping.remove_combination_changed_callback()
 
-    def __delitem__(self, key):
-        """remove the callback first"""
-        self[key].remove_combination_changed_callback()
-        super(Preset, self).__delitem__(key)
+    def add(self, mapping: Mapping) -> None:
+        """add a mapping to the preset"""
+        for permutation in mapping.event_combination.get_permutations():
+            if permutation in self._mappings:
+                raise KeyError("a mapping with this event_combination: %s already exists", permutation)
 
-    def pop(self, combination: EventCombination):
-        """remove a mapping"""
-        # remove the callback before super().pop()
-        # apparently pop() does not call __delitem__()
-        self[combination].remove_combination_changed_callback()
-        return super(Preset, self).pop(combination)
-
-    def has_unsaved_changes(self):
-        """Check if there are unsaved changed."""
-        return self != self._saved_mappings
-
-    def empty(self):
+    def empty(self) -> None:
         """Remove all mappings and custom configs without saving."""
-        for combination in self.keys():
-            del self[combination]  # del will make sure to remove the callback
+        for mapping in self._mappings.values():
+            mapping.remove_combination_changed_callback()
+        self._mappings = {}
         self._saved_mappings = {}
+        self._path = None
 
-    def load(self):
+    def load(self) -> None:
         """Load from self.path"""
         logger.info('Loading preset from "%s"', self.path)
 
@@ -112,7 +116,7 @@ class Preset(Dict[EventCombination, Mapping]):
             self._saved_mappings[mapping.event_combination] = mapping
             self[mapping.event_combination] = mapping.copy()
 
-    def save(self):
+    def save(self) -> None:
         """Dump as JSON to self.path"""
         if not self.has_unsaved_changes():
             return
@@ -121,7 +125,7 @@ class Preset(Dict[EventCombination, Mapping]):
         touch(self.path)
 
         json_ready = {}
-        for mapping in self.values():
+        for mapping in self._mappings.values():
             d = mapping.dict(exclude_defaults=True)
             combination = d.pop("event_combination")
             json_ready[combination.json_str()] = d
@@ -131,14 +135,41 @@ class Preset(Dict[EventCombination, Mapping]):
             file.write("\n")
 
         self._saved_mappings = {}
-        for combination, mapping in self.items():
+        for combination, mapping in self._mappings.items():
             self._saved_mappings[combination] = mapping.copy()
             self._saved_mappings[combination].remove_combination_changed_callback()
 
+    def get_mapping(self, combination: EventCombination) -> Optional[Mapping]:
+        """Return the Mapping that is mapped to this EventCombination.
+        Parameters
+        ----------
+        combination : EventCombination
+        """
+        for permutation in combination.get_permutations():
+            existing = self._mappings.get(permutation)
+            if existing is not None:
+                return existing
+
+        return None
+
+    def dangerously_mapped_btn_left(self):
+        """Return True if this mapping disables BTN_Left."""
+        if EventCombination(InputEvent.btn_left()) not in self:
+            return False
+
+        values = []
+        for mapping in self._mappings.values():
+            if mapping.output_symbol is None:
+                continue
+            values.append(mapping.output_symbol.lower())
+            values.append(mapping.output_type_and_code)
+        return "btn_left" not in values or InputEvent.btn_left().type_and_code not in values
+
     def _combination_changed_callback(self, new: EventCombination, old: EventCombination):
-        self[new] = self[old]  # will raise a KeyError if a permutation is mapped
-        self.pop(old)  # no KeyError, safe to pop(old) now
-        self[new].set_combination_changed_callback(self._combination_changed_callback)
+        for permutation in new.get_permutations():
+            if permutation in self._mappings.keys() and permutation != old:
+                raise KeyError("combination already exists in the preset")
+        self._mappings[new] = self._mappings.pop(old)
 
     @property
     def path(self) -> os.PathLike:
@@ -149,20 +180,6 @@ class Preset(Dict[EventCombination, Mapping]):
         if path != self.path:
             self._saved_mappings = {}
             self._path = path
-
-    def dangerously_mapped_btn_left(self):
-        """Return True if this mapping disables BTN_Left."""
-        if EventCombination(InputEvent.btn_left()) not in self:
-            return False
-
-        values = []
-        for mapping in self.values():
-            if mapping.output_symbol is None:
-                continue
-            values.append(mapping.output_symbol.lower())
-            values.append(mapping.output_type_and_code)
-        return "btn_left" not in values or InputEvent.btn_left().type_and_code not in values
-
 
 ###########################################################################
 # Method from previously presets.py

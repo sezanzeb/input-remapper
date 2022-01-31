@@ -88,6 +88,7 @@ class Mapping(BaseModel):
         if new_combi == self.event_combination:
             return
 
+        # raises a keyError if the combination or a permutation is already mapped
         self._combination_changed(new_combi, self.event_combination)
         super(Mapping, self).__setattr__(key, value)
 
