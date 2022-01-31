@@ -180,9 +180,9 @@ class TestMapping(unittest.TestCase):
         self.assertEqual(self.preset.get("d.e.f"), 3)
 
     def test_save_load(self):
-        one = InputEvent.from_event_tuple((EV_KEY, 10, 1))
-        two = InputEvent.from_event_tuple((EV_KEY, 11, 1))
-        three = InputEvent.from_event_tuple((EV_KEY, 12, 1))
+        one = InputEvent.from_tuple((EV_KEY, 10, 1))
+        two = InputEvent.from_tuple((EV_KEY, 11, 1))
+        three = InputEvent.from_tuple((EV_KEY, 12, 1))
 
         self.preset.change(EventCombination(one), "keyboard", "1")
         self.preset.change(EventCombination(two), "keyboard", "2")
@@ -277,10 +277,10 @@ class TestMapping(unittest.TestCase):
             self.preset.change(key, target, symbol, previous_combination=key)
 
     def test_combinations(self):
-        ev_1 = InputEvent.from_event_tuple((EV_KEY, 1, 111))
-        ev_2 = InputEvent.from_event_tuple((EV_KEY, 1, 222))
-        ev_3 = InputEvent.from_event_tuple((EV_KEY, 2, 111))
-        ev_4 = InputEvent.from_event_tuple((EV_ABS, 1, 111))
+        ev_1 = InputEvent.from_tuple((EV_KEY, 1, 111))
+        ev_2 = InputEvent.from_tuple((EV_KEY, 1, 222))
+        ev_3 = InputEvent.from_tuple((EV_KEY, 2, 111))
+        ev_4 = InputEvent.from_tuple((EV_ABS, 1, 111))
         combi_1 = EventCombination(ev_1, ev_2, ev_3)
         combi_2 = EventCombination(ev_2, ev_1, ev_3)
         combi_3 = EventCombination(ev_1, ev_2, ev_4)

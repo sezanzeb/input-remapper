@@ -585,8 +585,6 @@ class UserInterface:
         if group_key is None:
             return
 
-        self.editor.clear()
-
         logger.debug('Selecting device "%s"', group_key)
 
         self.group = groups.find(key=group_key)
@@ -691,7 +689,7 @@ class UserInterface:
             return
 
         logger.debug('Selecting preset "%s"', preset)
-        self.editor.clear()
+        self.editor.clear_mapping_list()
         self.preset_name = preset
 
         active_preset.load(self.group.get_preset_path(preset))

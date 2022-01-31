@@ -252,7 +252,7 @@ class PatchedConfirmDelete:
         self.patch.__exit__(*args, **kwargs)
 
 
-class GuiTestBase:
+class GuiTestBase(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.injector = None
@@ -267,6 +267,26 @@ class GuiTestBase:
             self.dbus = Daemon()
 
         UserInterface.start_processes = start_processes
+
+    def _callTestMethod(self, method):
+        """Retry all tests if they fail.
+
+        GUI tests suddenly started to lag a lot and fail randomly, and even
+        though that improved drastically, sometimes they still do.
+        """
+        attempts = 0
+        while True:
+            attempts += 1
+            try:
+                method()
+                break
+            except Exception as e:
+                if attempts == 2:
+                    raise e
+
+            # try again
+            self.tearDown()
+            self.setUp()
 
     def setUp(self):
         self.user_interface = launch()
@@ -287,8 +307,25 @@ class GuiTestBase:
 
         global_config._save_config()
 
+        self.throttle()
+
+        self.assertIsNotNone(self.user_interface.group)
+        self.assertIsNotNone(self.user_interface.group.key)
+        self.assertIsNotNone(self.user_interface.preset_name)
+
     def tearDown(self):
         clean_up_integration(self)
+
+        self.throttle()
+
+    def throttle(self):
+        """Give GTK some time to process everything."""
+        # tests suddenly started to freeze my computer up completely
+        # and tests started to fail. By using this (and by optimizing some
+        # redundant calls in the gui) it worked again.
+        for _ in range(10):
+            gtk_iteration()
+            time.sleep(0.002)
 
     @classmethod
     def tearDownClass(cls):
@@ -327,6 +364,8 @@ class GuiTestBase:
         target : str
             the target selection
         """
+        self.throttle()
+
         self.assertIsNone(reader.get_unreleased_keys())
 
         changed = active_preset.has_unsaved_changes()
@@ -438,7 +477,7 @@ class GuiTestBase:
         gtk_iteration()
 
 
-class TestGui(GuiTestBase, unittest.TestCase):
+class TestGui(GuiTestBase):
     """For tests that use the window.
 
     Try to modify the configuration only by calling functions of the window.
@@ -552,6 +591,12 @@ class TestGui(GuiTestBase, unittest.TestCase):
         self.assertFalse(self.user_interface.show_device_mapping_status())
 
     def test_autoload(self):
+        self.assertFalse(
+            global_config.is_autoloaded(
+                self.user_interface.group.key, self.user_interface.preset_name
+            )
+        )
+
         with spy(self.user_interface.dbus, "set_config_dir") as set_config_dir:
             self.user_interface.on_autoload_switch(None, False)
             set_config_dir.assert_called_once()
@@ -653,9 +698,13 @@ class TestGui(GuiTestBase, unittest.TestCase):
 
     def test_editor_keycode_to_string(self):
         # not an integration test, but I have all the selection_label tests here already
+        self.assertEqual(EventCombination((EV_KEY, evdev.ecodes.KEY_A, 1)).beautify(), "a")
         self.assertEqual(
             EventCombination([EV_KEY, evdev.ecodes.KEY_A, 1]).beautify(), "a"
         )
+        self.assertEqual(EventCombination((EV_ABS, evdev.ecodes.ABS_HAT0Y, -1)).beautify(), "DPad Up")
+        self.assertEqual(EventCombination((EV_KEY, evdev.ecodes.BTN_A, 1)).beautify(), "Button A")
+        self.assertEqual(EventCombination((EV_KEY, 1234, 1)).beautify(), "1234")
         self.assertEqual(
             EventCombination([EV_ABS, evdev.ecodes.ABS_HAT0X, -1]).beautify(),
             "DPad Left",
@@ -916,10 +965,10 @@ class TestGui(GuiTestBase, unittest.TestCase):
 
     def test_combination(self):
         # it should be possible to write a combination combination
-        ev_1 = InputEvent.from_event_tuple((EV_KEY, evdev.ecodes.KEY_A, 1))
-        ev_2 = InputEvent.from_event_tuple((EV_ABS, evdev.ecodes.ABS_HAT0X, 1))
-        ev_3 = InputEvent.from_event_tuple((EV_KEY, evdev.ecodes.KEY_C, 1))
-        ev_4 = InputEvent.from_event_tuple((EV_ABS, evdev.ecodes.ABS_HAT0X, -1))
+        ev_1 = InputEvent.from_tuple((EV_KEY, evdev.ecodes.KEY_A, 1))
+        ev_2 = InputEvent.from_tuple((EV_ABS, evdev.ecodes.ABS_HAT0X, 1))
+        ev_3 = InputEvent.from_tuple((EV_KEY, evdev.ecodes.KEY_C, 1))
+        ev_4 = InputEvent.from_tuple((EV_ABS, evdev.ecodes.ABS_HAT0X, -1))
         combination_1 = EventCombination(ev_1, ev_2, ev_3)
         combination_2 = EventCombination(ev_2, ev_1, ev_3)
 
@@ -1423,7 +1472,7 @@ class TestGui(GuiTestBase, unittest.TestCase):
         pointer_speed = active_preset.get("gamepad.joystick.pointer_speed")
         self.assertEqual(left_purpose, WHEEL)
         self.assertEqual(right_purpose, WHEEL)
-        self.assertEqual(pointer_speed, 2 ** joystick_mouse_speed)
+        self.assertEqual(pointer_speed, 2**joystick_mouse_speed)
 
         # select a device that is not a gamepad again
         self.user_interface.on_select_device(FakeDeviceDropdown("Foo Device"))
@@ -1890,7 +1939,7 @@ class TestGui(GuiTestBase, unittest.TestCase):
         self.assertEqual(self.get_unfiltered_symbol_input_text(), "foo")
 
 
-class TestAutocompletion(GuiTestBase, unittest.TestCase):
+class TestAutocompletion(GuiTestBase):
     def press_key(self, keyval):
         event = Gdk.EventKey()
         event.keyval = keyval

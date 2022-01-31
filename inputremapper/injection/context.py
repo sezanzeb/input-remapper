@@ -72,8 +72,6 @@ class Context:
     preset : Preset
         The preset that is the source of key_to_code and macros,
         only used to query config values.
-    key_map : dict
-        on the input pressed down keys
     """
 
     def __init__(self, preset):

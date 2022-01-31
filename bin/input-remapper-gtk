@@ -69,7 +69,7 @@ if __name__ == '__main__':
     # import input-remapper stuff after setting the log verbosity
     from inputremapper.gui.user_interface import UserInterface
     from inputremapper.daemon import Daemon
-    from inputremapper.daemon import global_config
+    from inputremapper.configs.global_config import global_config
 
     migrate()
     global_config.load_config()

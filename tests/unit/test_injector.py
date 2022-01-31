@@ -54,7 +54,7 @@ from inputremapper.injection.injector import (
     UNKNOWN,
     get_udev_name,
 )
-from inputremapper.injection.numlock import is_numlock_on, set_numlock, ensure_numlock
+from inputremapper.injection.numlock import is_numlock_on
 from inputremapper.configs.system_mapping import (
     system_mapping,
     DISABLE_CODE,
@@ -240,30 +240,6 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         # skips the device alltogether, so no grab attempts fail
         self.assertEqual(self.failed, 0)
         self.assertIsNone(device)
-
-    def test_numlock(self):
-        before = is_numlock_on()
-
-        set_numlock(not before)  # should change
-        self.assertEqual(not before, is_numlock_on())
-
-        @ensure_numlock
-        def wrapped_1():
-            set_numlock(not is_numlock_on())
-
-        @ensure_numlock
-        def wrapped_2():
-            pass
-
-        # should not change
-        wrapped_1()
-        self.assertEqual(not before, is_numlock_on())
-        wrapped_2()
-        self.assertEqual(not before, is_numlock_on())
-
-        # toggle one more time to restore the previous configuration
-        set_numlock(before)
-        self.assertEqual(before, is_numlock_on())
 
     def test_gamepad_to_mouse(self):
         # maps gamepad joystick events to mouse events

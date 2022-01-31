@@ -21,9 +21,8 @@
 
 """Keeps injecting keycodes in the background based on the preset."""
 
-
-import asyncio
 import os
+import asyncio
 import time
 import multiprocessing
 

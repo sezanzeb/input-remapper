@@ -97,7 +97,7 @@ class InputEvent:
             )
 
     @classmethod
-    def from_event_tuple(cls, event_tuple: Tuple[int, int, int]) -> InputEvent:
+    def from_tuple(cls, event_tuple: Tuple[int, int, int]) -> InputEvent:
         """create a InputEvent from a (type, code, value) tuple"""
         try:
             if len(event_tuple) != 3:

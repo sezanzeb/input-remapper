@@ -52,7 +52,7 @@ class EventCombination(Tuple[InputEvent]):
     def __new__(cls, *init_args) -> EventCombination:
         pydantic_internal = False
         events = []
-        if len(init_args) == 1:
+        if len(init_args) == 1 and isinstance(init_args[0], tuple):
             # pydantic might call this with a tuple of input events
             for event in init_args[0]:
                 if isinstance(event, InputEvent):
