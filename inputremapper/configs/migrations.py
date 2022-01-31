@@ -27,7 +27,20 @@ import pkg_resources
 
 from typing import List
 from pathlib import Path
-from evdev.ecodes import EV_KEY, EV_REL
+from evdev.ecodes import (
+    EV_KEY,
+    EV_ABS,
+    EV_REL,
+    ABS_X,
+    ABS_Y,
+    ABS_RX,
+    ABS_RY,
+    REL_X,
+    REL_Y,
+    REL_WHEEL_HI_RES,
+    REL_HWHEEL_HI_RES,
+)
+from pydantic import ValidationError
 
 from inputremapper.configs.preset import Preset
 from inputremapper.configs.mapping import Mapping
@@ -234,16 +247,97 @@ def _convert_to_individual_mappings():
 
         if "mapping" in old_preset.keys():
             for combination, symbol_target in old_preset["mapping"].items():
+                logger.info(f"migrating from '{combination}: {symbol_target}' to mapping dict")
                 combination = EventCombination.from_string(combination)
-                mapping = Mapping(
-                    event_combination=combination,
-                    target_uinput=symbol_target[1],
-                    output_symbol=symbol_target[0],
-                )
+                try:
+                    mapping = Mapping(
+                        event_combination=combination,
+                        target_uinput=symbol_target[1],
+                        output_symbol=symbol_target[0],
+                    )
+                except ValidationError as error:
+                    logger.error(f"unable to convert invalid mapping: {str(error)}")
+                    continue
+
                 preset.add(mapping)
 
-        if "gamepad" in old_preset.keys():
-            raise NotImplementedError
+        if "gamepad" in old_preset.keys() and "joystick" in old_preset["gamepad"].keys():
+            joystick_dict = old_preset["gamepad"]["joystick"]
+            left_purpose = joystick_dict.get("left_purpose")
+            right_purpose = joystick_dict.get("right_purpose")
+            pointer_speed = joystick_dict.get("pointer_speed") / 100
+            non_linearity = joystick_dict.get("non_linearity")  # Todo
+            x_scroll_speed = joystick_dict.get("x_scroll_speed")
+            y_scroll_speed = joystick_dict.get("y_scroll_speed")
+
+            cfg = {
+                "event_combination": None,
+                "target_uinput": "mouse",
+                "output_type": EV_REL,
+                "output_code": None
+            }
+
+            if left_purpose == "mouse":
+                x_config = cfg.copy()
+                y_config = cfg.copy()
+                x_config["event_combination"] = ",".join((str(EV_ABS), str(ABS_X), "0"))
+                y_config["event_combination"] = ",".join((str(EV_ABS), str(ABS_Y), "0"))
+                x_config["output_code"] = REL_X
+                y_config["output_code"] = REL_Y
+                mapping_x = Mapping(**x_config)
+                mapping_y = Mapping(**y_config)
+                if pointer_speed:
+                    mapping_x.gain = pointer_speed
+                    mapping_y.gain = pointer_speed
+                preset.add(mapping_x)
+                preset.add(mapping_y)
+
+            if right_purpose == "mouse":
+                x_config = cfg.copy()
+                y_config = cfg.copy()
+                x_config["event_combination"] = ",".join((str(EV_ABS), str(ABS_RX), "0"))
+                y_config["event_combination"] = ",".join((str(EV_ABS), str(ABS_RY), "0"))
+                x_config["output_code"] = REL_X
+                y_config["output_code"] = REL_Y
+                mapping_x = Mapping(**x_config)
+                mapping_y = Mapping(**y_config)
+                if pointer_speed:
+                    mapping_x.gain = pointer_speed
+                    mapping_y.gain = pointer_speed
+                preset.add(mapping_x)
+                preset.add(mapping_y)
+
+            if left_purpose == "wheel":
+                x_config = cfg.copy()
+                y_config = cfg.copy()
+                x_config["event_combination"] = ",".join((str(EV_ABS), str(ABS_X), "0"))
+                y_config["event_combination"] = ",".join((str(EV_ABS), str(ABS_Y), "0"))
+                x_config["output_code"] = REL_HWHEEL_HI_RES
+                y_config["output_code"] = REL_WHEEL_HI_RES
+                mapping_x = Mapping(**x_config)
+                mapping_y = Mapping(**y_config)
+                if x_scroll_speed:
+                    mapping_x.gain = x_scroll_speed
+                if y_scroll_speed:
+                    mapping_y.gain = y_scroll_speed
+                preset.add(mapping_x)
+                preset.add(mapping_y)
+
+            if right_purpose == "wheel":
+                x_config = cfg.copy()
+                y_config = cfg.copy()
+                x_config["event_combination"] = ",".join((str(EV_ABS), str(ABS_RX), "0"))
+                y_config["event_combination"] = ",".join((str(EV_ABS), str(ABS_RY), "0"))
+                x_config["output_code"] = REL_HWHEEL_HI_RES
+                y_config["output_code"] = REL_WHEEL_HI_RES
+                mapping_x = Mapping(**x_config)
+                mapping_y = Mapping(**y_config)
+                if x_scroll_speed:
+                    mapping_x.gain = x_scroll_speed
+                if y_scroll_speed:
+                    mapping_y.gain = y_scroll_speed
+                preset.add(mapping_x)
+                preset.add(mapping_y)
 
         preset.save()
 

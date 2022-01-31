@@ -20,6 +20,7 @@
 
 from __future__ import annotations
 
+import inspect
 import itertools
 
 from typing import Tuple, Iterable
@@ -52,8 +53,8 @@ class EventCombination(Tuple[InputEvent]):
     def __new__(cls, *init_args) -> EventCombination:
         pydantic_internal = False
         events = []
-        if len(init_args) == 1 and isinstance(init_args[0], tuple):
-            # pydantic might call this with a tuple of input events
+        if inspect.isgenerator(init_args[0]):  # for some reason isinstance() does not work
+            # pydantic might call this with a generator which yields input events
             for event in init_args[0]:
                 if isinstance(event, InputEvent):
                     events.append(event)

@@ -63,7 +63,7 @@ class InputEvent:
             return init_arg
 
         event = None
-        for constructor in [cls.from_event, cls.from_string, cls.from_event_tuple]:
+        for constructor in [cls.from_event, cls.from_string, cls.from_tuple]:
             try:
                 event = constructor(init_arg)
                 break

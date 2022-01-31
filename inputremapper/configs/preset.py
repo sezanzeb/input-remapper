@@ -48,6 +48,8 @@ class Preset:
     _path: Optional[os.PathLike]
 
     def __init__(self, path: Optional[os.PathLike] = None):
+        self._mappings = {}
+        self._saved_mappings = {}
         self._path = path
 
     def __iter__(self) -> Iterator[Mapping]:
@@ -84,6 +86,9 @@ class Preset:
             if permutation in self._mappings:
                 raise KeyError("a mapping with this event_combination: %s already exists", permutation)
 
+        mapping.set_combination_changed_callback(self._combination_changed_callback)
+        self._mappings[mapping.event_combination] = mapping
+
     def empty(self) -> None:
         """Remove all mappings and custom configs without saving."""
         for mapping in self._mappings.values():
@@ -114,7 +119,7 @@ class Preset:
                 continue
 
             self._saved_mappings[mapping.event_combination] = mapping
-            self[mapping.event_combination] = mapping.copy()
+            self._mappings[mapping.event_combination] = mapping.copy()
 
     def save(self) -> None:
         """Dump as JSON to self.path"""
@@ -122,7 +127,7 @@ class Preset:
             return
 
         logger.info("Saving preset to %s", self.path)
-        touch(self.path)
+        touch(str(self.path))  # touch expects a string, not a Posix path
 
         json_ready = {}
         for mapping in self._mappings.values():
