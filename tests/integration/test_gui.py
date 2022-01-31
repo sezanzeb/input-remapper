@@ -1431,7 +1431,7 @@ class TestGui(GuiTestBase):
         pointer_speed = custom_mapping.get("gamepad.joystick.pointer_speed")
         self.assertEqual(left_purpose, WHEEL)
         self.assertEqual(right_purpose, WHEEL)
-        self.assertEqual(pointer_speed, 2 ** joystick_mouse_speed)
+        self.assertEqual(pointer_speed, 2**joystick_mouse_speed)
 
         # select a device that is not a gamepad again
         self.user_interface.on_select_device(FakeDeviceDropdown("Foo Device"))

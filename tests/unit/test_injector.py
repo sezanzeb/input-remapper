@@ -22,7 +22,6 @@
 import unittest
 from unittest import mock
 import time
-import copy
 
 import evdev
 from evdev.ecodes import (
@@ -30,7 +29,6 @@ from evdev.ecodes import (
     EV_KEY,
     EV_ABS,
     ABS_HAT0X,
-    BTN_LEFT,
     KEY_A,
     REL_X,
     REL_Y,
@@ -42,7 +40,6 @@ from evdev.ecodes import (
     ABS_Z,
     ABS_RZ,
     ABS_VOLUME,
-    KEY_B,
     KEY_C,
 )
 
@@ -57,11 +54,11 @@ from inputremapper.injection.injector import (
     UNKNOWN,
     get_udev_name,
 )
-from inputremapper.injection.numlock import is_numlock_on, set_numlock, ensure_numlock
+from inputremapper.injection.numlock import is_numlock_on
 from inputremapper.system_mapping import system_mapping, DISABLE_CODE, DISABLE_NAME
 from inputremapper.gui.custom_mapping import custom_mapping
 from inputremapper.mapping import Mapping
-from inputremapper.config import config, NONE, MOUSE, WHEEL, BUTTONS
+from inputremapper.config import config, NONE, MOUSE, WHEEL
 from inputremapper.key import Key
 from inputremapper.injection.macros.parse import parse
 from inputremapper.injection.context import Context
@@ -239,30 +236,6 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         # skips the device alltogether, so no grab attempts fail
         self.assertEqual(self.failed, 0)
         self.assertIsNone(device)
-
-    def test_numlock(self):
-        before = is_numlock_on()
-
-        set_numlock(not before)  # should change
-        self.assertEqual(not before, is_numlock_on())
-
-        @ensure_numlock
-        def wrapped_1():
-            set_numlock(not is_numlock_on())
-
-        @ensure_numlock
-        def wrapped_2():
-            pass
-
-        # should not change
-        wrapped_1()
-        self.assertEqual(not before, is_numlock_on())
-        wrapped_2()
-        self.assertEqual(not before, is_numlock_on())
-
-        # toggle one more time to restore the previous configuration
-        set_numlock(before)
-        self.assertEqual(before, is_numlock_on())
 
     def test_gamepad_to_mouse(self):
         # maps gamepad joystick events to mouse events
