@@ -699,9 +699,13 @@ class TestGui(GuiTestBase):
 
     def test_editor_keycode_to_string(self):
         # not an integration test, but I have all the selection_label tests here already
+        self.assertEqual(EventCombination((EV_KEY, evdev.ecodes.KEY_A, 1)).beautify(), "a")
         self.assertEqual(
             EventCombination([EV_KEY, evdev.ecodes.KEY_A, 1]).beautify(), "a"
         )
+        self.assertEqual(EventCombination((EV_ABS, evdev.ecodes.ABS_HAT0Y, -1)).beautify(), "DPad Up")
+        self.assertEqual(EventCombination((EV_KEY, evdev.ecodes.BTN_A, 1)).beautify(), "Button A")
+        self.assertEqual(EventCombination((EV_KEY, 1234, 1)).beautify(), "1234")
         self.assertEqual(
             EventCombination([EV_ABS, evdev.ecodes.ABS_HAT0X, -1]).beautify(),
             "DPad Left",
