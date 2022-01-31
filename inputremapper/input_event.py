@@ -55,7 +55,7 @@ class InputEvent:
     def __get_validators__(cls):
         """used by pydantic and EventCombination to create InputEvent objects"""
         yield cls.from_event
-        yield cls.from_event_tuple
+        yield cls.from_tuple
         yield cls.from_string
 
     @classmethod
@@ -80,7 +80,7 @@ class InputEvent:
             )
 
     @classmethod
-    def from_event_tuple(cls, event_tuple: Tuple[int, int, int]) -> InputEvent:
+    def from_tuple(cls, event_tuple: Tuple[int, int, int]) -> InputEvent:
         """create a InputEvent from a (type, code, value) tuple"""
         try:
             if len(event_tuple) != 3:

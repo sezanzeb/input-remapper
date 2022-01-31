@@ -72,8 +72,8 @@ class TestInputEvent(unittest.TestCase):
         t3 = (1, 2, 3, 4, 5)
         t4 = (1, "b", 3)
 
-        e1 = InputEvent.from_event_tuple(t1)
-        e2 = InputEvent.from_event_tuple(t2)
+        e1 = InputEvent.from_tuple(t1)
+        e2 = InputEvent.from_tuple(t2)
         self.assertEqual(e1, e2)
         self.assertEqual(e1.sec, 0)
         self.assertEqual(e1.usec, 0)

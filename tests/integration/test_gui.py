@@ -916,10 +916,10 @@ class TestGui(GuiTestBase, unittest.TestCase):
 
     def test_combination(self):
         # it should be possible to write a combination combination
-        ev_1 = InputEvent.from_event_tuple((EV_KEY, evdev.ecodes.KEY_A, 1))
-        ev_2 = InputEvent.from_event_tuple((EV_ABS, evdev.ecodes.ABS_HAT0X, 1))
-        ev_3 = InputEvent.from_event_tuple((EV_KEY, evdev.ecodes.KEY_C, 1))
-        ev_4 = InputEvent.from_event_tuple((EV_ABS, evdev.ecodes.ABS_HAT0X, -1))
+        ev_1 = InputEvent.from_tuple((EV_KEY, evdev.ecodes.KEY_A, 1))
+        ev_2 = InputEvent.from_tuple((EV_ABS, evdev.ecodes.ABS_HAT0X, 1))
+        ev_3 = InputEvent.from_tuple((EV_KEY, evdev.ecodes.KEY_C, 1))
+        ev_4 = InputEvent.from_tuple((EV_ABS, evdev.ecodes.ABS_HAT0X, -1))
         combination_1 = EventCombination(ev_1, ev_2, ev_3)
         combination_2 = EventCombination(ev_2, ev_1, ev_3)
 
