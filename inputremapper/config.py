@@ -214,6 +214,9 @@ class GlobalConfig(ConfigBase):
 
     def is_autoloaded(self, group_key, preset):
         """Should this preset be loaded automatically?"""
+        if group_key is None or preset is None:
+            raise ValueError("Expected group_key and preset to not be None")
+
         return self.get(["autoload", group_key], log_unknown=False) == preset
 
     def load_config(self, path=None):

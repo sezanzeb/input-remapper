@@ -187,16 +187,18 @@ class Editor:
         if self.active_selection_label:
             self.set_key(None)
 
-        self.set_symbol_input_text("")
-        self.disable_symbol_input()
+        self.disable_symbol_input(clear=True)
         self.set_target_selection("keyboard")  # sane default
         self.disable_target_selector()
         self._reset_keycode_consumption()
 
+        self.clear_mapping_list()
+
+    def clear_mapping_list(self):
+        """Clear the labels from the mapping selection and add an empty one."""
         selection_label_listbox = self.get("selection_label_listbox")
         selection_label_listbox.forall(selection_label_listbox.remove)
         self.add_empty()
-
         selection_label_listbox.select_row(selection_label_listbox.get_children()[0])
 
     def _setup_target_selector(self):
@@ -300,7 +302,7 @@ class Editor:
 
         return True
 
-    def disable_symbol_input(self):
+    def disable_symbol_input(self, clear=False):
         """Display help information and dont allow entering a symbol.
 
         Without this, maybe a user enters a symbol or writes a macro, switches
@@ -311,7 +313,7 @@ class Editor:
         text_input.set_sensitive(False)
         text_input.set_opacity(0.5)
 
-        if self.get_symbol_input_text() == "":
+        if clear or self.get_symbol_input_text() == "":
             # don't overwrite user input
             self.set_symbol_input_text(SET_KEY_FIRST)
 
@@ -353,8 +355,7 @@ class Editor:
         self.set_key(key)
 
         if key is None:
-            self.set_symbol_input_text("")
-            self.disable_symbol_input()
+            self.disable_symbol_input(clear=True)
             # default target should fit in most cases
             self.set_target_selection("keyboard")
             # symbol input disabled until a key is configured
@@ -380,8 +381,6 @@ class Editor:
     @ensure_everything_saved
     def load_custom_mapping(self):
         """Display the entries in custom_mapping."""
-        self.set_symbol_input_text("")
-
         selection_label_listbox = self.get("selection_label_listbox")
 
         selection_label_listbox.forall(selection_label_listbox.remove)
