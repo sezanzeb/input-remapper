@@ -50,19 +50,19 @@ class EventCombination(Tuple[InputEvent]):
     # tuple is immutable, therefore we need to override __new__()
     # https://jfine-python-classes.readthedocs.io/en/latest/subclass-tuple.html
     def __new__(cls, *init_args) -> EventCombination:
+        pydantic_internal = False
         events = []
+        if len(init_args) == 1:
+            # pydantic might call this with a tuple of input events
+            for event in init_args[0]:
+                if isinstance(event, InputEvent):
+                    events.append(event)
+                    pydantic_internal = True
+        if pydantic_internal:
+            return super().__new__(cls, events)
+
         for init_arg in init_args:
-            event = None
-            for constructor in InputEvent.__get_validators__():
-                try:
-                    event = constructor(init_arg)
-                    break
-                except InputEventCreationError:
-                    pass
-            if event:
-                events.append(event)
-            else:
-                raise ValueError(f"failed to create InputEvent with {init_arg = }")
+            events.append(InputEvent.validate(init_arg))
 
         return super().__new__(cls, events)
 
@@ -73,19 +73,45 @@ class EventCombination(Tuple[InputEvent]):
     @classmethod
     def __get_validators__(cls):
         """used by pydantic to create EventCombination objects"""
-        yield cls.from_string
-        yield cls.from_events
+        yield cls.validate
+
+    @classmethod
+    def validate(cls, init_arg) -> EventCombination:
+        """try all the different methods, and raise an error if none succeed"""
+        if isinstance(init_arg, EventCombination):
+            return init_arg
+
+        combi = None
+        for constructor in [cls.from_string, cls.from_events]:
+            try:
+                combi = constructor(init_arg)
+                break
+            except ValueError:
+                pass
+
+        if combi:
+            return combi
+        raise ValueError(f"failed to create EventCombination with {init_arg = }")
 
     @classmethod
     def from_string(cls, init_string: str) -> EventCombination:
-        init_args = init_string.split("+")
-        return cls(*init_args)
+        """create a EventCombination form a string like '1,2,3+4,5,6'"""
+        try:
+            init_args = init_string.split("+")
+            return cls(*init_args)
+        except (ValueError, AttributeError):
+            raise ValueError(f"failed to create EventCombination from {init_string = }")
 
     @classmethod
     def from_events(
-        cls, init_events: Iterable[InputEvent | evdev.InputEvent]
+            cls,
+            init_events: Iterable[InputEvent | evdev.InputEvent]
     ) -> EventCombination:
-        return cls(*init_events)
+        """create a EventCombination from an iterable of InputEvents"""
+        try:
+            return cls(*init_events)
+        except ValueError:
+            raise ValueError(f"failed to create EventCombination form {init_events = }")
 
     def contains_type_and_code(self, type, code) -> bool:
         """if a InputEvent contains the type and code"""

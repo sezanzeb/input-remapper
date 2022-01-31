@@ -28,243 +28,140 @@ import glob
 import time
 
 from typing import Tuple, Dict, List
-from evdev.ecodes import EV_KEY, BTN_LEFT
 
+from pydantic import ValidationError
 from inputremapper.logger import logger
+from inputremapper.configs.mapping import Mapping
 from inputremapper.configs.paths import touch, get_preset_path, mkdir
-from inputremapper.configs.global_config import global_config
-from inputremapper.configs.base_config import ConfigBase
+
+from inputremapper.input_event import InputEvent
 from inputremapper.event_combination import EventCombination
-from inputremapper.injection.macros.parse import clean
 from inputremapper.groups import groups
 
 
-class Preset(ConfigBase):
-    """Contains and manages mappings of a single preset."""
+class Preset(Dict[EventCombination, Mapping]):
 
-    _mapping: Dict[EventCombination, Tuple[str, str]]
+    # a copy of self for keeping track of changes
+    _saved_mappings: Dict[EventCombination, Mapping]
+    _path: os.PathLike
 
-    def __init__(self):
-        # a mapping of a EventCombination object to (symbol, target) tuple
-        self._mapping: Dict[EventCombination, Tuple[str, str]] = {}
-        self._changed = False
+    def __new__(cls, path: os.PathLike = None) -> Preset:
+        # make sure the Preset can not be constructed with initial values
+        obj = super().__new__(cls)
+        setattr(obj, "_saved_mappings", {})
+        setattr(obj, "_path", path)
+        return obj
 
-        # are there actually any keys set in the preset file?
-        self.num_saved_keys = 0
+    def __setitem__(self, combination: EventCombination, mapping: Mapping) -> None:
+        if not isinstance(combination, EventCombination):
+            raise TypeError(f"combination must be a EventCombination got {type(combination)} instead")
 
-        super().__init__(fallback=global_config)
+        if not isinstance(mapping, Mapping):
+            raise TypeError(f"mapping must be Mapping got {type(mapping)}")
 
-    def __iter__(self) -> Preset._mapping.items:
-        """Iterate over EventCombination objects and their mappings."""
-        return iter(self._mapping.items())
+        for permutation in combination.get_permutations():
+            if permutation in self:
+                raise KeyError(f"the combination {permutation} already exists")
 
-    def __len__(self):
-        return len(self._mapping)
+        mapping.set_combination_changed_callback(self._combination_changed_callback)
+        super(dict, self)[combination] = mapping
 
-    def set(self, *args):
-        """Set a config value. See `ConfigBase.set`."""
-        self._changed = True
-        return super().set(*args)
+    def __delitem__(self, key):
+        """remove the callback first"""
+        self[key].remove_combination_changed_callback()
+        super(Preset, self).__delitem__(key)
 
-    def remove(self, *args):
-        """Remove a config value. See `ConfigBase.remove`."""
-        self._changed = True
-        return super().remove(*args)
-
-    def change(self, new_combination, target, symbol, previous_combination=None):
-        """Replace the mapping of a keycode with a different one.
-
-        Parameters
-        ----------
-        new_combination : EventCombination
-        target : string
-            name of target uinput
-        symbol : string
-            A single symbol known to xkb or linux.
-            Examples: KEY_KP1, Shift_L, a, B, BTN_LEFT.
-        previous_combination : EventCombination or None
-            the previous combination
-
-            If not set, will not remove any previous mapping. If you recently
-            used (1, 10, 1) for new_key and want to overwrite that with
-            (1, 11, 1), provide (1, 10, 1) here.
-        """
-        if not isinstance(new_combination, EventCombination):
-            raise TypeError(
-                f"Expected {new_combination} to be a EventCombination object"
-            )
-
-        if symbol is None or symbol.strip() == "":
-            raise ValueError("Expected `symbol` not to be empty")
-
-        if target is None or target.strip() == "":
-            raise ValueError("Expected `target` not to be None")
-
-        target = target.strip()
-        symbol = symbol.strip()
-        output = (symbol, target)
-
-        if previous_combination is None and self._mapping.get(new_combination):
-            # the combination didn't change
-            previous_combination = new_combination
-
-        key_changed = new_combination != previous_combination
-        if not key_changed and (symbol, target) == self._mapping.get(new_combination):
-            # nothing was changed, no need to act
-            return
-
-        self.clear(new_combination)  # this also clears all equivalent keys
-
-        logger.debug('changing %s to "%s"', new_combination, clean(symbol))
-
-        self._mapping[new_combination] = output
-
-        if key_changed and previous_combination is not None:
-            # clear previous mapping of that code, because the line
-            # representing that one will now represent a different one
-            self.clear(previous_combination)
-
-        self._changed = True
+    def pop(self, combination: EventCombination):
+        """remove a mapping"""
+        # remove the callback before super().pop()
+        # apparently pop() does not call __delitem__()
+        self[combination].remove_combination_changed_callback()
+        return super(Preset, self).pop(combination)
 
     def has_unsaved_changes(self):
         """Check if there are unsaved changed."""
-        return self._changed
-
-    def set_has_unsaved_changes(self, changed):
-        """Write down if there are unsaved changes, or if they have been saved."""
-        self._changed = changed
-
-    def clear(self, combination):
-        """Remove a keycode from the preset.
-
-        Parameters
-        ----------
-        combination : EventCombination
-        """
-        if not isinstance(combination, EventCombination):
-            raise TypeError(
-                f"Expected combination to be a EventCombination object but got {combination}"
-            )
-
-        for permutation in combination.get_permutations():
-            if permutation in self._mapping:
-                logger.debug("%s cleared", permutation)
-                del self._mapping[permutation]
-                self._changed = True
-                # there should be only one variation of the permutations
-                # in the preset actually
+        return self != self._saved_mappings
 
     def empty(self):
         """Remove all mappings and custom configs without saving."""
-        self._mapping = {}
-        self._changed = True
-        self.clear_config()
+        for combination in self.keys():
+            del self[combination]  # del will make sure to remove the callback
+        self._saved_mappings = {}
 
-    def load(self, path):
-        """Load a dumped JSON from home to overwrite the mappings.
+    def load(self):
+        """Load from self.path"""
+        logger.info('Loading preset from "%s"', self.path)
 
-        Parameters
-        path : string
-            Path of the preset file
-        """
-        logger.info('Loading preset from "%s"', path)
-
-        if not os.path.exists(path):
-            raise FileNotFoundError(f'Tried to load non-existing preset "{path}"')
+        if not os.path.exists(self.path):
+            raise FileNotFoundError(f'Tried to load non-existing preset "{self.path}"')
 
         self.empty()
-        self._changed = False
+        with open(self.path, "r") as file:
+            try:
+                preset_dict = json.load(file)
+            except json.JSONDecodeError:
+                logger.error("unable to decode json file: %s", self.path)
 
-        with open(path, "r") as file:
-            preset_dict = json.load(file)
+        for combination, mapping_dict in preset_dict.items():
+            try:
+                mapping = Mapping(event_combination=combination, **mapping_dict)
+            except ValidationError as error:
+                logger.error("failed to Validate mapping for %s: %s", combination, error)
+                continue
 
-            if not isinstance(preset_dict.get("mapping"), dict):
-                logger.error(
-                    "Expected mapping to be a dict, but was %s. "
-                    'Invalid preset config at "%s"',
-                    preset_dict.get("mapping"),
-                    path,
-                )
-                return
+            self._saved_mappings[mapping.event_combination] = mapping
+            self[mapping.event_combination] = mapping.copy()
 
-            for combination, symbol in preset_dict["mapping"].items():
-                try:
-                    combination = EventCombination.from_string(combination)
-                except ValueError as error:
-                    logger.error(str(error))
-                    continue
+    def save(self):
+        """Dump as JSON to self.path"""
+        if not self.has_unsaved_changes():
+            return
 
-                if isinstance(symbol, list):
-                    symbol = tuple(symbol)  # use a immutable type
+        logger.info("Saving preset to %s", self.path)
+        touch(self.path)
 
-                logger.debug("%s maps to %s", combination, symbol)
-                self._mapping[combination] = symbol
+        json_ready = {}
+        for mapping in self.values():
+            d = mapping.dict(exclude_defaults=True)
+            combination = d.pop("event_combination")
+            json_ready[combination.json_str()] = d
 
-            # add any metadata of the preset
-            for key in preset_dict:
-                if key == "mapping":
-                    continue
-                self._config[key] = preset_dict[key]
-
-        self._changed = False
-        self.num_saved_keys = len(self)
-
-    def save(self, path):
-        """Dump as JSON into home."""
-        logger.info("Saving preset to %s", path)
-
-        touch(path)
-
-        with open(path, "w") as file:
-            if self._config.get("mapping") is not None:
-                logger.error(
-                    '"mapping" is reserved and cannot be used as config ' "key: %s",
-                    self._config.get("mapping"),
-                )
-
-            preset_dict = self._config.copy()  # shallow copy
-
-            # make sure to keep the option to add metadata if ever needed,
-            # so put the mapping into a special key
-            json_ready_mapping = {}
-            # tuple keys are not possible in json, encode them as string
-            for combination, value in self._mapping.items():
-                new_key = combination.json_str()
-                json_ready_mapping[new_key] = value
-
-            preset_dict["mapping"] = json_ready_mapping
-            json.dump(preset_dict, file, indent=4)
+        with open(self.path, "w") as file:
+            json.dump(json_ready, file, indent=4)
             file.write("\n")
 
-        self._changed = False
-        self.num_saved_keys = len(self)
+        self._saved_mappings = {}
+        for combination, mapping in self.items():
+            self._saved_mappings[combination] = mapping.copy()
+            self._saved_mappings[combination].remove_combination_changed_callback()
 
-    def get_mapping(self, combination: EventCombination):
-        """Read the (symbol, target)-tuple that is mapped to this keycode.
+    def _combination_changed_callback(self, new: EventCombination, old: EventCombination):
+        self[new] = self[old]  # will raise a KeyError if a permutation is mapped
+        self.pop(old)  # no KeyError, safe to pop(old) now
+        self[new].set_combination_changed_callback(self._combination_changed_callback)
 
-        Parameters
-        ----------
-        combination : EventCombination
-        """
-        if not isinstance(combination, EventCombination):
-            raise TypeError(
-                f"Expected combination to be a EventCombination object but got {combination}"
-            )
+    @property
+    def path(self) -> os.PathLike:
+        return self._path
 
-        for permutation in combination.get_permutations():
-            existing = self._mapping.get(permutation)
-            if existing is not None:
-                return existing
-
-        return None
+    @path.setter
+    def path(self, path: os.PathLike):
+        if path != self.path:
+            self._saved_mappings = {}
+            self._path = path
 
     def dangerously_mapped_btn_left(self):
         """Return True if this mapping disables BTN_Left."""
-        if self.get_mapping(EventCombination([EV_KEY, BTN_LEFT, 1])) is not None:
-            values = [value[0].lower() for value in self._mapping.values()]
-            return "btn_left" not in values
+        if EventCombination(InputEvent.btn_left()) not in self:
+            return False
 
-        return False
+        values = []
+        for mapping in self.values():
+            if mapping.output_symbol is None:
+                continue
+            values.append(mapping.output_symbol.lower())
+            values.append(mapping.output_type_and_code)
+        return "btn_left" not in values or InputEvent.btn_left().type_and_code not in values
 
 
 ###########################################################################

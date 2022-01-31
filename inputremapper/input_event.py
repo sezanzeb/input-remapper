@@ -54,9 +54,26 @@ class InputEvent:
     @classmethod
     def __get_validators__(cls):
         """used by pydantic and EventCombination to create InputEvent objects"""
-        yield cls.from_event
-        yield cls.from_event_tuple
-        yield cls.from_string
+        yield cls.validate
+
+    @classmethod
+    def validate(cls, init_arg) -> InputEvent:
+        """try all the different methods, and raise an error if none succeed"""
+        if isinstance(init_arg, InputEvent):
+            return init_arg
+
+        event = None
+        for constructor in [cls.from_event, cls.from_string, cls.from_event_tuple]:
+            try:
+                event = constructor(init_arg)
+                break
+            except InputEventCreationError:
+                pass
+
+        if event:
+            return event
+
+        raise ValueError(f"failed to create InputEvent with {init_arg = }")
 
     @classmethod
     def from_event(cls, event: evdev.InputEvent) -> InputEvent:

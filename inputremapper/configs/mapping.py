@@ -17,22 +17,25 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
-
+from __future__ import annotations
 import enum
 from evdev.ecodes import EV_KEY
-from pydantic import BaseModel, PositiveInt, confloat, root_validator, validator
-from typing import Optional
+from pydantic import BaseModel, PositiveInt, confloat, root_validator, validator, ValidationError
+from typing import Optional, Callable, Tuple
 
 from inputremapper.event_combination import EventCombination
 from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.injection.macros.parse import is_this_a_macro, parse
 
 
-# TODO: in python 3.11 use enum.StrEnum
+# TODO: in python 3.11 inherit enum.StrEnum
 class KnownUinput(str, enum.Enum):
     keyboard = "keyboard"
     mouse = "mouse"
     gamepad = "gamepad"
+
+
+CombinationChangedCallback = Optional[Callable[[EventCombination, EventCombination], None]]
 
 
 class Mapping(BaseModel):
@@ -64,6 +67,40 @@ class Mapping(BaseModel):
     # if no event arrives for more than the timeout the axis is considered stationary
     rel_reset_timeout_ms: PositiveInt = 20
 
+    # callback which gets called if the
+    _combination_changed: CombinationChangedCallback = None
+
+    def __setattr__(self, key, value):
+        """
+        call the combination changed callback
+        if we are about to update the event_combination
+        """
+        if key != "event_combination" or self._combination_changed is None:
+            super(Mapping, self).__setattr__(key, value)
+            return
+
+        # the new combination is not yet validated
+        try:
+            new_combi = EventCombination.validate(value)
+        except ValueError:
+            raise ValidationError(f"failed to Validate {value} as EventCombination")
+
+        if new_combi == self.event_combination:
+            return
+
+        self._combination_changed(new_combi, self.event_combination)
+        super(Mapping, self).__setattr__(key, value)
+
+    def set_combination_changed_callback(self, callback: CombinationChangedCallback):
+        self._combination_changed = callback
+
+    def remove_combination_changed_callback(self):
+        self._combination_changed = None
+
+    @property
+    def output_type_and_code(self) -> Optional[Tuple[int, int]]:
+        return self.output_type, self.output_code or None
+
     @validator("output_symbol", pre=True)
     @classmethod
     def validate_macro(cls, symbol):
@@ -87,7 +124,7 @@ class Mapping(BaseModel):
         o_type = values.get("output_type")
         o_code = values.get("output_code")
         if o_symbol is None and (o_type is None or o_code is None):
-            raise KeyError(
+            raise ValueError(
                 "missing Argument: Mapping must either contain "
                 "`output_symbol` or `output_type` and `output_code`"
             )
@@ -125,6 +162,11 @@ class Mapping(BaseModel):
         return values
 
     class Config:
-        # TODO: implement EventCombination.__get_validators__(), so we don't need arbitrary_types_allowed anymore
-        arbitrary_types_allowed = True
         validate_assignment = True
+        use_enum_values = True
+        underscore_attrs_are_private = True
+
+
+        json_encoders = {
+            EventCombination: lambda v: v.json_str()
+        }
