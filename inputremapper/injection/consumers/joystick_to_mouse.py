@@ -245,7 +245,7 @@ class JoystickToMouse(Consumer):
             if abs(mouse_x) > 0 or abs(mouse_y) > 0:
                 if non_linearity != 1:
                     # to make small movements smaller for more precision
-                    speed = (mouse_x ** 2 + mouse_y ** 2) ** 0.5  # pythagoras
+                    speed = (mouse_x**2 + mouse_y**2) ** 0.5  # pythagoras
                     factor = (speed / max_speed) ** non_linearity
                 else:
                     factor = 1

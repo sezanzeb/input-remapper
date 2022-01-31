@@ -110,8 +110,8 @@ EVENT_READ_TIMEOUT = 0.01
 START_READING_DELAY = 0.05
 
 # for joysticks
-MIN_ABS = -(2 ** 15)
-MAX_ABS = 2 ** 15
+MIN_ABS = -(2**15)
+MAX_ABS = 2**15
 
 # When it gets garbage collected it cleans up the temporary directory so it needs to
 # stay reachable while the tests are ran.

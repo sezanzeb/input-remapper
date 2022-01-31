@@ -35,7 +35,6 @@ NONE = "none"
 
 class GlobalConfig(ConfigBase):
     """Global default configuration.
-
     It can also contain some extra stuff not relevant for presets, like the
     autoload stuff. If presets have a config key set, it will ignore
     the default global configuration for that one. If none of the configs
@@ -48,7 +47,6 @@ class GlobalConfig(ConfigBase):
 
     def set_autoload_preset(self, group_key, preset):
         """Set a preset to be automatically applied on start.
-
         Parameters
         ----------
         group_key : string
@@ -72,11 +70,13 @@ class GlobalConfig(ConfigBase):
 
     def is_autoloaded(self, group_key, preset):
         """Should this preset be loaded automatically?"""
+        if group_key is None or preset is None:
+            raise ValueError("Expected group_key and preset to not be None")
+
         return self.get(["autoload", group_key], log_unknown=False) == preset
 
     def load_config(self, path=None):
         """Load the config from the file system.
-
         Parameters
         ----------
         path : string or None
