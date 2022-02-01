@@ -19,12 +19,13 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 import enum
-from evdev.ecodes import EV_KEY
+from evdev.ecodes import EV_KEY, EV_REL, EV_ABS
 from pydantic import BaseModel, PositiveInt, confloat, root_validator, validator, ValidationError
-from typing import Optional, Callable, Tuple
+from typing import Optional, Callable
 
 from inputremapper.event_combination import EventCombination
 from inputremapper.configs.system_mapping import system_mapping
+from inputremapper.injection.mapping_handlers.mapping_handler import HandlerEnums
 from inputremapper.injection.macros.parse import is_this_a_macro, parse
 
 
@@ -98,10 +99,6 @@ class Mapping(BaseModel):
     def remove_combination_changed_callback(self):
         self._combination_changed = None
 
-    @property
-    def output_type_and_code(self) -> Optional[Tuple[int, int]]:
-        return self.output_type, self.output_code or None
-
     @validator("output_symbol", pre=True)
     @classmethod
     def validate_macro(cls, symbol):
@@ -117,6 +114,37 @@ class Mapping(BaseModel):
         raise ValueError(
             f"the output_symbol '{symbol}' is not a macro and not a valid keycode-name"
         )
+
+    @validator("event_combination")
+    @classmethod
+    def only_one_analog_input(cls, combination) -> EventCombination:
+        """
+        check that the event_combination specifies a maximum of one
+        analog to analog mapping
+        """
+        combination = EventCombination.validate(combination)
+
+        # any event with a value of 0  is considered an analog input (even key events)
+        # any event with a non-zero value is considered a binary input
+        analog_events = [event for event in combination if event.value]
+        if len(analog_events) > 1:
+            raise ValueError(f"cannot map a combination of multiple analog inputs: {analog_events}"
+                             f"add trigger points (event.value != 0) to map as a button")
+
+        return combination
+
+    @validator("event_combination")
+    @classmethod
+    def trigger_point_in_range(cls, combination) -> EventCombination:
+        """
+        check if the trigger point for mapping analog axis to buttons is valid
+        """
+        combination = EventCombination.validate(combination)
+        for event in combination:
+            if event.type == EV_ABS and abs(event.value) >= 100:
+                raise ValueError(f"{event = } maps a absolute axis to a button, "
+                                 f"but the trigger point (event.value) is not between -100[%] and 100[%]")
+        return combination
 
     @root_validator
     @classmethod
@@ -166,7 +194,6 @@ class Mapping(BaseModel):
         validate_assignment = True
         use_enum_values = True
         underscore_attrs_are_private = True
-
 
         json_encoders = {
             EventCombination: lambda v: v.json_str()

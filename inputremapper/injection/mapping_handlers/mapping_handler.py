@@ -57,13 +57,18 @@ Step 1, 2 and 3:
 Step 2 and 3:
  - KeyHandler
  - MacroHandler
-
 """
+from __future__ import annotations
+
+import enum
 
 import evdev
-from typing import Dict, Protocol, Set
+from typing import Dict, Protocol, Set, List, Tuple, Type, Optional
+
+from inputremapper.configs.mapping import Mapping
 from inputremapper.configs.preset import Preset
 from inputremapper.input_event import InputEvent
+from inputremapper.event_combination import EventCombination
 
 
 class EventListener(Protocol):
@@ -79,7 +84,7 @@ class ContextProtocol(Protocol):
 
 
 class InputEventHandler(Protocol):
-    """the protocol a mapping handler must follow"""
+    """the protocol any handler, which can be part of an event pipeline, must follow"""
 
     async def notify(
         self,
@@ -91,8 +96,59 @@ class InputEventHandler(Protocol):
         ...
 
 
-class MappingHandler(InputEventHandler, Protocol):
-    """"""
+class HandlerEnums(enum.Enum):
+    # converting to btn
+    abs2btn = enum.auto()
+    rel2btn = enum.auto()
 
-    def __init__(self, config: Dict[str, int], context: ContextProtocol):
+    macro = enum.auto()
+    key = enum.auto()
+
+    # converting to "analog"
+    btn2rel = enum.auto()
+    rel2rel = enum.auto()
+    abs2rel = enum.auto()
+
+    btn2abs = enum.auto()
+    rel2abs = enum.auto()
+    abs2abs = enum.auto()
+
+    # special handlers
+    combination = enum.auto()
+    hierarchy = enum.auto()
+
+
+class MappingHandler(InputEventHandler, Protocol):
+    """
+    the protocol a InputEventHandler must follow if it should be
+    dynamically integrated in an event-pipeline by the mapping parser
+    """
+
+    mapping: Mapping
+    # all input events this handler cares about
+    # should always be a subset of mapping.event_combination
+    input_events: EventCombination
+
+    # https://bugs.python.org/issue44807
+    def __init__(
+            self,
+            combination: EventCombination,
+            mapping: Mapping,
+            context: ContextProtocol,
+    ) -> None:
+        ...
+
+    def needs_wrapping(self) -> bool:
+        """if this handler needs to be wrapped in another MappingHandler"""
+        ...
+
+    def needs_ranking(self) -> Optional[EventCombination]:
+        """if this handler needs ranking and wrapping with a HierarchyHandler"""
+        ...
+
+    def wrap_with(self) -> List[Tuple[EventCombination, HandlerEnums]]:
+        """a list of """
+        ...
+
+    def set_sub_handler(self, handler: MappingHandler) -> None:
         ...
