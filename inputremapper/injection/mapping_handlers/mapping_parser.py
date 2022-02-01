@@ -121,13 +121,18 @@ def _create_event_pipeline(
         return [handler]
 
     handlers = []
-    for combination, handler_enum in handler.wrap_with():
+    for combination, handler_enum in handler.wrap_with().items():
         constructor = mapping_handler_classes[handler_enum]
         if not constructor:
             raise NotImplementedError(f"mapping handler {handler_enum} is not implemented")
 
         super_handler = constructor(combination, handler.mapping, context)
         super_handler.set_sub_handler(handler)
+        for event in combination:
+            # the handler now has a super_handler which takes care about the events.
+            # so we hide need to hide them on the handler
+            handler.set_occluded_input_event(event)
+
         handlers.extend(_create_event_pipeline(super_handler, context))
 
     return handlers
@@ -200,6 +205,10 @@ def _create_hierarchy_handlers(handlers: Dict[EventCombination, MappingHandler])
             sub_handlers.append(handlers[combination])
 
         sorted_handlers.append(HierarchyHandler(sub_handlers, event))
+        for handler in sub_handlers:
+            # the handler now has a HierarchyHandler which takes care about this event.
+            # so we hide need to hide it on the handler
+            handler.set_occluded_input_event(event)
 
     return sorted_handlers
 

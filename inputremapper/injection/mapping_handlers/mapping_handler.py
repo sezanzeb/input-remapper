@@ -89,8 +89,8 @@ class InputEventHandler(Protocol):
     async def notify(
         self,
         event: InputEvent,
-        source: evdev.InputDevice = None,
-        forward: evdev.UInput = None,
+        source: evdev.InputDevice,
+        forward: evdev.UInput,
         supress: bool = False,
     ) -> bool:
         ...
@@ -118,7 +118,7 @@ class HandlerEnums(enum.Enum):
     hierarchy = enum.auto()
 
 
-class MappingHandler(InputEventHandler, Protocol):
+class MappingHandler(InputEventHandler):
     """
     the protocol a InputEventHandler must follow if it should be
     dynamically integrated in an event-pipeline by the mapping parser
@@ -128,6 +128,7 @@ class MappingHandler(InputEventHandler, Protocol):
     # all input events this handler cares about
     # should always be a subset of mapping.event_combination
     input_events: EventCombination
+    _sub_handler: Optional[InputEventHandler]
 
     # https://bugs.python.org/issue44807
     def __init__(
@@ -136,19 +137,43 @@ class MappingHandler(InputEventHandler, Protocol):
             mapping: Mapping,
             context: ContextProtocol,
     ) -> None:
-        ...
+        """initialize the handler
+
+        Parameters
+        ----------
+        combination : EventCombination
+            the combination from sub_handler.wrap_with()
+        mapping :  Mapping
+        context : Context
+        """
+        self.mapping = mapping
+        self.input_events = combination
+        self._sub_handler = None
 
     def needs_wrapping(self) -> bool:
         """if this handler needs to be wrapped in another MappingHandler"""
-        ...
+        return len(self.wrap_with()) > 0
 
     def needs_ranking(self) -> Optional[EventCombination]:
         """if this handler needs ranking and wrapping with a HierarchyHandler"""
         ...
 
-    def wrap_with(self) -> List[Tuple[EventCombination, HandlerEnums]]:
-        """a list of """
+    def wrap_with(self) -> Dict[EventCombination, HandlerEnums]:
+        """a dict of EventCombination -> HandlerEnums"""
+        # this handler should be wrapped with the MappingHandler corresponding
+        # to the HandlerEnums, and the EventCombination as first argument
+        # TODO: better explanation
         ...
 
-    def set_sub_handler(self, handler: MappingHandler) -> None:
-        ...
+    def set_sub_handler(self, handler: InputEventHandler) -> None:
+        """give this handler a sub_handler"""
+        self._sub_handler = handler
+
+    def set_occluded_input_event(self, event: InputEvent) -> None:
+        """remove the event from self.input_events"""
+        # should be called for each event a wrapping-handler
+        # has in its input_events EventCombination
+        events = list(self.input_events)
+        events.remove(event)
+        self.input_events = EventCombination(*events)
+

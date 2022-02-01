@@ -20,58 +20,47 @@
 
 import evdev
 
-from typing import Protocol, Dict, Tuple
+from typing import Dict, Tuple, Optional, List
+from evdev.ecodes import EV_ABS, EV_REL, EV_KEY
 
-from inputremapper import utils
 from inputremapper.configs.mapping import Mapping
+from inputremapper.input_event import InputEvent
 from inputremapper.event_combination import EventCombination
 from inputremapper.logger import logger
-from inputremapper.input_event import InputEvent
-from inputremapper.injection.macros.parse import is_this_a_macro
-from inputremapper.injection.mapping_handlers.mapping_handler import ContextProtocol
-from inputremapper.injection.mapping_handlers.key_handler import KeyHandler
-from inputremapper.injection.mapping_handlers.macro_handler import MacroHandler
+from inputremapper.injection.mapping_handlers.mapping_handler import ContextProtocol, MappingHandler, InputEventHandler, \
+    HandlerEnums
 
 
-class CombinationSubHandler(Protocol):
-    """Protocol any handler which can be triggered by a combination must implement"""
-
-    @property
-    def active(self) -> bool:
-        ...
-
-    async def notify(self, event: evdev.InputEvent) -> bool:
-        ...
-
-
-class CombinationHandler:
+class CombinationHandler(MappingHandler):
     """keeps track of a combination and notifies a sub handler
 
     adheres to the MappingHandler protocol
     """
 
-    mapping: Mapping
+    # map of (event.type, event.code) -> bool , keep track of the combination state
     _key_map: Dict[Tuple[int, int], bool]
-    _sub_handler: CombinationSubHandler
+    _last_active_state: bool  # overall state of the combination after last event
 
-    def __init__(self, mapping: Mapping, context: ContextProtocol) -> None:
-        """initialize the handler
+    # if we forward axis events contains the event.type and event.code
+    _map_axis: Optional[Tuple[int, int]]
 
-        Parameters
-        ----------
-        mapping :  Mapping
-        context : Context
-        """
+    def __init__(self, combination: EventCombination, mapping: Mapping, context: ContextProtocol) -> None:
+        super().__init__(combination, mapping, context)
         self._key_map = {}
-        self.mapping = mapping
+        self._map_axis = None
 
         # prepare a key map for all events with non-zero value
         for event in mapping.event_combination:
             if event.value != 0:
                 self._key_map[event.type_and_code] = False
+            else:
+                assert self._map_axis is None  # we can not map multiple axis
+                self._map_axis = event.type_and_code
+
+        assert len(self._key_map) > 0  # no combination handler without a key
 
     def __str__(self):
-        return f"CombinationHandler for {self._combination} <{id(self)}>:"
+        return f"CombinationHandler for {self.mapping.event_combination} <{id(self)}>:"
 
     def __repr__(self):
         return self.__str__()
@@ -83,34 +72,49 @@ class CombinationHandler:
     async def notify(
         self,
         event: InputEvent,
-        source: evdev.InputDevice = None,
-        forward: evdev.UInput = None,
+        source: evdev.InputDevice,
+        forward: evdev.UInput,
         supress: bool = False,
     ) -> bool:
+        type_and_code = event.type_and_code
 
-        map_key = event.type_and_code
-        if map_key not in self._key_map.keys():
+        # check if the event belongs to the axis we should enable
+        if self._map_axis and type_and_code == self._map_axis:
+            if self._last_active_state:
+                # combination is active, and this is the axis we should pass though the event pipe
+                return await self._sub_handler.notify(event, source, forward, supress)
+            else:
+                # combination is not active, send the event back
+                return False
+
+        if type_and_code not in self._key_map.keys():
             return False  # we are not responsible for the event
 
-        self._key_map[map_key] = event.value == 1
-        if self.get_active() == self._sub_handler.active:
-            return False  # nothing changed ignore this event
+        self._key_map[type_and_code] = event.value == 1
+        if self.get_active() == self._last_active_state:
+            # nothing changed ignore this event
+            return False
 
-        if self.get_active() and not utils.is_key_up(event.value) and forward:
+        if self.get_active() and event.value == 1:
+            # send key up events to the forwarded uinput
             self.forward_release(forward)
 
         if supress:
             return False
 
-        is_key_down = self.get_active() and not utils.is_key_up(event.value)
-        if is_key_down:
-            value = 1
+        if self.get_active() and event.value == 1:
+            event = event.modify(value=1)
+            self._last_active_state = True
         else:
-            value = 0
+            event = event.modify(value=0)
+            self._last_active_state = False
 
-        event = event.modify(value=value)
-        logger.debug_key(self._combination, "triggered: sending to sub-handler")
-        return await self._sub_handler.notify(event)
+        if self._map_axis:
+            logger.debug_key(self.mapping.event_combination, "activated")
+            return True  # don't pass through if we map to an axis
+
+        logger.debug_key(self.mapping.event_combination, "triggered: sending to sub-handler")
+        return await self._sub_handler.notify(event, source, forward, supress)
 
     def get_active(self) -> bool:
         """return if all keys in the keymap are set to True"""
@@ -121,8 +125,28 @@ class CombinationHandler:
 
         this might cause duplicate key-up events but those are ignored by evdev anyway
         """
-        if len(self._combination) == 1:
+        if len(self.mapping.event_combination) == 1:
             return
-        for event in self._combination:
+        for event in self.mapping.event_combination:
             forward.write(*event.type_and_code, 0)
         forward.syn()
+
+    def needs_ranking(self) -> bool:
+        return True
+
+    def wrap_with(self) -> Dict[EventCombination, HandlerEnums]:
+        return_dict = {}
+        for event in self.input_events:
+            if event.type == EV_ABS and event.value != 0:
+                return_dict[EventCombination(event)] = HandlerEnums.abs2btn
+
+            if event.type == EV_REL and event.value != 0:
+                return_dict[EventCombination(event)] = HandlerEnums.rel2btn
+
+            if event.type == EV_KEY and event.value == 0:
+                if self.mapping.output_type == EV_ABS:
+                    return_dict[EventCombination(event)] = HandlerEnums.btn2abs
+                elif self.mapping.output_type == EV_REL:
+                    return_dict[EventCombination(event)] = HandlerEnums.btn2rel
+
+        return return_dict
