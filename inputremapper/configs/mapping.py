@@ -139,7 +139,7 @@ class Mapping(BaseModel):
 
         # any event with a value of 0  is considered an analog input (even key events)
         # any event with a non-zero value is considered a binary input
-        analog_events = [event for event in combination if event.value]
+        analog_events = [event for event in combination if event.value == 0]
         if len(analog_events) > 1:
             raise ValueError(f"cannot map a combination of multiple analog inputs: {analog_events}"
                              f"add trigger points (event.value != 0) to map as a button")

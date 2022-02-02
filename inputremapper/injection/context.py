@@ -24,13 +24,13 @@ from typing import Awaitable, List, Dict, Tuple, Protocol, Set
 
 import evdev
 
+from inputremapper.configs.preset import Preset
 from inputremapper.input_event import InputEvent
 from inputremapper.injection.mapping_handlers.mapping_parser import parse_mappings
 from inputremapper.injection.mapping_handlers.mapping_handler import (
     MappingHandler,
     EventListener,
 )
-from inputremapper.configs.global_config import NONE, MOUSE, WHEEL, BUTTONS
 
 
 class NotifyCallback(Protocol):
@@ -74,31 +74,18 @@ class Context:
         only used to query config values.
     """
 
-    def __init__(self, preset):
+    preset: Preset
+    listeners: Set[EventListener]
+    callbacks: Dict[Tuple[int, int], List[NotifyCallback]]
+    _handlers: Dict[InputEvent, List[MappingHandler]]
+
+    def __init__(self, preset: Preset):
         self.preset = preset
-
-        self.left_purpose = None
-        self.right_purpose = None
-        self.update_purposes()
-
-        # new stuff ##################################################################
-        # get notified of each event, before any callback
-        self.listeners: Set[EventListener] = set()
-        self.callbacks: Dict[Tuple[int, int], List[NotifyCallback]] = {}
-        self._handlers: Dict[InputEvent, List[MappingHandler]] = parse_mappings(
-            preset, self
-        )
+        self.listeners = set()
+        self.callbacks = {}
+        self._handlers = parse_mappings(preset, self)
 
         self.create_callbacks()
-
-    def update_purposes(self):
-        """Read joystick purposes from the configuration.
-
-        For efficiency, so that the config doesn't have to be read during
-        runtime repeatedly.
-        """
-        self.left_purpose = self.preset.get("gamepad.joystick.left_purpose")
-        self.right_purpose = self.preset.get("gamepad.joystick.right_purpose")
 
     def create_callbacks(self) -> None:
         """add the notify method from all _handlers to self.callbacks"""
@@ -108,6 +95,3 @@ class Context:
             for handler in handler_list:
                 self.callbacks[event.type_and_code].append(handler.notify)
 
-    def maps_joystick(self):
-        """If at least one of the joysticks will serve a special purpose."""
-        return (self.left_purpose, self.right_purpose) != (NONE, NONE)

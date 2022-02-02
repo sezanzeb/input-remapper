@@ -104,7 +104,6 @@ class Preset:
         if not os.path.exists(self.path):
             raise FileNotFoundError(f'Tried to load non-existing preset "{self.path}"')
 
-        self.empty()
         with open(self.path, "r") as file:
             try:
                 preset_dict = json.load(file)
@@ -167,7 +166,7 @@ class Preset:
             if mapping.output_symbol is None:
                 continue
             values.append(mapping.output_symbol.lower())
-            values.append(mapping.output_type_and_code)
+            values.append(mapping.get_output_type_code())
         return "btn_left" not in values or InputEvent.btn_left().type_and_code not in values
 
     def _combination_changed_callback(self, new: EventCombination, old: EventCombination):

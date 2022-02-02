@@ -193,17 +193,11 @@ class Injector(multiprocessing.Process):
         capabilities = device.capabilities(absinfo=False)
 
         needed = False
-        for key, _ in self.context.preset:
-            if is_in_capabilities(key, capabilities):
-                logger.debug('Grabbing "%s" because of "%s"', path, key)
+        for mapping in self.context.preset:
+            if is_in_capabilities(mapping.event_combination, capabilities):
+                logger.debug('Grabbing "%s" because of "%s"', path, mapping.event_combination)
                 needed = True
                 break
-
-        gamepad = classify(device) == GAMEPAD
-
-        if gamepad and self.context.maps_joystick():
-            logger.debug('Grabbing "%s" because of maps_joystick', path)
-            needed = True
 
         if not needed:
             # skipping reading and checking on events from those devices

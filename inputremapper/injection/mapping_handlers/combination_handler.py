@@ -45,6 +45,7 @@ class CombinationHandler(MappingHandler):
         super().__init__(combination, mapping, context)
         self._key_map = {}
         self._map_axis = None
+        self._last_active_state = False
 
         # prepare a key map for all events with non-zero value
         for event in combination:
@@ -130,6 +131,9 @@ class CombinationHandler(MappingHandler):
 
     def needs_ranking(self) -> bool:
         return True
+
+    def rank_by(self) -> Optional[EventCombination]:
+        return EventCombination(event for event in self.input_events if event.value != 0)
 
     def wrap_with(self) -> Dict[EventCombination, HandlerEnums]:
         return_dict = {}

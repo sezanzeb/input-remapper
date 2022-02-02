@@ -85,8 +85,5 @@ class MacroHandler(MappingHandler):
     def needs_wrapping(self) -> bool:
         return True
 
-    def needs_ranking(self) -> Optional[EventCombination]:
-        return
-
     def wrap_with(self) -> Dict[EventCombination, HandlerEnums]:
         return {self.input_events: HandlerEnums.combination}

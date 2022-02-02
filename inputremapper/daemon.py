@@ -438,16 +438,6 @@ class Daemon:
             self.config_dir, "presets", group.name, f"{preset}.json"
         )
 
-        preset = Preset()
-        try:
-            preset.load(preset_path)
-        except FileNotFoundError as error:
-            logger.error(str(error))
-            return False
-
-        if self.injectors.get(group_key) is not None:
-            self.stop_injecting(group_key)
-
         # Path to a dump of the xkb mappings, to provide more human
         # readable keys in the correct keyboard layout to the service.
         # The service cannot use `xmodmap -pke` because it's running via
@@ -464,6 +454,16 @@ class Daemon:
                 # keys of the users session
         except FileNotFoundError:
             logger.error('Could not find "%s"', xmodmap_path)
+
+        preset = Preset(preset_path)
+        try:
+            preset.load()
+        except FileNotFoundError as error:
+            logger.error(str(error))
+            return False
+
+        if self.injectors.get(group_key) is not None:
+            self.stop_injecting(group_key)
 
         try:
             injector = Injector(group, preset)

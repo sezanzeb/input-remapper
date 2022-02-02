@@ -203,9 +203,6 @@ class AbsToRelHandler(MappingHandler):
     def needs_wrapping(self) -> bool:
         return len(self.input_events) > 1
 
-    def needs_ranking(self) -> Optional[EventCombination]:
-        return
-
     def set_sub_handler(self, handler: InputEventHandler) -> None:
         assert False  # cannot have a sub-handler
 

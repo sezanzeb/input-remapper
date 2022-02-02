@@ -77,9 +77,6 @@ class HierarchyHandler(MappingHandler):
                 )
         return success
 
-    def needs_ranking(self) -> Optional[EventCombination]:
-        return
-
     def wrap_with(self) -> Dict[EventCombination, HandlerEnums]:
         if self._input_event.type == EV_ABS and self._input_event.value != 0:
             return {EventCombination(self._input_event): HandlerEnums.abs2btn}

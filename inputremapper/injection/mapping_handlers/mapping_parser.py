@@ -19,7 +19,7 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 """functions to assemble the mapping handlers"""
 
-from typing import Dict, List, Type, Optional
+from typing import Dict, List, Type, Optional, Set
 from evdev.ecodes import (
     EV_KEY,
     EV_ABS,
@@ -83,25 +83,34 @@ def parse_mappings(preset: Preset, context: ContextProtocol) -> EventPipelines:
         output_handler = constructor(mapping.event_combination, mapping, context)
         handlers.extend(_create_event_pipeline(output_handler, context))
 
+    logger.debug(f"before {handlers}")
     need_ranking = {}
-    for i, handler in enumerate(handlers.copy()):
+    for handler in handlers.copy():
         if handler.needs_ranking():
-            combination = handler.needs_ranking()
-            need_ranking[combination] = handlers.pop(i)
+            combination = handler.rank_by()
+            need_ranking[combination] = handler
+            handlers.remove(handler)
+
+    logger.debug(f"after remove {handlers}")
+    logger.debug(f"{need_ranking=}")
 
     ranked_handlers = _create_hierarchy_handlers(need_ranking)
+
+    logger.debug(f"{ranked_handlers=}")
+
     for handler in ranked_handlers:
         handlers.extend(_create_event_pipeline(handler, context, ignore_ranking=True))
+    logger.debug(f"after ranking {handlers}")
 
-    event_pipelines: EventPipelines = {}
+    event_pipelines = {}
     for handler in handlers:
         for event in handler.input_events:
             if event in event_pipelines.keys():
-                logger.debug("created event pipeline:")
+                logger.debug("event-pipeline with entry point: %s", event.type_and_code)
                 logger.debug_mapping_handler(handler)
                 event_pipelines[event].append(handler)
             else:
-                logger.debug("created event pipeline:")
+                logger.debug("event-pipeline with entry point: %s", event.type_and_code)
                 logger.debug_mapping_handler(handler)
                 event_pipelines[event] = [handler]
 
@@ -134,6 +143,10 @@ def _create_event_pipeline(
             handler.set_occluded_input_event(event)
 
         handlers.extend(_create_event_pipeline(super_handler, context))
+
+    if len(handler.input_events) > 0:
+        # the handler was only partially wrapped, we need to return it as a toplevel handler
+        handlers.append(handler)
 
     return handlers
 
@@ -173,10 +186,9 @@ def _maps_axis(combination: EventCombination) -> Optional[InputEvent]:
             return event
 
 
-def _create_hierarchy_handlers(handlers: Dict[EventCombination, MappingHandler]) -> List[MappingHandler]:
+def _create_hierarchy_handlers(handlers: Dict[EventCombination, MappingHandler]) -> Set[MappingHandler]:
     """sort handlers by input events and create Hierarchy handlers"""
-
-    sorted_handlers = []
+    sorted_handlers = set()
     all_combinations = handlers.keys()
     events = set()
 
@@ -194,7 +206,7 @@ def _create_hierarchy_handlers(handlers: Dict[EventCombination, MappingHandler])
 
         if len(combinations_with_event) == 1:
             # there was only one handler containing that event
-            sorted_handlers.append(handlers[combinations_with_event[0]])
+            sorted_handlers.add(handlers[combinations_with_event[0]])
             continue
 
         # there are multiple handler with the same event.
@@ -204,7 +216,7 @@ def _create_hierarchy_handlers(handlers: Dict[EventCombination, MappingHandler])
         for combination in sorted_combinations:
             sub_handlers.append(handlers[combination])
 
-        sorted_handlers.append(HierarchyHandler(sub_handlers, event))
+        sorted_handlers.add(HierarchyHandler(sub_handlers, event))
         for handler in sub_handlers:
             # the handler now has a HierarchyHandler which takes care about this event.
             # so we hide need to hide it on the handler

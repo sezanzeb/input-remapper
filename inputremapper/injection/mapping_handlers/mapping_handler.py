@@ -69,6 +69,7 @@ from inputremapper.configs.mapping import Mapping
 from inputremapper.configs.preset import Preset
 from inputremapper.input_event import InputEvent
 from inputremapper.event_combination import EventCombination
+from inputremapper.logger import logger
 
 
 class EventListener(Protocol):
@@ -154,16 +155,20 @@ class MappingHandler(InputEventHandler):
         """if this handler needs to be wrapped in another MappingHandler"""
         return len(self.wrap_with()) > 0
 
-    def needs_ranking(self) -> Optional[EventCombination]:
+    def needs_ranking(self) -> bool:
         """if this handler needs ranking and wrapping with a HierarchyHandler"""
-        ...
+        return False
+
+    def rank_by(self) -> Optional[EventCombination]:
+        """the combination for which this handler needs ranking"""
+        pass
 
     def wrap_with(self) -> Dict[EventCombination, HandlerEnums]:
         """a dict of EventCombination -> HandlerEnums"""
         # this handler should be wrapped with the MappingHandler corresponding
         # to the HandlerEnums, and the EventCombination as first argument
         # TODO: better explanation
-        ...
+        return {}
 
     def set_sub_handler(self, handler: InputEventHandler) -> None:
         """give this handler a sub_handler"""
@@ -173,7 +178,14 @@ class MappingHandler(InputEventHandler):
         """remove the event from self.input_events"""
         # should be called for each event a wrapping-handler
         # has in its input_events EventCombination
+        logger.debug(self.input_events)
+        logger.debug("occluding %s at %s", event.event_tuple, self)
         events = list(self.input_events)
         events.remove(event)
-        self.input_events = EventCombination(*events)
+        if len(events) > 0:
+            self.input_events = EventCombination(*events)
+        else:
+            self.input_events = ()
+
+        logger.debug(self.input_events)
 

@@ -107,12 +107,3 @@ class RelToBtnHandler(MappingHandler):
             forward=forward,
             supress=supress,
         )
-
-    def needs_wrapping(self) -> bool:
-        return False
-
-    def needs_ranking(self) -> Optional[EventCombination]:
-        return
-
-    def wrap_with(self) -> Dict[EventCombination, HandlerEnums]:
-        return {}
