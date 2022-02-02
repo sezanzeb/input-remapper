@@ -27,7 +27,7 @@ from typing import Tuple
 from inputremapper.exceptions import InputEventCreationError
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True)  # TODO: add slots=True as soon as python 3.10 is adapted more widely
 class InputEvent:
     """
     the evnet used by inputremapper
