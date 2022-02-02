@@ -38,7 +38,7 @@ class EventActions(enum.Enum):
     none = enum.auto()
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True)  # Todo: add slots=True as soon as python 3.10 is in common distros
 class InputEvent:
     """
     the evnet used by inputremapper
