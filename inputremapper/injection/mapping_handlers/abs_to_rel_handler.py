@@ -36,12 +36,7 @@ from inputremapper.injection.global_uinputs import global_uinputs
 
 
 class AbsToRelHandler(MappingHandler):
-    """
-    Handler which transforms an EV_ABS to EV_REL events
-    and sends that to a UInput
-
-    adheres to the MappingHandler protocol
-    """
+    """Handler which transforms an EV_ABS to EV_REL events"""
 
     _map_axis: Tuple[int, int]  # the (type, code) of the axis we map
     _last_value: float  # value of last abs event between -1 and 1

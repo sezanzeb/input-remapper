@@ -20,18 +20,21 @@
 import asyncio
 import evdev
 
-from typing import List
+from evdev.ecodes import EV_KEY, EV_ABS, EV_REL
+from typing import List, Optional, Dict
+
+from inputremapper.event_combination import EventCombination
+
 from inputremapper.input_event import InputEvent
-from inputremapper.injection.mapping_handlers.mapping_handler import MappingHandler
+from inputremapper.injection.mapping_handlers.mapping_handler import MappingHandler, InputEventHandler, HandlerEnums
 
 
-class HierarchyHandler:
-    """handler consisting of an ordered list of MappingHandler
+class HierarchyHandler(MappingHandler):
+    """
+    handler consisting of an ordered list of MappingHandler
 
     only the first handler which successfully handles the event will execute it,
     all other handlers will be notified, but suppressed
-
-    adheres to the MappingHandler protocol
     """
 
     _input_event: InputEvent
@@ -39,6 +42,10 @@ class HierarchyHandler:
     def __init__(self, handlers: List[MappingHandler], event: InputEvent) -> None:
         self.handlers = handlers
         self._input_event = event
+        combination = EventCombination(event)
+        # use the mapping from the first child TODO: find a better solution
+        mapping = handlers[0].mapping
+        super().__init__(combination, mapping)
 
     def __str__(self):
         return f"HierarchyHandler for {self._input_event} <{id(self)}>:"
@@ -63,9 +70,22 @@ class HierarchyHandler:
         success = False
         for handler in self.handlers:
             if not success:
-                success = await handler.notify(event, forward=forward)
+                success = await handler.notify(event, source, forward)
             else:
                 asyncio.ensure_future(
-                    handler.notify(event, forward=forward, supress=True)
+                    handler.notify(event, source, forward, supress=True)
                 )
         return success
+
+    def needs_ranking(self) -> Optional[EventCombination]:
+        return
+
+    def wrap_with(self) -> Dict[EventCombination, HandlerEnums]:
+        if self._input_event.type == EV_ABS and self._input_event.value != 0:
+            return {EventCombination(self._input_event): HandlerEnums.abs2btn}
+        if self._input_event.type == EV_REL and self._input_event.value != 0:
+            return {EventCombination(self._input_event): HandlerEnums.rel2btn}
+
+    def set_sub_handler(self, handler: InputEventHandler) -> None:
+        assert False
+

@@ -18,41 +18,32 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-import evdev
-
-from typing import Tuple, Dict
+from typing import Tuple, Dict, Optional
 
 from inputremapper import exceptions
+from inputremapper.configs.mapping import Mapping
+from inputremapper.event_combination import EventCombination
+from inputremapper.injection.mapping_handlers.mapping_handler import MappingHandler, ContextProtocol, HandlerEnums
 from inputremapper.logger import logger
 from inputremapper.input_event import InputEvent
 from inputremapper.injection.global_uinputs import global_uinputs
-from inputremapper.configs.system_mapping import system_mapping
 
 
-class KeyHandler:
-    """injects the target key if notified
-
-    adheres to the CombinationSubHandler protocol
-    """
-
-    _target: str
-    _maps_to: Tuple[int, int]
+class KeyHandler(MappingHandler):
+    """injects the target key if notified"""
     _active: bool
+    _maps_to: Tuple[int, int]
 
-    def __init__(self, config: Dict[str, any]):
-        """initialize the handler
-
-        Parameters
-        ----------
-        config : Dict = {
-            "target": str
-            "symbol": str
-        }
-        """
-        super().__init__()
-        self._target = config["target"]
-        self._maps_to = (evdev.ecodes.EV_KEY, system_mapping.get(config["symbol"]))
+    def __init__(
+            self,
+            combination: EventCombination,
+            mapping: Mapping,
+            context: ContextProtocol = None,
+    ):
+        super().__init__(combination, mapping)
+        self._maps_to = mapping.get_output_type_code()
         self._active = False
+        assert self._maps_to is not None
 
     def __str__(self):
         return f"KeyHandler <{id(self)}>:"
@@ -62,20 +53,26 @@ class KeyHandler:
 
     @property
     def child(self):  # used for logging
-        return f"maps to: {self._maps_to} on {self._target}"
+        return f"maps to: {self._maps_to} on {self.mapping.target_uinput}"
 
-    async def notify(self, event: InputEvent) -> bool:
+    async def notify(self, event: InputEvent, *_, **__) -> bool:
         """inject event.value to the target key"""
 
         event_tuple = (*self._maps_to, event.value)
         try:
-            global_uinputs.write(event_tuple, self._target)
-            logger.debug_key(event_tuple, "sending to %s", self._target)
+            global_uinputs.write(event_tuple, self.mapping.target_uinput)
+            logger.debug_key(event_tuple, "sending to %s", self.mapping.target_uinput)
             self._active = bool(event.value)
             return True
         except exceptions.Error:
             return False
 
-    @property
-    def active(self) -> bool:
-        return self._active
+    def needs_wrapping(self) -> bool:
+        return True
+
+    def needs_ranking(self) -> Optional[EventCombination]:
+        return
+
+    def wrap_with(self) -> Dict[EventCombination, HandlerEnums]:
+        return {self.input_events: HandlerEnums.combination}
+

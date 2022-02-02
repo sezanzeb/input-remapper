@@ -25,7 +25,7 @@ from typing import Awaitable, List, Dict, Tuple, Protocol, Set
 import evdev
 
 from inputremapper.input_event import InputEvent
-from inputremapper.injection.mapping_handlers.mapping_parser import parse_mapping
+from inputremapper.injection.mapping_handlers.mapping_parser import parse_mappings
 from inputremapper.injection.mapping_handlers.mapping_handler import (
     MappingHandler,
     EventListener,
@@ -85,7 +85,7 @@ class Context:
         # get notified of each event, before any callback
         self.listeners: Set[EventListener] = set()
         self.callbacks: Dict[Tuple[int, int], List[NotifyCallback]] = {}
-        self._handlers: Dict[InputEvent, List[MappingHandler]] = parse_mapping(
+        self._handlers: Dict[InputEvent, List[MappingHandler]] = parse_mappings(
             preset, self
         )
 

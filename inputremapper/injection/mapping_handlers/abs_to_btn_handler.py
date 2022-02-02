@@ -30,12 +30,7 @@ from inputremapper.injection.mapping_handlers.mapping_handler import MappingHand
 
 
 class AbsToBtnHandler(MappingHandler):
-    """
-    Handler which transforms an EV_ABS to a button event
-    and sends that to a sub_handler
-
-    adheres to the MappingHandler protocol
-    """
+    """Handler which transforms an EV_ABS to a button event"""
     _input_event: InputEvent
     _active: bool
 

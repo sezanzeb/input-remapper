@@ -17,45 +17,36 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
-
-import evdev
 import asyncio
 
-from typing import Dict
+from typing import Dict, Optional
 
+from inputremapper.configs.mapping import Mapping
+from inputremapper.event_combination import EventCombination
 from inputremapper.logger import logger
 from inputremapper.input_event import InputEvent
 from inputremapper.injection.global_uinputs import global_uinputs
 from inputremapper.injection.macros.parse import parse
 from inputremapper.injection.macros.macro import Macro
-from inputremapper.injection.mapping_handlers.mapping_handler import ContextProtocol
+from inputremapper.injection.mapping_handlers.mapping_handler import ContextProtocol, MappingHandler, HandlerEnums
 
 
-class MacroHandler:
-    """runs the target macro if notified
-
-    adheres to the CombinationSubHandler protocol
-    """
+class MacroHandler(MappingHandler):
+    """runs the target macro if notified"""
 
     # TODO: replace this by the macro itself
-    _target: str
     _macro: Macro
     _active: bool
 
-    def __init__(self, config: Dict[str, any], context: ContextProtocol):
-        """initialize the handler
-
-        Parameters
-        ----------
-        config : Dict = {
-            "target": str
-            "symbol": str
-        }
-        """
-        super().__init__()
-        self._target = config["target"]
+    def __init__(
+            self,
+            combination: EventCombination,
+            mapping: Mapping,
+            context: ContextProtocol = None,
+    ):
+        super().__init__(combination, mapping)
         self._active = False
-        self._macro = parse(config["symbol"], context)
+        self._macro = parse(self.mapping.output_symbol, context)
 
     def __str__(self):
         return f"MacroHandler <{id(self)}>:"
@@ -65,9 +56,9 @@ class MacroHandler:
 
     @property
     def child(self):  # used for logging
-        return f"maps to {self._macro} on {self._target}"
+        return f"maps to {self._macro} on {self.mapping.target_uinput}"
 
-    async def notify(self, event: InputEvent) -> bool:
+    async def notify(self, event: InputEvent, *_, **__) -> bool:
 
         if event.value == 1:
             self._active = True
@@ -78,9 +69,9 @@ class MacroHandler:
             def f(ev_type, code, value):
                 """Handler for macros."""
                 logger.debug_key(
-                    (ev_type, code, value), "sending from macro to %s", self._target
+                    (ev_type, code, value), "sending from macro to %s", self.mapping.target_uinput
                 )
-                global_uinputs.write((ev_type, code, value), self._target)
+                global_uinputs.write((ev_type, code, value), self.mapping.target_uinput)
 
             asyncio.ensure_future(self._macro.run(f))
             return True
@@ -91,9 +82,11 @@ class MacroHandler:
 
             return True
 
-    async def run(self) -> None:
-        pass
+    def needs_wrapping(self) -> bool:
+        return True
 
-    @property
-    def active(self) -> bool:
-        return self._active
+    def needs_ranking(self) -> Optional[EventCombination]:
+        return
+
+    def wrap_with(self) -> Dict[EventCombination, HandlerEnums]:
+        return {self.input_events: HandlerEnums.combination}

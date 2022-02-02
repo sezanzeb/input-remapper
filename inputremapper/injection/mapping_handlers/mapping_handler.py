@@ -135,7 +135,7 @@ class MappingHandler(InputEventHandler):
             self,
             combination: EventCombination,
             mapping: Mapping,
-            context: ContextProtocol,
+            context: ContextProtocol = None,
     ) -> None:
         """initialize the handler
 

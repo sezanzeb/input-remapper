@@ -32,10 +32,7 @@ from inputremapper.injection.mapping_handlers.mapping_handler import ContextProt
 
 
 class CombinationHandler(MappingHandler):
-    """keeps track of a combination and notifies a sub handler
-
-    adheres to the MappingHandler protocol
-    """
+    """keeps track of a combination and notifies a sub handler"""
 
     # map of (event.type, event.code) -> bool , keep track of the combination state
     _key_map: Dict[Tuple[int, int], bool]

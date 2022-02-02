@@ -19,13 +19,12 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 import enum
-from evdev.ecodes import EV_KEY, EV_REL, EV_ABS
+from evdev.ecodes import EV_KEY, EV_ABS
 from pydantic import BaseModel, PositiveInt, confloat, root_validator, validator, ValidationError, PositiveFloat
-from typing import Optional, Callable
+from typing import Optional, Callable, Tuple
 
 from inputremapper.event_combination import EventCombination
 from inputremapper.configs.system_mapping import system_mapping
-from inputremapper.injection.mapping_handlers.mapping_handler import HandlerEnums
 from inputremapper.injection.macros.parse import is_this_a_macro, parse
 
 
@@ -101,6 +100,17 @@ class Mapping(BaseModel):
 
     def remove_combination_changed_callback(self):
         self._combination_changed = None
+
+    def get_output_type_code(self) -> Optional[Tuple[int, int]]:
+        """
+        returns the output_type and output_code if set,
+        otherwise looks the output_symbol up in the system_mapping
+        return None for unknown symbols and macros
+        """
+        if self.output_code and self.output_type:
+            return self.output_type, self.output_code
+        if not is_this_a_macro(self.output_symbol):
+            return EV_KEY, system_mapping.get(self.output_symbol)
 
     @validator("output_symbol", pre=True)
     @classmethod
