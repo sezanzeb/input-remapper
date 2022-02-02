@@ -19,12 +19,23 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 
+import enum
+
 import evdev
 
 from dataclasses import dataclass
 from typing import Tuple
 
 from inputremapper.exceptions import InputEventCreationError
+
+
+class EventActions(enum.Enum):
+    """
+    Additional information a InputEvent can send through the event pipeline
+    """
+    as_key = enum.auto()
+    recenter = enum.auto()
+    none = enum.auto()
 
 
 @dataclass(frozen=True, slots=True)
@@ -40,6 +51,7 @@ class InputEvent:
     type: int
     code: int
     value: int
+    action: EventActions = EventActions.none
 
     def __hash__(self):
         return hash((self.type, self.code, self.value))
@@ -138,6 +150,7 @@ class InputEvent:
         type: int = None,
         code: int = None,
         value: int = None,
+        action: EventActions = EventActions.none
     ) -> InputEvent:
         """return a new modified event"""
         return InputEvent(
@@ -146,6 +159,7 @@ class InputEvent:
             type if type is not None else self.type,
             code if code is not None else self.code,
             value if value is not None else self.value,
+            action if action is not EventActions.none else self.action
         )
 
     def json_str(self) -> str:

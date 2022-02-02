@@ -25,7 +25,7 @@ from typing import Optional, Dict
 from inputremapper.configs.mapping import Mapping
 from inputremapper.event_combination import EventCombination
 from inputremapper.logger import logger
-from inputremapper.input_event import InputEvent
+from inputremapper.input_event import InputEvent, EventActions
 from inputremapper.injection.mapping_handlers.mapping_handler import MappingHandler, ContextProtocol, HandlerEnums
 
 
@@ -83,14 +83,14 @@ class AbsToBtnHandler(MappingHandler):
 
         if self._input_event.value > 0:
             if event.value > trigger_point:
-                event = event.modify(value=1)
+                event = event.modify(value=1, action=EventActions.as_key)
             else:
-                event = event.modify(value=0)
+                event = event.modify(value=0, action=EventActions.as_key)
         else:
             if event.value < trigger_point:
-                event = event.modify(value=1)
+                event = event.modify(value=1, action=EventActions.as_key)
             else:
-                event = event.modify(value=0)
+                event = event.modify(value=0, action=EventActions.as_key)
 
         if bool(event.value) == self._active:
             return True  # nothing changed, consume the event

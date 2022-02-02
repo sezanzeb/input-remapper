@@ -31,7 +31,7 @@ from inputremapper.injection.mapping_handlers.mapping_handler import MappingHand
     InputEventHandler
 from inputremapper.logger import logger
 from inputremapper.event_combination import EventCombination
-from inputremapper.input_event import InputEvent
+from inputremapper.input_event import InputEvent, EventActions
 from inputremapper.injection.global_uinputs import global_uinputs
 
 
@@ -82,6 +82,10 @@ class AbsToRelHandler(MappingHandler):
 
         if event.type_and_code != self._map_axis:
             return False
+
+        if event.action == EventActions.recenter:
+            self._stop = True
+            return True
 
         input_value, scale_factor = self._normalize(
             event.value,

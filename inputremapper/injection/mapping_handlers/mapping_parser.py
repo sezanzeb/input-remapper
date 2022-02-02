@@ -83,7 +83,6 @@ def parse_mappings(preset: Preset, context: ContextProtocol) -> EventPipelines:
         output_handler = constructor(mapping.event_combination, mapping, context)
         handlers.extend(_create_event_pipeline(output_handler, context))
 
-    logger.debug(f"before {handlers}")
     need_ranking = {}
     for handler in handlers.copy():
         if handler.needs_ranking():
@@ -91,16 +90,9 @@ def parse_mappings(preset: Preset, context: ContextProtocol) -> EventPipelines:
             need_ranking[combination] = handler
             handlers.remove(handler)
 
-    logger.debug(f"after remove {handlers}")
-    logger.debug(f"{need_ranking=}")
-
     ranked_handlers = _create_hierarchy_handlers(need_ranking)
-
-    logger.debug(f"{ranked_handlers=}")
-
     for handler in ranked_handlers:
         handlers.extend(_create_event_pipeline(handler, context, ignore_ranking=True))
-    logger.debug(f"after ranking {handlers}")
 
     event_pipelines = {}
     for handler in handlers:

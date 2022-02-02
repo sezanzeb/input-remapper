@@ -17,6 +17,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
+import asyncio
 
 import evdev
 
@@ -24,7 +25,7 @@ from typing import Dict, Tuple, Optional, List
 from evdev.ecodes import EV_ABS, EV_REL, EV_KEY
 
 from inputremapper.configs.mapping import Mapping
-from inputremapper.input_event import InputEvent
+from inputremapper.input_event import InputEvent, EventActions
 from inputremapper.event_combination import EventCombination
 from inputremapper.logger import logger
 from inputremapper.injection.mapping_handlers.mapping_handler import ContextProtocol, MappingHandler, InputEventHandler, \
@@ -74,10 +75,14 @@ class CombinationHandler(MappingHandler):
         forward: evdev.UInput,
         supress: bool = False,
     ) -> bool:
-        type_and_code = event.type_and_code
+        type_code = event.type_and_code
 
-        # check if the event belongs to the axis we should enable
-        if self._map_axis and type_and_code == self._map_axis:
+        if type_code not in self._key_map.keys() and (
+                not self._map_axis or type_code != self._map_axis):
+            return False  # we are not responsible for the event
+
+        # check if the event belongs to the axis we and is not interpreted as key
+        if self._map_axis and type_code == self._map_axis and not event.action == EventActions.as_key:
             if self._last_active_state:
                 # combination is active, and this is the axis we should pass though the event pipe
                 return await self._sub_handler.notify(event, source, forward, supress)
@@ -85,10 +90,7 @@ class CombinationHandler(MappingHandler):
                 # combination is not active, send the event back
                 return False
 
-        if type_and_code not in self._key_map.keys():
-            return False  # we are not responsible for the event
-
-        self._key_map[type_and_code] = event.value == 1
+        self._key_map[type_code] = event.value == 1
         if self.get_active() == self._last_active_state:
             # nothing changed ignore this event
             return False
@@ -107,9 +109,14 @@ class CombinationHandler(MappingHandler):
             event = event.modify(value=0)
             self._last_active_state = False
 
-        if self._map_axis:
-            logger.debug_key(self.mapping.event_combination, "activated")
+        if self._map_axis and event.value == 0:
+            logger.debug_key(self.mapping.event_combination, "deactivated")
+            event = InputEvent(0, 0, *self._map_axis, 0, action=EventActions.recenter)
+            asyncio.ensure_future(self._sub_handler.notify(event, source, forward, supress))
             return True  # don't pass through if we map to an axis
+        elif self._map_axis:
+            logger.debug_key(self.mapping.event_combination, "activated")
+            return True
 
         logger.debug_key(self.mapping.event_combination, "triggered: sending to sub-handler")
         return await self._sub_handler.notify(event, source, forward, supress)

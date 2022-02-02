@@ -178,14 +178,10 @@ class MappingHandler(InputEventHandler):
         """remove the event from self.input_events"""
         # should be called for each event a wrapping-handler
         # has in its input_events EventCombination
-        logger.debug(self.input_events)
-        logger.debug("occluding %s at %s", event.event_tuple, self)
         events = list(self.input_events)
         events.remove(event)
         if len(events) > 0:
             self.input_events = EventCombination(*events)
         else:
             self.input_events = ()
-
-        logger.debug(self.input_events)
 
