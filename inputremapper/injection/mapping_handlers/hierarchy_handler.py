@@ -34,14 +34,14 @@ class HierarchyHandler:
     adheres to the MappingHandler protocol
     """
 
-    _event: InputEvent
+    _input_event: InputEvent
 
     def __init__(self, handlers: List[MappingHandler], event: InputEvent) -> None:
         self.handlers = handlers
-        self._event = event
+        self._input_event = event
 
     def __str__(self):
-        return f"HierarchyHandler for {self._event} <{id(self)}>:"
+        return f"HierarchyHandler for {self._input_event} <{id(self)}>:"
 
     def __repr__(self):
         return self.__str__()
@@ -57,7 +57,7 @@ class HierarchyHandler:
         forward: evdev.UInput = None,
         supress: bool = False,
     ) -> bool:
-        if event.type_and_code != self._event.type_and_code:
+        if event.type_and_code != self._input_event.type_and_code:
             return False
 
         success = False

@@ -20,7 +20,7 @@
 from __future__ import annotations
 import enum
 from evdev.ecodes import EV_KEY, EV_REL, EV_ABS
-from pydantic import BaseModel, PositiveInt, confloat, root_validator, validator, ValidationError
+from pydantic import BaseModel, PositiveInt, confloat, root_validator, validator, ValidationError, PositiveFloat
 from typing import Optional, Callable
 
 from inputremapper.event_combination import EventCombination
@@ -53,6 +53,9 @@ class Mapping(BaseModel):
     output_symbol: Optional[str] = None  # The symbol or macro string if applicable
     output_type: Optional[int] = None  # The event type of the mapped event
     output_code: Optional[int] = None  # The event code of the mapped event
+
+    # the time until a relative axis mapped to a button will release
+    release_timeout: PositiveFloat = 0.05
 
     # Optional attributes for mapping Axis to Axis
     deadzone: confloat(ge=0, le=1) = 0.1  # The deadzone of the input axis

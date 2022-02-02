@@ -23,16 +23,19 @@ import time
 import asyncio
 import math
 
-from typing import Dict, Tuple
-from evdev.ecodes import EV_REL
+from typing import Dict, Tuple, Optional
+from evdev.ecodes import EV_REL, EV_ABS
 
+from inputremapper.configs.mapping import Mapping
+from inputremapper.injection.mapping_handlers.mapping_handler import MappingHandler, ContextProtocol, HandlerEnums, \
+    InputEventHandler
 from inputremapper.logger import logger
 from inputremapper.event_combination import EventCombination
 from inputremapper.input_event import InputEvent
 from inputremapper.injection.global_uinputs import global_uinputs
 
 
-class AbsToRelHandler:
+class AbsToRelHandler(MappingHandler):
     """
     Handler which transforms an EV_ABS to EV_REL events
     and sends that to a UInput
@@ -40,57 +43,39 @@ class AbsToRelHandler:
     adheres to the MappingHandler protocol
     """
 
-    _event: InputEvent  # combination of len 1 for the event to
-    _target: str  # name of target UInput
-    _deadzone: float  # deadzone
-    _output: int  # target event code
-
-    # the ratio between abs value as float between -1 and +1
-    # and the output speed as units per tick
-    _gain: float
-    _expo: float
-    _rate: int  # the tick rate in Hz
-
+    _map_axis: Tuple[int, int]  # the (type, code) of the axis we map
     _last_value: float  # value of last abs event between -1 and 1
     _running: bool  # if the run method is active
     _stop: bool  # if the run loop should return
 
-    def __init__(self, config: Dict[str, any], _) -> None:
-        """initialize the handler
+    def __init__(
+            self,
+            combination: EventCombination,
+            mapping: Mapping,
+            context: ContextProtocol,
+    ) -> None:
+        super().__init__(combination, mapping, context)
 
-        Parameters
-        ----------
-        config : Dict = {
-            "combination": str
-            "target": str
-            "deadzone" : float
-            "output" : int
-            "gain" : float
-            "expo" : float
-            "rate" : int
-        }
-        """
-        self._event = InputEvent.from_string(config["combination"])
-        self._target = config["target"]
-        self._deadzone = config["deadzone"]
-        self._output = config["output"]
-        self._gain = config["gain"]
-        self._expo = config["expo"]
-        self._rate = config["rate"]
+        # find the input event we are supposed to map
+        for event in combination:
+            if event.value == 0:
+                assert event.type == EV_ABS
+                self._map_axis = event.type_and_code
+                break
 
         self._last_value = 0
         self._running = False
         self._stop = True
 
     def __str__(self):
-        return f"AbsToRelHandler for {self._event} <{id(self)}>:"
+        return f"AbsToRelHandler for {self._map_axis} <{id(self)}>:"
 
     def __repr__(self):
         return self.__str__()
 
     @property
     def child(self):  # used for logging
-        return f"maps to: {self._output} at {self._target}"
+        return f"maps to: {self.mapping.output_code} at {self.mapping.target_uinput}"
 
     async def notify(
         self,
@@ -100,7 +85,7 @@ class AbsToRelHandler:
         supress: bool = False,
     ) -> bool:
 
-        if event.type_and_code != self._event.type_and_code:
+        if event.type_and_code != self._map_axis:
             return False
 
         input_value, scale_factor = self._normalize(
@@ -109,12 +94,12 @@ class AbsToRelHandler:
             source.absinfo(event.code).max,
         )
 
-        if abs(input_value) < self._deadzone:
+        if abs(input_value) < self.mapping.deadzone:
             self._stop = True
             return True
 
-        output_value = self._calc_qubic(input_value, self._expo)
-        self._last_value = output_value * scale_factor * self._gain
+        output_value = self._calc_qubic(input_value, self.mapping.expo)
+        self._last_value = output_value * scale_factor * self.mapping.gain
 
         if not self._running:
             asyncio.ensure_future(self._run())
@@ -198,13 +183,13 @@ class AbsToRelHandler:
         remainder = 0.0
         start = time.time()
         while not self._stop:
-            float_value = self._last_value * self._gain + remainder
+            float_value = self._last_value * self.mapping.gain + remainder
             remainder = float_value % 1
             value = int(float_value)
-            self._write(EV_REL, self._output, value)
+            self._write(EV_REL, self.mapping.output_code, value)
 
             time_taken = time.time() - start
-            await asyncio.sleep(max(0.0, (1 / self._rate) - time_taken))
+            await asyncio.sleep(max(0.0, (1 / self.mapping.rate) - time_taken))
             start = time.time()
 
         # logger.debug("stopping AbsToRel loop")
@@ -215,7 +200,20 @@ class AbsToRelHandler:
         # if the mouse won't move even though correct stuff is written here,
         # the capabilities are probably wrong
         try:
-            global_uinputs.write((ev_type, keycode, value), self._target)
+            global_uinputs.write((ev_type, keycode, value), self.mapping.target_uinput)
         except OverflowError:
             # screwed up the calculation of mouse movements
             logger.error("OverflowError (%s, %s, %s)", ev_type, keycode, value)
+
+    def needs_wrapping(self) -> bool:
+        return len(self.input_events) > 1
+
+    def needs_ranking(self) -> Optional[EventCombination]:
+        return
+
+    def set_sub_handler(self, handler: InputEventHandler) -> None:
+        assert False  # cannot have a sub-handler
+
+    def wrap_with(self) -> Dict[EventCombination, HandlerEnums]:
+        if len(self.input_events) > 1:
+            return {self.input_events: HandlerEnums.combination}

@@ -50,7 +50,7 @@ class CombinationHandler(MappingHandler):
         self._map_axis = None
 
         # prepare a key map for all events with non-zero value
-        for event in mapping.event_combination:
+        for event in combination:
             if event.value != 0:
                 self._key_map[event.type_and_code] = False
             else:

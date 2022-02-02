@@ -22,15 +22,17 @@ import evdev
 import time
 import asyncio
 
+from typing import Optional, Dict
 from evdev.ecodes import EV_REL
 
+from inputremapper.configs.mapping import Mapping
 from inputremapper.logger import logger
 from inputremapper.input_event import InputEvent
 from inputremapper.event_combination import EventCombination
-from inputremapper.injection.mapping_handlers.mapping_handler import MappingHandler
+from inputremapper.injection.mapping_handlers.mapping_handler import MappingHandler, ContextProtocol, HandlerEnums
 
 
-class RelToBtnHandler:
+class RelToBtnHandler(MappingHandler):
     """
     Handler which transforms an EV_REL to a button event
     and sends that to a sub_handler
@@ -38,56 +40,56 @@ class RelToBtnHandler:
     adheres to the MappingHandler protocol
     """
 
-    _handler: MappingHandler
-    _trigger_point: int
     _active: bool
-    _event: InputEvent
+    _input_event: InputEvent
     _last_activation: float
 
     def __init__(
-        self, sub_handler: MappingHandler, trigger_point: int, event: InputEvent
+            self,
+            combination: EventCombination,
+            mapping: Mapping,
+            context: ContextProtocol,
     ) -> None:
-        if trigger_point == 0:
-            raise ValueError("trigger_point can not be 0")
+        super().__init__(combination, mapping, context)
 
-        self._handler = sub_handler
-        self._trigger_point = trigger_point
-        self._event = event
         self._active = False
+        self._input_event = combination[0]
         self._last_activation = time.time()
+        assert self._input_event.value != 0
+        assert len(combination) == 1
 
     def __str__(self):
-        return f"RelToBtnHandler for {self._event} <{id(self)}>:"
+        return f"RelToBtnHandler for {self._input_event.event_tuple} <{id(self)}>:"
 
     def __repr__(self):
         return self.__str__()
 
     @property
     def child(self):  # used for logging
-        return self._handler
+        return self._sub_handler
 
-    async def stage_release(self):
-        while time.time() < self._last_activation + 0.05:
+    async def stage_release(self, source, forward, supress):
+        while time.time() < self._last_activation + self.mapping.release_timeout:
             await asyncio.sleep(1 / 60)
 
-        event = self._event.modify(value=0)
-        asyncio.ensure_future(self._handler.notify(event))
+        event = self._input_event.modify(value=0)
+        asyncio.ensure_future(self._sub_handler.notify(event, source, forward, supress))
         self._active = False
 
     async def notify(
         self,
         event: InputEvent,
-        source: evdev.InputDevice = None,
-        forward: evdev.UInput = None,
+        source: evdev.InputDevice,
+        forward: evdev.UInput,
         supress: bool = False,
     ) -> bool:
 
         assert event.type == EV_REL
-        if event.type_and_code != self._event.type_and_code:
+        if event.type_and_code != self._input_event.type_and_code:
             return False
 
         value = event.value
-        if (value < self._trigger_point > 0) or (value > self._trigger_point < 0):
+        if (value < self._input_event.value > 0) or (value > self._input_event.value < 0):
             return True
 
         if self._active:
@@ -98,10 +100,19 @@ class RelToBtnHandler:
         logger.debug_key(event.event_tuple, "sending to sub_handler")
         self._active = True
         self._last_activation = time.time()
-        asyncio.ensure_future(self.stage_release())
-        return await self._handler.notify(
+        asyncio.ensure_future(self.stage_release(source, forward, supress))
+        return await self._sub_handler.notify(
             event,
             source=source,
             forward=forward,
             supress=supress,
         )
+
+    def needs_wrapping(self) -> bool:
+        return False
+
+    def needs_ranking(self) -> Optional[EventCombination]:
+        return
+
+    def wrap_with(self) -> Dict[EventCombination, HandlerEnums]:
+        return {}
