@@ -58,7 +58,7 @@ class MacroHandler(MappingHandler):
     def child(self):  # used for logging
         return f"maps to {self._macro} on {self.mapping.target_uinput}"
 
-    async def notify(self, event: InputEvent, *_, **__) -> bool:
+    def notify(self, event: InputEvent, *_, **__) -> bool:
 
         if event.value == 1:
             self._active = True

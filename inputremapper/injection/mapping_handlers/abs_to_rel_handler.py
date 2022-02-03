@@ -72,7 +72,7 @@ class AbsToRelHandler(MappingHandler):
     def child(self):  # used for logging
         return f"maps to: {self.mapping.output_code} at {self.mapping.target_uinput}"
 
-    async def notify(
+    def notify(
         self,
         event: InputEvent,
         source: evdev.InputDevice = None,

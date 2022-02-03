@@ -87,7 +87,7 @@ class ContextProtocol(Protocol):
 class InputEventHandler(Protocol):
     """the protocol any handler, which can be part of an event pipeline, must follow"""
 
-    async def notify(
+    def notify(
         self,
         event: InputEvent,
         source: evdev.InputDevice,

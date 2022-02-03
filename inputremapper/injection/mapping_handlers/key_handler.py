@@ -55,7 +55,7 @@ class KeyHandler(MappingHandler):
     def child(self):  # used for logging
         return f"maps to: {self._maps_to} on {self.mapping.target_uinput}"
 
-    async def notify(self, event: InputEvent, *_, **__) -> bool:
+    def notify(self, event: InputEvent, *_, **__) -> bool:
         """inject event.value to the target key"""
 
         event_tuple = (*self._maps_to, event.value)

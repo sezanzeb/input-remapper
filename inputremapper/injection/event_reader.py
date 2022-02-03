@@ -59,7 +59,7 @@ class EventReader:
         self._forward_to = forward_to
         self.context = context
 
-    async def send_to_handlers(self, event: InputEvent) -> bool:
+    def send_to_handlers(self, event: InputEvent) -> bool:
         """Send the event to callback."""
         if event.type == evdev.ecodes.EV_MSC:
             return False
@@ -67,15 +67,9 @@ class EventReader:
         if event.type == evdev.ecodes.EV_SYN:
             return False
 
-        tasks = []
+        results = set()
         for callback in self.context.callbacks.get(event.type_and_code) or ():
-            coroutine = callback(
-                event,
-                source=self._source,
-                forward=self._forward_to,
-            )
-            tasks.append(coroutine)
-        results = await asyncio.gather(*tasks)
+            results.add(callback(event, source=self._source, forward=self._forward_to))
 
         return True in results
 
@@ -122,7 +116,7 @@ class EventReader:
 
         await self.send_to_listeners(event)
 
-        if not await self.send_to_handlers(event):
+        if not self.send_to_handlers(event):
             # no handler took care of it, forward it
             self.forward(event)
 

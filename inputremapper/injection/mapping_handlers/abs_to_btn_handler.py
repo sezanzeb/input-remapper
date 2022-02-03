@@ -67,7 +67,7 @@ class AbsToBtnHandler(MappingHandler):
         trigger_offset = half_range * self._input_event.value / 100
         return int(middle + trigger_offset)
 
-    async def notify(
+    def notify(
         self,
         event: InputEvent,
         source: evdev.InputDevice = None,
@@ -97,7 +97,7 @@ class AbsToBtnHandler(MappingHandler):
 
         self._active = bool(event.value)
         logger.debug_key(event.event_tuple, "sending to sub_handler")
-        return await self._sub_handler.notify(
+        return self._sub_handler.notify(
             event,
             source=source,
             forward=forward,

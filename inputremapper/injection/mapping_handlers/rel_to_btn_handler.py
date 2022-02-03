@@ -73,10 +73,10 @@ class RelToBtnHandler(MappingHandler):
             await asyncio.sleep(1 / 60)
 
         event = self._input_event.modify(value=0, action=EventActions.as_key)
-        asyncio.ensure_future(self._sub_handler.notify(event, source, forward, supress))
+        self._sub_handler.notify(event, source, forward, supress)
         self._active = False
 
-    async def notify(
+    def notify(
         self,
         event: InputEvent,
         source: evdev.InputDevice,
@@ -101,4 +101,4 @@ class RelToBtnHandler(MappingHandler):
         self._active = True
         self._last_activation = time.time()
         asyncio.ensure_future(self.stage_release(source, forward, supress))
-        return await self._sub_handler.notify(event, source, forward, supress)
+        return self._sub_handler.notify(event, source, forward, supress)

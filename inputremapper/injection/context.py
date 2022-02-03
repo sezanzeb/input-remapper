@@ -28,7 +28,7 @@ from inputremapper.configs.preset import Preset
 from inputremapper.input_event import InputEvent
 from inputremapper.injection.mapping_handlers.mapping_parser import parse_mappings
 from inputremapper.injection.mapping_handlers.mapping_handler import (
-    MappingHandler,
+    InputEventHandler,
     EventListener,
 )
 
@@ -45,7 +45,7 @@ class NotifyCallback(Protocol):
         source: evdev.InputDevice = None,
         forward: evdev.UInput = None,
         supress: bool = False,
-    ) -> Awaitable[bool]:
+    ) -> bool:
         ...
 
 
@@ -77,7 +77,7 @@ class Context:
     preset: Preset
     listeners: Set[EventListener]
     callbacks: Dict[Tuple[int, int], List[NotifyCallback]]
-    _handlers: Dict[InputEvent, List[MappingHandler]]
+    _handlers: Dict[InputEvent, List[InputEventHandler]]
 
     def __init__(self, preset: Preset):
         self.preset = preset

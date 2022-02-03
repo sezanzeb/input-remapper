@@ -57,7 +57,7 @@ class HierarchyHandler(MappingHandler):
     def child(self):  # used for logging
         return self.handlers
 
-    async def notify(
+    def notify(
         self,
         event: InputEvent,
         source: evdev.InputDevice = None,
@@ -70,11 +70,9 @@ class HierarchyHandler(MappingHandler):
         success = False
         for handler in self.handlers:
             if not success:
-                success = await handler.notify(event, source, forward)
+                success = handler.notify(event, source, forward)
             else:
-                asyncio.ensure_future(
-                    handler.notify(event, source, forward, supress=True)
-                )
+                handler.notify(event, source, forward, supress=True)
         return success
 
     def wrap_with(self) -> Dict[EventCombination, HandlerEnums]:

@@ -68,7 +68,7 @@ class CombinationHandler(MappingHandler):
     def child(self):  # used for logging
         return self._sub_handler
 
-    async def notify(
+    def notify(
         self,
         event: InputEvent,
         source: evdev.InputDevice,
@@ -85,7 +85,7 @@ class CombinationHandler(MappingHandler):
         if self._map_axis and type_code == self._map_axis and not event.action == EventActions.as_key:
             if self._last_active_state:
                 # combination is active, and this is the axis we should pass though the event pipe
-                return await self._sub_handler.notify(event, source, forward, supress)
+                return self._sub_handler.notify(event, source, forward, supress)
             else:
                 # combination is not active, send the event back
                 return False
@@ -112,14 +112,14 @@ class CombinationHandler(MappingHandler):
         if self._map_axis and event.value == 0:
             logger.debug_key(self.mapping.event_combination, "deactivated")
             event = InputEvent(0, 0, *self._map_axis, 0, action=EventActions.recenter)
-            asyncio.ensure_future(self._sub_handler.notify(event, source, forward, supress))
+            self._sub_handler.notify(event, source, forward, supress)
             return True  # don't pass through if we map to an axis
         elif self._map_axis:
             logger.debug_key(self.mapping.event_combination, "activated")
             return True
 
         logger.debug_key(self.mapping.event_combination, "triggered: sending to sub-handler")
-        return await self._sub_handler.notify(event, source, forward, supress)
+        return self._sub_handler.notify(event, source, forward, supress)
 
     def get_active(self) -> bool:
         """return if all keys in the keymap are set to True"""
