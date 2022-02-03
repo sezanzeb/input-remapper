@@ -230,7 +230,7 @@ class Daemon:
                 time.sleep(0.2)
             else:
                 logger.error("Failed to connect to the service")
-                sys.exit(1)
+                sys.exit(8)
 
         if USER != "root":
             config_path = get_config_path()
@@ -246,7 +246,7 @@ class Daemon:
             bus.publish(BUS_NAME, self)
         except RuntimeError as error:
             logger.error("Is the service already running? (%s)", str(error))
-            sys.exit(1)
+            sys.exit(9)
 
     def run(self):
         """Start the daemons loop. Blocks until the daemon stops."""

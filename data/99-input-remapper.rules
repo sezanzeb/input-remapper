@@ -5,4 +5,6 @@
 #   sudo udevadm control --log-priority=debug
 #   sudo udevadm control --reload-rules
 #   journalctl -f
+# to get available variables:
+#   udevadm monitor --environment --udev --subsystem input
 ACTION=="add", SUBSYSTEM=="input", RUN+="/bin/input-remapper-control --command autoload --device $env{DEVNAME}"

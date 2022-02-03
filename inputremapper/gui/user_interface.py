@@ -243,7 +243,7 @@ class UserInterface:
 
         if exit_code != 0:
             logger.error("Failed to pkexec the helper, code %d", exit_code)
-            sys.exit()
+            sys.exit(11)
 
     def show_confirm_delete(self):
         """Blocks until the user decided about an action."""

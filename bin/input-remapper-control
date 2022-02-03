@@ -21,9 +21,7 @@
 
 """Control the dbus service from the command line."""
 
-
 import os
-import grp
 import sys
 import argparse
 import logging
@@ -56,15 +54,6 @@ def run(cmd):
         logger.error('Failed. exit code %d', code)
 
 
-def group_exists(name):
-    """Check if a group with that name exists."""
-    try:
-        grp.getgrnam(name)
-        return True
-    except KeyError:
-        return False
-
-
 COMMANDS = [AUTOLOAD, START, STOP, HELLO, STOP_ALL]
 
 INTERNALS = [START_DAEMON, HELPER]
@@ -93,7 +82,7 @@ def communicate(options, daemon):
     def require_group():
         if options.device is None:
             logger.error('--device missing')
-            sys.exit(1)
+            sys.exit(3)
 
         if options.device.startswith('/dev'):
             group = groups.find(path=options.device)
@@ -105,14 +94,14 @@ def communicate(options, daemon):
                 'Device "%s" is unknown or not an appropriate input device',
                 options.device
             )
-            sys.exit(1)
+            sys.exit(4)
 
         return group
 
     if daemon is None:
         # probably broken tests
         logger.error('Daemon missing')
-        sys.exit(1)
+        sys.exit(5)
 
     if options.config_dir is not None:
         path = os.path.abspath(os.path.expanduser(os.path.join(
@@ -121,7 +110,7 @@ def communicate(options, daemon):
         )))
         if not os.path.exists(path):
             logger.error('"%s" does not exist', path)
-            sys.exit(1)
+            sys.exit(6)
 
         logger.info('Using config from "%s" instead', path)
         global_config.load_config(path)
