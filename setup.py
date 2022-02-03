@@ -134,6 +134,7 @@ setup(
         "evdev",
         "pydbus",
         "pygobject",
+        "pydantic"
     ],
     cmdclass={
         "install": Install,
