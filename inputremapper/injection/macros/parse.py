@@ -189,7 +189,7 @@ def _is_number(value):
         return False
 
 
-def _parse_recurse(code, context, macro_instance=None, depth=0):
+def _parse_recurse(code, context, mapping, macro_instance=None, depth=0):
     """Handle a subset of the macro, e.g. one parameter or function call.
 
     Not using eval for security reasons.
@@ -239,7 +239,7 @@ def _parse_recurse(code, context, macro_instance=None, depth=0):
     if call is not None:
         if macro_instance is None:
             # start a new chain
-            macro_instance = Macro(code, context)
+            macro_instance = Macro(code, context, mapping)
         else:
             # chain this call to the existing instance
             assert isinstance(macro_instance, Macro)
@@ -261,7 +261,7 @@ def _parse_recurse(code, context, macro_instance=None, depth=0):
         keyword_args = {}
         for param in raw_string_args:
             key, value = _split_keyword_arg(param)
-            parsed = _parse_recurse(value.strip(), context, None, depth + 1)
+            parsed = _parse_recurse(value.strip(), context, mapping, None, depth + 1)
             if key is None:
                 if len(keyword_args) > 0:
                     msg = f'Positional argument "{key}" follows keyword argument'
@@ -303,7 +303,7 @@ def _parse_recurse(code, context, macro_instance=None, depth=0):
         if len(code) > position and code[position] == ".":
             chain = code[position + 1 :]
             logger.debug("%sfollowed by %s", space, chain)
-            _parse_recurse(chain, context, macro_instance, depth)
+            _parse_recurse(chain, context, mapping, macro_instance, depth)
 
         return macro_instance
 
@@ -387,7 +387,7 @@ def clean(code):
     return remove_whitespaces(remove_comments(code), '"')
 
 
-def parse(macro, context=None):
+def parse(macro, context=None, mapping=None):
     """parse and generate a Macro that can be run as often as you want.
 
     Parameters
@@ -402,4 +402,4 @@ def parse(macro, context=None):
     macro = handle_plus_syntax(macro)
     macro = clean(macro)
 
-    return _parse_recurse(macro, context)
+    return _parse_recurse(macro, context, mapping)

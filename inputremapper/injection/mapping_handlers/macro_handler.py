@@ -46,7 +46,7 @@ class MacroHandler(MappingHandler):
     ):
         super().__init__(combination, mapping)
         self._active = False
-        self._macro = parse(self.mapping.output_symbol, context)
+        self._macro = parse(self.mapping.output_symbol, context, mapping)
 
     def __str__(self):
         return f"MacroHandler <{id(self)}>:"

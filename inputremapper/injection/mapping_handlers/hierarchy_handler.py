@@ -85,4 +85,3 @@ class HierarchyHandler(MappingHandler):
 
     def set_sub_handler(self, handler: InputEventHandler) -> None:
         assert False
-

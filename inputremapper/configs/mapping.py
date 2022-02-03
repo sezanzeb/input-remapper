@@ -56,6 +56,8 @@ class Mapping(BaseModel):
     # the time until a relative axis mapped to a button will release
     release_timeout: PositiveFloat = 0.05
 
+    macro_key_sleep_ms: PositiveInt = 20
+
     # Optional attributes for mapping Axis to Axis
     deadzone: confloat(ge=0, le=1) = 0.1  # The deadzone of the input axis
     gain: float = 1.0  # The scale factor for the transformation

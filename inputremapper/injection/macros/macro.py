@@ -181,7 +181,7 @@ class Macro:
 
     _triggering_event: Optional[evdev.InputEvent]
 
-    def __init__(self, code, context):
+    def __init__(self, code: str, context=None, mapping=None):
         """Create a macro instance that can be populated with tasks.
 
         Parameters
@@ -192,6 +192,7 @@ class Macro:
         """
         self.code = code
         self.context = context
+        self.mapping = mapping
 
         # List of coroutines that will be called sequentially.
         # This is the compiled code
@@ -250,7 +251,7 @@ class Macro:
             logger.error('Tried to run already running macro "%s"', self.code)
             return
 
-        self.keystroke_sleep_ms = self.context.preset.get("macros.keystroke_sleep_ms")
+        self.keystroke_sleep_ms = self.mapping.macro_key_sleep_ms
 
         self.running = True
         for task in self.tasks:
