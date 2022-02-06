@@ -1,0 +1,46 @@
+---
+name: reviewdog
+# run reviewdog for PR only because "github-check" option is failing :(
+# https://github.com/reviewdog/reviewdog/issues/924
+on: [pull_request]
+
+jobs:
+  reviewdog_python:
+    name: reviewdog - Python lint
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10"]
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - uses: reviewdog/action-setup@master
+        with:
+          reviewdog_version: latest
+      - name: Install dependencies
+        shell: bash
+        run: |
+          scripts/ci-install-deps.sh
+          pip install flake8 pylint mypy black
+      - name: Set env for PR
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: echo "REWIEVDOG_REPORTER=github-pr-review" >> $GITHUB_ENV
+
+      - name: Set env for push
+        if: github.event_name != 'pull_request'
+        shell: bash
+        run: echo "REWIEVDOG_REPORTER=github-check" >> $GITHUB_ENV
+
+      - name: Run reviewdog
+        shell: bash
+        env:
+          REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          reviewdog -list
+          reviewdog -tee -runners=mypy,pylint,black -reporter=${{ env.REWIEVDOG_REPORTER }} -fail-on-error=false
