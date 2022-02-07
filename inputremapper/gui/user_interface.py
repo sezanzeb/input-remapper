@@ -425,27 +425,6 @@ class UserInterface:
             status_bar.push(context_id, message)
             status_bar.set_tooltip_text(tooltip)
 
-    def check_macro_syntax(self):
-        """Check if the programmed macros are allright."""
-        self.show_status(CTX_MAPPING, None)
-        for key, output in active_preset:
-            output = output[0]
-            if not is_this_a_macro(output):
-                continue
-
-            error_sting = None
-            try:
-                parse(output, active_preset)
-            except MacroParsingError as error:
-                error_sting = f"{error.__class__.__name__}: {str(error)}"
-
-            if error_sting is None:
-                continue
-
-            position = key.beautify()
-            msg = f"Syntax error at {position}, hover for info"
-            self.show_status(CTX_MAPPING, msg, str(error_sting))
-
     @ensure_everything_saved
     def on_rename_button_clicked(self, _):
         """Rename the preset based on the contents of the name input."""
@@ -485,7 +464,7 @@ class UserInterface:
         """Apply a preset without saving changes."""
         self.save_preset()
 
-        if active_preset.num_saved_keys == 0:
+        if len(active_preset) == 0:
             logger.error("Cannot apply empty preset file")
             # also helpful for first time use
             self.show_status(CTX_ERROR, "You need to add keys and save first")
@@ -674,23 +653,6 @@ class UserInterface:
 
         self.get("preset_name_input").set_text("")
 
-    def on_left_joystick_changed(self, dropdown):
-        """Set the purpose of the left joystick."""
-        purpose = dropdown.get_active_id()
-        active_preset.set("gamepad.joystick.left_purpose", purpose)
-        self.save_preset()
-
-    def on_right_joystick_changed(self, dropdown):
-        """Set the purpose of the right joystick."""
-        purpose = dropdown.get_active_id()
-        active_preset.set("gamepad.joystick.right_purpose", purpose)
-        self.save_preset()
-
-    def on_joystick_mouse_speed_changed(self, gtk_range):
-        """Set how fast the joystick moves the mouse."""
-        speed = 2 ** gtk_range.get_value()
-        active_preset.set("gamepad.joystick.pointer_speed", speed)
-
     def save_preset(self, *_):
         """Write changes in the active_preset to disk."""
         if not active_preset.has_unsaved_changes():
@@ -711,30 +673,7 @@ class UserInterface:
             self.show_status(CTX_ERROR, "Permission denied!", error)
             logger.error(error)
 
-        for _, mapping in active_preset:
-            if not mapping:
-                continue
-
-            symbol = mapping[0]
-            target = mapping[1]
-            if is_this_a_macro(symbol):
-                continue
-
-            code = system_mapping.get(symbol)
-            if (
-                code is None
-                or code not in global_uinputs.get_uinput(target).capabilities()[EV_KEY]
-            ):
-                trimmed = re.sub(r"\s+", " ", symbol).strip()
-                self.show_status(CTX_MAPPING, f'Unknown mapping "{trimmed}"')
-                break
-        else:
-            # no broken mappings found
-            self.show_status(CTX_MAPPING, None)
-
-            # checking macros is probably a bit more expensive, do that if
-            # the regular mappings are allright
-            self.check_macro_syntax()
+        self.show_status(CTX_MAPPING, None)
 
     def on_about_clicked(self, _):
         """Show the about/help dialog."""

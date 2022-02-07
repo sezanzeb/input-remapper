@@ -143,12 +143,15 @@ class Preset:
             self._saved_mappings[combination] = mapping.copy()
             self._saved_mappings[combination].remove_combination_changed_callback()
 
-    def get_mapping(self, combination: EventCombination) -> Optional[Mapping]:
+    def get_mapping(self, combination: Optional[EventCombination]) -> Optional[Mapping]:
         """Return the Mapping that is mapped to this EventCombination.
         Parameters
         ----------
         combination : EventCombination
         """
+        if not combination:
+            return None
+
         for permutation in combination.get_permutations():
             existing = self._mappings.get(permutation)
             if existing is not None:

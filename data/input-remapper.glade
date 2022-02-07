@@ -132,7 +132,7 @@
   <object class="GtkImage" id="image2">
     <property name="visible">True</property>
     <property name="can-focus">False</property>
-    <property name="stock">gtk-media-record</property>
+    <property name="icon-name">media-record</property>
   </object>
   <object class="GtkAdjustment" id="mouse_speed_adjustment">
     <property name="lower">2</property>
@@ -250,6 +250,7 @@ Gives your keys back their original function</property>
                     <property name="receives-default">True</property>
                     <property name="tooltip-text" translatable="yes">Help</property>
                     <property name="halign">end</property>
+                    <property name="valign">center</property>
                     <property name="image">about-icon</property>
                     <property name="always-show-image">True</property>
                     <signal name="clicked" handler="on_about_clicked" swapped="no"/>
@@ -617,6 +618,7 @@ Gives your keys back their original function</property>
                       <object class="GtkGrid">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
+                        <property name="resize-mode">immediate</property>
                         <child>
                           <placeholder/>
                         </child>
@@ -745,6 +747,8 @@ Gives your keys back their original function</property>
                               <object class="GtkListBox" id="combination-listbox">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
+                                <property name="selection-mode">none</property>
+                                <property name="activate-on-single-click">False</property>
                               </object>
                             </child>
                           </object>
@@ -793,7 +797,7 @@ Gives your keys back their original function</property>
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkButton">
+                  <object class="GtkButton" id="add-axis-as-btn">
                     <property name="label" translatable="yes">Add axis as button</property>
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>

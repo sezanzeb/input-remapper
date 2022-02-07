@@ -24,12 +24,12 @@
 
 import re
 
-from gi.repository import Gtk, GLib, Gdk
-
+from gi.repository import Gtk, GLib, Gdk, GtkSource
 from inputremapper.gui.editor.autocompletion import Autocompletion
 from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.gui.active_preset import active_preset
 from inputremapper.event_combination import EventCombination
+from inputremapper.input_event import InputEvent
 from inputremapper.logger import logger
 from inputremapper.gui.reader import reader
 from inputremapper.gui.utils import CTX_KEYCODE, CTX_WARNING, CTX_ERROR
@@ -89,6 +89,44 @@ class SelectionLabel(Gtk.ListBoxRow):
 
     def __repr__(self):
         return self.__str__()
+
+
+class CombinationEntry(Gtk.ListBoxRow):
+    """One row per InputEvent in the EventCombination"""
+
+    __gtype_name__ = "CombinationEntry"
+
+    def __init__(self, event: InputEvent):
+        super().__init__()
+
+        self.event = event
+        hbox = Gtk.Box(Gtk.Orientation.HORIZONTAL, spacing=4)
+
+        label = Gtk.Label()
+        label.set_label(event.json_str())
+        hbox.pack_start(label, False, False, 0)
+
+        up_btn = Gtk.Button()
+        up_btn.set_halign(Gtk.Align.END)
+        up_btn.set_relief(Gtk.ReliefStyle.NONE)
+        up_btn.get_style_context().add_class("no-v-padding")
+        up_img = Gtk.Image.new_from_icon_name("go-up", Gtk.IconSize.BUTTON)
+        up_btn.add(up_img)
+
+        down_btn = Gtk.Button()
+        down_btn.set_halign(Gtk.Align.END)
+        down_btn.set_relief(Gtk.ReliefStyle.NONE)
+        down_btn.get_style_context().add_class("no-v-padding")
+        down_img = Gtk.Image.new_from_icon_name("go-down", Gtk.IconSize.BUTTON)
+        down_btn.add(down_img)
+
+        vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        vbox.pack_start(up_btn, False, True, 0)
+        vbox.pack_end(down_btn, False, True, 0)
+        hbox.pack_end(vbox, False, False, 0)
+
+        self.add(hbox)
+        self.show_all()
 
 
 def ensure_everything_saved(func):
@@ -358,7 +396,7 @@ class Editor:
             self.disable_symbol_input(clear=True)
             # default target should fit in most cases
             self.set_target_selection("keyboard")
-            # symbol input disabled until a combination is configured
+            # target input disabled until a combination is configured
             self.disable_target_selector()
             # symbol input disabled until a combination is configured
         else:
@@ -405,15 +443,27 @@ class Editor:
     def get_recording_toggle(self) -> Gtk.ToggleButton:
         return self.get("key_recording_toggle")
 
-    def get_text_input(self):
+    def get_text_input(self) -> GtkSource.View:
         return self.get("code_editor")
 
-    def get_target_selector(self):
+    def get_target_selector(self) -> Gtk.ComboBox:
         return self.get("target-selector")
+
+    def get_combination_listbox(self) -> Gtk.ListBox:
+        return self.get("combination-listbox")
+
+    def get_add_axis_btn(self) -> Gtk.Button:
+        return self.get("add-axis-as-btn")
 
     def set_combination(self, combination):
         """Show what the user is currently pressing in the user interface."""
         self.active_selection_label.set_combination(combination)
+        listbox = self.get_combination_listbox()
+        listbox.forall(listbox.remove)
+
+        if combination:
+            for event in combination:
+                listbox.insert(CombinationEntry(event), -1)
 
     def get_combination(self):
         """Get the EventCombination object from the left column.
