@@ -129,13 +129,7 @@ setup(
         ("/usr/bin/", ["bin/key-mapper-service"]),
         ("/usr/bin/", ["bin/key-mapper-control"]),
     ],
-    install_requires=[
-        "setuptools",
-        "evdev",
-        "pydbus",
-        "pygobject",
-        "pydantic"
-    ],
+    install_requires=["setuptools", "evdev", "pydbus", "pygobject", "pydantic"],
     cmdclass={
         "install": Install,
     },
