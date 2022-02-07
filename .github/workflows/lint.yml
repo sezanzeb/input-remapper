@@ -3,25 +3,6 @@ name: Lint
 on: [push, pull_request]
 
 jobs:
-  pylint:
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
-    strategy:
-      matrix:
-        python-version: ["3.10"] # min and max supported versions?
-    steps:
-    - uses: actions/checkout@v2
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: Install dependencies
-      run: |
-        scripts/ci-install-deps.sh
-        pip install pylint
-    - name: Analysing the code with pylint
-      run: |
-        pylint inputremapper --extension-pkg-whitelist=evdev || true # always succeed because lots of lint issues showing up atm
   black:
     runs-on: ubuntu-latest
     if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository

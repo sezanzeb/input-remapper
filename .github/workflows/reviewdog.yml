@@ -43,4 +43,4 @@ jobs:
           REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           reviewdog -list
-          reviewdog -tee -runners=mypy,pylint,black -reporter=${{ env.REWIEVDOG_REPORTER }} -fail-on-error=false
+          reviewdog -tee -runners=mypy,black -reporter=${{ env.REWIEVDOG_REPORTER }} -fail-on-error=false
