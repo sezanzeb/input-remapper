@@ -362,9 +362,10 @@ class Editor:
             self.disable_target_selector()
             # symbol input disabled until a combination is configured
         else:
-            if active_preset.get_mapping(combination):
-                self.set_symbol_input_text(active_preset.get_mapping(combination)[0])
-                self.set_target_selection(active_preset.get_mapping(combination)[1])
+            mapping = active_preset.get_mapping(combination)
+            if mapping is not None:
+                self.set_symbol_input_text(mapping.output_symbol)
+                self.set_target_selection(mapping.target_uinput)
             self.enable_symbol_input()
             self.enable_target_selector()
 
@@ -385,9 +386,9 @@ class Editor:
 
         selection_label_listbox.forall(selection_label_listbox.remove)
 
-        for key, _ in active_preset:
+        for mapping in active_preset:
             selection_label = SelectionLabel()
-            selection_label.set_combination(key)
+            selection_label.set_combination(mapping.event_combination)
             selection_label_listbox.insert(selection_label, -1)
 
         self.check_add_new_key()
@@ -522,13 +523,14 @@ class Editor:
             self.get_text_input().get_buffer().set_text(correct_case)
 
         # make sure the active_preset is up to date
-        key = self.get_combination()
-        if correct_case is not None and key is not None and target is not None:
-            active_preset.change(key, target, correct_case)
+        combination = self.get_combination()
+        mapping = active_preset.get_mapping(combination)
+        if correct_case is not None and combination is not None and target is not None:
+            mapping.target_uinput = target
+            mapping.output_symbol = correct_case
 
         # save to disk if required
-        if active_preset.has_unsaved_changes():
-            self.user_interface.save_preset()
+        self.user_interface.save_preset()
 
     def is_waiting_for_input(self):
         """Check if the user is interacting with the ToggleButton for combination recording."""

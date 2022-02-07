@@ -27,7 +27,7 @@ import os
 import re
 import sys
 
-from evdev._ecodes import EV_KEY
+from evdev.ecodes import EV_KEY
 from gi.repository import Gtk, GtkSource, Gdk, GLib, GObject
 from inputremapper.input_event import InputEvent
 
@@ -169,7 +169,7 @@ class UserInterface:
 
         # set up the device selection
         # https://python-gtk-3-tutorial.readthedocs.io/en/latest/treeview.html#the-view
-        combobox = self.get("device_selection")
+        combobox: Gtk.ComboBox = self.get("device_selection")
         self.device_store = Gtk.ListStore(str, str, str)
         combobox.set_model(self.device_store)
         renderer_icon = Gtk.CellRendererPixbuf()
@@ -204,12 +204,6 @@ class UserInterface:
         # if any of the next steps take a bit to complete, have the window
         # already visible (without content) to make it look more responsive.
         gtk_iteration()
-
-        # this is not set to invisible in glade to give the ui a default
-        # height that doesn't jump when a gamepad is selected
-        self.get("gamepad_separator").hide()
-        self.get("gamepad_config").hide()
-
         self.populate_devices()
 
         self.timeouts = []
@@ -290,33 +284,6 @@ class UserInterface:
 
         if gdk_keycode in [Gdk.KEY_Control_L, Gdk.KEY_Control_R]:
             self.ctrl = False
-
-    def initialize_gamepad_config(self):
-        """Set slider and dropdown values when a gamepad is selected."""
-        if GAMEPAD in self.group.types:
-            self.get("gamepad_separator").show()
-            self.get("gamepad_config").show()
-        else:
-            self.get("gamepad_separator").hide()
-            self.get("gamepad_config").hide()
-            return
-
-        left_purpose = self.get("left_joystick_purpose")
-        right_purpose = self.get("right_joystick_purpose")
-        speed = self.get("joystick_mouse_speed")
-
-        with HandlerDisabled(left_purpose, self.on_left_joystick_changed):
-            value = active_preset.get("gamepad.joystick.left_purpose")
-            left_purpose.set_active_id(value)
-
-        with HandlerDisabled(right_purpose, self.on_right_joystick_changed):
-            value = active_preset.get("gamepad.joystick.right_purpose")
-            right_purpose.set_active_id(value)
-
-        with HandlerDisabled(speed, self.on_joystick_mouse_speed_changed):
-            value = active_preset.get("gamepad.joystick.pointer_speed")
-            range_value = math.log(value, 2)
-            speed.set_value(range_value)
 
     def get(self, name):
         """Get a widget from the window"""
@@ -691,8 +658,9 @@ class UserInterface:
         logger.debug('Selecting preset "%s"', preset)
         self.editor.clear_mapping_list()
         self.preset_name = preset
-
-        active_preset.load(self.group.get_preset_path(preset))
+        active_preset.empty()
+        active_preset.path = self.group.get_preset_path(preset)
+        active_preset.load()
 
         self.editor.load_custom_mapping()
 
@@ -705,10 +673,6 @@ class UserInterface:
             autoload_switch.set_active(is_autoloaded)
 
         self.get("preset_name_input").set_text("")
-
-        self.initialize_gamepad_config()
-
-        active_preset.set_has_unsaved_changes(False)
 
     def on_left_joystick_changed(self, dropdown):
         """Set the purpose of the left joystick."""
@@ -736,8 +700,7 @@ class UserInterface:
 
         try:
             assert self.preset_name is not None
-            path = self.group.get_preset_path(self.preset_name)
-            active_preset.save(path)
+            active_preset.save()
 
             # after saving the preset, its modification date will be the
             # newest, so populate_presets will automatically select the
