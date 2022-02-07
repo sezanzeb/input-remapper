@@ -91,10 +91,14 @@ class TestInputEvent(unittest.TestCase):
         )
         self.assertEqual(e1.type_and_code, (evdev.ecodes.EV_KEY, evdev.ecodes.BTN_LEFT))
 
-        with self.assertRaises(FrozenInstanceError):  # would be TypeError on a slotted class
+        with self.assertRaises(
+            FrozenInstanceError
+        ):  # would be TypeError on a slotted class
             e1.event_tuple = (1, 2, 3)
 
-        with self.assertRaises(FrozenInstanceError):  # would be TypeError on a slotted class
+        with self.assertRaises(
+            FrozenInstanceError
+        ):  # would be TypeError on a slotted class
             e1.type_and_code = (1, 2)
 
         with self.assertRaises(FrozenInstanceError):

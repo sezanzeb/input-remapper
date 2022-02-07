@@ -699,12 +699,18 @@ class TestGui(GuiTestBase):
 
     def test_editor_keycode_to_string(self):
         # not an integration test, but I have all the selection_label tests here already
-        self.assertEqual(EventCombination((EV_KEY, evdev.ecodes.KEY_A, 1)).beautify(), "a")
+        self.assertEqual(
+            EventCombination((EV_KEY, evdev.ecodes.KEY_A, 1)).beautify(), "a"
+        )
         self.assertEqual(
             EventCombination([EV_KEY, evdev.ecodes.KEY_A, 1]).beautify(), "a"
         )
-        self.assertEqual(EventCombination((EV_ABS, evdev.ecodes.ABS_HAT0Y, -1)).beautify(), "DPad Up")
-        self.assertEqual(EventCombination((EV_KEY, evdev.ecodes.BTN_A, 1)).beautify(), "Button A")
+        self.assertEqual(
+            EventCombination((EV_ABS, evdev.ecodes.ABS_HAT0Y, -1)).beautify(), "DPad Up"
+        )
+        self.assertEqual(
+            EventCombination((EV_KEY, evdev.ecodes.BTN_A, 1)).beautify(), "Button A"
+        )
         self.assertEqual(EventCombination((EV_KEY, 1234, 1)).beautify(), "1234")
         self.assertEqual(
             EventCombination([EV_ABS, evdev.ecodes.ABS_HAT0X, -1]).beautify(),
@@ -1736,7 +1742,7 @@ class TestGui(GuiTestBase):
         gtk_iteration()
         speed = active_preset.get("gamepad.joystick.pointer_speed")
         active_preset.set("gamepad.joystick.non_linearity", 1)
-        self.assertEqual(speed, 2 ** 6)
+        self.assertEqual(speed, 2**6)
 
         # don't consume the events in the reader, they are used to test
         # the injection
