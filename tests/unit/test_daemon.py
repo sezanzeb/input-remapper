@@ -27,7 +27,6 @@ import json
 
 import evdev
 from evdev.ecodes import EV_KEY, EV_ABS, KEY_B, KEY_A
-from gi.repository import Gtk
 from pydbus import SystemBus
 
 from inputremapper.configs.system_mapping import system_mapping
@@ -49,12 +48,6 @@ from tests.test import (
     fixtures,
     tmp,
 )
-
-
-def gtk_iteration():
-    """Iterate while events are pending."""
-    while Gtk.events_pending():
-        Gtk.main_iteration()
 
 
 check_output = subprocess.check_output
