@@ -468,10 +468,11 @@ class Editor:
         """Get a widget from the window"""
         return self.user_interface.builder.get_object(name)
 
-    def _on_recording_toggle_toggle(self, *_):
+    def _on_recording_toggle_toggle(self, *args):
         """Refresh useful usage information."""
         if not self.get_recording_toggle().get_active():
             return
+
         self._reset_keycode_consumption()
         reader.clear()
         if not self.user_interface.can_modify_preset():
