@@ -24,26 +24,14 @@
 
 import sys
 import atexit
-import gettext
-import locale
-from inputremapper.configs.data import get_data_path
-import os.path
 from argparse import ArgumentParser
+from inputremapper.gui.gettext import _, LOCALE_DIR
 
 import gi
 gi.require_version('Gtk', '3.0')
 gi.require_version('GLib', '2.0')
 gi.require_version('GtkSource', '4')
 from gi.repository import Gtk
-
-APP_NAME = 'input-remapper'
-LOCALE_DIR = os.path.join(get_data_path(), 'lang')
-
-locale.bindtextdomain(APP_NAME, LOCALE_DIR)
-locale.textdomain(APP_NAME)
-
-translate = gettext.translation(APP_NAME, LOCALE_DIR, fallback=True)
-_ = translate.gettext
 
 
 # https://github.com/Nuitka/Nuitka/issues/607#issuecomment-650217096

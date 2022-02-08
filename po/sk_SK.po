@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-06-28 21:18+0200\n"
-"PO-Revision-Date: 2021-06-28 21:22+0200\n"
+"POT-Creation-Date: 2022-02-08 08:52+0100\n"
+"PO-Revision-Date: 2022-02-08 08:58+0100\n"
 "Last-Translator: Jose Riha <jose1711@gmail.com>\n"
 "Language-Team: \n"
 "Language: sk_SK\n"
@@ -18,161 +18,195 @@ msgstr ""
 "X-Generator: Poedit 3.0\n"
 "Plural-Forms: nplurals=3; plural=(n==1 ? 0 : n>=2 && n<=4 ? 1 : 2);\n"
 
-#: data/input-remapper.glade:1128
-msgid "."
-msgstr "."
+#: inputremapper/gui/editor/editor.py:565
+#, python-format
+msgid "\"%s\" already mapped to \"%s\""
+msgstr "\"%s\" je už namapované na \"%s\""
 
-#: data/input-remapper.glade:1348
-msgid "1, 2"
-msgstr "1, 2"
+#: inputremapper/gui/user_interface.py:605
+msgid ", CTRL + DEL to stop"
+msgstr ", zastavíte stlačením CTRL + DEL"
 
-#: data/input-remapper.glade:926
-msgid ""
-"A \"key + key + ... + key\" syntax can be used to trigger key combinations. "
-"For example \"control_l + a\".\n"
-"\n"
-"\"disable\" disables a key."
-msgstr ""
-"Syntax \"kláves + kláves + ... + kláves\" môžete použiť na zadávanie "
-"kombinácie klávesov. Napríklad \"control_l + a\".\n"
-"\n"
-"\"disable\" deaktivuje mapovanie klávesu."
-
-#: data/input-remapper.glade:898
+#: data/input-remapper.glade:1070
 msgid "About"
 msgstr "O programe"
 
-#: data/input-remapper.glade:209
+#: inputremapper/gui/user_interface.py:602
+#, python-format
+msgid "Applied preset %s"
+msgstr "Použité prednastavenie %s"
+
+#: inputremapper/gui/user_interface.py:423
+msgid "Applied the system default"
+msgstr "Použité systémové nastavenia"
+
+#: data/input-remapper.glade:307
 msgid "Apply"
 msgstr "Použiť"
 
-#: data/input-remapper.glade:403
+#: inputremapper/gui/user_interface.py:254
+#, python-format
+msgid "Are you sure to delete preset %s?"
+msgstr "Naozaj chcete odstrániť prednastavenie %s?"
+
+#: inputremapper/gui/editor/editor.py:508
+msgid "Are you sure to delete this mapping?"
+msgstr "Naozaj chcete odstrániť toto mapovanie?"
+
+#: data/input-remapper.glade:504
 msgid "Autoload"
-msgstr "Automatické načítanie"
+msgstr "Automaticky načítať"
 
-#: data/input-remapper.glade:1420
-msgid ""
-"Between calls to k, key down and key up events, macros will sleep for 10ms "
-"by default, which can be configured in ~/.config/input-remapper/config"
-msgstr ""
-"Medzi volaniami k, udalosťami stlačeného a uvoľneného klávesu štandardne "
-"čakajú makrá 10 ms. Toto nastavenie môžete zmeniť v ~/.config/input-remapper/"
-"config"
-
-#: data/input-remapper.glade:482 data/input-remapper.glade:526
+#: data/input-remapper.glade:583 data/input-remapper.glade:627
 msgid "Buttons"
 msgstr "Tlačidlá"
 
-#: data/input-remapper.glade:1286
-msgid "CTRL + a, CTRL + x"
-msgstr "CTRL + a, CTRL + x"
+#: data/input-remapper.glade:65
+msgid "Cancel"
+msgstr "Zrušiť"
 
-#: data/input-remapper.glade:706
-msgid ""
-"Click on a cell below and hit a key on your device. Click the \"Restore "
-"Defaults\" button beforehand."
-msgstr ""
-"Kliknite do poľa nižšie a stlačte tlačidlo na vašom zariadení. Predtým "
-"kliknite na tlačidlo \"Obnoviť predvolené\"."
+#: inputremapper/gui/user_interface.py:520
+msgid "Cannot apply empty preset file"
+msgstr "Nedá sa použiť prázdny súbor s prednastavením"
 
-#: data/input-remapper.glade:228
+#: data/input-remapper.glade:860
+msgid "Change Key"
+msgstr "Zmeniť kláves"
+
+#: data/input-remapper.glade:326
 msgid "Copy"
 msgstr "Kopírovať"
 
-#: data/input-remapper.glade:265
+#: data/input-remapper.glade:350
+msgid "Create a new preset"
+msgstr "Vytvoriť nové prednastavenie"
+
+#: data/input-remapper.glade:365 data/input-remapper.glade:889
 msgid "Delete"
 msgstr "Odstrániť"
 
-#: data/input-remapper.glade:96
+#: data/input-remapper.glade:894
+msgid "Delete this entry"
+msgstr "Odstrániť túto položku"
+
+#: data/input-remapper.glade:370
+msgid "Delete this preset"
+msgstr "Odstrániť toto prednastavenie"
+
+#: data/input-remapper.glade:193
 msgid "Device"
 msgstr "Zariadenie"
 
-#: data/input-remapper.glade:214
-msgid "Don't hold down any keys while the injection starts."
-msgstr "Nedržte stlačené žiadne tlačidlá kým prebieha injektáž."
+#: data/input-remapper.glade:331
+msgid "Duplicate this preset"
+msgstr "Duplikovať toto prednastavenie"
 
-#: data/input-remapper.glade:1213
-msgid "Examples"
-msgstr "Príklady"
+#: inputremapper/gui/user_interface.py:614
+#, python-format
+msgid "Failed to apply preset %s"
+msgstr "Nepodarilo sa načítať prednastavenie %s"
 
-#: data/input-remapper.glade:1604
-msgid "Go Back"
-msgstr "Prejsť späť"
+#: data/input-remapper.glade:239
+msgid "Help"
+msgstr "Pomocník"
 
-#: data/input-remapper.glade:483 data/input-remapper.glade:527
+#: data/input-remapper.glade:149
+msgid "Input Remapper"
+msgstr "Mapovač vstupu"
+
+#: data/input-remapper.glade:584 data/input-remapper.glade:628
 msgid "Joystick"
 msgstr "Joystick"
 
-#: data/input-remapper.glade:709
-msgid "Key"
-msgstr "Kláves"
-
-#: data/input-remapper.glade:54 data/input-remapper.glade:1583
-#: data/input-remapper.glade:1695
-msgid "Input Remapper"
-msgstr "Mapovač klávesov"
-
-#: data/input-remapper.glade:465
+#: data/input-remapper.glade:566
 msgid "Left joystick"
 msgstr "Ľavý joystick"
 
-#: data/input-remapper.glade:948
-msgid "Macros"
-msgstr "Makrá"
-
-#: data/input-remapper.glade:964
-msgid "Macros allow multiple characters to be written with a single key-press."
-msgstr "Makrá vám umožnia zapísať po stlačení jedného klávesu viacero znakov."
-
-#: data/input-remapper.glade:723
-msgid "Mapping"
-msgstr "Mapovanie"
-
-#: data/input-remapper.glade:480 data/input-remapper.glade:524
+#: data/input-remapper.glade:581 data/input-remapper.glade:625
 msgid "Mouse"
 msgstr "Myš"
 
-#: data/input-remapper.glade:553
+#: data/input-remapper.glade:654
 msgid "Mouse speed"
 msgstr "Citlivosť myši"
 
-#: data/input-remapper.glade:246
+#: data/input-remapper.glade:345
 msgid "New"
-msgstr "Nový"
+msgstr "Nové"
 
-#: data/input-remapper.glade:298
+#: inputremapper/gui/user_interface.py:676
+#: inputremapper/gui/user_interface.py:748
+msgid "Permission denied!"
+msgstr "Odopretý prístup!"
+
+#: data/input-remapper.glade:399
 msgid "Preset"
 msgstr "Prednastavenie"
 
-#: data/input-remapper.glade:337
+#: data/input-remapper.glade:864
+msgid "Record a button of your device that should be remapped"
+msgstr "Zaznamenajte tlačidlo zariadenia, ktoré sa má premapovať"
+
+#: data/input-remapper.glade:438
 msgid "Rename"
 msgstr "Premenovať"
 
-#: data/input-remapper.glade:120
-msgid "Stop Injection"
-msgstr "Obnoviť predvolené"
-
-#: data/input-remapper.glade:509
+#: data/input-remapper.glade:610
 msgid "Right joystick"
 msgstr "Pravý joystick"
 
-#: data/input-remapper.glade:368
+#: data/input-remapper.glade:469
 msgid "Save the entered name"
 msgstr "Uložiť zadané meno"
 
-#: data/input-remapper.glade:124
+#: data/input-remapper.glade:1098
+msgid ""
+"See <a href=\"https://github.com/sezanzeb/input-remapper/blob/HEAD/readme/"
+"usage.md\">usage.md</a> online on github for comprehensive information.\n"
+"\n"
+"A \"key + key + ... + key\" syntax can be used to trigger key combinations. "
+"For example \"Control_L + a\".\n"
+"\n"
+"Writing \"disable\" as a mapping disables a key.\n"
+"\n"
+"Macros allow multiple characters to be written with a single key-press. "
+"Information about programming them is available online on github. See <a "
+"href=\"https://github.com/sezanzeb/input-remapper/blob/HEAD/readme/macros.md"
+"\">macros.md</a> and <a href=\"https://github.com/sezanzeb/input-remapper/"
+"blob/HEAD/readme/examples.md\">examples.md</a>"
+msgstr ""
+"Vyčerpávajúce informácie nájdete na online stránke <a href=\"https://github."
+"com/sezanzeb/input-remapper/blob/HEAD/readme/usage.md\">usage.md</a> na "
+"githube.\n"
+"\n"
+"Syntax \"key + key + ... + key\" môžete použit na aktivovanie kombinácie "
+"klávesov. Napríklad \"Control_L + a\".\n"
+"\n"
+"Ak použijete \"disable\" ako mapovanie, mapovanie klávesu deaktivujete.\n"
+"\n"
+"Makrá vám umožnia aktivovať viacero znakov pomocou stlačenia jedného "
+"klávesu. Informácie o možnostiach programovania nájdete online na githube. "
+"Pozrite <a href=\"https://github.com/sezanzeb/input-remapper/blob/HEAD/"
+"readme/macros.md\">macros.md</a> a <a href=\"https://github.com/sezanzeb/"
+"input-remapper/blob/HEAD/readme/examples.md\">examples.md</a>"
+
+#: inputremapper/gui/editor/editor.py:111
+msgid "Set the key first"
+msgstr "Najprv nastavte kláves"
+
+#: data/input-remapper.glade:221
 msgid ""
 "Shortcut: ctrl + del\n"
-"To give your keys back their original mapping."
+"Gives your keys back their original function"
 msgstr ""
 "Skratka: ctrl + del\n"
-"Pre návrat na pôvodné mapovanie klávesov."
+"Vráti vašim klávesom pôvodnú funkciu"
 
-#: data/input-remapper.glade:1556
+#: data/input-remapper.glade:1239
 msgid "Shortcuts"
 msgstr "Skratky"
 
-#: data/input-remapper.glade:1458
+#: data/input-remapper.glade:1141
 msgid ""
 "Shortcuts only work while keys are not being recorded and the gui is in "
 "focus."
@@ -180,25 +214,61 @@ msgstr ""
 "Skratky fungujú iba vtedy, ak sa tlačidlá nenahrávaju a okno programu je "
 "aktívne."
 
-#: data/input-remapper.glade:402
+#: data/input-remapper.glade:312
+msgid "Start injecting. Don't hold down any keys while the injection starts"
+msgstr ""
+"Spustiť injektáž. Uistite sa, že pri spúšťaní injektáže nie sú stlačené "
+"žiadne tlačidlá"
+
+#: inputremapper/gui/user_interface.py:563
+msgid "Starting injection..."
+msgstr "Spúšťanie injektáže..."
+
+#: data/input-remapper.glade:217
+msgid "Stop Injection"
+msgstr "Zastaviť injektáž"
+
+#: inputremapper/gui/user_interface.py:477
+#, python-format
+msgid "Syntax error at %s, hover for info"
+msgstr "Chyba syntaxe na %s, prejdite myšou pre viac informácií"
+
+#: inputremapper/gui/user_interface.py:229
+msgid "The helper did not start"
+msgstr "Pomocná aplikácia sa nespustila"
+
+#: data/input-remapper.glade:879
+msgid "The type of device this mapping is emulating."
+msgstr "Typ zariadenia, ktoré toto mapovanie emuluje."
+
+#: data/input-remapper.glade:499
 msgid "To automatically apply the preset after your login or when it connects."
 msgstr ""
-"Na automatické použitie prednastavenia po prihlásení alebo pripojení "
+"Na automatické načítanie prednastavenia po prihlásení alebo pripojení "
 "zariadenia."
 
-#: data/input-remapper.glade:1439
+#: inputremapper/gui/user_interface.py:766
+#, python-format
+msgid "Unknown mapping %s"
+msgstr "Neznáme mapovanie %s"
+
+#: data/input-remapper.glade:1122
 msgid "Usage"
 msgstr "Použitie"
 
-#: data/input-remapper.glade:843
+#: inputremapper/gui/editor/editor.py:482
+msgid "Use \"Stop Injection\" to stop before editing"
+msgstr "Pred editovaním použite \"Zastaviť injektáž\""
+
+#: data/input-remapper.glade:1015
 msgid "Version unknown"
 msgstr "Neznáma verzia"
 
-#: data/input-remapper.glade:481 data/input-remapper.glade:525
+#: data/input-remapper.glade:582 data/input-remapper.glade:626
 msgid "Wheel"
 msgstr "Koliesko"
 
-#: data/input-remapper.glade:860
+#: data/input-remapper.glade:1032
 msgid ""
 "You can find more information and report bugs at\n"
 "<a href=\"https://github.com/sezanzeb/input-remapper\">https://github.com/"
@@ -208,147 +278,55 @@ msgstr ""
 "<a href=\"https://github.com/sezanzeb/input-remapper\">https://github.com/"
 "sezanzeb/input-remapper</a>"
 
-#: data/input-remapper.glade:1248
-msgid "a, a, a with 500ms pause"
-msgstr "a, a, a s 500ms oneskorením"
+#: inputremapper/gui/user_interface.py:522
+msgid "You need to add keys and save first"
+msgstr "Musíte najprv pridať klávesy a uložiť ich"
 
-#: data/input-remapper.glade:1490
+#: inputremapper/gui/editor/editor.py:574
+msgid "Your system might reinterpret combinations "
+msgstr "Váš systém by mohol zle interpretovať "
+
+#: inputremapper/gui/editor/editor.py:576
+msgid "break them."
+msgstr "ich rozbiť."
+
+#: data/input-remapper.glade:1173
 msgid "closes the application"
 msgstr "zavrie aplikáciu"
 
-#: data/input-remapper.glade:1478
+#: data/input-remapper.glade:1161
 msgid "ctrl + del"
 msgstr "ctrl + del"
 
-#: data/input-remapper.glade:1502
+#: data/input-remapper.glade:1185
 msgid "ctrl + q"
 msgstr "ctrl + q"
 
-#: data/input-remapper.glade:1514
+#: data/input-remapper.glade:1197
 msgid "ctrl + r"
 msgstr "ctrl + r"
 
-#: data/input-remapper.glade:1044
-msgid "e"
-msgstr "e"
+#: inputremapper/gui/editor/editor.py:573
+msgid "ctrl, alt and shift may not combine properly"
+msgstr "ctrl, alt a shift nemusia v kombinácii fungovať správne"
 
-#: data/input-remapper.glade:1335
-msgid "e(EV_REL, REL_X, 10)"
-msgstr "e(EV_REL, REL_X, 10)"
+#: inputremapper/gui/editor/editor.py:81 inputremapper/gui/editor/editor.py:382
+msgid "new entry"
+msgstr "nová položka"
 
-#: data/input-remapper.glade:1104
-msgid "executes the parameter as long as the key is pressed down"
-msgstr "vykoná parameter, kým je kláves stlačený"
-
-#: data/input-remapper.glade:1140
-msgid "executes two actions behind each other"
-msgstr "vykoná dve akcie za sebou"
-
-#: data/input-remapper.glade:1116
-msgid "h"
-msgstr "h"
-
-#: data/input-remapper.glade:1056
-msgid "holds a modifier while executing the second parameter"
-msgstr "počas vykonávania druhého parametra je stlačený modifikátor"
-
-#: data/input-remapper.glade:1020
-msgid "k"
-msgstr "k"
-
-#: data/input-remapper.glade:1298
-msgid "k(1).h(k(2)).k(3)"
-msgstr "k(1).h(k(2)).k(3)"
-
-#: data/input-remapper.glade:1235
-msgid "k(1).k(2)"
-msgstr "k(1).k(2)"
-
-#: data/input-remapper.glade:1398
-msgid "keeps scrolling down while held"
-msgstr "kým je držaný aktivuje sa skrolovanie smerom nadol"
-
-#: data/input-remapper.glade:1080
-msgid "m"
-msgstr "m"
-
-#: data/input-remapper.glade:1273
-msgid "m(Control_L, k(a).k(x))"
-msgstr "m(Control_L, k(a).k(x))"
-
-#: data/input-remapper.glade:1152
-msgid "mouse"
-msgstr "mouse"
-
-#: data/input-remapper.glade:1372
-msgid "mouse(right, 4)"
-msgstr "mouse(right, 4)"
-
-#: data/input-remapper.glade:1311
-msgid "moves the mouse cursor 10px to the right"
-msgstr "posunie kurzor myši o 10 pixelov doprava"
-
-#: data/input-remapper.glade:984
-msgid "r"
-msgstr "r"
-
-#: data/input-remapper.glade:1260
-msgid "r(3, k(a).w(500))"
-msgstr "r(3, k(a).w(500))"
-
-#: data/input-remapper.glade:1526
+#: data/input-remapper.glade:1209
 msgid "refreshes the device list"
 msgstr "aktualizuje zoznam zariadení"
 
-#: data/input-remapper.glade:1092
-msgid "repeats the execution of the second parameter"
-msgstr "zopakuje spustenie druhého parametra"
-
-#: data/input-remapper.glade:1188
-msgid "same as mouse"
-msgstr "tie isté ako pri myši"
-
-#: data/input-remapper.glade:1538
+#: data/input-remapper.glade:1221
 msgid "stops the injection"
 msgstr "zastaví injektáž"
 
-#: data/input-remapper.glade:1176
-msgid "takes direction (up, left, ...) and speed as parameters"
-msgstr "prijíma smer (hore, vľavo, ...) a rýchlosť ako parametre"
+#: inputremapper/gui/editor/editor.py:575
+msgid "with those after they are injected, and by doing so "
+msgstr "kombinácie pôvodných a emulovaných kláves a takto "
 
-#: data/input-remapper.glade:1008
-msgid "w"
-msgstr "w"
-
-#: data/input-remapper.glade:996
-msgid "waits in milliseconds"
-msgstr "čakanie (v milisekundách)"
-
-#: data/input-remapper.glade:1164
-msgid "wheel"
-msgstr "wheel"
-
-#: data/input-remapper.glade:1385
-msgid "wheel(down, 1)"
-msgstr "wheel(down, 1)"
-
-#: data/input-remapper.glade:1360
-msgid "which keeps moving the mouse while pressed"
-msgstr "kým je stlačený, kurzor myši sa bude posúvať"
-
-#: data/input-remapper.glade:1323
-msgid "writes 1 2 2 ... 2 2 3 while the key is pressed"
-msgstr "zapíše 1 2 2 ... 2 2 3, kým je kláves stlačený"
-
-#: data/input-remapper.glade:1032
-msgid "writes a single keystroke"
-msgstr "zapíše jedno stlačenie klávesu"
-
-#: data/input-remapper.glade:1068
-msgid "writes an event"
-msgstr "zapíše udalosť"
-
-#: data/input-remapper.glade:880
+#: data/input-remapper.glade:1052
 msgid ""
 "© 2021 Sezanzeb proxima@sezanzeb.de\n"
 "This program comes with absolutely no warranty.\n"
@@ -360,3 +338,146 @@ msgstr ""
 "Podrobnosti nájdete v podmienkach licencie <a href=\"https://www.gnu.org/"
 "licenses/gpl-3.0.html\">GNU General Public License, version 3 alebo novšej</"
 "a>."
+
+#~ msgid "."
+#~ msgstr "."
+
+#~ msgid "1, 2"
+#~ msgstr "1, 2"
+
+#~ msgid ""
+#~ "A \"key + key + ... + key\" syntax can be used to trigger key "
+#~ "combinations. For example \"control_l + a\".\n"
+#~ "\n"
+#~ "\"disable\" disables a key."
+#~ msgstr ""
+#~ "Syntax \"kláves + kláves + ... + kláves\" môžete použiť na zadávanie "
+#~ "kombinácie klávesov. Napríklad \"control_l + a\".\n"
+#~ "\n"
+#~ "\"disable\" deaktivuje mapovanie klávesu."
+
+#~ msgid ""
+#~ "Between calls to k, key down and key up events, macros will sleep for "
+#~ "10ms by default, which can be configured in ~/.config/input-remapper/"
+#~ "config"
+#~ msgstr ""
+#~ "Medzi volaniami k, udalosťami stlačeného a uvoľneného klávesu štandardne "
+#~ "čakajú makrá 10 ms. Toto nastavenie môžete zmeniť v ~/.config/input-"
+#~ "remapper/config"
+
+#~ msgid "CTRL + a, CTRL + x"
+#~ msgstr "CTRL + a, CTRL + x"
+
+#~ msgid ""
+#~ "Click on a cell below and hit a key on your device. Click the \"Restore "
+#~ "Defaults\" button beforehand."
+#~ msgstr ""
+#~ "Kliknite do poľa nižšie a stlačte tlačidlo na vašom zariadení. Predtým "
+#~ "kliknite na tlačidlo \"Obnoviť predvolené\"."
+
+#~ msgid "Examples"
+#~ msgstr "Príklady"
+
+#~ msgid "Go Back"
+#~ msgstr "Prejsť späť"
+
+#~ msgid "Key"
+#~ msgstr "Kláves"
+
+#~ msgid "Macros"
+#~ msgstr "Makrá"
+
+#~ msgid ""
+#~ "Macros allow multiple characters to be written with a single key-press."
+#~ msgstr ""
+#~ "Makrá vám umožnia zapísať po stlačení jedného klávesu viacero znakov."
+
+#~ msgid "Mapping"
+#~ msgstr "Mapovanie"
+
+#~ msgid "a, a, a with 500ms pause"
+#~ msgstr "a, a, a s 500ms oneskorením"
+
+#~ msgid "e"
+#~ msgstr "e"
+
+#~ msgid "e(EV_REL, REL_X, 10)"
+#~ msgstr "e(EV_REL, REL_X, 10)"
+
+#~ msgid "executes the parameter as long as the key is pressed down"
+#~ msgstr "vykoná parameter, kým je kláves stlačený"
+
+#~ msgid "executes two actions behind each other"
+#~ msgstr "vykoná dve akcie za sebou"
+
+#~ msgid "h"
+#~ msgstr "h"
+
+#~ msgid "holds a modifier while executing the second parameter"
+#~ msgstr "počas vykonávania druhého parametra je stlačený modifikátor"
+
+#~ msgid "k"
+#~ msgstr "k"
+
+#~ msgid "k(1).h(k(2)).k(3)"
+#~ msgstr "k(1).h(k(2)).k(3)"
+
+#~ msgid "k(1).k(2)"
+#~ msgstr "k(1).k(2)"
+
+#~ msgid "keeps scrolling down while held"
+#~ msgstr "kým je držaný aktivuje sa skrolovanie smerom nadol"
+
+#~ msgid "m"
+#~ msgstr "m"
+
+#~ msgid "m(Control_L, k(a).k(x))"
+#~ msgstr "m(Control_L, k(a).k(x))"
+
+#~ msgid "mouse"
+#~ msgstr "mouse"
+
+#~ msgid "mouse(right, 4)"
+#~ msgstr "mouse(right, 4)"
+
+#~ msgid "moves the mouse cursor 10px to the right"
+#~ msgstr "posunie kurzor myši o 10 pixelov doprava"
+
+#~ msgid "r"
+#~ msgstr "r"
+
+#~ msgid "r(3, k(a).w(500))"
+#~ msgstr "r(3, k(a).w(500))"
+
+#~ msgid "repeats the execution of the second parameter"
+#~ msgstr "zopakuje spustenie druhého parametra"
+
+#~ msgid "same as mouse"
+#~ msgstr "tie isté ako pri myši"
+
+#~ msgid "takes direction (up, left, ...) and speed as parameters"
+#~ msgstr "prijíma smer (hore, vľavo, ...) a rýchlosť ako parametre"
+
+#~ msgid "w"
+#~ msgstr "w"
+
+#~ msgid "waits in milliseconds"
+#~ msgstr "čakanie (v milisekundách)"
+
+#~ msgid "wheel"
+#~ msgstr "wheel"
+
+#~ msgid "wheel(down, 1)"
+#~ msgstr "wheel(down, 1)"
+
+#~ msgid "which keeps moving the mouse while pressed"
+#~ msgstr "kým je stlačený, kurzor myši sa bude posúvať"
+
+#~ msgid "writes 1 2 2 ... 2 2 3 while the key is pressed"
+#~ msgstr "zapíše 1 2 2 ... 2 2 3, kým je kláves stlačený"
+
+#~ msgid "writes a single keystroke"
+#~ msgstr "zapíše jedno stlačenie klávesu"
+
+#~ msgid "writes an event"
+#~ msgstr "zapíše udalosť"

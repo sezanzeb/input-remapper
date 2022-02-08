@@ -26,6 +26,10 @@ import math
 import os
 import re
 import sys
+import locale
+import gettext
+from inputremapper.configs.data import get_data_path
+from inputremapper.gui.gettext import _
 
 from evdev.ecodes import EV_KEY
 from gi.repository import Gtk, GtkSource, Gdk, GLib, GObject
@@ -119,7 +123,7 @@ def if_preset_selected(func):
     return wrapped
 
 
-def on_close_about(about, _):
+def on_close_about(about, arg):
     """Hide the about dialog without destroying it."""
     about.hide()
     return True
@@ -217,7 +221,7 @@ class UserInterface:
         self.button_left_warn = False
 
         if not is_helper_running():
-            self.show_status(CTX_ERROR, "The helper did not start")
+            self.show_status(CTX_ERROR, _("The helper did not start"))
 
     def setup_timeouts(self):
         """Setup all GLib timeouts."""
@@ -242,7 +246,7 @@ class UserInterface:
 
     def show_confirm_delete(self):
         """Blocks until the user decided about an action."""
-        text = f'Are you sure to delete preset "{self.preset_name}"?'
+        text = _("Are you sure to delete preset %s?") % self.preset_name
         self.get("confirm-delete-label").set_text(text)
 
         self.confirm_delete.show()
@@ -250,7 +254,7 @@ class UserInterface:
         self.confirm_delete.hide()
         return response
 
-    def on_key_press(self, _, event):
+    def on_key_press(self, arg, event):
         """To execute shortcuts.
 
         This has nothing to do with the keycode reader.
@@ -275,7 +279,7 @@ class UserInterface:
             if gdk_keycode == Gdk.KEY_Delete:
                 self.on_restore_defaults_clicked()
 
-    def on_key_release(self, _, event):
+    def on_key_release(self, arg, event):
         """To execute shortcuts.
 
         This has nothing to do with the keycode reader.
@@ -290,7 +294,7 @@ class UserInterface:
         return self.builder.get_object(name)
 
     @ensure_everything_saved
-    def on_close(self, *_):
+    def on_close(self, *args):
         """Safely close the application."""
         logger.debug("Closing window")
         self.window.hide()
@@ -358,7 +362,7 @@ class UserInterface:
         # and select the newest one (on the top). triggers on_select_preset
         preset_selection.set_active(0)
 
-    def can_modify_preset(self, *_) -> bool:
+    def can_modify_preset(self, *args) -> bool:
         """if changing the preset is possible."""
         return self.dbus.get_state(self.group.key) != RUNNING
 
@@ -381,10 +385,10 @@ class UserInterface:
         return True
 
     @if_group_selected
-    def on_restore_defaults_clicked(self, *_):
+    def on_restore_defaults_clicked(self, *args):
         """Stop injecting the preset."""
         self.dbus.stop_injecting(self.group.key)
-        self.show_status(CTX_APPLY, "Applied the system default")
+        self.show_status(CTX_APPLY, _("Applied the system default"))
         GLib.timeout_add(100, self.show_device_mapping_status)
 
     def show_status(self, context_id, message, tooltip=None):
@@ -426,7 +430,7 @@ class UserInterface:
             status_bar.set_tooltip_text(tooltip)
 
     @ensure_everything_saved
-    def on_rename_button_clicked(self, _):
+    def on_rename_button_clicked(self, arg):
         """Rename the preset based on the contents of the name input."""
         new_name = self.get("preset_name_input").get_text()
 
@@ -445,7 +449,7 @@ class UserInterface:
         self.populate_presets()
 
     @if_preset_selected
-    def on_delete_preset_clicked(self, *_):
+    def on_delete_preset_clicked(self, *args):
         """Delete a preset from the file system."""
         accept = Gtk.ResponseType.ACCEPT
         if len(active_preset) > 0 and self.show_confirm_delete() != accept:
@@ -460,14 +464,14 @@ class UserInterface:
         self.populate_presets()
 
     @if_preset_selected
-    def on_apply_preset_clicked(self, _):
+    def on_apply_preset_clicked(self, arg):
         """Apply a preset without saving changes."""
         self.save_preset()
 
         if len(active_preset) == 0:
-            logger.error("Cannot apply empty preset file")
+            logger.error(_("Cannot apply empty preset file"))
             # also helpful for first time use
-            self.show_status(CTX_ERROR, "You need to add keys and save first")
+            self.show_status(CTX_ERROR, _("You need to add keys and save first"))
             return
 
         preset = self.preset_name
@@ -508,11 +512,11 @@ class UserInterface:
         self.dbus.set_config_dir(get_config_path())
         self.dbus.start_injecting(self.group.key, preset)
 
-        self.show_status(CTX_APPLY, "Starting injection...")
+        self.show_status(CTX_APPLY, _("Starting injection..."))
 
         GLib.timeout_add(100, self.show_injection_result)
 
-    def on_autoload_switch(self, _, active):
+    def on_autoload_switch(self, arg, active):
         """Load the preset automatically next time the user logs in."""
         key = self.group.key
         preset = self.preset_name
@@ -547,10 +551,10 @@ class UserInterface:
         state = self.dbus.get_state(self.group.key)
 
         if state == RUNNING:
-            msg = f'Applied preset "{self.preset_name}"'
+            msg = _("Applied preset %s") % self.preset_name
 
             if active_preset.get_mapping(EventCombination(InputEvent.btn_left())):
-                msg += ", CTRL + DEL to stop"
+                msg += _(", CTRL + DEL to stop")
 
             self.show_status(CTX_APPLY, msg)
 
@@ -558,7 +562,9 @@ class UserInterface:
             return False
 
         if state == FAILED:
-            self.show_status(CTX_ERROR, f'Failed to apply preset "{self.preset_name}"')
+            self.show_status(
+                CTX_ERROR, _("Failed to apply preset %s") % self.preset_name
+            )
             return False
 
         if state == NO_GRAB:
@@ -585,12 +591,12 @@ class UserInterface:
             self.get("apply_system_layout").set_opacity(0.4)
 
     @if_preset_selected
-    def on_copy_preset_clicked(self, *_):
+    def on_copy_preset_clicked(self, *args):
         """Copy the current preset and select it."""
         self.create_preset(copy=True)
 
     @if_group_selected
-    def on_create_preset_clicked(self, *_):
+    def on_create_preset_clicked(self, *args):
         """Create a new empty preset and select it."""
         self.create_preset()
 
@@ -619,7 +625,7 @@ class UserInterface:
                 self.get("preset_selection").set_active_id(new_preset)
         except PermissionError as error:
             error = str(error)
-            self.show_status(CTX_ERROR, "Permission denied!", error)
+            self.show_status(CTX_ERROR, _("Permission denied!"), error)
             logger.error(error)
 
     @ensure_everything_saved
@@ -653,7 +659,7 @@ class UserInterface:
 
         self.get("preset_name_input").set_text("")
 
-    def save_preset(self, *_):
+    def save_preset(self, *args):
         """Write changes in the active_preset to disk."""
         if not active_preset.has_unsaved_changes():
             # optimization, and also avoids tons of redundant logs
@@ -670,7 +676,7 @@ class UserInterface:
             self.populate_presets()
         except PermissionError as error:
             error = str(error)
-            self.show_status(CTX_ERROR, "Permission denied!", error)
+            self.show_status(CTX_ERROR, _("Permission denied!"), error)
             logger.error(error)
 
         self.show_status(CTX_MAPPING, None)
@@ -679,7 +685,7 @@ class UserInterface:
         """Show the about/help dialog."""
         self.about.show()
 
-    def on_about_key_press(self, _, event):
+    def on_about_key_press(self, arg, event):
         """Hide the about/help dialog."""
         gdk_keycode = event.get_keyval()[1]
         if gdk_keycode == Gdk.KEY_Escape:

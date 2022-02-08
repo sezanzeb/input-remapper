@@ -404,39 +404,39 @@ class Macro:
 
         self.tasks.append(task)
 
-    def add_event(self, _type, code, value):
+    def add_event(self, type_, code, value):
         """Write any event.
 
         Parameters
         ----------
-        _type: str or int
+        type_: str or int
             examples: 2, 'EV_KEY'
         code : int or int
             examples: 52, 'KEY_A'
         value : int
         """
-        _type = _type_check(_type, [int, str], "e (event)", 1)
+        type_ = _type_check(type_, [int, str], "e (event)", 1)
         code = _type_check(code, [int, str], "e (event)", 2)
         value = _type_check(value, [int, str], "e (event)", 3)
 
-        if isinstance(_type, str):
-            _type = ecodes[_type.upper()]
+        if isinstance(type_, str):
+            type_ = ecodes[type_.upper()]
         if isinstance(code, str):
             code = ecodes[code.upper()]
 
-        if _type not in self.capabilities:
-            self.capabilities[_type] = set()
+        if type_ not in self.capabilities:
+            self.capabilities[type_] = set()
 
-        if _type == EV_REL:
+        if type_ == EV_REL:
             # add all capabilities that are required for the display server
             # to recognize the device as mouse
             self.capabilities[EV_REL].add(REL_X)
             self.capabilities[EV_REL].add(REL_Y)
             self.capabilities[EV_REL].add(REL_WHEEL)
 
-        self.capabilities[_type].add(code)
+        self.capabilities[type_].add(code)
 
-        self.tasks.append(lambda handler: handler(_type, code, value))
+        self.tasks.append(lambda handler: handler(type_, code, value))
         self.tasks.append(self._keycode_pause)
 
     def add_mouse(self, direction, speed):
@@ -506,7 +506,7 @@ class Macro:
 
         self.tasks.append(task)
 
-    def add_ifeq(self, variable, value, then=None, otherwise=None):
+    def add_ifeq(self, variable, value, then=None, else_=None):
         """Old version of if_eq, kept for compatibility reasons.
 
         This can't support a comparison like ifeq("foo", $blub) with blub containing
@@ -514,7 +514,7 @@ class Macro:
         variable name.
         """
         _type_check(then, [Macro, None], "ifeq", 3)
-        _type_check(otherwise, [Macro, None], "ifeq", 4)
+        _type_check(else_, [Macro, None], "ifeq", 4)
 
         async def task(handler):
             set_value = macro_variables.get(variable)
@@ -522,20 +522,20 @@ class Macro:
             if set_value == value:
                 if then is not None:
                     await then.run(handler)
-            elif otherwise is not None:
-                await otherwise.run(handler)
+            elif else_ is not None:
+                await else_.run(handler)
 
         if isinstance(then, Macro):
             self.child_macros.append(then)
-        if isinstance(otherwise, Macro):
-            self.child_macros.append(otherwise)
+        if isinstance(else_, Macro):
+            self.child_macros.append(else_)
 
         self.tasks.append(task)
 
-    def add_if_eq(self, value_1, value_2, then=None, _else=None):
+    def add_if_eq(self, value_1, value_2, then=None, else_=None):
         """Compare two values."""
         _type_check(then, [Macro, None], "if_eq", 3)
-        _type_check(_else, [Macro, None], "if_eq", 4)
+        _type_check(else_, [Macro, None], "if_eq", 4)
 
         async def task(handler):
             resolved_value_1 = _resolve(value_1)
@@ -543,17 +543,17 @@ class Macro:
             if resolved_value_1 == resolved_value_2:
                 if then is not None:
                     await then.run(handler)
-            elif _else is not None:
-                await _else.run(handler)
+            elif else_ is not None:
+                await else_.run(handler)
 
         if isinstance(then, Macro):
             self.child_macros.append(then)
-        if isinstance(_else, Macro):
-            self.child_macros.append(_else)
+        if isinstance(else_, Macro):
+            self.child_macros.append(else_)
 
         self.tasks.append(task)
 
-    def add_if_tap(self, then=None, _else=None, timeout=300):
+    def add_if_tap(self, then=None, else_=None, timeout=300):
         """If a key was pressed quickly.
 
         macro key pressed -> if_tap starts -> key released -> then
@@ -562,13 +562,13 @@ class Macro:
         -> if_tap starts -> pressed -> released -> then
         """
         _type_check(then, [Macro, None], "if_tap", 1)
-        _type_check(_else, [Macro, None], "if_tap", 2)
+        _type_check(else_, [Macro, None], "if_tap", 2)
         timeout = _type_check(timeout, [int, float], "if_tap", 3)
 
         if isinstance(then, Macro):
             self.child_macros.append(then)
-        if isinstance(_else, Macro):
-            self.child_macros.append(_else)
+        if isinstance(else_, Macro):
+            self.child_macros.append(else_)
 
         async def wait():
             """Wait for a release, or if nothing pressed yet, a press and release."""
@@ -585,13 +585,14 @@ class Macro:
                 if then:
                     await then.run(handler)
             except asyncio.TimeoutError:
-                if _else:
-                    await _else.run(handler)
+                if else_:
+                    await else_.run(handler)
 
         self.tasks.append(task)
 
     def add_if_single(self, then, _else, timeout=None):
         """If a key was pressed without combining it."""
+	# TODO: change to else_
         _type_check(then, [Macro, None], "if_single", 1)
         _type_check(_else, [Macro, None], "if_single", 2)
 

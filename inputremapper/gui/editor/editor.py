@@ -23,6 +23,11 @@
 
 
 import re
+import locale
+import gettext
+import os
+from inputremapper.configs.data import get_data_path
+from inputremapper.gui.gettext import _
 
 from gi.repository import Gtk, GLib, Gdk, GtkSource
 from inputremapper.gui.editor.autocompletion import Autocompletion
@@ -73,7 +78,7 @@ class SelectionLabel(Gtk.ListBoxRow):
         if combination:
             self.label.set_label(combination.beautify())
         else:
-            self.label.set_label("new entry")
+            self.label.set_label(_("new entry"))
 
     def get_combination(self) -> EventCombination:
         return self.combination
@@ -141,7 +146,7 @@ def ensure_everything_saved(func):
     return wrapped
 
 
-SET_KEY_FIRST = "Set the key first"
+SET_KEY_FIRST = _("Set the key first")
 
 
 class Editor:
@@ -413,7 +418,7 @@ class Editor:
         """Add one empty row for a single mapped key."""
         selection_label_listbox = self.get("selection_label_listbox")
         mapping_selection = SelectionLabel()
-        mapping_selection.set_label("new entry")
+        mapping_selection.set_label(_("new entry"))
         mapping_selection.show_all()
         selection_label_listbox.insert(mapping_selection, -1)
 
@@ -514,10 +519,11 @@ class Editor:
         """Get a widget from the window"""
         return self.user_interface.builder.get_object(name)
 
-    def _on_recording_toggle_toggle(self, *_):
+    def _on_recording_toggle_toggle(self, *args):
         """Refresh useful usage information."""
         if not self.get_recording_toggle().get_active():
             return
+
         self._reset_keycode_consumption()
         reader.clear()
         if not self.user_interface.can_modify_preset():
@@ -525,7 +531,7 @@ class Editor:
             # therefore the original keycode inaccessible
             logger.info("Cannot change keycodes while injecting")
             self.user_interface.show_status(
-                CTX_ERROR, 'Use "Stop Injection" to stop before editing'
+                CTX_ERROR, _('Use "Stop Injection" to stop before editing')
             )
             self.get_recording_toggle().set_active(False)
 
@@ -551,7 +557,7 @@ class Editor:
         """Blocks until the user decided about an action."""
         confirm_delete = self.get("confirm-delete")
 
-        text = f"Are you sure to delete this mapping?"
+        text = _("Are you sure to delete this mapping?")
         self.get("confirm-delete-label").set_text(text)
 
         confirm_delete.show()
@@ -609,7 +615,10 @@ class Editor:
         if existing is not None:
             existing = list(existing)
             existing[0] = re.sub(r"\s", "", existing[0])
-            msg = f'"{combination.beautify()}" already mapped to "{tuple(existing)}"'
+            msg = _('"%s" already mapped to "%s"') % (
+                combination.beautify(),
+                tuple(existing),
+            )
             logger.info("%s %s", combination, msg)
             self.user_interface.show_status(CTX_KEYCODE, msg)
             return True
@@ -617,10 +626,10 @@ class Editor:
         if combination.is_problematic():
             self.user_interface.show_status(
                 CTX_WARNING,
-                "ctrl, alt and shift may not combine properly",
-                "Your system might reinterpret combinations "
-                + "with those after they are injected, and by doing so "
-                + "break them.",
+                _("ctrl, alt and shift may not combine properly"),
+                _("Your system might reinterpret combinations ")
+                + _("with those after they are injected, and by doing so ")
+                + _("break them."),
             )
 
         # the newest_keycode is populated since the ui regularly polls it

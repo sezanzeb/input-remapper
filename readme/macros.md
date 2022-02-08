@@ -3,7 +3,7 @@
 input-remapper comes with an optional custom macro language with support for cross-device
 variables, conditions and named parameters.
 
-Syntax errors are shown in the UI on save. Each `k` function adds a short delay of 10ms
+Syntax errors are shown in the UI on save. Each `key` function adds a short delay of 10ms
 between key-down, key-up and at the end. See [usage.md](usage.md#configuration-files)
 for more info.
 
@@ -15,8 +15,6 @@ Bear in mind that anti-cheat software might detect macros in games.
 > here.
 >
 > You don't have to use quotes around the symbol constants.
->
-> Shorthand: `k`
 >
 > ```c#
 > key(symbol: str)
@@ -33,8 +31,6 @@ Bear in mind that anti-cheat software might detect macros in games.
 
 > Waits in milliseconds before continuing the macro
 >
-> Shorthand: `w`
->
 > ```c#
 > wait(time: int)
 > ```
@@ -50,8 +46,6 @@ Bear in mind that anti-cheat software might detect macros in games.
 
 > Repeats the execution of the second parameter a few times
 >
-> Shorthand: `r`
->
 > ```c#
 > repeat(repeats: int, macro: Macro)
 > ```
@@ -66,8 +60,6 @@ Bear in mind that anti-cheat software might detect macros in games.
 ### modify
 
 > Holds a modifier while executing the second parameter
->
-> Shorthand: `m`
 >
 > ```c#
 > modify(modifier: str, macro: Macro)
@@ -85,8 +77,6 @@ Bear in mind that anti-cheat software might detect macros in games.
 >
 > If a symbol string like KEY_A is provided, it will hold down that symbol as
 > long as the key is pressed down.
->
-> Shorthand: `h`
 >
 > ```c#
 > hold(macro: Macro | str)
@@ -133,8 +123,6 @@ Bear in mind that anti-cheat software might detect macros in games.
 
 > Writes an event. Examples for `type`, `code` and `value` can be found via the
 > `sudo evtest` command
->
-> Shorthand: `e`
 >
 > ```c#
 > event(type: str | int, code: str | int, value: int)
