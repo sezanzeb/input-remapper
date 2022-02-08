@@ -216,7 +216,13 @@ def _otherwise_to_else():
             if not is_this_a_macro(symbol[0]):
                 continue
 
+            symbol_before = symbol[0]
             symbol[0] = re.sub(r"otherwise\s*=\s*", "else=", symbol[0])
+
+            if symbol_before == symbol[0]:
+                continue
+
+            changed = changed or symbol_before != symbol[0]
 
             logger.info(
                 'Changing mapping for "%s" in preset "%s" to "%s"',
@@ -226,7 +232,6 @@ def _otherwise_to_else():
             )
 
             preset_dict["mapping"][key] = symbol
-            changed = True
 
         if not changed:
             continue
