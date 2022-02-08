@@ -96,10 +96,7 @@ def get_macro_argument_names(function):
     """
     # don't include "self"
     args = inspect.getfullargspec(function).args[1:]
-    return [
-        name[:-1] if name.endswith("_") else name
-        for name in args
-    ]
+    return [name[:-1] if name.endswith("_") else name for name in args]
 
 
 def get_num_parameters(function):
