@@ -57,6 +57,7 @@ from inputremapper.injection.macros.parse import (
     _split_keyword_arg,
     remove_whitespaces,
     remove_comments,
+    get_macro_argument_names,
 )
 from inputremapper.injection.context import Context
 from inputremapper.configs.global_config import global_config
@@ -105,7 +106,13 @@ class TestMacros(MacroTestBase):
             await parse("k(1, b=2, c=3)", self.context).run(self.handler)
             self.assertListEqual(result, [(1, 2, 3, 4), (1, 2, 3, 400)])
 
-    def testremove_whitespaces(self):
+    def test_get_macro_argument_names(self):
+        self.assertEqual(
+            get_macro_argument_names(Macro.add_if_tap),
+            ["then", "else", "timeout"],
+        )
+
+    def test_remove_whitespaces(self):
         self.assertEqual(remove_whitespaces('foo"bar"foo'), 'foo"bar"foo')
         self.assertEqual(remove_whitespaces('foo" bar"foo'), 'foo" bar"foo')
         self.assertEqual(remove_whitespaces('foo" bar"fo" "o'), 'foo" bar"fo" "o')
@@ -124,7 +131,7 @@ class TestMacros(MacroTestBase):
         self.assertEqual(remove_whitespaces("a## #b", delimiter="##"), "a## #b")
         self.assertEqual(remove_whitespaces("a## ##b", delimiter="##"), "a## ##b")
 
-    def testremove_comments(self):
+    def test_remove_comments(self):
         self.assertEqual(remove_comments("a#b"), "a")
         self.assertEqual(remove_comments('"a#b"'), '"a#b"')
         self.assertEqual(remove_comments('a"#"#b'), 'a"#"')

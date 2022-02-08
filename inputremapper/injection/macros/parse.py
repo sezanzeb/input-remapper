@@ -95,9 +95,10 @@ def get_macro_argument_names(function):
     Removes the trailing "_" for displaying them correctly.
     """
     # don't include "self"
+    args = inspect.getfullargspec(function).args[1:]
     return [
-        name[1:] if name.endswith("_") else name
-        for name in inspect.getfullargspec(function).args[1:]
+        name[:-1] if name.endswith("_") else name
+        for name in args
     ]
 
 
