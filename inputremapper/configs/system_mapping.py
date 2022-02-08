@@ -28,7 +28,7 @@ import subprocess
 import evdev
 
 from inputremapper.logger import logger
-from inputremapper.paths import get_config_path, touch
+from inputremapper.configs.paths import get_config_path, touch
 from inputremapper.utils import is_service
 
 DISABLE_NAME = "disable"

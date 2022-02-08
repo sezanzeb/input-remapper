@@ -24,7 +24,7 @@ import unittest
 import shutil
 import time
 
-from inputremapper.presets import (
+from inputremapper.configs.preset import (
     find_newest_preset,
     rename_preset,
     get_any_preset,
@@ -32,16 +32,16 @@ from inputremapper.presets import (
     get_available_preset_name,
     get_presets,
 )
-from inputremapper.paths import CONFIG_PATH, get_preset_path, touch, mkdir
-from inputremapper.gui.custom_mapping import custom_mapping
+from inputremapper.configs.paths import CONFIG_PATH, get_preset_path, touch
+from inputremapper.gui.active_preset import active_preset
 
 from tests.test import tmp
 
 
 def create_preset(group_name, name="new preset"):
     name = get_available_preset_name(group_name, name)
-    custom_mapping.empty()
-    custom_mapping.save(get_preset_path(group_name, name))
+    active_preset.empty()
+    active_preset.save(get_preset_path(group_name, name))
 
 
 PRESETS = os.path.join(CONFIG_PATH, "presets")

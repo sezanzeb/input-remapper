@@ -39,7 +39,7 @@ from evdev.ecodes import (
 )
 
 from inputremapper.logger import logger
-from inputremapper.config import MOUSE, WHEEL
+from inputremapper.configs.global_config import MOUSE, WHEEL
 from inputremapper import utils
 from inputremapper.injection.consumers.consumer import Consumer
 from inputremapper.groups import classify, GAMEPAD
@@ -208,11 +208,11 @@ class JoystickToMouse(Consumer):
         its position, this will keep injecting the mouse movement events.
         """
         abs_range = self._abs_range
-        mapping = self.context.mapping
-        pointer_speed = mapping.get("gamepad.joystick.pointer_speed")
-        non_linearity = mapping.get("gamepad.joystick.non_linearity")
-        x_scroll_speed = mapping.get("gamepad.joystick.x_scroll_speed")
-        y_scroll_speed = mapping.get("gamepad.joystick.y_scroll_speed")
+        preset = self.context.preset
+        pointer_speed = preset.get("gamepad.joystick.pointer_speed")
+        non_linearity = preset.get("gamepad.joystick.non_linearity")
+        x_scroll_speed = preset.get("gamepad.joystick.x_scroll_speed")
+        y_scroll_speed = preset.get("gamepad.joystick.y_scroll_speed")
         max_speed = 2 ** 0.5  # for normalized abs event values
 
         if abs_range is not None:
@@ -245,7 +245,7 @@ class JoystickToMouse(Consumer):
             if abs(mouse_x) > 0 or abs(mouse_y) > 0:
                 if non_linearity != 1:
                     # to make small movements smaller for more precision
-                    speed = (mouse_x ** 2 + mouse_y ** 2) ** 0.5  # pythagoras
+                    speed = (mouse_x**2 + mouse_y**2) ** 0.5  # pythagoras
                     factor = (speed / max_speed) ** non_linearity
                 else:
                     factor = 1

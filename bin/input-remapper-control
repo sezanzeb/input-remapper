@@ -21,18 +21,15 @@
 
 """Control the dbus service from the command line."""
 
-
 import os
-import grp
 import sys
 import argparse
 import logging
 import subprocess
 
 from inputremapper.logger import logger, update_verbosity, log_info, add_filehandler
-from inputremapper.migrations import migrate
-from inputremapper.config import config
-
+from inputremapper.configs.migrations import migrate
+from inputremapper.configs.global_config import global_config
 
 # import inputremapper modules as late as possible to make sure the correct
 # log level is applied before anything is logged
@@ -57,15 +54,6 @@ def run(cmd):
         logger.error('Failed. exit code %d', code)
 
 
-def group_exists(name):
-    """Check if a group with that name exists."""
-    try:
-        grp.getgrnam(name)
-        return True
-    except KeyError:
-        return False
-
-
 COMMANDS = [AUTOLOAD, START, STOP, HELLO, STOP_ALL]
 
 INTERNALS = [START_DAEMON, HELPER]
@@ -80,7 +68,7 @@ def utils(options):
             print(group.key)
 
     if options.key_names:
-        from inputremapper.system_mapping import system_mapping
+        from inputremapper.configs.system_mapping import system_mapping
         print('\n'.join(system_mapping.list_names()))
 
 
@@ -89,12 +77,12 @@ def communicate(options, daemon):
     # import stuff late to make sure the correct log level is applied
     # before anything is logged
     from inputremapper.groups import groups
-    from inputremapper.paths import USER
+    from inputremapper.configs.paths import USER
 
     def require_group():
         if options.device is None:
             logger.error('--device missing')
-            sys.exit(1)
+            sys.exit(3)
 
         if options.device.startswith('/dev'):
             group = groups.find(path=options.device)
@@ -106,14 +94,14 @@ def communicate(options, daemon):
                 'Device "%s" is unknown or not an appropriate input device',
                 options.device
             )
-            sys.exit(1)
+            sys.exit(4)
 
         return group
 
     if daemon is None:
         # probably broken tests
         logger.error('Daemon missing')
-        sys.exit(1)
+        sys.exit(5)
 
     if options.config_dir is not None:
         path = os.path.abspath(os.path.expanduser(os.path.join(
@@ -122,17 +110,17 @@ def communicate(options, daemon):
         )))
         if not os.path.exists(path):
             logger.error('"%s" does not exist', path)
-            sys.exit(1)
+            sys.exit(6)
 
         logger.info('Using config from "%s" instead', path)
-        config.load_config(path)
+        global_config.load_config(path)
 
     if USER != 'root':
         # Might be triggered by udev, so skip the root user.
         # This will also refresh the config of the daemon if the user changed
         # it in the meantime.
         # config_dir is either the cli arg or the default path in home
-        config_dir = os.path.dirname(config.path)
+        config_dir = os.path.dirname(global_config.path)
         daemon.set_config_dir(config_dir)
         migrate()
 
@@ -217,7 +205,7 @@ def main(options):
 
     logger.debug('Call for "%s"', sys.argv)
 
-    from inputremapper.paths import USER
+    from inputremapper.configs.paths import USER
     boot_finished = systemd_finished()
     is_root = USER == "root"
     is_autoload = options.command == AUTOLOAD
@@ -282,7 +270,7 @@ if __name__ == '__main__':
     )
     parser.add_argument(
         '--symbol-names', action='store_true', dest='key_names',
-        help='Print all available names for the mapping',
+        help='Print all available names for the preset',
         default=False
     )
     parser.add_argument(

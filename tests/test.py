@@ -51,11 +51,6 @@ from pickle import UnpicklingError
 from unittest.mock import patch
 
 import evdev
-import gi
-
-gi.require_version("Gtk", "3.0")
-gi.require_version("GLib", "2.0")
-gi.require_version("GtkSource", "4")
 
 from tests.xmodmap import xmodmap
 
@@ -110,8 +105,8 @@ EVENT_READ_TIMEOUT = 0.01
 START_READING_DELAY = 0.05
 
 # for joysticks
-MIN_ABS = -(2 ** 15)
-MAX_ABS = 2 ** 15
+MIN_ABS = -(2**15)
+MAX_ABS = 2**15
 
 # When it gets garbage collected it cleans up the temporary directory so it needs to
 # stay reachable while the tests are ran.
@@ -288,12 +283,12 @@ def new_event(type, code, value, timestamp=None, offset=0):
 
     sec = int(timestamp)
     usec = timestamp % 1 * 1000000
-    event = evdev.InputEvent(sec, usec, type, code, value)
+    event = InputEvent(sec, usec, type, code, value)
     return event
 
 
 def patch_paths():
-    from inputremapper import paths
+    from inputremapper.configs import paths
 
     paths.CONFIG_PATH = tmp
 
@@ -527,12 +522,12 @@ from inputremapper.logger import update_verbosity
 update_verbosity(True)
 
 from inputremapper.injection.injector import Injector
-from inputremapper.config import config
+from inputremapper.configs.global_config import global_config
 from inputremapper.gui.reader import reader
 from inputremapper.groups import groups
-from inputremapper.system_mapping import system_mapping
-from inputremapper.gui.custom_mapping import custom_mapping
-from inputremapper.paths import get_config_path
+from inputremapper.configs.system_mapping import system_mapping
+from inputremapper.gui.active_preset import active_preset
+from inputremapper.configs.paths import get_config_path
 from inputremapper.injection.macros.macro import macro_variables
 from inputremapper.injection.consumers.keycode_mapper import active_macros, unreleased
 from inputremapper.injection.global_uinputs import global_uinputs
@@ -600,15 +595,15 @@ def quick_cleanup(log=True):
     if os.path.exists(tmp):
         shutil.rmtree(tmp)
 
-    config.path = os.path.join(get_config_path(), "config.json")
-    config.clear_config()
-    config._save_config()
+    global_config.path = os.path.join(get_config_path(), "config.json")
+    global_config.clear_config()
+    global_config._save_config()
 
     system_mapping.populate()
 
-    custom_mapping.empty()
-    custom_mapping.clear_config()
-    custom_mapping.set_has_unsaved_changes(False)
+    active_preset.empty()
+    active_preset.clear_config()
+    active_preset.set_has_unsaved_changes(False)
 
     clear_write_history()
 

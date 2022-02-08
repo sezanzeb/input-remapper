@@ -29,13 +29,14 @@ import sys
 
 from evdev._ecodes import EV_KEY
 from gi.repository import Gtk, GtkSource, Gdk, GLib, GObject
+from inputremapper.input_event import InputEvent
 
-from inputremapper.data import get_data_path
-from inputremapper.paths import get_config_path
-from inputremapper.system_mapping import system_mapping
-from inputremapper.gui.custom_mapping import custom_mapping
+from inputremapper.configs.data import get_data_path
+from inputremapper.configs.paths import get_config_path
+from inputremapper.configs.system_mapping import system_mapping
+from inputremapper.gui.active_preset import active_preset
 from inputremapper.gui.utils import HandlerDisabled
-from inputremapper.presets import (
+from inputremapper.configs.preset import (
     find_newest_preset,
     get_presets,
     delete_preset,
@@ -53,12 +54,12 @@ from inputremapper.groups import (
     MOUSE,
 )
 from inputremapper.gui.editor.editor import Editor
-from inputremapper.key import Key
+from inputremapper.event_combination import EventCombination
 from inputremapper.gui.reader import reader
 from inputremapper.gui.helper import is_helper_running
 from inputremapper.injection.injector import RUNNING, FAILED, NO_GRAB
 from inputremapper.daemon import Daemon
-from inputremapper.config import config
+from inputremapper.configs.global_config import global_config
 from inputremapper.injection.macros.parse import is_this_a_macro, parse
 from inputremapper.injection.global_uinputs import global_uinputs
 from inputremapper.gui.utils import (
@@ -124,7 +125,7 @@ def on_close_about(about, _):
 
 
 def ensure_everything_saved(func):
-    """Make sure the editor has written its changes to custom_mapping and save."""
+    """Make sure the editor has written its changes to active_preset and save."""
 
     def wrapped(self, *args, **kwargs):
         if self.preset_name:
@@ -136,7 +137,7 @@ def ensure_everything_saved(func):
 
 
 class UserInterface:
-    """The key mapper gtk window."""
+    """The input-remapper gtk window."""
 
     def __init__(self):
         self.dbus = None
@@ -242,7 +243,7 @@ class UserInterface:
 
         if exit_code != 0:
             logger.error("Failed to pkexec the helper, code %d", exit_code)
-            sys.exit()
+            sys.exit(11)
 
     def show_confirm_delete(self):
         """Blocks until the user decided about an action."""
@@ -304,15 +305,15 @@ class UserInterface:
         speed = self.get("joystick_mouse_speed")
 
         with HandlerDisabled(left_purpose, self.on_left_joystick_changed):
-            value = custom_mapping.get("gamepad.joystick.left_purpose")
+            value = active_preset.get("gamepad.joystick.left_purpose")
             left_purpose.set_active_id(value)
 
         with HandlerDisabled(right_purpose, self.on_right_joystick_changed):
-            value = custom_mapping.get("gamepad.joystick.right_purpose")
+            value = active_preset.get("gamepad.joystick.right_purpose")
             right_purpose.set_active_id(value)
 
         with HandlerDisabled(speed, self.on_joystick_mouse_speed_changed):
-            value = custom_mapping.get("gamepad.joystick.pointer_speed")
+            value = active_preset.get("gamepad.joystick.pointer_speed")
             range_value = math.log(value, 2)
             speed.set_value(range_value)
 
@@ -364,15 +365,15 @@ class UserInterface:
     def populate_presets(self):
         """Show the available presets for the selected device.
 
-        This will destroy unsaved changes in the custom_mapping.
+        This will destroy unsaved changes in the active_preset.
         """
         presets = get_presets(self.group.name)
 
         if len(presets) == 0:
             new_preset = get_available_preset_name(self.group.name)
-            custom_mapping.empty()
+            active_preset.empty()
             path = self.group.get_preset_path(new_preset)
-            custom_mapping.save(path)
+            active_preset.save(path)
             presets = [new_preset]
         else:
             logger.debug('"%s" presets: "%s"', self.group.name, '", "'.join(presets))
@@ -389,8 +390,8 @@ class UserInterface:
         # and select the newest one (on the top). triggers on_select_preset
         preset_selection.set_active(0)
 
-    def can_modify_mapping(self, *_) -> bool:
-        """if changing the mapping is possible."""
+    def can_modify_preset(self, *_) -> bool:
+        """if changing the preset is possible."""
         return self.dbus.get_state(self.group.key) != RUNNING
 
     def consume_newest_keycode(self):
@@ -413,7 +414,7 @@ class UserInterface:
 
     @if_group_selected
     def on_restore_defaults_clicked(self, *_):
-        """Stop injecting the mapping."""
+        """Stop injecting the preset."""
         self.dbus.stop_injecting(self.group.key)
         self.show_status(CTX_APPLY, "Applied the system default")
         GLib.timeout_add(100, self.show_device_mapping_status)
@@ -459,12 +460,12 @@ class UserInterface:
     def check_macro_syntax(self):
         """Check if the programmed macros are allright."""
         self.show_status(CTX_MAPPING, None)
-        for key, output in custom_mapping:
+        for key, output in active_preset:
             output = output[0]
             if not is_this_a_macro(output):
                 continue
 
-            error = parse(output, custom_mapping, return_errors=True)
+            error = parse(output, active_preset, return_errors=True)
             if error is None:
                 continue
 
@@ -484,9 +485,9 @@ class UserInterface:
 
         # if the old preset was being autoloaded, change the
         # name there as well
-        is_autoloaded = config.is_autoloaded(self.group.key, self.preset_name)
+        is_autoloaded = global_config.is_autoloaded(self.group.key, self.preset_name)
         if is_autoloaded:
-            config.set_autoload_preset(self.group.key, new_name)
+            global_config.set_autoload_preset(self.group.key, new_name)
 
         self.get("preset_name_input").set_text("")
         self.populate_presets()
@@ -495,10 +496,10 @@ class UserInterface:
     def on_delete_preset_clicked(self, *_):
         """Delete a preset from the file system."""
         accept = Gtk.ResponseType.ACCEPT
-        if len(custom_mapping) > 0 and self.show_confirm_delete() != accept:
+        if len(active_preset) > 0 and self.show_confirm_delete() != accept:
             return
 
-        # avoid having the text of the symbol input leak into the custom_mapping again
+        # avoid having the text of the symbol input leak into the active_preset again
         # via a gazillion hooks, causing the preset to be saved again after deleting.
         self.editor.clear()
 
@@ -511,7 +512,7 @@ class UserInterface:
         """Apply a preset without saving changes."""
         self.save_preset()
 
-        if custom_mapping.num_saved_keys == 0:
+        if active_preset.num_saved_keys == 0:
             logger.error("Cannot apply empty preset file")
             # also helpful for first time use
             self.show_status(CTX_ERROR, "You need to add keys and save first")
@@ -521,7 +522,7 @@ class UserInterface:
         logger.info('Applying preset "%s" for "%s"', preset, self.group.key)
 
         if not self.button_left_warn:
-            if custom_mapping.dangerously_mapped_btn_left():
+            if active_preset.dangerously_mapped_btn_left():
                 self.show_status(
                     CTX_ERROR,
                     "This would disable your click button",
@@ -533,9 +534,11 @@ class UserInterface:
 
         if not self.unreleased_warn:
             unreleased = reader.get_unreleased_keys()
-            if unreleased is not None and unreleased != Key.btn_left():
+            if unreleased is not None and unreleased != EventCombination(
+                InputEvent.btn_left()
+            ):
                 # it's super annoying if that happens and may break the user
-                # input in such a way to prevent disabling the mapping
+                # input in such a way to prevent disabling the preset
                 logger.error(
                     "Tried to apply a preset while keys were held down: %s", unreleased
                 )
@@ -561,7 +564,7 @@ class UserInterface:
         """Load the preset automatically next time the user logs in."""
         key = self.group.key
         preset = self.preset_name
-        config.set_autoload_preset(key, preset if active else None)
+        global_config.set_autoload_preset(key, preset if active else None)
         # tell the service to refresh its config
         self.dbus.set_config_dir(get_config_path())
 
@@ -575,8 +578,6 @@ class UserInterface:
 
         if group_key is None:
             return
-
-        self.editor.clear()
 
         logger.debug('Selecting device "%s"', group_key)
 
@@ -596,7 +597,7 @@ class UserInterface:
         if state == RUNNING:
             msg = f'Applied preset "{self.preset_name}"'
 
-            if custom_mapping.get_mapping(Key.btn_left()):
+            if active_preset.get_mapping(EventCombination(InputEvent.btn_left())):
                 msg += ", CTRL + DEL to stop"
 
             self.show_status(CTX_APPLY, msg)
@@ -653,10 +654,10 @@ class UserInterface:
             else:
                 new_preset = get_available_preset_name(name)
                 self.editor.clear()
-                custom_mapping.empty()
+                active_preset.empty()
 
             path = self.group.get_preset_path(new_preset)
-            custom_mapping.save(path)
+            active_preset.save(path)
             self.get("preset_selection").append(new_preset, new_preset)
             # triggers on_select_preset
             self.get("preset_selection").set_active_id(new_preset)
@@ -682,55 +683,57 @@ class UserInterface:
             return
 
         logger.debug('Selecting preset "%s"', preset)
-        self.editor.clear()
+        self.editor.clear_mapping_list()
         self.preset_name = preset
 
-        custom_mapping.load(self.group.get_preset_path(preset))
+        active_preset.load(self.group.get_preset_path(preset))
 
         self.editor.load_custom_mapping()
 
         autoload_switch = self.get("preset_autoload_switch")
 
         with HandlerDisabled(autoload_switch, self.on_autoload_switch):
-            is_autoloaded = config.is_autoloaded(self.group.key, self.preset_name)
+            is_autoloaded = global_config.is_autoloaded(
+                self.group.key, self.preset_name
+            )
             autoload_switch.set_active(is_autoloaded)
 
         self.get("preset_name_input").set_text("")
 
         self.initialize_gamepad_config()
 
-        custom_mapping.set_has_unsaved_changes(False)
+        active_preset.set_has_unsaved_changes(False)
 
     def on_left_joystick_changed(self, dropdown):
         """Set the purpose of the left joystick."""
         purpose = dropdown.get_active_id()
-        custom_mapping.set("gamepad.joystick.left_purpose", purpose)
+        active_preset.set("gamepad.joystick.left_purpose", purpose)
         self.save_preset()
 
     def on_right_joystick_changed(self, dropdown):
         """Set the purpose of the right joystick."""
         purpose = dropdown.get_active_id()
-        custom_mapping.set("gamepad.joystick.right_purpose", purpose)
+        active_preset.set("gamepad.joystick.right_purpose", purpose)
         self.save_preset()
 
     def on_joystick_mouse_speed_changed(self, gtk_range):
         """Set how fast the joystick moves the mouse."""
         speed = 2 ** gtk_range.get_value()
-        custom_mapping.set("gamepad.joystick.pointer_speed", speed)
+        active_preset.set("gamepad.joystick.pointer_speed", speed)
 
     def save_preset(self, *_):
-        """Write changes in the custom_mapping to disk."""
-        if not custom_mapping.has_unsaved_changes():
+        """Write changes in the active_preset to disk."""
+        if not active_preset.has_unsaved_changes():
             # optimization, and also avoids tons of redundant logs
-            logger.debug("Not saving because mapping did not change")
+            logger.debug("Not saving because preset did not change")
             return
 
         try:
             assert self.preset_name is not None
             path = self.group.get_preset_path(self.preset_name)
-            custom_mapping.save(path)
+            active_preset.save(path)
 
-            # after saving the config, its modification date will be the
+            # after saving the preset, its modification date will be the
             # newest, so populate_presets will automatically select the
             # right one again.
             self.populate_presets()
@@ -739,7 +742,7 @@ class UserInterface:
             self.show_status(CTX_ERROR, "Permission denied!", error)
             logger.error(error)
 
-        for _, mapping in custom_mapping:
+        for _, mapping in active_preset:
             if not mapping:
                 continue
 

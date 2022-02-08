@@ -22,8 +22,8 @@
 import os
 import unittest
 
-from inputremapper.config import config
-from inputremapper.paths import touch
+from inputremapper.configs.global_config import global_config
+from inputremapper.configs.paths import touch
 
 from tests.test import quick_cleanup, tmp
 
@@ -31,93 +31,95 @@ from tests.test import quick_cleanup, tmp
 class TestConfig(unittest.TestCase):
     def tearDown(self):
         quick_cleanup()
-        self.assertEqual(len(config.iterate_autoload_presets()), 0)
+        self.assertEqual(len(global_config.iterate_autoload_presets()), 0)
 
     def test_get_default(self):
-        config._config = {}
-        self.assertEqual(config.get("gamepad.joystick.non_linearity"), 4)
+        global_config._config = {}
+        self.assertEqual(global_config.get("gamepad.joystick.non_linearity"), 4)
 
-        config.set("gamepad.joystick.non_linearity", 3)
-        self.assertEqual(config.get("gamepad.joystick.non_linearity"), 3)
+        global_config.set("gamepad.joystick.non_linearity", 3)
+        self.assertEqual(global_config.get("gamepad.joystick.non_linearity"), 3)
 
     def test_basic(self):
-        self.assertEqual(config.get("a"), None)
+        self.assertEqual(global_config.get("a"), None)
 
-        config.set("a", 1)
-        self.assertEqual(config.get("a"), 1)
+        global_config.set("a", 1)
+        self.assertEqual(global_config.get("a"), 1)
 
-        config.remove("a")
-        config.set("a.b", 2)
-        self.assertEqual(config.get("a.b"), 2)
-        self.assertEqual(config._config["a"]["b"], 2)
+        global_config.remove("a")
+        global_config.set("a.b", 2)
+        self.assertEqual(global_config.get("a.b"), 2)
+        self.assertEqual(global_config._config["a"]["b"], 2)
 
-        config.remove("a.b")
-        config.set("a.b.c", 3)
-        self.assertEqual(config.get("a.b.c"), 3)
-        self.assertEqual(config._config["a"]["b"]["c"], 3)
+        global_config.remove("a.b")
+        global_config.set("a.b.c", 3)
+        self.assertEqual(global_config.get("a.b.c"), 3)
+        self.assertEqual(global_config._config["a"]["b"]["c"], 3)
 
     def test_autoload(self):
-        self.assertEqual(len(config.iterate_autoload_presets()), 0)
-        self.assertFalse(config.is_autoloaded("d1", "a"))
-        self.assertFalse(config.is_autoloaded("d2.foo", "b"))
-        self.assertEqual(config.get(["autoload", "d1"]), None)
-        self.assertEqual(config.get(["autoload", "d2.foo"]), None)
+        self.assertEqual(len(global_config.iterate_autoload_presets()), 0)
+        self.assertFalse(global_config.is_autoloaded("d1", "a"))
+        self.assertFalse(global_config.is_autoloaded("d2.foo", "b"))
+        self.assertEqual(global_config.get(["autoload", "d1"]), None)
+        self.assertEqual(global_config.get(["autoload", "d2.foo"]), None)
 
-        config.set_autoload_preset("d1", "a")
-        self.assertEqual(len(config.iterate_autoload_presets()), 1)
-        self.assertTrue(config.is_autoloaded("d1", "a"))
-        self.assertFalse(config.is_autoloaded("d2.foo", "b"))
+        global_config.set_autoload_preset("d1", "a")
+        self.assertEqual(len(global_config.iterate_autoload_presets()), 1)
+        self.assertTrue(global_config.is_autoloaded("d1", "a"))
+        self.assertFalse(global_config.is_autoloaded("d2.foo", "b"))
 
-        config.set_autoload_preset("d2.foo", "b")
-        self.assertEqual(len(config.iterate_autoload_presets()), 2)
-        self.assertTrue(config.is_autoloaded("d1", "a"))
-        self.assertTrue(config.is_autoloaded("d2.foo", "b"))
-        self.assertEqual(config.get(["autoload", "d1"]), "a")
-        self.assertEqual(config.get("autoload.d1"), "a")
-        self.assertEqual(config.get(["autoload", "d2.foo"]), "b")
+        global_config.set_autoload_preset("d2.foo", "b")
+        self.assertEqual(len(global_config.iterate_autoload_presets()), 2)
+        self.assertTrue(global_config.is_autoloaded("d1", "a"))
+        self.assertTrue(global_config.is_autoloaded("d2.foo", "b"))
+        self.assertEqual(global_config.get(["autoload", "d1"]), "a")
+        self.assertEqual(global_config.get("autoload.d1"), "a")
+        self.assertEqual(global_config.get(["autoload", "d2.foo"]), "b")
 
-        config.set_autoload_preset("d2.foo", "c")
-        self.assertEqual(len(config.iterate_autoload_presets()), 2)
-        self.assertTrue(config.is_autoloaded("d1", "a"))
-        self.assertFalse(config.is_autoloaded("d2.foo", "b"))
-        self.assertTrue(config.is_autoloaded("d2.foo", "c"))
-        self.assertEqual(config._config["autoload"]["d2.foo"], "c")
+        global_config.set_autoload_preset("d2.foo", "c")
+        self.assertEqual(len(global_config.iterate_autoload_presets()), 2)
+        self.assertTrue(global_config.is_autoloaded("d1", "a"))
+        self.assertFalse(global_config.is_autoloaded("d2.foo", "b"))
+        self.assertTrue(global_config.is_autoloaded("d2.foo", "c"))
+        self.assertEqual(global_config._config["autoload"]["d2.foo"], "c")
         self.assertListEqual(
-            list(config.iterate_autoload_presets()),
+            list(global_config.iterate_autoload_presets()),
             [("d1", "a"), ("d2.foo", "c")],
         )
 
-        config.set_autoload_preset("d2.foo", None)
-        self.assertTrue(config.is_autoloaded("d1", "a"))
-        self.assertFalse(config.is_autoloaded("d2.foo", "b"))
-        self.assertFalse(config.is_autoloaded("d2.foo", "c"))
-        self.assertListEqual(list(config.iterate_autoload_presets()), [("d1", "a")])
-        self.assertEqual(config.get(["autoload", "d1"]), "a")
+        global_config.set_autoload_preset("d2.foo", None)
+        self.assertTrue(global_config.is_autoloaded("d1", "a"))
+        self.assertFalse(global_config.is_autoloaded("d2.foo", "b"))
+        self.assertFalse(global_config.is_autoloaded("d2.foo", "c"))
+        self.assertListEqual(
+            list(global_config.iterate_autoload_presets()), [("d1", "a")]
+        )
+        self.assertEqual(global_config.get(["autoload", "d1"]), "a")
 
     def test_initial(self):
         # when loading for the first time, create a config file with
         # the default values
-        os.remove(config.path)
-        self.assertFalse(os.path.exists(config.path))
-        config.load_config()
-        self.assertTrue(os.path.exists(config.path))
+        os.remove(global_config.path)
+        self.assertFalse(os.path.exists(global_config.path))
+        global_config.load_config()
+        self.assertTrue(os.path.exists(global_config.path))
 
-        with open(config.path, "r") as file:
+        with open(global_config.path, "r") as file:
             contents = file.read()
             self.assertIn('"keystroke_sleep_ms": 10', contents)
 
     def test_save_load(self):
-        self.assertEqual(len(config.iterate_autoload_presets()), 0)
+        self.assertEqual(len(global_config.iterate_autoload_presets()), 0)
 
-        config.load_config()
-        self.assertEqual(len(config.iterate_autoload_presets()), 0)
+        global_config.load_config()
+        self.assertEqual(len(global_config.iterate_autoload_presets()), 0)
 
-        config.set_autoload_preset("d1", "a")
-        config.set_autoload_preset("d2.foo", "b")
+        global_config.set_autoload_preset("d1", "a")
+        global_config.set_autoload_preset("d2.foo", "b")
 
-        config.load_config()
+        global_config.load_config()
         self.assertListEqual(
-            list(config.iterate_autoload_presets()),
+            list(global_config.iterate_autoload_presets()),
             [("d1", "a"), ("d2.foo", "b")],
         )
 
@@ -126,9 +128,9 @@ class TestConfig(unittest.TestCase):
         with open(config_2, "w") as f:
             f.write('{"a":"b"}')
 
-        config.load_config(config_2)
-        self.assertEqual(config.get("a"), "b")
-        self.assertEqual(config.get(["a"]), "b")
+        global_config.load_config(config_2)
+        self.assertEqual(global_config.get("a"), "b")
+        self.assertEqual(global_config.get(["a"]), "b")
 
 
 if __name__ == "__main__":

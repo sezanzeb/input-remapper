@@ -79,7 +79,7 @@ def get_data_path(filename=""):
 
         if data is None:
             logger.error("Could not find the application data")
-            sys.exit(1)
+            sys.exit(10)
 
     if not logged:
         logger.debug('Found data at "%s"', data)

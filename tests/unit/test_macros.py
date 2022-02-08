@@ -59,9 +59,9 @@ from inputremapper.injection.macros.parse import (
     remove_comments,
 )
 from inputremapper.injection.context import Context
-from inputremapper.config import config
-from inputremapper.mapping import Mapping
-from inputremapper.system_mapping import system_mapping
+from inputremapper.configs.global_config import global_config
+from inputremapper.configs.preset import Preset
+from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.utils import PRESS, RELEASE
 
 from tests.test import quick_cleanup, new_event
@@ -79,11 +79,11 @@ class MacroTestBase(unittest.IsolatedAsyncioTestCase):
             self.loop = asyncio.new_event_loop()
             asyncio.set_event_loop(self.loop)
 
-        self.context = Context(Mapping())
+        self.context = Context(Preset())
 
     def tearDown(self):
         self.result = []
-        self.context.mapping.clear_config()
+        self.context.preset.clear_config()
         quick_cleanup()
 
     def handler(self, ev_type, code, value):
@@ -652,7 +652,7 @@ class TestMacros(MacroTestBase):
         self.assertSetEqual(macro.get_capabilities()[EV_KEY], {k_code})
 
         await macro.run(self.handler)
-        keystroke_sleep = self.context.mapping.get("macros.keystroke_sleep_ms")
+        keystroke_sleep = self.context.preset.get("macros.keystroke_sleep_ms")
         sleep_time = 2 * repeats * keystroke_sleep / 1000
         self.assertGreater(time.time() - start, sleep_time * 0.9)
         self.assertLess(time.time() - start, sleep_time * 1.2)
@@ -671,7 +671,7 @@ class TestMacros(MacroTestBase):
         self.assertSetEqual(macro.get_capabilities()[EV_KEY], {m_code})
         await macro.run(self.handler)
 
-        keystroke_time = 6 * self.context.mapping.get("macros.keystroke_sleep_ms")
+        keystroke_time = 6 * self.context.preset.get("macros.keystroke_sleep_ms")
         total_time = keystroke_time + 300
         total_time /= 1000
 
@@ -735,7 +735,7 @@ class TestMacros(MacroTestBase):
         await macro.run(self.handler)
 
         num_pauses = 8 + 6 + 4
-        keystroke_time = num_pauses * self.context.mapping.get(
+        keystroke_time = num_pauses * self.context.preset.get(
             "macros.keystroke_sleep_ms"
         )
         wait_time = 220
@@ -757,8 +757,8 @@ class TestMacros(MacroTestBase):
         self.assertListEqual(self.result, [])
 
     async def test_keystroke_sleep_config(self):
-        # global config as fallback
-        config.set("macros.keystroke_sleep_ms", 100)
+        # global_config as fallback
+        global_config.set("macros.keystroke_sleep_ms", 100)
         start = time.time()
         macro = parse("k(a).k(b)", self.context)
         await macro.run(self.handler)
@@ -767,8 +767,8 @@ class TestMacros(MacroTestBase):
         # that doesn't do anything
         self.assertGreater(delta, 0.300)
 
-        # now set the value in the mapping, which is prioritized
-        self.context.mapping.set("macros.keystroke_sleep_ms", 50)
+        # now set the value in the preset, which is prioritized
+        self.context.preset.set("macros.keystroke_sleep_ms", 50)
         start = time.time()
         macro = parse("k(a).k(b)", self.context)
         await macro.run(self.handler)

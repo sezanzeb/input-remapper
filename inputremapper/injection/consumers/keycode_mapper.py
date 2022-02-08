@@ -32,7 +32,7 @@ from evdev.ecodes import EV_KEY, EV_ABS
 import inputremapper.exceptions
 
 from inputremapper.logger import logger
-from inputremapper.system_mapping import DISABLE_CODE
+from inputremapper.configs.system_mapping import DISABLE_CODE
 from inputremapper import utils
 from inputremapper.injection.consumers.consumer import Consumer
 from inputremapper.utils import RELEASE
@@ -219,11 +219,12 @@ class KeycodeMapper(Consumer):
 
         # some type checking, prevents me from forgetting what that stuff
         # is supposed to be when writing tests.
-        for key in self.context.key_to_code:
-            for sub_key in key:
-                if abs(sub_key[2]) > 1:
+        for combination in self.context.key_to_code:
+            for event in combination:
+                if abs(event.value) > 1:
                     raise ValueError(
-                        f"Expected values to be one of -1, 0 or 1, " f"but got {key}"
+                        f"Expected values to be one of -1, 0 or 1, "
+                        f"but got {combination}"
                     )
 
     def is_enabled(self):
@@ -232,7 +233,7 @@ class KeycodeMapper(Consumer):
         return len(self.context.key_to_code) > 0 or len(self.context.macros) > 0
 
     def is_handled(self, event):
-        return utils.should_map_as_btn(event, self.context.mapping, self._gamepad)
+        return utils.should_map_as_btn(event, self.context.preset, self._gamepad)
 
     async def run(self):
         """Provide a debouncer to inject wheel releases."""
@@ -496,7 +497,7 @@ class KeycodeMapper(Consumer):
                 # not finished, especially since gamepad-triggers report a ton
                 # of events with a positive value.
                 logger.debug_key(key, "macro already running")
-                self.context.macros[key].press_trigger()
+                self.context.macros[key][0].press_trigger()
                 return
 
         """starting new macros or injecting new keys"""

@@ -20,18 +20,19 @@
 
 
 """Stores injection-process wide information."""
-
+from typing import Awaitable, List, Dict, Tuple, Protocol, Set
 
 from inputremapper.logger import logger
 from inputremapper.injection.macros.parse import parse, is_this_a_macro
-from inputremapper.system_mapping import system_mapping
-from inputremapper.config import NONE, MOUSE, WHEEL, BUTTONS
+from inputremapper.configs.system_mapping import system_mapping
+from inputremapper.event_combination import EventCombination
+from inputremapper.configs.global_config import NONE, MOUSE, WHEEL, BUTTONS
 
 
 class Context:
     """Stores injection-process wide information.
 
-    In some ways this is a wrapper for the mapping that derives some
+    In some ways this is a wrapper for the preset that derives some
     information that is specifically important to the injection.
 
     The information in the context does not change during the injection.
@@ -48,23 +49,23 @@ class Context:
 
     Members
     -------
-    mapping : Mapping
-        The mapping that is the source of key_to_code and macros,
+    preset : Preset
+        The preset that is the source of key_to_code and macros,
         only used to query config values.
     key_to_code : dict
-        Mapping of ((type, code, value),) to linux-keycode
+        Preset of ((type, code, value),) to linux-keycode
         or multiple of those like ((...), (...), ...) for combinations.
         Combinations need to be present in every possible valid ordering.
         e.g. shift + alt + a and alt + shift + a.
         This is needed to query keycodes more efficiently without having
-        to search mapping each time.
+        to search preset each time.
     macros : dict
-        Mapping of ((type, code, value),) to Macro objects.
+        Preset of ((type, code, value),) to Macro objects.
         Combinations work similar as in key_to_code
     """
 
-    def __init__(self, mapping):
-        self.mapping = mapping
+    def __init__(self, preset):
+        self.preset = preset
 
         # avoid searching through the mapping at runtime,
         # might be a bit expensive
@@ -81,21 +82,21 @@ class Context:
         For efficiency, so that the config doesn't have to be read during
         runtime repeatedly.
         """
-        self.left_purpose = self.mapping.get("gamepad.joystick.left_purpose")
-        self.right_purpose = self.mapping.get("gamepad.joystick.right_purpose")
+        self.left_purpose = self.preset.get("gamepad.joystick.left_purpose")
+        self.right_purpose = self.preset.get("gamepad.joystick.right_purpose")
 
     def _parse_macros(self):
         """To quickly get the target macro during operation."""
         logger.debug("Parsing macros")
         macros = {}
-        for key, output in self.mapping:
+        for combination, output in self.preset:
             if is_this_a_macro(output[0]):
                 macro = parse(output[0], self)
                 if macro is None:
                     continue
 
-                for permutation in key.get_permutations():
-                    macros[permutation.keys] = (macro, output[1])
+                for permutation in combination.get_permutations():
+                    macros[permutation] = (macro, output[1])
 
         if len(macros) == 0:
             logger.debug("No macros configured")
@@ -111,7 +112,7 @@ class Context:
             ((1, 5, 1), (1, 4, 1)): (4, "gamepad")
         """
         key_to_code = {}
-        for key, output in self.mapping:
+        for combination, output in self.preset:
             if is_this_a_macro(output[0]):
                 continue
 
@@ -120,27 +121,27 @@ class Context:
                 logger.error('Don\'t know what "%s" is', output[0])
                 continue
 
-            for permutation in key.get_permutations():
-                if permutation.keys[-1][-1] not in [-1, 1]:
+            for permutation in combination.get_permutations():
+                if permutation[-1].value not in [-1, 1]:
                     logger.error(
                         "Expected values to be -1 or 1 at this point: %s",
-                        permutation.keys,
+                        permutation,
                     )
-                key_to_code[permutation.keys] = (target_code, output[1])
+                key_to_code[permutation] = (target_code, output[1])
 
         return key_to_code
 
-    def is_mapped(self, key):
-        """Check if this key is used for macros or mappings.
+    def is_mapped(self, combination):
+        """Check if this combination is used for macros or mappings.
 
         Parameters
         ----------
-        key : tuple of tuple of int
+        combination : tuple of tuple of int
             One or more 3-tuples of type, code, action,
             for example ((EV_KEY, KEY_A, 1), (EV_ABS, ABS_X, -1))
             or ((EV_KEY, KEY_B, 1),)
         """
-        return key in self.macros or key in self.key_to_code
+        return combination in self.macros or combination in self.key_to_code
 
     def maps_joystick(self):
         """If at least one of the joysticks will serve a special purpose."""

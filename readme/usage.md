@@ -10,11 +10,10 @@ You can also start it via `input-remapper-gtk`.
   <img src="usage_2.png"/>
 </p>
 
-Hitting a key on the device that is selected in the large dropdown on the top
-should display the key on the bottom of the window, and write it into the selected
-row (as shown in the screenshots).
+First, select your device (like your keyboard) from the large dropdown on the top.
+Then you can already edit your keys, as shown in the screenshots.
 
-In "Mapping", type the key to which you would like to map this key. More information
+u would like to map this key. More information about the possible mappings
 can be found [below](#key-names-and-macros).
 
 Changes are saved automatically. Afterwards press the "Apply" button.

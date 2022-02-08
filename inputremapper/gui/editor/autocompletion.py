@@ -27,7 +27,7 @@ import re
 from gi.repository import Gdk, Gtk, GLib, GObject
 from evdev.ecodes import EV_KEY
 
-from inputremapper.system_mapping import system_mapping
+from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.injection.macros.parse import (
     FUNCTIONS,
     get_macro_argument_names,

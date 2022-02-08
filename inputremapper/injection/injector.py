@@ -19,21 +19,29 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
-"""Keeps injecting keycodes in the background based on the mapping."""
+"""Keeps injecting keycodes in the background based on the preset."""
 
-
+import os
 import asyncio
 import time
 import multiprocessing
 
 import evdev
 
+from typing import Dict, List, Optional
+
+from inputremapper.configs.preset import Preset
+
 from inputremapper.logger import logger
-from inputremapper.groups import classify, GAMEPAD
+from inputremapper.groups import classify, GAMEPAD, _Group
 from inputremapper.injection.context import Context
 from inputremapper.injection.numlock import set_numlock, is_numlock_on, ensure_numlock
 from inputremapper.injection.consumer_control import ConsumerControl
+from inputremapper.event_combination import EventCombination
 
+
+CapabilitiesDict = Dict[int, List[int]]
+GroupSources = List[evdev.InputDevice]
 
 DEV_NAME = "input-remapper"
 
@@ -52,21 +60,18 @@ STOPPED = 5
 NO_GRAB = 6
 
 
-def is_in_capabilities(key, capabilities):
-    """Are this key or one of its sub keys in the capabilities?
-
-    Parameters
-    ----------
-    key : Key
-    """
-    for sub_key in key:
-        if sub_key[1] in capabilities.get(sub_key[0], []):
+def is_in_capabilities(
+    combination: EventCombination, capabilities: CapabilitiesDict
+) -> bool:
+    """Are this combination or one of its sub keys in the capabilities?"""
+    for event in combination:
+        if event.code in capabilities.get(event.type, []):
             return True
 
     return False
 
 
-def get_udev_name(name, suffix):
+def get_udev_name(name: str, suffix: str) -> str:
     """Make sure the generated name is not longer than 80 chars."""
     max_len = 80  # based on error messages
     remaining_len = max_len - len(DEV_NAME) - len(suffix) - 2
@@ -83,16 +88,23 @@ class Injector(multiprocessing.Process):
     hardware-device that is being mapped.
     """
 
+    group: _Group
+    preset: Preset
+    context: Optional[Context]
+    _state: int
+    _msg_pipe: multiprocessing.Pipe
+    _consumer_controls: List[ConsumerControl]
+
     regrab_timeout = 0.2
 
-    def __init__(self, group, mapping):
+    def __init__(self, group: _Group, preset: Preset) -> None:
         """
 
         Parameters
         ----------
         group : _Group
             the device group
-        mapping : Mapping
+        preset : Preset
         """
         self.group = group
         self._state = UNKNOWN
@@ -101,7 +113,7 @@ class Injector(multiprocessing.Process):
         # the new process
         self._msg_pipe = multiprocessing.Pipe()
 
-        self.mapping = mapping
+        self.preset = preset
         self.context = None  # only needed inside the injection process
 
         self._consumer_controls = []
@@ -110,7 +122,7 @@ class Injector(multiprocessing.Process):
 
     """Functions to interact with the running process"""
 
-    def get_state(self):
+    def get_state(self) -> int:
         """Get the state of the injection.
 
         Can be safely called from the main process.
@@ -142,7 +154,7 @@ class Injector(multiprocessing.Process):
         return self._state
 
     @ensure_numlock
-    def stop_injecting(self):
+    def stop_injecting(self) -> None:
         """Stop injecting keycodes.
 
         Can be safely called from the main procss.
@@ -153,20 +165,20 @@ class Injector(multiprocessing.Process):
 
     """Process internal stuff"""
 
-    def _grab_devices(self):
+    def _grab_devices(self) -> GroupSources:
         """Grab all devices that are needed for the injection."""
         sources = []
         for path in self.group.paths:
             source = self._grab_device(path)
             if source is None:
                 # this path doesn't need to be grabbed for injection, because
-                # it doesn't provide the events needed to execute the mapping
+                # it doesn't provide the events needed to execute the preset
                 continue
             sources.append(source)
 
         return sources
 
-    def _grab_device(self, path):
+    def _grab_device(self, path: os.PathLike) -> Optional[evdev.InputDevice]:
         """Try to grab the device, return None if not needed/possible.
 
         Without grab, original events from it would reach the display server
@@ -181,7 +193,7 @@ class Injector(multiprocessing.Process):
         capabilities = device.capabilities(absinfo=False)
 
         needed = False
-        for key, _ in self.context.mapping:
+        for key, _ in self.context.preset:
             if is_in_capabilities(key, capabilities):
                 logger.debug('Grabbing "%s" because of "%s"', path, key)
                 needed = True
@@ -221,7 +233,7 @@ class Injector(multiprocessing.Process):
 
         return device
 
-    def _copy_capabilities(self, input_device):
+    def _copy_capabilities(self, input_device: evdev.InputDevice) -> CapabilitiesDict:
         """Copy capabilities for a new device."""
         ecodes = evdev.ecodes
 
@@ -243,7 +255,7 @@ class Injector(multiprocessing.Process):
 
         return capabilities
 
-    async def _msg_listener(self):
+    async def _msg_listener(self) -> None:
         """Wait for messages from the main process to do special stuff."""
         loop = asyncio.get_event_loop()
         while True:
@@ -259,7 +271,7 @@ class Injector(multiprocessing.Process):
                 loop.stop()
                 return
 
-    def run(self):
+    def run(self) -> None:
         """The injection worker that keeps injecting until terminated.
 
         Stuff is non-blocking by using asyncio in order to do multiple things
@@ -286,7 +298,7 @@ class Injector(multiprocessing.Process):
         #     called.
         #   - benefit: writing macros that listen for events from other devices
 
-        logger.info('Starting injecting the mapping for "%s"', self.group.key)
+        logger.info('Starting injecting the preset for "%s"', self.group.key)
 
         # create a new event loop, because somehow running an infinite loop
         # that sleeps on iterations (joystick_to_mouse) in one process causes
@@ -297,7 +309,7 @@ class Injector(multiprocessing.Process):
 
         # create this within the process after the event loop creation,
         # so that the macros use the correct loop
-        self.context = Context(self.mapping)
+        self.context = Context(self.preset)
 
         # grab devices as early as possible. If events appear that won't get
         # released anymore before the grab they appear to be held down
@@ -342,9 +354,11 @@ class Injector(multiprocessing.Process):
 
         try:
             loop.run_until_complete(asyncio.gather(*coroutines))
-        except RuntimeError:
-            # stopped event loop most likely
-            pass
+        except RuntimeError as error:
+            # the loop might have been stopped via a `CLOSE` message,
+            # which causes the error message below. This is expected behavior
+            if str(error) != "Event loop stopped before Future completed.":
+                raise error
         except OSError as error:
             logger.error("Failed to run injector coroutines: %s", str(error))
 

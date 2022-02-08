@@ -25,7 +25,7 @@ import unittest
 import logging
 
 from inputremapper.logger import logger, add_filehandler, update_verbosity, log_info
-from inputremapper.paths import remove
+from inputremapper.configs.paths import remove
 
 from tests.test import tmp
 
