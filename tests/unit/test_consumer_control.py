@@ -131,7 +131,7 @@ class TestConsumerControl(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn((EV_KEY, code_shift, 1), history)
         self.assertNotIn((EV_KEY, code_shift, 0), history)
 
-    async def test_if_single_joystick_else(self):
+    async def test_if_single_joystickelse_(self):
         """triggers else + delayed_handle_keycode"""
         # Integration test style for if_single.
         # If a joystick that is mapped to a button is moved, if_single stops

@@ -43,14 +43,6 @@ def is_this_a_macro(output):
 
 
 FUNCTIONS = {
-    # shorthands for common functions because the space to type is so constrained
-    "m": Macro.add_modify,
-    "r": Macro.add_repeat,
-    "k": Macro.add_key,
-    "e": Macro.add_event,
-    "w": Macro.add_wait,
-    "h": Macro.add_hold,
-    # add proper full function names for all other future macros
     "modify": Macro.add_modify,
     "repeat": Macro.add_repeat,
     "key": Macro.add_key,
@@ -59,18 +51,32 @@ FUNCTIONS = {
     "hold": Macro.add_hold,
     "mouse": Macro.add_mouse,
     "wheel": Macro.add_wheel,
-    "ifeq": Macro.add_ifeq,  # kept for compatibility with existing old macros
     "if_eq": Macro.add_if_eq,
     "set": Macro.add_set,
     "if_tap": Macro.add_if_tap,
     "if_single": Macro.add_if_single,
+    # Those are only kept for backwards compatibility with old macros. The space for
+    # writing macro was very constrained in the past, so shorthands were introduced:
+    "m": Macro.add_modify,
+    "r": Macro.add_repeat,
+    "k": Macro.add_key,
+    "e": Macro.add_event,
+    "w": Macro.add_wait,
+    "h": Macro.add_hold,
+    # It was not possible to adjust ifeq to support variables without breaking old
+    # macros, so this function is deprecated and if_eq introduced. Kept for backwards
+    # compatibility:
+    "ifeq": Macro.add_ifeq,
 }
 
 
 def use_safe_argument_names(keyword_args):
-    """Certain names cannot be used internally as parameters, Add _ in front of them.
+    """Certain names cannot be used internally as parameters, Add a trailing "_".
 
-    For example the macro `if_eq(1, 1, else=k(b))` uses the _else parameter of
+    This is the PEP 8 compliant way of avoiding conflicts with built-ins:
+    https://www.python.org/dev/peps/pep-0008/#descriptive-naming-styles
+
+    For example the macro `if_eq(1, 1, else=k(b))` uses the else_ parameter of
     `def add_if_eq` to work.
     """
     # extend this list with parameter names that cannot be used in python, but should
@@ -79,20 +85,18 @@ def use_safe_argument_names(keyword_args):
 
     for built_in in built_ins:
         if keyword_args.get(built_in) is not None:
-            keyword_args[f"_{built_in}"] = keyword_args[built_in]
+            keyword_args[f"{built_in}_"] = keyword_args[built_in]
             del keyword_args[built_in]
 
 
 def get_macro_argument_names(function):
     """Certain names, like "else" or "type" cannot be used as parameters in python.
 
-    Removes the "_" in from of them for displaying them correctly.
+    Removes the trailing "_" for displaying them correctly.
     """
     # don't include "self"
-    return [
-        name[1:] if name.startswith("_") else name
-        for name in inspect.getfullargspec(function).args[1:]
-    ]
+    args = inspect.getfullargspec(function).args[1:]
+    return [name[:-1] if name.endswith("_") else name for name in args]
 
 
 def get_num_parameters(function):

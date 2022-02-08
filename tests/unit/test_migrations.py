@@ -192,10 +192,12 @@ class TestMigrations(unittest.TestCase):
         self.assertEqual(loaded.num_saved_keys, 6)
 
         self.assertEqual(
-            loaded.get_mapping(EventCombination([EV_KEY, 1, 1])), ("a", "keyboard")
+            loaded.get_mapping(EventCombination([EV_KEY, 1, 1])),
+            ("a", "keyboard"),
         )
         self.assertEqual(
-            loaded.get_mapping(EventCombination([EV_KEY, 2, 1])), ("BTN_B", "gamepad")
+            loaded.get_mapping(EventCombination([EV_KEY, 2, 1])),
+            ("BTN_B", "gamepad"),
         )
         self.assertEqual(
             loaded.get_mapping(EventCombination([EV_KEY, 3, 1])),
@@ -205,7 +207,8 @@ class TestMigrations(unittest.TestCase):
             ),
         )
         self.assertEqual(
-            loaded.get_mapping(EventCombination([EV_KEY, 4, 1])), ("a", "foo")
+            loaded.get_mapping(EventCombination([EV_KEY, 4, 1])),
+            ("a", "foo"),
         )
         self.assertEqual(
             loaded.get_mapping(EventCombination([EV_ABS, ABS_HAT0X, -1])),
@@ -216,6 +219,49 @@ class TestMigrations(unittest.TestCase):
                 EventCombination((EV_ABS, 1, 1), (EV_ABS, 2, -1), (EV_ABS, 3, 1))
             ),
             ("c", "keyboard"),
+        )
+
+    def test_migrate_otherwise(self):
+        path = os.path.join(tmp, "presets", "Foo Device", "test.json")
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w") as file:
+            json.dump(
+                {
+                    "mapping": {
+                        f"{EV_KEY},1,1": ("otherwise + otherwise", "keyboard"),
+                        f"{EV_KEY},2,1": ("bar($otherwise)", "keyboard"),
+                        f"{EV_KEY},3,1": ("foo(otherwise=qux)", "keyboard"),
+                        f"{EV_KEY},4,1": ("qux(otherwise).bar(otherwise = 1)", "foo"),
+                        f"{EV_KEY},5,1": ("foo(otherwise1=2qux)", "keyboard"),
+                    }
+                },
+                file,
+            )
+
+        migrate()
+
+        loaded = Preset()
+        loaded.load(get_preset_path("Foo Device", "test"))
+
+        self.assertEqual(
+            loaded.get_mapping(EventCombination([EV_KEY, 1, 1])),
+            ("otherwise + otherwise", "keyboard"),
+        )
+        self.assertEqual(
+            loaded.get_mapping(EventCombination([EV_KEY, 2, 1])),
+            ("bar($otherwise)", "keyboard"),
+        )
+        self.assertEqual(
+            loaded.get_mapping(EventCombination([EV_KEY, 3, 1])),
+            ("foo(else=qux)", "keyboard"),
+        )
+        self.assertEqual(
+            loaded.get_mapping(EventCombination([EV_KEY, 4, 1])),
+            ("qux(otherwise).bar(else=1)", "foo"),
+        )
+        self.assertEqual(
+            loaded.get_mapping(EventCombination([EV_KEY, 5, 1])),
+            ("foo(otherwise1=2qux)", "keyboard"),
         )
 
     def test_add_version(self):
@@ -240,12 +286,14 @@ class TestMigrations(unittest.TestCase):
         path = os.path.join(CONFIG_PATH, "config.json")
         with open(path, "w") as file:
             file.write("{}")
+
         self.assertEqual("0.0.0", config_version().public)
 
         try:
             os.remove(path)
         except FileNotFoundError:
             pass
+
         self.assertEqual("0.0.0", config_version().public)
 
 
