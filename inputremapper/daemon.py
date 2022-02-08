@@ -417,6 +417,8 @@ class Daemon:
         preset : string
             The name of the preset
         """
+        # lazyload global_uinputs to avoid issues when they are created too early,
+        # see github.com/sezanzeb/input-remapper/issues/185
         global_uinputs.prepare()
 
         self.refresh(group_key)
