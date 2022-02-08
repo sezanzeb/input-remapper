@@ -87,6 +87,10 @@ class GlobalUInputs:
 
         This has to be done in the main process before injections start.
         """
+        if len(self.devices) != 0:
+            logger.debug(f"Skipping redundant call to prepare")
+            return
+
         if inputremapper.utils.is_service():
             self._uinput_factory = UInput
         else:
@@ -95,6 +99,7 @@ class GlobalUInputs:
         for name, events in DEFAULT_UINPUTS.items():
             if name in self.devices.keys():
                 continue
+
             self.devices[name] = self._uinput_factory(
                 name=f"{DEV_NAME} {name}",
                 phys=DEV_NAME,
