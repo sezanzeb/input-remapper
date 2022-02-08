@@ -40,6 +40,9 @@ from inputremapper.injection.macros.parse import parse, is_this_a_macro
 
 def all_presets():
     """Get all presets for all groups as list."""
+    if not os.path.exists(get_preset_path()):
+        return []
+
     preset_path = Path(get_preset_path())
     presets = []
     for folder in preset_path.iterdir():
@@ -47,8 +50,17 @@ def all_presets():
             continue
 
         for preset in folder.iterdir():
-            if preset.suffix == ".json":
-                presets.append(preset)
+            if preset.suffix != ".json":
+                continue
+
+            try:
+                with open(preset, "r") as f:
+                    preset_dict = json.load(f)
+                    yield preset, preset_dict
+            except json.decoder.JSONDecodeError:
+                logger.warning('Invalid json format in preset "%s"', preset)
+                continue
+
     return presets
 
 
@@ -104,15 +116,7 @@ def _mapping_keys():
 
     Update all keys in preset to include value e.g.: "1,5"->"1,5,1"
     """
-    if not os.path.exists(get_preset_path()):
-        return  # don't execute if there are no presets
-    for preset in all_presets():
-        try:
-            with open(preset, "r") as f:
-                preset_dict = json.load(f)
-        except json.decoder.JSONDecodeError:
-            continue
-
+    for preset, preset_dict in all_presets():
         if "mapping" in preset_dict.keys():
             mapping = copy.deepcopy(preset_dict["mapping"])
             for key in mapping.keys():
@@ -168,17 +172,7 @@ def _find_target(symbol):
 
 def _add_target():
     """add the target field to each preset mapping"""
-    if not os.path.exists(get_preset_path()):
-        return  # don't execute if there are no presets
-
-    for preset in all_presets():
-        try:
-            with open(preset, "r") as f:
-                preset_dict = json.load(f)
-        except json.decoder.JSONDecodeError:
-            logger.info(f"invalid preset{preset}")
-            continue
-
+    for preset, preset_dict in all_presets():
         if "mapping" not in preset_dict.keys():
             continue
 
@@ -193,9 +187,43 @@ def _add_target():
                 symbol = f"{symbol}\n# Broken mapping:\n# No target can handle all specified keycodes"
 
             logger.info(
-                "In preset '%s' setting '%s' as target for '%s'", preset, target, symbol
+                'Changing target of mapping for "%s" in preset "%s" to "%s"',
+                key,
+                preset,
+                target,
             )
             symbol = [symbol, target]
+            preset_dict["mapping"][key] = symbol
+            changed = True
+
+        if not changed:
+            continue
+
+        with open(preset, "w") as file:
+            json.dump(preset_dict, file, indent=4)
+            file.write("\n")
+
+
+def _otherwise_to_else():
+    """Conditional macros should use an "else" parameter instead of "otherwise"."""
+    for preset, preset_dict in all_presets():
+        if "mapping" not in preset_dict.keys():
+            continue
+
+        changed = False
+        for key, symbol in preset_dict["mapping"].copy().items():
+            if not is_this_a_macro(symbol):
+                continue
+
+            symbol[1] = symbol[1].replace("otherwise", "else")
+
+            logger.info(
+                'Changing mapping for "%s" in preset "%s" to "%s"',
+                key,
+                preset,
+                symbol[1],
+            )
+
             preset_dict["mapping"][key] = symbol
             changed = True
 
@@ -223,6 +251,9 @@ def migrate():
     if v < pkg_resources.parse_version("1.4.0"):
         global_uinputs.prepare()
         _add_target()
+
+    if v < pkg_resources.parse_version("1.5.0"):
+        _otherwise_to_else()
 
     # add new migrations here
 

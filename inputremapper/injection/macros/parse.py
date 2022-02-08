@@ -68,9 +68,12 @@ FUNCTIONS = {
 
 
 def use_safe_argument_names(keyword_args):
-    """Certain names cannot be used internally as parameters, Add _ in front of them.
+    """Certain names cannot be used internally as parameters, Add a trailing _.
 
-    For example the macro `if_eq(1, 1, else=k(b))` uses the _else parameter of
+    This is the PEP 8 compliant way of avoiding conflicts with built-ins:
+    https://www.python.org/dev/peps/pep-0008/#descriptive-naming-styles
+
+    For example the macro `if_eq(1, 1, else=k(b))` uses the else_ parameter of
     `def add_if_eq` to work.
     """
     # extend this list with parameter names that cannot be used in python, but should
@@ -79,18 +82,18 @@ def use_safe_argument_names(keyword_args):
 
     for built_in in built_ins:
         if keyword_args.get(built_in) is not None:
-            keyword_args[f"_{built_in}"] = keyword_args[built_in]
+            keyword_args[f"{built_in}_"] = keyword_args[built_in]
             del keyword_args[built_in]
 
 
 def get_macro_argument_names(function):
     """Certain names, like "else" or "type" cannot be used as parameters in python.
 
-    Removes the "_" in from of them for displaying them correctly.
+    Removes the trailing "_" for displaying them correctly.
     """
     # don't include "self"
     return [
-        name[1:] if name.startswith("_") else name
+        name[1:] if name.endswith("_") else name
         for name in inspect.getfullargspec(function).args[1:]
     ]
 

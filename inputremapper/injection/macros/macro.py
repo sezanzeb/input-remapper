@@ -534,7 +534,7 @@ class Macro:
 
         self.tasks.append(task)
 
-    def add_ifeq(self, variable, value, then=None, otherwise=None):
+    def add_ifeq(self, variable, value, then=None, else_=None):
         """Old version of if_eq, kept for compatibility reasons.
 
         This can't support a comparison like ifeq("foo", $blub) with blub containing
@@ -542,7 +542,7 @@ class Macro:
         variable name.
         """
         _type_check(then, [Macro, None], "ifeq", 3)
-        _type_check(otherwise, [Macro, None], "ifeq", 4)
+        _type_check(else_, [Macro, None], "ifeq", 4)
 
         async def task(handler):
             set_value = macro_variables.get(variable)
@@ -550,20 +550,20 @@ class Macro:
             if set_value == value:
                 if then is not None:
                     await then.run(handler)
-            elif otherwise is not None:
-                await otherwise.run(handler)
+            elif else_ is not None:
+                await else_.run(handler)
 
         if isinstance(then, Macro):
             self.child_macros.append(then)
-        if isinstance(otherwise, Macro):
-            self.child_macros.append(otherwise)
+        if isinstance(else_, Macro):
+            self.child_macros.append(else_)
 
         self.tasks.append(task)
 
-    def add_if_eq(self, value_1, value_2, then=None, _else=None):
+    def add_if_eq(self, value_1, value_2, then=None, else_=None):
         """Compare two values."""
         _type_check(then, [Macro, None], "if_eq", 3)
-        _type_check(_else, [Macro, None], "if_eq", 4)
+        _type_check(else_, [Macro, None], "if_eq", 4)
 
         async def task(handler):
             resolved_value_1 = _resolve(value_1)
@@ -571,17 +571,17 @@ class Macro:
             if resolved_value_1 == resolved_value_2:
                 if then is not None:
                     await then.run(handler)
-            elif _else is not None:
-                await _else.run(handler)
+            elif else_ is not None:
+                await else_.run(handler)
 
         if isinstance(then, Macro):
             self.child_macros.append(then)
-        if isinstance(_else, Macro):
-            self.child_macros.append(_else)
+        if isinstance(else_, Macro):
+            self.child_macros.append(else_)
 
         self.tasks.append(task)
 
-    def add_if_tap(self, then=None, _else=None, timeout=300):
+    def add_if_tap(self, then=None, else_=None, timeout=300):
         """If a key was pressed quickly.
 
         macro key pressed -> if_tap starts -> key released -> then
@@ -590,13 +590,13 @@ class Macro:
         -> if_tap starts -> pressed -> released -> then
         """
         _type_check(then, [Macro, None], "if_tap", 1)
-        _type_check(_else, [Macro, None], "if_tap", 2)
+        _type_check(else_, [Macro, None], "if_tap", 2)
         timeout = _type_check(timeout, [int, float], "if_tap", 3)
 
         if isinstance(then, Macro):
             self.child_macros.append(then)
-        if isinstance(_else, Macro):
-            self.child_macros.append(_else)
+        if isinstance(else_, Macro):
+            self.child_macros.append(else_)
 
         async def wait():
             """Wait for a release, or if nothing pressed yet, a press and release."""
@@ -613,20 +613,20 @@ class Macro:
                 if then:
                     await then.run(handler)
             except asyncio.TimeoutError:
-                if _else:
-                    await _else.run(handler)
+                if else_:
+                    await else_.run(handler)
 
         self.tasks.append(task)
 
-    def add_if_single(self, then, otherwise, timeout=None):
+    def add_if_single(self, then, else_, timeout=None):
         """If a key was pressed without combining it."""
         _type_check(then, [Macro, None], "if_single", 1)
-        _type_check(otherwise, [Macro, None], "if_single", 2)
+        _type_check(else_, [Macro, None], "if_single", 2)
 
         if isinstance(then, Macro):
             self.child_macros.append(then)
-        if isinstance(otherwise, Macro):
-            self.child_macros.append(otherwise)
+        if isinstance(else_, Macro):
+            self.child_macros.append(else_)
 
         async def task(handler):
             triggering_event = (self._newest_event.type, self._newest_event.code)
@@ -662,7 +662,7 @@ class Macro:
             except asyncio.TimeoutError:
                 pass
 
-            if otherwise:
-                await otherwise.run(handler)
+            if else_:
+                await else_.run(handler)
 
         self.tasks.append(task)
