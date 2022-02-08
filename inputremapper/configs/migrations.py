@@ -22,6 +22,7 @@
 """Migration functions"""
 
 import os
+import re
 import json
 import copy
 import shutil
@@ -212,16 +213,16 @@ def _otherwise_to_else():
 
         changed = False
         for key, symbol in preset_dict["mapping"].copy().items():
-            if not is_this_a_macro(symbol):
+            if not is_this_a_macro(symbol[0]):
                 continue
 
-            symbol[1] = symbol[1].replace("otherwise", "else")
+            symbol[0] = re.sub(r"otherwise\s*=\s*", "else=", symbol[0])
 
             logger.info(
                 'Changing mapping for "%s" in preset "%s" to "%s"',
                 key,
                 preset,
-                symbol[1],
+                symbol[0],
             )
 
             preset_dict["mapping"][key] = symbol

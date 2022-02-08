@@ -432,39 +432,39 @@ class Macro:
 
         self.tasks.append(task)
 
-    def add_event(self, _type, code, value):
+    def add_event(self, type_, code, value):
         """Write any event.
 
         Parameters
         ----------
-        _type: str or int
+        type_: str or int
             examples: 2, 'EV_KEY'
         code : int or int
             examples: 52, 'KEY_A'
         value : int
         """
-        _type = _type_check(_type, [int, str], "e (event)", 1)
+        type_ = _type_check(type_, [int, str], "e (event)", 1)
         code = _type_check(code, [int, str], "e (event)", 2)
         value = _type_check(value, [int, str], "e (event)", 3)
 
-        if isinstance(_type, str):
-            _type = ecodes[_type.upper()]
+        if isinstance(type_, str):
+            type_ = ecodes[type_.upper()]
         if isinstance(code, str):
             code = ecodes[code.upper()]
 
-        if _type not in self.capabilities:
-            self.capabilities[_type] = set()
+        if type_ not in self.capabilities:
+            self.capabilities[type_] = set()
 
-        if _type == EV_REL:
+        if type_ == EV_REL:
             # add all capabilities that are required for the display server
             # to recognize the device as mouse
             self.capabilities[EV_REL].add(REL_X)
             self.capabilities[EV_REL].add(REL_Y)
             self.capabilities[EV_REL].add(REL_WHEEL)
 
-        self.capabilities[_type].add(code)
+        self.capabilities[type_].add(code)
 
-        self.tasks.append(lambda handler: handler(_type, code, value))
+        self.tasks.append(lambda handler: handler(type_, code, value))
         self.tasks.append(self._keycode_pause)
 
     def add_mouse(self, direction, speed):

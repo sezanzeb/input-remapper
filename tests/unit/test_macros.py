@@ -1138,7 +1138,7 @@ class TestIfSingle(MacroTestBase):
     async def test_if_single_ignores_releases(self):
         # the timeout won't break the macro, everything happens well within that
         # timeframe.
-        macro = parse("if_single(k(x), k(y), timeout=100000)", self.context)
+        macro = parse("if_single(k(x), else=k(y), timeout=100000)", self.context)
         self.assertEqual(len(macro.child_macros), 2)
 
         a = system_mapping.get("a")
@@ -1171,7 +1171,7 @@ class TestIfSingle(MacroTestBase):
         # Will run the `else` macro if another key is pressed.
         # Also works if if_single is a child macro, i.e. the event is passed to it
         # from the outside macro correctly.
-        macro = parse("r(1, if_single(k(x), k(y)))", self.context)
+        macro = parse("r(1, if_single(then=k(x), else=k(y)))", self.context)
         self.assertEqual(len(macro.child_macros), 1)
         self.assertEqual(len(macro.child_macros[0].child_macros), 2)
 
