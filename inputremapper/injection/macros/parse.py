@@ -71,7 +71,7 @@ FUNCTIONS = {
 
 
 def use_safe_argument_names(keyword_args):
-    """Certain names cannot be used internally as parameters, Add a trailing _.
+    """Certain names cannot be used internally as parameters, Add a trailing "_".
 
     This is the PEP 8 compliant way of avoiding conflicts with built-ins:
     https://www.python.org/dev/peps/pep-0008/#descriptive-naming-styles
