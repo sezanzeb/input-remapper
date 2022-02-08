@@ -43,14 +43,6 @@ def is_this_a_macro(output):
 
 
 FUNCTIONS = {
-    # shorthands for common functions because the space to type is so constrained
-    "m": Macro.add_modify,
-    "r": Macro.add_repeat,
-    "k": Macro.add_key,
-    "e": Macro.add_event,
-    "w": Macro.add_wait,
-    "h": Macro.add_hold,
-    # add proper full function names for all other future macros
     "modify": Macro.add_modify,
     "repeat": Macro.add_repeat,
     "key": Macro.add_key,
@@ -59,11 +51,22 @@ FUNCTIONS = {
     "hold": Macro.add_hold,
     "mouse": Macro.add_mouse,
     "wheel": Macro.add_wheel,
-    "ifeq": Macro.add_ifeq,  # kept for compatibility with existing old macros
     "if_eq": Macro.add_if_eq,
     "set": Macro.add_set,
     "if_tap": Macro.add_if_tap,
     "if_single": Macro.add_if_single,
+    # Those are only kept for backwards compatibility with old macros. The space for
+    # writing macro was very constrained in the past, so shorthands were introduced:
+    "m": Macro.add_modify,
+    "r": Macro.add_repeat,
+    "k": Macro.add_key,
+    "e": Macro.add_event,
+    "w": Macro.add_wait,
+    "h": Macro.add_hold,
+    # It was not possible to adjust ifeq to support variables without breaking old
+    # macros, so this function is deprecated and if_eq introduced. Kept for backwards
+    # compatibility:
+    "ifeq": Macro.add_ifeq,
 }
 
 
