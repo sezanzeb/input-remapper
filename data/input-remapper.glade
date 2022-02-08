@@ -295,6 +295,8 @@ Gives your keys back their original function</property>
             <property name="can-focus">False</property>
             <property name="margin-start">4</property>
             <property name="margin-end">4</property>
+            <property name="margin-top">18</property>
+            <property name="margin-bottom">18</property>
             <property name="spacing">4</property>
             <child>
               <!-- n-columns=2 n-rows=2 -->
@@ -397,8 +399,9 @@ Gives your keys back their original function</property>
               <object class="GtkGrid">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
+                <property name="margin-start">18</property>
                 <property name="row-spacing">4</property>
-                <property name="column-spacing">4</property>
+                <property name="column-spacing">27</property>
                 <child>
                   <object class="GtkButton" id="delete_preset">
                     <property name="label" translatable="yes">Delete</property>
@@ -452,33 +455,6 @@ Gives your keys back their original function</property>
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkLabel">
-                    <property name="visible">True</property>
-                    <property name="can-focus">False</property>
-                    <property name="halign">center</property>
-                    <property name="valign">center</property>
-                    <property name="label" translatable="yes">Autoload:</property>
-                    <property name="xalign">0</property>
-                  </object>
-                  <packing>
-                    <property name="left-attach">0</property>
-                    <property name="top-attach">1</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkSwitch" id="preset_autoload_switch">
-                    <property name="visible">True</property>
-                    <property name="can-focus">True</property>
-                    <property name="halign">center</property>
-                    <property name="valign">center</property>
-                    <signal name="state-set" handler="on_autoload_switch" swapped="no"/>
-                  </object>
-                  <packing>
-                    <property name="left-attach">1</property>
-                    <property name="top-attach">1</property>
-                  </packing>
-                </child>
-                <child>
                   <object class="GtkButton" id="apply_preset">
                     <property name="label" translatable="yes">Apply</property>
                     <property name="visible">True</property>
@@ -492,6 +468,33 @@ Gives your keys back their original function</property>
                   </object>
                   <packing>
                     <property name="left-attach">2</property>
+                    <property name="top-attach">1</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkSwitch" id="preset_autoload_switch">
+                    <property name="visible">True</property>
+                    <property name="can-focus">True</property>
+                    <property name="halign">start</property>
+                    <property name="valign">center</property>
+                    <signal name="state-set" handler="on_autoload_switch" swapped="no"/>
+                  </object>
+                  <packing>
+                    <property name="left-attach">1</property>
+                    <property name="top-attach">1</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="halign">end</property>
+                    <property name="valign">center</property>
+                    <property name="label" translatable="yes">Autoload:</property>
+                    <property name="xalign">0</property>
+                  </object>
+                  <packing>
+                    <property name="left-attach">0</property>
                     <property name="top-attach">1</property>
                   </packing>
                 </child>
@@ -527,9 +530,9 @@ Gives your keys back their original function</property>
             <property name="can-focus">False</property>
             <property name="margin-start">4</property>
             <property name="margin-end">4</property>
-            <property name="margin-top">4</property>
+            <property name="margin-top">18</property>
             <property name="margin-bottom">4</property>
-            <property name="spacing">4</property>
+            <property name="spacing">18</property>
             <child>
               <object class="GtkScrolledWindow">
                 <property name="width-request">160</property>
@@ -571,13 +574,14 @@ Gives your keys back their original function</property>
               </packing>
             </child>
             <child>
-              <!-- n-columns=3 n-rows=2 -->
+              <!-- n-columns=2 n-rows=2 -->
               <object class="GtkGrid">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
                 <property name="hexpand">True</property>
                 <property name="vexpand">True</property>
-                <property name="column-spacing">4</property>
+                <property name="row-spacing">4</property>
+                <property name="column-spacing">18</property>
                 <child>
                   <object class="GtkStack" id="editor-stack">
                     <property name="visible">True</property>
@@ -655,7 +659,7 @@ Gives your keys back their original function</property>
                     </child>
                   </object>
                   <packing>
-                    <property name="left-attach">2</property>
+                    <property name="left-attach">1</property>
                     <property name="top-attach">0</property>
                   </packing>
                 </child>
@@ -738,11 +742,11 @@ Gives your keys back their original function</property>
                       <object class="GtkScrolledWindow">
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
-                        <property name="shadow-type">in</property>
                         <child>
                           <object class="GtkViewport">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
+                            <property name="shadow-type">none</property>
                             <child>
                               <object class="GtkListBox" id="combination-listbox">
                                 <property name="visible">True</property>
@@ -783,17 +787,6 @@ Gives your keys back their original function</property>
                   <packing>
                     <property name="left-attach">1</property>
                     <property name="top-attach">1</property>
-                    <property name="width">2</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkSeparator">
-                    <property name="visible">True</property>
-                    <property name="can-focus">False</property>
-                  </object>
-                  <packing>
-                    <property name="left-attach">1</property>
-                    <property name="top-attach">0</property>
                   </packing>
                 </child>
                 <child>
