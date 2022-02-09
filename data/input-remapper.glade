@@ -668,7 +668,6 @@ Gives your keys back their original function</property>
                     <property name="height-request">260</property>
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
-                    <property name="resize-mode">immediate</property>
                     <property name="orientation">vertical</property>
                     <property name="spacing">4</property>
                     <child>

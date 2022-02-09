@@ -118,7 +118,7 @@ class Preset:
                 continue
 
             self._saved_mappings[mapping.event_combination] = mapping
-            self._mappings[mapping.event_combination] = mapping.copy()
+            self.add(mapping.copy())
 
     def save(self) -> None:
         """Dump as JSON to self.path"""
@@ -129,7 +129,7 @@ class Preset:
         touch(str(self.path))  # touch expects a string, not a Posix path
 
         json_ready = {}
-        for mapping in self._mappings.values():
+        for mapping in self:
             d = mapping.dict(exclude_defaults=True)
             combination = d.pop("event_combination")
             json_ready[combination.json_str()] = d

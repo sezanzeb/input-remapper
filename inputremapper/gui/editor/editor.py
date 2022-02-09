@@ -26,7 +26,10 @@ import re
 import locale
 import gettext
 import os
+from typing import Optional
+
 from inputremapper.configs.data import get_data_path
+from inputremapper.configs.mapping import Mapping
 from inputremapper.gui.gettext import _
 
 from gi.repository import Gtk, GLib, Gdk, GtkSource
@@ -59,7 +62,7 @@ class SelectionLabel(Gtk.ListBoxRow):
         # Make the child label widget break lines, important for
         # long combinations
         label.set_line_wrap(True)
-        label.set_line_wrap_mode(2)
+        label.set_line_wrap_mode(Gtk.WrapMode.WORD)
         label.set_justify(Gtk.Justification.CENTER)
 
         self.label = label
@@ -613,11 +616,9 @@ class Editor:
         # keycode is already set by some other row
         existing = active_preset.get_mapping(combination)
         if existing is not None:
-            existing = list(existing)
-            existing[0] = re.sub(r"\s", "", existing[0])
             msg = _('"%s" already mapped to "%s"') % (
                 combination.beautify(),
-                tuple(existing),
+                existing.event_combination.beautify(),
             )
             logger.info("%s %s", combination, msg)
             self.user_interface.show_status(CTX_KEYCODE, msg)
@@ -653,13 +654,8 @@ class Editor:
         if not symbol or not target:
             return
 
-        # else, the keycode has changed, the symbol is set, all good
-        active_preset.change(
-            new_combination=combination,
-            target=target,
-            symbol=symbol,
-            previous_combination=previous_key,
-        )
+        # else, the combination has changed, the symbol is set, all good
+        active_preset.get_mapping(previous_key).event_combination = combination
 
     def _switch_focus_if_complete(self):
         """If keys are released, it will switch to the text_input.
