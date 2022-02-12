@@ -129,19 +129,27 @@ class Preset:
         touch(str(self.path))  # touch expects a string, not a Posix path
 
         json_ready = {}
+        saved_mappings = {}
         for mapping in self:
+            if not mapping.is_valid():
+                logger.debug("skipping invalid mapping %s", mapping)
+                continue
+
             d = mapping.dict(exclude_defaults=True)
             combination = d.pop("event_combination")
             json_ready[combination.json_str()] = d
+
+            saved_mappings[combination] = mapping.copy()
+            saved_mappings[combination].remove_combination_changed_callback()
 
         with open(self.path, "w") as file:
             json.dump(json_ready, file, indent=4)
             file.write("\n")
 
-        self._saved_mappings = {}
-        for combination, mapping in self._mappings.items():
-            self._saved_mappings[combination] = mapping.copy()
-            self._saved_mappings[combination].remove_combination_changed_callback()
+        self._saved_mappings = saved_mappings
+
+    def is_valid(self) -> bool:
+        return False not in [mapping.is_valid() for mapping in self]
 
     def get_mapping(self, combination: Optional[EventCombination]) -> Optional[Mapping]:
         """Return the Mapping that is mapped to this EventCombination.

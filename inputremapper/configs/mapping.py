@@ -21,7 +21,7 @@ from __future__ import annotations
 import enum
 from evdev.ecodes import EV_KEY, EV_ABS
 from pydantic import BaseModel, PositiveInt, confloat, root_validator, validator, ValidationError, PositiveFloat
-from typing import Optional, Callable, Tuple
+from typing import Optional, Callable, Tuple, Dict
 
 from inputremapper.event_combination import EventCombination
 from inputremapper.configs.system_mapping import system_mapping
@@ -29,6 +29,9 @@ from inputremapper.injection.macros.parse import is_this_a_macro, parse
 
 
 # TODO: in python 3.11 inherit enum.StrEnum
+from inputremapper.logger import logger
+
+
 class KnownUinput(str, enum.Enum):
     keyboard = "keyboard"
     mouse = "mouse"
@@ -113,6 +116,11 @@ class Mapping(BaseModel):
             return self.output_type, self.output_code
         if not is_this_a_macro(self.output_symbol):
             return EV_KEY, system_mapping.get(self.output_symbol)
+
+    @staticmethod
+    def is_valid() -> bool:
+        """if the mapping is valid"""
+        return True
 
     @validator("output_symbol", pre=True)
     @classmethod
@@ -213,3 +221,95 @@ class Mapping(BaseModel):
         json_encoders = {
             EventCombination: lambda v: v.json_str()
         }
+
+
+class UIMapping:
+    """
+    The UI Mapping adds the ability to create Invalid Mapping objects.
+    For use in the frontend, where invalid data is allowed during creation of the mapping
+    """
+
+    _initialized: bool  # if the Superclass was initialized
+    _invalid: Dict[str, any]  # the invalid mapping data
+    _mapping: Mapping  # the real mapping object
+
+    def __init__(self, **data):
+        object.__setattr__(
+            self,
+            "_mapping",
+            Mapping(
+                event_combination="99,99,99",
+                target_uinput="keyboard",
+                output_symbol="KEY_A",
+            ),
+        )
+
+        object.__setattr__(self, "_invalid", data)
+        object.__setattr__(self, "_initialized", False)
+        self._validate()
+
+    def __setattr__(self, key, value):
+        if key in self.__dict__.keys():
+            object.__setattr__(self, key, value)
+            return
+
+        if self._initialized or key == "event_combination":
+            setattr(self._mapping, key, value)
+            return
+
+        if key in self._mapping.__dict__.keys() and not self._initialized:
+            self._invalid[key] = value
+            # retry the validation
+            self._validate()
+            return
+
+        raise AttributeError(f"'{self.__class__.__name__}' has no attribute '{key}'")
+
+    def __getattr__(self, item):
+        """intercept any getattribute if the mapping is not initialized"""
+        try:
+            return object.__getattribute__(self, item)
+        except AttributeError:
+            pass
+
+        try:
+            # return the invalid value
+            return object.__getattribute__(self, "_invalid")[item]
+        except KeyError:
+            pass
+
+        return object.__getattribute__(self._mapping, item)
+
+    def __eq__(self, other):
+        return self._mapping == other
+
+    def __str__(self):
+        return self._mapping.__str__()
+
+    def is_valid(self) -> bool:
+        """if the mapping is valid"""
+        return self._initialized
+
+    def _validate(self) -> bool:
+        """
+        try to validate the mapping
+        """
+        if self._initialized:
+            return True
+
+        if self._mapping.event_combination == EventCombination((99, 99, 99)):
+            return False
+        # preserve the combination_changed callback
+        callback = self._combination_changed
+        try:
+            logger.debug(f"trying to init with {self._invalid}")
+            mapping = Mapping(event_combination=self._mapping.event_combination, **self._invalid)
+            self._mapping = mapping
+            logger.debug("success")
+            self._initialized = True
+            self._invalid = {}
+            self.set_combination_changed_callback(callback)
+            return True
+        except ValidationError:
+            logger.debug("fail")
+            return False

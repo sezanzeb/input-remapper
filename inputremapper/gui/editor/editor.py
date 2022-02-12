@@ -29,7 +29,7 @@ import os
 from typing import Optional
 
 from inputremapper.configs.data import get_data_path
-from inputremapper.configs.mapping import Mapping
+from inputremapper.configs.mapping import Mapping, UIMapping
 from inputremapper.gui.gettext import _
 
 from gi.repository import Gtk, GLib, Gdk, GtkSource
@@ -330,9 +330,6 @@ class Editor:
             code_editor.set_monospace(False)
             code_editor.get_style_context().remove_class("multiline")
 
-    def get_delete_button(self):
-        return self.get("delete-mapping")
-
     def check_add_new_key(self):
         """If needed, add a new empty mapping to the list for the user to configure."""
         selection_label_listbox = self.get("selection_label_listbox")
@@ -340,7 +337,8 @@ class Editor:
         selection_label_listbox = selection_label_listbox.get_children()
 
         for selection_label in selection_label_listbox:
-            if selection_label.get_combination() is None:
+            combination = selection_label.get_combination()
+            if combination is None or active_preset.get_mapping(combination) is None or not active_preset.get_mapping(combination).is_valid():
                 # unfinished row found
                 break
         else:
@@ -463,6 +461,9 @@ class Editor:
     def get_add_axis_btn(self) -> Gtk.Button:
         return self.get("add-axis-as-btn")
 
+    def get_delete_button(self) -> Gtk.Button:
+        return self.get("delete-mapping")
+
     def set_combination(self, combination):
         """Show what the user is currently pressing in the user interface."""
         self.active_selection_label.set_combination(combination)
@@ -547,9 +548,9 @@ class Editor:
         ):
             return
 
-        key = self.get_combination()
-        if key is not None:
-            active_preset.clear(key)
+        combination = self.get_combination()
+        if combination is not None:
+            active_preset.remove(combination)
 
         # make sure there is no outdated information lying around in memory
         self.set_combination(None)
@@ -570,26 +571,36 @@ class Editor:
 
     def gather_changes_and_save(self, *_):
         """Look into the ui if new changes should be written, and save the preset."""
+        combination = self.get_combination()
+        if combination is None:
+            return
+
         # correct case
         symbol = self.get_symbol_input_text()
         target = self.get_target_selection()
 
-        if not symbol or not target:
-            return
+        correct_case = None
+        if symbol:
+            correct_case = system_mapping.correct_case(symbol)
+            if symbol != correct_case:
+                self.get_text_input().get_buffer().set_text(correct_case)
 
-        correct_case = system_mapping.correct_case(symbol)
-        if symbol != correct_case:
-            self.get_text_input().get_buffer().set_text(correct_case)
-
-        # make sure the active_preset is up to date
-        combination = self.get_combination()
         mapping = active_preset.get_mapping(combination)
-        if correct_case is not None and combination is not None and target is not None:
-            mapping.target_uinput = target
-            mapping.output_symbol = correct_case
+
+        if mapping is None:
+            # create a new mapping
+            mapping = UIMapping()
+            mapping.event_combination = combination
+            logger.debug(mapping.event_combination)
+            active_preset.add(mapping)
+
+        mapping.event_combination = combination
+        mapping.target_uinput = target
+        mapping.output_symbol = correct_case
 
         # save to disk if required
-        self.user_interface.save_preset()
+        if active_preset.is_valid():
+            self.user_interface.save_preset()
 
     def is_waiting_for_input(self):
         """Check if the user is interacting with the ToggleButton for combination recording."""
