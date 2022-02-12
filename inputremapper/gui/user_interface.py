@@ -123,7 +123,7 @@ def if_preset_selected(func):
     return wrapped
 
 
-def on_close_about(about, arg):
+def on_close_about(about, event):
     """Hide the about dialog without destroying it."""
     about.hide()
     return True
@@ -254,7 +254,7 @@ class UserInterface:
         self.confirm_delete.hide()
         return response
 
-    def on_key_press(self, arg, event):
+    def on_key_press(self, window, event):
         """To execute shortcuts.
 
         This has nothing to do with the keycode reader.
@@ -277,9 +277,9 @@ class UserInterface:
                 reader.refresh_groups()
 
             if gdk_keycode == Gdk.KEY_Delete:
-                self.on_restore_defaults_clicked()
+                self.on_stop_injecting_clicked()
 
-    def on_key_release(self, arg, event):
+    def on_key_release(self, window, event):
         """To execute shortcuts.
 
         This has nothing to do with the keycode reader.
@@ -385,7 +385,7 @@ class UserInterface:
         return True
 
     @if_group_selected
-    def on_restore_defaults_clicked(self, *args):
+    def on_stop_injecting_clicked(self, *args):
         """Stop injecting the preset."""
         self.dbus.stop_injecting(self.group.key)
         self.show_status(CTX_APPLY, _("Applied the system default"))
@@ -430,7 +430,7 @@ class UserInterface:
             status_bar.set_tooltip_text(tooltip)
 
     @ensure_everything_saved
-    def on_rename_button_clicked(self, arg):
+    def on_rename_button_clicked(self, button):
         """Rename the preset based on the contents of the name input."""
         new_name = self.get("preset_name_input").get_text()
 
@@ -464,7 +464,7 @@ class UserInterface:
         self.populate_presets()
 
     @if_preset_selected
-    def on_apply_preset_clicked(self, arg):
+    def on_apply_preset_clicked(self, button):
         """Apply a preset without saving changes."""
         self.save_preset()
 
@@ -516,7 +516,7 @@ class UserInterface:
 
         GLib.timeout_add(100, self.show_injection_result)
 
-    def on_autoload_switch(self, arg, active):
+    def on_autoload_switch(self, switch, active):
         """Load the preset automatically next time the user logs in."""
         key = self.group.key
         preset = self.preset_name
@@ -577,11 +577,12 @@ class UserInterface:
             )
             return False
 
-        # keep the timeout running
+        # keep the timeout running until a relevant state is found
         return True
 
     def show_device_mapping_status(self):
         """Figure out if this device is currently under inputremappers control."""
+        self.editor.update_toggle_opacity()
         group_key = self.group.key
         state = self.dbus.get_state(group_key)
         if state == RUNNING:
@@ -681,11 +682,11 @@ class UserInterface:
 
         self.show_status(CTX_MAPPING, None)
 
-    def on_about_clicked(self, _):
+    def on_about_clicked(self, button):
         """Show the about/help dialog."""
         self.about.show()
 
-    def on_about_key_press(self, arg, event):
+    def on_about_key_press(self, window, event):
         """Hide the about/help dialog."""
         gdk_keycode = event.get_keyval()[1]
         if gdk_keycode == Gdk.KEY_Escape:

@@ -235,7 +235,7 @@ Gives your keys back their original function</property>
                     <property name="halign">end</property>
                     <property name="image">gtk-redo-icon</property>
                     <property name="always-show-image">True</property>
-                    <signal name="clicked" handler="on_restore_defaults_clicked" swapped="no"/>
+                    <signal name="clicked" handler="on_stop_injecting_clicked" swapped="no"/>
                   </object>
                   <packing>
                     <property name="expand">False</property>
