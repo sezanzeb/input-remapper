@@ -124,7 +124,10 @@ class Editor:
         self._setup_recording_toggle()
 
         self.window = self.get("window")
-        self.timeout = GLib.timeout_add(100, self.check_add_new_key)
+        self.timeouts = [
+            GLib.timeout_add(100, self.check_add_new_key),
+            GLib.timeout_add(1000, self.update_toggle_opacity),
+        ]
         self.active_selection_label: SelectionLabel = None
 
         selection_label_listbox = self.get("selection_label_listbox")
@@ -152,6 +155,11 @@ class Editor:
 
         target_selector = self.get_target_selector()
         target_selector.connect("changed", self._on_target_input_changed)
+
+    def __del__(self):
+        for timeout in self.timeouts:
+            GLib.source_remove(timeout)
+            self.timeouts = []
 
     @ensure_everything_saved
     def on_text_input_unfocus(self, *_):
@@ -467,6 +475,20 @@ class Editor:
     def get(self, name):
         """Get a widget from the window"""
         return self.user_interface.builder.get_object(name)
+
+    def update_toggle_opacity(self):
+        """If the key can't be mapped, grey it out.
+
+        During injection, when the device is grabbed and weird things are being
+        done, it is not possible.
+        """
+        toggle = self.get_recording_toggle()
+        if not self.user_interface.can_modify_preset():
+            toggle.set_opacity(0.4)
+        else:
+            toggle.set_opacity(1)
+
+        return True
 
     def _on_recording_toggle_toggle(self, *args):
         """Refresh useful usage information."""
