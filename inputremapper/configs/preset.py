@@ -109,6 +109,7 @@ class Preset:
                 preset_dict = json.load(file)
             except json.JSONDecodeError:
                 logger.error("unable to decode json file: %s", self.path)
+                return
 
         for combination, mapping_dict in preset_dict.items():
             try:
@@ -122,11 +123,11 @@ class Preset:
 
     def save(self) -> None:
         """Dump as JSON to self.path"""
+        touch(str(self.path))  # touch expects a string, not a Posix path
         if not self.has_unsaved_changes():
             return
 
         logger.info("Saving preset to %s", self.path)
-        touch(str(self.path))  # touch expects a string, not a Posix path
 
         json_ready = {}
         saved_mappings = {}

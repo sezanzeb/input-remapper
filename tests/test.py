@@ -524,6 +524,7 @@ update_verbosity(True)
 
 from inputremapper.injection.injector import Injector
 from inputremapper.configs.global_config import global_config
+from inputremapper.configs.mapping import Mapping
 from inputremapper.gui.reader import reader
 from inputremapper.groups import groups
 from inputremapper.configs.system_mapping import system_mapping
@@ -540,6 +541,21 @@ Injector.regrab_timeout = 0.05
 
 _fixture_copy = copy.deepcopy(fixtures)
 environ_copy = copy.deepcopy(os.environ)
+
+
+def get_key_mapping() -> Mapping:
+    """convenient function to get a valid mapping
+
+    returns mapping with the fields:
+        event_combination="99,99,99",
+        target_uinput="keyboard",
+        output_symbol="a",
+    """
+    return Mapping(
+        event_combination="99,99,99",
+        target_uinput="keyboard",
+        output_symbol="a",
+    )
 
 
 def send_event_to_reader(event):
@@ -602,10 +618,7 @@ def quick_cleanup(log=True):
     global_config._save_config()
 
     system_mapping.populate()
-
     active_preset.empty()
-    active_preset.clear_config()
-    active_preset.set_has_unsaved_changes(False)
 
     clear_write_history()
 

@@ -67,6 +67,7 @@ from tests.test import (
     new_event,
     spy,
     cleanup,
+    get_key_mapping,
     uinput_write_history_pipe,
     MAX_ABS,
     EVENT_READ_TIMEOUT,
@@ -663,9 +664,18 @@ class TestGui(GuiTestBase):
     def test_select_device(self):
         # creates a new empty preset when no preset exists for the device
         self.user_interface.on_select_device(FakeDeviceDropdown("Foo Device"))
-        active_preset.change(EventCombination([EV_KEY, 50, 1]), "keyboard", "q")
-        active_preset.change(EventCombination([EV_KEY, 51, 1]), "keyboard", "u")
-        active_preset.change(EventCombination([EV_KEY, 52, 1]), "keyboard", "x")
+        m1 = get_key_mapping()
+        m1.event_combination = "1,50,1"
+        m1.output_symbol = "q"
+        m2 = get_key_mapping()
+        m2.event_combination = "1,51,1"
+        m2.output_symbol = "u"
+        m3 = get_key_mapping()
+        m3.event_combination = "1,52,1"
+        m3.output_symbol = "x"
+        active_preset.add(m1)
+        active_preset.add(m2)
+        active_preset.add(m3)
         self.assertEqual(len(active_preset), 3)
         self.user_interface.on_select_device(FakeDeviceDropdown("Bar Device"))
         self.assertEqual(len(active_preset), 0)
@@ -675,8 +685,7 @@ class TestGui(GuiTestBase):
         path = get_preset_path("Bar Device", "new preset")
         self.assertTrue(os.path.exists(path))
         with open(path, "r") as file:
-            preset = json.load(file)
-            self.assertEqual(len(preset["mapping"]), 0)
+            self.assertEqual(file.read(), "")
 
     def test_permission_error_on_create_preset_clicked(self):
         def save(_=None):
@@ -1141,17 +1150,20 @@ class TestGui(GuiTestBase):
         self.assertEqual(self.user_interface.group.name, "Foo Device")
         self.assertFalse(global_config.is_autoloaded("Foo Device", "new preset"))
 
-        active_preset.change(EventCombination([EV_KEY, 14, 1]), "keyboard", "a", None)
+        m1 = get_key_mapping()
+        active_preset.add(m1)
         self.assertEqual(self.user_interface.preset_name, "new preset")
         self.user_interface.save_preset()
         self.assertEqual(
-            active_preset.get_mapping(EventCombination([EV_KEY, 14, 1])),
-            ("a", "keyboard"),
+            active_preset.get_mapping(EventCombination([99, 99, 99])),
+            m1,
         )
         global_config.set_autoload_preset("Foo Device", "new preset")
         self.assertTrue(global_config.is_autoloaded("Foo Device", "new preset"))
 
-        active_preset.change(EventCombination([EV_KEY, 14, 1]), "keyboard", "b", None)
+        m2 = get_key_mapping()
+        m2.output_symbol = "b"
+        active_preset.get_mapping(EventCombination([99, 99, 99])).output_symbol = "b"
         self.user_interface.get("preset_name_input").set_text("asdf")
         self.user_interface.save_preset()
         self.user_interface.on_rename_button_clicked(None)
@@ -1159,8 +1171,8 @@ class TestGui(GuiTestBase):
         preset_path = f"{CONFIG_PATH}/presets/Foo Device/asdf.json"
         self.assertTrue(os.path.exists(preset_path))
         self.assertEqual(
-            active_preset.get_mapping(EventCombination([EV_KEY, 14, 1])),
-            ("b", "keyboard"),
+            active_preset.get_mapping(EventCombination([99, 99, 99])),
+            m2,
         )
 
         # after renaming the preset it is still set to autoload
@@ -1173,10 +1185,11 @@ class TestGui(GuiTestBase):
         self.assertFalse(error_icon.get_visible())
 
         # otherwise save won't do anything
-        active_preset.change(EventCombination([EV_KEY, 14, 1]), "keyboard", "c", None)
+        m2.output_symbol = "c"
+        active_preset.get_mapping(EventCombination([99, 99, 99])).output_symbol = "c"
         self.assertTrue(active_preset.has_unsaved_changes())
 
-        def save(_):
+        def save():
             raise PermissionError
 
         with patch.object(active_preset, "save", save):
@@ -1191,7 +1204,9 @@ class TestGui(GuiTestBase):
     def test_rename_create_switch(self):
         # after renaming a preset and saving it, new presets
         # start with "new preset" again
-        active_preset.change(EventCombination([EV_KEY, 14, 1]), "keyboard", "a", None)
+        m1 = get_key_mapping()
+        #active_preset.change(EventCombination([EV_KEY, 14, 1]), "keyboard", "a", None)
+        active_preset.add(m1)
         self.user_interface.get("preset_name_input").set_text("asdf")
         self.user_interface.save_preset()
         self.user_interface.on_rename_button_clicked(None)
@@ -1212,8 +1227,8 @@ class TestGui(GuiTestBase):
         # the current changes in the gui
         self.user_interface.on_select_preset(FakePresetDropdown("asdf"))
         self.assertEqual(
-            active_preset.get_mapping(EventCombination([EV_KEY, 14, 1])),
-            ("a", "keyboard"),
+            active_preset.get_mapping(EventCombination([99, 99, 99])),
+            m1,
         )
         self.assertEqual(len(active_preset), 1)
         self.assertEqual(len(self.selection_label_listbox.get_children()), 2)
@@ -1227,9 +1242,12 @@ class TestGui(GuiTestBase):
         # and that added number is correctly used in the autoload
         # configuration as well
         self.assertTrue(global_config.is_autoloaded("Foo Device", "asdf 2"))
+        m2 = get_key_mapping()
+        m2.event_combination = "1,15,1"
+        m2.output_symbol = "b"
         self.assertEqual(
             active_preset.get_mapping(EventCombination([EV_KEY, 15, 1])),
-            ("b", "keyboard"),
+            m2,
         )
         self.assertEqual(len(active_preset), 1)
         self.assertEqual(len(self.selection_label_listbox.get_children()), 2)
@@ -1250,25 +1268,6 @@ class TestGui(GuiTestBase):
             self.user_interface.get("preset_name_input").set_text("")
             self.user_interface.on_rename_button_clicked(None)
             self.assertEqual(self.user_interface.preset_name, "asdf 2")
-
-    def test_avoids_redundant_saves(self):
-        active_preset.change(
-            EventCombination([EV_KEY, 14, 1]), "keyboard", "abcd", None
-        )
-
-        active_preset.set_has_unsaved_changes(False)
-        self.user_interface.save_preset()
-
-        with open(get_preset_path("Foo Device", "new preset")) as f:
-            content = f.read()
-            self.assertNotIn("abcd", content)
-
-        active_preset.set_has_unsaved_changes(True)
-        self.user_interface.save_preset()
-
-        with open(get_preset_path("Foo Device", "new preset")) as f:
-            content = f.read()
-            self.assertIn("abcd", content)
 
     def test_check_for_unknown_symbols(self):
         status = self.user_interface.get("status_bar")

@@ -345,7 +345,8 @@ class UserInterface:
             new_preset = get_available_preset_name(self.group.name)
             active_preset.empty()
             path = self.group.get_preset_path(new_preset)
-            active_preset.save(path)
+            active_preset.path = path
+            active_preset.save()
             presets = [new_preset]
         else:
             logger.debug('"%s" presets: "%s"', self.group.name, '", "'.join(presets))
@@ -616,7 +617,8 @@ class UserInterface:
                 active_preset.empty()
 
             path = self.group.get_preset_path(new_preset)
-            active_preset.save(path)
+            active_preset.path = path
+            active_preset.save()
             self.get("preset_selection").append(new_preset, new_preset)
             # triggers on_select_preset
             self.get("preset_selection").set_active_id(new_preset)

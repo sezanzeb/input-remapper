@@ -276,6 +276,11 @@ class TestMapping(unittest.TestCase):
             self.preset.change(key, target, symbol)
             self.preset.change(key, target, symbol, previous_combination=key)
 
+    def test_avoids_redundant_saves(self):
+        # TODO
+        #  see integration.test_gui.TestGui.test_avoids_redundant_saves on main
+        raise NotImplementedError
+
     def test_combinations(self):
         ev_1 = InputEvent.from_tuple((EV_KEY, 1, 111))
         ev_2 = InputEvent.from_tuple((EV_KEY, 1, 222))
