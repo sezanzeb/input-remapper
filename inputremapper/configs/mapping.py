@@ -223,93 +223,98 @@ class Mapping(BaseModel):
         }
 
 
-class UIMapping:
+class UIMapping(Mapping):
     """
     The UI Mapping adds the ability to create Invalid Mapping objects.
     For use in the frontend, where invalid data is allowed during creation of the mapping
+
+    Invalid assignments are cached and revalidation is attempted as soon as the mapping changes
     """
 
-    _initialized: bool  # if the Superclass was initialized
-    _invalid: Dict[str, any]  # the invalid mapping data
-    _mapping: Mapping  # the real mapping object
+    _cache: Dict[str, any]  # the invalid mapping data
+    _last_error: Optional[ValidationError]  # the last validation error
+
+    # all attributes that __setattr__ will not forward to super() or _cache
+    ATTRIBUTES = ("_cache", "_last_error")
 
     def __init__(self, **data):
-        object.__setattr__(
-            self,
-            "_mapping",
-            Mapping(
+        try:
+            super().__init__(**data)
+            object.__setattr__(self, "_last_error", None)
+            object.__setattr__(self, "_cache", {})
+
+        except ValidationError as error:
+            object.__setattr__(self, "_last_error", error)
+            super().__init__(
                 event_combination="99,99,99",
                 target_uinput="keyboard",
                 output_symbol="KEY_A",
-            ),
-        )
-
-        object.__setattr__(self, "_invalid", data)
-        object.__setattr__(self, "_initialized", False)
-        self._validate()
+            )
+            stash = {
+                "event_combination": None,
+                "target_uinput": None,
+                "output_symbol": None,
+            }
+            stash.update(**data)
+            object.__setattr__(self, "_cache", stash)
 
     def __setattr__(self, key, value):
-        if key in self.__dict__.keys():
+        if key in self.ATTRIBUTES:
             object.__setattr__(self, key, value)
             return
 
-        if self._initialized or key == "event_combination":
-            setattr(self._mapping, key, value)
-            return
-
-        if key in self._mapping.__dict__.keys() and not self._initialized:
-            self._invalid[key] = value
-            # retry the validation
-            self._validate()
-            return
-
-        raise AttributeError(f"'{self.__class__.__name__}' has no attribute '{key}'")
-
-    def __getattr__(self, item):
-        """intercept any getattribute if the mapping is not initialized"""
         try:
-            return object.__getattribute__(self, item)
-        except AttributeError:
+            super(UIMapping, self).__setattr__(key, value)
+            if key in self._cache:
+                del self._cache[key]
+
+        except ValidationError as error:
+            # cache the value
+            self._last_error = error
+            self._cache[key] = value
+
+        # retry the validation
+        self._validate()
+
+    def __getattribute__(self, item):
+        # intercept any getattribute and prioritize attributes from the cache
+        try:
+            return object.__getattribute__(self, "_cache")[item]
+        except (KeyError, AttributeError):
             pass
 
-        try:
-            # return the invalid value
-            return object.__getattribute__(self, "_invalid")[item]
-        except KeyError:
-            pass
-
-        return object.__getattribute__(self._mapping, item)
+        return object.__getattribute__(self, item)
 
     def __eq__(self, other):
-        return self._mapping == other
+        if not self.is_valid():
+            return False
 
-    def __str__(self):
-        return self._mapping.__str__()
+        return super(UIMapping, self).__eq__(other)
 
     def is_valid(self) -> bool:
         """if the mapping is valid"""
-        return self._initialized
+        return len(self._cache) == 0
 
-    def _validate(self) -> bool:
-        """
-        try to validate the mapping
-        """
-        if self._initialized:
-            return True
+    def get_error(self) -> Optional[ValidationError]:
+        """the validation error or None"""
+        return self._last_error
 
-        if self._mapping.event_combination == EventCombination((99, 99, 99)):
-            return False
+    def _validate(self) -> None:
+        """try to validate the mapping"""
+        if self.is_valid():
+            return
+
         # preserve the combination_changed callback
         callback = self._combination_changed
+
+        # combine all valid values with the invalid ones
+        mapping = self.dict(exclude_defaults=True)
+        mapping.update(**self._cache)
+
         try:
-            logger.debug(f"trying to init with {self._invalid}")
-            mapping = Mapping(event_combination=self._mapping.event_combination, **self._invalid)
-            self._mapping = mapping
-            logger.debug("success")
-            self._initialized = True
-            self._invalid = {}
+            super(UIMapping, self).__init__(**mapping)
+            self._cache = {}
+            self._last_error = None
             self.set_combination_changed_callback(callback)
-            return True
-        except ValidationError:
-            logger.debug("fail")
-            return False
+        except ValidationError as error:
+            self._last_error = error
