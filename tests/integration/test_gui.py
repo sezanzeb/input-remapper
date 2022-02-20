@@ -348,7 +348,7 @@ class GuiTestBase(unittest.TestCase):
         return status_bar.get_message_area().get_children()[0].get_label()
 
     def get_unfiltered_symbol_input_text(self):
-        buffer = self.editor.get_text_input().get_buffer()
+        buffer = self.editor.get_code_editor().get_buffer()
         return buffer.get_text(buffer.get_start_iter(), buffer.get_end_iter(), True)
 
     def add_mapping_via_ui(self, key, symbol, expect_success=True, target=None):
@@ -464,7 +464,7 @@ class GuiTestBase(unittest.TestCase):
         self.assertEqual(self.editor.get_symbol_input_text(), correct_case)
         self.assertFalse(active_preset.has_unsaved_changes())
 
-        self.set_focus(self.editor.get_text_input())
+        self.set_focus(self.editor.get_code_editor())
         self.set_focus(None)
 
         return selection_label
@@ -798,7 +798,7 @@ class TestGui(GuiTestBase):
             2,
         )
 
-        self.set_focus(self.editor.get_text_input())
+        self.set_focus(self.editor.get_code_editor())
         self.editor.set_symbol_input_text("Shift_L")
         self.set_focus(None)
 
@@ -850,7 +850,7 @@ class TestGui(GuiTestBase):
         self.assertIsNone(selection_label.get_combination())
 
         # focus the text input instead
-        self.set_focus(self.editor.get_text_input())
+        self.set_focus(self.editor.get_code_editor())
         send_event_to_reader(new_event(1, 61, 1))
         self.user_interface.consume_newest_keycode()
 
@@ -928,7 +928,7 @@ class TestGui(GuiTestBase):
             self.selection_label_listbox.get_children()[0]
         )
         self.assertEqual(self.editor.get_combination(), ev_1)
-        self.set_focus(self.editor.get_text_input())
+        self.set_focus(self.editor.get_code_editor())
         self.editor.set_symbol_input_text("c")
         self.set_focus(None)
 
@@ -1943,11 +1943,11 @@ class TestGui(GuiTestBase):
     def test_enable_disable_symbol_input(self):
         self.editor.disable_symbol_input()
         self.assertEqual(self.get_unfiltered_symbol_input_text(), SET_KEY_FIRST)
-        self.assertFalse(self.editor.get_text_input().get_sensitive())
+        self.assertFalse(self.editor.get_code_editor().get_sensitive())
 
         self.editor.enable_symbol_input()
         self.assertEqual(self.get_unfiltered_symbol_input_text(), "")
-        self.assertTrue(self.editor.get_text_input().get_sensitive())
+        self.assertTrue(self.editor.get_code_editor().get_sensitive())
 
         # it wouldn't clear user input, if for whatever reason (a bug?) there is user
         # input in there when enable_symbol_input is called.
@@ -1964,7 +1964,7 @@ class TestAutocompletion(GuiTestBase):
 
     def test_autocomplete_key(self):
         self.add_mapping_via_ui(EventCombination([1, 99, 1]), "")
-        source_view = self.editor.get_text_input()
+        source_view = self.editor.get_code_editor()
         self.set_focus(source_view)
 
         complete_key_name = "Test_Foo_Bar"
@@ -2007,7 +2007,7 @@ class TestAutocompletion(GuiTestBase):
 
     def test_autocomplete_function(self):
         self.add_mapping_via_ui(EventCombination([1, 99, 1]), "")
-        source_view = self.editor.get_text_input()
+        source_view = self.editor.get_code_editor()
         self.set_focus(source_view)
 
         incomplete = "key(KEY_A).\nepea"
@@ -2028,7 +2028,7 @@ class TestAutocompletion(GuiTestBase):
 
     def test_close_autocompletion(self):
         self.add_mapping_via_ui(EventCombination([1, 99, 1]), "")
-        source_view = self.editor.get_text_input()
+        source_view = self.editor.get_code_editor()
         self.set_focus(source_view)
 
         Gtk.TextView.do_insert_at_cursor(source_view, "KEY_")
@@ -2049,7 +2049,7 @@ class TestAutocompletion(GuiTestBase):
 
     def test_writing_still_works(self):
         self.add_mapping_via_ui(EventCombination([1, 99, 1]), "")
-        source_view = self.editor.get_text_input()
+        source_view = self.editor.get_code_editor()
         self.set_focus(source_view)
 
         Gtk.TextView.do_insert_at_cursor(source_view, "KEY_")
@@ -2078,7 +2078,7 @@ class TestAutocompletion(GuiTestBase):
 
     def test_cycling(self):
         self.add_mapping_via_ui(EventCombination([1, 99, 1]), "")
-        source_view = self.editor.get_text_input()
+        source_view = self.editor.get_code_editor()
         self.set_focus(source_view)
 
         Gtk.TextView.do_insert_at_cursor(source_view, "KEY_")

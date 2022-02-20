@@ -23,6 +23,7 @@
 
 
 from inputremapper.configs.preset import Preset
+from inputremapper.configs.mapping import UIMapping
 
 
-active_preset = Preset()
+active_preset = Preset(mapping_factory=UIMapping)

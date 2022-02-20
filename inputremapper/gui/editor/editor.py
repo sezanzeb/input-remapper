@@ -160,6 +160,8 @@ class Editor:
 
         self.autocompletion = None
 
+        self.active_mapping: Optional[UIMapping] = None
+
         self._setup_target_selector()
         self._setup_source_view()
         self._setup_recording_toggle()
@@ -169,7 +171,7 @@ class Editor:
             GLib.timeout_add(100, self.check_add_new_key),
             GLib.timeout_add(1000, self.update_toggle_opacity),
         ]
-        self.active_selection_label: SelectionLabel = None
+        self.active_selection_label: Optional[SelectionLabel] = None
 
         selection_label_listbox = self.get("selection_label_listbox")
         selection_label_listbox.connect("row-selected", self.on_mapping_selected)
@@ -188,8 +190,9 @@ class Editor:
         # be recorded, instead of causing the recording to stop.
         toggle.connect("key-press-event", lambda *args: Gdk.EVENT_STOP)
 
-        text_input = self.get_text_input()
-        text_input.connect("focus-out-event", self.on_text_input_unfocus)
+        code_editor = self.get_code_editor()
+        code_editor.connect("focus-out-event", self.on_text_input_unfocus)
+        code_editor.get_buffer().connect("changed", self.on_text_input_changed)
 
         delete_button = self.get_delete_button()
         delete_button.connect("clicked", self._on_delete_button_clicked)
@@ -227,10 +230,19 @@ class Editor:
         """
         pass
 
-    @ensure_everything_saved
+    def on_text_input_changed(self, *_):
+        # correct case
+        symbol = self.get_symbol_input_text()
+        correct_case = system_mapping.correct_case(symbol)
+        if symbol != correct_case:
+            self.get_code_editor().get_buffer().set_text(correct_case)
+
+        self.active_mapping.output_symbol = correct_case
+
     def _on_target_input_changed(self, *_):
         """save when target changed"""
-        pass
+        self.active_mapping.target_uinput = self.get_target_selection()
+        self.gather_changes_and_save()
 
     def clear(self):
         """Clear all inputs, labels, etc. Reset the state.
@@ -298,7 +310,7 @@ class Editor:
 
     def _setup_source_view(self):
         """Prepare the code editor."""
-        source_view = self.get("code_editor")
+        source_view = self.get_code_editor()
 
         # without this the wrapping ScrolledWindow acts weird when new lines are added,
         # not offering enough space to the text editor so the whole thing is suddenly
@@ -326,7 +338,7 @@ class Editor:
 
     def show_line_numbers_if_multiline(self, *_):
         """Show line numbers if a macro is being edited."""
-        code_editor = self.get("code_editor")
+        code_editor = self.get_code_editor()
         symbol = self.get_symbol_input_text() or ""
 
         if "\n" in symbol:
@@ -361,7 +373,7 @@ class Editor:
         presets accidentally before configuring the key and then it's gone. It can
         only be saved to the preset if a key is configured. This avoids that pitfall.
         """
-        text_input = self.get_text_input()
+        text_input = self.get_code_editor()
         text_input.set_sensitive(False)
         text_input.set_opacity(0.5)
 
@@ -371,7 +383,7 @@ class Editor:
 
     def enable_symbol_input(self):
         """Don't display help information anymore and allow changing the symbol."""
-        text_input = self.get_text_input()
+        text_input = self.get_code_editor()
         text_input.set_sensitive(True)
         text_input.set_opacity(1)
 
@@ -407,21 +419,26 @@ class Editor:
         self.set_combination(combination)
 
         if combination is None:
+            # the empty mapping was selected
+            self.active_mapping = UIMapping()
+            # active_preset.add(self.active_mapping)
             self.disable_symbol_input(clear=True)
             # default target should fit in most cases
             self.set_target_selection("keyboard")
+            self.active_mapping.target_uinput = "keyboard"
             # target input disabled until a combination is configured
             self.disable_target_selector()
             # symbol input disabled until a combination is configured
         else:
             mapping = active_preset.get_mapping(combination)
             if mapping is not None:
+                self.active_mapping = mapping
                 self.set_symbol_input_text(mapping.output_symbol)
                 self.set_target_selection(mapping.target_uinput)
             self.enable_symbol_input()
             self.enable_target_selector()
 
-        self.get("window").set_focus(self.get_text_input())
+        self.get("window").set_focus(self.get_code_editor())
 
     def add_empty(self):
         """Add one empty row for a single mapped key."""
@@ -457,7 +474,7 @@ class Editor:
     def get_recording_toggle(self) -> Gtk.ToggleButton:
         return self.get("key_recording_toggle")
 
-    def get_text_input(self) -> GtkSource.View:
+    def get_code_editor(self) -> GtkSource.View:
         return self.get("code_editor")
 
     def get_target_selector(self) -> Gtk.ComboBox:
@@ -493,10 +510,11 @@ class Editor:
         return self.active_selection_label.combination
 
     def set_symbol_input_text(self, symbol):
-        self.get("code_editor").get_buffer().set_text(symbol or "")
+        code_editor = self.get_code_editor()
+        code_editor.get_buffer().set_text(symbol or "")
         # move cursor location to the beginning, like any code editor does
         Gtk.TextView.do_move_cursor(
-            self.get("code_editor"),
+            code_editor,
             Gtk.MovementStep.BUFFER_ENDS,
             -1,
             False,
@@ -511,7 +529,7 @@ class Editor:
         If there is no symbol, this returns None. This is important for some other
         logic down the road in active_preset or something.
         """
-        buffer = self.get("code_editor").get_buffer()
+        buffer = self.get_code_editor().get_buffer()
         symbol = buffer.get_text(buffer.get_start_iter(), buffer.get_end_iter(), True)
 
         if symbol == SET_KEY_FIRST:
@@ -597,29 +615,6 @@ class Editor:
         if combination is None:
             return
 
-        # correct case
-        symbol = self.get_symbol_input_text()
-        target = self.get_target_selection()
-
-        correct_case = None
-        if symbol:
-            correct_case = system_mapping.correct_case(symbol)
-            if symbol != correct_case:
-                self.get_text_input().get_buffer().set_text(correct_case)
-
-        mapping = active_preset.get_mapping(combination)
-
-        if mapping is None:
-            # create a new mapping
-            mapping = UIMapping()
-            mapping.event_combination = combination
-            logger.debug(mapping.event_combination)
-            active_preset.add(mapping)
-
-        mapping.event_combination = combination
-        mapping.target_uinput = target
-        mapping.output_symbol = correct_case
-
         # save to disk if required
         if active_preset.is_valid():
             self.user_interface.save_preset()
@@ -679,16 +674,10 @@ class Editor:
             return
 
         self.set_combination(combination)
-
-        symbol = self.get_symbol_input_text()
-        target = self.get_target_selection()
-
-        # the symbol is empty and therefore the mapping is not complete
-        if not symbol or not target:
-            return
-
-        # else, the combination has changed, the symbol is set, all good
-        active_preset.get_mapping(previous_key).event_combination = combination
+        self.active_mapping.event_combination = combination
+        if previous_key is None and combination is not None:
+            logger.debug(f"adding new mapping to preset\n{self.active_mapping}")
+            active_preset.add(self.active_mapping)
 
     def _switch_focus_if_complete(self):
         """If keys are released, it will switch to the text_input.
@@ -712,7 +701,7 @@ class Editor:
             window = self.user_interface.window
             self.enable_symbol_input()
             self.enable_target_selector()
-            GLib.idle_add(lambda: window.set_focus(self.get_text_input()))
+            GLib.idle_add(lambda: window.set_focus(self.get_code_editor()))
 
         if not all_keys_released:
             # currently the user is using the widget, and certain keys have already

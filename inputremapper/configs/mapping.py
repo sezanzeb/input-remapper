@@ -250,13 +250,13 @@ class UIMapping(Mapping):
                 target_uinput="keyboard",
                 output_symbol="KEY_A",
             )
-            stash = {
+            cache = {
                 "event_combination": None,
                 "target_uinput": None,
                 "output_symbol": None,
             }
-            stash.update(**data)
-            object.__setattr__(self, "_cache", stash)
+            cache.update(**data)
+            object.__setattr__(self, "_cache", cache)
 
     def __setattr__(self, key, value):
         if key in self.ATTRIBUTES:

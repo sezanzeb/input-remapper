@@ -27,7 +27,7 @@ import json
 import glob
 import time
 
-from typing import Tuple, Dict, List, Optional, Iterator
+from typing import Tuple, Dict, List, Optional, Iterator, Type
 
 from pydantic import ValidationError
 from inputremapper.logger import logger
@@ -46,11 +46,13 @@ class Preset:
     # a copy of mappings for keeping track of changes
     _saved_mappings: Dict[EventCombination, Mapping]
     _path: Optional[os.PathLike]
+    _mapping_factpry: Type[Mapping]  # the mapping class which is used by load()
 
-    def __init__(self, path: Optional[os.PathLike] = None):
+    def __init__(self, path: Optional[os.PathLike] = None, mapping_factory: Type[Mapping] = Mapping):
         self._mappings = {}
         self._saved_mappings = {}
         self._path = path
+        self._mapping_factory = mapping_factory
 
     def __iter__(self) -> Iterator[Mapping]:
         """Iterate over Mapping objects."""
@@ -113,7 +115,7 @@ class Preset:
 
         for combination, mapping_dict in preset_dict.items():
             try:
-                mapping = Mapping(event_combination=combination, **mapping_dict)
+                mapping = self._mapping_factory(event_combination=combination, **mapping_dict)
             except ValidationError as error:
                 logger.error("failed to Validate mapping for %s: %s", combination, error)
                 continue
