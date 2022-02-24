@@ -1,0 +1,21 @@
+---
+runner:
+  mypy:
+    name: mypy
+    cmd: mypy --show-column-numbers inputremapper tests --ignore-missing-imports
+    errorformat:
+      - "%f:%l:%c: %m"
+
+  pylint:
+    name: pylint
+    cmd: pylint inputremapper tests --extension-pkg-whitelist=evdev
+    errorformat:
+      - "%f:%l:%c: %t%n: %m"
+
+  flake8:
+    cmd: flake8 inputremapper tests
+    format: flake8
+
+  black:
+    cmd: black --diff --quiet --check ./inputremapper ./tests
+    format: black

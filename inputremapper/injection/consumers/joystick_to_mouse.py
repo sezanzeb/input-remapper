@@ -213,7 +213,7 @@ class JoystickToMouse(Consumer):
         non_linearity = preset.get("gamepad.joystick.non_linearity")
         x_scroll_speed = preset.get("gamepad.joystick.x_scroll_speed")
         y_scroll_speed = preset.get("gamepad.joystick.y_scroll_speed")
-        max_speed = 2 ** 0.5  # for normalized abs event values
+        max_speed = 2**0.5  # for normalized abs event values
 
         if abs_range is not None:
             logger.info(

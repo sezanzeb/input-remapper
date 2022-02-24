@@ -148,7 +148,7 @@ class FakePresetDropdown(Gtk.ComboBoxText):
 
 
 def clean_up_integration(test):
-    test.user_interface.on_restore_defaults_clicked(None)
+    test.user_interface.on_stop_injecting_clicked(None)
     gtk_iteration()
     test.user_interface.on_close()
     test.user_interface.window.destroy()
@@ -699,12 +699,18 @@ class TestGui(GuiTestBase):
 
     def test_editor_keycode_to_string(self):
         # not an integration test, but I have all the selection_label tests here already
-        self.assertEqual(EventCombination((EV_KEY, evdev.ecodes.KEY_A, 1)).beautify(), "a")
+        self.assertEqual(
+            EventCombination((EV_KEY, evdev.ecodes.KEY_A, 1)).beautify(), "a"
+        )
         self.assertEqual(
             EventCombination([EV_KEY, evdev.ecodes.KEY_A, 1]).beautify(), "a"
         )
-        self.assertEqual(EventCombination((EV_ABS, evdev.ecodes.ABS_HAT0Y, -1)).beautify(), "DPad Up")
-        self.assertEqual(EventCombination((EV_KEY, evdev.ecodes.BTN_A, 1)).beautify(), "Button A")
+        self.assertEqual(
+            EventCombination((EV_ABS, evdev.ecodes.ABS_HAT0Y, -1)).beautify(), "DPad Up"
+        )
+        self.assertEqual(
+            EventCombination((EV_KEY, evdev.ecodes.BTN_A, 1)).beautify(), "Button A"
+        )
         self.assertEqual(EventCombination((EV_KEY, 1234, 1)).beautify(), "1234")
         self.assertEqual(
             EventCombination([EV_ABS, evdev.ecodes.ABS_HAT0X, -1]).beautify(),
@@ -1518,6 +1524,9 @@ class TestGui(GuiTestBase):
         self.assertEqual(
             self.user_interface.get("apply_system_layout").get_opacity(), 0.4
         )
+        self.assertEqual(
+            self.user_interface.get("key_recording_toggle").get_opacity(), 1
+        )
 
         # device grabbing fails
 
@@ -1570,7 +1579,16 @@ class TestGui(GuiTestBase):
             self.user_interface.dbus.get_state(self.user_interface.group.key), RUNNING
         )
 
+        self.assertEqual(
+            self.user_interface.get("apply_system_layout").get_opacity(), 1
+        )
+        self.assertEqual(
+            self.user_interface.get("key_recording_toggle").get_opacity(), 0.4
+        )
+
         # because this test managed to reproduce some minor bug:
+        # The mapping is supposed to be in active_preset._mapping, not in _config.
+        # For reasons I don't remember.
         self.assertNotIn("mapping", active_preset._config)
 
     def test_wont_start_2(self):
@@ -1736,7 +1754,7 @@ class TestGui(GuiTestBase):
         gtk_iteration()
         speed = active_preset.get("gamepad.joystick.pointer_speed")
         active_preset.set("gamepad.joystick.non_linearity", 1)
-        self.assertEqual(speed, 2 ** 6)
+        self.assertEqual(speed, 2**6)
 
         # don't consume the events in the reader, they are used to test
         # the injection
@@ -1793,7 +1811,7 @@ class TestGui(GuiTestBase):
         write_history = [pipe.recv()]
 
         # stop
-        self.user_interface.on_restore_defaults_clicked(None)
+        self.user_interface.on_stop_injecting_clicked(None)
 
         # try to receive a few of the events
         time.sleep(0.2)

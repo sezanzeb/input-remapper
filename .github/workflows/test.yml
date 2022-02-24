@@ -1,0 +1,28 @@
+name: Test
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    continue-on-error: true
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
+    strategy:
+      matrix:
+        python-version: ["3.7", "3.10"] # min and max supported versions?
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        # Install deps as root since we will run tests as root
+        sudo scripts/ci-install-deps.sh
+        sudo pip install .
+    - name: Run tests
+      run: |
+        # FIXME: Had some permissions issues, currently worked around by running tests as root
+        mkdir test_tmp
+        TMPDIR="$(realpath test_tmp)" sudo python tests/test.py --start-dir unit

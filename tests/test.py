@@ -20,6 +20,7 @@
 
 
 """Sets up inputremapper for the tests and runs them."""
+import argparse
 import os
 import sys
 import tempfile
@@ -663,7 +664,15 @@ cleanup()
 
 
 def main():
-    modules = sys.argv[1:]
+    # https://docs.python.org/3/library/argparse.html
+    parser = argparse.ArgumentParser(description=__doc__)
+    # repeated argument 0 or more times with modules
+    parser.add_argument("modules", type=str, nargs="*")
+    # start-dir value if not using modules, allows eg python tests/test.py --start-dir unit
+    parser.add_argument("--start-dir", type=str, default=".")
+    parsed_args = parser.parse_args()  # takes from sys.argv by default
+    modules = parsed_args.modules
+
     # discoverer is really convenient, but it can't find a specific test
     # in all of the available tests like unittest.main() does...,
     # so provide both options.
@@ -674,7 +683,9 @@ def main():
         testsuite = unittest.defaultTestLoader.loadTestsFromNames(modules)
     else:
         # run all tests by default
-        testsuite = unittest.defaultTestLoader.discover(".", pattern="test_*.py")
+        testsuite = unittest.defaultTestLoader.discover(
+            parsed_args.start_dir, pattern="test_*.py"
+        )
 
     # add a newline to each "qux (foo.bar)..." output before each test,
     # because the first log will be on the same line otherwise

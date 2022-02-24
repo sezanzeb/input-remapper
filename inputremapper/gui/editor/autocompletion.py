@@ -37,7 +37,7 @@ from inputremapper.injection.global_uinputs import global_uinputs
 from inputremapper.logger import logger
 
 
-# no shorthand names
+# no deprecated shorthand function-names
 FUNCTION_NAMES = [name for name in FUNCTIONS.keys() if len(name) > 1]
 # no deprecated functions
 FUNCTION_NAMES.remove("ifeq")
