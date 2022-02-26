@@ -360,6 +360,10 @@ class TestMacros(MacroTestBase):
         self.assertIsNone(parse("r(a, k(b))", self.context))
         self.assertIsNone(parse("m(a, b)", self.context))
 
+        # passing a string parameter. This is not a macro, even though
+        # it might look like it without the string quotes.
+        self.assertIsNone(parse('"m(a, b)"', self.context))
+
     async def test_0(self):
         macro = parse("k(1)", self.context)
         one_code = system_mapping.get("1")

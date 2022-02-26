@@ -421,6 +421,12 @@ def parse(macro, context=None, return_errors=False):
 
     try:
         macro_object = _parse_recurse(macro, context)
+
+        if not isinstance(macro_object, Macro):
+            # someone put a single parameter like a string into this function, and
+            # it was most likely returned without modification. Not a macro
+            raise ValueError("The provided code was not a macro")
+
         return macro_object if not return_errors else None
     except Exception as error:
         logger.error('Failed to parse macro "%s": %s', macro, error.__repr__())
