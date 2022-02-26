@@ -26,26 +26,12 @@ import sys
 import tempfile
 
 
-def chdir_to_project_root():
-    """Change the current workig directory to input-remappers root.
-
-    When using the green arrow on the left to run tests in pycharm, the working
-    directory is usually the parent directory of the test. This fixes it.
-    """
-    for _ in range(10):
-        # go up until it is found
-        if "setup.py" not in os.listdir("."):
-            os.chdir("..")
-        else:
-            break
-    else:
-        # it probably keeps looping forever because it can't find the project root.
-        # Setup your working directory to the project root (see "Edit Configurations"
-        # in pycharm).
-        raise Exception("Your working directory test setup is broken")
-
-
-chdir_to_project_root()
+if "setup.py" not in os.listdir("."):
+    # Setup your working directory to the project root
+    # (see "Edit Configurations" in pycharm).
+    # This is needed in order to make the tests module visible, so that fixtures
+    # can be imported and patches loaded.
+    raise Exception("Your working directory test setup is broken")
 
 
 # make sure the "tests" module visible
@@ -474,6 +460,7 @@ class InputEvent(evdev.InputEvent):
 
 
 def patch_evdev():
+    print("patch evdev du mongo")
     def list_devices():
         return fixtures.keys()
 

@@ -1982,14 +1982,17 @@ class TestGui(GuiTestBase):
         self.editor.enable_symbol_input()
         self.assertEqual(self.get_unfiltered_symbol_input_text(), "foo")
 
-    def test_empty_symbol(self):
-        # test how the editor behaves when the text of a mapping is removed
+    def test_whitespace_symbol(self):
+        # test how the editor behaves when the text of a mapping is a whitespace.
+        # Caused an "Expected `symbol` not to be empty" error in the past, because
+        # the symbol was not stripped of whitespaces and logic was performed that
+        # resulted in a call to actually changing the mapping.
         self.add_mapping_via_ui(EventCombination([1, 201, 1]), "a")
         self.add_mapping_via_ui(EventCombination([1, 202, 1]), "b")
 
         self.select_mapping(1)
         self.assertEqual(self.editor.get_symbol_input_text(), "b")
-        self.editor.set_symbol_input_text("")
+        self.editor.set_symbol_input_text(" ")
 
         self.select_mapping(0)
         self.assertEqual(self.editor.get_symbol_input_text(), "a")
