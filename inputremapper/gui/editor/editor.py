@@ -378,6 +378,7 @@ class Editor:
             if active_preset.get_mapping(combination):
                 self.set_symbol_input_text(active_preset.get_mapping(combination)[0])
                 self.set_target_selection(active_preset.get_mapping(combination)[1])
+
             self.enable_symbol_input()
             self.enable_target_selector()
 
@@ -463,7 +464,7 @@ class Editor:
             # not configured yet
             return ""
 
-        return symbol
+        return symbol.strip()
 
     def set_target_selection(self, target):
         selector = self.get_target_selector()
@@ -551,7 +552,7 @@ class Editor:
 
         # make sure the active_preset is up to date
         key = self.get_combination()
-        if correct_case is not None and key is not None and target is not None:
+        if correct_case and key and target:
             active_preset.change(key, target, correct_case)
 
         # save to disk if required

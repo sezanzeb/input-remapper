@@ -25,15 +25,26 @@ import os
 import sys
 import tempfile
 
-# the working directory should be the project root
-assert not os.getcwd().endswith("tests")
-assert not os.getcwd().endswith("unit")
-assert not os.getcwd().endswith("integration")
+
+def get_project_root():
+    """Find the projects root, i.e. the uppermost directory of the repo."""
+    # when tests are started in pycharm via the green arrow, the working directory
+    # is not the project root. Go up until it is found.
+    root = os.getcwd()
+    for _ in range(10):
+        if "setup.py" in os.listdir(root):
+            return root
+
+        root = os.path.dirname(root)
+
+    raise Exception("Could not find project root")
+
 
 # make sure the "tests" module visible
-sys.path.append(os.getcwd())
+sys.path.append(get_project_root())
 if __name__ == "__main__":
-    # import this file to itself to make sure is not run twice and all global variables end up in sys.modules
+    # import this file to itself to make sure is not run twice and all global
+    # variables end up in sys.modules
     # https://stackoverflow.com/questions/13181559/importing-modules-main-vs-import-as-module
     import tests.test
 
