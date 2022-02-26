@@ -26,16 +26,22 @@ import sys
 import tempfile
 
 
-if "setup.py" not in os.listdir("."):
-    # Setup your working directory to the project root
-    # (see "Edit Configurations" in pycharm).
-    # This is needed in order to make the tests module visible, so that fixtures
-    # can be imported and patches loaded.
-    raise Exception("Your working directory test setup is broken")
+def get_project_root():
+    """Find the projects root, i.e. the uppermost directory of the repo."""
+    # when tests are started in pycharm via the green arrow, the working directory
+    # is not the project root. Go up until it is found.
+    root = os.getcwd()
+    for _ in range(10):
+        if "setup.py" in os.listdir(root):
+            return root
+
+        root = os.path.dirname(root)
+
+    raise Exception("Could not find project root")
 
 
 # make sure the "tests" module visible
-sys.path.append(os.getcwd())
+sys.path.append(get_project_root())
 if __name__ == "__main__":
     # import this file to itself to make sure is not run twice and all global
     # variables end up in sys.modules
@@ -460,7 +466,6 @@ class InputEvent(evdev.InputEvent):
 
 
 def patch_evdev():
-    print("patch evdev du mongo")
     def list_devices():
         return fixtures.keys()
 

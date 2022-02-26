@@ -19,6 +19,22 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
+# the tests file needs to be imported first to make sure patches are loaded
+from tests.test import (
+    get_project_root,
+    logger,
+    tmp,
+    push_events,
+    new_event,
+    spy,
+    cleanup,
+    uinput_write_history_pipe,
+    MAX_ABS,
+    EVENT_READ_TIMEOUT,
+    send_event_to_reader,
+    MIN_ABS,
+)
+
 import sys
 import time
 import atexit
@@ -61,20 +77,6 @@ from inputremapper.event_combination import EventCombination
 from inputremapper.daemon import Daemon
 from inputremapper.groups import groups
 
-from tests.test import (
-    logger,
-    tmp,
-    push_events,
-    new_event,
-    spy,
-    cleanup,
-    uinput_write_history_pipe,
-    MAX_ABS,
-    EVENT_READ_TIMEOUT,
-    send_event_to_reader,
-    MIN_ABS,
-)
-
 
 # iterate a few times when Gtk.main() is called, but don't block
 # there and just continue to the tests while the UI becomes
@@ -87,7 +89,7 @@ Gtk.main_quit = lambda: None
 
 def launch(argv=None) -> UserInterface:
     """Start input-remapper-gtk with the command line argument array argv."""
-    bin_path = os.path.join(os.getcwd(), "bin", "input-remapper-gtk")
+    bin_path = os.path.join(get_project_root(), "bin", "input-remapper-gtk")
 
     if not argv:
         argv = ["-d"]
