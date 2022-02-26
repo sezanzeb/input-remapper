@@ -315,7 +315,7 @@ def _parse_recurse(code, context, macro_instance=None, depth=0):
 
 
 def handle_plus_syntax(macro):
-    """transform a + b + c to m(a, m(b, m(c, h())))"""
+    """transform a + b + c to modify(a,modify(b,modify(c,hold())))"""
     if "+" not in macro:
         return macro
 
@@ -333,9 +333,9 @@ def handle_plus_syntax(macro):
             raise ValueError(f'Invalid syntax for "{macro}"')
 
         depth += 1
-        output += f"m({chunk},"
+        output += f"modify({chunk},"
 
-    output += "h()"
+    output += "hold()"
     output += depth * ")"
 
     logger.debug('Transformed "%s" to "%s"', macro, output)
@@ -396,14 +396,16 @@ def parse(macro, context=None, return_errors=False):
     Parameters
     ----------
     macro : string
-        "r(3, k(a).w(10))"
-        "r(2, k(a).k(KEY_A)).k(b)"
-        "w(1000).m(Shift_L, r(2, k(a))).w(10, 20).k(b)"
+        "repeat(3, key(a).wait(10))"
+        "repeat(2, key(a).key(KEY_A)).key(b)"
+        "wait(1000).modify(Shift_L, repeat(2, k(a))).wait(10, 20).key(b)"
     context : Context, or None for use in Frontend
     return_errors : bool
         If True, returns errors as a string or None if parsing worked.
         If False, returns the parsed macro.
     """
+    macro = clean(macro)
+
     try:
         macro = handle_plus_syntax(macro)
     except Exception as error:
@@ -411,8 +413,6 @@ def parse(macro, context=None, return_errors=False):
         # print the traceback in case this is a bug of input-remapper
         logger.debug("".join(traceback.format_tb(error.__traceback__)).strip())
         return f"{error.__class__.__name__}: {str(error)}" if return_errors else None
-
-    macro = clean(macro)
 
     if return_errors:
         logger.debug("checking the syntax of %s", macro)

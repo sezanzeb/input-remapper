@@ -65,7 +65,7 @@ from inputremapper.configs.preset import Preset
 from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.utils import PRESS, RELEASE
 
-from tests.test import quick_cleanup, new_event
+from tests.test import logger, quick_cleanup, new_event
 
 
 class MacroTestBase(unittest.IsolatedAsyncioTestCase):
@@ -234,7 +234,7 @@ class TestMacros(MacroTestBase):
         self.assertTupleEqual(_split_keyword_arg("a=r(2, KEY_A)"), ("a", "r(2, KEY_A)"))
         self.assertTupleEqual(_split_keyword_arg('a="=,#+."'), ("a", '"=,#+."'))
 
-    async def test_is_this_a_macro(self):
+    def test_is_this_a_macro(self):
         self.assertTrue(is_this_a_macro("k(1)"))
         self.assertTrue(is_this_a_macro("k(1).k(2)"))
         self.assertTrue(is_this_a_macro("r(1, k(1).k(2))"))
@@ -252,21 +252,33 @@ class TestMacros(MacroTestBase):
         self.assertTrue(is_this_a_macro("a + b"))
         self.assertTrue(is_this_a_macro("a + b + c"))
 
-    async def test_handle_plus_syntax(self):
-        self.assertEqual(handle_plus_syntax("a + b"), "m(a,m(b,h()))")
-        self.assertEqual(handle_plus_syntax("a + b + c"), "m(a,m(b,m(c,h())))")
-        self.assertEqual(handle_plus_syntax(" a+b+c "), "m(a,m(b,m(c,h())))")
+    def test_handle_plus_syntax(self):
+        self.assertEqual(handle_plus_syntax("a + b"), "modify(a,modify(b,hold()))")
+        self.assertEqual(
+            handle_plus_syntax("a + b + c"), "modify(a,modify(b,modify(c,hold())))"
+        )
+        self.assertEqual(
+            handle_plus_syntax(" a+b+c "), "modify(a,modify(b,modify(c,hold())))"
+        )
 
         # invalid
         strings = ["+", "a+", "+b", "k(a + b)"]
-        for s in strings:
+        for string in strings:
             with self.assertRaises(ValueError):
-                print(f"testing '{s}'")
-                handle_plus_syntax(s)
+                logger.info(f'testing "%s"', string)
+                handle_plus_syntax(string)
 
         self.assertEqual(handle_plus_syntax("a"), "a")
         self.assertEqual(handle_plus_syntax("k(a)"), "k(a)")
         self.assertEqual(handle_plus_syntax(""), "")
+
+    def test_parse_plus_syntax(self):
+        macro = parse("a + b")
+        self.assertEqual(macro.code, "modify(a,modify(b,hold()))")
+
+        # this is not erroneously recognized as "plus" syntax
+        macro = parse("key(a) # a + b")
+        self.assertEqual(macro.code, "key(a)")
 
     async def test_run_plus_syntax(self):
         macro = parse("a + b + c + d", self.context)
