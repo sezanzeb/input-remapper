@@ -254,8 +254,12 @@ class TestMacros(MacroTestBase):
 
     def test_handle_plus_syntax(self):
         self.assertEqual(handle_plus_syntax("a + b"), "modify(a,modify(b,hold()))")
-        self.assertEqual(handle_plus_syntax("a + b + c"), "modify(a,modify(b,modify(c,hold())))")
-        self.assertEqual(handle_plus_syntax(" a+b+c "), "modify(a,modify(b,modify(c,hold())))")
+        self.assertEqual(
+            handle_plus_syntax("a + b + c"), "modify(a,modify(b,modify(c,hold())))"
+        )
+        self.assertEqual(
+            handle_plus_syntax(" a+b+c "), "modify(a,modify(b,modify(c,hold())))"
+        )
 
         # invalid
         strings = ["+", "a+", "+b", "k(a + b)"]
