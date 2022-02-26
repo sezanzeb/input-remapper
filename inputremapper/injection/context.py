@@ -95,8 +95,6 @@ class Context:
                 if macro is None:
                     continue
 
-                print("hurensohn", macro)
-
                 for permutation in combination.get_permutations():
                     macros[permutation] = (macro, output[1])
 
