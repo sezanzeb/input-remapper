@@ -62,6 +62,7 @@ from inputremapper.daemon import Daemon
 from inputremapper.groups import groups
 
 from tests.test import (
+    logger,
     tmp,
     push_events,
     new_event,
@@ -285,6 +286,7 @@ class GuiTestBase(unittest.TestCase):
                     raise e
 
             # try again
+            print("Test failed, trying again")
             self.tearDown()
             self.setUp()
 
@@ -332,6 +334,8 @@ class GuiTestBase(unittest.TestCase):
         UserInterface.start_processes = cls.original_start_processes
 
     def set_focus(self, widget):
+        logger.info("Focusing %s", widget)
+
         self.user_interface.window.set_focus(widget)
 
         # for whatever miraculous reason it suddenly takes 0.005s before gtk does
@@ -350,6 +354,25 @@ class GuiTestBase(unittest.TestCase):
         buffer = self.editor.get_text_input().get_buffer()
         return buffer.get_text(buffer.get_start_iter(), buffer.get_end_iter(), True)
 
+    def select_mapping(self, i: int):
+        """Select one of the mappings of a preset.
+
+        Parameters
+        ----------
+        i
+            if -1, will select the "empty row",
+            0 will select the uppermost row.
+            1 will select the second row, and so on
+        """
+        selection_label = self.get_selection_labels()[i]
+        self.selection_label_listbox.select_row(selection_label)
+        logger.info(
+            'Selecting mapping %s "%s"',
+            selection_label.get_combination(),
+            selection_label.get_label(),
+        )
+        return selection_label
+
     def add_mapping_via_ui(self, key, symbol, expect_success=True, target=None):
         """Modify the one empty mapping that always exists.
 
@@ -364,6 +387,13 @@ class GuiTestBase(unittest.TestCase):
         target : str
             the target selection
         """
+        logger.info(
+            'Adding mapping %s, "%s", expecting to %s',
+            key,
+            symbol,
+            "work" if expect_success else "fail",
+        )
+
         self.throttle()
 
         self.assertIsNone(reader.get_unreleased_keys())
@@ -375,8 +405,7 @@ class GuiTestBase(unittest.TestCase):
         gtk_iteration()
 
         # the empty selection_label is expected to be the last one
-        selection_label = self.get_selection_labels()[-1]
-        self.selection_label_listbox.select_row(selection_label)
+        selection_label = self.select_mapping(-1)
         self.assertIsNone(selection_label.get_combination())
         self.assertFalse(self.editor._input_has_arrived)
 
@@ -876,9 +905,7 @@ class TestGui(GuiTestBase):
         # focus the toggle after selecting a different selection_label.
         # It resets the reader
         self.editor.add_empty()
-        self.selection_label_listbox.select_row(
-            self.selection_label_listbox.get_children()[-1]
-        )
+        self.select_mapping(-1)
         self.set_focus(self.toggle)
         self.toggle.set_active(True)
 
@@ -916,9 +943,7 @@ class TestGui(GuiTestBase):
 
         """edit first selection_label"""
 
-        self.selection_label_listbox.select_row(
-            self.selection_label_listbox.get_children()[0]
-        )
+        self.select_mapping(0)
         self.assertEqual(self.editor.get_combination(), ev_1)
         self.set_focus(self.editor.get_text_input())
         self.editor.set_symbol_input_text("c")
@@ -1956,6 +1981,18 @@ class TestGui(GuiTestBase):
         self.editor.set_symbol_input_text("foo")
         self.editor.enable_symbol_input()
         self.assertEqual(self.get_unfiltered_symbol_input_text(), "foo")
+
+    def test_empty_symbol(self):
+        # test how the editor behaves when the text of a mapping is removed
+        self.add_mapping_via_ui(EventCombination([1, 201, 1]), "a")
+        self.add_mapping_via_ui(EventCombination([1, 202, 1]), "b")
+
+        self.select_mapping(1)
+        self.assertEqual(self.editor.get_symbol_input_text(), "b")
+        self.editor.set_symbol_input_text("")
+
+        self.select_mapping(0)
+        self.assertEqual(self.editor.get_symbol_input_text(), "a")
 
 
 class TestAutocompletion(GuiTestBase):

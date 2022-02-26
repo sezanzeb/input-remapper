@@ -378,6 +378,7 @@ class Editor:
             if active_preset.get_mapping(combination):
                 self.set_symbol_input_text(active_preset.get_mapping(combination)[0])
                 self.set_target_selection(active_preset.get_mapping(combination)[1])
+
             self.enable_symbol_input()
             self.enable_target_selector()
 
