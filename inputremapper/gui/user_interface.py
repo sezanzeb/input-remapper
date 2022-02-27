@@ -417,6 +417,8 @@ class UserInterface:
         # incredibly frustrating and miraculous problems. Do not do it. Observations:
         # - test_autocomplete_key fails if the gui has been launched and closed by a
         # previous test already
+        # Maybe it has something to do with the order of editor.consume_newest_keycode
+        # and user_interface.populate_devices.
         self.editor.consume_newest_keycode(combination)
 
         return True
