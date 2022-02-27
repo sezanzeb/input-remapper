@@ -24,7 +24,6 @@
 
 import re
 import time
-from typing import Optional
 
 from gi.repository import Gtk, GLib, Gdk
 
