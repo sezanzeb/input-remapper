@@ -97,7 +97,6 @@ def ensure_everything_saved(func):
     """Make sure the editor has written its changes to active_preset and save."""
 
     def wrapped(self, *args, **kwargs):
-        print("ensure_everything_saved", func.__name__)
         if self.user_interface.preset_name:
             self.gather_changes_and_save()
 
@@ -155,15 +154,14 @@ class Editor:
             GLib.source_remove(timeout)
             self.timeouts = []
 
-    def _on_toggle_clicked(self, toggle, event):
+    def _on_toggle_clicked(self, toggle, event=None):
         if toggle.get_active():
             self._show_press_key()
         else:
             self._show_change_key()
 
     @ensure_everything_saved
-    def _on_toggle_unfocus(self, toggle, event):
-        print("_on_toggle_unfocus")
+    def _on_toggle_unfocus(self, toggle, event=None):
         toggle.set_active(False)
 
     @ensure_everything_saved
@@ -503,7 +501,6 @@ class Editor:
 
     def _on_recording_toggle_toggle(self, toggle):
         """Refresh useful usage information."""
-        print("_on_recording_toggle_toggle")
         if not toggle.get_active():
             # if more events arrive from the time when the toggle was still on,
             # use them.
