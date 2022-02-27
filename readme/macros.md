@@ -79,14 +79,31 @@ Bear in mind that anti-cheat software might detect macros in games.
 > long as the key is pressed down.
 >
 > ```c#
-> hold(macro: Macro | str)
+> hold(macro: Macro)
 > ```
 >
 > Examples:
 >
 > ```c#
-> hold(KEY_A)
 > hold(key(space))
+> ```
+
+### hold_keys
+
+> Holds down all the provided symbols like a combination.
+>
+> An arbitrary number of symbols can be provided.
+>
+> ```c#
+> hold(*symbols: str)
+> ```
+>
+> Examples:
+>
+> ```c#
+> hold_keys(KEY_LEFTCTRL, KEY_A)
+> hold_keys(Control_L, Alt_L, Delete)
+> set(foo, KEY_A).hold_keys($foo)
 > ```
 
 ### mouse
