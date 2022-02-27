@@ -50,8 +50,14 @@ class TestLogger(unittest.TestCase):
         logger.debug_key(((1, 200, -1), (1, 5, 1)), "foo %s", (1, 2))
         with open(path, "r") as f:
             content = f.read().lower()
-            self.assertIn("foo 1234 bar ·················· ((1, 2, 1))", content)
-            self.assertIn("foo (1, 2) ···················· ((1, 200, -1), (1, 5, 1))", content)
+            self.assertIn(
+                "foo 1234 bar ·················· ((1, 2, 1))",
+                content,
+            )
+            self.assertIn(
+                "foo (1, 2) ···················· ((1, 200, -1), (1, 5, 1))",
+                content,
+            )
 
     def test_log_info(self):
         update_verbosity(debug=False)
