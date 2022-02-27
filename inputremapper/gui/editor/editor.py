@@ -590,12 +590,12 @@ class Editor:
         self._switch_focus_if_complete()
 
         if combination is None:
-            return True
+            return
 
         if not self.should_record_combination(combination):
             # the event arrived after the toggle has been deactivated
             logger.debug("Recording toggle is not on")
-            return True
+            return
 
         if not isinstance(combination, EventCombination):
             raise TypeError("Expected new_key to be a EventCombination object")
@@ -611,7 +611,7 @@ class Editor:
             )
             logger.info("%s %s", combination, msg)
             self.user_interface.show_status(CTX_KEYCODE, msg)
-            return True
+            return
 
         if combination.is_problematic():
             self.user_interface.show_status(
@@ -632,7 +632,7 @@ class Editor:
         # keycode didn't change, do nothing
         if combination == previous_key:
             logger.debug("%s didn't change", previous_key)
-            return True
+            return
 
         self.set_combination(combination)
 
@@ -642,11 +642,11 @@ class Editor:
         if not symbol:
             # has not been entered yet
             logger.debug("Symbol missing")
-            return True
+            return
 
         if not target:
             logger.debug("Target missing")
-            return True
+            return
 
         # else, the keycode has changed, the symbol is set, all good
         active_preset.change(
@@ -655,8 +655,6 @@ class Editor:
             symbol=symbol,
             previous_combination=previous_key,
         )
-
-        return True
 
     def _switch_focus_if_complete(self):
         """If keys are released, it will switch to the text_input.
