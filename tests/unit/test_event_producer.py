@@ -19,7 +19,6 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
-
 from tests.test import (
     InputDevice,
     UInput,

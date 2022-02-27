@@ -26,9 +26,6 @@ import math
 import os
 import re
 import sys
-import locale
-import gettext
-from inputremapper.configs.data import get_data_path
 from inputremapper.gui.gettext import _
 
 from evdev._ecodes import EV_KEY
