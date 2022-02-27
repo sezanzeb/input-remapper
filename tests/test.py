@@ -425,6 +425,9 @@ class InputDevice:
 
         return result
 
+    def input_props(self):
+        return []
+
 
 uinputs = {}
 
