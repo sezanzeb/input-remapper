@@ -183,6 +183,8 @@ class Daemon:
         # initialize stuff that is needed alongside the daemon process
         macro_variables.start()
 
+        global_uinputs.prepare()
+
     @classmethod
     def connect(cls, fallback=True):
         """Get an interface to start and stop injecting keystrokes.
@@ -417,8 +419,6 @@ class Daemon:
         preset : string
             The name of the preset
         """
-        global_uinputs.prepare()
-
         self.refresh(group_key)
 
         if self.config_dir is None:
