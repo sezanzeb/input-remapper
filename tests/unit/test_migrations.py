@@ -162,7 +162,6 @@ class TestMigrations(unittest.TestCase):
         {(type, code): symbol} or {(type, code, value): symbol} should migrate to
         {(type, code, value): (symbol, "keyboard")}
         """
-
         path = os.path.join(tmp, "presets", "Foo Device", "test.json")
         os.makedirs(os.path.dirname(path), exist_ok=True)
         with open(path, "w") as file:
@@ -188,8 +187,6 @@ class TestMigrations(unittest.TestCase):
         loaded = Preset()
         self.assertEqual(loaded.num_saved_keys, 0)
         loaded.load(get_preset_path("Foo Device", "test"))
-        self.assertEqual(len(loaded), 6)
-        self.assertEqual(loaded.num_saved_keys, 6)
 
         self.assertEqual(
             loaded.get_mapping(EventCombination([EV_KEY, 1, 1])),
@@ -220,6 +217,10 @@ class TestMigrations(unittest.TestCase):
             ),
             ("c", "keyboard"),
         )
+
+        print(loaded._mapping)
+        self.assertEqual(len(loaded), 6)
+        self.assertEqual(loaded.num_saved_keys, 6)
 
     def test_migrate_otherwise(self):
         path = os.path.join(tmp, "presets", "Foo Device", "test.json")
