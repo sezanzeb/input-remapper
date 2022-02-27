@@ -340,9 +340,13 @@ class Macro:
         if not isinstance(macro, Macro):
             # if macro is a key name, hold down the key while the
             # keyboard key is physically held down
-            code = _type_check_symbol(macro)
+            symbol = macro
+            _type_check_symbol(symbol)
 
             async def task(handler):
+                resolved_symbol = _resolve(symbol, [str])
+                code = _type_check_symbol(resolved_symbol)
+
                 resolved_code = _resolve(code, [int])
                 handler(EV_KEY, resolved_code, 1)
                 await self._trigger_release_event.wait()

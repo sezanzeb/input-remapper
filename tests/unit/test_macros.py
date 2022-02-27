@@ -564,6 +564,18 @@ class TestMacros(MacroTestBase):
             ]
         )
 
+    async def test_hold_variable(self):
+        code_a = system_mapping.get("a")
+        macro = parse("set(foo, a).hold($foo)", self.context)
+        await macro.run(self.handler)
+        self.assertListEqual(
+            self.result,
+            [
+                (EV_KEY, code_a, 1),
+                (EV_KEY, code_a, 0),
+            ]
+        )
+
     async def test_hold_keys(self):
         macro = parse("set(foo, b).hold_keys(a, $foo, c)", self.context)
         # press first
