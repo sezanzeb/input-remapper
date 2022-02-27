@@ -284,7 +284,7 @@ class GuiTestBase(unittest.TestCase):
                 method()
                 break
             except Exception as e:
-                if attempts == 2:
+                if attempts == 1:
                     raise e
 
             # try again
@@ -1998,11 +1998,31 @@ class TestGui(GuiTestBase):
             self.assertTrue(os.path.exists(f"{device_path}/new preset.json"))
 
     def test_enable_disable_symbol_input(self):
-        self.editor.disable_symbol_input()
+        # should be disabled by default since no key is recorded yet
         self.assertEqual(self.get_unfiltered_symbol_input_text(), SET_KEY_FIRST)
         self.assertFalse(self.editor.get_text_input().get_sensitive())
 
         self.editor.enable_symbol_input()
+        self.assertEqual(self.get_unfiltered_symbol_input_text(), "")
+        self.assertTrue(self.editor.get_text_input().get_sensitive())
+
+        # disable it
+        self.editor.disable_symbol_input()
+        self.assertFalse(self.editor.get_text_input().get_sensitive())
+
+        # try to enable it by providing a key via set_combination
+        self.editor.set_combination(EventCombination((1, 201, 1)))
+        self.assertEqual(self.get_unfiltered_symbol_input_text(), "")
+        self.assertTrue(self.editor.get_text_input().get_sensitive())
+
+        # disable it again
+        self.editor.set_combination(None)
+        self.assertFalse(self.editor.get_text_input().get_sensitive())
+
+        # try to enable it via the reader
+        self.activate_recording_toggle()
+        send_event_to_reader(InputEvent.from_tuple((EV_KEY, 101, 1)))
+        self.editor.consume_newest_keycode()
         self.assertEqual(self.get_unfiltered_symbol_input_text(), "")
         self.assertTrue(self.editor.get_text_input().get_sensitive())
 

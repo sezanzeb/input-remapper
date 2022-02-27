@@ -166,6 +166,7 @@ class Editor:
             GLib.source_remove(timeout)
             self.timeouts = []
 
+    # TODO @ensure_everything_saved
     def _on_toggle_unfocus(self, toggle, event):
         print("_on_toggle_unfocus")
         toggle.set_active(False)
@@ -193,7 +194,7 @@ class Editor:
         One could debounce saving on text-change to avoid those logs, but that just
         sounds like a huge source of race conditions and is also hard to test.
         """
-        print("unfocus")
+        print("on_text_input_unfocus")
         pass  # the decorator will be triggered
 
     @ensure_everything_saved
@@ -332,6 +333,7 @@ class Editor:
         presets accidentally before configuring the key and then it's gone. It can
         only be saved to the preset if a key is configured. This avoids that pitfall.
         """
+        logger.debug("Disabling the text input")
         text_input = self.get_text_input()
 
         # beware that this also disables event listeners like focus-out-event:
@@ -345,6 +347,7 @@ class Editor:
 
     def enable_symbol_input(self):
         """Don't display help information anymore and allow changing the symbol."""
+        logger.debug("Enabling the text input")
         text_input = self.get_text_input()
         text_input.set_sensitive(True)
         text_input.set_opacity(1)
@@ -441,6 +444,11 @@ class Editor:
         """Show what the user is currently pressing in the user interface."""
         self.active_selection_label.set_combination(combination)
 
+        if combination and len(combination) > 0:
+            self.enable_symbol_input()
+        else:
+            self.disable_symbol_input()
+
     def get_combination(self):
         """Get the EventCombination object from the left column.
 
@@ -510,11 +518,9 @@ class Editor:
         if not toggle.get_active():
             # if more events arrive from the time when the toggle was still on,
             # use them.
-            print('- false, set to time.time')
             self.record_events_until = time.time()
             return
 
-        print('- true, set to record_all')
         self.record_events_until = RECORD_ALL
 
         self._reset_keycode_consumption()
@@ -691,6 +697,7 @@ class Editor:
 
         all_keys_released = reader.get_unreleased_keys() is None
         if all_keys_released and self._input_has_arrived and self.get_combination():
+            logger.debug("Recording complete")
             # A key was pressed and then released.
             # Switch to the symbol. idle_add this so that the
             # keycode event won't write into the symbol input as well.
