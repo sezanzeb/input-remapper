@@ -116,6 +116,18 @@ class InputEvent:
         """event type, code, value"""
         return self.type, self.code, self.value
 
+    def __str__(self):
+        if self.type == evdev.ecodes.EV_KEY:
+            key_name = evdev.ecodes.bytype[self.type].get(self.code, self.code)
+            action = "down" if self.value == 1 else "up"
+            return f"<InputEvent {key_name} {action}>"
+
+        return f"<InputEvent {self.event_tuple}>"
+
+    def timestamp(self):
+        """Return the unix timestamp of when the event was seen."""
+        return self.sec + self.usec / 1000000
+
     def modify(
         self,
         sec: int = None,

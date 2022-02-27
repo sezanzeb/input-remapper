@@ -801,7 +801,7 @@ Gives your keys back their original function</property>
                     <property name="can-focus">False</property>
                     <child>
                       <object class="GtkScrolledWindow">
-                        <property name="width-request">160</property>
+                        <property name="width-request">200</property>
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
                         <child>

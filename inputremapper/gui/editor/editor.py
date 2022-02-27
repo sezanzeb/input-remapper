@@ -23,14 +23,11 @@
 
 
 import re
-import locale
-import gettext
-import os
-from inputremapper.configs.data import get_data_path
-from inputremapper.gui.gettext import _
+import time
 
 from gi.repository import Gtk, GLib, Gdk
 
+from inputremapper.gui.gettext import _
 from inputremapper.gui.editor.autocompletion import Autocompletion
 from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.gui.active_preset import active_preset
@@ -110,6 +107,9 @@ def ensure_everything_saved(func):
 
 SET_KEY_FIRST = _("Set the key first")
 
+RECORD_ALL = float("inf")
+RECORD_NONE = 0
+
 
 class Editor:
     """Maintains the widgets of the editor."""
@@ -138,14 +138,7 @@ class Editor:
         # keys were not pressed yet
         self._input_has_arrived = False
 
-        toggle = self.get_recording_toggle()
-        toggle.connect("focus-out-event", self._reset_keycode_consumption)
-        toggle.connect("focus-out-event", lambda *_: toggle.set_active(False))
-        toggle.connect("toggled", self._on_recording_toggle_toggle)
-        # Don't leave the input when using arrow keys or tab. wait for the
-        # window to consume the keycode from the reader. I.e. a tab input should
-        # be recorded, instead of causing the recording to stop.
-        toggle.connect("key-press-event", lambda *args: Gdk.EVENT_STOP)
+        self.record_events_until = RECORD_NONE
 
         text_input = self.get_text_input()
         text_input.connect("focus-out-event", self.on_text_input_unfocus)
@@ -160,6 +153,16 @@ class Editor:
         for timeout in self.timeouts:
             GLib.source_remove(timeout)
             self.timeouts = []
+
+    def _on_toggle_clicked(self, toggle, event=None):
+        if toggle.get_active():
+            self._show_press_key()
+        else:
+            self._show_change_key()
+
+    @ensure_everything_saved
+    def _on_toggle_unfocus(self, toggle, event=None):
+        toggle.set_active(False)
 
     @ensure_everything_saved
     def on_text_input_unfocus(self, *_):
@@ -184,7 +187,8 @@ class Editor:
         One could debounce saving on text-change to avoid those logs, but that just
         sounds like a huge source of race conditions and is also hard to test.
         """
-        pass
+        print("on_text_input_unfocus")
+        pass  # the decorator will be triggered
 
     @ensure_everything_saved
     def _on_target_input_changed(self, *_):
@@ -229,31 +233,25 @@ class Editor:
 
     def _setup_recording_toggle(self):
         """Prepare the toggle button for recording key inputs."""
-        toggle = self.get("key_recording_toggle")
-        toggle.connect(
-            "focus-out-event",
-            self._show_change_key,
-        )
-        toggle.connect(
-            "focus-in-event",
-            self._show_press_key,
-        )
-        toggle.connect(
-            "clicked",
-            lambda _: (
-                self._show_press_key()
-                if toggle.get_active()
-                else self._show_change_key()
-            ),
-        )
+        toggle = self.get_recording_toggle()
+        toggle.connect("focus-out-event", self._show_change_key)
+        toggle.connect("focus-in-event", self._show_press_key)
+        toggle.connect("clicked", self._on_toggle_clicked)
+        toggle.connect("focus-out-event", self._reset_keycode_consumption)
+        toggle.connect("focus-out-event", self._on_toggle_unfocus)
+        toggle.connect("toggled", self._on_recording_toggle_toggle)
+        # Don't leave the input when using arrow keys or tab. wait for the
+        # window to consume the keycode from the reader. I.e. a tab input should
+        # be recorded, instead of causing the recording to stop.
+        toggle.connect("key-press-event", lambda *args: Gdk.EVENT_STOP)
 
-    def _show_press_key(self, *_):
+    def _show_press_key(self, *args):
         """Show user friendly instructions."""
-        self.get("key_recording_toggle").set_label("Press Key")
+        self.get_recording_toggle().set_label("Press Key")
 
-    def _show_change_key(self, *_):
+    def _show_change_key(self, *args):
         """Show user friendly instructions."""
-        self.get("key_recording_toggle").set_label("Change Key")
+        self.get_recording_toggle().set_label("Change Key")
 
     def _setup_source_view(self):
         """Prepare the code editor."""
@@ -322,8 +320,12 @@ class Editor:
         presets accidentally before configuring the key and then it's gone. It can
         only be saved to the preset if a key is configured. This avoids that pitfall.
         """
+        logger.debug("Disabling the text input")
         text_input = self.get_text_input()
+
+        # beware that this also disables event listeners like focus-out-event:
         text_input.set_sensitive(False)
+
         text_input.set_opacity(0.5)
 
         if clear or self.get_symbol_input_text() == "":
@@ -332,6 +334,7 @@ class Editor:
 
     def enable_symbol_input(self):
         """Don't display help information anymore and allow changing the symbol."""
+        logger.debug("Enabling the text input")
         text_input = self.get_text_input()
         text_input.set_sensitive(True)
         text_input.set_opacity(1)
@@ -378,6 +381,7 @@ class Editor:
             if active_preset.get_mapping(combination):
                 self.set_symbol_input_text(active_preset.get_mapping(combination)[0])
                 self.set_target_selection(active_preset.get_mapping(combination)[1])
+
             self.enable_symbol_input()
             self.enable_target_selector()
 
@@ -427,6 +431,11 @@ class Editor:
         """Show what the user is currently pressing in the user interface."""
         self.active_selection_label.set_combination(combination)
 
+        if combination and len(combination) > 0:
+            self.enable_symbol_input()
+        else:
+            self.disable_symbol_input()
+
     def get_combination(self):
         """Get the EventCombination object from the left column.
 
@@ -463,7 +472,7 @@ class Editor:
             # not configured yet
             return ""
 
-        return symbol
+        return symbol.strip()
 
     def set_target_selection(self, target):
         selector = self.get_target_selector()
@@ -490,10 +499,15 @@ class Editor:
 
         return True
 
-    def _on_recording_toggle_toggle(self, *args):
+    def _on_recording_toggle_toggle(self, toggle):
         """Refresh useful usage information."""
-        if not self.get_recording_toggle().get_active():
+        if not toggle.get_active():
+            # if more events arrive from the time when the toggle was still on,
+            # use them.
+            self.record_events_until = time.time()
             return
+
+        self.record_events_until = RECORD_ALL
 
         self._reset_keycode_consumption()
         reader.clear()
@@ -504,7 +518,7 @@ class Editor:
             self.user_interface.show_status(
                 CTX_ERROR, _('Use "Stop Injection" to stop before editing')
             )
-            self.get_recording_toggle().set_active(False)
+            toggle.set_active(False)
 
     def _on_delete_button_clicked(self, *_):
         """Destroy the row and remove it from the config."""
@@ -551,7 +565,7 @@ class Editor:
 
         # make sure the active_preset is up to date
         key = self.get_combination()
-        if correct_case is not None and key is not None and target is not None:
+        if correct_case and key and target:
             active_preset.change(key, target, correct_case)
 
         # save to disk if required
@@ -559,22 +573,28 @@ class Editor:
             self.user_interface.save_preset()
 
     def is_waiting_for_input(self):
-        """Check if the user is interacting with the ToggleButton for combination recording."""
+        """Check if the user is trying to record buttons."""
         return self.get_recording_toggle().get_active()
 
-    def consume_newest_keycode(self, combination):
-        """To capture events from keyboards, mice and gamepads.
+    def should_record_combination(self, combination):
+        """Check if the combination was written when the toggle was active."""
+        # At this point the toggle might already be off, because some keys that are
+        # used while the toggle was still on might cause the focus of the toggle to
+        # be lost, like multimedia keys. This causes the toggle to be disabled.
+        # Yet, this event should be mapped.
+        timestamp = max([event.timestamp() for event in combination])
+        return timestamp < self.record_events_until
 
-        Parameters
-        ----------
-        combination : EventCombination or None
-        """
+    def consume_newest_keycode(self, combination: EventCombination):
+        """To capture events from keyboards, mice and gamepads."""
         self._switch_focus_if_complete()
 
         if combination is None:
             return
 
-        if not self.is_waiting_for_input():
+        if not self.should_record_combination(combination):
+            # the event arrived after the toggle has been deactivated
+            logger.debug("Recording toggle is not on")
             return
 
         if not isinstance(combination, EventCombination):
@@ -591,7 +611,7 @@ class Editor:
             )
             logger.info("%s %s", combination, msg)
             self.user_interface.show_status(CTX_KEYCODE, msg)
-            return True
+            return
 
         if combination.is_problematic():
             self.user_interface.show_status(
@@ -619,8 +639,13 @@ class Editor:
         symbol = self.get_symbol_input_text()
         target = self.get_target_selection()
 
-        # the symbol is empty and therefore the mapping is not complete
-        if not symbol or not target:
+        if not symbol:
+            # has not been entered yet
+            logger.debug("Symbol missing")
+            return
+
+        if not target:
+            logger.debug("Target missing")
             return
 
         # else, the keycode has changed, the symbol is set, all good
@@ -647,6 +672,7 @@ class Editor:
 
         all_keys_released = reader.get_unreleased_keys() is None
         if all_keys_released and self._input_has_arrived and self.get_combination():
+            logger.debug("Recording complete")
             # A key was pressed and then released.
             # Switch to the symbol. idle_add this so that the
             # keycode event won't write into the symbol input as well.
