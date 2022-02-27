@@ -543,7 +543,7 @@ class TestMacros(MacroTestBase):
                 (EV_KEY, code_b, 0),
                 (EV_KEY, code_a, 1),
                 (EV_KEY, code_a, 0),
-            ]
+            ],
         )
 
     async def test_modify(self):
@@ -561,7 +561,7 @@ class TestMacros(MacroTestBase):
                 (EV_KEY, code_c, 0),
                 (EV_KEY, code_a, 0),
                 (EV_KEY, code_b, 0),
-            ]
+            ],
         )
 
     async def test_hold_variable(self):
@@ -573,7 +573,7 @@ class TestMacros(MacroTestBase):
             [
                 (EV_KEY, code_a, 1),
                 (EV_KEY, code_a, 0),
-            ]
+            ],
         )
 
     async def test_hold_keys(self):
