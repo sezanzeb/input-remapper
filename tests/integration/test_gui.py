@@ -1720,8 +1720,7 @@ class TestGui(GuiTestBase):
                 break
 
         self.assertEqual(
-            self.user_interface.dbus.get_state(self.user_interface.group.key),
-            RUNNING,
+            self.user_interface.dbus.get_state(self.user_interface.group.key), RUNNING
         )
 
         # the preset cannot be changed anymore
