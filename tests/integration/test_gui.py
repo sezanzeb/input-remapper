@@ -342,8 +342,9 @@ class GuiTestBase(unittest.TestCase):
 
         # for whatever miraculous reason it suddenly takes 0.005s before gtk does
         # anything, even for old code.
-        time.sleep(0.02)
-        gtk_iteration()
+        for _ in range(10):
+            time.sleep(0.02)
+            gtk_iteration()
 
     def get_selection_labels(self):
         return self.selection_label_listbox.get_children()
