@@ -231,7 +231,7 @@ class UserInterface:
     def setup_timeouts(self):
         """Setup all GLib timeouts."""
         self.timeouts = [
-            GLib.timeout_add(1000 / 30, self.consume_newest_keycode),
+            GLib.timeout_add(1000 / 30, self.ensure_devices_up_to_date),
         ]
 
     def start_processes(self):
@@ -398,21 +398,11 @@ class UserInterface:
         """if changing the preset is possible."""
         return self.dbus.get_state(self.group.key) != RUNNING
 
-    def consume_newest_keycode(self):
+    def ensure_devices_up_to_date(self):
         """To capture events from keyboards, mice and gamepads."""
-        # the "event" event of Gtk.Window wouldn't trigger on gamepad
-        # events, so it became a GLib timeout to periodically check kernel
-        # events.
-
-        # letting go of one of the keys of a combination won't just make
-        # it return the leftover key, it will continue to return None because
-        # they have already been read.
-        key = reader.read()
-
         if reader.are_new_groups_available():
+            # TODO is this needed?
             self.populate_devices()
-
-        self.editor.consume_newest_keycode(key)
 
         return True
 

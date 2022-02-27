@@ -32,7 +32,12 @@ from inputremapper.logger import logger
 from inputremapper.event_combination import EventCombination
 from inputremapper.groups import groups, GAMEPAD
 from inputremapper.ipc.pipe import Pipe
-from inputremapper.gui.helper import TERMINATE, REFRESH_GROUPS
+from inputremapper.gui.helper import (
+    MSG_EVENT,
+    MSG_GROUPS,
+    CMD_TERMINATE,
+    CMD_REFRESH_GROUPS,
+)
 from inputremapper import utils
 from inputremapper.gui.active_preset import active_preset
 from inputremapper.user import USER
@@ -88,14 +93,14 @@ class Reader:
         message_type = message["type"]
         message_body = message["message"]
 
-        if message_type == "groups":
+        if message_type == MSG_GROUPS:
             if message_body != groups.dumps():
                 groups.loads(message_body)
                 logger.debug("Received %d devices", len(groups))
                 self._groups_updated = True
             return None
 
-        if message_type == "event":
+        if message_type == MSG_EVENT:
             return InputEvent(*message_body)
 
         logger.error('Received unknown message "%s"', message)
@@ -139,12 +144,12 @@ class Reader:
                 continue
 
             if event.value == 0:
-                logger.debug_key(event.event_tuple, "release")
+                logger.debug_key(event, "release")
                 self._release(event.type_and_code)
                 continue
 
-            if self._unreleased.get(event.type_and_code) == event.event_tuple:
-                logger.debug_key(event.event_tuple, "duplicate key down")
+            if self._unreleased.get(event.type_and_code) == event:
+                logger.debug_key(event, "duplicate key down")
                 self._debounce_start(event.event_tuple)
                 continue
 
@@ -154,8 +159,8 @@ class Reader:
             # from release to input in order to remember it. Since all release
             # events have value 0, the value is not used in the combination.
             key_down_received = True
-            logger.debug_key(event.event_tuple, "down")
-            self._unreleased[event.type_and_code] = event.event_tuple
+            logger.debug_key(event, "down")
+            self._unreleased[event.type_and_code] = event
             self._debounce_start(event.event_tuple)
             previous_event = event
 
@@ -190,11 +195,11 @@ class Reader:
     def terminate(self):
         """Stop reading keycodes for good."""
         logger.debug("Sending close msg to helper")
-        self._commands.send(TERMINATE)
+        self._commands.send(CMD_TERMINATE)
 
     def refresh_groups(self):
         """Ask the helper for new device groups."""
-        self._commands.send(REFRESH_GROUPS)
+        self._commands.send(CMD_REFRESH_GROUPS)
 
     def clear(self):
         """Next time when reading don't return the previous keycode."""

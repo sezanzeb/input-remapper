@@ -288,7 +288,7 @@ class GuiTestBase(unittest.TestCase):
                     raise e
 
             # try again
-            print("Test failed, trying again")
+            print("Test failed, trying again...")
             self.tearDown()
             self.setUp()
 
@@ -791,13 +791,14 @@ class TestGui(GuiTestBase):
         self.toggle.set_active(True)
         self.assertEqual(self.toggle.get_label(), "Press Key")
 
-        self.editor.consume_newest_keycode(None)
+        self.editor.consume_newest_keycode()
         # nothing happens
         self.assertIsNone(selection_label.get_combination())
         self.assertEqual(len(active_preset), 0)
         self.assertEqual(self.toggle.get_label(), "Press Key")
 
-        self.editor.consume_newest_keycode(EventCombination([EV_KEY, 30, 1]))
+        send_event_to_reader(InputEvent.from_tuple([EV_KEY, 30, 1]))
+        self.editor.consume_newest_keycode()
         # no symbol configured yet, so the active_preset remains empty
         self.assertEqual(len(active_preset), 0)
         self.assertEqual(len(selection_label.get_combination()), 1)
@@ -806,9 +807,10 @@ class TestGui(GuiTestBase):
         # but KEY_ is removed from the text for display purposes
         self.assertEqual(selection_label.get_label(), "a")
 
-        # providing the same key again (Maybe this could happen for gamepads or
-        # something, idk) doesn't do any harm
-        self.editor.consume_newest_keycode(EventCombination([EV_KEY, 30, 1]))
+        # providing the same key again doesn't do any harm
+        # (Maybe this could happen for gamepads or something, idk)
+        send_event_to_reader(InputEvent.from_tuple([EV_KEY, 30, 1]))
+        self.editor.consume_newest_keycode()
         self.assertEqual(len(active_preset), 0)  # not released yet
         self.assertEqual(len(selection_label.get_combination()), 1)
         self.assertEqual(selection_label.get_combination()[0], (EV_KEY, 30, 1))
@@ -825,7 +827,9 @@ class TestGui(GuiTestBase):
         self.editor.set_symbol_input_text("Shift_L")
         self.set_focus(None)
 
-        self.assertEqual(len(active_preset), 1)
+        print("assert")
+        num_mappings = len(active_preset)
+        self.assertEqual(num_mappings, 1)
 
         time.sleep(0.1)
         gtk_iteration()

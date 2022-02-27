@@ -23,14 +23,12 @@
 
 
 import re
-import locale
-import gettext
-import os
-from inputremapper.configs.data import get_data_path
-from inputremapper.gui.gettext import _
+import time
+from typing import Optional
 
 from gi.repository import Gtk, GLib, Gdk
 
+from inputremapper.gui.gettext import _
 from inputremapper.gui.editor.autocompletion import Autocompletion
 from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.gui.active_preset import active_preset
@@ -100,6 +98,7 @@ def ensure_everything_saved(func):
     """Make sure the editor has written its changes to active_preset and save."""
 
     def wrapped(self, *args, **kwargs):
+        print("ees")
         if self.user_interface.preset_name:
             self.gather_changes_and_save()
 
@@ -109,6 +108,9 @@ def ensure_everything_saved(func):
 
 
 SET_KEY_FIRST = _("Set the key first")
+
+RECORD_ALL = float("inf")
+RECORD_NONE = 0
 
 
 class Editor:
@@ -127,6 +129,7 @@ class Editor:
         self.timeouts = [
             GLib.timeout_add(100, self.check_add_new_key),
             GLib.timeout_add(1000, self.update_toggle_opacity),
+            GLib.timeout_add(1000 / 30, self.consume_newest_keycode),
         ]
         self.active_selection_label: SelectionLabel = None
 
@@ -146,6 +149,8 @@ class Editor:
         # window to consume the keycode from the reader. I.e. a tab input should
         # be recorded, instead of causing the recording to stop.
         toggle.connect("key-press-event", lambda *args: Gdk.EVENT_STOP)
+
+        self.record_events_until = RECORD_NONE
 
         text_input = self.get_text_input()
         text_input.connect("focus-out-event", self.on_text_input_unfocus)
@@ -184,7 +189,8 @@ class Editor:
         One could debounce saving on text-change to avoid those logs, but that just
         sounds like a huge source of race conditions and is also hard to test.
         """
-        pass
+        print("unfocus")
+        pass  # the decorator will be triggered
 
     @ensure_everything_saved
     def _on_target_input_changed(self, *_):
@@ -491,10 +497,15 @@ class Editor:
 
         return True
 
-    def _on_recording_toggle_toggle(self, *args):
+    def _on_recording_toggle_toggle(self, toggle):
         """Refresh useful usage information."""
-        if not self.get_recording_toggle().get_active():
+        if not toggle.get_active():
+            # if more events arrive from the time when the toggle was still on,
+            # use them.
+            self.record_events_until = time.time()
             return
+
+        self.record_events_until = RECORD_ALL
 
         self._reset_keycode_consumption()
         reader.clear()
@@ -505,7 +516,7 @@ class Editor:
             self.user_interface.show_status(
                 CTX_ERROR, _('Use "Stop Injection" to stop before editing')
             )
-            self.get_recording_toggle().set_active(False)
+            toggle.set_active(False)
 
     def _on_delete_button_clicked(self, *_):
         """Destroy the row and remove it from the config."""
@@ -560,23 +571,38 @@ class Editor:
             self.user_interface.save_preset()
 
     def is_waiting_for_input(self):
-        """Check if the user is interacting with the ToggleButton for combination recording."""
-        return self.get_recording_toggle().get_active()
+        """Check if the user is trying to record buttons."""
+        return self.record_events_until == RECORD_ALL
 
-    def consume_newest_keycode(self, combination):
-        """To capture events from keyboards, mice and gamepads.
+    def should_record_combination(self, combination):
+        """Check if the combination was written when the toggle was active."""
+        # At this point the toggle might already be off, because some keys that are
+        # used while the toggle was still on might cause the focus of the toggle to
+        # be lost, like multimedia keys. This causes the toggle to be disabled.
+        # Yet, this event should be mapped.
+        timestamp = max([event.timestamp() for event in combination])
+        return timestamp < self.record_events_until
 
-        Parameters
-        ----------
-        combination : EventCombination or None
-        """
+    def consume_newest_keycode(self):
+        """To capture events from keyboards, mice and gamepads."""
+        # the "event" event of Gtk.Window wouldn't trigger on gamepad
+        # events, so it became a GLib timeout to periodically check kernel
+        # events.
+
+        # letting go of one of the keys of a combination won't just make
+        # it return the leftover key, it will continue to return None because
+        # they have already been read.
+        combination = reader.read()
+
         self._switch_focus_if_complete()
 
         if combination is None:
-            return
+            return True
 
-        if not self.is_waiting_for_input():
-            return
+        if not self.should_record_combination(combination):
+            # the event arrived after the toggle has been deactivated
+            logger.debug("Recording toggle is not on")
+            return True
 
         if not isinstance(combination, EventCombination):
             raise TypeError("Expected new_key to be a EventCombination object")
@@ -613,16 +639,21 @@ class Editor:
         # keycode didn't change, do nothing
         if combination == previous_key:
             logger.debug("%s didn't change", previous_key)
-            return
+            return True
 
         self.set_combination(combination)
 
         symbol = self.get_symbol_input_text()
         target = self.get_target_selection()
 
-        # the symbol is empty and therefore the mapping is not complete
-        if not symbol or not target:
-            return
+        if not symbol:
+            # has not been entered yet
+            logger.debug("Symbol missing")
+            return True
+
+        if not target:
+            logger.debug("Target missing")
+            return True
 
         # else, the keycode has changed, the symbol is set, all good
         active_preset.change(
@@ -631,6 +662,8 @@ class Editor:
             symbol=symbol,
             previous_combination=previous_key,
         )
+
+        return True
 
     def _switch_focus_if_complete(self):
         """If keys are released, it will switch to the text_input.
