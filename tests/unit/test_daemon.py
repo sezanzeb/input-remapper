@@ -19,6 +19,16 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
+from tests.test import (
+    cleanup,
+    uinput_write_history_pipe,
+    new_event,
+    push_events,
+    is_service_running,
+    fixtures,
+    tmp,
+)
+
 import os
 import unittest
 import time
@@ -38,16 +48,6 @@ from inputremapper.event_combination import EventCombination
 from inputremapper.configs.preset import Preset
 from inputremapper.injection.injector import STARTING, RUNNING, STOPPED, UNKNOWN
 from inputremapper.daemon import Daemon
-
-from tests.test import (
-    cleanup,
-    uinput_write_history_pipe,
-    new_event,
-    push_events,
-    is_service_running,
-    fixtures,
-    tmp,
-)
 
 
 check_output = subprocess.check_output

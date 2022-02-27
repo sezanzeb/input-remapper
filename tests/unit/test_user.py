@@ -19,13 +19,13 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
+from tests.test import quick_cleanup
+
 import os
 import unittest
 from unittest import mock
 
 from inputremapper.user import get_user, get_home
-
-from tests.test import quick_cleanup
 
 
 def _raise(error):

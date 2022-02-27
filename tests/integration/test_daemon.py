@@ -19,6 +19,8 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
+from tests.test import is_service_running
+
 import os
 import multiprocessing
 import unittest
@@ -27,8 +29,6 @@ import time
 from gi.repository import Gtk
 
 from inputremapper.daemon import Daemon, BUS_NAME
-
-from tests.test import is_service_running
 
 
 def gtk_iteration():

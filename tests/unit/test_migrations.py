@@ -13,6 +13,8 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
+from tests.test import quick_cleanup, tmp
+
 import os
 import unittest
 import shutil
@@ -28,8 +30,6 @@ from inputremapper.event_combination import EventCombination
 from inputremapper.user import HOME
 
 from inputremapper.logger import VERSION
-
-from tests.test import quick_cleanup, tmp
 
 
 class TestMigrations(unittest.TestCase):

@@ -19,6 +19,8 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
+from tests.test import tmp
+
 import os
 import unittest
 import shutil
@@ -34,8 +36,6 @@ from inputremapper.configs.preset import (
 )
 from inputremapper.configs.paths import CONFIG_PATH, get_preset_path, touch
 from inputremapper.gui.active_preset import active_preset
-
-from tests.test import tmp
 
 
 def create_preset(group_name, name="new preset"):

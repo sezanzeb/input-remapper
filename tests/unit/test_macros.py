@@ -19,6 +19,8 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
+from tests.test import logger, quick_cleanup, new_event
+
 import time
 import unittest
 import re
@@ -65,8 +67,6 @@ from inputremapper.configs.global_config import global_config
 from inputremapper.configs.preset import Preset
 from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.utils import PRESS, RELEASE
-
-from tests.test import logger, quick_cleanup, new_event
 
 
 class MacroTestBase(unittest.IsolatedAsyncioTestCase):
