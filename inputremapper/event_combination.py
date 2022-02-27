@@ -53,12 +53,14 @@ class EventCombination(Tuple[InputEvent]):
         events = []
         for init_arg in init_args:
             event = None
+
             for constructor in InputEvent.__get_validators__():
                 try:
                     event = constructor(init_arg)
                     break
                 except InputEventCreationError:
                     pass
+
             if event:
                 events.append(event)
             else:
@@ -68,7 +70,7 @@ class EventCombination(Tuple[InputEvent]):
 
     def __str__(self):
         #  only used in tests and logging
-        return f"EventCombination({', '.join([str(e.event_tuple) for e in self])})"
+        return f"<EventCombination {', '.join([str(e.event_tuple) for e in self])}>"
 
     @classmethod
     def __get_validators__(cls):

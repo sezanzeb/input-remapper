@@ -288,7 +288,7 @@ class GuiTestBase(unittest.TestCase):
                     raise e
 
             # try again
-            print("Test failed, trying again")
+            print("Test failed, trying again...")
             self.tearDown()
             self.setUp()
 
@@ -334,6 +334,17 @@ class GuiTestBase(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         UserInterface.start_processes = cls.original_start_processes
+
+    def activate_recording_toggle(self):
+        logger.info("Activating the recording toggle")
+        self.set_focus(self.toggle)
+        self.toggle.set_active(True)
+
+    def disable_recording_toggle(self):
+        logger.info("Deactivating the recording toggle")
+        self.set_focus(None)
+        # should happen automatically:
+        self.assertFalse(self.toggle.get_active())
 
     def set_focus(self, widget):
         logger.info("Focusing %s", widget)
@@ -781,23 +792,31 @@ class TestGui(GuiTestBase):
             "Button A + Button B + Button C",
         )
 
+    def test_is_waiting_for_input(self):
+        self.activate_recording_toggle()
+        self.assertTrue(self.editor.is_waiting_for_input())
+
+        self.disable_recording_toggle()
+        self.assertFalse(self.editor.is_waiting_for_input())
+
     def test_editor_simple(self):
         self.assertEqual(self.toggle.get_label(), "Change Key")
 
         self.assertEqual(len(self.selection_label_listbox.get_children()), 1)
 
         selection_label = self.selection_label_listbox.get_children()[0]
-        self.set_focus(self.toggle)
-        self.toggle.set_active(True)
+        self.activate_recording_toggle()
+        self.assertTrue(self.editor.is_waiting_for_input())
         self.assertEqual(self.toggle.get_label(), "Press Key")
 
-        self.editor.consume_newest_keycode(None)
+        self.user_interface.consume_newest_keycode()
         # nothing happens
         self.assertIsNone(selection_label.get_combination())
         self.assertEqual(len(active_preset), 0)
         self.assertEqual(self.toggle.get_label(), "Press Key")
 
-        self.editor.consume_newest_keycode(EventCombination([EV_KEY, 30, 1]))
+        send_event_to_reader(InputEvent.from_tuple((EV_KEY, 30, 1)))
+        self.user_interface.consume_newest_keycode()
         # no symbol configured yet, so the active_preset remains empty
         self.assertEqual(len(active_preset), 0)
         self.assertEqual(len(selection_label.get_combination()), 1)
@@ -806,9 +825,10 @@ class TestGui(GuiTestBase):
         # but KEY_ is removed from the text for display purposes
         self.assertEqual(selection_label.get_label(), "a")
 
-        # providing the same key again (Maybe this could happen for gamepads or
-        # something, idk) doesn't do any harm
-        self.editor.consume_newest_keycode(EventCombination([EV_KEY, 30, 1]))
+        # providing the same key again doesn't do any harm
+        # (Maybe this could happen for gamepads or something, idk)
+        send_event_to_reader(InputEvent.from_tuple((EV_KEY, 30, 1)))
+        self.user_interface.consume_newest_keycode()
         self.assertEqual(len(active_preset), 0)  # not released yet
         self.assertEqual(len(selection_label.get_combination()), 1)
         self.assertEqual(selection_label.get_combination()[0], (EV_KEY, 30, 1))
@@ -821,11 +841,17 @@ class TestGui(GuiTestBase):
             2,
         )
 
+        self.disable_recording_toggle()
         self.set_focus(self.editor.get_text_input())
-        self.editor.set_symbol_input_text("Shift_L")
-        self.set_focus(None)
+        self.assertFalse(self.editor.is_waiting_for_input())
 
-        self.assertEqual(len(active_preset), 1)
+        self.editor.set_symbol_input_text("Shift_L")
+
+        self.set_focus(None)
+        self.assertFalse(self.editor.is_waiting_for_input())
+
+        num_mappings = len(active_preset)
+        self.assertEqual(num_mappings, 1)
 
         time.sleep(0.1)
         gtk_iteration()
@@ -1970,11 +1996,31 @@ class TestGui(GuiTestBase):
             self.assertTrue(os.path.exists(f"{device_path}/new preset.json"))
 
     def test_enable_disable_symbol_input(self):
-        self.editor.disable_symbol_input()
+        # should be disabled by default since no key is recorded yet
         self.assertEqual(self.get_unfiltered_symbol_input_text(), SET_KEY_FIRST)
         self.assertFalse(self.editor.get_text_input().get_sensitive())
 
         self.editor.enable_symbol_input()
+        self.assertEqual(self.get_unfiltered_symbol_input_text(), "")
+        self.assertTrue(self.editor.get_text_input().get_sensitive())
+
+        # disable it
+        self.editor.disable_symbol_input()
+        self.assertFalse(self.editor.get_text_input().get_sensitive())
+
+        # try to enable it by providing a key via set_combination
+        self.editor.set_combination(EventCombination((1, 201, 1)))
+        self.assertEqual(self.get_unfiltered_symbol_input_text(), "")
+        self.assertTrue(self.editor.get_text_input().get_sensitive())
+
+        # disable it again
+        self.editor.set_combination(None)
+        self.assertFalse(self.editor.get_text_input().get_sensitive())
+
+        # try to enable it via the reader
+        self.activate_recording_toggle()
+        send_event_to_reader(InputEvent.from_tuple((EV_KEY, 101, 1)))
+        self.user_interface.consume_newest_keycode()
         self.assertEqual(self.get_unfiltered_symbol_input_text(), "")
         self.assertTrue(self.editor.get_text_input().get_sensitive())
 

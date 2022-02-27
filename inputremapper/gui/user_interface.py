@@ -407,12 +407,18 @@ class UserInterface:
         # letting go of one of the keys of a combination won't just make
         # it return the leftover key, it will continue to return None because
         # they have already been read.
-        key = reader.read()
+        combination = reader.read()
 
         if reader.are_new_groups_available():
             self.populate_devices()
 
-        self.editor.consume_newest_keycode(key)
+        # giving editor its own interval and making it call reader.read itself causes
+        # incredibly frustrating and miraculous problems. Do not do it. Observations:
+        # - test_autocomplete_key fails if the gui has been launched and closed by a
+        # previous test already
+        # Maybe it has something to do with the order of editor.consume_newest_keycode
+        # and user_interface.populate_devices.
+        self.editor.consume_newest_keycode(combination)
 
         return True
 

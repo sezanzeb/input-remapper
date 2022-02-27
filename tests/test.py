@@ -565,7 +565,7 @@ def send_event_to_reader(event):
 def quick_cleanup(log=True):
     """Reset the applications state."""
     if log:
-        print("quick cleanup")
+        print("Quick cleanup...")
 
     for device in list(pending_events.keys()):
         try:
@@ -648,13 +648,16 @@ def quick_cleanup(log=True):
         uinput.write_count = 0
         uinput.write_history = []
 
+    if log:
+        print("Quick cleanup done")
+
 
 def cleanup():
     """Reset the applications state.
 
     Using this is slower, usually quick_cleanup() is sufficient.
     """
-    print("cleanup")
+    print("Cleanup...")
 
     os.system("pkill -f input-remapper-service")
     os.system("pkill -f input-remapper-control")
@@ -664,6 +667,8 @@ def cleanup():
     groups.refresh()
     with patch.object(sys, "argv", ["input-remapper-service"]):
         global_uinputs.prepare()
+
+    print("Cleanup done")
 
 
 def spy(obj, name):

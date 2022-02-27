@@ -48,8 +48,13 @@ from inputremapper import utils
 from inputremapper.user import USER
 
 
-TERMINATE = "terminate"
-REFRESH_GROUPS = "refresh_groups"
+# received by the helper
+CMD_TERMINATE = "terminate"
+CMD_REFRESH_GROUPS = "refresh_groups"
+
+# sent by the helper to the reader
+MSG_GROUPS = "groups"
+MSG_EVENT = "event"
 
 
 def is_helper_running():
@@ -88,7 +93,7 @@ class RootHelper:
 
     def _send_groups(self):
         """Send the groups to the gui."""
-        self._results.send({"type": "groups", "message": groups.dumps()})
+        self._results.send({"type": MSG_GROUPS, "message": groups.dumps()})
 
     def _handle_commands(self):
         """Handle all unread commands."""
@@ -99,11 +104,11 @@ class RootHelper:
             cmd = self._commands.recv()
             logger.debug('Received command "%s"', cmd)
 
-            if cmd == TERMINATE:
+            if cmd == CMD_TERMINATE:
                 logger.debug("Helper terminates")
                 sys.exit(0)
 
-            if cmd == REFRESH_GROUPS:
+            if cmd == CMD_REFRESH_GROUPS:
                 groups.refresh()
                 self._send_groups()
                 continue
@@ -209,7 +214,7 @@ class RootHelper:
 
         self._results.send(
             {
-                "type": "event",
+                "type": MSG_EVENT,
                 "message": (event.sec, event.usec, event.type, event.code, event.value),
             }
         )
