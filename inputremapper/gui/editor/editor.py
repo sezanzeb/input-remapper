@@ -323,7 +323,8 @@ class Editor:
         logger.debug("Disabling the text input")
         text_input = self.get_text_input()
 
-        # beware that this also disables event listeners like focus-out-event:
+        # beware that this also appeared to disable event listeners like
+        # focus-out-event:
         text_input.set_sensitive(False)
 
         text_input.set_opacity(0.5)
