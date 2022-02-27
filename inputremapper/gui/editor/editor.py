@@ -140,6 +140,7 @@ class Editor:
         # keys were not pressed yet
         self._input_has_arrived = False
 
+        # TODO move this to _setup_recording_toggle
         toggle = self.get_recording_toggle()
         toggle.connect("focus-out-event", self._reset_keycode_consumption)
         toggle.connect("focus-out-event", self._on_toggle_unfocus)

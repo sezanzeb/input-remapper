@@ -335,6 +335,17 @@ class GuiTestBase(unittest.TestCase):
     def tearDownClass(cls):
         UserInterface.start_processes = cls.original_start_processes
 
+    def activate_recording_toggle(self):
+        logger.info("Activating the recording toggle")
+        self.set_focus(self.toggle)
+        self.toggle.set_active(True)
+
+    def disable_recording_toggle(self):
+        logger.info("Deactivating the recording toggle")
+        self.set_focus(None)
+        # should happen automatically:
+        self.assertFalse(self.toggle.get_active())
+
     def set_focus(self, widget):
         logger.info("Focusing %s", widget)
 
@@ -782,14 +793,20 @@ class TestGui(GuiTestBase):
             "Button A + Button B + Button C",
         )
 
+    def test_is_waiting_for_input(self):
+        self.activate_recording_toggle()
+        self.assertTrue(self.editor.is_waiting_for_input())
+
+        self.disable_recording_toggle()
+        self.assertFalse(self.editor.is_waiting_for_input())
+
     def test_editor_simple(self):
         self.assertEqual(self.toggle.get_label(), "Change Key")
 
         self.assertEqual(len(self.selection_label_listbox.get_children()), 1)
 
         selection_label = self.selection_label_listbox.get_children()[0]
-        self.set_focus(self.toggle)
-        self.toggle.set_active(True)
+        self.activate_recording_toggle()
         self.assertTrue(self.editor.is_waiting_for_input())
         self.assertEqual(self.toggle.get_label(), "Press Key")
 
@@ -825,6 +842,7 @@ class TestGui(GuiTestBase):
             2,
         )
 
+        self.disable_recording_toggle()
         self.set_focus(self.editor.get_text_input())
         self.assertFalse(self.editor.is_waiting_for_input())
 
