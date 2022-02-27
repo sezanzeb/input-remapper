@@ -284,7 +284,7 @@ class GuiTestBase(unittest.TestCase):
                 method()
                 break
             except Exception as e:
-                if attempts == 1:
+                if attempts == 2:
                     raise e
 
             # try again
@@ -353,9 +353,8 @@ class GuiTestBase(unittest.TestCase):
 
         # for whatever miraculous reason it suddenly takes 0.005s before gtk does
         # anything, even for old code.
-        for _ in range(100):
-            time.sleep(0.002)
-            gtk_iteration()
+        time.sleep(0.02)
+        gtk_iteration()
 
     def get_selection_labels(self):
         return self.selection_label_listbox.get_children()
@@ -810,14 +809,14 @@ class TestGui(GuiTestBase):
         self.assertTrue(self.editor.is_waiting_for_input())
         self.assertEqual(self.toggle.get_label(), "Press Key")
 
-        self.editor.consume_newest_keycode()
+        self.user_interface.consume_newest_keycode()
         # nothing happens
         self.assertIsNone(selection_label.get_combination())
         self.assertEqual(len(active_preset), 0)
         self.assertEqual(self.toggle.get_label(), "Press Key")
 
         send_event_to_reader(InputEvent.from_tuple((EV_KEY, 30, 1)))
-        self.editor.consume_newest_keycode()
+        self.user_interface.consume_newest_keycode()
         # no symbol configured yet, so the active_preset remains empty
         self.assertEqual(len(active_preset), 0)
         self.assertEqual(len(selection_label.get_combination()), 1)
@@ -829,7 +828,7 @@ class TestGui(GuiTestBase):
         # providing the same key again doesn't do any harm
         # (Maybe this could happen for gamepads or something, idk)
         send_event_to_reader(InputEvent.from_tuple((EV_KEY, 30, 1)))
-        self.editor.consume_newest_keycode()
+        self.user_interface.consume_newest_keycode()
         self.assertEqual(len(active_preset), 0)  # not released yet
         self.assertEqual(len(selection_label.get_combination()), 1)
         self.assertEqual(selection_label.get_combination()[0], (EV_KEY, 30, 1))
@@ -851,7 +850,6 @@ class TestGui(GuiTestBase):
         self.set_focus(None)
         self.assertFalse(self.editor.is_waiting_for_input())
 
-        print("assert")
         num_mappings = len(active_preset)
         self.assertEqual(num_mappings, 1)
 
@@ -891,7 +889,7 @@ class TestGui(GuiTestBase):
         # no keycode should be inserted into it
         self.set_focus(self.user_interface.get("preset_name_input"))
         send_event_to_reader(new_event(1, 61, 1))
-        self.user_interface.ensure_devices_up_to_date()
+        self.user_interface.consume_newest_keycode()
 
         selection_labels = self.get_selection_labels()
         self.assertEqual(len(selection_labels), 1)
@@ -903,7 +901,7 @@ class TestGui(GuiTestBase):
         # focus the text input instead
         self.set_focus(self.editor.get_text_input())
         send_event_to_reader(new_event(1, 61, 1))
-        self.user_interface.ensure_devices_up_to_date()
+        self.user_interface.consume_newest_keycode()
 
         # still nothing set
         self.assertIsNone(selection_label.get_combination())
@@ -2022,7 +2020,7 @@ class TestGui(GuiTestBase):
         # try to enable it via the reader
         self.activate_recording_toggle()
         send_event_to_reader(InputEvent.from_tuple((EV_KEY, 101, 1)))
-        self.editor.consume_newest_keycode()
+        self.user_interface.consume_newest_keycode()
         self.assertEqual(self.get_unfiltered_symbol_input_text(), "")
         self.assertTrue(self.editor.get_text_input().get_sensitive())
 
@@ -2097,10 +2095,6 @@ class TestAutocompletion(GuiTestBase):
 
         self.assertFalse(autocompletion.visible)
 
-    def test(self):
-        pass
-
-class Dumm:
     def test_autocomplete_function(self):
         self.add_mapping_via_ui(EventCombination([1, 99, 1]), "")
         source_view = self.editor.get_text_input()

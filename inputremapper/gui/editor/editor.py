@@ -128,7 +128,6 @@ class Editor:
         self.timeouts = [
             GLib.timeout_add(100, self.check_add_new_key),
             GLib.timeout_add(1000, self.update_toggle_opacity),
-            GLib.timeout_add(1000 / 30, self.consume_newest_keycode),
         ]
         self.active_selection_label: SelectionLabel = None
 
@@ -589,17 +588,8 @@ class Editor:
         timestamp = max([event.timestamp() for event in combination])
         return timestamp < self.record_events_until
 
-    def consume_newest_keycode(self):
+    def consume_newest_keycode(self, combination: EventCombination):
         """To capture events from keyboards, mice and gamepads."""
-        # the "event" event of Gtk.Window wouldn't trigger on gamepad
-        # events, so it became a GLib timeout to periodically check kernel
-        # events.
-
-        # letting go of one of the keys of a combination won't just make
-        # it return the leftover key, it will continue to return None because
-        # they have already been read.
-        combination = reader.read()
-
         self._switch_focus_if_complete()
 
         if combination is None:
