@@ -105,7 +105,7 @@ def _type_check(value, allowed_types, display_name=None, position=None):
     raise TypeError(f"Expected parameter to be one of {allowed_types}, but got {value}")
 
 
-def _type_check_keyname(keyname):
+def _type_check_symbol(keyname):
     """Same as _type_check, but checks if the key-name is valid."""
     if isinstance(keyname, Variable):
         # it is a variable and will be read at runtime
@@ -135,6 +135,8 @@ def _type_check_variablename(name):
 
 def _resolve(argument, allowed_types=None):
     """If the argument is a variable, figure out its value and cast it.
+
+    Variables are prefixed with `$` in the syntax.
 
     Use this just-in-time when you need the actual value of the variable
     during runtime.
@@ -200,12 +202,6 @@ class Macro:
 
         self.running = False
 
-        # all required capabilities, without those of child macros
-        self.capabilities = {
-            EV_KEY: set(),
-            EV_REL: set(),
-        }
-
         self.child_macros = []
 
         self.keystroke_sleep_ms = None
@@ -247,20 +243,6 @@ class Macro:
     def is_holding(self):
         """Check if the macro is waiting for a key to be released."""
         return not self._trigger_release_event.is_set()
-
-    def get_capabilities(self):
-        """Get the merged capabilities of the macro and its children."""
-        capabilities = copy.deepcopy(self.capabilities)
-
-        for macro in self.child_macros:
-            macro_capabilities = macro.get_capabilities()
-            for ev_type in macro_capabilities:
-                if ev_type not in capabilities:
-                    capabilities[ev_type] = set()
-
-                capabilities[ev_type].update(macro_capabilities[ev_type])
-
-        return capabilities
 
     async def run(self, handler):
         """Run the macro.
@@ -316,24 +298,40 @@ class Macro:
             macro.release_trigger()
 
     async def _keycode_pause(self, _=None):
-        """To add a pause between keystrokes."""
-        await asyncio.sleep(self.keystroke_sleep_ms / 1000)
+        """To add a pause between keystrokes.
 
-    def add_mouse_capabilities(self):
-        """Add all capabilities that are required to recognize the device as mouse."""
-        self.capabilities[EV_REL].add(REL_X)
-        self.capabilities[EV_REL].add(REL_Y)
-        self.capabilities[EV_REL].add(REL_WHEEL)
-        self.capabilities[EV_REL].add(REL_HWHEEL)
+        This was needed at some point because it appeared that injecting keys too
+        fast will prevent them from working. It probably depends on the environment.
+        """
+        await asyncio.sleep(self.keystroke_sleep_ms / 1000)
 
     def __repr__(self):
         return f'<Macro "{self.code}">'
 
     """Functions that prepare the macro"""
 
+    def add_key(self, symbol):
+        """Write the symbol."""
+        # This is done to figure out if the macro is broken at compile time, because
+        # if KEY_A was unknown we can show this in the gui before the injection starts.
+        _type_check_symbol(symbol)
+
+        async def task(handler):
+            # if the code is $foo, figure out the correct code now.
+            resolved_symbol = _resolve(symbol, [str])
+            code = _type_check_symbol(resolved_symbol)
+
+            resolved_code = _resolve(code, [int])
+            handler(EV_KEY, resolved_code, 1)
+            await self._keycode_pause()
+            handler(EV_KEY, resolved_code, 0)
+            await self._keycode_pause()
+
+        self.tasks.append(task)
+
     def add_hold(self, macro=None):
         """Loops the execution until key release."""
-        _type_check(macro, [Macro, str, None], "h (hold)", 1)
+        _type_check(macro, [Macro, str, None], "hold", 1)
 
         if macro is None:
             self.tasks.append(lambda _: self._trigger_release_event.wait())
@@ -342,16 +340,14 @@ class Macro:
         if not isinstance(macro, Macro):
             # if macro is a key name, hold down the key while the
             # keyboard key is physically held down
-            code = _type_check_keyname(macro)
+            code = _type_check_symbol(macro)
 
             async def task(handler):
                 resolved_code = _resolve(code, [int])
-                self.capabilities[EV_KEY].add(resolved_code)
                 handler(EV_KEY, resolved_code, 1)
                 await self._trigger_release_event.wait()
                 handler(EV_KEY, resolved_code, 0)
 
-            self.capabilities[EV_KEY].add(code)
             self.tasks.append(task)
 
         if isinstance(macro, Macro):
@@ -373,28 +369,43 @@ class Macro:
         modifier : str
         macro : Macro
         """
-        _type_check(macro, [Macro], "m (modify)", 2)
-
-        modifier = str(modifier)
-        code = system_mapping.get(modifier)
-
-        if code is None:
-            raise KeyError(f'Unknown modifier "{modifier}"')
-
-        self.capabilities[EV_KEY].add(code)
+        _type_check(macro, [Macro], "modify", 2)
+        _type_check_symbol(modifier)
 
         self.child_macros.append(macro)
 
         async def task(handler):
-            resolved_code = _resolve(code, [int])
-            self.capabilities[EV_KEY].add(resolved_code)
-            await self._keycode_pause()
-            handler(EV_KEY, resolved_code, 1)
+            # TODO test var
+            resolved_modifier = _resolve(modifier, [str])
+            code = _type_check_symbol(resolved_modifier)
+
+            handler(EV_KEY, code, 1)
             await self._keycode_pause()
             await macro.run(handler)
             await self._keycode_pause()
-            handler(EV_KEY, resolved_code, 0)
+            handler(EV_KEY, code, 0)
             await self._keycode_pause()
+
+        self.tasks.append(task)
+
+    def add_hold_keys(self, *symbols):
+        """Hold down multiple keys, equivalent to `a + b + c + ...`."""
+        for symbol in symbols:
+            _type_check_symbol(symbol)
+
+        async def task(handler):
+            resolved_symbols = [_resolve(symbol, [str]) for symbol in symbols]
+            codes = [_type_check_symbol(symbol) for symbol in resolved_symbols]
+
+            for code in codes:
+                handler(EV_KEY, code, 1)
+                await self._keycode_pause()
+
+            await self._trigger_release_event.wait()
+
+            for code in codes[::-1]:
+                handler(EV_KEY, code, 0)
+                await self._keycode_pause()
 
         self.tasks.append(task)
 
@@ -406,8 +417,8 @@ class Macro:
         repeats : int or Macro
         macro : Macro
         """
-        repeats = _type_check(repeats, [int], "r (repeat)", 1)
-        _type_check(macro, [Macro], "r (repeat)", 2)
+        repeats = _type_check(repeats, [int], "repeat", 1)
+        _type_check(macro, [Macro], "repeat", 2)
 
         async def task(handler):
             for _ in range(_resolve(repeats, [int])):
@@ -415,22 +426,6 @@ class Macro:
 
         self.tasks.append(task)
         self.child_macros.append(macro)
-
-    def add_key(self, symbol):
-        """Write the symbol."""
-        _type_check_keyname(symbol)
-
-        symbol = str(symbol)
-        code = system_mapping.get(symbol)
-        self.capabilities[EV_KEY].add(code)
-
-        async def task(handler):
-            handler(EV_KEY, code, 1)
-            await self._keycode_pause()
-            handler(EV_KEY, code, 0)
-            await self._keycode_pause()
-
-        self.tasks.append(task)
 
     def add_event(self, type_, code, value):
         """Write any event.
@@ -443,26 +438,14 @@ class Macro:
             examples: 52, 'KEY_A'
         value : int
         """
-        type_ = _type_check(type_, [int, str], "e (event)", 1)
-        code = _type_check(code, [int, str], "e (event)", 2)
-        value = _type_check(value, [int, str], "e (event)", 3)
+        type_ = _type_check(type_, [int, str], "event", 1)
+        code = _type_check(code, [int, str], "event", 2)
+        value = _type_check(value, [int, str], "event", 3)
 
         if isinstance(type_, str):
             type_ = ecodes[type_.upper()]
         if isinstance(code, str):
             code = ecodes[code.upper()]
-
-        if type_ not in self.capabilities:
-            self.capabilities[type_] = set()
-
-        if type_ == EV_REL:
-            # add all capabilities that are required for the display server
-            # to recognize the device as mouse
-            self.capabilities[EV_REL].add(REL_X)
-            self.capabilities[EV_REL].add(REL_Y)
-            self.capabilities[EV_REL].add(REL_WHEEL)
-
-        self.capabilities[type_].add(code)
 
         self.tasks.append(lambda handler: handler(type_, code, value))
         self.tasks.append(self._keycode_pause)
@@ -478,8 +461,6 @@ class Macro:
             "left": (REL_X, -1),
             "right": (REL_X, 1),
         }[direction.lower()]
-
-        self.add_mouse_capabilities()
 
         async def task(handler):
             resolved_speed = value * _resolve(speed, [int])
@@ -500,8 +481,6 @@ class Macro:
             "left": (REL_HWHEEL, 1),
             "right": (REL_HWHEEL, -1),
         }[direction.lower()]
-
-        self.add_mouse_capabilities()
 
         async def task(handler):
             resolved_speed = _resolve(speed, [int])

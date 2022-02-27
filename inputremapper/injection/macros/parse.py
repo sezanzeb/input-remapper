@@ -49,6 +49,7 @@ FUNCTIONS = {
     "event": Macro.add_event,
     "wait": Macro.add_wait,
     "hold": Macro.add_hold,
+    "hold_keys": Macro.add_hold_keys,
     "mouse": Macro.add_mouse,
     "wheel": Macro.add_wheel,
     "if_eq": Macro.add_if_eq,
@@ -94,16 +95,28 @@ def get_macro_argument_names(function):
 
     Removes the trailing "_" for displaying them correctly.
     """
-    # don't include "self"
-    args = inspect.getfullargspec(function).args[1:]
-    return [name[:-1] if name.endswith("_") else name for name in args]
+    args = inspect.getfullargspec(function).args[1:]  # don't include "self"
+    arg_names = [name[:-1] if name.endswith("_") else name for name in args]
+
+    varargs = inspect.getfullargspec(function).varargs
+    if varargs:
+        arg_names.append(f"*{varargs}")
+
+    return arg_names
 
 
 def get_num_parameters(function):
     """Get the number of required parameters and the maximum number of parameters."""
     fullargspec = inspect.getfullargspec(function)
-    num_args = len(fullargspec.args) - 1  # one is `self`
-    return num_args - len(fullargspec.defaults or ()), num_args
+    num_args = len(fullargspec.args) - 1  # one of them is `self`
+    min_num_args = num_args - len(fullargspec.defaults or ())
+
+    if fullargspec.varargs is not None:
+        max_num_args = float("inf")
+    else:
+        max_num_args = num_args
+
+    return min_num_args, max_num_args
 
 
 def _extract_args(inner):

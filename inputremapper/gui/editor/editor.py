@@ -187,7 +187,6 @@ class Editor:
         One could debounce saving on text-change to avoid those logs, but that just
         sounds like a huge source of race conditions and is also hard to test.
         """
-        print("on_text_input_unfocus")
         pass  # the decorator will be triggered
 
     @ensure_everything_saved
