@@ -342,8 +342,8 @@ class GuiTestBase(unittest.TestCase):
 
         # for whatever miraculous reason it suddenly takes 0.005s before gtk does
         # anything, even for old code.
-        for _ in range(10):
-            time.sleep(0.02)
+        for _ in range(100):
+            time.sleep(0.002)
             gtk_iteration()
 
     def get_selection_labels(self):
@@ -790,6 +790,7 @@ class TestGui(GuiTestBase):
         selection_label = self.selection_label_listbox.get_children()[0]
         self.set_focus(self.toggle)
         self.toggle.set_active(True)
+        self.assertTrue(self.editor.is_waiting_for_input())
         self.assertEqual(self.toggle.get_label(), "Press Key")
 
         self.editor.consume_newest_keycode()
@@ -825,8 +826,12 @@ class TestGui(GuiTestBase):
         )
 
         self.set_focus(self.editor.get_text_input())
+        self.assertFalse(self.editor.is_waiting_for_input())
+
         self.editor.set_symbol_input_text("Shift_L")
+
         self.set_focus(None)
+        self.assertFalse(self.editor.is_waiting_for_input())
 
         print("assert")
         num_mappings = len(active_preset)

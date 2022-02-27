@@ -142,7 +142,7 @@ class Editor:
 
         toggle = self.get_recording_toggle()
         toggle.connect("focus-out-event", self._reset_keycode_consumption)
-        toggle.connect("focus-out-event", lambda *_: toggle.set_active(False))
+        toggle.connect("focus-out-event", self._on_toggle_unfocus)
         toggle.connect("toggled", self._on_recording_toggle_toggle)
         # Don't leave the input when using arrow keys or tab. wait for the
         # window to consume the keycode from the reader. I.e. a tab input should
@@ -164,6 +164,10 @@ class Editor:
         for timeout in self.timeouts:
             GLib.source_remove(timeout)
             self.timeouts = []
+
+    def _on_toggle_unfocus(self, toggle, event):
+        print("_on_toggle_unfocus")
+        toggle.set_active(False)
 
     @ensure_everything_saved
     def on_text_input_unfocus(self, *_):
@@ -328,7 +332,10 @@ class Editor:
         only be saved to the preset if a key is configured. This avoids that pitfall.
         """
         text_input = self.get_text_input()
+
+        # beware that this also disables event listeners like focus-out-event:
         text_input.set_sensitive(False)
+
         text_input.set_opacity(0.5)
 
         if clear or self.get_symbol_input_text() == "":
@@ -498,12 +505,15 @@ class Editor:
 
     def _on_recording_toggle_toggle(self, toggle):
         """Refresh useful usage information."""
+        print("_on_recording_toggle_toggle")
         if not toggle.get_active():
             # if more events arrive from the time when the toggle was still on,
             # use them.
+            print('- false, set to time.time')
             self.record_events_until = time.time()
             return
 
+        print('- true, set to record_all')
         self.record_events_until = RECORD_ALL
 
         self._reset_keycode_consumption()
@@ -571,7 +581,7 @@ class Editor:
 
     def is_waiting_for_input(self):
         """Check if the user is trying to record buttons."""
-        return self.record_events_until == RECORD_ALL
+        return self.get_recording_toggle().get_active()
 
     def should_record_combination(self, combination):
         """Check if the combination was written when the toggle was active."""
