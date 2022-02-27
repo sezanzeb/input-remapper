@@ -1673,7 +1673,8 @@ class TestGui(GuiTestBase):
         text = self.get_status_text()
         self.assertIn("click", text)
         self.assertEqual(
-            self.user_interface.dbus.get_state(self.user_interface.group.key), UNKNOWN
+            self.user_interface.dbus.get_state(self.user_interface.group.key),
+            UNKNOWN,
         )
 
         # second apply, shows unreleased warning
@@ -1681,14 +1682,16 @@ class TestGui(GuiTestBase):
         text = self.get_status_text()
         self.assertIn("release", text)
         self.assertEqual(
-            self.user_interface.dbus.get_state(self.user_interface.group.key), UNKNOWN
+            self.user_interface.dbus.get_state(self.user_interface.group.key),
+            UNKNOWN,
         )
 
         # third apply, overwrites both warnings
         self.user_interface.on_apply_preset_clicked(None)
         wait()
         self.assertEqual(
-            self.user_interface.dbus.get_state(self.user_interface.group.key), RUNNING
+            self.user_interface.dbus.get_state(self.user_interface.group.key),
+            RUNNING,
         )
         text = self.get_status_text()
         # because btn_left is mapped, shows help on how to stop
@@ -1702,7 +1705,8 @@ class TestGui(GuiTestBase):
         self.user_interface.group = groups.find(name=group_name)
 
         self.assertNotEqual(
-            self.user_interface.dbus.get_state(self.user_interface.group.key), RUNNING
+            self.user_interface.dbus.get_state(self.user_interface.group.key),
+            RUNNING,
         )
         self.user_interface.can_modify_preset()
         text = self.get_status_text()
@@ -1720,7 +1724,8 @@ class TestGui(GuiTestBase):
                 break
 
         self.assertEqual(
-            self.user_interface.dbus.get_state(self.user_interface.group.key), RUNNING
+            self.user_interface.dbus.get_state(self.user_interface.group.key),
+            RUNNING,
         )
 
         # the preset cannot be changed anymore
