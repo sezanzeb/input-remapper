@@ -97,7 +97,7 @@ def ensure_everything_saved(func):
     """Make sure the editor has written its changes to active_preset and save."""
 
     def wrapped(self, *args, **kwargs):
-        print("ees")
+        print("ensure_everything_saved")
         if self.user_interface.preset_name:
             self.gather_changes_and_save()
 
