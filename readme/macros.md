@@ -95,7 +95,7 @@ Bear in mind that anti-cheat software might detect macros in games.
 > An arbitrary number of symbols can be provided.
 >
 > ```c#
-> hold(*symbols: str)
+> hold_keys(*symbols: str)
 > ```
 >
 > Examples:
