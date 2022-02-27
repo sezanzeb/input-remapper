@@ -410,7 +410,6 @@ class UserInterface:
         combination = reader.read()
 
         if reader.are_new_groups_available():
-            # TODO is this needed?
             self.populate_devices()
 
         # giving editor its own interval and making it call reader.read itself causes
