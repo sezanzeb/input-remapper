@@ -258,7 +258,7 @@ def migrate():
         global_uinputs.prepare()
         _add_target()
 
-    if v < pkg_resources.parse_version("1.5.0"):
+    if v < pkg_resources.parse_version("1.4.1"):
         _otherwise_to_else()
 
     # add new migrations here
