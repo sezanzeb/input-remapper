@@ -118,9 +118,9 @@ class InputEvent:
 
     def __str__(self):
         if self.type == evdev.ecodes.EV_KEY:
-            key_name = evdev.ecodes.bytype[self.type].get(self.code, self.code)
+            key_name = evdev.ecodes.bytype[self.type].get(self.code, "unknown")
             action = "down" if self.value == 1 else "up"
-            return f"<InputEvent {key_name} {action}>"
+            return f"<InputEvent {key_name} ({self.code}) {action}>"
 
         return f"<InputEvent {self.event_tuple}>"
 
