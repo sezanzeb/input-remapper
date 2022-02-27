@@ -140,16 +140,6 @@ class Editor:
         # keys were not pressed yet
         self._input_has_arrived = False
 
-        # TODO move this to _setup_recording_toggle
-        toggle = self.get_recording_toggle()
-        toggle.connect("focus-out-event", self._reset_keycode_consumption)
-        toggle.connect("focus-out-event", self._on_toggle_unfocus)
-        toggle.connect("toggled", self._on_recording_toggle_toggle)
-        # Don't leave the input when using arrow keys or tab. wait for the
-        # window to consume the keycode from the reader. I.e. a tab input should
-        # be recorded, instead of causing the recording to stop.
-        toggle.connect("key-press-event", lambda *args: Gdk.EVENT_STOP)
-
         self.record_events_until = RECORD_NONE
 
         text_input = self.get_text_input()
@@ -166,7 +156,13 @@ class Editor:
             GLib.source_remove(timeout)
             self.timeouts = []
 
-    # TODO @ensure_everything_saved
+    def _on_toggle_clicked(self, toggle, event):
+        if toggle.get_active():
+            self._show_press_key()
+        else:
+            self._show_change_key()
+
+    @ensure_everything_saved
     def _on_toggle_unfocus(self, toggle, event):
         print("_on_toggle_unfocus")
         toggle.set_active(False)
@@ -240,23 +236,17 @@ class Editor:
 
     def _setup_recording_toggle(self):
         """Prepare the toggle button for recording key inputs."""
-        toggle = self.get("key_recording_toggle")
-        toggle.connect(
-            "focus-out-event",
-            self._show_change_key,
-        )
-        toggle.connect(
-            "focus-in-event",
-            self._show_press_key,
-        )
-        toggle.connect(
-            "clicked",
-            lambda _: (
-                self._show_press_key()
-                if toggle.get_active()
-                else self._show_change_key()
-            ),
-        )
+        toggle = self.get_recording_toggle()
+        toggle.connect("focus-out-event", self._show_change_key)
+        toggle.connect("focus-in-event", self._show_press_key)
+        toggle.connect("clicked", self._on_toggle_clicked)
+        toggle.connect("focus-out-event", self._reset_keycode_consumption)
+        toggle.connect("focus-out-event", self._on_toggle_unfocus)
+        toggle.connect("toggled", self._on_recording_toggle_toggle)
+        # Don't leave the input when using arrow keys or tab. wait for the
+        # window to consume the keycode from the reader. I.e. a tab input should
+        # be recorded, instead of causing the recording to stop.
+        toggle.connect("key-press-event", lambda *args: Gdk.EVENT_STOP)
 
     def _show_press_key(self, *args):
         """Show user friendly instructions."""
