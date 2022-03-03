@@ -391,6 +391,7 @@ class UserInterface:
         # and select the newest one (on the top). triggers on_select_preset
         preset_selection.set_active(0)
 
+    @if_group_selected
     def can_modify_preset(self, *args) -> bool:
         """if changing the preset is possible."""
         return self.dbus.get_state(self.group.key) != RUNNING
