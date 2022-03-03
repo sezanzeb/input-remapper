@@ -331,7 +331,9 @@ class Injector(multiprocessing.Process):
             forward_to = evdev.UInput(
                 name=get_udev_name(source.name, "forwarded"),
                 events=self._copy_capabilities(source),
-                phys=source.phys,
+                # phys=source.phys,  # this leads to confusion. the appearance of an uinput with this "phys" property
+                # causes the udev rule to autoload for the original device, overwriting our previous attempts at
+                # starting an injection.
                 vendor=source.info.vendor,
                 product=source.info.product,
                 version=source.info.version,

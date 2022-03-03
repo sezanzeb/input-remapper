@@ -419,6 +419,8 @@ class Daemon:
         preset : string
             The name of the preset
         """
+        logger.info('Request to start injecting for "%s"', group_key)
+
         self.refresh(group_key)
 
         if self.config_dir is None:
