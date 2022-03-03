@@ -19,6 +19,8 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
+from tests.test import quick_cleanup, tmp
+
 import unittest
 import select
 import time
@@ -27,8 +29,6 @@ import os
 from inputremapper.ipc.pipe import Pipe
 from inputremapper.ipc.shared_dict import SharedDict
 from inputremapper.ipc.socket import Server, Client, Base
-
-from tests.test import quick_cleanup, tmp
 
 
 class TestSharedDict(unittest.TestCase):

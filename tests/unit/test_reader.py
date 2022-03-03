@@ -19,6 +19,16 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
+from tests.test import (
+    new_event,
+    push_events,
+    send_event_to_reader,
+    EVENT_READ_TIMEOUT,
+    START_READING_DELAY,
+    quick_cleanup,
+    MAX_ABS,
+)
+
 import unittest
 from unittest import mock
 import time
@@ -46,16 +56,6 @@ from inputremapper.configs.global_config import BUTTONS, MOUSE
 from inputremapper.event_combination import EventCombination
 from inputremapper.gui.helper import RootHelper
 from inputremapper.groups import groups
-
-from tests.test import (
-    new_event,
-    push_events,
-    send_event_to_reader,
-    EVENT_READ_TIMEOUT,
-    START_READING_DELAY,
-    quick_cleanup,
-    MAX_ABS,
-)
 
 
 CODE_1 = 100

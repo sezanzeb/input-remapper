@@ -19,7 +19,11 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
-"""Sets up inputremapper for the tests and runs them."""
+"""Sets up inputremapper for the tests and runs them.
+
+This module needs to be imported first in test files.
+"""
+
 import argparse
 import os
 import sys

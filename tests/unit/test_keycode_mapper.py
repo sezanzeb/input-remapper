@@ -19,6 +19,16 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
+from tests.test import (
+    new_event,
+    UInput,
+    uinput_write_history,
+    quick_cleanup,
+    InputDevice,
+    MAX_ABS,
+    MIN_ABS,
+)
+
 import unittest
 import asyncio
 import time
@@ -52,16 +62,6 @@ from inputremapper.configs.global_config import global_config, BUTTONS
 from inputremapper.configs.preset import Preset
 from inputremapper.configs.system_mapping import DISABLE_CODE
 from inputremapper.injection.global_uinputs import global_uinputs
-
-from tests.test import (
-    new_event,
-    UInput,
-    uinput_write_history,
-    quick_cleanup,
-    InputDevice,
-    MAX_ABS,
-    MIN_ABS,
-)
 
 
 def wait(func, timeout=1.0):

@@ -19,6 +19,8 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
+from tests.test import cleanup
+
 import sys
 import unittest
 import evdev
@@ -30,7 +32,6 @@ from evdev.ecodes import (
     KEY_A,
     ABS_X,
 )
-from tests.test import cleanup
 
 from inputremapper.injection.global_uinputs import (
     global_uinputs,

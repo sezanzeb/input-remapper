@@ -19,6 +19,17 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
+from tests.test import (
+    InputDevice,
+    quick_cleanup,
+    cleanup,
+    fixtures,
+    new_event,
+    push_events,
+    EVENT_READ_TIMEOUT,
+    START_READING_DELAY,
+)
+
 import os
 import unittest
 import time
@@ -30,17 +41,6 @@ from evdev.ecodes import EV_ABS, EV_KEY
 from inputremapper.groups import groups
 from inputremapper.gui.reader import reader
 from inputremapper.gui.helper import RootHelper
-
-from tests.test import (
-    InputDevice,
-    quick_cleanup,
-    cleanup,
-    fixtures,
-    new_event,
-    push_events,
-    EVENT_READ_TIMEOUT,
-    START_READING_DELAY,
-)
 
 
 class TestTest(unittest.TestCase):
