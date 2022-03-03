@@ -438,7 +438,7 @@ class Macro:
         ----------
         type_: str or int
             examples: 2, 'EV_KEY'
-        code : int or int
+        code : str or int
             examples: 52, 'KEY_A'
         value : int
         """
