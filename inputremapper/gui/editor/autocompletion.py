@@ -35,6 +35,7 @@ from inputremapper.injection.macros.parse import (
 )
 from inputremapper.injection.global_uinputs import global_uinputs
 from inputremapper.logger import logger
+from inputremapper.gui.utils import debounce
 
 
 # no deprecated shorthand function-names
@@ -125,29 +126,6 @@ def propose_function_names(text_iter):
         for name in FUNCTION_NAMES
         if incomplete_name in name.lower() and incomplete_name != name.lower()
     ]
-
-
-debounces = {}
-
-
-def debounce(func):
-    """Debounce a function call to improve performance."""
-
-    def clear_debounce(self, *args):
-        debounces[func.__name__] = None
-        return func(self, *args)
-
-    def wrapped(self, *args):
-        if debounces.get(func.__name__) is not None:
-            GLib.source_remove(debounces[func.__name__])
-
-        timeout = self.debounce_timeout
-
-        debounces[func.__name__] = GLib.timeout_add(
-            timeout, lambda: clear_debounce(self, *args)
-        )
-
-    return wrapped
 
 
 class SuggestionLabel(Gtk.Label):
