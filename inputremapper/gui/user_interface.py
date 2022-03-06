@@ -72,6 +72,7 @@ from inputremapper.gui.utils import (
     CTX_APPLY,
     CTX_WARNING,
     gtk_iteration,
+    debounce,
 )
 
 
@@ -139,27 +140,6 @@ def ensure_everything_saved(func):
 
     return wrapped
 
-debounces = {}
-
-def debounce(func):
-    """Debounce a function call to improve performance."""
-
-    def clear_debounce(self, *args):
-        debounces[func.__name__] = None
-        return func(self, *args)
-
-    def wrapped(self, *args):
-        if debounces.get(func.__name__) is not None:
-            GLib.source_remove(debounces[func.__name__])
-
-        timeout = self.debounce_timeout
-
-        debounces[func.__name__] = GLib.timeout_add(
-            timeout, lambda: clear_debounce(self, *args)
-        )
-
-    return wrapped
-
 class UserInterface:
     """The input-remapper gtk window."""
 
@@ -224,8 +204,11 @@ class UserInterface:
         self.get("vertical-wrapper").set_opacity(0)
         self.window = window
 
+        # attaching source_view to editing window
         source_view = self.get("code_editor")
+        # throw debounce on typing
         source_view.get_buffer().connect("changed", self.check_on_typing)
+
         # if any of the next steps take a bit to complete, have the window
         # already visible (without content) to make it look more responsive.
         gtk_iteration()
@@ -349,6 +332,7 @@ class UserInterface:
 
     @debounce
     def check_on_typing(self, *_):
+        """Debounce to check syntax when typing"""
         self.check_macro_syntax()
 
     @ensure_everything_saved
