@@ -19,13 +19,13 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
+from tests.test import quick_cleanup, tmp
+
 import os
 import unittest
 import tempfile
 
 from inputremapper.configs.paths import touch, mkdir, get_preset_path, get_config_path
-
-from tests.test import quick_cleanup, tmp
 
 
 def _raise(error):

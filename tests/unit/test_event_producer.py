@@ -19,6 +19,17 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
+from tests.test import (
+    InputDevice,
+    UInput,
+    MAX_ABS,
+    clear_write_history,
+    uinput_write_history,
+    quick_cleanup,
+    new_event,
+    MIN_ABS,
+)
+
 import unittest
 import asyncio
 
@@ -42,17 +53,6 @@ from inputremapper.injection.consumers.joystick_to_mouse import (
     JoystickToMouse,
     MOUSE,
     WHEEL,
-)
-
-from tests.test import (
-    InputDevice,
-    UInput,
-    MAX_ABS,
-    clear_write_history,
-    uinput_write_history,
-    quick_cleanup,
-    new_event,
-    MIN_ABS,
 )
 
 

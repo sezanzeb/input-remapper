@@ -19,10 +19,11 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
+from tests.test import quick_cleanup
+
 import unittest
 
 from inputremapper.injection.numlock import is_numlock_on, set_numlock, ensure_numlock
-from tests.test import quick_cleanup
 
 
 class TestNumlock(unittest.TestCase):

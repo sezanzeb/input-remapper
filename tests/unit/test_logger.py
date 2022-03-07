@@ -19,6 +19,8 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
+from tests.test import tmp
+
 import os
 import shutil
 import unittest
@@ -26,8 +28,6 @@ import logging
 
 from inputremapper.logger import logger, add_filehandler, update_verbosity, log_info
 from inputremapper.configs.paths import remove
-
-from tests.test import tmp
 
 
 class TestLogger(unittest.TestCase):

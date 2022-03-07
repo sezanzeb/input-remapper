@@ -19,6 +19,8 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
+from tests.test import quick_cleanup, fixtures
+
 import os
 import unittest
 import json
@@ -39,8 +41,6 @@ from inputremapper.groups import (
     KEYBOARD,
     _Group,
 )
-
-from tests.test import quick_cleanup, fixtures
 
 
 class FakePipe:

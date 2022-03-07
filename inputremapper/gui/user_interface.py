@@ -26,9 +26,6 @@ import math
 import os
 import re
 import sys
-import locale
-import gettext
-from inputremapper.configs.data import get_data_path
 from inputremapper.gui.gettext import _
 
 from evdev._ecodes import EV_KEY
@@ -404,6 +401,7 @@ class UserInterface:
         # and select the newest one (on the top). triggers on_select_preset
         preset_selection.set_active(0)
 
+    @if_group_selected
     def can_modify_preset(self, *args) -> bool:
         """if changing the preset is possible."""
         return self.dbus.get_state(self.group.key) != RUNNING
