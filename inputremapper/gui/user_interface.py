@@ -147,6 +147,7 @@ class UserInterface:
 
         self.group = None
         self.preset_name = None
+        self.debounce_timeout = 100
 
         global_uinputs.prepare_all()
         css_provider = Gtk.CssProvider()
@@ -327,11 +328,6 @@ class UserInterface:
         """Get a widget from the window"""
         return self.builder.get_object(name)
 
-    @debounce
-    def check_on_typing(self, *_):
-        """Debounce to check syntax when typing"""
-        self.check_macro_syntax()
-
     @ensure_everything_saved
     def on_close(self, *args):
         """Safely close the application."""
@@ -474,6 +470,11 @@ class UserInterface:
 
             status_bar.push(context_id, message)
             status_bar.set_tooltip_text(tooltip)
+
+    @debounce
+    def check_on_typing(self):
+        """Check if the programmed macros are allright."""
+        self.check_macro_syntax
 
     def check_macro_syntax(self):
         """Check if the programmed macros are allright."""
