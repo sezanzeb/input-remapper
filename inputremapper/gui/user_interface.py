@@ -147,7 +147,6 @@ class UserInterface:
 
         self.group = None
         self.preset_name = None
-        self.debounce_timeout = 100
 
         global_uinputs.prepare()
         css_provider = Gtk.CssProvider()
@@ -167,6 +166,7 @@ class UserInterface:
         self.builder = builder
 
         self.editor = Editor(self)
+        self.debounce_timeout = 100
 
         # set up the device selection
         # https://python-gtk-3-tutorial.readthedocs.io/en/latest/treeview.html#the-view
@@ -204,8 +204,9 @@ class UserInterface:
 
         # attaching source_view to editing window
         source_view = self.get("code_editor")
+
         # throw debounce on typing
-        source_view.get_buffer().connect("changed", self.check_on_typing)
+        source_view.get_buffer().connect("changed", self.check_macro_syntax)
 
         # if any of the next steps take a bit to complete, have the window
         # already visible (without content) to make it look more responsive.
@@ -472,10 +473,6 @@ class UserInterface:
             status_bar.set_tooltip_text(tooltip)
 
     @debounce
-    def check_on_typing(self):
-        """Check if the programmed macros are allright."""
-        self.check_macro_syntax
-
     def check_macro_syntax(self):
         """Check if the programmed macros are allright."""
         self.show_status(CTX_MAPPING, None)
