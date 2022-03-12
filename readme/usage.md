@@ -111,12 +111,12 @@ and it won't be able to inject anything a usb keyboard wouldn't been able to. Th
 the benefit of being compatible to all display servers, but means the environment will
 ultimately decide which character to write.
 
-<br/>
-<br/>
-<br/>
-<br/>
-<br/>
-<br/>
+# External tools
+
+Repositories listed here are made by input-remappers users. Feel free to extend. Beware,
+that I can't review their code, so use them at your own risk (just like everything).
+
+- input-remapper-xautopresets: https://github.com/DreadPirateLynx/input-remapper-xautopresets
 
 # Advanced
 
