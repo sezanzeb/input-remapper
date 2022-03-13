@@ -34,9 +34,9 @@ from inputremapper.gui.active_preset import active_preset
 from inputremapper.event_combination import EventCombination
 from inputremapper.logger import logger
 from inputremapper.gui.reader import reader
-from inputremapper.gui.utils import CTX_KEYCODE, CTX_WARNING, CTX_ERROR, debounce, CTX_MAPPING
+from inputremapper.gui.utils import CTX_KEYCODE, CTX_WARNING, CTX_ERROR
 from inputremapper.injection.global_uinputs import global_uinputs
-from inputremapper.injection.macros.parse import is_this_a_macro, parse
+
 
 class SelectionLabel(Gtk.ListBoxRow):
     """One label per mapping in the preset.
@@ -63,8 +63,6 @@ class SelectionLabel(Gtk.ListBoxRow):
         self.add(label)
 
         self.show_all()
-
-        self.debounce_timeout = 100
 
     def set_combination(self, combination: EventCombination):
         """Set the combination this button represents
@@ -267,7 +265,6 @@ class Editor:
         source_view.set_resize_mode(Gtk.ResizeMode.IMMEDIATE)
 
         source_view.get_buffer().connect("changed", self.show_line_numbers_if_multiline)
-        source_view.get_buffer().connect("changed", self.check_on_typing)
 
         # Syntax Highlighting
         # Thanks to https://github.com/wolfthefallen/py-GtkSourceCompletion-example
@@ -694,23 +691,3 @@ class Editor:
 
     def _reset_keycode_consumption(self, *_):
         self._input_has_arrived = False
-
-    @debounce
-    def check_on_typing(self, *_):
-        self.check_macro_syntax()
-
-    def check_macro_syntax(self):
-        """Check if the programmed macros are allright."""
-        self.show_status(CTX_MAPPING, None)
-        for key, output in active_preset:
-            output = output[0]
-            if not is_this_a_macro(output):
-                continue
-
-            error = parse(output, active_preset, return_errors=True)
-            if error is None:
-                continue
-
-            position = key.beautify()
-            msg = _("Syntax error at %s, hover for info") % position
-            self.show_status(CTX_MAPPING, msg, error)
