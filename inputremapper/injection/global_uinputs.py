@@ -19,8 +19,6 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from typing import Optional, List
-
 import evdev
 
 import inputremapper.utils
