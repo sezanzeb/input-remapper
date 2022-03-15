@@ -673,7 +673,7 @@ def cleanup():
     quick_cleanup(log=False)
     groups.refresh()
     with patch.object(sys, "argv", ["input-remapper-service"]):
-        global_uinputs.prepare()
+        global_uinputs.prepare_all()
 
     print("Cleanup done")
 

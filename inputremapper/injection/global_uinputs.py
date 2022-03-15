@@ -19,10 +19,14 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
+from typing import Optional, List
+
 import evdev
+
 import inputremapper.utils
 import inputremapper.exceptions
 from inputremapper.logger import logger
+
 
 DEV_NAME = "input-remapper"
 DEFAULT_UINPUTS = {
@@ -82,24 +86,48 @@ class GlobalUInputs:
     def __iter__(self):
         return iter(uinput for _, uinput in self.devices.items())
 
-    def prepare(self):
-        """Generate uinputs.
+    def ensure_uinput_factory_set(self):
+        if self._uinput_factory is not None:
+            return
 
-        This has to be done in the main process before injections start.
-        """
         if inputremapper.utils.is_service():
             self._uinput_factory = UInput
         else:
             self._uinput_factory = FrontendUInput
 
+    def prepare_all(self):
+        """Generate uinputs."""
+        self.ensure_uinput_factory_set()
+
         for name, events in DEFAULT_UINPUTS.items():
             if name in self.devices.keys():
                 continue
+
             self.devices[name] = self._uinput_factory(
                 name=f"{DEV_NAME} {name}",
                 phys=DEV_NAME,
                 events=events,
             )
+
+    def prepare_single(self, name: str):
+        """Generate a single uinput.
+
+        This has to be done in the main process before injections that use it start.
+        """
+        self.ensure_uinput_factory_set()
+
+        if name not in DEFAULT_UINPUTS:
+            raise KeyError("Could not find a matching uinput to generate.")
+
+        if name in self.devices:
+            logger.debug('Target "%s" already exists', name)
+            return
+
+        self.devices[name] = self._uinput_factory(
+            name=f"{DEV_NAME} {name}",
+            phys=DEV_NAME,
+            events=DEFAULT_UINPUTS[name],
+        )
 
     def write(self, event, target_uinput):
         """write event to target uinput"""
@@ -113,7 +141,7 @@ class GlobalUInputs:
         uinput.write(*event)
         uinput.syn()
 
-    def get_uinput(self, name):
+    def get_uinput(self, name: str):
         """UInput with name
 
         Or None if there is no uinput with this name.

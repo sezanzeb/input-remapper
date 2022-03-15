@@ -183,8 +183,6 @@ class Daemon:
         # initialize stuff that is needed alongside the daemon process
         macro_variables.start()
 
-        global_uinputs.prepare()
-
     @classmethod
     def connect(cls, fallback=True):
         """Get an interface to start and stop injecting keystrokes.
@@ -437,15 +435,26 @@ class Daemon:
             return False
 
         preset_path = os.path.join(
-            self.config_dir, "presets", group.name, f"{preset}.json"
+            self.config_dir,
+            "presets",
+            group.name,
+            f"{preset}.json",
         )
 
         preset = Preset()
+
         try:
             preset.load(preset_path)
         except FileNotFoundError as error:
             logger.error(str(error))
             return False
+
+        for event_combination, (symbol, target) in preset:
+            # only create those uinputs that are required to avoid
+            # confusing the system. Seems to be especially important with
+            # gamepads, because some apps treat the first gamepad they found
+            # as the only gamepad they'll ever care about.
+            global_uinputs.prepare_single(target)
 
         if self.injectors.get(group_key) is not None:
             self.stop_injecting(group_key)
