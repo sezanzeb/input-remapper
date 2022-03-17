@@ -258,7 +258,7 @@ def migrate():
         _rename_config()
 
     if v < pkg_resources.parse_version("1.4.0"):
-        global_uinputs.prepare()
+        global_uinputs.prepare_all()
         _add_target()
 
     if v < pkg_resources.parse_version("1.4.1"):

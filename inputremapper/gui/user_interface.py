@@ -148,7 +148,7 @@ class UserInterface:
         self.group = None
         self.preset_name = None
 
-        global_uinputs.prepare()
+        global_uinputs.prepare_all()
         css_provider = Gtk.CssProvider()
         with open(get_data_path("style.css"), "r") as file:
             css_provider.load_from_data(bytes(file.read(), encoding="UTF-8"))
