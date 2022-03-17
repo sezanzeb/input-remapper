@@ -459,6 +459,10 @@ class UInput:
         self.write_history.append(event)
         logger.info("%s written", (type, code, value))
 
+    def __del__(self):
+        if uinputs[self.name] == self:
+            del uinputs[self.name]
+
     def syn(self):
         pass
 
@@ -654,6 +658,8 @@ def quick_cleanup(log=True):
     for uinput in global_uinputs.devices.values():
         uinput.write_count = 0
         uinput.write_history = []
+
+    global_uinputs.is_service = True
 
     if log:
         print("Quick cleanup done")

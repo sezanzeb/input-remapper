@@ -80,6 +80,7 @@ class GlobalUInputs:
     def __init__(self):
         self.devices = {}
         self._uinput_factory = None
+        self.is_service = inputremapper.utils.is_service()
 
     def __iter__(self):
         return iter(uinput for _, uinput in self.devices.items())
@@ -88,7 +89,7 @@ class GlobalUInputs:
         if self._uinput_factory is not None:
             return
 
-        if inputremapper.utils.is_service():
+        if self.is_service:
             self._uinput_factory = UInput
         else:
             self._uinput_factory = FrontendUInput
