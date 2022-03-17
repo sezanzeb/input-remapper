@@ -338,7 +338,8 @@ class Injector(multiprocessing.Process):
                 product=source.info.product,
                 version=source.info.version,
                 bustype=source.info.bustype,
-                input_props=source.input_props(),
+                # input_props has been missing in one case
+                input_props=getattr(source, "input_props", None),
             )
 
             # actually doing things
