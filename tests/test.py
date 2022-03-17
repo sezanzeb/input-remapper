@@ -459,10 +459,6 @@ class UInput:
         self.write_history.append(event)
         logger.info("%s written", (type, code, value))
 
-    def __del__(self):
-        if uinputs[self.name] == self:
-            del uinputs[self.name]
-
     def syn(self):
         pass
 
