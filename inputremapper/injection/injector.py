@@ -129,27 +129,26 @@ class Injector(multiprocessing.Process):
 
         Can be safely called from the main process.
         """
-        # slowly figure out what is going on
+        # figure out what is going on step by step
         alive = self.is_alive()
 
         if self._state == UNKNOWN and not alive:
-            # didn't start yet
+            # `self.start()` has not been called yet
             return self._state
 
-        # if it is alive, it is definitely at least starting up
         if self._state == UNKNOWN and alive:
+            # if it is alive, it is definitely at least starting up.
             self._state = STARTING
 
-        # if there is a message available, it might have finished starting up
         if self._state == STARTING and self._msg_pipe[1].poll():
+            # if there is a message available, it might have finished starting up
+            # and the injector has the real status for us
             msg = self._msg_pipe[1].recv()
-            if msg == OK:
-                self._state = RUNNING
-
-            if msg == NO_GRAB:
-                self._state = NO_GRAB
+            self._state = msg
 
         if self._state in [STARTING, RUNNING] and not alive:
+            # we thought it is running (maybe it was when get_state was previously),
+            # but the process is not alive. It probably crashed
             self._state = FAILED
             logger.error("Injector was unexpectedly found stopped")
 
@@ -362,7 +361,7 @@ class Injector(multiprocessing.Process):
         # grabbing devices screws this up
         set_numlock(numlock_state)
 
-        self._msg_pipe[0].send(OK)
+        self._msg_pipe[0].send(RUNNING)
 
         try:
             loop.run_until_complete(asyncio.gather(*coroutines))
