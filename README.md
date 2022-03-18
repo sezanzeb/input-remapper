@@ -43,7 +43,7 @@ Dependencies: `python3-evdev` ≥1.3.0, `gtksourceview4`, `python3-devel`, `pyth
 ```bash
 sudo pip install evdev -U  # If newest version not in distros repo
 sudo pip uninstall key-mapper
-sudo pip install --no-binary :all: git+https://github.com/sezanzeb/input-remapper.git
+sudo pip install --no-binary :all: git+https://github.com/sezanzeb/input-remapper.git  # no --user
 sudo systemctl enable input-remapper
 sudo systemctl restart input-remapper
 ```
