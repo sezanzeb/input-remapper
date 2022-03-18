@@ -88,9 +88,9 @@ class Context:
         self.callbacks = {}
         self._handlers = parse_mappings(preset, self)
 
-        self.create_callbacks()
+        self._create_callbacks()
 
-    def create_callbacks(self) -> None:
+    def _create_callbacks(self) -> None:
         """add the notify method from all _handlers to self.callbacks"""
         for event, handler_list in self._handlers.items():
             if event.type_and_code not in self.callbacks.keys():
