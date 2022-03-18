@@ -22,6 +22,7 @@
 """Keeps injecting keycodes in the background based on the preset."""
 
 import os
+import sys
 import asyncio
 import time
 import multiprocessing
@@ -48,6 +49,7 @@ DEV_NAME = "input-remapper"
 # messages
 CLOSE = 0
 OK = 1
+UPGRADE_EVDEV = 7
 
 # states
 UNKNOWN = -1
@@ -78,18 +80,6 @@ def get_udev_name(name: str, suffix: str) -> str:
     middle = name[:remaining_len]
     name = f"{DEV_NAME} {middle} {suffix}"
     return name
-
-
-def create_uinput(*args, **kwargs):
-    """Safely create an UInput, compatible with various versions of evdev."""
-    try:
-        return evdev.UInput(*args, **kwargs)
-    except TypeError as e:
-        if "input_props" in str(e):
-            del kwargs["input_props"]
-            return evdev.UInput(*args, **kwargs)
-
-        raise e
 
 
 class Injector(multiprocessing.Process):
@@ -340,19 +330,26 @@ class Injector(multiprocessing.Process):
             # copy as much information as possible, because libinput uses the extra
             # information to enable certain features like "Disable touchpad while
             # typing"
-            forward_to = create_uinput(
-                name=get_udev_name(source.name, "forwarded"),
-                events=self._copy_capabilities(source),
-                # phys=source.phys,  # this leads to confusion. the appearance of an uinput with this "phys" property
-                # causes the udev rule to autoload for the original device, overwriting our previous attempts at
-                # starting an injection.
-                vendor=source.info.vendor,
-                product=source.info.product,
-                version=source.info.version,
-                bustype=source.info.bustype,
-                # input_props has been missing in one case
-                input_props=getattr(source, "input_props", lambda: None)(),
-            )
+            try:
+                forward_to = evdev.UInput(
+                    name=get_udev_name(source.name, "forwarded"),
+                    events=self._copy_capabilities(source),
+                    # phys=source.phys,  # this leads to confusion. the appearance of an uinput with this "phys"
+                    # property causes the udev rule to autoload for the original device, overwriting our previous
+                    # attempts at starting an injection.
+                    vendor=source.info.vendor,
+                    product=source.info.product,
+                    version=source.info.version,
+                    bustype=source.info.bustype,
+                    input_props=source.input_props(),
+                )
+            except TypeError as e:
+                if "input_props" in str(e):
+                    logger.error('Please upgrade your python-evdev version. Exiting')
+                    self._msg_pipe[0].send(UPGRADE_EVDEV)
+                    sys.exit(12)
+
+                raise e
 
             # actually doing things
             consumer_control = ConsumerControl(self.context, source, forward_to)
