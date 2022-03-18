@@ -41,9 +41,9 @@ input-remapper is now part of [Debian Unstable](https://packages.debian.org/sid/
 Dependencies: `python3-evdev` ≥1.3.0, `gtksourceview4`, `python3-devel`, `python3-pydantic`
 
 ```bash
-sudo pip install evdev -U  # If newest version not in distros repo
+sudo pip install evdev -U # If newest version not in distros repo
 sudo pip uninstall key-mapper
-sudo pip install --no-binary :all: git+https://github.com/sezanzeb/input-remapper.git  # no --user
+sudo pip install --no-binary :all: git+https://github.com/sezanzeb/input-remapper.git # no --user
 sudo systemctl enable input-remapper
 sudo systemctl restart input-remapper
 ```
