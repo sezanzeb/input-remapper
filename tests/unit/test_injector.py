@@ -68,7 +68,6 @@ from inputremapper.injection.injector import (
     NO_GRAB,
     UNKNOWN,
     get_udev_name,
-    create_uinput,
 )
 from inputremapper.injection.numlock import is_numlock_on
 from inputremapper.configs.system_mapping import (
@@ -128,27 +127,6 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
             for consumer in self.injector._consumer_controls[0]._consumers
             if isinstance(consumer, JoystickToMouse)
         ][0]
-
-    def test_create_uinput(self):
-        # can create an uinput with an input_props argument,
-        # which is ignored if it fails
-        def patch(
-            events=None,
-            name="py-evdev-uinput",
-            vendor=0x1,
-            product=0x1,
-            version=0x1,
-            bustype=0x3,
-            devnode="/dev/uinput",
-            phys="py-evdev-uinput",
-        ):
-            # act like some outdated python-evdev version or something that doesn't
-            # support input_props
-            pass
-
-        with mock.patch.object(evdev, "UInput", patch):
-            # should not raise an error
-            create_uinput(input_props=[])
 
     def test_grab(self):
         # path is from the fixtures
