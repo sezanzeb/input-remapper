@@ -345,7 +345,7 @@ class Injector(multiprocessing.Process):
                 )
             except TypeError as e:
                 if "input_props" in str(e):
-                    logger.error('Please upgrade your python-evdev version. Exiting')
+                    logger.error("Please upgrade your python-evdev version. Exiting")
                     self._msg_pipe[0].send(UPGRADE_EVDEV)
                     sys.exit(12)
 
