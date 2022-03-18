@@ -22,6 +22,8 @@
 import evdev
 from typing import Optional, Dict
 
+from evdev.ecodes import EV_ABS
+
 from inputremapper.configs.mapping import Mapping
 from inputremapper.event_combination import EventCombination
 from inputremapper.logger import logger
@@ -78,8 +80,8 @@ class AbsToBtnHandler(MappingHandler):
         if event.type_and_code != self._input_event.type_and_code:
             return False
 
-        absinfo = source.absinfo(event.code)
-        trigger_point = self._trigger_point(absinfo.min, absinfo.max)
+        absinfo = {entry[0]: entry[1] for entry in source.capabilities(absinfo=True)[EV_ABS]}
+        trigger_point = self._trigger_point(absinfo[event.code].min, absinfo[event.code].max)
 
         if self._input_event.value > 0:
             if event.value > trigger_point:

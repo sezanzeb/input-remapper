@@ -87,10 +87,11 @@ class AbsToRelHandler(MappingHandler):
             self._stop = True
             return True
 
+        absinfo = {entry[0]: entry[1] for entry in source.capabilities(absinfo=True)[EV_ABS]}
         input_value, scale_factor = self._normalize(
             event.value,
-            source.absinfo(event.code).min,
-            source.absinfo(event.code).max,
+            absinfo[event.code].min,
+            absinfo[event.code].max,
         )
 
         if abs(input_value) < self.mapping.deadzone:
