@@ -291,7 +291,9 @@ def _convert_to_individual_mappings():
             joystick_dict = old_preset["gamepad"]["joystick"]
             left_purpose = joystick_dict.get("left_purpose")
             right_purpose = joystick_dict.get("right_purpose")
-            pointer_speed = joystick_dict.get("pointer_speed") / 100
+            pointer_speed = joystick_dict.get("pointer_speed")
+            if pointer_speed:
+                pointer_speed /= 100
             non_linearity = joystick_dict.get("non_linearity")  # Todo
             x_scroll_speed = joystick_dict.get("x_scroll_speed")
             y_scroll_speed = joystick_dict.get("y_scroll_speed")
