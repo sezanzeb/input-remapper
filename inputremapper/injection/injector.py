@@ -48,7 +48,6 @@ DEV_NAME = "input-remapper"
 
 # messages
 CLOSE = 0
-OK = 1
 UPGRADE_EVDEV = 7
 
 # states
