@@ -70,8 +70,11 @@ class Context:
     Members
     -------
     preset : Preset
-        The preset that is the source of key_to_code and macros,
-        only used to query config values.
+        The preset holds all Mappings for the injection process
+    listeners : Set[EventListener]
+        a set of callbacks which receive all events
+    callbacks : Dict[Tuple[int, int], List[NotifyCallback]]
+        all entry points to the event pipeline sorted by InputEvent.type_and_code
     """
 
     preset: Preset
