@@ -561,18 +561,12 @@ _fixture_copy = copy.deepcopy(fixtures)
 environ_copy = copy.deepcopy(os.environ)
 
 
-def get_key_mapping() -> Mapping:
-    """convenient function to get a valid mapping
-
-    returns mapping with the fields:
-        event_combination="99,99,99",
-        target_uinput="keyboard",
-        output_symbol="a",
-    """
+def get_key_mapping(combination="99,99,99", target_uinput="keyboard", output_symbol="a") -> Mapping:
+    """convenient function to get a valid mapping"""
     return Mapping(
-        event_combination="99,99,99",
-        target_uinput="keyboard",
-        output_symbol="a",
+        event_combination=combination,
+        target_uinput=target_uinput,
+        output_symbol=output_symbol,
     )
 
 

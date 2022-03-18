@@ -18,54 +18,32 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-
-from tests.test import new_event, quick_cleanup
+from inputremapper.configs.mapping import Mapping
+from tests.test import new_event, quick_cleanup, get_key_mapping
 
 import unittest
 import asyncio
 
 import evdev
-from evdev.ecodes import EV_KEY, EV_ABS, ABS_Y, EV_REL
+from evdev.ecodes import EV_KEY, EV_ABS, ABS_X, ABS_Y, ABS_RX, ABS_RY, EV_REL, REL_X, REL_Y, REL_HWHEEL_HI_RES, REL_WHEEL_HI_RES
 
-from inputremapper.injection.mapping_handlers.keycode_mapper import active_macros
 from inputremapper.configs.global_config import BUTTONS, MOUSE, WHEEL
 
 from inputremapper.injection.context import Context
 from inputremapper.configs.preset import Preset
 from inputremapper.event_combination import EventCombination
-from inputremapper.injection.event_reader import EventReader, consumer_classes
-from inputremapper.injection.mapping_handlers.consumer import Consumer
-from inputremapper.injection.mapping_handlers.keycode_mapper import KeycodeMapper
+from inputremapper.injection.event_reader import EventReader
 from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.injection.global_uinputs import global_uinputs
 
 
-class ExampleConsumer(Consumer):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-    def is_enabled(self):
-        return True
-
-    async def notify(self, event):
-        pass
-
-    def is_handled(self, event):
-        pass
-
-    async def run(self):
-        pass
-
-
-class TestConsumerControl(unittest.IsolatedAsyncioTestCase):
+class TestEventReader(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
-        consumer_classes.append(ExampleConsumer)
         self.gamepad_source = evdev.InputDevice("/dev/input/event30")
-        self.mapping = Preset()
+        self.preset = Preset()
 
     def tearDown(self):
         quick_cleanup()
-        consumer_classes.remove(ExampleConsumer)
 
     def setup(self, source, mapping):
         """Set a a EventReader up for the test and run it in the background."""
@@ -73,43 +51,47 @@ class TestConsumerControl(unittest.IsolatedAsyncioTestCase):
         context = Context(mapping)
         context.uinput = evdev.UInput()
         consumer_control = EventReader(context, source, forward_to)
-        for consumer in consumer_control._consumers:
-            consumer._abs_range = (-10, 10)
+        #for consumer in consumer_control._consumers:
+        #    consumer._abs_range = (-10, 10)
         asyncio.ensure_future(consumer_control.run())
         return context, consumer_control
 
-    async def test_no_keycode_mapper_needed(self):
-        self.mapping.change(EventCombination([EV_KEY, 1, 1]), "keyboard", "b")
-        _, consumer_control = self.setup(self.gamepad_source, self.mapping)
-        consumer_types = [type(consumer) for consumer in consumer_control._consumers]
-        self.assertIn(KeycodeMapper, consumer_types)
-
-        self.mapping.empty()
-        _, consumer_control = self.setup(self.gamepad_source, self.mapping)
-        consumer_types = [type(consumer) for consumer in consumer_control._consumers]
-        self.assertNotIn(KeycodeMapper, consumer_types)
-
-        self.mapping.change(EventCombination([EV_KEY, 1, 1]), "keyboard", "k(a)")
-        _, consumer_control = self.setup(self.gamepad_source, self.mapping)
-        consumer_types = [type(consumer) for consumer in consumer_control._consumers]
-        self.assertIn(KeycodeMapper, consumer_types)
-
     async def test_if_single_joystick_then(self):
+        # TODO: Move this somewhere more sensible
         # Integration test style for if_single.
         # won't care about the event, because the purpose is not set to BUTTON
         code_a = system_mapping.get("a")
         code_shift = system_mapping.get("KEY_LEFTSHIFT")
         trigger = 1
-        self.mapping.change(
-            EventCombination([EV_KEY, trigger, 1]),
-            "keyboard",
-            "if_single(k(a), k(KEY_LEFTSHIFT))",
-        )
-        self.mapping.change(EventCombination([EV_ABS, ABS_Y, 1]), "keyboard", "b")
 
-        self.mapping.set("gamepad.joystick.left_purpose", MOUSE)
-        self.mapping.set("gamepad.joystick.right_purpose", WHEEL)
-        context, _ = self.setup(self.gamepad_source, self.mapping)
+        self.preset.add(get_key_mapping(EventCombination([EV_KEY, trigger, 1]), "keyboard", "if_single(key(a), key(KEY_LEFTSHIFT))"))
+        self.preset.add(get_key_mapping(EventCombination([EV_ABS, ABS_Y, 1]), "keyboard", "b"))
+
+        # left x to mouse x
+        cfg = {
+            "event_combination": ",".join((str(EV_ABS), str(ABS_X), "0")),
+            "target_uinput": "mouse",
+            "output_type": EV_REL,
+            "output_code": REL_X
+        }
+        self.preset.add(Mapping(**cfg))
+
+        # left y to mouse y
+        cfg["event_combination"] = ",".join((str(EV_ABS), str(ABS_Y), "0"))
+        cfg["output_code"] = REL_Y
+        self.preset.add(Mapping(**cfg))
+
+        # right x to wheel x
+        cfg["event_combination"] = ",".join((str(EV_ABS), str(ABS_RX), "0"))
+        cfg["output_code"] = REL_HWHEEL_HI_RES
+        self.preset.add(Mapping(**cfg))
+
+        # right y to wheel y
+        cfg["event_combination"] = ",".join((str(EV_ABS), str(ABS_RY), "0"))
+        cfg["output_code"] = REL_WHEEL_HI_RES
+        self.preset.add(Mapping(**cfg))
+
+        context, _ = self.setup(self.gamepad_source, self.preset)
 
         self.gamepad_source.push_events(
             [
@@ -118,13 +100,12 @@ class TestConsumerControl(unittest.IsolatedAsyncioTestCase):
                 new_event(EV_KEY, 2, 2),  # ignored
                 new_event(EV_KEY, 2, 0),  # ignored
                 new_event(EV_REL, 1, 1),  # ignored
-                new_event(
-                    EV_KEY, trigger, 0
-                ),  # stop it, the only way to trigger `then`
+                # stop it, the only way to trigger `then`
+                new_event(EV_KEY, trigger, 0),
             ]
         )
         await asyncio.sleep(0.1)
-        self.assertFalse(active_macros[(EV_KEY, 1)].running)
+        self.assertEqual(len(context.listeners), 0)
         history = [a.t for a in global_uinputs.get_uinput("keyboard").write_history]
         self.assertIn((EV_KEY, code_a, 1), history)
         self.assertIn((EV_KEY, code_a, 0), history)
@@ -133,21 +114,22 @@ class TestConsumerControl(unittest.IsolatedAsyncioTestCase):
 
     async def test_if_single_joystickelse_(self):
         """triggers else + delayed_handle_keycode"""
+        # TODO: Move this somewhere more sensible
         # Integration test style for if_single.
         # If a joystick that is mapped to a button is moved, if_single stops
         code_b = system_mapping.get("b")
         code_shift = system_mapping.get("KEY_LEFTSHIFT")
         trigger = 1
-        self.mapping.change(
+        self.preset.add(get_key_mapping(
             EventCombination([EV_KEY, trigger, 1]),
             "keyboard",
             "if_single(k(a), k(KEY_LEFTSHIFT))",
-        )
-        self.mapping.change(EventCombination([EV_ABS, ABS_Y, 1]), "keyboard", "b")
+        ))
+        self.preset.add(get_key_mapping(EventCombination([EV_ABS, ABS_Y, 1]), "keyboard", "b"))
 
-        self.mapping.set("gamepad.joystick.left_purpose", BUTTONS)
-        self.mapping.set("gamepad.joystick.right_purpose", BUTTONS)
-        context, _ = self.setup(self.gamepad_source, self.mapping)
+        # self.preset.set("gamepad.joystick.left_purpose", BUTTONS)
+        # self.preset.set("gamepad.joystick.right_purpose", BUTTONS)
+        context, _ = self.setup(self.gamepad_source, self.preset)
 
         self.gamepad_source.push_events(
             [
@@ -156,7 +138,7 @@ class TestConsumerControl(unittest.IsolatedAsyncioTestCase):
             ]
         )
         await asyncio.sleep(0.1)
-        self.assertFalse(active_macros[(EV_KEY, 1)].running)
+        self.assertEqual(len(context.listeners), 0)
         history = [a.t for a in global_uinputs.get_uinput("keyboard").write_history]
 
         # the key that triggered if_single should be injected after
@@ -174,18 +156,19 @@ class TestConsumerControl(unittest.IsolatedAsyncioTestCase):
 
     async def test_if_single_joystick_under_threshold(self):
         """triggers then because the joystick events value is too low."""
+        # TODO: Move this somewhere more sensible
         code_a = system_mapping.get("a")
         trigger = 1
-        self.mapping.change(
+        self.preset.add(get_key_mapping(
             EventCombination([EV_KEY, trigger, 1]),
             "keyboard",
             "if_single(k(a), k(KEY_LEFTSHIFT))",
-        )
-        self.mapping.change(EventCombination([EV_ABS, ABS_Y, 1]), "keyboard", "b")
+        ))
+        self.preset.add(get_key_mapping(EventCombination([EV_ABS, ABS_Y, 1]), "keyboard", "b"))
 
-        self.mapping.set("gamepad.joystick.left_purpose", BUTTONS)
-        self.mapping.set("gamepad.joystick.right_purpose", BUTTONS)
-        context, _ = self.setup(self.gamepad_source, self.mapping)
+        # self.preset.set("gamepad.joystick.left_purpose", BUTTONS)
+        # self.preset.set("gamepad.joystick.right_purpose", BUTTONS)
+        context, _ = self.setup(self.gamepad_source, self.preset)
 
         self.gamepad_source.push_events(
             [
@@ -195,7 +178,7 @@ class TestConsumerControl(unittest.IsolatedAsyncioTestCase):
             ]
         )
         await asyncio.sleep(0.1)
-        self.assertFalse(active_macros[(EV_KEY, 1)].running)
+        self.assertEqual(len(context.listeners), 0)
         history = [a.t for a in global_uinputs.get_uinput("keyboard").write_history]
 
         # the key that triggered if_single should be injected after
