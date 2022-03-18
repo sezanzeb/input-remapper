@@ -332,8 +332,9 @@ class Injector(multiprocessing.Process):
                 forward_to = evdev.UInput(
                     name=get_udev_name(source.name, "forwarded"),
                     events=self._copy_capabilities(source),
-                    # phys=source.phys,  # this leads to confusion. the appearance of an uinput with this "phys"
-                    # property causes the udev rule to autoload for the original device, overwriting our previous
+                    # phys=source.phys,  # this leads to confusion. the appearance of
+                    # an uinput with this "phys" property causes the udev rule to
+                    # autoload for the original device, overwriting our previous
                     # attempts at starting an injection.
                     vendor=source.info.vendor,
                     product=source.info.product,
@@ -343,6 +344,8 @@ class Injector(multiprocessing.Process):
                 )
             except TypeError as e:
                 if "input_props" in str(e):
+                    # UInput constructor doesn't support input_props and
+                    # source.input_props doesn't exist with old python-evdev versions.
                     logger.error("Please upgrade your python-evdev version. Exiting")
                     self._msg_pipe[0].send(UPGRADE_EVDEV)
                     sys.exit(12)
