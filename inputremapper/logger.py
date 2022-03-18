@@ -101,10 +101,10 @@ def debug_key(self, key, msg, *args):
     msg = msg % args
     str_key = str(key)
     str_key = str_key.replace(",)", ")")
-    spacing = " " + "-" * max(0, 30 - len(str_key))
+    spacing = " " + "·" * max(0, 30 - len(msg))
     if len(spacing) == 1:
         spacing = ""
-    msg = f"{str_key}{spacing} {msg}"
+    msg = f"{msg}{spacing} {str_key}"
 
     if msg == previous_key_debug_log:
         # avoid some super spam from EV_ABS events

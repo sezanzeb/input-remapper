@@ -19,6 +19,8 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
+from tests.test import tmp
+
 import os
 import shutil
 import unittest
@@ -26,8 +28,6 @@ import logging
 
 from inputremapper.logger import logger, add_filehandler, update_verbosity, log_info
 from inputremapper.configs.paths import remove
-
-from tests.test import tmp
 
 
 class TestLogger(unittest.TestCase):
@@ -50,8 +50,14 @@ class TestLogger(unittest.TestCase):
         logger.debug_key(((1, 200, -1), (1, 5, 1)), "foo %s", (1, 2))
         with open(path, "r") as f:
             content = f.read().lower()
-            self.assertIn("((1, 2, 1)) ------------------- foo 1234 bar", content)
-            self.assertIn("((1, 200, -1), (1, 5, 1)) ----- foo (1, 2)", content)
+            self.assertIn(
+                "foo 1234 bar ·················· ((1, 2, 1))",
+                content,
+            )
+            self.assertIn(
+                "foo (1, 2) ···················· ((1, 200, -1), (1, 5, 1))",
+                content,
+            )
 
     def test_log_info(self):
         update_verbosity(debug=False)

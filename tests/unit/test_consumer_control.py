@@ -19,6 +19,8 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
+from tests.test import new_event, quick_cleanup
+
 import unittest
 import asyncio
 
@@ -36,8 +38,6 @@ from inputremapper.injection.mapping_handlers.consumer import Consumer
 from inputremapper.injection.mapping_handlers.keycode_mapper import KeycodeMapper
 from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.injection.global_uinputs import global_uinputs
-
-from tests.test import new_event, quick_cleanup
 
 
 class ExampleConsumer(Consumer):

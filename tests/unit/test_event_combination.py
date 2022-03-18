@@ -31,20 +31,17 @@ class TestKey(unittest.TestCase):
     def test_key(self):
         # its very similar to regular tuples, but with some extra stuff
         key_1 = EventCombination((1, 3, 1), (1, 5, 1))
-        self.assertEqual(str(key_1), "EventCombination((1, 3, 1), (1, 5, 1))")
         self.assertEqual(len(key_1), 2)
         self.assertEqual(key_1[0], (1, 3, 1))
         self.assertEqual(key_1[1], (1, 5, 1))
         self.assertEqual(hash(key_1), hash(((1, 3, 1), (1, 5, 1))))
 
         key_2 = EventCombination((1, 3, 1))
-        self.assertEqual(str(key_2), "EventCombination((1, 3, 1))")
         self.assertEqual(len(key_2), 1)
         self.assertNotEqual(key_2, key_1)
         self.assertNotEqual(hash(key_2), hash(key_1))
 
         key_3 = EventCombination((1, 3, 1))
-        self.assertEqual(str(key_3), "EventCombination((1, 3, 1))")
         self.assertEqual(len(key_3), 1)
         self.assertEqual(key_3, key_2)
         self.assertNotEqual(key_3, (1, 3, 1))
@@ -52,15 +49,11 @@ class TestKey(unittest.TestCase):
         self.assertEqual(hash(key_3), hash(((1, 3, 1),)))
 
         key_4 = EventCombination(*key_3)
-        self.assertEqual(str(key_4), "EventCombination((1, 3, 1))")
         self.assertEqual(len(key_4), 1)
         self.assertEqual(key_4, key_3)
         self.assertEqual(hash(key_4), hash(key_3))
 
         key_5 = EventCombination(*key_4, *key_4, (1, 7, 1))
-        self.assertEqual(
-            str(key_5), "EventCombination((1, 3, 1), (1, 3, 1), (1, 7, 1))"
-        )
         self.assertEqual(len(key_5), 3)
         self.assertNotEqual(key_5, key_4)
         self.assertNotEqual(hash(key_5), hash(key_4))

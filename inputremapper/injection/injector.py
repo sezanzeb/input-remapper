@@ -319,13 +319,21 @@ class Injector(multiprocessing.Process):
         coroutines = []
 
         for source in sources:
-            # certain capabilities can have side effects apparently. with an
-            # EV_ABS capability, EV_REL won't move the mouse pointer anymore.
-            # so don't merge all InputDevices into one UInput device.
+            # copy as much information as possible, because libinput uses the extra
+            # information to enable certain features like "Disable touchpad while
+            # typing"
             forward_to = evdev.UInput(
                 name=get_udev_name(source.name, "forwarded"),
-                phys=DEV_NAME,
                 events=self._copy_capabilities(source),
+                # phys=source.phys,  # this leads to confusion. the appearance of an uinput with this "phys" property
+                # causes the udev rule to autoload for the original device, overwriting our previous attempts at
+                # starting an injection.
+                vendor=source.info.vendor,
+                product=source.info.product,
+                version=source.info.version,
+                bustype=source.info.bustype,
+                # input_props has been missing in one case
+                input_props=getattr(source, "input_props", lambda: None)(),
             )
 
             # actually doing things

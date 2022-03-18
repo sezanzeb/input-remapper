@@ -19,6 +19,21 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
+from tests.test import (
+    new_event,
+    push_events,
+    fixtures,
+    EVENT_READ_TIMEOUT,
+    uinput_write_history_pipe,
+    MAX_ABS,
+    quick_cleanup,
+    read_write_history_pipe,
+    InputDevice,
+    uinputs,
+    keyboard_keys,
+    MIN_ABS,
+)
+
 import unittest
 from unittest import mock
 import time
@@ -66,21 +81,6 @@ from inputremapper.event_combination import EventCombination
 from inputremapper.injection.macros.parse import parse
 from inputremapper.injection.context import Context
 from inputremapper.groups import groups, classify, GAMEPAD
-
-from tests.test import (
-    new_event,
-    push_events,
-    fixtures,
-    EVENT_READ_TIMEOUT,
-    uinput_write_history_pipe,
-    MAX_ABS,
-    quick_cleanup,
-    read_write_history_pipe,
-    InputDevice,
-    uinputs,
-    keyboard_keys,
-    MIN_ABS,
-)
 
 
 def wait_for_uinput_write():

@@ -19,6 +19,8 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
+from tests.test import cleanup
+
 import sys
 import unittest
 import evdev
@@ -30,12 +32,10 @@ from evdev.ecodes import (
     KEY_A,
     ABS_X,
 )
-from tests.test import cleanup
 
 from inputremapper.injection.global_uinputs import (
     global_uinputs,
     FrontendUInput,
-    UInput,
     GlobalUInputs,
 )
 from inputremapper.exceptions import EventNotHandled, UinputNotAvailable
@@ -88,7 +88,7 @@ class TestGlobalUinputs(unittest.TestCase):
     def test_creates_frontend_uinputs(self):
         frontend_uinputs = GlobalUInputs()
         with patch.object(sys, "argv", ["foo"]):
-            frontend_uinputs.prepare()
+            frontend_uinputs.prepare_all()
 
         uinput = frontend_uinputs.get_uinput("keyboard")
         self.assertIsInstance(uinput, FrontendUInput)

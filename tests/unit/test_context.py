@@ -19,6 +19,8 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
+from tests.test import quick_cleanup
+
 import unittest
 
 from inputremapper.injection.context import Context
@@ -26,7 +28,6 @@ from inputremapper.configs.preset import Preset
 from inputremapper.event_combination import EventCombination
 from inputremapper.configs.global_config import NONE, MOUSE, WHEEL, BUTTONS
 from inputremapper.configs.system_mapping import system_mapping
-from tests.test import quick_cleanup
 
 
 class TestContext(unittest.TestCase):

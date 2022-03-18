@@ -19,21 +19,36 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
-"""Sets up inputremapper for the tests and runs them."""
+"""Sets up inputremapper for the tests and runs them.
+
+This module needs to be imported first in test files.
+"""
+
 import argparse
 import os
 import sys
 import tempfile
 
-# the working directory should be the project root
-assert not os.getcwd().endswith("tests")
-assert not os.getcwd().endswith("unit")
-assert not os.getcwd().endswith("integration")
+
+def get_project_root():
+    """Find the projects root, i.e. the uppermost directory of the repo."""
+    # when tests are started in pycharm via the green arrow, the working directory
+    # is not the project root. Go up until it is found.
+    root = os.getcwd()
+    for _ in range(10):
+        if "setup.py" in os.listdir(root):
+            return root
+
+        root = os.path.dirname(root)
+
+    raise Exception("Could not find project root")
+
 
 # make sure the "tests" module visible
-sys.path.append(os.getcwd())
+sys.path.append(get_project_root())
 if __name__ == "__main__":
-    # import this file to itself to make sure is not run twice and all global variables end up in sys.modules
+    # import this file to itself to make sure is not run twice and all global
+    # variables end up in sys.modules
     # https://stackoverflow.com/questions/13181559/importing-modules-main-vs-import-as-module
     import tests.test
 
@@ -414,6 +429,9 @@ class InputDevice:
 
         return result
 
+    def input_props(self):
+        return []
+
 
 uinputs = {}
 
@@ -571,7 +589,7 @@ def send_event_to_reader(event):
 def quick_cleanup(log=True):
     """Reset the applications state."""
     if log:
-        print("quick cleanup")
+        print("Quick cleanup...")
 
     for device in list(pending_events.keys()):
         try:
@@ -651,13 +669,18 @@ def quick_cleanup(log=True):
         uinput.write_count = 0
         uinput.write_history = []
 
+    global_uinputs.is_service = True
+
+    if log:
+        print("Quick cleanup done")
+
 
 def cleanup():
     """Reset the applications state.
 
     Using this is slower, usually quick_cleanup() is sufficient.
     """
-    print("cleanup")
+    print("Cleanup...")
 
     os.system("pkill -f input-remapper-service")
     os.system("pkill -f input-remapper-control")
@@ -666,7 +689,9 @@ def cleanup():
     quick_cleanup(log=False)
     groups.refresh()
     with patch.object(sys, "argv", ["input-remapper-service"]):
-        global_uinputs.prepare()
+        global_uinputs.prepare_all()
+
+    print("Cleanup done")
 
 
 def spy(obj, name):

@@ -22,6 +22,8 @@
 """Testing the input-remapper-control command"""
 
 
+from tests.test import quick_cleanup, tmp
+
 import os
 import time
 import unittest
@@ -36,8 +38,6 @@ from inputremapper.daemon import Daemon
 from inputremapper.configs.preset import Preset
 from inputremapper.configs.paths import get_preset_path
 from inputremapper.groups import groups
-
-from tests.test import quick_cleanup, tmp
 
 
 def import_control():

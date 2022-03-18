@@ -49,6 +49,7 @@ FUNCTIONS = {
     "event": Macro.add_event,
     "wait": Macro.add_wait,
     "hold": Macro.add_hold,
+    "hold_keys": Macro.add_hold_keys,
     "mouse": Macro.add_mouse,
     "wheel": Macro.add_wheel,
     "if_eq": Macro.add_if_eq,
@@ -94,16 +95,28 @@ def get_macro_argument_names(function):
 
     Removes the trailing "_" for displaying them correctly.
     """
-    # don't include "self"
-    args = inspect.getfullargspec(function).args[1:]
-    return [name[:-1] if name.endswith("_") else name for name in args]
+    args = inspect.getfullargspec(function).args[1:]  # don't include "self"
+    arg_names = [name[:-1] if name.endswith("_") else name for name in args]
+
+    varargs = inspect.getfullargspec(function).varargs
+    if varargs:
+        arg_names.append(f"*{varargs}")
+
+    return arg_names
 
 
 def get_num_parameters(function):
     """Get the number of required parameters and the maximum number of parameters."""
     fullargspec = inspect.getfullargspec(function)
-    num_args = len(fullargspec.args) - 1  # one is `self`
-    return num_args - len(fullargspec.defaults or ()), num_args
+    num_args = len(fullargspec.args) - 1  # one of them is `self`
+    min_num_args = num_args - len(fullargspec.defaults or ())
+
+    if fullargspec.varargs is not None:
+        max_num_args = float("inf")
+    else:
+        max_num_args = num_args
+
+    return min_num_args, max_num_args
 
 
 def _extract_args(inner):
@@ -319,7 +332,7 @@ def _parse_recurse(code, context, mapping, macro_instance=None, depth=0):
 
 
 def handle_plus_syntax(macro):
-    """transform a + b + c to m(a, m(b, m(c, h())))"""
+    """transform a + b + c to modify(a,modify(b,modify(c,hold())))"""
     if "+" not in macro:
         return macro
 
@@ -337,9 +350,9 @@ def handle_plus_syntax(macro):
             raise MacroParsingError(macro, f'Invalid syntax for "{macro}"')
 
         depth += 1
-        output += f"m({chunk},"
+        output += f"modify({chunk},"
 
-    output += "h()"
+    output += "hold()"
     output += depth * ")"
 
     logger.debug('Transformed "%s" to "%s"', macro, output)
@@ -397,13 +410,17 @@ def parse(macro, context=None, mapping=None):
     Parameters
     ----------
     macro : string
-        "r(3, k(a).w(10))"
-        "r(2, k(a).k(KEY_A)).k(b)"
-        "w(1000).m(Shift_L, r(2, k(a))).w(10, 20).k(b)"
+        "repeat(3, key(a).wait(10))"
+        "repeat(2, key(a).key(KEY_A)).key(b)"
+        "wait(1000).modify(Shift_L, repeat(2, k(a))).wait(10, 20).key(b)"
     context : Context, or None for use in Frontend
+    return_errors : bool
+        If True, returns errors as a string or None if parsing worked.
+        If False, returns the parsed macro.
     """
     logger.debug("parsing macro %s", macro)
-    macro = handle_plus_syntax(macro)
     macro = clean(macro)
+    macro = handle_plus_syntax(macro)
+
 
     return _parse_recurse(macro, context, mapping)

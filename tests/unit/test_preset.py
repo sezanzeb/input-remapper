@@ -19,6 +19,8 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
+from tests.test import tmp, quick_cleanup
+
 import os
 import unittest
 import json
@@ -32,8 +34,6 @@ from inputremapper.configs.system_mapping import SystemMapping, XMODMAP_FILENAME
 from inputremapper.configs.global_config import global_config
 from inputremapper.configs.paths import get_preset_path
 from inputremapper.event_combination import EventCombination
-
-from tests.test import tmp, quick_cleanup
 
 
 class TestSystemMapping(unittest.TestCase):

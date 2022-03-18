@@ -19,13 +19,13 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
+from tests.test import quick_cleanup, tmp
+
 import os
 import unittest
 
 from inputremapper.configs.global_config import global_config
 from inputremapper.configs.paths import touch
-
-from tests.test import quick_cleanup, tmp
 
 
 class TestConfig(unittest.TestCase):

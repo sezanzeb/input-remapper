@@ -26,9 +26,6 @@ import math
 import os
 import re
 import sys
-import locale
-import gettext
-from inputremapper.configs.data import get_data_path
 from inputremapper.gui.gettext import _
 
 from evdev.ecodes import EV_KEY
@@ -152,7 +149,7 @@ class UserInterface:
         self.group = None
         self.preset_name = None
 
-        global_uinputs.prepare()
+        global_uinputs.prepare_all()
         css_provider = Gtk.CssProvider()
         with open(get_data_path("style.css"), "r") as file:
             css_provider.load_from_data(bytes(file.read(), encoding="UTF-8"))
@@ -363,6 +360,7 @@ class UserInterface:
         # and select the newest one (on the top). triggers on_select_preset
         preset_selection.set_active(0)
 
+    @if_group_selected
     def can_modify_preset(self, *args) -> bool:
         """if changing the preset is possible."""
         return self.dbus.get_state(self.group.key) != RUNNING
@@ -376,12 +374,18 @@ class UserInterface:
         # letting go of one of the keys of a combination won't just make
         # it return the leftover key, it will continue to return None because
         # they have already been read.
-        key = reader.read()
+        combination = reader.read()
 
         if reader.are_new_groups_available():
             self.populate_devices()
 
-        self.editor.consume_newest_keycode(key)
+        # giving editor its own interval and making it call reader.read itself causes
+        # incredibly frustrating and miraculous problems. Do not do it. Observations:
+        # - test_autocomplete_key fails if the gui has been launched and closed by a
+        # previous test already
+        # Maybe it has something to do with the order of editor.consume_newest_keycode
+        # and user_interface.populate_devices.
+        self.editor.consume_newest_keycode(combination)
 
         return True
 

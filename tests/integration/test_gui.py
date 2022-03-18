@@ -19,6 +19,22 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
+# the tests file needs to be imported first to make sure patches are loaded
+from tests.test import (
+    get_project_root,
+    logger,
+    tmp,
+    push_events,
+    new_event,
+    spy,
+    cleanup,
+    uinput_write_history_pipe,
+    MAX_ABS,
+    EVENT_READ_TIMEOUT,
+    send_event_to_reader,
+    MIN_ABS,
+)
+
 import sys
 import time
 import atexit
@@ -61,20 +77,6 @@ from inputremapper.event_combination import EventCombination
 from inputremapper.daemon import Daemon
 from inputremapper.groups import groups
 
-from tests.test import (
-    tmp,
-    push_events,
-    new_event,
-    spy,
-    cleanup,
-    get_key_mapping,
-    uinput_write_history_pipe,
-    MAX_ABS,
-    EVENT_READ_TIMEOUT,
-    send_event_to_reader,
-    MIN_ABS,
-)
-
 
 # iterate a few times when Gtk.main() is called, but don't block
 # there and just continue to the tests while the UI becomes
@@ -87,7 +89,7 @@ Gtk.main_quit = lambda: None
 
 def launch(argv=None) -> UserInterface:
     """Start input-remapper-gtk with the command line argument array argv."""
-    bin_path = os.path.join(os.getcwd(), "bin", "input-remapper-gtk")
+    bin_path = os.path.join(get_project_root(), "bin", "input-remapper-gtk")
 
     if not argv:
         argv = ["-d"]
@@ -286,6 +288,7 @@ class GuiTestBase(unittest.TestCase):
                     raise e
 
             # try again
+            print("Test failed, trying again...")
             self.tearDown()
             self.setUp()
 
@@ -332,7 +335,20 @@ class GuiTestBase(unittest.TestCase):
     def tearDownClass(cls):
         UserInterface.start_processes = cls.original_start_processes
 
+    def activate_recording_toggle(self):
+        logger.info("Activating the recording toggle")
+        self.set_focus(self.toggle)
+        self.toggle.set_active(True)
+
+    def disable_recording_toggle(self):
+        logger.info("Deactivating the recording toggle")
+        self.set_focus(None)
+        # should happen automatically:
+        self.assertFalse(self.toggle.get_active())
+
     def set_focus(self, widget):
+        logger.info("Focusing %s", widget)
+
         self.user_interface.window.set_focus(widget)
 
         # for whatever miraculous reason it suddenly takes 0.005s before gtk does
@@ -351,6 +367,25 @@ class GuiTestBase(unittest.TestCase):
         buffer = self.editor.get_code_editor().get_buffer()
         return buffer.get_text(buffer.get_start_iter(), buffer.get_end_iter(), True)
 
+    def select_mapping(self, i: int):
+        """Select one of the mappings of a preset.
+
+        Parameters
+        ----------
+        i
+            if -1, will select the "empty row",
+            0 will select the uppermost row.
+            1 will select the second row, and so on
+        """
+        selection_label = self.get_selection_labels()[i]
+        self.selection_label_listbox.select_row(selection_label)
+        logger.info(
+            'Selecting mapping %s "%s"',
+            selection_label.get_combination(),
+            selection_label.get_label(),
+        )
+        return selection_label
+
     def add_mapping_via_ui(self, key, symbol, expect_success=True, target=None):
         """Modify the one empty mapping that always exists.
 
@@ -365,6 +400,13 @@ class GuiTestBase(unittest.TestCase):
         target : str
             the target selection
         """
+        logger.info(
+            'Adding mapping %s, "%s", expecting to %s',
+            key,
+            symbol,
+            "work" if expect_success else "fail",
+        )
+
         self.throttle()
 
         self.assertIsNone(reader.get_unreleased_keys())
@@ -376,8 +418,7 @@ class GuiTestBase(unittest.TestCase):
         gtk_iteration()
 
         # the empty selection_label is expected to be the last one
-        selection_label = self.get_selection_labels()[-1]
-        self.selection_label_listbox.select_row(selection_label)
+        selection_label = self.select_mapping(-1)
         self.assertIsNone(selection_label.get_combination())
         self.assertFalse(self.editor._input_has_arrived)
 
@@ -475,6 +516,7 @@ class GuiTestBase(unittest.TestCase):
             gtk_iteration()
 
         time.sleep(1 / 30)  # one window iteration
+
         gtk_iteration()
 
 
@@ -758,23 +800,31 @@ class TestGui(GuiTestBase):
             "Button A + Button B + Button C",
         )
 
+    def test_is_waiting_for_input(self):
+        self.activate_recording_toggle()
+        self.assertTrue(self.editor.is_waiting_for_input())
+
+        self.disable_recording_toggle()
+        self.assertFalse(self.editor.is_waiting_for_input())
+
     def test_editor_simple(self):
         self.assertEqual(self.toggle.get_label(), "Change Key")
 
         self.assertEqual(len(self.selection_label_listbox.get_children()), 1)
 
         selection_label = self.selection_label_listbox.get_children()[0]
-        self.set_focus(self.toggle)
-        self.toggle.set_active(True)
+        self.activate_recording_toggle()
+        self.assertTrue(self.editor.is_waiting_for_input())
         self.assertEqual(self.toggle.get_label(), "Press Key")
 
-        self.editor.consume_newest_keycode(None)
+        self.user_interface.consume_newest_keycode()
         # nothing happens
         self.assertIsNone(selection_label.get_combination())
         self.assertEqual(len(active_preset), 0)
         self.assertEqual(self.toggle.get_label(), "Press Key")
 
-        self.editor.consume_newest_keycode(EventCombination([EV_KEY, 30, 1]))
+        send_event_to_reader(InputEvent.from_tuple((EV_KEY, 30, 1)))
+        self.user_interface.consume_newest_keycode()
         # no symbol configured yet, so the active_preset remains empty
         self.assertEqual(len(active_preset), 0)
         self.assertEqual(len(selection_label.get_combination()), 1)
@@ -783,9 +833,10 @@ class TestGui(GuiTestBase):
         # but KEY_ is removed from the text for display purposes
         self.assertEqual(selection_label.get_label(), "a")
 
-        # providing the same key again (Maybe this could happen for gamepads or
-        # something, idk) doesn't do any harm
-        self.editor.consume_newest_keycode(EventCombination([EV_KEY, 30, 1]))
+        # providing the same key again doesn't do any harm
+        # (Maybe this could happen for gamepads or something, idk)
+        send_event_to_reader(InputEvent.from_tuple((EV_KEY, 30, 1)))
+        self.user_interface.consume_newest_keycode()
         self.assertEqual(len(active_preset), 0)  # not released yet
         self.assertEqual(len(selection_label.get_combination()), 1)
         self.assertEqual(selection_label.get_combination()[0], (EV_KEY, 30, 1))
@@ -798,11 +849,17 @@ class TestGui(GuiTestBase):
             2,
         )
 
+        self.disable_recording_toggle()
         self.set_focus(self.editor.get_code_editor())
-        self.editor.set_symbol_input_text("Shift_L")
-        self.set_focus(None)
+        self.assertFalse(self.editor.is_waiting_for_input())
 
-        self.assertEqual(len(active_preset), 1)
+        self.editor.set_symbol_input_text("Shift_L")
+
+        self.set_focus(None)
+        self.assertFalse(self.editor.is_waiting_for_input())
+
+        num_mappings = len(active_preset)
+        self.assertEqual(num_mappings, 1)
 
         time.sleep(0.1)
         gtk_iteration()
@@ -884,9 +941,7 @@ class TestGui(GuiTestBase):
         # focus the toggle after selecting a different selection_label.
         # It resets the reader
         self.editor.add_empty()
-        self.selection_label_listbox.select_row(
-            self.selection_label_listbox.get_children()[-1]
-        )
+        self.select_mapping(-1)
         self.set_focus(self.toggle)
         self.toggle.set_active(True)
 
@@ -924,9 +979,7 @@ class TestGui(GuiTestBase):
 
         """edit first selection_label"""
 
-        self.selection_label_listbox.select_row(
-            self.selection_label_listbox.get_children()[0]
-        )
+        self.select_mapping(0)
         self.assertEqual(self.editor.get_combination(), ev_1)
         self.set_focus(self.editor.get_code_editor())
         self.editor.set_symbol_input_text("c")
@@ -1941,11 +1994,31 @@ class TestGui(GuiTestBase):
             self.assertTrue(os.path.exists(f"{device_path}/new preset.json"))
 
     def test_enable_disable_symbol_input(self):
-        self.editor.disable_symbol_input()
+        # should be disabled by default since no key is recorded yet
         self.assertEqual(self.get_unfiltered_symbol_input_text(), SET_KEY_FIRST)
         self.assertFalse(self.editor.get_code_editor().get_sensitive())
 
         self.editor.enable_symbol_input()
+        self.assertEqual(self.get_unfiltered_symbol_input_text(), "")
+        self.assertTrue(self.editor.get_text_input().get_sensitive())
+
+        # disable it
+        self.editor.disable_symbol_input()
+        self.assertFalse(self.editor.get_text_input().get_sensitive())
+
+        # try to enable it by providing a key via set_combination
+        self.editor.set_combination(EventCombination((1, 201, 1)))
+        self.assertEqual(self.get_unfiltered_symbol_input_text(), "")
+        self.assertTrue(self.editor.get_text_input().get_sensitive())
+
+        # disable it again
+        self.editor.set_combination(None)
+        self.assertFalse(self.editor.get_text_input().get_sensitive())
+
+        # try to enable it via the reader
+        self.activate_recording_toggle()
+        send_event_to_reader(InputEvent.from_tuple((EV_KEY, 101, 1)))
+        self.user_interface.consume_newest_keycode()
         self.assertEqual(self.get_unfiltered_symbol_input_text(), "")
         self.assertTrue(self.editor.get_code_editor().get_sensitive())
 
@@ -1954,6 +2027,21 @@ class TestGui(GuiTestBase):
         self.editor.set_symbol_input_text("foo")
         self.editor.enable_symbol_input()
         self.assertEqual(self.get_unfiltered_symbol_input_text(), "foo")
+
+    def test_whitespace_symbol(self):
+        # test how the editor behaves when the text of a mapping is a whitespace.
+        # Caused an "Expected `symbol` not to be empty" error in the past, because
+        # the symbol was not stripped of whitespaces and logic was performed that
+        # resulted in a call to actually changing the mapping.
+        self.add_mapping_via_ui(EventCombination([1, 201, 1]), "a")
+        self.add_mapping_via_ui(EventCombination([1, 202, 1]), "b")
+
+        self.select_mapping(1)
+        self.assertEqual(self.editor.get_symbol_input_text(), "b")
+        self.editor.set_symbol_input_text(" ")
+
+        self.select_mapping(0)
+        self.assertEqual(self.editor.get_symbol_input_text(), "a")
 
 
 class TestAutocompletion(GuiTestBase):

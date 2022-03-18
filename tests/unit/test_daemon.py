@@ -19,6 +19,16 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
+from tests.test import (
+    cleanup,
+    uinput_write_history_pipe,
+    new_event,
+    push_events,
+    is_service_running,
+    fixtures,
+    tmp,
+)
+
 import os
 import unittest
 import time
@@ -38,16 +48,7 @@ from inputremapper.event_combination import EventCombination
 from inputremapper.configs.preset import Preset
 from inputremapper.injection.injector import STARTING, RUNNING, STOPPED, UNKNOWN
 from inputremapper.daemon import Daemon
-
-from tests.test import (
-    cleanup,
-    uinput_write_history_pipe,
-    new_event,
-    push_events,
-    is_service_running,
-    fixtures,
-    tmp,
-)
+from inputremapper.injection.global_uinputs import global_uinputs
 
 
 check_output = subprocess.check_output
@@ -63,6 +64,10 @@ class TestDaemon(unittest.TestCase):
         self.daemon = None
         mkdir(get_config_path())
         global_config._save_config()
+
+        # the daemon should be able to create them on demand:
+        global_uinputs.devices = {}
+        global_uinputs.is_service = True
 
     def tearDown(self):
         # avoid race conditions with other tests, daemon may run processes
@@ -135,7 +140,15 @@ class TestDaemon(unittest.TestCase):
         self.daemon = Daemon()
 
         self.assertFalse(uinput_write_history_pipe[0].poll())
+
+        # has been cleanedUp in setUp
+        self.assertNotIn("keyboard", global_uinputs.devices)
+
         self.daemon.start_injecting(group.key, preset)
+
+        # created on demand
+        self.assertIn("keyboard", global_uinputs.devices)
+        self.assertNotIn("gamepad", global_uinputs.devices)
 
         self.assertEqual(self.daemon.get_state(group.key), STARTING)
         self.assertEqual(self.daemon.get_state(group2.key), UNKNOWN)

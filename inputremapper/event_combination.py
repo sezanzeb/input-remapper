@@ -69,7 +69,7 @@ class EventCombination(Tuple[InputEvent]):
 
     def __str__(self):
         #  only used in tests and logging
-        return f"EventCombination({', '.join([str(e.event_tuple) for e in self])})"
+        return f"<EventCombination {', '.join([str(e.event_tuple) for e in self])}>"
 
     @classmethod
     def __get_validators__(cls):

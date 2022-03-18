@@ -183,8 +183,6 @@ class Daemon:
         # initialize stuff that is needed alongside the daemon process
         macro_variables.start()
 
-        global_uinputs.prepare()
-
     @classmethod
     def connect(cls, fallback=True):
         """Get an interface to start and stop injecting keystrokes.
@@ -419,6 +417,8 @@ class Daemon:
         preset : string
             The name of the preset
         """
+        logger.info('Request to start injecting for "%s"', group_key)
+
         self.refresh(group_key)
 
         if self.config_dir is None:
@@ -435,7 +435,10 @@ class Daemon:
             return False
 
         preset_path = os.path.join(
-            self.config_dir, "presets", group.name, f"{preset}.json"
+            self.config_dir,
+            "presets",
+            group.name,
+            f"{preset}.json",
         )
 
         # Path to a dump of the xkb mappings, to provide more human
@@ -456,11 +459,19 @@ class Daemon:
             logger.error('Could not find "%s"', xmodmap_path)
 
         preset = Preset(preset_path)
+
         try:
             preset.load()
         except FileNotFoundError as error:
             logger.error(str(error))
             return False
+
+        for mapping in preset:
+            # only create those uinputs that are required to avoid
+            # confusing the system. Seems to be especially important with
+            # gamepads, because some apps treat the first gamepad they found
+            # as the only gamepad they'll ever care about.
+            global_uinputs.prepare_single(mapping.target_uinput)
 
         if self.injectors.get(group_key) is not None:
             self.stop_injecting(group_key)
