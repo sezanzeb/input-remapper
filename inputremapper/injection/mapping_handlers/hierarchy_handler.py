@@ -80,6 +80,7 @@ class HierarchyHandler(MappingHandler):
             return {EventCombination(self._input_event): HandlerEnums.abs2btn}
         if self._input_event.type == EV_REL and self._input_event.value != 0:
             return {EventCombination(self._input_event): HandlerEnums.rel2btn}
+        return {}
 
     def set_sub_handler(self, handler: InputEventHandler) -> None:
         assert False
