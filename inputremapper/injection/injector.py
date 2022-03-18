@@ -80,6 +80,18 @@ def get_udev_name(name: str, suffix: str) -> str:
     return name
 
 
+def create_uinput(*args, **kwargs):
+    """Safely create an UInput, compatible with various versions of evdev."""
+    try:
+        return evdev.UInput(*args, **kwargs)
+    except TypeError as e:
+        if "input_props" in str(e):
+            del kwargs["input_props"]
+            return evdev.UInput(*args, **kwargs)
+
+        raise e
+
+
 class Injector(multiprocessing.Process):
     """Initializes, starts and stops injections.
 
@@ -328,7 +340,7 @@ class Injector(multiprocessing.Process):
             # copy as much information as possible, because libinput uses the extra
             # information to enable certain features like "Disable touchpad while
             # typing"
-            forward_to = evdev.UInput(
+            forward_to = create_uinput(
                 name=get_udev_name(source.name, "forwarded"),
                 events=self._copy_capabilities(source),
                 # phys=source.phys,  # this leads to confusion. the appearance of an uinput with this "phys" property
