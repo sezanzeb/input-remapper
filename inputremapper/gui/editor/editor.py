@@ -29,7 +29,7 @@ import os
 from typing import Optional
 
 from inputremapper.configs.data import get_data_path
-from inputremapper.configs.mapping import Mapping, UIMapping
+from inputremapper.configs.mapping import UIMapping
 from inputremapper.gui.gettext import _
 
 from gi.repository import Gtk, GLib, Gdk, GtkSource

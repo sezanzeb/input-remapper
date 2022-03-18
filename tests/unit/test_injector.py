@@ -43,7 +43,6 @@ from evdev.ecodes import (
     KEY_C,
 )
 
-from inputremapper.injection.mapping_handlers.joystick_to_mouse import JoystickToMouse
 from inputremapper.injection.injector import (
     Injector,
     is_in_capabilities,
@@ -119,14 +118,6 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         evdev.InputDevice.grab = self.grab
 
         quick_cleanup()
-
-    def find_joystick_to_mouse(self):
-        # this object became somewhat a pain to retreive
-        return [
-            consumer
-            for consumer in self.injector._consumer_controls[0]._consumers
-            if isinstance(consumer, JoystickToMouse)
-        ][0]
 
     def test_grab(self):
         # path is from the fixtures
