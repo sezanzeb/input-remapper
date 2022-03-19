@@ -59,7 +59,7 @@ from inputremapper.gui.editor.editor import Editor
 from inputremapper.event_combination import EventCombination
 from inputremapper.gui.reader import reader
 from inputremapper.gui.helper import is_helper_running
-from inputremapper.injection.injector import RUNNING, FAILED, NO_GRAB
+from inputremapper.injection.injector import RUNNING, FAILED, NO_GRAB, UPGRADE_EVDEV
 from inputremapper.daemon import Daemon
 from inputremapper.configs.global_config import global_config
 from inputremapper.injection.macros.parse import is_this_a_macro, parse
@@ -579,6 +579,14 @@ class UserInterface:
                 "Either another application is already grabbing it or "
                 "your preset doesn't contain anything that is sent by the "
                 "device.",
+            )
+            return False
+
+        if state == UPGRADE_EVDEV:
+            self.show_status(
+                CTX_ERROR,
+                "Upgrade python-evdev",
+                "Your python-evdev version is too old.",
             )
             return False
 

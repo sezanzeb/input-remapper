@@ -31,17 +31,20 @@ or install the latest changes via:
 sudo apt install git python3-setuptools gettext
 git clone https://github.com/sezanzeb/input-remapper.git
 cd input-remapper && ./scripts/build.sh
-sudo apt install ./dist/input-remapper-1.4.1.deb
+sudo apt install ./dist/input-remapper-1.4.2.deb
 ```
 
 input-remapper is now part of [Debian Unstable](https://packages.debian.org/sid/input-remapper)
 
 ##### pip
 
-Dependencies from your distros repo: `python3-evdev`, `gtksourceview4`, `python3-devel`, `python3-pydantic`
+Dependencies: `python3-evdev` ≥1.3.0, `gtksourceview4`, `python3-devel`, `python3-pydantic`
+
+Python packages need to be installed globally for the service to be able to import them. Don't use `--user`
 
 ```bash
-sudo pip uninstall key-mapper
+sudo pip install evdev -U  # If newest version not in distros repo
+sudo pip uninstall key-mapper  # In case the old package is still installed
 sudo pip install --no-binary :all: git+https://github.com/sezanzeb/input-remapper.git
 sudo systemctl enable input-remapper
 sudo systemctl restart input-remapper
