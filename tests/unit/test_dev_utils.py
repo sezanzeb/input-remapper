@@ -111,18 +111,7 @@ class TestDevUtils(unittest.TestCase):
 
         """joysticks"""
 
-        # without a purpose of BUTTONS it won't map any button, even for
-        # gamepads
-        self.assertFalse(do(0, new_event(EV_ABS, ecodes.ABS_RX, 1234)))
-        self.assertFalse(do(1, new_event(EV_ABS, ecodes.ABS_RX, 1234)))
-        self.assertFalse(do(0, new_event(EV_ABS, ecodes.ABS_Y, -1)))
-        self.assertFalse(do(1, new_event(EV_ABS, ecodes.ABS_Y, -1)))
-        self.assertFalse(do(0, new_event(EV_ABS, ecodes.ABS_RY, -1)))
-        self.assertFalse(do(1, new_event(EV_ABS, ecodes.ABS_RY, -1)))
-
-        mapping.set("gamepad.joystick.right_purpose", BUTTONS)
-        global_config.set("gamepad.joystick.left_purpose", BUTTONS)
-        # but only for gamepads
+        # we no longer track the purpose for the gamepad sticks, it is always allowed to map them as buttons
         self.assertFalse(do(0, new_event(EV_ABS, ecodes.ABS_Y, -1)))
         self.assertTrue(do(1, new_event(EV_ABS, ecodes.ABS_Y, -1)))
         self.assertFalse(do(0, new_event(EV_ABS, ecodes.ABS_RY, -1)))
