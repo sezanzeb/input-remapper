@@ -417,13 +417,14 @@ def parse(macro, context=None, mapping=None):
         "repeat(2, key(a).key(KEY_A)).key(b)"
         "wait(1000).modify(Shift_L, repeat(2, k(a))).wait(10, 20).key(b)"
     context : Context, or None for use in Frontend
-    return_errors : bool
-        If True, returns errors as a string or None if parsing worked.
-        If False, returns the parsed macro.
+    mapping : the mapping for the macro, or None for use in Frontend
     """
     logger.debug("parsing macro %s", macro)
     macro = clean(macro)
     macro = handle_plus_syntax(macro)
 
+    macro_obj = _parse_recurse(macro, context, mapping)
+    if not isinstance(macro_obj, Macro):
+        raise MacroParsingError(macro, "The provided code was not a macro")
 
-    return _parse_recurse(macro, context, mapping)
+    return macro_obj
