@@ -423,9 +423,21 @@ class InputDevice:
                 resolution=None,
                 max=MAX_ABS,
             )
-            result[evdev.ecodes.EV_ABS] = [
-                (stuff, absinfo_obj) for stuff in result[evdev.ecodes.EV_ABS]
-            ]
+
+            ev_abs = []
+            for ev_code in result[evdev.ecodes.EV_ABS]:
+                if ev_code in range(0x10, 0x18):  # ABS_HAT0X - ABS_HAT3Y
+                    absinfo_obj = evdev.AbsInfo(
+                        value=None,
+                        min=-1,
+                        fuzz=None,
+                        flat=None,
+                        resolution=None,
+                        max=1,
+                    )
+                ev_abs.append((ev_code, absinfo_obj))
+
+            result[evdev.ecodes.EV_ABS] = ev_abs
 
         return result
 
