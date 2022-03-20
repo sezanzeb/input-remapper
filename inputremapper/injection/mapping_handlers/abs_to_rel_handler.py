@@ -184,7 +184,8 @@ class AbsToRelHandler(MappingHandler):
         start = time.time()
         while not self._stop:
             float_value = self._last_value * self.mapping.gain + remainder
-            remainder = float_value % 1
+            # float_value % 1 will result in wrong calculations for negative values
+            remainder = math.fmod(float_value, 1)
             value = int(float_value)
             self._write(EV_REL, self.mapping.output_code, value)
 
@@ -199,6 +200,9 @@ class AbsToRelHandler(MappingHandler):
         """Inject."""
         # if the mouse won't move even though correct stuff is written here,
         # the capabilities are probably wrong
+        if value == 0:
+            return  # rel 0 does not make sense
+
         try:
             global_uinputs.write((ev_type, keycode, value), self.mapping.target_uinput)
         except OverflowError:
