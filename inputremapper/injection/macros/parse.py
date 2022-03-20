@@ -314,7 +314,10 @@ def _parse_recurse(code, context, mapping, macro_instance=None, depth=0):
 
         use_safe_argument_names(keyword_args)
 
-        function(macro_instance, *positional_args, **keyword_args)
+        try:
+            function(macro_instance, *positional_args, **keyword_args)
+        except TypeError as err:
+            raise MacroParsingError(msg=str(err))
 
         # is after this another call? Chain it to the macro_instance
         if len(code) > position and code[position] == ".":
