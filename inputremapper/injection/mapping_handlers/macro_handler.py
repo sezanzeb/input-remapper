@@ -62,7 +62,7 @@ class MacroHandler(MappingHandler):
 
         if event.value == 1:
             self._active = True
-            self._macro.press_trigger(event)
+            self._macro.press_trigger()
             if self._macro.running:
                 return True
 

@@ -181,8 +181,6 @@ class Macro:
     4. `Macro.run` will run all tasks in self.tasks
     """
 
-    _triggering_event: Optional[evdev.InputEvent]
-
     def __init__(self, code: str, context=None, mapping=None):
         """Create a macro instance that can be populated with tasks.
 
@@ -210,9 +208,7 @@ class Macro:
         self.running = False
 
         self.child_macros = []
-
         self.keystroke_sleep_ms = None
-        self._triggering_event = None
 
     def is_holding(self):
         """Check if the macro is waiting for a key to be released."""
@@ -262,18 +258,17 @@ class Macro:
         # done
         self.running = False
 
-    def press_trigger(self, event: evdev.InputEvent):
+    def press_trigger(self):
         """The user pressed the trigger key down."""
         if self.is_holding():
             logger.error("Already holding")
             return
 
-        self._triggering_event = event
         self._trigger_release_event.clear()
         self._trigger_press_event.set()
 
         for macro in self.child_macros:
-            macro.press_trigger(event)
+            macro.press_trigger()
 
     def release_trigger(self):
         """The user released the trigger key."""
