@@ -88,9 +88,10 @@ class RelToBtnHandler(MappingHandler):
         if event.type_and_code != self._input_event.type_and_code:
             return False
 
+        threshold = self._input_event.value
         value = event.value
-        if (value < self._input_event.value > 0) or (value > self._input_event.value < 0):
-            return True
+        if (value < threshold > 0) or (value > threshold < 0):
+            return False
 
         if self._active:
             self._last_activation = time.time()
