@@ -90,10 +90,13 @@ def _type_check(value, allowed_types, display_name=None, position=None):
             continue
 
         # try to parse "1" as 1 if possible
-        try:
-            return allowed_type(value)
-        except (TypeError, ValueError):
-            pass
+        if allowed_type != Macro:
+            # the macro constructor with a single argument always succeeds,
+            # but will definitely not result in the correct macro
+            try:
+                return allowed_type(value)
+            except (TypeError, ValueError):
+                pass
 
         if isinstance(value, allowed_type):
             return value
