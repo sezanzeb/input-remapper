@@ -11,8 +11,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
-
-
+from inputremapper.configs.mapping import UIMapping, Mapping
 from tests.test import quick_cleanup, tmp
 
 import os
@@ -159,8 +158,8 @@ class TestMigrations(unittest.TestCase):
         """test if mappings are migrated correctly
 
         mappings like
-        {(type, code): symbol} or {(type, code, value): symbol} should migrate to
-        {(type, code, value): (symbol, "keyboard")}
+        {(type, code): symbol} or {(type, code, value): symbol} should migrate
+        to {EventCombination: {target: target, symbol: symbol, ...}}
         """
         path = os.path.join(tmp, "presets", "Foo Device", "test.json")
         os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -171,9 +170,11 @@ class TestMigrations(unittest.TestCase):
                         f"{EV_KEY},1": "a",
                         f"{EV_KEY}, 2, 1": "BTN_B",  # can be mapped to "gamepad"
                         f"{EV_KEY}, 3, 1": "BTN_1",  # can not be mapped
-                        f"{EV_KEY}, 4, 1": ("a", "foo"),
                         f"{EV_ABS},{ABS_HAT0X},-1": "b",
                         f"{EV_ABS},1,1+{EV_ABS},2,-1+{EV_ABS},3,1": "c",
+                        f"{EV_KEY}, 4, 1": ("d", "keyboard"),
+                        f"{EV_KEY}, 5, 1": ("e", "foo"),  # unknown target
+                        f"{EV_KEY}, 6, 1": ("key(a, b)", "keyboard"),  # broken macro
                         # ignored because broken
                         f"3,1,1,2": "e",
                         f"3": "e",
@@ -184,43 +185,78 @@ class TestMigrations(unittest.TestCase):
                 file,
             )
         migrate()
-        loaded = Preset()
-        self.assertEqual(loaded.num_saved_keys, 0)
-        loaded.load(get_preset_path("Foo Device", "test"))
+        # use UIMapping to also load invalid mappings
+        preset = Preset(get_preset_path("Foo Device", "test"), UIMapping)
+        preset.load()
 
         self.assertEqual(
-            loaded.get_mapping(EventCombination([EV_KEY, 1, 1])),
-            ("a", "keyboard"),
-        )
-        self.assertEqual(
-            loaded.get_mapping(EventCombination([EV_KEY, 2, 1])),
-            ("BTN_B", "gamepad"),
-        )
-        self.assertEqual(
-            loaded.get_mapping(EventCombination([EV_KEY, 3, 1])),
-            (
-                "BTN_1\n# Broken mapping:\n# No target can handle all specified keycodes",
-                "keyboard",
+            preset.get_mapping(EventCombination([EV_KEY, 1, 1])),
+            UIMapping(
+                event_combination=EventCombination([EV_KEY, 1, 1]),
+                target_uinput="keyboard",
+                output_symbol="a",
             ),
         )
         self.assertEqual(
-            loaded.get_mapping(EventCombination([EV_KEY, 4, 1])),
-            ("a", "foo"),
+            preset.get_mapping(EventCombination([EV_KEY, 2, 1])),
+            UIMapping(
+                event_combination=EventCombination([EV_KEY, 2, 1]),
+                target_uinput="gamepad",
+                output_symbol="BTN_B",
+            ),
         )
         self.assertEqual(
-            loaded.get_mapping(EventCombination([EV_ABS, ABS_HAT0X, -1])),
-            ("b", "keyboard"),
+            preset.get_mapping(EventCombination([EV_KEY, 3, 1])),
+            UIMapping(
+                event_combination=EventCombination([EV_KEY, 3, 1]),
+                target_uinput="keyboard",
+                output_symbol="BTN_1\n# Broken mapping:\n# No target can handle all specified keycodes",
+            ),
         )
         self.assertEqual(
-            loaded.get_mapping(
+            preset.get_mapping(EventCombination([EV_KEY, 4, 1])),
+            UIMapping(
+                event_combination=EventCombination([EV_KEY, 4, 1]),
+                target_uinput="keyboard",
+                output_symbol="d",
+            ),
+        )
+        self.assertEqual(
+            preset.get_mapping(EventCombination([EV_ABS, ABS_HAT0X, -1])),
+            UIMapping(
+                event_combination=EventCombination([EV_ABS, ABS_HAT0X, -1]),
+                target_uinput="keyboard",
+                output_symbol="b",
+            ),
+        )
+        self.assertEqual(
+            preset.get_mapping(
                 EventCombination((EV_ABS, 1, 1), (EV_ABS, 2, -1), (EV_ABS, 3, 1))
             ),
-            ("c", "keyboard"),
+            UIMapping(
+                event_combination=EventCombination((EV_ABS, 1, 1), (EV_ABS, 2, -1), (EV_ABS, 3, 1)),
+                target_uinput="keyboard",
+                output_symbol="c",
+            ),
+        )
+        self.assertEqual(
+            preset.get_mapping(EventCombination([EV_KEY, 5, 1])),
+            UIMapping(
+                event_combination=EventCombination([EV_KEY, 5, 1]),
+                target_uinput="foo",
+                output_symbol="e",
+            ),
+        )
+        self.assertEqual(
+            preset.get_mapping(EventCombination([EV_KEY, 6, 1])),
+            UIMapping(
+                event_combination=EventCombination([EV_KEY, 6, 1]),
+                target_uinput="keyboard",
+                output_symbol="key(a, b)",
+            ),
         )
 
-        print(loaded._mapping)
-        self.assertEqual(len(loaded), 6)
-        self.assertEqual(loaded.num_saved_keys, 6)
+        self.assertEqual(8, len(preset))
 
     def test_migrate_otherwise(self):
         path = os.path.join(tmp, "presets", "Foo Device", "test.json")
@@ -241,28 +277,48 @@ class TestMigrations(unittest.TestCase):
 
         migrate()
 
-        loaded = Preset()
-        loaded.load(get_preset_path("Foo Device", "test"))
+        preset = Preset(get_preset_path("Foo Device", "test"), UIMapping)
+        preset.load()
 
         self.assertEqual(
-            loaded.get_mapping(EventCombination([EV_KEY, 1, 1])),
-            ("otherwise + otherwise", "keyboard"),
+            preset.get_mapping(EventCombination([EV_KEY, 1, 1])),
+            UIMapping(
+                event_combination=EventCombination([EV_KEY, 1, 1]),
+                target_uinput="keyboard",
+                output_symbol="otherwise + otherwise",
+            ),
         )
         self.assertEqual(
-            loaded.get_mapping(EventCombination([EV_KEY, 2, 1])),
-            ("bar($otherwise)", "keyboard"),
+            preset.get_mapping(EventCombination([EV_KEY, 2, 1])),
+            UIMapping(
+                event_combination=EventCombination([EV_KEY, 2, 1]),
+                target_uinput="keyboard",
+                output_symbol="bar($otherwise)",
+            ),
         )
         self.assertEqual(
-            loaded.get_mapping(EventCombination([EV_KEY, 3, 1])),
-            ("foo(else=qux)", "keyboard"),
+            preset.get_mapping(EventCombination([EV_KEY, 3, 1])),
+            UIMapping(
+                event_combination=EventCombination([EV_KEY, 3, 1]),
+                target_uinput="keyboard",
+                output_symbol="foo(else=qux)",
+            ),
         )
         self.assertEqual(
-            loaded.get_mapping(EventCombination([EV_KEY, 4, 1])),
-            ("qux(otherwise).bar(else=1)", "foo"),
+            preset.get_mapping(EventCombination([EV_KEY, 4, 1])),
+            UIMapping(
+                event_combination=EventCombination([EV_KEY, 4, 1]),
+                target_uinput="foo",
+                output_symbol="qux(otherwise).bar(else=1)"
+            ),
         )
         self.assertEqual(
-            loaded.get_mapping(EventCombination([EV_KEY, 5, 1])),
-            ("foo(otherwise1=2qux)", "keyboard"),
+            preset.get_mapping(EventCombination([EV_KEY, 5, 1])),
+            UIMapping(
+                event_combination=EventCombination([EV_KEY, 5, 1]),
+                target_uinput="keyboard",
+                output_symbol="foo(otherwise1=2qux)"
+            ),
         )
 
     def test_add_version(self):
