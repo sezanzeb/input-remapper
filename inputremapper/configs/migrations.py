@@ -46,7 +46,7 @@ from evdev.ecodes import (
 from pydantic import ValidationError
 
 from inputremapper.configs.preset import Preset
-from inputremapper.configs.mapping import Mapping
+from inputremapper.configs.mapping import Mapping, UIMapping
 from inputremapper.event_combination import EventCombination
 from inputremapper.exceptions import MacroParsingError
 from inputremapper.logger import logger, VERSION
@@ -270,21 +270,21 @@ def _convert_to_individual_mappings():
     """
     
     for preset_path, old_preset in all_presets():
-        preset = Preset(preset_path)
+        preset = Preset(preset_path, UIMapping)
         if "mapping" in old_preset.keys():
             for combination, symbol_target in old_preset["mapping"].items():
                 logger.info(f"migrating from '{combination}: {symbol_target}' to mapping dict")
-                combination = EventCombination.from_string(combination)
                 try:
-                    mapping = Mapping(
-                        event_combination=combination,
-                        target_uinput=symbol_target[1],
-                        output_symbol=symbol_target[0],
-                    )
-                except ValidationError as error:
-                    logger.error(f"unable to convert invalid mapping: {str(error)}")
+                    combination = EventCombination.from_string(combination)
+                except ValueError:
+                    logger.error(f"unable to migrate mapping with invalid {combination = }")
                     continue
 
+                mapping = UIMapping(
+                    event_combination=combination,
+                    target_uinput=symbol_target[1],
+                    output_symbol=symbol_target[0],
+                )
                 preset.add(mapping)
 
         if "gamepad" in old_preset.keys() and "joystick" in old_preset["gamepad"].keys():
