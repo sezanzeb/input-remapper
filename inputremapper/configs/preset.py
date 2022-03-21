@@ -27,7 +27,7 @@ import json
 import glob
 import time
 
-from typing import Tuple, Dict, List, Optional, Iterator, Type
+from typing import Tuple, Dict, List, Optional, Iterator, Type, Iterable
 
 from pydantic import ValidationError
 from inputremapper.logger import logger
@@ -37,6 +37,19 @@ from inputremapper.configs.paths import touch, get_preset_path, mkdir
 from inputremapper.input_event import InputEvent
 from inputremapper.event_combination import EventCombination
 from inputremapper.groups import groups
+
+
+def common_data(list1: Iterable, list2: Iterable) -> List:
+    """return common members of two iterables as list"""
+    # traverse in the 1st list
+    common = []
+    for x in list1:
+        # traverse in the 2nd list
+        for y in list2:
+            # if one common
+            if x == y:
+                common.append(x)
+    return common
 
 
 class Preset:
@@ -135,8 +148,15 @@ class Preset:
         saved_mappings = {}
         for mapping in self:
             if not mapping.is_valid():
-                logger.debug("skipping invalid mapping %s", mapping)
-                continue
+                if not isinstance(mapping.event_combination, EventCombination):
+                    # we save invalid mapping except for those with invalid event_combination
+                    logger.debug("skipping invalid mapping %s", mapping)
+                    continue
+                combinations = [m.event_combination for m in self]
+                common = common_data(mapping.event_combination.get_permutations(), combinations)
+                if len(common) > 1:
+                    logger.debug("skipping mapping with duplicate event combination %s", mapping)
+                    continue
 
             d = mapping.dict(exclude_defaults=True)
             combination = d.pop("event_combination")

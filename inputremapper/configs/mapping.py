@@ -21,10 +21,11 @@ from __future__ import annotations
 import enum
 from evdev.ecodes import EV_KEY, EV_ABS
 from pydantic import BaseModel, PositiveInt, confloat, root_validator, validator, ValidationError, PositiveFloat
-from typing import Optional, Callable, Tuple, Dict
+from typing import Optional, Callable, Tuple, Dict, Union
 
 from inputremapper.event_combination import EventCombination
 from inputremapper.configs.system_mapping import system_mapping
+from inputremapper.exceptions import MacroParsingError
 from inputremapper.injection.macros.parse import is_this_a_macro, parse
 
 
@@ -100,6 +101,9 @@ class Mapping(BaseModel):
         self._combination_changed(new_combi, self.event_combination)
         super(Mapping, self).__setattr__(key, value)
 
+    def __str__(self):
+        return str(self.dict(exclude_defaults=True))
+
     def set_combination_changed_callback(self, callback: CombinationChangedCallback):
         self._combination_changed = callback
 
@@ -129,8 +133,11 @@ class Mapping(BaseModel):
             return symbol
 
         if is_this_a_macro(symbol):
-            parse(symbol)  # raises MacroParsingError
-            return symbol
+            try:
+                parse(symbol)  # raises MacroParsingError
+                return symbol
+            except MacroParsingError as e:
+                raise ValueError(e)  # pydantic only catches ValueError, TypeError, and AssertionError
 
         if system_mapping.get(symbol) is not None:
             return symbol
@@ -238,25 +245,20 @@ class UIMapping(Mapping):
     ATTRIBUTES = ("_cache", "_last_error")
 
     def __init__(self, **data):
-        try:
-            super().__init__(**data)
-            object.__setattr__(self, "_last_error", None)
-            object.__setattr__(self, "_cache", {})
-
-        except ValidationError as error:
-            object.__setattr__(self, "_last_error", error)
-            super().__init__(
-                event_combination="99,99,99",
-                target_uinput="keyboard",
-                output_symbol="KEY_A",
-            )
-            cache = {
-                "event_combination": None,
-                "target_uinput": None,
-                "output_symbol": None,
-            }
-            cache.update(**data)
-            object.__setattr__(self, "_cache", cache)
+        object.__setattr__(self, "_last_error", None)
+        super().__init__(
+            event_combination="99,99,99",
+            target_uinput="keyboard",
+            output_symbol="KEY_A",
+        )
+        cache = {
+            "event_combination": None,
+            "target_uinput": None,
+            "output_symbol": None,
+        }
+        cache.update(**data)
+        object.__setattr__(self, "_cache", cache)
+        self._validate()
 
     def __setattr__(self, key, value):
         if key in self.ATTRIBUTES:
@@ -286,7 +288,10 @@ class UIMapping(Mapping):
         return object.__getattribute__(self, item)
 
     def __eq__(self, other):
+
         if not self.is_valid():
+            if isinstance(other, UIMapping):
+                return self.dict() == other.dict()
             return False
 
         return super(UIMapping, self).__eq__(other)
@@ -294,6 +299,13 @@ class UIMapping(Mapping):
     def is_valid(self) -> bool:
         """if the mapping is valid"""
         return len(self._cache) == 0
+
+    def dict(self, *args, **kwargs):
+        """dict will include the invalid data"""
+        dict_ = super(UIMapping, self).dict(*args, **kwargs)
+        # combine all valid values with the invalid ones
+        dict_.update(**self._cache)
+        return dict_
 
     def get_error(self) -> Optional[ValidationError]:
         """the validation error or None"""
@@ -306,15 +318,15 @@ class UIMapping(Mapping):
 
         # preserve the combination_changed callback
         callback = self._combination_changed
-
-        # combine all valid values with the invalid ones
-        mapping = self.dict(exclude_defaults=True)
-        mapping.update(**self._cache)
-
         try:
-            super(UIMapping, self).__init__(**mapping)
+            super(UIMapping, self).__init__(**self.dict(exclude_defaults=True))
             self._cache = {}
             self._last_error = None
             self.set_combination_changed_callback(callback)
+            return
         except ValidationError as error:
             self._last_error = error
+
+        if "event_combination" in self._cache.keys():
+            # the event_combination needs to be valid
+            self._cache["event_combination"] = EventCombination.validate(self._cache["event_combination"])
