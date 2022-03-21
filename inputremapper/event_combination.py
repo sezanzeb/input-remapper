@@ -100,7 +100,7 @@ class EventCombination(Tuple[InputEvent]):
         try:
             init_args = init_string.split("+")
             return cls(*init_args)
-        except (ValueError, AttributeError):
+        except AttributeError:
             raise ValueError(f"failed to create EventCombination from {init_string = }")
 
     @classmethod
