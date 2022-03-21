@@ -105,35 +105,31 @@ class Preset:
         self._mappings[mapping.event_combination] = mapping
 
     def empty(self) -> None:
-        """Remove all mappings and custom configs without saving."""
+        """Remove all mappings and custom configs without saving.
+        note: self.has_unsaved_changes() will report True
+        """
         for mapping in self._mappings.values():
             mapping.remove_combination_changed_callback()
         self._mappings = {}
+
+    def clear(self) -> None:
+        """Remove all mappings and also self.path"""
+        self.empty()
         self._saved_mappings = {}
-        self._path = None
+        self.path = None
 
     def load(self) -> None:
-        """Load from self.path"""
+        """Load from the mapping from the disc, clears all existing mappings"""
         logger.info('Loading preset from "%s"', self.path)
 
         if not os.path.exists(self.path):
             raise FileNotFoundError(f'Tried to load non-existing preset "{self.path}"')
 
-        with open(self.path, "r") as file:
-            try:
-                preset_dict = json.load(file)
-            except json.JSONDecodeError:
-                logger.error("unable to decode json file: %s", self.path)
-                return
-
-        for combination, mapping_dict in preset_dict.items():
-            try:
-                mapping = self._mapping_factory(event_combination=combination, **mapping_dict)
-            except ValidationError as error:
-                logger.error("failed to Validate mapping for %s: %s", combination, error)
-                continue
-
-            self._saved_mappings[mapping.event_combination] = mapping
+        self._saved_mappings = self._get_mappings_from_disc()
+        self.empty()
+        for mapping in self._saved_mappings.values():
+            # use the external add method to make sure
+            # the _combination_changed_callback is attached
             self.add(mapping.copy())
 
     def save(self) -> None:
@@ -183,6 +179,9 @@ class Preset:
         if not combination:
             return None
 
+        if not isinstance(combination, EventCombination):
+            raise TypeError(f"combination must by of type EventCombination, got {type(combination)}")
+
         for permutation in combination.get_permutations():
             existing = self._mappings.get(permutation)
             if existing is not None:
@@ -209,6 +208,34 @@ class Preset:
                 raise KeyError("combination already exists in the preset")
         self._mappings[new] = self._mappings.pop(old)
 
+    def _update_saved_mappings(self) -> None:
+        if self.path is None:
+            return
+
+        if not os.path.exists(self.path):
+            self._saved_mappings = {}
+            return
+        self._saved_mappings = self._get_mappings_from_disc()
+
+    def _get_mappings_from_disc(self) -> Dict[EventCombination, Mapping]:
+        mappings = {}
+        with open(self.path, "r") as file:
+            try:
+                preset_dict = json.load(file)
+            except json.JSONDecodeError:
+                logger.error("unable to decode json file: %s", self.path)
+                return mappings
+
+        for combination, mapping_dict in preset_dict.items():
+            try:
+                mapping = self._mapping_factory(event_combination=combination, **mapping_dict)
+            except ValidationError as error:
+                logger.error("failed to Validate mapping for %s: %s", combination, error)
+                continue
+
+            mappings[mapping.event_combination] = mapping
+        return mappings
+
     @property
     def path(self) -> os.PathLike:
         return self._path
@@ -216,8 +243,8 @@ class Preset:
     @path.setter
     def path(self, path: os.PathLike):
         if path != self.path:
-            self._saved_mappings = {}
             self._path = path
+            self._update_saved_mappings()
 
 ###########################################################################
 # Method from previously presets.py
