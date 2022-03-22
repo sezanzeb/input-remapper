@@ -293,7 +293,7 @@ class TestReader(unittest.TestCase):
         send_event_to_reader(new_event(EV_KEY, CODE_1, 1, 1001))
         self.assertEqual(reader.read(), EventCombination((EV_KEY, CODE_1, 1)))
 
-        active_preset.set("gamepad.joystick.left_purpose", BUTTONS)
+        # active_preset.set("gamepad.joystick.left_purpose", BUTTONS)
         send_event_to_reader(new_event(EV_ABS, ABS_Y, 1, 1002))
         self.assertEqual(
             reader.read(), EventCombination((EV_KEY, CODE_1, 1), (EV_ABS, ABS_Y, 1))
@@ -327,7 +327,7 @@ class TestReader(unittest.TestCase):
 
     def test_reads_joysticks(self):
         # if their purpose is "buttons"
-        active_preset.set("gamepad.joystick.left_purpose", BUTTONS)
+        # active_preset.set("gamepad.joystick.left_purpose", BUTTONS)
         push_events(
             "gamepad",
             [
@@ -346,7 +346,7 @@ class TestReader(unittest.TestCase):
         self.assertEqual(len(reader._unreleased), 1)
 
         reader._unreleased = {}
-        active_preset.set("gamepad.joystick.left_purpose", MOUSE)
+        # active_preset.set("gamepad.joystick.left_purpose", MOUSE)
         push_events("gamepad", [new_event(EV_ABS, ABS_Y, MAX_ABS)])
         self.create_helper()
 
