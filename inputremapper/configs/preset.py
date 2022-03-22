@@ -87,13 +87,19 @@ class Preset:
         if mapping:
             combination = mapping.event_combination
 
+        if not isinstance(combination, EventCombination):
+            raise TypeError(f"combination must by of type EventCombination, got {type(combination)}")
+
         for permutation in combination.get_permutations():
             if permutation in self._mappings.keys():
                 combination = permutation
                 break
-
-        mapping = self._mappings.pop(combination)
-        mapping.remove_combination_changed_callback()
+        try:
+            mapping = self._mappings.pop(combination)
+            mapping.remove_combination_changed_callback()
+        except KeyError:
+            logger.debug(f"unable to remove non-existing mapping with {combination = }")
+            pass
 
     def add(self, mapping: Mapping) -> None:
         """add a mapping to the preset"""
