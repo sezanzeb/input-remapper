@@ -17,7 +17,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
-
+from evdev._ecodes import EV_ABS, ABS_Y
 
 from tests.test import logger, quick_cleanup, new_event
 
@@ -1193,6 +1193,25 @@ class TestIfSingle(MacroTestBase):
         await asyncio.sleep(0.2)
         self.assertListEqual(self.result, [(EV_KEY, y, 1), (EV_KEY, y, 0)])
         self.assertFalse(macro.running)
+
+    async def test_if_single_ignores_joystick(self):
+        """triggers else + delayed_handle_keycode"""
+        # Integration test style for if_single.
+        # If a joystick that is mapped to a button is moved, if_single stops
+        macro = parse("if_single(k(a), k(KEY_LEFTSHIFT))", self.context, DummyMapping)
+        code_shift = system_mapping.get("KEY_LEFTSHIFT")
+        code_a = system_mapping.get("a")
+        trigger = 1
+
+        await self.trigger_sequence(macro, new_event(EV_KEY, trigger, 1))
+        await asyncio.sleep(0.1)
+        for listener in self.context.listeners:
+            asyncio.ensure_future(listener(new_event(EV_ABS, ABS_Y, 10)))
+        await asyncio.sleep(0.1)
+        await self.release_sequence(macro, new_event(EV_KEY, trigger, 0))
+        await asyncio.sleep(0.1)
+        self.assertFalse(macro.running)
+        self.assertListEqual(self.result, [(EV_KEY, code_a, 1), (EV_KEY, code_a, 0)])
 
 
 class TestIfTap(MacroTestBase):

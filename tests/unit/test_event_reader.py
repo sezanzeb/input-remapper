@@ -112,48 +112,6 @@ class TestEventReader(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn((EV_KEY, code_shift, 1), history)
         self.assertNotIn((EV_KEY, code_shift, 0), history)
 
-    async def test_if_single_joystickelse_(self):
-        """triggers else + delayed_handle_keycode"""
-        # TODO: Move this somewhere more sensible
-        # Integration test style for if_single.
-        # If a joystick that is mapped to a button is moved, if_single stops
-        code_b = system_mapping.get("b")
-        code_shift = system_mapping.get("KEY_LEFTSHIFT")
-        trigger = 1
-        self.preset.add(get_key_mapping(
-            EventCombination([EV_KEY, trigger, 1]),
-            "keyboard",
-            "if_single(k(a), k(KEY_LEFTSHIFT))",
-        ))
-        self.preset.add(get_key_mapping(EventCombination([EV_ABS, ABS_Y, 1]), "keyboard", "b"))
-
-        # self.preset.set("gamepad.joystick.left_purpose", BUTTONS)
-        # self.preset.set("gamepad.joystick.right_purpose", BUTTONS)
-        context, _ = self.setup(self.gamepad_source, self.preset)
-
-        self.gamepad_source.push_events(
-            [
-                new_event(EV_KEY, trigger, 1),  # start the macro
-                new_event(EV_ABS, ABS_Y, 10),  # not ignored, stops it
-            ]
-        )
-        await asyncio.sleep(0.1)
-        self.assertEqual(len(context.listeners), 0)
-        history = [a.t for a in global_uinputs.get_uinput("keyboard").write_history]
-
-        # the key that triggered if_single should be injected after
-        # if_single had a chance to inject keys (if the macro is fast enough),
-        # so that if_single can inject a modifier to e.g. capitalize the
-        # triggering key. This is important for the space cadet shift
-        self.assertListEqual(
-            history,
-            [
-                (EV_KEY, code_shift, 1),
-                (EV_KEY, code_b, 1),  # would be capitalized now
-                (EV_KEY, code_shift, 0),
-            ],
-        )
-
     async def test_if_single_joystick_under_threshold(self):
         """triggers then because the joystick events value is too low."""
         # TODO: Move this somewhere more sensible
