@@ -33,13 +33,6 @@ class TestConfig(unittest.TestCase):
         quick_cleanup()
         self.assertEqual(len(global_config.iterate_autoload_presets()), 0)
 
-    def test_get_default(self):
-        global_config._config = {}
-        self.assertEqual(global_config.get("gamepad.joystick.non_linearity"), 4)
-
-        global_config.set("gamepad.joystick.non_linearity", 3)
-        self.assertEqual(global_config.get("gamepad.joystick.non_linearity"), 3)
-
     def test_basic(self):
         self.assertEqual(global_config.get("a"), None)
 
@@ -106,7 +99,7 @@ class TestConfig(unittest.TestCase):
 
         with open(global_config.path, "r") as file:
             contents = file.read()
-            self.assertIn('"keystroke_sleep_ms": 10', contents)
+            self.assertIn('"autoload": {}', contents)
 
     def test_save_load(self):
         self.assertEqual(len(global_config.iterate_autoload_presets()), 0)
