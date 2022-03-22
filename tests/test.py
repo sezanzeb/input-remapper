@@ -552,6 +552,7 @@ from inputremapper.logger import update_verbosity
 
 update_verbosity(True)
 
+from inputremapper.input_event import InputEvent as InternalInputEvent
 from inputremapper.injection.injector import Injector
 from inputremapper.configs.global_config import global_config
 from inputremapper.configs.mapping import Mapping
@@ -571,6 +572,11 @@ Injector.regrab_timeout = 0.05
 
 _fixture_copy = copy.deepcopy(fixtures)
 environ_copy = copy.deepcopy(os.environ)
+
+
+def convert_to_internal_events(events):
+    """convert a iterable of InputEvent to a list of inputremapper.InputEvent"""
+    return [InternalInputEvent.from_event(event) for event in events]
 
 
 def get_key_mapping(combination="99,99,99", target_uinput="keyboard", output_symbol="a") -> Mapping:
