@@ -191,15 +191,16 @@ class Preset:
 
     def dangerously_mapped_btn_left(self):
         """Return True if this mapping disables BTN_Left."""
-        if EventCombination(InputEvent.btn_left()) not in self:
+        if EventCombination(InputEvent.btn_left()) not in [m.event_combination for m in self]:
             return False
 
         values = []
-        for mapping in self._mappings.values():
+        for mapping in self:
             if mapping.output_symbol is None:
                 continue
             values.append(mapping.output_symbol.lower())
             values.append(mapping.get_output_type_code())
+        print(values)
         return "btn_left" not in values or InputEvent.btn_left().type_and_code not in values
 
     def _combination_changed_callback(self, new: EventCombination, old: EventCombination):
