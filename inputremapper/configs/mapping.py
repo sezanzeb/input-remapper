@@ -92,7 +92,7 @@ class Mapping(BaseModel):
         try:
             new_combi = EventCombination.validate(value)
         except ValueError:
-            raise ValidationError(f"failed to Validate {value} as EventCombination")
+            raise ValidationError(f"failed to Validate {value} as EventCombination", Mapping)
 
         if new_combi == self.event_combination:
             return
