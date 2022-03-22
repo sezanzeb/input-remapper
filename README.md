@@ -36,6 +36,16 @@ sudo apt install ./dist/input-remapper-1.4.2.deb
 
 input-remapper is now part of [Debian Unstable](https://packages.debian.org/sid/input-remapper)
 
+##### Fedora
+
+On fedora, you should first install python dependecies via below command and then continue with pip installation!
+
+```bash
+sudo dnf install python3-evdev python3-devel gtksourceview4 python3-pydantic
+sudo dnf install python-pydbus
+sudo dnf install xmodmap
+```
+
 ##### pip
 
 Dependencies: `python3-evdev` ≥1.3.0, `gtksourceview4`, `python3-devel`, `python3-pydantic`
