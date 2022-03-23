@@ -81,21 +81,22 @@ class AbsToBtnHandler(MappingHandler):
             return False
 
         absinfo = {entry[0]: entry[1] for entry in source.capabilities(absinfo=True)[EV_ABS]}
-        trigger_point = self._trigger_point(absinfo[event.code].min, absinfo[event.code].max)
-
-        if self._input_event.value > 0:
-            if event.value > trigger_point:
-                event = event.modify(value=1, action=EventActions.as_key)
-            else:
+        threshold = self._trigger_point(absinfo[event.code].min, absinfo[event.code].max)
+        value = event.value
+        if (value < threshold > 0) or (value > threshold < 0):
+            if self._active:
                 event = event.modify(value=0, action=EventActions.as_key)
+            else:
+                # consume the event.
+                # We could return False to forward events
+                return True
         else:
-            if event.value < trigger_point:
+            if not self._active:
                 event = event.modify(value=1, action=EventActions.as_key)
             else:
-                event = event.modify(value=0, action=EventActions.as_key)
-
-        if bool(event.value) == self._active:
-            return True  # nothing changed, consume the event
+                # consume the event.
+                # We could return False to forward events
+                return True
 
         self._active = bool(event.value)
         logger.debug_key(event.event_tuple, "sending to sub_handler")
