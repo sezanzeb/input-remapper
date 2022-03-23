@@ -37,16 +37,17 @@ class CombinationHandler(MappingHandler):
 
     # map of (event.type, event.code) -> bool , keep track of the combination state
     _key_map: Dict[Tuple[int, int], bool]
-    _last_active_state: bool  # overall state of the combination after last event
 
     # if we forward axis events contains the event.type and event.code
     _map_axis: Optional[Tuple[int, int]]
+
+    _output_state: bool  # the last update we sent to a sub-handler
 
     def __init__(self, combination: EventCombination, mapping: Mapping, context: ContextProtocol) -> None:
         super().__init__(combination, mapping, context)
         self._key_map = {}
         self._map_axis = None
-        self._last_active_state = False
+        self._output_state = False
 
         # prepare a key map for all events with non-zero value
         for event in combination:
@@ -82,32 +83,35 @@ class CombinationHandler(MappingHandler):
             return False  # we are not responsible for the event
 
         # check if the event belongs to the axis we and is not interpreted as key
-        if self._map_axis and type_code == self._map_axis and not event.action == EventActions.as_key:
-            if self._last_active_state:
+        if type_code == self._map_axis and not event.action == EventActions.as_key:
+            if self.get_active():  # the event was not yet applied to the key-map, this is
                 # combination is active, and this is the axis we should pass though the event pipe
                 return self._sub_handler.notify(event, source, forward, supress)
             else:
                 # combination is not active, send the event back
                 return False
 
+        last_state = self.get_active()
         self._key_map[type_code] = event.value == 1
-        if self.get_active() == self._last_active_state:
+
+        if self.get_active() == last_state:
             # nothing changed ignore this event
             return False
 
-        if self.get_active() and event.value == 1:
+        if self.get_active():
             # send key up events to the forwarded uinput
             self.forward_release(forward)
+            event = event.modify(value=1)
+        else:
+            if self._output_state:
+                # we ignore the supress argument for release events
+                # otherwise we might end up with stuck keys
+                # (test_event_pipeline.test_combination)
+                supress = False
+            event = event.modify(value=0)
 
         if supress:
             return False
-
-        if self.get_active() and event.value == 1:
-            event = event.modify(value=1)
-            self._last_active_state = True
-        else:
-            event = event.modify(value=0)
-            self._last_active_state = False
 
         if self._map_axis and event.value == 0:
             logger.debug_key(self.mapping.event_combination, "deactivated")
@@ -119,6 +123,7 @@ class CombinationHandler(MappingHandler):
             return True
 
         logger.debug_key(self.mapping.event_combination, "triggered: sending to sub-handler")
+        self._output_state = bool(event.value)
         return self._sub_handler.notify(event, source, forward, supress)
 
     def get_active(self) -> bool:
