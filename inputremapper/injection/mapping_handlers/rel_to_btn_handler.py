@@ -55,6 +55,7 @@ class RelToBtnHandler(MappingHandler):
         self._active = False
         self._input_event = combination[0]
         self._last_activation = time.time()
+        self._abort_release = False
         assert self._input_event.value != 0
         assert len(combination) == 1
 
@@ -70,7 +71,11 @@ class RelToBtnHandler(MappingHandler):
 
     async def stage_release(self, source, forward, supress):
         while time.time() < self._last_activation + self.mapping.release_timeout:
-            await asyncio.sleep(1 / 60)
+            await asyncio.sleep(1 / self.mapping.rate)
+
+        if self._abort_release:
+            self._abort_release = False
+            return
 
         event = self._input_event.modify(value=0, action=EventActions.as_key)
         self._sub_handler.notify(event, source, forward, supress)
@@ -91,15 +96,24 @@ class RelToBtnHandler(MappingHandler):
         threshold = self._input_event.value
         value = event.value
         if (value < threshold > 0) or (value > threshold < 0):
-            return False
+            if self._active:
+                event = event.modify(value=0, action=EventActions.as_key)
+                self._abort_release = True
+            else:
+                # don't consume the event.
+                # We could return True to consume events
+                return False
+        else:
+            if not self._active:
+                event = event.modify(value=1, action=EventActions.as_key)
+            else:
+                self._last_activation = time.time()  # keep the stage release loop running
+                # consume the event.
+                # We could return False to forward events
+                return True
 
-        if self._active:
-            self._last_activation = time.time()
-            return True
-
-        event = event.modify(value=1, action=EventActions.as_key)
         logger.debug_key(event.event_tuple, "sending to sub_handler")
-        self._active = True
+        self._active = bool(event.value)
         self._last_activation = time.time()
         asyncio.ensure_future(self.stage_release(source, forward, supress))
         return self._sub_handler.notify(event, source, forward, supress)
