@@ -77,7 +77,6 @@ class CombinationHandler(MappingHandler):
         supress: bool = False,
     ) -> bool:
         type_code = event.type_and_code
-
         if type_code not in self._key_map.keys() and (
                 not self._map_axis or type_code != self._map_axis):
             return False  # we are not responsible for the event
@@ -94,7 +93,7 @@ class CombinationHandler(MappingHandler):
         last_state = self.get_active()
         self._key_map[type_code] = event.value == 1
 
-        if self.get_active() == last_state:
+        if self.get_active() == last_state or self.get_active() == self._output_state:
             # nothing changed ignore this event
             return False
 
