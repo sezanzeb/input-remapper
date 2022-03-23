@@ -83,7 +83,7 @@ class AbsToBtnHandler(MappingHandler):
         absinfo = {entry[0]: entry[1] for entry in source.capabilities(absinfo=True)[EV_ABS]}
         threshold = self._trigger_point(absinfo[event.code].min, absinfo[event.code].max)
         value = event.value
-        if (value < threshold > 0) or (value > threshold < 0):
+        if (value <= threshold >= 0) or (value > threshold < 0):
             if self._active:
                 event = event.modify(value=0, action=EventActions.as_key)
             else:
