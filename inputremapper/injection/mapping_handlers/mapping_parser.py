@@ -44,9 +44,11 @@ from inputremapper.injection.mapping_handlers.rel_to_btn_handler import RelToBtn
 from inputremapper.injection.mapping_handlers.abs_to_rel_handler import AbsToRelHandler
 from inputremapper.injection.mapping_handlers.macro_handler import MacroHandler
 from inputremapper.injection.mapping_handlers.key_handler import KeyHandler
+from inputremapper.injection.mapping_handlers.null_handler import NullHandler
 from inputremapper.injection.macros.parse import is_this_a_macro
 from inputremapper.configs.preset import Preset
 from inputremapper.configs.mapping import Mapping
+from inputremapper.configs.system_mapping import DISABLE_CODE, DISABLE_NAME
 
 EventPipelines = Dict[InputEvent, List[MappingHandler]]
 
@@ -68,6 +70,8 @@ mapping_handler_classes: Dict[HandlerEnums, Type[MappingHandler]] = {
 
     HandlerEnums.combination: CombinationHandler,
     HandlerEnums.hierarchy: HierarchyHandler,
+
+    HandlerEnums.disable: NullHandler,
 }
 
 
@@ -148,6 +152,9 @@ def _get_output_handler(mapping: Mapping) -> HandlerEnums:
     determine the correct output handler
     this is used as a starting point for the mapping parser
     """
+    if mapping.output_code == DISABLE_CODE or mapping.output_symbol == DISABLE_NAME:
+        return HandlerEnums.disable
+
     if mapping.output_symbol:
         if is_this_a_macro(mapping.output_symbol):
             return HandlerEnums.macro

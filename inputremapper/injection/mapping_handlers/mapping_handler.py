@@ -117,6 +117,7 @@ class HandlerEnums(enum.Enum):
     # special handlers
     combination = enum.auto()
     hierarchy = enum.auto()
+    disable = enum.auto()
 
 
 class MappingHandler(InputEventHandler):
