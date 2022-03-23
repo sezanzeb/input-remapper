@@ -218,6 +218,7 @@ fixtures = {
                 evdev.ecodes.ABS_Z,
                 evdev.ecodes.ABS_RZ,
                 evdev.ecodes.ABS_HAT0X,
+                evdev.ecodes.ABS_HAT0Y,
             ],
             evdev.ecodes.EV_KEY: [evdev.ecodes.BTN_A],
         },
