@@ -11,4 +11,4 @@ python -m pip install --upgrade pip
 pip install wheel setuptools
 
 # install test deps which aren't in setup.py
-pip install psutil
+pip install psutil pylint-pydantic
