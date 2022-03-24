@@ -62,7 +62,8 @@ class AbsToBtnHandler(MappingHandler):
     def _trigger_point(self, abs_min: int, abs_max: int) -> int:
         #  TODO: potentially cash this function
         if abs_min == -1 and abs_max == 1:
-            return 0  # this is a hat switch
+            # this is a hat switch
+            return self._input_event.value // abs(self._input_event.value)  # return +-1
 
         half_range = (abs_max - abs_min) / 2
         middle = half_range + abs_min
@@ -76,14 +77,13 @@ class AbsToBtnHandler(MappingHandler):
         forward: evdev.UInput = None,
         supress: bool = False,
     ) -> bool:
-
         if event.type_and_code != self._input_event.type_and_code:
             return False
 
         absinfo = {entry[0]: entry[1] for entry in source.capabilities(absinfo=True)[EV_ABS]}
         threshold = self._trigger_point(absinfo[event.code].min, absinfo[event.code].max)
         value = event.value
-        if (value <= threshold >= 0) or (value > threshold < 0):
+        if (value < threshold > 0) or (value > threshold < 0):
             if self._active:
                 event = event.modify(value=0, action=EventActions.as_key)
             else:
