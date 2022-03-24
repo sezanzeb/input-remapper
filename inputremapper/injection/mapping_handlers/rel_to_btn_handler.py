@@ -69,7 +69,7 @@ class RelToBtnHandler(MappingHandler):
     def child(self):  # used for logging
         return self._sub_handler
 
-    async def stage_release(self, source, forward, supress):
+    async def _stage_release(self, source, forward, supress):
         while time.time() < self._last_activation + self.mapping.release_timeout:
             await asyncio.sleep(1 / self.mapping.rate)
 
@@ -96,24 +96,24 @@ class RelToBtnHandler(MappingHandler):
         threshold = self._input_event.value
         value = event.value
         if (value < threshold > 0) or (value > threshold < 0):
+            logger.debug(f"below theshold {self._active=}, {self._input_event}")
             if self._active:
+                # the axis is below the threshold and the stage_release function is running
                 event = event.modify(value=0, action=EventActions.as_key)
-                self._abort_release = True
+                logger.debug_key(event.event_tuple, "sending to sub_handler")
+                self._abort_release = True  # abort the stage release
+                self._active = False
+                return self._sub_handler.notify(event, source, forward, supress)
             else:
                 # don't consume the event.
                 # We could return True to consume events
                 return False
-        else:
-            if not self._active:
-                event = event.modify(value=1, action=EventActions.as_key)
-            else:
-                self._last_activation = time.time()  # keep the stage release loop running
-                # consume the event.
-                # We could return False to forward events
-                return True
 
+        # the axis is above the threshold
+        event = event.modify(value=1, action=EventActions.as_key)
         logger.debug_key(event.event_tuple, "sending to sub_handler")
-        self._active = bool(event.value)
         self._last_activation = time.time()
-        asyncio.ensure_future(self.stage_release(source, forward, supress))
+        if not self._active:
+            asyncio.ensure_future(self._stage_release(source, forward, supress))
+            self._active = True
         return self._sub_handler.notify(event, source, forward, supress)
