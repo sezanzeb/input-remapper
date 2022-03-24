@@ -28,7 +28,7 @@ from pydantic import (
     validator,
     ValidationError,
     PositiveFloat,
-    VERSION
+    VERSION,
 )
 from typing import Optional, Callable, Tuple, Dict, Union
 
@@ -57,9 +57,10 @@ class Mapping(BaseModel):
     holds all the data for mapping an
     input action to an output action
     """
+
     # TODO: pydantic VERSION check as soon as we no longer support Ubuntu 20.04 and with it the ainchant pydantic 1.2
     if VERSION < version.StrictVersion("1.7.1"):
-        __slots__ = ("_combination_changed", )
+        __slots__ = ("_combination_changed",)
 
     # Required attributes
     event_combination: EventCombination  # The InputEvent or InputEvent combination which is mapped
@@ -93,6 +94,7 @@ class Mapping(BaseModel):
     if VERSION >= version.StrictVersion("1.7.1"):
         _combination_changed: CombinationChangedCallback = None
     else:
+
         def __init__(self, **kwargs):
             super().__init__(**kwargs)
             object.__setattr__(self, "_combination_changed", None)
@@ -103,7 +105,9 @@ class Mapping(BaseModel):
         if we are about to update the event_combination
         """
         if key != "event_combination" or self._combination_changed is None:
-            if key == "_combination_changed" and VERSION < version.StrictVersion("1.7.1"):
+            if key == "_combination_changed" and VERSION < version.StrictVersion(
+                "1.7.1"
+            ):
                 object.__setattr__(self, "_combination_changed", value)
                 return
             super(Mapping, self).__setattr__(key, value)
