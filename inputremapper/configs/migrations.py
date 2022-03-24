@@ -268,16 +268,20 @@ def _convert_to_individual_mappings():
     from {key: [symbol, target]}
     to {key: {target: target, symbol: symbol, ...}}
     """
-    
+
     for preset_path, old_preset in all_presets():
         preset = Preset(preset_path, UIMapping)
         if "mapping" in old_preset.keys():
             for combination, symbol_target in old_preset["mapping"].items():
-                logger.info(f"migrating from '{combination}: {symbol_target}' to mapping dict")
+                logger.info(
+                    f"migrating from '{combination}: {symbol_target}' to mapping dict"
+                )
                 try:
                     combination = EventCombination.from_string(combination)
                 except ValueError:
-                    logger.error(f"unable to migrate mapping with invalid {combination = }")
+                    logger.error(
+                        f"unable to migrate mapping with invalid {combination = }"
+                    )
                     continue
 
                 mapping = UIMapping(
@@ -287,7 +291,10 @@ def _convert_to_individual_mappings():
                 )
                 preset.add(mapping)
 
-        if "gamepad" in old_preset.keys() and "joystick" in old_preset["gamepad"].keys():
+        if (
+            "gamepad" in old_preset.keys()
+            and "joystick" in old_preset["gamepad"].keys()
+        ):
             joystick_dict = old_preset["gamepad"]["joystick"]
             left_purpose = joystick_dict.get("left_purpose")
             right_purpose = joystick_dict.get("right_purpose")
@@ -302,7 +309,7 @@ def _convert_to_individual_mappings():
                 "event_combination": None,
                 "target_uinput": "mouse",
                 "output_type": EV_REL,
-                "output_code": None
+                "output_code": None,
             }
 
             if left_purpose == "mouse":
@@ -323,8 +330,12 @@ def _convert_to_individual_mappings():
             if right_purpose == "mouse":
                 x_config = cfg.copy()
                 y_config = cfg.copy()
-                x_config["event_combination"] = ",".join((str(EV_ABS), str(ABS_RX), "0"))
-                y_config["event_combination"] = ",".join((str(EV_ABS), str(ABS_RY), "0"))
+                x_config["event_combination"] = ",".join(
+                    (str(EV_ABS), str(ABS_RX), "0")
+                )
+                y_config["event_combination"] = ",".join(
+                    (str(EV_ABS), str(ABS_RY), "0")
+                )
                 x_config["output_code"] = REL_X
                 y_config["output_code"] = REL_Y
                 mapping_x = Mapping(**x_config)
@@ -354,8 +365,12 @@ def _convert_to_individual_mappings():
             if right_purpose == "wheel":
                 x_config = cfg.copy()
                 y_config = cfg.copy()
-                x_config["event_combination"] = ",".join((str(EV_ABS), str(ABS_RX), "0"))
-                y_config["event_combination"] = ",".join((str(EV_ABS), str(ABS_RY), "0"))
+                x_config["event_combination"] = ",".join(
+                    (str(EV_ABS), str(ABS_RX), "0")
+                )
+                y_config["event_combination"] = ",".join(
+                    (str(EV_ABS), str(ABS_RY), "0")
+                )
                 x_config["output_code"] = REL_HWHEEL_HI_RES
                 y_config["output_code"] = REL_WHEEL_HI_RES
                 mapping_x = Mapping(**x_config)

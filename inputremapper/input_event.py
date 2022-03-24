@@ -33,6 +33,7 @@ class EventActions(enum.Enum):
     """
     Additional information a InputEvent can send through the event pipeline
     """
+
     as_key = enum.auto()
     recenter = enum.auto()
     none = enum.auto()
@@ -163,7 +164,7 @@ class InputEvent:
         type: int = None,
         code: int = None,
         value: int = None,
-        action: EventActions = EventActions.none
+        action: EventActions = EventActions.none,
     ) -> InputEvent:
         """return a new modified event"""
         return InputEvent(
@@ -172,7 +173,7 @@ class InputEvent:
             type if type is not None else self.type,
             code if code is not None else self.code,
             value if value is not None else self.value,
-            action if action is not EventActions.none else self.action
+            action if action is not EventActions.none else self.action,
         )
 
     def json_str(self) -> str:

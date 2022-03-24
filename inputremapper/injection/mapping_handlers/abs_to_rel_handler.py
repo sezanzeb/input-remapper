@@ -27,8 +27,12 @@ from typing import Dict, Tuple, Optional
 from evdev.ecodes import EV_REL, EV_ABS
 
 from inputremapper.configs.mapping import Mapping
-from inputremapper.injection.mapping_handlers.mapping_handler import MappingHandler, ContextProtocol, HandlerEnums, \
-    InputEventHandler
+from inputremapper.injection.mapping_handlers.mapping_handler import (
+    MappingHandler,
+    ContextProtocol,
+    HandlerEnums,
+    InputEventHandler,
+)
 from inputremapper.logger import logger
 from inputremapper.event_combination import EventCombination
 from inputremapper.input_event import InputEvent, EventActions
@@ -44,10 +48,10 @@ class AbsToRelHandler(MappingHandler):
     _stop: bool  # if the run loop should return
 
     def __init__(
-            self,
-            combination: EventCombination,
-            mapping: Mapping,
-            context: ContextProtocol,
+        self,
+        combination: EventCombination,
+        mapping: Mapping,
+        context: ContextProtocol,
     ) -> None:
         super().__init__(combination, mapping, context)
 
@@ -87,7 +91,9 @@ class AbsToRelHandler(MappingHandler):
             self._stop = True
             return True
 
-        absinfo = {entry[0]: entry[1] for entry in source.capabilities(absinfo=True)[EV_ABS]}
+        absinfo = {
+            entry[0]: entry[1] for entry in source.capabilities(absinfo=True)[EV_ABS]
+        }
         input_value, scale_factor = self._normalize(
             event.value,
             absinfo[event.code].min,
@@ -133,7 +139,7 @@ class AbsToRelHandler(MappingHandler):
 
         if 0 < k <= 1:
             d = 1 - k
-            return d * x + (1 - d) * x ** 3
+            return d * x + (1 - d) * x**3
 
         if -1 <= k < 0:
             # calculate return value with the real inverse solution of y = b * x + a * x ** 3
@@ -151,7 +157,7 @@ class AbsToRelHandler(MappingHandler):
             d = 1 + k
             a = 1 - d
             b = d
-            c = (math.sqrt(27 * x ** 2 + (4 * b ** 3) / a) + 3 ** (3 / 2) * x) ** (
+            c = (math.sqrt(27 * x**2 + (4 * b**3) / a) + 3 ** (3 / 2) * x) ** (
                 1 / 3
             )
             y = c / (2 ** (1 / 3) * math.sqrt(3) * a ** (1 / 3)) - (

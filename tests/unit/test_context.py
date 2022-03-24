@@ -19,7 +19,14 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 from inputremapper.injection.mapping_handlers.hierarchy_handler import HierarchyHandler
 from tests.test import quick_cleanup, get_key_mapping
-from evdev.ecodes import EV_REL, EV_ABS, ABS_X, ABS_Y, REL_WHEEL_HI_RES, REL_HWHEEL_HI_RES
+from evdev.ecodes import (
+    EV_REL,
+    EV_ABS,
+    ABS_X,
+    ABS_Y,
+    REL_WHEEL_HI_RES,
+    REL_HWHEEL_HI_RES,
+)
 import unittest
 
 from inputremapper.injection.context import Context
@@ -51,16 +58,23 @@ class TestContext(unittest.TestCase):
 
         # overlapping combination for (1, 32, 1)
         preset.add(
-            get_key_mapping(EventCombination((1, 32, 1), (1, 33, 1), (1, 34, 1)), "keyboard", "c")
+            get_key_mapping(
+                EventCombination((1, 32, 1), (1, 33, 1), (1, 34, 1)), "keyboard", "c"
+            )
         )
 
         # map abs x to key "b"
-        preset.add(get_key_mapping(EventCombination([EV_ABS, ABS_X, 20]), "keyboard", "d"))
+        preset.add(
+            get_key_mapping(EventCombination([EV_ABS, ABS_X, 20]), "keyboard", "d")
+        )
         context = Context(preset)
 
         # expected callbacks and their lengths:
         callbacks = {
-            (EV_ABS, ABS_X): 2,  # ABS_X -> "d" and ABS_X -> wheel have the same type and code
+            (
+                EV_ABS,
+                ABS_X,
+            ): 2,  # ABS_X -> "d" and ABS_X -> wheel have the same type and code
             (EV_ABS, ABS_Y): 1,
             (1, 31): 1,
             # even though we have 2 mappings with this type and code, we only expect one callback
@@ -73,7 +87,9 @@ class TestContext(unittest.TestCase):
         for key, val in callbacks.items():
             self.assertEqual(val, len(context.callbacks[key]))
 
-        self.assertEqual(7, len(context._handlers))  # 7 unique input events in the preset
+        self.assertEqual(
+            7, len(context._handlers)
+        )  # 7 unique input events in the preset
 
 
 if __name__ == "__main__":

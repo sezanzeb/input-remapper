@@ -26,7 +26,11 @@ from typing import List, Optional, Dict
 from inputremapper.event_combination import EventCombination
 
 from inputremapper.input_event import InputEvent
-from inputremapper.injection.mapping_handlers.mapping_handler import MappingHandler, InputEventHandler, HandlerEnums
+from inputremapper.injection.mapping_handlers.mapping_handler import (
+    MappingHandler,
+    InputEventHandler,
+    HandlerEnums,
+)
 
 
 class HierarchyHandler(MappingHandler):

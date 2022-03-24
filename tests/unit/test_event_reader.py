@@ -25,7 +25,19 @@ import unittest
 import asyncio
 
 import evdev
-from evdev.ecodes import EV_KEY, EV_ABS, ABS_X, ABS_Y, ABS_RX, ABS_RY, EV_REL, REL_X, REL_Y, REL_HWHEEL_HI_RES, REL_WHEEL_HI_RES
+from evdev.ecodes import (
+    EV_KEY,
+    EV_ABS,
+    ABS_X,
+    ABS_Y,
+    ABS_RX,
+    ABS_RY,
+    EV_REL,
+    REL_X,
+    REL_Y,
+    REL_HWHEEL_HI_RES,
+    REL_WHEEL_HI_RES,
+)
 
 from inputremapper.configs.global_config import BUTTONS, MOUSE, WHEEL
 
@@ -51,7 +63,7 @@ class TestEventReader(unittest.IsolatedAsyncioTestCase):
         context = Context(mapping)
         context.uinput = evdev.UInput()
         consumer_control = EventReader(context, source, forward_to)
-        #for consumer in consumer_control._consumers:
+        # for consumer in consumer_control._consumers:
         #    consumer._abs_range = (-10, 10)
         asyncio.ensure_future(consumer_control.run())
         return context, consumer_control
@@ -64,15 +76,23 @@ class TestEventReader(unittest.IsolatedAsyncioTestCase):
         code_shift = system_mapping.get("KEY_LEFTSHIFT")
         trigger = 1
 
-        self.preset.add(get_key_mapping(EventCombination([EV_KEY, trigger, 1]), "keyboard", "if_single(key(a), key(KEY_LEFTSHIFT))"))
-        self.preset.add(get_key_mapping(EventCombination([EV_ABS, ABS_Y, 1]), "keyboard", "b"))
+        self.preset.add(
+            get_key_mapping(
+                EventCombination([EV_KEY, trigger, 1]),
+                "keyboard",
+                "if_single(key(a), key(KEY_LEFTSHIFT))",
+            )
+        )
+        self.preset.add(
+            get_key_mapping(EventCombination([EV_ABS, ABS_Y, 1]), "keyboard", "b")
+        )
 
         # left x to mouse x
         cfg = {
             "event_combination": ",".join((str(EV_ABS), str(ABS_X), "0")),
             "target_uinput": "mouse",
             "output_type": EV_REL,
-            "output_code": REL_X
+            "output_code": REL_X,
         }
         self.preset.add(Mapping(**cfg))
 
@@ -117,12 +137,16 @@ class TestEventReader(unittest.IsolatedAsyncioTestCase):
         # TODO: Move this somewhere more sensible
         code_a = system_mapping.get("a")
         trigger = 1
-        self.preset.add(get_key_mapping(
-            EventCombination([EV_KEY, trigger, 1]),
-            "keyboard",
-            "if_single(k(a), k(KEY_LEFTSHIFT))",
-        ))
-        self.preset.add(get_key_mapping(EventCombination([EV_ABS, ABS_Y, 1]), "keyboard", "b"))
+        self.preset.add(
+            get_key_mapping(
+                EventCombination([EV_KEY, trigger, 1]),
+                "keyboard",
+                "if_single(k(a), k(KEY_LEFTSHIFT))",
+            )
+        )
+        self.preset.add(
+            get_key_mapping(EventCombination([EV_ABS, ABS_Y, 1]), "keyboard", "b")
+        )
 
         # self.preset.set("gamepad.joystick.left_purpose", BUTTONS)
         # self.preset.set("gamepad.joystick.right_purpose", BUTTONS)

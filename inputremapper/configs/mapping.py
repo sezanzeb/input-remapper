@@ -20,7 +20,15 @@
 from __future__ import annotations
 import enum
 from evdev.ecodes import EV_KEY, EV_ABS
-from pydantic import BaseModel, PositiveInt, confloat, root_validator, validator, ValidationError, PositiveFloat
+from pydantic import (
+    BaseModel,
+    PositiveInt,
+    confloat,
+    root_validator,
+    validator,
+    ValidationError,
+    PositiveFloat,
+)
 from typing import Optional, Callable, Tuple, Dict, Union
 
 from inputremapper.event_combination import EventCombination
@@ -39,7 +47,9 @@ class KnownUinput(str, enum.Enum):
     gamepad = "gamepad"
 
 
-CombinationChangedCallback = Optional[Callable[[EventCombination, EventCombination], None]]
+CombinationChangedCallback = Optional[
+    Callable[[EventCombination, EventCombination], None]
+]
 
 
 class Mapping(BaseModel):
@@ -92,7 +102,9 @@ class Mapping(BaseModel):
         try:
             new_combi = EventCombination.validate(value)
         except ValueError:
-            raise ValidationError(f"failed to Validate {value} as EventCombination", Mapping)
+            raise ValidationError(
+                f"failed to Validate {value} as EventCombination", Mapping
+            )
 
         if new_combi == self.event_combination:
             return
@@ -137,7 +149,9 @@ class Mapping(BaseModel):
                 parse(symbol)  # raises MacroParsingError
                 return symbol
             except MacroParsingError as e:
-                raise ValueError(e)  # pydantic only catches ValueError, TypeError, and AssertionError
+                raise ValueError(
+                    e
+                )  # pydantic only catches ValueError, TypeError, and AssertionError
 
         if system_mapping.get(symbol) is not None:
             return symbol
@@ -158,8 +172,10 @@ class Mapping(BaseModel):
         # any event with a non-zero value is considered a binary input
         analog_events = [event for event in combination if event.value == 0]
         if len(analog_events) > 1:
-            raise ValueError(f"cannot map a combination of multiple analog inputs: {analog_events}"
-                             f"add trigger points (event.value != 0) to map as a button")
+            raise ValueError(
+                f"cannot map a combination of multiple analog inputs: {analog_events}"
+                f"add trigger points (event.value != 0) to map as a button"
+            )
 
         return combination
 
@@ -172,8 +188,10 @@ class Mapping(BaseModel):
         combination = EventCombination.validate(combination)
         for event in combination:
             if event.type == EV_ABS and abs(event.value) >= 100:
-                raise ValueError(f"{event = } maps a absolute axis to a button, "
-                                 f"but the trigger point (event.value) is not between -100[%] and 100[%]")
+                raise ValueError(
+                    f"{event = } maps a absolute axis to a button, "
+                    f"but the trigger point (event.value) is not between -100[%] and 100[%]"
+                )
         return combination
 
     @root_validator
@@ -225,9 +243,7 @@ class Mapping(BaseModel):
         use_enum_values = True
         underscore_attrs_are_private = True
 
-        json_encoders = {
-            EventCombination: lambda v: v.json_str()
-        }
+        json_encoders = {EventCombination: lambda v: v.json_str()}
 
 
 class UIMapping(Mapping):
@@ -329,4 +345,6 @@ class UIMapping(Mapping):
 
         if "event_combination" in self._cache.keys():
             # the event_combination needs to be valid
-            self._cache["event_combination"] = EventCombination.validate(self._cache["event_combination"])
+            self._cache["event_combination"] = EventCombination.validate(
+                self._cache["event_combination"]
+            )

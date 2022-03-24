@@ -28,8 +28,12 @@ from inputremapper.configs.mapping import Mapping
 from inputremapper.input_event import InputEvent, EventActions
 from inputremapper.event_combination import EventCombination
 from inputremapper.logger import logger
-from inputremapper.injection.mapping_handlers.mapping_handler import ContextProtocol, MappingHandler, InputEventHandler, \
-    HandlerEnums
+from inputremapper.injection.mapping_handlers.mapping_handler import (
+    ContextProtocol,
+    MappingHandler,
+    InputEventHandler,
+    HandlerEnums,
+)
 
 
 class CombinationHandler(MappingHandler):
@@ -43,7 +47,9 @@ class CombinationHandler(MappingHandler):
 
     _output_state: bool  # the last update we sent to a sub-handler
 
-    def __init__(self, combination: EventCombination, mapping: Mapping, context: ContextProtocol) -> None:
+    def __init__(
+        self, combination: EventCombination, mapping: Mapping, context: ContextProtocol
+    ) -> None:
         super().__init__(combination, mapping, context)
         self._key_map = {}
         self._map_axis = None
@@ -78,12 +84,15 @@ class CombinationHandler(MappingHandler):
     ) -> bool:
         type_code = event.type_and_code
         if type_code not in self._key_map.keys() and (
-                not self._map_axis or type_code != self._map_axis):
+            not self._map_axis or type_code != self._map_axis
+        ):
             return False  # we are not responsible for the event
 
         # check if the event belongs to the axis and is not interpreted as key
         if type_code == self._map_axis and not event.action == EventActions.as_key:
-            if self.get_active():  # the event was not yet applied to the key-map, this is
+            if (
+                self.get_active()
+            ):  # the event was not yet applied to the key-map, this is
                 # combination is active, and this is the axis we should pass though the event pipe
                 return self._sub_handler.notify(event, source, forward, supress)
             else:
@@ -126,7 +135,9 @@ class CombinationHandler(MappingHandler):
             logger.debug_key(self.mapping.event_combination, "activated")
             return True
 
-        logger.debug_key(self.mapping.event_combination, "triggered: sending to sub-handler")
+        logger.debug_key(
+            self.mapping.event_combination, "triggered: sending to sub-handler"
+        )
         self._output_state = bool(event.value)
         return self._sub_handler.notify(event, source, forward, supress)
 
@@ -149,7 +160,9 @@ class CombinationHandler(MappingHandler):
         return True
 
     def rank_by(self) -> Optional[EventCombination]:
-        return EventCombination(event for event in self.input_events if event.value != 0)
+        return EventCombination(
+            event for event in self.input_events if event.value != 0
+        )
 
     def wrap_with(self) -> Dict[EventCombination, HandlerEnums]:
         return_dict = {}

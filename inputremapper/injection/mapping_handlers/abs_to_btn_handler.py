@@ -28,19 +28,24 @@ from inputremapper.configs.mapping import Mapping
 from inputremapper.event_combination import EventCombination
 from inputremapper.logger import logger
 from inputremapper.input_event import InputEvent, EventActions
-from inputremapper.injection.mapping_handlers.mapping_handler import MappingHandler, ContextProtocol, HandlerEnums
+from inputremapper.injection.mapping_handlers.mapping_handler import (
+    MappingHandler,
+    ContextProtocol,
+    HandlerEnums,
+)
 
 
 class AbsToBtnHandler(MappingHandler):
     """Handler which transforms an EV_ABS to a button event"""
+
     _input_event: InputEvent
     _active: bool
 
     def __init__(
-            self,
-            combination: EventCombination,
-            mapping: Mapping,
-            context: ContextProtocol,
+        self,
+        combination: EventCombination,
+        mapping: Mapping,
+        context: ContextProtocol,
     ):
         super().__init__(combination, mapping, context)
 
@@ -80,8 +85,12 @@ class AbsToBtnHandler(MappingHandler):
         if event.type_and_code != self._input_event.type_and_code:
             return False
 
-        absinfo = {entry[0]: entry[1] for entry in source.capabilities(absinfo=True)[EV_ABS]}
-        threshold = self._trigger_point(absinfo[event.code].min, absinfo[event.code].max)
+        absinfo = {
+            entry[0]: entry[1] for entry in source.capabilities(absinfo=True)[EV_ABS]
+        }
+        threshold = self._trigger_point(
+            absinfo[event.code].min, absinfo[event.code].max
+        )
         value = event.value
         if (value < threshold > 0) or (value > threshold < 0):
             if self._active:

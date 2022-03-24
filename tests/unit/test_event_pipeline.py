@@ -58,9 +58,10 @@ from tests.test import (
     InputDevice,
     cleanup,
     fixtures,
-    convert_to_internal_events, EVENT_READ_TIMEOUT,
+    convert_to_internal_events,
+    EVENT_READ_TIMEOUT,
     MAX_ABS,
-    MIN_ABS
+    MIN_ABS,
 )
 
 from inputremapper.input_event import InputEvent
@@ -87,14 +88,20 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
             logger.info("sending into event_pipeline:  %s", event.event_tuple)
             await event_reader.handle(event)
 
-    def get_event_reader(self, preset: Preset, source: evdev.InputDevice) -> EventReader:
+    def get_event_reader(
+        self, preset: Preset, source: evdev.InputDevice
+    ) -> EventReader:
         context = Context(preset)
         return EventReader(context, source, self.forward_uinput)
 
     async def test_any_event_as_button(self):
         """as long as there is an event handler and a mapping we should be able to map anything to a button"""
 
-        w_down = (EV_ABS, ABS_Y, -12345)  # value needs to be higher than 10% below center of axis (absinfo)
+        w_down = (
+            EV_ABS,
+            ABS_Y,
+            -12345,
+        )  # value needs to be higher than 10% below center of axis (absinfo)
         w_up = (EV_ABS, ABS_Y, 0)
 
         s_down = (EV_ABS, ABS_Y, 12345)
@@ -130,12 +137,22 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
         preset = Preset()
         preset.add(get_key_mapping(EventCombination(b_down), "keyboard", "b"))
         preset.add(get_key_mapping(EventCombination(c_down), "keyboard", "c"))
-        preset.add(get_key_mapping(EventCombination([*w_down[:2], -10]), "keyboard", "w"))
-        preset.add(get_key_mapping(EventCombination([*d_down[:2], 10]), "keyboard", "k(d)"))
-        preset.add(get_key_mapping(EventCombination([*s_down[:2], 10]), "keyboard", "s"))
-        preset.add(get_key_mapping(EventCombination([*a_down[:2], -10]), "keyboard", "a"))
+        preset.add(
+            get_key_mapping(EventCombination([*w_down[:2], -10]), "keyboard", "w")
+        )
+        preset.add(
+            get_key_mapping(EventCombination([*d_down[:2], 10]), "keyboard", "k(d)")
+        )
+        preset.add(
+            get_key_mapping(EventCombination([*s_down[:2], 10]), "keyboard", "s")
+        )
+        preset.add(
+            get_key_mapping(EventCombination([*a_down[:2], -10]), "keyboard", "a")
+        )
 
-        event_reader = self.get_event_reader(preset, InputDevice("/dev/input/event30"))  # gamepad fixture
+        event_reader = self.get_event_reader(
+            preset, InputDevice("/dev/input/event30")
+        )  # gamepad fixture
 
         await self.send_events(
             [
@@ -152,11 +169,15 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
                 InputEvent.from_tuple(s_up),
                 InputEvent.from_tuple(a_up),
             ],
-            event_reader
+            event_reader,
         )
-        await asyncio.sleep(0.1)  # wait a bit for the rel_to_btn handler to send the key up
+        await asyncio.sleep(
+            0.1
+        )  # wait a bit for the rel_to_btn handler to send the key up
 
-        history = convert_to_internal_events(global_uinputs.get_uinput("keyboard").write_history)
+        history = convert_to_internal_events(
+            global_uinputs.get_uinput("keyboard").write_history
+        )
 
         self.assertEqual(history.count((EV_KEY, code_b, 1)), 1)
         self.assertEqual(history.count((EV_KEY, code_c, 1)), 1)
@@ -186,7 +207,6 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
             "rate": rate,
             "gain": gain,
             "deadzone": 0,
-
         }
         m1 = Mapping(**cfg)
         preset.add(m1)
@@ -200,7 +220,9 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
         x = 1
         y = 1
 
-        event_reader = self.get_event_reader(preset, InputDevice("/dev/input/event30"))  # gamepad Fixture
+        event_reader = self.get_event_reader(
+            preset, InputDevice("/dev/input/event30")
+        )  # gamepad Fixture
 
         await event_reader.handle(InputEvent.from_tuple((EV_ABS, ABS_X, -x)))
         await event_reader.handle(InputEvent.from_tuple((EV_ABS, ABS_Y, -y)))
@@ -212,7 +234,9 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
         await event_reader.handle(InputEvent.from_tuple((EV_ABS, ABS_Y, 0)))
 
         # convert the write history to some easier to manage list
-        history = convert_to_internal_events(global_uinputs.get_uinput("mouse").write_history)
+        history = convert_to_internal_events(
+            global_uinputs.get_uinput("mouse").write_history
+        )
 
         if history[0].type == EV_ABS:
             raise AssertionError(
@@ -239,7 +263,9 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
         # BTN_A -> 77
         system_mapping._set("b", 77)
         preset.add(get_key_mapping(EventCombination([1, BTN_A, 1]), "keyboard", "b"))
-        event_reader = self.get_event_reader(preset, InputDevice("/dev/input/event30")) # gamepad Fixture
+        event_reader = self.get_event_reader(
+            preset, InputDevice("/dev/input/event30")
+        )  # gamepad Fixture
 
         # should forward them unmodified
         await self.send_events(
@@ -257,7 +283,9 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
 
         # convert the write history to some easier to manage list
         history = convert_to_internal_events(self.forward_uinput.write_history)
-        kb_history = convert_to_internal_events(global_uinputs.get_uinput("keyboard").write_history)
+        kb_history = convert_to_internal_events(
+            global_uinputs.get_uinput("keyboard").write_history
+        )
 
         self.assertEqual(history.count((EV_ABS, ABS_X, 10)), 1)
         self.assertEqual(history.count((EV_ABS, ABS_Y, 20)), 1)
@@ -272,7 +300,9 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
         # BTN_A -> 77
         system_mapping._set("b", 77)
         preset.add(get_key_mapping(EventCombination([1, BTN_LEFT, 1]), "keyboard", "b"))
-        event_reader = self.get_event_reader(preset, InputDevice("/dev/input/event11"))  # gamepad Fixture
+        event_reader = self.get_event_reader(
+            preset, InputDevice("/dev/input/event11")
+        )  # gamepad Fixture
 
         # should forward them unmodified
         await self.send_events(
@@ -291,7 +321,9 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
 
         # convert the write history to some easier to manage list
         history = convert_to_internal_events(self.forward_uinput.write_history)
-        kb_history = convert_to_internal_events(global_uinputs.get_uinput("keyboard").write_history)
+        kb_history = convert_to_internal_events(
+            global_uinputs.get_uinput("keyboard").write_history
+        )
 
         self.assertEqual(history.count((EV_REL, REL_X, 10)), 1)
         self.assertEqual(history.count((EV_REL, REL_Y, 20)), 1)
@@ -340,16 +372,19 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
             event_reader,
         )
         # wait less than the release timeout and send more events
-        await asyncio.sleep(release_timeout/5)
+        await asyncio.sleep(release_timeout / 5)
         await self.send_events(
             [InputEvent.from_tuple(hw_right), InputEvent.from_tuple(w_up)] * 5
-            + [InputEvent.from_tuple(hw_left)] * 3, # one event will release hw_right, the others are forwarded
+            + [InputEvent.from_tuple(hw_left)]
+            * 3,  # one event will release hw_right, the others are forwarded
             event_reader,
         )
         # wait more than the release_timeout to make sure all handlers finish
         await asyncio.sleep(release_timeout * 1.2)
 
-        kb_history = convert_to_internal_events(global_uinputs.get_uinput("keyboard").write_history)
+        kb_history = convert_to_internal_events(
+            global_uinputs.get_uinput("keyboard").write_history
+        )
         fw_history = convert_to_internal_events(self.forward_uinput.write_history)
         self.assertEqual(kb_history.count((EV_KEY, code_b, 1)), 1)
         self.assertEqual(kb_history.count((EV_KEY, code_c, 1)), 1)
@@ -364,8 +399,12 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
     async def test_abs_trigger_threshold(self):
         """Test that different activation points for abs_to_btn work correctly"""
 
-        m1 = get_key_mapping(EventCombination((EV_ABS, ABS_X, 30)), output_symbol="a")  # at 30% map to a
-        m2 = get_key_mapping(EventCombination((EV_ABS, ABS_X, 70)), output_symbol="b")  # at 70% map to b
+        m1 = get_key_mapping(
+            EventCombination((EV_ABS, ABS_X, 30)), output_symbol="a"
+        )  # at 30% map to a
+        m2 = get_key_mapping(
+            EventCombination((EV_ABS, ABS_X, 70)), output_symbol="b"
+        )  # at 70% map to b
         preset = Preset()
         preset.add(m1)
         preset.add(m2)
@@ -377,14 +416,20 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
 
         await self.send_events(
             [
-                InputEvent.from_tuple((EV_ABS, ABS_X, MIN_ABS // 10)),  # -10%, do nothing
+                InputEvent.from_tuple(
+                    (EV_ABS, ABS_X, MIN_ABS // 10)
+                ),  # -10%, do nothing
                 InputEvent.from_tuple((EV_ABS, ABS_X, 0)),  # 0%, do noting
-                InputEvent.from_tuple((EV_ABS, ABS_X, MAX_ABS // 10)),  # 10%, do nothing
+                InputEvent.from_tuple(
+                    (EV_ABS, ABS_X, MAX_ABS // 10)
+                ),  # 10%, do nothing
                 InputEvent.from_tuple((EV_ABS, ABS_X, MAX_ABS // 2)),  # 50%, trigger a
             ],
             event_reader,
         )
-        kb_history = convert_to_internal_events(global_uinputs.get_uinput("keyboard").write_history)
+        kb_history = convert_to_internal_events(
+            global_uinputs.get_uinput("keyboard").write_history
+        )
 
         self.assertEqual(kb_history.count((EV_KEY, a, 1)), 1)
         self.assertNotIn((EV_KEY, a, 0), kb_history)
@@ -392,19 +437,27 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
 
         await self.send_events(
             [
-                InputEvent.from_tuple((EV_ABS, ABS_X, int(MAX_ABS*0.8))),  # 80%, trigger b
+                InputEvent.from_tuple(
+                    (EV_ABS, ABS_X, int(MAX_ABS * 0.8))
+                ),  # 80%, trigger b
                 InputEvent.from_tuple((EV_ABS, ABS_X, MAX_ABS // 2)),  # 50%, release b
             ],
-            event_reader
+            event_reader,
         )
-        kb_history = convert_to_internal_events(global_uinputs.get_uinput("keyboard").write_history)
+        kb_history = convert_to_internal_events(
+            global_uinputs.get_uinput("keyboard").write_history
+        )
         self.assertEqual(kb_history.count((EV_KEY, a, 1)), 1)
         self.assertEqual(kb_history.count((EV_KEY, b, 1)), 1)
         self.assertEqual(kb_history.count((EV_KEY, b, 0)), 1)
         self.assertNotIn((EV_KEY, a, 0), kb_history)
 
-        await event_reader.handle(InputEvent.from_tuple((EV_ABS, ABS_X, 0)))  # 0% release a
-        kb_history = convert_to_internal_events(global_uinputs.get_uinput("keyboard").write_history)
+        await event_reader.handle(
+            InputEvent.from_tuple((EV_ABS, ABS_X, 0))
+        )  # 0% release a
+        kb_history = convert_to_internal_events(
+            global_uinputs.get_uinput("keyboard").write_history
+        )
         fw_history = convert_to_internal_events(self.forward_uinput.write_history)
         self.assertEqual(kb_history.count((EV_KEY, a, 0)), 1)
         self.assertEqual(len(fw_history), 0)
@@ -412,8 +465,12 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
     async def test_rel_trigger_threshold(self):
         """Test that different activation points for rel_to_btn work correctly"""
 
-        m1 = get_key_mapping(EventCombination((EV_REL, REL_X, 5)), output_symbol="a")  # at 30% map to a
-        m2 = get_key_mapping(EventCombination((EV_REL, REL_X, 15)), output_symbol="b")  # at 70% map to b
+        m1 = get_key_mapping(
+            EventCombination((EV_REL, REL_X, 5)), output_symbol="a"
+        )  # at 30% map to a
+        m2 = get_key_mapping(
+            EventCombination((EV_REL, REL_X, 15)), output_symbol="b"
+        )  # at 70% map to b
         release_timeout = 0.2  # give some time to do assertions before the release
         m1.release_timeout = release_timeout
         m2.release_timeout = release_timeout
@@ -435,8 +492,10 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
             ],
             event_reader,
         )
-        await asyncio.sleep(release_timeout*1.5)  # release a
-        kb_history = convert_to_internal_events(global_uinputs.get_uinput("keyboard").write_history)
+        await asyncio.sleep(release_timeout * 1.5)  # release a
+        kb_history = convert_to_internal_events(
+            global_uinputs.get_uinput("keyboard").write_history
+        )
 
         self.assertEqual(kb_history.count((EV_KEY, a, 1)), 1)
         self.assertEqual(kb_history.count((EV_KEY, a, 0)), 1)
@@ -448,25 +507,25 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
                 InputEvent.from_tuple((EV_REL, REL_X, 20)),  # trigger b
                 InputEvent.from_tuple((EV_REL, REL_X, 10)),  # release b
             ],
-            event_reader
+            event_reader,
         )
-        kb_history = convert_to_internal_events(global_uinputs.get_uinput("keyboard").write_history)
+        kb_history = convert_to_internal_events(
+            global_uinputs.get_uinput("keyboard").write_history
+        )
         self.assertEqual(kb_history.count((EV_KEY, a, 1)), 2)
         self.assertEqual(kb_history.count((EV_KEY, b, 1)), 1)
         self.assertEqual(kb_history.count((EV_KEY, b, 0)), 1)
         self.assertEqual(kb_history.count((EV_KEY, a, 0)), 1)
 
-        await asyncio.sleep(release_timeout*1.5)  # release a
-        kb_history = convert_to_internal_events(global_uinputs.get_uinput("keyboard").write_history)
+        await asyncio.sleep(release_timeout * 1.5)  # release a
+        kb_history = convert_to_internal_events(
+            global_uinputs.get_uinput("keyboard").write_history
+        )
         fw_history = convert_to_internal_events(self.forward_uinput.write_history)
         self.assertEqual(kb_history.count((EV_KEY, a, 0)), 2)
         self.assertEqual(
-            fw_history,
-            [
-                (EV_REL, REL_X, -5),
-                (EV_REL, REL_X, 0),
-                (EV_REL, REL_X, 3)
-            ])
+            fw_history, [(EV_REL, REL_X, -5), (EV_REL, REL_X, 0), (EV_REL, REL_X, 3)]
+        )
 
     async def test_combination(self):
         """test if combinations map to keys properly"""
@@ -477,8 +536,15 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
 
         preset = Preset()
         m1 = get_key_mapping(EventCombination((EV_ABS, ABS_X, 1)), output_symbol="a")
-        m2 = get_key_mapping(EventCombination((EV_ABS, ABS_X, 1), (EV_KEY, BTN_A, 1)), output_symbol="b")
-        m3 = get_key_mapping(EventCombination((EV_ABS, ABS_X, 1), (EV_KEY, BTN_A, 1), (EV_KEY, BTN_B, 1)), output_symbol="c")
+        m2 = get_key_mapping(
+            EventCombination((EV_ABS, ABS_X, 1), (EV_KEY, BTN_A, 1)), output_symbol="b"
+        )
+        m3 = get_key_mapping(
+            EventCombination(
+                (EV_ABS, ABS_X, 1), (EV_KEY, BTN_A, 1), (EV_KEY, BTN_B, 1)
+            ),
+            output_symbol="c",
+        )
 
         preset.add(m1)
         preset.add(m2)
@@ -488,12 +554,18 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
         await self.send_events(
             [
                 InputEvent.from_tuple((EV_KEY, BTN_A, 1)),  # forwarded
-                InputEvent.from_tuple((EV_ABS, ABS_X, 1234)),  # triggers b, releases BTN_A, ABS_X
-                InputEvent.from_tuple((EV_KEY, BTN_B, 1)),  # triggers c, releases BTN_A, ABS_X, BTN_B
+                InputEvent.from_tuple(
+                    (EV_ABS, ABS_X, 1234)
+                ),  # triggers b, releases BTN_A, ABS_X
+                InputEvent.from_tuple(
+                    (EV_KEY, BTN_B, 1)
+                ),  # triggers c, releases BTN_A, ABS_X, BTN_B
             ],
-            event_reader
+            event_reader,
         )
-        kb_history = convert_to_internal_events(global_uinputs.get_uinput("keyboard").write_history)
+        kb_history = convert_to_internal_events(
+            global_uinputs.get_uinput("keyboard").write_history
+        )
         fw_history = convert_to_internal_events(self.forward_uinput.write_history)
 
         self.assertNotIn((1, a, 1), kb_history)
@@ -505,8 +577,12 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn((EV_ABS, ABS_X, 1234), fw_history)
         self.assertNotIn((EV_KEY, BTN_B, 1), fw_history)
 
-        await self.send_events([InputEvent.from_tuple((EV_ABS, ABS_X, 0))], event_reader)  # release b and c)
-        kb_history = convert_to_internal_events(global_uinputs.get_uinput("keyboard").write_history)
+        await self.send_events(
+            [InputEvent.from_tuple((EV_ABS, ABS_X, 0))], event_reader
+        )  # release b and c)
+        kb_history = convert_to_internal_events(
+            global_uinputs.get_uinput("keyboard").write_history
+        )
         self.assertNotIn((1, a, 1), kb_history)
         self.assertNotIn((1, a, 0), kb_history)
         self.assertEqual(kb_history.count((1, c, 0)), 1)
@@ -533,10 +609,12 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
                 InputEvent.from_tuple(ev_2),
                 InputEvent.from_tuple(ev_3),
             ],
-            event_reader
+            event_reader,
         )
 
-        kb_history = convert_to_internal_events(global_uinputs.get_uinput("keyboard").write_history)
+        kb_history = convert_to_internal_events(
+            global_uinputs.get_uinput("keyboard").write_history
+        )
         fw_history = convert_to_internal_events(self.forward_uinput.write_history)
         self.assertEqual(len(kb_history), 2)
         self.assertEqual(len(fw_history), 0)
@@ -575,9 +653,11 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
                 InputEvent.from_tuple(ev_2),  # release a
                 InputEvent.from_tuple(ev_4),  # disabled
             ],
-            event_reader
+            event_reader,
         )
-        kb_history = convert_to_internal_events(global_uinputs.get_uinput("keyboard").write_history)
+        kb_history = convert_to_internal_events(
+            global_uinputs.get_uinput("keyboard").write_history
+        )
         fw_history = convert_to_internal_events(self.forward_uinput.write_history)
         self.assertIn((1, a, 1), kb_history)
         self.assertIn((1, a, 0), kb_history)
@@ -587,7 +667,9 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
         """a combination that ends in a disabled key"""
         # ev_5 should be forwarded and the combination triggered
         await self.send_events(combi_1, event_reader)
-        kb_history = convert_to_internal_events(global_uinputs.get_uinput("keyboard").write_history)
+        kb_history = convert_to_internal_events(
+            global_uinputs.get_uinput("keyboard").write_history
+        )
         fw_history = convert_to_internal_events(self.forward_uinput.write_history)
         self.assertIn((1, b, 1), kb_history)
         self.assertEqual(len(kb_history), 3)
@@ -601,9 +683,11 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
                 InputEvent.from_tuple((*ev_3[0:2], 0)),
                 InputEvent.from_tuple((*ev_5[0:2], 0)),
             ],
-            event_reader
+            event_reader,
         )
-        kb_history = convert_to_internal_events(global_uinputs.get_uinput("keyboard").write_history)
+        kb_history = convert_to_internal_events(
+            global_uinputs.get_uinput("keyboard").write_history
+        )
         fw_history = convert_to_internal_events(self.forward_uinput.write_history)
         self.assertIn((1, b, 0), kb_history)
         self.assertEqual(len(kb_history), 4)
@@ -613,7 +697,9 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
         """a combination that starts with a disabled key"""
         # only the combination should get triggered
         await self.send_events(combi_2, event_reader)
-        kb_history = convert_to_internal_events(global_uinputs.get_uinput("keyboard").write_history)
+        kb_history = convert_to_internal_events(
+            global_uinputs.get_uinput("keyboard").write_history
+        )
         fw_history = convert_to_internal_events(self.forward_uinput.write_history)
         self.assertIn((1, c, 1), kb_history)
         self.assertEqual(len(kb_history), 5)
@@ -627,9 +713,11 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
                 InputEvent.from_tuple((*ev_3[0:2], 0)),
                 InputEvent.from_tuple((*ev_5[0:2], 0)),
             ],
-            event_reader
+            event_reader,
         )
-        kb_history = convert_to_internal_events(global_uinputs.get_uinput("keyboard").write_history)
+        kb_history = convert_to_internal_events(
+            global_uinputs.get_uinput("keyboard").write_history
+        )
         fw_history = convert_to_internal_events(self.forward_uinput.write_history)
         for event in kb_history:
             print(event.event_tuple)
@@ -658,7 +746,9 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
         # macro starts
         await self.send_events([InputEvent.from_tuple(down_1)], event_reader)
         await asyncio.sleep(0.05)
-        kb_history = convert_to_internal_events(global_uinputs.get_uinput("keyboard").write_history)
+        kb_history = convert_to_internal_events(
+            global_uinputs.get_uinput("keyboard").write_history
+        )
         fw_history = convert_to_internal_events(self.forward_uinput.write_history)
         self.assertEqual(len(fw_history), 0)
         self.assertGreater(len(kb_history), 1)
@@ -669,7 +759,9 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
         # combination triggered
         await self.send_events([InputEvent.from_tuple(down_2)], event_reader)
         await asyncio.sleep(0)
-        kb_history = convert_to_internal_events(global_uinputs.get_uinput("keyboard").write_history)
+        kb_history = convert_to_internal_events(
+            global_uinputs.get_uinput("keyboard").write_history
+        )
         self.assertEqual(kb_history[-1], (EV_KEY, b, 1))
 
         len_a = len(global_uinputs.get_uinput("keyboard").write_history)
@@ -680,7 +772,9 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
 
         # release
         await self.send_events([InputEvent.from_tuple(up_1)], event_reader)
-        kb_history = convert_to_internal_events(global_uinputs.get_uinput("keyboard").write_history)
+        kb_history = convert_to_internal_events(
+            global_uinputs.get_uinput("keyboard").write_history
+        )
         self.assertEqual(kb_history[-1], (EV_KEY, b, 0))
         await asyncio.sleep(0.05)
         len_c = len(global_uinputs.get_uinput("keyboard").write_history)
@@ -735,23 +829,29 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
 
         await self.send_events([scroll], event_reader)
         # "maps to 30"
-        kb_history = convert_to_internal_events(global_uinputs.get_uinput("keyboard").write_history)
+        kb_history = convert_to_internal_events(
+            global_uinputs.get_uinput("keyboard").write_history
+        )
         self.assertEqual(kb_history[0], (1, a, 1))
 
-        await self.send_events([scroll]*5, event_reader)
+        await self.send_events([scroll] * 5, event_reader)
 
         # nothing new since all of them were duplicate key downs
-        kb_history = convert_to_internal_events(global_uinputs.get_uinput("keyboard").write_history)
+        kb_history = convert_to_internal_events(
+            global_uinputs.get_uinput("keyboard").write_history
+        )
         self.assertEqual(len(kb_history), 1)
 
         await self.send_events([btn_up], event_reader)
         # releasing the combination
-        kb_history = convert_to_internal_events(global_uinputs.get_uinput("keyboard").write_history)
+        kb_history = convert_to_internal_events(
+            global_uinputs.get_uinput("keyboard").write_history
+        )
         self.assertEqual(kb_history[1], (1, a, 0))
 
         # more scroll events
         # it should be ignored as duplicate key-down
-        await self.send_events([scroll]*5, event_reader)
+        await self.send_events([scroll] * 5, event_reader)
         fw_history = convert_to_internal_events(self.forward_uinput.write_history)
         self.assertEqual(fw_history.count(scroll), 5)
 
@@ -796,10 +896,12 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
                 InputEvent.from_tuple(ev_5),
                 InputEvent.from_tuple(ev_6),
             ],
-            event_reader
+            event_reader,
         )
 
-        kb_history = convert_to_internal_events(global_uinputs.get_uinput("keyboard").write_history)
+        kb_history = convert_to_internal_events(
+            global_uinputs.get_uinput("keyboard").write_history
+        )
         fw_history = convert_to_internal_events(self.forward_uinput.write_history)
 
         self.assertEqual(len(fw_history), 4)
@@ -815,5 +917,5 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
         self.assertIn((EV_KEY, KEY_A, 0), kb_history)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

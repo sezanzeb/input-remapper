@@ -1258,7 +1258,7 @@ class TestGui(GuiTestBase):
         # after renaming a preset and saving it, new presets
         # start with "new preset" again
         m1 = get_key_mapping()
-        #active_preset.change(EventCombination([EV_KEY, 14, 1]), "keyboard", "a", None)
+        # active_preset.change(EventCombination([EV_KEY, 14, 1]), "keyboard", "a", None)
         active_preset.add(m1)
         self.user_interface.get("preset_name_input").set_text("asdf")
         self.user_interface.save_preset()

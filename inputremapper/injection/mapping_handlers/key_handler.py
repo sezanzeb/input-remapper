@@ -23,7 +23,11 @@ from typing import Tuple, Dict, Optional
 from inputremapper import exceptions
 from inputremapper.configs.mapping import Mapping
 from inputremapper.event_combination import EventCombination
-from inputremapper.injection.mapping_handlers.mapping_handler import MappingHandler, ContextProtocol, HandlerEnums
+from inputremapper.injection.mapping_handlers.mapping_handler import (
+    MappingHandler,
+    ContextProtocol,
+    HandlerEnums,
+)
 from inputremapper.logger import logger
 from inputremapper.input_event import InputEvent
 from inputremapper.injection.global_uinputs import global_uinputs
@@ -31,14 +35,15 @@ from inputremapper.injection.global_uinputs import global_uinputs
 
 class KeyHandler(MappingHandler):
     """injects the target key if notified"""
+
     _active: bool
     _maps_to: Tuple[int, int]
 
     def __init__(
-            self,
-            combination: EventCombination,
-            mapping: Mapping,
-            context: ContextProtocol = None,
+        self,
+        combination: EventCombination,
+        mapping: Mapping,
+        context: ContextProtocol = None,
     ):
         super().__init__(combination, mapping)
         self._maps_to = mapping.get_output_type_code()
@@ -72,4 +77,3 @@ class KeyHandler(MappingHandler):
 
     def wrap_with(self) -> Dict[EventCombination, HandlerEnums]:
         return {self.input_events: HandlerEnums.combination}
-

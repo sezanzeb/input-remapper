@@ -28,7 +28,11 @@ from inputremapper.input_event import InputEvent
 from inputremapper.injection.global_uinputs import global_uinputs
 from inputremapper.injection.macros.parse import parse
 from inputremapper.injection.macros.macro import Macro
-from inputremapper.injection.mapping_handlers.mapping_handler import ContextProtocol, MappingHandler, HandlerEnums
+from inputremapper.injection.mapping_handlers.mapping_handler import (
+    ContextProtocol,
+    MappingHandler,
+    HandlerEnums,
+)
 
 
 class MacroHandler(MappingHandler):
@@ -39,10 +43,10 @@ class MacroHandler(MappingHandler):
     _active: bool
 
     def __init__(
-            self,
-            combination: EventCombination,
-            mapping: Mapping,
-            context: ContextProtocol = None,
+        self,
+        combination: EventCombination,
+        mapping: Mapping,
+        context: ContextProtocol = None,
     ):
         super().__init__(combination, mapping)
         self._active = False
@@ -69,7 +73,9 @@ class MacroHandler(MappingHandler):
             def f(ev_type, code, value):
                 """Handler for macros."""
                 logger.debug_key(
-                    (ev_type, code, value), "sending from macro to %s", self.mapping.target_uinput
+                    (ev_type, code, value),
+                    "sending from macro to %s",
+                    self.mapping.target_uinput,
                 )
                 global_uinputs.write((ev_type, code, value), self.mapping.target_uinput)
 

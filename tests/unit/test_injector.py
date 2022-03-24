@@ -161,7 +161,9 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
 
     def test_grab_device_1(self):
         preset = Preset()
-        preset.add(get_key_mapping(EventCombination([EV_ABS, ABS_HAT0X, 1]), "keyboard", "a"))
+        preset.add(
+            get_key_mapping(EventCombination([EV_ABS, ABS_HAT0X, 1]), "keyboard", "a")
+        )
         self.injector = Injector(groups.find(name="gamepad"), preset)
         self.injector.context = Context(preset)
 
@@ -183,7 +185,9 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         device = self.injector._grab_device(path)
         self.assertIsNone(device)  # no capability is used, so it won't grab
 
-        preset.add(get_key_mapping(EventCombination([EV_KEY, BTN_A, 1]), "keyboard", "a"))
+        preset.add(
+            get_key_mapping(EventCombination([EV_KEY, BTN_A, 1]), "keyboard", "a")
+        )
         device = self.injector._grab_device(path)
         self.assertIsNotNone(device)
         gamepad = classify(device) == GAMEPAD
@@ -232,15 +236,27 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
     def test_capabilities_and_uinput_presence(self, ungrab_patch):
         preset = Preset()
         m1 = get_key_mapping(EventCombination([EV_KEY, KEY_A, 1]), "keyboard", "c")
-        m2 = get_key_mapping(EventCombination([EV_REL, REL_HWHEEL, 1]), "keyboard", "key(b)")
+        m2 = get_key_mapping(
+            EventCombination([EV_REL, REL_HWHEEL, 1]), "keyboard", "key(b)"
+        )
         preset.add(m1)
         preset.add(m2)
         self.injector = Injector(groups.find(key="Foo Device 2"), preset)
         self.injector.stop_injecting()
         self.injector.run()
 
-        self.assertEqual(self.injector.context.preset.get_mapping(EventCombination([EV_KEY, KEY_A, 1])), m1)
-        self.assertEqual(self.injector.context.preset.get_mapping(EventCombination([EV_REL, REL_HWHEEL, 1])), m2)
+        self.assertEqual(
+            self.injector.context.preset.get_mapping(
+                EventCombination([EV_KEY, KEY_A, 1])
+            ),
+            m1,
+        )
+        self.assertEqual(
+            self.injector.context.preset.get_mapping(
+                EventCombination([EV_REL, REL_HWHEEL, 1])
+            ),
+            m2,
+        )
 
         self.assertListEqual(
             sorted(uinputs.keys()),
@@ -279,12 +295,22 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         system_mapping._set("w", code_w)
 
         preset = Preset()
-        preset.add(get_key_mapping(EventCombination((EV_KEY, 8, 1), (EV_KEY, 9, 1)), "keyboard", "k(KEY_Q).k(w)"))
-        preset.add(get_key_mapping(EventCombination([EV_ABS, ABS_HAT0X, -1]), "keyboard", "a"))
+        preset.add(
+            get_key_mapping(
+                EventCombination((EV_KEY, 8, 1), (EV_KEY, 9, 1)),
+                "keyboard",
+                "k(KEY_Q).k(w)",
+            )
+        )
+        preset.add(
+            get_key_mapping(EventCombination([EV_ABS, ABS_HAT0X, -1]), "keyboard", "a")
+        )
         # one mapping that is unknown in the system_mapping on purpose
         input_b = 10
         with self.assertRaises(ValidationError):
-            preset.add(get_key_mapping(EventCombination([EV_KEY, input_b, 1]), "keyboard", "b"))
+            preset.add(
+                get_key_mapping(EventCombination([EV_KEY, input_b, 1]), "keyboard", "b")
+            )
 
         push_events(
             "gamepad",
@@ -436,16 +462,22 @@ class TestModifyCapabilities(unittest.TestCase):
 
         preset = Preset()
         preset.add(get_key_mapping(EventCombination([EV_KEY, 80, 1]), "keyboard", "a"))
-        preset.add(get_key_mapping(EventCombination([EV_KEY, 81, 1]), "keyboard", DISABLE_NAME))
+        preset.add(
+            get_key_mapping(EventCombination([EV_KEY, 81, 1]), "keyboard", DISABLE_NAME)
+        )
 
         macro_code = "r(2, m(sHiFt_l, r(2, k(1).k(2))))"
         macro = parse(macro_code, preset)
 
-        preset.add(get_key_mapping(EventCombination([EV_KEY, 60, 111]), "keyboard", macro_code))
+        preset.add(
+            get_key_mapping(EventCombination([EV_KEY, 60, 111]), "keyboard", macro_code)
+        )
 
         # going to be ignored, because EV_REL cannot be mapped, that's
         # mouse movements.
-        preset.add(get_key_mapping(EventCombination([EV_REL, 1234, 3]), "keyboard", "b"))
+        preset.add(
+            get_key_mapping(EventCombination([EV_REL, 1234, 3]), "keyboard", "b")
+        )
 
         self.a = system_mapping.get("a")
         self.shift_l = system_mapping.get("ShIfT_L")
@@ -471,7 +503,9 @@ class TestModifyCapabilities(unittest.TestCase):
 
     def test_copy_capabilities(self):
         self.preset.add(
-            get_key_mapping(EventCombination([EV_KEY, 60, 1]), "keyboard", self.macro.code)
+            get_key_mapping(
+                EventCombination([EV_KEY, 60, 1]), "keyboard", self.macro.code
+            )
         )
 
         # I don't know what ABS_VOLUME is, for now I would like to just always

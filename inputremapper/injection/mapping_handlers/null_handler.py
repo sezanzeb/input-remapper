@@ -25,7 +25,10 @@ from evdev.ecodes import EV_KEY
 
 from inputremapper.event_combination import EventCombination
 from inputremapper.input_event import InputEvent
-from inputremapper.injection.mapping_handlers.mapping_handler import MappingHandler, HandlerEnums
+from inputremapper.injection.mapping_handlers.mapping_handler import (
+    MappingHandler,
+    HandlerEnums,
+)
 
 
 class NullHandler(MappingHandler):
@@ -48,7 +51,9 @@ class NullHandler(MappingHandler):
         return self.needs_wrapping()
 
     def rank_by(self) -> Optional[EventCombination]:
-        return EventCombination(event for event in self.input_events if event.value != 0)
+        return EventCombination(
+            event for event in self.input_events if event.value != 0
+        )
 
     def notify(
         self,

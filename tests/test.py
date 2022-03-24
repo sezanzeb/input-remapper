@@ -580,7 +580,9 @@ def convert_to_internal_events(events):
     return [InternalInputEvent.from_event(event) for event in events]
 
 
-def get_key_mapping(combination="99,99,99", target_uinput="keyboard", output_symbol="a") -> Mapping:
+def get_key_mapping(
+    combination="99,99,99", target_uinput="keyboard", output_symbol="a"
+) -> Mapping:
     """convenient function to get a valid mapping"""
     return Mapping(
         event_combination=combination,

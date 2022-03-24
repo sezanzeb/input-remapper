@@ -134,10 +134,10 @@ class MappingHandler(InputEventHandler):
 
     # https://bugs.python.org/issue44807
     def __init__(
-            self,
-            combination: EventCombination,
-            mapping: Mapping,
-            context: ContextProtocol = None,
+        self,
+        combination: EventCombination,
+        mapping: Mapping,
+        context: ContextProtocol = None,
     ) -> None:
         """initialize the handler
 
@@ -185,4 +185,3 @@ class MappingHandler(InputEventHandler):
             self.input_events = EventCombination(*events)
         else:
             self.input_events = ()
-

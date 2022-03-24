@@ -234,7 +234,9 @@ class TestMigrations(unittest.TestCase):
                 EventCombination((EV_ABS, 1, 1), (EV_ABS, 2, -1), (EV_ABS, 3, 1))
             ),
             UIMapping(
-                event_combination=EventCombination((EV_ABS, 1, 1), (EV_ABS, 2, -1), (EV_ABS, 3, 1)),
+                event_combination=EventCombination(
+                    (EV_ABS, 1, 1), (EV_ABS, 2, -1), (EV_ABS, 3, 1)
+                ),
                 target_uinput="keyboard",
                 output_symbol="c",
             ),
@@ -309,7 +311,7 @@ class TestMigrations(unittest.TestCase):
             UIMapping(
                 event_combination=EventCombination([EV_KEY, 4, 1]),
                 target_uinput="foo",
-                output_symbol="qux(otherwise).bar(else=1)"
+                output_symbol="qux(otherwise).bar(else=1)",
             ),
         )
         self.assertEqual(
@@ -317,7 +319,7 @@ class TestMigrations(unittest.TestCase):
             UIMapping(
                 event_combination=EventCombination([EV_KEY, 5, 1]),
                 target_uinput="keyboard",
-                output_symbol="foo(otherwise1=2qux)"
+                output_symbol="foo(otherwise1=2qux)",
             ),
         )
 

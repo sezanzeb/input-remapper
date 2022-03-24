@@ -359,7 +359,11 @@ class Editor:
 
         for selection_label in selection_label_listbox:
             combination = selection_label.get_combination()
-            if combination is None or active_preset.get_mapping(combination) is None or not active_preset.get_mapping(combination).is_valid():
+            if (
+                combination is None
+                or active_preset.get_mapping(combination) is None
+                or not active_preset.get_mapping(combination).is_valid()
+            ):
                 # unfinished row found
                 break
         else:
@@ -500,11 +504,11 @@ class Editor:
         self.active_selection_label.set_combination(combination)
         listbox = self.get_combination_listbox()
         listbox.forall(listbox.remove)
-	
+
         if combination:
             for event in combination:
                 listbox.insert(CombinationEntry(event), -1)
-        
+
         if combination and len(combination) > 0:
             self.enable_symbol_input()
         else:

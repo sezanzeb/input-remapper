@@ -24,7 +24,6 @@ from evdev.ecodes import (
     EV_KEY,
     EV_ABS,
     EV_REL,
-
 )
 
 from inputremapper.logger import logger
@@ -56,21 +55,16 @@ mapping_handler_classes: Dict[HandlerEnums, Type[MappingHandler]] = {
     # all available mapping_handlers
     HandlerEnums.abs2btn: AbsToBtnHandler,
     HandlerEnums.rel2btn: RelToBtnHandler,
-
     HandlerEnums.macro: MacroHandler,
     HandlerEnums.key: KeyHandler,
-
     HandlerEnums.btn2rel: None,
     HandlerEnums.rel2rel: None,
     HandlerEnums.abs2rel: AbsToRelHandler,
-
     HandlerEnums.btn2abs: None,
     HandlerEnums.rel2abs: None,
     HandlerEnums.abs2abs: None,
-
     HandlerEnums.combination: CombinationHandler,
     HandlerEnums.hierarchy: HierarchyHandler,
-
     HandlerEnums.disable: NullHandler,
 }
 
@@ -82,7 +76,9 @@ def parse_mappings(preset: Preset, context: ContextProtocol) -> EventPipelines:
         handler_enum = _get_output_handler(mapping)
         constructor = mapping_handler_classes[handler_enum]
         if not constructor:
-            raise NotImplementedError(f"mapping handler {handler_enum} is not implemented")
+            raise NotImplementedError(
+                f"mapping handler {handler_enum} is not implemented"
+            )
 
         output_handler = constructor(mapping.event_combination, mapping, context)
         handlers.extend(_create_event_pipeline(output_handler, context))
@@ -114,9 +110,7 @@ def parse_mappings(preset: Preset, context: ContextProtocol) -> EventPipelines:
 
 
 def _create_event_pipeline(
-        handler: MappingHandler,
-        context: ContextProtocol,
-        ignore_ranking=False
+    handler: MappingHandler, context: ContextProtocol, ignore_ranking=False
 ) -> List[MappingHandler]:
     """
     recursively wrap a handler with other handlers until the
@@ -129,7 +123,9 @@ def _create_event_pipeline(
     for combination, handler_enum in handler.wrap_with().items():
         constructor = mapping_handler_classes[handler_enum]
         if not constructor:
-            raise NotImplementedError(f"mapping handler {handler_enum} is not implemented")
+            raise NotImplementedError(
+                f"mapping handler {handler_enum} is not implemented"
+            )
 
         super_handler = constructor(combination, handler.mapping, context)
         super_handler.set_sub_handler(handler)
@@ -188,7 +184,9 @@ def _maps_axis(combination: EventCombination) -> Optional[InputEvent]:
             return event
 
 
-def _create_hierarchy_handlers(handlers: Dict[EventCombination, MappingHandler]) -> Set[MappingHandler]:
+def _create_hierarchy_handlers(
+    handlers: Dict[EventCombination, MappingHandler]
+) -> Set[MappingHandler]:
     """sort handlers by input events and create Hierarchy handlers"""
     sorted_handlers = set()
     all_combinations = handlers.keys()

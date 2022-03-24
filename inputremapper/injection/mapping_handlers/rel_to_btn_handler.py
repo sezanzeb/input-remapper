@@ -29,7 +29,11 @@ from inputremapper.configs.mapping import Mapping
 from inputremapper.logger import logger
 from inputremapper.input_event import InputEvent, EventActions
 from inputremapper.event_combination import EventCombination
-from inputremapper.injection.mapping_handlers.mapping_handler import MappingHandler, ContextProtocol, HandlerEnums
+from inputremapper.injection.mapping_handlers.mapping_handler import (
+    MappingHandler,
+    ContextProtocol,
+    HandlerEnums,
+)
 
 
 class RelToBtnHandler(MappingHandler):
@@ -45,10 +49,10 @@ class RelToBtnHandler(MappingHandler):
     _last_activation: float
 
     def __init__(
-            self,
-            combination: EventCombination,
-            mapping: Mapping,
-            context: ContextProtocol,
+        self,
+        combination: EventCombination,
+        mapping: Mapping,
+        context: ContextProtocol,
     ) -> None:
         super().__init__(combination, mapping, context)
 

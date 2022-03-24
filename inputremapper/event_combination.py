@@ -53,7 +53,9 @@ class EventCombination(Tuple[InputEvent]):
     def __new__(cls, *init_args) -> EventCombination:
         pydantic_internal = False
         events = []
-        if inspect.isgenerator(init_args[0]):  # for some reason isinstance() does not work
+        if inspect.isgenerator(
+            init_args[0]
+        ):  # for some reason isinstance() does not work
             # pydantic might call this with a generator which yields input events
             for event in init_args[0]:
                 if isinstance(event, InputEvent):
@@ -105,8 +107,7 @@ class EventCombination(Tuple[InputEvent]):
 
     @classmethod
     def from_events(
-            cls,
-            init_events: Iterable[InputEvent | evdev.InputEvent]
+        cls, init_events: Iterable[InputEvent | evdev.InputEvent]
     ) -> EventCombination:
         """create a EventCombination from an iterable of InputEvents"""
         try:

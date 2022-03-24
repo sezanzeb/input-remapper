@@ -61,7 +61,11 @@ class Preset:
     _path: Optional[os.PathLike]
     _mapping_factpry: Type[Mapping]  # the mapping class which is used by load()
 
-    def __init__(self, path: Optional[os.PathLike] = None, mapping_factory: Type[Mapping] = Mapping):
+    def __init__(
+        self,
+        path: Optional[os.PathLike] = None,
+        mapping_factory: Type[Mapping] = Mapping,
+    ):
         self._mappings = {}
         self._saved_mappings = {}
         self._path = path
@@ -79,16 +83,18 @@ class Preset:
         return self._mappings != self._saved_mappings
 
     def remove(
-            self,
-            combination: EventCombination = None,
-            mapping: Mapping = None,
+        self,
+        combination: EventCombination = None,
+        mapping: Mapping = None,
     ) -> None:
         """remove a mapping from the preset, either by providing the mapping or the EventCombination"""
         if mapping:
             combination = mapping.event_combination
 
         if not isinstance(combination, EventCombination):
-            raise TypeError(f"combination must by of type EventCombination, got {type(combination)}")
+            raise TypeError(
+                f"combination must by of type EventCombination, got {type(combination)}"
+            )
 
         for permutation in combination.get_permutations():
             if permutation in self._mappings.keys():
@@ -105,7 +111,10 @@ class Preset:
         """add a mapping to the preset"""
         for permutation in mapping.event_combination.get_permutations():
             if permutation in self._mappings:
-                raise KeyError("a mapping with this event_combination: %s already exists", permutation)
+                raise KeyError(
+                    "a mapping with this event_combination: %s already exists",
+                    permutation,
+                )
 
         mapping.set_combination_changed_callback(self._combination_changed_callback)
         self._mappings[mapping.event_combination] = mapping
@@ -155,9 +164,13 @@ class Preset:
                     logger.debug("skipping invalid mapping %s", mapping)
                     continue
                 combinations = [m.event_combination for m in self]
-                common = common_data(mapping.event_combination.get_permutations(), combinations)
+                common = common_data(
+                    mapping.event_combination.get_permutations(), combinations
+                )
                 if len(common) > 1:
-                    logger.debug("skipping mapping with duplicate event combination %s", mapping)
+                    logger.debug(
+                        "skipping mapping with duplicate event combination %s", mapping
+                    )
                     continue
 
             d = mapping.dict(exclude_defaults=True)
@@ -186,7 +199,9 @@ class Preset:
             return None
 
         if not isinstance(combination, EventCombination):
-            raise TypeError(f"combination must by of type EventCombination, got {type(combination)}")
+            raise TypeError(
+                f"combination must by of type EventCombination, got {type(combination)}"
+            )
 
         for permutation in combination.get_permutations():
             existing = self._mappings.get(permutation)
@@ -197,7 +212,9 @@ class Preset:
 
     def dangerously_mapped_btn_left(self):
         """Return True if this mapping disables BTN_Left."""
-        if EventCombination(InputEvent.btn_left()) not in [m.event_combination for m in self]:
+        if EventCombination(InputEvent.btn_left()) not in [
+            m.event_combination for m in self
+        ]:
             return False
 
         values = []
@@ -207,9 +224,14 @@ class Preset:
             values.append(mapping.output_symbol.lower())
             values.append(mapping.get_output_type_code())
         print(values)
-        return "btn_left" not in values or InputEvent.btn_left().type_and_code not in values
+        return (
+            "btn_left" not in values
+            or InputEvent.btn_left().type_and_code not in values
+        )
 
-    def _combination_changed_callback(self, new: EventCombination, old: EventCombination):
+    def _combination_changed_callback(
+        self, new: EventCombination, old: EventCombination
+    ):
         for permutation in new.get_permutations():
             if permutation in self._mappings.keys() and permutation != old:
                 raise KeyError("combination already exists in the preset")
@@ -235,9 +257,13 @@ class Preset:
 
         for combination, mapping_dict in preset_dict.items():
             try:
-                mapping = self._mapping_factory(event_combination=combination, **mapping_dict)
+                mapping = self._mapping_factory(
+                    event_combination=combination, **mapping_dict
+                )
             except ValidationError as error:
-                logger.error("failed to Validate mapping for %s: %s", combination, error)
+                logger.error(
+                    "failed to Validate mapping for %s: %s", combination, error
+                )
                 continue
 
             mappings[mapping.event_combination] = mapping
@@ -252,6 +278,7 @@ class Preset:
         if path != self.path:
             self._path = path
             self._update_saved_mappings()
+
 
 ###########################################################################
 # Method from previously presets.py

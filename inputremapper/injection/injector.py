@@ -195,7 +195,9 @@ class Injector(multiprocessing.Process):
         needed = False
         for mapping in self.context.preset:
             if is_in_capabilities(mapping.event_combination, capabilities):
-                logger.debug('Grabbing "%s" because of "%s"', path, mapping.event_combination)
+                logger.debug(
+                    'Grabbing "%s" because of "%s"', path, mapping.event_combination
+                )
                 needed = True
                 break
 

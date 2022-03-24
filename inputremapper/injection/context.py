@@ -97,4 +97,3 @@ class Context:
                 self.callbacks[event.type_and_code] = []
             for handler in handler_list:
                 self.callbacks[event.type_and_code].append(handler.notify)
-
