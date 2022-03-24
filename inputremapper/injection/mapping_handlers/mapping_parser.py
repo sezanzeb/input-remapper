@@ -161,6 +161,9 @@ def _get_output_handler(mapping: Mapping) -> HandlerEnums:
         else:
             return HandlerEnums.key
 
+    if mapping.output_type == EV_KEY:
+        return HandlerEnums.key
+
     input_event = _maps_axis(mapping.event_combination)
     if mapping.output_type == EV_REL:
         if input_event.type == EV_KEY:
