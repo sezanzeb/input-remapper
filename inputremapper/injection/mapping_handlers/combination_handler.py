@@ -81,7 +81,7 @@ class CombinationHandler(MappingHandler):
                 not self._map_axis or type_code != self._map_axis):
             return False  # we are not responsible for the event
 
-        # check if the event belongs to the axis we and is not interpreted as key
+        # check if the event belongs to the axis and is not interpreted as key
         if type_code == self._map_axis and not event.action == EventActions.as_key:
             if self.get_active():  # the event was not yet applied to the key-map, this is
                 # combination is active, and this is the axis we should pass though the event pipe
@@ -94,8 +94,13 @@ class CombinationHandler(MappingHandler):
         self._key_map[type_code] = event.value == 1
 
         if self.get_active() == last_state or self.get_active() == self._output_state:
-            # nothing changed ignore this event
-            return False
+            # nothing changed
+            if self._output_state:
+                # combination is active, consume the event
+                return True
+            else:
+                # combination inactive, forward the event
+                return False
 
         if self.get_active():
             # send key up events to the forwarded uinput
