@@ -336,6 +336,11 @@ class UIMapping(Mapping):
         dict_ = super(UIMapping, self).dict(*args, **kwargs)
         # combine all valid values with the invalid ones
         dict_.update(**self._cache)
+        if VERSION < version.StrictVersion("1.7.1"):
+            if "_last_error" in dict_.keys():
+                del dict_["_last_error"]
+                del dict_["_cache"]
+
         return dict_
 
     def get_error(self) -> Optional[ValidationError]:
