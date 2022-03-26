@@ -41,7 +41,7 @@ import re
 from typing import Optional
 
 import evdev
-from evdev.ecodes import ecodes, EV_KEY, EV_REL, REL_X, REL_Y, REL_WHEEL, REL_HWHEEL
+from evdev.ecodes import ecodes, EV_KEY, EV_REL, REL_X, REL_Y, REL_WHEEL_HI_RES, REL_HWHEEL_HI_RES
 
 from inputremapper.logger import logger
 from inputremapper.configs.system_mapping import system_mapping
@@ -464,19 +464,17 @@ class Macro:
         speed = _type_check(speed, [int], "wheel", 2)
 
         code, value = {
-            "up": (REL_WHEEL, 1),
-            "down": (REL_WHEEL, -1),
-            "left": (REL_HWHEEL, 1),
-            "right": (REL_HWHEEL, -1),
+            "up": (REL_WHEEL_HI_RES, 1),
+            "down": (REL_WHEEL_HI_RES, -1),
+            "left": (REL_HWHEEL_HI_RES, 1),
+            "right": (REL_HWHEEL_HI_RES, -1),
         }[direction.lower()]
 
         async def task(handler):
             resolved_speed = _resolve(speed, [int])
             while self.is_holding():
-                handler(EV_REL, code, value)
-                # scrolling moves much faster than mouse, so this
-                # waits between injections instead to make it slower
-                await asyncio.sleep(1 / resolved_speed)
+                handler(EV_REL, code, value*resolved_speed)
+                await asyncio.sleep(1 / self.mapping.rate)
 
         self.tasks.append(task)
 
