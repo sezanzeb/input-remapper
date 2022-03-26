@@ -323,10 +323,13 @@ class UIMapping(Mapping):
 
     def __eq__(self, other):
 
-        if not self.is_valid():
-            if isinstance(other, UIMapping):
-                return self.dict() == other.dict()
-            return False
+        if isinstance(other, UIMapping):
+            return self.dict() == other.dict()
+        elif isinstance(other, Mapping):
+            dict_ = self.dict()
+            if pydantic_version >= pkg_resources.parse_version("1.7.1"):
+                del dict_["ATTRIBUTES"]
+            return dict_ == other.dict()
 
         return super(UIMapping, self).__eq__(other)
 
