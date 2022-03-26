@@ -35,6 +35,8 @@ from evdev.ecodes import (
     REL_X,
     REL_WHEEL,
     REL_HWHEEL,
+    REL_WHEEL_HI_RES,
+    REL_HWHEEL_HI_RES,
     KEY_A,
     KEY_B,
     KEY_C,
@@ -118,6 +120,7 @@ class MacroTestBase(unittest.IsolatedAsyncioTestCase):
 
 class DummyMapping:
     macro_key_sleep_ms = 10
+    rate = 60
 
 
 class TestMacros(MacroTestBase):
@@ -890,7 +893,7 @@ class TestMacros(MacroTestBase):
         self.assertListEqual(self.result, expected)
 
     async def test_mouse(self):
-        wheel_speed = 100
+        wheel_speed = 60
         macro_1 = parse("mouse(up, 4)", self.context, DummyMapping)
         macro_2 = parse(f"wheel(left, {wheel_speed})", self.context, DummyMapping)
         macro_1.press_trigger()
@@ -906,12 +909,16 @@ class TestMacros(MacroTestBase):
         macro_2.release_trigger()
 
         self.assertIn((EV_REL, REL_Y, -4), self.result)
-        expected_wheel_event_count = sleep / (1 / wheel_speed)
+        expected_wheel_hi_res_event_count = sleep * DummyMapping.rate
+        expected_wheel_event_count = int(expected_wheel_hi_res_event_count / 120 * wheel_speed)
         actual_wheel_event_count = self.result.count((EV_REL, REL_HWHEEL, 1))
+        actual_wheel_hi_res_event_count = self.result.count((EV_REL, REL_HWHEEL_HI_RES, wheel_speed))
         # this seems to have a tendency of injecting less wheel events,
         # especially if the sleep is short
         self.assertGreater(actual_wheel_event_count, expected_wheel_event_count * 0.8)
         self.assertLess(actual_wheel_event_count, expected_wheel_event_count * 1.1)
+        self.assertGreater(actual_wheel_hi_res_event_count, expected_wheel_hi_res_event_count * 0.8)
+        self.assertLess(actual_wheel_hi_res_event_count, expected_wheel_hi_res_event_count * 1.1)
 
     async def test_event_1(self):
         macro = parse("e(EV_KEY, KEY_A, 1)", self.context, DummyMapping)
