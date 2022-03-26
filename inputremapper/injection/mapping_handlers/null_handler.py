@@ -47,14 +47,6 @@ class NullHandler(MappingHandler):
     def wrap_with(self) -> Dict[EventCombination, HandlerEnums]:
         return {self.input_events: HandlerEnums.combination}
 
-    def needs_ranking(self) -> bool:
-        return self.needs_wrapping()
-
-    def rank_by(self) -> Optional[EventCombination]:
-        return EventCombination(
-            event for event in self.input_events if event.value != 0
-        )
-
     def notify(
         self,
         event: InputEvent,
