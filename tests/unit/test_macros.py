@@ -910,15 +910,23 @@ class TestMacros(MacroTestBase):
 
         self.assertIn((EV_REL, REL_Y, -4), self.result)
         expected_wheel_hi_res_event_count = sleep * DummyMapping.rate
-        expected_wheel_event_count = int(expected_wheel_hi_res_event_count / 120 * wheel_speed)
+        expected_wheel_event_count = int(
+            expected_wheel_hi_res_event_count / 120 * wheel_speed
+        )
         actual_wheel_event_count = self.result.count((EV_REL, REL_HWHEEL, 1))
-        actual_wheel_hi_res_event_count = self.result.count((EV_REL, REL_HWHEEL_HI_RES, wheel_speed))
+        actual_wheel_hi_res_event_count = self.result.count(
+            (EV_REL, REL_HWHEEL_HI_RES, wheel_speed)
+        )
         # this seems to have a tendency of injecting less wheel events,
         # especially if the sleep is short
         self.assertGreater(actual_wheel_event_count, expected_wheel_event_count * 0.8)
         self.assertLess(actual_wheel_event_count, expected_wheel_event_count * 1.1)
-        self.assertGreater(actual_wheel_hi_res_event_count, expected_wheel_hi_res_event_count * 0.8)
-        self.assertLess(actual_wheel_hi_res_event_count, expected_wheel_hi_res_event_count * 1.1)
+        self.assertGreater(
+            actual_wheel_hi_res_event_count, expected_wheel_hi_res_event_count * 0.8
+        )
+        self.assertLess(
+            actual_wheel_hi_res_event_count, expected_wheel_hi_res_event_count * 1.1
+        )
 
     async def test_event_1(self):
         macro = parse("e(EV_KEY, KEY_A, 1)", self.context, DummyMapping)

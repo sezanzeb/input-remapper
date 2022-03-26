@@ -724,19 +724,13 @@ class TestGui(GuiTestBase):
         # creates a new empty preset when no preset exists for the device
         self.user_interface.on_select_device(FakeDeviceDropdown("Foo Device"))
         m1 = UIMapping(
-            event_combination="1,50,1",
-            output_symbol="q",
-            target_uinput="keyboard"
+            event_combination="1,50,1", output_symbol="q", target_uinput="keyboard"
         )
         m2 = UIMapping(
-            event_combination="1,51,1",
-            output_symbol="u",
-            target_uinput="keyboard"
+            event_combination="1,51,1", output_symbol="u", target_uinput="keyboard"
         )
         m3 = UIMapping(
-            event_combination="1,52,1",
-            output_symbol="x",
-            target_uinput="keyboard"
+            event_combination="1,52,1", output_symbol="x", target_uinput="keyboard"
         )
         active_preset.add(m1)
         active_preset.add(m2)
@@ -1729,7 +1723,9 @@ class TestGui(GuiTestBase):
         text = self.get_status_text()
         self.assertNotIn("Stop Injection", text)
         active_preset.path = get_preset_path(group_name, preset_name)
-        active_preset.add(get_ui_mapping(EventCombination([EV_KEY, KEY_A, 1]), "keyboard", "b"))
+        active_preset.add(
+            get_ui_mapping(EventCombination([EV_KEY, KEY_A, 1]), "keyboard", "b")
+        )
         active_preset.save()
         self.user_interface.on_apply_preset_clicked(None)
 

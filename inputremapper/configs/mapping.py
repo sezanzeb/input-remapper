@@ -108,8 +108,9 @@ class Mapping(BaseModel):
         if we are about to update the event_combination
         """
         if key != "event_combination" or self._combination_changed is None:
-            if key == "_combination_changed" and pydantic_version < pkg_resources.parse_version(
-                "1.7.1"
+            if (
+                key == "_combination_changed"
+                and pydantic_version < pkg_resources.parse_version("1.7.1")
             ):
                 object.__setattr__(self, "_combination_changed", value)
                 return
@@ -369,7 +370,10 @@ class UIMapping(Mapping):
         except ValidationError as error:
             self._last_error = error
 
-        if "event_combination" in self._cache.keys() and self._cache["event_combination"]:
+        if (
+            "event_combination" in self._cache.keys()
+            and self._cache["event_combination"]
+        ):
             # the event_combination needs to be valid
             self._cache["event_combination"] = EventCombination.validate(
                 self._cache["event_combination"]
