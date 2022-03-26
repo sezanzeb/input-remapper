@@ -34,7 +34,7 @@ from inputremapper.input_event import InputEvent
 
 from inputremapper.configs.data import get_data_path
 from inputremapper.exceptions import MacroParsingError
-from inputremapper.configs.paths import get_config_path
+from inputremapper.configs.paths import get_config_path, get_preset_path
 from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.gui.active_preset import active_preset
 from inputremapper.gui.utils import HandlerDisabled
@@ -340,7 +340,7 @@ class UserInterface:
 
         if len(presets) == 0:
             new_preset = get_available_preset_name(self.group.name)
-            active_preset.empty()
+            active_preset.clear()
             path = self.group.get_preset_path(new_preset)
             active_preset.path = path
             active_preset.save()
@@ -353,9 +353,8 @@ class UserInterface:
         with HandlerDisabled(preset_selection, self.on_select_preset):
             # otherwise the handler is called with None for each preset
             preset_selection.remove_all()
-
-        for preset in presets:
-            preset_selection.append(preset, preset)
+            for preset in presets:
+                preset_selection.append(preset, preset)
 
         # and select the newest one (on the top). triggers on_select_preset
         preset_selection.set_active(0)
@@ -443,6 +442,7 @@ class UserInterface:
             return
 
         new_name = rename_preset(self.group.name, self.preset_name, new_name)
+        active_preset.path = get_preset_path(self.group.name, new_name)
 
         # if the old preset was being autoloaded, change the
         # name there as well
@@ -626,7 +626,7 @@ class UserInterface:
             else:
                 new_preset = get_available_preset_name(name)
                 self.editor.clear()
-                active_preset.empty()
+                active_preset.clear()
 
             path = self.group.get_preset_path(new_preset)
             active_preset.path = path
@@ -658,7 +658,7 @@ class UserInterface:
         logger.debug('Selecting preset "%s"', preset)
         self.editor.clear_mapping_list()
         self.preset_name = preset
-        active_preset.empty()
+        active_preset.clear()
         active_preset.path = self.group.get_preset_path(preset)
         active_preset.load()
 

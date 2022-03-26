@@ -26,6 +26,7 @@ import re
 import locale
 import gettext
 import os
+import time
 from typing import Optional
 
 from inputremapper.configs.data import get_data_path
@@ -244,7 +245,9 @@ class Editor:
         if symbol != correct_case:
             self.get_code_editor().get_buffer().set_text(correct_case)
 
-        self.active_mapping.output_symbol = correct_case
+        if self.active_mapping:
+            # might be None if the empty mapping was selected, and the text input cleared
+            self.active_mapping.output_symbol = correct_case
 
     def _on_target_input_changed(self, *_):
         """save when target changed"""

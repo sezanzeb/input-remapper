@@ -413,7 +413,7 @@ def delete_preset(group_name, preset):
 def rename_preset(group_name, old_preset_name, new_preset_name):
     """Rename one of the users presets while avoiding name conflicts."""
     if new_preset_name == old_preset_name:
-        return None
+        return old_preset_name
 
     new_preset_name = get_available_preset_name(group_name, new_preset_name)
     logger.info('Moving "%s" to "%s"', old_preset_name, new_preset_name)
