@@ -32,12 +32,15 @@ from pydantic import (
 )
 from typing import Optional, Callable, Tuple, Dict, Union
 
-from distutils import version
+import pkg_resources
 
 from inputremapper.event_combination import EventCombination
 from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.exceptions import MacroParsingError
 from inputremapper.injection.macros.parse import is_this_a_macro, parse
+
+
+pydantic_version = pkg_resources.parse_version(VERSION)
 
 
 # TODO: in python 3.11 inherit enum.StrEnum
@@ -59,7 +62,7 @@ class Mapping(BaseModel):
     """
 
     # TODO: pydantic VERSION check as soon as we no longer support Ubuntu 20.04 and with it the ainchant pydantic 1.2
-    if VERSION < version.StrictVersion("1.7.1"):
+    if pydantic_version < pkg_resources.parse_version("1.7.1"):
         __slots__ = ("_combination_changed",)
 
     # Required attributes
@@ -91,7 +94,7 @@ class Mapping(BaseModel):
     rel_reset_timeout_ms: PositiveInt = 20
 
     # callback which gets called if the
-    if VERSION >= version.StrictVersion("1.7.1"):
+    if pydantic_version >= pkg_resources.parse_version("1.7.1"):
         _combination_changed: CombinationChangedCallback = None
     else:
 
@@ -105,7 +108,7 @@ class Mapping(BaseModel):
         if we are about to update the event_combination
         """
         if key != "event_combination" or self._combination_changed is None:
-            if key == "_combination_changed" and VERSION < version.StrictVersion(
+            if key == "_combination_changed" and pydantic_version < pkg_resources.parse_version(
                 "1.7.1"
             ):
                 object.__setattr__(self, "_combination_changed", value)
@@ -336,7 +339,7 @@ class UIMapping(Mapping):
         dict_ = super(UIMapping, self).dict(*args, **kwargs)
         # combine all valid values with the invalid ones
         dict_.update(**self._cache)
-        if VERSION < version.StrictVersion("1.7.1"):
+        if pydantic_version < pkg_resources.parse_version("1.7.1"):
             if "_last_error" in dict_.keys():
                 del dict_["_last_error"]
                 del dict_["_cache"]
@@ -363,7 +366,7 @@ class UIMapping(Mapping):
         except ValidationError as error:
             self._last_error = error
 
-        if "event_combination" in self._cache.keys():
+        if "event_combination" in self._cache.keys() and self._cache["event_combination"]:
             # the event_combination needs to be valid
             self._cache["event_combination"] = EventCombination.validate(
                 self._cache["event_combination"]
