@@ -556,7 +556,7 @@ update_verbosity(True)
 from inputremapper.input_event import InputEvent as InternalInputEvent
 from inputremapper.injection.injector import Injector
 from inputremapper.configs.global_config import global_config
-from inputremapper.configs.mapping import Mapping
+from inputremapper.configs.mapping import Mapping, UIMapping
 from inputremapper.gui.reader import reader
 from inputremapper.groups import groups
 from inputremapper.configs.system_mapping import system_mapping
@@ -585,6 +585,17 @@ def get_key_mapping(
 ) -> Mapping:
     """convenient function to get a valid mapping"""
     return Mapping(
+        event_combination=combination,
+        target_uinput=target_uinput,
+        output_symbol=output_symbol,
+    )
+
+
+def get_ui_mapping(
+    combination="99,99,99", target_uinput="keyboard", output_symbol="a"
+) -> UIMapping:
+    """convenient function to get a valid mapping"""
+    return UIMapping(
         event_combination=combination,
         target_uinput=target_uinput,
         output_symbol=output_symbol,

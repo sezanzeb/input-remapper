@@ -722,7 +722,7 @@ Gives your keys back their original function</property>
                     </child>
                     <child>
                       <object class="GtkToggleButton" id="key_recording_toggle">
-                        <property name="label" translatable="yes">Record new combination</property>
+                        <property name="label" translatable="yes">Change Key</property>
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
                         <property name="receives-default">True</property>
