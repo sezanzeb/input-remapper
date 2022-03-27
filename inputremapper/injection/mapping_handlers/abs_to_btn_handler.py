@@ -20,7 +20,7 @@
 
 
 import evdev
-from typing import Optional, Dict
+from typing import Optional, Dict, Tuple
 
 from evdev.ecodes import EV_ABS
 
@@ -64,16 +64,17 @@ class AbsToBtnHandler(MappingHandler):
     def child(self):  # used for logging
         return self._sub_handler
 
-    def _trigger_point(self, abs_min: int, abs_max: int) -> int:
+    def _trigger_point(self, abs_min: int, abs_max: int) -> Tuple[float, float]:
+        """calculate the axis mid and trigger point"""
         #  TODO: potentially cash this function
         if abs_min == -1 and abs_max == 1:
             # this is a hat switch
-            return self._input_event.value // abs(self._input_event.value)  # return +-1
+            return self._input_event.value // abs(self._input_event.value), 0  # return +-1
 
         half_range = (abs_max - abs_min) / 2
         middle = half_range + abs_min
         trigger_offset = half_range * self._input_event.value / 100
-        return int(middle + trigger_offset)
+        return middle + trigger_offset, middle
 
     def notify(
         self,
@@ -88,11 +89,11 @@ class AbsToBtnHandler(MappingHandler):
         absinfo = {
             entry[0]: entry[1] for entry in source.capabilities(absinfo=True)[EV_ABS]
         }
-        threshold = self._trigger_point(
+        threshold, mid_point = self._trigger_point(
             absinfo[event.code].min, absinfo[event.code].max
         )
         value = event.value
-        if (value < threshold > 0) or (value > threshold < 0):
+        if (value < threshold > mid_point) or (value > threshold < mid_point):
             if self._active:
                 event = event.modify(value=0, action=EventActions.as_key)
             else:
