@@ -43,7 +43,7 @@ class AbsToRelHandler(MappingHandler):
     """Handler which transforms an EV_ABS to EV_REL events"""
 
     _map_axis: Tuple[int, int]  # the (type, code) of the axis we map
-    _last_value: float  # value of last abs event between -1 and 1
+    _value: float  # the current output value
     _running: bool  # if the run method is active
     _stop: bool  # if the run loop should return
 
@@ -62,7 +62,7 @@ class AbsToRelHandler(MappingHandler):
                 self._map_axis = event.type_and_code
                 break
 
-        self._last_value = 0
+        self._value = 0
         self._running = False
         self._stop = True
 
@@ -94,7 +94,7 @@ class AbsToRelHandler(MappingHandler):
         absinfo = {
             entry[0]: entry[1] for entry in source.capabilities(absinfo=True)[EV_ABS]
         }
-        input_value, scale_factor = self._normalize(
+        input_value, _ = self._normalize(
             event.value,
             absinfo[event.code].min,
             absinfo[event.code].max,
@@ -104,8 +104,8 @@ class AbsToRelHandler(MappingHandler):
             self._stop = True
             return True
 
-        output_value = self._calc_qubic(input_value, self.mapping.expo)
-        self._last_value = output_value * scale_factor * self.mapping.gain
+        value = self._calc_qubic(input_value, self.mapping.expo)
+        self._value = value * self.mapping.rel_speed * self.mapping.gain
 
         if not self._running:
             asyncio.ensure_future(self._run())
@@ -189,7 +189,7 @@ class AbsToRelHandler(MappingHandler):
         remainder = 0.0
         start = time.time()
         while not self._stop:
-            float_value = self._last_value * self.mapping.gain + remainder
+            float_value = self._value + remainder
             # float_value % 1 will result in wrong calculations for negative values
             remainder = math.fmod(float_value, 1)
             value = int(float_value)

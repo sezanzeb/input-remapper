@@ -61,7 +61,7 @@ class Mapping(BaseModel):
     input action to an output action
     """
 
-    # TODO: pydantic VERSION check as soon as we no longer support Ubuntu 20.04 and with it the ainchant pydantic 1.2
+    # TODO: remove pydantic VERSION check as soon as we no longer support Ubuntu 20.04 and with it the ainchant pydantic 1.2
     if pydantic_version < pkg_resources.parse_version("1.7.1"):
         __slots__ = ("_combination_changed",)
 
@@ -74,9 +74,7 @@ class Mapping(BaseModel):
     output_type: Optional[int] = None  # The event type of the mapped event
     output_code: Optional[int] = None  # The event code of the mapped event
 
-    # the time until a relative axis mapped to a button will release
-    release_timeout: PositiveFloat = 0.05
-
+    # macro settings
     macro_key_sleep_ms: PositiveInt = 20
 
     # Optional attributes for mapping Axis to Axis
@@ -86,14 +84,15 @@ class Mapping(BaseModel):
 
     # when mapping to relative axis
     rate: PositiveInt = 60  # The frequency [Hz] at which EV_REL events get generated
+    rel_speed: PositiveInt = 100  # the base speed of the relative axis, compounds with the gain
 
     # when mapping from relative axis:
     # the absolute value at which a EV_REL axis is considered at its maximum
-    rel_input_cutoff: PositiveInt = 120
-    # if no event arrives for more than the timeout the axis is considered stationary
-    rel_reset_timeout_ms: PositiveInt = 20
+    rel_input_maximum: PositiveInt = 100
+    # the time until a relative axis is considered stationary if no new events arrive
+    release_timeout: PositiveFloat = 0.05
 
-    # callback which gets called if the
+    # callback which gets called if the event_combination is updated
     if pydantic_version >= pkg_resources.parse_version("1.7.1"):
         _combination_changed: CombinationChangedCallback = None
     else:
@@ -159,9 +158,9 @@ class Mapping(BaseModel):
 
     @validator("output_symbol", pre=True)
     @classmethod
-    def validate_macro(cls, symbol):
-        if symbol is None:
-            return symbol
+    def validate_symbol(cls, symbol):
+        if not symbol:
+            return None
 
         if is_this_a_macro(symbol):
             try:
