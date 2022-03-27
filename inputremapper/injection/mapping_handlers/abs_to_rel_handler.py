@@ -17,14 +17,15 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
+from functools import partial
 
 import evdev
 import time
 import asyncio
 import math
 
-from typing import Dict, Tuple, Optional
-from evdev.ecodes import EV_REL, EV_ABS
+from typing import Dict, Tuple, Optional, List, Union
+from evdev.ecodes import EV_REL, EV_ABS, REL_WHEEL, REL_HWHEEL, REL_WHEEL_HI_RES, REL_HWHEEL_HI_RES
 
 from inputremapper.configs.mapping import Mapping
 from inputremapper.injection.mapping_handlers.mapping_handler import (
@@ -37,6 +38,51 @@ from inputremapper.logger import logger
 from inputremapper.event_combination import EventCombination
 from inputremapper.input_event import InputEvent, EventActions
 from inputremapper.injection.global_uinputs import global_uinputs
+
+
+async def _run_normal(self) -> None:
+    """start injecting events"""
+    self._running = True
+    self._stop = False
+    # logger.debug("starting AbsToRel loop")
+    remainder = 0.0
+    start = time.time()
+    while not self._stop:
+        float_value = self._value + remainder
+        # float_value % 1 will result in wrong calculations for negative values
+        remainder = math.fmod(float_value, 1)
+        value = int(float_value)
+        self._write(EV_REL, self.mapping.output_code, value)
+
+        time_taken = time.time() - start
+        await asyncio.sleep(max(0.0, (1 / self.mapping.rate) - time_taken))
+        start = time.time()
+
+    # logger.debug("stopping AbsToRel loop")
+    self._running = False
+
+
+async def _run_wheel(self, codes: Tuple[int, int], weights: Tuple[int, int]) -> None:
+    """start injecting events"""
+    self._running = True
+    self._stop = False
+    # logger.debug("starting AbsToRel loop")
+    remainder = [0.0, 0.0]
+    start = time.time()
+    while not self._stop:
+        for i in range(0, 2):
+            float_value = self._value * weights[i] + remainder[i]
+            # float_value % 1 will result in wrong calculations for negative values
+            remainder[i] = math.fmod(float_value, 1)
+            value = int(float_value)
+            self._write(EV_REL, codes[i], value)
+
+        time_taken = time.time() - start
+        await asyncio.sleep(max(0.0, (1 / self.mapping.rate) - time_taken))
+        start = time.time()
+
+    # logger.debug("stopping AbsToRel loop")
+    self._running = False
 
 
 class AbsToRelHandler(MappingHandler):
@@ -65,6 +111,23 @@ class AbsToRelHandler(MappingHandler):
         self._value = 0
         self._running = False
         self._stop = True
+
+        # bind the correct run method
+        if self.mapping.output_code in (REL_WHEEL, REL_HWHEEL, REL_WHEEL_HI_RES, REL_HWHEEL_HI_RES):
+            if self.mapping.output_code in (REL_WHEEL, REL_WHEEL_HI_RES):
+                codes = (REL_WHEEL, REL_WHEEL_HI_RES)
+            else:
+                codes = (REL_HWHEEL, REL_HWHEEL_HI_RES)
+
+            if self.mapping.output_code in (REL_WHEEL, REL_HWHEEL):
+                weights = (1, 120)
+            else:
+                weights = (1/120, 1)
+
+            self._run = partial(_run_wheel, self, codes=codes, weights=weights)
+
+        else:
+            self._run = _run_normal.__get__(self, AbsToRelHandler)
 
     def __str__(self):
         return f"AbsToRelHandler for {self._map_axis} <{id(self)}>:"
@@ -180,27 +243,6 @@ class AbsToRelHandler(MappingHandler):
         middle = half_range + abs_min
         x_norm = (x - middle) / half_range
         return x_norm, half_range
-
-    async def _run(self) -> None:
-        """start injecting events"""
-        self._running = True
-        self._stop = False
-        # logger.debug("starting AbsToRel loop")
-        remainder = 0.0
-        start = time.time()
-        while not self._stop:
-            float_value = self._value + remainder
-            # float_value % 1 will result in wrong calculations for negative values
-            remainder = math.fmod(float_value, 1)
-            value = int(float_value)
-            self._write(EV_REL, self.mapping.output_code, value)
-
-            time_taken = time.time() - start
-            await asyncio.sleep(max(0.0, (1 / self.mapping.rate) - time_taken))
-            start = time.time()
-
-        # logger.debug("stopping AbsToRel loop")
-        self._running = False
 
     def _write(self, ev_type, keycode, value):
         """Inject."""
