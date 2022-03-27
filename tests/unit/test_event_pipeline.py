@@ -34,6 +34,8 @@ from evdev.ecodes import (
     BTN_A,
     REL_HWHEEL,
     REL_WHEEL,
+    REL_WHEEL_HI_RES,
+    REL_HWHEEL_HI_RES,
     ABS_HAT0X,
     BTN_LEFT,
     BTN_B,
@@ -266,6 +268,71 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
         self.assertGreater(count_y, 1)
         # only those two types of events were written
         self.assertEqual(len(history), count_x + count_y)
+
+    async def test_abs_to_wheel_hi_res_quirk(self):
+        """
+        when mapping to wheel events we always expect to see both,
+        REL_WHEEL and REL_WHEEL_HI_RES events with a accumulative value ratio of 1/120
+        """
+        rate = 60  # rate [Hz] at which events are produced
+        gain = 1
+        speed = 30
+        preset = Preset()
+        # left x to mouse x
+        cfg = {
+            "event_combination": ",".join((str(EV_ABS), str(ABS_X), "0")),
+            "target_uinput": "mouse",
+            "output_type": EV_REL,
+            "output_code": REL_WHEEL,
+            "rate": rate,
+            "gain": gain,
+            "deadzone": 0,
+            "rel_speed": speed,
+        }
+        m1 = Mapping(**cfg)
+        preset.add(m1)
+        # left y to mouse y
+        cfg["event_combination"] = ",".join((str(EV_ABS), str(ABS_Y), "0"))
+        cfg["output_code"] = REL_HWHEEL_HI_RES
+        m2 = Mapping(**cfg)
+        preset.add(m2)
+
+        # set input axis to 100% in order to move
+        # speed*gain*rate=1*0.5*60 pixel per second
+        x = MAX_ABS
+        y = MAX_ABS
+
+        event_reader = self.get_event_reader(
+            preset, InputDevice("/dev/input/event30")
+        )  # gamepad Fixture
+
+        await self.send_events(
+            [InputEvent.from_tuple((EV_ABS, ABS_X, x)),
+             InputEvent.from_tuple((EV_ABS, ABS_Y, -y))
+             ],
+            event_reader
+        )
+        # wait a bit more for it to sum up
+        sleep = 0.5
+        await asyncio.sleep(sleep)
+        # stop it
+        await self.send_events(
+            [InputEvent.from_tuple((EV_ABS, ABS_X, 0)),
+             InputEvent.from_tuple((EV_ABS, ABS_Y, 0))
+             ],
+            event_reader
+        )
+        m_history = convert_to_internal_events(
+            global_uinputs.get_uinput("mouse").write_history
+        )
+
+        rel_wheel = sum([event.value for event in m_history if event.code == REL_WHEEL])
+        rel_wheel_hi_res = sum([event.value for event in m_history if event.code == REL_WHEEL_HI_RES])
+        rel_hwheel = sum([event.value for event in m_history if event.code == REL_HWHEEL])
+        rel_hwheel_hi_res = sum([event.value for event in m_history if event.code == REL_HWHEEL_HI_RES])
+
+        self.assertAlmostEqual(rel_wheel, rel_wheel_hi_res / 120, places=0)
+        self.assertAlmostEqual(rel_hwheel, rel_hwheel_hi_res / 120, places=0)
 
     async def test_forward_abs(self):
         """test if EV_ABS events are forwarded when other events of the same input are not"""
