@@ -69,7 +69,10 @@ class AbsToBtnHandler(MappingHandler):
         #  TODO: potentially cash this function
         if abs_min == -1 and abs_max == 1:
             # this is a hat switch
-            return self._input_event.value // abs(self._input_event.value), 0  # return +-1
+            return (
+                self._input_event.value // abs(self._input_event.value),
+                0,
+            )  # return +-1
 
         half_range = (abs_max - abs_min) / 2
         middle = half_range + abs_min

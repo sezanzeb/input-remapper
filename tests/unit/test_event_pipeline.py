@@ -230,20 +230,22 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
         )  # gamepad Fixture
 
         await self.send_events(
-            [InputEvent.from_tuple((EV_ABS, ABS_X, -x)),
-             InputEvent.from_tuple((EV_ABS, ABS_Y, -y))
-             ],
-            event_reader
+            [
+                InputEvent.from_tuple((EV_ABS, ABS_X, -x)),
+                InputEvent.from_tuple((EV_ABS, ABS_Y, -y)),
+            ],
+            event_reader,
         )
         # wait a bit more for it to sum up
         sleep = 0.5
         await asyncio.sleep(sleep)
         # stop it
         await self.send_events(
-            [InputEvent.from_tuple((EV_ABS, ABS_X, 0)),
-             InputEvent.from_tuple((EV_ABS, ABS_Y, 0))
-             ],
-            event_reader
+            [
+                InputEvent.from_tuple((EV_ABS, ABS_X, 0)),
+                InputEvent.from_tuple((EV_ABS, ABS_Y, 0)),
+            ],
+            event_reader,
         )
 
         # convert the write history to some easier to manage list
@@ -307,29 +309,37 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
         )  # gamepad Fixture
 
         await self.send_events(
-            [InputEvent.from_tuple((EV_ABS, ABS_X, x)),
-             InputEvent.from_tuple((EV_ABS, ABS_Y, -y))
-             ],
-            event_reader
+            [
+                InputEvent.from_tuple((EV_ABS, ABS_X, x)),
+                InputEvent.from_tuple((EV_ABS, ABS_Y, -y)),
+            ],
+            event_reader,
         )
         # wait a bit more for it to sum up
         sleep = 0.5
         await asyncio.sleep(sleep)
         # stop it
         await self.send_events(
-            [InputEvent.from_tuple((EV_ABS, ABS_X, 0)),
-             InputEvent.from_tuple((EV_ABS, ABS_Y, 0))
-             ],
-            event_reader
+            [
+                InputEvent.from_tuple((EV_ABS, ABS_X, 0)),
+                InputEvent.from_tuple((EV_ABS, ABS_Y, 0)),
+            ],
+            event_reader,
         )
         m_history = convert_to_internal_events(
             global_uinputs.get_uinput("mouse").write_history
         )
 
         rel_wheel = sum([event.value for event in m_history if event.code == REL_WHEEL])
-        rel_wheel_hi_res = sum([event.value for event in m_history if event.code == REL_WHEEL_HI_RES])
-        rel_hwheel = sum([event.value for event in m_history if event.code == REL_HWHEEL])
-        rel_hwheel_hi_res = sum([event.value for event in m_history if event.code == REL_HWHEEL_HI_RES])
+        rel_wheel_hi_res = sum(
+            [event.value for event in m_history if event.code == REL_WHEEL_HI_RES]
+        )
+        rel_hwheel = sum(
+            [event.value for event in m_history if event.code == REL_HWHEEL]
+        )
+        rel_hwheel_hi_res = sum(
+            [event.value for event in m_history if event.code == REL_HWHEEL_HI_RES]
+        )
 
         self.assertAlmostEqual(rel_wheel, rel_wheel_hi_res / 120, places=0)
         self.assertAlmostEqual(rel_hwheel, rel_hwheel_hi_res / 120, places=0)

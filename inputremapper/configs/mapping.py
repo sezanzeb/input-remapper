@@ -84,7 +84,9 @@ class Mapping(BaseModel):
 
     # when mapping to relative axis
     rate: PositiveInt = 60  # The frequency [Hz] at which EV_REL events get generated
-    rel_speed: PositiveInt = 100  # the base speed of the relative axis, compounds with the gain
+    rel_speed: PositiveInt = (
+        100  # the base speed of the relative axis, compounds with the gain
+    )
 
     # when mapping from relative axis:
     # the absolute value at which a EV_REL axis is considered at its maximum

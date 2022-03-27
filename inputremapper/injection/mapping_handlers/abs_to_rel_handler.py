@@ -25,7 +25,14 @@ import asyncio
 import math
 
 from typing import Dict, Tuple, Optional, List, Union
-from evdev.ecodes import EV_REL, EV_ABS, REL_WHEEL, REL_HWHEEL, REL_WHEEL_HI_RES, REL_HWHEEL_HI_RES
+from evdev.ecodes import (
+    EV_REL,
+    EV_ABS,
+    REL_WHEEL,
+    REL_HWHEEL,
+    REL_WHEEL_HI_RES,
+    REL_HWHEEL_HI_RES,
+)
 
 from inputremapper.configs.mapping import Mapping
 from inputremapper.injection.mapping_handlers.mapping_handler import (
@@ -113,7 +120,12 @@ class AbsToRelHandler(MappingHandler):
         self._stop = True
 
         # bind the correct run method
-        if self.mapping.output_code in (REL_WHEEL, REL_HWHEEL, REL_WHEEL_HI_RES, REL_HWHEEL_HI_RES):
+        if self.mapping.output_code in (
+            REL_WHEEL,
+            REL_HWHEEL,
+            REL_WHEEL_HI_RES,
+            REL_HWHEEL_HI_RES,
+        ):
             if self.mapping.output_code in (REL_WHEEL, REL_WHEEL_HI_RES):
                 codes = (REL_WHEEL, REL_WHEEL_HI_RES)
             else:
@@ -122,7 +134,7 @@ class AbsToRelHandler(MappingHandler):
             if self.mapping.output_code in (REL_WHEEL, REL_HWHEEL):
                 weights = (1, 120)
             else:
-                weights = (1/120, 1)
+                weights = (1 / 120, 1)
 
             self._run = partial(_run_wheel, self, codes=codes, weights=weights)
 
