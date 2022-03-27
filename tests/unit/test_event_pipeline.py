@@ -197,6 +197,7 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
 
         rate = 60  # rate [Hz] at which events are produced
         gain = 0.5  # halve the speed of the rel axis
+        speed = 1
         preset = Preset()
         # left x to mouse x
         cfg = {
@@ -207,6 +208,7 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
             "rate": rate,
             "gain": gain,
             "deadzone": 0,
+            "rel_speed": speed,
         }
         m1 = Mapping(**cfg)
         preset.add(m1)
@@ -216,22 +218,31 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
         m2 = Mapping(**cfg)
         preset.add(m2)
 
-        # set input axis to 1 in order to move gain*1*rate=0.5*60 pixel per second
-        x = 1
-        y = 1
+        # set input axis to 100% in order to move
+        # speed*gain*rate=1*0.5*60 pixel per second
+        x = MAX_ABS
+        y = MAX_ABS
 
         event_reader = self.get_event_reader(
             preset, InputDevice("/dev/input/event30")
         )  # gamepad Fixture
 
-        await event_reader.handle(InputEvent.from_tuple((EV_ABS, ABS_X, -x)))
-        await event_reader.handle(InputEvent.from_tuple((EV_ABS, ABS_Y, -y)))
+        await self.send_events(
+            [InputEvent.from_tuple((EV_ABS, ABS_X, -x)),
+             InputEvent.from_tuple((EV_ABS, ABS_Y, -y))
+             ],
+            event_reader
+        )
         # wait a bit more for it to sum up
         sleep = 0.5
         await asyncio.sleep(sleep)
         # stop it
-        await event_reader.handle(InputEvent.from_tuple((EV_ABS, ABS_X, 0)))
-        await event_reader.handle(InputEvent.from_tuple((EV_ABS, ABS_Y, 0)))
+        await self.send_events(
+            [InputEvent.from_tuple((EV_ABS, ABS_X, 0)),
+             InputEvent.from_tuple((EV_ABS, ABS_Y, 0))
+             ],
+            event_reader
+        )
 
         # convert the write history to some easier to manage list
         history = convert_to_internal_events(
@@ -244,10 +255,9 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
                 # possibly in addition to writing mouse events
             )
 
-        # movement is written at 60hz it moves input_value*rate pixels per event
-        # move 1px. take it times 2 for both x and y events.
-        self.assertGreater(len(history), rate * sleep * 0.9 * gain)
-        self.assertLess(len(history), rate * sleep * 1.1 * gain)
+        # each axis writes speed*gain*rate*sleep=1*0.5*60 events
+        self.assertGreater(len(history), speed * gain * rate * sleep * 0.9 * 2)
+        self.assertLess(len(history), speed * gain * rate * sleep * 1.1 * 2)
 
         # those may be in arbitrary order
         count_x = history.count((EV_REL, REL_X, -1))
