@@ -40,7 +40,7 @@ from inputremapper.exceptions import MacroParsingError
 from inputremapper.injection.macros.parse import is_this_a_macro, parse
 
 
-pydantic_version = pkg_resources.parse_version(VERSION)
+pydantic_version = pkg_resources.parse_version(str(VERSION))
 
 
 # TODO: in python 3.11 inherit enum.StrEnum
