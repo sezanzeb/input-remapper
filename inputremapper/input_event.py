@@ -145,6 +145,11 @@ class InputEvent:
         """event type, code, value"""
         return self.type, self.code, self.value
 
+    @property
+    def is_key_event(self) -> bool:
+        """whether this is interpreted as a key event"""
+        return self.type == evdev.ecodes.EV_KEY or self.action == EventActions.as_key
+
     def __str__(self):
         if self.type == evdev.ecodes.EV_KEY:
             key_name = evdev.ecodes.bytype[self.type].get(self.code, "unknown")

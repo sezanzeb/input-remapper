@@ -41,27 +41,20 @@ class CombinationHandler(MappingHandler):
 
     # map of (event.type, event.code) -> bool , keep track of the combination state
     _key_map: Dict[Tuple[int, int], bool]
-
-    # if we forward axis events contains the event.type and event.code
-    _map_axis: Optional[Tuple[int, int]]
-
     _output_state: bool  # the last update we sent to a sub-handler
 
     def __init__(
         self, combination: EventCombination, mapping: Mapping, context: ContextProtocol
     ) -> None:
+        logger.debug(mapping)
         super().__init__(combination, mapping, context)
         self._key_map = {}
-        self._map_axis = None
         self._output_state = False
 
         # prepare a key map for all events with non-zero value
         for event in combination:
-            if event.value != 0:
-                self._key_map[event.type_and_code] = False
-            else:
-                assert self._map_axis is None  # we can not map multiple axis
-                self._map_axis = event.type_and_code
+            assert event.is_key_event
+            self._key_map[event.type_and_code] = False
 
         assert len(self._key_map) > 0  # no combination handler without a key
 
@@ -83,21 +76,8 @@ class CombinationHandler(MappingHandler):
         supress: bool = False,
     ) -> bool:
         type_code = event.type_and_code
-        if type_code not in self._key_map.keys() and (
-            not self._map_axis or type_code != self._map_axis
-        ):
+        if type_code not in self._key_map.keys():
             return False  # we are not responsible for the event
-
-        # check if the event belongs to the axis and is not interpreted as key
-        if type_code == self._map_axis and not event.action == EventActions.as_key:
-            if (
-                self.get_active()
-            ):  # the event was not yet applied to the key-map, this is
-                # combination is active, and this is the axis we should pass though the event pipe
-                return self._sub_handler.notify(event, source, forward, supress)
-            else:
-                # combination is not active, send the event back
-                return False
 
         last_state = self.get_active()
         self._key_map[type_code] = event.value == 1
@@ -125,15 +105,6 @@ class CombinationHandler(MappingHandler):
 
         if supress:
             return False
-
-        if self._map_axis and event.value == 0:
-            logger.debug_key(self.mapping.event_combination, "deactivated")
-            event = InputEvent(0, 0, *self._map_axis, 0, action=EventActions.recenter)
-            self._sub_handler.notify(event, source, forward, supress)
-            return True  # don't pass through if we map to an axis
-        elif self._map_axis:
-            logger.debug_key(self.mapping.event_combination, "activated")
-            return True
 
         logger.debug_key(
             self.mapping.event_combination, "triggered: sending to sub-handler"
@@ -172,11 +143,5 @@ class CombinationHandler(MappingHandler):
 
             if event.type == EV_REL and event.value != 0:
                 return_dict[EventCombination(event)] = HandlerEnums.rel2btn
-
-            if event.type == EV_KEY and event.value == 0:
-                if self.mapping.output_type == EV_ABS:
-                    return_dict[EventCombination(event)] = HandlerEnums.btn2abs
-                elif self.mapping.output_type == EV_REL:
-                    return_dict[EventCombination(event)] = HandlerEnums.btn2rel
 
         return return_dict

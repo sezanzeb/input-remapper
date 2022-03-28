@@ -43,6 +43,9 @@ from inputremapper.injection.mapping_handlers.rel_to_btn_handler import RelToBtn
 from inputremapper.injection.mapping_handlers.abs_to_rel_handler import AbsToRelHandler
 from inputremapper.injection.mapping_handlers.macro_handler import MacroHandler
 from inputremapper.injection.mapping_handlers.key_handler import KeyHandler
+from inputremapper.injection.mapping_handlers.axis_switch_handler import (
+    AxisSwitchHandler,
+)
 from inputremapper.injection.mapping_handlers.null_handler import NullHandler
 from inputremapper.injection.macros.parse import is_this_a_macro
 from inputremapper.configs.preset import Preset
@@ -65,6 +68,7 @@ mapping_handler_classes: Dict[HandlerEnums, Type[MappingHandler]] = {
     HandlerEnums.abs2abs: None,
     HandlerEnums.combination: CombinationHandler,
     HandlerEnums.hierarchy: HierarchyHandler,
+    HandlerEnums.axisswitch: AxisSwitchHandler,
     HandlerEnums.disable: NullHandler,
 }
 

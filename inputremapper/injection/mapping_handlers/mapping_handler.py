@@ -63,11 +63,11 @@ from __future__ import annotations
 import enum
 
 import evdev
-from typing import Dict, Protocol, Set, List, Tuple, Type, Optional
+from typing import Dict, Protocol, Set, Optional
 
 from inputremapper.configs.mapping import Mapping
 from inputremapper.configs.preset import Preset
-from inputremapper.input_event import InputEvent
+from inputremapper.input_event import InputEvent, EventActions
 from inputremapper.event_combination import EventCombination
 from inputremapper.logger import logger
 
@@ -117,6 +117,7 @@ class HandlerEnums(enum.Enum):
     # special handlers
     combination = enum.auto()
     hierarchy = enum.auto()
+    axisswitch = enum.auto()
     disable = enum.auto()
 
 
@@ -148,8 +149,14 @@ class MappingHandler(InputEventHandler):
         mapping :  Mapping
         context : Context
         """
+        new_combination = []
+        for event in combination:
+            if event.value != 0:
+                event = event.modify(action=EventActions.as_key)
+            new_combination.append(event)
+
         self.mapping = mapping
-        self.input_events = combination
+        self.input_events = EventCombination.from_events(new_combination)
         self._sub_handler = None
 
     def needs_wrapping(self) -> bool:

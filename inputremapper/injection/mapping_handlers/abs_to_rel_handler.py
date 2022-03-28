@@ -276,5 +276,6 @@ class AbsToRelHandler(MappingHandler):
         assert False  # cannot have a sub-handler
 
     def wrap_with(self) -> Dict[EventCombination, HandlerEnums]:
-        if len(self.input_events) > 1:
-            return {self.input_events: HandlerEnums.combination}
+        if self.needs_wrapping():
+            return {self.input_events: HandlerEnums.axisswitch}
+        return {}
