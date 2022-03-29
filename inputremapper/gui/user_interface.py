@@ -206,7 +206,7 @@ class UserInterface:
         source_view = self.get("code_editor")
 
         # throw debounce on typing
-        source_view.get_buffer().connect("changed", self.check_on_typing)
+        source_view.get_buffer().connect("changed", self.check_macro_syntax)
 
         # if any of the next steps take a bit to complete, have the window
         # already visible (without content) to make it look more responsive.
@@ -473,13 +473,12 @@ class UserInterface:
             status_bar.set_tooltip_text(tooltip)
 
     @debounce
-    def check_on_typing(self, *_):
-        self.check_macro_syntax()
-
     def check_macro_syntax(self):
         """Check if the programmed macros are allright."""
         self.show_status(CTX_MAPPING, None)
+        print("check_macro_syntax")
         for key, output in active_preset:
+            print("checking", key, output)
             output = output[0]
             if not is_this_a_macro(output):
                 continue
@@ -787,7 +786,7 @@ class UserInterface:
 
             # checking macros is probably a bit more expensive, do that if
             # the regular mappings are allright
-            self.check_macro_syntax()
+            # self.check_macro_syntax()
 
     def on_about_clicked(self, button):
         """Show the about/help dialog."""
