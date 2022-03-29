@@ -17,7 +17,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
-
+from inputremapper.configs.mapping import UIMapping
 from tests.test import tmp, quick_cleanup, get_key_mapping
 
 import os
@@ -30,7 +30,7 @@ from inputremapper.input_event import InputEvent
 
 from inputremapper.configs.preset import Preset
 from inputremapper.configs.system_mapping import SystemMapping, XMODMAP_FILENAME
-from inputremapper.configs.paths import get_preset_path
+from inputremapper.configs.paths import get_preset_path, get_config_path
 from inputremapper.event_combination import EventCombination
 
 
@@ -220,6 +220,10 @@ class TestPreset(unittest.TestCase):
             get_key_mapping(EventCombination(two, three), "keyboard", "3"),
         )
 
+        # load missing file
+        preset = Preset(get_config_path("missing_file.json"))
+        self.assertRaises(FileNotFoundError, preset.load)
+
     def test_modify_mapping(self):
         # the reader would not report values like 111 or 222, only 1 or -1.
         # the preset just does what it is told, so it accepts them.
@@ -353,7 +357,7 @@ class TestPreset(unittest.TestCase):
 
         self.preset.add(get_key_mapping(combination=ev_1))
         self.assertEqual(len(self.preset), 1)
-        self.preset.remove(ev_1)
+        self.preset.remove(mapping=get_key_mapping(combination=ev_1))
         self.assertEqual(len(self.preset), 0)
 
         self.preset.add(get_key_mapping(ev_4, "keyboard", "KEY_KP1"))
@@ -382,22 +386,49 @@ class TestPreset(unittest.TestCase):
             get_key_mapping(EventCombination([EV_KEY, 12, 1]), "keyboard", "3")
         )
         self.assertEqual(len(self.preset), 3)
+        self.preset.path = get_config_path("test.json")
+        self.preset.save()
+        self.assertFalse(self.preset.has_unsaved_changes())
+
         self.preset.empty()
+        self.assertEqual(self.preset.path, get_config_path("test.json"))
+        self.assertTrue(self.preset.has_unsaved_changes())
+        self.assertEqual(len(self.preset), 0)
+
+    def test_clear(self):
+        self.preset.add(
+            get_key_mapping(EventCombination([EV_KEY, 10, 1]), "keyboard", "1")
+        )
+        self.preset.add(
+            get_key_mapping(EventCombination([EV_KEY, 11, 1]), "keyboard", "2")
+        )
+        self.preset.add(
+            get_key_mapping(EventCombination([EV_KEY, 12, 1]), "keyboard", "3")
+        )
+        self.assertEqual(len(self.preset), 3)
+        self.preset.path = get_config_path("test.json")
+        self.preset.save()
+        self.assertFalse(self.preset.has_unsaved_changes())
+
+        self.preset.clear()
+        self.assertFalse(self.preset.has_unsaved_changes())
+        self.assertIsNone(self.preset.path)
         self.assertEqual(len(self.preset), 0)
 
     def test_dangerously_mapped_btn_left(self):
+        # btn left is mapped
         self.preset.add(
             get_key_mapping(EventCombination(InputEvent.btn_left()), "keyboard", "1")
         )
         self.assertTrue(self.preset.dangerously_mapped_btn_left())
-
         self.preset.add(
             get_key_mapping(EventCombination([EV_KEY, 41, 1]), "keyboard", "2")
         )
         self.assertTrue(self.preset.dangerously_mapped_btn_left())
 
+        # another mapping maps to btn_left
         self.preset.add(
-            get_key_mapping(EventCombination([EV_KEY, 42, 1]), "gamepad", "btn_left")
+            get_key_mapping(EventCombination([EV_KEY, 42, 1]), "mouse", "btn_left")
         )
         self.assertFalse(self.preset.dangerously_mapped_btn_left())
 
@@ -408,6 +439,44 @@ class TestPreset(unittest.TestCase):
         mapping.target_uinput = "keyboard"
         mapping.output_symbol = "3"
         self.assertTrue(self.preset.dangerously_mapped_btn_left())
+
+        # btn_left is not mapped
+        self.preset.remove(EventCombination(InputEvent.btn_left()))
+        self.assertFalse(self.preset.dangerously_mapped_btn_left())
+
+    def test_save_load_with_invalid_mappings(self):
+        ui_preset = Preset(get_config_path("test.json"), mapping_factory=UIMapping)
+
+        # cannot add a mapping without a valid combination
+        self.assertRaises(Exception, ui_preset.add, UIMapping())
+
+        ui_preset.add(UIMapping(event_combination="1,1,1"))
+        self.assertFalse(ui_preset.is_valid())
+
+        # make the mapping valid
+        m = ui_preset.get_mapping(EventCombination.from_string("1,1,1"))
+        m.output_symbol = "a"
+        m.target_uinput = "keyboard"
+        self.assertTrue(ui_preset.is_valid())
+
+        m2 = UIMapping(event_combination="1,2,1")
+        ui_preset.add(m2)
+        self.assertFalse(ui_preset.is_valid())
+        ui_preset.save()
+
+        # only the valid preset is loaded
+        preset = Preset(get_config_path("test.json"))
+        preset.load()
+        self.assertEqual(len(preset), 1)
+        self.assertEqual(preset.get_mapping(m.event_combination), m)
+
+        # both presets load
+        ui_preset.clear()
+        ui_preset.path = get_config_path("test.json")
+        ui_preset.load()
+        self.assertEqual(len(ui_preset), 2)
+        self.assertEqual(ui_preset.get_mapping(m.event_combination), m)
+        self.assertEqual(ui_preset.get_mapping(m2.event_combination), m2)
 
 
 if __name__ == "__main__":
