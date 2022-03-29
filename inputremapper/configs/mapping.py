@@ -19,7 +19,7 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 import enum
-from evdev.ecodes import EV_KEY, EV_ABS
+from evdev.ecodes import EV_KEY, EV_ABS, EV_REL
 from pydantic import (
     BaseModel,
     PositiveInt,
@@ -38,7 +38,7 @@ from inputremapper.event_combination import EventCombination
 from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.exceptions import MacroParsingError
 from inputremapper.injection.macros.parse import is_this_a_macro, parse
-
+from inputremapper.input_event import EventActions
 
 pydantic_version = pkg_resources.parse_version(str(VERSION))
 
@@ -84,13 +84,12 @@ class Mapping(BaseModel):
 
     # when mapping to relative axis
     rate: PositiveInt = 60  # The frequency [Hz] at which EV_REL events get generated
-    rel_speed: PositiveInt = (
-        100  # the base speed of the relative axis, compounds with the gain
-    )
+    # the base speed of the relative axis, compounds with the gain
+    rel_speed: PositiveInt = 100
 
     # when mapping from relative axis:
     # the absolute value at which a EV_REL axis is considered at its maximum
-    rel_input_maximum: PositiveInt = 100
+    rel_input_cutoff: PositiveInt = 100
     # the time until a relative axis is considered stationary if no new events arrive
     release_timeout: PositiveFloat = 0.05
 
@@ -159,7 +158,6 @@ class Mapping(BaseModel):
         return True
 
     @validator("output_symbol", pre=True)
-    @classmethod
     def validate_symbol(cls, symbol):
         if not symbol:
             return None
@@ -180,13 +178,11 @@ class Mapping(BaseModel):
         )
 
     @validator("event_combination")
-    @classmethod
     def only_one_analog_input(cls, combination) -> EventCombination:
         """
         check that the event_combination specifies a maximum of one
         analog to analog mapping
         """
-        combination = EventCombination.validate(combination)
 
         # any event with a value of 0  is considered an analog input (even key events)
         # any event with a non-zero value is considered a binary input
@@ -200,12 +196,10 @@ class Mapping(BaseModel):
         return combination
 
     @validator("event_combination")
-    @classmethod
     def trigger_point_in_range(cls, combination) -> EventCombination:
         """
         check if the trigger point for mapping analog axis to buttons is valid
         """
-        combination = EventCombination.validate(combination)
         for event in combination:
             if event.type == EV_ABS and abs(event.value) >= 100:
                 raise ValueError(
@@ -214,8 +208,17 @@ class Mapping(BaseModel):
                 )
         return combination
 
+    @validator("event_combination")
+    def set_event_actions(cls, combination):
+        """sets the correct action for each event"""
+        new_combination = []
+        for event in combination:
+            if event.value != 0:
+                event = event.modify(action=EventActions.as_key)
+            new_combination.append(event)
+        return EventCombination.from_events(new_combination)
+
     @root_validator
-    @classmethod
     def contains_output(cls, values):
         o_symbol = values.get("output_symbol")
         o_type = values.get("output_type")
@@ -228,34 +231,45 @@ class Mapping(BaseModel):
         return values
 
     @root_validator
-    @classmethod
     def validate_output_integrity(cls, values):
-        o_symbol = values.get("output_symbol")
-        o_type = values.get("output_type")
-        o_code = values.get("output_code")
-        if o_symbol is None:
+        symbol = values.get("output_symbol")
+        type_ = values.get("output_type")
+        code = values.get("output_code")
+        if symbol is None:
             return values  # type and code can be anything
 
-        if o_type is None and o_code is None:
+        if type_ is None and code is None:
             return values  # we have a symbol: no type and code is fine
 
-        if is_this_a_macro(o_symbol):  # disallow output type and code for macros
-            if o_type is not None or o_code is not None:
+        if is_this_a_macro(symbol):  # disallow output type and code for macros
+            if type_ is not None or code is not None:
                 raise ValueError(
                     f"output_symbol is a macro: output_type and output_code must be None"
                 )
 
-        if o_type is not None and o_type != EV_KEY:
-            raise ValueError(
-                f"output_type is not EV_KEY ({EV_KEY}) but output_symbol is not None."
-            )
-
-        if o_code is not None and o_code != system_mapping.get(o_symbol):
+        if code is not None and code != system_mapping.get(symbol) or type_ != EV_KEY:
             raise ValueError(
                 f"output_symbol and output_code mismatch: "
-                f"output macro is {o_symbol} --> {system_mapping.get(o_symbol)} "
-                f"but output_code is {o_code} --> {system_mapping.get_name(o_code)} "
+                f"output macro is {symbol} --> {system_mapping.get(symbol)} "
+                f"but output_code is {code} --> {system_mapping.get_name(code)} "
             )
+        return values
+
+    @root_validator
+    def output_axis_given(cls, values):
+        """validate that an output type is an axis if we have an input axis"""
+        combination = values.get("event_combination")
+        output_type = values.get("output_type")
+        event_values = [event.value for event in combination]
+        if 0 not in event_values:
+            return values
+
+        if output_type not in (EV_ABS, EV_REL):
+            raise ValueError(
+                f"the {combination = } specifies a input axis, "
+                f"but the {output_type = } is not an axis "
+            )
+
         return values
 
     class Config:
