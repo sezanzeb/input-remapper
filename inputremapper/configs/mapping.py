@@ -135,6 +135,12 @@ class Mapping(BaseModel):
     def __str__(self):
         return str(self.dict(exclude_defaults=True))
 
+    if pydantic_version < pkg_resources.parse_version("1.7.1"):
+        def copy(self, *args, **kwargs) -> Mapping:
+            copy = super(Mapping, self).copy(*args, **kwargs)
+            object.__setattr__(copy, "_combination_changed", self._combination_changed)
+            return copy
+
     def set_combination_changed_callback(self, callback: CombinationChangedCallback):
         self._combination_changed = callback
 
