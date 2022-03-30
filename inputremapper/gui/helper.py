@@ -37,6 +37,7 @@ import sys
 import select
 import multiprocessing
 import subprocess
+import time
 
 import evdev
 from evdev.ecodes import EV_KEY, EV_ABS
@@ -87,17 +88,22 @@ class RootHelper:
 
     def run(self):
         """Start doing stuff. Blocks."""
-        logger.debug('Waiting for commands')
-        select.select([self._commands], [], [])
+        logger.debug("Waiting for commands")
 
-        logger.debug('Starting mainloop')
+        while True:
+            if self._commands.poll():
+                break
+
+            time.sleep(0.1)
+
+        logger.debug("Starting mainloop")
         while True:
             self._read_commands()
             self._start_reading()
 
     def _send_groups(self):
         """Send the groups to the gui."""
-        logger.debug('Sending groups')
+        logger.debug("Sending groups")
         self._results.send({"type": MSG_GROUPS, "message": groups.dumps()})
 
     def _read_commands(self):
@@ -126,7 +132,7 @@ class RootHelper:
 
             logger.error('Received unknown command "%s"', cmd)
 
-        logger.debug('No more commands in pipe')
+        logger.debug("No more commands in pipe")
 
     def _start_reading(self):
         """Tell the evdev lib to start looking for keycodes.
@@ -180,7 +186,7 @@ class RootHelper:
                     # all commands will cause the reader to start over
                     # (possibly for a different device).
                     # _read_commands will check what is going on
-                    logger.debug('Stops reading due to new command')
+                    logger.debug("Stops reading due to new command")
                     return
 
                 device = rlist[fd]
