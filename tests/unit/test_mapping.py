@@ -115,8 +115,14 @@ class TestMapping(unittest.IsolatedAsyncioTestCase):
         m.set_combination_changed_callback(callback)
         m.event_combination = "1,1,2"
         m.event_combination = "1,1,3"
+
+        # make sure a copy works as expected and keeps the callback
+        m2 = m.copy()
+        m2.event_combination = "1,1,4"
+        m2.remove_combination_changed_callback()
         m.remove_combination_changed_callback()
-        m.event_combination = "1,1,4"
+        m.event_combination = "1,1,5"
+        m2.event_combination = "1,1,6"
         self.assertEqual(
             arguments,
             [
@@ -128,6 +134,10 @@ class TestMapping(unittest.IsolatedAsyncioTestCase):
                     EventCombination.from_string("1,1,3"),
                     EventCombination.from_string("1,1,2"),
                 ),
+                (
+                    EventCombination.from_string("1,1,4"),
+                    EventCombination.from_string("1,1,3"),
+                )
             ],
         )
         m.remove_combination_changed_callback()
