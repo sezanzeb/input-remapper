@@ -429,8 +429,7 @@ class GuiTestBase(unittest.TestCase):
         # the recording toggle connects to focus events
         self.set_focus(self.toggle)
         self.toggle.set_active(True)
-        gtk_iteration()
-        gtk_iteration()
+        self.throttle()
         self.assertIsNone(selection_label.get_combination())
         self.assertEqual(self.toggle.get_label(), "Press Key")
 
@@ -445,6 +444,9 @@ class GuiTestBase(unittest.TestCase):
             # make the window consume the keycode
             self.sleep(len(key))
 
+            # and some extra time for gtk to work at all
+            self.throttle()
+
             # holding down
             self.assertIsNotNone(reader.get_unreleased_keys())
             self.assertGreater(len(reader.get_unreleased_keys()), 0)
@@ -457,6 +459,9 @@ class GuiTestBase(unittest.TestCase):
 
             # wait for the window to consume the keycode
             self.sleep(len(key))
+
+            # ...and even more extra time for gtk
+            self.throttle()
 
             # released
             self.assertIsNone(reader.get_unreleased_keys())
