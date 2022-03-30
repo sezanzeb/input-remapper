@@ -30,7 +30,7 @@ from inputremapper.input_event import EventActions
 from inputremapper.event_combination import EventCombination
 
 
-class TestMapping(unittest.TestCase):
+class TestMapping(unittest.IsolatedAsyncioTestCase):
     def test_init(self):
         """test init and that defaults are set"""
         cfg = {

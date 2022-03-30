@@ -337,18 +337,6 @@ class UIMapping(Mapping):
 
         return object.__getattribute__(self, item)
 
-    def __eq__(self, other):
-
-        if isinstance(other, UIMapping):
-            return self.dict() == other.dict()
-        elif isinstance(other, Mapping):
-            dict_ = self.dict()
-            if pydantic_version >= pkg_resources.parse_version("1.7.1"):
-                del dict_["ATTRIBUTES"]
-            return dict_ == other.dict()
-
-        return super(UIMapping, self).__eq__(other)
-
     def is_valid(self) -> bool:
         """if the mapping is valid"""
         return len(self._cache) == 0
@@ -358,6 +346,11 @@ class UIMapping(Mapping):
         dict_ = super(UIMapping, self).dict(*args, **kwargs)
         # combine all valid values with the invalid ones
         dict_.update(**self._cache)
+        if "ATTRIBUTES" in dict_:
+            # remove so that super().__eq__ succeeds
+            # for comparing Mapping with UIMapping
+            del dict_["ATTRIBUTES"]
+
         if pydantic_version < pkg_resources.parse_version("1.7.1"):
             if "_last_error" in dict_.keys():
                 del dict_["_last_error"]
