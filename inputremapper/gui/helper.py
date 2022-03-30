@@ -87,12 +87,14 @@ class RootHelper:
 
     def run(self):
         """Start doing stuff. Blocks."""
+        logger.debug('Starting mainloop')
         while True:
             self._handle_commands()
             self._start_reading()
 
     def _send_groups(self):
         """Send the groups to the gui."""
+        logger.debug('Sending groups')
         self._results.send({"type": MSG_GROUPS, "message": groups.dumps()})
 
     def _handle_commands(self):

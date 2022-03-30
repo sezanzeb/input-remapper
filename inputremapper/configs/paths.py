@@ -36,6 +36,16 @@ def chown(path):
     except LookupError:
         # the users group was unknown in one case for whatever reason
         shutil.chown(path, user=USER)
+<<<<<<< Updated upstream
+=======
+    except PermissionError:
+        # let's skip it and hope for the best.
+        logger.warning(
+            "Failed to hand %s over to %s due to permission problems",
+            path,
+            USER,
+        )
+>>>>>>> Stashed changes
 
 
 def touch(path, log=True):
