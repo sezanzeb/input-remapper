@@ -87,9 +87,12 @@ class RootHelper:
 
     def run(self):
         """Start doing stuff. Blocks."""
+        logger.debug('Waiting for commands')
+        select.select([self._commands], [], [])
+
         logger.debug('Starting mainloop')
         while True:
-            self._handle_commands()
+            self._read_commands()
             self._start_reading()
 
     def _send_groups(self):
@@ -97,11 +100,8 @@ class RootHelper:
         logger.debug('Sending groups')
         self._results.send({"type": MSG_GROUPS, "message": groups.dumps()})
 
-    def _handle_commands(self):
+    def _read_commands(self):
         """Handle all unread commands."""
-        # wait for something to do
-        select.select([self._commands], [], [])
-
         while self._commands.poll():
             cmd = self._commands.recv()
             logger.debug('Received command "%s"', cmd)
@@ -125,6 +125,8 @@ class RootHelper:
                 continue
 
             logger.error('Received unknown command "%s"', cmd)
+
+        logger.debug('No more commands in pipe')
 
     def _start_reading(self):
         """Tell the evdev lib to start looking for keycodes.
@@ -177,7 +179,8 @@ class RootHelper:
                 if rlist[fd] == self._commands:
                     # all commands will cause the reader to start over
                     # (possibly for a different device).
-                    # _handle_commands will check what is going on
+                    # _read_commands will check what is going on
+                    logger.debug('Stops reading due to new command')
                     return
 
                 device = rlist[fd]
