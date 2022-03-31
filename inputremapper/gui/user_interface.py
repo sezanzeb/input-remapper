@@ -137,6 +137,7 @@ def ensure_everything_saved(func):
 
     return wrapped
 
+
 class UserInterface:
     """The input-remapper gtk window."""
 
