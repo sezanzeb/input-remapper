@@ -82,14 +82,8 @@ class Preset:
         """Check if there are unsaved changed."""
         return self._mappings != self._saved_mappings
 
-    def remove(
-        self,
-        combination: EventCombination = None,
-        mapping: Mapping = None,
-    ) -> None:
-        """remove a mapping from the preset, either by providing the mapping or the EventCombination"""
-        if mapping:
-            combination = mapping.event_combination
+    def remove(self, combination: EventCombination) -> None:
+        """remove a mapping from the preset by providing the EventCombination"""
 
         if not isinstance(combination, EventCombination):
             raise TypeError(

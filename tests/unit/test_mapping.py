@@ -137,7 +137,7 @@ class TestMapping(unittest.IsolatedAsyncioTestCase):
                 (
                     EventCombination.from_string("1,1,4"),
                     EventCombination.from_string("1,1,3"),
-                )
+                ),
             ],
         )
         m.remove_combination_changed_callback()

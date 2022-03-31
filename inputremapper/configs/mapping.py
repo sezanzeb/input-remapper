@@ -30,7 +30,7 @@ from pydantic import (
     PositiveFloat,
     VERSION,
 )
-from typing import Optional, Callable, Tuple, Dict, Union
+from typing import Optional, Callable, Tuple, Dict, Union, Any
 
 import pkg_resources
 
@@ -78,9 +78,11 @@ class Mapping(BaseModel):
     macro_key_sleep_ms: PositiveInt = 20
 
     # Optional attributes for mapping Axis to Axis
-    deadzone: confloat(ge=0, le=1) = 0.1  # The deadzone of the input axis
+    # The deadzone of the input axis
+    deadzone: confloat(ge=0, le=1) = 0.1  # type: ignore
     gain: float = 1.0  # The scale factor for the transformation
-    expo: confloat(ge=-1, le=1) = 0  # The expo factor for the transformation
+    # The expo factor for the transformation
+    expo: confloat(ge=-1, le=1) = 0  # type: ignore
 
     # when mapping to relative axis
     rate: PositiveInt = 60  # The frequency [Hz] at which EV_REL events get generated
@@ -136,6 +138,7 @@ class Mapping(BaseModel):
         return str(self.dict(exclude_defaults=True))
 
     if pydantic_version < pkg_resources.parse_version("1.7.1"):
+
         def copy(self, *args, **kwargs) -> Mapping:
             copy = super(Mapping, self).copy(*args, **kwargs)
             object.__setattr__(copy, "_combination_changed", self._combination_changed)
@@ -158,8 +161,7 @@ class Mapping(BaseModel):
         if not is_this_a_macro(self.output_symbol):
             return EV_KEY, system_mapping.get(self.output_symbol)
 
-    @staticmethod
-    def is_valid() -> bool:
+    def is_valid(self) -> bool:
         """if the mapping is valid"""
         return True
 
@@ -294,7 +296,7 @@ class UIMapping(Mapping):
     Invalid assignments are cached and revalidation is attempted as soon as the mapping changes
     """
 
-    _cache: Dict[str, any]  # the invalid mapping data
+    _cache: Dict[str, Any]  # the invalid mapping data
     _last_error: Optional[ValidationError]  # the last validation error
 
     # all attributes that __setattr__ will not forward to super() or _cache
