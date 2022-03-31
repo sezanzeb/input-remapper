@@ -32,6 +32,7 @@ CTX_MAPPING = 5
 
 debounces = {}
 
+
 def debounce(func):
     """Debounce a function call to improve performance."""
 
@@ -50,6 +51,7 @@ def debounce(func):
         )
 
     return wrapped
+
 
 class HandlerDisabled:
     """Safely modify a widget without causing handlers to be called.
