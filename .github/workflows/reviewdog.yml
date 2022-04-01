@@ -26,7 +26,7 @@ jobs:
         shell: bash
         run: |
           scripts/ci-install-deps.sh
-          pip install flake8 pylint mypy black
+          pip install flake8 pylint mypy black types-pkg_resources
       - name: Set env for PR
         if: github.event_name == 'pull_request'
         shell: bash
