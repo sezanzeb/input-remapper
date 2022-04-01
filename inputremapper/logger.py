@@ -27,6 +27,8 @@ import sys
 import shutil
 import time
 import logging
+from typing import cast
+
 import pkg_resources
 from datetime import datetime
 
@@ -69,54 +71,51 @@ def parse_mapping_handler(mapping_handler):
     return lines_and_indent
 
 
-def debug_mapping_handler(self, mapping_handler):
-    """
-    parse the structure of a mapping_handler an log it
-    """
-    if not self.isEnabledFor(logging.DEBUG):
-        return
+class Logger(logging.Logger):
+    def debug_mapping_handler(self, mapping_handler):
+        """
+        parse the structure of a mapping_handler an log it
+        """
+        if not self.isEnabledFor(logging.DEBUG):
+            return
 
-    lines_and_indent = parse_mapping_handler(mapping_handler)
-    for line in lines_and_indent:
-        indent = "    "
-        msg = indent * line[1] + line[0]
+        lines_and_indent = parse_mapping_handler(mapping_handler)
+        for line in lines_and_indent:
+            indent = "    "
+            msg = indent * line[1] + line[0]
+            self._log(logging.DEBUG, msg, args=None)
+
+    def debug_key(self, key, msg, *args):
+        """Log a spam message custom tailored to keycode_mapper.
+
+        Parameters
+        ----------
+        key : tuple of int
+            anything that can be string formatted, but usually a tuple of
+            (type, code, value) tuples
+        """
+        # pylint: disable=protected-access
+        if not self.isEnabledFor(logging.DEBUG):
+            return
+
+        global previous_key_debug_log
+
+        msg = msg % args
+        str_key = str(key)
+        str_key = str_key.replace(",)", ")")
+        spacing = " " + "·" * max(0, 30 - len(msg))
+        if len(spacing) == 1:
+            spacing = ""
+        msg = f"{msg}{spacing} {str_key}"
+
+        if msg == previous_key_debug_log:
+            # avoid some super spam from EV_ABS events
+            return
+
+        previous_key_debug_log = msg
+
         self._log(logging.DEBUG, msg, args=None)
 
-
-def debug_key(self, key, msg, *args):
-    """Log a spam message custom tailored to keycode_mapper.
-
-    Parameters
-    ----------
-    key : tuple of int
-        anything that can be string formatted, but usually a tuple of
-        (type, code, value) tuples
-    """
-    # pylint: disable=protected-access
-    if not self.isEnabledFor(logging.DEBUG):
-        return
-
-    global previous_key_debug_log
-
-    msg = msg % args
-    str_key = str(key)
-    str_key = str_key.replace(",)", ")")
-    spacing = " " + "·" * max(0, 30 - len(msg))
-    if len(spacing) == 1:
-        spacing = ""
-    msg = f"{msg}{spacing} {str_key}"
-
-    if msg == previous_key_debug_log:
-        # avoid some super spam from EV_ABS events
-        return
-
-    previous_key_debug_log = msg
-
-    self._log(logging.DEBUG, msg, args=None)
-
-
-logging.Logger.debug_mapping_handler = debug_mapping_handler
-logging.Logger.debug_key = debug_key
 
 LOG_PATH = (
     "/var/log/input-remapper"
@@ -124,7 +123,9 @@ LOG_PATH = (
     else f"{HOME}/.log/input-remapper"
 )
 
-logger = logging.getLogger("input-remapper")
+# https://github.com/python/typeshed/issues/1801
+logging.setLoggerClass(Logger)
+logger = cast(Logger, logging.getLogger("input-remapper"))
 
 
 def is_debug():
