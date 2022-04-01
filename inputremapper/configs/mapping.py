@@ -40,7 +40,11 @@ from inputremapper.exceptions import MacroParsingError
 from inputremapper.injection.macros.parse import is_this_a_macro, parse
 from inputremapper.input_event import EventActions
 
-pydantic_version = pkg_resources.parse_version(str(VERSION))
+# TODO: remove pydantic VERSION check as soon as we no longer support
+#  Ubuntu 20.04 and with it the ainchant pydantic 1.2
+needs_workaround = pkg_resources.parse_version(
+    str(VERSION)
+) < pkg_resources.parse_version("1.7.1")
 
 
 # TODO: in python 3.11 inherit enum.StrEnum
@@ -61,12 +65,12 @@ class Mapping(BaseModel):
     input action to an output action
     """
 
-    # TODO: remove pydantic VERSION check as soon as we no longer support Ubuntu 20.04 and with it the ainchant pydantic 1.2
-    if pydantic_version < pkg_resources.parse_version("1.7.1"):
+    if needs_workaround:
         __slots__ = ("_combination_changed",)
 
     # Required attributes
-    event_combination: EventCombination  # The InputEvent or InputEvent combination which is mapped
+    # The InputEvent or InputEvent combination which is mapped
+    event_combination: EventCombination
     target_uinput: KnownUinput  # The UInput to which the mapped event will be sent
 
     # Either `output_symbol` or `output_type` and `output_code` is required
@@ -96,12 +100,14 @@ class Mapping(BaseModel):
     release_timeout: PositiveFloat = 0.05
 
     # callback which gets called if the event_combination is updated
-    if pydantic_version >= pkg_resources.parse_version("1.7.1"):
+    if not needs_workaround:
         _combination_changed: CombinationChangedCallback = None
-    else:
 
-        def __init__(self, **kwargs):
-            super().__init__(**kwargs)
+    # use type: ignore, looks like a mypy bug related to:
+    # https://github.com/samuelcolvin/pydantic/issues/2949
+    def __init__(self, **kwargs):  # type: ignore
+        super().__init__(**kwargs)
+        if needs_workaround:
             object.__setattr__(self, "_combination_changed", None)
 
     def __setattr__(self, key, value):
@@ -110,10 +116,7 @@ class Mapping(BaseModel):
         if we are about to update the event_combination
         """
         if key != "event_combination" or self._combination_changed is None:
-            if (
-                key == "_combination_changed"
-                and pydantic_version < pkg_resources.parse_version("1.7.1")
-            ):
+            if key == "_combination_changed" and needs_workaround:
                 object.__setattr__(self, "_combination_changed", value)
                 return
             super(Mapping, self).__setattr__(key, value)
@@ -137,7 +140,7 @@ class Mapping(BaseModel):
     def __str__(self):
         return str(self.dict(exclude_defaults=True))
 
-    if pydantic_version < pkg_resources.parse_version("1.7.1"):
+    if needs_workaround:
 
         def copy(self, *args, **kwargs) -> Mapping:
             copy = super(Mapping, self).copy(*args, **kwargs)
@@ -160,6 +163,7 @@ class Mapping(BaseModel):
             return self.output_type, self.output_code
         if not is_this_a_macro(self.output_symbol):
             return EV_KEY, system_mapping.get(self.output_symbol)
+        return None
 
     def is_valid(self) -> bool:
         """if the mapping is valid"""
@@ -211,8 +215,8 @@ class Mapping(BaseModel):
         for event in combination:
             if event.type == EV_ABS and abs(event.value) >= 100:
                 raise ValueError(
-                    f"{event = } maps a absolute axis to a button, "
-                    f"but the trigger point (event.value) is not between -100[%] and 100[%]"
+                    f"{event = } maps a absolute axis to a button, but the trigger "
+                    f"point (event.value) is not between -100[%] and 100[%]"
                 )
         return combination
 
@@ -252,7 +256,8 @@ class Mapping(BaseModel):
         if is_this_a_macro(symbol):  # disallow output type and code for macros
             if type_ is not None or code is not None:
                 raise ValueError(
-                    f"output_symbol is a macro: output_type and output_code must be None"
+                    f"output_symbol is a macro: output_type "
+                    f"and output_code must be None"
                 )
 
         if code is not None and code != system_mapping.get(symbol) or type_ != EV_KEY:
@@ -291,9 +296,10 @@ class Mapping(BaseModel):
 class UIMapping(Mapping):
     """
     The UI Mapping adds the ability to create Invalid Mapping objects.
-    For use in the frontend, where invalid data is allowed during creation of the mapping
 
-    Invalid assignments are cached and revalidation is attempted as soon as the mapping changes
+    Intended for use in the frontend, where invalid data is allowed
+    during creation of the mapping. Invalid assignments are cached and
+    revalidation is attempted as soon as the mapping changes.
     """
 
     _cache: Dict[str, Any]  # the invalid mapping data
@@ -302,7 +308,9 @@ class UIMapping(Mapping):
     # all attributes that __setattr__ will not forward to super() or _cache
     ATTRIBUTES = ("_cache", "_last_error")
 
-    def __init__(self, **data):
+    # use type: ignore, looks like a mypy bug related to:
+    # https://github.com/samuelcolvin/pydantic/issues/2949
+    def __init__(self, **data):  # type: ignore
         object.__setattr__(self, "_last_error", None)
         super().__init__(
             event_combination="99,99,99",
@@ -359,7 +367,7 @@ class UIMapping(Mapping):
             # for comparing Mapping with UIMapping
             del dict_["ATTRIBUTES"]
 
-        if pydantic_version < pkg_resources.parse_version("1.7.1"):
+        if needs_workaround:
             if "_last_error" in dict_.keys():
                 del dict_["_last_error"]
                 del dict_["_cache"]
