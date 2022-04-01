@@ -156,7 +156,7 @@ class MappingHandler(InputEventHandler):
             new_combination.append(event)
 
         self.mapping = mapping
-        self.input_events = EventCombination.from_events(new_combination)
+        self.input_events = EventCombination(new_combination)
         self._sub_handler = None
 
     def needs_wrapping(self) -> bool:
@@ -189,6 +189,6 @@ class MappingHandler(InputEventHandler):
         events = list(self.input_events)
         events.remove(event)
         if len(events) > 0:
-            self.input_events = EventCombination(*events)
+            self.input_events = EventCombination(events)
         else:
             self.input_events = ()

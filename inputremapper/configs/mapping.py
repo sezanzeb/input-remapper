@@ -228,7 +228,7 @@ class Mapping(BaseModel):
             if event.value != 0:
                 event = event.modify(action=EventActions.as_key)
             new_combination.append(event)
-        return EventCombination.from_events(new_combination)
+        return EventCombination(new_combination)
 
     @root_validator
     def contains_output(cls, values):

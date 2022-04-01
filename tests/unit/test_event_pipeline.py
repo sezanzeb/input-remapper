@@ -624,11 +624,12 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
         preset = Preset()
         m1 = get_key_mapping(EventCombination((EV_ABS, ABS_X, 1)), output_symbol="a")
         m2 = get_key_mapping(
-            EventCombination((EV_ABS, ABS_X, 1), (EV_KEY, BTN_A, 1)), output_symbol="b"
+            EventCombination(((EV_ABS, ABS_X, 1), (EV_KEY, BTN_A, 1))),
+            output_symbol="b",
         )
         m3 = get_key_mapping(
             EventCombination(
-                (EV_ABS, ABS_X, 1), (EV_KEY, BTN_A, 1), (EV_KEY, BTN_B, 1)
+                ((EV_ABS, ABS_X, 1), (EV_KEY, BTN_A, 1), (EV_KEY, BTN_B, 1))
             ),
             output_symbol="c",
         )
@@ -717,8 +718,8 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
         ev_5 = (EV_KEY, KEY_A, 1)
         ev_6 = (EV_KEY, KEY_A, 0)
 
-        combi_1 = EventCombination(ev_5, ev_3)
-        combi_2 = EventCombination(ev_3, ev_5)
+        combi_1 = EventCombination((ev_5, ev_3))
+        combi_2 = EventCombination((ev_3, ev_5))
 
         preset = Preset()
         preset.add(get_key_mapping(EventCombination(ev_1), output_symbol="a"))
@@ -827,7 +828,9 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
 
         preset = Preset()
         preset.add(get_key_mapping(EventCombination(down_1), output_symbol="h(k(a))"))
-        preset.add(get_key_mapping(EventCombination(down_1, down_2), output_symbol="b"))
+        preset.add(
+            get_key_mapping(EventCombination((down_1, down_2)), output_symbol="b")
+        )
 
         event_reader = self.get_event_reader(preset, InputDevice("/dev/input/event30"))
         # macro starts
@@ -897,7 +900,7 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
         scroll_release = InputEvent.from_tuple((2, 8, 0))
         btn_down = InputEvent.from_tuple((1, 276, 1))
         btn_up = InputEvent.from_tuple((1, 276, 0))
-        combination = EventCombination((1, 276, 1), (2, 8, -1))
+        combination = EventCombination(((1, 276, 1), (2, 8, -1)))
 
         system_mapping.clear()
         system_mapping._set("a", 30)

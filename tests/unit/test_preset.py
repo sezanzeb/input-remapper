@@ -194,7 +194,9 @@ class TestPreset(unittest.TestCase):
 
         self.preset.add(get_key_mapping(EventCombination(one), "keyboard", "1"))
         self.preset.add(get_key_mapping(EventCombination(two), "keyboard", "2"))
-        self.preset.add(get_key_mapping(EventCombination(two, three), "keyboard", "3"))
+        self.preset.add(
+            get_key_mapping(EventCombination((two, three)), "keyboard", "3")
+        )
         self.preset.path = get_preset_path("Foo Device", "test")
         self.preset.save()
 
@@ -216,8 +218,8 @@ class TestPreset(unittest.TestCase):
             get_key_mapping(EventCombination(two), "keyboard", "2"),
         )
         self.assertEqual(
-            loaded.get_mapping(EventCombination(two, three)),
-            get_key_mapping(EventCombination(two, three), "keyboard", "3"),
+            loaded.get_mapping(EventCombination((two, three))),
+            get_key_mapping(EventCombination((two, three)), "keyboard", "3"),
         )
 
         # load missing file
@@ -295,9 +297,9 @@ class TestPreset(unittest.TestCase):
         ev_2 = InputEvent.from_tuple((EV_KEY, 1, 222))
         ev_3 = InputEvent.from_tuple((EV_KEY, 2, 111))
         ev_4 = InputEvent.from_tuple((EV_ABS, 1, 99))
-        combi_1 = EventCombination(ev_1, ev_2, ev_3)
-        combi_2 = EventCombination(ev_2, ev_1, ev_3)
-        combi_3 = EventCombination(ev_1, ev_2, ev_4)
+        combi_1 = EventCombination((ev_1, ev_2, ev_3))
+        combi_2 = EventCombination((ev_2, ev_1, ev_3))
+        combi_3 = EventCombination((ev_1, ev_2, ev_4))
 
         self.preset.add(get_key_mapping(combi_1, "keyboard", "a"))
         self.assertEqual(

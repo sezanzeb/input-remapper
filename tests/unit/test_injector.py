@@ -297,7 +297,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         preset = Preset()
         preset.add(
             get_key_mapping(
-                EventCombination((EV_KEY, 8, 1), (EV_KEY, 9, 1)),
+                EventCombination(((EV_KEY, 8, 1), (EV_KEY, 9, 1))),
                 "keyboard",
                 "k(KEY_Q).k(w)",
             )
@@ -402,18 +402,18 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.injector.get_state(), RUNNING)
 
     def test_is_in_capabilities(self):
-        key = EventCombination([1, 2, 1])
+        key = EventCombination((1, 2, 1))
         capabilities = {1: [9, 2, 5]}
         self.assertTrue(is_in_capabilities(key, capabilities))
 
-        key = EventCombination((1, 2, 1), (1, 3, 1))
+        key = EventCombination(((1, 2, 1), (1, 3, 1)))
         capabilities = {1: [9, 2, 5]}
         # only one of the codes of the combination is required.
         # The goal is to make combinations= across those sub-devices possible,
         # that make up one hardware device
         self.assertTrue(is_in_capabilities(key, capabilities))
 
-        key = EventCombination((1, 2, 1), (1, 5, 1))
+        key = EventCombination(((1, 2, 1), (1, 5, 1)))
         capabilities = {1: [9, 2, 5]}
         self.assertTrue(is_in_capabilities(key, capabilities))
 

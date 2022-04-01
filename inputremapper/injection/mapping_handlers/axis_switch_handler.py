@@ -131,4 +131,4 @@ class AxisSwitchHandler(MappingHandler):
 
     def wrap_with(self) -> Dict[EventCombination, HandlerEnums]:
         combination = [event for event in self.input_events if event.is_key_event]
-        return {EventCombination.from_events(combination): HandlerEnums.combination}
+        return {EventCombination(combination): HandlerEnums.combination}

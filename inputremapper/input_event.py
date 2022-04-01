@@ -24,9 +24,16 @@ import enum
 import evdev
 
 from dataclasses import dataclass
-from typing import Tuple
+from typing import Tuple, Union, Sequence, Callable
 
 from inputremapper.exceptions import InputEventCreationError
+
+
+InputEventValidationType = Union[
+    str,
+    Tuple[int, int, int],
+    evdev.InputEvent,
+]
 
 
 class EventActions(enum.Enum):
@@ -71,15 +78,20 @@ class InputEvent:
         yield cls.validate
 
     @classmethod
-    def validate(cls, init_arg) -> InputEvent:
+    def validate(cls, init_arg: InputEventValidationType) -> InputEvent:
         """try all the different methods, and raise an error if none succeed"""
         if isinstance(init_arg, InputEvent):
             return init_arg
 
         event = None
-        for constructor in [cls.from_event, cls.from_string, cls.from_tuple]:
+        validators: Sequence[Callable[..., InputEvent]] = (
+            cls.from_event,
+            cls.from_string,
+            cls.from_tuple,
+        )
+        for validator in validators:
             try:
-                event = constructor(init_arg)
+                event = validator(init_arg)
                 break
             except InputEventCreationError:
                 pass

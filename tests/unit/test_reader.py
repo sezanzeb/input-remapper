@@ -127,7 +127,9 @@ class TestReader(unittest.TestCase):
         self.assertIsInstance(result, tuple)
         self.assertEqual(result, EventCombination((EV_REL, REL_WHEEL, 1)))
         self.assertEqual(result, ((EV_REL, REL_WHEEL, 1),))
-        self.assertNotEqual(result, EventCombination((EV_REL, REL_WHEEL, 1), (1, 1, 1)))
+        self.assertNotEqual(
+            result, EventCombination(((EV_REL, REL_WHEEL, 1), (1, 1, 1)))
+        )
 
         # it won't return the same event twice
         self.assertEqual(reader.read(), None)
@@ -155,8 +157,8 @@ class TestReader(unittest.TestCase):
 
         send_event_to_reader(new_event(EV_REL, REL_WHEEL, 1, 1000))
         send_event_to_reader(new_event(EV_KEY, KEY_COMMA, 1, 1001))
-        combi_1 = EventCombination((EV_REL, REL_WHEEL, 1), (EV_KEY, KEY_COMMA, 1))
-        combi_2 = EventCombination((EV_KEY, KEY_COMMA, 1), (EV_KEY, KEY_A, 1))
+        combi_1 = EventCombination(((EV_REL, REL_WHEEL, 1), (EV_KEY, KEY_COMMA, 1)))
+        combi_2 = EventCombination(((EV_KEY, KEY_COMMA, 1), (EV_KEY, KEY_A, 1)))
         read = reader.read()
         self.assertEqual(read, combi_1)
         self.assertEqual(reader.read(), None)
@@ -296,14 +298,14 @@ class TestReader(unittest.TestCase):
         # active_preset.set("gamepad.joystick.left_purpose", BUTTONS)
         send_event_to_reader(new_event(EV_ABS, ABS_Y, 1, 1002))
         self.assertEqual(
-            reader.read(), EventCombination((EV_KEY, CODE_1, 1), (EV_ABS, ABS_Y, 1))
+            reader.read(), EventCombination(((EV_KEY, CODE_1, 1), (EV_ABS, ABS_Y, 1)))
         )
 
         send_event_to_reader(new_event(EV_ABS, ABS_HAT0X, -1, 1003))
         self.assertEqual(
             reader.read(),
             EventCombination(
-                (EV_KEY, CODE_1, 1), (EV_ABS, ABS_Y, 1), (EV_ABS, ABS_HAT0X, -1)
+                ((EV_KEY, CODE_1, 1), (EV_ABS, ABS_Y, 1), (EV_ABS, ABS_HAT0X, -1))
             ),
         )
 
@@ -373,7 +375,7 @@ class TestReader(unittest.TestCase):
         send_event_to_reader(new_event(3, 0, 0, next_timestamp()))
         send_event_to_reader(new_event(3, 5, 1, next_timestamp()))
         self.assertEqual(
-            reader.read(), EventCombination((EV_ABS, ABS_Z, 1), (EV_ABS, ABS_RZ, 1))
+            reader.read(), EventCombination(((EV_ABS, ABS_Z, 1), (EV_ABS, ABS_RZ, 1)))
         )
         send_event_to_reader(new_event(3, 5, 0, next_timestamp()))
         send_event_to_reader(new_event(3, 0, 0, next_timestamp()))

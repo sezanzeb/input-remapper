@@ -231,11 +231,11 @@ class TestMigrations(unittest.TestCase):
         )
         self.assertEqual(
             preset.get_mapping(
-                EventCombination((EV_ABS, 1, 1), (EV_ABS, 2, -1), (EV_ABS, 3, 1))
+                EventCombination(((EV_ABS, 1, 1), (EV_ABS, 2, -1), (EV_ABS, 3, 1)))
             ),
             UIMapping(
                 event_combination=EventCombination(
-                    (EV_ABS, 1, 1), (EV_ABS, 2, -1), (EV_ABS, 3, 1)
+                    ((EV_ABS, 1, 1), (EV_ABS, 2, -1), (EV_ABS, 3, 1))
                 ),
                 target_uinput="keyboard",
                 output_symbol="c",

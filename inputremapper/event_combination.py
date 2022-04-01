@@ -20,18 +20,15 @@
 
 from __future__ import annotations
 
-import inspect
+
 import itertools
+from typing import Tuple, Iterable, Union, List, Callable, Sequence
 
-from typing import Tuple, Iterable
-
-import evdev
 from evdev import ecodes
 
 from inputremapper.logger import logger
 from inputremapper.configs.system_mapping import system_mapping
-from inputremapper.input_event import InputEvent
-from inputremapper.exceptions import InputEventCreationError
+from inputremapper.input_event import InputEvent, InputEventValidationType
 
 # having shift in combinations modifies the configured output,
 # ctrl might not work at all
@@ -45,29 +42,33 @@ DIFFICULT_COMBINATIONS = [
 ]
 
 
+EventCombinationInitType = Union[
+    InputEventValidationType,
+    Iterable[InputEventValidationType],
+]
+
+EventCombinationValidatorType = Union[EventCombinationInitType, str]
+
+
 class EventCombination(Tuple[InputEvent]):
-    """one or multiple InputEvent objects for use as an unique identifier for mappings"""
+    """
+    one or multiple InputEvent objects for use as an unique identifier for mappings
+    """
 
     # tuple is immutable, therefore we need to override __new__()
     # https://jfine-python-classes.readthedocs.io/en/latest/subclass-tuple.html
-    def __new__(cls, *init_args) -> EventCombination:
-        pydantic_internal = False
-        events = []
-        if inspect.isgenerator(
-            init_args[0]
-        ):  # for some reason isinstance() does not work
-            # pydantic might call this with a generator which yields input events
-            for event in init_args[0]:
-                if isinstance(event, InputEvent):
-                    events.append(event)
-                    pydantic_internal = True
-        if pydantic_internal:
-            return super().__new__(cls, events)
+    def __new__(cls, events: EventCombinationInitType) -> EventCombination:
+        validated_events = []
+        try:
+            validated_events.append(InputEvent.validate(events))
 
-        for init_arg in init_args:
-            events.append(InputEvent.validate(init_arg))
+        except ValueError:
+            for event in events:
+                validated_events.append(InputEvent.validate(event))
 
-        return super().__new__(cls, events)
+        # mypy bug: https://github.com/python/mypy/issues/8957
+        # https://github.com/python/mypy/issues/8541
+        return super().__new__(cls, validated_events)  # type: ignore
 
     def __str__(self):
         #  only used in tests and logging
@@ -79,15 +80,16 @@ class EventCombination(Tuple[InputEvent]):
         yield cls.validate
 
     @classmethod
-    def validate(cls, init_arg) -> EventCombination:
+    def validate(cls, init_arg: EventCombinationValidatorType) -> EventCombination:
         """try all the different methods, and raise an error if none succeed"""
         if isinstance(init_arg, EventCombination):
             return init_arg
 
         combi = None
-        for constructor in [cls.from_string, cls.from_events]:
+        validators: Sequence[Callable[..., EventCombination]] = (cls.from_string, cls)
+        for validator in validators:
             try:
-                combi = constructor(init_arg)
+                combi = validator(init_arg)
                 break
             except ValueError:
                 pass
@@ -100,25 +102,15 @@ class EventCombination(Tuple[InputEvent]):
     def from_string(cls, init_string: str) -> EventCombination:
         """create a EventCombination form a string like '1,2,3+4,5,6'"""
         try:
-            init_args = init_string.split("+")
-            return cls(*init_args)
+            init_strs = init_string.split("+")
+            return cls(init_strs)
         except AttributeError:
             raise ValueError(f"failed to create EventCombination from {init_string = }")
 
-    @classmethod
-    def from_events(
-        cls, init_events: Iterable[InputEvent | evdev.InputEvent]
-    ) -> EventCombination:
-        """create a EventCombination from an iterable of InputEvents"""
-        try:
-            return cls(*init_events)
-        except ValueError:
-            raise ValueError(f"failed to create EventCombination form {init_events = }")
-
-    def contains_type_and_code(self, type, code) -> bool:
+    def contains_type_and_code(self, type_, code) -> bool:
         """if a InputEvent contains the type and code"""
         for event in self:
-            if event.type_and_code == (type, code):
+            if event.type_and_code == (type_, code):
                 return True
         return False
 
@@ -137,7 +129,8 @@ class EventCombination(Tuple[InputEvent]):
         return False
 
     def get_permutations(self):
-        """Get a list of EventCombination objects representing all possible permutations.
+        """
+        Get a list of EventCombination objects representing all possible permutations.
 
         combining a + b + c should have the same result as b + a + c.
         Only the last combination remains the same in the returned result.
@@ -147,7 +140,7 @@ class EventCombination(Tuple[InputEvent]):
 
         permutations = []
         for permutation in itertools.permutations(self[:-1]):
-            permutations.append(EventCombination(*permutation, self[-1]))
+            permutations.append(EventCombination((*permutation, self[-1])))
 
         return permutations
 

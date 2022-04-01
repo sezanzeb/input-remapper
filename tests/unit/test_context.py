@@ -53,13 +53,13 @@ class TestContext(unittest.TestCase):
         cfg["output_code"] = REL_WHEEL_HI_RES
         preset.add(Mapping(**cfg))  # abs y -> wheel
 
-        preset.add(get_key_mapping(EventCombination([1, 31, 1]), "keyboard", "k(a)"))
-        preset.add(get_key_mapping(EventCombination([1, 32, 1]), "keyboard", "b"))
+        preset.add(get_key_mapping(EventCombination((1, 31, 1)), "keyboard", "k(a)"))
+        preset.add(get_key_mapping(EventCombination((1, 32, 1)), "keyboard", "b"))
 
         # overlapping combination for (1, 32, 1)
         preset.add(
             get_key_mapping(
-                EventCombination((1, 32, 1), (1, 33, 1), (1, 34, 1)), "keyboard", "c"
+                EventCombination(((1, 32, 1), (1, 33, 1), (1, 34, 1))), "keyboard", "c"
             )
         )
 
