@@ -92,4 +92,4 @@ class MacroHandler(MappingHandler):
         return True
 
     def wrap_with(self) -> Dict[EventCombination, HandlerEnums]:
-        return {self.input_events: HandlerEnums.combination}
+        return {EventCombination(self.input_events): HandlerEnums.combination}

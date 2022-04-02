@@ -69,7 +69,9 @@ async def _run_normal(self) -> None:
     self._running = False
 
 
-async def _run_wheel(self, codes: Tuple[int, int], weights: Tuple[int, int]) -> None:
+async def _run_wheel(
+    self, codes: Tuple[int, int], weights: Tuple[float, float]
+) -> None:
     """start injecting events"""
     self._running = True
     self._stop = False
@@ -132,14 +134,14 @@ class AbsToRelHandler(MappingHandler):
                 codes = (REL_HWHEEL, REL_HWHEEL_HI_RES)
 
             if self.mapping.output_code in (REL_WHEEL, REL_HWHEEL):
-                weights = (1, 120)
+                weights = (1.0, 120.0)
             else:
                 weights = (1 / 120, 1)
 
             self._run = partial(_run_wheel, self, codes=codes, weights=weights)
 
         else:
-            self._run = _run_normal.__get__(self, AbsToRelHandler)
+            self._run = partial(_run_normal, self)
 
     def __str__(self):
         return f"AbsToRelHandler for {self._map_axis} <{id(self)}>:"
@@ -154,7 +156,7 @@ class AbsToRelHandler(MappingHandler):
     def notify(
         self,
         event: InputEvent,
-        source: evdev.InputDevice = None,
+        source: evdev.InputDevice,
         forward: evdev.UInput = None,
         supress: bool = False,
     ) -> bool:
@@ -277,5 +279,5 @@ class AbsToRelHandler(MappingHandler):
 
     def wrap_with(self) -> Dict[EventCombination, HandlerEnums]:
         if self.needs_wrapping():
-            return {self.input_events: HandlerEnums.axisswitch}
+            return {EventCombination(self.input_events): HandlerEnums.axisswitch}
         return {}

@@ -23,6 +23,7 @@ from typing import Tuple, Dict, Optional
 from inputremapper import exceptions
 from inputremapper.configs.mapping import Mapping
 from inputremapper.event_combination import EventCombination
+from inputremapper.exceptions import MappingParsingError
 from inputremapper.injection.mapping_handlers.mapping_handler import (
     MappingHandler,
     ContextProtocol,
@@ -46,9 +47,14 @@ class KeyHandler(MappingHandler):
         context: ContextProtocol = None,
     ):
         super().__init__(combination, mapping)
-        self._maps_to = mapping.get_output_type_code()
+        maps_to = mapping.get_output_type_code()
+        if not maps_to:
+            raise MappingParsingError(
+                "unable to create key handler from mapping", mapping=mapping
+            )
+
+        self._maps_to = maps_to
         self._active = False
-        assert self._maps_to is not None
 
     def __str__(self):
         return f"KeyHandler <{id(self)}>:"
@@ -76,4 +82,4 @@ class KeyHandler(MappingHandler):
         return True
 
     def wrap_with(self) -> Dict[EventCombination, HandlerEnums]:
-        return {self.input_events: HandlerEnums.combination}
+        return {EventCombination(self.input_events): HandlerEnums.combination}

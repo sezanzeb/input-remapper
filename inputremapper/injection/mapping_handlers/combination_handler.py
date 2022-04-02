@@ -42,6 +42,7 @@ class CombinationHandler(MappingHandler):
     # map of (event.type, event.code) -> bool , keep track of the combination state
     _key_map: Dict[Tuple[int, int], bool]
     _output_state: bool  # the last update we sent to a sub-handler
+    _sub_handler: InputEventHandler
 
     def __init__(
         self, combination: EventCombination, mapping: Mapping, context: ContextProtocol
@@ -128,9 +129,9 @@ class CombinationHandler(MappingHandler):
         forward.syn()
 
     def needs_ranking(self) -> bool:
-        return True
+        return bool(self.input_events)
 
-    def rank_by(self) -> Optional[EventCombination]:
+    def rank_by(self) -> EventCombination:
         return EventCombination(
             event for event in self.input_events if event.value != 0
         )

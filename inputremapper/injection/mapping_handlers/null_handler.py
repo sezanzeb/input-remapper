@@ -45,7 +45,7 @@ class NullHandler(MappingHandler):
         return True in [event.value != 0 for event in self.input_events]
 
     def wrap_with(self) -> Dict[EventCombination, HandlerEnums]:
-        return {self.input_events: HandlerEnums.combination}
+        return {EventCombination(self.input_events): HandlerEnums.combination}
 
     def notify(
         self,

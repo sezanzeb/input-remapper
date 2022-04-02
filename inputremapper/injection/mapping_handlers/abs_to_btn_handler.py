@@ -32,6 +32,7 @@ from inputremapper.injection.mapping_handlers.mapping_handler import (
     MappingHandler,
     ContextProtocol,
     HandlerEnums,
+    InputEventHandler,
 )
 
 
@@ -40,6 +41,7 @@ class AbsToBtnHandler(MappingHandler):
 
     _input_event: InputEvent
     _active: bool
+    _sub_handler: InputEventHandler
 
     def __init__(
         self,
@@ -82,7 +84,7 @@ class AbsToBtnHandler(MappingHandler):
     def notify(
         self,
         event: InputEvent,
-        source: evdev.InputDevice = None,
+        source: evdev.InputDevice,
         forward: evdev.UInput = None,
         supress: bool = False,
     ) -> bool:

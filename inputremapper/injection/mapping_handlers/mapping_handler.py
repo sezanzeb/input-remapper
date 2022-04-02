@@ -63,7 +63,7 @@ from __future__ import annotations
 import enum
 
 import evdev
-from typing import Dict, Protocol, Set, Optional
+from typing import Dict, Protocol, Set, Optional, List
 
 from inputremapper.configs.mapping import Mapping
 from inputremapper.configs.preset import Preset
@@ -131,7 +131,7 @@ class MappingHandler(InputEventHandler):
     mapping: Mapping
     # all input events this handler cares about
     # should always be a subset of mapping.event_combination
-    input_events: Optional[EventCombination]
+    input_events: List[InputEvent]
     _sub_handler: Optional[InputEventHandler]
 
     # https://bugs.python.org/issue44807
@@ -157,7 +157,7 @@ class MappingHandler(InputEventHandler):
             new_combination.append(event)
 
         self.mapping = mapping
-        self.input_events = EventCombination(new_combination)
+        self.input_events = new_combination
         self._sub_handler = None
 
     def needs_wrapping(self) -> bool:
@@ -192,9 +192,4 @@ class MappingHandler(InputEventHandler):
             )
         # should be called for each event a wrapping-handler
         # has in its input_events EventCombination
-        events = list(self.input_events)
-        events.remove(event)
-        if len(events) > 0:
-            self.input_events = EventCombination(events)
-        else:
-            self.input_events = None
+        self.input_events.remove(event)

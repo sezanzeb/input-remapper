@@ -33,6 +33,7 @@ from inputremapper.injection.mapping_handlers.mapping_handler import (
     MappingHandler,
     ContextProtocol,
     HandlerEnums,
+    InputEventHandler,
 )
 
 
@@ -47,6 +48,7 @@ class RelToBtnHandler(MappingHandler):
     _active: bool
     _input_event: InputEvent
     _last_activation: float
+    _sub_handler: InputEventHandler
 
     def __init__(
         self,

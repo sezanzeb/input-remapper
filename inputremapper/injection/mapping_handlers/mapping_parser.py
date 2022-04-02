@@ -61,12 +61,12 @@ mapping_handler_classes: Dict[HandlerEnums, Type[MappingHandler]] = {
     HandlerEnums.rel2btn: RelToBtnHandler,
     HandlerEnums.macro: MacroHandler,
     HandlerEnums.key: KeyHandler,
-    HandlerEnums.btn2rel: None,
-    HandlerEnums.rel2rel: None,
+    HandlerEnums.btn2rel: None,  # type: ignore
+    HandlerEnums.rel2rel: None,  # type: ignore
     HandlerEnums.abs2rel: AbsToRelHandler,
-    HandlerEnums.btn2abs: None,
-    HandlerEnums.rel2abs: None,
-    HandlerEnums.abs2abs: None,
+    HandlerEnums.btn2abs: None,  # type: ignore
+    HandlerEnums.rel2abs: None,  # type: ignore
+    HandlerEnums.abs2abs: None,  # type: ignore
     HandlerEnums.combination: CombinationHandler,
     HandlerEnums.hierarchy: HierarchyHandler,
     HandlerEnums.axisswitch: AxisSwitchHandler,
@@ -92,6 +92,12 @@ def parse_mappings(preset: Preset, context: ContextProtocol) -> EventPipelines:
     for handler in handlers.copy():
         if handler.needs_ranking():
             combination = handler.rank_by()
+            if not combination:
+                raise MappingParsingError(
+                    f"{type(handler).__name__} claims to need ranking but does not "
+                    f"return a combination to rank by",
+                    mapping_handler=handler,
+                )
             need_ranking[combination] = handler
             handlers.remove(handler)
 
@@ -99,8 +105,11 @@ def parse_mappings(preset: Preset, context: ContextProtocol) -> EventPipelines:
     for handler in ranked_handlers:
         handlers.extend(_create_event_pipeline(handler, context, ignore_ranking=True))
 
-    event_pipelines = {}
+    event_pipelines: EventPipelines = {}
     for handler in handlers:
+        if not handler.input_events:
+            continue
+
         for event in handler.input_events:
             if event in event_pipelines.keys():
                 logger.debug("event-pipeline with entry point: %s", event.type_and_code)
@@ -167,6 +176,11 @@ def _get_output_handler(mapping: Mapping) -> HandlerEnums:
         return HandlerEnums.key
 
     input_event = _maps_axis(mapping.event_combination)
+    if not input_event:
+        raise MappingParsingError(
+            f"this {mapping = } does not map to an axis, key or macro", mapping=Mapping
+        )
+
     if mapping.output_type == EV_REL:
         if input_event.type == EV_KEY:
             return HandlerEnums.btn2rel
@@ -183,11 +197,14 @@ def _get_output_handler(mapping: Mapping) -> HandlerEnums:
         if input_event.type == EV_ABS:
             return HandlerEnums.abs2abs
 
+    raise MappingParsingError(f"the output of {mapping = } is unknown", mapping=Mapping)
+
 
 def _maps_axis(combination: EventCombination) -> Optional[InputEvent]:
     for event in combination:
         if event.value == 0:
             return event
+    return None
 
 
 def _create_hierarchy_handlers(
@@ -240,7 +257,7 @@ def _order_combinations(
     for a+b+c vs. b+d+e: a+b+c would be in front of b+d+e, because the common key b
     has the higher index in the a+b+c (1), than in the b+c+d (0) list
     in this example b would be the common key
-    as for combinations like a+b+c and e+d+c with the common key c: ¯\_(ツ)_/¯
+    as for combinations like a+b+c and e+d+c with the common key c: ¯\\_(ツ)_/¯
 
     Parameters
     ----------
