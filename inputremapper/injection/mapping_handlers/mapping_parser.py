@@ -19,13 +19,14 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 """functions to assemble the mapping handlers"""
 
-from typing import Dict, List, Type, Optional, Set
+from typing import Dict, List, Type, Optional, Set, Iterable, Sized, Tuple, Sequence
 from evdev.ecodes import (
     EV_KEY,
     EV_ABS,
     EV_REL,
 )
 
+from inputremapper.exceptions import MappingParsingError
 from inputremapper.logger import logger
 from inputremapper.event_combination import EventCombination
 from inputremapper.input_event import InputEvent
@@ -248,25 +249,40 @@ def _order_combinations(
     common_event : InputEvent
         the Key all members of Keys have in common
     """
-    combinations.sort(key=len, reverse=True)  # sort by descending length
+    combinations.sort(key=len)
 
-    def idx_of_common_event(_combination: EventCombination) -> int:
-        """get the index of the common event in _combination"""
-        for j, event in enumerate(_combination):
-            if event == common_event:
-                return j
+    for start, end in ranges_with_constant_length(combinations.copy()):
+        sub_list = combinations[start:end]
+        sub_list.sort(key=lambda x: x.index(common_event))
+        combinations[start:end] = sub_list
 
-    last_combination = combinations[0]
-    last_idx = 0
-    for i, combination in enumerate([*combinations[1:], ((None, None, None),)]):
-        i += 1
-        if len(combination) == len(last_combination):
-            last_combination = combination
-            continue
-
-        assert len(combination) < len(last_combination)
-        sub_list = combinations[last_idx:i]
-        sub_list.sort(key=idx_of_common_event, reverse=True)
-        combinations[last_idx:i] = sub_list
-
+    combinations.reverse()
     return combinations
+
+
+def ranges_with_constant_length(x: Sequence[Sized]) -> Iterable[Tuple[int, int]]:
+    """
+    get all ranges of x for which the elements have constant length
+
+    Parameters
+    ----------
+    x: Sequence[Sized]
+        l must be ordered by increasing length of elements
+    """
+    start_idx = 0
+    last_len = 0
+    for idx, y in enumerate(x):
+        if len(y) > last_len and idx - start_idx > 1:
+            yield start_idx, idx
+
+        if len(y) == last_len and idx + 1 == len(x):
+            yield start_idx, idx + 1
+
+        if len(y) > last_len:
+            start_idx = idx
+
+        if len(y) < last_len:
+            raise MappingParsingError(
+                "ranges_with_constant_length " "was called with an unordered list"
+            )
+        last_len = len(y)
