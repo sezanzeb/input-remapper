@@ -27,7 +27,7 @@ import json
 import glob
 import time
 
-from typing import Tuple, Dict, List, Optional, Iterator, Type, Iterable
+from typing import Tuple, Dict, List, Optional, Iterator, Type, Iterable, Any, Union
 
 from pydantic import ValidationError
 from inputremapper.logger import logger
@@ -65,7 +65,7 @@ class Preset:
         self,
         path: Optional[os.PathLike] = None,
         mapping_factory: Type[Mapping] = Mapping,
-    ):
+    ) -> None:
         self._mappings = {}
         self._saved_mappings = {}
         self._path = path
@@ -75,7 +75,7 @@ class Preset:
         """Iterate over Mapping objects."""
         return iter(self._mappings.values())
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self._mappings)
 
     def has_unsaved_changes(self) -> bool:
@@ -131,7 +131,7 @@ class Preset:
         """Load from the mapping from the disc, clears all existing mappings"""
         logger.info('Loading preset from "%s"', self.path)
 
-        if not os.path.exists(self.path):
+        if not self.path or not os.path.exists(self.path):
             raise FileNotFoundError(f'Tried to load non-existing preset "{self.path}"')
 
         self._saved_mappings = self._get_mappings_from_disc()
@@ -143,6 +143,11 @@ class Preset:
 
     def save(self) -> None:
         """Dump as JSON to self.path"""
+
+        if not self.path:
+            logger.debug("unable to save preset without a path set Preset.path first")
+            return
+
         touch(str(self.path))  # touch expects a string, not a Posix path
         if not self.has_unsaved_changes():
             return
@@ -154,7 +159,8 @@ class Preset:
         for mapping in self:
             if not mapping.is_valid():
                 if not isinstance(mapping.event_combination, EventCombination):
-                    # we save invalid mapping except for those with invalid event_combination
+                    # we save invalid mapping except for those with
+                    # invalid event_combination
                     logger.debug("skipping invalid mapping %s", mapping)
                     continue
                 combinations = [m.event_combination for m in self]
@@ -204,14 +210,14 @@ class Preset:
 
         return None
 
-    def dangerously_mapped_btn_left(self):
+    def dangerously_mapped_btn_left(self) -> bool:
         """Return True if this mapping disables BTN_Left."""
         if EventCombination(InputEvent.btn_left()) not in [
             m.event_combination for m in self
         ]:
             return False
 
-        values = []
+        values: List[str | Tuple[int, int] | None] = []
         for mapping in self:
             if mapping.output_symbol is None:
                 continue
@@ -225,7 +231,7 @@ class Preset:
 
     def _combination_changed_callback(
         self, new: EventCombination, old: EventCombination
-    ):
+    ) -> None:
         for permutation in new.get_permutations():
             if permutation in self._mappings.keys() and permutation != old:
                 raise KeyError("combination already exists in the preset")
@@ -241,7 +247,11 @@ class Preset:
         self._saved_mappings = self._get_mappings_from_disc()
 
     def _get_mappings_from_disc(self) -> Dict[EventCombination, Mapping]:
-        mappings = {}
+        mappings: Dict[EventCombination, Mapping] = {}
+        if not self.path:
+            logger.debug("unable to read preset without a path set Preset.path first")
+            return mappings
+
         with open(self.path, "r") as file:
             try:
                 preset_dict = json.load(file)
@@ -264,11 +274,11 @@ class Preset:
         return mappings
 
     @property
-    def path(self) -> os.PathLike:
+    def path(self) -> Optional[os.PathLike]:
         return self._path
 
     @path.setter
-    def path(self, path: os.PathLike):
+    def path(self, path: Optional[os.PathLike]):
         if path != self.path:
             self._path = path
             self._update_saved_mappings()
@@ -337,8 +347,8 @@ def get_any_preset() -> Tuple[str | None, str | None]:
     if len(group_names) == 0:
         return None, None
     any_device = list(group_names)[0]
-    any_preset = (get_presets(any_device) or [None])[0]
-    return any_device, any_preset
+    any_preset = get_presets(any_device)
+    return any_device, any_preset[0] if any_preset else None
 
 
 def find_newest_preset(group_name=None):

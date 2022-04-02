@@ -47,6 +47,13 @@ class MacroParsingError(Error):
         super().__init__(msg)
 
 
+class MappingParsingError(Error):
+    def __init__(self, msg, *, mapping=None, mapping_handler=None):
+        self.mapping_handler = mapping_handler
+        self.mapping = mapping
+        super().__init__(msg)
+
+
 class InputEventCreationError(Error):
     def __init__(self, msg):
         super().__init__(msg)

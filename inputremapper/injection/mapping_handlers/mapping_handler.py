@@ -67,6 +67,7 @@ from typing import Dict, Protocol, Set, Optional
 
 from inputremapper.configs.mapping import Mapping
 from inputremapper.configs.preset import Preset
+from inputremapper.exceptions import MappingParsingError
 from inputremapper.input_event import InputEvent, EventActions
 from inputremapper.event_combination import EventCombination
 from inputremapper.logger import logger
@@ -130,7 +131,7 @@ class MappingHandler(InputEventHandler):
     mapping: Mapping
     # all input events this handler cares about
     # should always be a subset of mapping.event_combination
-    input_events: EventCombination
+    input_events: Optional[EventCombination]
     _sub_handler: Optional[InputEventHandler]
 
     # https://bugs.python.org/issue44807
@@ -184,6 +185,11 @@ class MappingHandler(InputEventHandler):
 
     def set_occluded_input_event(self, event: InputEvent) -> None:
         """remove the event from self.input_events"""
+        if not self.input_events:
+            logger.debug_mapping_handler(self)
+            raise MappingParsingError(
+                "cannot remove a non existing event", mapping_handler=self
+            )
         # should be called for each event a wrapping-handler
         # has in its input_events EventCombination
         events = list(self.input_events)
@@ -191,4 +197,4 @@ class MappingHandler(InputEventHandler):
         if len(events) > 0:
             self.input_events = EventCombination(events)
         else:
-            self.input_events = ()
+            self.input_events = None

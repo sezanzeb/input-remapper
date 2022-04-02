@@ -140,8 +140,9 @@ def _create_event_pipeline(
 
         handlers.extend(_create_event_pipeline(super_handler, context))
 
-    if len(handler.input_events) > 0:
-        # the handler was only partially wrapped, we need to return it as a toplevel handler
+    if handler.input_events:
+        # the handler was only partially wrapped,
+        # we need to return it as a toplevel handler
         handlers.append(handler)
 
     return handlers

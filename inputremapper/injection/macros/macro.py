@@ -39,7 +39,7 @@ import asyncio
 import copy
 import math
 import re
-from typing import Optional
+from typing import Optional, List, Callable, Awaitable, Tuple
 
 import evdev
 from evdev.ecodes import (
@@ -58,6 +58,8 @@ from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.ipc.shared_dict import SharedDict
 from inputremapper.exceptions import MacroParsingError
 
+Handler = Callable[[Tuple[int, int, int]], None]
+MacroTask = Callable[[Handler], Awaitable]
 
 macro_variables = SharedDict()
 
@@ -209,7 +211,7 @@ class Macro:
 
         # List of coroutines that will be called sequentially.
         # This is the compiled code
-        self.tasks = []
+        self.tasks: List[MacroTask] = []
 
         # can be used to wait for the release of the event
         self._trigger_release_event = asyncio.Event()
@@ -220,7 +222,7 @@ class Macro:
 
         self.running = False
 
-        self.child_macros = []
+        self.child_macros: List[Macro] = []
         self.keystroke_sleep_ms = None
 
     def is_holding(self):

@@ -70,7 +70,7 @@ class MacroHandler(MappingHandler):
             if self._macro.running:
                 return True
 
-            def f(ev_type, code, value):
+            def f(ev_type, code, value) -> None:
                 """Handler for macros."""
                 logger.debug_key(
                     (ev_type, code, value),
