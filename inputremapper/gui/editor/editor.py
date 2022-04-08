@@ -306,11 +306,11 @@ class Editor:
 
     def _show_press_key(self, *args):
         """Show user friendly instructions."""
-        self.get_recording_toggle().set_label("Press Key")
+        self.get_recording_toggle().set_label(_("Press Key"))
 
     def _show_change_key(self, *args):
         """Show user friendly instructions."""
-        self.get_recording_toggle().set_label("Change Key")
+        self.get_recording_toggle().set_label(_("Change Key"))
 
     def _setup_source_view(self):
         """Prepare the code editor."""

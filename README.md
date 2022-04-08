@@ -36,9 +36,9 @@ sudo apt install ./dist/input-remapper-1.4.2.deb
 
 input-remapper is now part of [Debian Unstable](https://packages.debian.org/sid/input-remapper)
 
-##### pip
+##### Manual
 
-Dependencies: `python3-evdev` ≥1.3.0, `gtksourceview4`, `python3-devel`, `python3-pydantic`
+Dependencies: `python3-evdev` ≥1.3.0, `gtksourceview4`, `python3-devel`, `python3-pydantic`, `python3-pydbus`
 
 Python packages need to be installed globally for the service to be able to import them. Don't use `--user`
 
