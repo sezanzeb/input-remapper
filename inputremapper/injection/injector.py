@@ -95,6 +95,7 @@ class Injector(multiprocessing.Process):
     _state: int
     _msg_pipe: multiprocessing.Pipe
     _consumer_controls: List[EventReader]
+    _stop_event: asyncio.Event
 
     regrab_timeout = 0.2
 
@@ -118,6 +119,7 @@ class Injector(multiprocessing.Process):
         self.context = None  # only needed inside the injection process
 
         self._consumer_controls = []
+        self._stop_event = None
 
         super().__init__(name=group)
 
@@ -262,6 +264,11 @@ class Injector(multiprocessing.Process):
             msg = self._msg_pipe[0].recv()
             if msg == CLOSE:
                 logger.debug("Received close signal")
+                self._stop_event.set()
+                # give the event pipeline some time to reset devices
+                # before shutting the loop down
+                await asyncio.sleep(0.1)
+
                 # stop the event loop and cause the process to reach its end
                 # cleanly. Using .terminate prevents coverage from working.
                 loop.stop()
@@ -306,6 +313,7 @@ class Injector(multiprocessing.Process):
         # create this within the process after the event loop creation,
         # so that the macros use the correct loop
         self.context = Context(self.preset)
+        self._stop_event = asyncio.Event()
 
         # grab devices as early as possible. If events appear that won't get
         # released anymore before the grab they appear to be held down
@@ -349,7 +357,9 @@ class Injector(multiprocessing.Process):
                 raise e
 
             # actually doing things
-            consumer_control = EventReader(self.context, source, forward_to)
+            consumer_control = EventReader(
+                self.context, source, forward_to, self._stop_event
+            )
             coroutines.append(consumer_control.run())
             self._consumer_controls.append(consumer_control)
 

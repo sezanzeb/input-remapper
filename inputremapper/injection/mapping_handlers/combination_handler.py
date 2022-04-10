@@ -113,6 +113,12 @@ class CombinationHandler(MappingHandler):
         self._output_state = bool(event.value)
         return self._sub_handler.notify(event, source, forward, supress)
 
+    def reset(self) -> None:
+        self._sub_handler.reset()
+        for key in self._key_map:
+            self._key_map[key] = False
+        self._output_state = False
+
     def get_active(self) -> bool:
         """return if all keys in the keymap are set to True"""
         return False not in self._key_map.values()

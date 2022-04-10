@@ -97,6 +97,10 @@ class InputEventHandler(Protocol):
     ) -> bool:
         ...
 
+    def reset(self) -> None:
+        """reset the state of the handler e.g. release any buttons"""
+        ...
+
 
 class HandlerEnums(enum.Enum):
     # converting to btn

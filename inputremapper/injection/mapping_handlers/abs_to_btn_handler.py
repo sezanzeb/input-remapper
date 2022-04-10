@@ -85,7 +85,7 @@ class AbsToBtnHandler(MappingHandler):
         self,
         event: InputEvent,
         source: evdev.InputDevice,
-        forward: evdev.UInput = None,
+        forward: evdev.UInput,
         supress: bool = False,
     ) -> bool:
         if event.type_and_code != self._input_event.type_and_code:
@@ -121,3 +121,7 @@ class AbsToBtnHandler(MappingHandler):
             forward=forward,
             supress=supress,
         )
+
+    def reset(self) -> None:
+        self._active = False
+        self._sub_handler.reset()

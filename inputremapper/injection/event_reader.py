@@ -23,8 +23,36 @@
 import asyncio
 import evdev
 from inputremapper.logger import logger
-from inputremapper.input_event import InputEvent
+from inputremapper.input_event import InputEvent, EventActions
 from inputremapper.injection.context import Context
+
+
+class _ReadLoop:
+    def __init__(self, device: evdev.InputDevice, stop_event: asyncio.Event):
+        self.iterator = device.async_read_loop().__aiter__()
+        self.stop_event = stop_event
+        self.wait_for_stop = asyncio.Task(stop_event.wait())
+
+    def __aiter__(self):
+        return self
+
+    def __anext__(self):
+        if self.stop_event.is_set():
+            raise StopAsyncIteration
+
+        return self.future()
+
+    async def future(self):
+        ev_task = asyncio.Task(self.iterator.__anext__())
+        stop_task = self.wait_for_stop
+        done, pending = await asyncio.wait(
+            {ev_task, stop_task},
+            return_when=asyncio.FIRST_COMPLETED,
+        )
+        if stop_task in done:
+            raise StopAsyncIteration
+
+        return done.pop().result()
 
 
 class EventReader:
@@ -43,6 +71,7 @@ class EventReader:
         context: Context,
         source: evdev.InputDevice,
         forward_to: evdev.UInput,
+        stop_event: asyncio.Event,
     ) -> None:
         """Initialize all mapping_handlers
 
@@ -58,6 +87,7 @@ class EventReader:
         self._source = source
         self._forward_to = forward_to
         self.context = context
+        self.stop_event = stop_event
 
     def send_to_handlers(self, event: InputEvent) -> bool:
         """Send the event to callback."""
@@ -132,9 +162,10 @@ class EventReader:
             self._source.fd,
         )
 
-        async for event in self._source.async_read_loop():
+        async for event in _ReadLoop(self._source, self.stop_event):
             await self.handle(InputEvent.from_event(event))
 
+        self.context.reset()
         # This happens all the time in tests because the async_read_loop stops when
         # there is nothing to read anymore. Otherwise tests would block.
         logger.error('The async_read_loop for "%s" stopped early', self._source.path)

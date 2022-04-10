@@ -1377,7 +1377,7 @@ class TestIfTap(MacroTestBase):
         self.assertListEqual(self.result, [])
 
         # second param none
-        macro = parse("if_tap(key(y), , 50)", self.context)
+        macro = parse("if_tap(key(y), , 50)", self.context, DummyMapping)
         self.assertEqual(len(macro.child_macros), 1)
         y = system_mapping.get("y")
         macro.press_trigger()

@@ -52,6 +52,7 @@ from inputremapper.injection.global_uinputs import global_uinputs
 class TestEventReader(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         self.gamepad_source = evdev.InputDevice("/dev/input/event30")
+        self.stop_event = asyncio.Event()
         self.preset = Preset()
 
     def tearDown(self):
@@ -62,7 +63,7 @@ class TestEventReader(unittest.IsolatedAsyncioTestCase):
         forward_to = evdev.UInput()
         context = Context(mapping)
         context.uinput = evdev.UInput()
-        consumer_control = EventReader(context, source, forward_to)
+        consumer_control = EventReader(context, source, forward_to, self.stop_event)
         # for consumer in consumer_control._consumers:
         #    consumer._abs_range = (-10, 10)
         asyncio.ensure_future(consumer_control.run())

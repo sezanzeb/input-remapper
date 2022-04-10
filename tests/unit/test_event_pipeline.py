@@ -80,6 +80,7 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
         # print("in setup")
         # global_uinputs.prepare_all()
         self.forward_uinput = evdev.UInput()
+        self.stop_event = asyncio.Event()
 
     def tearDown(self) -> None:
         cleanup()
@@ -94,10 +95,11 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
         self, preset: Preset, source: evdev.InputDevice
     ) -> EventReader:
         context = Context(preset)
-        return EventReader(context, source, self.forward_uinput)
+        return EventReader(context, source, self.forward_uinput, self.stop_event)
 
     async def test_any_event_as_button(self):
-        """as long as there is an event handler and a mapping we should be able to map anything to a button"""
+        """as long as there is an event handler and a mapping we should be able
+        to map anything to a button"""
 
         w_down = (
             EV_ABS,
@@ -193,6 +195,57 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(history.count((EV_KEY, code_d, 0)), 1)
         self.assertEqual(history.count((EV_KEY, code_a, 0)), 1)
         self.assertEqual(history.count((EV_KEY, code_s, 0)), 1)
+
+    async def test_reset_releases_keys(self):
+        """make sure that macros and keys are releases when the stop event is set"""
+        preset = Preset()
+        preset.add(get_key_mapping(combination="1,1,1", output_symbol="hold(a)"))
+        preset.add(get_key_mapping(combination="1,2,1", output_symbol="b"))
+        preset.add(
+            get_key_mapping(combination="1,3,1", output_symbol="modify(c,hold(d))")
+        )
+        event_reader = self.get_event_reader(preset, InputDevice("/dev/input/event10"))
+
+        a = system_mapping.get("a")
+        b = system_mapping.get("b")
+        c = system_mapping.get("c")
+        d = system_mapping.get("d")
+
+        await self.send_events(
+            [
+                InputEvent.from_tuple((1, 1, 1)),
+                InputEvent.from_tuple((1, 2, 1)),
+                InputEvent.from_tuple((1, 3, 1)),
+            ],
+            event_reader,
+        )
+        await asyncio.sleep(0.1)
+
+        fw_history = convert_to_internal_events(self.forward_uinput.write_history)
+        kb_history = convert_to_internal_events(
+            global_uinputs.get_uinput("keyboard").write_history
+        )
+
+        self.assertEqual(len(fw_history), 0)
+        # a down, b down, c down, d down
+        self.assertEqual(len(kb_history), 4)
+
+        event_reader.context.reset()
+        await asyncio.sleep(0.1)
+
+        fw_history = convert_to_internal_events(self.forward_uinput.write_history)
+        kb_history = convert_to_internal_events(
+            global_uinputs.get_uinput("keyboard").write_history
+        )
+
+        self.assertEqual(len(fw_history), 0)
+        # all a, b, c, d down+up
+        self.assertEqual(len(kb_history), 8)
+        kb_history = kb_history[-4:]
+        self.assertIn((1, a, 0), kb_history)
+        self.assertIn((1, b, 0), kb_history)
+        self.assertIn((1, c, 0), kb_history)
+        self.assertIn((1, d, 0), kb_history)
 
     async def test_abs_to_rel(self):
         """map gamepad EV_ABS events to EV_REL events"""

@@ -188,6 +188,9 @@ class AbsToRelHandler(MappingHandler):
             asyncio.ensure_future(self._run())
         return True
 
+    def reset(self) -> None:
+        self._stop = True
+
     @staticmethod
     def _calc_qubic(x: float, k: float) -> float:
         """

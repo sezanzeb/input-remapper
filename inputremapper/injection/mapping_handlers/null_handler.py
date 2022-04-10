@@ -55,3 +55,6 @@ class NullHandler(MappingHandler):
         supress: bool = False,
     ) -> bool:
         return True
+
+    def reset(self) -> None:
+        pass

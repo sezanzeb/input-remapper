@@ -88,6 +88,11 @@ class MacroHandler(MappingHandler):
 
             return True
 
+    def reset(self) -> None:
+        self._active = False
+        if self._macro.is_holding():
+            self._macro.release_trigger()
+
     def needs_wrapping(self) -> bool:
         return True
 

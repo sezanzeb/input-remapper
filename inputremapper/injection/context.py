@@ -20,6 +20,7 @@
 
 
 """Stores injection-process wide information."""
+import asyncio
 from typing import Awaitable, List, Dict, Tuple, Protocol, Set
 
 import evdev
@@ -89,6 +90,11 @@ class Context:
         self._handlers = parse_mappings(preset, self)
 
         self._create_callbacks()
+
+    def reset(self) -> None:
+        """call the reset method for each handler in the context"""
+        for handlers in self._handlers.values():
+            [handler.reset() for handler in handlers]
 
     def _create_callbacks(self) -> None:
         """add the notify method from all _handlers to self.callbacks"""

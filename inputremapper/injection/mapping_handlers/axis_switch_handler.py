@@ -128,6 +128,11 @@ class AxisSwitchHandler(MappingHandler):
 
         return False
 
+    def reset(self) -> None:
+        self._last_value = 0
+        self._active = False
+        self._sub_handler.reset()
+
     def needs_wrapping(self) -> bool:
         return True
 

@@ -78,6 +78,13 @@ class KeyHandler(MappingHandler):
         except exceptions.Error:
             return False
 
+    def reset(self) -> None:
+        logger.debug("resetting key_handler")
+        if self._active:
+            event_tuple = (*self._maps_to, 0)
+            global_uinputs.write(event_tuple, self.mapping.target_uinput)
+            self._active = False
+
     def needs_wrapping(self) -> bool:
         return True
 
