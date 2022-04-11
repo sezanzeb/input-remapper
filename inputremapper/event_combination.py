@@ -107,13 +107,6 @@ class EventCombination(Tuple[InputEvent]):
         except AttributeError:
             raise ValueError(f"failed to create EventCombination from {init_string = }")
 
-    def contains_type_and_code(self, type_, code) -> bool:
-        """if a InputEvent contains the type and code"""
-        for event in self:
-            if event.type_and_code == (type_, code):
-                return True
-        return False
-
     def is_problematic(self):
         """Is this combination going to work properly on all systems?"""
         if len(self) <= 1:
