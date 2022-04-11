@@ -37,10 +37,10 @@ from evdev.ecodes import (
 from inputremapper.configs.mapping import Mapping
 from inputremapper.injection.mapping_handlers.mapping_handler import (
     MappingHandler,
-    ContextProtocol,
     HandlerEnums,
     InputEventHandler,
 )
+from inputremapper.injection.mapping_handlers.axis_transform import Transformation
 from inputremapper.logger import logger
 from inputremapper.event_combination import EventCombination
 from inputremapper.input_event import InputEvent, EventActions
@@ -101,6 +101,7 @@ class AbsToRelHandler(MappingHandler):
     _value: float  # the current output value
     _running: bool  # if the run method is active
     _stop: bool  # if the run loop should return
+    _transform: Optional[Transformation]
 
     def __init__(
         self,
@@ -120,6 +121,7 @@ class AbsToRelHandler(MappingHandler):
         self._value = 0
         self._running = False
         self._stop = True
+        self._transform = None
 
         # bind the correct run method
         if self.mapping.output_code in (
@@ -168,21 +170,23 @@ class AbsToRelHandler(MappingHandler):
             self._stop = True
             return True
 
-        absinfo = {
-            entry[0]: entry[1] for entry in source.capabilities(absinfo=True)[EV_ABS]
-        }
-        input_value, _ = self._normalize(
-            event.value,
-            absinfo[event.code].min,
-            absinfo[event.code].max,
-        )
+        if not self._transform:
+            absinfo = {
+                entry[0]: entry[1]
+                for entry in source.capabilities(absinfo=True)[EV_ABS]
+            }
+            self._transform = Transformation(
+                max_=absinfo[event.code].max,
+                min_=absinfo[event.code].min,
+                deadzone=self.mapping.deadzone,
+                gain=self.mapping.gain,
+                expo=self.mapping.expo,
+            )
 
-        if abs(input_value) < self.mapping.deadzone:
+        self._value = self._transform(event.value) * self.mapping.rel_speed
+        if self._value == 0:
             self._stop = True
             return True
-
-        value = self._calc_qubic(input_value, self.mapping.expo)
-        self._value = value * self.mapping.rel_speed * self.mapping.gain
 
         if not self._running:
             asyncio.ensure_future(self._run())
@@ -190,76 +194,6 @@ class AbsToRelHandler(MappingHandler):
 
     def reset(self) -> None:
         self._stop = True
-
-    @staticmethod
-    def _calc_qubic(x: float, k: float) -> float:
-        """
-        transforms an x value by applying a qubic function
-
-        k = 0 : will yield no transformation f(x) = x
-        1 > k > 0 : will yield low sensitivity for low x values
-            and high sensitivity for high x values
-        -1 < k < 0 : will yield high sensitivity for low x values
-            and low sensitivity for high x values
-
-        see also: https://www.geogebra.org/calculator/mkdqueky
-
-        Mathematical definition:
-        f(x,d) = d * x + (1 - d) * x ** 3 | d = 1 - k | k ∈ [0,1]
-        the function is designed such that if follows these constraints:
-        f'(0, d) = d and f(1, d) = 1 and f(-x,d) = -f(x,d)
-
-        for k ∈ [-1,0) the above function is mirrored at y = x
-        and d = 1 + k
-        """
-        # TODO: since k is constant for each mapping we can sample this function in
-        #  the constructor and provide a lookup table to interpolate at runtime
-        if k == 0:
-            return x
-
-        if 0 < k <= 1:
-            d = 1 - k
-            return d * x + (1 - d) * x**3
-
-        if -1 <= k < 0:
-            # calculate return value with the real inverse solution of y = b * x + a * x ** 3
-            # LaTeX  for better readability:
-            #
-            #  y=\frac{{{\left( \sqrt{27 {{x}^{2}}+\frac{4 {{b}^{3}}}{a}}
-            #         +{{3}^{\frac{3}{2}}} x\right) }^{\frac{1}{3}}}}
-            #     {{{2}^{\frac{1}{3}}} \sqrt{3} {{a}^{\frac{1}{3}}}}
-            #   -\frac{{{2}^{\frac{1}{3}}} b}
-            #     {\sqrt{3} {{a}^{\frac{2}{3}}}
-            #         {{\left( \sqrt{27 {{x}^{2}}+\frac{4 {{b}^{3}}}{a}}
-            #         +{{3}^{\frac{3}{2}}} x\right) }^{\frac{1}{3}}}}
-            sign = 1 if x >= 0 else -1
-            x = math.fabs(x)
-            d = 1 + k
-            a = 1 - d
-            b = d
-            c = (math.sqrt(27 * x**2 + (4 * b**3) / a) + 3 ** (3 / 2) * x) ** (
-                1 / 3
-            )
-            y = c / (2 ** (1 / 3) * math.sqrt(3) * a ** (1 / 3)) - (
-                2 ** (1 / 3) * b
-            ) / (math.sqrt(3) * a ** (2 / 3) * c)
-            return y * sign
-
-        raise ValueError("k must be between -1 and 1")
-
-    @staticmethod
-    def _normalize(x: int, abs_min: int, abs_max: int) -> Tuple[float, float]:
-        """
-        move and scale x to be between -1 and 1
-        return: x, scale_factor
-        """
-        if abs_min == -1 and abs_max == 1:
-            return x, 1
-
-        half_range = (abs_max - abs_min) / 2
-        middle = half_range + abs_min
-        x_norm = (x - middle) / half_range
-        return x_norm, half_range
 
     def _write(self, ev_type, keycode, value):
         """Inject."""
