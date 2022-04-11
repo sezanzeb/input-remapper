@@ -44,7 +44,7 @@ class KeyHandler(MappingHandler):
         self,
         combination: EventCombination,
         mapping: Mapping,
-        context: ContextProtocol = None,
+        **_,
     ):
         super().__init__(combination, mapping)
         maps_to = mapping.get_output_type_code()

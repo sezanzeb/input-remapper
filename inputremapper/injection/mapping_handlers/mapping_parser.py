@@ -78,6 +78,9 @@ def parse_mappings(preset: Preset, context: ContextProtocol) -> EventPipelines:
     """create a dict with a list of MappingHandler for each InputEvent"""
     handlers = []
     for mapping in preset:
+        # start with the last handler in the chain, each mapping only has one output,
+        # but may have multiple inputs, therefore the last handler is a good starting
+        # point to assemble the pipeline
         handler_enum = _get_output_handler(mapping)
         constructor = mapping_handler_classes[handler_enum]
         if not constructor:
@@ -85,9 +88,15 @@ def parse_mappings(preset: Preset, context: ContextProtocol) -> EventPipelines:
                 f"mapping handler {handler_enum} is not implemented"
             )
 
-        output_handler = constructor(mapping.event_combination, mapping, context)
+        output_handler = constructor(
+            mapping.event_combination, mapping, context=context
+        )
+
+        # layer other handlers on top until the outer handler needs ranking or can
+        # directly handle a input event
         handlers.extend(_create_event_pipeline(output_handler, context))
 
+    # figure out which handlers need ranking and wrap them with hierarchy_handlers
     need_ranking = {}
     for handler in handlers.copy():
         if handler.needs_ranking():
@@ -101,15 +110,17 @@ def parse_mappings(preset: Preset, context: ContextProtocol) -> EventPipelines:
             need_ranking[combination] = handler
             handlers.remove(handler)
 
+    # the HierarchyHandler's might not be the starting point of the event pipeline
+    # layer other handlers on top again.
     ranked_handlers = _create_hierarchy_handlers(need_ranking)
     for handler in ranked_handlers:
         handlers.extend(_create_event_pipeline(handler, context, ignore_ranking=True))
 
+    # group all handlers by the input events they take care of. One handler might end
+    # up in multiple groups if it takes care of multiple InputEvents
     event_pipelines: EventPipelines = {}
     for handler in handlers:
-        if not handler.input_events:
-            continue
-
+        assert handler.input_events
         for event in handler.input_events:
             if event in event_pipelines.keys():
                 logger.debug("event-pipeline with entry point: %s", event.type_and_code)
@@ -141,12 +152,12 @@ def _create_event_pipeline(
                 f"mapping handler {handler_enum} is not implemented"
             )
 
-        super_handler = constructor(combination, handler.mapping, context)
+        super_handler = constructor(combination, handler.mapping, context=context)
         super_handler.set_sub_handler(handler)
         for event in combination:
             # the handler now has a super_handler which takes care about the events.
-            # so we hide need to hide them on the handler
-            handler.set_occluded_input_event(event)
+            # so we need to hide them on the handler
+            handler.occlude_input_event(event)
 
         handlers.extend(_create_event_pipeline(super_handler, context))
 
@@ -201,6 +212,10 @@ def _get_output_handler(mapping: Mapping) -> HandlerEnums:
 
 
 def _maps_axis(combination: EventCombination) -> Optional[InputEvent]:
+    """
+    whether this EventCombination contains an InputEvent that is treated as
+    an axis and not a binary (key or button) event.
+    """
     for event in combination:
         if event.value == 0:
             return event
@@ -215,7 +230,7 @@ def _create_hierarchy_handlers(
     all_combinations = handlers.keys()
     events = set()
 
-    # gather all InputEvents which participate in the ranking
+    # gather all InputEvents from all handlers
     for combination in all_combinations:
         for event in combination:
             events.add(event)
@@ -228,7 +243,7 @@ def _create_hierarchy_handlers(
         ]
 
         if len(combinations_with_event) == 1:
-            # there was only one handler containing that event
+            # there was only one handler containing that event return it as is
             sorted_handlers.add(handlers[combinations_with_event[0]])
             continue
 
@@ -243,7 +258,7 @@ def _create_hierarchy_handlers(
         for handler in sub_handlers:
             # the handler now has a HierarchyHandler which takes care about this event.
             # so we hide need to hide it on the handler
-            handler.set_occluded_input_event(event)
+            handler.occlude_input_event(event)
 
     return sorted_handlers
 

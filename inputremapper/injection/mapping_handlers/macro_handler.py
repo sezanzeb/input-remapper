@@ -46,7 +46,8 @@ class MacroHandler(MappingHandler):
         self,
         combination: EventCombination,
         mapping: Mapping,
-        context: ContextProtocol = None,
+        *,
+        context: ContextProtocol,
     ):
         super().__init__(combination, mapping)
         self._active = False

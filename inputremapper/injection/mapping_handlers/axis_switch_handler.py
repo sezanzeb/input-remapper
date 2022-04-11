@@ -48,9 +48,9 @@ class AxisSwitchHandler(MappingHandler):
         self,
         combination: EventCombination,
         mapping: Mapping,
-        context: ContextProtocol,
+        **_,
     ):
-        super().__init__(combination, mapping, context)
+        super().__init__(combination, mapping)
         map_axis = [
             event.type_and_code for event in combination if not event.is_key_event
         ]

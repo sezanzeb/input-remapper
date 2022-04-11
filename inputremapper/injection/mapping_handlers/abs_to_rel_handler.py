@@ -106,9 +106,9 @@ class AbsToRelHandler(MappingHandler):
         self,
         combination: EventCombination,
         mapping: Mapping,
-        context: ContextProtocol,
+        **_,
     ) -> None:
-        super().__init__(combination, mapping, context)
+        super().__init__(combination, mapping)
 
         # find the input event we are supposed to map
         for event in combination:

@@ -45,10 +45,13 @@ class CombinationHandler(MappingHandler):
     _sub_handler: InputEventHandler
 
     def __init__(
-        self, combination: EventCombination, mapping: Mapping, context: ContextProtocol
+        self,
+        combination: EventCombination,
+        mapping: Mapping,
+        **_,
     ) -> None:
         logger.debug(mapping)
-        super().__init__(combination, mapping, context)
+        super().__init__(combination, mapping)
         self._key_map = {}
         self._output_state = False
 

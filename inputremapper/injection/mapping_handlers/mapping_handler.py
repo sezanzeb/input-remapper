@@ -143,7 +143,7 @@ class MappingHandler(InputEventHandler):
         self,
         combination: EventCombination,
         mapping: Mapping,
-        context: ContextProtocol = None,
+        **_,
     ) -> None:
         """initialize the handler
 
@@ -152,7 +152,6 @@ class MappingHandler(InputEventHandler):
         combination : EventCombination
             the combination from sub_handler.wrap_with()
         mapping :  Mapping
-        context : Context
         """
         new_combination = []
         for event in combination:
@@ -187,7 +186,7 @@ class MappingHandler(InputEventHandler):
         """give this handler a sub_handler"""
         self._sub_handler = handler
 
-    def set_occluded_input_event(self, event: InputEvent) -> None:
+    def occlude_input_event(self, event: InputEvent) -> None:
         """remove the event from self.input_events"""
         if not self.input_events:
             logger.debug_mapping_handler(self)

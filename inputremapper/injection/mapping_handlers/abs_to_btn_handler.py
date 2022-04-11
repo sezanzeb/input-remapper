@@ -47,9 +47,9 @@ class AbsToBtnHandler(MappingHandler):
         self,
         combination: EventCombination,
         mapping: Mapping,
-        context: ContextProtocol,
+        **_,
     ):
-        super().__init__(combination, mapping, context)
+        super().__init__(combination, mapping)
 
         self._active = False
         self._input_event = combination[0]
