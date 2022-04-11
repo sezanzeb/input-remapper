@@ -19,7 +19,20 @@ import unittest
 import shutil
 import json
 
-from evdev.ecodes import EV_KEY, EV_ABS, ABS_HAT0X
+from evdev.ecodes import (
+    EV_KEY,
+    EV_ABS,
+    ABS_HAT0X,
+    ABS_X,
+    ABS_Y,
+    ABS_RX,
+    ABS_RY,
+    EV_REL,
+    REL_X,
+    REL_Y,
+    REL_WHEEL_HI_RES,
+    REL_HWHEEL_HI_RES,
+)
 
 from inputremapper.configs.migrations import migrate, config_version
 from inputremapper.configs.preset import Preset
@@ -354,6 +367,136 @@ class TestMigrations(unittest.TestCase):
             pass
 
         self.assertEqual("0.0.0", config_version().public)
+
+    def test_migrate_left_and_right_purpose(self):
+        path = os.path.join(tmp, "presets", "Foo Device", "test.json")
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w") as file:
+            json.dump(
+                {
+                    "gamepad": {
+                        "joystick": {
+                            "left_purpose": "mouse",
+                            "right_purpose": "wheel",
+                            "pointer_speed": 50,
+                            "x_scroll_speed": 10,
+                            "y_scroll_speed": 20,
+                        }
+                    }
+                },
+                file,
+            )
+        migrate()
+
+        preset = Preset(get_preset_path("Foo Device", "test"), UIMapping)
+        preset.load()
+        # 2 mappings for mouse
+        # 2 mappings for wheel
+        self.assertEqual(len(preset), 4)
+        self.assertEqual(
+            preset.get_mapping(EventCombination((EV_ABS, ABS_X, 0))),
+            UIMapping(
+                event_combination=EventCombination((EV_ABS, ABS_X, 0)),
+                target_uinput="mouse",
+                output_type=EV_REL,
+                output_code=REL_X,
+                gain=50 / 100,
+            ),
+        )
+        self.assertEqual(
+            preset.get_mapping(EventCombination((EV_ABS, ABS_Y, 0))),
+            UIMapping(
+                event_combination=EventCombination((EV_ABS, ABS_Y, 0)),
+                target_uinput="mouse",
+                output_type=EV_REL,
+                output_code=REL_Y,
+                gain=50 / 100,
+            ),
+        )
+        self.assertEqual(
+            preset.get_mapping(EventCombination((EV_ABS, ABS_RX, 0))),
+            UIMapping(
+                event_combination=EventCombination((EV_ABS, ABS_RX, 0)),
+                target_uinput="mouse",
+                output_type=EV_REL,
+                output_code=REL_HWHEEL_HI_RES,
+                gain=10,
+            ),
+        )
+        self.assertEqual(
+            preset.get_mapping(EventCombination((EV_ABS, ABS_RY, 0))),
+            UIMapping(
+                event_combination=EventCombination((EV_ABS, ABS_RY, 0)),
+                target_uinput="mouse",
+                output_type=EV_REL,
+                output_code=REL_WHEEL_HI_RES,
+                gain=20,
+            ),
+        )
+
+        # swap left right
+        with open(path, "w") as file:
+            json.dump(
+                {
+                    "gamepad": {
+                        "joystick": {
+                            "right_purpose": "mouse",
+                            "left_purpose": "wheel",
+                            "pointer_speed": 50,
+                            "x_scroll_speed": 10,
+                            "y_scroll_speed": 20,
+                        }
+                    }
+                },
+                file,
+            )
+        migrate()
+
+        preset = Preset(get_preset_path("Foo Device", "test"), UIMapping)
+        preset.load()
+        # 2 mappings for mouse
+        # 2 mappings for wheel
+        self.assertEqual(len(preset), 4)
+        self.assertEqual(
+            preset.get_mapping(EventCombination((EV_ABS, ABS_RX, 0))),
+            UIMapping(
+                event_combination=EventCombination((EV_ABS, ABS_RX, 0)),
+                target_uinput="mouse",
+                output_type=EV_REL,
+                output_code=REL_X,
+                gain=50 / 100,
+            ),
+        )
+        self.assertEqual(
+            preset.get_mapping(EventCombination((EV_ABS, ABS_RY, 0))),
+            UIMapping(
+                event_combination=EventCombination((EV_ABS, ABS_RY, 0)),
+                target_uinput="mouse",
+                output_type=EV_REL,
+                output_code=REL_Y,
+                gain=50 / 100,
+            ),
+        )
+        self.assertEqual(
+            preset.get_mapping(EventCombination((EV_ABS, ABS_X, 0))),
+            UIMapping(
+                event_combination=EventCombination((EV_ABS, ABS_X, 0)),
+                target_uinput="mouse",
+                output_type=EV_REL,
+                output_code=REL_HWHEEL_HI_RES,
+                gain=10,
+            ),
+        )
+        self.assertEqual(
+            preset.get_mapping(EventCombination((EV_ABS, ABS_Y, 0))),
+            UIMapping(
+                event_combination=EventCombination((EV_ABS, ABS_Y, 0)),
+                target_uinput="mouse",
+                output_type=EV_REL,
+                output_code=REL_WHEEL_HI_RES,
+                gain=20,
+            ),
+        )
 
 
 if __name__ == "__main__":
