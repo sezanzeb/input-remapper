@@ -271,11 +271,22 @@ def trim_logfile(log_path):
     if not os.path.exists(log_path):
         return
 
+    file_size_mb = os.path.getsize(log_path) / 1000 / 1000
+    if file_size_mb > 100:
+        # something went terribly wrong here. The service might timeout because
+        # it takes too long to trim this file. delete it instead.
+        logger.warning(
+            "Removing enormous log file of %dMB",
+            file_size_mb,
+        )
+        os.remove(log_path)
+        return
+
     # the logfile should not be too long to avoid overflowing the storage
     try:
         with open(log_path, "rb") as file:
-            binary = file.readlines()
-            content = [line.decode("utf-8", errors="ignore") for line in binary][-1000:]
+            binary = file.readlines()[-1000:]
+            content = [line.decode("utf-8", errors="ignore") for line in binary]
 
         with open(log_path, "w") as file:
             file.truncate(0)
