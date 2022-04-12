@@ -282,8 +282,7 @@ def add_filehandler(log_path=LOG_PATH):
                 with open(log_path, "rb") as file:
                     binary = file.readlines()
                     content = [
-                        line.decode('utf-8', errors='ignore')
-                        for line in binary
+                        line.decode("utf-8", errors="ignore") for line in binary
                     ][-1000:]
 
                 with open(log_path, "w") as file:
