@@ -274,7 +274,8 @@ def trim_logfile(log_path):
     file_size_mb = os.path.getsize(log_path) / 1000 / 1000
     if file_size_mb > 100:
         # something went terribly wrong here. The service might timeout because
-        # it takes too long to trim this file. delete it instead.
+        # it takes too long to trim this file. delete it instead. This probably
+        # only happens when doing funny things while in debug mode.
         logger.warning(
             "Removing enormous log file of %dMB",
             file_size_mb,
