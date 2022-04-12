@@ -278,12 +278,15 @@ def add_filehandler(log_path=LOG_PATH):
 
         if os.path.exists(log_path):
             # the logfile should not be too long to avoid overflowing the storage
-            with open(log_path, "r") as file:
-                content = file.readlines()[-1000:]
+            try:
+                with open(log_path, "r") as file:
+                    content = file.readlines()[-1000:]
 
-            with open(log_path, "w") as file:
-                file.truncate(0)
-                file.writelines(content)
+                with open(log_path, "w") as file:
+                    file.truncate(0)
+                    file.writelines(content)
+            except Exception as e:
+                logger.error('Failed to trim logfile: "%s"', str(e))
 
         file_handler = logging.FileHandler(log_path)
         file_handler.setFormatter(ColorfulFormatter())
