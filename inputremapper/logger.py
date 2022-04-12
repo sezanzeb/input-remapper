@@ -275,9 +275,7 @@ def trim_logfile(log_path):
     try:
         with open(log_path, "rb") as file:
             binary = file.readlines()
-            content = [
-                line.decode("utf-8", errors="ignore") for line in binary
-            ][-1000:]
+            content = [line.decode("utf-8", errors="ignore") for line in binary][-1000:]
 
         with open(log_path, "w") as file:
             file.truncate(0)
