@@ -44,7 +44,7 @@ class Transformation:
 
         return self._cache[x]
 
-    def _normalize(self, x: int) -> float:
+    def _normalize(self, x: Union[int, float]) -> float:
         """
         move and scale x to be between -1 and 1
         return: x

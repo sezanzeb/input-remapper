@@ -139,3 +139,50 @@ class TestAxisTransformation(unittest.TestCase):
                 ),
             ):
                 self.assertEqual(f(x), 0, msg=f"test deadzone at {x=} for {init_args}")
+
+    def test_continuity_near_deadzone(self):
+        """test that the Transfomation is continues (no sudden jump) next to the
+        deadzone"""
+
+        for init_args in self.get_init_args(deadzone=(0.1, 0.2, 0.9)):
+            f = Transformation(*init_args.values())
+            scale = functools.partial(
+                self.scale_to_range,
+                init_args.min_,
+                init_args.max_,
+            )
+            x = (
+                init_args.deadzone * 1.00001,
+                init_args.deadzone * 1.001,
+                -init_args.deadzone * 1.00001,
+                -init_args.deadzone * 1.001,
+            )
+            scaled_x = scale(x=x)
+
+            p1 = (x[0], f(scaled_x[0]))  # first point right of deadzone
+            p2 = (x[1], f(scaled_x[1]))  # second point right of deadzone
+
+            # calculate a linear function y = m * x + b from p1 and p2
+            m = (p1[1] - p2[1]) / (p1[0] - p2[0])
+            b = p1[1] - m * p1[0]
+
+            # the zero intersection of that function must be close to the
+            # edge of the deadzone
+            self.assertAlmostEqual(
+                -b / m,
+                init_args.deadzone,
+                places=5,
+                msg=f"test continuity at {init_args.deadzone} for {init_args}",
+            )
+
+            # same thing on the other side
+            p1 = (x[2], f(scaled_x[2]))
+            p2 = (x[3], f(scaled_x[3]))
+            m = (p1[1] - p2[1]) / (p1[0] - p2[0])
+            b = p1[1] - m * p1[0]
+            self.assertAlmostEqual(
+                -b / m,
+                -init_args.deadzone,
+                places=5,
+                msg=f"test continuity at {- init_args.deadzone} for {init_args}",
+            )
