@@ -89,6 +89,9 @@ class TestConfig(unittest.TestCase):
         )
         self.assertEqual(global_config.get(["autoload", "d1"]), "a")
 
+        self.assertRaises(ValueError, global_config.is_autoloaded, "d1", None)
+        self.assertRaises(ValueError, global_config.is_autoloaded, None, "a")
+
     def test_initial(self):
         # when loading for the first time, create a config file with
         # the default values

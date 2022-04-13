@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 import math
-from typing import Dict
+from typing import Dict, Union
 
 
 class Transformation:
@@ -34,7 +34,7 @@ class Transformation:
         self._expo = expo
         self._cache: Dict[float, float] = {}
 
-    def __call__(self, /, x: int) -> float:
+    def __call__(self, /, x: Union[int, float]) -> float:
         if x not in self._cache:
             y = (
                 self._calc_qubic(self._flatten_deadzone(self._normalize(x)))
