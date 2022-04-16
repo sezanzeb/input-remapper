@@ -292,6 +292,9 @@ def trim_logfile(log_path):
         with open(log_path, "w") as file:
             file.truncate(0)
             file.writelines(content)
+    except PermissionError:
+        # let the outermost PermissionError handler handle it
+        raise
     except Exception as e:
         logger.error('Failed to trim logfile: "%s"', str(e))
 
