@@ -166,6 +166,4 @@ class EventReader:
             await self.handle(InputEvent.from_event(event))
 
         self.context.reset()
-        # This happens all the time in tests because the async_read_loop stops when
-        # there is nothing to read anymore. Otherwise tests would block.
-        logger.error('The async_read_loop for "%s" stopped early', self._source.path)
+        logger.info('read loop for %s stopped', self._source.path)

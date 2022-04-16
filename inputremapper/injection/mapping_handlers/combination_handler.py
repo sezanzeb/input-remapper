@@ -40,7 +40,7 @@ class CombinationHandler(MappingHandler):
     """keeps track of a combination and notifies a sub handler"""
 
     # map of (event.type, event.code) -> bool , keep track of the combination state
-    _key_map: Dict[Tuple[int, int], bool]
+    _pressed_keys: Dict[Tuple[int, int], bool]
     _output_state: bool  # the last update we sent to a sub-handler
     _sub_handler: InputEventHandler
 
@@ -52,15 +52,15 @@ class CombinationHandler(MappingHandler):
     ) -> None:
         logger.debug(mapping)
         super().__init__(combination, mapping)
-        self._key_map = {}
+        self._pressed_keys = {}
         self._output_state = False
 
         # prepare a key map for all events with non-zero value
         for event in combination:
             assert event.is_key_event
-            self._key_map[event.type_and_code] = False
+            self._pressed_keys[event.type_and_code] = False
 
-        assert len(self._key_map) > 0  # no combination handler without a key
+        assert len(self._pressed_keys) > 0  # no combination handler without a key
 
     def __str__(self):
         return f"CombinationHandler for {self.mapping.event_combination} <{id(self)}>:"
@@ -80,11 +80,11 @@ class CombinationHandler(MappingHandler):
         supress: bool = False,
     ) -> bool:
         type_code = event.type_and_code
-        if type_code not in self._key_map.keys():
+        if type_code not in self._pressed_keys.keys():
             return False  # we are not responsible for the event
 
         last_state = self.get_active()
-        self._key_map[type_code] = event.value == 1
+        self._pressed_keys[type_code] = event.value == 1
 
         if self.get_active() == last_state or self.get_active() == self._output_state:
             # nothing changed
@@ -118,13 +118,13 @@ class CombinationHandler(MappingHandler):
 
     def reset(self) -> None:
         self._sub_handler.reset()
-        for key in self._key_map:
-            self._key_map[key] = False
+        for key in self._pressed_keys:
+            self._pressed_keys[key] = False
         self._output_state = False
 
     def get_active(self) -> bool:
         """return if all keys in the keymap are set to True"""
-        return False not in self._key_map.values()
+        return False not in self._pressed_keys.values()
 
     def forward_release(self, forward: evdev.UInput) -> None:
         """forward a button release for all keys if this is a combination

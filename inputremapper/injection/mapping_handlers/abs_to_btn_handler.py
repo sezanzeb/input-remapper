@@ -79,6 +79,8 @@ class AbsToBtnHandler(MappingHandler):
         half_range = (abs_max - abs_min) / 2
         middle = half_range + abs_min
         trigger_offset = half_range * self._input_event.value / 100
+
+        # threshold, middle
         return middle + trigger_offset, middle
 
     def notify(

@@ -357,11 +357,11 @@ class Injector(multiprocessing.Process):
                 raise e
 
             # actually doing things
-            consumer_control = EventReader(
+            event_reader = EventReader(
                 self.context, source, forward_to, self._stop_event
             )
-            coroutines.append(consumer_control.run())
-            self._consumer_controls.append(consumer_control)
+            coroutines.append(event_reader.run())
+            self._consumer_controls.append(event_reader)
 
         coroutines.append(self._msg_listener())
 
