@@ -308,6 +308,39 @@ def update_verbosity(debug):
         logger.setLevel(logging.INFO)
 
 
+def trim_logfile(log_path):
+    """Keep the logfile short."""
+    if not os.path.exists(log_path):
+        return
+
+    file_size_mb = os.path.getsize(log_path) / 1000 / 1000
+    if file_size_mb > 100:
+        # something went terribly wrong here. The service might timeout because
+        # it takes too long to trim this file. delete it instead. This probably
+        # only happens when doing funny things while in debug mode.
+        logger.warning(
+            "Removing enormous log file of %dMB",
+            file_size_mb,
+        )
+        os.remove(log_path)
+        return
+
+    # the logfile should not be too long to avoid overflowing the storage
+    try:
+        with open(log_path, "rb") as file:
+            binary = file.readlines()[-1000:]
+            content = [line.decode("utf-8", errors="ignore") for line in binary]
+
+        with open(log_path, "w") as file:
+            file.truncate(0)
+            file.writelines(content)
+    except PermissionError:
+        # let the outermost PermissionError handler handle it
+        raise
+    except Exception as e:
+        logger.error('Failed to trim logfile: "%s"', str(e))
+
+
 def add_filehandler(log_path=LOG_PATH):
     """Clear the existing logfile and start logging to it."""
     try:
@@ -318,14 +351,7 @@ def add_filehandler(log_path=LOG_PATH):
             # used to be a folder < 0.8.0
             shutil.rmtree(log_path)
 
-        if os.path.exists(log_path):
-            # the logfile should not be too long to avoid overflowing the storage
-            with open(log_path, "r") as file:
-                content = file.readlines()[-1000:]
-
-            with open(log_path, "w") as file:
-                file.truncate(0)
-                file.writelines(content)
+        trim_logfile(log_path)
 
         file_handler = logging.FileHandler(log_path)
         file_handler.setFormatter(ColorfulFormatter())

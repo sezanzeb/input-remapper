@@ -89,7 +89,7 @@ class TestLogger(unittest.TestCase):
         with open(path, "r") as f:
             # it only keeps the newest information
             content = f.readlines()
-            self.assertLess(len(content), 1100)
+            self.assertLess(abs(len(content) - 1000), 10)
             # whatever the logging module decides to log into that file
             self.assertNotIn("aaaa", content[-1])
 
