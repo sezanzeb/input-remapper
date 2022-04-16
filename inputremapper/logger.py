@@ -292,27 +292,29 @@ def trim_logfile(log_path):
         with open(log_path, "w") as file:
             file.truncate(0)
             file.writelines(content)
+    except PermissionError:
+        # let the outermost PermissionError handler handle it
+        raise
     except Exception as e:
         logger.error('Failed to trim logfile: "%s"', str(e))
 
 
 def add_filehandler(log_path=LOG_PATH):
     """Clear the existing logfile and start logging to it."""
-    if not os.access(log_path, os.W_OK | os.R_OK):
+    try:
+        log_path = os.path.expanduser(log_path)
+        os.makedirs(os.path.dirname(log_path), exist_ok=True)
+
+        if os.path.isdir(log_path):
+            # used to be a folder < 0.8.0
+            shutil.rmtree(log_path)
+
+        trim_logfile(log_path)
+
+        file_handler = logging.FileHandler(log_path)
+        file_handler.setFormatter(ColorfulFormatter())
+        logger.addHandler(file_handler)
+
+        logger.info('Starting logging to "%s"', log_path)
+    except PermissionError:
         logger.debug('No permission to log to "%s"', log_path)
-        return
-
-    log_path = os.path.expanduser(log_path)
-    os.makedirs(os.path.dirname(log_path), exist_ok=True)
-
-    if os.path.isdir(log_path):
-        # used to be a folder < 0.8.0
-        shutil.rmtree(log_path)
-
-    trim_logfile(log_path)
-
-    file_handler = logging.FileHandler(log_path)
-    file_handler.setFormatter(ColorfulFormatter())
-    logger.addHandler(file_handler)
-
-    logger.info('Starting logging to "%s"', log_path)
