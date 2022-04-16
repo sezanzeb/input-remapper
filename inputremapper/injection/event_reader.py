@@ -166,4 +166,4 @@ class EventReader:
             await self.handle(InputEvent.from_event(event))
 
         self.context.reset()
-        logger.info('read loop for %s stopped', self._source.path)
+        logger.info("read loop for %s stopped", self._source.path)

@@ -1059,6 +1059,88 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
         self.assertIn((EV_KEY, KEY_A, 1), kb_history)
         self.assertIn((EV_KEY, KEY_A, 0), kb_history)
 
+    async def test_switch_axis(self):
+        """test a mapping for an axis that can be switched on or off"""
+
+        rate = 60  # rate [Hz] at which events are produced
+        gain = 0.5  # halve the speed of the rel axis
+        speed = 1
+        preset = Preset()
+
+        # left x to mouse x if left y is above 10%
+        combination = EventCombination(((EV_ABS, ABS_X, 0), (EV_ABS, ABS_Y, 10)))
+        cfg = {
+            "event_combination": combination.json_str(),
+            "target_uinput": "mouse",
+            "output_type": EV_REL,
+            "output_code": REL_X,
+            "rate": rate,
+            "gain": gain,
+            "deadzone": 0,
+            "rel_speed": speed,
+        }
+        m1 = Mapping(**cfg)
+        preset.add(m1)
+
+        # set input x-axis to 100%
+        x = MAX_ABS
+        event_reader = self.get_event_reader(
+            preset, InputDevice("/dev/input/event30")
+        )  # gamepad Fixture
+
+        await event_reader.handle(InputEvent.from_tuple((EV_ABS, ABS_X, x)))
+        await asyncio.sleep(0.2)  # wait a bit more for nothing to sum up
+        m_history = convert_to_internal_events(
+            global_uinputs.get_uinput("mouse").write_history
+        )
+        fw_history = convert_to_internal_events(self.forward_uinput.write_history)
+        self.assertEqual(len(m_history), 0)
+        self.assertEqual(len(fw_history), 1)
+        self.assertEqual(fw_history[0], (EV_ABS, ABS_X, x))
+
+        # move the y-Axis above 10%
+        await self.send_events(
+            (
+                InputEvent.from_tuple((EV_ABS, ABS_Y, x * 0.05)),
+                InputEvent.from_tuple((EV_ABS, ABS_Y, x * 0.11)),
+                InputEvent.from_tuple((EV_ABS, ABS_Y, x * 0.5)),
+            ),
+            event_reader,
+        )
+        # wait a bit more for it to sum up
+        sleep = 0.5
+        await asyncio.sleep(sleep)
+        # send some more x events
+        await self.send_events(
+            (
+                InputEvent.from_tuple((EV_ABS, ABS_X, x)),
+                InputEvent.from_tuple((EV_ABS, ABS_X, x * 0.9)),
+            ),
+            event_reader,
+        )
+        # stop it
+        await event_reader.handle(
+            InputEvent.from_tuple((EV_ABS, ABS_Y, MAX_ABS * 0.05))
+        )
+
+        await asyncio.sleep(0.2)  # wait a bit more for nothing to sum up
+        history = convert_to_internal_events(
+            global_uinputs.get_uinput("mouse").write_history
+        )
+        if history[0].type == EV_ABS:
+            raise AssertionError(
+                "The injector probably just forwarded them unchanged"
+                # possibly in addition to writing mouse events
+            )
+
+        # each axis writes speed*gain*rate*sleep=1*0.5*60 events
+        self.assertGreater(len(history), speed * gain * rate * sleep * 0.9)
+        self.assertLess(len(history), speed * gain * rate * sleep * 1.1)
+
+        # does not contain anything else
+        count_x = history.count((EV_REL, REL_X, 1))
+        self.assertEqual(len(history), count_x)
+
 
 if __name__ == "__main__":
     unittest.main()
