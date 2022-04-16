@@ -30,7 +30,7 @@ from inputremapper.input_event import InputEvent
 
 from inputremapper.configs.preset import Preset
 from inputremapper.configs.system_mapping import SystemMapping, XMODMAP_FILENAME
-from inputremapper.configs.paths import get_preset_path, get_config_path
+from inputremapper.configs.paths import get_preset_path, get_config_path, CONFIG_PATH
 from inputremapper.event_combination import EventCombination
 
 
@@ -47,7 +47,7 @@ class TestSystemMapping(unittest.TestCase):
 
     def test_xmodmap_file(self):
         system_mapping = SystemMapping()
-        path = os.path.join(tmp, XMODMAP_FILENAME)
+        path = os.path.join(CONFIG_PATH, XMODMAP_FILENAME)
         os.remove(path)
 
         system_mapping.populate()
@@ -200,7 +200,7 @@ class TestPreset(unittest.TestCase):
         self.preset.path = get_preset_path("Foo Device", "test")
         self.preset.save()
 
-        path = os.path.join(tmp, "presets", "Foo Device", "test.json")
+        path = os.path.join(CONFIG_PATH, "presets", "Foo Device", "test.json")
         self.assertTrue(os.path.exists(path))
 
         loaded = Preset(get_preset_path("Foo Device", "test"))

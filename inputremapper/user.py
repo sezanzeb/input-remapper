@@ -66,5 +66,3 @@ def get_home(user):
 USER = get_user()
 
 HOME = get_home(USER)
-
-CONFIG_PATH = os.path.join(HOME, ".config/input-remapper")

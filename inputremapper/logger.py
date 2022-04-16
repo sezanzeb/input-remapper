@@ -23,6 +23,7 @@
 
 
 import os
+import re
 import sys
 import shutil
 import time
@@ -263,6 +264,9 @@ try:
 except pkg_resources.DistributionNotFound as error:
     logger.info("Could not figure out the version")
     logger.debug(error)
+
+# check if the version is something like 1.5b20 or 2.1.3b5
+IS_BETA = bool(re.match("[0-9]+b[0-9]+", VERSION.split(".")[-1]))
 
 
 def log_info(name="input-remapper"):

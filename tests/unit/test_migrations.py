@@ -38,6 +38,7 @@ from inputremapper.configs.migrations import migrate, config_version
 from inputremapper.configs.preset import Preset
 from inputremapper.configs.global_config import global_config
 from inputremapper.configs.paths import touch, CONFIG_PATH, mkdir, get_preset_path
+from inputremapper.logger import IS_BETA
 from inputremapper.event_combination import EventCombination
 from inputremapper.user import HOME
 
@@ -68,7 +69,10 @@ class TestMigrations(unittest.TestCase):
 
     def test_rename_config(self):
         old = os.path.join(HOME, ".config", "key-mapper")
-        new = CONFIG_PATH
+        if IS_BETA:
+            new = os.path.join(*os.path.split(CONFIG_PATH)[:-1])
+        else:
+            new = CONFIG_PATH
 
         # we are not destroying our actual config files with this test
         self.assertTrue(new.startswith(tmp))
@@ -92,7 +96,6 @@ class TestMigrations(unittest.TestCase):
         with open(new_config_json, "r") as f:
             moved_config = json.loads(f.read())
             self.assertEqual(moved_config["foo"], "bar")
-            self.assertIn("version", moved_config)
 
     def test_wont_migrate_suffix(self):
         old = os.path.join(CONFIG_PATH, "config")
@@ -111,11 +114,11 @@ class TestMigrations(unittest.TestCase):
         self.assertTrue(os.path.exists(old))
 
     def test_migrate_preset(self):
-        if os.path.exists(tmp):
-            shutil.rmtree(tmp)
+        if os.path.exists(CONFIG_PATH):
+            shutil.rmtree(CONFIG_PATH)
 
-        p1 = os.path.join(tmp, "foo1", "bar1.json")
-        p2 = os.path.join(tmp, "foo2", "bar2.json")
+        p1 = os.path.join(CONFIG_PATH, "foo1", "bar1.json")
+        p2 = os.path.join(CONFIG_PATH, "foo2", "bar2.json")
         touch(p1)
         touch(p2)
 
@@ -127,22 +130,22 @@ class TestMigrations(unittest.TestCase):
 
         migrate()
 
-        self.assertFalse(os.path.exists(os.path.join(tmp, "foo1", "bar1.json")))
-        self.assertFalse(os.path.exists(os.path.join(tmp, "foo2", "bar2.json")))
+        self.assertFalse(os.path.exists(os.path.join(CONFIG_PATH, "foo1", "bar1.json")))
+        self.assertFalse(os.path.exists(os.path.join(CONFIG_PATH, "foo2", "bar2.json")))
 
         self.assertTrue(
-            os.path.exists(os.path.join(tmp, "presets", "foo1", "bar1.json"))
+            os.path.exists(os.path.join(CONFIG_PATH, "presets", "foo1", "bar1.json"))
         )
         self.assertTrue(
-            os.path.exists(os.path.join(tmp, "presets", "foo2", "bar2.json"))
+            os.path.exists(os.path.join(CONFIG_PATH, "presets", "foo2", "bar2.json"))
         )
 
     def test_wont_migrate_preset(self):
-        if os.path.exists(tmp):
-            shutil.rmtree(tmp)
+        if os.path.exists(CONFIG_PATH):
+            shutil.rmtree(CONFIG_PATH)
 
-        p1 = os.path.join(tmp, "foo1", "bar1.json")
-        p2 = os.path.join(tmp, "foo2", "bar2.json")
+        p1 = os.path.join(CONFIG_PATH, "foo1", "bar1.json")
+        p2 = os.path.join(CONFIG_PATH, "foo2", "bar2.json")
         touch(p1)
         touch(p2)
 
@@ -153,18 +156,18 @@ class TestMigrations(unittest.TestCase):
             f.write("{}")
 
         # already migrated
-        mkdir(os.path.join(tmp, "presets"))
+        mkdir(os.path.join(CONFIG_PATH, "presets"))
 
         migrate()
 
-        self.assertTrue(os.path.exists(os.path.join(tmp, "foo1", "bar1.json")))
-        self.assertTrue(os.path.exists(os.path.join(tmp, "foo2", "bar2.json")))
+        self.assertTrue(os.path.exists(os.path.join(CONFIG_PATH, "foo1", "bar1.json")))
+        self.assertTrue(os.path.exists(os.path.join(CONFIG_PATH, "foo2", "bar2.json")))
 
         self.assertFalse(
-            os.path.exists(os.path.join(tmp, "presets", "foo1", "bar1.json"))
+            os.path.exists(os.path.join(CONFIG_PATH, "presets", "foo1", "bar1.json"))
         )
         self.assertFalse(
-            os.path.exists(os.path.join(tmp, "presets", "foo2", "bar2.json"))
+            os.path.exists(os.path.join(CONFIG_PATH, "presets", "foo2", "bar2.json"))
         )
 
     def test_migrate_mappings(self):
@@ -174,7 +177,7 @@ class TestMigrations(unittest.TestCase):
         {(type, code): symbol} or {(type, code, value): symbol} should migrate
         to {EventCombination: {target: target, symbol: symbol, ...}}
         """
-        path = os.path.join(tmp, "presets", "Foo Device", "test.json")
+        path = os.path.join(CONFIG_PATH, "presets", "Foo Device", "test.json")
         os.makedirs(os.path.dirname(path), exist_ok=True)
         with open(path, "w") as file:
             json.dump(
@@ -274,7 +277,7 @@ class TestMigrations(unittest.TestCase):
         self.assertEqual(8, len(preset))
 
     def test_migrate_otherwise(self):
-        path = os.path.join(tmp, "presets", "Foo Device", "test.json")
+        path = os.path.join(CONFIG_PATH, "presets", "Foo Device", "test.json")
         os.makedirs(os.path.dirname(path), exist_ok=True)
         with open(path, "w") as file:
             json.dump(
@@ -369,7 +372,7 @@ class TestMigrations(unittest.TestCase):
         self.assertEqual("0.0.0", config_version().public)
 
     def test_migrate_left_and_right_purpose(self):
-        path = os.path.join(tmp, "presets", "Foo Device", "test.json")
+        path = os.path.join(CONFIG_PATH, "presets", "Foo Device", "test.json")
         os.makedirs(os.path.dirname(path), exist_ok=True)
         with open(path, "w") as file:
             json.dump(
@@ -434,7 +437,11 @@ class TestMigrations(unittest.TestCase):
             ),
         )
 
-        # swap left right
+    def test_migrate_left_and_right_purpose2(self):
+        # same as above, but left and right is swapped
+
+        path = os.path.join(CONFIG_PATH, "presets", "Foo Device", "test.json")
+        os.makedirs(os.path.dirname(path), exist_ok=True)
         with open(path, "w") as file:
             json.dump(
                 {

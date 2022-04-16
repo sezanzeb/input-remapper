@@ -305,9 +305,9 @@ def new_event(type, code, value, timestamp=None, offset=0):
 
 
 def patch_paths():
-    from inputremapper.configs import paths
+    from inputremapper import user
 
-    paths.CONFIG_PATH = tmp
+    user.HOME = tmp
 
 
 class InputDevice:
