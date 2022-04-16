@@ -14,7 +14,7 @@ First, select your device (like your keyboard) from the large dropdown on the to
 Then you can already edit your keys, as shown in the screenshots.
 
 In the text input field, type the key to which you would like to map this key.
-More information about the possible mappings can be found [below](#key-names-and-macros).
+More information about the possible mappings can be found [below](#key-names).
 
 Changes are saved automatically. Afterwards press the "Apply" button.
 
@@ -82,7 +82,7 @@ names can be chained using ` + `.
 Check the autocompletion of the GUI for possible values. You can also
 obtain a complete list of possiblities using `input-remapper-control --symbol-names`.
 
-Input-remapper only recognizes symbol names, but not the symbols themselfes. So for
+Input-remapper only recognizes symbol names, but not the symbols themselves. So for
 example, input-remapper might (depending on the system layout) know what a `minus` is, but
 it doesn't know `-`.
 
@@ -123,65 +123,109 @@ that I can't review their code, so use them at your own risk (just like everythi
 ## Configuration Files
 
 If you don't have a graphical user interface, you'll need to edit the
-configuration files.
+configuration files. All configuration files need to be valid json files, otherwise the 
+parser refuses to work.
+
+Note for the Beta branch: All configuration files are copied to: 
+`~/.config/input-remapper/beta_VERSION/`
 
 The default configuration is stored at `~/.config/input-remapper/config.json`,
 which doesn't include any mappings, but rather other parameters that
-are interesting for injections. The current default configuration as of 1.2.1
+are interesting for injections. The current default configuration as of 1.5
 looks like, with  an example autoload entry:
 
 ```json
 {
-    "autoload": {
-        "Logitech USB Keyboard": "preset name"
+  "autoload": {
+      "Logitech USB Keyboard": "preset name"
     },
-    "macros": {
-        "keystroke_sleep_ms": 10
-    },
-    "gamepad": {
-        "joystick": {
-            "non_linearity": 4,
-            "pointer_speed": 80,
-            "left_purpose": "none",
-            "right_purpose": "none",
-            "x_scroll_speed": 2,
-            "y_scroll_speed": 0.5
-        }
-    }
+  "version": "1.5"
 }
 ```
 
 `preset name` refers to `~/.config/input-remapper/presets/device name/preset name.json`.
 The device name can be found with `sudo input-remapper-control --list-devices`.
 
-Anything that is relevant to presets can be overwritten in them as well.
+#### Preset
+
+The preset files are a collection of mappings.
 Here is an example configuration for preset "a" for the "gamepad" device:
 `~/.config/input-remapper/presets/gamepad/a.json`
 
 ```json
 {
-    "macros": {
-        "keystroke_sleep_ms": 100
+    "1,307,1": {
+        "target_uinput": "keyboard",
+        "output_symbol": "k(2).k(3)",
+        "macro_key_sleep_ms": 100
     },
-    "mapping": {
-        "1,315,1+1,16,-1": "1",
-        "1,307,1": "k(2).k(3)"
+    "1,315,1+1,16,1": {
+        "target_uinput": "keyboard",
+        "output_symbol": "1"
+    },
+    "3,1,0": {
+        "target_uinput": "mouse",
+        "output_type": 2,
+        "output_code": 1,
+        "gain": 0.5
     }
 }
 ```
+This preset consists of three mappings.
 
-Both need to be valid json files, otherwise the parser refuses to work. This
-preset maps the EV_KEY down event with code 307 to a macro and sets the time
-between injected events of macros to 100 ms. Note that a complete keystroke
-consists of two events: down and up. The other mapping is a key combination,
-chained using `+`.
+ * The first maps the key event with code 307 to a macro and sets the time between 
+   injected events of macros to 100 ms. The macro injects its events to the virtual keyboard.
+ * The second mapping is a key combination, chained using `+`.
+ * The third maps the y-Axis to the y-Axis on the virtual mouse.
 
-Other than that, it inherits all configurations from
-`~/.config/input-remapper/config.json`. If config.json is missing some stuff,
-it will query the hardcoded default values.
+#### Mapping
 
-The event codes can be read using `evtest`. Available names in the mapping
-can be listed with `input-remapper-control --symbol-names`.
+As shown above, the mapping is part of the preset. It consists of the input-combination 
+and the mapping parameters.
+
+```
+<input-combination>: {
+    <parameter 1>: <value1>,
+    <parameter 2>: <value2>
+}
+```
+The input-combination is a string like `"EV_TYPE, EV_CODE, EV_VALUE + ..."`.
+`EV_TYPE` and `EV_CODE` describe the input event. Use the program `evtest` to find 
+Available types and codes. See also the [evdev documentation](https://www.kernel.org/doc/html/latest/input/event-codes.html#input-event-codes)
+
+The `EV_VALUE` describes the intention of the input. 
+A value of `0` means that the event will be mapped to an axis. A non-zero value means 
+that the event will be treated as a key input. 
+
+If the event type is `3 (EV_ABS)` (as in: map a joystick axis to a key or macro) the 
+value can be between `-100 [%]` and `100 [%]`. The mapping will be triggered once the joystick 
+reaches the position described by the value. 
+
+If the event type is `2 (EV_REL)` (as in: map a relative axis (e.g. mouse wheel) to a key or macro)
+the value can be anything. The mapping will be triggered once the speed and direction of 
+the axis is higher than described by the value.
+
+The following table contains all possible parameters and their default values:
+
+| Parameter           | Default | Type            | Description                                                                                       |
+|---------------------|---------|-----------------|---------------------------------------------------------------------------------------------------|
+| target_uinput       |         | string          | The UInput to which the mapped event will be sent                                                 |
+| output_symbol       |         | string          | The symbol or macro string if applicable                                                          |
+| output_type         |         | int             | The event type of the mapped event                                                                |
+| output_code         |         | int             | The event code of the mapped event                                                                |
+| **Macro settings**  |
+| macro_key_sleep_ms  | 20      | positive int    |                                                                                                   |
+| **Axis settings**   |                         
+| deadzone            | 0.1     | float ∈ (0, 1)  | The deadzone of the input axis                                                                    |
+| gain                | 1.0     | float           | Scale factor when mapping an axis to an axis                                                      |
+| expo                | 0       | float ∈ (-1, 1) | Non liniarity factor see also [GeoGebra](https://www.geogebra.org/calculator/mkdqueky)            |
+| **EV_REL output**   |            
+| rate                | 60      | positive int    | The frequency `[Hz]` at which `EV_REL` events get generated (also effects mouse and wheel macro)  |
+| rel_speed           | 100     | positive int    | The base speed of the relative axis, compounds with the gain (also effects mouse and wheel macro) |
+| **EV_REL as input** |         
+| rel_input_cutoff    | 100     | positive int    | The absolute value at which a `EV_REL` axis is considered at its maximum                          |
+| release_timeout     | 0.05    | positive float  | The time `[s]` until a relative axis is considered stationary if no new events arrive             |
+
 
 ## CLI
 
@@ -193,14 +237,14 @@ running (or without sudo if your user has the appropriate permissions).
 
 Examples:
 
-| Description                                                                                         | Command                                                                               |
-|-----------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------|
-| Load all configured presets for all devices                                                         | `input-remapper-control --command autoload`                                               |
-| If you are running as root user, provide information about the whereabouts of the input-remapper config | `input-remapper-control --command autoload --config-dir "~/.config/input-remapper/"`          |
-| List available device names for the `--device` parameter                                            | `sudo input-remapper-control --list-devices`                                              |
-| Stop injecting                                                                                      | `input-remapper-control --command stop --device "Razer Razer Naga Trinity"`               |
-| Load `~/.config/input-remapper/presets/Razer Razer Naga Trinity/a.json`                                 | `input-remapper-control --command start --device "Razer Razer Naga Trinity" --preset "a"` |
-| Loads the configured preset for whatever device is using this /dev path                             | `/bin/input-remapper-control --command autoload --device /dev/input/event5`               |
+| Description                                                                                              | Command                                                                                    |
+|----------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------|
+| Load all configured presets for all devices                                                              | `input-remapper-control --command autoload`                                                |
+| If you are running as root user, provide information about the whereabouts of the input-remapper config  | `input-remapper-control --command autoload --config-dir "~/.config/input-remapper/"`       |
+| List available device names for the `--device` parameter                                                 | `sudo input-remapper-control --list-devices`                                               |
+| Stop injecting                                                                                           | `input-remapper-control --command stop --device "Razer Razer Naga Trinity"`                |
+| Load `~/.config/input-remapper/presets/Razer Razer Naga Trinity/a.json`                                  | `input-remapper-control --command start --device "Razer Razer Naga Trinity" --preset "a"`  |
+| Loads the configured preset for whatever device is using this /dev path                                  | `/bin/input-remapper-control --command autoload --device /dev/input/event5`                |
 
 **systemctl**
 

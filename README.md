@@ -1,6 +1,6 @@
 <p align="center"><img src="data/input-remapper.svg" width=100/></p>
 
-<h1 align="center">Input Remapper</h1>
+<h1 align="center">Input Remapper (Beta)</h1>
 
 <p align="center"><b>Formerly Key Mapper</b></p>
 
@@ -13,6 +13,13 @@
 <p align="center"><a href="readme/usage.md">Usage</a> - <a href="readme/macros.md">Macros</a> - <a href="#installation">Installation</a> - <a href="readme/development.md">Development</a> - <a href="#screenshots">Screenshots</a> - <a href="readme/examples.md">Examples</a></p>
 
 <p align="center"><img src="readme/pylint.svg"/> <img src="readme/coverage.svg"/></p>
+
+#### Known Issues (Beta Branch)
+
+ * The GUI is currently is not adapted to reflect all new features and might behave strange.
+   Mapping a gamepad to mouse is currently not possible in the GUI. 
+   Also mapping joystick or mouse axis to buttons might not work.
+   Those are only limitations of the GUI, when editing the preset manually all those features are still available.
 
 ## Installation
 
