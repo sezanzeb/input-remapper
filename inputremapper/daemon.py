@@ -280,7 +280,8 @@ class Daemon:
         """Stop injecting the preset mappings for a single device."""
         if self.injectors.get(group_key) is None:
             logger.debug(
-                'Tried to stop injector, but none is running for group "%s"', group_key
+                'Tried to stop injector, but none is running for group "%s"',
+                group_key,
             )
             return
 

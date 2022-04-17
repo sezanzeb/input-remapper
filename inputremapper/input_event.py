@@ -37,8 +37,7 @@ InputEventValidationType = Union[
 
 
 class EventActions(enum.Enum):
-    """Additional information a InputEvent can send through the event pipeline
-    """
+    """Additional information a InputEvent can send through the event pipeline"""
 
     as_key = enum.auto()
     recenter = enum.auto()
@@ -130,7 +129,11 @@ class InputEvent:
                     f" must have length 3"
                 )
             return cls(
-                0, 0, int(event_tuple[0]), int(event_tuple[1]), int(event_tuple[2])
+                0,
+                0,
+                int(event_tuple[0]),
+                int(event_tuple[1]),
+                int(event_tuple[2]),
             )
         except ValueError:
             raise InputEventCreationError(

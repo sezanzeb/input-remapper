@@ -723,13 +723,19 @@ class TestGui(GuiTestBase):
         # creates a new empty preset when no preset exists for the device
         self.user_interface.on_select_device(FakeDeviceDropdown("Foo Device"))
         m1 = UIMapping(
-            event_combination="1,50,1", output_symbol="q", target_uinput="keyboard"
+            event_combination="1,50,1",
+            output_symbol="q",
+            target_uinput="keyboard",
         )
         m2 = UIMapping(
-            event_combination="1,51,1", output_symbol="u", target_uinput="keyboard"
+            event_combination="1,51,1",
+            output_symbol="u",
+            target_uinput="keyboard",
         )
         m3 = UIMapping(
-            event_combination="1,52,1", output_symbol="x", target_uinput="keyboard"
+            event_combination="1,52,1",
+            output_symbol="x",
+            target_uinput="keyboard",
         )
         active_preset.add(m1)
         active_preset.add(m2)
@@ -766,16 +772,20 @@ class TestGui(GuiTestBase):
     def test_editor_keycode_to_string(self):
         # not an integration test, but I have all the selection_label tests here already
         self.assertEqual(
-            EventCombination((EV_KEY, evdev.ecodes.KEY_A, 1)).beautify(), "a"
+            EventCombination((EV_KEY, evdev.ecodes.KEY_A, 1)).beautify(),
+            "a",
         )
         self.assertEqual(
-            EventCombination([EV_KEY, evdev.ecodes.KEY_A, 1]).beautify(), "a"
+            EventCombination([EV_KEY, evdev.ecodes.KEY_A, 1]).beautify(),
+            "a",
         )
         self.assertEqual(
-            EventCombination((EV_ABS, evdev.ecodes.ABS_HAT0Y, -1)).beautify(), "DPad Up"
+            EventCombination((EV_ABS, evdev.ecodes.ABS_HAT0Y, -1)).beautify(),
+            "DPad Up",
         )
         self.assertEqual(
-            EventCombination((EV_KEY, evdev.ecodes.BTN_A, 1)).beautify(), "Button A"
+            EventCombination((EV_KEY, evdev.ecodes.BTN_A, 1)).beautify(),
+            "Button A",
         )
         self.assertEqual(EventCombination((EV_KEY, 1234, 1)).beautify(), "1234")
         self.assertEqual(
@@ -783,10 +793,12 @@ class TestGui(GuiTestBase):
             "DPad Left",
         )
         self.assertEqual(
-            EventCombination([EV_ABS, evdev.ecodes.ABS_HAT0Y, -1]).beautify(), "DPad Up"
+            EventCombination([EV_ABS, evdev.ecodes.ABS_HAT0Y, -1]).beautify(),
+            "DPad Up",
         )
         self.assertEqual(
-            EventCombination([EV_KEY, evdev.ecodes.BTN_A, 1]).beautify(), "Button A"
+            EventCombination([EV_KEY, evdev.ecodes.BTN_A, 1]).beautify(),
+            "Button A",
         )
         self.assertEqual(EventCombination([EV_KEY, 1234, 1]).beautify(), "1234")
         self.assertEqual(
@@ -1119,7 +1131,11 @@ class TestGui(GuiTestBase):
         """Comprehensive test for selection_labels 2."""
 
         def remove(
-            selection_label, code, symbol, num_selection_labels_after, target="keyboard"
+            selection_label,
+            code,
+            symbol,
+            num_selection_labels_after,
+            target="keyboard",
         ):
             """Remove a selection_label by clicking the delete button.
 
@@ -1168,7 +1184,7 @@ class TestGui(GuiTestBase):
             self.assertIsNone(selection_label.get_combination())
             if code is not None:
                 self.assertIsNone(
-                    active_preset.get_mapping(EventCombination([EV_KEY, code, 1]))
+                    active_preset.get_mapping(EventCombination([EV_KEY, code, 1])),
                 )
 
             self.assertEqual(
@@ -1179,10 +1195,12 @@ class TestGui(GuiTestBase):
         # sleeps are added to be able to visually follow and debug the test. Add two
         # selection_labels by modifiying the one empty selection_label that exists
         selection_label_1 = self.add_mapping_via_ui(
-            EventCombination([EV_KEY, 10, 1]), "a"
+            EventCombination([EV_KEY, 10, 1]),
+            "a",
         )
         selection_label_2 = self.add_mapping_via_ui(
-            EventCombination([EV_KEY, 11, 1]), "b"
+            EventCombination([EV_KEY, 11, 1]),
+            "b",
         )
 
         # no empty selection_label added because one is unfinished
@@ -1377,7 +1395,10 @@ class TestGui(GuiTestBase):
         warning_icon = self.user_interface.get("warning_status_icon")
 
         active_preset.change(
-            EventCombination([EV_KEY, 9, 1]), "keyboard", "k(1))", None
+            EventCombination([EV_KEY, 9, 1]),
+            "keyboard",
+            "k(1))",
+            None,
         )
         self.user_interface.save_preset()
         tooltip = status.get_tooltip_text().lower()
@@ -1723,7 +1744,7 @@ class TestGui(GuiTestBase):
         self.assertNotIn("Stop Injection", text)
         active_preset.path = get_preset_path(group_name, preset_name)
         active_preset.add(
-            get_ui_mapping(EventCombination([EV_KEY, KEY_A, 1]), "keyboard", "b")
+            get_ui_mapping(EventCombination([EV_KEY, KEY_A, 1]), "keyboard", "b"),
         )
         active_preset.save()
         self.user_interface.on_apply_preset_clicked(None)

@@ -25,7 +25,12 @@ class Transformation:
     """Callable that returns the axis transformation at x."""
 
     def __init__(
-        self, max_: int, min_: int, deadzone: float, gain: float = 1, expo: float = 0
+        self,
+        max_: int,
+        min_: int,
+        deadzone: float,
+        gain: float = 1,
+        expo: float = 0,
     ) -> None:
         self._max = max_
         self._min = min_

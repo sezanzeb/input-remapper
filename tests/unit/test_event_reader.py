@@ -85,7 +85,7 @@ class TestEventReader(unittest.IsolatedAsyncioTestCase):
             )
         )
         self.preset.add(
-            get_key_mapping(EventCombination([EV_ABS, ABS_Y, 1]), "keyboard", "b")
+            get_key_mapping(EventCombination([EV_ABS, ABS_Y, 1]), "keyboard", "b"),
         )
 
         # left x to mouse x
@@ -146,7 +146,7 @@ class TestEventReader(unittest.IsolatedAsyncioTestCase):
             )
         )
         self.preset.add(
-            get_key_mapping(EventCombination([EV_ABS, ABS_Y, 1]), "keyboard", "b")
+            get_key_mapping(EventCombination([EV_ABS, ABS_Y, 1]), "keyboard", "b"),
         )
 
         # self.preset.set("gamepad.joystick.left_purpose", BUTTONS)

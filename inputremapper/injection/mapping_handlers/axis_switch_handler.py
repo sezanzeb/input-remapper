@@ -101,7 +101,11 @@ class AxisSwitchHandler(MappingHandler):
                 # recenter the axis
                 logger.debug_key(self.mapping.event_combination, "stopping axis")
                 event = InputEvent(
-                    0, 0, *self._map_axis, 0, action=EventActions.recenter
+                    0,
+                    0,
+                    *self._map_axis,
+                    0,
+                    action=EventActions.recenter,
                 )
                 self._sub_handler.notify(event, self._axis_source, self._forward_device)
             elif self._map_axis[0] == evdev.ecodes.EV_ABS:

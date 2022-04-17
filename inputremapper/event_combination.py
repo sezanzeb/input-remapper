@@ -51,8 +51,7 @@ EventCombinationValidatorType = Union[EventCombinationInitType, str]
 
 
 class EventCombination(Tuple[InputEvent]):
-    """One or multiple InputEvent objects for use as an unique identifier for mappings
-    """
+    """One or multiple InputEvent objects for use as an unique identifier for mappings."""
 
     # tuple is immutable, therefore we need to override __new__()
     # https://jfine-python-classes.readthedocs.io/en/latest/subclass-tuple.html

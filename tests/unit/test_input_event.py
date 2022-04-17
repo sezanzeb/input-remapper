@@ -87,7 +87,8 @@ class TestInputEvent(unittest.TestCase):
     def test_properties(self):
         e1 = InputEvent.btn_left()
         self.assertEqual(
-            e1.event_tuple, (evdev.ecodes.EV_KEY, evdev.ecodes.BTN_LEFT, 1)
+            e1.event_tuple,
+            (evdev.ecodes.EV_KEY, evdev.ecodes.BTN_LEFT, 1),
         )
         self.assertEqual(e1.type_and_code, (evdev.ecodes.EV_KEY, evdev.ecodes.BTN_LEFT))
 

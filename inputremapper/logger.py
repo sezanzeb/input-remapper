@@ -74,8 +74,7 @@ def parse_mapping_handler(mapping_handler):
 
 class Logger(logging.Logger):
     def debug_mapping_handler(self, mapping_handler):
-        """Parse the structure of a mapping_handler an log it
-        """
+        """Parse the structure of a mapping_handler an log it"""
         if not self.isEnabledFor(logging.DEBUG):
             return
 

@@ -19,8 +19,7 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 import asyncio
 import unittest
-import time
-from typing import List, Iterable
+from typing import Iterable
 
 import evdev
 from evdev.ecodes import (
@@ -45,7 +44,6 @@ from evdev.ecodes import (
     KEY_C,
     BTN_TL,
 )
-from pydantic import ValidationError
 
 from inputremapper.logger import logger
 from inputremapper.configs.mapping import Mapping
@@ -53,15 +51,9 @@ from inputremapper.injection.context import Context
 from inputremapper.injection.event_reader import EventReader
 from tests.test import (
     get_key_mapping,
-    uinput_write_history_pipe,
-    new_event,
-    push_events,
-    read_write_history_pipe,
     InputDevice,
     cleanup,
-    fixtures,
     convert_to_internal_events,
-    EVENT_READ_TIMEOUT,
     MAX_ABS,
     MIN_ABS,
 )
@@ -92,7 +84,9 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
             await event_reader.handle(event)
 
     def get_event_reader(
-        self, preset: Preset, source: evdev.InputDevice
+        self,
+        preset: Preset,
+        source: evdev.InputDevice,
     ) -> EventReader:
         context = Context(preset)
         return EventReader(context, source, self.forward_uinput, self.stop_event)
@@ -142,16 +136,16 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
         preset.add(get_key_mapping(EventCombination(b_down), "keyboard", "b"))
         preset.add(get_key_mapping(EventCombination(c_down), "keyboard", "c"))
         preset.add(
-            get_key_mapping(EventCombination([*w_down[:2], -10]), "keyboard", "w")
+            get_key_mapping(EventCombination([*w_down[:2], -10]), "keyboard", "w"),
         )
         preset.add(
-            get_key_mapping(EventCombination([*d_down[:2], 10]), "keyboard", "k(d)")
+            get_key_mapping(EventCombination([*d_down[:2], 10]), "keyboard", "k(d)"),
         )
         preset.add(
-            get_key_mapping(EventCombination([*s_down[:2], 10]), "keyboard", "s")
+            get_key_mapping(EventCombination([*s_down[:2], 10]), "keyboard", "s"),
         )
         preset.add(
-            get_key_mapping(EventCombination([*a_down[:2], -10]), "keyboard", "a")
+            get_key_mapping(EventCombination([*a_down[:2], -10]), "keyboard", "a"),
         )
 
         event_reader = self.get_event_reader(
@@ -202,7 +196,7 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
         preset.add(get_key_mapping(combination="1,1,1", output_symbol="hold(a)"))
         preset.add(get_key_mapping(combination="1,2,1", output_symbol="b"))
         preset.add(
-            get_key_mapping(combination="1,3,1", output_symbol="modify(c,hold(d))")
+            get_key_mapping(combination="1,3,1", output_symbol="modify(c,hold(d))"),
         )
         event_reader = self.get_event_reader(preset, InputDevice("/dev/input/event10"))
 
@@ -539,10 +533,12 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
         """Test that different activation points for abs_to_btn work correctly."""
 
         m1 = get_key_mapping(
-            EventCombination((EV_ABS, ABS_X, 30)), output_symbol="a"
+            EventCombination((EV_ABS, ABS_X, 30)),
+            output_symbol="a",
         )  # at 30% map to a
         m2 = get_key_mapping(
-            EventCombination((EV_ABS, ABS_X, 70)), output_symbol="b"
+            EventCombination((EV_ABS, ABS_X, 70)),
+            output_symbol="b",
         )  # at 70% map to b
         preset = Preset()
         preset.add(m1)
@@ -555,14 +551,14 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
 
         await self.send_events(
             [
-                InputEvent.from_tuple(
-                    (EV_ABS, ABS_X, MIN_ABS // 10)
-                ),  # -10%, do nothing
-                InputEvent.from_tuple((EV_ABS, ABS_X, 0)),  # 0%, do noting
-                InputEvent.from_tuple(
-                    (EV_ABS, ABS_X, MAX_ABS // 10)
-                ),  # 10%, do nothing
-                InputEvent.from_tuple((EV_ABS, ABS_X, MAX_ABS // 2)),  # 50%, trigger a
+                # -10%, do nothing
+                InputEvent.from_tuple((EV_ABS, ABS_X, MIN_ABS // 10)),
+                # 0%, do noting
+                InputEvent.from_tuple((EV_ABS, ABS_X, 0)),
+                # 10%, do nothing
+                InputEvent.from_tuple((EV_ABS, ABS_X, MAX_ABS // 10)),
+                # 50%, trigger a
+                InputEvent.from_tuple((EV_ABS, ABS_X, MAX_ABS // 2)),
             ],
             event_reader,
         )
@@ -576,9 +572,8 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
 
         await self.send_events(
             [
-                InputEvent.from_tuple(
-                    (EV_ABS, ABS_X, int(MAX_ABS * 0.8))
-                ),  # 80%, trigger b
+                # 80%, trigger b
+                InputEvent.from_tuple((EV_ABS, ABS_X, int(MAX_ABS * 0.8))),
                 InputEvent.from_tuple((EV_ABS, ABS_X, MAX_ABS // 2)),  # 50%, release b
             ],
             event_reader,
@@ -591,9 +586,8 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(kb_history.count((EV_KEY, b, 0)), 1)
         self.assertNotIn((EV_KEY, a, 0), kb_history)
 
-        await event_reader.handle(
-            InputEvent.from_tuple((EV_ABS, ABS_X, 0))
-        )  # 0% release a
+        # 0% release a
+        await event_reader.handle(InputEvent.from_tuple((EV_ABS, ABS_X, 0)))
         kb_history = convert_to_internal_events(
             global_uinputs.get_uinput("keyboard").write_history
         )
@@ -605,10 +599,12 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
         """Test that different activation points for rel_to_btn work correctly."""
 
         m1 = get_key_mapping(
-            EventCombination((EV_REL, REL_X, 5)), output_symbol="a"
+            EventCombination((EV_REL, REL_X, 5)),
+            output_symbol="a",
         )  # at 30% map to a
         m2 = get_key_mapping(
-            EventCombination((EV_REL, REL_X, 15)), output_symbol="b"
+            EventCombination((EV_REL, REL_X, 15)),
+            output_symbol="b",
         )  # at 70% map to b
         release_timeout = 0.2  # give some time to do assertions before the release
         m1.release_timeout = release_timeout
@@ -663,7 +659,8 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
         fw_history = convert_to_internal_events(self.forward_uinput.write_history)
         self.assertEqual(kb_history.count((EV_KEY, a, 0)), 2)
         self.assertEqual(
-            fw_history, [(EV_REL, REL_X, -5), (EV_REL, REL_X, 0), (EV_REL, REL_X, 3)]
+            fw_history,
+            [(EV_REL, REL_X, -5), (EV_REL, REL_X, 0), (EV_REL, REL_X, 3)],
         )
 
     async def test_combination(self):
@@ -681,7 +678,7 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
         )
         m3 = get_key_mapping(
             EventCombination(
-                ((EV_ABS, ABS_X, 1), (EV_KEY, BTN_A, 1), (EV_KEY, BTN_B, 1))
+                ((EV_ABS, ABS_X, 1), (EV_KEY, BTN_A, 1), (EV_KEY, BTN_B, 1)),
             ),
             output_symbol="c",
         )
@@ -693,13 +690,12 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
 
         await self.send_events(
             [
-                InputEvent.from_tuple((EV_KEY, BTN_A, 1)),  # forwarded
-                InputEvent.from_tuple(
-                    (EV_ABS, ABS_X, 1234)
-                ),  # triggers b, releases BTN_A, ABS_X
-                InputEvent.from_tuple(
-                    (EV_KEY, BTN_B, 1)
-                ),  # triggers c, releases BTN_A, ABS_X, BTN_B
+                # forwarded
+                InputEvent.from_tuple((EV_KEY, BTN_A, 1)),
+                # triggers b, releases BTN_A, ABS_X
+                InputEvent.from_tuple((EV_ABS, ABS_X, 1234)),
+                # triggers c, releases BTN_A, ABS_X, BTN_B
+                InputEvent.from_tuple((EV_KEY, BTN_B, 1)),
             ],
             event_reader,
         )
@@ -718,7 +714,8 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn((EV_KEY, BTN_B, 1), fw_history)
 
         await self.send_events(
-            [InputEvent.from_tuple((EV_ABS, ABS_X, 0))], event_reader
+            [InputEvent.from_tuple((EV_ABS, ABS_X, 0))],
+            event_reader,
         )  # release b and c)
         kb_history = convert_to_internal_events(
             global_uinputs.get_uinput("keyboard").write_history

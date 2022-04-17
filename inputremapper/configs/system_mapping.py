@@ -94,7 +94,8 @@ class SystemMapping:
             xmodmap_dict = {}
             try:
                 xmodmap = subprocess.check_output(
-                    ["xmodmap", "-pke"], stderr=subprocess.STDOUT
+                    ["xmodmap", "-pke"],
+                    stderr=subprocess.STDOUT,
                 ).decode()
                 xmodmap = xmodmap
                 self._xmodmap = re.findall(r"(\d+) = (.+)\n", xmodmap + "\n")

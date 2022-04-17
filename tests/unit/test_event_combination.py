@@ -102,7 +102,8 @@ class TestKey(unittest.TestCase):
         self.assertRaises(ValueError, lambda: EventCombination("1"))
         self.assertRaises(ValueError, lambda: EventCombination("(1,2,3)"))
         self.assertRaises(
-            ValueError, lambda: EventCombination(((1, 2, 3), (1, 2, 3), None))
+            ValueError,
+            lambda: EventCombination(((1, 2, 3), (1, 2, 3), None)),
         )
 
         # those don't raise errors

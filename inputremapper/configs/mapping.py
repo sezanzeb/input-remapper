@@ -207,8 +207,7 @@ class Mapping(BaseModel):
 
     @validator("event_combination")
     def trigger_point_in_range(cls, combination) -> EventCombination:
-        """Check if the trigger point for mapping analog axis to buttons is valid
-        """
+        """Check if the trigger point for mapping analog axis to buttons is valid."""
         for event in combination:
             if event.type == EV_ABS and abs(event.value) >= 100:
                 raise ValueError(

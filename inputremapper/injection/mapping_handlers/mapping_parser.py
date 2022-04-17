@@ -89,7 +89,9 @@ def parse_mappings(preset: Preset, context: ContextProtocol) -> EventPipelines:
             )
 
         output_handler = constructor(
-            mapping.event_combination, mapping, context=context
+            mapping.event_combination,
+            mapping,
+            context=context,
         )
 
         # layer other handlers on top until the outer handler needs ranking or can
@@ -187,7 +189,8 @@ def _get_output_handler(mapping: Mapping) -> HandlerEnums:
     input_event = _maps_axis(mapping.event_combination)
     if not input_event:
         raise MappingParsingError(
-            f"this {mapping = } does not map to an axis, key or macro", mapping=Mapping
+            f"this {mapping = } does not map to an axis, key or macro",
+            mapping=Mapping,
         )
 
     if mapping.output_type == EV_REL:

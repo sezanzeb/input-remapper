@@ -59,13 +59,15 @@ class TestContext(unittest.TestCase):
         # overlapping combination for (1, 32, 1)
         preset.add(
             get_key_mapping(
-                EventCombination(((1, 32, 1), (1, 33, 1), (1, 34, 1))), "keyboard", "c"
+                EventCombination(((1, 32, 1), (1, 33, 1), (1, 34, 1))),
+                "keyboard",
+                "c",
             )
         )
 
         # map abs x to key "b"
         preset.add(
-            get_key_mapping(EventCombination([EV_ABS, ABS_X, 20]), "keyboard", "d")
+            get_key_mapping(EventCombination([EV_ABS, ABS_X, 20]), "keyboard", "d"),
         )
         context = Context(preset)
 

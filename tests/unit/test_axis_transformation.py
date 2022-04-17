@@ -84,7 +84,9 @@ class TestAxisTransformation(unittest.TestCase):
             g = Transformation(*init_args.values())
 
             scale = functools.partial(
-                self.scale_to_range, init_args.min_, init_args.max_
+                self.scale_to_range,
+                init_args.min_,
+                init_args.max_,
             )
             for x in scale():
                 y1 = g(x)
@@ -107,7 +109,9 @@ class TestAxisTransformation(unittest.TestCase):
             f = Transformation(*init_args.values())
             for x in self.scale_to_range(init_args.min_, init_args.max_):
                 self.assertAlmostEqual(
-                    f(x), -f(-x), msg=f"test origin symmetry at {x=} for {init_args}"
+                    f(x),
+                    -f(-x),
+                    msg=f"test origin symmetry at {x=} for {init_args}",
                 )
 
     def test_gain(self):
@@ -115,10 +119,14 @@ class TestAxisTransformation(unittest.TestCase):
         for init_args in self.get_init_args():
             f = Transformation(*init_args.values())
             self.assertAlmostEqual(
-                f(init_args.max_), init_args.gain, msg=f"test gain for {init_args}"
+                f(init_args.max_),
+                init_args.gain,
+                msg=f"test gain for {init_args}",
             )
             self.assertAlmostEqual(
-                f(init_args.min_), -init_args.gain, msg=f"test gain for {init_args}"
+                f(init_args.min_),
+                -init_args.gain,
+                msg=f"test gain for {init_args}",
             )
 
     def test_deadzone(self):

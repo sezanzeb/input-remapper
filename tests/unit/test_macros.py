@@ -231,15 +231,18 @@ class TestMacros(MacroTestBase):
         self.assertEqual(_type_check(1.2, [str], "foo", 2), "1.2")
 
         self.assertRaises(
-            MacroParsingError, lambda: _type_check("1.2", [int], "foo", 3)
+            MacroParsingError,
+            lambda: _type_check("1.2", [int], "foo", 3),
         )
         self.assertRaises(MacroParsingError, lambda: _type_check("a", [None], "foo", 0))
         self.assertRaises(MacroParsingError, lambda: _type_check("a", [int], "foo", 1))
         self.assertRaises(
-            MacroParsingError, lambda: _type_check("a", [int, float], "foo", 2)
+            MacroParsingError,
+            lambda: _type_check("a", [int, float], "foo", 2),
         )
         self.assertRaises(
-            MacroParsingError, lambda: _type_check("a", [int, None], "foo", 3)
+            MacroParsingError,
+            lambda: _type_check("a", [int, None], "foo", 3),
         )
         self.assertEqual(_type_check("a", [int, float, None, str], "foo", 4), "a")
 
@@ -249,7 +252,8 @@ class TestMacros(MacroTestBase):
         self.assertEqual(_type_check(variable, [int], "foo", 4), variable)
 
         self.assertRaises(
-            MacroParsingError, lambda: _type_check("a", [Macro], "foo", 0)
+            MacroParsingError,
+            lambda: _type_check("a", [Macro], "foo", 0),
         )
         self.assertRaises(MacroParsingError, lambda: _type_check(1, [Macro], "foo", 0))
         self.assertEqual(_type_check("1", [Macro, int], "foo", 4), 1)
@@ -284,7 +288,8 @@ class TestMacros(MacroTestBase):
         self.assertTupleEqual(_split_keyword_arg("_A=b"), ("_A", "b"))
         self.assertTupleEqual(_split_keyword_arg("a_=1"), ("a_", "1"))
         self.assertTupleEqual(
-            _split_keyword_arg("a=repeat(2, KEY_A)"), ("a", "repeat(2, KEY_A)")
+            _split_keyword_arg("a=repeat(2, KEY_A)"),
+            ("a", "repeat(2, KEY_A)"),
         )
         self.assertTupleEqual(_split_keyword_arg('a="=,#+."'), ("a", '"=,#+."'))
 
@@ -309,10 +314,12 @@ class TestMacros(MacroTestBase):
     def test_handle_plus_syntax(self):
         self.assertEqual(handle_plus_syntax("a + b"), "modify(a,modify(b,hold()))")
         self.assertEqual(
-            handle_plus_syntax("a + b + c"), "modify(a,modify(b,modify(c,hold())))"
+            handle_plus_syntax("a + b + c"),
+            "modify(a,modify(b,modify(c,hold())))",
         )
         self.assertEqual(
-            handle_plus_syntax(" a+b+c "), "modify(a,modify(b,modify(c,hold())))"
+            handle_plus_syntax(" a+b+c "),
+            "modify(a,modify(b,modify(c,hold())))",
         )
 
         # invalid
@@ -401,10 +408,12 @@ class TestMacros(MacroTestBase):
         # strings. If it is wrapped in quotes, don't parse the contents
         self.assertEqual(_parse_recurse('"foo"', self.context, DummyMapping), "foo")
         self.assertEqual(
-            _parse_recurse('"\tf o o\n"', self.context, DummyMapping), "\tf o o\n"
+            _parse_recurse('"\tf o o\n"', self.context, DummyMapping),
+            "\tf o o\n",
         )
         self.assertEqual(
-            _parse_recurse('"foo(a,b)"', self.context, DummyMapping), "foo(a,b)"
+            _parse_recurse('"foo(a,b)"', self.context, DummyMapping),
+            "foo(a,b)",
         )
         self.assertEqual(_parse_recurse('",,,()"', self.context, DummyMapping), ",,,()")
 
@@ -417,7 +426,8 @@ class TestMacros(MacroTestBase):
         self.assertEqual(_parse_recurse("5", self.context, DummyMapping), 5)
         self.assertEqual(_parse_recurse("5.2", self.context, DummyMapping), 5.2)
         self.assertIsInstance(
-            _parse_recurse("$foo", self.context, DummyMapping), Variable
+            _parse_recurse("$foo", self.context, DummyMapping),
+            Variable,
         )
         self.assertEqual(_parse_recurse("$foo", self.context, DummyMapping).name, "foo")
 
@@ -427,7 +437,8 @@ class TestMacros(MacroTestBase):
 
         await macro.run(self.handler)
         self.assertListEqual(
-            self.result, [(EV_KEY, one_code, 1), (EV_KEY, one_code, 0)]
+            self.result,
+            [(EV_KEY, one_code, 1), (EV_KEY, one_code, 0)],
         )
         self.assertEqual(len(macro.child_macros), 0)
 
@@ -477,7 +488,10 @@ class TestMacros(MacroTestBase):
         parse("r(1, macro=k(1))", self.context)  # no error
         self.assertRaises(MacroParsingError, parse, "r(a=1, b=k(1))", self.context)
         self.assertRaises(
-            MacroParsingError, parse, "r(repeats=1, macro=k(1), a=2)", self.context
+            MacroParsingError,
+            parse,
+            "r(repeats=1, macro=k(1), a=2)",
+            self.context,
         )
         self.assertRaises(
             MacroParsingError,
@@ -545,7 +559,9 @@ class TestMacros(MacroTestBase):
         code_b = system_mapping.get("b")
         code_c = system_mapping.get("c")
         macro = parse(
-            "set(foo, b).modify($foo, modify(a, key(c)))", self.context, DummyMapping
+            "set(foo, b).modify($foo, modify(a, key(c)))",
+            self.context,
+            DummyMapping,
         )
         await macro.run(self.handler)
         self.assertListEqual(
@@ -727,7 +743,9 @@ class TestMacros(MacroTestBase):
         repeats = 20
 
         macro = parse(
-            f"repeat({repeats}, key(k)).repeat(1, key(k))", self.context, DummyMapping
+            f"repeat({repeats}, key(k)).repeat(1, key(k))",
+            self.context,
+            DummyMapping,
         )
         k_code = system_mapping.get("k")
 
@@ -738,7 +756,8 @@ class TestMacros(MacroTestBase):
         self.assertLess(time.time() - start, sleep_time * 1.2)
 
         self.assertListEqual(
-            self.result, [(EV_KEY, k_code, 1), (EV_KEY, k_code, 0)] * (repeats + 1)
+            self.result,
+            [(EV_KEY, k_code, 1), (EV_KEY, k_code, 0)] * (repeats + 1),
         )
 
         self.assertEqual(len(macro.child_macros), 2)
@@ -772,7 +791,9 @@ class TestMacros(MacroTestBase):
 
     async def test_4(self):
         macro = parse(
-            "  repeat(2,\nkey(\nr ).key(minus\n )).key(m)  ", self.context, DummyMapping
+            "  repeat(2,\nkey(\nr ).key(minus\n )).key(m)  ",
+            self.context,
+            DummyMapping,
         )
 
         r = system_mapping.get("r")
@@ -915,7 +936,11 @@ class TestMacros(MacroTestBase):
         )
         actual_wheel_event_count = self.result.count((EV_REL, REL_HWHEEL, 1))
         actual_wheel_hi_res_event_count = self.result.count(
-            (EV_REL, REL_HWHEEL_HI_RES, wheel_speed)
+            (
+                EV_REL,
+                REL_HWHEEL_HI_RES,
+                wheel_speed,
+            )
         )
         # this seems to have a tendency of injecting less wheel events,
         # especially if the sleep is short
@@ -1019,7 +1044,9 @@ class TestIfEq(MacroTestBase):
     async def test_ifeq_runs(self):
         # deprecated ifeq function, but kept for compatibility reasons
         macro = parse(
-            "set(foo, 2).ifeq(foo, 2, key(a), key(b))", self.context, DummyMapping
+            "set(foo, 2).ifeq(foo, 2, key(a), key(b))",
+            self.context,
+            DummyMapping,
         )
         code_a = system_mapping.get("a")
         code_b = system_mapping.get("b")
@@ -1162,7 +1189,9 @@ class TestIfSingle(MacroTestBase):
         # the timeout won't break the macro, everything happens well within that
         # timeframe.
         macro = parse(
-            "if_single(key(x), else=key(y), timeout=100000)", self.context, DummyMapping
+            "if_single(key(x), else=key(y), timeout=100000)",
+            self.context,
+            DummyMapping,
         )
         self.assertEqual(len(macro.child_macros), 2)
 
@@ -1197,7 +1226,9 @@ class TestIfSingle(MacroTestBase):
         # Also works if if_single is a child macro, i.e. the event is passed to it
         # from the outside macro correctly.
         macro = parse(
-            "repeat(1, if_single(then=key(x), else=key(y)))", self.context, DummyMapping
+            "repeat(1, if_single(then=key(x), else=key(y)))",
+            self.context,
+            DummyMapping,
         )
         self.assertEqual(len(macro.child_macros), 1)
         self.assertEqual(len(macro.child_macros[0].child_macros), 2)
