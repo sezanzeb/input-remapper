@@ -82,7 +82,7 @@ def mkdir(path, log=True):
 
 
 def remove(path):
-    """Remove whatever is at the path"""
+    """Remove whatever is at the path."""
     if not os.path.exists(path):
         return
 
@@ -113,5 +113,5 @@ def get_preset_path(group_name=None, preset=None):
 
 
 def get_config_path(*paths):
-    """Get a path in ~/.config/input-remapper/"""
+    """Get a path in ~/.config/input-remapper/."""
     return os.path.join(CONFIG_PATH, *paths)

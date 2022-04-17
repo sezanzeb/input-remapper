@@ -135,5 +135,5 @@ class Pipe:
         return len(self._unread) > 0
 
     def fileno(self):
-        """Compatibility to select.select"""
+        """Compatibility to select.select."""
         return self._handles[0].fileno()

@@ -34,7 +34,7 @@ from inputremapper.input_event import InputEvent, EventActions
 
 
 class AxisSwitchHandler(MappingHandler):
-    """enables or disables an axis"""
+    """Enables or disables an axis."""
 
     _map_axis: Tuple[int, int]  # the axis we switch on or off (type and code)
     _trigger_key: Tuple[Tuple[int, int]]  # all events that can switch the axis

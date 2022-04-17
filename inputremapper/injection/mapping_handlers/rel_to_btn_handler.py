@@ -38,8 +38,7 @@ from inputremapper.injection.mapping_handlers.mapping_handler import (
 
 
 class RelToBtnHandler(MappingHandler):
-    """
-    Handler which transforms an EV_REL to a button event
+    """Handler which transforms an EV_REL to a button event
     and sends that to a sub_handler
 
     adheres to the MappingHandler protocol

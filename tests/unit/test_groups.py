@@ -218,7 +218,7 @@ class TestGroups(unittest.TestCase):
                 assert not absinfo
                 return self.c
 
-        """gamepads"""
+        """Gamepads"""
 
         self.assertEqual(
             classify(
@@ -232,7 +232,7 @@ class TestGroups(unittest.TestCase):
             GAMEPAD,
         )
 
-        """mice"""
+        """Mice"""
 
         self.assertEqual(
             classify(
@@ -250,11 +250,11 @@ class TestGroups(unittest.TestCase):
             MOUSE,
         )
 
-        """keyboard"""
+        """Keyboard"""
 
         self.assertEqual(classify(FakeDevice({EV_KEY: [evdev.ecodes.KEY_A]})), KEYBOARD)
 
-        """touchpads"""
+        """Touchpads"""
 
         self.assertEqual(
             classify(
@@ -268,7 +268,7 @@ class TestGroups(unittest.TestCase):
             TOUCHPAD,
         )
 
-        """graphics tablets"""
+        """Graphics tablets"""
 
         self.assertEqual(
             classify(
@@ -282,7 +282,7 @@ class TestGroups(unittest.TestCase):
             GRAPHICS_TABLET,
         )
 
-        """weird combos"""
+        """Weird combos"""
 
         self.assertEqual(
             classify(

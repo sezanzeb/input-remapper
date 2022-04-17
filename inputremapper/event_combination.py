@@ -51,8 +51,7 @@ EventCombinationValidatorType = Union[EventCombinationInitType, str]
 
 
 class EventCombination(Tuple[InputEvent]):
-    """
-    one or multiple InputEvent objects for use as an unique identifier for mappings
+    """One or multiple InputEvent objects for use as an unique identifier for mappings
     """
 
     # tuple is immutable, therefore we need to override __new__()
@@ -76,12 +75,12 @@ class EventCombination(Tuple[InputEvent]):
 
     @classmethod
     def __get_validators__(cls):
-        """used by pydantic to create EventCombination objects"""
+        """Used by pydantic to create EventCombination objects."""
         yield cls.validate
 
     @classmethod
     def validate(cls, init_arg: EventCombinationValidatorType) -> EventCombination:
-        """try all the different methods, and raise an error if none succeed"""
+        """Try all the different methods, and raise an error if none succeed."""
         if isinstance(init_arg, EventCombination):
             return init_arg
 
@@ -100,7 +99,7 @@ class EventCombination(Tuple[InputEvent]):
 
     @classmethod
     def from_string(cls, init_string: str) -> EventCombination:
-        """create a EventCombination form a string like '1,2,3+4,5,6'"""
+        """Create a EventCombination form a string like '1,2,3+4,5,6'."""
         try:
             init_strs = init_string.split("+")
             return cls(init_strs)
@@ -122,8 +121,7 @@ class EventCombination(Tuple[InputEvent]):
         return False
 
     def get_permutations(self):
-        """
-        Get a list of EventCombination objects representing all possible permutations.
+        """Get a list of EventCombination objects representing all possible permutations.
 
         combining a + b + c should have the same result as b + a + c.
         Only the last combination remains the same in the returned result.

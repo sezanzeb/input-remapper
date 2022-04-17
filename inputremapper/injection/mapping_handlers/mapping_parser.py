@@ -17,7 +17,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
-"""functions to assemble the mapping handlers"""
+"""Functions to assemble the mapping handlers"""
 
 from typing import Dict, List, Type, Optional, Set, Iterable, Sized, Tuple, Sequence
 from evdev.ecodes import (
@@ -75,7 +75,7 @@ mapping_handler_classes: Dict[HandlerEnums, Type[MappingHandler]] = {
 
 
 def parse_mappings(preset: Preset, context: ContextProtocol) -> EventPipelines:
-    """create a dict with a list of MappingHandler for each InputEvent"""
+    """Create a dict with a list of MappingHandler for each InputEvent."""
     handlers = []
     for mapping in preset:
         # start with the last handler in the chain, each mapping only has one output,
@@ -137,8 +137,7 @@ def parse_mappings(preset: Preset, context: ContextProtocol) -> EventPipelines:
 def _create_event_pipeline(
     handler: MappingHandler, context: ContextProtocol, ignore_ranking=False
 ) -> List[MappingHandler]:
-    """
-    recursively wrap a handler with other handlers until the
+    """Recursively wrap a handler with other handlers until the
     outer handler needs ranking or is finished wrapping
     """
     if not handler.needs_wrapping() or (handler.needs_ranking() and not ignore_ranking):
@@ -170,8 +169,7 @@ def _create_event_pipeline(
 
 
 def _get_output_handler(mapping: Mapping) -> HandlerEnums:
-    """
-    determine the correct output handler
+    """Determine the correct output handler
     this is used as a starting point for the mapping parser
     """
     if mapping.output_code == DISABLE_CODE or mapping.output_symbol == DISABLE_NAME:
@@ -212,8 +210,7 @@ def _get_output_handler(mapping: Mapping) -> HandlerEnums:
 
 
 def _maps_axis(combination: EventCombination) -> Optional[InputEvent]:
-    """
-    whether this EventCombination contains an InputEvent that is treated as
+    """Whether this EventCombination contains an InputEvent that is treated as
     an axis and not a binary (key or button) event.
     """
     for event in combination:
@@ -225,7 +222,7 @@ def _maps_axis(combination: EventCombination) -> Optional[InputEvent]:
 def _create_hierarchy_handlers(
     handlers: Dict[EventCombination, MappingHandler]
 ) -> Set[MappingHandler]:
-    """sort handlers by input events and create Hierarchy handlers"""
+    """Sort handlers by input events and create Hierarchy handlers."""
     sorted_handlers = set()
     all_combinations = handlers.keys()
     events = set()
@@ -266,7 +263,7 @@ def _create_hierarchy_handlers(
 def _order_combinations(
     combinations: List[EventCombination], common_event: InputEvent
 ) -> List[EventCombination]:
-    """reorder the keys according to some rules
+    """Reorder the keys according to some rules
 
     such that a combination a+b+c is in front of a+b which is in front of b
     for a+b+c vs. b+d+e: a+b+c would be in front of b+d+e, because the common key b
@@ -293,8 +290,7 @@ def _order_combinations(
 
 
 def ranges_with_constant_length(x: Sequence[Sized]) -> Iterable[Tuple[int, int]]:
-    """
-    get all ranges of x for which the elements have constant length
+    """Get all ranges of x for which the elements have constant length
 
     Parameters
     ----------

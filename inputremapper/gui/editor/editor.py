@@ -102,7 +102,7 @@ class SelectionLabel(Gtk.ListBoxRow):
 
 
 class CombinationEntry(Gtk.ListBoxRow):
-    """One row per InputEvent in the EventCombination"""
+    """One row per InputEvent in the EventCombination."""
 
     __gtype_name__ = "CombinationEntry"
 
@@ -250,7 +250,7 @@ class Editor:
             self.active_mapping.output_symbol = correct_case
 
     def _on_target_input_changed(self, *_):
-        """save when target changed"""
+        """Save when target changed."""
         self.active_mapping.target_uinput = self.get_target_selection()
         self.gather_changes_and_save()
 
@@ -278,7 +278,7 @@ class Editor:
         selection_label_listbox.select_row(selection_label_listbox.get_children()[0])
 
     def _setup_target_selector(self):
-        """Prepare the target selector combobox"""
+        """Prepare the target selector combobox."""
         target_store = Gtk.ListStore(str)
         for uinput in global_uinputs.devices:
             target_store.append([uinput])
@@ -407,7 +407,7 @@ class Editor:
             self.set_symbol_input_text("")
 
     def disable_target_selector(self):
-        """don't allow any selection"""
+        """Don't allow any selection."""
         selector = self.get_target_selector()
         selector.set_sensitive(False)
         selector.set_opacity(0.5)
@@ -564,7 +564,7 @@ class Editor:
         return self.get_target_selector().get_active_id()
 
     def get(self, name):
-        """Get a widget from the window"""
+        """Get a widget from the window."""
         return self.user_interface.builder.get_object(name)
 
     def update_toggle_opacity(self):

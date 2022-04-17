@@ -133,7 +133,7 @@ class TestDaemon(unittest.TestCase):
         preset.save()
         global_config.set_autoload_preset(group.key, preset_name)
 
-        """injection 1"""
+        """Injection 1"""
 
         # should forward the event unchanged
         push_events(group.key, [new_event(EV_KEY, 13, 1)])
@@ -171,7 +171,7 @@ class TestDaemon(unittest.TestCase):
             # possibly a duplicate write!
             raise
 
-        """injection 2"""
+        """Injection 2"""
 
         # -1234 will be classified as -1 by the injector
         push_events(group.key, [new_event(*ev_2, -1234)])

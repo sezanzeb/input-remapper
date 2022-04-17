@@ -153,7 +153,7 @@ class TestReader(unittest.TestCase):
         self.assertEqual(len(reader._unreleased), 0)
         self.assertIsNone(reader.get_unreleased_keys())
 
-        """combinations"""
+        """Combinations"""
 
         send_event_to_reader(new_event(EV_REL, REL_WHEEL, 1, 1000))
         send_event_to_reader(new_event(EV_KEY, KEY_COMMA, 1, 1001))

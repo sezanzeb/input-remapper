@@ -17,7 +17,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
-"""provides protocols for mapping handlers
+"""Provides protocols for mapping handlers
 
 
 *** The architecture behind mapping handlers ***
@@ -79,14 +79,14 @@ class EventListener(Protocol):
 
 
 class ContextProtocol(Protocol):
-    """the parts from context needed for macros"""
+    """The parts from context needed for macros."""
 
     preset: Preset
     listeners: Set[EventListener]
 
 
 class InputEventHandler(Protocol):
-    """the protocol any handler, which can be part of an event pipeline, must follow"""
+    """The protocol any handler, which can be part of an event pipeline, must follow."""
 
     def notify(
         self,
@@ -98,7 +98,7 @@ class InputEventHandler(Protocol):
         ...
 
     def reset(self) -> None:
-        """reset the state of the handler e.g. release any buttons"""
+        """Reset the state of the handler e.g. release any buttons."""
         ...
 
 
@@ -127,8 +127,7 @@ class HandlerEnums(enum.Enum):
 
 
 class MappingHandler(InputEventHandler):
-    """
-    the protocol a InputEventHandler must follow if it should be
+    """The protocol an InputEventHandler must follow if it should be
     dynamically integrated in an event-pipeline by the mapping parser
     """
 
@@ -145,7 +144,7 @@ class MappingHandler(InputEventHandler):
         mapping: Mapping,
         **_,
     ) -> None:
-        """initialize the handler
+        """Initialize the handler
 
         Parameters
         ----------
@@ -164,30 +163,30 @@ class MappingHandler(InputEventHandler):
         self._sub_handler = None
 
     def needs_wrapping(self) -> bool:
-        """if this handler needs to be wrapped in another MappingHandler"""
+        """If this handler needs to be wrapped in another MappingHandler."""
         return len(self.wrap_with()) > 0
 
     def needs_ranking(self) -> bool:
-        """if this handler needs ranking and wrapping with a HierarchyHandler"""
+        """If this handler needs ranking and wrapping with a HierarchyHandler."""
         return False
 
     def rank_by(self) -> Optional[EventCombination]:
-        """the combination for which this handler needs ranking"""
+        """The combination for which this handler needs ranking."""
         pass
 
     def wrap_with(self) -> Dict[EventCombination, HandlerEnums]:
-        """a dict of EventCombination -> HandlerEnums"""
+        """A dict of EventCombination -> HandlerEnums."""
         # this handler should be wrapped with the MappingHandler corresponding
         # to the HandlerEnums, and the EventCombination as first argument
         # TODO: better explanation
         return {}
 
     def set_sub_handler(self, handler: InputEventHandler) -> None:
-        """give this handler a sub_handler"""
+        """Give this handler a sub_handler."""
         self._sub_handler = handler
 
     def occlude_input_event(self, event: InputEvent) -> None:
-        """remove the event from self.input_events"""
+        """Remove the event from self.input_events."""
         if not self.input_events:
             logger.debug_mapping_handler(self)
             raise MappingParsingError(

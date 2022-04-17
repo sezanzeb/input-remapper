@@ -74,7 +74,7 @@ from inputremapper.injection.global_uinputs import global_uinputs
 
 
 class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
-    """test the event pipeline form event_reader to UInput"""
+    """Test the event pipeline form event_reader to UInput."""
 
     def setUp(self):
         # print("in setup")
@@ -98,7 +98,7 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
         return EventReader(context, source, self.forward_uinput, self.stop_event)
 
     async def test_any_event_as_button(self):
-        """as long as there is an event handler and a mapping we should be able
+        """As long as there is an event handler and a mapping we should be able
         to map anything to a button"""
 
         w_down = (
@@ -197,7 +197,7 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(history.count((EV_KEY, code_s, 0)), 1)
 
     async def test_reset_releases_keys(self):
-        """make sure that macros and keys are releases when the stop event is set"""
+        """Make sure that macros and keys are releases when the stop event is set."""
         preset = Preset()
         preset.add(get_key_mapping(combination="1,1,1", output_symbol="hold(a)"))
         preset.add(get_key_mapping(combination="1,2,1", output_symbol="b"))
@@ -248,7 +248,7 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
         self.assertIn((1, d, 0), kb_history)
 
     async def test_abs_to_rel(self):
-        """map gamepad EV_ABS events to EV_REL events"""
+        """Map gamepad EV_ABS events to EV_REL events."""
 
         rate = 60  # rate [Hz] at which events are produced
         gain = 0.5  # halve the speed of the rel axis
@@ -325,8 +325,7 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(history), count_x + count_y)
 
     async def test_abs_to_wheel_hi_res_quirk(self):
-        """
-        when mapping to wheel events we always expect to see both,
+        """When mapping to wheel events we always expect to see both,
         REL_WHEEL and REL_WHEEL_HI_RES events with a accumulative value ratio of 1/120
         """
         rate = 60  # rate [Hz] at which events are produced
@@ -398,7 +397,7 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
         self.assertAlmostEqual(rel_hwheel, rel_hwheel_hi_res / 120, places=0)
 
     async def test_forward_abs(self):
-        """test if EV_ABS events are forwarded when other events of the same input are not"""
+        """Test if EV_ABS events are forwarded when other events of the same input are not."""
         preset = Preset()
         # BTN_A -> 77
         system_mapping._set("b", 77)
@@ -435,7 +434,7 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(kb_history.count((EV_KEY, 77, 0)), 1)
 
     async def test_forward_rel(self):
-        """test if EV_REL events are forwarded when other events of the same input are not"""
+        """Test if EV_REL events are forwarded when other events of the same input are not."""
         preset = Preset()
         # BTN_A -> 77
         system_mapping._set("b", 77)
@@ -473,7 +472,7 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(kb_history.count((EV_KEY, 77, 0)), 1)
 
     async def test_rel_to_btn(self):
-        """rel axis mapped to buttons are automatically released if no new rel event arrives"""
+        """Rel axis mapped to buttons are automatically released if no new rel event arrives."""
 
         # map those two to stuff
         w_up = (EV_REL, REL_WHEEL, -1)
@@ -537,7 +536,7 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn((EV_REL, REL_HWHEEL, 0), fw_history)
 
     async def test_abs_trigger_threshold(self):
-        """Test that different activation points for abs_to_btn work correctly"""
+        """Test that different activation points for abs_to_btn work correctly."""
 
         m1 = get_key_mapping(
             EventCombination((EV_ABS, ABS_X, 30)), output_symbol="a"
@@ -603,7 +602,7 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(fw_history), 0)
 
     async def test_rel_trigger_threshold(self):
-        """Test that different activation points for rel_to_btn work correctly"""
+        """Test that different activation points for rel_to_btn work correctly."""
 
         m1 = get_key_mapping(
             EventCombination((EV_REL, REL_X, 5)), output_symbol="a"
@@ -668,7 +667,7 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
         )
 
     async def test_combination(self):
-        """test if combinations map to keys properly"""
+        """Test if combinations map to keys properly."""
 
         a = system_mapping.get("a")
         b = system_mapping.get("b")
@@ -786,7 +785,7 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
 
         event_reader = self.get_event_reader(preset, InputDevice("/dev/input/event30"))
 
-        """single keys"""
+        """Single keys"""
         await self.send_events(
             [
                 InputEvent.from_tuple(ev_1),  # press a
@@ -805,7 +804,7 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(kb_history), 2)
         self.assertEqual(len(fw_history), 0)
 
-        """a combination that ends in a disabled key"""
+        """A combination that ends in a disabled key"""
         # ev_5 should be forwarded and the combination triggered
         await self.send_events(combi_1, event_reader)
         kb_history = convert_to_internal_events(
@@ -835,7 +834,7 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(fw_history.count(ev_3), 0)
         self.assertTrue(fw_history.count((*ev_5[0:2], 0)) >= 1)
 
-        """a combination that starts with a disabled key"""
+        """A combination that starts with a disabled key"""
         # only the combination should get triggered
         await self.send_events(combi_2, event_reader)
         kb_history = convert_to_internal_events(
@@ -868,7 +867,7 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(fw_history.count((*ev_5[0:2], 0)) >= 1)
 
     async def test_combination_keycode_macro_mix(self):
-        """ev_1 triggers macro, ev_1 + ev_2 triggers key while the macro is
+        """Ev_1 triggers macro, ev_1 + ev_2 triggers key while the macro is
         still running"""
 
         down_1 = (EV_ABS, ABS_HAT0X, 1)
@@ -1003,7 +1002,7 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(fw_history[-1], scroll_release)
 
     async def test_can_not_map(self):
-        """inject events to wrong or invalid uinput"""
+        """Inject events to wrong or invalid uinput."""
         ev_1 = (EV_KEY, KEY_A, 1)
         ev_2 = (EV_KEY, KEY_B, 1)
         ev_3 = (EV_KEY, KEY_C, 1)
@@ -1060,7 +1059,7 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
         self.assertIn((EV_KEY, KEY_A, 0), kb_history)
 
     async def test_switch_axis(self):
-        """test a mapping for an axis that can be switched on or off"""
+        """Test a mapping for an axis that can be switched on or off."""
 
         rate = 60  # rate [Hz] at which events are produced
         gain = 0.5  # halve the speed of the rel axis

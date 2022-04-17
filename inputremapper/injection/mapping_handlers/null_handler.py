@@ -32,7 +32,7 @@ from inputremapper.injection.mapping_handlers.mapping_handler import (
 
 
 class NullHandler(MappingHandler):
-    """handler which consumes the event and does nothing"""
+    """Handler which consumes the event and does nothing."""
 
     def __str__(self):
         return f"NullHandler for {self.mapping.event_combination}<{id(self)}>"

@@ -522,8 +522,7 @@ class GuiTestBase(unittest.TestCase):
         gtk_iteration()
 
     def set_combination(self, combination: EventCombination) -> None:
-        """
-        partial implementation of editor.consume_newest_keycode
+        """Partial implementation of editor.consume_newest_keycode
         simplifies setting combination without going through the add mapping via ui function
         """
         previous_key = self.editor.get_combination()
@@ -978,7 +977,7 @@ class TestGui(GuiTestBase):
         ev_1 = EventCombination([EV_KEY, 10, 1])
         ev_2 = EventCombination([EV_ABS, evdev.ecodes.ABS_HAT0X, -1])
 
-        """edit"""
+        """Edit"""
 
         # add two selection_labels by modifiying the one empty selection_label that
         # exists. Insert lowercase, it should be corrected to uppercase as stored
@@ -994,7 +993,7 @@ class TestGui(GuiTestBase):
         self.assertEqual(active_preset.get_mapping(ev_1), ("Foo_BAR", "mouse"))
         self.assertEqual(active_preset.get_mapping(ev_2), ("k(b).k(c)", "keyboard"))
 
-        """edit first selection_label"""
+        """Edit first selection_label"""
 
         self.select_mapping(0)
         self.assertEqual(self.editor.get_combination(), ev_1)
@@ -1011,7 +1010,7 @@ class TestGui(GuiTestBase):
         self.assertEqual(active_preset.get_mapping(ev_1), ("c", "mouse"))
         self.assertEqual(active_preset.get_mapping(ev_2), ("k(b).k(c)", "keyboard"))
 
-        """add duplicate"""
+        """Add duplicate"""
 
         # try to add a duplicate keycode, it should be ignored
         self.add_mapping_via_ui(ev_2, "d", expect_success=False)
@@ -1437,7 +1436,7 @@ class TestGui(GuiTestBase):
             sorted(["new preset.json", "new preset 2.json"]),
         )
 
-        """now try to change the name"""
+        """Now try to change the name"""
 
         self.user_interface.get("preset_name_input").set_text("abc 123")
         gtk_iteration()

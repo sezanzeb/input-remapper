@@ -51,12 +51,12 @@ class TestAxisTransformation(unittest.TestCase):
 
     @staticmethod
     def scale_to_range(min_, max_, x=(-1, -0.2, 0, 0.6, 1)) -> List[float]:
-        """scale values between -1 and 1 up, such that they are between min and max"""
+        """Scale values between -1 and 1 up, such that they are between min and max."""
         half_range = (max_ - min_) / 2
         return [float_x * half_range + min_ + half_range for float_x in x]
 
     def test_scale_to_range(self):
-        """make sure scale_to_range will actually return the min and max values
+        """Make sure scale_to_range will actually return the min and max values
         (avoid "off by one" errors)"""
         max_ = (255, 1000, 2**15)
         min_ = (50, 0, -255)
@@ -66,8 +66,7 @@ class TestAxisTransformation(unittest.TestCase):
             self.assertEqual(scaled, [x1, x2])
 
     def test_expo_symmetry(self):
-        """
-        test that the transformation is symmetric for expo parameter
+        """Test that the transformation is symmetric for expo parameter
         x = f(g(x)), if  f._expo == - g._expo
 
         with the following constraints:
@@ -98,8 +97,7 @@ class TestAxisTransformation(unittest.TestCase):
                 self.assertAlmostEqual(x, y2, msg=f"test expo symmetry for {init_args}")
 
     def test_origin_symmetry(self):
-        """
-        test that the transformation is symmetric to the origin
+        """Test that the transformation is symmetric to the origin
         f(x) = - f(-x)
         within the constraints: min = -max
         """
@@ -113,7 +111,7 @@ class TestAxisTransformation(unittest.TestCase):
                 )
 
     def test_gain(self):
-        """test that f(max) = gain and f(min) = -gain"""
+        """Test that f(max) = gain and f(min) = -gain."""
         for init_args in self.get_init_args():
             f = Transformation(*init_args.values())
             self.assertAlmostEqual(
@@ -124,7 +122,7 @@ class TestAxisTransformation(unittest.TestCase):
             )
 
     def test_deadzone(self):
-        """test the Transfomation returns exactly 0 in the range of the deadzone"""
+        """Test the Transfomation returns exactly 0 in the range of the deadzone."""
 
         for init_args in self.get_init_args(deadzone=(0.1, 0.2, 0.9)):
             f = Transformation(*init_args.values())
@@ -141,7 +139,7 @@ class TestAxisTransformation(unittest.TestCase):
                 self.assertEqual(f(x), 0, msg=f"test deadzone at {x=} for {init_args}")
 
     def test_continuity_near_deadzone(self):
-        """test that the Transfomation is continues (no sudden jump) next to the
+        """Test that the Transfomation is continues (no sudden jump) next to the
         deadzone"""
 
         for init_args in self.get_init_args(deadzone=(0.1, 0.2, 0.9)):

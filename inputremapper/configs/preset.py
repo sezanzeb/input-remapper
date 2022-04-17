@@ -40,7 +40,7 @@ from inputremapper.groups import groups
 
 
 def common_data(list1: Iterable, list2: Iterable) -> List:
-    """return common members of two iterables as list"""
+    """Return common members of two iterables as list."""
     # traverse in the 1st list
     common = []
     for x in list1:
@@ -83,7 +83,7 @@ class Preset:
         return self._mappings != self._saved_mappings
 
     def remove(self, combination: EventCombination) -> None:
-        """remove a mapping from the preset by providing the EventCombination"""
+        """Remove a mapping from the preset by providing the EventCombination."""
 
         if not isinstance(combination, EventCombination):
             raise TypeError(
@@ -102,7 +102,7 @@ class Preset:
             pass
 
     def add(self, mapping: Mapping) -> None:
-        """add a mapping to the preset"""
+        """Add a mapping to the preset."""
         for permutation in mapping.event_combination.get_permutations():
             if permutation in self._mappings:
                 raise KeyError(
@@ -122,13 +122,13 @@ class Preset:
         self._mappings = {}
 
     def clear(self) -> None:
-        """Remove all mappings and also self.path"""
+        """Remove all mappings and also self.path."""
         self.empty()
         self._saved_mappings = {}
         self.path = None
 
     def load(self) -> None:
-        """Load from the mapping from the disc, clears all existing mappings"""
+        """Load from the mapping from the disc, clears all existing mappings."""
         logger.info('Loading preset from "%s"', self.path)
 
         if not self.path or not os.path.exists(self.path):
@@ -142,7 +142,7 @@ class Preset:
             self.add(mapping.copy())
 
     def save(self) -> None:
-        """Dump as JSON to self.path"""
+        """Dump as JSON to self.path."""
 
         if not self.path:
             logger.debug("unable to save preset without a path set Preset.path first")

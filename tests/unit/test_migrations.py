@@ -171,7 +171,7 @@ class TestMigrations(unittest.TestCase):
         )
 
     def test_migrate_mappings(self):
-        """test if mappings are migrated correctly
+        """Test if mappings are migrated correctly
 
         mappings like
         {(type, code): symbol} or {(type, code, value): symbol} should migrate

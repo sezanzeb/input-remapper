@@ -226,7 +226,7 @@ class _Client(Base):
         return True
 
     def fileno(self):
-        """For compatibility with select.select"""
+        """For compatibility with select.select."""
         self.connect()
         return self.socket.fileno()
 

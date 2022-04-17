@@ -22,7 +22,7 @@ from typing import Dict, Union
 
 
 class Transformation:
-    """callable that returns the axis transformation at x"""
+    """Callable that returns the axis transformation at x."""
 
     def __init__(
         self, max_: int, min_: int, deadzone: float, gain: float = 1, expo: float = 0
@@ -45,8 +45,7 @@ class Transformation:
         return self._cache[x]
 
     def _normalize(self, x: Union[int, float]) -> float:
-        """
-        move and scale x to be between -1 and 1
+        """Move and scale x to be between -1 and 1
         return: x
         """
         if self._min == -1 and self._max == 1:
@@ -74,8 +73,7 @@ class Transformation:
         return (x - self._deadzone * x / abs(x)) / (1 - self._deadzone)
 
     def _calc_qubic(self, x: float) -> float:
-        """
-        transforms an x value by applying a qubic function
+        """Transforms an x value by applying a qubic function
 
         k = 0 : will yield no transformation f(x) = x
         1 > k > 0 : will yield low sensitivity for low x values

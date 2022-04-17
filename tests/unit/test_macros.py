@@ -612,7 +612,7 @@ class TestMacros(MacroTestBase):
         # repeats key(a) as long as the key is held down
         macro = parse("key(1).hold(key(a)).key(3)", self.context, DummyMapping)
 
-        """down"""
+        """Down"""
 
         macro.press_trigger()
         await asyncio.sleep(0.05)
@@ -624,7 +624,7 @@ class TestMacros(MacroTestBase):
         self.assertTrue(macro.is_holding())
         self.assertGreater(len(self.result), 2)
 
-        """up"""
+        """Up"""
 
         macro.release_trigger()
         await asyncio.sleep(0.05)
@@ -656,7 +656,7 @@ class TestMacros(MacroTestBase):
     async def test_just_hold(self):
         macro = parse("key(1).hold().key(3)", self.context, DummyMapping)
 
-        """down"""
+        """Down"""
 
         macro.press_trigger()
         asyncio.ensure_future(macro.run(self.handler))
@@ -667,7 +667,7 @@ class TestMacros(MacroTestBase):
         # doesn't do fancy stuff, is blocking until the release
         self.assertEqual(len(self.result), 2)
 
-        """up"""
+        """Up"""
 
         macro.release_trigger()
         await (asyncio.sleep(0.05))
@@ -699,7 +699,7 @@ class TestMacros(MacroTestBase):
         macro = parse("hold(a)", self.context, DummyMapping)
         self.assertEqual(len(macro.child_macros), 0)
 
-        """down"""
+        """Down"""
 
         macro.press_trigger()
         await (asyncio.sleep(0.05))
@@ -712,7 +712,7 @@ class TestMacros(MacroTestBase):
         self.assertEqual(len(self.result), 1)
         self.assertEqual(self.result[0], (EV_KEY, system_mapping.get("a"), 1))
 
-        """up"""
+        """Up"""
 
         macro.release_trigger()
         await (asyncio.sleep(0.05))
@@ -872,7 +872,7 @@ class TestMacros(MacroTestBase):
         ]
         self.assertListEqual(self.result, expected)
 
-        """not ignored, since previous run is over"""
+        """Not ignored, since previous run is over"""
 
         asyncio.ensure_future(macro.run(self.handler))
         macro.press_trigger()
@@ -1053,7 +1053,7 @@ class TestIfEq(MacroTestBase):
         self.assertEqual(len(macro.child_macros), 2)
 
     async def test_if_eq(self):
-        """new version of ifeq"""
+        """New version of ifeq."""
         code_a = system_mapping.get("a")
         code_b = system_mapping.get("b")
         a_press = [(EV_KEY, code_a, 1), (EV_KEY, code_a, 0)]
@@ -1101,7 +1101,7 @@ class TestIfEq(MacroTestBase):
         await test('set(a, 1).if_eq($a, "1", key(a), key(b))', b_press)
 
     async def test_if_eq_runs_multiprocessed(self):
-        """ifeq on variables that have been set in other processes works."""
+        """Ifeq on variables that have been set in other processes works."""
         macro = parse("if_eq($foo, 3, key(a), key(b))", self.context, DummyMapping)
         code_a = system_mapping.get("a")
         code_b = system_mapping.get("b")
@@ -1114,7 +1114,7 @@ class TestIfEq(MacroTestBase):
             loop = asyncio.new_event_loop()
             loop.run_until_complete(macro_2.run(lambda: None))
 
-        """foo is not 3"""
+        """Foo is not 3"""
 
         process = multiprocessing.Process(target=set_foo, args=(2,))
         process.start()
@@ -1122,7 +1122,7 @@ class TestIfEq(MacroTestBase):
         await macro.run(self.handler)
         self.assertListEqual(self.result, [(EV_KEY, code_b, 1), (EV_KEY, code_b, 0)])
 
-        """foo is 3"""
+        """Foo is 3"""
 
         process = multiprocessing.Process(target=set_foo, args=(3,))
         process.start()
@@ -1263,7 +1263,7 @@ class TestIfSingle(MacroTestBase):
         self.assertFalse(macro.running)
 
     async def test_if_single_ignores_joystick(self):
-        """triggers else + delayed_handle_keycode"""
+        """Triggers else + delayed_handle_keycode."""
         # Integration test style for if_single.
         # If a joystick that is mapped to a button is moved, if_single stops
         macro = parse("if_single(k(a), k(KEY_LEFTSHIFT))", self.context, DummyMapping)

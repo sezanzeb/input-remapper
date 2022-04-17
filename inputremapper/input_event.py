@@ -37,8 +37,7 @@ InputEventValidationType = Union[
 
 
 class EventActions(enum.Enum):
-    """
-    Additional information a InputEvent can send through the event pipeline
+    """Additional information a InputEvent can send through the event pipeline
     """
 
     as_key = enum.auto()
@@ -49,8 +48,7 @@ class EventActions(enum.Enum):
 # Todo: add slots=True as soon as python 3.10 is in common distros
 @dataclass(frozen=True)
 class InputEvent:
-    """
-    the evnet used by inputremapper
+    """The evnet used by inputremapper
 
     as a drop in replacement for evdev.InputEvent
     """
@@ -74,12 +72,12 @@ class InputEvent:
 
     @classmethod
     def __get_validators__(cls):
-        """used by pydantic and EventCombination to create InputEvent objects"""
+        """Used by pydantic and EventCombination to create InputEvent objects."""
         yield cls.validate
 
     @classmethod
     def validate(cls, init_arg: InputEventValidationType) -> InputEvent:
-        """try all the different methods, and raise an error if none succeed"""
+        """Try all the different methods, and raise an error if none succeed."""
         if isinstance(init_arg, InputEvent):
             return init_arg
 
@@ -103,7 +101,7 @@ class InputEvent:
 
     @classmethod
     def from_event(cls, event: evdev.InputEvent) -> InputEvent:
-        """create a InputEvent from another InputEvent or evdev.InputEvent"""
+        """Create a InputEvent from another InputEvent or evdev.InputEvent."""
         try:
             return cls(event.sec, event.usec, event.type, event.code, event.value)
         except AttributeError:
@@ -113,7 +111,7 @@ class InputEvent:
 
     @classmethod
     def from_string(cls, string: str) -> InputEvent:
-        """create a InputEvent from a string like 'type, code, value'"""
+        """Create a InputEvent from a string like 'type, code, value'."""
         try:
             t, c, v = string.split(",")
             return cls(0, 0, int(t), int(c), int(v))
@@ -124,7 +122,7 @@ class InputEvent:
 
     @classmethod
     def from_tuple(cls, event_tuple: Tuple[int, int, int]) -> InputEvent:
-        """create a InputEvent from a (type, code, value) tuple"""
+        """Create a InputEvent from a (type, code, value) tuple."""
         try:
             if len(event_tuple) != 3:
                 raise InputEventCreationError(
@@ -149,17 +147,17 @@ class InputEvent:
 
     @property
     def type_and_code(self) -> Tuple[int, int]:
-        """event type, code"""
+        """Event type, code."""
         return self.type, self.code
 
     @property
     def event_tuple(self) -> Tuple[int, int, int]:
-        """event type, code, value"""
+        """Event type, code, value."""
         return self.type, self.code, self.value
 
     @property
     def is_key_event(self) -> bool:
-        """whether this is interpreted as a key event"""
+        """Whether this is interpreted as a key event."""
         return self.type == evdev.ecodes.EV_KEY or self.action == EventActions.as_key
 
     def __str__(self):
@@ -183,7 +181,7 @@ class InputEvent:
         value: int = None,
         action: EventActions = EventActions.none,
     ) -> InputEvent:
-        """return a new modified event"""
+        """Return a new modified event."""
         return InputEvent(
             sec if sec is not None else self.sec,
             usec if usec is not None else self.usec,

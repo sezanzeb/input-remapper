@@ -74,8 +74,7 @@ def parse_mapping_handler(mapping_handler):
 
 class Logger(logging.Logger):
     def debug_mapping_handler(self, mapping_handler):
-        """
-        parse the structure of a mapping_handler an log it
+        """Parse the structure of a mapping_handler an log it
         """
         if not self.isEnabledFor(logging.DEBUG):
             return
@@ -256,13 +255,12 @@ logger.setLevel(logging.INFO)
 logging.getLogger("asyncio").setLevel(logging.WARNING)
 
 
-VERSION = ""
+VERSION = "1.5b1"
 EVDEV_VERSION = None
 try:
-    VERSION = pkg_resources.require("input-remapper")[0].version
     EVDEV_VERSION = pkg_resources.require("evdev")[0].version
 except pkg_resources.DistributionNotFound as error:
-    logger.info("Could not figure out the version")
+    logger.info("Could not figure out the evdev version")
     logger.debug(error)
 
 # check if the version is something like 1.5b20 or 2.1.3b5

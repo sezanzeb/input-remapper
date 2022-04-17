@@ -36,7 +36,7 @@ from inputremapper.injection.mapping_handlers.mapping_handler import (
 
 
 class MacroHandler(MappingHandler):
-    """runs the target macro if notified"""
+    """Runs the target macro if notified."""
 
     # TODO: replace this by the macro itself
     _macro: Macro
