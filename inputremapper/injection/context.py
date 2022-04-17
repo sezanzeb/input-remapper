@@ -20,13 +20,34 @@
 
 
 """Stores injection-process wide information."""
+import asyncio
 from typing import Awaitable, List, Dict, Tuple, Protocol, Set
 
-from inputremapper.logger import logger
-from inputremapper.injection.macros.parse import parse, is_this_a_macro
-from inputremapper.configs.system_mapping import system_mapping
-from inputremapper.event_combination import EventCombination
-from inputremapper.configs.global_config import NONE, MOUSE, WHEEL, BUTTONS
+import evdev
+
+from inputremapper.configs.preset import Preset
+from inputremapper.input_event import InputEvent
+from inputremapper.injection.mapping_handlers.mapping_parser import parse_mappings
+from inputremapper.injection.mapping_handlers.mapping_handler import (
+    InputEventHandler,
+    EventListener,
+)
+
+
+class NotifyCallback(Protocol):
+    """type signature of MappingHandler.notify
+
+    return True if the event was actually taken care of
+    """
+
+    def __call__(
+        self,
+        event: evdev.InputEvent,
+        source: evdev.InputDevice = None,
+        forward: evdev.UInput = None,
+        supress: bool = False,
+    ) -> bool:
+        ...
 
 
 class Context:
@@ -50,113 +71,35 @@ class Context:
     Members
     -------
     preset : Preset
-        The preset that is the source of key_to_code and macros,
-        only used to query config values.
-    key_to_code : dict
-        Preset of ((type, code, value),) to linux-keycode
-        or multiple of those like ((...), (...), ...) for combinations.
-        Combinations need to be present in every possible valid ordering.
-        e.g. shift + alt + a and alt + shift + a.
-        This is needed to query keycodes more efficiently without having
-        to search preset each time.
-    macros : dict
-        Preset of ((type, code, value),) to Macro objects.
-        Combinations work similar as in key_to_code
+        The preset holds all Mappings for the injection process
+    listeners : Set[EventListener]
+        a set of callbacks which receive all events
+    callbacks : Dict[Tuple[int, int], List[NotifyCallback]]
+        all entry points to the event pipeline sorted by InputEvent.type_and_code
     """
 
-    def __init__(self, preset):
+    preset: Preset
+    listeners: Set[EventListener]
+    callbacks: Dict[Tuple[int, int], List[NotifyCallback]]
+    _handlers: Dict[InputEvent, List[InputEventHandler]]
+
+    def __init__(self, preset: Preset):
         self.preset = preset
+        self.listeners = set()
+        self.callbacks = {}
+        self._handlers = parse_mappings(preset, self)
 
-        # avoid searching through the mapping at runtime,
-        # might be a bit expensive
-        self.key_to_code = self._map_keys_to_codes()
-        self.macros = self._parse_macros()
+        self._create_callbacks()
 
-        self.left_purpose = None
-        self.right_purpose = None
-        self.update_purposes()
+    def reset(self) -> None:
+        """call the reset method for each handler in the context"""
+        for handlers in self._handlers.values():
+            [handler.reset() for handler in handlers]
 
-    def update_purposes(self):
-        """Read joystick purposes from the configuration.
-
-        For efficiency, so that the config doesn't have to be read during
-        runtime repeatedly.
-        """
-        self.left_purpose = self.preset.get("gamepad.joystick.left_purpose")
-        self.right_purpose = self.preset.get("gamepad.joystick.right_purpose")
-
-    def _parse_macros(self):
-        """To quickly get the target macro during operation."""
-        logger.debug("Parsing macros")
-        macros = {}
-        for combination, output in self.preset:
-            if is_this_a_macro(output[0]):
-                macro = parse(output[0], self)
-                if macro is None:
-                    continue
-
-                for permutation in combination.get_permutations():
-                    macros[permutation] = (macro, output[1])
-
-        if len(macros) == 0:
-            logger.debug("No macros configured")
-
-        return macros
-
-    def _map_keys_to_codes(self):
-        """To quickly get target keycodes during operation.
-
-        Returns a mapping of one or more 3-tuples to 2-tuples of (int, target_uinput).
-        Examples:
-            ((1, 2, 1),): (3, "keyboard")
-            ((1, 5, 1), (1, 4, 1)): (4, "gamepad")
-        """
-        key_to_code = {}
-        for combination, output in self.preset:
-            if is_this_a_macro(output[0]):
-                continue
-
-            target_code = system_mapping.get(output[0])
-            if target_code is None:
-                logger.error('Don\'t know what "%s" is', output[0])
-                continue
-
-            for permutation in combination.get_permutations():
-                if permutation[-1].value not in [-1, 1]:
-                    logger.error(
-                        "Expected values to be -1 or 1 at this point: %s",
-                        permutation,
-                    )
-                key_to_code[permutation] = (target_code, output[1])
-
-        return key_to_code
-
-    def is_mapped(self, combination):
-        """Check if this combination is used for macros or mappings.
-
-        Parameters
-        ----------
-        combination : tuple of tuple of int
-            One or more 3-tuples of type, code, action,
-            for example ((EV_KEY, KEY_A, 1), (EV_ABS, ABS_X, -1))
-            or ((EV_KEY, KEY_B, 1),)
-        """
-        return combination in self.macros or combination in self.key_to_code
-
-    def maps_joystick(self):
-        """If at least one of the joysticks will serve a special purpose."""
-        return (self.left_purpose, self.right_purpose) != (NONE, NONE)
-
-    def joystick_as_mouse(self):
-        """If at least one joystick maps to an EV_REL capability."""
-        purposes = (self.left_purpose, self.right_purpose)
-        return MOUSE in purposes or WHEEL in purposes
-
-    def joystick_as_dpad(self):
-        """If at least one joystick may be mapped to keys."""
-        purposes = (self.left_purpose, self.right_purpose)
-        return BUTTONS in purposes
-
-    def writes_keys(self):
-        """Check if anything is being mapped to keys."""
-        return len(self.macros) > 0 and len(self.key_to_code) > 0
+    def _create_callbacks(self) -> None:
+        """add the notify method from all _handlers to self.callbacks"""
+        for event, handler_list in self._handlers.items():
+            if event.type_and_code not in self.callbacks.keys():
+                self.callbacks[event.type_and_code] = []
+            for handler in handler_list:
+                self.callbacks[event.type_and_code].append(handler.notify)

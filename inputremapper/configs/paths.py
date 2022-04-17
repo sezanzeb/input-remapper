@@ -18,6 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
+# TODO: convert everything to use pathlib.Path
 
 """Path constants to be used."""
 
@@ -25,8 +26,13 @@
 import os
 import shutil
 
-from inputremapper.logger import logger
-from inputremapper.user import USER, CONFIG_PATH
+from inputremapper.logger import logger, VERSION, IS_BETA
+from inputremapper.user import USER, HOME
+
+rel_path = ".config/input-remapper"
+if IS_BETA:
+    rel_path = os.path.join(rel_path, f"beta_{VERSION}")
+CONFIG_PATH = os.path.join(HOME, rel_path)
 
 
 def chown(path):

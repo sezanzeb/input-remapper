@@ -28,10 +28,27 @@ import copy
 import shutil
 import pkg_resources
 
+from typing import List
 from pathlib import Path
-from evdev.ecodes import EV_KEY, EV_REL
+from evdev.ecodes import (
+    EV_KEY,
+    EV_ABS,
+    EV_REL,
+    ABS_X,
+    ABS_Y,
+    ABS_RX,
+    ABS_RY,
+    REL_X,
+    REL_Y,
+    REL_WHEEL_HI_RES,
+    REL_HWHEEL_HI_RES,
+)
+from pydantic import ValidationError
 
-from inputremapper.logger import logger, VERSION
+from inputremapper.configs.preset import Preset
+from inputremapper.configs.mapping import Mapping, UIMapping
+from inputremapper.event_combination import EventCombination
+from inputremapper.logger import logger, VERSION, IS_BETA
 from inputremapper.user import HOME
 from inputremapper.configs.paths import get_preset_path, mkdir, CONFIG_PATH
 from inputremapper.configs.system_mapping import system_mapping
@@ -39,7 +56,7 @@ from inputremapper.injection.global_uinputs import global_uinputs
 from inputremapper.injection.macros.parse import parse, is_this_a_macro
 
 
-def all_presets():
+def all_presets() -> List[os.PathLike]:
     """Get all presets for all groups as list."""
     if not os.path.exists(get_preset_path()):
         return []
@@ -144,12 +161,12 @@ def _update_version():
         json.dump(config, file, indent=4)
 
 
-def _rename_config():
+def _rename_config(new_path=CONFIG_PATH):
     """Rename .config/key-mapper to .config/input-remapper."""
     old_config_path = os.path.join(HOME, ".config/key-mapper")
-    if not os.path.exists(CONFIG_PATH) and os.path.exists(old_config_path):
-        logger.info("Moving %s to %s", old_config_path, CONFIG_PATH)
-        shutil.move(old_config_path, CONFIG_PATH)
+    if not os.path.exists(new_path) and os.path.exists(old_config_path):
+        logger.info("Moving %s to %s", old_config_path, new_path)
+        shutil.move(old_config_path, new_path)
 
 
 def _find_target(symbol):
@@ -244,8 +261,148 @@ def _otherwise_to_else():
             file.write("\n")
 
 
+def _convert_to_individual_mappings():
+    """
+    convert preset.json
+    from {key: [symbol, target]}
+    to {key: {target: target, symbol: symbol, ...}}
+    """
+
+    for preset_path, old_preset in all_presets():
+        preset = Preset(preset_path, UIMapping)
+        if "mapping" in old_preset.keys():
+            for combination, symbol_target in old_preset["mapping"].items():
+                logger.info(
+                    f"migrating from '{combination}: {symbol_target}' to mapping dict"
+                )
+                try:
+                    combination = EventCombination.from_string(combination)
+                except ValueError:
+                    logger.error(
+                        f"unable to migrate mapping with invalid {combination = }"
+                    )
+                    continue
+
+                mapping = UIMapping(
+                    event_combination=combination,
+                    target_uinput=symbol_target[1],
+                    output_symbol=symbol_target[0],
+                )
+                preset.add(mapping)
+
+        if (
+            "gamepad" in old_preset.keys()
+            and "joystick" in old_preset["gamepad"].keys()
+        ):
+            joystick_dict = old_preset["gamepad"]["joystick"]
+            left_purpose = joystick_dict.get("left_purpose")
+            right_purpose = joystick_dict.get("right_purpose")
+            pointer_speed = joystick_dict.get("pointer_speed")
+            if pointer_speed:
+                pointer_speed /= 100
+            non_linearity = joystick_dict.get("non_linearity")  # Todo
+            x_scroll_speed = joystick_dict.get("x_scroll_speed")
+            y_scroll_speed = joystick_dict.get("y_scroll_speed")
+
+            cfg = {
+                "event_combination": None,
+                "target_uinput": "mouse",
+                "output_type": EV_REL,
+                "output_code": None,
+            }
+
+            if left_purpose == "mouse":
+                x_config = cfg.copy()
+                y_config = cfg.copy()
+                x_config["event_combination"] = ",".join((str(EV_ABS), str(ABS_X), "0"))
+                y_config["event_combination"] = ",".join((str(EV_ABS), str(ABS_Y), "0"))
+                x_config["output_code"] = REL_X
+                y_config["output_code"] = REL_Y
+                mapping_x = Mapping(**x_config)
+                mapping_y = Mapping(**y_config)
+                if pointer_speed:
+                    mapping_x.gain = pointer_speed
+                    mapping_y.gain = pointer_speed
+                preset.add(mapping_x)
+                preset.add(mapping_y)
+
+            if right_purpose == "mouse":
+                x_config = cfg.copy()
+                y_config = cfg.copy()
+                x_config["event_combination"] = ",".join(
+                    (str(EV_ABS), str(ABS_RX), "0")
+                )
+                y_config["event_combination"] = ",".join(
+                    (str(EV_ABS), str(ABS_RY), "0")
+                )
+                x_config["output_code"] = REL_X
+                y_config["output_code"] = REL_Y
+                mapping_x = Mapping(**x_config)
+                mapping_y = Mapping(**y_config)
+                if pointer_speed:
+                    mapping_x.gain = pointer_speed
+                    mapping_y.gain = pointer_speed
+                preset.add(mapping_x)
+                preset.add(mapping_y)
+
+            if left_purpose == "wheel":
+                x_config = cfg.copy()
+                y_config = cfg.copy()
+                x_config["event_combination"] = ",".join((str(EV_ABS), str(ABS_X), "0"))
+                y_config["event_combination"] = ",".join((str(EV_ABS), str(ABS_Y), "0"))
+                x_config["output_code"] = REL_HWHEEL_HI_RES
+                y_config["output_code"] = REL_WHEEL_HI_RES
+                mapping_x = Mapping(**x_config)
+                mapping_y = Mapping(**y_config)
+                if x_scroll_speed:
+                    mapping_x.gain = x_scroll_speed
+                if y_scroll_speed:
+                    mapping_y.gain = y_scroll_speed
+                preset.add(mapping_x)
+                preset.add(mapping_y)
+
+            if right_purpose == "wheel":
+                x_config = cfg.copy()
+                y_config = cfg.copy()
+                x_config["event_combination"] = ",".join(
+                    (str(EV_ABS), str(ABS_RX), "0")
+                )
+                y_config["event_combination"] = ",".join(
+                    (str(EV_ABS), str(ABS_RY), "0")
+                )
+                x_config["output_code"] = REL_HWHEEL_HI_RES
+                y_config["output_code"] = REL_WHEEL_HI_RES
+                mapping_x = Mapping(**x_config)
+                mapping_y = Mapping(**y_config)
+                if x_scroll_speed:
+                    mapping_x.gain = x_scroll_speed
+                if y_scroll_speed:
+                    mapping_y.gain = y_scroll_speed
+                preset.add(mapping_x)
+                preset.add(mapping_y)
+
+        preset.save()
+
+
+def _copy_to_beta():
+    if os.path.exists(CONFIG_PATH) or not IS_BETA:
+        # don't copy to already existing folder
+        # users should delete the beta folder if they need to
+        return
+
+    regular_path = os.path.join(*os.path.split(CONFIG_PATH)[:-1])
+    # workaround to maker sure the rename from key-mapper to input-remapper
+    # does not move everythig to the beta folder
+    _rename_config(regular_path)
+    if os.path.exists(regular_path):
+        logger.debug(f"copying all from {regular_path} to {CONFIG_PATH}")
+        shutil.copytree(regular_path, CONFIG_PATH)
+
+
 def migrate():
     """Migrate config files to the current release."""
+
+    _copy_to_beta()
     v = config_version()
     if v < pkg_resources.parse_version("0.4.0"):
         _config_suffix()
@@ -263,6 +420,9 @@ def migrate():
 
     if v < pkg_resources.parse_version("1.4.1"):
         _otherwise_to_else()
+
+    if v < pkg_resources.parse_version("1.5b1"):
+        _convert_to_individual_mappings()
 
     # add new migrations here
 

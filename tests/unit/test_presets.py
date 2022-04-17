@@ -40,8 +40,9 @@ from inputremapper.gui.active_preset import active_preset
 
 def create_preset(group_name, name="new preset"):
     name = get_available_preset_name(group_name, name)
-    active_preset.empty()
-    active_preset.save(get_preset_path(group_name, name))
+    active_preset.clear()
+    active_preset.path = get_preset_path(group_name, name)
+    active_preset.save()
 
 
 PRESETS = os.path.join(CONFIG_PATH, "presets")

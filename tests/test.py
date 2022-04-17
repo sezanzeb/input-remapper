@@ -218,6 +218,7 @@ fixtures = {
                 evdev.ecodes.ABS_Z,
                 evdev.ecodes.ABS_RZ,
                 evdev.ecodes.ABS_HAT0X,
+                evdev.ecodes.ABS_HAT0Y,
             ],
             evdev.ecodes.EV_KEY: [evdev.ecodes.BTN_A],
         },
@@ -304,9 +305,9 @@ def new_event(type, code, value, timestamp=None, offset=0):
 
 
 def patch_paths():
-    from inputremapper.configs import paths
+    from inputremapper import user
 
-    paths.CONFIG_PATH = tmp
+    user.HOME = tmp
 
 
 class InputDevice:
@@ -423,9 +424,21 @@ class InputDevice:
                 resolution=None,
                 max=MAX_ABS,
             )
-            result[evdev.ecodes.EV_ABS] = [
-                (stuff, absinfo_obj) for stuff in result[evdev.ecodes.EV_ABS]
-            ]
+
+            ev_abs = []
+            for ev_code in result[evdev.ecodes.EV_ABS]:
+                if ev_code in range(0x10, 0x18):  # ABS_HAT0X - ABS_HAT3Y
+                    absinfo_obj = evdev.AbsInfo(
+                        value=None,
+                        min=-1,
+                        fuzz=None,
+                        flat=None,
+                        resolution=None,
+                        max=1,
+                    )
+                ev_abs.append((ev_code, absinfo_obj))
+
+            result[evdev.ecodes.EV_ABS] = ev_abs
 
         return result
 
@@ -540,15 +553,18 @@ from inputremapper.logger import update_verbosity
 
 update_verbosity(True)
 
+from inputremapper.input_event import InputEvent as InternalInputEvent
 from inputremapper.injection.injector import Injector
 from inputremapper.configs.global_config import global_config
+from inputremapper.configs.mapping import Mapping, UIMapping
 from inputremapper.gui.reader import reader
 from inputremapper.groups import groups
 from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.gui.active_preset import active_preset
 from inputremapper.configs.paths import get_config_path
 from inputremapper.injection.macros.macro import macro_variables
-from inputremapper.injection.consumers.keycode_mapper import active_macros, unreleased
+
+# from inputremapper.injection.mapping_handlers.keycode_mapper import active_macros, unreleased
 from inputremapper.injection.global_uinputs import global_uinputs
 
 # no need for a high number in tests
@@ -557,6 +573,33 @@ Injector.regrab_timeout = 0.05
 
 _fixture_copy = copy.deepcopy(fixtures)
 environ_copy = copy.deepcopy(os.environ)
+
+
+def convert_to_internal_events(events):
+    """convert a iterable of InputEvent to a list of inputremapper.InputEvent"""
+    return [InternalInputEvent.from_event(event) for event in events]
+
+
+def get_key_mapping(
+    combination="99,99,99", target_uinput="keyboard", output_symbol="a"
+) -> Mapping:
+    """convenient function to get a valid mapping"""
+    return Mapping(
+        event_combination=combination,
+        target_uinput=target_uinput,
+        output_symbol=output_symbol,
+    )
+
+
+def get_ui_mapping(
+    combination="99,99,99", target_uinput="keyboard", output_symbol="a"
+) -> UIMapping:
+    """convenient function to get a valid mapping"""
+    return UIMapping(
+        event_combination=combination,
+        target_uinput=target_uinput,
+        output_symbol=output_symbol,
+    )
 
 
 def send_event_to_reader(event):
@@ -619,20 +662,17 @@ def quick_cleanup(log=True):
     global_config._save_config()
 
     system_mapping.populate()
-
     active_preset.empty()
-    active_preset.clear_config()
-    active_preset.set_has_unsaved_changes(False)
 
     clear_write_history()
 
     for name in list(uinputs.keys()):
         del uinputs[name]
 
-    for device in list(active_macros.keys()):
-        del active_macros[device]
-    for device in list(unreleased.keys()):
-        del unreleased[device]
+    # for device in list(active_macros.keys()):
+    #    del active_macros[device]
+    # for device in list(unreleased.keys()):
+    #    del unreleased[device]
 
     for path in list(fixtures.keys()):
         if path not in _fixture_copy:

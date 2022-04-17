@@ -27,25 +27,6 @@ NONE = "none"
 INITIAL_CONFIG = {
     "version": VERSION,
     "autoload": {},
-    "macros": {
-        # some time between keystrokes might be required for them to be
-        # detected properly in software.
-        "keystroke_sleep_ms": 10
-    },
-    "gamepad": {
-        "joystick": {
-            # very small movements of the joystick should result in very
-            # small mouse movements. With a non_linearity of 1 it is
-            # impossible/hard to even find a resting position that won't
-            # move the cursor.
-            "non_linearity": 4,
-            "pointer_speed": 80,
-            "left_purpose": NONE,
-            "right_purpose": NONE,
-            "x_scroll_speed": 2,
-            "y_scroll_speed": 0.5,
-        },
-    },
 }
 
 

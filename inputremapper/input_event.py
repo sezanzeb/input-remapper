@@ -19,17 +19,35 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 
+import enum
+
 import evdev
 
 from dataclasses import dataclass
-from typing import Tuple
+from typing import Tuple, Union, Sequence, Callable
 
 from inputremapper.exceptions import InputEventCreationError
 
 
-@dataclass(
-    frozen=True
-)  # Todo: add slots=True as soon as python 3.10 is in common distros
+InputEventValidationType = Union[
+    str,
+    Tuple[int, int, int],
+    evdev.InputEvent,
+]
+
+
+class EventActions(enum.Enum):
+    """
+    Additional information a InputEvent can send through the event pipeline
+    """
+
+    as_key = enum.auto()
+    recenter = enum.auto()
+    none = enum.auto()
+
+
+# Todo: add slots=True as soon as python 3.10 is in common distros
+@dataclass(frozen=True)
 class InputEvent:
     """
     the evnet used by inputremapper
@@ -42,6 +60,7 @@ class InputEvent:
     type: int
     code: int
     value: int
+    action: EventActions = EventActions.none
 
     def __hash__(self):
         return hash((self.type, self.code, self.value))
@@ -56,9 +75,31 @@ class InputEvent:
     @classmethod
     def __get_validators__(cls):
         """used by pydantic and EventCombination to create InputEvent objects"""
-        yield cls.from_event
-        yield cls.from_tuple
-        yield cls.from_string
+        yield cls.validate
+
+    @classmethod
+    def validate(cls, init_arg: InputEventValidationType) -> InputEvent:
+        """try all the different methods, and raise an error if none succeed"""
+        if isinstance(init_arg, InputEvent):
+            return init_arg
+
+        event = None
+        validators: Sequence[Callable[..., InputEvent]] = (
+            cls.from_event,
+            cls.from_string,
+            cls.from_tuple,
+        )
+        for validator in validators:
+            try:
+                event = validator(init_arg)
+                break
+            except InputEventCreationError:
+                pass
+
+        if event:
+            return event
+
+        raise ValueError(f"failed to create InputEvent with {init_arg = }")
 
     @classmethod
     def from_event(cls, event: evdev.InputEvent) -> InputEvent:
@@ -116,6 +157,11 @@ class InputEvent:
         """event type, code, value"""
         return self.type, self.code, self.value
 
+    @property
+    def is_key_event(self) -> bool:
+        """whether this is interpreted as a key event"""
+        return self.type == evdev.ecodes.EV_KEY or self.action == EventActions.as_key
+
     def __str__(self):
         if self.type == evdev.ecodes.EV_KEY:
             key_name = evdev.ecodes.bytype[self.type].get(self.code, "unknown")
@@ -135,6 +181,7 @@ class InputEvent:
         type: int = None,
         code: int = None,
         value: int = None,
+        action: EventActions = EventActions.none,
     ) -> InputEvent:
         """return a new modified event"""
         return InputEvent(
@@ -143,6 +190,7 @@ class InputEvent:
             type if type is not None else self.type,
             code if code is not None else self.code,
             value if value is not None else self.value,
+            action if action is not EventActions.none else self.action,
         )
 
     def json_str(self) -> str:

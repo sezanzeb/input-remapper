@@ -56,7 +56,7 @@ class Install(install):
 def get_packages(base="inputremapper"):
     """Return all modules used in input-remapper.
 
-    For example 'inputremapper.gui' or 'inputremapper.injection.consumers'
+    For example 'inputremapper.gui' or 'inputremapper.injection.mapping_handlers'
     """
     if not os.path.exists(os.path.join(base, "__init__.py")):
         # only python modules
@@ -102,7 +102,7 @@ for po_file in glob.glob(PO_FILES):
 
 setup(
     name="input-remapper",
-    version="1.4.2",
+    version="1.5b1",
     description="A tool to change the mapping of your input device buttons",
     author="Sezanzeb",
     author_email="proxima@sezanzeb.de",

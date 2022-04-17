@@ -78,4 +78,9 @@ list button {
   padding-left: 18px;
 }
 
+.no-v-padding{
+    padding-top: 0;
+    padding-bottom: 0;
+}
+
 /* @theme_bg_color, @theme_fg_color */

@@ -28,12 +28,13 @@ import re
 import sys
 from inputremapper.gui.gettext import _
 
-from evdev._ecodes import EV_KEY
+from evdev.ecodes import EV_KEY
 from gi.repository import Gtk, GtkSource, Gdk, GLib, GObject
 from inputremapper.input_event import InputEvent
 
 from inputremapper.configs.data import get_data_path
-from inputremapper.configs.paths import get_config_path
+from inputremapper.exceptions import MacroParsingError
+from inputremapper.configs.paths import get_config_path, get_preset_path
 from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.gui.active_preset import active_preset
 from inputremapper.gui.utils import HandlerDisabled
@@ -169,7 +170,7 @@ class UserInterface:
 
         # set up the device selection
         # https://python-gtk-3-tutorial.readthedocs.io/en/latest/treeview.html#the-view
-        combobox = self.get("device_selection")
+        combobox: Gtk.ComboBox = self.get("device_selection")
         self.device_store = Gtk.ListStore(str, str, str)
         combobox.set_model(self.device_store)
         renderer_icon = Gtk.CellRendererPixbuf()
@@ -204,12 +205,6 @@ class UserInterface:
         # if any of the next steps take a bit to complete, have the window
         # already visible (without content) to make it look more responsive.
         gtk_iteration()
-
-        # this is not set to invisible in glade to give the ui a default
-        # height that doesn't jump when a gamepad is selected
-        self.get("gamepad_separator").hide()
-        self.get("gamepad_config").hide()
-
         self.populate_devices()
 
         self.timeouts = []
@@ -291,33 +286,6 @@ class UserInterface:
         if gdk_keycode in [Gdk.KEY_Control_L, Gdk.KEY_Control_R]:
             self.ctrl = False
 
-    def initialize_gamepad_config(self):
-        """Set slider and dropdown values when a gamepad is selected."""
-        if GAMEPAD in self.group.types:
-            self.get("gamepad_separator").show()
-            self.get("gamepad_config").show()
-        else:
-            self.get("gamepad_separator").hide()
-            self.get("gamepad_config").hide()
-            return
-
-        left_purpose = self.get("left_joystick_purpose")
-        right_purpose = self.get("right_joystick_purpose")
-        speed = self.get("joystick_mouse_speed")
-
-        with HandlerDisabled(left_purpose, self.on_left_joystick_changed):
-            value = active_preset.get("gamepad.joystick.left_purpose")
-            left_purpose.set_active_id(value)
-
-        with HandlerDisabled(right_purpose, self.on_right_joystick_changed):
-            value = active_preset.get("gamepad.joystick.right_purpose")
-            right_purpose.set_active_id(value)
-
-        with HandlerDisabled(speed, self.on_joystick_mouse_speed_changed):
-            value = active_preset.get("gamepad.joystick.pointer_speed")
-            range_value = math.log(value, 2)
-            speed.set_value(range_value)
-
     def get(self, name):
         """Get a widget from the window"""
         return self.builder.get_object(name)
@@ -372,9 +340,10 @@ class UserInterface:
 
         if len(presets) == 0:
             new_preset = get_available_preset_name(self.group.name)
-            active_preset.empty()
+            active_preset.clear()
             path = self.group.get_preset_path(new_preset)
-            active_preset.save(path)
+            active_preset.path = path
+            active_preset.save()
             presets = [new_preset]
         else:
             logger.debug('"%s" presets: "%s"', self.group.name, '", "'.join(presets))
@@ -384,9 +353,8 @@ class UserInterface:
         with HandlerDisabled(preset_selection, self.on_select_preset):
             # otherwise the handler is called with None for each preset
             preset_selection.remove_all()
-
-        for preset in presets:
-            preset_selection.append(preset, preset)
+            for preset in presets:
+                preset_selection.append(preset, preset)
 
         # and select the newest one (on the top). triggers on_select_preset
         preset_selection.set_active(0)
@@ -465,22 +433,6 @@ class UserInterface:
             status_bar.push(context_id, message)
             status_bar.set_tooltip_text(tooltip)
 
-    def check_macro_syntax(self):
-        """Check if the programmed macros are allright."""
-        self.show_status(CTX_MAPPING, None)
-        for key, output in active_preset:
-            output = output[0]
-            if not is_this_a_macro(output):
-                continue
-
-            error = parse(output, active_preset, return_errors=True)
-            if error is None:
-                continue
-
-            position = key.beautify()
-            msg = _("Syntax error at %s, hover for info") % position
-            self.show_status(CTX_MAPPING, msg, error)
-
     @ensure_everything_saved
     def on_rename_button_clicked(self, button):
         """Rename the preset based on the contents of the name input."""
@@ -490,6 +442,7 @@ class UserInterface:
             return
 
         new_name = rename_preset(self.group.name, self.preset_name, new_name)
+        active_preset.path = get_preset_path(self.group.name, new_name)
 
         # if the old preset was being autoloaded, change the
         # name there as well
@@ -520,7 +473,7 @@ class UserInterface:
         """Apply a preset without saving changes."""
         self.save_preset()
 
-        if active_preset.num_saved_keys == 0:
+        if len(active_preset) == 0:
             logger.error(_("Cannot apply empty preset file"))
             # also helpful for first time use
             self.show_status(CTX_ERROR, _("You need to add keys and save first"))
@@ -673,10 +626,11 @@ class UserInterface:
             else:
                 new_preset = get_available_preset_name(name)
                 self.editor.clear()
-                active_preset.empty()
+                active_preset.clear()
 
             path = self.group.get_preset_path(new_preset)
-            active_preset.save(path)
+            active_preset.path = path
+            active_preset.save()
             self.get("preset_selection").append(new_preset, new_preset)
             # triggers on_select_preset
             self.get("preset_selection").set_active_id(new_preset)
@@ -704,8 +658,9 @@ class UserInterface:
         logger.debug('Selecting preset "%s"', preset)
         self.editor.clear_mapping_list()
         self.preset_name = preset
-
-        active_preset.load(self.group.get_preset_path(preset))
+        active_preset.clear()
+        active_preset.path = self.group.get_preset_path(preset)
+        active_preset.load()
 
         self.editor.load_custom_mapping()
 
@@ -719,27 +674,6 @@ class UserInterface:
 
         self.get("preset_name_input").set_text("")
 
-        self.initialize_gamepad_config()
-
-        active_preset.set_has_unsaved_changes(False)
-
-    def on_left_joystick_changed(self, dropdown):
-        """Set the purpose of the left joystick."""
-        purpose = dropdown.get_active_id()
-        active_preset.set("gamepad.joystick.left_purpose", purpose)
-        self.save_preset()
-
-    def on_right_joystick_changed(self, dropdown):
-        """Set the purpose of the right joystick."""
-        purpose = dropdown.get_active_id()
-        active_preset.set("gamepad.joystick.right_purpose", purpose)
-        self.save_preset()
-
-    def on_joystick_mouse_speed_changed(self, gtk_range):
-        """Set how fast the joystick moves the mouse."""
-        speed = 2 ** gtk_range.get_value()
-        active_preset.set("gamepad.joystick.pointer_speed", speed)
-
     def save_preset(self, *args):
         """Write changes in the active_preset to disk."""
         if not active_preset.has_unsaved_changes():
@@ -749,8 +683,7 @@ class UserInterface:
 
         try:
             assert self.preset_name is not None
-            path = self.group.get_preset_path(self.preset_name)
-            active_preset.save(path)
+            active_preset.save()
 
             # after saving the preset, its modification date will be the
             # newest, so populate_presets will automatically select the
@@ -761,30 +694,7 @@ class UserInterface:
             self.show_status(CTX_ERROR, _("Permission denied!"), error)
             logger.error(error)
 
-        for _x, mapping in active_preset:
-            if not mapping:
-                continue
-
-            symbol = mapping[0]
-            target = mapping[1]
-            if is_this_a_macro(symbol):
-                continue
-
-            code = system_mapping.get(symbol)
-            if (
-                code is None
-                or code not in global_uinputs.get_uinput(target).capabilities()[EV_KEY]
-            ):
-                trimmed = re.sub(r"\s+", " ", symbol).strip()
-                self.show_status(CTX_MAPPING, _("Unknown mapping %s") % trimmed)
-                break
-        else:
-            # no broken mappings found
-            self.show_status(CTX_MAPPING, None)
-
-            # checking macros is probably a bit more expensive, do that if
-            # the regular mappings are allright
-            self.check_macro_syntax()
+        self.show_status(CTX_MAPPING, None)
 
     def on_about_clicked(self, button):
         """Show the about/help dialog."""

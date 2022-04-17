@@ -23,10 +23,13 @@
 
 
 import os
+import re
 import sys
 import shutil
 import time
 import logging
+from typing import cast
+
 import pkg_resources
 from datetime import datetime
 
@@ -43,39 +46,77 @@ start = time.time()
 previous_key_debug_log = None
 
 
-def debug_key(self, key, msg, *args):
-    """Log a spam message custom tailored to keycode_mapper.
+def parse_mapping_handler(mapping_handler):
+    indent = 0
+    lines_and_indent = []
+    while True:
+        if isinstance(handler, str):
+            lines_and_indent.append([mapping_handler, indent])
+            break
 
-    Parameters
-    ----------
-    key : tuple of int
-        anything that can be string formatted, but usually a tuple of
-        (type, code, value) tuples
-    """
-    # pylint: disable=protected-access
-    if not self.isEnabledFor(logging.DEBUG):
-        return
+        if isinstance(mapping_handler, list):
+            for sub_handler in mapping_handler:
+                sub_list = parse_mapping_handler(sub_handler)
+                for line in sub_list:
+                    line[1] += indent
+                lines_and_indent.extend(sub_list)
+            break
 
-    global previous_key_debug_log
+        lines_and_indent.append([mapping_handler.__str__(), indent])
+        try:
+            mapping_handler = mapping_handler.child
+        except AttributeError:
+            break
 
-    msg = msg % args
-    str_key = str(key)
-    str_key = str_key.replace(",)", ")")
-    spacing = " " + "·" * max(0, 30 - len(msg))
-    if len(spacing) == 1:
-        spacing = ""
-    msg = f"{msg}{spacing} {str_key}"
-
-    if msg == previous_key_debug_log:
-        # avoid some super spam from EV_ABS events
-        return
-
-    previous_key_debug_log = msg
-
-    self._log(logging.DEBUG, msg, args=None)
+        indent += 1
+    return lines_and_indent
 
 
-logging.Logger.debug_key = debug_key
+class Logger(logging.Logger):
+    def debug_mapping_handler(self, mapping_handler):
+        """
+        parse the structure of a mapping_handler an log it
+        """
+        if not self.isEnabledFor(logging.DEBUG):
+            return
+
+        lines_and_indent = parse_mapping_handler(mapping_handler)
+        for line in lines_and_indent:
+            indent = "    "
+            msg = indent * line[1] + line[0]
+            self._log(logging.DEBUG, msg, args=None)
+
+    def debug_key(self, key, msg, *args):
+        """Log a spam message custom tailored to keycode_mapper.
+
+        Parameters
+        ----------
+        key : tuple of int
+            anything that can be string formatted, but usually a tuple of
+            (type, code, value) tuples
+        """
+        # pylint: disable=protected-access
+        if not self.isEnabledFor(logging.DEBUG):
+            return
+
+        global previous_key_debug_log
+
+        msg = msg % args
+        str_key = str(key)
+        str_key = str_key.replace(",)", ")")
+        spacing = " " + "·" * max(0, 30 - len(msg))
+        if len(spacing) == 1:
+            spacing = ""
+        msg = f"{msg}{spacing} {str_key}"
+
+        if msg == previous_key_debug_log:
+            # avoid some super spam from EV_ABS events
+            return
+
+        previous_key_debug_log = msg
+
+        self._log(logging.DEBUG, msg, args=None)
+
 
 LOG_PATH = (
     "/var/log/input-remapper"
@@ -83,7 +124,9 @@ LOG_PATH = (
     else f"{HOME}/.log/input-remapper"
 )
 
-logger = logging.getLogger("input-remapper")
+# https://github.com/python/typeshed/issues/1801
+logging.setLoggerClass(Logger)
+logger = cast(Logger, logging.getLogger("input-remapper"))
 
 
 def is_debug():
@@ -222,6 +265,9 @@ except pkg_resources.DistributionNotFound as error:
     logger.info("Could not figure out the version")
     logger.debug(error)
 
+# check if the version is something like 1.5b20 or 2.1.3b5
+IS_BETA = bool(re.match("[0-9]+b[0-9]+", VERSION.split(".")[-1]))
+
 
 def log_info(name="input-remapper"):
     """Log version and name to the console."""
@@ -292,6 +338,9 @@ def trim_logfile(log_path):
         with open(log_path, "w") as file:
             file.truncate(0)
             file.writelines(content)
+    except PermissionError:
+        # let the outermost PermissionError handler handle it
+        raise
     except Exception as e:
         logger.error('Failed to trim logfile: "%s"', str(e))
 

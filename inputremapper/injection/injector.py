@@ -37,7 +37,7 @@ from inputremapper.logger import logger
 from inputremapper.groups import classify, GAMEPAD, _Group
 from inputremapper.injection.context import Context
 from inputremapper.injection.numlock import set_numlock, is_numlock_on, ensure_numlock
-from inputremapper.injection.consumer_control import ConsumerControl
+from inputremapper.injection.event_reader import EventReader
 from inputremapper.event_combination import EventCombination
 
 
@@ -94,7 +94,8 @@ class Injector(multiprocessing.Process):
     context: Optional[Context]
     _state: int
     _msg_pipe: multiprocessing.Pipe
-    _consumer_controls: List[ConsumerControl]
+    _consumer_controls: List[EventReader]
+    _stop_event: asyncio.Event
 
     regrab_timeout = 0.2
 
@@ -118,6 +119,7 @@ class Injector(multiprocessing.Process):
         self.context = None  # only needed inside the injection process
 
         self._consumer_controls = []
+        self._stop_event = None
 
         super().__init__(name=group)
 
@@ -193,17 +195,13 @@ class Injector(multiprocessing.Process):
         capabilities = device.capabilities(absinfo=False)
 
         needed = False
-        for key, _ in self.context.preset:
-            if is_in_capabilities(key, capabilities):
-                logger.debug('Grabbing "%s" because of "%s"', path, key)
+        for mapping in self.context.preset:
+            if is_in_capabilities(mapping.event_combination, capabilities):
+                logger.debug(
+                    'Grabbing "%s" because of "%s"', path, mapping.event_combination
+                )
                 needed = True
                 break
-
-        gamepad = classify(device) == GAMEPAD
-
-        if gamepad and self.context.maps_joystick():
-            logger.debug('Grabbing "%s" because of maps_joystick', path)
-            needed = True
 
         if not needed:
             # skipping reading and checking on events from those devices
@@ -266,6 +264,11 @@ class Injector(multiprocessing.Process):
             msg = self._msg_pipe[0].recv()
             if msg == CLOSE:
                 logger.debug("Received close signal")
+                self._stop_event.set()
+                # give the event pipeline some time to reset devices
+                # before shutting the loop down
+                await asyncio.sleep(0.1)
+
                 # stop the event loop and cause the process to reach its end
                 # cleanly. Using .terminate prevents coverage from working.
                 loop.stop()
@@ -310,6 +313,7 @@ class Injector(multiprocessing.Process):
         # create this within the process after the event loop creation,
         # so that the macros use the correct loop
         self.context = Context(self.preset)
+        self._stop_event = asyncio.Event()
 
         # grab devices as early as possible. If events appear that won't get
         # released anymore before the grab they appear to be held down
@@ -353,9 +357,11 @@ class Injector(multiprocessing.Process):
                 raise e
 
             # actually doing things
-            consumer_control = ConsumerControl(self.context, source, forward_to)
-            coroutines.append(consumer_control.run())
-            self._consumer_controls.append(consumer_control)
+            event_reader = EventReader(
+                self.context, source, forward_to, self._stop_event
+            )
+            coroutines.append(event_reader.run())
+            self._consumer_controls.append(event_reader)
 
         coroutines.append(self._msg_listener())
 

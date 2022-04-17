@@ -2,7 +2,8 @@
 
 max-line-length=88 # black
 
-extension-pkg-whitelist=evdev
+extension-pkg-whitelist=evdev, pydantic
+load-plugins=pylint_pydantic
 
 disable=
     # that is the standard way to import GTK afaik

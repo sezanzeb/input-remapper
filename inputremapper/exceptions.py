@@ -41,6 +41,19 @@ class EventNotHandled(Error):
         super().__init__(f"Event {event} can not be handled by the configured target")
 
 
+class MacroParsingError(Error):
+    def __init__(self, symbol=None, msg="Error while parsing a macro"):
+        self.symbol = symbol
+        super().__init__(msg)
+
+
+class MappingParsingError(Error):
+    def __init__(self, msg, *, mapping=None, mapping_handler=None):
+        self.mapping_handler = mapping_handler
+        self.mapping = mapping
+        super().__init__(msg)
+
+
 class InputEventCreationError(Error):
     def __init__(self, msg):
         super().__init__(msg)

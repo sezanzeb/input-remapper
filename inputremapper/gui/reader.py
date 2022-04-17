@@ -173,7 +173,7 @@ class Reader:
         self.previous_event = previous_event
 
         if len(self._unreleased) > 0:
-            result = EventCombination.from_events(self._unreleased.values())
+            result = EventCombination(self._unreleased.values())
             if result == self.previous_result:
                 # don't return the same stuff twice
                 return None
@@ -221,7 +221,7 @@ class Reader:
         if len(unreleased) == 0:
             return None
 
-        return EventCombination.from_events(unreleased)
+        return EventCombination(unreleased)
 
     def _release(self, type_code):
         """Modify the state to recognize the releasing of the key."""

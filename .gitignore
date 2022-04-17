@@ -4,6 +4,7 @@ inputremapper/commit_hash.py
 *.glade#
 .idea
 *.png~
+*.orig
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -57,6 +58,9 @@ coverage.xml
 *.py,cover
 .hypothesis/
 .pytest_cache/
+
+# pyreverse graphs
+*.dot
 
 # Translations
 *.mo

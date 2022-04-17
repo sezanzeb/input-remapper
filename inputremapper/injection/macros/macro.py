@@ -37,15 +37,29 @@ w(1000).m(Shift_L, r(2, k(a))).w(10).k(b): <1s> A A <10ms> b
 
 import asyncio
 import copy
+import math
 import re
+from typing import Optional, List, Callable, Awaitable, Tuple
 
-from evdev.ecodes import ecodes, EV_KEY, EV_REL, REL_X, REL_Y, REL_WHEEL, REL_HWHEEL
-
+import evdev
+from evdev.ecodes import (
+    ecodes,
+    EV_KEY,
+    EV_REL,
+    REL_X,
+    REL_Y,
+    REL_WHEEL_HI_RES,
+    REL_HWHEEL_HI_RES,
+    REL_WHEEL,
+    REL_HWHEEL,
+)
 from inputremapper.logger import logger
 from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.ipc.shared_dict import SharedDict
-from inputremapper.utils import PRESS, PRESS_NEGATIVE
+from inputremapper.exceptions import MacroParsingError
 
+Handler = Callable[[Tuple[int, int, int]], None]
+MacroTask = Callable[[Handler], Awaitable]
 
 macro_variables = SharedDict()
 
@@ -88,21 +102,26 @@ def _type_check(value, allowed_types, display_name=None, position=None):
             continue
 
         # try to parse "1" as 1 if possible
-        try:
-            return allowed_type(value)
-        except (TypeError, ValueError):
-            pass
+        if allowed_type != Macro:
+            # the macro constructor with a single argument always succeeds,
+            # but will definitely not result in the correct macro
+            try:
+                return allowed_type(value)
+            except (TypeError, ValueError):
+                pass
 
         if isinstance(value, allowed_type):
             return value
 
     if display_name is not None and position is not None:
-        raise TypeError(
-            f"Expected parameter {position} for {display_name} to be "
+        raise MacroParsingError(
+            msg=f"Expected parameter {position} for {display_name} to be "
             f"one of {allowed_types}, but got {value}"
         )
 
-    raise TypeError(f"Expected parameter to be one of {allowed_types}, but got {value}")
+    raise MacroParsingError(
+        msg=f"Expected parameter to be one of {allowed_types}, but got {value}"
+    )
 
 
 def _type_check_symbol(keyname):
@@ -115,7 +134,7 @@ def _type_check_symbol(keyname):
     code = system_mapping.get(symbol)
 
     if code is None:
-        raise KeyError(f'Unknown key "{symbol}"')
+        raise MacroParsingError(msg=f'Unknown key "{symbol}"')
 
     return code
 
@@ -130,7 +149,7 @@ def _type_check_variablename(name):
     Not allowed: "1_foo", "foo=blub", "$foo", "foo,1234", "foo()"
     """
     if not isinstance(name, str) or not re.match(r"^[A-Za-z_][A-Za-z_0-9]*$", name):
-        raise SyntaxError(f'"{name}" is not a legit variable name')
+        raise MacroParsingError(msg=f'"{name}" is not a legit variable name')
 
 
 def _resolve(argument, allowed_types=None):
@@ -177,7 +196,7 @@ class Macro:
     4. `Macro.run` will run all tasks in self.tasks
     """
 
-    def __init__(self, code, context):
+    def __init__(self, code: str, context=None, mapping=None):
         """Create a macro instance that can be populated with tasks.
 
         Parameters
@@ -188,10 +207,11 @@ class Macro:
         """
         self.code = code
         self.context = context
+        self.mapping = mapping
 
         # List of coroutines that will be called sequentially.
         # This is the compiled code
-        self.tasks = []
+        self.tasks: List[MacroTask] = []
 
         # can be used to wait for the release of the event
         self._trigger_release_event = asyncio.Event()
@@ -202,47 +222,26 @@ class Macro:
 
         self.running = False
 
-        self.child_macros = []
-
+        self.child_macros: List[Macro] = []
         self.keystroke_sleep_ms = None
-
-        self._new_event_arrived = asyncio.Event()
-        self._newest_event = None
-        self._newest_action = None
-
-    def notify(self, event, action):
-        """Tell the macro about the newest event."""
-        for macro in self.child_macros:
-            macro.notify(event, action)
-
-        self._newest_event = event
-        self._newest_action = action
-        self._new_event_arrived.set()
-
-    async def _wait_for_event(self, filter=None):
-        """Wait until a specific event arrives.
-
-        The parameters can be used to provide a filter. It will block
-        until an event arrives that matches them.
-
-        Parameters
-        ----------
-        filter : function
-            Receives the event. Stop waiting if it returns true.
-        """
-        while True:
-            await self._new_event_arrived.wait()
-            self._new_event_arrived.clear()
-
-            if filter is not None:
-                if not filter(self._newest_event, self._newest_action):
-                    continue
-
-            break
 
     def is_holding(self):
         """Check if the macro is waiting for a key to be released."""
         return not self._trigger_release_event.is_set()
+
+    def get_capabilities(self):
+        """Get the merged capabilities of the macro and its children."""
+        capabilities = copy.deepcopy(self.capabilities)
+
+        for macro in self.child_macros:
+            macro_capabilities = macro.get_capabilities()
+            for ev_type in macro_capabilities:
+                if ev_type not in capabilities:
+                    capabilities[ev_type] = set()
+
+                capabilities[ev_type].update(macro_capabilities[ev_type])
+
+        return capabilities
 
     async def run(self, handler):
         """Run the macro.
@@ -259,10 +258,7 @@ class Macro:
             logger.error('Tried to run already running macro "%s"', self.code)
             return
 
-        # newly arriving events are only interesting if they arrive after the
-        # macro started
-        self._new_event_arrived.clear()
-        self.keystroke_sleep_ms = self.context.preset.get("macros.keystroke_sleep_ms")
+        self.keystroke_sleep_ms = self.mapping.macro_key_sleep_ms
 
         self.running = True
         for task in self.tasks:
@@ -480,19 +476,22 @@ class Macro:
         speed = _type_check(speed, [int], "wheel", 2)
 
         code, value = {
-            "up": (REL_WHEEL, 1),
-            "down": (REL_WHEEL, -1),
-            "left": (REL_HWHEEL, 1),
-            "right": (REL_HWHEEL, -1),
+            "up": ([REL_WHEEL, REL_WHEEL_HI_RES], [1 / 120, 1]),
+            "down": ([REL_WHEEL, REL_WHEEL_HI_RES], [-1 / 120, -1]),
+            "left": ([REL_HWHEEL, REL_HWHEEL_HI_RES], [1 / 120, 1]),
+            "right": ([REL_HWHEEL, REL_HWHEEL_HI_RES], [-1 / 120, -1]),
         }[direction.lower()]
 
         async def task(handler):
             resolved_speed = _resolve(speed, [int])
+            remainder = [0.0, 0.0]
             while self.is_holding():
-                handler(EV_REL, code, value)
-                # scrolling moves much faster than mouse, so this
-                # waits between injections instead to make it slower
-                await asyncio.sleep(1 / resolved_speed)
+                for i in range(0, 2):
+                    float_value = value[i] * resolved_speed + remainder[i]
+                    remainder[i] = math.fmod(float_value, 1)
+                    if abs(float_value) >= 1:
+                        handler(EV_REL, code[i], int(float_value))
+                await asyncio.sleep(1 / self.mapping.rate)
 
         self.tasks.append(task)
 
@@ -612,40 +611,32 @@ class Macro:
             self.child_macros.append(else_)
 
         async def task(handler):
-            triggering_event = (self._newest_event.type, self._newest_event.code)
+            listener_done = asyncio.Event()
 
-            def event_filter(event, action):
-                """Which event may wake if_single up."""
-                # release event of the actual key
-                if (event.type, event.code) == triggering_event:
-                    return True
-
-                # press event of another key
-                if action in (PRESS, PRESS_NEGATIVE):
-                    return True
-
-            coroutine = self._wait_for_event(event_filter)
-            resolved_timeout = _resolve(timeout, allowed_types=[int, float, None])
-            try:
-                if resolved_timeout is not None:
-                    await asyncio.wait_for(coroutine, resolved_timeout / 1000)
-                else:
-                    await coroutine
-
-                newest_event = (self._newest_event.type, self._newest_event.code)
-                # if newest_event == triggering_event, then no other key was pressed.
-                # if it is !=, then a new key was pressed in the meantime.
-                new_key_pressed = triggering_event != newest_event
-
-                if not new_key_pressed:
-                    # no timeout and not combined
-                    if then:
-                        await then.run(handler)
+            async def listener(event):
+                if event.type != EV_KEY:
+                    # ignore anything that is not a key
                     return
-            except asyncio.TimeoutError:
-                pass
 
-            if else_:
+                if event.value == 1:
+                    # another key was pressed, trigger else
+                    listener_done.set()
+                    return
+
+            self.context.listeners.add(listener)
+
+            resolved_timeout = _resolve(timeout, allowed_types=[int, float, None])
+            await asyncio.wait(
+                [listener_done.wait(), self._trigger_release_event.wait()],
+                timeout=resolved_timeout / 1000 if resolved_timeout else None,
+                return_when=asyncio.FIRST_COMPLETED,
+            )
+
+            self.context.listeners.remove(listener)
+
+            if not listener_done.is_set() and self._trigger_release_event.is_set():
+                await then.run(handler)  # was trigger release
+            else:
                 await else_.run(handler)
 
         self.tasks.append(task)

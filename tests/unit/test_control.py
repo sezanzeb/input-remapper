@@ -77,9 +77,9 @@ class TestControl(unittest.TestCase):
             get_preset_path(groups_[1].name, presets[2]),
         ]
 
-        Preset().save(paths[0])
-        Preset().save(paths[1])
-        Preset().save(paths[2])
+        Preset(paths[0]).save()
+        Preset(paths[1]).save()
+        Preset(paths[2]).save()
 
         daemon = Daemon()
 
@@ -201,8 +201,8 @@ class TestControl(unittest.TestCase):
             os.path.join(config_dir, "presets", device_names[1], presets[1] + ".json"),
         ]
 
-        Preset().save(paths[0])
-        Preset().save(paths[1])
+        Preset(paths[0]).save()
+        Preset(paths[1]).save()
 
         daemon = Daemon()
 

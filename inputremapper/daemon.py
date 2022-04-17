@@ -441,24 +441,6 @@ class Daemon:
             f"{preset}.json",
         )
 
-        preset = Preset()
-
-        try:
-            preset.load(preset_path)
-        except FileNotFoundError as error:
-            logger.error(str(error))
-            return False
-
-        for event_combination, (symbol, target) in preset:
-            # only create those uinputs that are required to avoid
-            # confusing the system. Seems to be especially important with
-            # gamepads, because some apps treat the first gamepad they found
-            # as the only gamepad they'll ever care about.
-            global_uinputs.prepare_single(target)
-
-        if self.injectors.get(group_key) is not None:
-            self.stop_injecting(group_key)
-
         # Path to a dump of the xkb mappings, to provide more human
         # readable keys in the correct keyboard layout to the service.
         # The service cannot use `xmodmap -pke` because it's running via
@@ -475,6 +457,24 @@ class Daemon:
                 # keys of the users session
         except FileNotFoundError:
             logger.error('Could not find "%s"', xmodmap_path)
+
+        preset = Preset(preset_path)
+
+        try:
+            preset.load()
+        except FileNotFoundError as error:
+            logger.error(str(error))
+            return False
+
+        for mapping in preset:
+            # only create those uinputs that are required to avoid
+            # confusing the system. Seems to be especially important with
+            # gamepads, because some apps treat the first gamepad they found
+            # as the only gamepad they'll ever care about.
+            global_uinputs.prepare_single(mapping.target_uinput)
+
+        if self.injectors.get(group_key) is not None:
+            self.stop_injecting(group_key)
 
         try:
             injector = Injector(group, preset)

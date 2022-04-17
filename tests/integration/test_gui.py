@@ -33,6 +33,7 @@ from tests.test import (
     EVENT_READ_TIMEOUT,
     send_event_to_reader,
     MIN_ABS,
+    get_ui_mapping,
 )
 
 import sys
@@ -64,8 +65,9 @@ gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk, GLib, Gdk
 
 from inputremapper.configs.system_mapping import system_mapping, XMODMAP_FILENAME
+from inputremapper.configs.mapping import UIMapping
 from inputremapper.gui.active_preset import active_preset
-from inputremapper.configs.paths import CONFIG_PATH, get_preset_path, get_config_path
+from inputremapper.configs.paths import get_preset_path, get_config_path, CONFIG_PATH
 from inputremapper.configs.global_config import global_config, WHEEL, MOUSE, BUTTONS
 from inputremapper.gui.reader import reader
 from inputremapper.gui.helper import RootHelper
@@ -364,7 +366,7 @@ class GuiTestBase(unittest.TestCase):
         return status_bar.get_message_area().get_children()[0].get_label()
 
     def get_unfiltered_symbol_input_text(self):
-        buffer = self.editor.get_text_input().get_buffer()
+        buffer = self.editor.get_code_editor().get_buffer()
         return buffer.get_text(buffer.get_start_iter(), buffer.get_end_iter(), True)
 
     def select_mapping(self, i: int):
@@ -505,7 +507,7 @@ class GuiTestBase(unittest.TestCase):
         self.assertEqual(self.editor.get_symbol_input_text(), correct_case)
         self.assertFalse(active_preset.has_unsaved_changes())
 
-        self.set_focus(self.editor.get_text_input())
+        self.set_focus(self.editor.get_code_editor())
         self.set_focus(None)
 
         return selection_label
@@ -518,6 +520,21 @@ class GuiTestBase(unittest.TestCase):
         time.sleep(1 / 30)  # one window iteration
 
         gtk_iteration()
+
+    def set_combination(self, combination: EventCombination) -> None:
+        """
+        partial implementation of editor.consume_newest_keycode
+        simplifies setting combination without going through the add mapping via ui function
+        """
+        previous_key = self.editor.get_combination()
+        # keycode didn't change, do nothing
+        if combination == previous_key:
+            return
+
+        self.editor.set_combination(combination)
+        self.editor.active_mapping.event_combination = combination
+        if previous_key is None and combination is not None:
+            active_preset.add(self.editor.active_mapping)
 
 
 class TestGui(GuiTestBase):
@@ -706,9 +723,18 @@ class TestGui(GuiTestBase):
     def test_select_device(self):
         # creates a new empty preset when no preset exists for the device
         self.user_interface.on_select_device(FakeDeviceDropdown("Foo Device"))
-        active_preset.change(EventCombination([EV_KEY, 50, 1]), "keyboard", "q")
-        active_preset.change(EventCombination([EV_KEY, 51, 1]), "keyboard", "u")
-        active_preset.change(EventCombination([EV_KEY, 52, 1]), "keyboard", "x")
+        m1 = UIMapping(
+            event_combination="1,50,1", output_symbol="q", target_uinput="keyboard"
+        )
+        m2 = UIMapping(
+            event_combination="1,51,1", output_symbol="u", target_uinput="keyboard"
+        )
+        m3 = UIMapping(
+            event_combination="1,52,1", output_symbol="x", target_uinput="keyboard"
+        )
+        active_preset.add(m1)
+        active_preset.add(m2)
+        active_preset.add(m3)
         self.assertEqual(len(active_preset), 3)
         self.user_interface.on_select_device(FakeDeviceDropdown("Bar Device"))
         self.assertEqual(len(active_preset), 0)
@@ -718,8 +744,7 @@ class TestGui(GuiTestBase):
         path = get_preset_path("Bar Device", "new preset")
         self.assertTrue(os.path.exists(path))
         with open(path, "r") as file:
-            preset = json.load(file)
-            self.assertEqual(len(preset["mapping"]), 0)
+            self.assertEqual(file.read(), "")
 
     def test_permission_error_on_create_preset_clicked(self):
         def save(_=None):
@@ -842,7 +867,7 @@ class TestGui(GuiTestBase):
         )
 
         self.disable_recording_toggle()
-        self.set_focus(self.editor.get_text_input())
+        self.set_focus(self.editor.get_code_editor())
         self.assertFalse(self.editor.is_waiting_for_input())
 
         self.editor.set_symbol_input_text("Shift_L")
@@ -899,7 +924,7 @@ class TestGui(GuiTestBase):
         self.assertIsNone(selection_label.get_combination())
 
         # focus the text input instead
-        self.set_focus(self.editor.get_text_input())
+        self.set_focus(self.editor.get_code_editor())
         send_event_to_reader(new_event(1, 61, 1))
         self.user_interface.consume_newest_keycode()
 
@@ -973,7 +998,7 @@ class TestGui(GuiTestBase):
 
         self.select_mapping(0)
         self.assertEqual(self.editor.get_combination(), ev_1)
-        self.set_focus(self.editor.get_text_input())
+        self.set_focus(self.editor.get_code_editor())
         self.editor.set_symbol_input_text("c")
         self.set_focus(None)
 
@@ -1195,17 +1220,20 @@ class TestGui(GuiTestBase):
         self.assertEqual(self.user_interface.group.name, "Foo Device")
         self.assertFalse(global_config.is_autoloaded("Foo Device", "new preset"))
 
-        active_preset.change(EventCombination([EV_KEY, 14, 1]), "keyboard", "a", None)
+        m1 = get_ui_mapping()
+        active_preset.add(m1)
         self.assertEqual(self.user_interface.preset_name, "new preset")
         self.user_interface.save_preset()
         self.assertEqual(
-            active_preset.get_mapping(EventCombination([EV_KEY, 14, 1])),
-            ("a", "keyboard"),
+            active_preset.get_mapping(EventCombination([99, 99, 99])),
+            m1,
         )
         global_config.set_autoload_preset("Foo Device", "new preset")
         self.assertTrue(global_config.is_autoloaded("Foo Device", "new preset"))
 
-        active_preset.change(EventCombination([EV_KEY, 14, 1]), "keyboard", "b", None)
+        m2 = get_ui_mapping()
+        m2.output_symbol = "b"
+        active_preset.get_mapping(EventCombination([99, 99, 99])).output_symbol = "b"
         self.user_interface.get("preset_name_input").set_text("asdf")
         self.user_interface.save_preset()
         self.user_interface.on_rename_button_clicked(None)
@@ -1213,8 +1241,8 @@ class TestGui(GuiTestBase):
         preset_path = f"{CONFIG_PATH}/presets/Foo Device/asdf.json"
         self.assertTrue(os.path.exists(preset_path))
         self.assertEqual(
-            active_preset.get_mapping(EventCombination([EV_KEY, 14, 1])),
-            ("b", "keyboard"),
+            active_preset.get_mapping(EventCombination([99, 99, 99])),
+            m2,
         )
 
         # after renaming the preset it is still set to autoload
@@ -1227,10 +1255,11 @@ class TestGui(GuiTestBase):
         self.assertFalse(error_icon.get_visible())
 
         # otherwise save won't do anything
-        active_preset.change(EventCombination([EV_KEY, 14, 1]), "keyboard", "c", None)
+        m2.output_symbol = "c"
+        active_preset.get_mapping(EventCombination([99, 99, 99])).output_symbol = "c"
         self.assertTrue(active_preset.has_unsaved_changes())
 
-        def save(_):
+        def save():
             raise PermissionError
 
         with patch.object(active_preset, "save", save):
@@ -1245,7 +1274,8 @@ class TestGui(GuiTestBase):
     def test_rename_create_switch(self):
         # after renaming a preset and saving it, new presets
         # start with "new preset" again
-        active_preset.change(EventCombination([EV_KEY, 14, 1]), "keyboard", "a", None)
+        m1 = get_ui_mapping()
+        active_preset.add(m1)
         self.user_interface.get("preset_name_input").set_text("asdf")
         self.user_interface.save_preset()
         self.user_interface.on_rename_button_clicked(None)
@@ -1259,15 +1289,16 @@ class TestGui(GuiTestBase):
         self.user_interface.save_preset()
 
         # symbol and code in the gui won't be carried over after selecting a preset
-        self.editor.set_combination(EventCombination([EV_KEY, 15, 1]))
+        combination = EventCombination([EV_KEY, 15, 1])
+        self.set_combination(combination)
         self.editor.set_symbol_input_text("b")
 
         # selecting the first preset again loads the saved mapping, and saves
         # the current changes in the gui
         self.user_interface.on_select_preset(FakePresetDropdown("asdf"))
         self.assertEqual(
-            active_preset.get_mapping(EventCombination([EV_KEY, 14, 1])),
-            ("a", "keyboard"),
+            active_preset.get_mapping(EventCombination([99, 99, 99])),
+            m1,
         )
         self.assertEqual(len(active_preset), 1)
         self.assertEqual(len(self.selection_label_listbox.get_children()), 2)
@@ -1281,9 +1312,12 @@ class TestGui(GuiTestBase):
         # and that added number is correctly used in the autoload
         # configuration as well
         self.assertTrue(global_config.is_autoloaded("Foo Device", "asdf 2"))
+        m2 = get_ui_mapping()
+        m2.event_combination = "1,15,1"
+        m2.output_symbol = "b"
         self.assertEqual(
-            active_preset.get_mapping(EventCombination([EV_KEY, 15, 1])),
-            ("b", "keyboard"),
+            active_preset.get_mapping(EventCombination([EV_KEY, 15, 1])).dict(),
+            m2.dict(),
         )
         self.assertEqual(len(active_preset), 1)
         self.assertEqual(len(self.selection_label_listbox.get_children()), 2)
@@ -1304,25 +1338,6 @@ class TestGui(GuiTestBase):
             self.user_interface.get("preset_name_input").set_text("")
             self.user_interface.on_rename_button_clicked(None)
             self.assertEqual(self.user_interface.preset_name, "asdf 2")
-
-    def test_avoids_redundant_saves(self):
-        active_preset.change(
-            EventCombination([EV_KEY, 14, 1]), "keyboard", "abcd", None
-        )
-
-        active_preset.set_has_unsaved_changes(False)
-        self.user_interface.save_preset()
-
-        with open(get_preset_path("Foo Device", "new preset")) as f:
-            content = f.read()
-            self.assertNotIn("abcd", content)
-
-        active_preset.set_has_unsaved_changes(True)
-        self.user_interface.save_preset()
-
-        with open(get_preset_path("Foo Device", "new preset")) as f:
-            content = f.read()
-            self.assertIn("abcd", content)
 
     def test_check_for_unknown_symbols(self):
         status = self.user_interface.get("status_bar")
@@ -1707,9 +1722,11 @@ class TestGui(GuiTestBase):
         self.user_interface.can_modify_preset()
         text = self.get_status_text()
         self.assertNotIn("Stop Injection", text)
-
-        active_preset.change(EventCombination([EV_KEY, KEY_A, 1]), "keyboard", "b")
-        active_preset.save(get_preset_path(group_name, preset_name))
+        active_preset.path = get_preset_path(group_name, preset_name)
+        active_preset.add(
+            get_ui_mapping(EventCombination([EV_KEY, KEY_A, 1]), "keyboard", "b")
+        )
+        active_preset.save()
         self.user_interface.on_apply_preset_clicked(None)
 
         # wait for the injector to start
@@ -1998,7 +2015,7 @@ class TestGui(GuiTestBase):
     def test_enable_disable_symbol_input(self):
         # should be disabled by default since no key is recorded yet
         self.assertEqual(self.get_unfiltered_symbol_input_text(), SET_KEY_FIRST)
-        self.assertFalse(self.editor.get_text_input().get_sensitive())
+        self.assertFalse(self.editor.get_code_editor().get_sensitive())
 
         self.editor.enable_symbol_input()
         self.assertEqual(self.get_unfiltered_symbol_input_text(), "")
@@ -2022,7 +2039,7 @@ class TestGui(GuiTestBase):
         send_event_to_reader(InputEvent.from_tuple((EV_KEY, 101, 1)))
         self.user_interface.consume_newest_keycode()
         self.assertEqual(self.get_unfiltered_symbol_input_text(), "")
-        self.assertTrue(self.editor.get_text_input().get_sensitive())
+        self.assertTrue(self.editor.get_code_editor().get_sensitive())
 
         # it wouldn't clear user input, if for whatever reason (a bug?) there is user
         # input in there when enable_symbol_input is called.
@@ -2054,7 +2071,7 @@ class TestAutocompletion(GuiTestBase):
 
     def test_autocomplete_key(self):
         self.add_mapping_via_ui(EventCombination([1, 99, 1]), "")
-        source_view = self.editor.get_text_input()
+        source_view = self.editor.get_code_editor()
         self.set_focus(source_view)
 
         complete_key_name = "Test_Foo_Bar"
@@ -2097,7 +2114,7 @@ class TestAutocompletion(GuiTestBase):
 
     def test_autocomplete_function(self):
         self.add_mapping_via_ui(EventCombination([1, 99, 1]), "")
-        source_view = self.editor.get_text_input()
+        source_view = self.editor.get_code_editor()
         self.set_focus(source_view)
 
         incomplete = "key(KEY_A).\nepea"
@@ -2118,7 +2135,7 @@ class TestAutocompletion(GuiTestBase):
 
     def test_close_autocompletion(self):
         self.add_mapping_via_ui(EventCombination([1, 99, 1]), "")
-        source_view = self.editor.get_text_input()
+        source_view = self.editor.get_code_editor()
         self.set_focus(source_view)
 
         Gtk.TextView.do_insert_at_cursor(source_view, "KEY_")
@@ -2139,7 +2156,7 @@ class TestAutocompletion(GuiTestBase):
 
     def test_writing_still_works(self):
         self.add_mapping_via_ui(EventCombination([1, 99, 1]), "")
-        source_view = self.editor.get_text_input()
+        source_view = self.editor.get_code_editor()
         self.set_focus(source_view)
 
         Gtk.TextView.do_insert_at_cursor(source_view, "KEY_")
@@ -2168,7 +2185,7 @@ class TestAutocompletion(GuiTestBase):
 
     def test_cycling(self):
         self.add_mapping_via_ui(EventCombination([1, 99, 1]), "")
-        source_view = self.editor.get_text_input()
+        source_view = self.editor.get_code_editor()
         self.set_focus(source_view)
 
         Gtk.TextView.do_insert_at_cursor(source_view, "KEY_")

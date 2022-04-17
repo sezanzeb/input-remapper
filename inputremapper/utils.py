@@ -170,13 +170,10 @@ def should_map_as_btn(event, preset, gamepad):
             if not gamepad:
                 return False
 
-            l_purpose = preset.get("gamepad.joystick.left_purpose")
-            r_purpose = preset.get("gamepad.joystick.right_purpose")
-
-            if event.code in [ABS_X, ABS_Y] and l_purpose == BUTTONS:
+            if event.code in [ABS_X, ABS_Y]:
                 return True
 
-            if event.code in [ABS_RX, ABS_RY] and r_purpose == BUTTONS:
+            if event.code in [ABS_RX, ABS_RY]:
                 return True
         else:
             # for non-joystick buttons just always offer mapping them to
