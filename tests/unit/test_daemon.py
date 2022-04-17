@@ -41,7 +41,6 @@ from evdev.ecodes import EV_KEY, EV_ABS, KEY_B, KEY_A, ABS_X, BTN_A
 from pydbus import SystemBus
 
 from inputremapper.configs.system_mapping import system_mapping
-from inputremapper.gui.active_preset import active_preset
 from inputremapper.configs.global_config import global_config
 from inputremapper.groups import groups
 from inputremapper.configs.paths import get_config_path, mkdir, get_preset_path
