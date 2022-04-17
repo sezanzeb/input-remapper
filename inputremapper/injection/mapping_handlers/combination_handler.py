@@ -131,7 +131,10 @@ class CombinationHandler(MappingHandler):
 
         this might cause duplicate key-up events but those are ignored by evdev anyway
         """
-        if len(self.mapping.event_combination) == 1:
+        if (
+            len(self.mapping.event_combination) == 1
+            or not self.mapping.release_combination_keys
+        ):
             return
         for event in self.mapping.event_combination:
             forward.write(*event.type_and_code, 0)

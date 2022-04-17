@@ -78,6 +78,10 @@ class Mapping(BaseModel):
     output_type: Optional[int] = None  # The event type of the mapped event
     output_code: Optional[int] = None  # The event code of the mapped event
 
+    # if release events will be sent to the forwarded device as soon as a combination
+    # triggers see also #229
+    release_combination_keys: bool = True
+
     # macro settings
     macro_key_sleep_ms: PositiveInt = 20
 
