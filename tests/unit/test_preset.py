@@ -195,7 +195,7 @@ class TestPreset(unittest.TestCase):
         self.preset.add(get_key_mapping(EventCombination(one), "keyboard", "1"))
         self.preset.add(get_key_mapping(EventCombination(two), "keyboard", "2"))
         self.preset.add(
-            get_key_mapping(EventCombination((two, three)), "keyboard", "3")
+            get_key_mapping(EventCombination((two, three)), "keyboard", "3"),
         )
         self.preset.path = get_preset_path("Foo Device", "test")
         self.preset.save()
@@ -246,17 +246,20 @@ class TestPreset(unittest.TestCase):
         mapping.output_symbol = "b"
         self.assertIsNone(self.preset.get_mapping(ev_1))
         self.assertEqual(
-            self.preset.get_mapping(ev_3), get_key_mapping(ev_3, "keyboard", "b")
+            self.preset.get_mapping(ev_3),
+            get_key_mapping(ev_3, "keyboard", "b"),
         )
         self.assertEqual(len(self.preset), 1)
 
         # add 4
         self.preset.add(get_key_mapping(ev_4, "keyboard", "c"))
         self.assertEqual(
-            self.preset.get_mapping(ev_3), get_key_mapping(ev_3, "keyboard", "b")
+            self.preset.get_mapping(ev_3),
+            get_key_mapping(ev_3, "keyboard", "b"),
         )
         self.assertEqual(
-            self.preset.get_mapping(ev_4), get_key_mapping(ev_4, "keyboard", "c")
+            self.preset.get_mapping(ev_4),
+            get_key_mapping(ev_4, "keyboard", "c"),
         )
         self.assertEqual(len(self.preset), 2)
 
@@ -264,7 +267,8 @@ class TestPreset(unittest.TestCase):
         mapping = self.preset.get_mapping(ev_4)
         mapping.output_symbol = "d"
         self.assertEqual(
-            self.preset.get_mapping(ev_4), get_key_mapping(ev_4, "keyboard", "d")
+            self.preset.get_mapping(ev_4),
+            get_key_mapping(ev_4, "keyboard", "d"),
         )
         self.assertEqual(len(self.preset), 2)
 
@@ -274,10 +278,12 @@ class TestPreset(unittest.TestCase):
             mapping.event_combination = ev_3
 
         self.assertEqual(
-            self.preset.get_mapping(ev_3), get_key_mapping(ev_3, "keyboard", "b")
+            self.preset.get_mapping(ev_3),
+            get_key_mapping(ev_3, "keyboard", "b"),
         )
         self.assertEqual(
-            self.preset.get_mapping(ev_4), get_key_mapping(ev_4, "keyboard", "d")
+            self.preset.get_mapping(ev_4),
+            get_key_mapping(ev_4, "keyboard", "d"),
         )
         self.assertEqual(len(self.preset), 2)
 
@@ -303,31 +309,40 @@ class TestPreset(unittest.TestCase):
 
         self.preset.add(get_key_mapping(combi_1, "keyboard", "a"))
         self.assertEqual(
-            self.preset.get_mapping(combi_1), get_key_mapping(combi_1, "keyboard", "a")
+            self.preset.get_mapping(combi_1),
+            get_key_mapping(combi_1, "keyboard", "a"),
         )
         self.assertEqual(
-            self.preset.get_mapping(combi_2), get_key_mapping(combi_1, "keyboard", "a")
+            self.preset.get_mapping(combi_2),
+            get_key_mapping(combi_1, "keyboard", "a"),
         )
         # since combi_1 and combi_2 are equivalent, this raises an KeyError
         self.assertRaises(
-            KeyError, self.preset.add, get_key_mapping(combi_2, "keyboard", "b")
+            KeyError,
+            self.preset.add,
+            get_key_mapping(combi_2, "keyboard", "b"),
         )
         self.assertEqual(
-            self.preset.get_mapping(combi_1), get_key_mapping(combi_1, "keyboard", "a")
+            self.preset.get_mapping(combi_1),
+            get_key_mapping(combi_1, "keyboard", "a"),
         )
         self.assertEqual(
-            self.preset.get_mapping(combi_2), get_key_mapping(combi_1, "keyboard", "a")
+            self.preset.get_mapping(combi_2),
+            get_key_mapping(combi_1, "keyboard", "a"),
         )
 
         self.preset.add(get_key_mapping(combi_3, "keyboard", "c"))
         self.assertEqual(
-            self.preset.get_mapping(combi_1), get_key_mapping(combi_1, "keyboard", "a")
+            self.preset.get_mapping(combi_1),
+            get_key_mapping(combi_1, "keyboard", "a"),
         )
         self.assertEqual(
-            self.preset.get_mapping(combi_2), get_key_mapping(combi_1, "keyboard", "a")
+            self.preset.get_mapping(combi_2),
+            get_key_mapping(combi_1, "keyboard", "a"),
         )
         self.assertEqual(
-            self.preset.get_mapping(combi_3), get_key_mapping(combi_3, "keyboard", "c")
+            self.preset.get_mapping(combi_3),
+            get_key_mapping(combi_3, "keyboard", "c"),
         )
 
         mapping = self.preset.get_mapping(combi_1)
@@ -336,13 +351,16 @@ class TestPreset(unittest.TestCase):
             mapping.event_combination = combi_3
 
         self.assertEqual(
-            self.preset.get_mapping(combi_1), get_key_mapping(combi_1, "keyboard", "c")
+            self.preset.get_mapping(combi_1),
+            get_key_mapping(combi_1, "keyboard", "c"),
         )
         self.assertEqual(
-            self.preset.get_mapping(combi_2), get_key_mapping(combi_1, "keyboard", "c")
+            self.preset.get_mapping(combi_2),
+            get_key_mapping(combi_1, "keyboard", "c"),
         )
         self.assertEqual(
-            self.preset.get_mapping(combi_3), get_key_mapping(combi_3, "keyboard", "c")
+            self.preset.get_mapping(combi_3),
+            get_key_mapping(combi_3, "keyboard", "c"),
         )
 
     def test_remove(self):
@@ -370,22 +388,24 @@ class TestPreset(unittest.TestCase):
         self.preset.remove(ev_3)
         self.assertEqual(len(self.preset), 2)
         self.assertEqual(
-            self.preset.get_mapping(ev_4), get_key_mapping(ev_4, "keyboard", "KEY_KP1")
+            self.preset.get_mapping(ev_4),
+            get_key_mapping(ev_4, "keyboard", "KEY_KP1"),
         )
         self.assertIsNone(self.preset.get_mapping(ev_3))
         self.assertEqual(
-            self.preset.get_mapping(ev_2), get_key_mapping(ev_2, "keyboard", "KEY_KP3")
+            self.preset.get_mapping(ev_2),
+            get_key_mapping(ev_2, "keyboard", "KEY_KP3"),
         )
 
     def test_empty(self):
         self.preset.add(
-            get_key_mapping(EventCombination([EV_KEY, 10, 1]), "keyboard", "1")
+            get_key_mapping(EventCombination([EV_KEY, 10, 1]), "keyboard", "1"),
         )
         self.preset.add(
-            get_key_mapping(EventCombination([EV_KEY, 11, 1]), "keyboard", "2")
+            get_key_mapping(EventCombination([EV_KEY, 11, 1]), "keyboard", "2"),
         )
         self.preset.add(
-            get_key_mapping(EventCombination([EV_KEY, 12, 1]), "keyboard", "3")
+            get_key_mapping(EventCombination([EV_KEY, 12, 1]), "keyboard", "3"),
         )
         self.assertEqual(len(self.preset), 3)
         self.preset.path = get_config_path("test.json")
@@ -399,13 +419,13 @@ class TestPreset(unittest.TestCase):
 
     def test_clear(self):
         self.preset.add(
-            get_key_mapping(EventCombination([EV_KEY, 10, 1]), "keyboard", "1")
+            get_key_mapping(EventCombination([EV_KEY, 10, 1]), "keyboard", "1"),
         )
         self.preset.add(
-            get_key_mapping(EventCombination([EV_KEY, 11, 1]), "keyboard", "2")
+            get_key_mapping(EventCombination([EV_KEY, 11, 1]), "keyboard", "2"),
         )
         self.preset.add(
-            get_key_mapping(EventCombination([EV_KEY, 12, 1]), "keyboard", "3")
+            get_key_mapping(EventCombination([EV_KEY, 12, 1]), "keyboard", "3"),
         )
         self.assertEqual(len(self.preset), 3)
         self.preset.path = get_config_path("test.json")
@@ -420,17 +440,29 @@ class TestPreset(unittest.TestCase):
     def test_dangerously_mapped_btn_left(self):
         # btn left is mapped
         self.preset.add(
-            get_key_mapping(EventCombination(InputEvent.btn_left()), "keyboard", "1")
+            get_key_mapping(
+                EventCombination(InputEvent.btn_left()),
+                "keyboard",
+                "1",
+            )
         )
         self.assertTrue(self.preset.dangerously_mapped_btn_left())
         self.preset.add(
-            get_key_mapping(EventCombination([EV_KEY, 41, 1]), "keyboard", "2")
+            get_key_mapping(
+                EventCombination([EV_KEY, 41, 1]),
+                "keyboard",
+                "2",
+            )
         )
         self.assertTrue(self.preset.dangerously_mapped_btn_left())
 
         # another mapping maps to btn_left
         self.preset.add(
-            get_key_mapping(EventCombination([EV_KEY, 42, 1]), "mouse", "btn_left")
+            get_key_mapping(
+                EventCombination([EV_KEY, 42, 1]),
+                "mouse",
+                "btn_left",
+            )
         )
         self.assertFalse(self.preset.dangerously_mapped_btn_left())
 

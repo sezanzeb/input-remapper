@@ -43,7 +43,8 @@ class TestPaths(unittest.TestCase):
             self.assertTrue(os.path.exists(path_abcde))
             self.assertTrue(os.path.isfile(path_abcde))
             self.assertRaises(
-                ValueError, lambda: touch(os.path.join(local_tmp, "a/b/c/d/f/"))
+                ValueError,
+                lambda: touch(os.path.join(local_tmp, "a/b/c/d/f/")),
             )
 
     def test_mkdir(self):

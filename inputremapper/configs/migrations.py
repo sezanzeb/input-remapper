@@ -170,7 +170,7 @@ def _rename_config(new_path=CONFIG_PATH):
 
 
 def _find_target(symbol):
-    """try to find a uinput with the required capabilities for the symbol."""
+    """Try to find a uinput with the required capabilities for the symbol."""
     capabilities = {EV_KEY: set(), EV_REL: set()}
 
     if is_this_a_macro(symbol):
@@ -192,7 +192,7 @@ def _find_target(symbol):
 
 
 def _add_target():
-    """add the target field to each preset mapping"""
+    """Add the target field to each preset mapping."""
     for preset, preset_dict in all_presets():
         if "mapping" not in preset_dict.keys():
             continue
@@ -262,8 +262,7 @@ def _otherwise_to_else():
 
 
 def _convert_to_individual_mappings():
-    """
-    convert preset.json
+    """Convert preset.json
     from {key: [symbol, target]}
     to {key: {target: target, symbol: symbol, ...}}
     """

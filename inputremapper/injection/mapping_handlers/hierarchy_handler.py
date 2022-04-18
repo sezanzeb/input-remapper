@@ -20,8 +20,8 @@
 import asyncio
 import evdev
 
-from evdev.ecodes import EV_KEY, EV_ABS, EV_REL
-from typing import List, Optional, Dict
+from evdev.ecodes import EV_ABS, EV_REL
+from typing import List, Dict
 
 from inputremapper.event_combination import EventCombination
 
@@ -34,8 +34,7 @@ from inputremapper.injection.mapping_handlers.mapping_handler import (
 
 
 class HierarchyHandler(MappingHandler):
-    """
-    handler consisting of an ordered list of MappingHandler
+    """Handler consisting of an ordered list of MappingHandler
 
     only the first handler which successfully handles the event will execute it,
     all other handlers will be notified, but suppressed

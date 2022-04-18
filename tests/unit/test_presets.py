@@ -71,11 +71,13 @@ class TestPresets(unittest.TestCase):
 
         touch(get_preset_path("_", "qux 5copy"))
         self.assertEqual(
-            get_available_preset_name("_", "qux 5copy", True), "qux 5copy copy"
+            get_available_preset_name("_", "qux 5copy", True),
+            "qux 5copy copy",
         )
         touch(get_preset_path("_", "qux 5copy 2"))
         self.assertEqual(
-            get_available_preset_name("_", "qux 5copy 2", True), "qux 5copy 2 copy"
+            get_available_preset_name("_", "qux 5copy 2", True),
+            "qux 5copy 2 copy",
         )
         touch(get_preset_path("_", "qux 5copy 2 copy"))
         self.assertEqual(

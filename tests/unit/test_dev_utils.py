@@ -78,14 +78,14 @@ class TestDevUtils(unittest.TestCase):
         self.assertTrue(do(0, new_event(EV_REL, REL_HWHEEL, -1)))
         self.assertFalse(do(1, new_event(EV_REL, REL_X, -1)))
 
-        """regular keys and buttons"""
+        """Regular keys and buttons"""
 
         self.assertTrue(do(1, new_event(EV_KEY, KEY_A, 1)))
         self.assertTrue(do(0, new_event(EV_KEY, KEY_A, 1)))
         self.assertTrue(do(1, new_event(EV_ABS, ABS_HAT0X, -1)))
         self.assertTrue(do(0, new_event(EV_ABS, ABS_HAT0X, -1)))
 
-        """mousepad events"""
+        """Mousepad events"""
 
         self.assertFalse(do(1, new_event(EV_ABS, ecodes.ABS_MT_SLOT, 1)))
         self.assertFalse(do(0, new_event(EV_ABS, ecodes.ABS_MT_SLOT, 1)))
@@ -96,7 +96,7 @@ class TestDevUtils(unittest.TestCase):
         self.assertFalse(do(1, new_event(EV_KEY, ecodes.BTN_TOUCH, 1)))
         self.assertFalse(do(0, new_event(EV_KEY, ecodes.BTN_TOUCH, 1)))
 
-        """stylus movements"""
+        """Stylus movements"""
 
         self.assertFalse(do(0, new_event(EV_KEY, ecodes.BTN_DIGI, 1)))
         self.assertFalse(do(1, new_event(EV_KEY, ecodes.BTN_DIGI, 1)))
@@ -109,7 +109,7 @@ class TestDevUtils(unittest.TestCase):
         self.assertFalse(do(0, new_event(EV_ABS, ecodes.ABS_PRESSURE, 1)))
         self.assertFalse(do(1, new_event(EV_ABS, ecodes.ABS_PRESSURE, 1)))
 
-        """joysticks"""
+        """Joysticks"""
 
         # we no longer track the purpose for the gamepad sticks, it is always allowed to map them as buttons
         self.assertFalse(do(0, new_event(EV_ABS, ecodes.ABS_Y, -1)))
@@ -117,7 +117,7 @@ class TestDevUtils(unittest.TestCase):
         self.assertFalse(do(0, new_event(EV_ABS, ecodes.ABS_RY, -1)))
         self.assertTrue(do(1, new_event(EV_ABS, ecodes.ABS_RY, -1)))
 
-        """weird events"""
+        """Weird events"""
 
         self.assertFalse(do(0, new_event(EV_ABS, ecodes.ABS_MISC, -1)))
         self.assertFalse(do(1, new_event(EV_ABS, ecodes.ABS_MISC, -1)))

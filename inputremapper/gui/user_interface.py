@@ -287,7 +287,7 @@ class UserInterface:
             self.ctrl = False
 
     def get(self, name):
-        """Get a widget from the window"""
+        """Get a widget from the window."""
         return self.builder.get_object(name)
 
     @ensure_everything_saved
@@ -361,7 +361,7 @@ class UserInterface:
 
     @if_group_selected
     def can_modify_preset(self, *args) -> bool:
-        """if changing the preset is possible."""
+        """If changing the preset is possible."""
         return self.dbus.get_state(self.group.key) != RUNNING
 
     def consume_newest_keycode(self):

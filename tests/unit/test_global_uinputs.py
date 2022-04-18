@@ -67,7 +67,7 @@ class TestGlobalUinputs(unittest.TestCase):
             self.assertIsInstance(uinput, evdev.UInput)
 
     def test_write(self):
-        """test write and write failure
+        """Test write and write failure
 
         implicitly tests get_uinput and UInput.can_emit
         """

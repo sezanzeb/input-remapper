@@ -106,7 +106,7 @@ class TestSocket(unittest.TestCase):
         self.assertEqual(server.recv(), None)
 
     def test_select(self):
-        """is compatible to select.select"""
+        """Is compatible to select.select."""
         server = Server(os.path.join(tmp, "socket6"))
         client = Client(os.path.join(tmp, "socket6"))
 

@@ -144,7 +144,8 @@ def debounce(func):
         timeout = self.debounce_timeout
 
         debounces[func.__name__] = GLib.timeout_add(
-            timeout, lambda: clear_debounce(self, *args)
+            timeout,
+            lambda: clear_debounce(self, *args),
         )
 
     return wrapped
@@ -349,7 +350,9 @@ class Autocompletion(Gtk.Popover):
         # convert it to window coords, because the cursor values will be very large
         # when the TextView is in a scrolled down ScrolledWindow.
         window_coords = self.text_input.buffer_to_window_coords(
-            Gtk.TextWindowType.TEXT, cursor.x, cursor.y
+            Gtk.TextWindowType.TEXT,
+            cursor.x,
+            cursor.y,
         )
         cursor.x = window_coords.window_x
         cursor.y = window_coords.window_y
@@ -395,7 +398,9 @@ class Autocompletion(Gtk.Popover):
         match = re.match(r"^(\w+)", right)
         right = match[1] if match else ""
         Gtk.TextView.do_delete_from_cursor(
-            self.text_input, Gtk.DeleteType.CHARS, len(right)
+            self.text_input,
+            Gtk.DeleteType.CHARS,
+            len(right),
         )
 
         # do the same to the left
@@ -404,7 +409,9 @@ class Autocompletion(Gtk.Popover):
         match = re.match(r".*?(\w+)$", re.sub("\n", " ", left))
         left = match[1] if match else ""
         Gtk.TextView.do_delete_from_cursor(
-            self.text_input, Gtk.DeleteType.CHARS, -len(left)
+            self.text_input,
+            Gtk.DeleteType.CHARS,
+            -len(left),
         )
 
         # insert the autocompletion

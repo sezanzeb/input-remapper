@@ -20,7 +20,7 @@
 
 
 import evdev
-from typing import Optional, Dict, Tuple
+from typing import Tuple
 
 from evdev.ecodes import EV_ABS
 
@@ -30,14 +30,12 @@ from inputremapper.logger import logger
 from inputremapper.input_event import InputEvent, EventActions
 from inputremapper.injection.mapping_handlers.mapping_handler import (
     MappingHandler,
-    ContextProtocol,
-    HandlerEnums,
     InputEventHandler,
 )
 
 
 class AbsToBtnHandler(MappingHandler):
-    """Handler which transforms an EV_ABS to a button event"""
+    """Handler which transforms an EV_ABS to a button event."""
 
     _input_event: InputEvent
     _active: bool
@@ -67,7 +65,7 @@ class AbsToBtnHandler(MappingHandler):
         return self._sub_handler
 
     def _trigger_point(self, abs_min: int, abs_max: int) -> Tuple[float, float]:
-        """calculate the axis mid and trigger point"""
+        """Calculate the axis mid and trigger point."""
         #  TODO: potentially cash this function
         if abs_min == -1 and abs_max == 1:
             # this is a hat switch

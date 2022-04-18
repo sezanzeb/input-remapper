@@ -335,7 +335,7 @@ def _parse_recurse(code, context, mapping, macro_instance=None, depth=0):
 
 
 def handle_plus_syntax(macro):
-    """transform a + b + c to modify(a,modify(b,modify(c,hold())))"""
+    """Transform a + b + c to modify(a,modify(b,modify(c,hold())))."""
     if "+" not in macro:
         return macro
 
@@ -408,7 +408,7 @@ def clean(code):
 
 
 def parse(macro, context=None, mapping=None):
-    """parse and generate a Macro that can be run as often as you want.
+    """Parse and generate a Macro that can be run as often as you want.
 
     Parameters
     ----------

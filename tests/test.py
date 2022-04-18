@@ -136,7 +136,7 @@ pending_events = {}
 
 
 def read_write_history_pipe():
-    """convert the write history from the pipe to some easier to manage list"""
+    """Convert the write history from the pipe to some easier to manage list."""
     history = []
     while uinput_write_history_pipe[0].poll():
         event = uinput_write_history_pipe[0].recv()
@@ -288,7 +288,7 @@ def push_event(group_key, event):
 
 
 def push_events(group_key, events):
-    """Push multiple events"""
+    """Push multiple events."""
     for event in events:
         push_event(group_key, event)
 
@@ -518,7 +518,7 @@ def patch_os_system():
 
 
 def patch_check_output():
-    """xmodmap -pke should always return a fixed set of symbols.
+    """Xmodmap -pke should always return a fixed set of symbols.
 
     On some installations the `xmodmap` command might be missig completely,
     which would break the tests.
@@ -576,14 +576,14 @@ environ_copy = copy.deepcopy(os.environ)
 
 
 def convert_to_internal_events(events):
-    """convert a iterable of InputEvent to a list of inputremapper.InputEvent"""
+    """Convert a iterable of InputEvent to a list of inputremapper.InputEvent."""
     return [InternalInputEvent.from_event(event) for event in events]
 
 
 def get_key_mapping(
     combination="99,99,99", target_uinput="keyboard", output_symbol="a"
 ) -> Mapping:
-    """convenient function to get a valid mapping"""
+    """Convenient function to get a valid mapping."""
     return Mapping(
         event_combination=combination,
         target_uinput=target_uinput,
@@ -594,7 +594,7 @@ def get_key_mapping(
 def get_ui_mapping(
     combination="99,99,99", target_uinput="keyboard", output_symbol="a"
 ) -> UIMapping:
-    """convenient function to get a valid mapping"""
+    """Convenient function to get a valid mapping."""
     return UIMapping(
         event_combination=combination,
         target_uinput=target_uinput,
