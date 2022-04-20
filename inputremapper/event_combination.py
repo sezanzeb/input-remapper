@@ -105,6 +105,12 @@ class EventCombination(Tuple[InputEvent]):
         except AttributeError:
             raise ValueError(f"failed to create EventCombination from {init_string = }")
 
+    @classmethod
+    def empty_combination(cls) -> EventCombination:
+        """a combination that has default invalid (to evdev) values useful for the
+        UI to indicate that this combination is not set"""
+        return cls("99,99,99")
+
     def is_problematic(self):
         """Is this combination going to work properly on all systems?"""
         if len(self) <= 1:

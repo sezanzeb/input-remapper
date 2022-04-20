@@ -103,8 +103,8 @@ def get_preset_path(group_name=None, preset=None):
         # the extension of the preset should not be shown in the ui.
         # if a .json extension arrives this place, it has not been
         # stripped away properly prior to this.
-        assert not preset.endswith(".json")
-        preset = f"{preset}.json"
+        if not preset.endswith(".json"):
+            preset = f"{preset}.json"
 
     if preset is None:
         return os.path.join(presets_base, group_name)

@@ -28,7 +28,7 @@ from inputremapper.logger import logger
 class EventEnum(str, enum.Enum):
     # emit to load a group. Parameter: group_key
     load_group = "load_group"
-    # emit to provide all presets in the loaded group. Parameter: group_key, presets
+    # emit to provide all presets in the loaded group. Parameter: presets
     group_loaded = "group_loaded"
 
     # emit to request a preset. Parameter: name
@@ -82,11 +82,12 @@ class EventHandler:
             listener(**kwargs)
         return self
 
-    def subscribe(self, event: EventEnum, listener: EventListener) -> None:
+    def subscribe(self, event: EventEnum, listener: EventListener) -> EventHandler:
         if event not in self._listeners:
             raise KeyError(event)
         logger.debug("adding new EventListener: %s", listener)
         self._listeners[event].add(listener)
+        return self
 
     def unsubscribe(self, listener: EventListener) -> None:
         for listeners in self._listeners.values():

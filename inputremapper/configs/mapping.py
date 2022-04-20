@@ -310,12 +310,11 @@ class UIMapping(Mapping):
     def __init__(self, **data):  # type: ignore
         object.__setattr__(self, "_last_error", None)
         super().__init__(
-            event_combination="99,99,99",
+            event_combination=EventCombination.empty_combination(),
             target_uinput="keyboard",
             output_symbol="KEY_A",
         )
         cache = {
-            "event_combination": None,
             "target_uinput": None,
             "output_symbol": None,
         }

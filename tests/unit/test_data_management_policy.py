@@ -19,35 +19,35 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 import unittest
 
+if False:
+    class TestGuiPolicy(unittest.TestCase):
+        def test_loads_group_after_delete_preset(self):
+            """when the current preset was deleted the group should be reloaded"""
+            raise NotImplementedError
 
-class TestGuiPolicy(unittest.TestCase):
-    def test_loads_group_after_delete_preset(self):
-        """when the current preset was deleted the group should be reloaded"""
-        raise NotImplementedError
+        def test_loads_group_after_rename_preset(self):
+            """when the current preset was renamed the group should be reloaded"""
+            raise NotImplementedError
 
-    def test_loads_group_after_rename_preset(self):
-        """when the current preset was renamed the group should be reloaded"""
-        raise NotImplementedError
+        def test_loads_group_after_preset_added(self):
+            """when a preset was added the group should be reloaded"""
+            raise NotImplementedError
 
-    def test_loads_group_after_preset_added(self):
-        """when a preset was added the group should be reloaded"""
-        raise NotImplementedError
+        def test_loads_preset_when_group_loaded(self):
+            """when a group was loaded, the newest preset of that group
+            should be loaded as well"""
+            raise NotImplementedError
 
-    def test_loads_preset_when_group_loaded(self):
-        """when a group was loaded, the newest preset of that group
-        should be loaded as well"""
-        raise NotImplementedError
+        def test_create_empty_preset_when_group_loaded(self):
+            """when a group without presets was loaded an empty preset should be created"""
+            raise NotImplementedError
 
-    def test_create_empty_preset_when_group_loaded(self):
-        """when a group without presets was loaded an empty preset should be created"""
-        raise NotImplementedError
+        def test_loads_preset_when_mapping_added(self):
+            raise NotImplementedError
 
-    def test_loads_preset_when_mapping_added(self):
-        raise NotImplementedError
+        def test_loads_preset_when_mapping_deleted(self):
+            raise NotImplementedError
 
-    def test_loads_preset_when_mapping_deleted(self):
-        raise NotImplementedError
-
-    def test_loads_mapping_when_preset_loaded(self):
-        """when a preset was loaded, a mapping should be loaded as well"""
-        raise NotImplementedError
+        def test_loads_mapping_when_preset_loaded(self):
+            """when a preset was loaded, a mapping should be loaded as well"""
+            raise NotImplementedError

@@ -481,14 +481,11 @@ class TestPreset(unittest.TestCase):
     def test_save_load_with_invalid_mappings(self):
         ui_preset = Preset(get_config_path("test.json"), mapping_factory=UIMapping)
 
-        # cannot add a mapping without a valid combination
-        self.assertRaises(Exception, ui_preset.add, UIMapping())
-
-        ui_preset.add(UIMapping(event_combination="1,1,1"))
+        ui_preset.add(UIMapping())
         self.assertFalse(ui_preset.is_valid())
 
         # make the mapping valid
-        m = ui_preset.get_mapping(EventCombination.from_string("1,1,1"))
+        m = ui_preset.get_mapping(EventCombination.empty_combination())
         m.output_symbol = "a"
         m.target_uinput = "keyboard"
         self.assertTrue(ui_preset.is_valid())
