@@ -57,3 +57,8 @@ class MappingParsingError(Error):
 class InputEventCreationError(Error):
     def __init__(self, msg):
         super().__init__(msg)
+
+
+class DataManagementError(Error):
+    def __init__(self, msg):
+        super().__init__(msg)

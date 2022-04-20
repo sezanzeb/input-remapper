@@ -30,7 +30,7 @@ from pydantic import (
     PositiveFloat,
     VERSION,
 )
-from typing import Optional, Callable, Tuple, Dict, Union, Any
+from typing import Optional, Callable, Tuple, Dict, Any
 
 import pkg_resources
 
@@ -77,6 +77,8 @@ class Mapping(BaseModel):
     output_symbol: Optional[str] = None  # The symbol or macro string if applicable
     output_type: Optional[int] = None  # The event type of the mapped event
     output_code: Optional[int] = None  # The event code of the mapped event
+
+    name: Optional[str] = None
 
     # if release events will be sent to the forwarded device as soon as a combination
     # triggers see also #229

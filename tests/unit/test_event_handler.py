@@ -19,7 +19,7 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 import unittest
 
-from inputremapper.gui.event_handler import GuiEventHandler, GuiEvents
+from inputremapper.gui.event_handler import EventHandler, EventEnum
 
 
 class Listener:
@@ -30,44 +30,44 @@ class Listener:
         self.calls.append(kwargs)
 
 
-class TestGuiEventHandler(unittest.TestCase):
+class TestEventHandler(unittest.TestCase):
     def test_unknown_event_raises(self):
         """The Event Handler throws an KeyError if the event is not known"""
-        event_handler = GuiEventHandler()
+        event_handler = EventHandler()
         self.assertRaises(KeyError, event_handler.emit, "foo")
 
     async def test_calls_listeners(self):
         """The correct Listeners get called"""
-        event_handler = GuiEventHandler()
+        event_handler = EventHandler()
         listener = Listener()
-        event_handler.subscribe(GuiEvents.test_ev1, listener)
-        event_handler.emit(GuiEvents.test_ev1, arg1="foo")
-        event_handler.emit(GuiEvents.test_ev2, arg1="bar")
+        event_handler.subscribe(EventEnum.test_ev1, listener)
+        event_handler.emit(EventEnum.test_ev1, arg1="foo")
+        event_handler.emit(EventEnum.test_ev2, arg1="bar")
         self.assertEqual(listener.calls[0], {"arg1": "foo"})
 
     def test_unsubscribe(self):
-        event_handler = GuiEventHandler()
+        event_handler = EventHandler()
         listener = Listener()
-        event_handler.subscribe(GuiEvents.test_ev1, listener)
-        event_handler.emit(GuiEvents.test_ev1, a=1)
+        event_handler.subscribe(EventEnum.test_ev1, listener)
+        event_handler.emit(EventEnum.test_ev1, a=1)
         event_handler.unsubscribe(listener)
-        event_handler.emit(GuiEvents.test_ev1, b=2)
+        event_handler.emit(EventEnum.test_ev1, b=2)
         self.assertEqual(len(listener.calls), 1)
         self.assertEqual(listener.calls[0], {"a": 1})
 
     def test_unsubscribe_unknown_listener(self):
         """nothing happens if we unsubscribe an unknown listener"""
-        event_handler = GuiEventHandler()
+        event_handler = EventHandler()
         listener1 = Listener()
         listener2 = Listener()
-        event_handler.subscribe(GuiEvents.test_ev1, listener1)
+        event_handler.subscribe(EventEnum.test_ev1, listener1)
         event_handler.unsubscribe(listener2)
-        event_handler.emit(GuiEvents.test_ev1, a=1)
+        event_handler.emit(EventEnum.test_ev1, a=1)
         self.assertEqual(listener1.calls[0], {"a": 1})
 
     def test_only_kwargs_allowed(self):
         """we cannot pass arguments to listeners, only keyword-arguments"""
-        event_handler = GuiEventHandler()
-        event_handler.subscribe(GuiEvents.test_ev1, lambda *_, **__: None)
-        self.assertRaises(TypeError, event_handler.emit, GuiEvents.test_ev1, 1, a=2)
-        self.assertRaises(TypeError, event_handler.emit, GuiEvents.test_ev2, 1, a=2)
+        event_handler = EventHandler()
+        event_handler.subscribe(EventEnum.test_ev1, lambda *_, **__: None)
+        self.assertRaises(TypeError, event_handler.emit, EventEnum.test_ev1, 1, a=2)
+        self.assertRaises(TypeError, event_handler.emit, EventEnum.test_ev2, 1, a=2)
