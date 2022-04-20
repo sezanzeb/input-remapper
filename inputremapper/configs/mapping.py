@@ -143,9 +143,9 @@ class Mapping(BaseModel):
         return str(self.dict(exclude_defaults=True))
 
     if needs_workaround:
-
+        # https://github.com/samuelcolvin/pydantic/issues/1383
         def copy(self, *args, **kwargs) -> Mapping:
-            copy = super(Mapping, self).copy(*args, **kwargs)
+            copy = super(Mapping, self).copy(*args, deep=True, **kwargs)
             object.__setattr__(copy, "_combination_changed", self._combination_changed)
             return copy
 
