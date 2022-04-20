@@ -60,10 +60,7 @@ CombinationChangedCallback = Optional[
 
 
 class Mapping(BaseModel):
-    """
-    holds all the data for mapping an
-    input action to an output action
-    """
+    """Holds all the data for mapping an input action to an output action."""
 
     if needs_workaround:
         __slots__ = ("_combination_changed",)
@@ -117,8 +114,7 @@ class Mapping(BaseModel):
             object.__setattr__(self, "_combination_changed", None)
 
     def __setattr__(self, key, value):
-        """
-        call the combination changed callback
+        """Call the combination changed callback
         if we are about to update the event_combination
         """
         if key != "event_combination" or self._combination_changed is None:
@@ -160,8 +156,7 @@ class Mapping(BaseModel):
         self._combination_changed = None
 
     def get_output_type_code(self) -> Optional[Tuple[int, int]]:
-        """
-        returns the output_type and output_code if set,
+        """Returns the output_type and output_code if set,
         otherwise looks the output_symbol up in the system_mapping
         return None for unknown symbols and macros
         """
@@ -172,7 +167,7 @@ class Mapping(BaseModel):
         return None
 
     def is_valid(self) -> bool:
-        """if the mapping is valid"""
+        """If the mapping is valid."""
         return True
 
     @validator("output_symbol", pre=True)
@@ -197,8 +192,7 @@ class Mapping(BaseModel):
 
     @validator("event_combination")
     def only_one_analog_input(cls, combination) -> EventCombination:
-        """
-        check that the event_combination specifies a maximum of one
+        """Check that the event_combination specifies a maximum of one
         analog to analog mapping
         """
 
@@ -215,9 +209,7 @@ class Mapping(BaseModel):
 
     @validator("event_combination")
     def trigger_point_in_range(cls, combination) -> EventCombination:
-        """
-        check if the trigger point for mapping analog axis to buttons is valid
-        """
+        """Check if the trigger point for mapping analog axis to buttons is valid."""
         for event in combination:
             if event.type == EV_ABS and abs(event.value) >= 100:
                 raise ValueError(
@@ -228,7 +220,7 @@ class Mapping(BaseModel):
 
     @validator("event_combination")
     def set_event_actions(cls, combination):
-        """sets the correct action for each event"""
+        """Sets the correct action for each event."""
         new_combination = []
         for event in combination:
             if event.value != 0:
@@ -276,7 +268,7 @@ class Mapping(BaseModel):
 
     @root_validator
     def output_axis_given(cls, values):
-        """validate that an output type is an axis if we have an input axis"""
+        """Validate that an output type is an axis if we have an input axis."""
         combination = values.get("event_combination")
         output_type = values.get("output_type")
         event_values = [event.value for event in combination]
@@ -300,8 +292,7 @@ class Mapping(BaseModel):
 
 
 class UIMapping(Mapping):
-    """
-    The UI Mapping adds the ability to create Invalid Mapping objects.
+    """The UI Mapping adds the ability to create Invalid Mapping objects.
 
     Intended for use in the frontend, where invalid data is allowed
     during creation of the mapping. Invalid assignments are cached and
@@ -360,11 +351,11 @@ class UIMapping(Mapping):
         return object.__getattribute__(self, item)
 
     def is_valid(self) -> bool:
-        """if the mapping is valid"""
+        """If the mapping is valid."""
         return len(self._cache) == 0
 
     def dict(self, *args, **kwargs):
-        """dict will include the invalid data"""
+        """Dict will include the invalid data."""
         dict_ = super(UIMapping, self).dict(*args, **kwargs)
         # combine all valid values with the invalid ones
         dict_.update(**self._cache)
@@ -381,11 +372,11 @@ class UIMapping(Mapping):
         return dict_
 
     def get_error(self) -> Optional[ValidationError]:
-        """the validation error or None"""
+        """The validation error or None."""
         return self._last_error
 
     def _validate(self) -> None:
-        """try to validate the mapping"""
+        """Try to validate the mapping."""
         if self.is_valid():
             return
 

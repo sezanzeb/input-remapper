@@ -198,7 +198,9 @@ class Injector(multiprocessing.Process):
         for mapping in self.context.preset:
             if is_in_capabilities(mapping.event_combination, capabilities):
                 logger.debug(
-                    'Grabbing "%s" because of "%s"', path, mapping.event_combination
+                    'Grabbing "%s" because of "%s"',
+                    path,
+                    mapping.event_combination,
                 )
                 needed = True
                 break
@@ -358,7 +360,10 @@ class Injector(multiprocessing.Process):
 
             # actually doing things
             event_reader = EventReader(
-                self.context, source, forward_to, self._stop_event
+                self.context,
+                source,
+                forward_to,
+                self._stop_event,
             )
             coroutines.append(event_reader.run())
             self._consumer_controls.append(event_reader)

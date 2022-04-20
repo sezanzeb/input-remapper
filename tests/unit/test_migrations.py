@@ -134,10 +134,10 @@ class TestMigrations(unittest.TestCase):
         self.assertFalse(os.path.exists(os.path.join(CONFIG_PATH, "foo2", "bar2.json")))
 
         self.assertTrue(
-            os.path.exists(os.path.join(CONFIG_PATH, "presets", "foo1", "bar1.json"))
+            os.path.exists(os.path.join(CONFIG_PATH, "presets", "foo1", "bar1.json")),
         )
         self.assertTrue(
-            os.path.exists(os.path.join(CONFIG_PATH, "presets", "foo2", "bar2.json"))
+            os.path.exists(os.path.join(CONFIG_PATH, "presets", "foo2", "bar2.json")),
         )
 
     def test_wont_migrate_preset(self):
@@ -164,14 +164,14 @@ class TestMigrations(unittest.TestCase):
         self.assertTrue(os.path.exists(os.path.join(CONFIG_PATH, "foo2", "bar2.json")))
 
         self.assertFalse(
-            os.path.exists(os.path.join(CONFIG_PATH, "presets", "foo1", "bar1.json"))
+            os.path.exists(os.path.join(CONFIG_PATH, "presets", "foo1", "bar1.json")),
         )
         self.assertFalse(
-            os.path.exists(os.path.join(CONFIG_PATH, "presets", "foo2", "bar2.json"))
+            os.path.exists(os.path.join(CONFIG_PATH, "presets", "foo2", "bar2.json")),
         )
 
     def test_migrate_mappings(self):
-        """test if mappings are migrated correctly
+        """Test if mappings are migrated correctly
 
         mappings like
         {(type, code): symbol} or {(type, code, value): symbol} should migrate
@@ -247,11 +247,11 @@ class TestMigrations(unittest.TestCase):
         )
         self.assertEqual(
             preset.get_mapping(
-                EventCombination(((EV_ABS, 1, 1), (EV_ABS, 2, -1), (EV_ABS, 3, 1)))
+                EventCombination(((EV_ABS, 1, 1), (EV_ABS, 2, -1), (EV_ABS, 3, 1))),
             ),
             UIMapping(
                 event_combination=EventCombination(
-                    ((EV_ABS, 1, 1), (EV_ABS, 2, -1), (EV_ABS, 3, 1))
+                    ((EV_ABS, 1, 1), (EV_ABS, 2, -1), (EV_ABS, 3, 1)),
                 ),
                 target_uinput="keyboard",
                 output_symbol="c",

@@ -73,7 +73,7 @@ def utils(options):
 
 
 def communicate(options, daemon):
-    """Commands that require a running daemon"""
+    """Commands that require a running daemon."""
     # import stuff late to make sure the correct log level is applied
     # before anything is logged
     from inputremapper.groups import groups

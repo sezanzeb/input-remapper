@@ -48,7 +48,7 @@ from inputremapper.injection.global_uinputs import global_uinputs
 
 
 async def _run_normal(self) -> None:
-    """start injecting events"""
+    """Start injecting events."""
     self._running = True
     self._stop = False
     # logger.debug("starting AbsToRel loop")
@@ -72,7 +72,7 @@ async def _run_normal(self) -> None:
 async def _run_wheel(
     self, codes: Tuple[int, int], weights: Tuple[float, float]
 ) -> None:
-    """start injecting events"""
+    """Start injecting events."""
     self._running = True
     self._stop = False
     # logger.debug("starting AbsToRel loop")
@@ -95,7 +95,7 @@ async def _run_wheel(
 
 
 class AbsToRelHandler(MappingHandler):
-    """Handler which transforms an EV_ABS to EV_REL events"""
+    """Handler which transforms an EV_ABS to EV_REL events."""
 
     _map_axis: Tuple[int, int]  # the (type, code) of the axis we map
     _value: float  # the current output value

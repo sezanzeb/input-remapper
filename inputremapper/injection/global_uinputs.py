@@ -52,7 +52,7 @@ class UInput(evdev.UInput):
         super().__init__(*args, **kwargs)
 
     def can_emit(self, event):
-        """check if an event can be emitted by the uinput
+        """Check if an event can be emitted by the uinput
 
         Wrong events might be injected if the group mappings are wrong
         """
@@ -61,7 +61,7 @@ class UInput(evdev.UInput):
 
 
 class FrontendUInput:
-    """Uinput which can not actually send events, for use in the frontend"""
+    """Uinput which can not actually send events, for use in the frontend."""
 
     def __init__(self, *args, events=None, name="py-evdev-uinput", **kwargs):
         # see https://python-evdev.readthedocs.io/en/latest/apidoc.html#module-evdev.uinput
@@ -129,7 +129,7 @@ class GlobalUInputs:
         )
 
     def write(self, event, target_uinput):
-        """write event to target uinput"""
+        """Write event to target uinput."""
         uinput = self.get_uinput(target_uinput)
         if not uinput:
             raise inputremapper.exceptions.UinputNotAvailable(target_uinput)

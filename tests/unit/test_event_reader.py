@@ -85,7 +85,7 @@ class TestEventReader(unittest.IsolatedAsyncioTestCase):
             )
         )
         self.preset.add(
-            get_key_mapping(EventCombination([EV_ABS, ABS_Y, 1]), "keyboard", "b")
+            get_key_mapping(EventCombination([EV_ABS, ABS_Y, 1]), "keyboard", "b"),
         )
 
         # left x to mouse x
@@ -134,7 +134,7 @@ class TestEventReader(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn((EV_KEY, code_shift, 0), history)
 
     async def test_if_single_joystick_under_threshold(self):
-        """triggers then because the joystick events value is too low."""
+        """Triggers then because the joystick events value is too low."""
         # TODO: Move this somewhere more sensible
         code_a = system_mapping.get("a")
         trigger = 1
@@ -146,7 +146,7 @@ class TestEventReader(unittest.IsolatedAsyncioTestCase):
             )
         )
         self.preset.add(
-            get_key_mapping(EventCombination([EV_ABS, ABS_Y, 1]), "keyboard", "b")
+            get_key_mapping(EventCombination([EV_ABS, ABS_Y, 1]), "keyboard", "b"),
         )
 
         # self.preset.set("gamepad.joystick.left_purpose", BUTTONS)

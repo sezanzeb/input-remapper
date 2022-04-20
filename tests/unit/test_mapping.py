@@ -32,7 +32,7 @@ from inputremapper.event_combination import EventCombination
 
 class TestMapping(unittest.IsolatedAsyncioTestCase):
     def test_init(self):
-        """test init and that defaults are set"""
+        """Test init and that defaults are set."""
         cfg = {
             "event_combination": "1,2,1",
             "target_uinput": "keyboard",
@@ -76,7 +76,7 @@ class TestMapping(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(m.get_output_type_code(), (2, 3))
 
     def test_init_sets_event_actions(self):
-        """test that InputEvent.actions are set properly"""
+        """Test that InputEvent.actions are set properly."""
         cfg = {
             "event_combination": "1,2,1+2,1,1+3,1,0",
             "target_uinput": "keyboard",
@@ -143,7 +143,7 @@ class TestMapping(unittest.IsolatedAsyncioTestCase):
         m.remove_combination_changed_callback()
 
     def test_init_fails(self):
-        """test that the init fails with invalid data"""
+        """Test that the init fails with invalid data."""
         test = partial(self.assertRaises, ValidationError, Mapping)
         cfg = {
             "event_combination": "1,2,3",

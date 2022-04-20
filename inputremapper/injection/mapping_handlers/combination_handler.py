@@ -37,7 +37,7 @@ from inputremapper.injection.mapping_handlers.mapping_handler import (
 
 
 class CombinationHandler(MappingHandler):
-    """keeps track of a combination and notifies a sub handler"""
+    """Keeps track of a combination and notifies a sub handler."""
 
     # map of (event.type, event.code) -> bool , keep track of the combination state
     _pressed_keys: Dict[Tuple[int, int], bool]
@@ -123,11 +123,11 @@ class CombinationHandler(MappingHandler):
         self._output_state = False
 
     def get_active(self) -> bool:
-        """return if all keys in the keymap are set to True"""
+        """Return if all keys in the keymap are set to True."""
         return False not in self._pressed_keys.values()
 
     def forward_release(self, forward: evdev.UInput) -> None:
-        """forward a button release for all keys if this is a combination
+        """Forward a button release for all keys if this is a combination
 
         this might cause duplicate key-up events but those are ignored by evdev anyway
         """

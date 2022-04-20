@@ -217,7 +217,10 @@ def get_abs_range(device, code=ABS_X):
 
     if len(absinfo) == 0:
         logger.warning(
-            'Failed to get ABS info of "%s" for key %d: %s', device, code, capabilities
+            'Failed to get ABS info of "%s" for key %d: %s',
+            device,
+            code,
+            capabilities,
         )
         return None
 

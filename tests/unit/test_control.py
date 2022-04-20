@@ -127,7 +127,8 @@ class TestControl(unittest.TestCase):
 
         # unless the injection in question ist stopped
         communicate(
-            options("stop", None, None, groups_[0].key, False, False, False), daemon
+            options("stop", None, None, groups_[0].key, False, False, False),
+            daemon,
         )
         self.assertEqual(stop_counter, 1)
         self.assertTrue(
@@ -157,7 +158,8 @@ class TestControl(unittest.TestCase):
         self.assertEqual(stop_counter, 3)
         global_config.set_autoload_preset(groups_[1].key, presets[2])
         communicate(
-            options("autoload", None, None, groups_[1].key, False, False, False), daemon
+            options("autoload", None, None, groups_[1].key, False, False, False),
+            daemon,
         )
         self.assertEqual(len(start_history), 4)
         self.assertEqual(start_history[3], (groups_[1].key, presets[2]))
@@ -171,7 +173,8 @@ class TestControl(unittest.TestCase):
         # autoloading for the same device again redundantly will not autoload
         # again
         communicate(
-            options("autoload", None, None, groups_[1].key, False, False, False), daemon
+            options("autoload", None, None, groups_[1].key, False, False, False),
+            daemon,
         )
         self.assertEqual(len(start_history), 4)
         self.assertEqual(stop_counter, 3)

@@ -35,7 +35,7 @@ from inputremapper.injection.global_uinputs import global_uinputs
 
 
 class KeyHandler(MappingHandler):
-    """injects the target key if notified"""
+    """Injects the target key if notified."""
 
     _active: bool
     _maps_to: Tuple[int, int]
@@ -67,7 +67,7 @@ class KeyHandler(MappingHandler):
         return f"maps to: {self._maps_to} on {self.mapping.target_uinput}"
 
     def notify(self, event: InputEvent, *_, **__) -> bool:
-        """inject event.value to the target key"""
+        """Inject event.value to the target key."""
 
         event_tuple = (*self._maps_to, event.value)
         try:

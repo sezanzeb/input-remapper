@@ -35,7 +35,7 @@ from inputremapper.injection.mapping_handlers.mapping_handler import (
 
 
 class NotifyCallback(Protocol):
-    """type signature of MappingHandler.notify
+    """Type signature of MappingHandler.notify
 
     return True if the event was actually taken care of
     """
@@ -92,12 +92,12 @@ class Context:
         self._create_callbacks()
 
     def reset(self) -> None:
-        """call the reset method for each handler in the context"""
+        """Call the reset method for each handler in the context."""
         for handlers in self._handlers.values():
             [handler.reset() for handler in handlers]
 
     def _create_callbacks(self) -> None:
-        """add the notify method from all _handlers to self.callbacks"""
+        """Add the notify method from all _handlers to self.callbacks."""
         for event, handler_list in self._handlers.items():
             if event.type_and_code not in self.callbacks.keys():
                 self.callbacks[event.type_and_code] = []
