@@ -20,6 +20,7 @@
 import unittest
 
 if False:
+
     class TestGuiPolicy(unittest.TestCase):
         def test_loads_group_after_delete_preset(self):
             """when the current preset was deleted the group should be reloaded"""

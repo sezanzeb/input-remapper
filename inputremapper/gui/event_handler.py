@@ -20,7 +20,7 @@
 from __future__ import annotations
 
 import enum
-from typing import Callable, Dict, Set, TypedDict, overload
+from typing import Callable, Dict, Set, TypedDict, overload, Any
 
 from inputremapper.logger import logger
 
@@ -68,7 +68,7 @@ class EventEnum(str, enum.Enum):
     test_ev2 = "test_event2"
 
 
-EventListener = Callable[[...], None]
+EventListener = Callable[[Any], None]
 
 
 class EventHandler:
