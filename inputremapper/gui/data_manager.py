@@ -187,8 +187,6 @@ class DataManager:
     def get_presets(self) -> List[str]:
         """Get all preset filenames for self._active_group_key and user,
         starting with the newest."""
-        if not self._active_group_key:
-            raise DataManagementError("Unable to load presets. group is not set")
         device_folder = get_preset_path(self._active_group_key)
         mkdir(device_folder)
 
