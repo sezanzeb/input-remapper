@@ -26,6 +26,10 @@ import math
 import os
 import re
 import sys
+
+from inputremapper.gui.components import DeviceSelection
+from inputremapper.gui.controller import Controller
+from inputremapper.gui.event_handler import EventHandler, EventEnum
 from inputremapper.gui.gettext import _
 
 from evdev.ecodes import EV_KEY
@@ -149,7 +153,9 @@ class UserInterface:
         self.group = None
         self.preset_name = None
 
-        global_uinputs.prepare_all()
+        self.event_handler = EventHandler()
+        self.controller = Controller(self.event_handler)
+
         css_provider = Gtk.CssProvider()
         with open(get_data_path("style.css"), "r") as file:
             css_provider.load_from_data(bytes(file.read(), encoding="UTF-8"))
@@ -169,18 +175,9 @@ class UserInterface:
         self.editor = Editor(self)
 
         # set up the device selection
-        # https://python-gtk-3-tutorial.readthedocs.io/en/latest/treeview.html#the-view
-        combobox: Gtk.ComboBox = self.get("device_selection")
-        self.device_store = Gtk.ListStore(str, str, str)
-        combobox.set_model(self.device_store)
-        renderer_icon = Gtk.CellRendererPixbuf()
-        renderer_text = Gtk.CellRendererText()
-        renderer_text.set_padding(5, 0)
-        combobox.pack_start(renderer_icon, False)
-        combobox.pack_start(renderer_text, False)
-        combobox.add_attribute(renderer_icon, "icon-name", 1)
-        combobox.add_attribute(renderer_text, "text", 2)
-        combobox.set_id_column(0)
+        DeviceSelection(
+            self.event_handler, self.get("device_selection")
+        )
 
         self.confirm_delete = builder.get_object("confirm-delete")
         self.about = builder.get_object("about-dialog")
@@ -205,7 +202,7 @@ class UserInterface:
         # if any of the next steps take a bit to complete, have the window
         # already visible (without content) to make it look more responsive.
         gtk_iteration()
-        self.populate_devices()
+        # self.populate_devices()
 
         self.timeouts = []
         self.setup_timeouts()
@@ -219,6 +216,8 @@ class UserInterface:
 
         if not is_helper_running():
             self.show_status(CTX_ERROR, _("The helper did not start"))
+
+        self.event_handler.emit(EventEnum.init)
 
     def setup_timeouts(self):
         """Setup all GLib timeouts."""
@@ -310,25 +309,6 @@ class UserInterface:
         if preset is not None:
             self.get("preset_selection").set_active_id(preset)
 
-    @ensure_everything_saved
-    def populate_devices(self):
-        """Make the devices selectable."""
-        device_selection = self.get("device_selection")
-
-        with HandlerDisabled(device_selection, self.on_select_device):
-            self.device_store.clear()
-            for group in groups.filter(include_inputremapper=False):
-                types = group.types
-                if len(types) > 0:
-                    device_type = sorted(types, key=ICON_PRIORITIES.index)[0]
-                    icon_name = ICON_NAMES[device_type]
-                else:
-                    icon_name = None
-
-                self.device_store.append([group.key, icon_name, group.key])
-
-        self.select_newest_preset()
-
     @if_group_selected
     @ensure_everything_saved
     def populate_presets(self):
@@ -376,7 +356,8 @@ class UserInterface:
         combination = reader.read()
 
         if reader.are_new_groups_available():
-            self.populate_devices()
+            pass
+            #  self.populate_devices()
 
         # giving editor its own interval and making it call reader.read itself causes
         # incredibly frustrating and miraculous problems. Do not do it. Observations:

@@ -22,13 +22,15 @@ import os
 import time
 from typing import Optional, List, Tuple
 
-from inputremapper.configs.global_config import global_config
+from inputremapper.configs.global_config import GlobalConfig, global_config
 from inputremapper.configs.mapping import UIMapping
 from inputremapper.configs.preset import Preset
 from inputremapper.configs.paths import get_preset_path, mkdir
 from inputremapper.event_combination import EventCombination
 from inputremapper.exceptions import DataManagementError
+from inputremapper.groups import groups
 from inputremapper.gui.event_handler import EventHandler, EventEnum
+from inputremapper.injection.global_uinputs import global_uinputs
 from inputremapper.logger import logger
 
 
@@ -41,6 +43,7 @@ class DataManager:
         self._config = global_config
         self._config.load_config()
         self.attach_to_event_handler()
+        global_uinputs.prepare_all()
 
     @property
     def _active_group_key(self) -> Optional[str]:
@@ -145,7 +148,8 @@ class DataManager:
     def attach_to_event_handler(self):
         """registers all necessary functions at the event handler"""
         (
-            self.event_handler.subscribe(EventEnum.load_group, self.on_load_group)
+            self.event_handler.subscribe(EventEnum.load_groups, self.on_load_groups)
+            .subscribe(EventEnum.load_group, self.on_load_group)
             .subscribe(EventEnum.load_preset, self.on_load_preset)
             .subscribe(EventEnum.rename_preset, self.on_rename_preset)
             .subscribe(EventEnum.add_preset, self.on_add_preset)
@@ -156,8 +160,12 @@ class DataManager:
             .subscribe(EventEnum.update_mapping, self.on_update_mapping)
             .subscribe(EventEnum.get_autoload, self.on_get_autoload)
             .subscribe(EventEnum.set_autoload, self.on_set_autoload)
+            .subscribe(EventEnum.get_uinputs, self.on_get_uinputs)
             .subscribe(EventEnum.save, self.on_save)
         )
+
+    def on_load_groups(self):
+        self.event_handler.emit(EventEnum.groups_changed, groups=groups)
 
     def on_load_group(self, group_key: str):
         """gather all presets in the group and provide them"""
@@ -271,6 +279,11 @@ class DataManager:
             raise DataManagementError("cannot set autoload status: Preset is not set")
 
         self._autoload = autoload
+
+    def on_get_uinputs(self):
+        self.event_handler.emit(
+            EventEnum.uinputs_changed, uinputs=global_uinputs.devices.copy()
+        )
 
     def on_save(self):
         if self.__active_preset__:

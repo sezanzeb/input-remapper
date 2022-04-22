@@ -26,6 +26,11 @@ from inputremapper.logger import logger
 
 
 class EventEnum(str, enum.Enum):
+    # emit to load all groups
+    load_groups = "load_groups"
+    # emit to provide all groups. Parameter: groups
+    groups_changed = "groups_changed"
+
     # emit to load a group. Parameter: group_key
     load_group = "load_group"
     # emit to provide all presets in the loaded group. Parameter: group_key, presets
@@ -60,6 +65,11 @@ class EventEnum(str, enum.Enum):
     # emit to provide to autoload status. Parameters: autoload
     autoload_changed = "autoload_changed"
 
+    # emit to request available uinputs
+    get_uinputs = "get_uinputs"
+    # emit to provide available uinputs. Parameter: uinputs
+    uinputs_changed = "uinputs_changed"
+
     # emit to save all data
     save = "save"
 
@@ -81,6 +91,7 @@ class EventHandler:
         }
 
     def emit(self, event: EventEnum, **kwargs) -> EventHandler:
+        logger.debug(f"emitting {event} with {kwargs}")
         for listener in self._listeners[event]:
             listener(**kwargs)
         return self
