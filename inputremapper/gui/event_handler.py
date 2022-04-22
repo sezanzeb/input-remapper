@@ -28,8 +28,8 @@ from inputremapper.logger import logger
 class EventEnum(str, enum.Enum):
     # emit to load a group. Parameter: group_key
     load_group = "load_group"
-    # emit to provide all presets in the loaded group. Parameter: presets
-    group_loaded = "group_loaded"
+    # emit to provide all presets in the loaded group. Parameter: group_key, presets
+    group_changed = "group_changed"
 
     # emit to request a preset. Parameter: name
     load_preset = "load_preset"
@@ -40,7 +40,7 @@ class EventEnum(str, enum.Enum):
     # emit to delete the current preset
     delete_preset = "delete_preset"
     # emit to provide a preset. Parameter: name, mappings
-    preset_loaded = "preset_loaded"
+    preset_changed = "preset_changed"
 
     # emit to request a mapping. Parameter: combination
     load_mapping = "load_mapping"
@@ -51,18 +51,21 @@ class EventEnum(str, enum.Enum):
     # delete the current mapping
     delete_mapping = "delete_mapping"
     # emit to provide a mapping. Parameter: mapping
-    mapping_loaded = "mapping_loaded"
+    mapping_changed = "mapping_changed"
 
     # emit to request to autoload status for the current preset.
     get_autoload = "get_autoload"
     # emit to set to autoload status for the current preset. Parameter: autoload
     set_autoload = "set_autoload"
     # emit to provide to autoload status. Parameters: autoload
-    autoload_status = "autoload_status"
+    autoload_changed = "autoload_changed"
 
     # emit to save all data
     save = "save"
 
+    # initialize the data, should be emitted once all event listeners are attached
+    # and the GUI is ready to receive data
+    init = "init"
     # two events for unit tests
     test_ev1 = "test_event1"
     test_ev2 = "test_event2"

@@ -20,7 +20,7 @@
 import glob
 import os
 import time
-from typing import Optional, List
+from typing import Optional, List, Tuple
 
 from inputremapper.configs.global_config import global_config
 from inputremapper.configs.mapping import UIMapping
@@ -35,13 +35,112 @@ from inputremapper.logger import logger
 class DataManager:
     def __init__(self, event_handler: EventHandler):
         self.event_handler = event_handler
-        self._active_group_key: Optional[str] = None
-        self._active_preset: Optional[Preset] = None
-        self._active_mapping: Optional[UIMapping] = None
-        self._new_mapping: Optional[UIMapping] = None
+        self.__active_group_key__: Optional[str] = None
+        self.__active_preset__: Optional[Preset] = None
+        self.__active_mapping__: Optional[UIMapping] = None
         self._config = global_config
         self._config.load_config()
         self.attach_to_event_handler()
+
+    @property
+    def _active_group_key(self) -> Optional[str]:
+        return self.__active_group_key__
+
+    @_active_group_key.setter
+    def _active_group_key(self, group_key: Optional[str]) -> None:
+        self.__active_group_key__ = group_key
+        self.emit_group_changed()
+
+    @property
+    def _active_preset(self) -> Optional[Preset]:
+        return self.__active_preset__
+
+    @_active_preset.setter
+    def _active_preset(self, preset: Optional[Preset]) -> None:
+        self.__active_preset__ = preset
+        self.emit_preset_changed()
+        self.emit_autoload_changed()
+
+    @property
+    def _active_mapping(self) -> Optional[UIMapping]:
+        return self.__active_mapping__
+
+    @_active_mapping.setter
+    def _active_mapping(self, mapping: Optional[UIMapping]):
+        self.__active_mapping__ = mapping
+        self.emit_mapping_changed()
+
+    @property
+    def _autoload(self) -> bool:
+        if not self._active_preset:
+            return False
+        return self._config.is_autoloaded(
+            self._active_group_key, self.get_preset_name()
+        )
+
+    @_autoload.setter
+    def _autoload(self, status: bool):
+        if self._active_preset:
+            if status:
+                self._config.set_autoload_preset(
+                    self._active_group_key, self.get_preset_name()
+                )
+            elif self._autoload:
+                self._config.set_autoload_preset(self._active_group_key, None)
+        self.emit_autoload_changed()
+
+    def emit_group_changed(self):
+        self.event_handler.emit(
+            EventEnum.group_changed,
+            group_key=self._active_group_key,
+            presets=self.get_presets(),
+        )
+
+    def emit_preset_changed(self):
+        self.event_handler.emit(
+            EventEnum.preset_changed,
+            name=self.get_preset_name(),
+            mappings=self.get_mappings(),
+        )
+
+    def emit_autoload_changed(self):
+        if self._active_preset:
+            self.event_handler.emit(EventEnum.autoload_changed, autoload=self._autoload)
+
+    def emit_mapping_changed(self):
+        mapping = self._active_mapping
+        if mapping:
+            self.event_handler.emit(EventEnum.mapping_changed, mapping=mapping.dict())
+        else:
+            self.event_handler.emit(EventEnum.mapping_changed, mapping=None)
+
+    def get_presets(self) -> List[str]:
+        """Get all preset filenames for self._active_group_key and user,
+        starting with the newest."""
+        device_folder = get_preset_path(self.__active_group_key__)
+        mkdir(device_folder)
+
+        paths = glob.glob(os.path.join(device_folder, "*.json"))
+        presets = [
+            os.path.splitext(os.path.basename(path))[0]
+            for path in sorted(paths, key=os.path.getmtime)
+        ]
+        # the highest timestamp to the front
+        presets.reverse()
+        return presets
+
+    def get_preset_name(self) -> Optional[str]:
+        """get the current active preset name"""
+        if not self._active_preset:
+            return None
+        return os.path.basename(self.__active_preset__.path).split(".")[0]
+
+    def get_mappings(self) -> Optional[List[Tuple[str, EventCombination]]]:
+        if not self._active_preset:
+            return None
+        return [
+            (mapping.name, mapping.event_combination) for mapping in self._active_preset
+        ]
 
     def attach_to_event_handler(self):
         """registers all necessary functions at the event handler"""
@@ -65,11 +164,10 @@ class DataManager:
         self._active_group_key = group_key
         self._active_preset = None
         self._active_mapping = None
-        self.event_handler.emit(EventEnum.group_loaded, presets=self.get_presets())
 
     def on_load_preset(self, name: str):
         """load the preset in the active group and provide all mappings"""
-        if not self._active_group_key:
+        if not self.__active_group_key__:
             raise DataManagementError("Unable to load preset. Group is not set")
 
         preset_path = get_preset_path(self._active_group_key, name)
@@ -77,9 +175,6 @@ class DataManager:
         preset.load()
         self._active_preset = preset
         self._active_mapping = None
-
-        response = [(mapping.name, mapping.event_combination) for mapping in preset]
-        self.event_handler.emit(EventEnum.preset_loaded, name=name, mappings=response)
 
     def on_rename_preset(self, new_name: str):
         """rename the current preset and move the correct file"""
@@ -92,7 +187,7 @@ class DataManager:
             return
 
         old_path = self._active_preset.path
-        old_name = os.path.basename(old_path)
+        old_name = os.path.basename(old_path).split(".")[0]
         new_path = get_preset_path(self._active_group_key, new_name)
         if os.path.exists(new_path):
             raise DataManagementError(
@@ -103,28 +198,34 @@ class DataManager:
         os.rename(old_path, new_path)
         now = time.time()
         os.utime(new_path, (now, now))
+
+        if self._config.is_autoloaded(self._active_group_key, old_name):
+            self._config.set_autoload_preset(self._active_group_key, new_name)
+
         self._active_preset.path = get_preset_path(self._active_group_key, new_name)
+        self.emit_group_changed()
+        self.emit_preset_changed()
 
     def on_add_preset(self, name: str):
-        if not self._active_group_key:
+        if not self.__active_group_key__:
             raise DataManagementError("Unable to add preset. Group is not set")
 
-        path = get_preset_path(self._active_group_key, name)
+        path = get_preset_path(self.__active_group_key__, name)
         if os.path.exists(path):
             raise DataManagementError("Unable to add preset. Preset exists")
 
         mkdir(path)
+        self.emit_group_changed()
 
     def on_delete_preset(self):
-        preset_path = self._active_preset.path
+        preset_path = self.__active_preset__.path
         logger.info('Removing "%s"', preset_path)
-        self._active_preset = None
-        self._active_mapping = None
         os.remove(preset_path)
+        self.emit_group_changed()
+        self._active_preset = None  # will emit preset_changed
+        self._active_mapping = None  # will emit mapping_changed
 
-    def on_load_mapping(
-        self, combination: EventCombination = EventCombination.empty_combination()
-    ):
+    def on_load_mapping(self, combination: EventCombination):
         """load the mapping and provide its values as a dict"""
         if not self._active_preset:
             raise DataManagementError("Unable to load mapping. Preset is not set")
@@ -135,11 +236,7 @@ class DataManager:
                 f"the mapping with {combination = } does not "
                 f"exist in the {self._active_preset.path}"
             )
-
         self._active_mapping = mapping
-        self.event_handler.emit(
-            EventEnum.mapping_loaded, mapping=self._active_mapping.dict()
-        )
 
     def on_update_mapping(self, **kwargs):
         if not self._active_mapping:
@@ -147,54 +244,34 @@ class DataManager:
 
         for key, value in kwargs.items():
             setattr(self._active_mapping, key, value)
+        self.emit_mapping_changed()
 
     def on_create_mapping(self):
         if not self._active_preset:
             raise DataManagementError("cannot create mapping: preset is not set")
         self._active_preset.add(UIMapping())
-        logger.debug(self._active_preset)
+        self.emit_preset_changed()
 
     def on_delete_mapping(self):
         """delete teh active mapping"""
-        if not self._active_mapping:
+        if not self.__active_mapping__:
             raise DataManagementError(
                 "cannot delete active mapping: active mapping is not set"
             )
 
         self._active_preset.remove(self._active_mapping.event_combination)
+        self.emit_preset_changed()
         self._active_mapping = None
 
     def on_get_autoload(self):
-        if not self._active_preset:
-            raise DataManagementError("cannot get autoload status: Preset is not set")
-        name = os.path.basename(self._active_preset.path).split(".")[0]
-        autoload = self._config.is_autoloaded(self._active_group_key, name)
-        self.event_handler.emit(EventEnum.autoload_status, autoload=autoload)
+        self.emit_autoload_changed()
 
     def on_set_autoload(self, autoload: bool):
         if not self._active_preset:
             raise DataManagementError("cannot set autoload status: Preset is not set")
 
-        name = os.path.basename(self._active_preset.path).split(".")[0]
-        self._config.set_autoload_preset(
-            self._active_group_key, name if autoload else None
-        )
+        self._autoload = autoload
 
     def on_save(self):
-        if self._active_preset:
-            self._active_preset.save()
-
-    def get_presets(self) -> List[str]:
-        """Get all preset filenames for self._active_group_key and user,
-        starting with the newest."""
-        device_folder = get_preset_path(self._active_group_key)
-        mkdir(device_folder)
-
-        paths = glob.glob(os.path.join(device_folder, "*.json"))
-        presets = [
-            os.path.splitext(os.path.basename(path))[0]
-            for path in sorted(paths, key=os.path.getmtime)
-        ]
-        # the highest timestamp to the front
-        presets.reverse()
-        return presets
+        if self.__active_preset__:
+            self.__active_preset__.save()
