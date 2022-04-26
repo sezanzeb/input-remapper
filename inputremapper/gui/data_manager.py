@@ -25,10 +25,10 @@ from typing import Optional, List, Tuple
 from inputremapper.configs.global_config import GlobalConfig, global_config
 from inputremapper.configs.mapping import UIMapping
 from inputremapper.configs.preset import Preset
-from inputremapper.configs.paths import get_preset_path, mkdir
+from inputremapper.configs.paths import get_preset_path, mkdir, split_all
 from inputremapper.event_combination import EventCombination
 from inputremapper.exceptions import DataManagementError
-from inputremapper.groups import groups
+from inputremapper.groups import groups, _Group, _Groups
 from inputremapper.gui.event_handler import EventHandler, EventEnum
 from inputremapper.injection.global_uinputs import global_uinputs
 from inputremapper.logger import logger
@@ -62,6 +62,38 @@ class DataManager:
                 )
             elif self._autoload:
                 self._config.set_autoload_preset(self._active_group_key, None)
+
+    @property
+    def active_group(self) -> _Group:
+        return groups.find(key=self._active_group_key)
+
+    @property
+    def groups(self) -> _Groups:
+        return groups
+
+    def newest_group(self) -> str:
+        """group_key of the group with the most recently modified preset"""
+        paths = []
+        for path in glob.glob(os.path.join(get_preset_path(), "*/*.json")):
+            if self.groups.find(key=split_all(path)[-2]):
+                paths.append((path, os.path.getmtime(path)))
+
+        path, _ = max(paths, key=lambda x: x[1])
+        return split_all(path)[-2]
+
+    def newest_preset(self) -> str:
+        """preset name of the most recently modified preset in the active group"""
+        if not self._active_group_key:
+            raise DataManagementError("cannot find newest preset: Group is not set")
+
+        paths = [
+            (path, os.path.getmtime(path))
+            for path in glob.glob(
+                os.path.join(get_preset_path(self._active_group_key), "*.json")
+            )
+        ]
+        path, _ = max(paths, key=lambda x: x[1])
+        return os.path.split(path)[-1].split(".")[0]
 
     def emit_group_changed(self):
         self.event_handler.emit(
@@ -119,9 +151,6 @@ class DataManager:
     def attach_to_event_handler(self):
         """registers all necessary functions at the event handler"""
         pass
-
-    def load_groups(self):
-        self.event_handler.emit(EventEnum.groups_changed, groups=groups)
 
     def load_group(self, group_key: str):
         """gather all presets in the group and provide them"""

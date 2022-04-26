@@ -25,6 +25,7 @@
 
 import os
 import shutil
+from typing import List, Union
 
 from inputremapper.logger import logger, VERSION, IS_BETA
 from inputremapper.user import USER, HOME
@@ -79,6 +80,23 @@ def mkdir(path, log=True):
 
     os.makedirs(path)
     chown(path)
+
+
+def split_all(path: Union[os.PathLike, str]) -> List[str]:
+    parts = []
+    while True:
+        path, tail = os.path.split(path)
+        parts.append(tail)
+        if path == os.path.sep:
+            # we arrived at the root '/'
+            parts.append(path)
+            break
+        if not path:
+            # arrived at start of relative path
+            break
+
+    parts.reverse()
+    return parts
 
 
 def remove(path):

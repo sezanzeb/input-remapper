@@ -26,6 +26,8 @@ from inputremapper.logger import logger
 
 
 class EventEnum(str, enum.Enum):
+    # emit to reset the gui
+    reset_gui = "reset_gui"
     # emit to load all groups
     load_groups = "load_groups"
     # emit to provide all groups. Parameter: groups

@@ -27,7 +27,7 @@ import os
 import re
 import sys
 
-from inputremapper.gui.components import DeviceSelection
+from inputremapper.gui.components import DeviceSelection, PresetSelection
 from inputremapper.gui.controller import Controller
 from inputremapper.gui.event_handler import EventHandler, EventEnum
 from inputremapper.gui.gettext import _
@@ -175,9 +175,9 @@ class UserInterface:
         self.editor = Editor(self)
 
         # set up the device selection
-        DeviceSelection(
-            self.event_handler, self.get("device_selection")
-        )
+        DeviceSelection(self.event_handler, self.get("device_selection"))
+        # set up preset selection
+        PresetSelection(self.event_handler, self.get("preset_selection"))
 
         self.confirm_delete = builder.get_object("confirm-delete")
         self.about = builder.get_object("about-dialog")
@@ -316,6 +316,7 @@ class UserInterface:
 
         This will destroy unsaved changes in the active_preset.
         """
+        return
         presets = get_presets(self.group.name)
 
         if len(presets) == 0:
@@ -355,9 +356,9 @@ class UserInterface:
         # they have already been read.
         combination = reader.read()
 
-        if reader.are_new_groups_available():
-            pass
-            #  self.populate_devices()
+        # if reader.are_new_groups_available():
+        #    pass
+        # self.populate_devices()
 
         # giving editor its own interval and making it call reader.read itself causes
         # incredibly frustrating and miraculous problems. Do not do it. Observations:

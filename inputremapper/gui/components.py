@@ -1,3 +1,5 @@
+from typing import List, Tuple, Optional
+
 from gi.repository import Gtk, GtkSource, Gdk, GLib, GObject
 
 from inputremapper.groups import (
@@ -45,31 +47,52 @@ class DeviceSelection:
         combobox.set_id_column(0)
 
         self.attach_to_events()
-        combobox.connect("changed", self.on_select_device)
+        combobox.connect("changed", self.on_gtk_select_device)
 
     def attach_to_events(self):
         self.event_handler.subscribe(EventEnum.groups_changed, self.on_groups_changed)
         self.event_handler.subscribe(EventEnum.group_changed, self.on_group_changed)
 
-    def on_groups_changed(self, groups: _Groups):
-        with HandlerDisabled(self.gui, self.on_select_device):
+    def on_groups_changed(self, groups: List[Tuple[str, Optional[str]]]):
+        with HandlerDisabled(self.gui, self.on_gtk_select_device):
             self.device_store.clear()
-            for group in groups.filter(include_inputremapper=False):
-                types = group.types
-                if len(types) > 0:
-                    device_type = sorted(types, key=ICON_PRIORITIES.index)[0]
-                    icon_name = ICON_NAMES[device_type]
-                else:
-                    icon_name = None
+            for group in groups:
+                logger.debug(f"adding {group[0]} to device dropdown ")
+                self.device_store.append([group[0], group[1], group[0]])
 
-                logger.debug(f"adding {group.key} to device dropdown ")
-                self.device_store.append([group.key, icon_name, group.key])
-
-    def on_group_changed(self, group_key: str, **kwargs):
-        with HandlerDisabled(self.gui, self.on_select_device):
+    def on_group_changed(self, group_key: str, **_):
+        with HandlerDisabled(self.gui, self.on_gtk_select_device):
             self.gui.set_active_id(group_key)
 
-    def on_select_device(self, *_, **__):
+    def on_gtk_select_device(self, *_, **__):
         group_key = self.gui.get_active_id()
         logger.debug('Selecting device "%s"', group_key)
         self.event_handler.emit(EventEnum.load_group, group_key=group_key)
+
+
+class PresetSelection:
+    def __init__(self, event_handler: EventHandler, combobox: Gtk.ComboBoxText):
+        self.event_handler = event_handler
+        self.gui = combobox
+
+        self.attach_to_events()
+        combobox.connect("changed", self.on_gtk_select_preset)
+
+    def attach_to_events(self):
+        self.event_handler.subscribe(EventEnum.group_changed, self.on_group_changed)
+        self.event_handler.subscribe(EventEnum.preset_changed, self.on_preset_changed)
+
+    def on_group_changed(self, group_key: str, presets: List[str]):
+        with HandlerDisabled(self.gui, self.on_gtk_select_preset):
+            self.gui.remove_all()
+            for preset in presets:
+                self.gui.append(preset, preset)
+
+    def on_preset_changed(self, name, **_):
+        with HandlerDisabled(self.gui, self.on_gtk_select_preset):
+            self.gui.set_active_id(name)
+
+    def on_gtk_select_preset(self, *_, **__):
+        name = self.gui.get_active_id()
+        logger.debug('Selecting preset "%s"', name)
+        self.event_handler.emit(EventEnum.load_preset, name=name)

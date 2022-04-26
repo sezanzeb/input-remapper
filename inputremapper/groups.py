@@ -30,7 +30,6 @@ events are being read from all of the paths of an individual group in the gui
 and the injector.
 """
 
-
 import re
 import multiprocessing
 import threading
@@ -56,7 +55,6 @@ from evdev.ecodes import (
 from inputremapper.logger import logger
 from inputremapper.configs.paths import get_preset_path
 
-
 TABLET_KEYS = [
     evdev.ecodes.BTN_STYLUS,
     evdev.ecodes.BTN_TOOL_BRUSH,
@@ -71,7 +69,6 @@ TOUCHPAD = "touchpad"
 GRAPHICS_TABLET = "graphics-tablet"
 CAMERA = "camera"
 UNKNOWN = "unknown"
-
 
 if not hasattr(evdev.InputDevice, "path"):
     # for evdev < 1.0.0 patch the path property
