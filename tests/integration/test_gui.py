@@ -509,7 +509,7 @@ class GuiTestBase(unittest.TestCase):
         self.assertEqual(self.editor.get_symbol_input_text(), correct_case)
         self.assertFalse(active_preset.has_unsaved_changes())
 
-        # TODO I forgot what this is about
+        # TODO I forgot what this is about. Maybe to trigger saving?
         self.set_focus(self.editor.get_text_input())
         self.set_focus(None)
 
