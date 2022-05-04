@@ -88,13 +88,17 @@ class RootHelper:
 
     def run(self):
         """Start doing stuff. Blocks."""
-        logger.debug("Waiting for commands")
+        logger.debug("Waiting for the first command")
+        # the reader will check for new commands later, once it is running
+        # it keeps running for one device or another.
+        select.select([self._commands], [], [])
 
-        while True:
+        # possibly an alternative to select:
+        """while True:
             if self._commands.poll():
                 break
 
-            time.sleep(0.1)
+            time.sleep(0.1)"""
 
         logger.debug("Starting mainloop")
         while True:
@@ -177,8 +181,8 @@ class RootHelper:
         while True:
             ready_fds = select.select(rlist, [], [])
             if len(ready_fds[0]) == 0:
-                # whatever, happens for sockets sometimes. Maybe the socket
-                # is closed and select has nothing to select from?
+                # happens with sockets sometimes. Sockets are not stable and
+                # not used, so nothing to worry about now.
                 continue
 
             for fd in ready_fds[0]:
