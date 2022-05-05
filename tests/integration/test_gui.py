@@ -324,9 +324,10 @@ class GuiTestBase(unittest.TestCase):
 
     def throttle(self):
         """Give GTK some time to process everything."""
-        # tests suddenly started to freeze my computer up completely
-        # and tests started to fail. By using this (and by optimizing some
-        # redundant calls in the gui) it worked again.
+        # tests suddenly started to freeze my computer up completely and tests started
+        # to fail. By using this (and by optimizing some redundant calls in the gui) it
+        # worked again. EDIT: Might have been caused by my broken/bloated ssd. I'll
+        # keep it in some places, since it did make the tests more reliable after all.
         for _ in range(10):
             gtk_iteration()
             time.sleep(0.002)
@@ -351,8 +352,6 @@ class GuiTestBase(unittest.TestCase):
 
         self.user_interface.window.set_focus(widget)
 
-        # for whatever miraculous reason it suddenly takes time before gtk does
-        # anything, even for old code.
         self.throttle()
 
     def get_selection_labels(self):
@@ -406,8 +405,6 @@ class GuiTestBase(unittest.TestCase):
             "work" if expect_success else "fail",
         )
 
-        self.throttle()
-
         self.assertIsNone(reader.get_unreleased_keys())
 
         changed = active_preset.has_unsaved_changes()
@@ -429,7 +426,6 @@ class GuiTestBase(unittest.TestCase):
         # the recording toggle connects to focus events
         self.set_focus(self.toggle)
         self.toggle.set_active(True)
-        self.throttle()
         self.assertIsNone(selection_label.get_combination())
         self.assertEqual(self.toggle.get_label(), "Press Key")
 
@@ -444,9 +440,6 @@ class GuiTestBase(unittest.TestCase):
             # make the window consume the keycode
             self.sleep(len(key))
 
-            # and some extra time for gtk to work at all
-            self.throttle()
-
             # holding down
             self.assertIsNotNone(reader.get_unreleased_keys())
             self.assertGreater(len(reader.get_unreleased_keys()), 0)
@@ -459,9 +452,6 @@ class GuiTestBase(unittest.TestCase):
 
             # wait for the window to consume the keycode
             self.sleep(len(key))
-
-            # ...and even more extra time for gtk
-            self.throttle()
 
             # released
             self.assertIsNone(reader.get_unreleased_keys())
