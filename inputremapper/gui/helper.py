@@ -37,6 +37,7 @@ import sys
 import select
 import multiprocessing
 import subprocess
+import time
 
 import evdev
 from evdev.ecodes import EV_KEY, EV_ABS
@@ -87,19 +88,30 @@ class RootHelper:
 
     def run(self):
         """Start doing stuff. Blocks."""
+        logger.debug("Waiting for the first command")
+        # the reader will check for new commands later, once it is running
+        # it keeps running for one device or another.
+        select.select([self._commands], [], [])
+
+        # possibly an alternative to select:
+        """while True:
+            if self._commands.poll():
+                break
+
+            time.sleep(0.1)"""
+
+        logger.debug("Starting mainloop")
         while True:
-            self._handle_commands()
+            self._read_commands()
             self._start_reading()
 
     def _send_groups(self):
         """Send the groups to the gui."""
+        logger.debug("Sending groups")
         self._results.send({"type": MSG_GROUPS, "message": groups.dumps()})
 
-    def _handle_commands(self):
+    def _read_commands(self):
         """Handle all unread commands."""
-        # wait for something to do
-        select.select([self._commands], [], [])
-
         while self._commands.poll():
             cmd = self._commands.recv()
             logger.debug('Received command "%s"', cmd)
@@ -123,6 +135,8 @@ class RootHelper:
                 continue
 
             logger.error('Received unknown command "%s"', cmd)
+
+        logger.debug("No more commands in pipe")
 
     def _start_reading(self):
         """Tell the evdev lib to start looking for keycodes.
@@ -167,15 +181,16 @@ class RootHelper:
         while True:
             ready_fds = select.select(rlist, [], [])
             if len(ready_fds[0]) == 0:
-                # whatever, happens for sockets sometimes. Maybe the socket
-                # is closed and select has nothing to select from?
+                # happens with sockets sometimes. Sockets are not stable and
+                # not used, so nothing to worry about now.
                 continue
 
             for fd in ready_fds[0]:
                 if rlist[fd] == self._commands:
                     # all commands will cause the reader to start over
                     # (possibly for a different device).
-                    # _handle_commands will check what is going on
+                    # _read_commands will check what is going on
+                    logger.debug("Stops reading due to new command")
                     return
 
                 device = rlist[fd]
