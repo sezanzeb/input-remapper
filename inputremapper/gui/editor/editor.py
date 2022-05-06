@@ -46,61 +46,6 @@ from inputremapper.gui.utils import CTX_KEYCODE, CTX_WARNING, CTX_ERROR
 from inputremapper.injection.global_uinputs import global_uinputs
 
 
-class SelectionLabel(Gtk.ListBoxRow):
-    """One label per mapping in the preset.
-
-    This wrapper serves as a storage for the information the inherited label represents.
-    """
-
-    __gtype_name__ = "SelectionLabel"
-
-    def __init__(self):
-        super().__init__()
-        self.combination = None
-        self.symbol = ""
-
-        label = Gtk.Label()
-
-        # Make the child label widget break lines, important for
-        # long combinations
-        label.set_line_wrap(True)
-        label.set_line_wrap_mode(Gtk.WrapMode.WORD)
-        label.set_justify(Gtk.Justification.CENTER)
-
-        self.label = label
-        self.add(label)
-
-        self.show_all()
-
-    def set_combination(self, combination: EventCombination):
-        """Set the combination this button represents
-
-        Parameters
-        ----------
-        combination : EventCombination
-        """
-        self.combination = combination
-        if combination:
-            self.label.set_label(combination.beautify())
-        else:
-            self.label.set_label(_("new entry"))
-
-    def get_combination(self) -> EventCombination:
-        return self.combination
-
-    def set_label(self, label):
-        return self.label.set_label(label)
-
-    def get_label(self):
-        return self.label.get_label()
-
-    def __str__(self):
-        return f"SelectionLabel({str(self.combination)})"
-
-    def __repr__(self):
-        return self.__str__()
-
-
 class CombinationEntry(Gtk.ListBoxRow):
     """One row per InputEvent in the EventCombination."""
 
@@ -176,10 +121,10 @@ class Editor:
             GLib.timeout_add(100, self.check_add_new_key),
             GLib.timeout_add(1000, self.update_toggle_opacity),
         ]
-        self.active_selection_label: Optional[SelectionLabel] = None
+        self.active_selection_label = None
 
-        selection_label_listbox = self.get("selection_label_listbox")
-        selection_label_listbox.connect("row-selected", self.on_mapping_selected)
+        # selection_label_listbox = self.get("selection_label_listbox")
+        # selection_label_listbox.connect("row-selected", self.on_mapping_selected)
 
         self.device = user_interface.group
 
@@ -272,6 +217,8 @@ class Editor:
 
     def clear_mapping_list(self):
         """Clear the labels from the mapping selection and add an empty one."""
+        logger.debug("deprecated")
+        return
         selection_label_listbox = self.get("selection_label_listbox")
         selection_label_listbox.forall(selection_label_listbox.remove)
         self.add_empty()
@@ -356,6 +303,8 @@ class Editor:
 
     def check_add_new_key(self):
         """If needed, add a new empty mapping to the list for the user to configure."""
+        logger.debug("deprecated")
+        return
         selection_label_listbox = self.get("selection_label_listbox")
 
         selection_label_listbox = selection_label_listbox.get_children()
@@ -455,6 +404,8 @@ class Editor:
 
     def add_empty(self):
         """Add one empty row for a single mapped key."""
+        logger.debug("deprecated")
+        return
         selection_label_listbox = self.get("selection_label_listbox")
         mapping_selection = SelectionLabel()
         mapping_selection.set_label(_("new entry"))
@@ -464,6 +415,8 @@ class Editor:
     @ensure_everything_saved
     def load_custom_mapping(self):
         """Display the entries in active_preset."""
+        logger.debug("deprecated")
+        return
         selection_label_listbox = self.get("selection_label_listbox")
 
         selection_label_listbox.forall(selection_label_listbox.remove)

@@ -57,8 +57,10 @@ class EventEnum(str, enum.Enum):
     update_mapping = "update_mapping"
     # delete the current mapping
     delete_mapping = "delete_mapping"
-    # emit to provide a mapping. Parameter: mapping
+    # emit to provide a updated mapping. Parameter: mapping
     mapping_changed = "mapping_changed"
+    # emit to provide a new active mapping. Parameter: mapping
+    mapping_loaded = "mapping_loaded"
 
     # emit to request to autoload status for the current preset.
     get_autoload = "get_autoload"

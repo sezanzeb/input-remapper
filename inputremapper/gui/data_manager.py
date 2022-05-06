@@ -81,7 +81,7 @@ class DataManager:
         path, _ = max(paths, key=lambda x: x[1])
         return split_all(path)[-2]
 
-    def newest_preset(self) -> str:
+    def newest_preset(self) -> Optional[str]:
         """preset name of the most recently modified preset in the active group"""
         if not self._active_group_key:
             raise DataManagementError("cannot find newest preset: Group is not set")
@@ -92,6 +92,9 @@ class DataManager:
                 os.path.join(get_preset_path(self._active_group_key), "*.json")
             )
         ]
+        if not paths:
+            return None
+
         path, _ = max(paths, key=lambda x: x[1])
         return os.path.split(path)[-1].split(".")[0]
 
@@ -119,6 +122,13 @@ class DataManager:
             self.event_handler.emit(EventEnum.mapping_changed, mapping=mapping.dict())
         else:
             self.event_handler.emit(EventEnum.mapping_changed, mapping=None)
+
+    def emit_mapping_loaded(self):
+        mapping = self._active_mapping
+        if mapping:
+            self.event_handler.emit(EventEnum.mapping_loaded, mapping=mapping.dict())
+        else:
+            self.event_handler.emit(EventEnum.mapping_loaded, mapping=None)
 
     def get_presets(self) -> List[str]:
         """Get all preset filenames for self._active_group_key and user,
@@ -157,7 +167,7 @@ class DataManager:
         self._active_mapping = None
         self._active_preset = None
         self._active_group_key = group_key
-        self.emit_mapping_changed()
+        self.emit_mapping_loaded()
         self.emit_preset_changed()
         self.emit_group_changed()
 
@@ -171,7 +181,7 @@ class DataManager:
         preset.load()
         self._active_mapping = None
         self._active_preset = preset
-        self.emit_mapping_changed()
+        self.emit_mapping_loaded()
         self.emit_preset_changed()
         self.emit_autoload_changed()
 
@@ -238,7 +248,7 @@ class DataManager:
                 f"exist in the {self._active_preset.path}"
             )
         self._active_mapping = mapping
-        self.emit_mapping_changed()
+        self.emit_mapping_loaded()
 
     def update_mapping(self, **kwargs):
         if not self._active_mapping:

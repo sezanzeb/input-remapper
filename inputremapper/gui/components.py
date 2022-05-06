@@ -1,7 +1,10 @@
-from typing import List, Tuple, Optional
+from __future__ import annotations
+
+from typing import List, Tuple, Optional, Dict
 
 from gi.repository import Gtk, GtkSource, Gdk, GLib, GObject
 
+from inputremapper.event_combination import EventCombination
 from inputremapper.groups import (
     _Groups,
     GAMEPAD,
@@ -96,3 +99,91 @@ class PresetSelection:
         name = self.gui.get_active_id()
         logger.debug('Selecting preset "%s"', name)
         self.event_handler.emit(EventEnum.load_preset, name=name)
+
+
+class MappingListBox:
+    def __init__(self, event_handler: EventHandler, listbox: Gtk.ListBox):
+        self.event_handler = event_handler
+        self.gui = listbox
+        self.gui.set_sort_func(self.sort_func)
+        self.gui.connect("row-selected", self.on_gtk_mapping_selected)
+        self.attach_to_events()
+
+    @staticmethod
+    def sort_func(row1: SelectionLabel, row2: SelectionLabel) -> int:
+        """sort alphanumerical by name"""
+        return 0 if row1.name < row2.name else 1
+
+    def attach_to_events(self):
+        self.event_handler.subscribe(EventEnum.preset_changed, self.on_preset_changed)
+
+    def on_preset_changed(
+        self, *, mappings: Optional[List[Tuple[str, EventCombination]]], **_
+    ):
+        self.gui.forall(self.gui.remove)
+        if not mappings:
+            return
+
+        for name, combination in mappings:
+            selection_label = SelectionLabel(self.event_handler, name, combination)
+            self.gui.insert(selection_label, -1)
+
+    def on_mapping_loaded(self, mapping: Dict):
+        with HandlerDisabled(self.gui, self.on_gtk_mapping_selected):
+            if not mapping:
+                self.gui.do_unselect_all()
+                return
+
+            combination = mapping["combination"]
+
+            def set_active(row: SelectionLabel):
+                if row.combination == combination:
+                    self.gui.select_row(row)
+
+            self.gui.foreach(set_active)
+
+    def on_gtk_mapping_selected(self, _, row: SelectionLabel):
+        self.event_handler.emit(EventEnum.load_mapping, combination=row.combination)
+
+
+class SelectionLabel(Gtk.ListBoxRow):
+
+    __gtype_name__ = "SelectionLabel"
+
+    def __init__(self, event_handler: EventHandler, name: Optional[str], combination: EventCombination):
+        super().__init__()
+        self.event_handler = event_handler
+        self.combination = combination
+        self._name = name
+
+        self.label = Gtk.Label()
+        # Make the child label widget break lines, important for
+        # long combinations
+        self.label.set_line_wrap(True)
+        self.label.set_line_wrap_mode(Gtk.WrapMode.WORD)
+        self.label.set_justify(Gtk.Justification.CENTER)
+        # set the name or combination.beautify as label
+        self.label.set_label(self.name)
+        self.add(self.label)
+
+        self.attach_to_events()
+        self.show_all()
+
+    def __repr__(self):
+        return f"SelectionLabel for {self.combination} as {self.name}"
+
+    @property
+    def name(self) -> str:
+        return self._name or self.combination.beautify()
+
+    def attach_to_events(self):
+        self.event_handler.subscribe(EventEnum.mapping_changed, self.on_mapping_changed)
+
+    def on_mapping_changed(self, mapping: Dict):
+        if not self.is_selected():
+            return
+
+        self._name = mapping["name"]
+        self.combination = mapping["combination"]
+
+

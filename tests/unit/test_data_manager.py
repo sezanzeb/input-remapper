@@ -159,7 +159,7 @@ class TestDataManager(unittest.TestCase):
         self.data_manager.load_group(group_key="Foo Device")
         self.data_manager.load_preset(name="preset1")
         listener = Listener()
-        self.event_handler.subscribe(EventEnum.mapping_changed, listener)
+        self.event_handler.subscribe(EventEnum.mapping_loaded, listener)
         self.data_manager.load_mapping(combination=EventCombination("1,1,1"))
 
         mapping = listener.calls[0]["mapping"]
@@ -307,7 +307,7 @@ class TestDataManager(unittest.TestCase):
         self.data_manager.load_group(group_key="Foo Device")
         self.data_manager.load_preset(name="preset1")
         listener = Listener()
-        self.event_handler.subscribe(EventEnum.mapping_changed, listener)
+        self.event_handler.subscribe(EventEnum.mapping_loaded, listener)
         self.data_manager.load_mapping(combination=EventCombination("1,1,1"))
         mapping = listener.calls[0]["mapping"]
 
@@ -389,7 +389,7 @@ class TestDataManager(unittest.TestCase):
         self.data_manager.load_group(group_key="Foo Device 2")
         self.data_manager.load_preset(name="preset2")
         listener = Listener()
-        self.event_handler.subscribe(EventEnum.mapping_changed, listener)
+        self.event_handler.subscribe(EventEnum.mapping_loaded, listener)
         self.event_handler.subscribe(EventEnum.preset_changed, listener)
         self.data_manager.create_mapping()  # emits preset_changed
 
