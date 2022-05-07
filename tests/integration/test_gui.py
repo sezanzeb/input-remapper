@@ -1396,6 +1396,7 @@ class TestGui(GuiTestBase):
         # now change the mapping by typing into the field
         buffer = self.editor.get_text_input().get_buffer()
         buffer.set_text("sdfgkj()")
+        self.throttle()
         # debouncing, still nothing shown
         tooltip = status.get_tooltip_text()
         self.assertIsNone(tooltip)
