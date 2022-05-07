@@ -329,6 +329,32 @@ class Macro:
 
         self.tasks.append(task)
 
+    def add_key_down(self, symbol):
+        """Press the symbol."""
+        _type_check_symbol(symbol)
+
+        async def task(handler):
+            resolved_symbol = _resolve(symbol, [str])
+            code = _type_check_symbol(resolved_symbol)
+
+            resolved_code = _resolve(code, [int])
+            handler(EV_KEY, resolved_code, 1)
+
+        self.tasks.append(task)
+
+    def add_key_up(self, symbol):
+        """Release the symbol."""
+        _type_check_symbol(symbol)
+
+        async def task(handler):
+            resolved_symbol = _resolve(symbol, [str])
+            code = _type_check_symbol(resolved_symbol)
+
+            resolved_code = _resolve(code, [int])
+            handler(EV_KEY, resolved_code, 0)
+
+        self.tasks.append(task)
+
     def add_hold(self, macro=None):
         """Loops the execution until key release."""
         _type_check(macro, [Macro, str, None], "hold", 1)
