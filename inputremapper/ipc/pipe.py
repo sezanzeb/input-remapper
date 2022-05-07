@@ -87,6 +87,12 @@ class Pipe:
 
         self._handles = (open(self._fds[0], "r"), open(self._fds[1], "w"))
 
+        # clear the pipe of any contents, to avoid leftover messages from breaking
+        # the helper
+        while self.poll():
+            leftover = self.recv()
+            logger.debug('Cleared leftover message "%s"', leftover)
+
     def recv(self):
         """Read an object from the pipe or None if nothing available.
 
