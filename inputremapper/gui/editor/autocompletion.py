@@ -35,7 +35,6 @@ from inputremapper.injection.macros.parse import (
 )
 from inputremapper.injection.global_uinputs import global_uinputs
 from inputremapper.logger import logger
-from inputremapper.gui.utils import debounce
 
 
 # no deprecated shorthand function-names
@@ -128,6 +127,29 @@ def propose_function_names(text_iter):
     ]
 
 
+debounces = {}
+
+
+def debounce(func):
+    """Debounce a function call to improve performance."""
+
+    def clear_debounce(self, *args):
+        debounces[func.__name__] = None
+        return func(self, *args)
+
+    def wrapped(self, *args):
+        if debounces.get(func.__name__) is not None:
+            GLib.source_remove(debounces[func.__name__])
+
+        timeout = self.debounce_timeout
+
+        debounces[func.__name__] = GLib.timeout_add(
+            timeout, lambda: clear_debounce(self, *args)
+        )
+
+    return wrapped
+
+
 class SuggestionLabel(Gtk.Label):
     """A label with some extra internal information."""
 
@@ -163,6 +185,8 @@ class Autocompletion(Gtk.Popover):
             # position based on the location within the window
             constrain_to=Gtk.PopoverConstraint.NONE,
         )
+
+        self.debounce_timeout = 100
 
         self.text_input = text_input
         self.target_selector = target_selector
@@ -311,7 +335,7 @@ class Autocompletion(Gtk.Popover):
         self.visible = False
         super().popdown()
 
-    @debounce(100)
+    @debounce
     def update(self, *_):
         """Find new autocompletion suggestions and display them. Hide if none."""
         if not self.text_input.is_focus():
