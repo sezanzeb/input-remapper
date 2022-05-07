@@ -1358,7 +1358,10 @@ class TestGui(GuiTestBase):
         warning_icon = self.user_interface.get("warning_status_icon")
 
         active_preset.change(
-            EventCombination([EV_KEY, 9, 1]), "keyboard", "k(1))", None
+            EventCombination([EV_KEY, 9, 1]),
+            "keyboard",
+            "k(1))",
+            None,
         )
         self.user_interface.save_preset()
         tooltip = status.get_tooltip_text().lower()
@@ -1377,6 +1380,37 @@ class TestGui(GuiTestBase):
             active_preset.get_mapping(EventCombination([EV_KEY, 9, 1])),
             ("k(1)", "keyboard"),
         )
+
+    def test_debounce_check_on_typing(self):
+        status = self.user_interface.get("status_bar")
+        status.set_tooltip_text(None)
+        error_icon = self.user_interface.get("error_status_icon")
+        warning_icon = self.user_interface.get("warning_status_icon")
+
+        self.add_mapping_via_ui(EventCombination([EV_KEY, 10, 1]), "")
+        gtk_iteration()
+        tooltip = status.get_tooltip_text()
+        # nothing wrong yet
+        self.assertIsNone(tooltip)
+
+        # now change the mapping by typing into the field
+        buffer = self.editor.get_text_input().get_buffer()
+        buffer.set_text("sdfgkj()")
+        self.throttle()
+        # debouncing, still nothing shown
+        tooltip = status.get_tooltip_text()
+        self.assertIsNone(tooltip)
+
+        # after 510 ms the debouncing should have been triggered a syntax check
+        time.sleep(0.51)
+        gtk_iteration()
+
+        tooltip = status.get_tooltip_text()
+        self.assertIn("Unknown function sdfgkj", tooltip)
+        self.assertTrue(error_icon.get_visible())
+        self.assertFalse(warning_icon.get_visible())
+
+        self.assertEqual(self.editor.get_symbol_input_text(), "sdfgkj()")
 
     def test_select_device_and_preset(self):
         foo_device_path = f"{CONFIG_PATH}/presets/Foo Device"
