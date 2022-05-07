@@ -329,28 +329,20 @@ def _parse_recurse(code, context, macro_instance=None, depth=0):
 
 
 def handle_plus_syntax(macro):
-    """transform a + b + c to modify(a,modify(b,modify(c,hold())))"""
+    """transform a + b + c to hold_keys(a,b,c)"""
     if "+" not in macro:
         return macro
 
     if "(" in macro or ")" in macro:
-        raise ValueError(
-            f'Mixing "+" and macros is unsupported: "{ macro}"'
-        )  # TODO: MacroParsingError
+        # TODO: MacroParsingError
+        raise ValueError(f'Mixing "+" and macros is unsupported: "{ macro}"')
 
     chunks = [chunk.strip() for chunk in macro.split("+")]
-    output = ""
-    depth = 0
-    for chunk in chunks:
-        if chunk == "":
-            # invalid syntax
-            raise ValueError(f'Invalid syntax for "{macro}"')
 
-        depth += 1
-        output += f"modify({chunk},"
+    if "" in chunks:
+        raise ValueError(f'Invalid syntax for "{macro}"')
 
-    output += "hold()"
-    output += depth * ")"
+    output = f"hold_keys({','.join(chunks)})"
 
     logger.debug('Transformed "%s" to "%s"', macro, output)
     return output
