@@ -1383,6 +1383,7 @@ class TestGui(GuiTestBase):
 
     def test_debounce_check_on_typing(self):
         status = self.user_interface.get("status_bar")
+        status.set_tooltip_text(None)
         error_icon = self.user_interface.get("error_status_icon")
         warning_icon = self.user_interface.get("warning_status_icon")
 
@@ -1399,8 +1400,8 @@ class TestGui(GuiTestBase):
         tooltip = status.get_tooltip_text()
         self.assertIsNone(tooltip)
 
-        # after 110 ms the debouncing should have been triggered a syntax check
-        time.sleep(0.11)
+        # after 510 ms the debouncing should have been triggered a syntax check
+        time.sleep(0.51)
         gtk_iteration()
 
         tooltip = status.get_tooltip_text()
