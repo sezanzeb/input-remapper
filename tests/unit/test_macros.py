@@ -32,8 +32,6 @@ from evdev.ecodes import (
     EV_REL,
     EV_KEY,
     REL_Y,
-    REL_X,
-    REL_WHEEL,
     REL_HWHEEL,
     KEY_A,
     KEY_B,
@@ -90,7 +88,7 @@ class MacroTestBase(unittest.IsolatedAsyncioTestCase):
 
     def handler(self, ev_type, code, value):
         """Where macros should write codes to."""
-        print(f"\033[90mmacro wrote{(ev_type, code, value)}\033[0m")
+        logger.info(f"macro wrote{(ev_type, code, value)}")
         self.result.append((ev_type, code, value))
 
 
@@ -366,6 +364,9 @@ class TestMacros(MacroTestBase):
         # have a meaning in the macro syntax.
         self.assertEqual(_parse_recurse("foo", self.context), "foo")
 
+        self.assertEqual(_parse_recurse("", self.context), None)
+        self.assertEqual(_parse_recurse("None", self.context), None)
+
         self.assertEqual(_parse_recurse("5", self.context), 5)
         self.assertEqual(_parse_recurse("5.2", self.context), 5.2)
         self.assertIsInstance(_parse_recurse("$foo", self.context), Variable)
@@ -494,6 +495,8 @@ class TestMacros(MacroTestBase):
         error = parse("ifeq(a, 2, k(a),)", self.context, True)
         self.assertIsNone(error)
         error = parse("ifeq(a, 2, , k(a))", self.context, True)
+        self.assertIsNone(error)
+        error = parse("ifeq(a, 2, None, k(a))", self.context, True)
         self.assertIsNone(error)
         error = parse("ifeq(a, 2, 1,)", self.context, True)
         self.assertIsNotNone(error)
@@ -1076,17 +1079,34 @@ class TestIfEq(MacroTestBase):
         self.assertEqual(len(macro.child_macros), 2)
 
     async def test_ifeq_none(self):
-        # first param none
-        macro = parse("set(foo, 2).ifeq(foo, 2, , key(b))", self.context)
+        code_a = system_mapping.get("a")
+
+        # first param None
+        macro = parse("set(foo, 2).ifeq(foo, 2, None, key(b))", self.context)
         self.assertEqual(len(macro.child_macros), 1)
-        code_b = system_mapping.get("b")
         await macro.run(self.handler)
         self.assertListEqual(self.result, [])
 
-        # second param none
-        macro = parse("set(foo, 2).ifeq(foo, 2, key(a),)", self.context)
+        # second param None
+        self.result = []
+        macro = parse("set(foo, 2).ifeq(foo, 2, key(a), None)", self.context)
         self.assertEqual(len(macro.child_macros), 1)
-        code_a = system_mapping.get("a")
+        await macro.run(self.handler)
+        self.assertListEqual(self.result, [(EV_KEY, code_a, 1), (EV_KEY, code_a, 0)])
+
+        """Old syntax, use None instead"""
+
+        # first param ""
+        self.result = []
+        macro = parse("set(foo, 2).ifeq(foo, 2, , key(b))", self.context)
+        self.assertEqual(len(macro.child_macros), 1)
+        await macro.run(self.handler)
+        self.assertListEqual(self.result, [])
+
+        # second param ""
+        self.result = []
+        macro = parse("set(foo, 2).ifeq(foo, 2, key(a), )", self.context)
+        self.assertEqual(len(macro.child_macros), 1)
         await macro.run(self.handler)
         self.assertListEqual(self.result, [(EV_KEY, code_a, 1), (EV_KEY, code_a, 0)])
 
@@ -1107,6 +1127,8 @@ class TestIfEq(MacroTestBase):
         b_press = [(EV_KEY, code_b, 1), (EV_KEY, code_b, 0)]
 
         async def test(macro, expected):
+            """Run the macro and compare the injections with an expectation."""
+            logger.info("Testing %s", macro)
             # cleanup
             macro_variables._clear()
             self.assertIsNone(macro_variables.get("a"))
@@ -1123,11 +1145,14 @@ class TestIfEq(MacroTestBase):
         await test('set(a, "foo").if_eq($a, "foo", key(a), key(b))', a_press)
         await test('set(a, "foo").if_eq("foo", $a, key(a), key(b))', a_press)
         await test('set(a, "foo").if_eq("foo", $a, , key(b))', [])
+        await test('set(a, "foo").if_eq("foo", $a, None, key(b))', [])
         await test('set(a, "qux").if_eq("foo", $a, key(a), key(b))', b_press)
         await test('set(a, "qux").if_eq($a, "foo", key(a), key(b))', b_press)
         await test('set(a, "qux").if_eq($a, "foo", key(a), )', [])
         await test('set(a, "x").set(b, "y").if_eq($b, $a, key(a), key(b))', b_press)
         await test('set(a, "x").set(b, "y").if_eq($b, $a, key(a), )', [])
+        await test('set(a, "x").set(b, "y").if_eq($b, $a, key(a), None)', [])
+        await test('set(a, "x").set(b, "y").if_eq($b, $a, key(a), else=None)', [])
         await test('set(a, "x").set(b, "x").if_eq($b, $a, key(a), key(b))', a_press)
         await test('set(a, "x").set(b, "x").if_eq($b, $a, , key(b))', [])
         await test("if_eq($q, $w, key(a), else=key(b))", a_press)  # both None
