@@ -369,6 +369,9 @@ class TestMacros(MacroTestBase):
         # have a meaning in the macro syntax.
         self.assertEqual(_parse_recurse("foo", self.context), "foo")
 
+        self.assertEqual(_parse_recurse("", self.context), None)
+        self.assertEqual(_parse_recurse("None", self.context), None)
+
         self.assertEqual(_parse_recurse("5", self.context), 5)
         self.assertEqual(_parse_recurse("5.2", self.context), 5.2)
         self.assertIsInstance(_parse_recurse("$foo", self.context), Variable)
@@ -497,6 +500,8 @@ class TestMacros(MacroTestBase):
         error = parse("ifeq(a, 2, k(a),)", self.context, True)
         self.assertIsNone(error)
         error = parse("ifeq(a, 2, , k(a))", self.context, True)
+        self.assertIsNone(error)
+        error = parse("ifeq(a, 2, None, k(a))", self.context, True)
         self.assertIsNone(error)
         error = parse("ifeq(a, 2, 1,)", self.context, True)
         self.assertIsNotNone(error)
@@ -1061,17 +1066,34 @@ class TestIfEq(MacroTestBase):
         self.assertEqual(len(macro.child_macros), 2)
 
     async def test_ifeq_none(self):
-        # first param none
-        macro = parse("set(foo, 2).ifeq(foo, 2, , key(b))", self.context)
+        code_a = system_mapping.get("a")
+
+        # first param None
+        macro = parse("set(foo, 2).ifeq(foo, 2, None, key(b))", self.context)
         self.assertEqual(len(macro.child_macros), 1)
-        code_b = system_mapping.get("b")
         await macro.run(self.handler)
         self.assertListEqual(self.result, [])
 
-        # second param none
-        macro = parse("set(foo, 2).ifeq(foo, 2, key(a),)", self.context)
+        # second param None
+        self.result = []
+        macro = parse("set(foo, 2).ifeq(foo, 2, key(a), None)", self.context)
         self.assertEqual(len(macro.child_macros), 1)
-        code_a = system_mapping.get("a")
+        await macro.run(self.handler)
+        self.assertListEqual(self.result, [(EV_KEY, code_a, 1), (EV_KEY, code_a, 0)])
+
+        """Old syntax, use None instead"""
+
+        # first param ""
+        self.result = []
+        macro = parse("set(foo, 2).ifeq(foo, 2, , key(b))", self.context)
+        self.assertEqual(len(macro.child_macros), 1)
+        await macro.run(self.handler)
+        self.assertListEqual(self.result, [])
+
+        # second param ""
+        self.result = []
+        macro = parse("set(foo, 2).ifeq(foo, 2, key(a), )", self.context)
+        self.assertEqual(len(macro.child_macros), 1)
         await macro.run(self.handler)
         self.assertListEqual(self.result, [(EV_KEY, code_a, 1), (EV_KEY, code_a, 0)])
 

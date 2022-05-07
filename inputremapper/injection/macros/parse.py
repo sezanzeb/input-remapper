@@ -227,7 +227,8 @@ def _parse_recurse(code, context, macro_instance=None, depth=0):
 
     code = code.strip()
 
-    if code == "":
+    if code == "" or code == "None":
+        # A function parameter probably
         return None
 
     if code.startswith('"'):
