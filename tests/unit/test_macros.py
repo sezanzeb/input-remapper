@@ -32,8 +32,6 @@ from evdev.ecodes import (
     EV_REL,
     EV_KEY,
     REL_Y,
-    REL_X,
-    REL_WHEEL,
     REL_HWHEEL,
     KEY_A,
     KEY_B,
@@ -90,7 +88,7 @@ class MacroTestBase(unittest.IsolatedAsyncioTestCase):
 
     def handler(self, ev_type, code, value):
         """Where macros should write codes to."""
-        print(f"\033[90mmacro wrote{(ev_type, code, value)}\033[0m")
+        logger.info(f"macro wrote{(ev_type, code, value)}")
         self.result.append((ev_type, code, value))
 
 
@@ -1130,6 +1128,7 @@ class TestIfEq(MacroTestBase):
 
         async def test(macro, expected):
             """Run the macro and compare the injections with an expectation."""
+            logger.info("Testing %s", macro)
             # cleanup
             macro_variables._clear()
             self.assertIsNone(macro_variables.get("a"))

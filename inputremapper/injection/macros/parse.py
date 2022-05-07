@@ -86,8 +86,9 @@ def use_safe_argument_names(keyword_args):
     # be used in macro code.
     built_ins = ["else", "type"]
 
+    keys = keyword_args.keys()
     for built_in in built_ins:
-        if keyword_args.get(built_in) is not None:
+        if built_in in keys:
             keyword_args[f"{built_in}_"] = keyword_args[built_in]
             del keyword_args[built_in]
 
