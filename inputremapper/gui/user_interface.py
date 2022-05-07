@@ -167,7 +167,6 @@ class UserInterface:
         self.builder = builder
 
         self.editor = Editor(self)
-        self.debounce_timeout = 100
 
         # set up the device selection
         # https://python-gtk-3-tutorial.readthedocs.io/en/latest/treeview.html#the-view
@@ -470,14 +469,16 @@ class UserInterface:
             status_bar.push(context_id, message)
             status_bar.set_tooltip_text(tooltip)
 
-    @debounce
+    @debounce(500)
     def check_on_typing(self, *_):
         """To save latest input from code editor and call syntax check."""
+        print("typing")
         self.editor.gather_changes_and_save()
         self.check_macro_syntax()
 
     def check_macro_syntax(self):
         """Check if the programmed macros are allright."""
+        print("check_macro_syntax")
         self.show_status(CTX_MAPPING, None)
         for key, output in active_preset:
             output = output[0]
@@ -795,7 +796,7 @@ class UserInterface:
 
             # checking macros is probably a bit more expensive, do that if
             # the regular mappings are allright
-            # self.check_macro_syntax()
+            self.check_macro_syntax()
 
     def on_about_clicked(self, button):
         """Show the about/help dialog."""

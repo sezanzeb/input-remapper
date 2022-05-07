@@ -164,8 +164,6 @@ class Autocompletion(Gtk.Popover):
             constrain_to=Gtk.PopoverConstraint.NONE,
         )
 
-        self.debounce_timeout = 100
-
         self.text_input = text_input
         self.target_selector = target_selector
         self._target_key_capabilities = []
@@ -313,7 +311,7 @@ class Autocompletion(Gtk.Popover):
         self.visible = False
         super().popdown()
 
-    @debounce
+    @debounce(100)
     def update(self, *_):
         """Find new autocompletion suggestions and display them. Hide if none."""
         if not self.text_input.is_focus():

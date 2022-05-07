@@ -33,24 +33,32 @@ CTX_MAPPING = 5
 debounces = {}
 
 
-def debounce(func):
-    """Debounce a function call to improve performance."""
+def debounce(timeout):
+    """Debounce a function call to improve performance.
 
-    def clear_debounce(self, *args):
-        debounces[func.__name__] = None
-        return func(self, *args)
+    Calling this creates the decorator, so use something like
 
-    def wrapped(self, *args):
-        if debounces.get(func.__name__) is not None:
-            GLib.source_remove(debounces[func.__name__])
+    @debounce(50)
+    def foo():
+        ...
+    """
 
-        timeout = self.debounce_timeout
+    def decorator(func):
+        def clear_debounce(self, *args):
+            debounces[func.__name__] = None
+            return func(self, *args)
 
-        debounces[func.__name__] = GLib.timeout_add(
-            timeout, lambda: clear_debounce(self, *args)
-        )
+        def wrapped(self, *args):
+            if debounces.get(func.__name__) is not None:
+                GLib.source_remove(debounces[func.__name__])
 
-    return wrapped
+            debounces[func.__name__] = GLib.timeout_add(
+                timeout, lambda: clear_debounce(self, *args)
+            )
+
+        return wrapped
+
+    return decorator
 
 
 class HandlerDisabled:
