@@ -44,6 +44,7 @@ import json
 from inputremapper.logger import logger
 from inputremapper.configs.paths import mkdir, chown
 
+
 class Pipe:
     """Pipe object."""
 
@@ -90,7 +91,7 @@ class Pipe:
         # the helper
         while self.poll():
             leftover = self.recv()
-            logger.debug("Cleared leftover message \"%s\"", leftover)
+            logger.debug('Cleared leftover message "%s"', leftover)
 
     def recv(self):
         """Read an object from the pipe or None if nothing available.
