@@ -266,16 +266,13 @@ class TestMacros(MacroTestBase):
         self.assertTrue(is_this_a_macro("a + b + c"))
 
     def test_handle_plus_syntax(self):
-        self.assertEqual(handle_plus_syntax("a + b"), "modify(a,modify(b,hold()))")
-        self.assertEqual(
-            handle_plus_syntax("a + b + c"), "modify(a,modify(b,modify(c,hold())))"
-        )
-        self.assertEqual(
-            handle_plus_syntax(" a+b+c "), "modify(a,modify(b,modify(c,hold())))"
-        )
+        self.assertEqual(handle_plus_syntax("a + b"), "hold_keys(a,b)")
+        self.assertEqual(handle_plus_syntax("a + b + c"), "hold_keys(a,b,c)")
+        self.assertEqual(handle_plus_syntax(" a+b+c "), "hold_keys(a,b,c)")
 
-        # invalid
-        strings = ["+", "a+", "+b", "key(a + b)"]
+        # invalid. The last one with `key` should not have been a parameter
+        # of this function to begin with.
+        strings = ["+", "a+", "+b", "a\n+\n+\nb", "key(a + b)"]
         for string in strings:
             with self.assertRaises(ValueError):
                 logger.info(f'testing "%s"', string)
@@ -287,7 +284,7 @@ class TestMacros(MacroTestBase):
 
     def test_parse_plus_syntax(self):
         macro = parse("a + b")
-        self.assertEqual(macro.code, "modify(a,modify(b,hold()))")
+        self.assertEqual(macro.code, "hold_keys(a,b)")
 
         # this is not erroneously recognized as "plus" syntax
         macro = parse("key(a) # a + b")
