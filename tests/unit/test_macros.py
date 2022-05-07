@@ -1114,6 +1114,7 @@ class TestIfEq(MacroTestBase):
         b_press = [(EV_KEY, code_b, 1), (EV_KEY, code_b, 0)]
 
         async def test(macro, expected):
+            """Run the macro and compare the injections with an expectation."""
             # cleanup
             macro_variables._clear()
             self.assertIsNone(macro_variables.get("a"))
@@ -1130,11 +1131,14 @@ class TestIfEq(MacroTestBase):
         await test('set(a, "foo").if_eq($a, "foo", key(a), key(b))', a_press)
         await test('set(a, "foo").if_eq("foo", $a, key(a), key(b))', a_press)
         await test('set(a, "foo").if_eq("foo", $a, , key(b))', [])
+        await test('set(a, "foo").if_eq("foo", $a, None, key(b))', [])
         await test('set(a, "qux").if_eq("foo", $a, key(a), key(b))', b_press)
         await test('set(a, "qux").if_eq($a, "foo", key(a), key(b))', b_press)
         await test('set(a, "qux").if_eq($a, "foo", key(a), )', [])
         await test('set(a, "x").set(b, "y").if_eq($b, $a, key(a), key(b))', b_press)
         await test('set(a, "x").set(b, "y").if_eq($b, $a, key(a), )', [])
+        await test('set(a, "x").set(b, "y").if_eq($b, $a, key(a), None)', [])
+        await test('set(a, "x").set(b, "y").if_eq($b, $a, key(a), else=None)', [])
         await test('set(a, "x").set(b, "x").if_eq($b, $a, key(a), key(b))', a_press)
         await test('set(a, "x").set(b, "x").if_eq($b, $a, , key(b))', [])
         await test("if_eq($q, $w, key(a), else=key(b))", a_press)  # both None

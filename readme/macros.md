@@ -189,6 +189,7 @@ Bear in mind that anti-cheat software might detect macros in games.
 > set(a, 1).if_eq($a, 1, key(KEY_A), key(KEY_B))
 > set(a, 1).set(b, 1).if_eq($a, $b, else=key(KEY_B).key(KEY_C))
 > set(a, "foo").if_eq("foo", $a, key(KEY_A))
+> set(a, 1).if_eq($a, 1, None, key(KEY_B))
 > ```
 
 ### if_tap
@@ -225,6 +226,7 @@ Bear in mind that anti-cheat software might detect macros in games.
 >
 > ```c#
 > if_single(key(KEY_A), key(KEY_B))
+> if_single(None, key(KEY_B))
 > if_single(then=key(KEY_A), else=key(KEY_B))
 > if_single(key(KEY_A), key(KEY_B), timeout=1000)
 > ```
