@@ -46,6 +46,8 @@ FUNCTIONS = {
     "modify": Macro.add_modify,
     "repeat": Macro.add_repeat,
     "key": Macro.add_key,
+    "key_down": Macro.add_key_down,
+    "key_up": Macro.add_key_up,
     "event": Macro.add_event,
     "wait": Macro.add_wait,
     "hold": Macro.add_hold,

@@ -548,6 +548,24 @@ class TestMacros(MacroTestBase):
             ],
         )
 
+    async def test_key_down_up(self):
+        code_a = system_mapping.get("a")
+        code_b = system_mapping.get("b")
+        macro = parse(
+            "set(foo, b).key_down($foo).key_up($foo).key_up(a).key_down(a)",
+            self.context,
+        )
+        await macro.run(self.handler)
+        self.assertListEqual(
+            self.result,
+            [
+                (EV_KEY, code_b, 1),
+                (EV_KEY, code_b, 0),
+                (EV_KEY, code_a, 0),
+                (EV_KEY, code_a, 1),
+            ],
+        )
+
     async def test_modify(self):
         code_a = system_mapping.get("a")
         code_b = system_mapping.get("b")
