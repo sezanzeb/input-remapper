@@ -338,7 +338,7 @@ def handle_plus_syntax(macro):
 
     chunks = [chunk.strip() for chunk in macro.split("+")]
 
-    if '' in chunks:
+    if "" in chunks:
         raise ValueError(f'Invalid syntax for "{macro}"')
 
     output = f"hold_keys({','.join(chunks)})"
