@@ -472,13 +472,11 @@ class UserInterface:
     @debounce(500)
     def check_on_typing(self, *_):
         """To save latest input from code editor and call syntax check."""
-        print("typing")
         self.editor.gather_changes_and_save()
         self.check_macro_syntax()
 
     def check_macro_syntax(self):
         """Check if the programmed macros are allright."""
-        print("check_macro_syntax")
         self.show_status(CTX_MAPPING, None)
         for key, output in active_preset:
             output = output[0]
