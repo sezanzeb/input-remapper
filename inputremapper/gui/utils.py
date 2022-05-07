@@ -19,7 +19,7 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from gi.repository import Gtk
+from gi.repository import Gtk, GLib
 
 
 # status ctx ids
@@ -29,6 +29,36 @@ CTX_KEYCODE = 2
 CTX_ERROR = 3
 CTX_WARNING = 4
 CTX_MAPPING = 5
+
+debounces = {}
+
+
+def debounce(timeout):
+    """Debounce a function call to improve performance.
+
+    Calling this creates the decorator, so use something like
+
+    @debounce(50)
+    def foo():
+        ...
+    """
+
+    def decorator(func):
+        def clear_debounce(self, *args):
+            debounces[func.__name__] = None
+            return func(self, *args)
+
+        def wrapped(self, *args):
+            if debounces.get(func.__name__) is not None:
+                GLib.source_remove(debounces[func.__name__])
+
+            debounces[func.__name__] = GLib.timeout_add(
+                timeout, lambda: clear_debounce(self, *args)
+            )
+
+        return wrapped
+
+    return decorator
 
 
 class HandlerDisabled:
