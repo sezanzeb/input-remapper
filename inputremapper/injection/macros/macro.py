@@ -36,7 +36,6 @@ w(1000).m(Shift_L, r(2, k(a))).w(10).k(b): <1s> A A <10ms> b
 
 
 import asyncio
-import copy
 import re
 
 from evdev.ecodes import ecodes, EV_KEY, EV_REL, REL_X, REL_Y, REL_WHEEL, REL_HWHEEL
@@ -412,7 +411,6 @@ class Macro:
             handler(EV_KEY, code, 1)
             await self._keycode_pause()
             await macro.run(handler)
-            await self._keycode_pause()
             handler(EV_KEY, code, 0)
             await self._keycode_pause()
 
@@ -492,11 +490,14 @@ class Macro:
             "right": (REL_X, 1),
         }[direction.lower()]
 
+        # how long to pause in ms between the injection of mouse events
+        injection_throttle = 10
+
         async def task(handler):
             resolved_speed = value * _resolve(speed, [int])
             while self.is_holding():
                 handler(EV_REL, code, resolved_speed)
-                await self._keycode_pause()
+                await asyncio.sleep(injection_throttle / 1000)
 
         self.tasks.append(task)
 
