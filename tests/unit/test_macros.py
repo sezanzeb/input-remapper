@@ -988,7 +988,8 @@ class TestMacros(MacroTestBase):
         try:
             # should timeout, because the previous event doesn't match the filter
             await asyncio.wait_for(
-                macro._wait_for_event(lambda e, a: e.value == 3), 0.1,
+                macro._wait_for_event(lambda e, a: e.value == 3),
+                0.1,
             )
             raise AssertionError("Expected asyncio.TimeoutError")
         except asyncio.TimeoutError:
