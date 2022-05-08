@@ -496,8 +496,8 @@ class Macro:
         async def task(handler):
             resolved_speed = value * _resolve(speed, [int])
             while self.is_holding():
-                await asyncio.sleep(injection_throttle / 1000)
                 handler(EV_REL, code, resolved_speed)
+                await asyncio.sleep(injection_throttle / 1000)
 
         self.tasks.append(task)
 
