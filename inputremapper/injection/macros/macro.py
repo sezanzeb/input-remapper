@@ -264,17 +264,17 @@ class Macro:
         self.keystroke_sleep_ms = self.context.preset.get("macros.keystroke_sleep_ms")
 
         self.running = True
-        for task in self.tasks:
-            try:
+
+        try:
+            for task in self.tasks:
                 coroutine = task(handler)
                 if asyncio.iscoroutine(coroutine):
                     await coroutine
-            except Exception as e:
-                logger.error(f'Macro "%s" failed: %s', self.code, e)
-                break
-
-        # done
-        self.running = False
+        except Exception as e:
+            raise
+        finally:
+            # done
+            self.running = False
 
     def press_trigger(self):
         """The user pressed the trigger key down."""
@@ -496,8 +496,8 @@ class Macro:
         async def task(handler):
             resolved_speed = value * _resolve(speed, [int])
             while self.is_holding():
-                handler(EV_REL, code, resolved_speed)
                 await asyncio.sleep(injection_throttle / 1000)
+                handler(EV_REL, code, resolved_speed)
 
         self.tasks.append(task)
 

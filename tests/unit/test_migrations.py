@@ -218,7 +218,6 @@ class TestMigrations(unittest.TestCase):
             ("c", "keyboard"),
         )
 
-        print(loaded._mapping)
         self.assertEqual(len(loaded), 6)
         self.assertEqual(loaded.num_saved_keys, 6)
 

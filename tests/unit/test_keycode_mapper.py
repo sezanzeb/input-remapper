@@ -939,6 +939,28 @@ class TestKeycodeMapper(unittest.IsolatedAsyncioTestCase):
         count_after = len(self.history)
         self.assertEqual(count_before, count_after)
 
+    async def test_hold_failing_child(self):
+        # if a child macro fails, hold will not try to run it again
+        code_a = 100
+        keycode_mapper = self.setup_keycode_mapper(
+            {"a": code_a},
+            {((EV_KEY, 1, 1),): "hold(hold(key(a)))"},
+        )
+
+        def macro_write(*args, **kwargs):
+            def f():
+                raise Exception("foo")
+
+            return f
+
+        keycode_mapper.macro_write = macro_write
+
+        await keycode_mapper.notify(new_event(EV_KEY, 1, 1))
+
+        await asyncio.sleep(0.1)
+
+        self.assertFalse(active_macros[(EV_KEY, 1)].running)
+
     async def test_filter_trigger_spam(self):
         # test_filter_duplicates
         trigger = (EV_KEY, BTN_TL)
