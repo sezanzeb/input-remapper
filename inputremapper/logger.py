@@ -262,8 +262,8 @@ except pkg_resources.DistributionNotFound as error:
     logger.info("Could not figure out the evdev version")
     logger.debug(error)
 
-# check if the version is something like 1.5b20 or 2.1.3b5
-IS_BETA = bool(re.match("[0-9]+b[0-9]+", VERSION.split(".")[-1]))
+# check if the version is something like 1.5.0-beta or 1.5.0-beta.5
+IS_BETA = "beta" in VERSION
 
 
 def log_info(name="input-remapper"):
