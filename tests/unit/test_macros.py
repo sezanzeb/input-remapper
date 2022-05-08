@@ -988,7 +988,7 @@ class TestMacros(MacroTestBase):
         try:
             # should timeout, because the previous event doesn't match the filter
             await asyncio.wait_for(
-                macro._wait_for_event(lambda e, a: e.value == 3), 0.1
+                macro._wait_for_event(lambda e, a: e.value == 3), 0.1,
             )
             raise AssertionError("Expected asyncio.TimeoutError")
         except asyncio.TimeoutError:
@@ -1009,10 +1009,12 @@ class TestMacros(MacroTestBase):
         # the first parameter for `repeat` requires an integer, not "foo",
         # which makes `repeat` throw
         macro = parse('set(a, "foo").repeat($a, key(KEY_A)).key(KEY_B)', self.context)
-        await macro.run(self.handler)
 
-        # .run() it will not throw because repeat() breaks, and it will properly set
-        # it to stopped
+        try:
+            await macro.run(self.handler)
+        except TypeError as e:
+            self.assertIn("foo", str(e))
+
         self.assertFalse(macro.running)
 
         # key(KEY_B) is not executed, the macro stops
