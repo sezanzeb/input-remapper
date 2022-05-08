@@ -254,7 +254,7 @@ logger.setLevel(logging.INFO)
 logging.getLogger("asyncio").setLevel(logging.WARNING)
 
 
-VERSION = "1.5b1"
+VERSION = "1.5.0-beta"
 EVDEV_VERSION = None
 try:
     EVDEV_VERSION = pkg_resources.require("evdev")[0].version

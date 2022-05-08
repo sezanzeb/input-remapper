@@ -420,7 +420,7 @@ def migrate():
     if v < pkg_resources.parse_version("1.4.1"):
         _otherwise_to_else()
 
-    if v < pkg_resources.parse_version("1.5b1"):
+    if v < pkg_resources.parse_version("1.5.0-beta"):
         _convert_to_individual_mappings()
 
     # add new migrations here
