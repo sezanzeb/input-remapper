@@ -393,6 +393,13 @@ class KeycodeMapper(Consumer):
 
         return key
 
+    async def run_macro(self, macro, target_uinput):
+        """Run the provided macro."""
+        try:
+            await macro.run(self.macro_write(target_uinput))
+        except Exception as e:
+            logger.error(f'Macro "%s" failed: %s', macro.code, e)
+
     def handle_keycode(self, event, action, forward=True):
         """Write mapped keycodes, forward unmapped ones and manage macros.
 
@@ -515,7 +522,7 @@ class KeycodeMapper(Consumer):
                 logger.debug_key(
                     key, "maps to macro (%s, %s)", macro.code, target_uinput
                 )
-                asyncio.ensure_future(macro.run(self.macro_write(target_uinput)))
+                asyncio.ensure_future(self.run_macro(macro, target_uinput))
                 return
 
             if key in self.context.key_to_code:
