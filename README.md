@@ -35,6 +35,7 @@ sudo apt install ./dist/input-remapper-1.4.2.deb
 ```
 
 input-remapper is now part of [Debian Unstable](https://packages.debian.org/sid/input-remapper)
+and of [Ubuntu](https://packages.ubuntu.com/jammy/input-remapper)
 
 ##### Manual
 
