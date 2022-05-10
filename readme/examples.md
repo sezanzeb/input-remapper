@@ -19,16 +19,15 @@ Examples for particular devices and/or use cases:
 - `modify(Control_L, key(a).key(x))` CTRL + a, CTRL + x
 - `key(1).hold(key(2)).key(3)` writes 1 2 2 ... 2 2 3 while the key is pressed
 - `event(EV_REL, REL_X, 10)` moves the mouse cursor 10px to the right
-- `mouse(right, 4)` which keeps moving the mouse while pressed.
-  Made out of `hold(event(...))` internally
+- `mouse(right, 4)` which keeps moving the mouse while pressed
 - `wheel(down, 1)` keeps scrolling down while held
 - `set(foo, 1)` set ["foo"](https://en.wikipedia.org/wiki/Metasyntactic_variable) to 1
 - `if_eq($foo, 1, key(x), key(y))` if "foo" is 1, write x, otherwise y
 - `hold()` does nothing as long as your key is held down
-- `hold(a)` holds down "a" as long as the key is pressed, just like a regular non-macro mapping
+- `hold_keys(a)` holds down "a" as long as the key is pressed, just like a regular non-macro mapping
 - `if_tap(key(a), key(b))` writes a if the key is tapped, otherwise b
 - `if_tap(key(a), key(b), 1000)` writes a if the key is released within a second, otherwise b
-- `if_singlevent(key(a), key(b))` writes b if another key is pressed, or a if the key is released
+- `if_single(key(a), key(b))` writes b if another key is pressed, or a if the key is released
   and no other key was pressed in the meantime.
 - `if_tap(if_tap(key(a), key(b)), key(c))` "a" if tapped twice, "b" if tapped once and "c" if
   held down long enough
