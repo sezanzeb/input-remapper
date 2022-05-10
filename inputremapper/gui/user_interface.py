@@ -70,6 +70,7 @@ from inputremapper.gui.utils import (
     CTX_APPLY,
     CTX_WARNING,
     gtk_iteration,
+    debounce,
 )
 
 
@@ -202,6 +203,9 @@ class UserInterface:
         self.get("vertical-wrapper").set_opacity(0)
         self.window = window
 
+        source_view = self.get("code_editor")
+        source_view.get_buffer().connect("changed", self.check_on_typing)
+
         # if any of the next steps take a bit to complete, have the window
         # already visible (without content) to make it look more responsive.
         gtk_iteration()
@@ -287,7 +291,7 @@ class UserInterface:
             self.ctrl = False
 
     def get(self, name):
-        """Get a widget from the window."""
+        """Get a widget from the window"""
         return self.builder.get_object(name)
 
     @ensure_everything_saved
@@ -361,7 +365,7 @@ class UserInterface:
 
     @if_group_selected
     def can_modify_preset(self, *args) -> bool:
-        """If changing the preset is possible."""
+        """if changing the preset is possible."""
         return self.dbus.get_state(self.group.key) != RUNNING
 
     def consume_newest_keycode(self):
@@ -432,6 +436,28 @@ class UserInterface:
 
             status_bar.push(context_id, message)
             status_bar.set_tooltip_text(tooltip)
+
+    @debounce(500)
+    def check_on_typing(self, *_):
+        """To save latest input from code editor and call syntax check."""
+        self.editor.gather_changes_and_save()
+        self.check_macro_syntax()
+
+    def check_macro_syntax(self):
+        """Check if the programmed macros are allright."""
+        self.show_status(CTX_MAPPING, None)
+        for key, output in active_preset:
+            output = output[0]
+            if not is_this_a_macro(output):
+                continue
+
+            error = parse(output, active_preset, return_errors=True)
+            if error is None:
+                continue
+
+            position = key.beautify()
+            msg = _("Syntax error at %s, hover for info") % position
+            self.show_status(CTX_MAPPING, msg, error)
 
     @ensure_everything_saved
     def on_rename_button_clicked(self, button):

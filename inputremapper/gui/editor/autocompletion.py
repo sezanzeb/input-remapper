@@ -35,6 +35,7 @@ from inputremapper.injection.macros.parse import (
 )
 from inputremapper.injection.global_uinputs import global_uinputs
 from inputremapper.logger import logger
+from inputremapper.gui.utils import debounce
 
 
 # no deprecated shorthand function-names
@@ -127,30 +128,6 @@ def propose_function_names(text_iter):
     ]
 
 
-debounces = {}
-
-
-def debounce(func):
-    """Debounce a function call to improve performance."""
-
-    def clear_debounce(self, *args):
-        debounces[func.__name__] = None
-        return func(self, *args)
-
-    def wrapped(self, *args):
-        if debounces.get(func.__name__) is not None:
-            GLib.source_remove(debounces[func.__name__])
-
-        timeout = self.debounce_timeout
-
-        debounces[func.__name__] = GLib.timeout_add(
-            timeout,
-            lambda: clear_debounce(self, *args),
-        )
-
-    return wrapped
-
-
 class SuggestionLabel(Gtk.Label):
     """A label with some extra internal information."""
 
@@ -186,8 +163,6 @@ class Autocompletion(Gtk.Popover):
             # position based on the location within the window
             constrain_to=Gtk.PopoverConstraint.NONE,
         )
-
-        self.debounce_timeout = 100
 
         self.text_input = text_input
         self.target_selector = target_selector
@@ -336,7 +311,7 @@ class Autocompletion(Gtk.Popover):
         self.visible = False
         super().popdown()
 
-    @debounce
+    @debounce(100)
     def update(self, *_):
         """Find new autocompletion suggestions and display them. Hide if none."""
         if not self.text_input.is_focus():
@@ -350,9 +325,7 @@ class Autocompletion(Gtk.Popover):
         # convert it to window coords, because the cursor values will be very large
         # when the TextView is in a scrolled down ScrolledWindow.
         window_coords = self.text_input.buffer_to_window_coords(
-            Gtk.TextWindowType.TEXT,
-            cursor.x,
-            cursor.y,
+            Gtk.TextWindowType.TEXT, cursor.x, cursor.y
         )
         cursor.x = window_coords.window_x
         cursor.y = window_coords.window_y
@@ -398,9 +371,7 @@ class Autocompletion(Gtk.Popover):
         match = re.match(r"^(\w+)", right)
         right = match[1] if match else ""
         Gtk.TextView.do_delete_from_cursor(
-            self.text_input,
-            Gtk.DeleteType.CHARS,
-            len(right),
+            self.text_input, Gtk.DeleteType.CHARS, len(right)
         )
 
         # do the same to the left
@@ -409,9 +380,7 @@ class Autocompletion(Gtk.Popover):
         match = re.match(r".*?(\w+)$", re.sub("\n", " ", left))
         left = match[1] if match else ""
         Gtk.TextView.do_delete_from_cursor(
-            self.text_input,
-            Gtk.DeleteType.CHARS,
-            -len(left),
+            self.text_input, Gtk.DeleteType.CHARS, -len(left)
         )
 
         # insert the autocompletion

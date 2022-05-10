@@ -261,17 +261,17 @@ class Macro:
         self.keystroke_sleep_ms = self.mapping.macro_key_sleep_ms
 
         self.running = True
-        for task in self.tasks:
-            try:
+
+        try:
+            for task in self.tasks:
                 coroutine = task(handler)
                 if asyncio.iscoroutine(coroutine):
                     await coroutine
-            except Exception as e:
-                logger.error(f'Macro "%s" failed: %s', self.code, e)
-                break
-
-        # done
-        self.running = False
+        except Exception as e:
+            raise
+        finally:
+            # done
+            self.running = False
 
     def press_trigger(self):
         """The user pressed the trigger key down."""
@@ -322,6 +322,32 @@ class Macro:
             await self._keycode_pause()
             handler(EV_KEY, resolved_code, 0)
             await self._keycode_pause()
+
+        self.tasks.append(task)
+
+    def add_key_down(self, symbol):
+        """Press the symbol."""
+        _type_check_symbol(symbol)
+
+        async def task(handler):
+            resolved_symbol = _resolve(symbol, [str])
+            code = _type_check_symbol(resolved_symbol)
+
+            resolved_code = _resolve(code, [int])
+            handler(EV_KEY, resolved_code, 1)
+
+        self.tasks.append(task)
+
+    def add_key_up(self, symbol):
+        """Release the symbol."""
+        _type_check_symbol(symbol)
+
+        async def task(handler):
+            resolved_symbol = _resolve(symbol, [str])
+            code = _type_check_symbol(resolved_symbol)
+
+            resolved_code = _resolve(code, [int])
+            handler(EV_KEY, resolved_code, 0)
 
         self.tasks.append(task)
 
@@ -382,7 +408,6 @@ class Macro:
             handler(EV_KEY, code, 1)
             await self._keycode_pause()
             await macro.run(handler)
-            await self._keycode_pause()
             handler(EV_KEY, code, 0)
             await self._keycode_pause()
 
@@ -462,11 +487,14 @@ class Macro:
             "right": (REL_X, 1),
         }[direction.lower()]
 
+        # how long to pause in ms between the injection of mouse events
+        injection_throttle = 10
+
         async def task(handler):
             resolved_speed = value * _resolve(speed, [int])
             while self.is_holding():
                 handler(EV_REL, code, resolved_speed)
-                await self._keycode_pause()
+                await asyncio.sleep(injection_throttle / 1000)
 
         self.tasks.append(task)
 
