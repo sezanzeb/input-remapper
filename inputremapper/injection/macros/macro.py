@@ -487,14 +487,11 @@ class Macro:
             "right": (REL_X, 1),
         }[direction.lower()]
 
-        # how long to pause in ms between the injection of mouse events
-        injection_throttle = 10
-
         async def task(handler):
             resolved_speed = value * _resolve(speed, [int])
             while self.is_holding():
                 handler(EV_REL, code, resolved_speed)
-                await asyncio.sleep(injection_throttle / 1000)
+                await asyncio.sleep(1 / self.mapping.rate)
 
         self.tasks.append(task)
 
