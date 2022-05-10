@@ -30,7 +30,9 @@ from unittest import mock
 
 from evdev.ecodes import (
     EV_REL,
+    EV_ABS,
     EV_KEY,
+    ABS_Y,
     REL_Y,
     REL_X,
     REL_WHEEL,
@@ -417,9 +419,9 @@ class TestMacros(MacroTestBase):
         # variable names, which are not allowed to contain special characters that may
         # have a meaning in the macro syntax.
         self.assertEqual(_parse_recurse("foo", self.context, DummyMapping), "foo")
-	
-        self.assertEqual(_parse_recurse("", self.context), None)
-        self.assertEqual(_parse_recurse("None", self.context), None)
+
+        self.assertEqual(_parse_recurse("", self.context, DummyMapping), None)
+        self.assertEqual(_parse_recurse("None", self.context, DummyMapping), None)
 
         self.assertEqual(_parse_recurse("5", self.context, DummyMapping), 5)
         self.assertEqual(_parse_recurse("5.2", self.context, DummyMapping), 5.2)
@@ -559,6 +561,7 @@ class TestMacros(MacroTestBase):
         macro = parse(
             "set(foo, b).key_down($foo).key_up($foo).key_up(a).key_down(a)",
             self.context,
+            DummyMapping,
         )
         await macro.run(self.handler)
         self.assertListEqual(
@@ -1001,7 +1004,7 @@ class TestMacros(MacroTestBase):
 
         try:
             await macro.run(self.handler)
-        except TypeError as e:
+        except MacroParsingError as e:
             self.assertIn("foo", str(e))
 
         self.assertFalse(macro.running)
@@ -1078,14 +1081,18 @@ class TestIfEq(MacroTestBase):
         code_a = system_mapping.get("a")
 
         # first param None
-        macro = parse("set(foo, 2).ifeq(foo, 2, None, key(b))", self.context)
+        macro = parse(
+            "set(foo, 2).ifeq(foo, 2, None, key(b))", self.context, DummyMapping
+        )
         self.assertEqual(len(macro.child_macros), 1)
         await macro.run(self.handler)
         self.assertListEqual(self.result, [])
 
         # second param None
         self.result = []
-        macro = parse("set(foo, 2).ifeq(foo, 2, key(a), None)", self.context)
+        macro = parse(
+            "set(foo, 2).ifeq(foo, 2, key(a), None)", self.context, DummyMapping
+        )
         self.assertEqual(len(macro.child_macros), 1)
         await macro.run(self.handler)
         self.assertListEqual(self.result, [(EV_KEY, code_a, 1), (EV_KEY, code_a, 0)])

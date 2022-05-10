@@ -901,7 +901,7 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
         kb_history = convert_to_internal_events(
             global_uinputs.get_uinput("keyboard").write_history
         )
-        self.assertEqual(kb_history[-1], (EV_KEY, b, 1))
+        self.assertIn((EV_KEY, b, 1), kb_history)
 
         len_a = len(global_uinputs.get_uinput("keyboard").write_history)
         await asyncio.sleep(0.05)
