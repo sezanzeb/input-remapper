@@ -150,7 +150,12 @@ class SelectionLabel(Gtk.ListBoxRow):
 
     __gtype_name__ = "SelectionLabel"
 
-    def __init__(self, event_handler: EventHandler, name: Optional[str], combination: EventCombination):
+    def __init__(
+        self,
+        event_handler: EventHandler,
+        name: Optional[str],
+        combination: EventCombination,
+    ):
         super().__init__()
         self.event_handler = event_handler
         self.combination = combination
@@ -185,5 +190,3 @@ class SelectionLabel(Gtk.ListBoxRow):
 
         self._name = mapping["name"]
         self.combination = mapping["combination"]
-
-

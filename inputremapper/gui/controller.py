@@ -23,6 +23,7 @@ from .data_manager import DataManager
 from .event_handler import EventHandler, EventEnum
 from .reader import reader
 from .utils import gtk_iteration
+from ..configs.global_config import global_config
 from ..configs.preset import find_newest_preset
 from ..event_combination import EventCombination
 from ..groups import (
@@ -33,7 +34,9 @@ from ..groups import (
     GRAPHICS_TABLET,
     TOUCHPAD,
     MOUSE,
+    groups,
 )
+from ..injection.global_uinputs import global_uinputs
 from ..logger import logger
 
 ICON_NAMES = {
@@ -54,7 +57,9 @@ class Controller:
 
     def __init__(self, event_handler: EventHandler):
         self.event_handler = event_handler
-        self.data_manager = DataManager(event_handler)
+        self.data_manager = DataManager(
+            event_handler, global_config, global_uinputs, groups
+        )
 
         self.attach_to_events()
 

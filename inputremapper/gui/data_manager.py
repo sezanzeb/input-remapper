@@ -22,28 +22,38 @@ import os
 import time
 from typing import Optional, List, Tuple
 
-from inputremapper.configs.global_config import GlobalConfig, global_config
+from inputremapper.configs.global_config import GlobalConfig
 from inputremapper.configs.mapping import UIMapping
 from inputremapper.configs.preset import Preset
 from inputremapper.configs.paths import get_preset_path, mkdir, split_all
 from inputremapper.event_combination import EventCombination
 from inputremapper.exceptions import DataManagementError
-from inputremapper.groups import groups, _Group, _Groups
+from inputremapper.groups import _Group, _Groups
 from inputremapper.gui.event_handler import EventHandler, EventEnum
-from inputremapper.injection.global_uinputs import global_uinputs
+from inputremapper.injection.global_uinputs import global_uinputs, GlobalUInputs
 from inputremapper.logger import logger
 
 
 class DataManager:
-    def __init__(self, event_handler: EventHandler):
+    def __init__(
+        self,
+        event_handler: EventHandler,
+        config: GlobalConfig,
+        uinputs: GlobalUInputs,
+        groups: _Groups,
+    ):
         self.event_handler = event_handler
+        self._config = config
+        self._config.load_config()
+        self._uinputs = uinputs
+        self._groups = groups
+
         self._active_group_key: Optional[str] = None
         self._active_preset: Optional[Preset] = None
         self._active_mapping: Optional[UIMapping] = None
-        self._config = global_config
-        self._config.load_config()
+
+        self._uinputs.prepare_all()
         self.attach_to_event_handler()
-        global_uinputs.prepare_all()
 
     @property
     def _autoload(self) -> bool:
@@ -65,11 +75,11 @@ class DataManager:
 
     @property
     def active_group(self) -> _Group:
-        return groups.find(key=self._active_group_key)
+        return self.groups.find(key=self._active_group_key)
 
     @property
     def groups(self) -> _Groups:
-        return groups
+        return self._groups
 
     def newest_group(self) -> str:
         """group_key of the group with the most recently modified preset"""

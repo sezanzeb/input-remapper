@@ -27,7 +27,11 @@ import os
 import re
 import sys
 
-from inputremapper.gui.components import DeviceSelection, PresetSelection, MappingListBox
+from inputremapper.gui.components import (
+    DeviceSelection,
+    PresetSelection,
+    MappingListBox,
+)
 from inputremapper.gui.controller import Controller
 from inputremapper.gui.event_handler import EventHandler, EventEnum
 from inputremapper.gui.gettext import _

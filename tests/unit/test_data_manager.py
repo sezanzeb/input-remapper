@@ -25,6 +25,8 @@ from inputremapper.configs.global_config import global_config
 from inputremapper.configs.mapping import UIMapping
 from inputremapper.event_combination import EventCombination
 from inputremapper.exceptions import DataManagementError
+from inputremapper.groups import groups
+from inputremapper.injection.global_uinputs import global_uinputs
 from tests.test import get_key_mapping, quick_cleanup
 
 from inputremapper.configs.paths import get_preset_path, get_config_path
@@ -67,7 +69,9 @@ def prepare_presets():
 class TestDataManager(unittest.TestCase):
     def setUp(self) -> None:
         self.event_handler = EventHandler()
-        self.data_manager = DataManager(self.event_handler)
+        self.data_manager = DataManager(
+            self.event_handler, global_config, global_uinputs, groups
+        )
 
     def tearDown(self) -> None:
         quick_cleanup()
