@@ -445,19 +445,19 @@ class UserInterface:
 
     def check_macro_syntax(self):
         """Check if the programmed macros are allright."""
+        # this is totally redundant as the mapping itself has already checked for
+        # validity but will be reworked anyway.
         self.show_status(CTX_MAPPING, None)
-        for key, output in active_preset:
-            output = output[0]
-            if not is_this_a_macro(output):
+        for mapping in active_preset:
+            if not is_this_a_macro(mapping.output_symbol):
                 continue
 
-            error = parse(output, active_preset, return_errors=True)
-            if error is None:
-                continue
-
-            position = key.beautify()
-            msg = _("Syntax error at %s, hover for info") % position
-            self.show_status(CTX_MAPPING, msg, error)
+            try:
+                parse(mapping.output_symbol)
+            except MacroParsingError as error:
+                position = mapping.event_combination.beautify()
+                msg = _("Syntax error at %s, hover for info") % position
+                self.show_status(CTX_MAPPING, msg, error)
 
     @ensure_everything_saved
     def on_rename_button_clicked(self, button):
