@@ -383,6 +383,7 @@ class Macro:
                     # run the child macro completely to avoid
                     # not-releasing any key
                     await macro.run(handler)
+                    await asyncio.sleep(1/1000)  # give some other code a chance to run
 
             self.tasks.append(task)
             self.child_macros.append(macro)
