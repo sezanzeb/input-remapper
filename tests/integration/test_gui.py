@@ -67,7 +67,7 @@ from gi.repository import Gtk, GLib, Gdk
 from inputremapper.configs.system_mapping import system_mapping, XMODMAP_FILENAME
 from inputremapper.configs.mapping import UIMapping
 from inputremapper.gui.active_preset import active_preset
-from inputremapper.configs.paths import get_preset_path, get_config_path, CONFIG_PATH
+from inputremapper.configs.paths import CONFIG_PATH, get_preset_path, get_config_path
 from inputremapper.configs.global_config import global_config, WHEEL, MOUSE, BUTTONS
 from inputremapper.gui.reader import reader
 from inputremapper.gui.helper import RootHelper
@@ -326,9 +326,10 @@ class GuiTestBase(unittest.TestCase):
 
     def throttle(self):
         """Give GTK some time to process everything."""
-        # tests suddenly started to freeze my computer up completely
-        # and tests started to fail. By using this (and by optimizing some
-        # redundant calls in the gui) it worked again.
+        # tests suddenly started to freeze my computer up completely and tests started
+        # to fail. By using this (and by optimizing some redundant calls in the gui) it
+        # worked again. EDIT: Might have been caused by my broken/bloated ssd. I'll
+        # keep it in some places, since it did make the tests more reliable after all.
         for _ in range(10):
             gtk_iteration()
             time.sleep(0.002)
@@ -353,10 +354,7 @@ class GuiTestBase(unittest.TestCase):
 
         self.user_interface.window.set_focus(widget)
 
-        # for whatever miraculous reason it suddenly takes 0.005s before gtk does
-        # anything, even for old code.
-        time.sleep(0.02)
-        gtk_iteration()
+        self.throttle()
 
     def get_selection_labels(self):
         return self.selection_label_listbox.get_children()
@@ -409,8 +407,6 @@ class GuiTestBase(unittest.TestCase):
             "work" if expect_success else "fail",
         )
 
-        self.throttle()
-
         self.assertIsNone(reader.get_unreleased_keys())
 
         changed = active_preset.has_unsaved_changes()
@@ -432,8 +428,6 @@ class GuiTestBase(unittest.TestCase):
         # the recording toggle connects to focus events
         self.set_focus(self.toggle)
         self.toggle.set_active(True)
-        gtk_iteration()
-        gtk_iteration()
         self.assertIsNone(selection_label.get_combination())
         self.assertEqual(self.toggle.get_label(), "Press Key")
 
@@ -989,7 +983,7 @@ class TestGui(GuiTestBase):
         ev_1 = EventCombination([EV_KEY, 10, 1])
         ev_2 = EventCombination([EV_ABS, evdev.ecodes.ABS_HAT0X, -1])
 
-        """Edit"""
+        """edit"""
 
         # add two selection_labels by modifiying the one empty selection_label that
         # exists. Insert lowercase, it should be corrected to uppercase as stored
@@ -1005,7 +999,7 @@ class TestGui(GuiTestBase):
         self.assertEqual(active_preset.get_mapping(ev_1), ("Foo_BAR", "mouse"))
         self.assertEqual(active_preset.get_mapping(ev_2), ("k(b).k(c)", "keyboard"))
 
-        """Edit first selection_label"""
+        """edit first selection_label"""
 
         self.select_mapping(0)
         self.assertEqual(self.editor.get_combination(), ev_1)
@@ -1022,7 +1016,7 @@ class TestGui(GuiTestBase):
         self.assertEqual(active_preset.get_mapping(ev_1), ("c", "mouse"))
         self.assertEqual(active_preset.get_mapping(ev_2), ("k(b).k(c)", "keyboard"))
 
-        """Add duplicate"""
+        """add duplicate"""
 
         # try to add a duplicate keycode, it should be ignored
         self.add_mapping_via_ui(ev_2, "d", expect_success=False)
@@ -1418,6 +1412,37 @@ class TestGui(GuiTestBase):
             ("k(1)", "keyboard"),
         )
 
+    def test_debounce_check_on_typing(self):
+        status = self.user_interface.get("status_bar")
+        status.set_tooltip_text(None)
+        error_icon = self.user_interface.get("error_status_icon")
+        warning_icon = self.user_interface.get("warning_status_icon")
+
+        self.add_mapping_via_ui(EventCombination([EV_KEY, 10, 1]), "")
+        gtk_iteration()
+        tooltip = status.get_tooltip_text()
+        # nothing wrong yet
+        self.assertIsNone(tooltip)
+
+        # now change the mapping by typing into the field
+        buffer = self.editor.get_text_input().get_buffer()
+        buffer.set_text("sdfgkj()")
+        self.throttle()
+        # debouncing, still nothing shown
+        tooltip = status.get_tooltip_text()
+        self.assertIsNone(tooltip)
+
+        # after 510 ms the debouncing should have been triggered a syntax check
+        time.sleep(0.51)
+        gtk_iteration()
+
+        tooltip = status.get_tooltip_text()
+        self.assertIn("Unknown function sdfgkj", tooltip)
+        self.assertTrue(error_icon.get_visible())
+        self.assertFalse(warning_icon.get_visible())
+
+        self.assertEqual(self.editor.get_symbol_input_text(), "sdfgkj()")
+
     def test_select_device_and_preset(self):
         foo_device_path = f"{CONFIG_PATH}/presets/Foo Device"
         key_10 = EventCombination([EV_KEY, 10, 1])
@@ -1457,7 +1482,7 @@ class TestGui(GuiTestBase):
             sorted(["new preset.json", "new preset 2.json"]),
         )
 
-        """Now try to change the name"""
+        """now try to change the name"""
 
         self.user_interface.get("preset_name_input").set_text("abc 123")
         gtk_iteration()

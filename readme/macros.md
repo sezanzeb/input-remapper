@@ -27,6 +27,22 @@ Bear in mind that anti-cheat software might detect macros in games.
 > key(b).key(space)
 > ```
 
+### key_down and key_up
+
+> Inject the press/down/1 and release/up/0 events individually with those macros.
+>
+> ```c#
+> key_down(symbol: str)
+> key_up(symbol: str)
+> ```
+>
+> Examples:
+>
+> ```c#
+> key_down(KEY_A)
+> key_up(KEY_B)
+> ```
+
 ### wait
 
 > Waits in milliseconds before continuing the macro
@@ -74,9 +90,6 @@ Bear in mind that anti-cheat software might detect macros in games.
 ### hold
 
 > Executes the child macro repeatedly as long as the key is pressed down.
->
-> If a symbol string like KEY_A is provided, it will hold down that symbol as
-> long as the key is pressed down.
 >
 > ```c#
 > hold(macro: Macro)
@@ -189,6 +202,7 @@ Bear in mind that anti-cheat software might detect macros in games.
 > set(a, 1).if_eq($a, 1, key(KEY_A), key(KEY_B))
 > set(a, 1).set(b, 1).if_eq($a, $b, else=key(KEY_B).key(KEY_C))
 > set(a, "foo").if_eq("foo", $a, key(KEY_A))
+> set(a, 1).if_eq($a, 1, None, key(KEY_B))
 > ```
 
 ### if_tap
@@ -225,6 +239,7 @@ Bear in mind that anti-cheat software might detect macros in games.
 >
 > ```c#
 > if_single(key(KEY_A), key(KEY_B))
+> if_single(None, key(KEY_B))
 > if_single(then=key(KEY_A), else=key(KEY_B))
 > if_single(key(KEY_A), key(KEY_B), timeout=1000)
 > ```

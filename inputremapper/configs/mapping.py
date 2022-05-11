@@ -80,7 +80,7 @@ class Mapping(BaseModel):
     release_combination_keys: bool = True
 
     # macro settings
-    macro_key_sleep_ms: PositiveInt = 20
+    macro_key_sleep_ms: PositiveInt = 0
 
     # Optional attributes for mapping Axis to Axis
     # The deadzone of the input axis

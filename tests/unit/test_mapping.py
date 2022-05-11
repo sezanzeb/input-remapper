@@ -46,7 +46,7 @@ class TestMapping(unittest.IsolatedAsyncioTestCase):
         self.assertIsNone(m.output_code)
         self.assertIsNone(m.output_type)
 
-        self.assertEqual(m.macro_key_sleep_ms, 20)
+        self.assertEqual(m.macro_key_sleep_ms, 0)
         self.assertEqual(m.deadzone, 0.1)
         self.assertEqual(m.gain, 1)
         self.assertEqual(m.expo, 0)

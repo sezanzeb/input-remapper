@@ -42,6 +42,7 @@ sudo apt install ./dist/input-remapper-1.5.0-beta.deb
 ```
 
 input-remapper is now part of [Debian Unstable](https://packages.debian.org/sid/input-remapper)
+and of [Ubuntu](https://packages.ubuntu.com/jammy/input-remapper)
 
 ##### Manual
 
@@ -58,6 +59,12 @@ sudo systemctl restart input-remapper
 ```
 
 If it doesn't seem to install, you can also try `sudo python3 setup.py install`
+
+##### Beta
+
+The `beta` branch contains features that still require work, but that are ready for testing. It uses a different
+config path, so your presets won't break. `input-remapper-beta-git` can be installed from the AUR. If you are
+facing problems, please open up an [issue](https://github.com/sezanzeb/input-remapper/issues).
 
 ## Screenshots
 
