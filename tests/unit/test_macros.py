@@ -674,6 +674,25 @@ class TestMacros(MacroTestBase):
 
         self.assertEqual(len(macro.child_macros), 1)
 
+    async def test_hold_failing_child(self):
+        # if a child macro fails, hold will not try to run it again.
+        # The exception is properly propagated through both `hold`s and the macro
+        # stops. If the code is broken, this test might enter an infinite loop.
+        macro = parse("hold(hold(key(a)))", self.context, DummyMapping)
+
+        class MyException(Exception):
+            pass
+
+        def f(*_):
+            raise MyException("foo")
+
+        macro.press_trigger()
+        with self.assertRaises(MyException):
+            await macro.run(f)
+
+        await asyncio.sleep(0.1)
+        self.assertFalse(macro.running)
+
     async def test_dont_hold(self):
         macro = parse("key(1).hold(key(a)).key(3)", self.context, DummyMapping)
 
