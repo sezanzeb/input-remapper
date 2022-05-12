@@ -43,7 +43,6 @@ from evdev.ecodes import (
     REL_WHEEL_HI_RES,
     REL_HWHEEL_HI_RES,
 )
-from pydantic import ValidationError
 
 from inputremapper.configs.preset import Preset
 from inputremapper.configs.mapping import Mapping, UIMapping
@@ -53,7 +52,7 @@ from inputremapper.user import HOME
 from inputremapper.configs.paths import get_preset_path, mkdir, CONFIG_PATH
 from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.injection.global_uinputs import global_uinputs
-from inputremapper.injection.macros.parse import parse, is_this_a_macro
+from inputremapper.injection.macros.parse import is_this_a_macro
 
 
 def all_presets() -> List[os.PathLike]:
@@ -420,7 +419,7 @@ def migrate():
     if v < pkg_resources.parse_version("1.4.1"):
         _otherwise_to_else()
 
-    if v < pkg_resources.parse_version("1.5b1"):
+    if v < pkg_resources.parse_version("1.5.0-beta"):
         _convert_to_individual_mappings()
 
     # add new migrations here

@@ -11,13 +11,14 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
-from inputremapper.configs.mapping import UIMapping, Mapping
+from inputremapper.configs.mapping import UIMapping
 from tests.test import quick_cleanup, tmp
 
 import os
 import unittest
 import shutil
 import json
+import pkg_resources
 
 from evdev.ecodes import (
     EV_KEY,
@@ -75,7 +76,7 @@ class TestMigrations(unittest.TestCase):
             new = CONFIG_PATH
 
         # we are not destroying our actual config files with this test
-        self.assertTrue(new.startswith(tmp))
+        self.assertTrue(new.startswith(tmp), f'Expected "{new}" to start with "{tmp}"')
 
         try:
             shutil.rmtree(new)
@@ -346,7 +347,7 @@ class TestMigrations(unittest.TestCase):
             file.write("{}")
 
         migrate()
-        self.assertEqual(VERSION, config_version().public)
+        self.assertEqual(pkg_resources.parse_version(VERSION), config_version())
 
     def test_update_version(self):
         path = os.path.join(CONFIG_PATH, "config.json")
@@ -355,7 +356,7 @@ class TestMigrations(unittest.TestCase):
             json.dump({"version": "0.1.0"}, file)
 
         migrate()
-        self.assertEqual(VERSION, config_version().public)
+        self.assertEqual(pkg_resources.parse_version(VERSION), config_version())
 
     def test_config_version(self):
         path = os.path.join(CONFIG_PATH, "config.json")
