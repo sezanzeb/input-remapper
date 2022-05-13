@@ -73,7 +73,7 @@ from inputremapper.event_combination import EventCombination
 # from inputremapper.gui.reader import reader
 from inputremapper.gui.helper import is_helper_running
 from inputremapper.injection.injector import RUNNING, FAILED, NO_GRAB, UPGRADE_EVDEV
-from inputremapper.daemon import Daemon
+from inputremapper.daemon import Daemon, DaemonProxy
 from inputremapper.configs.global_config import global_config
 from inputremapper.injection.macros.parse import is_this_a_macro, parse
 from inputremapper.injection.global_uinputs import global_uinputs
@@ -155,20 +155,18 @@ def ensure_everything_saved(func):
 class UserInterface:
     """The input-remapper gtk window."""
 
-    def __init__(self):
-        self.dbus = None
+    def __init__(
+        self, event_handler: EventHandler, reader: Reader, daemon: DaemonProxy
+    ):
 
-        self.start_processes()
+        self.event_handler = event_handler
+
+        # Todo: remove reader and daemon, we should not need them here
+        self.dbus = daemon
+        self.reader = reader
 
         self.group = None
         self.preset_name = None
-
-        self.event_handler = EventHandler()
-        self.reader = Reader(_Groups())
-        data_manager = DataManager(
-            self.event_handler, global_config, global_uinputs, self.reader
-        )
-        self.controller = Controller(self.event_handler, data_manager)
 
         css_provider = Gtk.CssProvider()
         with open(get_data_path("style.css"), "r") as file:

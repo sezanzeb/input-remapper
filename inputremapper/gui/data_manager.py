@@ -26,6 +26,7 @@ from inputremapper.configs.global_config import GlobalConfig
 from inputremapper.configs.mapping import UIMapping
 from inputremapper.configs.preset import Preset
 from inputremapper.configs.paths import get_preset_path, mkdir, split_all
+from inputremapper.daemon import DaemonProxy
 from inputremapper.event_combination import EventCombination
 from inputremapper.exceptions import DataManagementError
 from inputremapper.groups import _Group, _Groups
@@ -42,13 +43,20 @@ class DataManager:
         config: GlobalConfig,
         uinputs: GlobalUInputs,
         reader: Reader,
+        daemon: DaemonProxy,
     ):
         self.event_handler = event_handler
+
+        # TODO:
+        #  I think reader, daemon and uinputs should not be here.
+        #  create another class Backend which can be used as an
+        #  interface to talk with them
         self.reader = reader
+        self.daemon = daemon
+        self._uinputs = uinputs
 
         self._config = config
         self._config.load_config()
-        self._uinputs = uinputs
 
         self._active_group_key: Optional[str] = None
         self._active_preset: Optional[Preset] = None

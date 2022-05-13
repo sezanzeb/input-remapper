@@ -19,7 +19,6 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 from typing import List, Tuple, Optional
 
-from .reader import Reader
 from .data_manager import DataManager
 from .event_handler import EventHandler, EventEnum
 from .utils import gtk_iteration
@@ -60,6 +59,7 @@ class Controller:
         self.data_manager = data_manager
 
         self.attach_to_events()
+        self.on_init()
 
     def attach_to_events(self) -> None:
         (

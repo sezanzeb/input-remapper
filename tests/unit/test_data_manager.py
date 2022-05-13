@@ -70,7 +70,7 @@ class TestDataManager(unittest.TestCase):
     def setUp(self) -> None:
         self.event_handler = EventHandler()
         self.data_manager = DataManager(
-            self.event_handler, global_config, global_uinputs, groups
+            self.event_handler, global_config, global_uinputs, groups, "remove me"
         )
 
     def tearDown(self) -> None:

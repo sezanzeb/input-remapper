@@ -18,13 +18,15 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-
 """Starts the user interface."""
+from __future__ import annotations
 
-
+import os
 import sys
 import atexit
+import logging
 from argparse import ArgumentParser
+
 from inputremapper.gui.gettext import _, LOCALE_DIR
 
 import gi
@@ -38,7 +40,24 @@ from gi.repository import Gtk
 Gtk.init()
 
 from inputremapper.logger import logger, update_verbosity, log_info
-from inputremapper.configs.migrations import migrate
+
+
+def start_processes() -> DaemonProxy:
+    """Start helper and daemon via pkexec to run in the background."""
+    # this function is overwritten in tests
+    daemon = Daemon.connect()
+
+    debug = " -d" if logger.level <= logging.DEBUG else ""
+    cmd = f"pkexec input-remapper-control --command helper {debug}"
+
+    logger.debug("Running `%s`", cmd)
+    exit_code = os.system(cmd)
+
+    if exit_code != 0:
+        logger.error("Failed to pkexec the helper, code %d", exit_code)
+        sys.exit(11)
+
+    return daemon
 
 
 if __name__ == '__main__':
@@ -55,19 +74,31 @@ if __name__ == '__main__':
     logger.debug('Using locale directory: {}'.format(LOCALE_DIR))
 
     # import input-remapper stuff after setting the log verbosity
+
+    from inputremapper.gui.data_manager import DataManager
+    from inputremapper.gui.event_handler import EventHandler, EventEnum
     from inputremapper.gui.user_interface import UserInterface
-    from inputremapper.daemon import Daemon
-    from inputremapper.configs.global_config import global_config
+    from inputremapper.gui.controller import Controller
+    from inputremapper.injection.global_uinputs import GlobalUInputs
+    from inputremapper.groups import _Groups
+    from inputremapper.gui.reader import Reader
+    from inputremapper.daemon import Daemon, DaemonProxy
+    from inputremapper.configs.global_config import GlobalConfig
+    from inputremapper.configs.migrations import migrate
 
     migrate()
-    global_config.load_config()
 
-    user_interface = UserInterface()
+    daemon = start_processes()
+    reader = Reader(_Groups())
+    event_handler = EventHandler()
+    data_mangager = DataManager(event_handler, GlobalConfig(), GlobalUInputs(), reader, daemon)
+    user_interface = UserInterface(event_handler, reader, daemon)
+    controller = Controller(event_handler, data_mangager)
 
     def stop():
-        if isinstance(user_interface.dbus, Daemon):
+        if isinstance(daemon, Daemon):
             # have fun debugging completely unrelated tests if you remove this
-            user_interface.dbus.stop_all()
+            daemon.stop_all()
 
         user_interface.on_close()
 

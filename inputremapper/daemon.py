@@ -30,6 +30,7 @@ import sys
 import json
 import time
 import atexit
+from typing import Protocol
 
 from pydbus import SystemBus
 import gi
@@ -116,6 +117,34 @@ def remove_timeout(func):
     return wrapped
 
 
+class DaemonProxy(Protocol):
+    """the interface provided over the dbus"""
+
+    def stop_injecting(self, group_key: str) -> None:
+        ...
+
+    def get_state(self, group_key: str) -> int:
+        ...
+
+    def start_injecting(self, group_key: str, preset: str) -> bool:
+        ...
+
+    def stop_all(self) -> None:
+        ...
+
+    def set_config_dir(self, config_dir: str) -> None:
+        ...
+
+    def autoload(self) -> None:
+        ...
+
+    def autoload_single(self, group_key: str) -> None:
+        ...
+
+    def hello(self, out: str) -> str:
+        ...
+
+
 class Daemon:
     """Starts injecting keycodes based on the configuration.
 
@@ -184,7 +213,7 @@ class Daemon:
         macro_variables.start()
 
     @classmethod
-    def connect(cls, fallback=True):
+    def connect(cls, fallback=True) -> DaemonProxy:
         """Get an interface to start and stop injecting keystrokes.
 
         Parameters
@@ -193,8 +222,8 @@ class Daemon:
             If true, returns an instance of the daemon instead if it cannot
             connect
         """
+        bus = SystemBus()
         try:
-            bus = SystemBus()
             interface = bus.get(BUS_NAME, timeout=BUS_TIMEOUT)
             logger.info("Connected to the service")
         except GLib.GError as error:
@@ -405,7 +434,7 @@ class Daemon:
         for group_key, _ in autoload_presets:
             self._autoload(group_key)
 
-    def start_injecting(self, group_key, preset):
+    def start_injecting(self, group_key, preset) -> bool:
         """Start injecting the preset for the device.
 
         Returns True on success. If an injection is already ongoing for
