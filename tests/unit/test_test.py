@@ -38,8 +38,8 @@ import multiprocessing
 import evdev
 from evdev.ecodes import EV_ABS, EV_KEY
 
-from inputremapper.groups import groups
-from inputremapper.gui.reader import reader
+from inputremapper.groups import groups, _Groups
+from inputremapper.gui.reader import Reader
 from inputremapper.gui.helper import RootHelper
 
 
@@ -89,12 +89,15 @@ class TestTest(unittest.TestCase):
         Using push_events after the helper is already forked should work,
         as well as using push_event twice
         """
+        reader = Reader(groups)
 
         def create_helper():
             # this will cause pending events to be copied over to the helper
             # process
             def start_helper():
-                helper = RootHelper()
+                # there is no point in using the global groups object
+                # because the helper runs in a different process
+                helper = RootHelper(_Groups())
                 helper.run()
 
             self.helper = multiprocessing.Process(target=start_helper)

@@ -30,7 +30,8 @@ from inputremapper.event_combination import EventCombination
 from inputremapper.exceptions import DataManagementError
 from inputremapper.groups import _Group, _Groups
 from inputremapper.gui.event_handler import EventHandler, EventEnum
-from inputremapper.injection.global_uinputs import global_uinputs, GlobalUInputs
+from inputremapper.gui.reader import Reader
+from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.logger import logger
 
 
@@ -40,13 +41,14 @@ class DataManager:
         event_handler: EventHandler,
         config: GlobalConfig,
         uinputs: GlobalUInputs,
-        groups: _Groups,
+        reader: Reader,
     ):
         self.event_handler = event_handler
+        self.reader = reader
+
         self._config = config
         self._config.load_config()
         self._uinputs = uinputs
-        self._groups = groups
 
         self._active_group_key: Optional[str] = None
         self._active_preset: Optional[Preset] = None
@@ -79,7 +81,7 @@ class DataManager:
 
     @property
     def groups(self) -> _Groups:
-        return self._groups
+        return self.reader.groups
 
     def newest_group(self) -> str:
         """group_key of the group with the most recently modified preset"""
@@ -295,7 +297,7 @@ class DataManager:
 
     def get_uinputs(self):
         self.event_handler.emit(
-            EventEnum.uinputs_changed, uinputs=global_uinputs.devices.copy()
+            EventEnum.uinputs_changed, uinputs=self._uinputs.devices.copy()
         )
 
     def save(self):

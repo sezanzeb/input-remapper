@@ -19,9 +19,9 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 from typing import List, Tuple, Optional
 
+from .reader import Reader
 from .data_manager import DataManager
 from .event_handler import EventHandler, EventEnum
-from .reader import reader
 from .utils import gtk_iteration
 from ..configs.global_config import global_config
 from ..configs.preset import find_newest_preset
@@ -34,7 +34,6 @@ from ..groups import (
     GRAPHICS_TABLET,
     TOUCHPAD,
     MOUSE,
-    groups,
 )
 from ..injection.global_uinputs import global_uinputs
 from ..logger import logger
@@ -55,11 +54,10 @@ ICON_PRIORITIES = [GRAPHICS_TABLET, TOUCHPAD, GAMEPAD, MOUSE, KEYBOARD, UNKNOWN]
 class Controller:
     """implements the behaviour of the gui"""
 
-    def __init__(self, event_handler: EventHandler):
+    def __init__(self, event_handler: EventHandler, data_manager: DataManager):
         self.event_handler = event_handler
-        self.data_manager = DataManager(
-            event_handler, global_config, global_uinputs, groups
-        )
+        self.reader = data_manager.reader
+        self.data_manager = data_manager
 
         self.attach_to_events()
 
@@ -85,8 +83,8 @@ class Controller:
     def on_init(self):
         # provide all possible groups
         # self.data_manager.groups.refresh()
-        reader.refresh_groups()
-        while not reader.are_new_groups_available():
+        self.reader.refresh_groups()
+        while not self.reader.are_new_groups_available():
             gtk_iteration()
 
         groups: List[Tuple[str, Optional[str]]] = []

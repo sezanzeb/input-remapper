@@ -26,11 +26,11 @@ see gui.helper.helper
 
 from typing import Optional
 from evdev.ecodes import EV_REL
-from inputremapper.input_event import InputEvent
 
+from inputremapper.input_event import InputEvent
 from inputremapper.logger import logger
 from inputremapper.event_combination import EventCombination
-from inputremapper.groups import groups, GAMEPAD
+from inputremapper.groups import GAMEPAD, _Groups
 from inputremapper.ipc.pipe import Pipe
 from inputremapper.gui.helper import (
     MSG_EVENT,
@@ -61,23 +61,31 @@ class Reader:
     has knowledge of buttons like the middle-mouse button.
     """
 
-    def __init__(self):
+    def __init__(self, groups: _Groups):
+        self.groups = groups
+
+        self.group = None
         self.previous_event = None
         self.previous_result = None
+
         self._unreleased = {}
         self._debounce_remove = {}
         self._groups_updated = False
         self._cleared_at = 0
-        self.group = None
-
         self._results = None
         self._commands = None
+
         self.connect()
+        self.attach_to_events()
 
     def connect(self):
         """Connect to the helper."""
         self._results = Pipe(f"/tmp/input-remapper-{USER}/results")
         self._commands = Pipe(f"/tmp/input-remapper-{USER}/commands")
+
+    def attach_to_events(self):
+        """connect listeners to event_reader"""
+        pass
 
     def are_new_groups_available(self):
         """Check if groups contains new devices.
@@ -94,10 +102,7 @@ class Reader:
         message_body = message["message"]
 
         if message_type == MSG_GROUPS:
-            if message_body != groups.dumps():
-                groups.loads(message_body)
-                logger.debug("Received %d devices", len(groups))
-                self._groups_updated = True
+            self._update_groups(message_body)
             return None
 
         if message_type == MSG_EVENT:
@@ -105,6 +110,12 @@ class Reader:
 
         logger.error('Received unknown message "%s"', message)
         return None
+
+    def _update_groups(self, dump):
+        if dump != self.groups.dumps():
+            self.groups.loads(dump)
+            logger.debug("Received %d devices", len(self.groups))
+            self._groups_updated = True
 
     def read(self):
         """Get the newest key/combination as EventCombination object.
@@ -247,6 +258,3 @@ class Reader:
                 self._release(type_code)
             else:
                 self._debounce_remove[type_code] -= 1
-
-
-reader = Reader()

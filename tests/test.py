@@ -557,7 +557,6 @@ from inputremapper.input_event import InputEvent as InternalInputEvent
 from inputremapper.injection.injector import Injector
 from inputremapper.configs.global_config import global_config
 from inputremapper.configs.mapping import Mapping, UIMapping
-from inputremapper.gui.reader import reader
 from inputremapper.groups import groups
 from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.gui.active_preset import active_preset
@@ -602,16 +601,6 @@ def get_ui_mapping(
     )
 
 
-def send_event_to_reader(event):
-    """Act like the helper and send input events to the reader."""
-    reader._results._unread.append(
-        {
-            "type": "event",
-            "message": (event.sec, event.usec, event.type, event.code, event.value),
-        }
-    )
-
-
 def quick_cleanup(log=True):
     """Reset the applications state."""
     if log:
@@ -627,11 +616,6 @@ def quick_cleanup(log=True):
         # setup new pipes for the next test
         pending_events[device] = None
         setup_pipe(device)
-
-    try:
-        reader.terminate()
-    except (BrokenPipeError, OSError):
-        pass
 
     try:
         if asyncio.get_event_loop().is_running():
@@ -684,8 +668,6 @@ def quick_cleanup(log=True):
     for device in list(os.environ.keys()):
         if device not in environ_copy:
             del os.environ[device]
-
-    reader.clear()
 
     for _, pipe in pending_events.values():
         assert not pipe.poll()

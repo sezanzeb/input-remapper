@@ -44,7 +44,7 @@ from evdev.ecodes import EV_KEY, EV_ABS
 
 from inputremapper.ipc.pipe import Pipe
 from inputremapper.logger import logger
-from inputremapper.groups import groups
+from inputremapper.groups import _Groups
 from inputremapper import utils
 from inputremapper.user import USER
 
@@ -76,8 +76,9 @@ class RootHelper:
     or strings to start listening on a specific device.
     """
 
-    def __init__(self):
+    def __init__(self, groups: _Groups):
         """Construct the helper and initialize its sockets."""
+        self.groups = groups
         self._results = Pipe(f"/tmp/input-remapper-{USER}/results")
         self._commands = Pipe(f"/tmp/input-remapper-{USER}/commands")
 
@@ -108,7 +109,7 @@ class RootHelper:
     def _send_groups(self):
         """Send the groups to the gui."""
         logger.debug("Sending groups")
-        self._results.send({"type": MSG_GROUPS, "message": groups.dumps()})
+        self._results.send({"type": MSG_GROUPS, "message": self.groups.dumps()})
 
     def _read_commands(self):
         """Handle all unread commands."""
@@ -121,14 +122,14 @@ class RootHelper:
                 sys.exit(0)
 
             if cmd == CMD_REFRESH_GROUPS:
-                groups.refresh()
+                self.groups.refresh()
                 self._send_groups()
                 continue
 
-            group = groups.find(key=cmd)
+            group = self.groups.find(key=cmd)
             if group is None:
-                groups.refresh()
-                group = groups.find(key=cmd)
+                self.groups.refresh()
+                group = self.groups.find(key=cmd)
 
             if group is not None:
                 self.group = group

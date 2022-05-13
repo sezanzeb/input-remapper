@@ -33,11 +33,14 @@ from inputremapper.gui.components import (
     MappingListBox,
 )
 from inputremapper.gui.controller import Controller
+from inputremapper.gui.data_manager import DataManager
 from inputremapper.gui.event_handler import EventHandler, EventEnum
 from inputremapper.gui.gettext import _
 
 from evdev.ecodes import EV_KEY
 from gi.repository import Gtk, GtkSource, Gdk, GLib, GObject
+
+from inputremapper.gui.reader import Reader
 from inputremapper.input_event import InputEvent
 
 from inputremapper.configs.data import get_data_path
@@ -62,10 +65,12 @@ from inputremapper.groups import (
     GRAPHICS_TABLET,
     TOUCHPAD,
     MOUSE,
+    _Groups,
 )
 from inputremapper.gui.editor.editor import Editor
 from inputremapper.event_combination import EventCombination
-from inputremapper.gui.reader import reader
+
+# from inputremapper.gui.reader import reader
 from inputremapper.gui.helper import is_helper_running
 from inputremapper.injection.injector import RUNNING, FAILED, NO_GRAB, UPGRADE_EVDEV
 from inputremapper.daemon import Daemon
@@ -159,7 +164,11 @@ class UserInterface:
         self.preset_name = None
 
         self.event_handler = EventHandler()
-        self.controller = Controller(self.event_handler)
+        self.reader = Reader(_Groups())
+        data_manager = DataManager(
+            self.event_handler, global_config, global_uinputs, self.reader
+        )
+        self.controller = Controller(self.event_handler, data_manager)
 
         css_provider = Gtk.CssProvider()
         with open(get_data_path("style.css"), "r") as file:
@@ -280,7 +289,7 @@ class UserInterface:
                 self.on_close()
 
             if gdk_keycode == Gdk.KEY_r:
-                reader.refresh_groups()
+                self.reader.refresh_groups()
 
             if gdk_keycode == Gdk.KEY_Delete:
                 self.on_stop_injecting_clicked()
@@ -307,7 +316,7 @@ class UserInterface:
         for timeout in self.timeouts:
             GLib.source_remove(timeout)
             self.timeouts = []
-        reader.terminate()
+        self.reader.terminate()
         Gtk.main_quit()
 
     @ensure_everything_saved
@@ -364,7 +373,7 @@ class UserInterface:
         # letting go of one of the keys of a combination won't just make
         # it return the leftover key, it will continue to return None because
         # they have already been read.
-        combination = reader.read()
+        combination = self.reader.read()
 
         # if reader.are_new_groups_available():
         #    pass
@@ -508,7 +517,7 @@ class UserInterface:
                 return
 
         if not self.unreleased_warn:
-            unreleased = reader.get_unreleased_keys()
+            unreleased = self.reader.get_unreleased_keys()
             if unreleased is not None and unreleased != EventCombination(
                 InputEvent.btn_left()
             ):
@@ -561,7 +570,7 @@ class UserInterface:
 
         self.populate_presets()
 
-        reader.start_reading(groups.find(key=group_key))
+        self.reader.start_reading(groups.find(key=group_key))
 
         self.show_device_mapping_status()
 

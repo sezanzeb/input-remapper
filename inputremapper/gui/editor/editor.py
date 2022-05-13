@@ -41,7 +41,8 @@ from inputremapper.gui.active_preset import active_preset
 from inputremapper.event_combination import EventCombination
 from inputremapper.input_event import InputEvent
 from inputremapper.logger import logger
-from inputremapper.gui.reader import reader
+
+# from inputremapper.gui.reader import reader
 from inputremapper.gui.utils import CTX_KEYCODE, CTX_WARNING, CTX_ERROR
 from inputremapper.injection.global_uinputs import global_uinputs
 
