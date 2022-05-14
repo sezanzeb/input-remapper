@@ -43,6 +43,8 @@ class Backend:
         self._daemon = daemon
         self._uinputs = uinputs
 
+        self._uinputs.prepare_all()
+
     @property
     def groups(self) -> _Groups:
         return self._reader.groups

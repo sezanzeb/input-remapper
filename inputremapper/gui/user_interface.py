@@ -31,6 +31,7 @@ from inputremapper.gui.components import (
     DeviceSelection,
     PresetSelection,
     MappingListBox,
+    TargetSelection,
 )
 from inputremapper.gui.controller import Controller
 from inputremapper.gui.data_manager import DataManager
@@ -185,12 +186,11 @@ class UserInterface:
 
         self.editor = Editor(self)
 
-        # set up the device selection
+        # set up components
         DeviceSelection(self.event_handler, self.get("device_selection"))
-        # set up preset selection
         PresetSelection(self.event_handler, self.get("preset_selection"))
-        # set up MappingListBox
         MappingListBox(self.event_handler, self.get("selection_label_listbox"))
+        TargetSelection(self.event_handler, self.get("target-selector"))
 
         self.confirm_delete = builder.get_object("confirm-delete")
         self.about = builder.get_object("about-dialog")

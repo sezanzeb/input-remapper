@@ -113,7 +113,6 @@ class Editor:
 
         self.active_mapping: Optional[UIMapping] = None
 
-        self._setup_target_selector()
         self._setup_source_view()
         self._setup_recording_toggle()
 
@@ -140,9 +139,6 @@ class Editor:
 
         delete_button = self.get_delete_button()
         delete_button.connect("clicked", self._on_delete_button_clicked)
-
-        target_selector = self.get_target_selector()
-        target_selector.connect("changed", self._on_target_input_changed)
 
     def __del__(self):
         for timeout in self.timeouts:
@@ -210,8 +206,6 @@ class Editor:
             self.set_combination(None)
 
         self.disable_symbol_input(clear=True)
-        self.set_target_selection("keyboard")  # sane default
-        self.disable_target_selector()
         self._reset_keycode_consumption()
 
         self.clear_mapping_list()
@@ -224,19 +218,6 @@ class Editor:
         selection_label_listbox.forall(selection_label_listbox.remove)
         self.add_empty()
         selection_label_listbox.select_row(selection_label_listbox.get_children()[0])
-
-    def _setup_target_selector(self):
-        """Prepare the target selector combobox."""
-        target_store = Gtk.ListStore(str)
-        for uinput in global_uinputs.devices:
-            target_store.append([uinput])
-
-        target_input = self.get_target_selector()
-        target_input.set_model(target_store)
-        renderer_text = Gtk.CellRendererText()
-        target_input.pack_start(renderer_text, False)
-        target_input.add_attribute(renderer_text, "text", 0)
-        target_input.set_id_column(0)
 
     def _setup_recording_toggle(self):
         """Prepare the toggle button for recording key inputs."""
@@ -356,17 +337,6 @@ class Editor:
             # don't overwrite user input
             self.set_symbol_input_text("")
 
-    def disable_target_selector(self):
-        """Don't allow any selection."""
-        selector = self.get_target_selector()
-        selector.set_sensitive(False)
-        selector.set_opacity(0.5)
-
-    def enable_target_selector(self):
-        selector = self.get_target_selector()
-        selector.set_sensitive(True)
-        selector.set_opacity(1)
-
     @ensure_everything_saved
     def on_mapping_selected(self, _=None, selection_label=None):
         """One of the buttons in the left "combination" column was clicked.
@@ -386,20 +356,15 @@ class Editor:
             self.active_mapping = UIMapping()
             # active_preset.add(self.active_mapping)
             self.disable_symbol_input(clear=True)
-            # default target should fit in most cases
-            self.set_target_selection("keyboard")
             self.active_mapping.target_uinput = "keyboard"
             # target input disabled until a combination is configured
-            self.disable_target_selector()
             # symbol input disabled until a combination is configured
         else:
             mapping = active_preset.get_mapping(combination)
             if mapping is not None:
                 self.active_mapping = mapping
                 self.set_symbol_input_text(mapping.output_symbol)
-                self.set_target_selection(mapping.target_uinput)
             self.enable_symbol_input()
-            self.enable_target_selector()
 
         self.get("window").set_focus(self.get_code_editor())
 
@@ -509,10 +474,6 @@ class Editor:
             return ""
 
         return symbol
-
-    def set_target_selection(self, target):
-        selector = self.get_target_selector()
-        selector.set_active_id(target)
 
     def get_target_selection(self):
         return self.get_target_selector().get_active_id()
@@ -687,7 +648,6 @@ class Editor:
             # keycode event won't write into the symbol input as well.
             window = self.user_interface.window
             self.enable_symbol_input()
-            self.enable_target_selector()
             GLib.idle_add(lambda: window.set_focus(self.get_code_editor()))
 
         if not all_keys_released:

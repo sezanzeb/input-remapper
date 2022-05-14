@@ -116,7 +116,7 @@ class EventHandler:
         filename = tb.filename
         match = self.shorten_path.search(filename)
         if match:
-            filename = tb.filename[match.regs[0][1]:]
+            filename = tb.filename[match.regs[0][1] :]
         return filename, tb.lineno
 
     def subscribe(self, event: EventEnum, listener: EventListener) -> EventHandler:

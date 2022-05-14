@@ -17,7 +17,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
-
+from typing import Dict, Union
 
 import evdev
 
@@ -78,7 +78,7 @@ class GlobalUInputs:
     """Manages all uinputs that are shared between all injection processes."""
 
     def __init__(self):
-        self.devices = {}
+        self.devices: Dict[str, Union[UInput, FrontendUInput]] = {}
         self._uinput_factory = None
         self.is_service = inputremapper.utils.is_service()
 

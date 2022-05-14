@@ -57,6 +57,7 @@ class Controller:
         # this might not be necessary if the helper takes longer to provide the
         # initial groups
         self.data_manager.backend.emit_groups()
+        self.data_manager.get_uinputs()
 
     def on_groups_changed(self, **_):
         """load the newest group as soon as everyone got notified

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List, Tuple, Optional, Dict
+from typing import List, Tuple, Optional, Dict, Any
 
 from gi.repository import Gtk, GtkSource, Gdk, GLib, GObject
 
@@ -15,6 +15,7 @@ from inputremapper.groups import (
 )
 from inputremapper.gui.event_handler import EventHandler, EventEnum
 from inputremapper.gui.utils import HandlerDisabled
+from inputremapper.injection.global_uinputs import FrontendUInput
 from inputremapper.logger import logger
 
 
@@ -76,6 +77,61 @@ class DeviceSelection:
         group_key = self.gui.get_active_id()
         logger.debug('Selecting device "%s"', group_key)
         self.event_handler.emit(EventEnum.load_group, group_key=group_key)
+
+
+class TargetSelection:
+    def __init__(self, event_handler: EventHandler, combobox: Gtk.ComboBox):
+        self.event_handler = event_handler
+        self.gui = combobox
+
+        self.attach_to_events()
+        self.gui.connect("changed", self.on_gtk_target_selected)
+
+    def attach_to_events(self):
+        self.event_handler.subscribe(EventEnum.uinputs_changed, self.on_uinputs_changed)
+        self.event_handler.subscribe(EventEnum.mapping_loaded, self.on_mapping_loaded)
+        self.event_handler.subscribe(EventEnum.mapping_changed, self.on_mapping_changed)
+
+    def on_uinputs_changed(self, uinputs: Dict[str, FrontendUInput]):
+        logger.error("got uinputs")
+        target_store = Gtk.ListStore(str)
+        for uinput in uinputs:
+            target_store.append([uinput])
+
+        self.gui.set_model(target_store)
+        renderer_text = Gtk.CellRendererText()
+        self.gui.pack_start(renderer_text, False)
+        self.gui.add_attribute(renderer_text, "text", 0)
+        self.gui.set_id_column(0)
+
+    def on_mapping_loaded(self, mapping: Dict[str, Any]):
+        if mapping:
+            target = mapping["target_uinput"]
+            self.enable()
+        else:
+            target = "keyboard"
+            self.disable()
+
+        with HandlerDisabled(self.gui, self.on_gtk_target_selected):
+            self.gui.set_active_id(target)
+
+    def on_mapping_changed(self, target_uinput=None, **_):
+        if not target_uinput:
+            return
+        with HandlerDisabled(self.gui, self.on_gtk_target_selected):
+            self.gui.set_active_id(target_uinput)
+
+    def enable(self):
+        self.gui.set_sensitive(True)
+        self.gui.set_opacity(1)
+
+    def disable(self):
+        self.gui.set_sensitive(False)
+        self.gui.set_opacity(0.5)
+
+    def on_gtk_target_selected(self, *_):
+        target = self.gui.get_active_id()
+        self.event_handler.emit(EventEnum.mapping_changed, target_uinput=target)
 
 
 class PresetSelection:
