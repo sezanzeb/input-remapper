@@ -19,8 +19,10 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 
+import re
 import enum
-from typing import Callable, Dict, Set, TypedDict, overload, Any, Optional
+import traceback
+from typing import Callable, Dict, Set, TypedDict, overload, Any, Optional, Tuple
 
 from inputremapper.logger import logger
 
@@ -93,9 +95,11 @@ class EventHandler:
         self._listeners: Dict[EventEnum, Set[EventListener]] = {
             event: set() for event in EventEnum
         }
+        self.shorten_path = re.compile("inputremapper/")
 
     def emit(self, event: EventEnum, **kwargs) -> EventHandler:
-        logger.debug(f"emitting {event} with {kwargs}")
+        file, line = self.get_caller()
+        logger.debug(f"{file}:{line}: emitting {event} with {kwargs}")
         call_later = {listener(**kwargs) for listener in self._listeners[event]}
         try:
             call_later.remove(None)
@@ -105,6 +109,15 @@ class EventHandler:
         for callback in call_later:
             callback()
         return self
+
+    def get_caller(self, position: int = 3) -> Tuple[str, int]:
+        """extract a file and line from current stack and format for logging"""
+        tb = traceback.extract_stack(limit=position)[0]
+        filename = tb.filename
+        match = self.shorten_path.search(filename)
+        if match:
+            filename = tb.filename[match.regs[0][1]:]
+        return filename, tb.lineno
 
     def subscribe(self, event: EventEnum, listener: EventListener) -> EventHandler:
         """attach a listener to an event.

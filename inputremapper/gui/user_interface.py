@@ -234,8 +234,6 @@ class UserInterface:
         if not is_helper_running():
             self.show_status(CTX_ERROR, _("The helper did not start"))
 
-        self.event_handler.emit(EventEnum.init)
-
     def setup_timeouts(self):
         """Setup all GLib timeouts."""
         self.timeouts = [
