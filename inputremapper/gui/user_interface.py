@@ -50,7 +50,6 @@ from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.gui.active_preset import active_preset
 from inputremapper.gui.utils import HandlerDisabled
 from inputremapper.configs.preset import (
-    find_newest_preset,
     get_presets,
     delete_preset,
     rename_preset,
@@ -315,15 +314,6 @@ class UserInterface:
         self.reader.terminate()
         Gtk.main_quit()
 
-    @ensure_everything_saved
-    def select_newest_preset(self):
-        """Find and select the newest preset (and its device)."""
-        group_name, preset = find_newest_preset()
-        if group_name is not None:
-            self.get("device_selection").set_active_id(group_name)
-        if preset is not None:
-            self.get("preset_selection").set_active_id(preset)
-
     @if_group_selected
     @ensure_everything_saved
     def populate_presets(self):
@@ -547,28 +537,6 @@ class UserInterface:
         global_config.set_autoload_preset(key, preset if active else None)
         # tell the service to refresh its config
         self.dbus.set_config_dir(get_config_path())
-
-    @ensure_everything_saved
-    def on_select_device(self, dropdown):
-        """List all presets, create one if none exist yet."""
-        if self.group and dropdown.get_active_id() == self.group.key:
-            return
-
-        group_key = dropdown.get_active_id()
-
-        if group_key is None:
-            return
-
-        logger.debug('Selecting device "%s"', group_key)
-
-        self.group = groups.find(key=group_key)
-        self.preset_name = None
-
-        self.populate_presets()
-
-        self.reader.start_reading(groups.find(key=group_key))
-
-        self.show_device_mapping_status()
 
     def show_injection_result(self):
         """Show if the injection was successfully started."""

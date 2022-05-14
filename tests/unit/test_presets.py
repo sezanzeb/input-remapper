@@ -27,7 +27,6 @@ import shutil
 import time
 
 from inputremapper.configs.preset import (
-    find_newest_preset,
     rename_preset,
     get_any_preset,
     delete_preset,
@@ -164,54 +163,6 @@ class TestFindPresets(unittest.TestCase):
         os.mknod(os.path.join(PRESETS, "1234", "foo bar 2.json"))
         # the newest to the front
         self.assertListEqual(get_presets("1234"), ["foo bar 2", "foo bar 1"])
-
-    def test_find_newest_preset_1(self):
-        create_preset("Foo Device", "preset 1")
-        time.sleep(0.01)
-        create_preset("Bar Device", "preset 2")
-
-        # not a preset, ignore
-        time.sleep(0.01)
-        path = os.path.join(PRESETS, "Bar Device", "picture.png")
-        os.mknod(path)
-
-        self.assertEqual(find_newest_preset(), ("Bar Device", "preset 2"))
-
-    def test_find_newest_preset_2(self):
-        os.makedirs(f"{PRESETS}/Foo Device")
-        time.sleep(0.01)
-        os.makedirs(f"{PRESETS}/device_2")
-        # takes the first one that the test-fake returns
-        self.assertEqual(find_newest_preset(), ("Foo Device", None))
-
-    def test_find_newest_preset_3(self):
-        os.makedirs(f"{PRESETS}/Foo Device")
-        self.assertEqual(find_newest_preset(), ("Foo Device", None))
-
-    def test_find_newest_preset_4(self):
-        create_preset("Foo Device", "preset 1")
-        self.assertEqual(find_newest_preset(), ("Foo Device", "preset 1"))
-
-    def test_find_newest_preset_5(self):
-        create_preset("Foo Device", "preset 1")
-        time.sleep(0.01)
-        create_preset("unknown device 3", "preset 3")
-        self.assertEqual(find_newest_preset(), ("Foo Device", "preset 1"))
-
-    def test_find_newest_preset_6(self):
-        # takes the first one that the test-fake returns
-        self.assertEqual(find_newest_preset(), ("Foo Device", None))
-
-    def test_find_newest_preset_7(self):
-        self.assertEqual(find_newest_preset("Foo Device"), ("Foo Device", None))
-
-    def test_find_newest_preset_8(self):
-        create_preset("Foo Device", "preset 1")
-        time.sleep(0.01)
-        create_preset("Foo Device", "preset 3")
-        time.sleep(0.01)
-        create_preset("Bar Device", "preset 2")
-        self.assertEqual(find_newest_preset("Foo Device"), ("Foo Device", "preset 3"))
 
 
 if __name__ == "__main__":

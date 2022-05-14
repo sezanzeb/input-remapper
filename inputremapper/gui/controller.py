@@ -74,7 +74,11 @@ class Controller:
 
     def on_load_group(self, group_key: str):
         self.data_manager.load_group(group_key)
-        self.data_manager.load_preset(self.data_manager.newest_preset())
+        try:
+            self.data_manager.load_preset(self.data_manager.newest_preset())
+        except FileNotFoundError:
+            # todo: create empty preset
+            pass
 
     def on_load_preset(self, name: str):
         self.data_manager.load_preset(name)

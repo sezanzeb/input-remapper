@@ -88,7 +88,7 @@ class DataManager:
             )
         ]
         if not paths:
-            return None
+            raise FileNotFoundError()
 
         path, _ = max(paths, key=lambda x: x[1])
         return os.path.split(path)[-1].split(".")[0]

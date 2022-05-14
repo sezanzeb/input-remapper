@@ -353,54 +353,6 @@ def get_any_preset() -> Tuple[str | None, str | None]:
     return any_device, any_preset[0] if any_preset else None
 
 
-def find_newest_preset(group_name=None):
-    """Get a tuple of (device, preset) that was most recently modified
-    in the users home directory.
-
-    If no device has been configured yet, return an arbitrary device.
-
-    Parameters
-    ----------
-    group_name : string
-        If set, will return the newest preset for the device or None
-    """
-    # sort the oldest files to the front in order to use pop to get the newest
-    if group_name is None:
-        paths = sorted(
-            glob.glob(os.path.join(get_preset_path(), "*/*.json")),
-            key=os.path.getmtime,
-        )
-    else:
-        paths = sorted(
-            glob.glob(os.path.join(get_preset_path(group_name), "*.json")),
-            key=os.path.getmtime,
-        )
-
-    if len(paths) == 0:
-        logger.debug("No presets found")
-        return get_any_preset()
-
-    group_names = groups.list_group_names()
-
-    newest_path = None
-    while len(paths) > 0:
-        # take the newest path
-        path = paths.pop()
-        preset = os.path.split(path)[1]
-        group_name = os.path.split(os.path.split(path)[0])[1]
-        if group_name in group_names:
-            newest_path = path
-            break
-
-    if newest_path is None:
-        return get_any_preset()
-
-    preset = os.path.splitext(preset)[0]
-    logger.debug('The newest preset is "%s", "%s"', group_name, preset)
-
-    return group_name, preset
-
-
 def delete_preset(group_name, preset):
     """Delete one of the users presets."""
     preset_path = get_preset_path(group_name, preset)
