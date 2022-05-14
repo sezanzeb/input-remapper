@@ -17,6 +17,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
+import itertools
 import unittest
 
 from inputremapper.gui.event_handler import EventHandler, EventEnum
@@ -71,3 +72,41 @@ class TestEventHandler(unittest.TestCase):
         event_handler.subscribe(EventEnum.test_ev1, lambda *_, **__: None)
         self.assertRaises(TypeError, event_handler.emit, EventEnum.test_ev1, 1, a=2)
         self.assertRaises(TypeError, event_handler.emit, EventEnum.test_ev2, 1, a=2)
+
+    def test_calls_callbacks_after_listeners(self):
+        event_handler = EventHandler()
+        calls = []
+
+        def listener1():
+            calls.append(1)
+
+            def callback():
+                calls.append(6)
+
+            return callback
+
+        def listener2():
+            calls.append(2)
+
+        def listener3():
+            calls.append(3)
+
+            def callback():
+                calls.append(5)
+
+            return callback
+
+        def listener4():
+            calls.append(4)
+
+        event_handler.subscribe(EventEnum.test_ev1, listener1)
+        event_handler.subscribe(EventEnum.test_ev1, listener2)
+        event_handler.subscribe(EventEnum.test_ev1, listener3)
+        event_handler.subscribe(EventEnum.test_ev1, listener4)
+        event_handler.emit(EventEnum.test_ev1)
+        first = calls[:4]
+        first.sort()
+        last = calls[4:]
+        last.sort()
+        self.assertEqual([1, 2, 3, 4], first)
+        self.assertEqual([5, 6], last)

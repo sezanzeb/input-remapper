@@ -17,6 +17,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
+from inputremapper.gui.event_handler import EventHandler
 from inputremapper.input_event import InputEvent
 from tests.test import (
     new_event,
@@ -76,7 +77,8 @@ class TestReader(unittest.TestCase):
     def setUp(self):
         self.helper = None
         self.groups = _Groups()
-        self.reader = Reader(self.groups)
+        self.event_handler = EventHandler()
+        self.reader = Reader(self.event_handler, self.groups)
 
     def tearDown(self):
         quick_cleanup()

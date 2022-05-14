@@ -6,7 +6,6 @@ from gi.repository import Gtk, GtkSource, Gdk, GLib, GObject
 
 from inputremapper.event_combination import EventCombination
 from inputremapper.groups import (
-    _Groups,
     GAMEPAD,
     KEYBOARD,
     UNKNOWN,
@@ -56,12 +55,18 @@ class DeviceSelection:
         self.event_handler.subscribe(EventEnum.groups_changed, self.on_groups_changed)
         self.event_handler.subscribe(EventEnum.group_changed, self.on_group_changed)
 
-    def on_groups_changed(self, groups: List[Tuple[str, Optional[str]]]):
+    def on_groups_changed(self, groups: List[Tuple[str, List[str]]]):
         with HandlerDisabled(self.gui, self.on_gtk_select_device):
             self.device_store.clear()
-            for group in groups:
-                logger.debug(f"adding {group[0]} to device dropdown ")
-                self.device_store.append([group[0], group[1], group[0]])
+            for group_key, types in groups:
+                if len(types) > 0:
+                    device_type = sorted(types, key=ICON_PRIORITIES.index)[0]
+                    icon_name = ICON_NAMES[device_type]
+                else:
+                    icon_name = None
+
+                logger.debug(f"adding {group_key} to device dropdown ")
+                self.device_store.append([group_key, icon_name, group_key])
 
     def on_group_changed(self, group_key: str, **_):
         with HandlerDisabled(self.gui, self.on_gtk_select_device):

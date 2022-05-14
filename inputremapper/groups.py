@@ -449,7 +449,7 @@ class _Groups:
             keys = [f'"{group.key}"' for group in self._groups]
             logger.info("Found %s", ", ".join(keys))
 
-    def filter(self, include_inputremapper=False):
+    def filter(self, include_inputremapper=False) -> List[_Group]:
         """Filter groups."""
         result = []
         for group in self._groups:

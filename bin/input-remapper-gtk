@@ -27,6 +27,7 @@ import atexit
 import logging
 from argparse import ArgumentParser
 
+from inputremapper.gui.backend import Backend
 from inputremapper.gui.gettext import _, LOCALE_DIR
 
 import gi
@@ -89,11 +90,14 @@ if __name__ == '__main__':
     migrate()
 
     daemon = start_processes()
-    reader = Reader(_Groups())
     event_handler = EventHandler()
-    data_mangager = DataManager(event_handler, GlobalConfig(), GlobalUInputs(), reader, daemon)
+    reader = Reader(event_handler, _Groups())
+    backed = Backend(event_handler, reader, daemon, GlobalUInputs())
+    data_mangager = DataManager(event_handler, GlobalConfig(), backed)
     user_interface = UserInterface(event_handler, reader, daemon)
     controller = Controller(event_handler, data_mangager)
+
+    event_handler.emit(EventEnum.init)
 
     def stop():
         if isinstance(daemon, Daemon):

@@ -20,7 +20,7 @@
 from __future__ import annotations
 
 import enum
-from typing import Callable, Dict, Set, TypedDict, overload, Any
+from typing import Callable, Dict, Set, TypedDict, overload, Any, Optional
 
 from inputremapper.logger import logger
 
@@ -85,7 +85,7 @@ class EventEnum(str, enum.Enum):
     test_ev2 = "test_event2"
 
 
-EventListener = Callable[[Any], None]
+EventListener = Callable[[Any], Optional[Callable]]
 
 
 class EventHandler:
@@ -96,11 +96,20 @@ class EventHandler:
 
     def emit(self, event: EventEnum, **kwargs) -> EventHandler:
         logger.debug(f"emitting {event} with {kwargs}")
-        for listener in self._listeners[event]:
-            listener(**kwargs)
+        call_later = {listener(**kwargs) for listener in self._listeners[event]}
+        try:
+            call_later.remove(None)
+        except KeyError:
+            pass
+
+        for callback in call_later:
+            callback()
         return self
 
     def subscribe(self, event: EventEnum, listener: EventListener) -> EventHandler:
+        """attach a listener to an event.
+        The listener can optionally return a callable which
+        will be called after all other listeners have been called"""
         if event not in self._listeners:
             raise KeyError(event)
         logger.debug("adding new EventListener: %s", listener)

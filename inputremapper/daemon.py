@@ -30,7 +30,7 @@ import sys
 import json
 import time
 import atexit
-from typing import Protocol
+from typing import Protocol, Dict
 
 from pydbus import SystemBus
 import gi
@@ -193,7 +193,7 @@ class Daemon:
     def __init__(self):
         """Constructs the daemon."""
         logger.debug("Creating daemon")
-        self.injectors = {}
+        self.injectors: Dict[str, Injector] = {}
 
         self.config_dir = None
 

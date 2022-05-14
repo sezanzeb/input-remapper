@@ -26,43 +26,26 @@ from inputremapper.configs.global_config import GlobalConfig
 from inputremapper.configs.mapping import UIMapping
 from inputremapper.configs.preset import Preset
 from inputremapper.configs.paths import get_preset_path, mkdir, split_all
-from inputremapper.daemon import DaemonProxy
 from inputremapper.event_combination import EventCombination
 from inputremapper.exceptions import DataManagementError
-from inputremapper.groups import _Group, _Groups
+from inputremapper.gui.backend import Backend
 from inputremapper.gui.event_handler import EventHandler, EventEnum
-from inputremapper.gui.reader import Reader
-from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.logger import logger
 
 
 class DataManager:
     def __init__(
-        self,
-        event_handler: EventHandler,
-        config: GlobalConfig,
-        uinputs: GlobalUInputs,
-        reader: Reader,
-        daemon: DaemonProxy,
+        self, event_handler: EventHandler, config: GlobalConfig, backend: Backend
     ):
         self.event_handler = event_handler
-
-        # TODO:
-        #  I think reader, daemon and uinputs should not be here.
-        #  create another class Backend which can be used as an
-        #  interface to talk with them
-        self.reader = reader
-        self.daemon = daemon
-        self._uinputs = uinputs
+        self.backend = backend
 
         self._config = config
         self._config.load_config()
 
-        self._active_group_key: Optional[str] = None
         self._active_preset: Optional[Preset] = None
         self._active_mapping: Optional[UIMapping] = None
 
-        self._uinputs.prepare_all()
         self.attach_to_event_handler()
 
     @property
@@ -70,7 +53,7 @@ class DataManager:
         if not self._active_preset:
             return False
         return self._config.is_autoloaded(
-            self._active_group_key, self.get_preset_name()
+            self.backend.active_group.key, self.get_preset_name()
         )
 
     @_autoload.setter
@@ -78,24 +61,16 @@ class DataManager:
         if self._active_preset:
             if status:
                 self._config.set_autoload_preset(
-                    self._active_group_key, self.get_preset_name()
+                    self.backend.active_group.key, self.get_preset_name()
                 )
             elif self._autoload:
-                self._config.set_autoload_preset(self._active_group_key, None)
-
-    @property
-    def active_group(self) -> _Group:
-        return self.groups.find(key=self._active_group_key)
-
-    @property
-    def groups(self) -> _Groups:
-        return self.reader.groups
+                self._config.set_autoload_preset(self.backend.active_group.key, None)
 
     def newest_group(self) -> str:
         """group_key of the group with the most recently modified preset"""
         paths = []
         for path in glob.glob(os.path.join(get_preset_path(), "*/*.json")):
-            if self.groups.find(key=split_all(path)[-2]):
+            if self.backend.groups.find(key=split_all(path)[-2]):
                 paths.append((path, os.path.getmtime(path)))
 
         path, _ = max(paths, key=lambda x: x[1])
@@ -103,13 +78,13 @@ class DataManager:
 
     def newest_preset(self) -> Optional[str]:
         """preset name of the most recently modified preset in the active group"""
-        if not self._active_group_key:
+        if not self.backend.active_group.key:
             raise DataManagementError("cannot find newest preset: Group is not set")
 
         paths = [
             (path, os.path.getmtime(path))
             for path in glob.glob(
-                os.path.join(get_preset_path(self._active_group_key), "*.json")
+                os.path.join(get_preset_path(self.backend.active_group.key), "*.json")
             )
         ]
         if not paths:
@@ -121,7 +96,7 @@ class DataManager:
     def emit_group_changed(self):
         self.event_handler.emit(
             EventEnum.group_changed,
-            group_key=self._active_group_key,
+            group_key=self.backend.active_group.key,
             presets=self.get_presets(),
         )
 
@@ -151,9 +126,9 @@ class DataManager:
             self.event_handler.emit(EventEnum.mapping_loaded, mapping=None)
 
     def get_presets(self) -> List[str]:
-        """Get all preset filenames for self._active_group_key and user,
+        """Get all preset filenames for self.backend.active_group.key and user,
         starting with the newest."""
-        device_folder = get_preset_path(self._active_group_key)
+        device_folder = get_preset_path(self.backend.active_group.key)
         mkdir(device_folder)
 
         paths = glob.glob(os.path.join(device_folder, "*.json"))
@@ -184,19 +159,23 @@ class DataManager:
 
     def load_group(self, group_key: str):
         """gather all presets in the group and provide them"""
+        known_groups = [group.key for group in self.backend.groups.filter()]
+        if group_key not in known_groups:
+            raise DataManagementError("Unable to load non existing group")
+
         self._active_mapping = None
         self._active_preset = None
-        self._active_group_key = group_key
+        self.backend.set_active_group(group_key)
         self.emit_mapping_loaded()
         self.emit_preset_changed()
         self.emit_group_changed()
 
     def load_preset(self, name: str):
         """load the preset in the active group and provide all mappings"""
-        if not self._active_group_key:
+        if not self.backend.active_group:
             raise DataManagementError("Unable to load preset. Group is not set")
 
-        preset_path = get_preset_path(self._active_group_key, name)
+        preset_path = get_preset_path(self.backend.active_group.key, name)
         preset = Preset(preset_path, mapping_factory=UIMapping)
         preset.load()
         self._active_mapping = None
@@ -211,13 +190,13 @@ class DataManager:
             raise DataManagementError("Unable rename preset: Preset is not set")
 
         if self._active_preset.path == get_preset_path(
-            self._active_group_key, new_name
+            self.backend.active_group.key, new_name
         ):
             return
 
         old_path = self._active_preset.path
         old_name = os.path.basename(old_path).split(".")[0]
-        new_path = get_preset_path(self._active_group_key, new_name)
+        new_path = get_preset_path(self.backend.active_group.key, new_name)
         if os.path.exists(new_path):
             raise DataManagementError(
                 f"cannot rename {old_name} to " f"{new_name}, preset already exists"
@@ -228,18 +207,20 @@ class DataManager:
         now = time.time()
         os.utime(new_path, (now, now))
 
-        if self._config.is_autoloaded(self._active_group_key, old_name):
-            self._config.set_autoload_preset(self._active_group_key, new_name)
+        if self._config.is_autoloaded(self.backend.active_group.key, old_name):
+            self._config.set_autoload_preset(self.backend.active_group.key, new_name)
 
-        self._active_preset.path = get_preset_path(self._active_group_key, new_name)
+        self._active_preset.path = get_preset_path(
+            self.backend.active_group.key, new_name
+        )
         self.emit_group_changed()
         self.emit_preset_changed()
 
     def add_preset(self, name: str):
-        if not self._active_group_key:
+        if not self.backend.active_group:
             raise DataManagementError("Unable to add preset. Group is not set")
 
-        path = get_preset_path(self._active_group_key, name)
+        path = get_preset_path(self.backend.active_group.key, name)
         if os.path.exists(path):
             raise DataManagementError("Unable to add preset. Preset exists")
 
@@ -304,9 +285,7 @@ class DataManager:
         self.emit_autoload_changed()
 
     def get_uinputs(self):
-        self.event_handler.emit(
-            EventEnum.uinputs_changed, uinputs=self._uinputs.devices.copy()
-        )
+        self.backend.get_uinputs()
 
     def save(self):
         if self._active_preset:

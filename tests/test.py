@@ -553,15 +553,20 @@ from inputremapper.logger import update_verbosity
 
 update_verbosity(True)
 
+from inputremapper.daemon import DaemonProxy
 from inputremapper.input_event import InputEvent as InternalInputEvent
-from inputremapper.injection.injector import Injector
+from inputremapper.injection.injector import Injector, RUNNING
+from inputremapper.injection.macros.macro import macro_variables
+from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.configs.global_config import global_config
 from inputremapper.configs.mapping import Mapping, UIMapping
-from inputremapper.groups import groups
+from inputremapper.groups import groups, _Groups
 from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.gui.active_preset import active_preset
+from inputremapper.gui.backend import Backend
+from inputremapper.gui.event_handler import EventHandler
+from inputremapper.gui.reader import Reader
 from inputremapper.configs.paths import get_config_path
-from inputremapper.injection.macros.macro import macro_variables
 
 # from inputremapper.injection.mapping_handlers.keycode_mapper import active_macros, unreleased
 from inputremapper.injection.global_uinputs import global_uinputs
@@ -705,6 +710,65 @@ def cleanup():
 def spy(obj, name):
     """Convenient wrapper for patch.object(..., ..., wraps=...)."""
     return patch.object(obj, name, wraps=obj.__getattribute__(name))
+
+
+class FakeDaemonProxy:
+    def __init__(self):
+        self.calls = {
+            "stop_injecting": [],
+            "get_state": [],
+            "start_injecting": [],
+            "stop_all": 0,
+            "set_config_dir": [],
+            "autoload": 0,
+            "autoload_single": [],
+            "hello": [],
+        }
+
+    def stop_injecting(self, group_key: str) -> None:
+        self.calls["stop_injecting"].append(group_key)
+
+    def get_state(self, group_key: str) -> int:
+        self.calls["get_state"].append(group_key)
+        return RUNNING
+
+    def start_injecting(self, group_key: str, preset: str) -> bool:
+        self.calls["start_injecting"].append((group_key, preset))
+        return True
+
+    def stop_all(self) -> None:
+        self.calls["stop_all"] += 1
+
+    def set_config_dir(self, config_dir: str) -> None:
+        self.calls["set_config_dir"].append(config_dir)
+
+    def autoload(self) -> None:
+        self.calls["autoload"] += 1
+
+    def autoload_single(self, group_key: str) -> None:
+        self.calls["autoload_single"].append(group_key)
+
+    def hello(self, out: str) -> str:
+        self.calls["hello"].append(out)
+        return out
+
+
+def get_backend(
+    event_handler: EventHandler = None,
+    reader: Reader = None,
+    daemon: DaemonProxy = None,
+    uinputs: GlobalUInputs = None,
+) -> Backend:
+    if not event_handler:
+        event_handler = EventHandler()
+    if not reader:
+        reader = Reader(event_handler, _Groups())
+    if not daemon:
+        daemon = FakeDaemonProxy()
+    if not uinputs:
+        uinputs = GlobalUInputs()
+
+    return Backend(event_handler, reader, daemon, uinputs)
 
 
 cleanup()

@@ -17,37 +17,10 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
-from typing import List, Tuple, Optional
 
 from .data_manager import DataManager
 from .event_handler import EventHandler, EventEnum
-from .utils import gtk_iteration
-from ..configs.global_config import global_config
-from ..configs.preset import find_newest_preset
 from ..event_combination import EventCombination
-from ..groups import (
-    _Groups,
-    GAMEPAD,
-    KEYBOARD,
-    UNKNOWN,
-    GRAPHICS_TABLET,
-    TOUCHPAD,
-    MOUSE,
-)
-from ..injection.global_uinputs import global_uinputs
-from ..logger import logger
-
-ICON_NAMES = {
-    GAMEPAD: "input-gaming",
-    MOUSE: "input-mouse",
-    KEYBOARD: "input-keyboard",
-    GRAPHICS_TABLET: "input-tablet",
-    TOUCHPAD: "input-touchpad",
-    UNKNOWN: None,
-}
-
-# sort types that most devices would fall in easily to the right.
-ICON_PRIORITIES = [GRAPHICS_TABLET, TOUCHPAD, GAMEPAD, MOUSE, KEYBOARD, UNKNOWN]
 
 
 class Controller:
@@ -55,16 +28,15 @@ class Controller:
 
     def __init__(self, event_handler: EventHandler, data_manager: DataManager):
         self.event_handler = event_handler
-        self.reader = data_manager.reader
         self.data_manager = data_manager
 
         self.attach_to_events()
-        self.on_init()
 
     def attach_to_events(self) -> None:
         (
             self.event_handler.subscribe(EventEnum.init, self.on_init)
             .subscribe(EventEnum.load_groups, self.on_load_groups)
+            .subscribe(EventEnum.groups_changed, self.on_groups_changed)
             .subscribe(EventEnum.load_group, self.on_load_group)
             .subscribe(EventEnum.load_preset, self.on_load_preset)
             .subscribe(EventEnum.rename_preset, self.on_rename_preset)
@@ -81,32 +53,24 @@ class Controller:
         )
 
     def on_init(self):
-        # provide all possible groups
-        # self.data_manager.groups.refresh()
-        self.reader.refresh_groups()
-        while not self.reader.are_new_groups_available():
-            gtk_iteration()
+        # make sure we get a groups_changed event when everything is ready
+        # this might not be necessary if the helper takes longer to provide the
+        # initial groups
+        self.data_manager.backend.emit_groups()
 
-        groups: List[Tuple[str, Optional[str]]] = []
-        for group in self.data_manager.groups.filter(include_inputremapper=False):
-            types = group.types
-            if len(types) > 0:
-                device_type = sorted(types, key=ICON_PRIORITIES.index)[0]
-                icon_name = ICON_NAMES[device_type]
-            else:
-                icon_name = None
+    def on_groups_changed(self, **_):
+        """load the newest group as soon as everyone got notified
+        about the updated groups"""
 
-            groups.append((group.key, icon_name))
-        self.event_handler.emit(EventEnum.groups_changed, groups=groups)
+        def callback():
+            # this will run after all other listeners where executed
+            self.on_load_group(self.data_manager.newest_group())
 
-        # load the newest group and preset
-        self.data_manager.load_group(self.data_manager.newest_group())
-        self.data_manager.load_preset(self.data_manager.newest_preset())
-        # Todo: load a mapping
+        return callback
 
     def on_load_groups(self):
         self.event_handler.emit(EventEnum.reset_gui)
-        self.on_init()
+        self.data_manager.backend.refresh_groups()
 
     def on_load_group(self, group_key: str):
         self.data_manager.load_group(group_key)

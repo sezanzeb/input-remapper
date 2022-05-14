@@ -24,13 +24,16 @@
 see gui.helper.helper
 """
 
-from typing import Optional
-from evdev.ecodes import EV_REL
+from typing import Optional, List, Tuple
 
+from evdev.ecodes import EV_REL
+from gi.repository import GLib
+
+from inputremapper.gui.event_handler import EventHandler, EventEnum
 from inputremapper.input_event import InputEvent
 from inputremapper.logger import logger
 from inputremapper.event_combination import EventCombination
-from inputremapper.groups import GAMEPAD, _Groups
+from inputremapper.groups import GAMEPAD, _Groups, _Group
 from inputremapper.ipc.pipe import Pipe
 from inputremapper.gui.helper import (
     MSG_EVENT,
@@ -61,13 +64,15 @@ class Reader:
     has knowledge of buttons like the middle-mouse button.
     """
 
-    def __init__(self, groups: _Groups):
+    def __init__(self, event_handler: EventHandler, groups: _Groups):
         self.groups = groups
+        self.event_handler = event_handler
 
-        self.group = None
+        self.group: Optional[_Group] = None
         self.previous_event = None
         self.previous_result = None
 
+        self.read_timeout: Optional[GLib.Timeout] = None
         self._unreleased = {}
         self._debounce_remove = {}
         self._groups_updated = False
@@ -77,6 +82,7 @@ class Reader:
 
         self.connect()
         self.attach_to_events()
+        self.read_continuously()
 
     def connect(self):
         """Connect to the helper."""
@@ -87,35 +93,19 @@ class Reader:
         """connect listeners to event_reader"""
         pass
 
+    def read_continuously(self):
+        """poll the result pipe in regular intervals"""
+        self.read_timeout = GLib.timeout_add(30, self.read)
+
     def are_new_groups_available(self):
         """Check if groups contains new devices.
 
         The ui should then update its list.
         """
+        # todo: deprecate
         outdated = self._groups_updated
         self._groups_updated = False  # assume the ui will react accordingly
         return outdated
-
-    def _get_event(self, message) -> Optional[InputEvent]:
-        """Return an InputEvent if the message contains one. None otherwise."""
-        message_type = message["type"]
-        message_body = message["message"]
-
-        if message_type == MSG_GROUPS:
-            self._update_groups(message_body)
-            return None
-
-        if message_type == MSG_EVENT:
-            return InputEvent(*message_body)
-
-        logger.error('Received unknown message "%s"', message)
-        return None
-
-    def _update_groups(self, dump):
-        if dump != self.groups.dumps():
-            self.groups.loads(dump)
-            logger.debug("Received %d devices", len(self.groups))
-            self._groups_updated = True
 
     def read(self):
         """Get the newest key/combination as EventCombination object.
@@ -233,6 +223,36 @@ class Reader:
             return None
 
         return EventCombination(unreleased)
+
+    def emit_groups_changed(self):
+        """announce all known groups"""
+        groups: List[Tuple[str, List[str]]] = []
+        for group in self.groups.filter(include_inputremapper=False):
+            groups.append((group.key, group.types or []))
+
+        self.event_handler.emit(EventEnum.groups_changed, groups=groups)
+
+    def _get_event(self, message) -> Optional[InputEvent]:
+        """Return an InputEvent if the message contains one. None otherwise."""
+        message_type = message["type"]
+        message_body = message["message"]
+
+        if message_type == MSG_GROUPS:
+            self._update_groups(message_body)
+            return None
+
+        if message_type == MSG_EVENT:
+            return InputEvent(*message_body)
+
+        logger.error('Received unknown message "%s"', message)
+        return None
+
+    def _update_groups(self, dump):
+        if dump != self.groups.dumps():
+            self.groups.loads(dump)
+            logger.debug("Received %d devices", len(self.groups))
+            self._groups_updated = True
+            self.emit_groups_changed()
 
     def _release(self, type_code):
         """Modify the state to recognize the releasing of the key."""
