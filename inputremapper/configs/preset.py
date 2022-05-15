@@ -59,7 +59,7 @@ class Preset:
     # a copy of mappings for keeping track of changes
     _saved_mappings: Dict[EventCombination, Mapping]
     _path: Optional[os.PathLike]
-    _mapping_factpry: Type[Mapping]  # the mapping class which is used by load()
+    _mapping_factory: Type[Mapping]  # the mapping class which is used by load()
 
     def __init__(
         self,
@@ -285,103 +285,3 @@ class Preset:
         if path != self.path:
             self._path = path
             self._update_saved_mappings()
-
-
-###########################################################################
-# Method from previously presets.py
-# TODO: See what can be implemented as classmethod or
-#  member function of Preset
-###########################################################################
-
-
-def get_available_preset_name(group_name, preset="new preset", copy=False):
-    """Increment the preset name until it is available."""
-    if group_name is None:
-        # endless loop otherwise
-        raise ValueError("group_name may not be None")
-
-    preset = preset.strip()
-
-    if copy and not re.match(r"^.+\scopy( \d+)?$", preset):
-        preset = f"{preset} copy"
-
-    # find a name that is not already taken
-    if os.path.exists(get_preset_path(group_name, preset)):
-        # if there already is a trailing number, increment it instead of
-        # adding another one
-        match = re.match(r"^(.+) (\d+)$", preset)
-        if match:
-            preset = match[1]
-            i = int(match[2]) + 1
-        else:
-            i = 2
-
-        while os.path.exists(get_preset_path(group_name, f"{preset} {i}")):
-            i += 1
-
-        return f"{preset} {i}"
-
-    return preset
-
-
-def get_presets(group_name: str) -> List[str]:
-    """Get all preset filenames for the device and user, starting with the newest.
-
-    Parameters
-    ----------
-    group_name : string
-    """
-    device_folder = get_preset_path(group_name)
-    mkdir(device_folder)
-
-    paths = glob.glob(os.path.join(device_folder, "*.json"))
-    presets = [
-        os.path.splitext(os.path.basename(path))[0]
-        for path in sorted(paths, key=os.path.getmtime)
-    ]
-    # the highest timestamp to the front
-    presets.reverse()
-    return presets
-
-
-def get_any_preset() -> Tuple[str | None, str | None]:
-    """Return the first found tuple of (device, preset)."""
-    group_names = groups.list_group_names()
-    if len(group_names) == 0:
-        return None, None
-    any_device = list(group_names)[0]
-    any_preset = get_presets(any_device)
-    return any_device, any_preset[0] if any_preset else None
-
-
-def delete_preset(group_name, preset):
-    """Delete one of the users presets."""
-    preset_path = get_preset_path(group_name, preset)
-    if not os.path.exists(preset_path):
-        logger.debug('Cannot remove non existing path "%s"', preset_path)
-        return
-
-    logger.info('Removing "%s"', preset_path)
-    os.remove(preset_path)
-
-    device_path = get_preset_path(group_name)
-    if os.path.exists(device_path) and len(os.listdir(device_path)) == 0:
-        logger.debug('Removing empty dir "%s"', device_path)
-        os.rmdir(device_path)
-
-
-def rename_preset(group_name, old_preset_name, new_preset_name):
-    """Rename one of the users presets while avoiding name conflicts."""
-    if new_preset_name == old_preset_name:
-        return old_preset_name
-
-    new_preset_name = get_available_preset_name(group_name, new_preset_name)
-    logger.info('Moving "%s" to "%s"', old_preset_name, new_preset_name)
-    os.rename(
-        get_preset_path(group_name, old_preset_name),
-        get_preset_path(group_name, new_preset_name),
-    )
-    # set the modification date to now
-    now = time.time()
-    os.utime(get_preset_path(group_name, new_preset_name), (now, now))
-    return new_preset_name

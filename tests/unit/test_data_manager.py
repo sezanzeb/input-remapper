@@ -567,3 +567,31 @@ class TestDataManager(unittest.TestCase):
 
         self.data_manager.load_group("Foo Device")
         self.assertEqual(self.data_manager.newest_preset(), "preset 3")
+
+    def test_available_preset_name_default(self):
+        """should default to 'new preset'"""
+        self.data_manager.load_group("Foo Device")
+        self.assertEqual(self.data_manager.get_available_preset_name(), "new preset")
+
+    def test_available_preset_name_increments_default(self):
+        """should increment the default name if a preset with the name already exits"""
+        Preset(get_preset_path("Foo Device", "new preset")).save()
+        self.data_manager.load_group("Foo Device")
+        self.assertEqual(self.data_manager.get_available_preset_name(), "new preset 2")
+
+    def test_available_preset_name_returns_provided_name(self):
+        """should return the provided name if it is available"""
+        self.data_manager.load_group("Foo Device")
+        self.assertEqual(self.data_manager.get_available_preset_name("bar"), "bar")
+
+    def test_available_preset_name_increments_provided_name(self):
+        """should return the provided name if it is available"""
+        Preset(get_preset_path("Foo Device", "bar")).save()
+        self.data_manager.load_group("Foo Device")
+        self.assertEqual(self.data_manager.get_available_preset_name("bar"), "bar 2")
+
+    def test_available_preset_name_raises_data_management_error(self):
+        """should raise DataManagementError when group is not set"""
+        self.assertRaises(
+            DataManagementError, self.data_manager.get_available_preset_name
+        )

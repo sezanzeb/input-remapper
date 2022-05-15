@@ -52,12 +52,6 @@ from inputremapper.configs.paths import get_config_path, get_preset_path
 from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.gui.active_preset import active_preset
 from inputremapper.gui.utils import HandlerDisabled
-from inputremapper.configs.preset import (
-    get_presets,
-    delete_preset,
-    rename_preset,
-    get_available_preset_name,
-)
 from inputremapper.logger import logger, COMMIT_HASH, VERSION, EVDEV_VERSION, is_debug
 from inputremapper.groups import (
     groups,

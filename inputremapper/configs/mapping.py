@@ -42,6 +42,8 @@ from inputremapper.input_event import EventActions
 
 # TODO: remove pydantic VERSION check as soon as we no longer support
 #  Ubuntu 20.04 and with it the ainchant pydantic 1.2
+from inputremapper.logger import logger
+
 needs_workaround = pkg_resources.parse_version(
     str(VERSION)
 ) < pkg_resources.parse_version("1.7.1")
@@ -145,6 +147,10 @@ class Mapping(BaseModel):
     if needs_workaround:
         # https://github.com/samuelcolvin/pydantic/issues/1383
         def copy(self, *args, **kwargs) -> Mapping:
+            try:
+                kwargs.pop("deep")
+            except KeyError:
+                pass
             copy = super(Mapping, self).copy(*args, deep=True, **kwargs)
             object.__setattr__(copy, "_combination_changed", self._combination_changed)
             return copy
@@ -369,6 +375,18 @@ class UIMapping(Mapping):
                 del dict_["_cache"]
 
         return dict_
+
+    def copy(self, *args, **kwargs) -> Mapping:
+        # we always need a deep copy otherwise the _cache of the copy will
+        # point to the same address
+        try:
+            kwargs.pop("deep")
+        except KeyError:
+            pass
+
+        copy = super().copy(*args, deep=True, **kwargs)
+        object.__setattr__(copy, "_combination_changed", self._combination_changed)
+        return copy
 
     def get_error(self) -> Optional[ValidationError]:
         """The validation error or None."""

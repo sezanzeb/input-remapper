@@ -19,6 +19,7 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 import glob
 import os
+import re
 import time
 from typing import Optional, List, Tuple
 
@@ -149,6 +150,33 @@ class DataManager:
             return None
         return os.path.basename(self._active_preset.path).split(".")[0]
 
+    def get_available_preset_name(self, name="new preset"):
+        """the first available preset in the active group"""
+        if not self.backend.active_group:
+            raise DataManagementError("unable find preset name. Group is not set")
+
+        name = name.strip()
+
+        # find a name that is not already taken
+        if os.path.exists(get_preset_path(self.backend.active_group.key, name)):
+            # if there already is a trailing number, increment it instead of
+            # adding another one
+            match = re.match(r"^(.+) (\d+)$", name)
+            if match:
+                name = match[1]
+                i = int(match[2]) + 1
+            else:
+                i = 2
+
+            while os.path.exists(
+                get_preset_path(self.backend.active_group.key, f"{name} {i}")
+            ):
+                i += 1
+
+            return f"{name} {i}"
+
+        return name
+
     def get_mappings(self) -> Optional[List[Tuple[str, EventCombination]]]:
         if not self._active_preset:
             return None
@@ -260,6 +288,12 @@ class DataManager:
 
         for key, value in kwargs.items():
             setattr(self._active_mapping, key, value)
+
+        logger.debug("updated mapping %s", self._active_preset.has_unsaved_changes())
+        logger.debug(self._active_mapping)
+        logger.debug(
+            self._active_preset._saved_mappings[self._active_mapping.event_combination]
+        )
         self.emit_mapping_changed()
 
     def create_mapping(self):
