@@ -73,12 +73,15 @@ class DataManager:
             if self.backend.groups.find(key=split_all(path)[-2]):
                 paths.append((path, os.path.getmtime(path)))
 
+        if not paths:
+            raise FileNotFoundError()
+
         path, _ = max(paths, key=lambda x: x[1])
         return split_all(path)[-2]
 
     def newest_preset(self) -> Optional[str]:
         """preset name of the most recently modified preset in the active group"""
-        if not self.backend.active_group.key:
+        if not self.backend.active_group:
             raise DataManagementError("cannot find newest preset: Group is not set")
 
         paths = [

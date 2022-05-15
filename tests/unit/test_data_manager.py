@@ -18,6 +18,8 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 import json
+import os
+import time
 import unittest
 from typing import List, Dict, Any
 
@@ -495,3 +497,73 @@ class TestDataManager(unittest.TestCase):
             self.data_manager.set_autoload,
             autoload=True,
         )
+
+    def test_finds_newest_group(self):
+        Preset(get_preset_path("Foo Device", "preset 1")).save()
+        time.sleep(0.01)
+        Preset(get_preset_path("Bar Device", "preset 2")).save()
+        self.assertEqual(self.data_manager.newest_group(), "Bar Device")
+
+    def test_finds_newest_preset(self):
+        Preset(get_preset_path("Foo Device", "preset 1")).save()
+        time.sleep(0.01)
+        Preset(get_preset_path("Foo Device", "preset 2")).save()
+        self.data_manager.load_group("Foo Device")
+        self.assertEqual(self.data_manager.newest_preset(), "preset 2")
+
+    def test_newest_group_ignores_unknown_filetypes(self):
+        Preset(get_preset_path("Foo Device", "preset 1")).save()
+        time.sleep(0.01)
+        Preset(get_preset_path("Bar Device", "preset 2")).save()
+
+        # not a preset, ignore
+        time.sleep(0.01)
+        path = os.path.join(get_preset_path("Foo Device"), "picture.png")
+        os.mknod(path)
+
+        self.assertEqual(self.data_manager.newest_group(), "Bar Device")
+
+    def test_newest_preset_ignores_unknown_filetypes(self):
+        Preset(get_preset_path("Bar Device", "preset 1")).save()
+        time.sleep(0.01)
+        Preset(get_preset_path("Bar Device", "preset 2")).save()
+        time.sleep(0.01)
+        Preset(get_preset_path("Bar Device", "preset 3")).save()
+
+        # not a preset, ignore
+        time.sleep(0.01)
+        path = os.path.join(get_preset_path("Bar Device"), "picture.png")
+        os.mknod(path)
+
+        self.data_manager.load_group("Bar Device")
+
+        self.assertEqual(self.data_manager.newest_preset(), "preset 3")
+
+    def test_newest_group_ignores_unknon_groups(self):
+        Preset(get_preset_path("Bar Device", "preset 1")).save()
+        time.sleep(0.01)
+        Preset(get_preset_path("unknown_group", "preset 2")).save()  # not a known group
+
+        self.assertEqual(self.data_manager.newest_group(), "Bar Device")
+
+    def test_newest_group_and_preset_raises_file_not_found(self):
+        """should raise file not found error when all preset folders are empty"""
+        self.assertRaises(FileNotFoundError, self.data_manager.newest_group)
+        os.makedirs(get_preset_path("Bar Device"))
+        self.assertRaises(FileNotFoundError, self.data_manager.newest_group)
+        self.data_manager.load_group("Bar Device")
+        self.assertRaises(FileNotFoundError, self.data_manager.newest_preset)
+
+    def test_newest_preset_raises_data_management_error(self):
+        """should raise data management error without a active group"""
+        self.assertRaises(DataManagementError, self.data_manager.newest_preset)
+
+    def test_newest_preset_only_searches_active_group(self):
+        Preset(get_preset_path("Foo Device", "preset 1")).save()
+        time.sleep(0.01)
+        Preset(get_preset_path("Foo Device", "preset 3")).save()
+        time.sleep(0.01)
+        Preset(get_preset_path("Bar Device", "preset 2")).save()
+
+        self.data_manager.load_group("Foo Device")
+        self.assertEqual(self.data_manager.newest_preset(), "preset 3")
