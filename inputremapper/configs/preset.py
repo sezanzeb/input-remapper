@@ -150,6 +150,7 @@ class Preset:
 
         touch(str(self.path))  # touch expects a string, not a Posix path
         if not self.has_unsaved_changes():
+            logger.debug("Not saving unchanged preset")
             return
 
         logger.info("Saving preset to %s", self.path)

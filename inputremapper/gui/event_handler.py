@@ -51,7 +51,7 @@ class EventEnum(str, enum.Enum):
     # emit to provide a preset. Parameter: name, mappings
     preset_changed = "preset_changed"
 
-    # emit to request a mapping. Parameter: combination
+    # emit to request a mapping. Parameter: event_combination
     load_mapping = "load_mapping"
     # emit to create a empty mapping
     create_mapping = "create_mapping"

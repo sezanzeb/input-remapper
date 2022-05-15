@@ -93,8 +93,8 @@ class Controller:
     def on_delete_preset(self):
         self.data_manager.delete_preset()
 
-    def on_load_mapping(self, combination: EventCombination):
-        self.data_manager.load_mapping(combination)
+    def on_load_mapping(self, event_combination: EventCombination):
+        self.data_manager.load_mapping(event_combination)
 
     def on_update_mapping(self, **kwargs):
         self.data_manager.update_mapping(**kwargs)

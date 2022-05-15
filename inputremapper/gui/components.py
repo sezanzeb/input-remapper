@@ -4,6 +4,7 @@ from typing import List, Tuple, Optional, Dict, Any
 
 from gi.repository import Gtk, GtkSource, Gdk, GLib, GObject
 
+from inputremapper.configs.system_mapping import SystemMapping
 from inputremapper.event_combination import EventCombination
 from inputremapper.groups import (
     GAMEPAD,
@@ -13,6 +14,7 @@ from inputremapper.groups import (
     TOUCHPAD,
     MOUSE,
 )
+from inputremapper.gui.editor.editor import SET_KEY_FIRST  # todo: define here
 from inputremapper.gui.event_handler import EventHandler, EventEnum
 from inputremapper.gui.utils import HandlerDisabled
 from inputremapper.injection.global_uinputs import FrontendUInput
@@ -204,7 +206,7 @@ class MappingListBox:
             self.gui.foreach(set_active)
 
     def on_gtk_mapping_selected(self, _, row: SelectionLabel):
-        self.event_handler.emit(EventEnum.load_mapping, combination=row.combination)
+        self.event_handler.emit(EventEnum.load_mapping, event_combination=row.combination)
 
 
 class SelectionLabel(Gtk.ListBoxRow):
@@ -250,4 +252,96 @@ class SelectionLabel(Gtk.ListBoxRow):
             return
 
         self._name = mapping["name"]
-        self.combination = mapping["combination"]
+        self.combination = mapping["event_combination"]
+
+
+class CodeEditor:
+    def __init__(self, event_handler: EventHandler, system_mapping: SystemMapping, editor: GtkSource.View):
+        self.evnet_handler = event_handler
+        self.system_mapping = system_mapping
+        self.gui = editor
+
+        # without this the wrapping ScrolledWindow acts weird when new lines are added,
+        # not offering enough space to the text editor so the whole thing is suddenly
+        # scrollable by a few pixels.
+        # Found this after making blind guesses with settings in glade, and then
+        # actually looking at the snaphot preview! In glades editor this didn have an
+        # effect.
+        self.gui.set_resize_mode(Gtk.ResizeMode.IMMEDIATE)
+        # todo: setup autocompletion here
+
+        self.gui.connect("focus-out-event", self.on_gtk_focus_out)
+        self.gui.get_buffer().connect("changed", self.on_gtk_changed)
+        self.attach_to_events()
+
+    @property
+    def code(self) -> str:
+        buffer = self.gui.get_buffer()
+        return buffer.get_text(buffer.get_start_iter(), buffer.get_end_iter(), True)
+
+    @code.setter
+    def code(self, code: str) -> None:
+        if code == self.code:
+            return
+
+        buffer = self.gui.get_buffer()
+        with HandlerDisabled(buffer, self.on_gtk_changed):
+            buffer.set_text(code)
+            self.gui.do_move_cursor(self.gui, Gtk.MovementStep.BUFFER_ENDS, -1, False)
+
+    def attach_to_events(self):
+        self.evnet_handler.subscribe(EventEnum.mapping_loaded, self.on_mapping_loaded)
+        self.evnet_handler.subscribe(EventEnum.mapping_changed, self.on_mapping_changed)
+
+    def toggle_line_numbers(self):
+        """Show line numbers if multiline, otherwise remove them"""
+        if "\n" in self.code:
+            self.gui.set_show_line_numbers(True)
+            self.gui.set_monospace(True)
+            self.gui.get_style_context().add_class("multiline")
+        else:
+            self.gui.set_show_line_numbers(False)
+            self.gui.set_monospace(False)
+            self.gui.get_style_context().remove_class("multiline")
+
+    def enable(self):
+        logger.debug("Enabling the code editor")
+        self.gui.set_sensitive(True)
+        self.gui.set_opacity(1)
+
+        if self.code == SET_KEY_FIRST:
+            # don't overwrite user input
+            self.code = ""
+
+    def disable(self):
+        logger.debug("Disabling the code editor")
+
+        # beware that this also appeared to disable event listeners like
+        # focus-out-event:
+        self.gui.set_sensitive(False)
+        self.gui.set_opacity(0.5)
+
+        if self.code == "":
+            # don't overwrite user input
+            self.code = SET_KEY_FIRST
+
+    def on_gtk_focus_out(self, *_):
+        self.evnet_handler.emit(EventEnum.save)
+
+    def on_gtk_changed(self, *_):
+        code = self.system_mapping.correct_case(self.code)
+        self.evnet_handler.emit(EventEnum.update_mapping, output_symbol=code)
+
+    def on_mapping_loaded(self, mapping=None):
+        code = ""
+        if mapping and mapping["output_symbol"]:
+            code = mapping["output_symbol"]
+        self.code = code
+        if mapping:
+            self.enable()
+        else:
+            self.disable()
+        self.toggle_line_numbers()
+
+    def on_mapping_changed(self, mapping):
+        self.on_mapping_loaded(mapping)

@@ -133,9 +133,9 @@ class Editor:
 
         self.record_events_until = RECORD_NONE
 
-        code_editor = self.get_code_editor()
-        code_editor.connect("focus-out-event", self.on_text_input_unfocus)
-        code_editor.get_buffer().connect("changed", self.on_text_input_changed)
+        #code_editor = self.get_code_editor()
+        #code_editor.connect("focus-out-event", self.on_text_input_unfocus)
+        #code_editor.get_buffer().connect("changed", self.on_text_input_changed)
 
         delete_button = self.get_delete_button()
         delete_button.connect("clicked", self._on_delete_button_clicked)

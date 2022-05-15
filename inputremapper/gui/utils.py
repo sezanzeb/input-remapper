@@ -23,6 +23,8 @@ from gi.repository import Gtk, GLib
 
 
 # status ctx ids
+from inputremapper.logger import logger
+
 CTX_SAVE = 0
 CTX_APPLY = 1
 CTX_KEYCODE = 2
