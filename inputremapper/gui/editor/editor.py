@@ -86,7 +86,7 @@ def ensure_everything_saved(func):
 
     def wrapped(self, *args, **kwargs):
         if self.user_interface.preset_name:
-            #self.gather_changes_and_save()
+            # self.gather_changes_and_save()
             pass
 
         return func(self, *args, **kwargs)
@@ -128,9 +128,9 @@ class Editor:
 
         self.record_events_until = RECORD_NONE
 
-        #code_editor = self.get_code_editor()
-        #code_editor.connect("focus-out-event", self.on_text_input_unfocus)
-        #code_editor.get_buffer().connect("changed", self.on_text_input_changed)
+        # code_editor = self.get_code_editor()
+        # code_editor.connect("focus-out-event", self.on_text_input_unfocus)
+        # code_editor.get_buffer().connect("changed", self.on_text_input_changed)
 
         delete_button = self.get_delete_button()
         delete_button.connect("clicked", self._on_delete_button_clicked)
@@ -264,7 +264,7 @@ class Editor:
             # the empty mapping was selected
             self.active_mapping = UIMapping()
             # active_preset.add(self.active_mapping)
-            #self.disable_symbol_input(clear=True)
+            # self.disable_symbol_input(clear=True)
             self.active_mapping.target_uinput = "keyboard"
             # target input disabled until a combination is configured
             # symbol input disabled until a combination is configured
@@ -273,7 +273,7 @@ class Editor:
             if mapping is not None:
                 self.active_mapping = mapping
                 self.set_symbol_input_text(mapping.output_symbol)
-            #self.enable_symbol_input()
+            # self.enable_symbol_input()
 
         self.get("window").set_focus(self.get_code_editor())
 
@@ -520,7 +520,7 @@ class Editor:
             # Switch to the symbol. idle_add this so that the
             # keycode event won't write into the symbol input as well.
             window = self.user_interface.window
-            #self.enable_symbol_input()
+            # self.enable_symbol_input()
             GLib.idle_add(lambda: window.set_focus(self.get_code_editor()))
 
         if not all_keys_released:

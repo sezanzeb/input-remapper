@@ -31,7 +31,8 @@ from inputremapper.gui.components import (
     DeviceSelection,
     PresetSelection,
     MappingListBox,
-    TargetSelection, CodeEditor,
+    TargetSelection,
+    CodeEditor,
 )
 
 from inputremapper.gui.editor.autocompletion import Autocompletion
@@ -193,7 +194,9 @@ class UserInterface:
         TargetSelection(self.event_handler, self.get("target-selector"))
 
         # code editor and autocompletion
-        code_editor = CodeEditor(self.event_handler, system_mapping, self.get("code_editor"))
+        code_editor = CodeEditor(
+            self.event_handler, system_mapping, self.get("code_editor")
+        )
         autocompletion = Autocompletion(self.event_handler, code_editor)
         autocompletion.set_relative_to(self.get("code_editor_container"))
 
@@ -652,8 +655,8 @@ class UserInterface:
         self.editor.clear_mapping_list()
         self.preset_name = preset
         active_preset.clear()
-        #active_preset.path = self.group.get_preset_path(preset)
-        #active_preset.load()
+        # active_preset.path = self.group.get_preset_path(preset)
+        # active_preset.load()
 
         self.editor.load_custom_mapping()
 

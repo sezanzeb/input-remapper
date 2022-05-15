@@ -212,9 +212,13 @@ class Autocompletion(Gtk.Popover):
         self.popdown()  # hidden by default. this needs to happen after show_all!
 
     def attach_to_events(self):
-        self.event_handler.subscribe(EventEnum.mapping_changed, self._on_mapping_changed)
+        self.event_handler.subscribe(
+            EventEnum.mapping_changed, self._on_mapping_changed
+        )
         self.event_handler.subscribe(EventEnum.mapping_loaded, self._on_mapping_loaded)
-        self.event_handler.subscribe(EventEnum.uinputs_changed, self._on_uinputs_changed)
+        self.event_handler.subscribe(
+            EventEnum.uinputs_changed, self._on_uinputs_changed
+        )
 
     def on_gtk_text_input_unfocus(self, *_):
         """The code editor was unfocused."""

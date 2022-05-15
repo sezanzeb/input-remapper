@@ -207,7 +207,9 @@ class MappingListBox:
             self.gui.foreach(set_active)
 
     def on_gtk_mapping_selected(self, _, row: SelectionLabel):
-        self.event_handler.emit(EventEnum.load_mapping, event_combination=row.combination)
+        self.event_handler.emit(
+            EventEnum.load_mapping, event_combination=row.combination
+        )
 
 
 class SelectionLabel(Gtk.ListBoxRow):
@@ -257,7 +259,12 @@ class SelectionLabel(Gtk.ListBoxRow):
 
 
 class CodeEditor:
-    def __init__(self, event_handler: EventHandler, system_mapping: SystemMapping, editor: GtkSource.View):
+    def __init__(
+        self,
+        event_handler: EventHandler,
+        system_mapping: SystemMapping,
+        editor: GtkSource.View,
+    ):
         self.evnet_handler = event_handler
         self.system_mapping = system_mapping
         self.gui = editor
