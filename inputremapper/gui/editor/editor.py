@@ -29,9 +29,7 @@ import os
 import time
 from typing import Optional
 
-from inputremapper.configs.data import get_data_path
 from inputremapper.configs.mapping import UIMapping
-from inputremapper.gui.gettext import _
 
 from gi.repository import Gtk, GLib, Gdk, GtkSource
 from inputremapper.gui.gettext import _
@@ -42,9 +40,7 @@ from inputremapper.event_combination import EventCombination
 from inputremapper.input_event import InputEvent
 from inputremapper.logger import logger
 
-# from inputremapper.gui.reader import reader
 from inputremapper.gui.utils import CTX_KEYCODE, CTX_WARNING, CTX_ERROR
-from inputremapper.injection.global_uinputs import global_uinputs
 
 
 class CombinationEntry(Gtk.ListBoxRow):
@@ -90,14 +86,13 @@ def ensure_everything_saved(func):
 
     def wrapped(self, *args, **kwargs):
         if self.user_interface.preset_name:
-            self.gather_changes_and_save()
+            #self.gather_changes_and_save()
+            pass
 
         return func(self, *args, **kwargs)
 
     return wrapped
 
-
-SET_KEY_FIRST = _("Set the key first")
 
 RECORD_ALL = float("inf")
 RECORD_NONE = 0
@@ -113,7 +108,7 @@ class Editor:
 
         self.active_mapping: Optional[UIMapping] = None
 
-        self._setup_source_view()
+        # self._setup_source_view()
         self._setup_recording_toggle()
 
         self.window = self.get("window")
@@ -180,17 +175,6 @@ class Editor:
         """
         pass  # the decorator will be triggered
 
-    def on_text_input_changed(self, *_):
-        # correct case
-        symbol = self.get_symbol_input_text()
-        correct_case = system_mapping.correct_case(symbol)
-        if symbol != correct_case:
-            self.get_code_editor().get_buffer().set_text(correct_case)
-
-        if self.active_mapping:
-            # might be None if the empty mapping was selected, and the text input cleared
-            self.active_mapping.output_symbol = correct_case
-
     def _on_target_input_changed(self, *_):
         """Save when target changed."""
         self.active_mapping.target_uinput = self.get_target_selection()
@@ -205,7 +189,6 @@ class Editor:
         if self.active_selection_label:
             self.set_combination(None)
 
-        self.disable_symbol_input(clear=True)
         self._reset_keycode_consumption()
 
         self.clear_mapping_list()
@@ -241,48 +224,6 @@ class Editor:
         """Show user friendly instructions."""
         self.get_recording_toggle().set_label(_("Change Key"))
 
-    def _setup_source_view(self):
-        """Prepare the code editor."""
-        source_view = self.get_code_editor()
-
-        # without this the wrapping ScrolledWindow acts weird when new lines are added,
-        # not offering enough space to the text editor so the whole thing is suddenly
-        # scrollable by a few pixels.
-        # Found this after making blind guesses with settings in glade, and then
-        # actually looking at the snaphot preview! In glades editor this didn have an
-        # effect.
-        source_view.set_resize_mode(Gtk.ResizeMode.IMMEDIATE)
-
-        source_view.get_buffer().connect("changed", self.show_line_numbers_if_multiline)
-
-        # Syntax Highlighting
-        # Thanks to https://github.com/wolfthefallen/py-GtkSourceCompletion-example
-        # language_manager = GtkSource.LanguageManager()
-        # fun fact: without saving LanguageManager into its own variable it doesn't work
-        #  python = language_manager.get_language("python")
-        # source_view.get_buffer().set_language(python)
-        # TODO there are some similarities with python, but overall it's quite useless.
-        #  commented out until there is proper highlighting for input-remappers syntax.
-
-        autocompletion = Autocompletion(source_view, self.get_target_selector())
-        autocompletion.set_relative_to(self.get("code_editor_container"))
-        autocompletion.connect("suggestion-inserted", self.gather_changes_and_save)
-        self.autocompletion = autocompletion
-
-    def show_line_numbers_if_multiline(self, *_):
-        """Show line numbers if a macro is being edited."""
-        code_editor = self.get_code_editor()
-        symbol = self.get_symbol_input_text() or ""
-
-        if "\n" in symbol:
-            code_editor.set_show_line_numbers(True)
-            code_editor.set_monospace(True)
-            code_editor.get_style_context().add_class("multiline")
-        else:
-            code_editor.set_show_line_numbers(False)
-            code_editor.set_monospace(False)
-            code_editor.get_style_context().remove_class("multiline")
-
     def check_add_new_key(self):
         """If needed, add a new empty mapping to the list for the user to configure."""
         logger.debug("deprecated")
@@ -305,38 +246,6 @@ class Editor:
 
         return True
 
-    def disable_symbol_input(self, clear=False):
-        """Display help information and dont allow entering a symbol.
-
-        Without this, maybe a user enters a symbol or writes a macro, switches
-        presets accidentally before configuring the key and then it's gone. It can
-        only be saved to the preset if a key is configured. This avoids that pitfall.
-        """
-        logger.debug("Disabling the code editor")
-        text_input = self.get_code_editor()
-
-        # beware that this also appeared to disable event listeners like
-        # focus-out-event:
-        text_input.set_sensitive(False)
-        text_input.set_opacity(0.5)
-
-        if clear or self.get_symbol_input_text() == "":
-            # don't overwrite user input
-            self.set_symbol_input_text(SET_KEY_FIRST)
-
-    def enable_symbol_input(self):
-        """Don't display help information anymore and allow changing the symbol."""
-        logger.debug("Enabling the code editor")
-        text_input = self.get_code_editor()
-        text_input.set_sensitive(True)
-        text_input.set_opacity(1)
-
-        buffer = text_input.get_buffer()
-        symbol = buffer.get_text(buffer.get_start_iter(), buffer.get_end_iter(), True)
-        if symbol == SET_KEY_FIRST:
-            # don't overwrite user input
-            self.set_symbol_input_text("")
-
     @ensure_everything_saved
     def on_mapping_selected(self, _=None, selection_label=None):
         """One of the buttons in the left "combination" column was clicked.
@@ -355,7 +264,7 @@ class Editor:
             # the empty mapping was selected
             self.active_mapping = UIMapping()
             # active_preset.add(self.active_mapping)
-            self.disable_symbol_input(clear=True)
+            #self.disable_symbol_input(clear=True)
             self.active_mapping.target_uinput = "keyboard"
             # target input disabled until a combination is configured
             # symbol input disabled until a combination is configured
@@ -364,7 +273,7 @@ class Editor:
             if mapping is not None:
                 self.active_mapping = mapping
                 self.set_symbol_input_text(mapping.output_symbol)
-            self.enable_symbol_input()
+            #self.enable_symbol_input()
 
         self.get("window").set_focus(self.get_code_editor())
 
@@ -431,11 +340,6 @@ class Editor:
             for event in combination:
                 listbox.insert(CombinationEntry(event), -1)
 
-        if combination and len(combination) > 0:
-            self.enable_symbol_input()
-        else:
-            self.disable_symbol_input()
-
     def get_combination(self):
         """Get the EventCombination object from the left column.
 
@@ -456,24 +360,6 @@ class Editor:
             -1,
             False,
         )
-
-    def get_symbol_input_text(self):
-        """Get the assigned symbol from the text input.
-
-        This might not be stored in active_preset yet, and might therefore also not
-        be part of the preset json file yet.
-
-        If there is no symbol, this returns None. This is important for some other
-        logic down the road in active_preset or something.
-        """
-        buffer = self.get_code_editor().get_buffer()
-        symbol = buffer.get_text(buffer.get_start_iter(), buffer.get_end_iter(), True)
-
-        if symbol == SET_KEY_FIRST:
-            # not configured yet
-            return ""
-
-        return symbol
 
     def get_target_selection(self):
         return self.get_target_selector().get_active_id()
@@ -546,19 +432,6 @@ class Editor:
         response = confirm_delete.run()
         confirm_delete.hide()
         return response
-
-    def gather_changes_and_save(self, *_):
-        """Look into the ui if new changes should be written, and save the preset."""
-        # correct case
-        symbol = self.get_symbol_input_text()
-        target = self.get_target_selection()
-
-        if not symbol or not target:
-            return
-
-        # save to disk if required
-        if active_preset.is_valid():
-            self.user_interface.save_preset()
 
     def is_waiting_for_input(self):
         """Check if the user is trying to record buttons."""
@@ -647,7 +520,7 @@ class Editor:
             # Switch to the symbol. idle_add this so that the
             # keycode event won't write into the symbol input as well.
             window = self.user_interface.window
-            self.enable_symbol_input()
+            #self.enable_symbol_input()
             GLib.idle_add(lambda: window.set_focus(self.get_code_editor()))
 
         if not all_keys_released:

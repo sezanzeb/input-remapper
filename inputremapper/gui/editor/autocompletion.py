@@ -23,17 +23,20 @@
 
 
 import re
+from typing import Dict, Optional
 
 from gi.repository import Gdk, Gtk, GLib, GObject
 from evdev.ecodes import EV_KEY
 
 from inputremapper.configs.system_mapping import system_mapping
+from inputremapper.gui.components import CodeEditor
+from inputremapper.gui.event_handler import EventHandler, EventEnum
 from inputremapper.injection.macros.parse import (
     FUNCTIONS,
     get_macro_argument_names,
     remove_comments,
 )
-from inputremapper.injection.global_uinputs import global_uinputs
+from inputremapper.injection.global_uinputs import FrontendUInput
 from inputremapper.logger import logger
 from inputremapper.gui.utils import debounce
 
@@ -146,7 +149,7 @@ class Autocompletion(Gtk.Popover):
 
     __gtype_name__ = "Autocompletion"
 
-    def __init__(self, text_input, target_selector):
+    def __init__(self, event_handler: EventHandler, code_editor: CodeEditor):
         """Create an autocompletion popover.
 
         It will remain hidden until there is something to autocomplete.
@@ -164,10 +167,10 @@ class Autocompletion(Gtk.Popover):
             constrain_to=Gtk.PopoverConstraint.NONE,
         )
 
-        self.text_input = text_input
-        self.target_selector = target_selector
+        self.code_editor = code_editor
+        self.event_handler = event_handler
+        self._uinputs: Optional[Dict[str, FrontendUInput]] = None
         self._target_key_capabilities = []
-        target_selector.connect("changed", self._update_target_key_capabilities)
 
         self.scrolled_window = Gtk.ScrolledWindow(
             min_content_width=200,
@@ -192,22 +195,28 @@ class Autocompletion(Gtk.Popover):
 
         self.set_position(Gtk.PositionType.BOTTOM)
 
-        text_input.connect("key-press-event", self.navigate)
+        self.code_editor.gui.connect("key-press-event", self.navigate)
 
         # add some delay, so that pressing the button in the completion works before
         # the popover is hidden due to focus-out-event
-        text_input.connect("focus-out-event", self.on_text_input_unfocus)
+        self.code_editor.gui.connect("focus-out-event", self.on_gtk_text_input_unfocus)
 
-        text_input.get_buffer().connect("changed", self.update)
+        self.code_editor.gui.get_buffer().connect("changed", self.update)
 
         self.set_position(Gtk.PositionType.BOTTOM)
 
         self.visible = False
 
+        self.attach_to_events()
         self.show_all()
         self.popdown()  # hidden by default. this needs to happen after show_all!
 
-    def on_text_input_unfocus(self, *_):
+    def attach_to_events(self):
+        self.event_handler.subscribe(EventEnum.mapping_changed, self._on_mapping_changed)
+        self.event_handler.subscribe(EventEnum.mapping_loaded, self._on_mapping_loaded)
+        self.event_handler.subscribe(EventEnum.uinputs_changed, self._on_uinputs_changed)
+
+    def on_gtk_text_input_unfocus(self, *_):
         """The code editor was unfocused."""
         GLib.timeout_add(100, self.popdown)
         # "(input-remapper-gtk:97611): Gtk-WARNING **: 16:33:56.464: GtkTextView -
@@ -300,8 +309,8 @@ class Autocompletion(Gtk.Popover):
 
     def _get_text_iter_at_cursor(self):
         """Get Gtk.TextIter at the current text cursor location."""
-        cursor = self.text_input.get_cursor_locations()[0]
-        return self.text_input.get_iter_at_location(cursor.x, cursor.y)[1]
+        cursor = self.code_editor.gui.get_cursor_locations()[0]
+        return self.code_editor.gui.get_iter_at_location(cursor.x, cursor.y)[1]
 
     def popup(self):
         self.visible = True
@@ -314,24 +323,24 @@ class Autocompletion(Gtk.Popover):
     @debounce(100)
     def update(self, *_):
         """Find new autocompletion suggestions and display them. Hide if none."""
-        if not self.text_input.is_focus():
+        if not self.code_editor.gui.is_focus():
             self.popdown()
             return
 
         self.list_box.forall(self.list_box.remove)
 
         # move the autocompletion to the text cursor
-        cursor = self.text_input.get_cursor_locations()[0]
+        cursor = self.code_editor.gui.get_cursor_locations()[0]
         # convert it to window coords, because the cursor values will be very large
         # when the TextView is in a scrolled down ScrolledWindow.
-        window_coords = self.text_input.buffer_to_window_coords(
+        window_coords = self.code_editor.gui.buffer_to_window_coords(
             Gtk.TextWindowType.TEXT, cursor.x, cursor.y
         )
         cursor.x = window_coords.window_x
         cursor.y = window_coords.window_y
         cursor.y += 12
 
-        if self.text_input.get_show_line_numbers():
+        if self.code_editor.gui.get_show_line_numbers():
             cursor.x += 25
 
         self.set_pointing_to(cursor)
@@ -352,17 +361,22 @@ class Autocompletion(Gtk.Popover):
             self.list_box.insert(label, -1)
             label.show_all()
 
-    def _update_target_key_capabilities(self, *_):
-        target = self.target_selector.get_active_id()
-        self._target_key_capabilities = global_uinputs.get_uinput(
-            target
-        ).capabilities()[EV_KEY]
+    def _on_mapping_loaded(self, mapping=None):
+        if mapping and self._uinputs:
+            target = mapping["target_uinput"]
+            self._target_key_capabilities = self._uinputs[target].capabilities()[EV_KEY]
+
+    def _on_mapping_changed(self, mapping):
+        self._on_mapping_loaded(mapping)
+
+    def _on_uinputs_changed(self, uinputs: Dict[str, FrontendUInput]):
+        self._uinputs = uinputs
 
     def _on_suggestion_clicked(self, _, selected_row):
         """An autocompletion suggestion was selected and should be inserted."""
         selected_label = selected_row.get_children()[0]
         suggestion = selected_label.suggestion
-        buffer = self.text_input.get_buffer()
+        buffer = self.code_editor.gui.get_buffer()
 
         # make sure to replace the complete unfinished word. Look to the right and
         # remove whatever there is
@@ -371,7 +385,7 @@ class Autocompletion(Gtk.Popover):
         match = re.match(r"^(\w+)", right)
         right = match[1] if match else ""
         Gtk.TextView.do_delete_from_cursor(
-            self.text_input, Gtk.DeleteType.CHARS, len(right)
+            self.code_editor.gui, Gtk.DeleteType.CHARS, len(right)
         )
 
         # do the same to the left
@@ -380,11 +394,11 @@ class Autocompletion(Gtk.Popover):
         match = re.match(r".*?(\w+)$", re.sub("\n", " ", left))
         left = match[1] if match else ""
         Gtk.TextView.do_delete_from_cursor(
-            self.text_input, Gtk.DeleteType.CHARS, -len(left)
+            self.code_editor.gui, Gtk.DeleteType.CHARS, -len(left)
         )
 
         # insert the autocompletion
-        Gtk.TextView.do_insert_at_cursor(self.text_input, suggestion)
+        Gtk.TextView.do_insert_at_cursor(self.code_editor.gui, suggestion)
 
         self.emit("suggestion-inserted")
 

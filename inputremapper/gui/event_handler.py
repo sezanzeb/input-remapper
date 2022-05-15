@@ -59,7 +59,9 @@ class EventEnum(str, enum.Enum):
     update_mapping = "update_mapping"
     # delete the current mapping
     delete_mapping = "delete_mapping"
-    # emit to provide a updated mapping. Parameter: mapping
+    # emit to provide a updated mapping.
+    # Do not emit this from the UI use update_mapping instead
+    # Parameter: mapping
     mapping_changed = "mapping_changed"
     # emit to provide a new active mapping. Parameter: mapping
     mapping_loaded = "mapping_loaded"

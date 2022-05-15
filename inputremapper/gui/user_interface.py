@@ -33,9 +33,9 @@ from inputremapper.gui.components import (
     MappingListBox,
     TargetSelection, CodeEditor,
 )
-from inputremapper.gui.controller import Controller
-from inputremapper.gui.data_manager import DataManager
-from inputremapper.gui.event_handler import EventHandler, EventEnum
+
+from inputremapper.gui.editor.autocompletion import Autocompletion
+from inputremapper.gui.event_handler import EventHandler
 from inputremapper.gui.gettext import _
 
 from evdev.ecodes import EV_KEY
@@ -191,8 +191,11 @@ class UserInterface:
         PresetSelection(self.event_handler, self.get("preset_selection"))
         MappingListBox(self.event_handler, self.get("selection_label_listbox"))
         TargetSelection(self.event_handler, self.get("target-selector"))
-        CodeEditor(self.event_handler, system_mapping, self.get("code_editor"))
 
+        # code editor and autocompletion
+        code_editor = CodeEditor(self.event_handler, system_mapping, self.get("code_editor"))
+        autocompletion = Autocompletion(self.event_handler, code_editor)
+        autocompletion.set_relative_to(self.get("code_editor_container"))
 
         self.confirm_delete = builder.get_object("confirm-delete")
         self.about = builder.get_object("about-dialog")
@@ -635,6 +638,7 @@ class UserInterface:
     @ensure_everything_saved
     def on_select_preset(self, dropdown):
         """Show the mappings of the preset."""
+        return
         # beware in tests that this function won't be called at all if the
         # active_id stays the same
         if dropdown.get_active_id() == self.preset_name:
@@ -648,8 +652,8 @@ class UserInterface:
         self.editor.clear_mapping_list()
         self.preset_name = preset
         active_preset.clear()
-        active_preset.path = self.group.get_preset_path(preset)
-        active_preset.load()
+        #active_preset.path = self.group.get_preset_path(preset)
+        #active_preset.load()
 
         self.editor.load_custom_mapping()
 

@@ -14,12 +14,13 @@ from inputremapper.groups import (
     TOUCHPAD,
     MOUSE,
 )
-from inputremapper.gui.editor.editor import SET_KEY_FIRST  # todo: define here
+from inputremapper.gui.gettext import _
 from inputremapper.gui.event_handler import EventHandler, EventEnum
 from inputremapper.gui.utils import HandlerDisabled
 from inputremapper.injection.global_uinputs import FrontendUInput
 from inputremapper.logger import logger
 
+SET_KEY_FIRST = _("Set the key first")
 
 ICON_NAMES = {
     GAMEPAD: "input-gaming",
@@ -133,7 +134,7 @@ class TargetSelection:
 
     def on_gtk_target_selected(self, *_):
         target = self.gui.get_active_id()
-        self.event_handler.emit(EventEnum.mapping_changed, target_uinput=target)
+        self.event_handler.emit(EventEnum.update_mapping, target_uinput=target)
 
 
 class PresetSelection:
@@ -268,6 +269,15 @@ class CodeEditor:
         # actually looking at the snaphot preview! In glades editor this didn have an
         # effect.
         self.gui.set_resize_mode(Gtk.ResizeMode.IMMEDIATE)
+        # Syntax Highlighting
+        # Thanks to https://github.com/wolfthefallen/py-GtkSourceCompletion-example
+        # language_manager = GtkSource.LanguageManager()
+        # fun fact: without saving LanguageManager into its own variable it doesn't work
+        #  python = language_manager.get_language("python")
+        # source_view.get_buffer().set_language(python)
+        # TODO there are some similarities with python, but overall it's quite useless.
+        #  commented out until there is proper highlighting for input-remappers syntax.
+
         # todo: setup autocompletion here
 
         self.gui.connect("focus-out-event", self.on_gtk_focus_out)
