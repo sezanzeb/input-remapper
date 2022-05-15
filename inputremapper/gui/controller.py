@@ -87,7 +87,9 @@ class Controller:
     def on_rename_preset(self, new_name: str):
         self.data_manager.rename_preset(new_name)
 
-    def on_add_preset(self, name: str):
+    def on_add_preset(self, name: str = None):
+        if not name:
+            raise NotImplementedError
         self.data_manager.add_preset(name)
 
     def on_delete_preset(self):

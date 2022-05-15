@@ -46,6 +46,8 @@ class EventEnum(str, enum.Enum):
     rename_preset = "rename_preset"
     # emit to add a preset the current group. Parameter: name
     add_preset = "add_preset"
+    # emit to create a copy of the current preset
+    copy_preset = "copy_preset"
     # emit to delete the current preset
     delete_preset = "delete_preset"
     # emit to provide a preset. Parameter: name, mappings
@@ -77,6 +79,11 @@ class EventEnum(str, enum.Enum):
     get_uinputs = "get_uinputs"
     # emit to provide available uinputs. Parameter: uinputs
     uinputs_changed = "uinputs_changed"
+
+    # emit to start injecting the current preset
+    start_injecting = "start_injecting"
+    # emit to stop injecting for the current group
+    stop_injection = "stop_injecting"
 
     # emit to save all data
     save = "save"

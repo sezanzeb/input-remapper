@@ -26,6 +26,7 @@ import math
 import os
 import re
 import sys
+from functools import partial
 
 from inputremapper.gui.components import (
     DeviceSelection,
@@ -36,7 +37,7 @@ from inputremapper.gui.components import (
 )
 
 from inputremapper.gui.editor.autocompletion import Autocompletion
-from inputremapper.gui.event_handler import EventHandler
+from inputremapper.gui.event_handler import EventHandler, EventEnum
 from inputremapper.gui.gettext import _
 
 from evdev.ecodes import EV_KEY
@@ -200,6 +201,8 @@ class UserInterface:
         autocompletion = Autocompletion(self.event_handler, code_editor)
         autocompletion.set_relative_to(self.get("code_editor_container"))
 
+        self.connect_buttons()
+
         self.confirm_delete = builder.get_object("confirm-delete")
         self.about = builder.get_object("about-dialog")
         self.about.connect("delete-event", on_close_about)
@@ -241,26 +244,28 @@ class UserInterface:
         if not is_helper_running():
             self.show_status(CTX_ERROR, _("The helper did not start"))
 
+    def connect_buttons(self):
+        self.get("delete_preset").connect(
+            "clicked", lambda *_: self.event_handler.emit(EventEnum.delete_preset)
+        )
+        self.get("copy_preset").connect(
+            "clicked", lambda *_: self.event_handler.emit(EventEnum.copy_preset)
+        )
+        self.get("create_preset").connect(
+            "clicked", lambda *_: self.event_handler.emit(EventEnum.add_preset)
+        )
+        self.get("apply_preset").connect(
+            "clicked", lambda *_: self.event_handler.emit(EventEnum.start_injecting)
+        )
+        self.get("apply_system_layout").connect(
+            "clicked", lambda *_: self.event_handler.emit(EventEnum.stop_injection)
+        )
+
     def setup_timeouts(self):
         """Setup all GLib timeouts."""
         self.timeouts = [
             GLib.timeout_add(1000 / 30, self.consume_newest_keycode),
         ]
-
-    def start_processes(self):
-        """Start helper and daemon via pkexec to run in the background."""
-        # this function is overwritten in tests
-        self.dbus = Daemon.connect()
-
-        debug = " -d" if is_debug() else ""
-        cmd = f"pkexec input-remapper-control --command helper {debug}"
-
-        logger.debug("Running `%s`", cmd)
-        exit_code = os.system(cmd)
-
-        if exit_code != 0:
-            logger.error("Failed to pkexec the helper, code %d", exit_code)
-            sys.exit(11)
 
     def show_confirm_delete(self):
         """Blocks until the user decided about an action."""

@@ -234,7 +234,6 @@ Gives your keys back their original function</property>
                     <property name="halign">end</property>
                     <property name="image">gtk-redo-icon</property>
                     <property name="always-show-image">True</property>
-                    <signal name="clicked" handler="on_stop_injecting_clicked" swapped="no"/>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -411,7 +410,6 @@ Gives your keys back their original function</property>
                     <property name="image">delete-icon</property>
                     <property name="relief">none</property>
                     <property name="always-show-image">True</property>
-                    <signal name="clicked" handler="on_delete_preset_clicked" swapped="no"/>
                   </object>
                   <packing>
                     <property name="left-attach">0</property>
@@ -428,7 +426,6 @@ Gives your keys back their original function</property>
                     <property name="image">copy-icon</property>
                     <property name="relief">none</property>
                     <property name="always-show-image">True</property>
-                    <signal name="clicked" handler="on_copy_preset_clicked" swapped="no"/>
                   </object>
                   <packing>
                     <property name="left-attach">1</property>
@@ -445,7 +442,6 @@ Gives your keys back their original function</property>
                     <property name="image">new-icon</property>
                     <property name="relief">none</property>
                     <property name="always-show-image">True</property>
-                    <signal name="clicked" handler="on_create_preset_clicked" swapped="no"/>
                     <accelerator key="n" signal="activate" modifiers="GDK_CONTROL_MASK"/>
                   </object>
                   <packing>
@@ -463,7 +459,6 @@ Gives your keys back their original function</property>
                     <property name="image">check-icon</property>
                     <property name="relief">none</property>
                     <property name="always-show-image">True</property>
-                    <signal name="clicked" handler="on_apply_preset_clicked" swapped="no"/>
                   </object>
                   <packing>
                     <property name="left-attach">2</property>
@@ -476,7 +471,6 @@ Gives your keys back their original function</property>
                     <property name="can-focus">True</property>
                     <property name="halign">start</property>
                     <property name="valign">center</property>
-                    <signal name="state-set" handler="on_autoload_switch" swapped="no"/>
                   </object>
                   <packing>
                     <property name="left-attach">1</property>
