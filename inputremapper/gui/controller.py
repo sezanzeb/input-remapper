@@ -17,14 +17,21 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
+from __future__ import annotations  # needed for the TYPE_CHECKING import
+
+from typing import TYPE_CHECKING, Optional, List, Tuple
 
 from gi.repository import Gtk
 
 from .gettext import _
 from .data_manager import DataManager
 from .event_handler import EventHandler, EventEnum
-from .user_interface import UserInterface
 from ..event_combination import EventCombination
+from ..logger import logger
+
+if TYPE_CHECKING:
+    # avoids gtk import error in tests
+    from .user_interface import UserInterface
 
 
 class Controller:
@@ -49,6 +56,7 @@ class Controller:
             .subscribe(EventEnum.rename_preset, self.on_rename_preset)
             .subscribe(EventEnum.add_preset, self.on_add_preset)
             .subscribe(EventEnum.delete_preset, self.on_delete_preset)
+            .subscribe(EventEnum.preset_changed, self.on_preset_changed)
             .subscribe(EventEnum.load_mapping, self.on_load_mapping)
             .subscribe(EventEnum.create_mapping, self.on_create_mapping)
             .subscribe(EventEnum.delete_mapping, self.on_delete_mapping)
@@ -92,7 +100,23 @@ class Controller:
 
         def callback():
             # this will run after all other listeners where executed
-            self.on_load_group(self.data_manager.newest_group())
+            self.on_load_group(self.get_a_group())
+
+        return callback
+
+    def on_preset_changed(
+        self, name, mappings: Optional[List[Tuple[str, EventCombination]]]
+    ):
+        """load a mapping as soon as everyone got notified about the new preset"""
+        if not mappings:
+            return
+
+        logger.debug(mappings)
+        mappings.sort(key=lambda t: t[0] or t[1].beautify())
+        combination = mappings[0][1]
+
+        def callback():
+            self.on_load_mapping(combination)
 
         return callback
 
