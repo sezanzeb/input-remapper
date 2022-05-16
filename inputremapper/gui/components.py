@@ -20,6 +20,9 @@ from inputremapper.gui.utils import HandlerDisabled
 from inputremapper.injection.global_uinputs import FrontendUInput
 from inputremapper.logger import logger
 
+
+Capabilities = Dict[int, List]
+
 SET_KEY_FIRST = _("Set the key first")
 
 ICON_NAMES = {
@@ -95,10 +98,10 @@ class TargetSelection:
         self.event_handler.subscribe(EventEnum.mapping_loaded, self.on_mapping_loaded)
         self.event_handler.subscribe(EventEnum.mapping_changed, self.on_mapping_changed)
 
-    def on_uinputs_changed(self, uinputs: Dict[str, FrontendUInput]):
+    def on_uinputs_changed(self, uinputs: Dict[str, Capabilities]):
         logger.error("got uinputs")
         target_store = Gtk.ListStore(str)
-        for uinput in uinputs:
+        for uinput in uinputs.keys():
             target_store.append([uinput])
 
         self.gui.set_model(target_store)

@@ -77,7 +77,7 @@ class EventEnum(str, enum.Enum):
 
     # emit to request available uinputs
     get_uinputs = "get_uinputs"
-    # emit to provide available uinputs. Parameter: uinputs
+    # emit to provide available uinputs. Parameter: uinputs: Dict[name, capabilities]
     uinputs_changed = "uinputs_changed"
 
     # emit to start injecting the current preset

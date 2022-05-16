@@ -63,17 +63,11 @@ class Backend:
         group = self.groups.find(key=group_key)
         self._reader.start_reading(group)
 
-    def newest_group(self) -> str:
-        """group_key of the group with the most recently modified preset"""
-        paths = []
-        for path in glob.glob(os.path.join(get_preset_path(), "*/*.json")):
-            if self._reader.groups.find(key=split_all(path)[-2]):
-                paths.append((path, os.path.getmtime(path)))
-
-        path, _ = max(paths, key=lambda x: x[1])
-        return split_all(path)[-2]
-
     def emit_uinputs(self):
         self.event_handler.emit(
-            EventEnum.uinputs_changed, uinputs=self._uinputs.devices.copy()
+            EventEnum.uinputs_changed,
+            uinputs={
+                name: uinput.capabilities()
+                for name, uinput in self._uinputs.devices.items()
+            },
         )

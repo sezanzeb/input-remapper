@@ -23,7 +23,7 @@
 
 
 import re
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 
 from gi.repository import Gdk, Gtk, GLib, GObject
 from evdev.ecodes import EV_KEY
@@ -45,6 +45,8 @@ from inputremapper.gui.utils import debounce
 FUNCTION_NAMES = [name for name in FUNCTIONS.keys() if len(name) > 1]
 # no deprecated functions
 FUNCTION_NAMES.remove("ifeq")
+
+Capabilities = Dict[int, List]
 
 
 def _get_left_text(iter):
@@ -169,7 +171,7 @@ class Autocompletion(Gtk.Popover):
 
         self.code_editor = code_editor
         self.event_handler = event_handler
-        self._uinputs: Optional[Dict[str, FrontendUInput]] = None
+        self._uinputs: Optional[Dict[str, Capabilities]] = None
         self._target_key_capabilities = []
 
         self.scrolled_window = Gtk.ScrolledWindow(
@@ -368,12 +370,12 @@ class Autocompletion(Gtk.Popover):
     def _on_mapping_loaded(self, mapping=None):
         if mapping and self._uinputs:
             target = mapping["target_uinput"]
-            self._target_key_capabilities = self._uinputs[target].capabilities()[EV_KEY]
+            self._target_key_capabilities = self._uinputs[target][EV_KEY]
 
     def _on_mapping_changed(self, mapping):
         self._on_mapping_loaded(mapping)
 
-    def _on_uinputs_changed(self, uinputs: Dict[str, FrontendUInput]):
+    def _on_uinputs_changed(self, uinputs: Dict[str, Capabilities]):
         self._uinputs = uinputs
 
     def _on_suggestion_clicked(self, _, selected_row):
