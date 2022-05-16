@@ -78,6 +78,11 @@ class Preset:
     def __len__(self) -> int:
         return len(self._mappings)
 
+    def __bool__(self):
+        # otherwise __len__ will be used which results in False for a preset
+        # without mappings
+        return True
+
     def has_unsaved_changes(self) -> bool:
         """Check if there are unsaved changed."""
         return self._mappings != self._saved_mappings
@@ -251,6 +256,10 @@ class Preset:
         mappings: Dict[EventCombination, Mapping] = {}
         if not self.path:
             logger.debug("unable to read preset without a path set Preset.path first")
+            return mappings
+
+        if os.stat(self.path).st_size == 0:
+            logger.debug("got empty file")
             return mappings
 
         with open(self.path, "r") as file:

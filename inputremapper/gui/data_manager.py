@@ -97,6 +97,11 @@ class DataManager:
         path, _ = max(paths, key=lambda x: x[1])
         return os.path.split(path)[-1].split(".")[0]
 
+    @property
+    def available_groups(self) -> Tuple[str]:
+        """all to the backend available group keys"""
+        return tuple(group.key for group in self.backend.groups.filter())
+
     def emit_group_changed(self):
         self.event_handler.emit(
             EventEnum.group_changed,
@@ -190,8 +195,7 @@ class DataManager:
 
     def load_group(self, group_key: str):
         """gather all presets in the group and provide them"""
-        known_groups = [group.key for group in self.backend.groups.filter()]
-        if group_key not in known_groups:
+        if group_key not in self.available_groups:
             raise DataManagementError("Unable to load non existing group")
 
         self._active_mapping = None
@@ -255,7 +259,7 @@ class DataManager:
         if os.path.exists(path):
             raise DataManagementError("Unable to add preset. Preset exists")
 
-        mkdir(path)
+        Preset(path).save()
         self.emit_group_changed()
 
     def delete_preset(self):
@@ -321,8 +325,8 @@ class DataManager:
         self._autoload = autoload
         self.emit_autoload_changed()
 
-    def get_uinputs(self):
-        self.backend.get_uinputs()
+    def emit_uinputs(self):
+        self.backend.emit_uinputs()
 
     def save(self):
         if self._active_preset:

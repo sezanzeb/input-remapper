@@ -197,7 +197,7 @@ class UserInterface:
 
         self.connect_buttons()
 
-        self.confirm_delete = builder.get_object("confirm-delete")
+        self.confirm_delete_dialog = builder.get_object("confirm-delete")
         self.about = builder.get_object("about-dialog")
         self.about.connect("delete-event", on_close_about)
         # set_position needs to be done once initially, otherwise the
@@ -261,14 +261,14 @@ class UserInterface:
             GLib.timeout_add(1000 / 30, self.consume_newest_keycode),
         ]
 
-    def show_confirm_delete(self):
+    def confirm_delete(self, msg):
         """Blocks until the user decided about an action."""
-        text = _("Are you sure to delete preset %s?") % self.preset_name
-        self.get("confirm-delete-label").set_text(text)
 
-        self.confirm_delete.show()
-        response = self.confirm_delete.run()
-        self.confirm_delete.hide()
+        self.get("confirm-delete-label").set_text(msg)
+
+        self.confirm_delete_dialog.show()
+        response = self.confirm_delete_dialog.run()
+        self.confirm_delete_dialog.hide()
         return response
 
     def on_key_press(self, window, event):

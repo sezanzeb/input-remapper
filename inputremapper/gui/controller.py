@@ -18,17 +18,24 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
+from gi.repository import Gtk
+
+from .gettext import _
 from .data_manager import DataManager
 from .event_handler import EventHandler, EventEnum
+from .user_interface import UserInterface
 from ..event_combination import EventCombination
 
 
 class Controller:
     """implements the behaviour of the gui"""
 
-    def __init__(self, event_handler: EventHandler, data_manager: DataManager):
+    def __init__(
+        self, event_handler: EventHandler, data_manager: DataManager, gui: UserInterface
+    ):
         self.event_handler = event_handler
         self.data_manager = data_manager
+        self.gui = gui
 
         self.attach_to_events()
 
@@ -52,12 +59,32 @@ class Controller:
             .subscribe(EventEnum.save, self.on_save)
         )
 
+    def get_a_preset(self) -> str:
+        """attempts to get the newest preset in the current group
+        creates a new preset if that fails"""
+        try:
+            return self.data_manager.newest_preset()
+        except FileNotFoundError:
+            pass
+        self.data_manager.add_preset(self.data_manager.get_available_preset_name())
+        return self.data_manager.newest_preset()
+
+    def get_a_group(self) -> str:
+        """attempts to get the group with the newest preset
+        returns any if that fails"""
+        try:
+            return self.data_manager.newest_group()
+        except FileNotFoundError:
+            pass
+
+        return self.data_manager.available_groups[0]
+
     def on_init(self):
         # make sure we get a groups_changed event when everything is ready
         # this might not be necessary if the helper takes longer to provide the
         # initial groups
         self.data_manager.backend.emit_groups()
-        self.data_manager.get_uinputs()
+        self.data_manager.emit_uinputs()
 
     def on_groups_changed(self, **_):
         """load the newest group as soon as everyone got notified
@@ -70,30 +97,33 @@ class Controller:
         return callback
 
     def on_load_groups(self):
-        self.event_handler.emit(EventEnum.reset_gui)
         self.data_manager.backend.refresh_groups()
 
     def on_load_group(self, group_key: str):
         self.data_manager.load_group(group_key)
-        try:
-            self.data_manager.load_preset(self.data_manager.newest_preset())
-        except FileNotFoundError:
-            # todo: create empty preset
-            pass
+        self.data_manager.load_preset(self.get_a_preset())
 
     def on_load_preset(self, name: str):
         self.data_manager.load_preset(name)
 
     def on_rename_preset(self, new_name: str):
-        self.data_manager.rename_preset(new_name)
+        name = self.data_manager.get_available_preset_name(new_name)
+        self.data_manager.rename_preset(name)
 
     def on_add_preset(self, name: str = None):
-        if not name:
-            raise NotImplementedError
+        name = self.data_manager.get_available_preset_name(name)
         self.data_manager.add_preset(name)
+        self.data_manager.load_preset(name)
 
     def on_delete_preset(self):
+        accept = Gtk.ResponseType.ACCEPT
+        msg = (
+            _("Are you sure to delete preset %s?") % self.data_manager.get_preset_name()
+        )
+        if self.data_manager.get_mappings() and self.gui.confirm_delete(msg) != accept:
+            return
         self.data_manager.delete_preset()
+        self.data_manager.load_preset(self.get_a_preset())
 
     def on_load_mapping(self, event_combination: EventCombination):
         self.data_manager.load_mapping(event_combination)
@@ -115,7 +145,7 @@ class Controller:
         self.data_manager.set_autoload(autoload)
 
     def on_get_uinputs(self):
-        self.data_manager.get_uinputs()
+        self.data_manager.emit_uinputs()
 
     def on_save(self):
         self.data_manager.save()

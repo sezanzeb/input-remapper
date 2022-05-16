@@ -73,7 +73,7 @@ class Backend:
         path, _ = max(paths, key=lambda x: x[1])
         return split_all(path)[-2]
 
-    def get_uinputs(self):
+    def emit_uinputs(self):
         self.event_handler.emit(
             EventEnum.uinputs_changed, uinputs=self._uinputs.devices.copy()
         )
