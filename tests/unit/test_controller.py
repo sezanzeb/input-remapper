@@ -39,7 +39,7 @@ from tests.test import (
 
 from inputremapper.configs.global_config import global_config, GlobalConfig
 from inputremapper.gui.controller import Controller
-from inputremapper.gui.data_manager import DataManager
+from inputremapper.gui.data_manager import DataManager, DEFAULT_PRESET_NAME
 from inputremapper.gui.event_handler import EventHandler, EventEnum
 from inputremapper.configs.paths import get_preset_path, get_config_path
 from inputremapper.configs.preset import Preset
@@ -342,3 +342,55 @@ class TestController(unittest.TestCase):
         path = get_preset_path("Foo Device 2", "preset2")
         event_handler.emit(EventEnum.delete_preset)
         self.assertTrue(os.path.isfile(get_preset_path("Foo Device 2", "preset2")))
+
+    def test_rename_preset(self):
+        prepare_presets()
+        self.assertTrue(os.path.isfile(get_preset_path("Foo Device 2", "preset2")))
+        self.assertFalse(os.path.exists(get_preset_path("Foo Device 2", "foo")))
+
+        event_handler, data_manager, user_interface = get_controller_objects()
+        controller = Controller(event_handler, data_manager, user_interface)
+        data_manager.load_group("Foo Device 2")
+        data_manager.load_preset("preset2")
+        event_handler.emit(EventEnum.rename_preset, new_name="foo")
+
+        self.assertFalse(os.path.exists(get_preset_path("Foo Device 2", "preset2")))
+        self.assertTrue(os.path.exists(get_preset_path("Foo Device 2", "foo")))
+
+    def test_rename_preset_should_pick_available_name(self):
+        prepare_presets()
+        self.assertTrue(os.path.exists(get_preset_path("Foo Device 2", "preset2")))
+        self.assertTrue(os.path.exists(get_preset_path("Foo Device 2", "preset3")))
+        self.assertFalse(os.path.exists(get_preset_path("Foo Device 2", "preset3 2")))
+
+        event_handler, data_manager, user_interface = get_controller_objects()
+        controller = Controller(event_handler, data_manager, user_interface)
+        data_manager.load_group("Foo Device 2")
+        data_manager.load_preset("preset2")
+        event_handler.emit(EventEnum.rename_preset, new_name="preset3")
+
+        self.assertFalse(os.path.exists(get_preset_path("Foo Device 2", "preset2")))
+        self.assertTrue(os.path.exists(get_preset_path("Foo Device 2", "preset3")))
+        self.assertTrue(os.path.exists(get_preset_path("Foo Device 2", "preset3 2")))
+
+    def test_on_add_preset_uses_default_name(self):
+        self.assertFalse(
+            os.path.exists(get_preset_path("Foo Device 2", DEFAULT_PRESET_NAME))
+        )
+
+        event_handler, data_manager, user_interface = get_controller_objects()
+        controller = Controller(event_handler, data_manager, user_interface)
+        data_manager.load_group("Foo Device 2")
+
+        event_handler.emit(EventEnum.add_preset)
+        self.assertTrue(os.path.exists(get_preset_path("Foo Device 2", "new preset")))
+
+    def test_on_add_preset_uses_provided_name(self):
+        self.assertFalse(os.path.exists(get_preset_path("Foo Device 2", "foo")))
+
+        event_handler, data_manager, user_interface = get_controller_objects()
+        controller = Controller(event_handler, data_manager, user_interface)
+        data_manager.load_group("Foo Device 2")
+
+        event_handler.emit(EventEnum.add_preset, name="foo")
+        self.assertTrue(os.path.exists(get_preset_path("Foo Device 2", "foo")))

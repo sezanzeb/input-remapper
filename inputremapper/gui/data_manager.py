@@ -33,6 +33,8 @@ from inputremapper.gui.backend import Backend
 from inputremapper.gui.event_handler import EventHandler, EventEnum
 from inputremapper.logger import logger
 
+DEFAULT_PRESET_NAME = "new preset"
+
 
 class DataManager:
     def __init__(
@@ -155,7 +157,7 @@ class DataManager:
             return None
         return os.path.basename(self._active_preset.path).split(".")[0]
 
-    def get_available_preset_name(self, name="new preset"):
+    def get_available_preset_name(self, name=DEFAULT_PRESET_NAME):
         """the first available preset in the active group"""
         if not self.backend.active_group:
             raise DataManagementError("unable find preset name. Group is not set")

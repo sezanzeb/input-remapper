@@ -24,7 +24,7 @@ from typing import TYPE_CHECKING, Optional, List, Tuple
 from gi.repository import Gtk
 
 from .gettext import _
-from .data_manager import DataManager
+from .data_manager import DataManager, DEFAULT_PRESET_NAME
 from .event_handler import EventHandler, EventEnum
 from ..event_combination import EventCombination
 from ..logger import logger
@@ -134,7 +134,7 @@ class Controller:
         name = self.data_manager.get_available_preset_name(new_name)
         self.data_manager.rename_preset(name)
 
-    def on_add_preset(self, name: str = None):
+    def on_add_preset(self, name: str = DEFAULT_PRESET_NAME):
         name = self.data_manager.get_available_preset_name(name)
         self.data_manager.add_preset(name)
         self.data_manager.load_preset(name)

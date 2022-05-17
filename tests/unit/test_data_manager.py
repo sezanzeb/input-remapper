@@ -31,7 +31,7 @@ from tests.test import get_key_mapping, quick_cleanup, get_backend
 
 from inputremapper.configs.paths import get_preset_path, get_config_path
 from inputremapper.configs.preset import Preset
-from inputremapper.gui.data_manager import DataManager
+from inputremapper.gui.data_manager import DataManager, DEFAULT_PRESET_NAME
 from inputremapper.gui.event_handler import EventHandler, EventEnum
 
 
@@ -569,23 +569,23 @@ class TestDataManager(unittest.TestCase):
         self.assertEqual(self.data_manager.newest_preset(), "preset 3")
 
     def test_available_preset_name_default(self):
-        """should default to 'new preset'"""
         self.data_manager.load_group("Foo Device")
-        self.assertEqual(self.data_manager.get_available_preset_name(), "new preset")
+        self.assertEqual(
+            self.data_manager.get_available_preset_name(), DEFAULT_PRESET_NAME
+        )
 
-    def test_available_preset_name_increments_default(self):
-        """should increment the default name if a preset with the name already exits"""
-        Preset(get_preset_path("Foo Device", "new preset")).save()
+    def test_available_preset_name_adds_number_to_default(self):
+        Preset(get_preset_path("Foo Device", DEFAULT_PRESET_NAME)).save()
         self.data_manager.load_group("Foo Device")
-        self.assertEqual(self.data_manager.get_available_preset_name(), "new preset 2")
+        self.assertEqual(
+            self.data_manager.get_available_preset_name(), f"{DEFAULT_PRESET_NAME} 2"
+        )
 
     def test_available_preset_name_returns_provided_name(self):
-        """should return the provided name if it is available"""
         self.data_manager.load_group("Foo Device")
         self.assertEqual(self.data_manager.get_available_preset_name("bar"), "bar")
 
-    def test_available_preset_name_increments_provided_name(self):
-        """should return the provided name if it is available"""
+    def test_available_preset_name__adds_number_to_provided_name(self):
         Preset(get_preset_path("Foo Device", "bar")).save()
         self.data_manager.load_group("Foo Device")
         self.assertEqual(self.data_manager.get_available_preset_name("bar"), "bar 2")
@@ -595,3 +595,19 @@ class TestDataManager(unittest.TestCase):
         self.assertRaises(
             DataManagementError, self.data_manager.get_available_preset_name
         )
+
+    def test_available_preset_name_increments_default(self):
+        Preset(get_preset_path("Foo Device", DEFAULT_PRESET_NAME)).save()
+        Preset(get_preset_path("Foo Device", f"{DEFAULT_PRESET_NAME} 2")).save()
+        Preset(get_preset_path("Foo Device", f"{DEFAULT_PRESET_NAME} 3")).save()
+        self.data_manager.load_group("Foo Device")
+        self.assertEqual(
+            self.data_manager.get_available_preset_name(), f"{DEFAULT_PRESET_NAME} 4"
+        )
+
+    def test_available_preset_name_increments_provided_name(self):
+        Preset(get_preset_path("Foo Device", "foo")).save()
+        Preset(get_preset_path("Foo Device", "foo 1")).save()
+        Preset(get_preset_path("Foo Device", "foo 2")).save()
+        self.data_manager.load_group("Foo Device")
+        self.assertEqual(self.data_manager.get_available_preset_name("foo 1"), "foo 3")
