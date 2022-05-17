@@ -25,6 +25,8 @@
 import sys
 import os
 import site
+import sysconfig
+
 import pkg_resources
 
 from inputremapper.logger import logger
@@ -64,10 +66,31 @@ def get_data_path(filename=""):
                 logger.debug('-e, but data missing at "%s"', data)
             data = None
 
+    # stupid workaround for github actions:
+    # TODO remove this, fix github actions
+    path = sysconfig.get_path("platlib")
+    path1 = os.path.join(path, "usr/share/input-remapper")
+    if path.endswith("site-packages"):
+        path2 = os.path.join(path[:-14], "dist-packages/usr/share/input-remapper")
+    else:
+        path2 = os.path.join(path[:-14], "site-packages/usr/share/input-remapper")
+    if not path.startswith("/usr/local"):
+        path3 = os.path.join("/usr/local", path1[5:])
+        path4 = os.path.join("/usr/local", path2[5:])
+    else:
+        path3 = os.path.join("/usr", path1[11:])
+        path4 = os.path.join("/usr", path2[11:])
+
     candidates = [
+        os.path.join(sysconfig.get_path("data"), "share/input-remapper"),
         "/usr/share/input-remapper",
         "/usr/local/share/input-remapper",
         os.path.join(site.USER_BASE, "share/input-remapper"),
+        # "/usr/local/lib/python3.8/dist-packages/usr/share/input-remapper/",
+        path1,
+        path2,
+        path3,
+        path4,
     ]
 
     if data is None:
