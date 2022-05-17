@@ -21,7 +21,7 @@ jobs:
         # Install deps as root since we will run tests as root
         sudo scripts/ci-install-deps.sh
         sudo pip install .
-        find / -iname input-remapper.glade | grep input-remapper.glade # log the install location of data
+        find /usr -iname input-remapper.glade | grep input-remapper.glade # log the install location of data
     - name: Run tests
       run: |
         # FIXME: Had some permissions issues, currently worked around by running tests as root
