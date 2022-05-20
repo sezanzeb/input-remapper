@@ -32,11 +32,6 @@ class Listener:
 
 
 class TestEventHandler(unittest.TestCase):
-    def test_unknown_event_raises(self):
-        """The Event Handler throws an KeyError if the event is not known"""
-        event_handler = EventHandler()
-        self.assertRaises(KeyError, event_handler.emit, "foo")
-
     async def test_calls_listeners(self):
         """The correct Listeners get called"""
         event_handler = EventHandler()
@@ -110,3 +105,176 @@ class TestEventHandler(unittest.TestCase):
         last.sort()
         self.assertEqual([1, 2, 3, 4], first)
         self.assertEqual([5, 6], last)
+
+    def test_supress_all(self):
+        """using supress without any arguments silences the event_handler"""
+        event_handler = EventHandler()
+
+        l1 = Listener()
+        l2 = Listener()
+        l3 = Listener()
+
+        event_handler.subscribe(EventEnum.test_ev1, l1)
+        event_handler.subscribe(EventEnum.test_ev2, l1)
+        event_handler.subscribe(EventEnum.test_ev1, l2)
+        event_handler.subscribe(EventEnum.test_ev2, l3)
+
+        with event_handler.supress():
+            event_handler.emit(EventEnum.test_ev1)
+            event_handler.emit(EventEnum.test_ev2)
+
+        self.assertEqual(0, len(l1.calls))
+        self.assertEqual(0, len(l2.calls))
+        self.assertEqual(0, len(l3.calls))
+
+    def test_supress_all_restores_all(self):
+        event_handler = EventHandler()
+
+        l1 = Listener()
+        l2 = Listener()
+        l3 = Listener()
+
+        event_handler.subscribe(EventEnum.test_ev1, l1)
+        event_handler.subscribe(EventEnum.test_ev2, l1)
+        event_handler.subscribe(EventEnum.test_ev1, l2)
+        event_handler.subscribe(EventEnum.test_ev2, l3)
+
+        with event_handler.supress():
+            event_handler.emit(EventEnum.test_ev1)
+            event_handler.emit(EventEnum.test_ev2)
+
+        event_handler.emit(EventEnum.test_ev1)
+        event_handler.emit(EventEnum.test_ev2)
+
+        self.assertEqual(2, len(l1.calls))
+        self.assertEqual(1, len(l2.calls))
+        self.assertEqual(1, len(l3.calls))
+
+    def test_supress_event(self):
+        event_handler = EventHandler()
+
+        l1 = Listener()
+        l2 = Listener()
+        l3 = Listener()
+
+        event_handler.subscribe(EventEnum.test_ev1, l1)
+        event_handler.subscribe(EventEnum.test_ev2, l1)
+        event_handler.subscribe(EventEnum.test_ev1, l2)
+        event_handler.subscribe(EventEnum.test_ev2, l3)
+
+        with event_handler.supress(EventEnum.test_ev2):
+            event_handler.emit(EventEnum.test_ev1)
+            event_handler.emit(EventEnum.test_ev2)
+
+        self.assertEqual(1, len(l1.calls))
+        self.assertEqual(1, len(l2.calls))
+        self.assertEqual(0, len(l3.calls))
+
+    def test_supress_event_restores(self):
+        event_handler = EventHandler()
+
+        l1 = Listener()
+        l2 = Listener()
+        l3 = Listener()
+
+        event_handler.subscribe(EventEnum.test_ev1, l1)
+        event_handler.subscribe(EventEnum.test_ev2, l1)
+        event_handler.subscribe(EventEnum.test_ev1, l2)
+        event_handler.subscribe(EventEnum.test_ev2, l3)
+
+        with event_handler.supress(EventEnum.test_ev2):
+            event_handler.emit(EventEnum.test_ev1)
+            event_handler.emit(EventEnum.test_ev2)
+
+        event_handler.emit(EventEnum.test_ev1)
+        event_handler.emit(EventEnum.test_ev2)
+
+        self.assertEqual(3, len(l1.calls))
+        self.assertEqual(2, len(l2.calls))
+        self.assertEqual(1, len(l3.calls))
+
+    def test_supress_listener(self):
+        event_handler = EventHandler()
+
+        l1 = Listener()
+        l2 = Listener()
+        l3 = Listener()
+
+        event_handler.subscribe(EventEnum.test_ev1, l1)
+        event_handler.subscribe(EventEnum.test_ev2, l1)
+        event_handler.subscribe(EventEnum.test_ev1, l2)
+        event_handler.subscribe(EventEnum.test_ev2, l3)
+
+        with event_handler.supress(listener=l1):
+            event_handler.emit(EventEnum.test_ev1)
+            event_handler.emit(EventEnum.test_ev2)
+
+        self.assertEqual(0, len(l1.calls))
+        self.assertEqual(1, len(l2.calls))
+        self.assertEqual(1, len(l3.calls))
+
+    def test_supress_listener_restores(self):
+        event_handler = EventHandler()
+
+        l1 = Listener()
+        l2 = Listener()
+        l3 = Listener()
+
+        event_handler.subscribe(EventEnum.test_ev1, l1)
+        event_handler.subscribe(EventEnum.test_ev2, l1)
+        event_handler.subscribe(EventEnum.test_ev1, l2)
+        event_handler.subscribe(EventEnum.test_ev2, l3)
+
+        with event_handler.supress(listener=l1):
+            event_handler.emit(EventEnum.test_ev1)
+            event_handler.emit(EventEnum.test_ev2)
+
+        event_handler.emit(EventEnum.test_ev1)
+        event_handler.emit(EventEnum.test_ev2)
+
+        self.assertEqual(2, len(l1.calls))
+        self.assertEqual(2, len(l2.calls))
+        self.assertEqual(2, len(l3.calls))
+
+    def test_supress_listener_at_event(self):
+        event_handler = EventHandler()
+
+        l1 = Listener()
+        l2 = Listener()
+        l3 = Listener()
+
+        event_handler.subscribe(EventEnum.test_ev1, l1)
+        event_handler.subscribe(EventEnum.test_ev2, l1)
+        event_handler.subscribe(EventEnum.test_ev1, l2)
+        event_handler.subscribe(EventEnum.test_ev2, l3)
+
+        with event_handler.supress(EventEnum.test_ev1, l1):
+            event_handler.emit(EventEnum.test_ev1)
+            event_handler.emit(EventEnum.test_ev2)
+
+        self.assertEqual(1, len(l1.calls))
+        self.assertEqual(1, len(l2.calls))
+        self.assertEqual(1, len(l3.calls))
+
+    def test_supress_listener_at_event_restores(self):
+        event_handler = EventHandler()
+
+        l1 = Listener()
+        l2 = Listener()
+        l3 = Listener()
+
+        event_handler.subscribe(EventEnum.test_ev1, l1)
+        event_handler.subscribe(EventEnum.test_ev2, l1)
+        event_handler.subscribe(EventEnum.test_ev1, l2)
+        event_handler.subscribe(EventEnum.test_ev2, l3)
+
+        with event_handler.supress(EventEnum.test_ev1, l1):
+            event_handler.emit(EventEnum.test_ev1)
+            event_handler.emit(EventEnum.test_ev2)
+
+        event_handler.emit(EventEnum.test_ev1)
+        event_handler.emit(EventEnum.test_ev2)
+
+        self.assertEqual(3, len(l1.calls))
+        self.assertEqual(2, len(l2.calls))
+        self.assertEqual(2, len(l3.calls))

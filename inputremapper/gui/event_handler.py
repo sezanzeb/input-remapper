@@ -19,10 +19,14 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 
+import copy
+from functools import partial
+from collections import defaultdict
 import re
 import enum
 import traceback
-from typing import Callable, Dict, Set, TypedDict, overload, Any, Optional, Tuple
+from contextlib import contextmanager
+from typing import Callable, Dict, Set, TypedDict, overload, Any, Optional, Tuple, List
 
 from inputremapper.logger import logger
 
@@ -101,9 +105,7 @@ EventListener = Callable[[Any], Optional[Callable]]
 
 class EventHandler:
     def __init__(self):
-        self._listeners: Dict[EventEnum, Set[EventListener]] = {
-            event: set() for event in EventEnum
-        }
+        self._listeners: Dict[EventEnum, Set[EventListener]] = defaultdict(set)
         self.shorten_path = re.compile("inputremapper/")
 
     def emit(self, event: EventEnum, **kwargs) -> EventHandler:
@@ -132,8 +134,6 @@ class EventHandler:
         """attach a listener to an event.
         The listener can optionally return a callable which
         will be called after all other listeners have been called"""
-        if event not in self._listeners:
-            raise KeyError(event)
         logger.debug("adding new EventListener: %s", listener)
         self._listeners[event].add(listener)
         return self
@@ -144,3 +144,61 @@ class EventHandler:
                 listeners.remove(listener)
             except KeyError:
                 pass
+
+    @contextmanager
+    def supress(
+        self,
+        event: Optional[EventEnum] = None,
+        listener: Optional[EventListener] = None,
+    ):
+        """a contextmanager to supress emit for the event,
+        the listener or the listener at the event"""
+        if event and listener:
+            f = partial(self._supress_listener_at_event, event, listener)
+        elif event:
+            f = partial(self._supress_event, event)
+        elif listener:
+            f = partial(self._supress_listener, listener)
+        else:
+            f = self._suppress
+
+        with f():
+            yield
+
+    @contextmanager
+    def _supress_listener_at_event(self, event: EventEnum, listener: EventListener):
+        try:
+            self._listeners[event].remove(listener)
+            yield
+            self._listeners[event].add(listener)
+        except KeyError:
+            yield
+            return
+
+    @contextmanager
+    def _supress_listener(self, listener: EventListener):
+        suppressed = []
+        for event, listeners in self._listeners.items():
+            try:
+                listeners.remove(listener)
+                suppressed.append(event)
+            except KeyError:
+                pass
+
+        yield
+        for event in suppressed:
+            self._listeners[event].add(listener)
+
+    @contextmanager
+    def _supress_event(self, event):
+        suppressed = self._listeners.pop(event)
+        yield
+        self._listeners[event].update(suppressed)
+
+    @contextmanager
+    def _suppress(self):
+        suppressed = self._listeners
+        self._listeners = defaultdict(set)
+        yield
+        for event in suppressed:
+            self._listeners[event].update(suppressed[event])
