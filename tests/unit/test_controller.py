@@ -19,16 +19,19 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 import json
 import os.path
+import traceback
 import unittest
 
 import gi
+
+from inputremapper.event_combination import EventCombination
 
 gi.require_version("Gtk", "3.0")
 gi.require_version("GLib", "2.0")
 gi.require_version("GtkSource", "4")
 from gi.repository import Gtk
 
-from inputremapper.configs.mapping import Mapping
+from inputremapper.configs.mapping import Mapping, UIMapping
 from tests.test import (
     quick_cleanup,
     get_key_mapping,
@@ -315,7 +318,7 @@ class TestController(unittest.TestCase):
         event_handler.emit(EventEnum.init)
         self.assertRaises(TestError, event_handler.emit, EventEnum.delete_preset)
 
-    def test_deletes_when_confirmed(self):
+    def test_deletes_preset_when_confirmed(self):
         prepare_presets()
         self.assertTrue(os.path.isfile(get_preset_path("Foo Device 2", "preset2")))
         event_handler, data_manager, user_interface = get_controller_objects()
@@ -329,7 +332,7 @@ class TestController(unittest.TestCase):
         event_handler.emit(EventEnum.delete_preset)
         self.assertFalse(os.path.exists(get_preset_path("Foo Device 2", "preset2")))
 
-    def test_deletes_not_when_not_confirmed(self):
+    def test_does_not_delete_preset_when_not_confirmed(self):
         prepare_presets()
         self.assertTrue(os.path.isfile(get_preset_path("Foo Device 2", "preset2")))
         event_handler, data_manager, user_interface = get_controller_objects()
@@ -394,3 +397,97 @@ class TestController(unittest.TestCase):
 
         event_handler.emit(EventEnum.add_preset, name="foo")
         self.assertTrue(os.path.exists(get_preset_path("Foo Device 2", "foo")))
+
+    def test_on_update_mapping(self):
+        """update_mapping should call data_manager.update_mapping
+        this ensures mapping_changed is emitted
+        """
+        prepare_presets()
+        event_handler, data_manager, user_interface = get_controller_objects()
+        controller = Controller(event_handler, data_manager, user_interface)
+
+        data_manager.load_group("Foo Device 2")
+        data_manager.load_preset("preset2")
+        data_manager.load_mapping(combination=EventCombination("1,4,1"))
+
+        def f(**_):
+            raise TestError()
+
+        data_manager.update_mapping = f
+        self.assertRaises(
+            TestError,
+            event_handler.emit,
+            EventEnum.update_mapping,
+            name="foo",
+            output_symbol="f",
+            release_timeout=0.3,
+        )
+
+    def test_create_mapping_will_load_the_created_mapping(self):
+        prepare_presets()
+        event_handler, data_manager, user_interface = get_controller_objects()
+        controller = Controller(event_handler, data_manager, user_interface)
+
+        data_manager.load_group("Foo Device 2")
+        data_manager.load_preset("preset2")
+
+        calls = []
+
+        def f(mapping):
+            calls.append(mapping)
+
+        event_handler.subscribe(EventEnum.mapping_loaded, f)
+        event_handler.emit(EventEnum.create_mapping)
+
+        print(len(calls))
+        mapping = calls[0]
+        self.assertEqual(mapping, UIMapping().dict())
+
+    def test_delete_mapping_asks_for_confirmation(self):
+        prepare_presets()
+        event_handler, data_manager, user_interface = get_controller_objects()
+        controller = Controller(event_handler, data_manager, user_interface)
+
+        def f(*_):
+            raise TestError()
+
+        user_interface.confirm_delete = f
+
+        event_handler.emit(EventEnum.init)
+        self.assertRaises(TestError, event_handler.emit, EventEnum.delete_mapping)
+
+    def test_deletes_mapping_when_confirmed(self):
+        prepare_presets()
+        self.assertTrue(os.path.isfile(get_preset_path("Foo Device 2", "preset2")))
+        event_handler, data_manager, user_interface = get_controller_objects()
+        controller = Controller(event_handler, data_manager, user_interface)
+
+        data_manager.load_group("Foo Device 2")
+        data_manager.load_preset("preset2")
+        data_manager.load_mapping(EventCombination("1,3,1"))
+        user_interface.confirm_delete_ret = Gtk.ResponseType.ACCEPT
+
+        event_handler.emit(EventEnum.delete_mapping)
+        event_handler.emit(EventEnum.save)
+
+        preset = Preset(get_preset_path("Foo Device 2", "preset2"))
+        preset.load()
+        self.assertIsNone(preset.get_mapping(EventCombination("1,3,1")))
+
+    def test_does_not_delete_mapping_when_not_confirmed(self):
+        prepare_presets()
+        self.assertTrue(os.path.isfile(get_preset_path("Foo Device 2", "preset2")))
+        event_handler, data_manager, user_interface = get_controller_objects()
+        controller = Controller(event_handler, data_manager, user_interface)
+
+        data_manager.load_group("Foo Device 2")
+        data_manager.load_preset("preset2")
+        data_manager.load_mapping(EventCombination("1,3,1"))
+        user_interface.confirm_delete_ret = Gtk.ResponseType.CANCEL
+
+        event_handler.emit(EventEnum.delete_mapping)
+        event_handler.emit(EventEnum.save)
+
+        preset = Preset(get_preset_path("Foo Device 2", "preset2"))
+        preset.load()
+        self.assertIsNotNone(preset.get_mapping(EventCombination("1,3,1")))

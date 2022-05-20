@@ -31,7 +31,7 @@ from typing import Tuple, Dict, List, Optional, Iterator, Type, Iterable, Any, U
 
 from pydantic import ValidationError
 from inputremapper.logger import logger
-from inputremapper.configs.mapping import Mapping
+from inputremapper.configs.mapping import Mapping, UIMapping
 from inputremapper.configs.paths import touch, get_preset_path, mkdir
 
 from inputremapper.input_event import InputEvent
@@ -55,7 +55,7 @@ def common_data(list1: Iterable, list2: Iterable) -> List:
 class Preset:
     """Contains and manages mappings of a single preset."""
 
-    _mappings: Dict[EventCombination, Mapping]
+    _mappings: Dict[EventCombination, Union[Mapping, UIMapping]]
     # a copy of mappings for keeping track of changes
     _saved_mappings: Dict[EventCombination, Mapping]
     _path: Optional[os.PathLike]
@@ -195,7 +195,9 @@ class Preset:
     def is_valid(self) -> bool:
         return False not in [mapping.is_valid() for mapping in self]
 
-    def get_mapping(self, combination: Optional[EventCombination]) -> Optional[Mapping]:
+    def get_mapping(
+        self, combination: Optional[EventCombination]
+    ) -> Union[Mapping, UIMapping, None]:
         """Return the Mapping that is mapped to this EventCombination.
         Parameters
         ----------

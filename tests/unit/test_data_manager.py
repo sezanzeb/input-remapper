@@ -341,7 +341,8 @@ class TestDataManager(unittest.TestCase):
             combination=EventCombination("1,1,1"),
         )
 
-    def test_update_mapping(self):
+    def test_update_mapping_emits_mapping_changed(self):
+        """update mapping should emit a mapping_changed event"""
         prepare_presets()
         self.data_manager.load_group(group_key="Foo Device 2")
         self.data_manager.load_preset(name="preset2")
@@ -359,6 +360,45 @@ class TestDataManager(unittest.TestCase):
         self.assertEqual(response["name"], "foo")
         self.assertEqual(response["output_symbol"], "f")
         self.assertEqual(response["release_timeout"], 0.3)
+
+    def test_updated_mapping_can_be_saved(self):
+        """make sure that updated changes can be saved"""
+        prepare_presets()
+        self.data_manager.load_group(group_key="Foo Device 2")
+        self.data_manager.load_preset(name="preset2")
+        self.data_manager.load_mapping(combination=EventCombination("1,4,1"))
+
+        self.data_manager.update_mapping(
+            name="foo",
+            output_symbol="f",
+            release_timeout=0.3,
+        )
+        self.data_manager.save()
+
+        preset = Preset(get_preset_path("Foo Device 2", "preset2"), UIMapping)
+        preset.load()
+        mapping = preset.get_mapping(EventCombination("1,4,1"))
+        self.assertEqual(mapping.name, "foo")
+        self.assertEqual(mapping.output_symbol, "f")
+        self.assertEqual(mapping.release_timeout, 0.3)
+
+    def test_updated_mapping_saves_invalid_mapping(self):
+        """make sure that updated changes can be saved even if they are not valid"""
+        prepare_presets()
+        self.data_manager.load_group(group_key="Foo Device 2")
+        self.data_manager.load_preset(name="preset2")
+        self.data_manager.load_mapping(combination=EventCombination("1,4,1"))
+
+        self.data_manager.update_mapping(
+            output_symbol="bar",  # not a macro and not a valid symbol
+        )
+        self.data_manager.save()
+
+        preset = Preset(get_preset_path("Foo Device 2", "preset2"), UIMapping)
+        preset.load()
+        mapping = preset.get_mapping(EventCombination("1,4,1"))
+        self.assertIsNotNone(mapping.get_error())
+        self.assertEqual(mapping.output_symbol, "bar")
 
     def test_cannot_update_mapping(self):
         """updating a mapping should not be possible if the mapping was not loaded"""

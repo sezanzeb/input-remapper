@@ -156,10 +156,18 @@ class Controller:
         self.data_manager.update_mapping(**kwargs)
 
     def on_create_mapping(self):
-        self.data_manager.create_mapping()
+        with self.event_handler.supress(listener=self.on_preset_changed):
+            self.data_manager.create_mapping()
         self.data_manager.load_mapping(combination=EventCombination.empty_combination())
 
     def on_delete_mapping(self):
+        accept = Gtk.ResponseType.ACCEPT
+        if (
+            self.data_manager.get_mappings()
+            and self.gui.confirm_delete(_("Are you sure to delete this mapping?"))
+            != accept
+        ):
+            return
         self.data_manager.delete_mapping()
 
     def on_get_autoload(self):
