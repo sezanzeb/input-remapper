@@ -32,8 +32,9 @@ import time
 from pathlib import PurePath
 from typing import Protocol, Dict, Optional
 
-import gi
+import ravel
 from pydbus import SystemBus
+import gi
 
 gi.require_version("GLib", "2.0")
 from gi.repository import GLib
@@ -50,6 +51,7 @@ from inputremapper.injection.global_uinputs import global_uinputs
 
 
 BUS_NAME = "inputremapper.Control"
+PATH = "/inputremapper/Control"
 # timeout in seconds, see
 # https://github.com/LEW21/pydbus/blob/cc407c8b1d25b7e28a6d661a29f9e661b1c9b964/pydbus/proxy.py
 BUS_TIMEOUT = 10
@@ -145,6 +147,7 @@ class DaemonProxy(Protocol):  # pragma: no cover
         ...
 
 
+@ravel.interface(ravel.INTERFACE.SERVER, name=BUS_NAME)
 class Daemon:
     """Starts injecting keycodes based on the configuration.
 
@@ -265,20 +268,22 @@ class Daemon:
 
         return interface
 
-    def publish(self):
-        """Make the dbus interface available."""
-        bus = SystemBus()
-        try:
-            bus.publish(BUS_NAME, self)
-        except RuntimeError as error:
-            logger.error("Is the service already running? (%s)", str(error))
-            sys.exit(9)
-
     def run(self):
-        """Start the daemons loop. Blocks until the daemon stops."""
-        loop = GLib.MainLoop()
-        logger.debug("Running daemon")
-        loop.run()
+        """Start the event loop and publish the daemon.
+        Blocks until the daemon stops."""
+        loop = asyncio.get_event_loop()
+        bus = ravel.system_bus()
+        bus.attach_asyncio(loop)
+        reply = bus.request_name(
+            bus_name=BUS_NAME, flags=ravel.DBUS.NAME_FLAG_DO_NOT_QUEUE
+        )
+        if reply == ravel.DBUS.REQUEST_NAME_REPLY_PRIMARY_OWNER:
+            bus.register(path=PATH, fallback=False, interface=self)
+            logger.debug("Running daemon")
+            loop.run_forever()
+        else:
+            logger.error("Is the service already running? (%i)", reply)
+            sys.exit(9)
 
     def refresh(self, group_key: Optional[str] = None):
         """Refresh groups if the specified group is unknown.
@@ -304,6 +309,7 @@ class Daemon:
             groups.refresh()
             self.refreshed_devices_at = now
 
+    @ravel.method(in_signature="s", out_signature="", arg_keys=["group_key"])
     def stop_injecting(self, group_key: str):
         """Stop injecting the preset mappings for a single device."""
         if self.injectors.get(group_key) is None:
@@ -316,11 +322,18 @@ class Daemon:
         self.injectors[group_key].stop_injecting()
         self.autoload_history.forget(group_key)
 
+    @ravel.method(in_signature="s", out_signature="i", arg_keys=["group_key"])
     def get_state(self, group_key: str) -> InjectorState:
         """Get the injectors state."""
         injector = self.injectors.get(group_key)
         return injector.get_state() if injector else InjectorState.UNKNOWN
 
+    @ravel.method(
+        name="set_config_dir",
+        in_signature="s",
+        out_signature="",
+        arg_keys=["config_dir"],
+    )
     @remove_timeout
     def set_config_dir(self, config_dir: str):
         """All future operations will use this config dir.
@@ -382,6 +395,12 @@ class Daemon:
         self.start_injecting(group.key, preset)
         self.autoload_history.remember(group.key, preset)
 
+    @ravel.method(
+        name="autoload_single",
+        in_signature="s",
+        out_signature="",
+        arg_keys=["group_key"],
+    )
     @remove_timeout
     def autoload_single(self, group_key: str):
         """Inject the configured autoload preset for the device.
@@ -409,6 +428,7 @@ class Daemon:
 
         self._autoload(group_key)
 
+    @ravel.method(name="autoload", in_signature="", out_signature="")
     @remove_timeout
     def autoload(self):
         """Load all autoloaded presets for the current config_dir.
@@ -433,6 +453,9 @@ class Daemon:
         for group_key, _ in autoload_presets:
             self._autoload(group_key)
 
+    @ravel.method(
+        in_signature="ss", out_signature="b", arg_keys=["group_key", "preset"]
+    )
     def start_injecting(self, group_key: str, preset: str) -> bool:
         """Start injecting the preset for the device.
 
@@ -523,12 +546,14 @@ class Daemon:
 
         return True
 
+    @ravel.method(in_signature="", out_signature="")
     def stop_all(self):
         """Stop all injections."""
         logger.info("Stopping all injections")
         for group_key in list(self.injectors.keys()):
             self.stop_injecting(group_key)
 
+    @ravel.method(in_signature="s", out_signature="s")
     def hello(self, out: str):
         """Used for tests."""
         logger.info('Received "%s" from client', out)
