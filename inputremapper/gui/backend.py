@@ -20,7 +20,7 @@
 import glob
 import os
 
-from inputremapper.configs.paths import get_preset_path, split_all
+from inputremapper.configs.paths import get_preset_path, split_all, get_config_path
 from inputremapper.daemon import DaemonProxy
 from inputremapper.groups import _Groups, _Group
 from inputremapper.gui.event_handler import EventHandler, EventEnum
@@ -38,9 +38,10 @@ class Backend:
         daemon: DaemonProxy,
         uinputs: GlobalUInputs,
     ):
+
+        self.daemon = daemon
         self.event_handler = event_handler
         self._reader = reader
-        self._daemon = daemon
         self._uinputs = uinputs
 
         self._uinputs.prepare_all()

@@ -21,13 +21,16 @@ from __future__ import annotations  # needed for the TYPE_CHECKING import
 
 from typing import TYPE_CHECKING, Optional, List, Tuple
 
-from gi.repository import Gtk
+from gi.repository import Gtk, GLib
 
 from .gettext import _
 from .data_manager import DataManager, DEFAULT_PRESET_NAME
 from .event_handler import EventHandler, EventEnum
 from ..event_combination import EventCombination
+from ..injection.injector import RUNNING, FAILED, NO_GRAB, UPGRADE_EVDEV
+from ..input_event import InputEvent
 from ..logger import logger
+from .utils import CTX_SAVE, CTX_APPLY, CTX_KEYCODE, CTX_ERROR, CTX_WARNING, CTX_MAPPING
 
 if TYPE_CHECKING:
     # avoids gtk import error in tests
@@ -44,6 +47,7 @@ class Controller:
         self.data_manager = data_manager
         self.gui = gui
 
+        self.button_left_warn = False
         self.attach_to_events()
 
     def attach_to_events(self) -> None:
@@ -64,6 +68,8 @@ class Controller:
             .subscribe(EventEnum.get_autoload, self.on_get_autoload)
             .subscribe(EventEnum.set_autoload, self.on_set_autoload)
             .subscribe(EventEnum.get_uinputs, self.on_get_uinputs)
+            .subscribe(EventEnum.start_injecting, self.on_start_injecting)
+            .subscribe(EventEnum.stop_injection, self.on_stop_injecting)
             .subscribe(EventEnum.save, self.on_save)
         )
 
@@ -181,3 +187,42 @@ class Controller:
 
     def on_save(self):
         self.data_manager.save()
+
+    def on_start_injecting(self):
+        if len(self.data_manager.active_preset) == 0:
+            logger.error(_("Cannot apply empty preset file"))
+            # also helpful for first time use
+            self.show_status(CTX_ERROR, _("You need to add keys and save first"))
+            return
+
+        if not self.button_left_warn:
+            if self.data_manager.active_preset.dangerously_mapped_btn_left():
+                self.show_status(
+                    CTX_ERROR,
+                    "This would disable your click button",
+                    "Map a button to BTN_LEFT to avoid this.\n"
+                    "To overwrite this warning, press apply again.",
+                )
+                self.button_left_warn = True
+                return
+
+        # todo: warn about unreleased keys
+
+        self.button_left_warn = False
+        if self.data_manager.start_injecting():
+            self.show_status(CTX_APPLY, _("Starting injection..."))
+        else:
+            self.show_status(
+                CTX_APPLY,
+                _("Failed to apply preset %s") % self.data_manager.get_preset_name(),
+            )
+            pass
+
+    def on_stop_injecting(self):
+        self.data_manager.stop_injecting()
+        self.show_status(CTX_APPLY, _("Applied the system default"))
+
+    def show_status(self, ctx_id: int, msg: str, tooltip: Optional[str] = None):
+        self.event_handler.emit(
+            EventEnum.status_msg, ctx_id=ctx_id, msg=msg, tooltip=tooltip
+        )

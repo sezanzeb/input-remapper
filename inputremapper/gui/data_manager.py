@@ -52,6 +52,14 @@ class DataManager:
         self.attach_to_event_handler()
 
     @property
+    def active_preset(self) -> Optional[Preset]:
+        return self._active_preset
+
+    @property
+    def active_mapping(self) -> Optional[UIMapping]:
+        return self._active_mapping
+
+    @property
     def _autoload(self) -> bool:
         if not self._active_preset:
             return False
@@ -294,12 +302,6 @@ class DataManager:
 
         for key, value in kwargs.items():
             setattr(self._active_mapping, key, value)
-
-        logger.debug("updated mapping %s", self._active_preset.has_unsaved_changes())
-        logger.debug(self._active_mapping)
-        logger.debug(
-            self._active_preset._saved_mappings[self._active_mapping.event_combination]
-        )
         self.emit_mapping_changed()
 
     def create_mapping(self):
@@ -333,3 +335,17 @@ class DataManager:
     def save(self):
         if self._active_preset:
             self._active_preset.save()
+
+    def stop_injecting(self) -> None:
+        self.backend.daemon.stop_injecting(self.backend.active_group.key)
+        # todo: check the state and emit a event (glib timeout)
+
+    def get_state(self) -> int:
+        return self.backend.daemon.get_state(self.backend.active_group.key)
+
+    def start_injecting(self) -> bool:
+        self.backend.daemon.set_config_dir(self._config.path)
+        # todo: check the state and emit a event (glib timeout)
+        return self.backend.daemon.start_injecting(
+            self.backend.active_group.key, self.get_preset_name()
+        )

@@ -93,6 +93,10 @@ class EventEnum(str, enum.Enum):
     # Parameter: event
     event_recorded = "event_recorded"
 
+    # emit to show a status message in the gui
+    # Parameter: ctx_id, msg, tooltip
+    status_msg = "status_msg"
+
     # emit to save all data
     save = "save"
 
