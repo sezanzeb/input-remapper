@@ -89,6 +89,10 @@ class EventEnum(str, enum.Enum):
     # emit to stop injecting for the current group
     stop_injection = "stop_injecting"
 
+    # listen for this to receive events from the active group.
+    # Parameter: event
+    event_recorded = "event_recorded"
+
     # emit to save all data
     save = "save"
 

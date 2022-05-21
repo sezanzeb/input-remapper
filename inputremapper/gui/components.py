@@ -365,3 +365,88 @@ class CodeEditor:
 
     def on_mapping_changed(self, mapping):
         self.on_mapping_loaded(mapping)
+
+
+class RecordingToggle:
+    def __init__(self, toggle: Gtk.ToggleButton):
+        self.gui = toggle
+        toggle.connect(
+            "focus-out-event", lambda *_: self.update_label(_("Record Keys"))
+        )
+        toggle.connect(
+            "focus-in-event", lambda *_: self.update_label(_("Recording Keys"))
+        )
+        toggle.connect("clicked", self.on_gtk_clicked)
+        # toggle.connect("focus-out-event", self._reset_keycode_consumption)
+        toggle.connect("focus-out-event", lambda *_: self.gui.set_active(False))
+        # toggle.connect("toggled", self._on_recording_toggle_toggle)
+        # Don't leave the input when using arrow keys or tab. wait for the
+        # window to consume the keycode from the reader. I.e. a tab input should
+        # be recorded, instead of causing the recording to stop.
+        toggle.connect("key-press-event", lambda *args: Gdk.EVENT_STOP)
+
+    def update_label(self, msg: str):
+        self.gui.set_label(msg)
+
+    def on_gtk_clicked(self, *__):
+        if self.gui.get_active():
+            self.update_label(_("Record Keys"))
+        else:
+            self.update_label(_("Recording Keys"))
+
+    def on_events_recorded(self, combination: EventCombination):
+        """To capture events from the backend."""
+        if not self.gui.get_active():
+            return
+
+        self._switch_focus_if_complete()
+
+        if combination is None:
+            # all keys are released, we are
+            return
+
+        if not self.should_record_combination(combination):
+            # the event arrived after the toggle has been deactivated
+            logger.debug("Recording toggle is not on")
+            return
+
+        if not isinstance(combination, EventCombination):
+            raise TypeError("Expected new_key to be a EventCombination object")
+
+        # keycode is already set by some other row
+        existing = active_preset.get_mapping(combination)
+        if existing is not None:
+            msg = _('"%s" already mapped to "%s"') % (
+                combination.beautify(),
+                existing.event_combination.beautify(),
+            )
+            logger.info("%s %s", combination, msg)
+            self.user_interface.show_status(CTX_KEYCODE, msg)
+            return
+
+        if combination.is_problematic():
+            self.user_interface.show_status(
+                CTX_WARNING,
+                _("ctrl, alt and shift may not combine properly"),
+                _("Your system might reinterpret combinations ")
+                + _("with those after they are injected, and by doing so ")
+                + _("break them."),
+            )
+
+        # the newest_keycode is populated since the ui regularly polls it
+        # in order to display it in the status bar.
+        previous_key = self.get_combination()
+
+        # it might end up being a key combination, wait for more
+        self._input_has_arrived = True
+
+        # keycode didn't change, do nothing
+        if combination == previous_key:
+            logger.debug("%s didn't change", previous_key)
+            return
+
+        self.set_combination(combination)
+        self.active_mapping.event_combination = combination
+        if previous_key is None and combination is not None:
+            logger.debug(f"adding new mapping to preset\n{self.active_mapping}")
+            active_preset.add(self.active_mapping)
