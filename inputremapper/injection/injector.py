@@ -346,11 +346,6 @@ class Injector:
                 # give the event pipeline some time to reset devices
                 # before shutting the loop down
                 await asyncio.sleep(0.1)
-
-                # stop the event loop and cause the process to reach its end
-                # cleanly. Using .terminate prevents coverage from working.
-                loop.stop()
-                self._msg_pipe[0].send(InjectorState.STOPPED)
                 return
 
     def _create_forwarding_device(self, source: evdev.InputDevice) -> evdev.UInput:

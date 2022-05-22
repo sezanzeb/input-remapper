@@ -32,8 +32,8 @@ import time
 from pathlib import PurePath
 from typing import Protocol, Dict, Optional
 
-import dbussy
-import ravel
+from dbus_next.aio import MessageBus
+from dbus_next import BusType, service, RequestNameReply
 from pydbus import SystemBus
 
 import gi
@@ -200,6 +200,7 @@ class Daemon:
     def __init__(self):
         """Constructs the daemon."""
         logger.debug("Creating daemon")
+        super().__init__(INTERFACE_NAME)
         self.injectors: Dict[str, Injector] = {}
 
         self.config_dir = None
@@ -228,13 +229,11 @@ class Daemon:
         fallback
             If true, starts the daemon via pkexec if it cannot connect.
         """
-        # bus = SystemBus()
+        bus = SystemBus()
         try:
-            interface = ravel.system_bus()[BUS_NAME][PATH_NAME].get_interface(
-                INTERFACE_NAME
-            )
+            interface = bus.get(BUS_NAME, timeout=BUS_TIMEOUT)
             logger.info("Connected to the service")
-        except dbussy.DBusError as error:
+        except GLib.Error as error:
             if not fallback:
                 logger.error("Service not running? %s", error)
                 return None
@@ -257,11 +256,9 @@ class Daemon:
             # try a few times if the service was just started
             for attempt in range(3):
                 try:
-                    interface = ravel.system_bus()[BUS_NAME][PATH_NAME].get_interface(
-                        INTERFACE_NAME
-                    )
+                    interface = bus.get(BUS_NAME, timeout=BUS_TIMEOUT)
                     break
-                except dbussy.DBusError as error:
+                except GLib.Error as error:
                     logger.debug("Attempt %d to reach the service failed:", attempt + 1)
                     logger.debug('"%s"', error)
                 time.sleep(0.2)
@@ -280,18 +277,17 @@ class Daemon:
         """Start the event loop and publish the daemon.
         Blocks until the daemon stops."""
         loop = asyncio.get_event_loop()
-        bus = ravel.system_bus()
-        bus.attach_asyncio(loop)
-        reply = bus.request_name(
-            bus_name=BUS_NAME, flags=ravel.DBUS.NAME_FLAG_DO_NOT_QUEUE
-        )
-        if reply == ravel.DBUS.REQUEST_NAME_REPLY_PRIMARY_OWNER:
-            bus.register(path=PATH_NAME, fallback=False, interface=self)
-            logger.debug("Running daemon")
-            loop.run_forever()
-        else:
-            logger.error("Is the service already running? (%i)", reply)
-            sys.exit(9)
+
+        async def task():
+            bus = await MessageBus(bus_type=BusType.SYSTEM).connect()
+            bus.export(path=PATH_NAME, interface=self)
+            if RequestNameReply.PRIMARY_OWNER != await bus.request_name(BUS_NAME):
+                logger.error("Is the service already running?")
+                sys.exit(9)
+
+        loop.run_until_complete(task())
+        logger.debug("Running daemon")
+        loop.run_forever()
 
     async def refresh(self, group_key: Optional[str] = None):
         """Refresh groups if the specified group is unknown.
@@ -317,8 +313,8 @@ class Daemon:
             groups.refresh()
             self.refreshed_devices_at = now
 
-    @ravel.method(in_signature="s", out_signature="", arg_keys=["group_key"])
-    def stop_injecting(self, group_key: str):
+    @service.method()
+    def stop_injecting(self, group_key: 's'):
         """Stop injecting the preset mappings for a single device."""
         if self.injectors.get(group_key) is None:
             logger.debug(
@@ -330,20 +326,14 @@ class Daemon:
         self.injectors[group_key].stop_injecting()
         self.autoload_history.forget(group_key)
 
-    @ravel.method(in_signature="s", out_signature="i", arg_keys=["group_key"])
-    def get_state(self, group_key: str) -> InjectorState:
+    @service.method()
+    def get_state(self, group_key: 's') -> 's':
         """Get the injectors state."""
         injector = self.injectors.get(group_key)
         return injector.get_state() if injector else InjectorState.UNKNOWN
 
-    @ravel.method(
-        name="set_config_dir",
-        in_signature="s",
-        out_signature="",
-        arg_keys=["config_dir"],
-    )
-    @remove_timeout
-    def set_config_dir(self, config_dir: str):
+    @service.method()
+    def set_config_dir(self, config_dir: 's'):
         """All future operations will use this config dir.
 
         Existing injections (possibly of the previous user) will be kept
@@ -403,14 +393,8 @@ class Daemon:
         await self.start_injecting(group.key, preset)
         self.autoload_history.remember(group.key, preset)
 
-    @ravel.method(
-        name="autoload_single",
-        in_signature="s",
-        out_signature="",
-        arg_keys=["group_key"],
-    )
-    @remove_timeout
-    async def autoload_single(self, group_key: str):
+    @service.method()
+    async def autoload_single(self, group_key: 's'):
         """Inject the configured autoload preset for the device.
 
         If the preset is already being injected, it won't autoload it again.
@@ -436,8 +420,7 @@ class Daemon:
 
         await self._autoload(group_key)
 
-    @ravel.method(name="autoload", in_signature="", out_signature="")
-    # @remove_timeout
+    @service.method()
     async def autoload(self):
         """Load all autoloaded presets for the current config_dir.
 
@@ -461,15 +444,10 @@ class Daemon:
         for group_key, _ in autoload_presets:
             await self._autoload(group_key)
 
-    @ravel.method(
-        in_signature="ss",
-        out_signature="b",
-        arg_keys=["group_key", "preset"],
-        set_result_keyword="ret_func",
-    )
+    @service.method()
     async def start_injecting(
-        self, group_key: str, preset: str, ret_func=lambda _: None
-    ) -> bool:
+        self, group_key: 's', preset: 's'
+    ) -> 'b':
         """Start injecting the preset for the device.
 
         Returns True on success. If an injection is already ongoing for
@@ -491,15 +469,13 @@ class Daemon:
                 "Request to start an injectoin before a user told the service about "
                 "their session using set_config_dir",
             )
-            ret_func((False,))
-            #return False
+            return False
 
         group = groups.find(key=group_key)
 
         if group is None:
             logger.error('Could not find group "%s"', group_key)
-            ret_func((False,))
-            #return False
+            return False
 
         preset_path = PurePath(
             self.config_dir,
@@ -538,8 +514,7 @@ class Daemon:
             preset.load()
         except FileNotFoundError as error:
             logger.error(str(error))
-            ret_func((False,))
-            #return False
+            return False
 
         for mapping in preset:
             # only create those uinputs that are required to avoid
@@ -558,21 +533,19 @@ class Daemon:
         except OSError:
             # I think this will never happen, probably leftover from
             # some earlier version
-            ret_func((False,))
-            #return False
+            return False
 
-        ret_func((True,))
-        #return True
+        return True
 
-    @ravel.method(in_signature="", out_signature="")
+    @service.method()
     def stop_all(self):
         """Stop all injections."""
         logger.info("Stopping all injections")
         for group_key in list(self.injectors.keys()):
             self.stop_injecting(group_key)
 
-    @ravel.method(in_signature="s", out_signature="s")
-    def hello(self, out: str):
+    @service.method()
+    def hello(self, out: 's') -> 's':
         """Used for tests."""
         logger.info('Received "%s" from client', out)
         return out
