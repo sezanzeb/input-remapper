@@ -363,7 +363,7 @@ class Daemon:
         self.config_dir = config_dir
         global_config.load_config(config_path)
 
-    def _autoload(self, group_key: str):
+    async def _autoload(self, group_key: str):
         """Check if autoloading is a good idea, and if so do it.
 
         Parameters
@@ -371,7 +371,7 @@ class Daemon:
         group_key
             unique identifier used by the groups object
         """
-        self.refresh(group_key)
+        await self.refresh(group_key)
 
         group = groups.find(key=group_key)
         if group is None:
@@ -400,7 +400,7 @@ class Daemon:
             )
             return
 
-        self.start_injecting(group.key, preset)
+        await self.start_injecting(group.key, preset)
         self.autoload_history.remember(group.key, preset)
 
     @ravel.method(
@@ -410,7 +410,7 @@ class Daemon:
         arg_keys=["group_key"],
     )
     @remove_timeout
-    def autoload_single(self, group_key: str):
+    async def autoload_single(self, group_key: str):
         """Inject the configured autoload preset for the device.
 
         If the preset is already being injected, it won't autoload it again.
@@ -434,11 +434,11 @@ class Daemon:
             )
             return
 
-        self._autoload(group_key)
+        await self._autoload(group_key)
 
     @ravel.method(name="autoload", in_signature="", out_signature="")
-    @remove_timeout
-    def autoload(self):
+    # @remove_timeout
+    async def autoload(self):
         """Load all autoloaded presets for the current config_dir.
 
         If the preset is already being injected, it won't autoload it again.
@@ -459,7 +459,7 @@ class Daemon:
             return
 
         for group_key, _ in autoload_presets:
-            self._autoload(group_key)
+            await self._autoload(group_key)
 
     @ravel.method(
         in_signature="ss",

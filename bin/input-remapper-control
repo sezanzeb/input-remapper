@@ -131,11 +131,11 @@ def communicate(options, daemon):
             logger.info('Autoloading all')
             # timeout is not documented, for more info see
             # https://github.com/LEW21/pydbus/blob/master/pydbus/proxy_method.py
-            daemon.autoload(timeout=10)
+            daemon.autoload()
         else:
             group = require_group()
             logger.info('Asking daemon to autoload for %s', options.device)
-            daemon.autoload_single(group.key, timeout=2)
+            daemon.autoload_single(group.key)
 
     if options.command == START:
         group = require_group()
