@@ -32,8 +32,10 @@ import time
 from pathlib import PurePath
 from typing import Protocol, Dict, Optional
 
+import dbussy
 import ravel
 from pydbus import SystemBus
+
 import gi
 
 gi.require_version("GLib", "2.0")
@@ -51,7 +53,9 @@ from inputremapper.injection.global_uinputs import global_uinputs
 
 
 BUS_NAME = "inputremapper.Control"
-PATH = "/inputremapper/Control"
+PATH_NAME = "/inputremapper/Control"
+INTERFACE_NAME = "inputremapper.Control"
+
 # timeout in seconds, see
 # https://github.com/LEW21/pydbus/blob/cc407c8b1d25b7e28a6d661a29f9e661b1c9b964/pydbus/proxy.py
 BUS_TIMEOUT = 10
@@ -224,11 +228,13 @@ class Daemon:
         fallback
             If true, starts the daemon via pkexec if it cannot connect.
         """
-        bus = SystemBus()
+        # bus = SystemBus()
         try:
-            interface = bus.get(BUS_NAME, timeout=BUS_TIMEOUT)
+            interface = ravel.system_bus()[BUS_NAME][PATH_NAME].get_interface(
+                INTERFACE_NAME
+            )
             logger.info("Connected to the service")
-        except GLib.GError as error:
+        except dbussy.DBusError as error:
             if not fallback:
                 logger.error("Service not running? %s", error)
                 return None
@@ -251,9 +257,11 @@ class Daemon:
             # try a few times if the service was just started
             for attempt in range(3):
                 try:
-                    interface = bus.get(BUS_NAME, timeout=BUS_TIMEOUT)
+                    interface = ravel.system_bus()[BUS_NAME][PATH_NAME].get_interface(
+                        INTERFACE_NAME
+                    )
                     break
-                except GLib.GError as error:
+                except dbussy.DBusError as error:
                     logger.debug("Attempt %d to reach the service failed:", attempt + 1)
                     logger.debug('"%s"', error)
                 time.sleep(0.2)
@@ -264,7 +272,7 @@ class Daemon:
         if USER != "root":
             config_path = get_config_path()
             logger.debug('Telling service about "%s"', config_path)
-            interface.set_config_dir(get_config_path(), timeout=2)
+            interface.set_config_dir(get_config_path())
 
         return interface
 
@@ -278,14 +286,14 @@ class Daemon:
             bus_name=BUS_NAME, flags=ravel.DBUS.NAME_FLAG_DO_NOT_QUEUE
         )
         if reply == ravel.DBUS.REQUEST_NAME_REPLY_PRIMARY_OWNER:
-            bus.register(path=PATH, fallback=False, interface=self)
+            bus.register(path=PATH_NAME, fallback=False, interface=self)
             logger.debug("Running daemon")
             loop.run_forever()
         else:
             logger.error("Is the service already running? (%i)", reply)
             sys.exit(9)
 
-    def refresh(self, group_key: Optional[str] = None):
+    async def refresh(self, group_key: Optional[str] = None):
         """Refresh groups if the specified group is unknown.
 
         Parameters
@@ -298,14 +306,14 @@ class Daemon:
             logger.debug("Refreshing because last info is too old")
             # it may take a little bit of time until devices are visible after
             # changes
-            time.sleep(0.1)
+            await asyncio.sleep(0.1)
             groups.refresh()
             self.refreshed_devices_at = now
             return
 
         if not groups.find(key=group_key):
             logger.debug('Refreshing because "%s" is unknown', group_key)
-            time.sleep(0.1)
+            await asyncio.sleep(0.1)
             groups.refresh()
             self.refreshed_devices_at = now
 
@@ -454,9 +462,14 @@ class Daemon:
             self._autoload(group_key)
 
     @ravel.method(
-        in_signature="ss", out_signature="b", arg_keys=["group_key", "preset"]
+        in_signature="ss",
+        out_signature="b",
+        arg_keys=["group_key", "preset"],
+        set_result_keyword="ret_func",
     )
-    def start_injecting(self, group_key: str, preset: str) -> bool:
+    async def start_injecting(
+        self, group_key: str, preset: str, ret_func=lambda _: None
+    ) -> bool:
         """Start injecting the preset for the device.
 
         Returns True on success. If an injection is already ongoing for
@@ -471,20 +484,22 @@ class Daemon:
         """
         logger.info('Request to start injecting for "%s"', group_key)
 
-        self.refresh(group_key)
+        await self.refresh(group_key)
 
         if self.config_dir is None:
             logger.error(
                 "Request to start an injectoin before a user told the service about "
                 "their session using set_config_dir",
             )
-            return False
+            ret_func((False,))
+            #return False
 
         group = groups.find(key=group_key)
 
         if group is None:
             logger.error('Could not find group "%s"', group_key)
-            return False
+            ret_func((False,))
+            #return False
 
         preset_path = PurePath(
             self.config_dir,
@@ -523,7 +538,8 @@ class Daemon:
             preset.load()
         except FileNotFoundError as error:
             logger.error(str(error))
-            return False
+            ret_func((False,))
+            #return False
 
         for mapping in preset:
             # only create those uinputs that are required to avoid
@@ -537,14 +553,16 @@ class Daemon:
 
         try:
             injector = Injector(group, preset)
-            injector.start()
+            asyncio.create_task(injector.run())
             self.injectors[group.key] = injector
         except OSError:
             # I think this will never happen, probably leftover from
             # some earlier version
-            return False
+            ret_func((False,))
+            #return False
 
-        return True
+        ret_func((True,))
+        #return True
 
     @ravel.method(in_signature="", out_signature="")
     def stop_all(self):

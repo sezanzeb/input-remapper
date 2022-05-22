@@ -101,7 +101,7 @@ class InjectorStateMessage:
         return self.state in [InjectorState.STOPPED, InjectorState.NO_GRAB]
 
 
-class Injector(multiprocessing.Process):
+class Injector:
     """Initializes, starts and stops injections.
 
     Is a process to make it non-blocking for the rest of the code and to
@@ -382,7 +382,7 @@ class Injector(multiprocessing.Process):
             raise e
         return forward_to
 
-    def run(self) -> None:
+    async def run(self) -> None:
         """The injection worker that keeps injecting until terminated.
 
         Stuff is non-blocking by using asyncio in order to do multiple things
@@ -397,10 +397,10 @@ class Injector(multiprocessing.Process):
         # that sleeps on iterations (joystick_to_mouse) in one process causes
         # another injection process to screw up reading from the grabbed
         # device.
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-
-        self._devices = self.group.get_devices()
+        # loop = asyncio.new_event_loop()
+        # asyncio.set_event_loop(loop)
+	
+	self._devices = self.group.get_devices()
 
         # InputConfigs may not contain the origin_hash information, this will try to make a
         # good guess if the origin_hash information is missing or invalid.
@@ -445,7 +445,7 @@ class Injector(multiprocessing.Process):
         self._msg_pipe[0].send(InjectorState.RUNNING)
 
         try:
-            loop.run_until_complete(asyncio.gather(*coroutines))
+            await asyncio.gather(*coroutines)
         except RuntimeError as error:
             # the loop might have been stopped via a `CLOSE` message,
             # which causes the error message below. This is expected behavior
