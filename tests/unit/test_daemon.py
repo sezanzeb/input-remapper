@@ -53,7 +53,7 @@ os_system = os.system
 dbus_get = type(SystemBus()).get
 
 
-class TestDaemon(unittest.TestCase):
+class TestDaemon(unittest.IsolatedAsyncioTestCase):
     new_fixture_path = "/dev/input/event9876"
 
     def setUp(self):
@@ -432,7 +432,7 @@ class TestDaemon(unittest.TestCase):
         preset.save()
 
         # no autoloading is configured yet
-        self.daemon._autoload(group_key)
+        await self.daemon._autoload(group_key)
         self.assertNotIn(group_key, daemon.autoload_history._autoload_history)
         self.assertTrue(daemon.autoload_history.may_autoload(group_key, preset_name))
 
@@ -448,8 +448,8 @@ class TestDaemon(unittest.TestCase):
         injector = daemon.injectors[group_key]
         self.assertEqual(len_before + 1, len_after)
 
-        # calling duplicate get_autoload does nothing
-        self.daemon._autoload(group_key)
+        # calling duplicate autoload does nothing
+        await self.daemon._autoload(group_key)
         self.assertEqual(
             daemon.autoload_history._autoload_history[group_key][1], preset_name
         )
@@ -457,18 +457,18 @@ class TestDaemon(unittest.TestCase):
         self.assertFalse(daemon.autoload_history.may_autoload(group_key, preset_name))
 
         # explicit start_injecting clears the autoload history
-        self.daemon.start_injecting(group_key, preset_name)
+        await self.daemon.start_injecting(group_key, preset_name)
         self.assertTrue(daemon.autoload_history.may_autoload(group_key, preset_name))
 
         # calling autoload for (yet) unknown devices does nothing
         len_before = len(self.daemon.autoload_history._autoload_history)
-        self.daemon._autoload("unknown-key-1234")
+        await self.daemon._autoload("unknown-key-1234")
         len_after = len(self.daemon.autoload_history._autoload_history)
         self.assertEqual(len_before, len_after)
 
         # autoloading input-remapper devices does nothing
         len_before = len(self.daemon.autoload_history._autoload_history)
-        self.daemon.autoload_single("Bar Device")
+        await self.daemon.autoload_single("Bar Device")
         len_after = len(self.daemon.autoload_history._autoload_history)
         self.assertEqual(len_before, len_after)
 
