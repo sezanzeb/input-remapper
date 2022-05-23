@@ -195,7 +195,7 @@ class Injector(multiprocessing.Process):
         capabilities = device.capabilities(absinfo=False)
 
         needed = False
-        for mapping in self.context.preset:
+        for mapping in self.preset:
             if is_in_capabilities(mapping.event_combination, capabilities):
                 logger.debug(
                     'Grabbing "%s" because of "%s"',

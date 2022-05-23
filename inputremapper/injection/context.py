@@ -78,13 +78,11 @@ class Context:
         all entry points to the event pipeline sorted by InputEvent.type_and_code
     """
 
-    preset: Preset
     listeners: Set[EventListener]
     callbacks: Dict[Tuple[int, int], List[NotifyCallback]]
     _handlers: Dict[InputEvent, List[InputEventHandler]]
 
     def __init__(self, preset: Preset):
-        self.preset = preset
         self.listeners = set()
         self.callbacks = {}
         self._handlers = parse_mappings(preset, self)

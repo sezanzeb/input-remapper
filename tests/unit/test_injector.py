@@ -236,13 +236,13 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         self.injector.run()
 
         self.assertEqual(
-            self.injector.context.preset.get_mapping(
+            self.injector.preset.get_mapping(
                 EventCombination([EV_KEY, KEY_A, 1])
             ),
             m1,
         )
         self.assertEqual(
-            self.injector.context.preset.get_mapping(
+            self.injector.preset.get_mapping(
                 EventCombination([EV_REL, REL_HWHEEL, 1])
             ),
             m2,
