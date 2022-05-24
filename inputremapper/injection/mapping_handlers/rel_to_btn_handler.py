@@ -103,25 +103,28 @@ class RelToBtnHandler(MappingHandler):
         value = event.value
         if (value < threshold > 0) or (value > threshold < 0):
             if self._active:
-                # the axis is below the threshold and the stage_release function is running
+                # the axis is below the threshold and the stage_release
+                # function is running
                 event = event.modify(value=0, action=EventActions.as_key)
                 logger.debug_key(event.event_tuple, "sending to sub_handler")
                 self._abort_release = True
-                self._active = False
-                return self._sub_handler.notify(event, source, forward, supress)
             else:
                 # don't consume the event.
                 # We could return True to consume events
                 return False
+        else:
+            # the axis is above the threshold
+            if not self._active:
+                asyncio.ensure_future(self._stage_release(source, forward, supress))
 
-        # the axis is above the threshold
-        event = event.modify(value=1, action=EventActions.as_key)
-        self._last_activation = time.time()
-        if not self._active:
-            logger.debug_key(event.event_tuple, "sending to sub_handler")
-            asyncio.ensure_future(self._stage_release(source, forward, supress))
-            self._active = True
-        return self._sub_handler.notify(event, source, forward, supress)
+            self._last_activation = time.time()
+            event = event.modify(value=1, action=EventActions.as_key)
+
+        self._active = bool(event.value)
+        # logger.debug_key(event.event_tuple, "sending to sub_handler")
+        return self._sub_handler.notify(
+            event, source=source, forward=forward, supress=supress
+        )
 
     def reset(self) -> None:
         if self._active:

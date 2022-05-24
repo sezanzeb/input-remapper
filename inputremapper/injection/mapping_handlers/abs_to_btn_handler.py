@@ -106,15 +106,10 @@ class AbsToBtnHandler(MappingHandler):
                 # We could return False to forward events
                 return True
         else:
-            if not self._active:
-                event = event.modify(value=1, action=EventActions.as_key)
-            else:
-                # consume the event.
-                # We could return False to forward events
-                return True
+            event = event.modify(value=1, action=EventActions.as_key)
 
         self._active = bool(event.value)
-        logger.debug_key(event.event_tuple, "sending to sub_handler")
+        # logger.debug_key(event.event_tuple, "sending to sub_handler")
         return self._sub_handler.notify(
             event,
             source=source,
