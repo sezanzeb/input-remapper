@@ -17,7 +17,8 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
-
+import asyncio
+import multiprocessing
 
 from tests.test import quick_cleanup, tmp
 
@@ -125,7 +126,7 @@ class TestSocket(unittest.TestCase):
         self.assertRaises(NotImplementedError, lambda: Base.fileno(None))
 
 
-class TestPipe(unittest.TestCase):
+class TestPipe(unittest.IsolatedAsyncioTestCase):
     def test_pipe_single(self):
         p1 = Pipe(os.path.join(tmp, "pipe"))
         self.assertEqual(p1.recv(), None)
@@ -160,6 +161,47 @@ class TestPipe(unittest.TestCase):
         self.assertEqual(p2.recv(), 2)
         self.assertEqual(p2.recv(), 3)
         self.assertEqual(p2.recv(), None)
+
+    async def test_async_for_loop(self):
+        p1 = Pipe(os.path.join(tmp, "pipe"))
+        iterator = p1.__aiter__()
+        p1.send(1)
+
+        self.assertEqual(await iterator.__anext__(), 1)
+
+        read_task = asyncio.Task(iterator.__anext__())
+        timeout_task = asyncio.Task(asyncio.sleep(1))
+
+        done, pending = await asyncio.wait(
+            (read_task, timeout_task), return_when=asyncio.FIRST_COMPLETED
+        )
+        self.assertIn(timeout_task, done)
+        self.assertIn(read_task, pending)
+        read_task.cancel()
+
+    async def test_async_for_loop_duo(self):
+        def writer():
+            p = Pipe(os.path.join(tmp, "pipe"))
+            for i in range(3):
+                p.send(i)
+            time.sleep(0.5)
+            for i in range(3):
+                p.send(i)
+            time.sleep(0.1)
+            p.send("stop now")
+
+        p1 = Pipe(os.path.join(tmp, "pipe"))
+
+        w_process = multiprocessing.Process(target=writer)
+        w_process.start()
+
+        messages = []
+        async for msg in p1:
+            messages.append(msg)
+            if msg == "stop now":
+                break
+
+        self.assertEqual(messages, [0, 1, 2, 0, 1, 2, "stop now"])
 
 
 if __name__ == "__main__":
