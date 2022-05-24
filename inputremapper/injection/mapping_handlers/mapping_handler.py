@@ -80,6 +80,7 @@ class EventListener(Protocol):
 
 class ContextProtocol(Protocol):
     """The parts from context needed for macros."""
+
     listeners: Set[EventListener]
 
 

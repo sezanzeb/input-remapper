@@ -65,7 +65,7 @@ class TestBackend(unittest.TestCase):
             {
                 "groups": [
                     ("Foo Device", ["keyboard"]),
-                    ("Foo Device 2", ["keyboard", "mouse"]),
+                    ("Foo Device 2", ["gamepad", "keyboard", "mouse"]),
                     ("Bar Device", ["keyboard"]),
                     ("gamepad", ["gamepad"]),
                 ]

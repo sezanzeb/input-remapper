@@ -90,7 +90,7 @@ class EventEnum(str, enum.Enum):
     stop_injection = "stop_injecting"
 
     # listen for this to receive events from the active group.
-    # Parameter: event
+    # Parameter: input_event
     event_recorded = "event_recorded"
 
     # emit to show a status message in the gui

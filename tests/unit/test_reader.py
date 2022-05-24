@@ -124,8 +124,8 @@ class TestReader(unittest.TestCase):
         push_events("Foo Device 2", [new_event(EV_ABS, ABS_HAT0X, 1)])
         push_events(
             "Foo Device 2",
-            [new_event(EV_ABS, REL_X, 1)],
-        )  # mouse movements are ignored
+            [new_event(EV_REL, REL_X, 1)],
+        )
         self.create_helper()
         self.reader.start_reading(self.groups.find(key="Foo Device 2"))
         time.sleep(0.2)
@@ -262,14 +262,10 @@ class TestReader(unittest.TestCase):
         time.sleep(0.1)
         self.assertEqual(self.reader.read(), EventCombination((EV_KEY, 1, 1)))
 
-        self.reader.start_reading(self.groups.find(name="Bar Device"))
-
-        # it's plausible that right after sending the new read command more
-        # events from the old device might still appear. Give the helper
-        # some time to handle the new command.
-        time.sleep(0.1)
+        # we need to clear before we start reading, otherwise we might clear the
+        # message from the new device
         self.reader.clear()
-
+        self.reader.start_reading(self.groups.find(name="Bar Device"))
         time.sleep(0.1)
         self.assertEqual(self.reader.read(), EventCombination((EV_KEY, 2, 1)))
 
@@ -536,6 +532,9 @@ class TestReader(unittest.TestCase):
         self.assertIsNotNone(self.reader.previous_result)
 
         # make the helper send more events to the self.reader
+        push_events(
+            "Foo Device 2", [new_event(EV_KEY, CODE_3, 0), new_event(EV_KEY, CODE_3, 0)]
+        )
         time.sleep(EVENT_READ_TIMEOUT * 2)
         self.assertTrue(self.reader._results.poll())
         self.reader.clear()

@@ -106,7 +106,7 @@ class AbsToBtnHandler(MappingHandler):
                 # We could return False to forward events
                 return True
         else:
-            if value > threshold:
+            if value >= threshold > mid_point:
                 direction = EventActions.positive_trigger
             else:
                 direction = EventActions.negative_trigger

@@ -28,6 +28,10 @@ import argparse
 import os
 import sys
 import tempfile
+import traceback
+import warnings
+from multiprocessing.connection import Connection
+from typing import Dict, Tuple
 
 
 def get_project_root():
@@ -132,7 +136,7 @@ tmp = temporary_directory.name
 uinput_write_history = []
 # for tests that makes the injector create its processes
 uinput_write_history_pipe = multiprocessing.Pipe()
-pending_events = {}
+pending_events: Dict[str, Tuple[Connection, Connection]] = {}
 
 
 def read_write_history_pipe():
@@ -198,6 +202,26 @@ fixtures = {
         "phys": f"{phys_foo}/input0",
         "info": info_foo,
         "name": "Foo Device qux",
+        "group_key": "Foo Device 2",
+    },
+    "/dev/input/event15": {
+        "capabilities": {
+            evdev.ecodes.EV_SYN: [],
+            evdev.ecodes.EV_ABS: [
+                evdev.ecodes.ABS_X,
+                evdev.ecodes.ABS_Y,
+                evdev.ecodes.ABS_RX,
+                evdev.ecodes.ABS_RY,
+                evdev.ecodes.ABS_Z,
+                evdev.ecodes.ABS_RZ,
+                evdev.ecodes.ABS_HAT0X,
+                evdev.ecodes.ABS_HAT0Y,
+            ],
+            evdev.ecodes.EV_KEY: [evdev.ecodes.BTN_A],
+        },
+        "phys": f"{phys_foo}/input4",
+        "info": info_foo,
+        "name": "Foo Device bar",
         "group_key": "Foo Device 2",
     },
     # Bar Device
@@ -355,19 +379,18 @@ class InputDevice:
         logger.info("ungrab %s %s", self.name, self.path)
 
     async def async_read_loop(self):
-        if pending_events.get(self.group_key) is None:
-            self.log("no events to read", self.group_key)
-            return
+        new_frame = asyncio.Event()
+        asyncio.get_running_loop().add_reader(self.fd, new_frame.set)
+        while True:
+            await new_frame.wait()
+            new_frame.clear()
+            if not pending_events[self.group_key][1].poll():
+                # todo: why? why do we need this?
+                # sometimes this happens, as if a other process calls recv on
+                # the pipe
+                continue
 
-        # consume all of them
-        while pending_events[self.group_key][1].poll():
-            result = pending_events[self.group_key][1].recv()
-            self.log(result, "async_read_loop")
-            yield result
-            await asyncio.sleep(0.01)
-
-        # doesn't loop endlessly in order to run tests for the injector in
-        # the main process
+            yield pending_events[self.group_key][1].recv()
 
     def read(self):
         # the patched fake InputDevice objects read anything pending from
@@ -541,6 +564,19 @@ def clear_write_history():
         uinput_write_history_pipe[0].recv()
 
 
+def warn_with_traceback(message, category, filename, lineno, file=None, line=None):
+
+    log = file if hasattr(file, "write") else sys.stderr
+    traceback.print_stack(file=log)
+    log.write(warnings.formatwarning(message, category, filename, lineno, line))
+
+
+def patch_warnings():
+    # show traceback
+    warnings.showwarning = warn_with_traceback
+    warnings.simplefilter("always")
+
+
 # quickly fake some stuff before any other file gets a chance to import
 # the original versions
 patch_paths()
@@ -548,6 +584,7 @@ patch_evdev()
 patch_events()
 patch_os_system()
 patch_check_output()
+# patch_warnings()
 
 from inputremapper.logger import update_verbosity
 

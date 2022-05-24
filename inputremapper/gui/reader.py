@@ -181,7 +181,7 @@ class Reader:
 
             self.previous_result = result
             logger.debug_key(result, "read result")
-
+            self.event_handler.emit(EventEnum.event_recorded, input_event=result)
             return result
 
         return None

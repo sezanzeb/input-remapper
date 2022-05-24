@@ -117,7 +117,6 @@ class Controller:
         if not mappings:
             return
 
-        logger.debug(mappings)
         mappings.sort(key=lambda t: t[0] or t[1].beautify())
         combination = mappings[0][1]
 

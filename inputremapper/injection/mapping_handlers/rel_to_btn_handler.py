@@ -116,7 +116,7 @@ class RelToBtnHandler(MappingHandler):
             # the axis is above the threshold
             if not self._active:
                 asyncio.ensure_future(self._stage_release(source, forward, supress))
-            if value > threshold:
+            if value >= threshold > 0:
                 direction = EventActions.positive_trigger
             else:
                 direction = EventActions.negative_trigger

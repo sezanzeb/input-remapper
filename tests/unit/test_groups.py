@@ -95,9 +95,15 @@ class TestGroups(unittest.TestCase):
                                 "/dev/input/event11",
                                 "/dev/input/event10",
                                 "/dev/input/event13",
+                                "/dev/input/event15",
                             ],
-                            "names": ["Foo Device foo", "Foo Device", "Foo Device"],
-                            "types": [KEYBOARD, MOUSE],
+                            "names": [
+                                "Foo Device foo",
+                                "Foo Device",
+                                "Foo Device",
+                                "Foo Device bar",
+                            ],
+                            "types": [GAMEPAD, KEYBOARD, MOUSE],
                             "key": "Foo Device 2",
                         }
                     ),

@@ -58,16 +58,15 @@ class TestEventReader(unittest.IsolatedAsyncioTestCase):
     def tearDown(self):
         quick_cleanup()
 
-    def setup(self, source, mapping):
-        """Set a a EventReader up for the test and run it in the background."""
+    async def setup(self, source, mapping):
+        """Set a EventReader up for the test and run it in the background."""
         forward_to = evdev.UInput()
         context = Context(mapping)
         context.uinput = evdev.UInput()
-        consumer_control = EventReader(context, source, forward_to, self.stop_event)
-        # for consumer in consumer_control._consumers:
-        #    consumer._abs_range = (-10, 10)
-        asyncio.ensure_future(consumer_control.run())
-        return context, consumer_control
+        event_reader = EventReader(context, source, forward_to, self.stop_event)
+        asyncio.ensure_future(event_reader.run())
+        await asyncio.sleep(0.1)
+        return context, event_reader
 
     async def test_if_single_joystick_then(self):
         # TODO: Move this somewhere more sensible
@@ -112,7 +111,7 @@ class TestEventReader(unittest.IsolatedAsyncioTestCase):
         cfg["output_code"] = REL_WHEEL_HI_RES
         self.preset.add(Mapping(**cfg))
 
-        context, _ = self.setup(self.gamepad_source, self.preset)
+        context, _ = await self.setup(self.gamepad_source, self.preset)
 
         self.gamepad_source.push_events(
             [
@@ -125,7 +124,9 @@ class TestEventReader(unittest.IsolatedAsyncioTestCase):
                 new_event(EV_KEY, trigger, 0),
             ]
         )
+
         await asyncio.sleep(0.1)
+        self.stop_event.set()  # stop the reader
         self.assertEqual(len(context.listeners), 0)
         history = [a.t for a in global_uinputs.get_uinput("keyboard").write_history]
         self.assertIn((EV_KEY, code_a, 1), history)
@@ -151,7 +152,7 @@ class TestEventReader(unittest.IsolatedAsyncioTestCase):
 
         # self.preset.set("gamepad.joystick.left_purpose", BUTTONS)
         # self.preset.set("gamepad.joystick.right_purpose", BUTTONS)
-        context, _ = self.setup(self.gamepad_source, self.preset)
+        context, _ = await self.setup(self.gamepad_source, self.preset)
 
         self.gamepad_source.push_events(
             [
