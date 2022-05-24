@@ -100,13 +100,17 @@ class AbsToBtnHandler(MappingHandler):
         value = event.value
         if (value < threshold > mid_point) or (value > threshold < mid_point):
             if self._active:
-                event = event.modify(value=0, action=EventActions.as_key)
+                event = event.modify(value=0, actions=(EventActions.as_key,))
             else:
                 # consume the event.
                 # We could return False to forward events
                 return True
         else:
-            event = event.modify(value=1, action=EventActions.as_key)
+            if value > threshold:
+                direction = EventActions.positive_trigger
+            else:
+                direction = EventActions.negative_trigger
+            event = event.modify(value=1, actions=(EventActions.as_key, direction))
 
         self._active = bool(event.value)
         # logger.debug_key(event.event_tuple, "sending to sub_handler")

@@ -153,7 +153,7 @@ class MappingHandler(InputEventHandler):
         new_combination = []
         for event in combination:
             if event.value != 0:
-                event = event.modify(action=EventActions.as_key)
+                event = event.modify(actions=(EventActions.as_key,))
             new_combination.append(event)
 
         self.mapping = mapping

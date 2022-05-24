@@ -105,7 +105,7 @@ class AxisSwitchHandler(MappingHandler):
                     0,
                     *self._map_axis,
                     0,
-                    action=EventActions.recenter,
+                    actions=(EventActions.recenter,),
                 )
                 self._sub_handler.notify(event, self._axis_source, self._forward_device)
             elif self._map_axis[0] == evdev.ecodes.EV_ABS:

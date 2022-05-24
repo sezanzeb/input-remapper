@@ -84,20 +84,20 @@ class TestMapping(unittest.IsolatedAsyncioTestCase):
             "output_code": 3,
         }
         m = Mapping(**cfg)
-        expected_actions = [EventActions.as_key, EventActions.as_key, EventActions.none]
-        actions = [event.action for event in m.event_combination]
+        expected_actions = [(EventActions.as_key,), (EventActions.as_key,), ()]
+        actions = [event.actions for event in m.event_combination]
         self.assertEqual(expected_actions, actions)
 
-        # copy keeps the event action
+        # copy keeps the event actions
         m2 = m.copy()
-        actions = [event.action for event in m2.event_combination]
+        actions = [event.actions for event in m2.event_combination]
         self.assertEqual(expected_actions, actions)
 
-        # changing the combination sets the action
+        # changing the combination sets the actions
         m3 = m.copy()
         m3.event_combination = "1,2,1+2,1,0+3,1,10"
-        expected_actions = [EventActions.as_key, EventActions.none, EventActions.as_key]
-        actions = [event.action for event in m3.event_combination]
+        expected_actions = [(EventActions.as_key,), (), (EventActions.as_key,)]
+        actions = [event.actions for event in m3.event_combination]
         self.assertEqual(expected_actions, actions)
 
     def test_combination_changed_callback(self):

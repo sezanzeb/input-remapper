@@ -227,11 +227,11 @@ class Mapping(BaseModel):
 
     @validator("event_combination")
     def set_event_actions(cls, combination):
-        """Sets the correct action for each event."""
+        """Sets the correct actions for each event."""
         new_combination = []
         for event in combination:
             if event.value != 0:
-                event = event.modify(action=EventActions.as_key)
+                event = event.modify(actions=(EventActions.as_key,))
             new_combination.append(event)
         return EventCombination(new_combination)
 

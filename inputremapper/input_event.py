@@ -38,10 +38,13 @@ InputEventValidationType = Union[
 
 class EventActions(enum.Enum):
     """Additional information a InputEvent can send through the event pipeline"""
+    as_key = enum.auto  # treat this event as a key event
+    recenter = enum.auto  # recenter the axis when receiving this
+    none = enum.auto
 
-    as_key = enum.auto()
-    recenter = enum.auto()
-    none = enum.auto()
+    # used in combination with as_key, for originally abs or rel events
+    positive_trigger = enum.auto  # original event was positive direction
+    negative_trigger = enum.auto  # original event was negative direction
 
 
 # Todo: add slots=True as soon as python 3.10 is in common distros
@@ -57,7 +60,7 @@ class InputEvent:
     type: int
     code: int
     value: int
-    action: EventActions = EventActions.none
+    actions: Tuple[EventActions, ...] = ()
 
     def __hash__(self):
         return hash((self.type, self.code, self.value))
@@ -161,7 +164,7 @@ class InputEvent:
     @property
     def is_key_event(self) -> bool:
         """Whether this is interpreted as a key event."""
-        return self.type == evdev.ecodes.EV_KEY or self.action == EventActions.as_key
+        return self.type == evdev.ecodes.EV_KEY or EventActions.as_key in self.actions
 
     def __str__(self):
         if self.type == evdev.ecodes.EV_KEY:
@@ -182,7 +185,7 @@ class InputEvent:
         type: int = None,
         code: int = None,
         value: int = None,
-        action: EventActions = EventActions.none,
+        actions: Tuple[EventActions, ...] = None,
     ) -> InputEvent:
         """Return a new modified event."""
         return InputEvent(
@@ -191,7 +194,7 @@ class InputEvent:
             type if type is not None else self.type,
             code if code is not None else self.code,
             value if value is not None else self.value,
-            action if action is not EventActions.none else self.action,
+            actions if actions is not None else self.actions,
         )
 
     def json_str(self) -> str:

@@ -166,7 +166,7 @@ class AbsToRelHandler(MappingHandler):
         if event.type_and_code != self._map_axis:
             return False
 
-        if event.action == EventActions.recenter:
+        if EventActions.recenter in event.actions:
             self._stop = True
             return True
 
