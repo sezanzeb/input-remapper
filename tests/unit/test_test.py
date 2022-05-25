@@ -111,7 +111,7 @@ class TestTest(unittest.TestCase):
                     break
 
         create_helper()
-        reader.start_reading(groups.find(key="Foo Device 2"))
+        reader.set_group(groups.find(key="Foo Device 2"))
         time.sleep(START_READING_DELAY)
 
         event = new_event(EV_KEY, 102, 1)
@@ -119,7 +119,7 @@ class TestTest(unittest.TestCase):
         wait_for_results()
         self.assertTrue(reader._results.poll())
 
-        reader.clear()
+        reader._read()
         self.assertFalse(reader._results.poll())
 
         # can push more events to the helper that is inside a separate

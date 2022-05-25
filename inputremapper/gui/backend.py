@@ -62,7 +62,7 @@ class Backend:
 
     def set_active_group(self, group_key):
         group = self.groups.find(key=group_key)
-        self._reader.start_reading(group)
+        self._reader.set_group(group)
 
     def emit_uinputs(self):
         self.event_handler.emit(

@@ -90,8 +90,10 @@ class EventEnum(str, enum.Enum):
     stop_injection = "stop_injecting"
 
     # listen for this to receive events from the active group.
-    # Parameter: input_event
-    event_recorded = "event_recorded"
+    # Parameter: combination
+    combination_recorded = "combination_recorded"
+    # all keys where released, the recording stopped
+    recording_finished = "recording_finished"
 
     # emit to show a status message in the gui
     # Parameter: ctx_id, msg, tooltip

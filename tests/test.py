@@ -170,7 +170,10 @@ fixtures = {
     # see if the groups correct attribute is used in functions and paths.
     "/dev/input/event11": {
         "capabilities": {
-            evdev.ecodes.EV_KEY: [evdev.ecodes.BTN_LEFT],
+            evdev.ecodes.EV_KEY: [
+                evdev.ecodes.BTN_LEFT,
+                evdev.ecodes.BTN_TOOL_DOUBLETAP,
+            ],
             evdev.ecodes.EV_REL: [
                 evdev.ecodes.REL_X,
                 evdev.ecodes.REL_Y,

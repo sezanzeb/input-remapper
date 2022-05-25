@@ -20,11 +20,16 @@
 import unittest
 from typing import List, Dict, Any
 
+import gi
+
+gi.require_version("GLib", "2.0")
+from gi.repository import GLib
+
 from inputremapper.groups import _Groups
 from inputremapper.gui.event_handler import EventHandler, EventEnum
 from inputremapper.gui.reader import Reader
 from inputremapper.injection.global_uinputs import GlobalUInputs
-from tests.test import quick_cleanup, get_backend
+from tests.test import quick_cleanup, get_backend, push_events
 
 
 class Listener:
@@ -88,7 +93,7 @@ class TestBackend(unittest.TestCase):
         def f(*_):
             raise AssertionError()
 
-        reader.start_reading = f
+        reader.set_group = f
 
         self.assertRaises(AssertionError, backend.set_active_group, "Foo Device")
 
