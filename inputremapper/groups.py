@@ -408,8 +408,9 @@ class _FindGroups(threading.Thread):
             result.append(group.dumps())
 
         self.pipe.send(json.dumps(result))
+        loop.close()  # avoid resource allocation warnings
         # now that everything is sent via the pipe, the InputDevice
-        # destructors can go on an take ages to complete in the thread
+        # destructors can go on and take ages to complete in the thread
         # without blocking anything
 
 

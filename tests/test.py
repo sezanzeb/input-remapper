@@ -32,6 +32,9 @@ import traceback
 import warnings
 from multiprocessing.connection import Connection
 from typing import Dict, Tuple
+import tracemalloc
+
+tracemalloc.start()
 
 
 def get_project_root():
@@ -283,6 +286,7 @@ def setup_pipe(group_key):
     which in turn will be sent to the reader
     """
     if pending_events.get(group_key) is None:
+        logger.info("creating Pipe for %s", group_key)
         pending_events[group_key] = multiprocessing.Pipe()
 
 
@@ -311,6 +315,7 @@ def push_event(group_key, event):
     event : InputEvent
     """
     setup_pipe(group_key)
+    logger.info("Simulating %s for %s", event, group_key)
     pending_events[group_key][0].send(event)
 
 
@@ -382,6 +387,7 @@ class InputDevice:
         logger.info("ungrab %s %s", self.name, self.path)
 
     async def async_read_loop(self):
+        logger.info("starting read loop for %s", self.path)
         new_frame = asyncio.Event()
         asyncio.get_running_loop().add_reader(self.fd, new_frame.set)
         while True:
@@ -393,7 +399,9 @@ class InputDevice:
                 # the pipe
                 continue
 
-            yield pending_events[self.group_key][1].recv()
+            event = pending_events[self.group_key][1].recv()
+            logger.info("got %s at %s", event, self.path)
+            yield event
 
     def read(self):
         # the patched fake InputDevice objects read anything pending from

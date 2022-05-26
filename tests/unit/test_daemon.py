@@ -171,13 +171,13 @@ class TestDaemon(unittest.TestCase):
             raise
 
         """Injection 2"""
-
-        # -1234 will be classified as -1 by the injector
-        push_events(group.key, [new_event(*ev_2, -1234)])
-
         self.daemon.start_injecting(group.key, preset_name)
 
         time.sleep(0.1)
+        # -1234 will be classified as -1 by the injector
+        push_events(group.key, [new_event(*ev_2, -1234)])
+        time.sleep(0.1)
+
         self.assertTrue(uinput_write_history_pipe[0].poll())
 
         # the written key is a key-down event, not the original
