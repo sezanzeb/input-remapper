@@ -434,3 +434,13 @@ class UIMapping(Mapping):
 class MappingData(UIMapping):
     Config = ImmutableCfg
     massage_type = MassageType.mapping  # allow this to be sent over the DataBus
+    
+    def __init__(self, **data):
+        super(MappingData, self).__init__(**data)
+    
+    def dict(self, *args, **kwargs):
+        """will not include the massage_type"""
+        dict_ = super(MappingData, self).dict(*args, **kwargs)
+        if "massage_type" in dict_:
+            del dict_["massage_type"]
+        return dict_

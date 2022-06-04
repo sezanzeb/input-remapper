@@ -2,15 +2,22 @@ import os.path
 import re
 import traceback
 from collections import defaultdict, deque
+from dataclasses import dataclass
 from enum import Enum
-from typing import Callable, Dict, Set, Protocol, Tuple, Deque
+from typing import Callable, Dict, Set, Protocol, Tuple, Deque, Optional, List
 
+from inputremapper.event_combination import EventCombination
 from inputremapper.logger import logger
 
 
 class MassageType(Enum):
     reset_gui = "reset_gui"
+
     groups = "groups"
+    group = "group"
+    preset = "preset"
+    mapping = "mapping"
+    combination_changed = "combination_changed"
 
     # for unit tests:
     test1 = "test1"
@@ -21,7 +28,9 @@ class MassageData(Protocol):
     massage_type: MassageType
 
 
+# useful type aliases
 MassageListener = Callable[[MassageData], None]
+Name = str
 
 
 class DataBus:
@@ -66,7 +75,8 @@ class DataBus:
         self._listeners[massage_type].add(listener)
         return self
 
-    def get_caller(self, position: int = 3) -> Tuple[str, int]:
+    @staticmethod
+    def get_caller(position: int = 3) -> Tuple[str, int]:
         """extract a file and line from current stack and format for logging"""
         tb = traceback.extract_stack(limit=position)[0]
         return os.path.basename(tb.filename), tb.lineno
@@ -77,3 +87,25 @@ class DataBus:
                 listeners.remove(listener)
             except KeyError:
                 pass
+
+
+@dataclass(frozen=True)
+class GroupData:
+    massage_type = MassageType.group
+    group_key: str
+    presets: Tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class PresetData:
+    massage_type = MassageType.preset
+    name: Optional[Name]
+    mappings: Optional[Tuple[Tuple[Name, EventCombination]]]
+    autoload: bool = False
+
+
+@dataclass(frozen=True)
+class CombinationUpdate:
+    massage_type = MassageType.combination_changed
+    old_combination: EventCombination
+    new_combination: EventCombination

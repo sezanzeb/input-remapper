@@ -24,12 +24,13 @@ import time
 from typing import Optional, List, Tuple
 
 from inputremapper.configs.global_config import GlobalConfig
-from inputremapper.configs.mapping import UIMapping
+from inputremapper.configs.mapping import UIMapping, MappingData
 from inputremapper.configs.preset import Preset
 from inputremapper.configs.paths import get_preset_path, mkdir, split_all
 from inputremapper.event_combination import EventCombination
 from inputremapper.exceptions import DataManagementError
 from inputremapper.gui.backend import Backend
+from inputremapper.gui.data_bus import DataBus, GroupData, PresetData
 from inputremapper.gui.event_handler import EventHandler, EventEnum
 from inputremapper.logger import logger
 
@@ -37,10 +38,8 @@ DEFAULT_PRESET_NAME = "new preset"
 
 
 class DataManager:
-    def __init__(
-        self, event_handler: EventHandler, config: GlobalConfig, backend: Backend
-    ):
-        self.event_handler = event_handler
+    def __init__(self, data_bus: DataBus, config: GlobalConfig, backend: Backend):
+        self.data_bus = data_bus
         self.backend = backend
 
         self._config = config
@@ -113,38 +112,23 @@ class DataManager:
         return tuple(group.key for group in self.backend.groups.filter())
 
     def emit_group_changed(self):
-        self.event_handler.emit(
-            EventEnum.group_changed,
-            group_key=self.backend.active_group.key,
-            presets=self.get_presets(),
+        self.data_bus.send(
+            GroupData(self.backend.active_group.key, self.get_presets())
         )
 
     def emit_preset_changed(self):
-        self.event_handler.emit(
-            EventEnum.preset_changed,
-            name=self.get_preset_name(),
-            mappings=self.get_mappings(),
+        self.data_bus.send(
+            PresetData(self.get_preset_name(), self.get_mappings(), self._autoload)
         )
-
-    def emit_autoload_changed(self):
-        if self._active_preset:
-            self.event_handler.emit(EventEnum.autoload_changed, autoload=self._autoload)
 
     def emit_mapping_changed(self):
         mapping = self._active_mapping
         if mapping:
-            self.event_handler.emit(EventEnum.mapping_changed, mapping=mapping.dict())
+            self.data_bus.send(mapping.get_bus_massage())
         else:
-            self.event_handler.emit(EventEnum.mapping_changed, mapping=None)
+            self.data_bus.send(MappingData())
 
-    def emit_mapping_loaded(self):
-        mapping = self._active_mapping
-        if mapping:
-            self.event_handler.emit(EventEnum.mapping_loaded, mapping=mapping.dict())
-        else:
-            self.event_handler.emit(EventEnum.mapping_loaded, mapping=None)
-
-    def get_presets(self) -> List[str]:
+    def get_presets(self) -> Tuple[str, ...]:
         """Get all preset filenames for self.backend.active_group.key and user,
         starting with the newest."""
         device_folder = get_preset_path(self.backend.active_group.key)
@@ -157,7 +141,7 @@ class DataManager:
         ]
         # the highest timestamp to the front
         presets.reverse()
-        return presets
+        return tuple(presets)
 
     def get_preset_name(self) -> Optional[str]:
         """get the current active preset name"""
@@ -211,7 +195,7 @@ class DataManager:
         self._active_mapping = None
         self._active_preset = None
         self.backend.set_active_group(group_key)
-        self.emit_mapping_loaded()
+        self.emit_mapping_changed()
         self.emit_preset_changed()
         self.emit_group_changed()
 
@@ -225,9 +209,8 @@ class DataManager:
         preset.load()
         self._active_mapping = None
         self._active_preset = preset
-        self.emit_mapping_loaded()
+        self.emit_mapping_changed()
         self.emit_preset_changed()
-        self.emit_autoload_changed()
 
     def rename_preset(self, new_name: str):
         """rename the current preset and move the correct file"""
@@ -294,7 +277,7 @@ class DataManager:
                 f"exist in the {self._active_preset.path}"
             )
         self._active_mapping = mapping
-        self.emit_mapping_loaded()
+        self.emit_mapping_changed()
 
     def update_mapping(self, **kwargs):
         if not self._active_mapping:
@@ -327,7 +310,7 @@ class DataManager:
             raise DataManagementError("cannot set autoload status: Preset is not set")
 
         self._autoload = autoload
-        self.emit_autoload_changed()
+        self.emit_preset_changed()
 
     def emit_uinputs(self):
         self.backend.emit_uinputs()

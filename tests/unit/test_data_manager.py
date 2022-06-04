@@ -24,23 +24,23 @@ import unittest
 from typing import List, Dict, Any
 
 from inputremapper.configs.global_config import global_config
-from inputremapper.configs.mapping import UIMapping
+from inputremapper.configs.mapping import UIMapping, MappingData
 from inputremapper.event_combination import EventCombination
 from inputremapper.exceptions import DataManagementError
+from inputremapper.gui.data_bus import DataBus, MassageType, GroupData, PresetData
 from tests.test import get_key_mapping, quick_cleanup, get_backend
 
 from inputremapper.configs.paths import get_preset_path, get_config_path
 from inputremapper.configs.preset import Preset
 from inputremapper.gui.data_manager import DataManager, DEFAULT_PRESET_NAME
-from inputremapper.gui.event_handler import EventHandler, EventEnum
 
 
 class Listener:
     def __init__(self):
-        self.calls: List[Dict[str, Any]] = []
+        self.calls: List = []
 
-    def __call__(self, **kwargs):
-        self.calls.append(kwargs)
+    def __call__(self, data):
+        self.calls.append(data)
 
 
 def prepare_presets():
@@ -68,9 +68,9 @@ def prepare_presets():
 
 class TestDataManager(unittest.TestCase):
     def setUp(self) -> None:
-        self.event_handler = EventHandler()
+        self.data_bus = DataBus()
         self.backend = get_backend()
-        self.data_manager = DataManager(self.event_handler, global_config, self.backend)
+        self.data_manager = DataManager(self.data_bus, global_config, self.backend)
 
     def tearDown(self) -> None:
         quick_cleanup()
@@ -78,13 +78,15 @@ class TestDataManager(unittest.TestCase):
     def test_load_group_provides_presets(self):
         """we should get all preset of a group, when loading it"""
         prepare_presets()
-        listener = Listener()
-        self.event_handler.subscribe(EventEnum.group_changed, listener)
+        response: List[GroupData] = []
 
+        def listener(data: GroupData):
+            response.append(data)
+
+        self.data_bus.subscribe(MassageType.group, listener)
         self.data_manager.load_group("Foo Device 2")
-        response = listener.calls[0]
 
-        for preset_name in response["presets"]:
+        for preset_name in response[0].presets:
             self.assertIn(
                 preset_name,
                 (
@@ -93,16 +95,19 @@ class TestDataManager(unittest.TestCase):
                 ),
             )
 
-        self.assertEqual(response["group_key"], "Foo Device 2")
+        self.assertEqual(response[0].group_key, "Foo Device 2")
 
     def test_load_group_without_presets_provides_none(self):
         """we should get no presets when loading a group without presets"""
-        listener = Listener()
-        self.event_handler.subscribe(EventEnum.group_changed, listener)
+        response: List[GroupData] = []
+
+        def listener(data: GroupData):
+            response.append(data)
+
+        self.data_bus.subscribe(MassageType.group, listener)
 
         self.data_manager.load_group(group_key="Foo Device 2")
-        response = listener.calls[0]
-        self.assertEqual(len(response["presets"]), 0)
+        self.assertEqual(len(response[0].presets), 0)
 
     def test_load_non_existing_group(self):
         """we should not be able to load an unknown group"""
@@ -125,10 +130,10 @@ class TestDataManager(unittest.TestCase):
 
         self.data_manager.load_group(group_key="Foo Device")
         listener = Listener()
-        self.event_handler.subscribe(EventEnum.preset_changed, listener)
+        self.data_bus.subscribe(MassageType.preset, listener)
         self.data_manager.load_preset(name="preset1")
-        mappings = listener.calls[0]["mappings"]
-        preset_name = listener.calls[0]["name"]
+        mappings = listener.calls[0].mappings
+        preset_name = listener.calls[0].name
 
         expected_preset = Preset(get_preset_path("Foo Device", "preset1"))
         expected_preset.load()
@@ -158,15 +163,15 @@ class TestDataManager(unittest.TestCase):
         self.data_manager.load_group(group_key="Foo Device")
         self.data_manager.load_preset(name="preset1")
         listener = Listener()
-        self.event_handler.subscribe(EventEnum.mapping_loaded, listener)
+        self.data_bus.subscribe(MassageType.mapping, listener)
         self.data_manager.load_mapping(combination=EventCombination("1,1,1"))
 
-        mapping = listener.calls[0]["mapping"]
+        mapping: MappingData = listener.calls[0]
         control_preset = Preset(get_preset_path("Foo Device", "preset1"))
         control_preset.load()
         self.assertEqual(
             control_preset.get_mapping(EventCombination("1,1,1")).output_symbol,
-            mapping["output_symbol"],
+            mapping.output_symbol,
         )
 
         # change the mapping provided with the mapping_changed event and save
@@ -187,17 +192,17 @@ class TestDataManager(unittest.TestCase):
         self.data_manager.load_group(group_key="Foo Device 2")
         self.data_manager.load_preset(name="preset2")
         listener = Listener()
-        self.event_handler.subscribe(EventEnum.group_changed, listener)
-        self.event_handler.subscribe(EventEnum.preset_changed, listener)
+        self.data_bus.subscribe(MassageType.group, listener)
+        self.data_bus.subscribe(MassageType.preset, listener)
 
         self.data_manager.rename_preset(new_name="new preset")
 
-        # we expect the first event to be a group_changed event and the second
-        # one a preset_changed event
-        presets_in_group = [preset for preset in listener.calls[0]["presets"]]
+        # we expect the first data to be group data and the second
+        # one a preset data
+        presets_in_group = [preset for preset in listener.calls[0].presets]
         self.assertNotIn("preset2", presets_in_group)
         self.assertIn("new preset", presets_in_group)
-        self.assertEqual(listener.calls[1]["name"], "new preset")
+        self.assertEqual(listener.calls[1].name, "new preset")
 
         # this should pass without error:
         self.data_manager.load_preset(name="new preset")
@@ -206,15 +211,13 @@ class TestDataManager(unittest.TestCase):
     def test_rename_preset_sets_autoload_correct(self):
         """when renaming a preset the autoload status should still be set correctly"""
         prepare_presets()
-        listener = Listener()
-        self.event_handler.subscribe(EventEnum.autoload_changed, listener)
         self.data_manager.load_group(group_key="Foo Device 2")
-        self.data_manager.load_preset(name="preset2")
-
-        self.data_manager.emit_autoload_changed()
+        listener = Listener()
+        self.data_bus.subscribe(MassageType.preset, listener)
+        self.data_manager.load_preset(name="preset2")  # sends PresetData
+        # sends PresetData with updated name, e. e. should be equal
         self.data_manager.rename_preset(new_name="foo")
-        self.data_manager.emit_autoload_changed()
-        self.assertEqual(listener.calls[0], listener.calls[1])
+        self.assertEqual(listener.calls[0].autoload, listener.calls[1].autoload)
 
     def test_cannot_rename_preset(self):
         """rename preset should raise a DataManagementError if a preset
@@ -249,12 +252,12 @@ class TestDataManager(unittest.TestCase):
         prepare_presets()
         self.data_manager.load_group(group_key="Foo Device 2")
         listener = Listener()
-        self.event_handler.subscribe(EventEnum.group_changed, listener)
+        self.data_bus.subscribe(MassageType.group, listener)
 
         # should emit group_changed
         self.data_manager.add_preset(name="new preset")
 
-        presets_in_group = [preset for preset in listener.calls[0]["presets"]]
+        presets_in_group = [preset for preset in listener.calls[0].presets]
         self.assertIn("preset2", presets_in_group)
         self.assertIn("preset3", presets_in_group)
         self.assertIn("new preset", presets_in_group)
@@ -285,18 +288,18 @@ class TestDataManager(unittest.TestCase):
         self.data_manager.load_group(group_key="Foo Device 2")
         self.data_manager.load_preset(name="preset2")
         listener = Listener()
-        self.event_handler.subscribe(EventEnum.group_changed, listener)
-        self.event_handler.subscribe(EventEnum.preset_changed, listener)
-        self.event_handler.subscribe(EventEnum.mapping_changed, listener)
+        self.data_bus.subscribe(MassageType.group, listener)
+        self.data_bus.subscribe(MassageType.preset, listener)
+        self.data_bus.subscribe(MassageType.mapping, listener)
 
         # should emit mapping_changed, preset_changed, group_changed (in that order)
         self.data_manager.delete_preset()
 
-        presets_in_group = [preset for preset in listener.calls[2]["presets"]]
+        presets_in_group = [preset for preset in listener.calls[2].presets]
         self.assertEqual(len(presets_in_group), 1)
         self.assertNotIn("preset2", presets_in_group)
-        self.assertEqual(listener.calls[1], {"name": None, "mappings": None})
-        self.assertEqual(listener.calls[0], {"mapping": None})  # call without any data
+        self.assertEqual(listener.calls[1], PresetData(None, None))
+        self.assertEqual(listener.calls[0], MappingData())  # the default data
 
     def test_load_mapping(self):
         """should be able to load a mapping"""
@@ -306,9 +309,9 @@ class TestDataManager(unittest.TestCase):
         self.data_manager.load_group(group_key="Foo Device")
         self.data_manager.load_preset(name="preset1")
         listener = Listener()
-        self.event_handler.subscribe(EventEnum.mapping_loaded, listener)
+        self.data_bus.subscribe(MassageType.mapping, listener)
         self.data_manager.load_mapping(combination=EventCombination("1,1,1"))
-        mapping = listener.calls[0]["mapping"]
+        mapping = listener.calls[0]
 
         self.assertEqual(mapping, expected_mapping)
 
@@ -349,17 +352,17 @@ class TestDataManager(unittest.TestCase):
         self.data_manager.load_mapping(combination=EventCombination("1,4,1"))
 
         listener = Listener()
-        self.event_handler.subscribe(EventEnum.mapping_changed, listener)
+        self.data_bus.subscribe(MassageType.mapping, listener)
         self.data_manager.update_mapping(
             name="foo",
             output_symbol="f",
             release_timeout=0.3,
         )
 
-        response = listener.calls[0]["mapping"]
-        self.assertEqual(response["name"], "foo")
-        self.assertEqual(response["output_symbol"], "f")
-        self.assertEqual(response["release_timeout"], 0.3)
+        response = listener.calls[0]
+        self.assertEqual(response.name, "foo")
+        self.assertEqual(response.output_symbol, "f")
+        self.assertEqual(response.release_timeout, 0.3)
 
     def test_updated_mapping_can_be_saved(self):
         """make sure that updated changes can be saved"""
@@ -414,7 +417,7 @@ class TestDataManager(unittest.TestCase):
             self.data_manager.update_mapping,
             name="foo",
         )
-        self.event_handler.emit(EventEnum.load_preset, name="preset2")
+        self.data_manager.load_preset("preset2")
         self.assertRaises(
             DataManagementError,
             self.data_manager.update_mapping,
@@ -428,15 +431,15 @@ class TestDataManager(unittest.TestCase):
         self.data_manager.load_group(group_key="Foo Device 2")
         self.data_manager.load_preset(name="preset2")
         listener = Listener()
-        self.event_handler.subscribe(EventEnum.mapping_loaded, listener)
-        self.event_handler.subscribe(EventEnum.preset_changed, listener)
+        self.data_bus.subscribe(MassageType.mapping, listener)
+        self.data_bus.subscribe(MassageType.preset, listener)
         self.data_manager.create_mapping()  # emits preset_changed
 
         self.data_manager.load_mapping(combination=EventCombination.empty_combination())
 
-        self.assertEqual(listener.calls[0]["name"], "preset2")
-        self.assertEqual(len(listener.calls[0]["mappings"]), 3)
-        self.assertEqual(listener.calls[1]["mapping"], UIMapping().dict())
+        self.assertEqual(listener.calls[0].name, "preset2")
+        self.assertEqual(len(listener.calls[0].mappings), 3)
+        self.assertEqual(listener.calls[1], UIMapping())
 
     def test_cannot_create_mapping_without_preset(self):
         """adding a mapping if not preset is loaded
@@ -459,15 +462,15 @@ class TestDataManager(unittest.TestCase):
         self.data_manager.load_mapping(combination=EventCombination("1,3,1"))
 
         listener = Listener()
-        self.event_handler.subscribe(EventEnum.preset_changed, listener)
-        self.event_handler.subscribe(EventEnum.mapping_changed, listener)
+        self.data_bus.subscribe(MassageType.preset, listener)
+        self.data_bus.subscribe(MassageType.mapping, listener)
         # emits mapping and preset changed
         self.data_manager.delete_mapping()
         self.data_manager.save()
 
         deleted_mapping = old_preset.get_mapping(EventCombination("1,3,1"))
-        mappings = listener.calls[1]["mappings"]
-        preset_name = listener.calls[1]["name"]
+        mappings = listener.calls[1].mappings
+        preset_name = listener.calls[1].name
         expected_preset = Preset(get_preset_path("Foo Device 2", "preset2"))
         expected_preset.load()
         expected_mappings = [
@@ -482,7 +485,7 @@ class TestDataManager(unittest.TestCase):
             (deleted_mapping.name, deleted_mapping.event_combination), mappings
         )
         # first event (mapping_changed) should be without data
-        self.assertEqual(listener.calls[0], {"mapping": None})
+        self.assertEqual(listener.calls[0], MappingData())
 
     def test_cannot_delete_mapping(self):
         """deleting a mapping should not be possible if the mapping was not loaded"""
@@ -493,36 +496,20 @@ class TestDataManager(unittest.TestCase):
         self.data_manager.load_preset(name="preset2")
         self.assertRaises(DataManagementError, self.data_manager.delete_mapping)
 
-    def test_get_autoload(self):
-        """get the correct autoload status for all presets"""
-        prepare_presets()
-        listener = Listener()
-        self.event_handler.subscribe(EventEnum.autoload_changed, listener)
-
-        self.data_manager.load_group(group_key="Foo Device")
-        self.data_manager.load_preset(name="preset1")  # emits autoload_changed
-        self.data_manager.load_group(group_key="Foo Device 2")
-        self.data_manager.load_preset(name="preset2")  # emits autoload_changed
-        self.data_manager.load_preset(name="preset3")  # emits autoload_changed
-
-        self.assertFalse(listener.calls[0]["autoload"])
-        self.assertTrue(listener.calls[1]["autoload"])
-        self.assertFalse(listener.calls[2]["autoload"])
-
     def test_set_autoload(self):
         """should be able to set the autoload status"""
         prepare_presets()
-        listener = Listener()
-        self.event_handler.subscribe(EventEnum.autoload_changed, listener)
-
         self.data_manager.load_group(group_key="Foo Device")
-        self.data_manager.load_preset(name="preset1")  # emits autoload_changed
-        self.data_manager.set_autoload(autoload=True)  # emits autoload_changed
-        self.data_manager.set_autoload(autoload=False)  # emits autoload_changed
 
-        self.assertFalse(listener.calls[0]["autoload"])
-        self.assertTrue(listener.calls[1]["autoload"])
-        self.assertFalse(listener.calls[2]["autoload"])
+        listener = Listener()
+        self.data_bus.subscribe(MassageType.preset, listener)
+        self.data_manager.load_preset(name="preset1")  # sends updated preset data
+        self.data_manager.set_autoload(autoload=True)  # sends updated preset data
+        self.data_manager.set_autoload(autoload=False)  # sends updated preset data
+
+        self.assertFalse(listener.calls[0].autoload)
+        self.assertTrue(listener.calls[1].autoload)
+        self.assertFalse(listener.calls[2].autoload)
 
     def test_cannot_set_autoload_without_preset(self):
         prepare_presets()
