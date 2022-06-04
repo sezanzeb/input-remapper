@@ -24,7 +24,7 @@ from functools import partial
 from evdev.ecodes import EV_KEY
 from pydantic import ValidationError
 
-from inputremapper.configs.mapping import Mapping
+from inputremapper.configs.mapping import Mapping, UIMapping
 from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.input_event import EventActions
 from inputremapper.event_combination import EventCombination
@@ -329,6 +329,34 @@ class TestMapping(unittest.IsolatedAsyncioTestCase):
         }
         m = Mapping(**cfg)
         self.assertTrue(m.is_valid())
+
+
+class TestUIMapping(unittest.IsolatedAsyncioTestCase):
+    def test_init(self):
+        """should be able to initialize without an error"""
+        UIMapping()
+
+    def test_is_valid(self):
+        """should be invalid at first
+         and become valid once all data is provided"""
+        m = UIMapping()
+        self.assertFalse(m.is_valid())
+
+        m.event_combination = "1,2,3"
+        m.output_symbol = "a"
+        self.assertFalse(m.is_valid())
+        m.target_uinput = "keyboard"
+        self.assertTrue(m.is_valid())
+
+    def test_updates_validation_error(self):
+        m = UIMapping()
+        self.assertIn("2 validation errors for UIMapping", str(m.get_error()))
+        m.event_combination = "1,2,3"
+        m.output_symbol = "a"
+        self.assertIn("1 validation error for UIMapping\ntarget_uinput", str(m.get_error()))
+        m.target_uinput = "keyboard"
+        self.assertTrue(m.is_valid())
+        self.assertIsNone(m.get_error())
 
 
 if __name__ == "__main__":

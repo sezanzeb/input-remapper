@@ -338,6 +338,7 @@ class UIMapping(Mapping):
             super(UIMapping, self).__setattr__(key, value)
             if key in self._cache:
                 del self._cache[key]
+            self._last_error = None
 
         except ValidationError as error:
             # cache the value
@@ -377,7 +378,7 @@ class UIMapping(Mapping):
 
         return dict_
 
-    def copy(self, *args, **kwargs) -> Mapping:
+    def copy(self, *args, **kwargs) -> UIMapping:
         # we always need a deep copy otherwise the _cache of the copy will
         # point to the same address
         try:
