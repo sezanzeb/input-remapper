@@ -32,7 +32,7 @@ class Listener:
 
 
 class TestEventHandler(unittest.TestCase):
-    async def test_calls_listeners(self):
+    def test_calls_listeners(self):
         """The correct Listeners get called"""
         event_handler = EventHandler()
         listener = Listener()

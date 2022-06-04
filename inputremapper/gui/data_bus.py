@@ -1,0 +1,79 @@
+import os.path
+import re
+import traceback
+from collections import defaultdict, deque
+from enum import Enum
+from typing import Callable, Dict, Set, Protocol, Tuple, Deque
+
+from inputremapper.logger import logger
+
+
+class MassageType(Enum):
+    reset_gui = "reset_gui"
+    groups = "groups"
+
+    # for unit tests:
+    test1 = "test1"
+    test2 = "test2"
+
+
+class MassageData(Protocol):
+    massage_type: MassageType
+
+
+MassageListener = Callable[[MassageData], None]
+
+
+class DataBus:
+    shorten_path = re.compile("inputremapper/")
+
+    def __init__(self):
+        self._listeners: Dict[MassageType, Set[MassageListener]] = defaultdict(set)
+        self._massages: Deque[Tuple[MassageData, str, int]] = deque()
+        self._sending = False
+
+    def send(self, data: MassageData):
+        """schedule a massage to be sent.
+        The massage will be sent after all currently pending massages are sent"""
+        self._massages.append((data, *self.get_caller()))
+        self._send_all()
+
+    def _send(self, data: MassageData, file: str, line: int):
+        logger.debug(f"from {file}:{line}: sending {data}")
+        for listener in self._listeners[data.massage_type]:
+            listener(data)
+
+    def _send_all(self):
+        """send all scheduled messages in order"""
+        if self._sending:
+            # don't run this twice, so we not mess up te order
+            return
+
+        self._sending = True
+        try:
+            while self._massages:
+                self._send(*self._massages.popleft())
+        finally:
+            self._sending = False
+
+    def subscribe(
+        self, massage_type: MassageType, listener: Callable[[MassageData], None]
+    ):
+        """attach a listener to an event.
+        The listener can optionally return a callable which
+        will be called after all other listeners have been called"""
+        logger.debug("adding new EventListener: %s", listener)
+        self._listeners[massage_type].add(listener)
+        return self
+
+    def get_caller(self, position: int = 3) -> Tuple[str, int]:
+        """extract a file and line from current stack and format for logging"""
+        tb = traceback.extract_stack(limit=position)[0]
+        return os.path.basename(tb.filename), tb.lineno
+
+    def unsubscribe(self, listener: MassageListener) -> None:
+        for listeners in self._listeners.values():
+            try:
+                listeners.remove(listener)
+            except KeyError:
+                pass
