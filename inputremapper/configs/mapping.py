@@ -38,6 +38,7 @@ import pkg_resources
 from inputremapper.event_combination import EventCombination
 from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.exceptions import MacroParsingError
+from inputremapper.gui.data_bus import MassageType
 from inputremapper.injection.macros.parse import is_this_a_macro, parse
 from inputremapper.input_event import EventActions
 
@@ -60,6 +61,17 @@ class KnownUinput(str, enum.Enum):
 CombinationChangedCallback = Optional[
     Callable[[EventCombination, EventCombination], None]
 ]
+
+
+class Cfg:
+    validate_assignment = True
+    use_enum_values = True
+    underscore_attrs_are_private = True
+    json_encoders = {EventCombination: lambda v: v.json_str()}
+
+
+class ImmutableCfg(Cfg):
+    allow_mutation = False
 
 
 class Mapping(BaseModel):
@@ -290,12 +302,7 @@ class Mapping(BaseModel):
 
         return values
 
-    class Config:
-        validate_assignment = True
-        use_enum_values = True
-        underscore_attrs_are_private = True
-
-        json_encoders = {EventCombination: lambda v: v.json_str()}
+    Config = Cfg
 
 
 class UIMapping(Mapping):
@@ -394,6 +401,10 @@ class UIMapping(Mapping):
         """The validation error or None."""
         return self._last_error
 
+    def get_bus_massage(self) -> MappingData:
+        """return a immutable copy for use in the"""
+        return MappingData(**self.dict())
+
     def _validate(self) -> None:
         """Try to validate the mapping."""
         if self.is_valid():
@@ -418,3 +429,8 @@ class UIMapping(Mapping):
             self._cache["event_combination"] = EventCombination.validate(
                 self._cache["event_combination"]
             )
+
+
+class MappingData(UIMapping):
+    Config = ImmutableCfg
+    massage_type = MassageType.mapping  # allow this to be sent over the DataBus

@@ -26,6 +26,7 @@ from pydantic import ValidationError
 
 from inputremapper.configs.mapping import Mapping, UIMapping
 from inputremapper.configs.system_mapping import system_mapping
+from inputremapper.gui.data_bus import MassageType
 from inputremapper.input_event import EventActions
 from inputremapper.event_combination import EventCombination
 
@@ -338,7 +339,7 @@ class TestUIMapping(unittest.IsolatedAsyncioTestCase):
 
     def test_is_valid(self):
         """should be invalid at first
-         and become valid once all data is provided"""
+        and become valid once all data is provided"""
         m = UIMapping()
         self.assertFalse(m.is_valid())
 
@@ -353,10 +354,34 @@ class TestUIMapping(unittest.IsolatedAsyncioTestCase):
         self.assertIn("2 validation errors for UIMapping", str(m.get_error()))
         m.event_combination = "1,2,3"
         m.output_symbol = "a"
-        self.assertIn("1 validation error for UIMapping\ntarget_uinput", str(m.get_error()))
+        self.assertIn(
+            "1 validation error for UIMapping\ntarget_uinput", str(m.get_error())
+        )
         m.target_uinput = "keyboard"
         self.assertTrue(m.is_valid())
         self.assertIsNone(m.get_error())
+
+    def test_copy_returns_ui_mapping(self):
+        """copy should also be a UIMapping with all the invalid data"""
+        m = UIMapping()
+        m2 = m.copy()
+        self.assertIsInstance(m2, UIMapping)
+        self.assertEqual(m2.event_combination, EventCombination.empty_combination())
+        self.assertIsNone(m2.target_uinput)
+
+    def test_get_bus_massage(self):
+        m = UIMapping()
+        m2 = m.get_bus_massage()
+        self.assertEqual(m2.massage_type, MassageType.mapping)
+
+        with self.assertRaises(TypeError):
+            # the massage should be immutable
+            m2.output_symbol = "a"
+        self.assertIsNone(m2.output_symbol)
+
+        # the original should be not immutable
+        m.output_symbol = "a"
+        self.assertEqual(m.output_symbol, "a")
 
 
 if __name__ == "__main__":
