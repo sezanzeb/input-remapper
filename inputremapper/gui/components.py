@@ -93,7 +93,7 @@ class DeviceSelection:
     def on_gtk_select_device(self, *_, **__):
         group_key = self.gui.get_active_id()
         logger.debug('Selecting device "%s"', group_key)
-        self.controller.on_load_group(group_key)
+        self.controller.load_group(group_key)
 
 
 class TargetSelection:
@@ -141,7 +141,7 @@ class TargetSelection:
 
     def on_gtk_target_selected(self, *_):
         target = self.gui.get_active_id()
-        self.controller.on_update_mapping(target_uinput=target)
+        self.controller.update_mapping(target_uinput=target)
 
 
 class PresetSelection:
@@ -172,7 +172,7 @@ class PresetSelection:
     def on_gtk_select_preset(self, *_, **__):
         name = self.gui.get_active_id()
         logger.debug('Selecting preset "%s"', name)
-        self.controller.on_load_preset(name)
+        self.controller.load_preset(name)
 
 
 class MappingListBox:
@@ -219,7 +219,7 @@ class MappingListBox:
             self.gui.foreach(set_active)
 
     def on_gtk_mapping_selected(self, _, row: SelectionLabel):
-        self.controller.on_load_mapping(row.combination)
+        self.controller.load_mapping(row.combination)
 
 
 class SelectionLabel(Gtk.ListBoxRow):
@@ -355,11 +355,11 @@ class CodeEditor:
             self.code = SET_KEY_FIRST
 
     def on_gtk_focus_out(self, *_):
-        self.controller.on_save()
+        self.controller.save()
 
     def on_gtk_changed(self, *_):
         code = self.system_mapping.correct_case(self.code)
-        self.controller.on_update_mapping(output_symbol=code)
+        self.controller.update_mapping(output_symbol=code)
 
     def on_mapping_loaded(self, mapping: MappingData):
         code = ""

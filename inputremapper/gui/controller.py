@@ -83,13 +83,10 @@ class Controller:
         self.data_manager.backend.emit_groups()
         self.data_manager.emit_uinputs()
 
-    def copy_preset(self):
-        raise NotImplementedError
-
     def on_groups_changed(self, _):
         """load the newest group as soon as everyone got notified
         about the updated groups"""
-        self.on_load_group(self.get_a_group())
+        self.load_group(self.get_a_group())
 
     def on_preset_changed(self, data: PresetData):
         """load a mapping as soon as everyone got notified about the new preset"""
@@ -98,28 +95,31 @@ class Controller:
         mappings = list(data.mappings)
         mappings.sort(key=lambda t: t[0] or t[1].beautify())
         combination = mappings[0][1]
-        self.on_load_mapping(combination)
+        self.load_mapping(combination)
 
-    def on_load_groups(self):
+    def copy_preset(self):
+        raise NotImplementedError
+
+    def load_groups(self):
         self.data_manager.backend.refresh_groups()
 
-    def on_load_group(self, group_key: str):
+    def load_group(self, group_key: str):
         self.data_manager.load_group(group_key)
         self.data_manager.load_preset(self.get_a_preset())
 
-    def on_load_preset(self, name: str):
+    def load_preset(self, name: str):
         self.data_manager.load_preset(name)
 
-    def on_rename_preset(self, new_name: str):
+    def rename_preset(self, new_name: str):
         name = self.data_manager.get_available_preset_name(new_name)
         self.data_manager.rename_preset(name)
 
-    def on_add_preset(self, name: str = DEFAULT_PRESET_NAME):
+    def add_preset(self, name: str = DEFAULT_PRESET_NAME):
         name = self.data_manager.get_available_preset_name(name)
         self.data_manager.add_preset(name)
         self.data_manager.load_preset(name)
 
-    def on_delete_preset(self):
+    def delete_preset(self):
         accept = Gtk.ResponseType.ACCEPT
         msg = (
             _("Are you sure to delete preset %s?") % self.data_manager.get_preset_name()
@@ -129,17 +129,17 @@ class Controller:
         self.data_manager.delete_preset()
         self.data_manager.load_preset(self.get_a_preset())
 
-    def on_load_mapping(self, event_combination: EventCombination):
+    def load_mapping(self, event_combination: EventCombination):
         self.data_manager.load_mapping(event_combination)
 
-    def on_update_mapping(self, **kwargs):
+    def update_mapping(self, **kwargs):
         self.data_manager.update_mapping(**kwargs)
 
-    def on_create_mapping(self):
+    def create_mapping(self):
         self.data_manager.create_mapping()
         self.data_manager.load_mapping(combination=EventCombination.empty_combination())
 
-    def on_delete_mapping(self):
+    def delete_mapping(self):
         accept = Gtk.ResponseType.ACCEPT
         if (
             self.data_manager.get_mappings()
@@ -149,16 +149,16 @@ class Controller:
             return
         self.data_manager.delete_mapping()
 
-    def on_set_autoload(self, autoload: bool):
+    def set_autoload(self, autoload: bool):
         self.data_manager.set_autoload(autoload)
 
-    def on_get_uinputs(self):
+    def get_uinputs(self):
         self.data_manager.emit_uinputs()
 
-    def on_save(self):
+    def save(self):
         self.data_manager.save()
 
-    def on_start_injecting(self):
+    def start_injecting(self):
         if len(self.data_manager.active_preset) == 0:
             logger.error(_("Cannot apply empty preset file"))
             # also helpful for first time use
@@ -188,7 +188,7 @@ class Controller:
             )
             pass
 
-    def on_stop_injecting(self):
+    def stop_injecting(self):
         self.data_manager.stop_injecting()
         self.show_status(CTX_APPLY, _("Applied the system default"))
 

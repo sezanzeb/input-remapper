@@ -259,7 +259,7 @@ class TestController(unittest.TestCase):
         controller = Controller(data_bus, data_manager)
         controller.set_gui(user_interface)
         data_manager.load_preset = f
-        self.assertRaises(TestError, controller.on_load_group, group_key="Foo Device")
+        self.assertRaises(TestError, controller.load_group, group_key="Foo Device")
 
     def test_on_load_group_should_provide_mapping(self):
         """if there is one"""
@@ -273,7 +273,7 @@ class TestController(unittest.TestCase):
             calls.append(data)
 
         data_bus.subscribe(MessageType.mapping, f)
-        controller.on_load_group(group_key="Foo Device 2")
+        controller.load_group(group_key="Foo Device 2")
         self.assertTrue(calls[-1].is_valid())
 
     def test_on_load_group_should_provide_default_mapping(self):
@@ -288,7 +288,7 @@ class TestController(unittest.TestCase):
 
         data_bus.subscribe(MessageType.mapping, f)
 
-        controller.on_load_group(group_key="Foo Device")
+        controller.load_group(group_key="Foo Device")
         for m in calls:
             self.assertEqual(m, UIMapping())
 
@@ -305,7 +305,7 @@ class TestController(unittest.TestCase):
             calls.append(data)
 
         data_bus.subscribe(MessageType.mapping, f)
-        controller.on_load_preset(name="preset2")
+        controller.load_preset(name="preset2")
         self.assertTrue(calls[-1].is_valid())
 
     def test_on_load_preset_should_provide_default_mapping(self):
@@ -321,7 +321,7 @@ class TestController(unittest.TestCase):
             calls.append(data)
 
         data_bus.subscribe(MessageType.mapping, f)
-        controller.on_load_preset(name="bar")
+        controller.load_preset(name="bar")
         for m in calls:
             self.assertEqual(m, UIMapping())
 
@@ -337,7 +337,7 @@ class TestController(unittest.TestCase):
         user_interface.confirm_delete = f
 
         data_bus.signal(MessageType.init)
-        self.assertRaises(TestError, controller.on_delete_preset)
+        self.assertRaises(TestError, controller.delete_preset)
 
     def test_deletes_preset_when_confirmed(self):
         prepare_presets()
@@ -351,7 +351,7 @@ class TestController(unittest.TestCase):
         user_interface.confirm_delete_ret = Gtk.ResponseType.ACCEPT
 
         path = get_preset_path("Foo Device 2", "preset2")
-        controller.on_delete_preset()
+        controller.delete_preset()
         self.assertFalse(os.path.exists(get_preset_path("Foo Device 2", "preset2")))
 
     def test_does_not_delete_preset_when_not_confirmed(self):
@@ -366,7 +366,7 @@ class TestController(unittest.TestCase):
         user_interface.confirm_delete_ret = Gtk.ResponseType.CANCEL
 
         path = get_preset_path("Foo Device 2", "preset2")
-        controller.on_delete_preset()
+        controller.delete_preset()
         self.assertTrue(os.path.isfile(get_preset_path("Foo Device 2", "preset2")))
 
     def test_rename_preset(self):
@@ -379,7 +379,7 @@ class TestController(unittest.TestCase):
         controller.set_gui(user_interface)
         data_manager.load_group("Foo Device 2")
         data_manager.load_preset("preset2")
-        controller.on_rename_preset(new_name="foo")
+        controller.rename_preset(new_name="foo")
 
         self.assertFalse(os.path.exists(get_preset_path("Foo Device 2", "preset2")))
         self.assertTrue(os.path.exists(get_preset_path("Foo Device 2", "foo")))
@@ -395,7 +395,7 @@ class TestController(unittest.TestCase):
         controller.set_gui(user_interface)
         data_manager.load_group("Foo Device 2")
         data_manager.load_preset("preset2")
-        controller.on_rename_preset(new_name="preset3")
+        controller.rename_preset(new_name="preset3")
 
         self.assertFalse(os.path.exists(get_preset_path("Foo Device 2", "preset2")))
         self.assertTrue(os.path.exists(get_preset_path("Foo Device 2", "preset3")))
@@ -411,7 +411,7 @@ class TestController(unittest.TestCase):
         controller.set_gui(user_interface)
         data_manager.load_group("Foo Device 2")
 
-        controller.on_add_preset()
+        controller.add_preset()
         self.assertTrue(os.path.exists(get_preset_path("Foo Device 2", "new preset")))
 
     def test_on_add_preset_uses_provided_name(self):
@@ -422,7 +422,7 @@ class TestController(unittest.TestCase):
         controller.set_gui(user_interface)
         data_manager.load_group("Foo Device 2")
 
-        controller.on_add_preset(name="foo")
+        controller.add_preset(name="foo")
         self.assertTrue(os.path.exists(get_preset_path("Foo Device 2", "foo")))
 
     def test_on_update_mapping(self):
@@ -444,7 +444,7 @@ class TestController(unittest.TestCase):
         data_manager.update_mapping = f
         self.assertRaises(
             TestError,
-            controller.on_update_mapping,
+            controller.update_mapping,
             name="foo",
             output_symbol="f",
             release_timeout=0.3,
@@ -465,7 +465,7 @@ class TestController(unittest.TestCase):
             calls.append(data)
 
         data_bus.subscribe(MessageType.mapping, f)
-        controller.on_create_mapping()
+        controller.create_mapping()
 
         self.assertEqual(calls[-1], UIMapping())
 
@@ -481,7 +481,7 @@ class TestController(unittest.TestCase):
         user_interface.confirm_delete = f
 
         data_bus.signal(MessageType.init)
-        self.assertRaises(TestError, controller.on_delete_mapping)
+        self.assertRaises(TestError, controller.delete_mapping)
 
     def test_deletes_mapping_when_confirmed(self):
         prepare_presets()
@@ -495,8 +495,8 @@ class TestController(unittest.TestCase):
         data_manager.load_mapping(EventCombination("1,3,1"))
         user_interface.confirm_delete_ret = Gtk.ResponseType.ACCEPT
 
-        controller.on_delete_mapping()
-        controller.on_save()
+        controller.delete_mapping()
+        controller.save()
 
         preset = Preset(get_preset_path("Foo Device 2", "preset2"))
         preset.load()
@@ -514,8 +514,8 @@ class TestController(unittest.TestCase):
         data_manager.load_mapping(EventCombination("1,3,1"))
         user_interface.confirm_delete_ret = Gtk.ResponseType.CANCEL
 
-        controller.on_delete_mapping()
-        controller.on_save()
+        controller.delete_mapping()
+        controller.save()
 
         preset = Preset(get_preset_path("Foo Device 2", "preset2"))
         preset.load()

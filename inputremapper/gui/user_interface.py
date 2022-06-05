@@ -246,19 +246,19 @@ class UserInterface:
 
     def connect_buttons(self):
         self.get("delete_preset").connect(
-            "clicked", lambda *_: self.controller.on_delete_preset()
+            "clicked", lambda *_: self.controller.delete_preset()
         )
         self.get("copy_preset").connect(
             "clicked", lambda *_: self.controller.copy_preset()
         )
         self.get("create_preset").connect(
-            "clicked", lambda *_: self.controller.on_add_preset()
+            "clicked", lambda *_: self.controller.add_preset()
         )
         self.get("apply_preset").connect(
-            "clicked", lambda *_: self.controller.on_start_injecting()
+            "clicked", lambda *_: self.controller.start_injecting()
         )
         self.get("apply_system_layout").connect(
-            "clicked", lambda *_: self.controller.on_stop_injecting()
+            "clicked", lambda *_: self.controller.stop_injecting()
         )
 
     def setup_timeouts(self):
