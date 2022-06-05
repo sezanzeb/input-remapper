@@ -39,7 +39,6 @@ from inputremapper.gui.controller import Controller
 from inputremapper.gui.data_bus import DataBus
 
 from inputremapper.gui.editor.autocompletion import Autocompletion
-from inputremapper.gui.event_handler import EventHandler, EventEnum
 from inputremapper.gui.gettext import _
 
 from evdev.ecodes import EV_KEY

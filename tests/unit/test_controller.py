@@ -19,7 +19,6 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 import json
 import os.path
-import traceback
 import unittest
 from typing import Tuple, List, Any
 

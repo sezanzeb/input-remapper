@@ -31,7 +31,6 @@ from inputremapper.event_combination import EventCombination
 from inputremapper.exceptions import DataManagementError
 from inputremapper.gui.backend import Backend
 from inputremapper.gui.data_bus import DataBus, GroupData, PresetData
-from inputremapper.gui.event_handler import EventHandler, EventEnum
 from inputremapper.logger import logger
 
 DEFAULT_PRESET_NAME = "new preset"

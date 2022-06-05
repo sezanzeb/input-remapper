@@ -612,7 +612,6 @@ from inputremapper.groups import groups, _Groups
 from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.gui.active_preset import active_preset
 from inputremapper.gui.backend import Backend
-from inputremapper.gui.event_handler import EventHandler
 from inputremapper.gui.data_bus import DataBus
 from inputremapper.gui.reader import Reader
 from inputremapper.configs.paths import get_config_path
