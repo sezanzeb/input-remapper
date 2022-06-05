@@ -40,15 +40,16 @@ if TYPE_CHECKING:
 class Controller:
     """implements the behaviour of the gui"""
 
-    def __init__(
-        self, data_bus: DataBus, data_manager: DataManager, gui: UserInterface
-    ):
+    def __init__(self, data_bus: DataBus, data_manager: DataManager):
         self.data_bus = data_bus
         self.data_manager = data_manager
-        self.gui = gui
+        self.gui = None
 
         self.button_left_warn = False
         self.attach_to_events()
+
+    def set_gui(self, gui: UserInterface):
+        self.gui = gui
 
     def attach_to_events(self) -> None:
         self.data_bus.subscribe(MessageType.groups, self.on_groups_changed)
@@ -81,6 +82,9 @@ class Controller:
         # initial groups
         self.data_manager.backend.emit_groups()
         self.data_manager.emit_uinputs()
+
+    def copy_preset(self):
+        raise NotImplementedError
 
     def on_groups_changed(self, _):
         """load the newest group as soon as everyone got notified

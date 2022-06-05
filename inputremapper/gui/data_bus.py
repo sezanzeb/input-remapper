@@ -91,7 +91,7 @@ class DataBus:
 
     def subscribe(self, massage_type: MessageType, listener: MessageListener):
         """attach a listener to an event"""
-        logger.debug("adding new EventListener: %s", listener)
+        logger.debug("adding new Listener: %s", listener)
         self._listeners[massage_type].add(listener)
         return self
 

@@ -54,6 +54,7 @@ if __name__ == '__main__':
         os.kill(os.getpid(), signal.SIGKILL)
 
     atexit.register(on_exit)
-
-    helper = RootHelper(_Groups())
+    groups = _Groups()
+    groups.refresh()
+    helper = RootHelper(groups)
     helper.run()

@@ -4,6 +4,7 @@ from typing import List, Tuple, Optional, Dict, Any
 
 from gi.repository import Gtk, GtkSource, Gdk, GLib, GObject
 
+from inputremapper.configs.mapping import MappingData
 from inputremapper.configs.system_mapping import SystemMapping
 from inputremapper.event_combination import EventCombination
 from inputremapper.groups import (
@@ -14,10 +15,17 @@ from inputremapper.groups import (
     TOUCHPAD,
     MOUSE,
 )
+from inputremapper.gui.controller import Controller
 from inputremapper.gui.gettext import _
-from inputremapper.gui.event_handler import EventHandler, EventEnum
+from inputremapper.gui.data_bus import (
+    DataBus,
+    MessageType,
+    GroupsData,
+    GroupData,
+    UInputsData,
+    PresetData,
+)
 from inputremapper.gui.utils import HandlerDisabled
-from inputremapper.injection.global_uinputs import FrontendUInput
 from inputremapper.logger import logger
 
 
@@ -39,8 +47,11 @@ ICON_PRIORITIES = [GRAPHICS_TABLET, TOUCHPAD, GAMEPAD, MOUSE, KEYBOARD, UNKNOWN]
 
 
 class DeviceSelection:
-    def __init__(self, event_handler: EventHandler, combobox: Gtk.ComboBox):
-        self.event_handler = event_handler
+    def __init__(
+        self, data_bus: DataBus, controller: Controller, combobox: Gtk.ComboBox
+    ):
+        self.data_bus = data_bus
+        self.controller = controller
         self.device_store = Gtk.ListStore(str, str, str)
         self.gui = combobox
 
@@ -59,13 +70,13 @@ class DeviceSelection:
         combobox.connect("changed", self.on_gtk_select_device)
 
     def attach_to_events(self):
-        self.event_handler.subscribe(EventEnum.groups_changed, self.on_groups_changed)
-        self.event_handler.subscribe(EventEnum.group_changed, self.on_group_changed)
+        self.data_bus.subscribe(MessageType.groups, self.on_groups_changed)
+        self.data_bus.subscribe(MessageType.group, self.on_group_changed)
 
-    def on_groups_changed(self, groups: List[Tuple[str, List[str]]]):
+    def on_groups_changed(self, data: GroupsData):
         with HandlerDisabled(self.gui, self.on_gtk_select_device):
             self.device_store.clear()
-            for group_key, types in groups:
+            for group_key, types in data.groups.items():
                 if len(types) > 0:
                     device_type = sorted(types, key=ICON_PRIORITIES.index)[0]
                     icon_name = ICON_NAMES[device_type]
@@ -75,33 +86,34 @@ class DeviceSelection:
                 logger.debug(f"adding {group_key} to device dropdown ")
                 self.device_store.append([group_key, icon_name, group_key])
 
-    def on_group_changed(self, group_key: str, **_):
+    def on_group_changed(self, data: GroupData):
         with HandlerDisabled(self.gui, self.on_gtk_select_device):
-            self.gui.set_active_id(group_key)
+            self.gui.set_active_id(data.group_key)
 
     def on_gtk_select_device(self, *_, **__):
         group_key = self.gui.get_active_id()
         logger.debug('Selecting device "%s"', group_key)
-        self.event_handler.emit(EventEnum.load_group, group_key=group_key)
+        self.controller.on_load_group(group_key)
 
 
 class TargetSelection:
-    def __init__(self, event_handler: EventHandler, combobox: Gtk.ComboBox):
-        self.event_handler = event_handler
+    def __init__(
+        self, data_bus: DataBus, controller: Controller, combobox: Gtk.ComboBox
+    ):
+        self.data_bus = data_bus
+        self.controller = controller
         self.gui = combobox
 
         self.attach_to_events()
         self.gui.connect("changed", self.on_gtk_target_selected)
 
     def attach_to_events(self):
-        self.event_handler.subscribe(EventEnum.uinputs_changed, self.on_uinputs_changed)
-        self.event_handler.subscribe(EventEnum.mapping_loaded, self.on_mapping_loaded)
-        self.event_handler.subscribe(EventEnum.mapping_changed, self.on_mapping_changed)
+        self.data_bus.subscribe(MessageType.uinputs, self.on_uinputs_changed)
+        self.data_bus.subscribe(MessageType.mapping, self.on_mapping_loaded)
 
-    def on_uinputs_changed(self, uinputs: Dict[str, Capabilities]):
-        logger.error("got uinputs")
+    def on_uinputs_changed(self, data: UInputsData):
         target_store = Gtk.ListStore(str)
-        for uinput in uinputs.keys():
+        for uinput in data.uinputs.keys():
             target_store.append([uinput])
 
         self.gui.set_model(target_store)
@@ -110,22 +122,14 @@ class TargetSelection:
         self.gui.add_attribute(renderer_text, "text", 0)
         self.gui.set_id_column(0)
 
-    def on_mapping_loaded(self, mapping: Dict[str, Any]):
-        if mapping:
-            target = mapping["target_uinput"]
+    def on_mapping_loaded(self, mapping: MappingData):
+        if not mapping.is_default():
             self.enable()
         else:
-            target = "keyboard"
             self.disable()
 
         with HandlerDisabled(self.gui, self.on_gtk_target_selected):
-            self.gui.set_active_id(target)
-
-    def on_mapping_changed(self, target_uinput=None, **_):
-        if not target_uinput:
-            return
-        with HandlerDisabled(self.gui, self.on_gtk_target_selected):
-            self.gui.set_active_id(target_uinput)
+            self.gui.set_active_id(mapping.target_uinput or "keyboard")
 
     def enable(self):
         self.gui.set_sensitive(True)
@@ -137,40 +141,44 @@ class TargetSelection:
 
     def on_gtk_target_selected(self, *_):
         target = self.gui.get_active_id()
-        self.event_handler.emit(EventEnum.update_mapping, target_uinput=target)
+        self.controller.on_update_mapping(target_uinput=target)
 
 
 class PresetSelection:
-    def __init__(self, event_handler: EventHandler, combobox: Gtk.ComboBoxText):
-        self.event_handler = event_handler
+    def __init__(
+        self, data_bus: DataBus, controller: Controller, combobox: Gtk.ComboBoxText
+    ):
+        self.data_bus = data_bus
+        self.controller = controller
         self.gui = combobox
 
         self.attach_to_events()
         combobox.connect("changed", self.on_gtk_select_preset)
 
     def attach_to_events(self):
-        self.event_handler.subscribe(EventEnum.group_changed, self.on_group_changed)
-        self.event_handler.subscribe(EventEnum.preset_changed, self.on_preset_changed)
+        self.data_bus.subscribe(MessageType.group, self.on_group_changed)
+        self.data_bus.subscribe(MessageType.preset, self.on_preset_changed)
 
-    def on_group_changed(self, group_key: str, presets: List[str]):
+    def on_group_changed(self, data: GroupData):
         with HandlerDisabled(self.gui, self.on_gtk_select_preset):
             self.gui.remove_all()
-            for preset in presets:
+            for preset in data.presets:
                 self.gui.append(preset, preset)
 
-    def on_preset_changed(self, name, **_):
+    def on_preset_changed(self, data: PresetData):
         with HandlerDisabled(self.gui, self.on_gtk_select_preset):
-            self.gui.set_active_id(name)
+            self.gui.set_active_id(data.name)
 
     def on_gtk_select_preset(self, *_, **__):
         name = self.gui.get_active_id()
         logger.debug('Selecting preset "%s"', name)
-        self.event_handler.emit(EventEnum.load_preset, name=name)
+        self.controller.on_load_preset(name)
 
 
 class MappingListBox:
-    def __init__(self, event_handler: EventHandler, listbox: Gtk.ListBox):
-        self.event_handler = event_handler
+    def __init__(self, data_bus: DataBus, controller: Controller, listbox: Gtk.ListBox):
+        self.data_bus = data_bus
+        self.controller = controller
         self.gui = listbox
         self.gui.set_sort_func(self.sort_func)
         self.gui.connect("row-selected", self.on_gtk_mapping_selected)
@@ -182,26 +190,27 @@ class MappingListBox:
         return 0 if row1.name < row2.name else 1
 
     def attach_to_events(self):
-        self.event_handler.subscribe(EventEnum.preset_changed, self.on_preset_changed)
+        self.data_bus.subscribe(MessageType.preset, self.on_preset_changed)
+        self.data_bus.subscribe(MessageType.mapping, self.on_mapping_loaded)
 
-    def on_preset_changed(
-        self, *, mappings: Optional[List[Tuple[str, EventCombination]]], **_
-    ):
+    def on_preset_changed(self, data: PresetData):
         self.gui.forall(self.gui.remove)
-        if not mappings:
+        if not data.mappings:
             return
 
-        for name, combination in mappings:
-            selection_label = SelectionLabel(self.event_handler, name, combination)
+        for name, combination in data.mappings:
+            selection_label = SelectionLabel(
+                self.data_bus, self.controller, name, combination
+            )
             self.gui.insert(selection_label, -1)
 
-    def on_mapping_loaded(self, mapping: Dict):
+    def on_mapping_loaded(self, mapping: MappingData):
         with HandlerDisabled(self.gui, self.on_gtk_mapping_selected):
-            if not mapping:
-                self.gui.do_unselect_all()
+            if mapping.is_default():
+                self.gui.do_unselect_all(self.gui)
                 return
 
-            combination = mapping["combination"]
+            combination = mapping.event_combination
 
             def set_active(row: SelectionLabel):
                 if row.combination == combination:
@@ -210,9 +219,7 @@ class MappingListBox:
             self.gui.foreach(set_active)
 
     def on_gtk_mapping_selected(self, _, row: SelectionLabel):
-        self.event_handler.emit(
-            EventEnum.load_mapping, event_combination=row.combination
-        )
+        self.controller.on_load_mapping(row.combination)
 
 
 class SelectionLabel(Gtk.ListBoxRow):
@@ -221,12 +228,14 @@ class SelectionLabel(Gtk.ListBoxRow):
 
     def __init__(
         self,
-        event_handler: EventHandler,
+        data_bus: DataBus,
+        controller: Controller,
         name: Optional[str],
         combination: EventCombination,
     ):
         super().__init__()
-        self.event_handler = event_handler
+        self.data_bus = data_bus
+        self.controller = controller
         self.combination = combination
         self._name = name
 
@@ -251,24 +260,25 @@ class SelectionLabel(Gtk.ListBoxRow):
         return self._name or self.combination.beautify()
 
     def attach_to_events(self):
-        self.event_handler.subscribe(EventEnum.mapping_changed, self.on_mapping_changed)
+        self.data_bus.subscribe(MessageType.mapping, self.on_mapping_changed)
 
-    def on_mapping_changed(self, mapping: Dict):
+    def on_mapping_changed(self, mapping: MappingData):
         if not self.is_selected():
             return
-
-        self._name = mapping["name"]
-        self.combination = mapping["event_combination"]
+        self._name = mapping.name
+        self.combination = mapping.event_combination
 
 
 class CodeEditor:
     def __init__(
         self,
-        event_handler: EventHandler,
+        data_bus: DataBus,
+        controller: Controller,
         system_mapping: SystemMapping,
         editor: GtkSource.View,
     ):
-        self.evnet_handler = event_handler
+        self.data_bus = data_bus
+        self.controller = controller
         self.system_mapping = system_mapping
         self.gui = editor
 
@@ -310,8 +320,7 @@ class CodeEditor:
             self.gui.do_move_cursor(self.gui, Gtk.MovementStep.BUFFER_ENDS, -1, False)
 
     def attach_to_events(self):
-        self.evnet_handler.subscribe(EventEnum.mapping_loaded, self.on_mapping_loaded)
-        self.evnet_handler.subscribe(EventEnum.mapping_changed, self.on_mapping_changed)
+        self.data_bus.subscribe(MessageType.mapping, self.on_mapping_loaded)
 
     def toggle_line_numbers(self):
         """Show line numbers if multiline, otherwise remove them"""
@@ -346,25 +355,22 @@ class CodeEditor:
             self.code = SET_KEY_FIRST
 
     def on_gtk_focus_out(self, *_):
-        self.evnet_handler.emit(EventEnum.save)
+        self.controller.on_save()
 
     def on_gtk_changed(self, *_):
         code = self.system_mapping.correct_case(self.code)
-        self.evnet_handler.emit(EventEnum.update_mapping, output_symbol=code)
+        self.controller.on_update_mapping(output_symbol=code)
 
-    def on_mapping_loaded(self, mapping=None):
+    def on_mapping_loaded(self, mapping: MappingData):
         code = ""
-        if mapping and mapping["output_symbol"]:
-            code = mapping["output_symbol"]
-        self.code = code
-        if mapping:
+        if not mapping.is_default():
+            code = mapping.output_symbol
             self.enable()
         else:
             self.disable()
-        self.toggle_line_numbers()
 
-    def on_mapping_changed(self, mapping):
-        self.on_mapping_loaded(mapping)
+        self.code = code
+        self.toggle_line_numbers()
 
 
 class RecordingToggle:

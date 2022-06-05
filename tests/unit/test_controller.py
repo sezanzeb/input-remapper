@@ -118,7 +118,8 @@ class TestController(unittest.TestCase):
             return "foo"
 
         data_bus, data_manager, user_interface = get_controller_objects()
-        controller = Controller(data_bus, data_manager, user_interface)
+        controller = Controller(data_bus, data_manager)
+        controller.set_gui(user_interface)
         data_manager.newest_group = f
 
         self.assertEqual(controller.get_a_group(), "foo")
@@ -130,7 +131,8 @@ class TestController(unittest.TestCase):
             raise FileNotFoundError()
 
         data_bus, data_manager, user_interface = get_controller_objects()
-        controller = Controller(data_bus, data_manager, user_interface)
+        controller = Controller(data_bus, data_manager)
+        controller.set_gui(user_interface)
         data_manager.newest_group = f
 
         fixture_keys = [
@@ -146,7 +148,8 @@ class TestController(unittest.TestCase):
             return "bar"
 
         data_bus, data_manager, user_interface = get_controller_objects()
-        controller = Controller(data_bus, data_manager, user_interface)
+        controller = Controller(data_bus, data_manager)
+        controller.set_gui(user_interface)
         data_manager.newest_preset = f
         data_manager.load_group("Foo Device")
 
@@ -156,14 +159,16 @@ class TestController(unittest.TestCase):
         """get_a_preset should return a new preset if none exist"""
 
         data_bus, data_manager, user_interface = get_controller_objects()
-        controller = Controller(data_bus, data_manager, user_interface)
+        controller = Controller(data_bus, data_manager)
+        controller.set_gui(user_interface)
         data_manager.load_group("Foo Device")
 
         self.assertEqual(controller.get_a_preset(), "new preset")  # the default name
 
     def test_on_init_should_provide_uinputs(self):
         data_bus, data_manager, user_interface = get_controller_objects()
-        controller = Controller(data_bus, data_manager, user_interface)
+        controller = Controller(data_bus, data_manager)
+        controller.set_gui(user_interface)
         calls: List[UInputsData] = []
 
         def f(data):
@@ -177,7 +182,8 @@ class TestController(unittest.TestCase):
 
     def test_on_init_should_provide_groups(self):
         data_bus, data_manager, user_interface = get_controller_objects()
-        controller = Controller(data_bus, data_manager, user_interface)
+        controller = Controller(data_bus, data_manager)
+        controller.set_gui(user_interface)
         calls: List[GroupsData] = []
 
         def f(groups):
@@ -192,7 +198,8 @@ class TestController(unittest.TestCase):
 
     def test_on_init_should_provide_a_group(self):
         data_bus, data_manager, user_interface = get_controller_objects()
-        controller = Controller(data_bus, data_manager, user_interface)
+        controller = Controller(data_bus, data_manager)
+        controller.set_gui(user_interface)
         calls: List[GroupData] = []
 
         def f(data):
@@ -204,7 +211,8 @@ class TestController(unittest.TestCase):
 
     def test_on_init_should_provide_a_preset(self):
         data_bus, data_manager, user_interface = get_controller_objects()
-        controller = Controller(data_bus, data_manager, user_interface)
+        controller = Controller(data_bus, data_manager)
+        controller.set_gui(user_interface)
         calls: List[PresetData] = []
 
         def f(data):
@@ -218,7 +226,8 @@ class TestController(unittest.TestCase):
         """only if there is one"""
         prepare_presets()
         data_bus, data_manager, user_interface = get_controller_objects()
-        controller = Controller(data_bus, data_manager, user_interface)
+        controller = Controller(data_bus, data_manager)
+        controller.set_gui(user_interface)
         calls: List[MappingData] = []
 
         def f(data):
@@ -231,7 +240,8 @@ class TestController(unittest.TestCase):
     def test_on_init_should_provide_a_default_mapping(self):
         """if there is no real preset available"""
         data_bus, data_manager, user_interface = get_controller_objects()
-        controller = Controller(data_bus, data_manager, user_interface)
+        controller = Controller(data_bus, data_manager)
+        controller.set_gui(user_interface)
         calls: List[MappingData] = []
 
         def f(data):
@@ -247,7 +257,8 @@ class TestController(unittest.TestCase):
             raise TestError()
 
         data_bus, data_manager, user_interface = get_controller_objects()
-        controller = Controller(data_bus, data_manager, user_interface)
+        controller = Controller(data_bus, data_manager)
+        controller.set_gui(user_interface)
         data_manager.load_preset = f
         self.assertRaises(TestError, controller.on_load_group, group_key="Foo Device")
 
@@ -255,7 +266,8 @@ class TestController(unittest.TestCase):
         """if there is one"""
         prepare_presets()
         data_bus, data_manager, user_interface = get_controller_objects()
-        controller = Controller(data_bus, data_manager, user_interface)
+        controller = Controller(data_bus, data_manager)
+        controller.set_gui(user_interface)
         calls: List[MappingData] = []
 
         def f(data):
@@ -268,7 +280,8 @@ class TestController(unittest.TestCase):
     def test_on_load_group_should_provide_default_mapping(self):
         """if there is none"""
         data_bus, data_manager, user_interface = get_controller_objects()
-        controller = Controller(data_bus, data_manager, user_interface)
+        controller = Controller(data_bus, data_manager)
+        controller.set_gui(user_interface)
         calls: List[MappingData] = []
 
         def f(data):
@@ -284,7 +297,8 @@ class TestController(unittest.TestCase):
         """if there is one"""
         prepare_presets()
         data_bus, data_manager, user_interface = get_controller_objects()
-        controller = Controller(data_bus, data_manager, user_interface)
+        controller = Controller(data_bus, data_manager)
+        controller.set_gui(user_interface)
         data_manager.load_group("Foo Device 2")
         calls: List[MappingData] = []
 
@@ -299,7 +313,8 @@ class TestController(unittest.TestCase):
         """if there is none"""
         Preset(get_preset_path("Foo Device 2", "bar")).save()
         data_bus, data_manager, user_interface = get_controller_objects()
-        controller = Controller(data_bus, data_manager, user_interface)
+        controller = Controller(data_bus, data_manager)
+        controller.set_gui(user_interface)
         data_manager.load_group("Foo Device 2")
         calls: List[MappingData] = []
 
@@ -314,7 +329,8 @@ class TestController(unittest.TestCase):
     def test_on_delete_preset_asks_for_confirmation(self):
         prepare_presets()
         data_bus, data_manager, user_interface = get_controller_objects()
-        controller = Controller(data_bus, data_manager, user_interface)
+        controller = Controller(data_bus, data_manager)
+        controller.set_gui(user_interface)
 
         def f(*_):
             raise TestError()
@@ -328,7 +344,8 @@ class TestController(unittest.TestCase):
         prepare_presets()
         self.assertTrue(os.path.isfile(get_preset_path("Foo Device 2", "preset2")))
         data_bus, data_manager, user_interface = get_controller_objects()
-        controller = Controller(data_bus, data_manager, user_interface)
+        controller = Controller(data_bus, data_manager)
+        controller.set_gui(user_interface)
 
         data_manager.load_group("Foo Device 2")
         data_manager.load_preset("preset2")
@@ -342,7 +359,8 @@ class TestController(unittest.TestCase):
         prepare_presets()
         self.assertTrue(os.path.isfile(get_preset_path("Foo Device 2", "preset2")))
         data_bus, data_manager, user_interface = get_controller_objects()
-        controller = Controller(data_bus, data_manager, user_interface)
+        controller = Controller(data_bus, data_manager)
+        controller.set_gui(user_interface)
 
         data_manager.load_group("Foo Device 2")
         data_manager.load_preset("preset2")
@@ -358,7 +376,8 @@ class TestController(unittest.TestCase):
         self.assertFalse(os.path.exists(get_preset_path("Foo Device 2", "foo")))
 
         data_bus, data_manager, user_interface = get_controller_objects()
-        controller = Controller(data_bus, data_manager, user_interface)
+        controller = Controller(data_bus, data_manager)
+        controller.set_gui(user_interface)
         data_manager.load_group("Foo Device 2")
         data_manager.load_preset("preset2")
         controller.on_rename_preset(new_name="foo")
@@ -373,7 +392,8 @@ class TestController(unittest.TestCase):
         self.assertFalse(os.path.exists(get_preset_path("Foo Device 2", "preset3 2")))
 
         data_bus, data_manager, user_interface = get_controller_objects()
-        controller = Controller(data_bus, data_manager, user_interface)
+        controller = Controller(data_bus, data_manager)
+        controller.set_gui(user_interface)
         data_manager.load_group("Foo Device 2")
         data_manager.load_preset("preset2")
         controller.on_rename_preset(new_name="preset3")
@@ -388,7 +408,8 @@ class TestController(unittest.TestCase):
         )
 
         data_bus, data_manager, user_interface = get_controller_objects()
-        controller = Controller(data_bus, data_manager, user_interface)
+        controller = Controller(data_bus, data_manager)
+        controller.set_gui(user_interface)
         data_manager.load_group("Foo Device 2")
 
         controller.on_add_preset()
@@ -398,7 +419,8 @@ class TestController(unittest.TestCase):
         self.assertFalse(os.path.exists(get_preset_path("Foo Device 2", "foo")))
 
         data_bus, data_manager, user_interface = get_controller_objects()
-        controller = Controller(data_bus, data_manager, user_interface)
+        controller = Controller(data_bus, data_manager)
+        controller.set_gui(user_interface)
         data_manager.load_group("Foo Device 2")
 
         controller.on_add_preset(name="foo")
@@ -410,7 +432,8 @@ class TestController(unittest.TestCase):
         """
         prepare_presets()
         data_bus, data_manager, user_interface = get_controller_objects()
-        controller = Controller(data_bus, data_manager, user_interface)
+        controller = Controller(data_bus, data_manager)
+        controller.set_gui(user_interface)
 
         data_manager.load_group("Foo Device 2")
         data_manager.load_preset("preset2")
@@ -431,7 +454,8 @@ class TestController(unittest.TestCase):
     def test_create_mapping_will_load_the_created_mapping(self):
         prepare_presets()
         data_bus, data_manager, user_interface = get_controller_objects()
-        controller = Controller(data_bus, data_manager, user_interface)
+        controller = Controller(data_bus, data_manager)
+        controller.set_gui(user_interface)
 
         data_manager.load_group("Foo Device 2")
         data_manager.load_preset("preset2")
@@ -449,7 +473,8 @@ class TestController(unittest.TestCase):
     def test_delete_mapping_asks_for_confirmation(self):
         prepare_presets()
         data_bus, data_manager, user_interface = get_controller_objects()
-        controller = Controller(data_bus, data_manager, user_interface)
+        controller = Controller(data_bus, data_manager)
+        controller.set_gui(user_interface)
 
         def f(*_):
             raise TestError()
@@ -463,7 +488,8 @@ class TestController(unittest.TestCase):
         prepare_presets()
         self.assertTrue(os.path.isfile(get_preset_path("Foo Device 2", "preset2")))
         data_bus, data_manager, user_interface = get_controller_objects()
-        controller = Controller(data_bus, data_manager, user_interface)
+        controller = Controller(data_bus, data_manager)
+        controller.set_gui(user_interface)
 
         data_manager.load_group("Foo Device 2")
         data_manager.load_preset("preset2")
@@ -481,7 +507,8 @@ class TestController(unittest.TestCase):
         prepare_presets()
         self.assertTrue(os.path.isfile(get_preset_path("Foo Device 2", "preset2")))
         data_bus, data_manager, user_interface = get_controller_objects()
-        controller = Controller(data_bus, data_manager, user_interface)
+        controller = Controller(data_bus, data_manager)
+        controller.set_gui(user_interface)
 
         data_manager.load_group("Foo Device 2")
         data_manager.load_preset("preset2")

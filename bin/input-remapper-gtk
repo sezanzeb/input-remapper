@@ -28,6 +28,7 @@ import logging
 from argparse import ArgumentParser
 
 from inputremapper.gui.backend import Backend
+from inputremapper.gui.data_bus import DataBus, MessageType
 from inputremapper.gui.gettext import _, LOCALE_DIR
 
 import gi
@@ -77,7 +78,6 @@ if __name__ == '__main__':
     # import input-remapper stuff after setting the log verbosity
 
     from inputremapper.gui.data_manager import DataManager
-    from inputremapper.gui.event_handler import EventHandler, EventEnum
     from inputremapper.gui.user_interface import UserInterface
     from inputremapper.gui.controller import Controller
     from inputremapper.injection.global_uinputs import GlobalUInputs
@@ -90,14 +90,15 @@ if __name__ == '__main__':
     migrate()
 
     daemon = start_processes()
-    event_handler = EventHandler()
-    reader = Reader(event_handler, _Groups())
-    backed = Backend(event_handler, reader, daemon, GlobalUInputs())
-    data_mangager = DataManager(event_handler, GlobalConfig(), backed)
-    user_interface = UserInterface(event_handler, reader, daemon)
-    controller = Controller(event_handler, data_mangager, user_interface)
+    data_bus = DataBus()
+    reader = Reader(data_bus, _Groups())
+    backed = Backend(data_bus, reader, daemon, GlobalUInputs())
+    data_mangager = DataManager(data_bus, GlobalConfig(), backed)
+    controller = Controller(data_bus, data_mangager)
+    user_interface = UserInterface(data_bus, controller, reader, daemon)
+    controller.set_gui(user_interface)
 
-    event_handler.emit(EventEnum.init)
+    data_bus.signal(MessageType.init)
 
     def stop():
         if isinstance(daemon, Daemon):

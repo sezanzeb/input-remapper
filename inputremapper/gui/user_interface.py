@@ -35,6 +35,8 @@ from inputremapper.gui.components import (
     TargetSelection,
     CodeEditor,
 )
+from inputremapper.gui.controller import Controller
+from inputremapper.gui.data_bus import DataBus
 
 from inputremapper.gui.editor.autocompletion import Autocompletion
 from inputremapper.gui.event_handler import EventHandler, EventEnum
@@ -152,10 +154,15 @@ class UserInterface:
     """The input-remapper gtk window."""
 
     def __init__(
-        self, event_handler: EventHandler, reader: Reader, daemon: DaemonProxy
+        self,
+        data_bus: DataBus,
+        controller: Controller,
+        reader: Reader,
+        daemon: DaemonProxy,
     ):
 
-        self.event_handler = event_handler
+        self.data_bus = data_bus
+        self.controller = controller
 
         # Todo: remove reader and daemon, we should not need them here
         self.dbus = daemon
@@ -183,16 +190,16 @@ class UserInterface:
         self.editor = Editor(self)
 
         # set up components in no particular order
-        DeviceSelection(self.event_handler, self.get("device_selection"))
-        PresetSelection(self.event_handler, self.get("preset_selection"))
-        MappingListBox(self.event_handler, self.get("selection_label_listbox"))
-        TargetSelection(self.event_handler, self.get("target-selector"))
+        DeviceSelection(self.data_bus, controller, self.get("device_selection"))
+        PresetSelection(self.data_bus, controller, self.get("preset_selection"))
+        MappingListBox(self.data_bus, controller, self.get("selection_label_listbox"))
+        TargetSelection(self.data_bus, controller, self.get("target-selector"))
 
         # code editor and autocompletion
         code_editor = CodeEditor(
-            self.event_handler, system_mapping, self.get("code_editor")
+            self.data_bus, controller, system_mapping, self.get("code_editor")
         )
-        autocompletion = Autocompletion(self.event_handler, code_editor)
+        autocompletion = Autocompletion(self.data_bus, code_editor)
         autocompletion.set_relative_to(self.get("code_editor_container"))
 
         self.connect_buttons()
@@ -240,26 +247,26 @@ class UserInterface:
 
     def connect_buttons(self):
         self.get("delete_preset").connect(
-            "clicked", lambda *_: self.event_handler.emit(EventEnum.delete_preset)
+            "clicked", lambda *_: self.controller.on_delete_preset()
         )
         self.get("copy_preset").connect(
-            "clicked", lambda *_: self.event_handler.emit(EventEnum.copy_preset)
+            "clicked", lambda *_: self.controller.copy_preset()
         )
         self.get("create_preset").connect(
-            "clicked", lambda *_: self.event_handler.emit(EventEnum.add_preset)
+            "clicked", lambda *_: self.controller.on_add_preset()
         )
         self.get("apply_preset").connect(
-            "clicked", lambda *_: self.event_handler.emit(EventEnum.start_injecting)
+            "clicked", lambda *_: self.controller.on_start_injecting()
         )
         self.get("apply_system_layout").connect(
-            "clicked", lambda *_: self.event_handler.emit(EventEnum.stop_injection)
+            "clicked", lambda *_: self.controller.on_stop_injecting()
         )
 
     def setup_timeouts(self):
         """Setup all GLib timeouts."""
-        self.timeouts = [
-            GLib.timeout_add(1000 / 30, self.consume_newest_keycode),
-        ]
+        # self.timeouts = [
+        #    GLib.timeout_add(1000 / 30, self.consume_newest_keycode),
+        # ]
 
     def confirm_delete(self, msg):
         """Blocks until the user decided about an action."""

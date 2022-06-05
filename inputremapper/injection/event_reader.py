@@ -155,7 +155,6 @@ class EventReader:
         )
 
         async for event in self.read_loop():
-            logger.debug(event)
             await self.handle(InputEvent.from_event(event))
 
         self.context.reset()

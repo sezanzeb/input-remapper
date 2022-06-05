@@ -23,6 +23,7 @@
 
 see gui.helper.helper
 """
+import traceback
 from typing import Optional, List, Generator, Dict
 
 import evdev
@@ -67,7 +68,7 @@ class Reader:
         self.data_bus = data_bus
 
         self.group: Optional[_Group] = None
-        self.read_timeout: Optional[GLib.Timeout] = None
+        self.read_timeout: Optional[int] = None
 
         self._recording_generator: Optional[RecordingGenerator] = None
         self._results = None
@@ -110,6 +111,7 @@ class Reader:
                         self.data_bus.signal(MessageType.recording_finished)
                         self._recording_generator = None
                 continue
+        return True
 
     def start_recorder(self) -> None:
         """generator which yields live updated EventCombination's
@@ -166,6 +168,8 @@ class Reader:
         """Stop reading keycodes for good."""
         logger.debug("Sending close msg to helper")
         self._commands.send(CMD_TERMINATE)
+        if self.read_timeout:
+            GLib.source_remove(self.read_timeout)
         while self._results.poll():
             self._results.recv()
 

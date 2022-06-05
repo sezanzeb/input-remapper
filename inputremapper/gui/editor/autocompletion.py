@@ -28,9 +28,10 @@ from typing import Dict, Optional, List
 from gi.repository import Gdk, Gtk, GLib, GObject
 from evdev.ecodes import EV_KEY
 
+from inputremapper.configs.mapping import MappingData
 from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.gui.components import CodeEditor
-from inputremapper.gui.event_handler import EventHandler, EventEnum
+from inputremapper.gui.data_bus import DataBus, MessageType, UInputsData
 from inputremapper.injection.macros.parse import (
     FUNCTIONS,
     get_macro_argument_names,
@@ -151,7 +152,7 @@ class Autocompletion(Gtk.Popover):
 
     __gtype_name__ = "Autocompletion"
 
-    def __init__(self, event_handler: EventHandler, code_editor: CodeEditor):
+    def __init__(self, data_bus: DataBus, code_editor: CodeEditor):
         """Create an autocompletion popover.
 
         It will remain hidden until there is something to autocomplete.
@@ -170,7 +171,7 @@ class Autocompletion(Gtk.Popover):
         )
 
         self.code_editor = code_editor
-        self.event_handler = event_handler
+        self.data_bus = data_bus
         self._uinputs: Optional[Dict[str, Capabilities]] = None
         self._target_key_capabilities = []
 
@@ -214,13 +215,8 @@ class Autocompletion(Gtk.Popover):
         self.popdown()  # hidden by default. this needs to happen after show_all!
 
     def attach_to_events(self):
-        self.event_handler.subscribe(
-            EventEnum.mapping_changed, self._on_mapping_changed
-        )
-        self.event_handler.subscribe(EventEnum.mapping_loaded, self._on_mapping_loaded)
-        self.event_handler.subscribe(
-            EventEnum.uinputs_changed, self._on_uinputs_changed
-        )
+        self.data_bus.subscribe(MessageType.mapping, self._on_mapping_loaded)
+        self.data_bus.subscribe(MessageType.uinputs, self._on_uinputs_changed)
 
     def on_gtk_text_input_unfocus(self, *_):
         """The code editor was unfocused."""
@@ -367,16 +363,13 @@ class Autocompletion(Gtk.Popover):
             self.list_box.insert(label, -1)
             label.show_all()
 
-    def _on_mapping_loaded(self, mapping=None):
+    def _on_mapping_loaded(self, mapping: MappingData):
         if mapping and self._uinputs:
-            target = mapping["target_uinput"]
+            target = mapping.target_uinput or "keyboard"
             self._target_key_capabilities = self._uinputs[target][EV_KEY]
 
-    def _on_mapping_changed(self, mapping):
-        self._on_mapping_loaded(mapping)
-
-    def _on_uinputs_changed(self, uinputs: Dict[str, Capabilities]):
-        self._uinputs = uinputs
+    def _on_uinputs_changed(self, data: UInputsData):
+        self._uinputs = data.uinputs
 
     def _on_suggestion_clicked(self, _, selected_row):
         """An autocompletion suggestion was selected and should be inserted."""
