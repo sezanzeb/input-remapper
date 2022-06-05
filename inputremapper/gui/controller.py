@@ -23,9 +23,9 @@ from typing import TYPE_CHECKING, Optional, List, Tuple
 
 from gi.repository import Gtk, GLib
 
+from .data_bus import DataBus, MessageType, PresetData, StatusData
 from .gettext import _
 from .data_manager import DataManager, DEFAULT_PRESET_NAME
-from .event_handler import EventHandler, EventEnum
 from ..event_combination import EventCombination
 from ..injection.injector import RUNNING, FAILED, NO_GRAB, UPGRADE_EVDEV
 from ..input_event import InputEvent
@@ -41,9 +41,9 @@ class Controller:
     """implements the behaviour of the gui"""
 
     def __init__(
-        self, event_handler: EventHandler, data_manager: DataManager, gui: UserInterface
+        self, data_bus: DataBus, data_manager: DataManager, gui: UserInterface
     ):
-        self.event_handler = event_handler
+        self.data_bus = data_bus
         self.data_manager = data_manager
         self.gui = gui
 
@@ -51,27 +51,9 @@ class Controller:
         self.attach_to_events()
 
     def attach_to_events(self) -> None:
-        (
-            self.event_handler.subscribe(EventEnum.init, self.on_init)
-            .subscribe(EventEnum.load_groups, self.on_load_groups)
-            .subscribe(EventEnum.groups_changed, self.on_groups_changed)
-            .subscribe(EventEnum.load_group, self.on_load_group)
-            .subscribe(EventEnum.load_preset, self.on_load_preset)
-            .subscribe(EventEnum.rename_preset, self.on_rename_preset)
-            .subscribe(EventEnum.add_preset, self.on_add_preset)
-            .subscribe(EventEnum.delete_preset, self.on_delete_preset)
-            .subscribe(EventEnum.preset_changed, self.on_preset_changed)
-            .subscribe(EventEnum.load_mapping, self.on_load_mapping)
-            .subscribe(EventEnum.create_mapping, self.on_create_mapping)
-            .subscribe(EventEnum.delete_mapping, self.on_delete_mapping)
-            .subscribe(EventEnum.update_mapping, self.on_update_mapping)
-            .subscribe(EventEnum.get_autoload, self.on_get_autoload)
-            .subscribe(EventEnum.set_autoload, self.on_set_autoload)
-            .subscribe(EventEnum.get_uinputs, self.on_get_uinputs)
-            .subscribe(EventEnum.start_injecting, self.on_start_injecting)
-            .subscribe(EventEnum.stop_injection, self.on_stop_injecting)
-            .subscribe(EventEnum.save, self.on_save)
-        )
+        self.data_bus.subscribe(MessageType.groups, self.on_groups_changed)
+        self.data_bus.subscribe(MessageType.preset, self.on_preset_changed)
+        self.data_bus.subscribe(MessageType.init, self.on_init)
 
     def get_a_preset(self) -> str:
         """attempts to get the newest preset in the current group
@@ -93,37 +75,26 @@ class Controller:
 
         return self.data_manager.available_groups[0]
 
-    def on_init(self):
+    def on_init(self, _):
         # make sure we get a groups_changed event when everything is ready
         # this might not be necessary if the helper takes longer to provide the
         # initial groups
         self.data_manager.backend.emit_groups()
         self.data_manager.emit_uinputs()
 
-    def on_groups_changed(self, **_):
+    def on_groups_changed(self, _):
         """load the newest group as soon as everyone got notified
         about the updated groups"""
+        self.on_load_group(self.get_a_group())
 
-        def callback():
-            # this will run after all other listeners where executed
-            self.on_load_group(self.get_a_group())
-
-        return callback
-
-    def on_preset_changed(
-        self, name, mappings: Optional[List[Tuple[str, EventCombination]]]
-    ):
+    def on_preset_changed(self, data: PresetData):
         """load a mapping as soon as everyone got notified about the new preset"""
-        if not mappings:
+        if not data.mappings:
             return
-
+        mappings = list(data.mappings)
         mappings.sort(key=lambda t: t[0] or t[1].beautify())
         combination = mappings[0][1]
-
-        def callback():
-            self.on_load_mapping(combination)
-
-        return callback
+        self.on_load_mapping(combination)
 
     def on_load_groups(self):
         self.data_manager.backend.refresh_groups()
@@ -161,8 +132,7 @@ class Controller:
         self.data_manager.update_mapping(**kwargs)
 
     def on_create_mapping(self):
-        with self.event_handler.supress(listener=self.on_preset_changed):
-            self.data_manager.create_mapping()
+        self.data_manager.create_mapping()
         self.data_manager.load_mapping(combination=EventCombination.empty_combination())
 
     def on_delete_mapping(self):
@@ -174,9 +144,6 @@ class Controller:
         ):
             return
         self.data_manager.delete_mapping()
-
-    def on_get_autoload(self):
-        self.data_manager.emit_autoload_changed()
 
     def on_set_autoload(self, autoload: bool):
         self.data_manager.set_autoload(autoload)
@@ -222,6 +189,4 @@ class Controller:
         self.show_status(CTX_APPLY, _("Applied the system default"))
 
     def show_status(self, ctx_id: int, msg: str, tooltip: Optional[str] = None):
-        self.event_handler.emit(
-            EventEnum.status_msg, ctx_id=ctx_id, msg=msg, tooltip=tooltip
-        )
+        self.data_bus.send(StatusData(ctx_id, msg, tooltip))

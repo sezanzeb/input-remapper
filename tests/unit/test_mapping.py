@@ -26,7 +26,7 @@ from pydantic import ValidationError
 
 from inputremapper.configs.mapping import Mapping, UIMapping
 from inputremapper.configs.system_mapping import system_mapping
-from inputremapper.gui.data_bus import MassageType
+from inputremapper.gui.data_bus import MessageType
 from inputremapper.input_event import EventActions
 from inputremapper.event_combination import EventCombination
 
@@ -371,8 +371,8 @@ class TestUIMapping(unittest.IsolatedAsyncioTestCase):
 
     def test_get_bus_massage(self):
         m = UIMapping()
-        m2 = m.get_bus_massage()
-        self.assertEqual(m2.massage_type, MassageType.mapping)
+        m2 = m.get_bus_message()
+        self.assertEqual(m2.message_type, MessageType.mapping)
 
         with self.assertRaises(TypeError):
             # the massage should be immutable

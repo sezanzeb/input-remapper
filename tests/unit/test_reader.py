@@ -18,10 +18,9 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 import json
-from typing import List, Dict, Any
+from typing import List
 
-from inputremapper.gui.event_handler import EventHandler, EventEnum
-from inputremapper.input_event import InputEvent
+from inputremapper.gui.data_bus import DataBus, MessageType, CombinationRecorded, Signal
 from tests.test import (
     new_event,
     push_events,
@@ -54,7 +53,6 @@ from evdev.ecodes import (
 )
 
 from inputremapper.gui.reader import Reader
-from inputremapper.gui.active_preset import active_preset
 from inputremapper.configs.global_config import BUTTONS, MOUSE
 from inputremapper.event_combination import EventCombination
 from inputremapper.gui.helper import RootHelper
@@ -67,10 +65,10 @@ CODE_3 = 102
 
 class Listener:
     def __init__(self):
-        self.calls: List[Dict[str, Any]] = []
+        self.calls: List = []
 
-    def __call__(self, **kwargs):
-        self.calls.append(kwargs)
+    def __call__(self, data):
+        self.calls.append(data)
 
 
 def wait(func, timeout=1.0):
@@ -88,8 +86,8 @@ class TestReader(unittest.TestCase):
     def setUp(self):
         self.helper = None
         self.groups = _Groups()
-        self.event_handler = EventHandler()
-        self.reader = Reader(self.event_handler, self.groups)
+        self.data_bus = DataBus()
+        self.reader = Reader(self.data_bus, self.groups)
 
     def tearDown(self):
         quick_cleanup()
@@ -118,8 +116,8 @@ class TestReader(unittest.TestCase):
     def test_reading(self):
         l1 = Listener()
         l2 = Listener()
-        self.event_handler.subscribe(EventEnum.combination_recorded, l1)
-        self.event_handler.subscribe(EventEnum.recording_finished, l2)
+        self.data_bus.subscribe(MessageType.combination_recorded, l1)
+        self.data_bus.subscribe(MessageType.recording_finished, l2)
         self.create_helper()
         self.reader.set_group(self.groups.find(key="Foo Device 2"))
         self.reader.start_recorder()
@@ -134,8 +132,8 @@ class TestReader(unittest.TestCase):
         self.reader._read()
         self.assertEqual(
             [
-                {"combination": EventCombination.from_string("3,16,1")},
-                {"combination": EventCombination.from_string("3,16,1+2,0,1")},
+                CombinationRecorded(EventCombination.from_string("3,16,1")),
+                CombinationRecorded(EventCombination.from_string("3,16,1+2,0,1")),
             ],
             l1.calls,
         )
@@ -145,14 +143,14 @@ class TestReader(unittest.TestCase):
         push_events("Foo Device 2", [new_event(EV_ABS, ABS_HAT0X, 0)])
         time.sleep(0.3)
         self.reader._read()
-        self.assertEqual([{}], l2.calls)
+        self.assertEqual([Signal(MessageType.recording_finished)], l2.calls)
 
     def test_should_release_relative_axis(self):
         # the timeout is set to 0.3s
         l1 = Listener()
         l2 = Listener()
-        self.event_handler.subscribe(EventEnum.combination_recorded, l1)
-        self.event_handler.subscribe(EventEnum.recording_finished, l2)
+        self.data_bus.subscribe(MessageType.combination_recorded, l1)
+        self.data_bus.subscribe(MessageType.recording_finished, l2)
         self.create_helper()
         self.reader.set_group(self.groups.find(key="Foo Device 2"))
         self.reader.start_recorder()
@@ -162,18 +160,18 @@ class TestReader(unittest.TestCase):
         self.reader._read()
 
         self.assertEqual(
-            [{"combination": EventCombination.from_string("2,0,-1")}],
+            [CombinationRecorded(EventCombination.from_string("2,0,-1"))],
             l1.calls,
         )
         self.assertEqual([], l2.calls)  # no stop recording yet
 
         time.sleep(0.3)
         self.reader._read()
-        self.assertEqual([{}], l2.calls)
+        self.assertEqual([Signal(MessageType.recording_finished)], l2.calls)
 
     def test_wont_emit_the_same_combination_twice(self):
         l1 = Listener()
-        self.event_handler.subscribe(EventEnum.combination_recorded, l1)
+        self.data_bus.subscribe(MessageType.combination_recorded, l1)
         self.create_helper()
         self.reader.set_group(self.groups.find(key="Foo Device 2"))
         self.reader.start_recorder()
@@ -186,15 +184,15 @@ class TestReader(unittest.TestCase):
         self.reader._read()
 
         self.assertEqual(
-            [{"combination": EventCombination.from_string("1,30,1")}],
+            [CombinationRecorded(EventCombination.from_string("1,30,1"))],
             l1.calls,
         )
 
     def test_should_read_absolut_axis(self):
         l1 = Listener()
         l2 = Listener()
-        self.event_handler.subscribe(EventEnum.combination_recorded, l1)
-        self.event_handler.subscribe(EventEnum.recording_finished, l2)
+        self.data_bus.subscribe(MessageType.combination_recorded, l1)
+        self.data_bus.subscribe(MessageType.recording_finished, l2)
         self.create_helper()
         self.reader.set_group(self.groups.find(key="Foo Device 2"))
         self.reader.start_recorder()
@@ -204,7 +202,7 @@ class TestReader(unittest.TestCase):
         time.sleep(0.1)
         self.reader._read()
         self.assertEqual(
-            [{"combination": EventCombination.from_string("3,0,1")}],
+            [CombinationRecorded(EventCombination.from_string("3,0,1"))],
             l1.calls,
         )
         self.assertEqual([], l2.calls)  # no stop recording yet
@@ -214,14 +212,14 @@ class TestReader(unittest.TestCase):
         time.sleep(0.1)
         self.reader._read()
         self.assertEqual(
-            [{"combination": EventCombination.from_string("3,0,1")}],
+            [CombinationRecorded(EventCombination.from_string("3,0,1"))],
             l1.calls,
         )
-        self.assertEqual([{}], l2.calls)  # no stop recording yet
+        self.assertEqual([Signal(MessageType.recording_finished)], l2.calls)
 
     def test_should_change_direction(self):
         l1 = Listener()
-        self.event_handler.subscribe(EventEnum.combination_recorded, l1)
+        self.data_bus.subscribe(MessageType.combination_recorded, l1)
         self.create_helper()
         self.reader.set_group(self.groups.find(key="Foo Device 2"))
         self.reader.start_recorder()
@@ -240,17 +238,21 @@ class TestReader(unittest.TestCase):
         self.reader._read()
         self.assertEqual(
             [
-                {"combination": EventCombination.from_string("1,30,1")},
-                {"combination": EventCombination.from_string("1,30,1+3,0,1")},
-                {"combination": EventCombination.from_string("1,30,1+3,0,1+1,51,1")},
-                {"combination": EventCombination.from_string("1,30,1+3,0,-1+1,51,1")},
+                CombinationRecorded(EventCombination.from_string("1,30,1")),
+                CombinationRecorded(EventCombination.from_string("1,30,1+3,0,1")),
+                CombinationRecorded(
+                    EventCombination.from_string("1,30,1+3,0,1+1,51,1")
+                ),
+                CombinationRecorded(
+                    EventCombination.from_string("1,30,1+3,0,-1+1,51,1")
+                ),
             ],
             l1.calls,
         )
 
     def test_change_device(self):
         l1 = Listener()
-        self.event_handler.subscribe(EventEnum.combination_recorded, l1)
+        self.data_bus.subscribe(MessageType.combination_recorded, l1)
 
         push_events(
             "Foo Device 2",
@@ -274,7 +276,7 @@ class TestReader(unittest.TestCase):
         self.reader.start_recorder()
         time.sleep(0.1)
         self.reader._read()
-        self.assertEqual(l1.calls[0]["combination"], EventCombination((EV_KEY, 1, 1)))
+        self.assertEqual(l1.calls[0].combination, EventCombination((EV_KEY, 1, 1)))
 
         self.reader.set_group(self.groups.find(name="Bar Device"))
         time.sleep(0.1)
@@ -288,11 +290,11 @@ class TestReader(unittest.TestCase):
         push_events("Bar Device", [new_event(EV_KEY, 2, 1)])
         time.sleep(0.1)
         self.reader._read()
-        self.assertEqual(l1.calls[1]["combination"], EventCombination((EV_KEY, 2, 1)))
+        self.assertEqual(l1.calls[1].combination, EventCombination((EV_KEY, 2, 1)))
 
     def test_reading_2(self):
         l1 = Listener()
-        self.event_handler.subscribe(EventEnum.combination_recorded, l1)
+        self.data_bus.subscribe(MessageType.combination_recorded, l1)
         # a combination of events
         push_events(
             "Foo Device 2",
@@ -328,13 +330,13 @@ class TestReader(unittest.TestCase):
 
         self.reader._read()
         self.assertEqual(
-            l1.calls[-1]["combination"],
+            l1.calls[-1].combination,
             ((EV_KEY, CODE_1, 1), (EV_KEY, CODE_3, 1), (EV_ABS, ABS_HAT0X, -1)),
         )
 
     def test_blacklisted_events(self):
         l1 = Listener()
-        self.event_handler.subscribe(EventEnum.combination_recorded, l1)
+        self.data_bus.subscribe(MessageType.combination_recorded, l1)
 
         push_events(
             "Foo Device 2",
@@ -350,12 +352,12 @@ class TestReader(unittest.TestCase):
         time.sleep(0.1)
         self.reader._read()
         self.assertEqual(
-            l1.calls[-1]["combination"], EventCombination((EV_KEY, CODE_2, 1))
+            l1.calls[-1].combination, EventCombination((EV_KEY, CODE_2, 1))
         )
 
     def test_ignore_value_2(self):
         l1 = Listener()
-        self.event_handler.subscribe(EventEnum.combination_recorded, l1)
+        self.data_bus.subscribe(MessageType.combination_recorded, l1)
         # this is not a combination, because (EV_KEY CODE_3, 2) is ignored
         push_events(
             "Foo Device 2",
@@ -367,12 +369,12 @@ class TestReader(unittest.TestCase):
         time.sleep(0.2)
         self.reader._read()
         self.assertEqual(
-            l1.calls[-1]["combination"], EventCombination((EV_ABS, ABS_HAT0X, 1))
+            l1.calls[-1].combination, EventCombination((EV_ABS, ABS_HAT0X, 1))
         )
 
     def test_reading_ignore_up(self):
         l1 = Listener()
-        self.event_handler.subscribe(EventEnum.combination_recorded, l1)
+        self.data_bus.subscribe(MessageType.combination_recorded, l1)
         push_events(
             "Foo Device 2",
             [
@@ -387,12 +389,12 @@ class TestReader(unittest.TestCase):
         time.sleep(0.1)
         self.reader._read()
         self.assertEqual(
-            l1.calls[-1]["combination"], EventCombination((EV_KEY, CODE_2, 1))
+            l1.calls[-1].combination, EventCombination((EV_KEY, CODE_2, 1))
         )
 
     def test_wrong_device(self):
         l1 = Listener()
-        self.event_handler.subscribe(EventEnum.combination_recorded, l1)
+        self.data_bus.subscribe(MessageType.combination_recorded, l1)
 
         push_events(
             "Foo Device 2",
@@ -415,7 +417,7 @@ class TestReader(unittest.TestCase):
         # intentionally programmed it won't even do that. But it was at some
         # point.
         l1 = Listener()
-        self.event_handler.subscribe(EventEnum.combination_recorded, l1)
+        self.data_bus.subscribe(MessageType.combination_recorded, l1)
         push_events(
             "input-remapper Bar Device",
             [
@@ -450,7 +452,7 @@ class TestReader(unittest.TestCase):
 
     def test_are_new_groups_available(self):
         l1 = Listener()
-        self.event_handler.subscribe(EventEnum.groups_changed, l1)
+        self.data_bus.subscribe(MessageType.groups, l1)
         self.create_helper()
         self.reader.groups.set_groups({})
 

@@ -38,7 +38,7 @@ import pkg_resources
 from inputremapper.event_combination import EventCombination
 from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.exceptions import MacroParsingError
-from inputremapper.gui.data_bus import MassageType
+from inputremapper.gui.data_bus import MessageType
 from inputremapper.injection.macros.parse import is_this_a_macro, parse
 from inputremapper.input_event import EventActions
 
@@ -401,7 +401,7 @@ class UIMapping(Mapping):
         """The validation error or None."""
         return self._last_error
 
-    def get_bus_massage(self) -> MappingData:
+    def get_bus_message(self) -> MappingData:
         """return a immutable copy for use in the"""
         return MappingData(**self.dict())
 
@@ -433,14 +433,14 @@ class UIMapping(Mapping):
 
 class MappingData(UIMapping):
     Config = ImmutableCfg
-    massage_type = MassageType.mapping  # allow this to be sent over the DataBus
-    
+    message_type = MessageType.mapping  # allow this to be sent over the DataBus
+
     def __init__(self, **data):
         super(MappingData, self).__init__(**data)
-    
+
     def dict(self, *args, **kwargs):
-        """will not include the massage_type"""
+        """will not include the message_type"""
         dict_ = super(MappingData, self).dict(*args, **kwargs)
-        if "massage_type" in dict_:
-            del dict_["massage_type"]
+        if "message_type" in dict_:
+            del dict_["message_type"]
         return dict_

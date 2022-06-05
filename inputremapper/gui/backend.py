@@ -17,13 +17,10 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
-import glob
-import os
 
-from inputremapper.configs.paths import get_preset_path, split_all, get_config_path
 from inputremapper.daemon import DaemonProxy
 from inputremapper.groups import _Groups, _Group
-from inputremapper.gui.event_handler import EventHandler, EventEnum
+from inputremapper.gui.data_bus import DataBus, UInputsData
 from inputremapper.gui.reader import Reader
 from inputremapper.injection.global_uinputs import GlobalUInputs
 
@@ -33,14 +30,14 @@ class Backend:
 
     def __init__(
         self,
-        event_handler: EventHandler,
+        data_bus: DataBus,
         reader: Reader,
         daemon: DaemonProxy,
         uinputs: GlobalUInputs,
     ):
 
         self.daemon = daemon
-        self.event_handler = event_handler
+        self.data_bus = data_bus
         self._reader = reader
         self._uinputs = uinputs
 
@@ -65,10 +62,11 @@ class Backend:
         self._reader.set_group(group)
 
     def emit_uinputs(self):
-        self.event_handler.emit(
-            EventEnum.uinputs_changed,
-            uinputs={
-                name: uinput.capabilities()
-                for name, uinput in self._uinputs.devices.items()
-            },
+        self.data_bus.send(
+            UInputsData(
+                {
+                    name: uinput.capabilities()
+                    for name, uinput in self._uinputs.devices.items()
+                }
+            )
         )

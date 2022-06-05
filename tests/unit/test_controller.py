@@ -21,17 +21,27 @@ import json
 import os.path
 import traceback
 import unittest
+from typing import Tuple, List, Any
 
 import gi
 
 from inputremapper.event_combination import EventCombination
+from inputremapper.gui.data_bus import (
+    DataBus,
+    MessageType,
+    Signal,
+    UInputsData,
+    GroupsData,
+    GroupData,
+    PresetData,
+)
 
 gi.require_version("Gtk", "3.0")
 gi.require_version("GLib", "2.0")
 gi.require_version("GtkSource", "4")
 from gi.repository import Gtk
 
-from inputremapper.configs.mapping import Mapping, UIMapping
+from inputremapper.configs.mapping import Mapping, UIMapping, MappingData
 from tests.test import (
     quick_cleanup,
     get_key_mapping,
@@ -43,7 +53,6 @@ from tests.test import (
 from inputremapper.configs.global_config import global_config, GlobalConfig
 from inputremapper.gui.controller import Controller
 from inputremapper.gui.data_manager import DataManager, DEFAULT_PRESET_NAME
-from inputremapper.gui.event_handler import EventHandler, EventEnum
 from inputremapper.configs.paths import get_preset_path, get_config_path
 from inputremapper.configs.preset import Preset
 
@@ -82,18 +91,20 @@ class TestError(Exception):
     pass
 
 
-def get_controller_objects(event_handler=None, data_manager=None, user_interface=None):
+def get_controller_objects(
+    data_bus=None, data_manager=None, user_interface=None
+) -> Tuple[DataBus, DataManager, Any]:
     """useful to supply directly to the Controller.__init__"""
-    if not event_handler:
-        event_handler = EventHandler()
+    if not data_bus:
+        data_bus = DataBus()
 
     if not data_manager:
-        backed = get_backend(event_handler=event_handler)
-        data_manager = DataManager(event_handler, GlobalConfig(), backed)
+        backed = get_backend(data_bus=data_bus)
+        data_manager = DataManager(data_bus, GlobalConfig(), backed)
 
     if not user_interface:
         user_interface = DummyGui()
-    return event_handler, data_manager, user_interface
+    return data_bus, data_manager, user_interface
 
 
 class TestController(unittest.TestCase):
@@ -106,8 +117,8 @@ class TestController(unittest.TestCase):
         def f():
             return "foo"
 
-        event_handler, data_manager, user_interface = get_controller_objects()
-        controller = Controller(event_handler, data_manager, user_interface)
+        data_bus, data_manager, user_interface = get_controller_objects()
+        controller = Controller(data_bus, data_manager, user_interface)
         data_manager.newest_group = f
 
         self.assertEqual(controller.get_a_group(), "foo")
@@ -118,8 +129,8 @@ class TestController(unittest.TestCase):
         def f():
             raise FileNotFoundError()
 
-        event_handler, data_manager, user_interface = get_controller_objects()
-        controller = Controller(event_handler, data_manager, user_interface)
+        data_bus, data_manager, user_interface = get_controller_objects()
+        controller = Controller(data_bus, data_manager, user_interface)
         data_manager.newest_group = f
 
         fixture_keys = [
@@ -134,8 +145,8 @@ class TestController(unittest.TestCase):
         def f():
             return "bar"
 
-        event_handler, data_manager, user_interface = get_controller_objects()
-        controller = Controller(event_handler, data_manager, user_interface)
+        data_bus, data_manager, user_interface = get_controller_objects()
+        controller = Controller(data_bus, data_manager, user_interface)
         data_manager.newest_preset = f
         data_manager.load_group("Foo Device")
 
@@ -144,206 +155,201 @@ class TestController(unittest.TestCase):
     def test_should_get_any_preset(self):
         """get_a_preset should return a new preset if none exist"""
 
-        event_handler, data_manager, user_interface = get_controller_objects()
-        controller = Controller(event_handler, data_manager, user_interface)
+        data_bus, data_manager, user_interface = get_controller_objects()
+        controller = Controller(data_bus, data_manager, user_interface)
         data_manager.load_group("Foo Device")
 
         self.assertEqual(controller.get_a_preset(), "new preset")  # the default name
 
     def test_on_init_should_provide_uinputs(self):
-        event_handler, data_manager, user_interface = get_controller_objects()
-        controller = Controller(event_handler, data_manager, user_interface)
-        calls = []
+        data_bus, data_manager, user_interface = get_controller_objects()
+        controller = Controller(data_bus, data_manager, user_interface)
+        calls: List[UInputsData] = []
 
-        def f(uinputs):
-            calls.append(uinputs)
+        def f(data):
+            calls.append(data)
 
-        event_handler.subscribe(EventEnum.uinputs_changed, f)
-        event_handler.emit(EventEnum.init)
-        self.assertIsNotNone(calls[-1])
+        data_bus.subscribe(MessageType.uinputs, f)
+        data_bus.signal(MessageType.init)
+        self.assertEqual(
+            ["keyboard", "gamepad", "mouse"], list(calls[-1].uinputs.keys())
+        )
 
     def test_on_init_should_provide_groups(self):
-        event_handler, data_manager, user_interface = get_controller_objects()
-        controller = Controller(event_handler, data_manager, user_interface)
-        calls = []
+        data_bus, data_manager, user_interface = get_controller_objects()
+        controller = Controller(data_bus, data_manager, user_interface)
+        calls: List[GroupsData] = []
 
         def f(groups):
             calls.append(groups)
 
-        event_handler.subscribe(EventEnum.groups_changed, f)
-        event_handler.emit(EventEnum.init)
-        self.assertIsNotNone(calls[-1])
+        data_bus.subscribe(MessageType.groups, f)
+        data_bus.signal(MessageType.init)
+        self.assertEqual(
+            ["Foo Device", "Foo Device 2", "Bar Device", "gamepad"],
+            list(calls[-1].groups.keys()),
+        )
 
     def test_on_init_should_provide_a_group(self):
-        event_handler, data_manager, user_interface = get_controller_objects()
-        controller = Controller(event_handler, data_manager, user_interface)
-        calls = []
+        data_bus, data_manager, user_interface = get_controller_objects()
+        controller = Controller(data_bus, data_manager, user_interface)
+        calls: List[GroupData] = []
 
-        def f(group_key, presets):
-            calls.append(group_key)
-            calls.append(presets)
+        def f(data):
+            calls.append(data)
 
-        event_handler.subscribe(EventEnum.group_changed, f)
-        event_handler.emit(EventEnum.init)
-        self.assertIsNotNone(calls[-1])
-        self.assertIsNotNone(calls[-2])
+        data_bus.subscribe(MessageType.group, f)
+        data_bus.signal(MessageType.init)
+        self.assertGreaterEqual(len(calls), 1)
 
     def test_on_init_should_provide_a_preset(self):
-        event_handler, data_manager, user_interface = get_controller_objects()
-        controller = Controller(event_handler, data_manager, user_interface)
-        calls = []
+        data_bus, data_manager, user_interface = get_controller_objects()
+        controller = Controller(data_bus, data_manager, user_interface)
+        calls: List[PresetData] = []
 
-        def f(name=None, mappings=None):
-            calls.append(name)
-            calls.append(mappings)
+        def f(data):
+            calls.append(data)
 
-        event_handler.subscribe(EventEnum.preset_changed, f)
-        event_handler.emit(EventEnum.init)
-
-        self.assertIsNotNone(calls[-1])
-        self.assertIsNotNone(calls[-2])
+        data_bus.subscribe(MessageType.preset, f)
+        data_bus.signal(MessageType.init)
+        self.assertGreaterEqual(len(calls), 1)
 
     def test_on_init_should_provide_a_mapping(self):
         """only if there is one"""
         prepare_presets()
-        event_handler, data_manager, user_interface = get_controller_objects()
-        controller = Controller(event_handler, data_manager, user_interface)
-        calls = []
+        data_bus, data_manager, user_interface = get_controller_objects()
+        controller = Controller(data_bus, data_manager, user_interface)
+        calls: List[MappingData] = []
 
-        def f(**kwargs):
-            calls.append(kwargs)
+        def f(data):
+            calls.append(data)
 
-        event_handler.subscribe(EventEnum.mapping_loaded, f)
-        event_handler.emit(EventEnum.init)
+        data_bus.subscribe(MessageType.mapping, f)
+        data_bus.signal(MessageType.init)
+        self.assertTrue(calls[-1].is_valid())
 
-        Mapping(**calls[-1]["mapping"])  # this should not raise a ValidationError
+    def test_on_init_should_provide_a_default_mapping(self):
+        """if there is no real preset available"""
+        data_bus, data_manager, user_interface = get_controller_objects()
+        controller = Controller(data_bus, data_manager, user_interface)
+        calls: List[MappingData] = []
 
-    def test_on_init_should_not_provide_a_mapping(self):
-        """if there is none"""
-        event_handler, data_manager, user_interface = get_controller_objects()
-        controller = Controller(event_handler, data_manager, user_interface)
-        calls = []
+        def f(data):
+            calls.append(data)
 
-        def f(name=None, mapping=None):
-            calls.append((name, mapping))
-
-        event_handler.subscribe(EventEnum.mapping_loaded, f)
-        event_handler.emit(EventEnum.init)
-        for t in calls:
-            self.assertEqual(t, (None, None))
+        data_bus.subscribe(MessageType.mapping, f)
+        data_bus.signal(MessageType.init)
+        for m in calls:
+            self.assertEqual(m, UIMapping())
 
     def test_on_load_group_should_provide_preset(self):
         def f(*_):
             raise TestError()
 
-        event_handler, data_manager, user_interface = get_controller_objects()
-        controller = Controller(event_handler, data_manager, user_interface)
+        data_bus, data_manager, user_interface = get_controller_objects()
+        controller = Controller(data_bus, data_manager, user_interface)
         data_manager.load_preset = f
-
-        self.assertRaises(
-            TestError, event_handler.emit, EventEnum.load_group, group_key="Foo Device"
-        )
+        self.assertRaises(TestError, controller.on_load_group, group_key="Foo Device")
 
     def test_on_load_group_should_provide_mapping(self):
         """if there is one"""
         prepare_presets()
-        event_handler, data_manager, user_interface = get_controller_objects()
-        controller = Controller(event_handler, data_manager, user_interface)
-        calls = []
+        data_bus, data_manager, user_interface = get_controller_objects()
+        controller = Controller(data_bus, data_manager, user_interface)
+        calls: List[MappingData] = []
 
-        def f(**kwargs):
-            calls.append(kwargs)
+        def f(data):
+            calls.append(data)
 
-        event_handler.subscribe(EventEnum.mapping_loaded, f)
-        event_handler.emit(EventEnum.load_group, group_key="Foo Device 2")
+        data_bus.subscribe(MessageType.mapping, f)
+        controller.on_load_group(group_key="Foo Device 2")
+        self.assertTrue(calls[-1].is_valid())
 
-        Mapping(**calls[-1]["mapping"])  # this should not raise a ValidationError
-
-    def test_on_load_group_should_not_provide_mapping(self):
+    def test_on_load_group_should_provide_default_mapping(self):
         """if there is none"""
-        event_handler, data_manager, user_interface = get_controller_objects()
-        controller = Controller(event_handler, data_manager, user_interface)
-        calls = []
+        data_bus, data_manager, user_interface = get_controller_objects()
+        controller = Controller(data_bus, data_manager, user_interface)
+        calls: List[MappingData] = []
 
-        def f(name=None, mapping=None):
-            calls.append((name, mapping))
+        def f(data):
+            calls.append(data)
 
-        event_handler.subscribe(EventEnum.mapping_loaded, f)
-        event_handler.emit(EventEnum.load_group, group_key="Foo Device")
-        for t in calls:
-            self.assertEqual(t, (None, None))
+        data_bus.subscribe(MessageType.mapping, f)
+
+        controller.on_load_group(group_key="Foo Device")
+        for m in calls:
+            self.assertEqual(m, UIMapping())
 
     def test_on_load_preset_should_provide_mapping(self):
         """if there is one"""
         prepare_presets()
-        event_handler, data_manager, user_interface = get_controller_objects()
-        controller = Controller(event_handler, data_manager, user_interface)
+        data_bus, data_manager, user_interface = get_controller_objects()
+        controller = Controller(data_bus, data_manager, user_interface)
         data_manager.load_group("Foo Device 2")
-        calls = []
+        calls: List[MappingData] = []
 
-        def f(**kwargs):
-            calls.append(kwargs)
+        def f(data):
+            calls.append(data)
 
-        event_handler.subscribe(EventEnum.mapping_loaded, f)
-        event_handler.emit(EventEnum.load_preset, name="preset2")
+        data_bus.subscribe(MessageType.mapping, f)
+        controller.on_load_preset(name="preset2")
+        self.assertTrue(calls[-1].is_valid())
 
-        Mapping(**calls[-1]["mapping"])  # this should not raise a ValidationError
-
-    def test_on_load_preset_should_not_provide_mapping(self):
+    def test_on_load_preset_should_provide_default_mapping(self):
         """if there is none"""
         Preset(get_preset_path("Foo Device 2", "bar")).save()
-        event_handler, data_manager, user_interface = get_controller_objects()
-        controller = Controller(event_handler, data_manager, user_interface)
+        data_bus, data_manager, user_interface = get_controller_objects()
+        controller = Controller(data_bus, data_manager, user_interface)
         data_manager.load_group("Foo Device 2")
-        calls = []
+        calls: List[MappingData] = []
 
-        def f(name=None, mapping=None):
-            calls.append((name, mapping))
+        def f(data):
+            calls.append(data)
 
-        event_handler.subscribe(EventEnum.mapping_loaded, f)
-        event_handler.emit(EventEnum.load_preset, name="bar")
-        for t in calls:
-            self.assertEqual(t, (None, None))
+        data_bus.subscribe(MessageType.mapping, f)
+        controller.on_load_preset(name="bar")
+        for m in calls:
+            self.assertEqual(m, UIMapping())
 
     def test_on_delete_preset_asks_for_confirmation(self):
         prepare_presets()
-        event_handler, data_manager, user_interface = get_controller_objects()
-        controller = Controller(event_handler, data_manager, user_interface)
+        data_bus, data_manager, user_interface = get_controller_objects()
+        controller = Controller(data_bus, data_manager, user_interface)
 
         def f(*_):
             raise TestError()
 
         user_interface.confirm_delete = f
 
-        event_handler.emit(EventEnum.init)
-        self.assertRaises(TestError, event_handler.emit, EventEnum.delete_preset)
+        data_bus.signal(MessageType.init)
+        self.assertRaises(TestError, controller.on_delete_preset)
 
     def test_deletes_preset_when_confirmed(self):
         prepare_presets()
         self.assertTrue(os.path.isfile(get_preset_path("Foo Device 2", "preset2")))
-        event_handler, data_manager, user_interface = get_controller_objects()
-        controller = Controller(event_handler, data_manager, user_interface)
+        data_bus, data_manager, user_interface = get_controller_objects()
+        controller = Controller(data_bus, data_manager, user_interface)
 
         data_manager.load_group("Foo Device 2")
         data_manager.load_preset("preset2")
         user_interface.confirm_delete_ret = Gtk.ResponseType.ACCEPT
 
         path = get_preset_path("Foo Device 2", "preset2")
-        event_handler.emit(EventEnum.delete_preset)
+        controller.on_delete_preset()
         self.assertFalse(os.path.exists(get_preset_path("Foo Device 2", "preset2")))
 
     def test_does_not_delete_preset_when_not_confirmed(self):
         prepare_presets()
         self.assertTrue(os.path.isfile(get_preset_path("Foo Device 2", "preset2")))
-        event_handler, data_manager, user_interface = get_controller_objects()
-        controller = Controller(event_handler, data_manager, user_interface)
+        data_bus, data_manager, user_interface = get_controller_objects()
+        controller = Controller(data_bus, data_manager, user_interface)
 
         data_manager.load_group("Foo Device 2")
         data_manager.load_preset("preset2")
         user_interface.confirm_delete_ret = Gtk.ResponseType.CANCEL
 
         path = get_preset_path("Foo Device 2", "preset2")
-        event_handler.emit(EventEnum.delete_preset)
+        controller.on_delete_preset()
         self.assertTrue(os.path.isfile(get_preset_path("Foo Device 2", "preset2")))
 
     def test_rename_preset(self):
@@ -351,11 +357,11 @@ class TestController(unittest.TestCase):
         self.assertTrue(os.path.isfile(get_preset_path("Foo Device 2", "preset2")))
         self.assertFalse(os.path.exists(get_preset_path("Foo Device 2", "foo")))
 
-        event_handler, data_manager, user_interface = get_controller_objects()
-        controller = Controller(event_handler, data_manager, user_interface)
+        data_bus, data_manager, user_interface = get_controller_objects()
+        controller = Controller(data_bus, data_manager, user_interface)
         data_manager.load_group("Foo Device 2")
         data_manager.load_preset("preset2")
-        event_handler.emit(EventEnum.rename_preset, new_name="foo")
+        controller.on_rename_preset(new_name="foo")
 
         self.assertFalse(os.path.exists(get_preset_path("Foo Device 2", "preset2")))
         self.assertTrue(os.path.exists(get_preset_path("Foo Device 2", "foo")))
@@ -366,11 +372,11 @@ class TestController(unittest.TestCase):
         self.assertTrue(os.path.exists(get_preset_path("Foo Device 2", "preset3")))
         self.assertFalse(os.path.exists(get_preset_path("Foo Device 2", "preset3 2")))
 
-        event_handler, data_manager, user_interface = get_controller_objects()
-        controller = Controller(event_handler, data_manager, user_interface)
+        data_bus, data_manager, user_interface = get_controller_objects()
+        controller = Controller(data_bus, data_manager, user_interface)
         data_manager.load_group("Foo Device 2")
         data_manager.load_preset("preset2")
-        event_handler.emit(EventEnum.rename_preset, new_name="preset3")
+        controller.on_rename_preset(new_name="preset3")
 
         self.assertFalse(os.path.exists(get_preset_path("Foo Device 2", "preset2")))
         self.assertTrue(os.path.exists(get_preset_path("Foo Device 2", "preset3")))
@@ -381,21 +387,21 @@ class TestController(unittest.TestCase):
             os.path.exists(get_preset_path("Foo Device 2", DEFAULT_PRESET_NAME))
         )
 
-        event_handler, data_manager, user_interface = get_controller_objects()
-        controller = Controller(event_handler, data_manager, user_interface)
+        data_bus, data_manager, user_interface = get_controller_objects()
+        controller = Controller(data_bus, data_manager, user_interface)
         data_manager.load_group("Foo Device 2")
 
-        event_handler.emit(EventEnum.add_preset)
+        controller.on_add_preset()
         self.assertTrue(os.path.exists(get_preset_path("Foo Device 2", "new preset")))
 
     def test_on_add_preset_uses_provided_name(self):
         self.assertFalse(os.path.exists(get_preset_path("Foo Device 2", "foo")))
 
-        event_handler, data_manager, user_interface = get_controller_objects()
-        controller = Controller(event_handler, data_manager, user_interface)
+        data_bus, data_manager, user_interface = get_controller_objects()
+        controller = Controller(data_bus, data_manager, user_interface)
         data_manager.load_group("Foo Device 2")
 
-        event_handler.emit(EventEnum.add_preset, name="foo")
+        controller.on_add_preset(name="foo")
         self.assertTrue(os.path.exists(get_preset_path("Foo Device 2", "foo")))
 
     def test_on_update_mapping(self):
@@ -403,8 +409,8 @@ class TestController(unittest.TestCase):
         this ensures mapping_changed is emitted
         """
         prepare_presets()
-        event_handler, data_manager, user_interface = get_controller_objects()
-        controller = Controller(event_handler, data_manager, user_interface)
+        data_bus, data_manager, user_interface = get_controller_objects()
+        controller = Controller(data_bus, data_manager, user_interface)
 
         data_manager.load_group("Foo Device 2")
         data_manager.load_preset("preset2")
@@ -416,8 +422,7 @@ class TestController(unittest.TestCase):
         data_manager.update_mapping = f
         self.assertRaises(
             TestError,
-            event_handler.emit,
-            EventEnum.update_mapping,
+            controller.on_update_mapping,
             name="foo",
             output_symbol="f",
             release_timeout=0.3,
@@ -425,50 +430,48 @@ class TestController(unittest.TestCase):
 
     def test_create_mapping_will_load_the_created_mapping(self):
         prepare_presets()
-        event_handler, data_manager, user_interface = get_controller_objects()
-        controller = Controller(event_handler, data_manager, user_interface)
+        data_bus, data_manager, user_interface = get_controller_objects()
+        controller = Controller(data_bus, data_manager, user_interface)
 
         data_manager.load_group("Foo Device 2")
         data_manager.load_preset("preset2")
 
-        calls = []
+        calls: List[MappingData] = []
 
-        def f(mapping):
-            calls.append(mapping)
+        def f(data):
+            calls.append(data)
 
-        event_handler.subscribe(EventEnum.mapping_loaded, f)
-        event_handler.emit(EventEnum.create_mapping)
+        data_bus.subscribe(MessageType.mapping, f)
+        controller.on_create_mapping()
 
-        print(len(calls))
-        mapping = calls[0]
-        self.assertEqual(mapping, UIMapping().dict())
+        self.assertEqual(calls[-1], UIMapping())
 
     def test_delete_mapping_asks_for_confirmation(self):
         prepare_presets()
-        event_handler, data_manager, user_interface = get_controller_objects()
-        controller = Controller(event_handler, data_manager, user_interface)
+        data_bus, data_manager, user_interface = get_controller_objects()
+        controller = Controller(data_bus, data_manager, user_interface)
 
         def f(*_):
             raise TestError()
 
         user_interface.confirm_delete = f
 
-        event_handler.emit(EventEnum.init)
-        self.assertRaises(TestError, event_handler.emit, EventEnum.delete_mapping)
+        data_bus.signal(MessageType.init)
+        self.assertRaises(TestError, controller.on_delete_mapping)
 
     def test_deletes_mapping_when_confirmed(self):
         prepare_presets()
         self.assertTrue(os.path.isfile(get_preset_path("Foo Device 2", "preset2")))
-        event_handler, data_manager, user_interface = get_controller_objects()
-        controller = Controller(event_handler, data_manager, user_interface)
+        data_bus, data_manager, user_interface = get_controller_objects()
+        controller = Controller(data_bus, data_manager, user_interface)
 
         data_manager.load_group("Foo Device 2")
         data_manager.load_preset("preset2")
         data_manager.load_mapping(EventCombination("1,3,1"))
         user_interface.confirm_delete_ret = Gtk.ResponseType.ACCEPT
 
-        event_handler.emit(EventEnum.delete_mapping)
-        event_handler.emit(EventEnum.save)
+        controller.on_delete_mapping()
+        controller.on_save()
 
         preset = Preset(get_preset_path("Foo Device 2", "preset2"))
         preset.load()
@@ -477,16 +480,16 @@ class TestController(unittest.TestCase):
     def test_does_not_delete_mapping_when_not_confirmed(self):
         prepare_presets()
         self.assertTrue(os.path.isfile(get_preset_path("Foo Device 2", "preset2")))
-        event_handler, data_manager, user_interface = get_controller_objects()
-        controller = Controller(event_handler, data_manager, user_interface)
+        data_bus, data_manager, user_interface = get_controller_objects()
+        controller = Controller(data_bus, data_manager, user_interface)
 
         data_manager.load_group("Foo Device 2")
         data_manager.load_preset("preset2")
         data_manager.load_mapping(EventCombination("1,3,1"))
         user_interface.confirm_delete_ret = Gtk.ResponseType.CANCEL
 
-        event_handler.emit(EventEnum.delete_mapping)
-        event_handler.emit(EventEnum.save)
+        controller.on_delete_mapping()
+        controller.on_save()
 
         preset = Preset(get_preset_path("Foo Device 2", "preset2"))
         preset.load()

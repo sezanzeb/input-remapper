@@ -23,13 +23,18 @@
 
 see gui.helper.helper
 """
-from typing import Optional, List, Tuple, Generator
+from typing import Optional, List, Generator, Dict
 
 import evdev
 from gi.repository import GLib
 
 from inputremapper.event_combination import EventCombination
-from inputremapper.gui.event_handler import EventHandler, EventEnum
+from inputremapper.gui.data_bus import (
+    DataBus,
+    GroupsData,
+    MessageType,
+    CombinationRecorded,
+)
 from inputremapper.input_event import InputEvent
 from inputremapper.logger import logger
 from inputremapper.groups import _Groups, _Group
@@ -57,9 +62,9 @@ class Reader:
     has knowledge of buttons like the middle-mouse button.
     """
 
-    def __init__(self, event_handler: EventHandler, groups: _Groups):
+    def __init__(self, data_bus: DataBus, groups: _Groups):
         self.groups = groups
-        self.event_handler = event_handler
+        self.data_bus = data_bus
 
         self.group: Optional[_Group] = None
         self.read_timeout: Optional[GLib.Timeout] = None
@@ -102,7 +107,7 @@ class Reader:
                     try:
                         self._recording_generator.send(InputEvent(*message_body))
                     except StopIteration:
-                        self.event_handler.emit(EventEnum.recording_finished)
+                        self.data_bus.signal(MessageType.recording_finished)
                         self._recording_generator = None
                 continue
 
@@ -142,17 +147,11 @@ class Reader:
                 # update the event
                 i = accu_type_code.index(event.type_and_code)
                 accumulator[i] = event
-                self.event_handler.emit(
-                    EventEnum.combination_recorded,
-                    combination=EventCombination(accumulator),
-                )
+                self.data_bus.send(CombinationRecorded(EventCombination(accumulator)))
 
             if event not in accumulator:
                 accumulator.append(event)
-                self.event_handler.emit(
-                    EventEnum.combination_recorded,
-                    combination=EventCombination(accumulator),
-                )
+                self.data_bus.send(CombinationRecorded(EventCombination(accumulator)))
 
     def set_group(self, group):
         """Start reading keycodes for a device."""
@@ -176,11 +175,11 @@ class Reader:
 
     def emit_groups_changed(self):
         """announce all known groups"""
-        groups: List[Tuple[str, List[str]]] = []
-        for group in self.groups.filter(include_inputremapper=False):
-            groups.append((group.key, group.types or []))
-
-        self.event_handler.emit(EventEnum.groups_changed, groups=groups)
+        groups: Dict[str, List[str]] = {
+            group.key: group.types or []
+            for group in self.groups.filter(include_inputremapper=False)
+        }
+        self.data_bus.send(GroupsData(groups))
 
     def _update_groups(self, dump):
         if dump != self.groups.dumps():

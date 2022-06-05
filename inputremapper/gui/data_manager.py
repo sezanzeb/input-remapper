@@ -112,9 +112,7 @@ class DataManager:
         return tuple(group.key for group in self.backend.groups.filter())
 
     def emit_group_changed(self):
-        self.data_bus.send(
-            GroupData(self.backend.active_group.key, self.get_presets())
-        )
+        self.data_bus.send(GroupData(self.backend.active_group.key, self.get_presets()))
 
     def emit_preset_changed(self):
         self.data_bus.send(
@@ -124,7 +122,7 @@ class DataManager:
     def emit_mapping_changed(self):
         mapping = self._active_mapping
         if mapping:
-            self.data_bus.send(mapping.get_bus_massage())
+            self.data_bus.send(mapping.get_bus_message())
         else:
             self.data_bus.send(MappingData())
 

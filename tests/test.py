@@ -613,6 +613,7 @@ from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.gui.active_preset import active_preset
 from inputremapper.gui.backend import Backend
 from inputremapper.gui.event_handler import EventHandler
+from inputremapper.gui.data_bus import DataBus
 from inputremapper.gui.reader import Reader
 from inputremapper.configs.paths import get_config_path
 
@@ -802,21 +803,21 @@ class FakeDaemonProxy:
 
 
 def get_backend(
-    event_handler: EventHandler = None,
+    data_bus: DataBus = None,
     reader: Reader = None,
     daemon: DaemonProxy = None,
     uinputs: GlobalUInputs = None,
 ) -> Backend:
-    if not event_handler:
-        event_handler = EventHandler()
+    if not data_bus:
+        data_bus = DataBus()
     if not reader:
-        reader = Reader(event_handler, _Groups())
+        reader = Reader(data_bus, _Groups())
     if not daemon:
         daemon = FakeDaemonProxy()
     if not uinputs:
         uinputs = GlobalUInputs()
 
-    return Backend(event_handler, reader, daemon, uinputs)
+    return Backend(data_bus, reader, daemon, uinputs)
 
 
 cleanup()
