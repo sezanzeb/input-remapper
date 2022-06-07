@@ -403,6 +403,40 @@ class TestDataManager(unittest.TestCase):
         self.assertIsNotNone(mapping.get_error())
         self.assertEqual(mapping.output_symbol, "bar")
 
+    def test_update_mapping_combination_sends_massage(self):
+        prepare_presets()
+
+        self.data_manager.load_group(group_key="Foo Device 2")
+        self.data_manager.load_preset(name="preset2")
+        self.data_manager.load_mapping(combination=EventCombination("1,4,1"))
+        listener = Listener()
+        self.data_bus.subscribe(MessageType.mapping, listener)
+
+        # we expect a message for combination changed first, and then for mapping
+        self.data_manager.update_mapping(
+            event_combination=EventCombination.from_string("1,5,1+1,6,1")
+        )
+
+        self.assertEqual(listener.calls[0].message_type, MessageType.mapping)
+        self.assertEqual(
+            listener.calls[0].event_combination,
+            EventCombination.from_string("1,5,1+1,6,1"),
+        )
+
+    def test_cannot_update_mapping_combination(self):
+        """updating a mapping with an already existing combination
+        should raise a KeyError"""
+        prepare_presets()
+        self.data_manager.load_group(group_key="Foo Device 2")
+        self.data_manager.load_preset(name="preset2")
+        self.data_manager.load_mapping(combination=EventCombination("1,4,1"))
+
+        self.assertRaises(
+            KeyError,
+            self.data_manager.update_mapping,
+            event_combination=EventCombination("1,3,1"),
+        )
+
     def test_cannot_update_mapping(self):
         """updating a mapping should not be possible if the mapping was not loaded"""
         prepare_presets()

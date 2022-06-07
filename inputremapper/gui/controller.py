@@ -100,6 +100,14 @@ class Controller:
     def copy_preset(self):
         raise NotImplementedError
 
+    def update_combination(self, combination: EventCombination):
+        try:
+            self.data_manager.update_mapping(event_combination=combination)
+            self.save()
+        except KeyError:
+            # the combination was a duplicate
+            pass
+
     def load_groups(self):
         self.data_manager.backend.refresh_groups()
 
@@ -134,6 +142,7 @@ class Controller:
 
     def update_mapping(self, **kwargs):
         self.data_manager.update_mapping(**kwargs)
+        self.save()
 
     def create_mapping(self):
         self.data_manager.create_mapping()
@@ -157,6 +166,9 @@ class Controller:
 
     def save(self):
         self.data_manager.save()
+
+    def start_key_recording(self):
+        self.data_manager.backend.start_key_recording()
 
     def start_injecting(self):
         if len(self.data_manager.active_preset) == 0:

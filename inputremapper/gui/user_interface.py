@@ -33,7 +33,7 @@ from inputremapper.gui.components import (
     PresetSelection,
     MappingListBox,
     TargetSelection,
-    CodeEditor,
+    CodeEditor, RecordingToggle,
 )
 from inputremapper.gui.controller import Controller
 from inputremapper.gui.data_bus import DataBus
@@ -193,6 +193,7 @@ class UserInterface:
         PresetSelection(self.data_bus, controller, self.get("preset_selection"))
         MappingListBox(self.data_bus, controller, self.get("selection_label_listbox"))
         TargetSelection(self.data_bus, controller, self.get("target-selector"))
+        RecordingToggle(self.data_bus, controller, self.get("key_recording_toggle"))
 
         # code editor and autocompletion
         code_editor = CodeEditor(
@@ -436,7 +437,7 @@ class UserInterface:
     @debounce(500)
     def check_on_typing(self, *_):
         """To save latest input from code editor and call syntax check."""
-        self.editor.gather_changes_and_save()
+        # self.editor.gather_changes_and_save()
         self.check_macro_syntax()
 
     def check_macro_syntax(self):

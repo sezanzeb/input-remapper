@@ -438,6 +438,9 @@ class MappingData(UIMapping):
     def __init__(self, **data):
         super(MappingData, self).__init__(**data)
 
+    def __str__(self):
+        return str(self.dict(exclude_defaults=True))
+
     def dict(self, *args, **kwargs):
         """will not include the message_type"""
         dict_ = super(MappingData, self).dict(*args, **kwargs)

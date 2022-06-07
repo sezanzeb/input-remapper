@@ -29,7 +29,6 @@ class MessageType(Enum):
     group = "group"
     preset = "preset"
     mapping = "mapping"
-    combination_changed = "combination_changed"
     combination_recorded = "combination_recorded"
     recording_finished = "recording_finished"
     status = "status"
@@ -72,7 +71,7 @@ class DataBus:
         self.send(Signal(signal))
 
     def _send(self, data: Message, file: str, line: int):
-        logger.debug(f"from {file}:{line}: Signal={data.message_type.name}:\t{data=}")
+        logger.debug(f"from {file}:{line}: Signal={data.message_type.name}: {data}")
         for listener in self._listeners[data.message_type]:
             listener(data)
 
@@ -142,13 +141,6 @@ class StatusData:
     ctx_id: Optional[int]
     msg: Optional[str]
     tooltip: Optional[str]
-
-
-@dataclass(frozen=True)
-class CombinationUpdate:
-    message_type = MessageType.combination_changed
-    old_combination: EventCombination
-    new_combination: EventCombination
 
 
 @dataclass(frozen=True)

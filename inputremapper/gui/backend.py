@@ -70,3 +70,6 @@ class Backend:
                 }
             )
         )
+
+    def start_key_recording(self):
+        self._reader.start_recorder()

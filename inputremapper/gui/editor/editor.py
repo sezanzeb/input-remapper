@@ -109,7 +109,7 @@ class Editor:
         self.active_mapping: Optional[UIMapping] = None
 
         # self._setup_source_view()
-        self._setup_recording_toggle()
+        # self._setup_recording_toggle()
 
         self.window = self.get("window")
         self.timeouts = [
