@@ -274,6 +274,9 @@ class UserInterface:
         self.get("preset_name_input").connect(
             "key-release-event", self.on_preset_name_input_return
         )
+        self.get("copy_preset").connect(
+            "clicked", lambda *_: self.controller.copy_preset
+        )
 
     def on_rename_clicked(self, *_):
         name_input = self.get("preset_name_input")

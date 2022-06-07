@@ -186,6 +186,53 @@ class TestDataManager(unittest.TestCase):
             "key(a)",
         )
 
+    def test_copy_preset(self):
+        prepare_presets()
+        self.data_manager.load_group(group_key="Foo Device 2")
+        self.data_manager.load_preset(name="preset2")
+        listener = Listener()
+        self.data_bus.subscribe(MessageType.group, listener)
+        self.data_bus.subscribe(MessageType.preset, listener)
+
+        self.data_manager.copy_preset("foo")
+
+        # we expect the first data to be group data and the second
+        # one a preset data of the new copy
+        presets_in_group = [preset for preset in listener.calls[0].presets]
+        self.assertIn("preset2", presets_in_group)
+        self.assertIn("foo", presets_in_group)
+        self.assertEqual(listener.calls[1].name, "foo")
+
+        # this should pass without error:
+        self.data_manager.load_preset("preset2")
+        self.data_manager.copy_preset("preset2")
+
+    def test_cannot_copy_preset(self):
+        prepare_presets()
+
+        self.assertRaises(
+            DataManagementError,
+            self.data_manager.copy_preset,
+            "foo",
+        )
+        self.data_manager.load_group("Foo Device 2")
+        self.assertRaises(
+            DataManagementError,
+            self.data_manager.copy_preset,
+            "foo",
+        )
+
+    def test_copy_preset_to_existing_name_raises_error(self):
+        prepare_presets()
+        self.data_manager.load_group(group_key="Foo Device 2")
+        self.data_manager.load_preset(name="preset2")
+
+        self.assertRaises(
+            ValueError,
+            self.data_manager.copy_preset,
+            "preset3",
+        )
+
     def test_rename_preset(self):
         """should be able to rename a preset"""
         prepare_presets()
@@ -227,7 +274,7 @@ class TestDataManager(unittest.TestCase):
         self.data_manager.load_preset(name="preset2")
 
         self.assertRaises(
-            DataManagementError,
+            ValueError,
             self.data_manager.rename_preset,
             new_name="preset3",
         )

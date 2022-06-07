@@ -243,7 +243,7 @@ class DataManager:
         old_name = os.path.basename(old_path).split(".")[0]
         new_path = get_preset_path(self.backend.active_group.key, new_name)
         if os.path.exists(new_path):
-            raise DataManagementError(
+            raise ValueError(
                 f"cannot rename {old_name} to " f"{new_name}, preset already exists"
             )
 
@@ -258,6 +258,26 @@ class DataManager:
         self._active_preset.path = get_preset_path(
             self.backend.active_group.key, new_name
         )
+        self.emit_group_changed()
+        self.emit_preset_changed()
+
+    def copy_preset(self, name: str):
+        """copy the current preset to the given name"""
+        if not self._active_preset:
+            raise DataManagementError("Unable to copy preset: Preset is not set")
+
+        if self._active_preset.path == get_preset_path(
+            self.backend.active_group.key, name
+        ):
+            return
+
+        if name in self.get_presets():
+            raise ValueError(f"a preset with the name {name} already exits")
+
+        new_path = get_preset_path(self.backend.active_group.key, name)
+        logger.info('Copy "%s" to "%s"', self.active_preset.path, new_path)
+        self._active_preset.path = new_path
+        self.save()
         self.emit_group_changed()
         self.emit_preset_changed()
 
