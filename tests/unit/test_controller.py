@@ -369,6 +369,104 @@ class TestController(unittest.TestCase):
         controller.delete_preset()
         self.assertTrue(os.path.isfile(get_preset_path("Foo Device 2", "preset2")))
 
+    def test_copy_preset(self):
+        prepare_presets()
+        self.assertTrue(os.path.isfile(get_preset_path("Foo Device 2", "preset2")))
+
+        data_bus, data_manager, user_interface = get_controller_objects()
+        controller = Controller(data_bus, data_manager)
+        controller.set_gui(user_interface)
+        data_manager.load_group("Foo Device 2")
+        data_manager.load_preset("preset2")
+        controller.copy_preset()
+
+        self.assertTrue(os.path.exists(get_preset_path("Foo Device 2", "preset2")))
+        self.assertTrue(os.path.exists(get_preset_path("Foo Device 2", "preset2 copy")))
+
+    def test_copy_preset_should_add_number(self):
+        prepare_presets()
+        self.assertTrue(os.path.isfile(get_preset_path("Foo Device 2", "preset2")))
+
+        data_bus, data_manager, user_interface = get_controller_objects()
+        controller = Controller(data_bus, data_manager)
+        controller.set_gui(user_interface)
+        data_manager.load_group("Foo Device 2")
+        data_manager.load_preset("preset2")
+        controller.copy_preset()  # creates "preset2 copy"
+        data_manager.load_preset("preset2")
+        controller.copy_preset()  # creates "preset2 copy 2"
+
+        self.assertTrue(os.path.exists(get_preset_path("Foo Device 2", "preset2")))
+        self.assertTrue(os.path.exists(get_preset_path("Foo Device 2", "preset2 copy")))
+        self.assertTrue(
+            os.path.exists(get_preset_path("Foo Device 2", "preset2 copy 2"))
+        )
+
+    def test_copy_preset_should_increment_existing_number(self):
+        prepare_presets()
+        self.assertTrue(os.path.isfile(get_preset_path("Foo Device 2", "preset2")))
+
+        data_bus, data_manager, user_interface = get_controller_objects()
+        controller = Controller(data_bus, data_manager)
+        controller.set_gui(user_interface)
+        data_manager.load_group("Foo Device 2")
+        data_manager.load_preset("preset2")
+        controller.copy_preset()  # creates "preset2 copy"
+        data_manager.load_preset("preset2")
+        controller.copy_preset()  # creates "preset2 copy 2"
+        data_manager.load_preset("preset2")
+        controller.copy_preset()  # creates "preset2 copy 3"
+
+        self.assertTrue(os.path.exists(get_preset_path("Foo Device 2", "preset2")))
+        self.assertTrue(os.path.exists(get_preset_path("Foo Device 2", "preset2 copy")))
+        self.assertTrue(
+            os.path.exists(get_preset_path("Foo Device 2", "preset2 copy 2"))
+        )
+        self.assertTrue(
+            os.path.exists(get_preset_path("Foo Device 2", "preset2 copy 3"))
+        )
+
+    def test_copy_preset_should_not_append_copy_twice(self):
+        prepare_presets()
+        self.assertTrue(os.path.isfile(get_preset_path("Foo Device 2", "preset2")))
+
+        data_bus, data_manager, user_interface = get_controller_objects()
+        controller = Controller(data_bus, data_manager)
+        controller.set_gui(user_interface)
+        data_manager.load_group("Foo Device 2")
+        data_manager.load_preset("preset2")
+        controller.copy_preset()  # creates "preset2 copy"
+        controller.copy_preset()  # creates "preset2 copy 2" not "preset2 copy copy"
+
+        self.assertTrue(os.path.exists(get_preset_path("Foo Device 2", "preset2")))
+        self.assertTrue(os.path.exists(get_preset_path("Foo Device 2", "preset2 copy")))
+        self.assertTrue(
+            os.path.exists(get_preset_path("Foo Device 2", "preset2 copy 2"))
+        )
+
+    def test_copy_preset_should_not_append_copy_to_copy_with_number(self):
+        prepare_presets()
+        self.assertTrue(os.path.isfile(get_preset_path("Foo Device 2", "preset2")))
+
+        data_bus, data_manager, user_interface = get_controller_objects()
+        controller = Controller(data_bus, data_manager)
+        controller.set_gui(user_interface)
+        data_manager.load_group("Foo Device 2")
+        data_manager.load_preset("preset2")
+        controller.copy_preset()  # creates "preset2 copy"
+        data_manager.load_preset("preset2")
+        controller.copy_preset()  # creates "preset2 copy 2"
+        controller.copy_preset()  # creates "preset2 copy 3" not "preset2 copy 2 copy"
+
+        self.assertTrue(os.path.exists(get_preset_path("Foo Device 2", "preset2")))
+        self.assertTrue(os.path.exists(get_preset_path("Foo Device 2", "preset2 copy")))
+        self.assertTrue(
+            os.path.exists(get_preset_path("Foo Device 2", "preset2 copy 2"))
+        )
+        self.assertTrue(
+            os.path.exists(get_preset_path("Foo Device 2", "preset2 copy 3"))
+        )
+
     def test_rename_preset(self):
         prepare_presets()
         self.assertTrue(os.path.isfile(get_preset_path("Foo Device 2", "preset2")))

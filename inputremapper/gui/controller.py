@@ -19,6 +19,7 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations  # needed for the TYPE_CHECKING import
 
+import re
 from typing import TYPE_CHECKING, Optional, List, Tuple
 
 from gi.repository import Gtk, GLib
@@ -98,7 +99,14 @@ class Controller:
         self.load_mapping(combination)
 
     def copy_preset(self):
-        raise NotImplementedError
+        name = self.data_manager.get_preset_name()
+        match = re.search(" copy *\d*$", name)
+        if match:
+            name = name[: match.start()]
+
+        self.data_manager.copy_preset(
+            self.data_manager.get_available_preset_name(f"{name} copy")
+        )
 
     def update_combination(self, combination: EventCombination):
         try:
