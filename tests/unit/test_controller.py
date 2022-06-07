@@ -401,6 +401,34 @@ class TestController(unittest.TestCase):
         self.assertTrue(os.path.exists(get_preset_path("Foo Device 2", "preset3")))
         self.assertTrue(os.path.exists(get_preset_path("Foo Device 2", "preset3 2")))
 
+    def test_rename_preset_should_not_rename_to_empty_name(self):
+        prepare_presets()
+        self.assertTrue(os.path.exists(get_preset_path("Foo Device 2", "preset2")))
+
+        data_bus, data_manager, user_interface = get_controller_objects()
+        controller = Controller(data_bus, data_manager)
+        controller.set_gui(user_interface)
+        data_manager.load_group("Foo Device 2")
+        data_manager.load_preset("preset2")
+        controller.rename_preset(new_name="")
+
+        self.assertTrue(os.path.exists(get_preset_path("Foo Device 2", "preset2")))
+
+    def test_rename_preset_should_not_update_same_name(self):
+        """when the new name is the same as the current name"""
+        prepare_presets()
+        self.assertTrue(os.path.exists(get_preset_path("Foo Device 2", "preset2")))
+
+        data_bus, data_manager, user_interface = get_controller_objects()
+        controller = Controller(data_bus, data_manager)
+        controller.set_gui(user_interface)
+        data_manager.load_group("Foo Device 2")
+        data_manager.load_preset("preset2")
+        controller.rename_preset(new_name="preset2")
+
+        self.assertTrue(os.path.exists(get_preset_path("Foo Device 2", "preset2")))
+        self.assertFalse(os.path.exists(get_preset_path("Foo Device 2", "preset2 2")))
+
     def test_on_add_preset_uses_default_name(self):
         self.assertFalse(
             os.path.exists(get_preset_path("Foo Device 2", DEFAULT_PRESET_NAME))

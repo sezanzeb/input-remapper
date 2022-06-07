@@ -270,6 +270,20 @@ class UserInterface:
         self.get("apply_system_layout").connect(
             "clicked", lambda *_: self.controller.stop_injecting()
         )
+        self.get("rename-button").connect("clicked", self.on_rename_clicked)
+        self.get("preset_name_input").connect(
+            "key-release-event", self.on_preset_name_input_return
+        )
+
+    def on_rename_clicked(self, *_):
+        name_input = self.get("preset_name_input")
+        self.controller.rename_preset(name_input.get_text())
+        name_input.set_text("")
+
+    def on_preset_name_input_return(self, _, event: Gdk.EventKey):
+        logger.debug(event)
+        if event.keyval == Gdk.KEY_Return:
+            self.on_rename_clicked()
 
     def setup_timeouts(self):
         """Setup all GLib timeouts."""
@@ -426,26 +440,6 @@ class UserInterface:
                 position = mapping.event_combination.beautify()
                 msg = _("Syntax error at %s, hover for info") % position
                 self.show_status(CTX_MAPPING, msg, error)
-
-    @ensure_everything_saved
-    def on_rename_button_clicked(self, button):
-        """Rename the preset based on the contents of the name input."""
-        new_name = self.get("preset_name_input").get_text()
-
-        if new_name in ["", self.preset_name]:
-            return
-
-        new_name = rename_preset(self.group.name, self.preset_name, new_name)
-        active_preset.path = get_preset_path(self.group.name, new_name)
-
-        # if the old preset was being autoloaded, change the
-        # name there as well
-        is_autoloaded = global_config.is_autoloaded(self.group.key, self.preset_name)
-        if is_autoloaded:
-            global_config.set_autoload_preset(self.group.key, new_name)
-
-        self.get("preset_name_input").set_text("")
-        self.populate_presets()
 
     @if_preset_selected
     def on_delete_preset_clicked(self, *args):

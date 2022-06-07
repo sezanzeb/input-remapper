@@ -119,6 +119,8 @@ class Controller:
         self.data_manager.load_preset(name)
 
     def rename_preset(self, new_name: str):
+        if not new_name or new_name == self.data_manager.get_preset_name():
+            return
         name = self.data_manager.get_available_preset_name(new_name)
         self.data_manager.rename_preset(name)
 
