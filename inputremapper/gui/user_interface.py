@@ -33,7 +33,9 @@ from inputremapper.gui.components import (
     PresetSelection,
     MappingListBox,
     TargetSelection,
-    CodeEditor, RecordingToggle,
+    CodeEditor,
+    RecordingToggle,
+    StatusBar,
 )
 from inputremapper.gui.controller import Controller
 from inputremapper.gui.data_bus import DataBus
@@ -194,6 +196,13 @@ class UserInterface:
         MappingListBox(self.data_bus, controller, self.get("selection_label_listbox"))
         TargetSelection(self.data_bus, controller, self.get("target-selector"))
         RecordingToggle(self.data_bus, controller, self.get("key_recording_toggle"))
+        StatusBar(
+            self.data_bus,
+            controller,
+            self.get("status_bar"),
+            self.get("error_status_icon"),
+            self.get("warning_status_icon"),
+        )
 
         # code editor and autocompletion
         code_editor = CodeEditor(
@@ -395,44 +404,6 @@ class UserInterface:
         self.dbus.stop_injecting(self.group.key)
         self.show_status(CTX_APPLY, _("Applied the system default"))
         GLib.timeout_add(100, self.show_device_mapping_status)
-
-    def show_status(self, context_id, message, tooltip=None):
-        """Show a status message and set its tooltip.
-
-        If message is None, it will remove the newest message of the
-        given context_id.
-        """
-        status_bar = self.get("status_bar")
-
-        if message is None:
-            status_bar.remove_all(context_id)
-
-            if context_id in (CTX_ERROR, CTX_MAPPING):
-                self.get("error_status_icon").hide()
-
-            if context_id == CTX_WARNING:
-                self.get("warning_status_icon").hide()
-
-            status_bar.set_tooltip_text("")
-        else:
-            if tooltip is None:
-                tooltip = message
-
-            self.get("error_status_icon").hide()
-            self.get("warning_status_icon").hide()
-
-            if context_id in (CTX_ERROR, CTX_MAPPING):
-                self.get("error_status_icon").show()
-
-            if context_id == CTX_WARNING:
-                self.get("warning_status_icon").show()
-
-            max_length = 45
-            if len(message) > max_length:
-                message = message[: max_length - 3] + "..."
-
-            status_bar.push(context_id, message)
-            status_bar.set_tooltip_text(tooltip)
 
     @debounce(500)
     def check_on_typing(self, *_):

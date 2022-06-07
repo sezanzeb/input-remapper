@@ -25,8 +25,9 @@ from inputremapper.gui.data_bus import (
     UInputsData,
     PresetData,
     CombinationRecorded,
+    StatusData,
 )
-from inputremapper.gui.utils import HandlerDisabled
+from inputremapper.gui.utils import HandlerDisabled, CTX_ERROR, CTX_MAPPING, CTX_WARNING
 from inputremapper.logger import logger
 
 
@@ -427,3 +428,64 @@ class RecordingToggle:
 
         self.controller.update_combination(data.combination)
 
+
+class StatusBar:
+    def __init__(
+        self,
+        data_bus: DataBus,
+        controller: Controller,
+        status_bar: Gtk.Statusbar,
+        error_icon,
+        warning_icon,
+    ):
+        self.data_bus = data_bus
+        self.controller = controller
+        self.gui = status_bar
+        self.error_icon = error_icon
+        self.warning_icon = warning_icon
+
+        self.attach_to_events()
+
+    def attach_to_events(self):
+        self.data_bus.subscribe(MessageType.status, self.on_status_update)
+
+    def on_status_update(self, data: StatusData):
+        """Show a status message and set its tooltip.
+
+        If message is None, it will remove the newest message of the
+        given context_id.
+        """
+        context_id = data.ctx_id
+        message = data.msg
+        tooltip = data.tooltip
+        status_bar = self.gui
+
+        if message is None:
+            status_bar.remove_all(context_id)
+
+            if context_id in (CTX_ERROR, CTX_MAPPING):
+                self.error_icon.hide()
+
+            if context_id == CTX_WARNING:
+                self.warning_icon.hide()
+
+            status_bar.set_tooltip_text("")
+        else:
+            if tooltip is None:
+                tooltip = message
+
+            self.error_icon.hide()
+            self.warning_icon.hide()
+
+            if context_id in (CTX_ERROR, CTX_MAPPING):
+                self.error_icon.show()
+
+            if context_id == CTX_WARNING:
+                self.warning_icon.show()
+
+            max_length = 45
+            if len(message) > max_length:
+                message = message[: max_length - 3] + "..."
+
+            status_bar.push(context_id, message)
+            status_bar.set_tooltip_text(tooltip)
