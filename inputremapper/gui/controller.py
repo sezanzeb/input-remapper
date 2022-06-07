@@ -198,11 +198,62 @@ class Controller:
                 CTX_APPLY,
                 _("Failed to apply preset %s") % self.data_manager.get_preset_name(),
             )
-            pass
+
+        GLib.timeout_add(100, self.show_injection_result)
 
     def stop_injecting(self):
         self.data_manager.stop_injecting()
         self.show_status(CTX_APPLY, _("Applied the system default"))
 
-    def show_status(self, ctx_id: int, msg: str, tooltip: Optional[str] = None):
+    def show_injection_result(self):
+        """Show if the injection was successfully started."""
+
+        state = self.data_manager.get_state()
+
+        if state == RUNNING:
+            msg = _("Applied preset %s") % self.data_manager.get_preset_name()
+
+            if self.data_manager.active_preset.get_mapping(
+                EventCombination(InputEvent.btn_left())
+            ):
+                msg += _(", CTRL + DEL to stop")
+
+            self.show_status(CTX_APPLY, msg)
+            logger.info(
+                'Group "%s" is currently mapped',
+                self.data_manager.backend.active_group.key,
+            )
+            return False
+
+        if state == FAILED:
+            self.show_status(
+                CTX_ERROR,
+                _("Failed to apply preset %s") % self.data_manager.get_preset_name(),
+            )
+            return False
+
+        if state == NO_GRAB:
+            self.show_status(
+                CTX_ERROR,
+                "The device was not grabbed",
+                "Either another application is already grabbing it or "
+                "your preset doesn't contain anything that is sent by the "
+                "device.",
+            )
+            return False
+
+        if state == UPGRADE_EVDEV:
+            self.show_status(
+                CTX_ERROR,
+                "Upgrade python-evdev",
+                "Your python-evdev version is too old.",
+            )
+            return False
+
+        # keep the timeout running until a relevant state is found
+        return True
+
+    def show_status(
+        self, ctx_id: int, msg: Optional[str] = None, tooltip: Optional[str] = None
+    ):
         self.data_bus.send(StatusData(ctx_id, msg, tooltip))
