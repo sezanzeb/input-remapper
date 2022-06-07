@@ -71,7 +71,7 @@ class Preset:
         self._path = path
         self._mapping_factory = mapping_factory
 
-    def __iter__(self) -> Iterator[Mapping]:
+    def __iter__(self) -> Iterator[Union[Mapping, UIMapping]]:
         """Iterate over Mapping objects."""
         return iter(self._mappings.values())
 

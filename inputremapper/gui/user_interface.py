@@ -233,8 +233,8 @@ class UserInterface:
         self.get("vertical-wrapper").set_opacity(0)
         self.window = window
 
-        source_view = self.get("code_editor")
-        source_view.get_buffer().connect("changed", self.check_on_typing)
+        # source_view = self.get("code_editor")
+        # source_view.get_buffer().connect("changed", self.check_on_typing)
 
         # if any of the next steps take a bit to complete, have the window
         # already visible (without content) to make it look more responsive.

@@ -30,7 +30,9 @@ from inputremapper.configs.paths import get_preset_path, mkdir, split_all
 from inputremapper.event_combination import EventCombination
 from inputremapper.exceptions import DataManagementError
 from inputremapper.gui.backend import Backend
-from inputremapper.gui.data_bus import DataBus, GroupData, PresetData
+from inputremapper.gui.data_bus import DataBus, GroupData, PresetData, StatusData
+from inputremapper.gui.utils import CTX_MAPPING
+from inputremapper.gui.gettext import _
 from inputremapper.logger import logger
 
 DEFAULT_PRESET_NAME = "new preset"
@@ -117,13 +119,31 @@ class DataManager:
         self.data_bus.send(
             PresetData(self.get_preset_name(), self.get_mappings(), self._autoload)
         )
+        self.send_mapping_errors()
 
     def emit_mapping_changed(self):
         mapping = self._active_mapping
         if mapping:
             self.data_bus.send(mapping.get_bus_message())
+            self.send_mapping_errors()
         else:
             self.data_bus.send(MappingData())
+
+    def send_mapping_errors(self):
+        if not self._active_preset:
+            return
+
+        if self._active_preset.is_valid():
+            self.data_bus.send(StatusData(CTX_MAPPING))
+
+        for mapping in self._active_preset:
+            error = mapping.get_error()
+            if not error:
+                continue
+
+            position = mapping.name or mapping.event_combination.beautify()
+            msg = _("Mapping error at %s, hover for info") % position
+            self.data_bus.send(StatusData(CTX_MAPPING, msg, str(error)))
 
     def get_presets(self) -> Tuple[str, ...]:
         """Get all preset filenames for self.backend.active_group.key and user,
@@ -318,14 +338,14 @@ class DataManager:
 
     def stop_injecting(self) -> None:
         self.backend.daemon.stop_injecting(self.backend.active_group.key)
-        # todo: check the state and emit a event (glib timeout)
+        # todo: check the state and and send a status update (glib timeout)
 
     def get_state(self) -> int:
         return self.backend.daemon.get_state(self.backend.active_group.key)
 
     def start_injecting(self) -> bool:
         self.backend.daemon.set_config_dir(self._config.path)
-        # todo: check the state and emit a event (glib timeout)
+        # todo: check the state and send a status update (glib timeout)
         return self.backend.daemon.start_injecting(
             self.backend.active_group.key, self.get_preset_name()
         )

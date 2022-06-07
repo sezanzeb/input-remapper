@@ -139,8 +139,8 @@ class PresetData:
 class StatusData:
     message_type = MessageType.status
     ctx_id: int
-    msg: Optional[str]
-    tooltip: Optional[str]
+    msg: Optional[str] = None
+    tooltip: Optional[str] = None
 
 
 @dataclass(frozen=True)
