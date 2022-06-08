@@ -447,7 +447,3 @@ class MappingData(UIMapping):
         if "message_type" in dict_:
             del dict_["message_type"]
         return dict_
-
-    def is_default(self) -> bool:
-        """whether this is the empty default mapping"""
-        return self == UIMapping()

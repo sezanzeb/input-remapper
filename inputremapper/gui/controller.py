@@ -27,7 +27,7 @@ from gi.repository import Gtk, GLib
 from .data_bus import DataBus, MessageType, PresetData, StatusData
 from .gettext import _
 from .data_manager import DataManager, DEFAULT_PRESET_NAME
-from ..configs.mapping import MappingData
+from ..configs.mapping import MappingData, UIMapping
 from ..event_combination import EventCombination
 from ..injection.injector import RUNNING, FAILED, NO_GRAB, UPGRADE_EVDEV
 from ..input_event import InputEvent
@@ -37,6 +37,11 @@ from .utils import CTX_SAVE, CTX_APPLY, CTX_KEYCODE, CTX_ERROR, CTX_WARNING, CTX
 if TYPE_CHECKING:
     # avoids gtk import error in tests
     from .user_interface import UserInterface
+
+
+MAPPING_DEFAULTS = {
+    "target_uinput": "keyboard"
+}
 
 
 class Controller:
@@ -164,6 +169,7 @@ class Controller:
             # there is already an empty mapping
             pass
         self.data_manager.load_mapping(combination=EventCombination.empty_combination())
+        self.data_manager.update_mapping(**MAPPING_DEFAULTS)
 
     def delete_mapping(self):
         accept = Gtk.ResponseType.ACCEPT
@@ -174,6 +180,7 @@ class Controller:
         ):
             return
         self.data_manager.delete_mapping()
+        self.save()
 
     def set_autoload(self, autoload: bool):
         self.data_manager.set_autoload(autoload)
@@ -274,3 +281,7 @@ class Controller:
         self, ctx_id: int, msg: Optional[str] = None, tooltip: Optional[str] = None
     ):
         self.data_bus.send(StatusData(ctx_id, msg, tooltip))
+
+    def is_empty_mapping(self) -> bool:
+        """check if the active_mapping is empty"""
+        return self.data_manager.active_mapping == UIMapping(**MAPPING_DEFAULTS)

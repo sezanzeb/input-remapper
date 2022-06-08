@@ -50,7 +50,7 @@ from tests.test import (
 )
 
 from inputremapper.configs.global_config import global_config, GlobalConfig
-from inputremapper.gui.controller import Controller
+from inputremapper.gui.controller import Controller, MAPPING_DEFAULTS
 from inputremapper.gui.data_manager import DataManager, DEFAULT_PRESET_NAME
 from inputremapper.configs.paths import get_preset_path, get_config_path
 from inputremapper.configs.preset import Preset
@@ -593,7 +593,7 @@ class TestController(unittest.TestCase):
         data_bus.subscribe(MessageType.mapping, f)
         controller.create_mapping()
 
-        self.assertEqual(calls[-1], UIMapping())
+        self.assertEqual(calls[-1], UIMapping(**MAPPING_DEFAULTS))
 
     def test_delete_mapping_asks_for_confirmation(self):
         prepare_presets()

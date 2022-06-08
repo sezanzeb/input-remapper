@@ -127,13 +127,14 @@ class TargetSelection:
         self.gui.set_id_column(0)
 
     def on_mapping_loaded(self, mapping: MappingData):
-        if not mapping.is_default():
+        logger.error("got %s", mapping.target_uinput)
+        if not self.controller.is_empty_mapping():
             self.enable()
         else:
             self.disable()
 
         with HandlerDisabled(self.gui, self.on_gtk_target_selected):
-            self.gui.set_active_id(mapping.target_uinput or "keyboard")
+            self.gui.set_active_id(mapping.target_uinput)
 
     def enable(self):
         self.gui.set_sensitive(True)
@@ -388,7 +389,7 @@ class CodeEditor:
 
     def on_mapping_loaded(self, mapping: MappingData):
         code = ""
-        if not mapping.is_default():
+        if not self.controller.is_empty_mapping():
             code = mapping.output_symbol or ""
             self.enable()
         else:
