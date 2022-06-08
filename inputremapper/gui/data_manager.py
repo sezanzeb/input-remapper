@@ -211,19 +211,23 @@ class DataManager:
         pass
 
     def load_group(self, group_key: str):
-        """gather all presets in the group and provide them"""
+        """gather all presets in the group and provide them.
+
+        this will render the active_mapping and active_preset invalid
+        """
         if group_key not in self.available_groups:
             raise DataManagementError("Unable to load non existing group")
 
         self._active_mapping = None
         self._active_preset = None
         self.backend.set_active_group(group_key)
-        self.emit_mapping_changed()
-        self.emit_preset_changed()
         self.emit_group_changed()
 
     def load_preset(self, name: str):
-        """load the preset in the active group and provide all mappings"""
+        """load the preset in the active group and provide all mappings
+
+        this will render the active_mapping invalid
+        """
         if not self.backend.active_group:
             raise DataManagementError("Unable to load preset. Group is not set")
 
@@ -232,7 +236,6 @@ class DataManager:
         preset.load()
         self._active_mapping = None
         self._active_preset = preset
-        self.emit_mapping_changed()
         self.emit_preset_changed()
 
     def rename_preset(self, new_name: str):
@@ -299,13 +302,15 @@ class DataManager:
         self.emit_group_changed()
 
     def delete_preset(self):
+        """delete the current preset
+
+        this will invalidate the active mapping
+        """
         preset_path = self._active_preset.path
         logger.info('Removing "%s"', preset_path)
         os.remove(preset_path)
         self._active_mapping = None
         self._active_preset = None
-        self.emit_mapping_changed()
-        self.emit_preset_changed()
         self.emit_group_changed()
 
     def load_mapping(self, combination: EventCombination):

@@ -147,6 +147,9 @@ class EventCombination(Tuple[InputEvent]):
         """Get a human readable string representation."""
         result = []
 
+        if self == EventCombination.empty_combination():
+            return "empty_combination"
+
         for event in self:
 
             if event.type not in ecodes.bytype:

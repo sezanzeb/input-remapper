@@ -339,14 +339,13 @@ class TestDataManager(unittest.TestCase):
         self.data_bus.subscribe(MessageType.preset, listener)
         self.data_bus.subscribe(MessageType.mapping, listener)
 
-        # should emit mapping_changed, preset_changed, group_changed (in that order)
+        # should emit only group_changed
         self.data_manager.delete_preset()
 
-        presets_in_group = [preset for preset in listener.calls[2].presets]
+        presets_in_group = [preset for preset in listener.calls[0].presets]
         self.assertEqual(len(presets_in_group), 1)
         self.assertNotIn("preset2", presets_in_group)
-        self.assertEqual(listener.calls[1], PresetData(None, None))
-        self.assertEqual(listener.calls[0], MappingData())  # the default data
+        self.assertEqual(len(listener.calls), 1)
 
     def test_load_mapping(self):
         """should be able to load a mapping"""

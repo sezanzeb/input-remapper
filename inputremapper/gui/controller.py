@@ -160,7 +160,7 @@ class Controller:
         except KeyError:
             # there is already an empty mapping
             pass
-        # self.data_manager.load_mapping(combination=EventCombination.empty_combination())
+        self.data_manager.load_mapping(combination=EventCombination.empty_combination())
 
     def delete_mapping(self):
         accept = Gtk.ResponseType.ACCEPT
