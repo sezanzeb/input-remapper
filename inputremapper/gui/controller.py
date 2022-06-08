@@ -155,8 +155,12 @@ class Controller:
         self.save()
 
     def create_mapping(self):
-        self.data_manager.create_mapping()
-        self.data_manager.load_mapping(combination=EventCombination.empty_combination())
+        try:
+            self.data_manager.create_mapping()
+        except KeyError:
+            # there is already an empty mapping
+            pass
+        # self.data_manager.load_mapping(combination=EventCombination.empty_combination())
 
     def delete_mapping(self):
         accept = Gtk.ResponseType.ACCEPT

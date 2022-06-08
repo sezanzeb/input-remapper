@@ -164,7 +164,10 @@ class Preset:
         saved_mappings = {}
         for mapping in self:
             if not mapping.is_valid():
-                if not isinstance(mapping.event_combination, EventCombination):
+                if (
+                    not isinstance(mapping.event_combination, EventCombination)
+                    or mapping.event_combination == EventCombination.empty_combination()
+                ):
                     # we save invalid mapping except for those with
                     # invalid event_combination
                     logger.debug("skipping invalid mapping %s", mapping)

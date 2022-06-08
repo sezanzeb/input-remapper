@@ -26,6 +26,7 @@ from inputremapper.gui.data_bus import (
     PresetData,
     CombinationRecorded,
     StatusData,
+    CombinationUpdate,
 )
 from inputremapper.gui.utils import HandlerDisabled, CTX_ERROR, CTX_MAPPING, CTX_WARNING
 from inputremapper.logger import logger
@@ -34,6 +35,7 @@ from inputremapper.logger import logger
 Capabilities = Dict[int, List]
 
 SET_KEY_FIRST = _("Set the key first")
+EMPTY_MAPPING_NAME = _("Empty Mapping")
 
 ICON_NAMES = {
     GAMEPAD: "input-gaming",
@@ -189,11 +191,16 @@ class MappingListBox:
     @staticmethod
     def sort_func(row1: SelectionLabel, row2: SelectionLabel) -> int:
         """sort alphanumerical by name"""
+        if row1.name == EMPTY_MAPPING_NAME:
+            return 1
+        if row2.name == EMPTY_MAPPING_NAME:
+            return 0
+
         return 0 if row1.name < row2.name else 1
 
     def attach_to_events(self):
         self.data_bus.subscribe(MessageType.preset, self.on_preset_changed)
-        self.data_bus.subscribe(MessageType.mapping, self.on_mapping_loaded)
+        self.data_bus.subscribe(MessageType.mapping, self.on_mapping_changed)
 
     def on_preset_changed(self, data: PresetData):
         self.gui.forall(self.gui.remove)
@@ -205,12 +212,13 @@ class MappingListBox:
                 self.data_bus, self.controller, name, combination
             )
             self.gui.insert(selection_label, -1)
+        self.gui.invalidate_sort()
 
-    def on_mapping_loaded(self, mapping: MappingData):
+    def on_mapping_changed(self, mapping: MappingData):
         with HandlerDisabled(self.gui, self.on_gtk_mapping_selected):
-            if mapping.is_default():
-                self.gui.do_unselect_all(self.gui)
-                return
+            # if mapping.is_default():
+            #    self.gui.do_unselect_all(self.gui)
+            #    return
 
             combination = mapping.event_combination
 
@@ -219,8 +227,11 @@ class MappingListBox:
                     self.gui.select_row(row)
 
             self.gui.foreach(set_active)
+            self.gui.invalidate_sort()
 
-    def on_gtk_mapping_selected(self, _, row: SelectionLabel):
+    def on_gtk_mapping_selected(self, _, row: Optional[SelectionLabel]):
+        if not row:
+            return
         self.controller.load_mapping(row.combination)
 
 
@@ -259,17 +270,28 @@ class SelectionLabel(Gtk.ListBoxRow):
 
     @property
     def name(self) -> str:
+        if (
+            self.combination == EventCombination.empty_combination()
+            or self.combination is None
+        ):
+            return EMPTY_MAPPING_NAME
         return self._name or self.combination.beautify()
 
     def attach_to_events(self):
         self.data_bus.subscribe(MessageType.mapping, self.on_mapping_changed)
+        self.data_bus.subscribe(
+            MessageType.combination_update, self.on_combination_update
+        )
 
     def on_mapping_changed(self, mapping: MappingData):
-        if not self.is_selected():
+        if mapping.event_combination != self.combination:
             return
         self._name = mapping.name
-        self.combination = mapping.event_combination
         self.label.set_label(self.name)
+
+    def on_combination_update(self, data: CombinationUpdate):
+        if data.old_combination == self.combination:
+            self.combination = data.new_combination
 
 
 class CodeEditor:

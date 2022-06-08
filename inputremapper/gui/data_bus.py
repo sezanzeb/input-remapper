@@ -31,6 +31,7 @@ class MessageType(Enum):
     mapping = "mapping"
     combination_recorded = "combination_recorded"
     recording_finished = "recording_finished"
+    combination_update = "combination_update"
     status = "status"
 
     # for unit tests:
@@ -147,6 +148,13 @@ class StatusData:
 class CombinationRecorded:
     message_type = MessageType.combination_recorded
     combination: EventCombination
+
+
+@dataclass(frozen=True)
+class CombinationUpdate:
+    message_type = MessageType.combination_update
+    old_combination: EventCombination
+    new_combination: EventCombination
 
 
 class Signal(Message):

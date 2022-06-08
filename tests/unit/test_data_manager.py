@@ -458,15 +458,24 @@ class TestDataManager(unittest.TestCase):
         self.data_manager.load_mapping(combination=EventCombination("1,4,1"))
         listener = Listener()
         self.data_bus.subscribe(MessageType.mapping, listener)
+        self.data_bus.subscribe(MessageType.combination_update, listener)
 
-        # we expect a message for combination changed first, and then for mapping
+        # we expect a message for combination update first, and then for mapping
         self.data_manager.update_mapping(
             event_combination=EventCombination.from_string("1,5,1+1,6,1")
         )
-
-        self.assertEqual(listener.calls[0].message_type, MessageType.mapping)
+        self.assertEqual(listener.calls[0].message_type, MessageType.combination_update)
         self.assertEqual(
-            listener.calls[0].event_combination,
+            listener.calls[0].old_combination,
+            EventCombination.from_string("1,4,1"),
+        )
+        self.assertEqual(
+            listener.calls[0].new_combination,
+            EventCombination.from_string("1,5,1+1,6,1"),
+        )
+        self.assertEqual(listener.calls[1].message_type, MessageType.mapping)
+        self.assertEqual(
+            listener.calls[1].event_combination,
             EventCombination.from_string("1,5,1+1,6,1"),
         )
 

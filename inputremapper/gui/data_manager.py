@@ -30,7 +30,13 @@ from inputremapper.configs.paths import get_preset_path, mkdir, split_all
 from inputremapper.event_combination import EventCombination
 from inputremapper.exceptions import DataManagementError
 from inputremapper.gui.backend import Backend
-from inputremapper.gui.data_bus import DataBus, GroupData, PresetData, StatusData
+from inputremapper.gui.data_bus import (
+    DataBus,
+    GroupData,
+    PresetData,
+    StatusData,
+    CombinationUpdate,
+)
 from inputremapper.gui.utils import CTX_MAPPING, CTX_APPLY
 from inputremapper.gui.gettext import _
 from inputremapper.logger import logger
@@ -320,8 +326,17 @@ class DataManager:
         if not self._active_mapping:
             raise DataManagementError("Cannot modify Mapping: mapping is not set")
 
+        combination = self.active_mapping.event_combination
         for key, value in kwargs.items():
             setattr(self._active_mapping, key, value)
+
+        if (
+            "event_combination" in kwargs
+            and combination != self.active_mapping.event_combination
+        ):
+            self.data_bus.send(
+                CombinationUpdate(combination, self._active_mapping.event_combination)
+            )
         self.emit_mapping_changed()
 
     def create_mapping(self):
