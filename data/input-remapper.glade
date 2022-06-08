@@ -127,12 +127,17 @@
   <object class="GtkImage" id="image1">
     <property name="visible">True</property>
     <property name="can-focus">False</property>
-    <property name="stock">gtk-add</property>
+    <property name="icon-name">list-add</property>
   </object>
   <object class="GtkImage" id="image2">
     <property name="visible">True</property>
     <property name="can-focus">False</property>
     <property name="icon-name">media-record</property>
+  </object>
+  <object class="GtkImage" id="image3">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <property name="icon-name">list-add</property>
   </object>
   <object class="GtkAdjustment" id="mouse_speed_adjustment">
     <property name="lower">2</property>
@@ -169,7 +174,6 @@
         <property name="margin-start">10</property>
         <property name="margin-end">10</property>
         <property name="orientation">vertical</property>
-        <property name="spacing">1</property>
         <child>
           <object class="GtkBox">
             <property name="visible">True</property>
@@ -522,29 +526,57 @@ Gives your keys back their original function</property>
             <property name="can-focus">False</property>
             <property name="margin-start">4</property>
             <property name="margin-end">4</property>
-            <property name="margin-top">18</property>
-            <property name="margin-bottom">4</property>
             <property name="spacing">18</property>
             <child>
-              <object class="GtkScrolledWindow">
-                <property name="width-request">160</property>
+              <object class="GtkBox">
                 <property name="visible">True</property>
-                <property name="can-focus">True</property>
+                <property name="can-focus">False</property>
+                <property name="margin-top">18</property>
+                <property name="margin-bottom">4</property>
+                <property name="orientation">vertical</property>
+                <property name="spacing">4</property>
                 <child>
-                  <object class="GtkViewport">
+                  <object class="GtkScrolledWindow">
+                    <property name="width-request">160</property>
                     <property name="visible">True</property>
-                    <property name="can-focus">False</property>
-                    <property name="shadow-type">none</property>
+                    <property name="can-focus">True</property>
                     <child>
-                      <object class="GtkListBox" id="selection_label_listbox">
+                      <object class="GtkViewport">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
-                        <style>
-                          <class name="editor-key-list"/>
-                        </style>
+                        <property name="shadow-type">none</property>
+                        <child>
+                          <object class="GtkListBox" id="selection_label_listbox">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <style>
+                              <class name="editor-key-list"/>
+                            </style>
+                          </object>
+                        </child>
                       </object>
                     </child>
                   </object>
+                  <packing>
+                    <property name="expand">True</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkButton" id="create_mapping_button">
+                    <property name="label" translatable="yes">Add Mapping</property>
+                    <property name="visible">True</property>
+                    <property name="can-focus">True</property>
+                    <property name="receives-default">True</property>
+                    <property name="image">image3</property>
+                    <property name="relief">none</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">1</property>
+                  </packing>
                 </child>
               </object>
               <packing>
@@ -569,6 +601,8 @@ Gives your keys back their original function</property>
               <object class="GtkGrid">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
+                <property name="margin-top">18</property>
+                <property name="margin-bottom">4</property>
                 <property name="hexpand">True</property>
                 <property name="vexpand">True</property>
                 <property name="row-spacing">4</property>
@@ -822,6 +856,8 @@ Gives your keys back their original function</property>
           <object class="GtkBox" id="warnings">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
+            <property name="margin-start">4</property>
+            <property name="margin-end">4</property>
             <child>
               <object class="GtkImage" id="warning_status_icon">
                 <property name="can-focus">False</property>

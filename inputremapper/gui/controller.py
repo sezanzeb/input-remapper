@@ -27,6 +27,7 @@ from gi.repository import Gtk, GLib
 from .data_bus import DataBus, MessageType, PresetData, StatusData
 from .gettext import _
 from .data_manager import DataManager, DEFAULT_PRESET_NAME
+from ..configs.mapping import MappingData
 from ..event_combination import EventCombination
 from ..injection.injector import RUNNING, FAILED, NO_GRAB, UPGRADE_EVDEV
 from ..input_event import InputEvent
@@ -91,12 +92,14 @@ class Controller:
 
     def on_preset_changed(self, data: PresetData):
         """load a mapping as soon as everyone got notified about the new preset"""
-        if not data.mappings:
-            return
-        mappings = list(data.mappings)
-        mappings.sort(key=lambda t: t[0] or t[1].beautify())
-        combination = mappings[0][1]
-        self.load_mapping(combination)
+        if data.mappings:
+            mappings = list(data.mappings)
+            mappings.sort(key=lambda t: t[0] or t[1].beautify())
+            combination = mappings[0][1]
+            self.load_mapping(combination)
+        else:
+            # send an empty mapping to make sure the ui is reset to default values
+            self.data_bus.send(MappingData())
 
     def copy_preset(self):
         name = self.data_manager.get_preset_name()

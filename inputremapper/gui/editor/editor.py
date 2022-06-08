@@ -132,8 +132,8 @@ class Editor:
         # code_editor.connect("focus-out-event", self.on_text_input_unfocus)
         # code_editor.get_buffer().connect("changed", self.on_text_input_changed)
 
-        delete_button = self.get_delete_button()
-        delete_button.connect("clicked", self._on_delete_button_clicked)
+        # delete_button = self.get_delete_button()
+        # delete_button.connect("clicked", self._on_delete_button_clicked)
 
     def __del__(self):
         for timeout in self.timeouts:

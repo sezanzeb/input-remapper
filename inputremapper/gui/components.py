@@ -389,7 +389,7 @@ class CodeEditor:
     def on_mapping_loaded(self, mapping: MappingData):
         code = ""
         if not mapping.is_default():
-            code = mapping.output_symbol
+            code = mapping.output_symbol or ""
             self.enable()
         else:
             self.disable()

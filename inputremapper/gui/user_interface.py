@@ -274,8 +274,11 @@ class UserInterface:
         self.get("preset_name_input").connect(
             "key-release-event", self.on_preset_name_input_return
         )
-        self.get("copy_preset").connect(
-            "clicked", lambda *_: self.controller.copy_preset
+        self.get("create_mapping_button").connect(
+            "clicked", lambda *_: self.controller.create_mapping()
+        )
+        self.get("delete-mapping").connect(
+            "clicked", lambda *_: self.controller.delete_mapping()
         )
 
     def on_rename_clicked(self, *_):
