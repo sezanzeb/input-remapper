@@ -36,6 +36,7 @@ from inputremapper.gui.components import (
     CodeEditor,
     RecordingToggle,
     StatusBar,
+    AutoloadToggle,
 )
 from inputremapper.gui.controller import Controller
 from inputremapper.gui.data_bus import DataBus
@@ -203,6 +204,7 @@ class UserInterface:
             self.get("error_status_icon"),
             self.get("warning_status_icon"),
         )
+        AutoloadToggle(self.data_bus, controller, self.get("preset_autoload_switch"))
 
         # code editor and autocompletion
         code_editor = CodeEditor(

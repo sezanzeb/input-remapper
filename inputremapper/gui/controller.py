@@ -39,9 +39,7 @@ if TYPE_CHECKING:
     from .user_interface import UserInterface
 
 
-MAPPING_DEFAULTS = {
-    "target_uinput": "keyboard"
-}
+MAPPING_DEFAULTS = {"target_uinput": "keyboard"}
 
 
 class Controller:

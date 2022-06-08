@@ -127,7 +127,6 @@ class TargetSelection:
         self.gui.set_id_column(0)
 
     def on_mapping_loaded(self, mapping: MappingData):
-        logger.error("got %s", mapping.target_uinput)
         if not self.controller.is_empty_mapping():
             self.enable()
         else:
@@ -512,3 +511,23 @@ class StatusBar:
 
             status_bar.push(context_id, message)
             status_bar.set_tooltip_text(tooltip)
+
+
+class AutoloadToggle:
+    def __init__(self, data_bus: DataBus, controller: Controller, switch: Gtk.Switch):
+        self.data_bus = data_bus
+        self.controller = controller
+        self.gui = switch
+
+        self.gui.connect("state-set", self.on_gtk_toggle)
+        self.attach_to_events()
+
+    def attach_to_events(self):
+        self.data_bus.subscribe(MessageType.preset, self.on_preset_changed)
+
+    def on_preset_changed(self, data: PresetData):
+        with HandlerDisabled(self.gui, self.on_gtk_toggle):
+            self.gui.set_active(data.autoload)
+
+    def on_gtk_toggle(self, *_):
+        self.controller.set_autoload(self.gui.get_active())
