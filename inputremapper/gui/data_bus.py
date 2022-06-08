@@ -74,7 +74,7 @@ class DataBus:
 
     def _send(self, data: Message, file: str, line: int):
         logger.debug(f"from {file}:{line}: Signal={data.message_type.name}: {data}")
-        for listener in self._listeners[data.message_type]:
+        for listener in self._listeners[data.message_type].copy():
             listener(data)
 
     def _send_all(self):

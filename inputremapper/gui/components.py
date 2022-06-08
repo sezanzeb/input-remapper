@@ -346,6 +346,9 @@ class CodeEditor:
 
     def attach_to_events(self):
         self.data_bus.subscribe(MessageType.mapping, self.on_mapping_loaded)
+        self.data_bus.subscribe(
+            MessageType.recording_finished, self.on_recording_finished
+        )
 
     def toggle_line_numbers(self):
         """Show line numbers if multiline, otherwise remove them"""
@@ -396,6 +399,9 @@ class CodeEditor:
 
         self.code = code
         self.toggle_line_numbers()
+
+    def on_recording_finished(self, _):
+        self.controller.set_focus(self.gui)
 
 
 class RecordingToggle:

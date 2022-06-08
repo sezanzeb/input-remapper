@@ -35,7 +35,7 @@ from inputremapper.gui.components import (
 )
 from inputremapper.gui.controller import Controller
 from inputremapper.gui.data_bus import DataBus, MessageType
-from inputremapper.gui.editor.autocompletion import Autocompletion
+from inputremapper.gui.autocompletion import Autocompletion
 from inputremapper.configs.data import get_data_path
 from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.logger import logger, COMMIT_HASH, VERSION, EVDEV_VERSION

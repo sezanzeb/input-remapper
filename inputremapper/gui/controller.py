@@ -303,3 +303,7 @@ class Controller:
         self.data_bus.signal(MessageType.terminate)
         logger.debug("Quitting")
         Gtk.main_quit()
+
+    def set_focus(self, component):
+        """focus the given component"""
+        self.gui.window.set_focus(component)
