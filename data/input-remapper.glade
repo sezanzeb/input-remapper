@@ -165,8 +165,6 @@
     <property name="default-height">450</property>
     <property name="icon">input-remapper.svg</property>
     <signal name="delete-event" handler="on_close" swapped="no"/>
-    <signal name="key-press-event" handler="on_key_press" swapped="no"/>
-    <signal name="key-release-event" handler="on_key_release" swapped="no"/>
     <child>
       <object class="GtkBox" id="vertical-wrapper">
         <property name="visible">True</property>
@@ -352,7 +350,6 @@ Gives your keys back their original function</property>
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
                     <property name="hexpand">True</property>
-                    <signal name="changed" handler="on_select_preset" swapped="no"/>
                   </object>
                   <packing>
                     <property name="left-attach">1</property>

@@ -85,7 +85,7 @@ class Reader:
 
     def attach_to_events(self):
         """connect listeners to event_reader"""
-        pass
+        self.data_bus.subscribe(MessageType.terminate, lambda _: self.terminate())
 
     def read_continuously(self):
         """poll the result pipe in regular intervals"""

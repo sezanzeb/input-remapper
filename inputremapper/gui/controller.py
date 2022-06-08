@@ -27,6 +27,7 @@ from gi.repository import Gtk, GLib
 from .data_bus import DataBus, MessageType, PresetData, StatusData
 from .gettext import _
 from .data_manager import DataManager, DEFAULT_PRESET_NAME
+from .helper import is_helper_running
 from ..configs.mapping import MappingData, UIMapping
 from ..event_combination import EventCombination
 from ..injection.injector import RUNNING, FAILED, NO_GRAB, UPGRADE_EVDEV
@@ -48,7 +49,7 @@ class Controller:
     def __init__(self, data_bus: DataBus, data_manager: DataManager):
         self.data_bus = data_bus
         self.data_manager = data_manager
-        self.gui = None
+        self.gui: Optional[UserInterface] = None
 
         self.button_left_warn = False
         self.attach_to_events()
@@ -81,12 +82,14 @@ class Controller:
 
         return self.data_manager.available_groups[0]
 
-    def on_init(self, _):
+    def on_init(self, __):
         # make sure we get a groups_changed event when everything is ready
         # this might not be necessary if the helper takes longer to provide the
         # initial groups
         self.data_manager.backend.emit_groups()
         self.data_manager.emit_uinputs()
+        if not is_helper_running():
+            self.show_status(CTX_ERROR, _("The helper did not start"))
 
     def on_groups_changed(self, _):
         """load the newest group as soon as everyone got notified
@@ -190,6 +193,12 @@ class Controller:
         self.data_manager.save()
 
     def start_key_recording(self):
+        def f(_):
+            self.data_bus.unsubscribe(f)
+            self.gui.connect_shortcuts()
+
+        self.gui.disconnect_shortcuts()
+        self.data_bus.subscribe(MessageType.recording_finished, f)
         self.data_manager.backend.start_key_recording()
 
     def start_injecting(self):
@@ -283,3 +292,14 @@ class Controller:
     def is_empty_mapping(self) -> bool:
         """check if the active_mapping is empty"""
         return self.data_manager.active_mapping == UIMapping(**MAPPING_DEFAULTS)
+
+    def refresh_groups(self):
+        self.data_manager.backend.refresh_groups()
+
+    def close(self):
+        """safely close the application"""
+        logger.debug("Closing Application")
+        self.save()
+        self.data_bus.signal(MessageType.terminate)
+        logger.debug("Quitting")
+        Gtk.main_quit()

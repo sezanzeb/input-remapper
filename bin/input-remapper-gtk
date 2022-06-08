@@ -95,7 +95,7 @@ if __name__ == '__main__':
     backed = Backend(data_bus, reader, daemon, GlobalUInputs())
     data_mangager = DataManager(data_bus, GlobalConfig(), backed)
     controller = Controller(data_bus, data_mangager)
-    user_interface = UserInterface(data_bus, controller, reader, daemon)
+    user_interface = UserInterface(data_bus, controller)
     controller.set_gui(user_interface)
 
     data_bus.signal(MessageType.init)
@@ -105,7 +105,7 @@ if __name__ == '__main__':
             # have fun debugging completely unrelated tests if you remove this
             daemon.stop_all()
 
-        user_interface.on_close()
+        controller.close()
 
     atexit.register(stop)
 

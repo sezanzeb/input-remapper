@@ -22,6 +22,7 @@ from inputremapper.logger import logger
 
 class MessageType(Enum):
     reset_gui = "reset_gui"
+    terminate = "terminate"
     init = "init"
 
     uinputs = "uinputs"
