@@ -29,6 +29,7 @@ from inputremapper.configs.preset import Preset
 from inputremapper.configs.paths import get_preset_path, mkdir, split_all
 from inputremapper.event_combination import EventCombination
 from inputremapper.exceptions import DataManagementError
+from inputremapper.groups import _Group
 from inputremapper.gui.backend import Backend
 from inputremapper.gui.data_bus import (
     DataBus,
@@ -43,6 +44,10 @@ from inputremapper.logger import logger
 
 DEFAULT_PRESET_NAME = "new preset"
 
+# useful type aliases
+Name = str
+GroupKey = str
+
 
 class DataManager:
     def __init__(self, data_bus: DataBus, config: GlobalConfig, backend: Backend):
@@ -55,87 +60,29 @@ class DataManager:
         self._active_preset: Optional[Preset] = None
         self._active_mapping: Optional[UIMapping] = None
 
-        self.attach_to_event_handler()
+    def _send_group(self):
+        """send active group to the data bus"""
+        self.data_bus.send(GroupData(self.active_group.key, self.get_presets()))
 
-    @property
-    def active_preset(self) -> Optional[Preset]:
-        return self._active_preset
-
-    @property
-    def active_mapping(self) -> Optional[UIMapping]:
-        return self._active_mapping
-
-    @property
-    def _autoload(self) -> bool:
-        if not self._active_preset:
-            return False
-        return self._config.is_autoloaded(
-            self.backend.active_group.key, self.get_preset_name()
-        )
-
-    @_autoload.setter
-    def _autoload(self, status: bool):
-        if self._active_preset:
-            if status:
-                self._config.set_autoload_preset(
-                    self.backend.active_group.key, self.get_preset_name()
-                )
-            elif self._autoload:
-                self._config.set_autoload_preset(self.backend.active_group.key, None)
-
-    def newest_group(self) -> str:
-        """group_key of the group with the most recently modified preset"""
-        paths = []
-        for path in glob.glob(os.path.join(get_preset_path(), "*/*.json")):
-            if self.backend.groups.find(key=split_all(path)[-2]):
-                paths.append((path, os.path.getmtime(path)))
-
-        if not paths:
-            raise FileNotFoundError()
-
-        path, _ = max(paths, key=lambda x: x[1])
-        return split_all(path)[-2]
-
-    def newest_preset(self) -> Optional[str]:
-        """preset name of the most recently modified preset in the active group"""
-        if not self.backend.active_group:
-            raise DataManagementError("cannot find newest preset: Group is not set")
-
-        paths = [
-            (path, os.path.getmtime(path))
-            for path in glob.glob(
-                os.path.join(get_preset_path(self.backend.active_group.key), "*.json")
-            )
-        ]
-        if not paths:
-            raise FileNotFoundError()
-
-        path, _ = max(paths, key=lambda x: x[1])
-        return os.path.split(path)[-1].split(".")[0]
-
-    @property
-    def available_groups(self) -> Tuple[str]:
-        """all to the backend available group keys"""
-        return tuple(group.key for group in self.backend.groups.filter())
-
-    def emit_group_changed(self):
-        self.data_bus.send(GroupData(self.backend.active_group.key, self.get_presets()))
-
-    def emit_preset_changed(self):
+    def _send_preset(self):
+        """send active preset to the data bus"""
         self.data_bus.send(
-            PresetData(self.get_preset_name(), self.get_mappings(), self._autoload)
+            PresetData(
+                self.active_preset.name, self.get_mappings(), self.get_autoload()
+            )
         )
-        self.send_mapping_errors()
+        self._send_mapping_errors()
 
-    def emit_mapping_changed(self):
+    def _send_mapping(self):
+        """send active mapping to the data bus"""
         mapping = self._active_mapping
         if mapping:
             self.data_bus.send(mapping.get_bus_message())
-            self.send_mapping_errors()
+            self._send_mapping_errors()
         else:
             self.data_bus.send(MappingData())
 
-    def send_mapping_errors(self):
+    def _send_mapping_errors(self):
         if not self._active_preset:
             return
 
@@ -151,10 +98,26 @@ class DataManager:
             msg = _("Mapping error at %s, hover for info") % position
             self.data_bus.send(StatusData(CTX_MAPPING, msg, str(error)))
 
-    def get_presets(self) -> Tuple[str, ...]:
-        """Get all preset filenames for self.backend.active_group.key and user,
+    @property
+    def active_group(self) -> Optional[_Group]:
+        return self.backend.active_group
+
+    @property
+    def active_preset(self) -> Optional[Preset]:
+        return self._active_preset
+
+    @property
+    def active_mapping(self) -> Optional[UIMapping]:
+        return self._active_mapping
+
+    def get_group_keys(self) -> Tuple[GroupKey]:
+        """Get all group keys (plugged devices)"""
+        return tuple(group.key for group in self.backend.groups.filter())
+
+    def get_presets(self) -> Tuple[Name, ...]:
+        """Get all preset names for active_group and current user,
         starting with the newest."""
-        device_folder = get_preset_path(self.backend.active_group.key)
+        device_folder = get_preset_path(self.active_group.key)
         mkdir(device_folder)
 
         paths = glob.glob(os.path.join(device_folder, "*.json"))
@@ -166,21 +129,77 @@ class DataManager:
         presets.reverse()
         return tuple(presets)
 
-    def get_preset_name(self) -> Optional[str]:
-        """get the current active preset name"""
+    def get_mappings(self) -> Optional[List[Tuple[Name, EventCombination]]]:
+        """all mapping names and their combination from the active_preset"""
         if not self._active_preset:
             return None
-        return os.path.basename(self._active_preset.path).split(".")[0]
+        return [
+            (mapping.name, mapping.event_combination) for mapping in self._active_preset
+        ]
 
-    def get_available_preset_name(self, name=DEFAULT_PRESET_NAME):
+    def get_autoload(self) -> bool:
+        """the autoload status of the active_preset"""
+        if not self._active_preset:
+            return False
+        return self._config.is_autoloaded(
+            self.active_group.key, self.active_preset.name
+        )
+
+    def set_autoload(self, status: bool):
+        """set the autoload status of the active_preset.
+        Will send "preset" message on the DataBus
+        """
+        if not self._active_preset:
+            raise DataManagementError("cannot set autoload status: Preset is not set")
+
+        if status:
+            self._config.set_autoload_preset(
+                self.active_group.key, self.active_preset.name
+            )
+        elif self.get_autoload:
+            self._config.set_autoload_preset(self.active_group.key, None)
+
+        self._send_preset()
+
+    def get_newest_group_key(self) -> GroupKey:
+        """group_key of the group with the most recently modified preset"""
+        paths = []
+        for path in glob.glob(os.path.join(get_preset_path(), "*/*.json")):
+            if self.backend.groups.find(key=split_all(path)[-2]):
+                paths.append((path, os.path.getmtime(path)))
+
+        if not paths:
+            raise FileNotFoundError()
+
+        path, _ = max(paths, key=lambda x: x[1])
+        return split_all(path)[-2]
+
+    def get_newest_preset_name(self) -> Optional[Name]:
+        """preset name of the most recently modified preset in the active group"""
+        if not self.active_group:
+            raise DataManagementError("cannot find newest preset: Group is not set")
+
+        paths = [
+            (path, os.path.getmtime(path))
+            for path in glob.glob(
+                os.path.join(get_preset_path(self.active_group.key), "*.json")
+            )
+        ]
+        if not paths:
+            raise FileNotFoundError()
+
+        path, _ = max(paths, key=lambda x: x[1])
+        return os.path.split(path)[-1].split(".")[0]
+
+    def get_available_preset_name(self, name=DEFAULT_PRESET_NAME) -> Name:
         """the first available preset in the active group"""
-        if not self.backend.active_group:
+        if not self.active_group:
             raise DataManagementError("unable find preset name. Group is not set")
 
         name = name.strip()
 
         # find a name that is not already taken
-        if os.path.exists(get_preset_path(self.backend.active_group.key, name)):
+        if os.path.exists(get_preset_path(self.active_group.key, name)):
             # if there already is a trailing number, increment it instead of
             # adding another one
             match = re.match(r"^(.+) (\d+)$", name)
@@ -190,131 +209,43 @@ class DataManager:
             else:
                 i = 2
 
-            while os.path.exists(
-                get_preset_path(self.backend.active_group.key, f"{name} {i}")
-            ):
+            while os.path.exists(get_preset_path(self.active_group.key, f"{name} {i}")):
                 i += 1
 
             return f"{name} {i}"
 
         return name
 
-    def get_mappings(self) -> Optional[List[Tuple[str, EventCombination]]]:
-        if not self._active_preset:
-            return None
-        return [
-            (mapping.name, mapping.event_combination) for mapping in self._active_preset
-        ]
-
-    def attach_to_event_handler(self):
-        """registers all necessary functions at the event handler"""
-        pass
-
     def load_group(self, group_key: str):
-        """gather all presets in the group and provide them.
+        """Load a group. will send "groups" message on the DataBus
 
         this will render the active_mapping and active_preset invalid
         """
-        if group_key not in self.available_groups:
+        if group_key not in self.get_group_keys():
             raise DataManagementError("Unable to load non existing group")
 
         self._active_mapping = None
         self._active_preset = None
         self.backend.set_active_group(group_key)
-        self.emit_group_changed()
+        self._send_group()
 
     def load_preset(self, name: str):
-        """load the preset in the active group and provide all mappings
+        """Load a preset. Will send "preset" message on the DataBus
 
         this will render the active_mapping invalid
         """
-        if not self.backend.active_group:
+        if not self.active_group:
             raise DataManagementError("Unable to load preset. Group is not set")
 
-        preset_path = get_preset_path(self.backend.active_group.key, name)
+        preset_path = get_preset_path(self.active_group.key, name)
         preset = Preset(preset_path, mapping_factory=UIMapping)
         preset.load()
         self._active_mapping = None
         self._active_preset = preset
-        self.emit_preset_changed()
-
-    def rename_preset(self, new_name: str):
-        """rename the current preset and move the correct file"""
-        if not self._active_preset:
-            raise DataManagementError("Unable rename preset: Preset is not set")
-
-        if self._active_preset.path == get_preset_path(
-            self.backend.active_group.key, new_name
-        ):
-            return
-
-        old_path = self._active_preset.path
-        old_name = os.path.basename(old_path).split(".")[0]
-        new_path = get_preset_path(self.backend.active_group.key, new_name)
-        if os.path.exists(new_path):
-            raise ValueError(
-                f"cannot rename {old_name} to " f"{new_name}, preset already exists"
-            )
-
-        logger.info('Moving "%s" to "%s"', old_path, new_path)
-        os.rename(old_path, new_path)
-        now = time.time()
-        os.utime(new_path, (now, now))
-
-        if self._config.is_autoloaded(self.backend.active_group.key, old_name):
-            self._config.set_autoload_preset(self.backend.active_group.key, new_name)
-
-        self._active_preset.path = get_preset_path(
-            self.backend.active_group.key, new_name
-        )
-        self.emit_group_changed()
-        self.emit_preset_changed()
-
-    def copy_preset(self, name: str):
-        """copy the current preset to the given name"""
-        if not self._active_preset:
-            raise DataManagementError("Unable to copy preset: Preset is not set")
-
-        if self._active_preset.path == get_preset_path(
-            self.backend.active_group.key, name
-        ):
-            return
-
-        if name in self.get_presets():
-            raise ValueError(f"a preset with the name {name} already exits")
-
-        new_path = get_preset_path(self.backend.active_group.key, name)
-        logger.info('Copy "%s" to "%s"', self.active_preset.path, new_path)
-        self._active_preset.path = new_path
-        self.save()
-        self.emit_group_changed()
-        self.emit_preset_changed()
-
-    def add_preset(self, name: str):
-        if not self.backend.active_group:
-            raise DataManagementError("Unable to add preset. Group is not set")
-
-        path = get_preset_path(self.backend.active_group.key, name)
-        if os.path.exists(path):
-            raise DataManagementError("Unable to add preset. Preset exists")
-
-        Preset(path).save()
-        self.emit_group_changed()
-
-    def delete_preset(self):
-        """delete the current preset
-
-        this will invalidate the active mapping
-        """
-        preset_path = self._active_preset.path
-        logger.info('Removing "%s"', preset_path)
-        os.remove(preset_path)
-        self._active_mapping = None
-        self._active_preset = None
-        self.emit_group_changed()
+        self._send_preset()
 
     def load_mapping(self, combination: EventCombination):
-        """load the mapping and provide its values as a dict"""
+        """Load a mapping. Will send "mapping" message on the DataBus"""
         if not self._active_preset:
             raise DataManagementError("Unable to load mapping. Preset is not set")
 
@@ -325,9 +256,91 @@ class DataManager:
                 f"exist in the {self._active_preset.path}"
             )
         self._active_mapping = mapping
-        self.emit_mapping_changed()
+        self._send_mapping()
+
+    def rename_preset(self, new_name: str):
+        """rename the current preset and move the correct file
+        Will send "group" and then "preset" message on the DataBus
+        """
+        if not self._active_preset:
+            raise DataManagementError("Unable rename preset: Preset is not set")
+
+        if self._active_preset.path == get_preset_path(self.active_group.key, new_name):
+            return
+
+        old_path = self._active_preset.path
+        old_name = os.path.basename(old_path).split(".")[0]
+        new_path = get_preset_path(self.active_group.key, new_name)
+        if os.path.exists(new_path):
+            raise ValueError(
+                f"cannot rename {old_name} to " f"{new_name}, preset already exists"
+            )
+
+        logger.info('Moving "%s" to "%s"', old_path, new_path)
+        os.rename(old_path, new_path)
+        now = time.time()
+        os.utime(new_path, (now, now))
+
+        if self._config.is_autoloaded(self.active_group.key, old_name):
+            self._config.set_autoload_preset(self.active_group.key, new_name)
+
+        self._active_preset.path = get_preset_path(self.active_group.key, new_name)
+        self._send_group()
+        self._send_preset()
+
+    def copy_preset(self, name: str):
+        """copy the current preset to the given name.
+        Will send "group" and "preset" message to the DataBus and load the copy
+        """
+        # todo: Do we want to load the copy here? or is this up to the controller?
+        if not self._active_preset:
+            raise DataManagementError("Unable to copy preset: Preset is not set")
+
+        if self._active_preset.path == get_preset_path(self.active_group.key, name):
+            return
+
+        if name in self.get_presets():
+            raise ValueError(f"a preset with the name {name} already exits")
+
+        new_path = get_preset_path(self.active_group.key, name)
+        logger.info('Copy "%s" to "%s"', self.active_preset.path, new_path)
+        self._active_preset.path = new_path
+        self.save()
+        self._send_group()
+        self._send_preset()
+
+    def create_preset(self, name: str):
+        """create empty preset in the active_group.
+        Will send "group" message to the DataBus
+        """
+        if not self.active_group:
+            raise DataManagementError("Unable to add preset. Group is not set")
+
+        path = get_preset_path(self.active_group.key, name)
+        if os.path.exists(path):
+            raise DataManagementError("Unable to add preset. Preset exists")
+
+        Preset(path).save()
+        self._send_group()
+
+    def delete_preset(self):
+        """delete the active preset
+        Will send "group" message to the DataBus
+        this will invalidate the active mapping,
+        """
+        preset_path = self._active_preset.path
+        logger.info('Removing "%s"', preset_path)
+        os.remove(preset_path)
+        self._active_mapping = None
+        self._active_preset = None
+        self._send_group()
 
     def update_mapping(self, **kwargs):
+        """update the active mapping with the given keywords and values.
+
+        Will send "mapping" message to the DataBus. In case of a new event_combination
+        this will first send a "combination_update" message
+        """
         if not self._active_mapping:
             raise DataManagementError("Cannot modify Mapping: mapping is not set")
 
@@ -342,16 +355,21 @@ class DataManager:
             self.data_bus.send(
                 CombinationUpdate(combination, self._active_mapping.event_combination)
             )
-        self.emit_mapping_changed()
+        self._send_mapping()
 
     def create_mapping(self):
+        """create empty mapping in the active preset.
+        Will send "preset" message to the DataBus
+        """
         if not self._active_preset:
             raise DataManagementError("cannot create mapping: preset is not set")
         self._active_preset.add(UIMapping())
-        self.emit_preset_changed()
+        self._send_preset()
 
     def delete_mapping(self):
-        """delete teh active mapping"""
+        """delete the active mapping
+        Will send "preset" message to the DataBus
+        """
         if not self._active_mapping:
             raise DataManagementError(
                 "cannot delete active mapping: active mapping is not set"
@@ -359,31 +377,46 @@ class DataManager:
 
         self._active_preset.remove(self._active_mapping.event_combination)
         self._active_mapping = None
-        self.emit_mapping_changed()
-        self.emit_preset_changed()
+        self._send_preset()
 
-    def set_autoload(self, autoload: bool):
-        if not self._active_preset:
-            raise DataManagementError("cannot set autoload status: Preset is not set")
-
-        self._autoload = autoload
-        self.emit_preset_changed()
-
-    def emit_uinputs(self):
+    def send_uinputs(self):
+        """send the "uinputs" message on the DataBus"""
         self.backend.emit_uinputs()
 
+    def send_groups(self):
+        """send the "groups" message on the DataBus"""
+        self.backend.emit_groups()
+
     def save(self):
+        """save the active preset"""
         if self._active_preset:
             self._active_preset.save()
 
-    def stop_injecting(self) -> None:
-        self.backend.daemon.stop_injecting(self.backend.active_group.key)
+    def refresh_groups(self):
+        """refresh the groups (plugged devices)
+        Should send "groups" message to DataBus this will not happen immediately
+        because the system might take a bit until the groups are available
+        """
+        self.backend.refresh_groups()
 
-    def get_state(self) -> int:
-        return self.backend.daemon.get_state(self.backend.active_group.key)
+    def start_combination_recording(self):
+        """recorde user input
+        Will send "combination_recorded" messages as new input arrives.
+        Will eventually send a "recording_finished" message.
+        """
+        self.backend.start_key_recording()
+
+    def stop_injecting(self) -> None:
+        """stop injecting for the active group"""
+        self.backend.daemon.stop_injecting(self.active_group.key)
 
     def start_injecting(self) -> bool:
+        """start injecting the active preset for the active group"""
         self.backend.daemon.set_config_dir(self._config.path)
         return self.backend.daemon.start_injecting(
-            self.backend.active_group.key, self.get_preset_name()
+            self.active_group.key, self.active_preset.name
         )
+
+    def get_state(self) -> int:
+        """the state of the injector"""
+        return self.backend.daemon.get_state(self.active_group.key)

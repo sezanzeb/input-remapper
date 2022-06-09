@@ -409,7 +409,7 @@ class TestDaemon(unittest.TestCase):
         injector = daemon.injectors[group.key]
         self.assertEqual(len_before + 1, len_after)
 
-        # calling duplicate _autoload does nothing
+        # calling duplicate get_autoload does nothing
         self.daemon._autoload(group.key)
         self.assertEqual(
             daemon.autoload_history._autoload_history[group.key][1], preset_name

@@ -302,7 +302,7 @@ class TestDataManager(unittest.TestCase):
         self.data_bus.subscribe(MessageType.group, listener)
 
         # should emit group_changed
-        self.data_manager.add_preset(name="new preset")
+        self.data_manager.create_preset(name="new preset")
 
         presets_in_group = [preset for preset in listener.calls[0].presets]
         self.assertIn("preset2", presets_in_group)
@@ -318,14 +318,14 @@ class TestDataManager(unittest.TestCase):
 
         self.assertRaises(
             DataManagementError,
-            self.data_manager.add_preset,
+            self.data_manager.create_preset,
             name="preset3",
         )
 
     def test_cannot_add_preset_without_group(self):
         self.assertRaises(
             DataManagementError,
-            self.data_manager.add_preset,
+            self.data_manager.create_preset,
             name="foo",
         )
 
@@ -553,13 +553,13 @@ class TestDataManager(unittest.TestCase):
         listener = Listener()
         self.data_bus.subscribe(MessageType.preset, listener)
         self.data_bus.subscribe(MessageType.mapping, listener)
-        # emits mapping and preset changed
-        self.data_manager.delete_mapping()
+
+        self.data_manager.delete_mapping()  # emits preset
         self.data_manager.save()
 
         deleted_mapping = old_preset.get_mapping(EventCombination("1,3,1"))
-        mappings = listener.calls[1].mappings
-        preset_name = listener.calls[1].name
+        mappings = listener.calls[0].mappings
+        preset_name = listener.calls[0].name
         expected_preset = Preset(get_preset_path("Foo Device 2", "preset2"))
         expected_preset.load()
         expected_mappings = [
@@ -573,8 +573,6 @@ class TestDataManager(unittest.TestCase):
         self.assertNotIn(
             (deleted_mapping.name, deleted_mapping.event_combination), mappings
         )
-        # first event (mapping_changed) should be without data
-        self.assertEqual(listener.calls[0], MappingData())
 
     def test_cannot_delete_mapping(self):
         """deleting a mapping should not be possible if the mapping was not loaded"""
@@ -593,8 +591,8 @@ class TestDataManager(unittest.TestCase):
         listener = Listener()
         self.data_bus.subscribe(MessageType.preset, listener)
         self.data_manager.load_preset(name="preset1")  # sends updated preset data
-        self.data_manager.set_autoload(autoload=True)  # sends updated preset data
-        self.data_manager.set_autoload(autoload=False)  # sends updated preset data
+        self.data_manager.set_autoload(True)  # sends updated preset data
+        self.data_manager.set_autoload(False)  # sends updated preset data
 
         self.assertFalse(listener.calls[0].autoload)
         self.assertTrue(listener.calls[1].autoload)
@@ -605,27 +603,27 @@ class TestDataManager(unittest.TestCase):
         self.assertRaises(
             DataManagementError,
             self.data_manager.set_autoload,
-            autoload=True,
+            True,
         )
         self.data_manager.load_group(group_key="Foo Device 2")
         self.assertRaises(
             DataManagementError,
             self.data_manager.set_autoload,
-            autoload=True,
+            True,
         )
 
     def test_finds_newest_group(self):
         Preset(get_preset_path("Foo Device", "preset 1")).save()
         time.sleep(0.01)
         Preset(get_preset_path("Bar Device", "preset 2")).save()
-        self.assertEqual(self.data_manager.newest_group(), "Bar Device")
+        self.assertEqual(self.data_manager.get_newest_group_key(), "Bar Device")
 
     def test_finds_newest_preset(self):
         Preset(get_preset_path("Foo Device", "preset 1")).save()
         time.sleep(0.01)
         Preset(get_preset_path("Foo Device", "preset 2")).save()
         self.data_manager.load_group("Foo Device")
-        self.assertEqual(self.data_manager.newest_preset(), "preset 2")
+        self.assertEqual(self.data_manager.get_newest_preset_name(), "preset 2")
 
     def test_newest_group_ignores_unknown_filetypes(self):
         Preset(get_preset_path("Foo Device", "preset 1")).save()
@@ -637,7 +635,7 @@ class TestDataManager(unittest.TestCase):
         path = os.path.join(get_preset_path("Foo Device"), "picture.png")
         os.mknod(path)
 
-        self.assertEqual(self.data_manager.newest_group(), "Bar Device")
+        self.assertEqual(self.data_manager.get_newest_group_key(), "Bar Device")
 
     def test_newest_preset_ignores_unknown_filetypes(self):
         Preset(get_preset_path("Bar Device", "preset 1")).save()
@@ -653,26 +651,26 @@ class TestDataManager(unittest.TestCase):
 
         self.data_manager.load_group("Bar Device")
 
-        self.assertEqual(self.data_manager.newest_preset(), "preset 3")
+        self.assertEqual(self.data_manager.get_newest_preset_name(), "preset 3")
 
     def test_newest_group_ignores_unknon_groups(self):
         Preset(get_preset_path("Bar Device", "preset 1")).save()
         time.sleep(0.01)
         Preset(get_preset_path("unknown_group", "preset 2")).save()  # not a known group
 
-        self.assertEqual(self.data_manager.newest_group(), "Bar Device")
+        self.assertEqual(self.data_manager.get_newest_group_key(), "Bar Device")
 
     def test_newest_group_and_preset_raises_file_not_found(self):
         """should raise file not found error when all preset folders are empty"""
-        self.assertRaises(FileNotFoundError, self.data_manager.newest_group)
+        self.assertRaises(FileNotFoundError, self.data_manager.get_newest_group_key)
         os.makedirs(get_preset_path("Bar Device"))
-        self.assertRaises(FileNotFoundError, self.data_manager.newest_group)
+        self.assertRaises(FileNotFoundError, self.data_manager.get_newest_group_key)
         self.data_manager.load_group("Bar Device")
-        self.assertRaises(FileNotFoundError, self.data_manager.newest_preset)
+        self.assertRaises(FileNotFoundError, self.data_manager.get_newest_preset_name)
 
     def test_newest_preset_raises_data_management_error(self):
         """should raise data management error without a active group"""
-        self.assertRaises(DataManagementError, self.data_manager.newest_preset)
+        self.assertRaises(DataManagementError, self.data_manager.get_newest_preset_name)
 
     def test_newest_preset_only_searches_active_group(self):
         Preset(get_preset_path("Foo Device", "preset 1")).save()
@@ -682,7 +680,7 @@ class TestDataManager(unittest.TestCase):
         Preset(get_preset_path("Bar Device", "preset 2")).save()
 
         self.data_manager.load_group("Foo Device")
-        self.assertEqual(self.data_manager.newest_preset(), "preset 3")
+        self.assertEqual(self.data_manager.get_newest_preset_name(), "preset 3")
 
     def test_available_preset_name_default(self):
         self.data_manager.load_group("Foo Device")

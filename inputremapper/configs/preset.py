@@ -299,3 +299,8 @@ class Preset:
         if path != self.path:
             self._path = path
             self._update_saved_mappings()
+
+    @property
+    def name(self) -> Optional[str]:
+        if self.path:
+            return os.path.basename(self.path).split(".")[0]

@@ -66,28 +66,28 @@ class Controller:
         """attempts to get the newest preset in the current group
         creates a new preset if that fails"""
         try:
-            return self.data_manager.newest_preset()
+            return self.data_manager.get_newest_preset_name()
         except FileNotFoundError:
             pass
-        self.data_manager.add_preset(self.data_manager.get_available_preset_name())
-        return self.data_manager.newest_preset()
+        self.data_manager.create_preset(self.data_manager.get_available_preset_name())
+        return self.data_manager.get_newest_preset_name()
 
     def get_a_group(self) -> str:
         """attempts to get the group with the newest preset
         returns any if that fails"""
         try:
-            return self.data_manager.newest_group()
+            return self.data_manager.get_newest_group_key()
         except FileNotFoundError:
             pass
 
-        return self.data_manager.available_groups[0]
+        return self.data_manager.get_group_keys()[0]
 
     def on_init(self, __):
         # make sure we get a groups_changed event when everything is ready
         # this might not be necessary if the helper takes longer to provide the
         # initial groups
-        self.data_manager.backend.emit_groups()
-        self.data_manager.emit_uinputs()
+        self.data_manager.send_groups()
+        self.data_manager.send_uinputs()
         if not is_helper_running():
             self.show_status(CTX_ERROR, _("The helper did not start"))
 
@@ -108,7 +108,7 @@ class Controller:
             self.data_bus.send(MappingData())
 
     def copy_preset(self):
-        name = self.data_manager.get_preset_name()
+        name = self.data_manager.active_preset.name
         match = re.search(" copy *\d*$", name)
         if match:
             name = name[: match.start()]
@@ -126,7 +126,7 @@ class Controller:
             pass
 
     def load_groups(self):
-        self.data_manager.backend.refresh_groups()
+        self.data_manager.refresh_groups()
 
     def load_group(self, group_key: str):
         self.data_manager.load_group(group_key)
@@ -136,20 +136,21 @@ class Controller:
         self.data_manager.load_preset(name)
 
     def rename_preset(self, new_name: str):
-        if not new_name or new_name == self.data_manager.get_preset_name():
+        if not new_name or new_name == self.data_manager.active_preset.name:
             return
         name = self.data_manager.get_available_preset_name(new_name)
         self.data_manager.rename_preset(name)
 
     def add_preset(self, name: str = DEFAULT_PRESET_NAME):
         name = self.data_manager.get_available_preset_name(name)
-        self.data_manager.add_preset(name)
+        self.data_manager.create_preset(name)
         self.data_manager.load_preset(name)
 
     def delete_preset(self):
         accept = Gtk.ResponseType.ACCEPT
         msg = (
-            _("Are you sure to delete preset %s?") % self.data_manager.get_preset_name()
+            _("Are you sure to delete preset %s?")
+            % self.data_manager.active_preset.name
         )
         if self.data_manager.get_mappings() and self.gui.confirm_delete(msg) != accept:
             return
@@ -186,9 +187,6 @@ class Controller:
     def set_autoload(self, autoload: bool):
         self.data_manager.set_autoload(autoload)
 
-    def get_uinputs(self):
-        self.data_manager.emit_uinputs()
-
     def save(self):
         self.data_manager.save()
 
@@ -199,7 +197,7 @@ class Controller:
 
         self.gui.disconnect_shortcuts()
         self.data_bus.subscribe(MessageType.recording_finished, f)
-        self.data_manager.backend.start_key_recording()
+        self.data_manager.start_combination_recording()
 
     def start_injecting(self):
         if len(self.data_manager.active_preset) == 0:
@@ -227,7 +225,7 @@ class Controller:
         else:
             self.show_status(
                 CTX_APPLY,
-                _("Failed to apply preset %s") % self.data_manager.get_preset_name(),
+                _("Failed to apply preset %s") % self.data_manager.active_preset.name,
             )
 
         GLib.timeout_add(100, self.show_injection_result)
@@ -242,7 +240,7 @@ class Controller:
         state = self.data_manager.get_state()
 
         if state == RUNNING:
-            msg = _("Applied preset %s") % self.data_manager.get_preset_name()
+            msg = _("Applied preset %s") % self.data_manager.active_preset.name
 
             if self.data_manager.active_preset.get_mapping(
                 EventCombination(InputEvent.btn_left())
@@ -252,14 +250,14 @@ class Controller:
             self.show_status(CTX_APPLY, msg)
             logger.info(
                 'Group "%s" is currently mapped',
-                self.data_manager.backend.active_group.key,
+                self.data_manager.active_group.key,
             )
             return False
 
         if state == FAILED:
             self.show_status(
                 CTX_ERROR,
-                _("Failed to apply preset %s") % self.data_manager.get_preset_name(),
+                _("Failed to apply preset %s") % self.data_manager.active_preset.name,
             )
             return False
 
@@ -294,7 +292,7 @@ class Controller:
         return self.data_manager.active_mapping == UIMapping(**MAPPING_DEFAULTS)
 
     def refresh_groups(self):
-        self.data_manager.backend.refresh_groups()
+        self.data_manager.refresh_groups()
 
     def close(self):
         """safely close the application"""

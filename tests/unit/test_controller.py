@@ -119,7 +119,7 @@ class TestController(unittest.TestCase):
         data_bus, data_manager, user_interface = get_controller_objects()
         controller = Controller(data_bus, data_manager)
         controller.set_gui(user_interface)
-        data_manager.newest_group = f
+        data_manager.get_newest_group_key = f
 
         self.assertEqual(controller.get_a_group(), "foo")
 
@@ -132,7 +132,7 @@ class TestController(unittest.TestCase):
         data_bus, data_manager, user_interface = get_controller_objects()
         controller = Controller(data_bus, data_manager)
         controller.set_gui(user_interface)
-        data_manager.newest_group = f
+        data_manager.get_newest_group_key = f
 
         fixture_keys = [
             fixture.get("group_key") or fixture.get("name")
@@ -149,7 +149,7 @@ class TestController(unittest.TestCase):
         data_bus, data_manager, user_interface = get_controller_objects()
         controller = Controller(data_bus, data_manager)
         controller.set_gui(user_interface)
-        data_manager.newest_preset = f
+        data_manager.get_newest_preset_name = f
         data_manager.load_group("Foo Device")
 
         self.assertEqual(controller.get_a_preset(), "bar")
