@@ -214,9 +214,10 @@ class UserInterface:
 
     def connect_shortcuts(self):
         """stop listening for shortcuts"""
-        self.gtk_listeners[self.on_shortcut] = self.window.connect(
-            "key-press-event", self.on_shortcut
-        )
+        if not self.gtk_listeners.get(self.on_shortcut):
+            self.gtk_listeners[self.on_shortcut] = self.window.connect(
+                "key-press-event", self.on_shortcut
+            )
 
     def on_shortcut(self, _, event: Gdk.EventKey):
         """execute shortcuts"""

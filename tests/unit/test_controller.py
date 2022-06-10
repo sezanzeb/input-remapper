@@ -20,10 +20,27 @@
 import json
 import os.path
 import unittest
+from dataclasses import dataclass
+from unittest.mock import patch, MagicMock
 from typing import Tuple, List, Any
 
 import gi
 
+from inputremapper.injection.injector import (
+    RUNNING,
+    FAILED,
+    NO_GRAB,
+    UPGRADE_EVDEV,
+    UNKNOWN,
+)
+from inputremapper.input_event import InputEvent
+
+gi.require_version("Gtk", "3.0")
+gi.require_version("GLib", "2.0")
+gi.require_version("GtkSource", "4")
+from gi.repository import Gtk
+
+# from inputremapper.gui.helper import is_helper_running
 from inputremapper.event_combination import EventCombination
 from inputremapper.groups import _Groups
 from inputremapper.gui.data_bus import (
@@ -34,15 +51,14 @@ from inputremapper.gui.data_bus import (
     GroupsData,
     GroupData,
     PresetData,
+    StatusData,
+    CombinationUpdate,
+    CombinationRecorded,
 )
 from inputremapper.gui.reader import Reader
+from inputremapper.gui.utils import CTX_ERROR, CTX_APPLY
+from inputremapper.gui.gettext import _
 from inputremapper.injection.global_uinputs import GlobalUInputs
-
-gi.require_version("Gtk", "3.0")
-gi.require_version("GLib", "2.0")
-gi.require_version("GtkSource", "4")
-from gi.repository import Gtk
-
 from inputremapper.configs.mapping import Mapping, UIMapping, MappingData
 from tests.test import (
     quick_cleanup,
@@ -50,7 +66,6 @@ from tests.test import (
     FakeDaemonProxy,
     fixtures,
 )
-
 from inputremapper.configs.global_config import global_config, GlobalConfig
 from inputremapper.gui.controller import Controller, MAPPING_DEFAULTS
 from inputremapper.gui.data_manager import DataManager, DEFAULT_PRESET_NAME
@@ -81,11 +96,20 @@ def prepare_presets():
     return preset1, preset2, preset3
 
 
+@dataclass
 class DummyGui:
-    confirm_delete_ret = Gtk.ResponseType.ACCEPT
+    confirm_delete_ret: Gtk.ResponseType = Gtk.ResponseType.ACCEPT
+    connect_calls: int = 0
+    disconnect_calls: int = 0
 
     def confirm_delete(self, msg):
         return self.confirm_delete_ret
+
+    def connect_shortcuts(self):
+        self.connect_calls += 1
+
+    def disconnect_shortcuts(self):
+        self.disconnect_calls += 1
 
 
 class TestError(Exception):
@@ -259,6 +283,35 @@ class TestController(unittest.TestCase):
         data_bus.signal(MessageType.init)
         for m in calls:
             self.assertEqual(m, UIMapping())
+
+    def test_on_init_should_provide_status_if_helper_is_not_running(self):
+        data_bus, data_manager, user_interface = get_controller_objects()
+        controller = Controller(data_bus, data_manager)
+        controller.set_gui(user_interface)
+        calls: List[StatusData] = []
+
+        def f(data):
+            calls.append(data)
+
+        data_bus.subscribe(MessageType.status, f)
+        with patch("inputremapper.gui.controller.is_helper_running", lambda: False):
+            data_bus.signal(MessageType.init)
+        self.assertIn(StatusData(CTX_ERROR, _("The helper did not start")), calls)
+
+    def test_on_init_should_not_provide_status_if_helper_is_running(self):
+        data_bus, data_manager, user_interface = get_controller_objects()
+        controller = Controller(data_bus, data_manager)
+        controller.set_gui(user_interface)
+        calls: List[StatusData] = []
+
+        def f(data):
+            calls.append(data)
+
+        data_bus.subscribe(MessageType.status, f)
+        with patch("inputremapper.gui.controller.is_helper_running", lambda: True):
+            data_bus.signal(MessageType.init)
+
+        self.assertNotIn(StatusData(CTX_ERROR, _("The helper did not start")), calls)
 
     def test_on_load_group_should_provide_preset(self):
         def f(*_):
@@ -604,6 +657,27 @@ class TestController(unittest.TestCase):
 
         self.assertEqual(calls[-1], UIMapping(**MAPPING_DEFAULTS))
 
+    def test_create_mapping_should_not_create_multiple_empty_mappings(self):
+        prepare_presets()
+        data_bus, data_manager, user_interface = get_controller_objects()
+        controller = Controller(data_bus, data_manager)
+        controller.set_gui(user_interface)
+
+        data_manager.load_group("Foo Device 2")
+        data_manager.load_preset("preset2")
+        controller.create_mapping()  # create a first empty mapping
+
+        calls = []
+
+        def f(data):
+            calls.append(data)
+
+        data_bus.subscribe(MessageType.mapping, f)
+        data_bus.subscribe(MessageType.preset, f)
+
+        controller.create_mapping()  # try to create a second one
+        self.assertEqual(len(calls), 0)
+
     def test_delete_mapping_asks_for_confirmation(self):
         prepare_presets()
         data_bus, data_manager, user_interface = get_controller_objects()
@@ -655,3 +729,420 @@ class TestController(unittest.TestCase):
         preset = Preset(get_preset_path("Foo Device 2", "preset2"))
         preset.load()
         self.assertIsNotNone(preset.get_mapping(EventCombination("1,3,1")))
+
+    def test_should_update_combination(self):
+        """when combination is free"""
+        prepare_presets()
+        data_bus, data_manager, user_interface = get_controller_objects()
+        controller = Controller(data_bus, data_manager)
+        controller.set_gui(user_interface)
+
+        data_manager.load_group("Foo Device 2")
+        data_manager.load_preset("preset2")
+        data_manager.load_mapping(EventCombination.from_string("1,3,1"))
+
+        calls: List[CombinationUpdate] = []
+
+        def f(data):
+            calls.append(data)
+
+        data_bus.subscribe(MessageType.combination_update, f)
+        controller.update_combination(EventCombination.from_string("1,10,1"))
+        self.assertEqual(
+            calls[0],
+            CombinationUpdate(
+                EventCombination.from_string("1,3,1"),
+                EventCombination.from_string("1,10,1"),
+            ),
+        )
+
+    def test_should_not_update_combination(self):
+        """when combination is already used"""
+        prepare_presets()
+        data_bus, data_manager, user_interface = get_controller_objects()
+        controller = Controller(data_bus, data_manager)
+        controller.set_gui(user_interface)
+
+        data_manager.load_group("Foo Device 2")
+        data_manager.load_preset("preset2")
+        data_manager.load_mapping(EventCombination.from_string("1,3,1"))
+
+        calls: List[CombinationUpdate] = []
+
+        def f(data):
+            calls.append(data)
+
+        data_bus.subscribe(MessageType.combination_update, f)
+        controller.update_combination(EventCombination.from_string("1,4,1"))
+        self.assertEqual(len(calls), 0)
+
+    def test_key_recording_disables_gui_shortcuts(self):
+        data_bus, data_manager, user_interface = get_controller_objects()
+        controller = Controller(data_bus, data_manager)
+        controller.set_gui(user_interface)
+
+        self.assertEqual(user_interface.disconnect_calls, 0)
+        controller.start_key_recording()
+        self.assertEqual(user_interface.disconnect_calls, 1)
+
+    def test_key_recording_enables_gui_shortcuts_when_finished(self):
+        data_bus, data_manager, user_interface = get_controller_objects()
+        controller = Controller(data_bus, data_manager)
+        controller.set_gui(user_interface)
+        controller.start_key_recording()
+
+        self.assertEqual(user_interface.connect_calls, 0)
+        data_bus.signal(MessageType.recording_finished)
+        self.assertEqual(user_interface.connect_calls, 1)
+
+    def test_key_recording_enables_gui_shortcuts_when_stopped(self):
+        data_bus, data_manager, user_interface = get_controller_objects()
+        controller = Controller(data_bus, data_manager)
+        controller.set_gui(user_interface)
+        controller.start_key_recording()
+
+        self.assertEqual(user_interface.connect_calls, 0)
+        controller.stop_key_recording()
+        self.assertEqual(user_interface.connect_calls, 1)
+
+    def test_key_recording_updates_mapping_combination(self):
+        prepare_presets()
+        data_bus, data_manager, user_interface = get_controller_objects()
+        controller = Controller(data_bus, data_manager)
+        controller.set_gui(user_interface)
+
+        data_manager.load_group("Foo Device 2")
+        data_manager.load_preset("preset2")
+        data_manager.load_mapping(EventCombination.from_string("1,3,1"))
+
+        calls: List[CombinationUpdate] = []
+
+        def f(data):
+            calls.append(data)
+
+        data_bus.subscribe(MessageType.combination_update, f)
+
+        controller.start_key_recording()
+        data_bus.send(CombinationRecorded(EventCombination.from_string("1,10,1")))
+        self.assertEqual(
+            calls[0],
+            CombinationUpdate(
+                EventCombination.from_string("1,3,1"),
+                EventCombination.from_string("1,10,1"),
+            ),
+        )
+        data_bus.send(CombinationRecorded(EventCombination.from_string("1,10,1+1,3,1")))
+        self.assertEqual(
+            calls[1],
+            CombinationUpdate(
+                EventCombination.from_string("1,10,1"),
+                EventCombination.from_string("1,10,1+1,3,1"),
+            ),
+        )
+
+    def test_no_key_recording_when_not_started(self):
+        prepare_presets()
+        data_bus, data_manager, user_interface = get_controller_objects()
+        controller = Controller(data_bus, data_manager)
+        controller.set_gui(user_interface)
+
+        data_manager.load_group("Foo Device 2")
+        data_manager.load_preset("preset2")
+        data_manager.load_mapping(EventCombination.from_string("1,3,1"))
+
+        calls: List[CombinationUpdate] = []
+
+        def f(data):
+            calls.append(data)
+
+        data_bus.subscribe(MessageType.combination_update, f)
+
+        data_bus.send(CombinationRecorded(EventCombination.from_string("1,10,1")))
+        self.assertEqual(len(calls), 0)
+
+    def test_key_recording_stops_when_finished(self):
+        prepare_presets()
+        data_bus, data_manager, user_interface = get_controller_objects()
+        controller = Controller(data_bus, data_manager)
+        controller.set_gui(user_interface)
+
+        data_manager.load_group("Foo Device 2")
+        data_manager.load_preset("preset2")
+        data_manager.load_mapping(EventCombination.from_string("1,3,1"))
+
+        calls: List[CombinationUpdate] = []
+
+        def f(data):
+            calls.append(data)
+
+        data_bus.subscribe(MessageType.combination_update, f)
+
+        controller.start_key_recording()
+        data_bus.send(CombinationRecorded(EventCombination.from_string("1,10,1")))
+        data_bus.signal(MessageType.recording_finished)
+        data_bus.send(CombinationRecorded(EventCombination.from_string("1,10,1+1,3,1")))
+
+        self.assertEqual(len(calls), 1)  # only the first was processed
+
+    def test_key_recording_stops_when_stopped(self):
+        prepare_presets()
+        data_bus, data_manager, user_interface = get_controller_objects()
+        controller = Controller(data_bus, data_manager)
+        controller.set_gui(user_interface)
+
+        data_manager.load_group("Foo Device 2")
+        data_manager.load_preset("preset2")
+        data_manager.load_mapping(EventCombination.from_string("1,3,1"))
+
+        calls: List[CombinationUpdate] = []
+
+        def f(data):
+            calls.append(data)
+
+        data_bus.subscribe(MessageType.combination_update, f)
+
+        controller.start_key_recording()
+        data_bus.send(CombinationRecorded(EventCombination.from_string("1,10,1")))
+        controller.stop_key_recording()
+        data_bus.send(CombinationRecorded(EventCombination.from_string("1,10,1+1,3,1")))
+
+        self.assertEqual(len(calls), 1)  # only the first was processed
+
+    def test_start_injecting_shows_status_when_preset_empty(self):
+        data_bus, data_manager, user_interface = get_controller_objects()
+        controller = Controller(data_bus, data_manager)
+        controller.set_gui(user_interface)
+
+        data_manager.load_group("Foo Device 2")
+        data_manager.create_preset("foo")
+        data_manager.load_preset("foo")
+        calls: List[StatusData] = []
+
+        def f(data):
+            calls.append(data)
+
+        data_bus.subscribe(MessageType.status, f)
+
+        def f2():
+            raise AssertionError("Injection started unexpectedly")
+
+        data_manager.start_injecting = f2
+        controller.start_injecting()
+
+        self.assertEqual(
+            calls[-1], StatusData(CTX_ERROR, _("You need to add keys and save first"))
+        )
+
+    def test_start_injecting_warns_about_btn_left(self):
+        data_bus, data_manager, user_interface = get_controller_objects()
+        controller = Controller(data_bus, data_manager)
+        controller.set_gui(user_interface)
+
+        data_manager.load_group("Foo Device 2")
+        data_manager.create_preset("foo")
+        data_manager.load_preset("foo")
+        data_manager.create_mapping()
+        data_manager.update_mapping(
+            event_combination=EventCombination(InputEvent.btn_left()),
+            target_uinput="keyboard",
+            output_symbol="a",
+        )
+        calls: List[StatusData] = []
+
+        def f(data):
+            calls.append(data)
+
+        data_bus.subscribe(MessageType.status, f)
+
+        def f2():
+            raise AssertionError("Injection started unexpectedly")
+
+        data_manager.start_injecting = f2
+        controller.start_injecting()
+
+        self.assertEqual(calls[-1].ctx_id, CTX_ERROR)
+        self.assertIn("BTN_LEFT", calls[-1].tooltip)
+
+    def test_start_injecting_starts_with_btn_left_on_second_try(self):
+        data_bus, data_manager, user_interface = get_controller_objects()
+        controller = Controller(data_bus, data_manager)
+        controller.set_gui(user_interface)
+
+        data_manager.load_group("Foo Device 2")
+        data_manager.create_preset("foo")
+        data_manager.load_preset("foo")
+        data_manager.create_mapping()
+        data_manager.update_mapping(
+            event_combination=EventCombination(InputEvent.btn_left()),
+            target_uinput="keyboard",
+            output_symbol="a",
+        )
+
+        def f2():
+            raise TestError()
+
+        data_manager.start_injecting = f2
+        controller.start_injecting()
+        self.assertRaises(TestError, controller.start_injecting)
+
+    def test_start_injecting_starts_with_btn_left_when_mapped_to_other_button(self):
+        data_bus, data_manager, user_interface = get_controller_objects()
+        controller = Controller(data_bus, data_manager)
+        controller.set_gui(user_interface)
+
+        data_manager.load_group("Foo Device 2")
+        data_manager.create_preset("foo")
+        data_manager.load_preset("foo")
+        data_manager.create_mapping()
+        data_manager.update_mapping(
+            event_combination=EventCombination(InputEvent.btn_left()),
+            target_uinput="keyboard",
+            output_symbol="a",
+        )
+        data_manager.create_mapping()
+        data_manager.load_mapping(EventCombination.empty_combination())
+        data_manager.update_mapping(
+            event_combination=EventCombination.from_string("1,5,1"),
+            target_uinput="mouse",
+            output_symbol="BTN_LEFT",
+        )
+
+        mock = MagicMock(return_value=True)
+        data_manager.start_injecting = mock
+        controller.start_injecting()
+        mock.assert_called()
+
+    def test_start_injecting_shows_status(self):
+        prepare_presets()
+        data_bus, data_manager, user_interface = get_controller_objects()
+        controller = Controller(data_bus, data_manager)
+        controller.set_gui(user_interface)
+
+        data_manager.load_group("Foo Device 2")
+        data_manager.load_preset("preset2")
+        calls: List[StatusData] = []
+
+        def f(data):
+            calls.append(data)
+
+        data_bus.subscribe(MessageType.status, f)
+        mock = MagicMock(return_value=True)
+        data_manager.start_injecting = mock
+        controller.start_injecting()
+
+        mock.assert_called()
+        self.assertEqual(calls[0], StatusData(CTX_APPLY, _("Starting injection...")))
+
+    def test_start_injecting_shows_failure_status(self):
+        prepare_presets()
+        data_bus, data_manager, user_interface = get_controller_objects()
+        controller = Controller(data_bus, data_manager)
+        controller.set_gui(user_interface)
+
+        data_manager.load_group("Foo Device 2")
+        data_manager.load_preset("preset2")
+        calls: List[StatusData] = []
+
+        def f(data):
+            calls.append(data)
+
+        data_bus.subscribe(MessageType.status, f)
+        mock = MagicMock(return_value=False)
+        data_manager.start_injecting = mock
+        controller.start_injecting()
+
+        mock.assert_called()
+        self.assertEqual(
+            calls[0],
+            StatusData(
+                CTX_APPLY,
+                _("Failed to apply preset %s") % data_manager.active_preset.name,
+            ),
+        )
+
+    def test_start_injecting_adds_timeout_to_update_injector_status(self):
+        prepare_presets()
+        data_bus, data_manager, user_interface = get_controller_objects()
+        controller = Controller(data_bus, data_manager)
+        controller.set_gui(user_interface)
+
+        data_manager.load_group("Foo Device 2")
+        data_manager.load_preset("preset2")
+
+        with patch("inputremapper.gui.controller.GLib.timeout_add") as mock:
+            controller.start_injecting()
+            mock.assert_called_with(100, controller.show_injection_result)
+
+    def test_stop_injecting_shows_status(self):
+        prepare_presets()
+        data_bus, data_manager, user_interface = get_controller_objects()
+        controller = Controller(data_bus, data_manager)
+        controller.set_gui(user_interface)
+
+        data_manager.load_group("Foo Device 2")
+        data_manager.load_preset("preset2")
+        calls: List[StatusData] = []
+
+        def f(data):
+            calls.append(data)
+
+        data_bus.subscribe(MessageType.status, f)
+        mock = MagicMock()
+        data_manager.stop_injecting = mock
+        controller.stop_injecting()
+
+        mock.assert_called()
+        self.assertEqual(
+            calls[-1], StatusData(CTX_APPLY, _("Applied the system default"))
+        )
+
+    def test_show_injection_result(self):
+        prepare_presets()
+        data_bus, data_manager, user_interface = get_controller_objects()
+        controller = Controller(data_bus, data_manager)
+        controller.set_gui(user_interface)
+
+        data_manager.load_group("Foo Device 2")
+        data_manager.load_preset("preset2")
+        controller.start_injecting()
+
+        mock = MagicMock(return_value=RUNNING)
+        data_manager.get_state = mock
+        calls: List[StatusData] = []
+
+        def f(data):
+            calls.append(data)
+
+        data_bus.subscribe(MessageType.status, f)
+
+        assert not controller.show_injection_result()
+        self.assertEqual(calls[-1].msg, _("Applied preset %s") % "preset2")
+
+        mock.return_value = FAILED
+        assert not controller.show_injection_result()
+        self.assertEqual(calls[-1].msg, _("Failed to apply preset %s") % "preset2")
+
+        mock.return_value = NO_GRAB
+        assert not controller.show_injection_result()
+        self.assertEqual(calls[-1].msg, "The device was not grabbed")
+
+        mock.return_value = UPGRADE_EVDEV
+        assert not controller.show_injection_result()
+        self.assertEqual(calls[-1].msg, "Upgrade python-evdev")
+
+        mock.return_value = UNKNOWN
+        assert controller.show_injection_result()
+
+    def test_close(self):
+        data_bus, data_manager, user_interface = get_controller_objects()
+        controller = Controller(data_bus, data_manager)
+        controller.set_gui(user_interface)
+
+        mock_save = MagicMock()
+        listener = MagicMock()
+        data_bus.subscribe(MessageType.terminate, listener)
+        data_manager.save = mock_save
+
+        controller.close()
+        mock_save.assert_called()
+        listener.assert_called()

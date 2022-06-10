@@ -24,7 +24,7 @@ from typing import TYPE_CHECKING, Optional, List, Tuple
 
 from gi.repository import Gtk, GLib
 
-from .data_bus import DataBus, MessageType, PresetData, StatusData
+from .data_bus import DataBus, MessageType, PresetData, StatusData, CombinationRecorded
 from .gettext import _
 from .data_manager import DataManager, DEFAULT_PRESET_NAME
 from .helper import is_helper_running
@@ -107,6 +107,9 @@ class Controller:
             # send an empty mapping to make sure the ui is reset to default values
             self.data_bus.send(MappingData())
 
+    def on_combination_recorded(self, data: CombinationRecorded):
+        self.update_combination(data.combination)
+
     def copy_preset(self):
         name = self.data_manager.active_preset.name
         match = re.search(" copy *\d*$", name)
@@ -169,7 +172,7 @@ class Controller:
             self.data_manager.create_mapping()
         except KeyError:
             # there is already an empty mapping
-            pass
+            return
         self.data_manager.load_mapping(combination=EventCombination.empty_combination())
         self.data_manager.update_mapping(**MAPPING_DEFAULTS)
 
@@ -193,11 +196,18 @@ class Controller:
     def start_key_recording(self):
         def f(_):
             self.data_bus.unsubscribe(f)
-            self.gui.connect_shortcuts()
+            self.stop_key_recording()
 
         self.gui.disconnect_shortcuts()
+        self.data_bus.subscribe(
+            MessageType.combination_recorded, self.on_combination_recorded
+        )
         self.data_bus.subscribe(MessageType.recording_finished, f)
         self.data_manager.start_combination_recording()
+
+    def stop_key_recording(self):
+        self.data_bus.unsubscribe(self.on_combination_recorded)
+        self.gui.connect_shortcuts()
 
     def start_injecting(self):
         if len(self.data_manager.active_preset) == 0:

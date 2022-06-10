@@ -430,9 +430,6 @@ class RecordingToggle:
 
     def attach_to_events(self):
         self.data_bus.subscribe(
-            MessageType.combination_recorded, self.on_combination_recorded
-        )
-        self.data_bus.subscribe(
             MessageType.recording_finished, self.on_recording_finished
         )
 
@@ -444,17 +441,12 @@ class RecordingToggle:
             self.controller.start_key_recording()
             self.update_label(_("Recording ..."))
         else:
+            self.controller.stop_key_recording()
             self.update_label(_("Record Keys"))
 
     def on_recording_finished(self, _):
         logger.debug("finished recording")
         self.gui.set_active(False)
-
-    def on_combination_recorded(self, data: CombinationRecorded):
-        if not self.gui.get_active():
-            return
-
-        self.controller.update_combination(data.combination)
 
 
 class StatusBar:
