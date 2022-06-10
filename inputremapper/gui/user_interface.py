@@ -20,6 +20,7 @@
 
 
 """User Interface."""
+from collections import defaultdict
 from typing import Dict, Callable
 from gi.repository import Gtk, GtkSource, Gdk, GObject
 
@@ -65,71 +66,30 @@ class UserInterface:
         data_bus: DataBus,
         controller: Controller,
     ):
-
         self.data_bus = data_bus
         self.controller = controller
-        self.ctrl = False  # the current state of the ctrl-key (for shortcuts)
+
+        # all shortcuts executed when ctrl+...
+        self.shortcuts: Dict[int, Callable] = {
+            Gdk.KEY_q: self.controller.close,
+            Gdk.KEY_r: self.controller.refresh_groups,
+            Gdk.KEY_Delete: self.controller.stop_injecting,
+        }
 
         # stores the ids for all the listeners attached to the gui
         self.gtk_listeners: Dict[Callable, int] = {}
 
         self.data_bus.subscribe(MessageType.terminate, lambda _: self.close())
 
-        css_provider = Gtk.CssProvider()
-        with open(get_data_path("style.css"), "r") as file:
-            css_provider.load_from_data(bytes(file.read(), encoding="UTF-8"))
-
-        Gtk.StyleContext.add_provider_for_screen(
-            Gdk.Screen.get_default(),
-            css_provider,
-            Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION,
-        )
-
-        gladefile = get_data_path("input-remapper.glade")
-        builder = Gtk.Builder()
-        builder.add_from_file(gladefile)
-        builder.connect_signals(self)
-        self.builder = builder
+        self.builder = Gtk.Builder()
+        self._build_ui()
         self.window: Gtk.Window = self.get("window")
-
-        # set up components in no particular order
-        DeviceSelection(self.data_bus, controller, self.get("device_selection"))
-        PresetSelection(self.data_bus, controller, self.get("preset_selection"))
-        MappingListBox(self.data_bus, controller, self.get("selection_label_listbox"))
-        TargetSelection(self.data_bus, controller, self.get("target-selector"))
-        RecordingToggle(self.data_bus, controller, self.get("key_recording_toggle"))
-        StatusBar(
-            self.data_bus,
-            controller,
-            self.get("status_bar"),
-            self.get("error_status_icon"),
-            self.get("warning_status_icon"),
-        )
-        AutoloadToggle(self.data_bus, controller, self.get("preset_autoload_switch"))
-
-        # code editor and autocompletion
-        code_editor = CodeEditor(
-            self.data_bus, controller, system_mapping, self.get("code_editor")
-        )
-        autocompletion = Autocompletion(self.data_bus, code_editor)
-        autocompletion.set_relative_to(self.get("code_editor_container"))
-
-        self.connect_buttons()
-        self.connect_shortcuts()
-
         self.confirm_delete_dialog: Gtk.MessageDialog = self.get("confirm-delete")
         self.about: Gtk.Window = self.get("about-dialog")
-        self.about.connect("delete-event", on_close_about)
-        # set_position needs to be done once initially, otherwise the
-        # dialog is not centered when it is opened for the first time
-        self.about.set_position(Gtk.WindowPosition.CENTER_ON_PARENT)
 
-        self.get("version-label").set_text(
-            f"input-remapper {VERSION} {COMMIT_HASH[:7]}"
-            f"\npython-evdev {EVDEV_VERSION}"
-            if EVDEV_VERSION
-            else ""
-        )
+        self._create_dialogs()
+        self._create_components()
+        self._connect_gtk_signals()
 
         self.window.show()
         # hide everything until stuff is populated
@@ -141,7 +101,62 @@ class UserInterface:
         # now show the proper finished content of the window
         self.get("vertical-wrapper").set_opacity(1)
 
-    def connect_buttons(self):
+    def _build_ui(self):
+        """build the window from stylesheet and gladefile"""
+        css_provider = Gtk.CssProvider()
+
+        with open(get_data_path("style.css"), "r") as file:
+            css_provider.load_from_data(bytes(file.read(), encoding="UTF-8"))
+
+        Gtk.StyleContext.add_provider_for_screen(
+            Gdk.Screen.get_default(),
+            css_provider,
+            Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION,
+        )
+
+        gladefile = get_data_path("input-remapper.glade")
+        self.builder.add_from_file(gladefile)
+        self.builder.connect_signals(self)
+
+    def _create_components(self):
+        """setup all objects which manage individual components of the ui"""
+        data_bus = self.data_bus
+        controller = self.controller
+        DeviceSelection(data_bus, controller, self.get("device_selection"))
+        PresetSelection(data_bus, controller, self.get("preset_selection"))
+        MappingListBox(data_bus, controller, self.get("selection_label_listbox"))
+        TargetSelection(data_bus, controller, self.get("target-selector"))
+        RecordingToggle(data_bus, controller, self.get("key_recording_toggle"))
+        StatusBar(
+            data_bus,
+            controller,
+            self.get("status_bar"),
+            self.get("error_status_icon"),
+            self.get("warning_status_icon"),
+        )
+        AutoloadToggle(data_bus, controller, self.get("preset_autoload_switch"))
+
+        # code editor and autocompletion
+        code_editor = CodeEditor(
+            data_bus, controller, system_mapping, self.get("code_editor")
+        )
+        autocompletion = Autocompletion(data_bus, code_editor)
+        autocompletion.set_relative_to(self.get("code_editor_container"))
+
+    def _create_dialogs(self):
+        """setup different dialogs, such as the about page"""
+        self.about.connect("delete-event", on_close_about)
+        # set_position needs to be done once initially, otherwise the
+        # dialog is not centered when it is opened for the first time
+        self.about.set_position(Gtk.WindowPosition.CENTER_ON_PARENT)
+        self.get("version-label").set_text(
+            f"input-remapper {VERSION} {COMMIT_HASH[:7]}"
+            f"\npython-evdev {EVDEV_VERSION}"
+            if EVDEV_VERSION
+            else ""
+        )
+
+    def _connect_gtk_signals(self):
         self.get("delete_preset").connect(
             "clicked", lambda *_: self.controller.delete_preset()
         )
@@ -167,6 +182,7 @@ class UserInterface:
         self.get("delete-mapping").connect(
             "clicked", lambda *_: self.controller.delete_mapping()
         )
+        self.connect_shortcuts()
 
     def on_rename_clicked(self, *_):
         name_input = self.get("preset_name_input")
@@ -180,9 +196,7 @@ class UserInterface:
 
     def confirm_delete(self, msg):
         """Blocks until the user decided about an action."""
-
         self.get("confirm-delete-label").set_text(msg)
-
         self.confirm_delete_dialog.show()
         response = self.confirm_delete_dialog.run()
         self.confirm_delete_dialog.hide()
@@ -194,51 +208,23 @@ class UserInterface:
         e.g. when recording key combinations
         """
         try:
-            self.window.disconnect(self.gtk_listeners[self.on_key_press])
-            self.window.disconnect(self.gtk_listeners[self.on_key_release])
+            self.window.disconnect(self.gtk_listeners[self.on_shortcut])
         except KeyError:
             logger.debug("key listeners seem to be not connected")
 
     def connect_shortcuts(self):
         """stop listening for shortcuts"""
-        self.ctrl = False
-        self.gtk_listeners[self.on_key_press] = self.window.connect(
-            "key-press-event", self.on_key_press
-        )
-        self.gtk_listeners[self.on_key_release] = self.window.connect(
-            "key-release-event", self.on_key_release
+        self.gtk_listeners[self.on_shortcut] = self.window.connect(
+            "key-press-event", self.on_shortcut
         )
 
-    def on_key_press(self, _, event):
-        """To execute shortcuts.
-
-        This has nothing to do with the keycode reader.
-        """
-        gdk_keycode = event.get_keyval()[1]
-
-        if gdk_keycode in [Gdk.KEY_Control_L, Gdk.KEY_Control_R]:
-            self.ctrl = True
-
-        if self.ctrl:
-            # shortcuts
-            if gdk_keycode == Gdk.KEY_q:
-                self.controller.close()
-
-            if gdk_keycode == Gdk.KEY_r:
-                self.controller.refresh_groups()
-
-            if gdk_keycode == Gdk.KEY_Delete:
-                self.controller.stop_injecting()
-
-    def on_key_release(self, _, event):
-        """To execute shortcuts.
-
-        This has nothing to do with the keycode reader.
-        """
-        gdk_keycode = event.get_keyval()[1]
-
-        if gdk_keycode in [Gdk.KEY_Control_L, Gdk.KEY_Control_R]:
-            self.ctrl = False
+    def on_shortcut(self, _, event: Gdk.EventKey):
+        """execute shortcuts"""
+        if event.state & Gdk.ModifierType.CONTROL_MASK:
+            try:
+                self.shortcuts[event.keyval]()
+            except KeyError:
+                pass
 
     def get(self, name):
         """Get a widget from the window"""
