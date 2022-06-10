@@ -27,19 +27,22 @@ from inputremapper.configs.global_config import GlobalConfig
 from inputremapper.configs.mapping import UIMapping, MappingData
 from inputremapper.configs.preset import Preset
 from inputremapper.configs.paths import get_preset_path, mkdir, split_all
+from inputremapper.daemon import DaemonProxy
 from inputremapper.event_combination import EventCombination
 from inputremapper.exceptions import DataManagementError
 from inputremapper.groups import _Group
-from inputremapper.gui.backend import Backend
 from inputremapper.gui.data_bus import (
     DataBus,
     GroupData,
     PresetData,
     StatusData,
     CombinationUpdate,
+    UInputsData,
 )
+from inputremapper.gui.reader import Reader
 from inputremapper.gui.utils import CTX_MAPPING, CTX_APPLY
 from inputremapper.gui.gettext import _
+from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.logger import logger
 
 DEFAULT_PRESET_NAME = "new preset"
@@ -50,9 +53,21 @@ GroupKey = str
 
 
 class DataManager:
-    def __init__(self, data_bus: DataBus, config: GlobalConfig, backend: Backend):
+    """provides an interface to create configurations
+    and send commands to the service"""
+
+    def __init__(
+        self,
+        data_bus: DataBus,
+        config: GlobalConfig,
+        reader: Reader,
+        daemon: DaemonProxy,
+        uinputs: GlobalUInputs,
+    ):
         self.data_bus = data_bus
-        self.backend = backend
+        self._reader = reader
+        self._daemon = daemon
+        self._uinputs = uinputs
 
         self._config = config
         self._config.load_config()
@@ -100,7 +115,7 @@ class DataManager:
 
     @property
     def active_group(self) -> Optional[_Group]:
-        return self.backend.active_group
+        return self._reader.group
 
     @property
     def active_preset(self) -> Optional[Preset]:
@@ -112,7 +127,7 @@ class DataManager:
 
     def get_group_keys(self) -> Tuple[GroupKey]:
         """Get all group keys (plugged devices)"""
-        return tuple(group.key for group in self.backend.groups.filter())
+        return tuple(group.key for group in self._reader.groups.filter())
 
     def get_presets(self) -> Tuple[Name, ...]:
         """Get all preset names for active_group and current user,
@@ -165,7 +180,7 @@ class DataManager:
         """group_key of the group with the most recently modified preset"""
         paths = []
         for path in glob.glob(os.path.join(get_preset_path(), "*/*.json")):
-            if self.backend.groups.find(key=split_all(path)[-2]):
+            if self._reader.groups.find(key=split_all(path)[-2]):
                 paths.append((path, os.path.getmtime(path)))
 
         if not paths:
@@ -226,7 +241,8 @@ class DataManager:
 
         self._active_mapping = None
         self._active_preset = None
-        self.backend.set_active_group(group_key)
+        group = self._reader.groups.find(key=group_key)
+        self._reader.set_group(group)
         self._send_group()
 
     def load_preset(self, name: str):
@@ -381,11 +397,18 @@ class DataManager:
 
     def send_uinputs(self):
         """send the "uinputs" message on the DataBus"""
-        self.backend.emit_uinputs()
+        self.data_bus.send(
+            UInputsData(
+                {
+                    name: uinput.capabilities()
+                    for name, uinput in self._uinputs.devices.items()
+                }
+            )
+        )
 
     def send_groups(self):
         """send the "groups" message on the DataBus"""
-        self.backend.emit_groups()
+        self._reader.emit_groups_changed()
 
     def save(self):
         """save the active preset"""
@@ -397,26 +420,26 @@ class DataManager:
         Should send "groups" message to DataBus this will not happen immediately
         because the system might take a bit until the groups are available
         """
-        self.backend.refresh_groups()
+        self._reader.refresh_groups()
 
     def start_combination_recording(self):
         """recorde user input
         Will send "combination_recorded" messages as new input arrives.
         Will eventually send a "recording_finished" message.
         """
-        self.backend.start_key_recording()
+        self._reader.start_recorder()
 
     def stop_injecting(self) -> None:
         """stop injecting for the active group"""
-        self.backend.daemon.stop_injecting(self.active_group.key)
+        self._daemon.stop_injecting(self.active_group.key)
 
     def start_injecting(self) -> bool:
         """start injecting the active preset for the active group"""
-        self.backend.daemon.set_config_dir(self._config.path)
-        return self.backend.daemon.start_injecting(
+        self._daemon.set_config_dir(self._config.path)
+        return self._daemon.start_injecting(
             self.active_group.key, self.active_preset.name
         )
 
     def get_state(self) -> int:
         """the state of the injector"""
-        return self.backend.daemon.get_state(self.active_group.key)
+        return self._daemon.get_state(self.active_group.key)

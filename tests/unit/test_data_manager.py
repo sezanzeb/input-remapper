@@ -27,8 +27,11 @@ from inputremapper.configs.global_config import global_config
 from inputremapper.configs.mapping import UIMapping, MappingData
 from inputremapper.event_combination import EventCombination
 from inputremapper.exceptions import DataManagementError
+from inputremapper.groups import _Groups
 from inputremapper.gui.data_bus import DataBus, MessageType, GroupData, PresetData
-from tests.test import get_key_mapping, quick_cleanup, get_backend
+from inputremapper.gui.reader import Reader
+from inputremapper.injection.global_uinputs import GlobalUInputs
+from tests.test import get_key_mapping, quick_cleanup, FakeDaemonProxy
 
 from inputremapper.configs.paths import get_preset_path, get_config_path
 from inputremapper.configs.preset import Preset
@@ -69,8 +72,12 @@ def prepare_presets():
 class TestDataManager(unittest.TestCase):
     def setUp(self) -> None:
         self.data_bus = DataBus()
-        self.backend = get_backend()
-        self.data_manager = DataManager(self.data_bus, global_config, self.backend)
+        self.reader = Reader(self.data_bus, _Groups())
+        self.uinputs = GlobalUInputs()
+        self.uinputs.prepare_all()
+        self.data_manager = DataManager(
+            self.data_bus, global_config, self.reader, FakeDaemonProxy(), self.uinputs
+        )
 
     def tearDown(self) -> None:
         quick_cleanup()
@@ -725,3 +732,59 @@ class TestDataManager(unittest.TestCase):
         Preset(get_preset_path("Foo Device", "foo 2")).save()
         self.data_manager.load_group("Foo Device")
         self.assertEqual(self.data_manager.get_available_preset_name("foo 1"), "foo 3")
+
+    def test_should_send_groups(self):
+        listener = Listener()
+        self.data_bus.subscribe(MessageType.groups, listener)
+
+        self.data_manager.send_groups()
+        data = listener.calls[0]
+
+        # we expect a list of tuples with the group key and their device types
+        self.assertEqual(
+            data.groups,
+            {
+                "Foo Device": ["keyboard"],
+                "Foo Device 2": ["gamepad", "keyboard", "mouse"],
+                "Bar Device": ["keyboard"],
+                "gamepad": ["gamepad"],
+            },
+        )
+
+    def test_should_load_group(self):
+        prepare_presets()
+        listener = Listener()
+        self.data_bus.subscribe(MessageType.group, listener)
+
+        self.data_manager.load_group("Foo Device 2")
+
+        self.assertEqual(self.data_manager.active_group.key, "Foo Device 2")
+        data = (
+            GroupData("Foo Device 2", ("preset3", "preset2")),
+            GroupData("Foo Device 2", ("preset2", "preset3")),
+        )
+        self.assertIn(listener.calls[0], data)
+
+    def test_should_start_reading_active_group(self):
+        def f(*_):
+            raise AssertionError()
+
+        self.reader.set_group = f
+        self.assertRaises(AssertionError, self.data_manager.load_group, "Foo Device")
+
+    def test_should_send_uinputs(self):
+        listener = Listener()
+        self.data_bus.subscribe(MessageType.uinputs, listener)
+
+        self.data_manager.send_uinputs()
+        data = listener.calls[0]
+
+        # we expect a list of tuples with the group key and their device types
+        self.assertEqual(
+            data.uinputs,
+            {
+                "gamepad": self.uinputs.get_uinput("gamepad").capabilities(),
+                "keyboard": self.uinputs.get_uinput("keyboard").capabilities(),
+                "mouse": self.uinputs.get_uinput("mouse").capabilities(),
+            },
+        )

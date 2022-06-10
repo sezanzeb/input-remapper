@@ -27,7 +27,6 @@ import atexit
 import logging
 from argparse import ArgumentParser
 
-from inputremapper.gui.backend import Backend
 from inputremapper.gui.data_bus import DataBus, MessageType
 from inputremapper.gui.gettext import _, LOCALE_DIR
 
@@ -92,9 +91,10 @@ if __name__ == '__main__':
     daemon = start_processes()
     data_bus = DataBus()
     reader = Reader(data_bus, _Groups())
-    backed = Backend(data_bus, reader, daemon, GlobalUInputs())
-    data_mangager = DataManager(data_bus, GlobalConfig(), backed)
-    controller = Controller(data_bus, data_mangager)
+    data_manager = DataManager(
+        data_bus, GlobalConfig(), reader, daemon, GlobalUInputs()
+    )
+    controller = Controller(data_bus, data_manager)
     user_interface = UserInterface(data_bus, controller)
     controller.set_gui(user_interface)
 

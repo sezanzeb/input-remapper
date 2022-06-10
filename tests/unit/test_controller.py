@@ -25,6 +25,7 @@ from typing import Tuple, List, Any
 import gi
 
 from inputremapper.event_combination import EventCombination
+from inputremapper.groups import _Groups
 from inputremapper.gui.data_bus import (
     DataBus,
     MessageType,
@@ -34,6 +35,8 @@ from inputremapper.gui.data_bus import (
     GroupData,
     PresetData,
 )
+from inputremapper.gui.reader import Reader
+from inputremapper.injection.global_uinputs import GlobalUInputs
 
 gi.require_version("Gtk", "3.0")
 gi.require_version("GLib", "2.0")
@@ -45,7 +48,6 @@ from tests.test import (
     quick_cleanup,
     get_key_mapping,
     FakeDaemonProxy,
-    get_backend,
     fixtures,
 )
 
@@ -98,8 +100,15 @@ def get_controller_objects(
         data_bus = DataBus()
 
     if not data_manager:
-        backed = get_backend(data_bus=data_bus)
-        data_manager = DataManager(data_bus, GlobalConfig(), backed)
+        uinputs = GlobalUInputs()
+        uinputs.prepare_all()
+        data_manager = DataManager(
+            data_bus,
+            GlobalConfig(),
+            Reader(data_bus, _Groups()),
+            FakeDaemonProxy(),
+            uinputs,
+        )
 
     if not user_interface:
         user_interface = DummyGui()
