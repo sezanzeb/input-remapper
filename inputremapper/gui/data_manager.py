@@ -68,6 +68,7 @@ class DataManager:
         self._reader = reader
         self._daemon = daemon
         self._uinputs = uinputs
+        uinputs.prepare_all()
 
         self._config = config
         self._config.load_config()
