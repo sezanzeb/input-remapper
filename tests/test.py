@@ -610,12 +610,10 @@ from inputremapper.configs.global_config import global_config
 from inputremapper.configs.mapping import Mapping, UIMapping
 from inputremapper.groups import groups, _Groups
 from inputremapper.configs.system_mapping import system_mapping
-from inputremapper.gui.active_preset import active_preset
 from inputremapper.gui.data_bus import DataBus
 from inputremapper.gui.reader import Reader
 from inputremapper.configs.paths import get_config_path
 
-# from inputremapper.injection.mapping_handlers.keycode_mapper import active_macros, unreleased
 from inputremapper.injection.global_uinputs import global_uinputs
 
 # no need for a high number in tests
@@ -698,7 +696,6 @@ def quick_cleanup(log=True):
     global_config._save_config()
 
     system_mapping.populate()
-    active_preset.empty()
 
     clear_write_history()
 

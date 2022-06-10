@@ -65,7 +65,6 @@ from inputremapper.configs.system_mapping import (
     DISABLE_CODE,
     DISABLE_NAME,
 )
-from inputremapper.gui.active_preset import active_preset
 from inputremapper.configs.preset import Preset
 from inputremapper.event_combination import EventCombination
 from inputremapper.injection.macros.parse import parse
@@ -207,7 +206,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         self.assertIsNone(device)
 
     def test_get_udev_name(self):
-        self.injector = Injector(groups.find(key="Foo Device 2"), active_preset)
+        self.injector = Injector(groups.find(key="Foo Device 2"), Preset())
         suffix = "mapped"
         prefix = "input-remapper"
         expected = f'{prefix} {"a" * (80 - len(suffix) - len(prefix) - 2)} {suffix}'

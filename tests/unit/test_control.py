@@ -32,7 +32,6 @@ import collections
 from importlib.util import spec_from_loader, module_from_spec
 from importlib.machinery import SourceFileLoader
 
-from inputremapper.gui.active_preset import active_preset
 from inputremapper.configs.global_config import global_config
 from inputremapper.daemon import Daemon
 from inputremapper.configs.preset import Preset
@@ -42,7 +41,6 @@ from inputremapper.groups import groups
 
 def import_control():
     """Import the core function of the input-remapper-control command."""
-    active_preset.empty()
 
     bin_path = os.path.join(os.getcwd(), "bin", "input-remapper-control")
 
