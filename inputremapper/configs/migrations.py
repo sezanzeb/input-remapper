@@ -33,10 +33,10 @@ from evdev.ecodes import EV_KEY, EV_REL
 
 from inputremapper.logger import logger, VERSION
 from inputremapper.user import HOME
-from inputremapper.configs.paths import get_preset_path, mkdir, CONFIG_PATH
+from inputremapper.configs.paths import get_preset_path, mkdir, CONFIG_PATH, remove
 from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.injection.global_uinputs import global_uinputs
-from inputremapper.injection.macros.parse import parse, is_this_a_macro
+from inputremapper.injection.macros.parse import is_this_a_macro
 
 
 def all_presets():
@@ -244,6 +244,18 @@ def _otherwise_to_else():
             file.write("\n")
 
 
+def _remove_logs():
+    """We will try to rely on journalctl for this in the future."""
+    try:
+        remove(f"{HOME}/.log/input-remapper")
+        remove("/var/log/input-remapper")
+        remove("/var/log/input-remapper-control")
+    except Exception as error:
+        logger.debug("Failed to remove deprecated logfiles: %s", str(error))
+        # this migration is not important. Continue
+        pass
+
+
 def migrate():
     """Migrate config files to the current release."""
     v = config_version()
@@ -263,6 +275,9 @@ def migrate():
 
     if v < pkg_resources.parse_version("1.4.1"):
         _otherwise_to_else()
+
+    if v < pkg_resources.parse_version("1.5.0"):
+        _remove_logs()
 
     # add new migrations here
 
