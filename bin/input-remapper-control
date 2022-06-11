@@ -27,7 +27,7 @@ import argparse
 import logging
 import subprocess
 
-from inputremapper.logger import logger, update_verbosity, log_info, add_filehandler
+from inputremapper.logger import logger, update_verbosity, log_info
 from inputremapper.configs.migrations import migrate
 from inputremapper.configs.global_config import global_config
 
@@ -222,8 +222,6 @@ def boot_finished():
 def main(options):
     if options.debug:
         update_verbosity(True)
-
-    add_filehandler('/var/log/input-remapper-control')
 
     if options.version:
         log_info()

@@ -77,11 +77,6 @@ def debug_key(self, key, msg, *args):
 
 logging.Logger.debug_key = debug_key
 
-LOG_PATH = (
-    "/var/log/input-remapper"
-    if os.access("/var/log", os.W_OK)
-    else f"{HOME}/.log/input-remapper"
-)
 
 logger = logging.getLogger("input-remapper")
 
@@ -297,24 +292,3 @@ def trim_logfile(log_path):
         raise
     except Exception as e:
         logger.error('Failed to trim logfile: "%s"', str(e))
-
-
-def add_filehandler(log_path=LOG_PATH):
-    """Clear the existing logfile and start logging to it."""
-    try:
-        log_path = os.path.expanduser(log_path)
-        os.makedirs(os.path.dirname(log_path), exist_ok=True)
-
-        if os.path.isdir(log_path):
-            # used to be a folder < 0.8.0
-            shutil.rmtree(log_path)
-
-        trim_logfile(log_path)
-
-        file_handler = logging.FileHandler(log_path)
-        file_handler.setFormatter(ColorfulFormatter())
-        logger.addHandler(file_handler)
-
-        logger.info('Starting logging to "%s"', log_path)
-    except PermissionError:
-        logger.debug('No permission to log to "%s"', log_path)
