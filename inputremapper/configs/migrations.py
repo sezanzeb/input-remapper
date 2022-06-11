@@ -276,8 +276,7 @@ def migrate():
     if v < pkg_resources.parse_version("1.4.1"):
         _otherwise_to_else()
 
-    if v < pkg_resources.parse_version("1.5.0"):
-        _remove_logs()
+    _remove_logs()
 
     # add new migrations here
 
