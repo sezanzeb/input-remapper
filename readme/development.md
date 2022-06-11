@@ -46,7 +46,7 @@ be mostly compliant with pylint.
 ## Tests
 
 ```bash
-sudo pip install coverage
+pip install coverage --user
 pylint inputremapper --extension-pkg-whitelist=evdev
 sudo pkill -f input-remapper
 sudo pip install . && coverage run tests/test.py
@@ -93,7 +93,10 @@ This will generate `input-remapper/deb/input-remapper-1.4.2.deb`
 ## Badges
 
 ```bash
-sudo pip install git+https://github.com/jongracecox/anybadge
+sudo pip install anybadge pylint
+sudo pkill -f input-remapper
+sudo pip install .
+# the source path in .coveragerc might be incorrect for your system
 ./scripts/badges.sh
 ```
 
