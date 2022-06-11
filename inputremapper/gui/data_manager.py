@@ -425,7 +425,7 @@ class DataManager:
 
     def start_combination_recording(self):
         """Record user input.
-        
+
         Will send "combination_recorded" messages as new input arrives.
         Will eventually send a "recording_finished" message.
         """

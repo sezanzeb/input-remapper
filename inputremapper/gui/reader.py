@@ -114,14 +114,16 @@ class Reader:
         return True
 
     def start_recorder(self) -> None:
-        """generator which yields live updated EventCombination's
-
-        the generator will stop once all keys or inputs are released
-        """
+        """recorde user input"""
         self._recording_generator = self._recorder()
         next(self._recording_generator)
 
     def _recorder(self) -> RecordingGenerator:
+        """Generator which receives InputEvents.
+
+        it accumulates them into EventCombinations and sends those on the data_bus.
+        it will stop once all keys or inputs are released.
+        """
         active = set()
         accumulator = []
         while True:
