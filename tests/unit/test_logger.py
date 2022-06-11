@@ -26,8 +26,27 @@ import shutil
 import unittest
 import logging
 
-from inputremapper.logger import logger, add_filehandler, update_verbosity, log_info
+from inputremapper.logger import logger, update_verbosity, log_info, ColorfulFormatter
 from inputremapper.configs.paths import remove
+
+
+def add_filehandler(log_path):
+    """Clear the existing logfile and start logging to it."""
+    try:
+        log_path = os.path.expanduser(log_path)
+        os.makedirs(os.path.dirname(log_path), exist_ok=True)
+
+        if os.path.isdir(log_path):
+            # used to be a folder < 0.8.0
+            shutil.rmtree(log_path)
+
+        file_handler = logging.FileHandler(log_path)
+        file_handler.setFormatter(ColorfulFormatter())
+        logger.addHandler(file_handler)
+
+        logger.info('Starting logging to "%s"', log_path)
+    except PermissionError:
+        logger.debug('No permission to log to "%s"', log_path)
 
 
 class TestLogger(unittest.TestCase):
@@ -76,22 +95,6 @@ class TestLogger(unittest.TestCase):
         new_path = os.path.join(tmp, "logger-test", "a", "b", "c")
         add_filehandler(new_path)
         self.assertTrue(os.path.exists(new_path))
-
-    def test_clears_log(self):
-        path = os.path.join(tmp, "logger-test")
-        os.makedirs(os.path.dirname(path), exist_ok=True)
-        os.mknod(path)
-
-        with open(path, "w") as f:
-            f.write("aaaa\n" * 2000 + "end")
-
-        add_filehandler(os.path.join(tmp, "logger-test"))
-        with open(path, "r") as f:
-            # it only keeps the newest information
-            content = f.readlines()
-            self.assertLess(abs(len(content) - 1000), 10)
-            # whatever the logging module decides to log into that file
-            self.assertNotIn("aaaa", content[-1])
 
     def test_debug(self):
         path = os.path.join(tmp, "logger-test")
