@@ -3,7 +3,6 @@ Description=Service to inject keycodes without the GUI application
 # dbus is required for ipc between gui and input-remapper-control
 Requires=dbus.service
 After=dbus.service
-RequiresMountsFor=/var/log
 
 [Service]
 Type=dbus
