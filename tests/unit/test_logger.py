@@ -31,22 +31,13 @@ from inputremapper.configs.paths import remove
 
 
 def add_filehandler(log_path):
-    """Clear the existing logfile and start logging to it."""
-    try:
-        log_path = os.path.expanduser(log_path)
-        os.makedirs(os.path.dirname(log_path), exist_ok=True)
-
-        if os.path.isdir(log_path):
-            # used to be a folder < 0.8.0
-            shutil.rmtree(log_path)
-
-        file_handler = logging.FileHandler(log_path)
-        file_handler.setFormatter(ColorfulFormatter())
-        logger.addHandler(file_handler)
-
-        logger.info('Starting logging to "%s"', log_path)
-    except PermissionError:
-        logger.debug('No permission to log to "%s"', log_path)
+    """Start logging to a file."""
+    log_path = os.path.expanduser(log_path)
+    os.makedirs(os.path.dirname(log_path), exist_ok=True)
+    file_handler = logging.FileHandler(log_path)
+    file_handler.setFormatter(ColorfulFormatter())
+    logger.addHandler(file_handler)
+    logger.info('Starting logging to "%s"', log_path)
 
 
 class TestLogger(unittest.TestCase):
