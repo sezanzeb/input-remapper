@@ -427,7 +427,7 @@ class _Groups:
         need it the information.
         """
         if key == "_groups" and object.__getattribute__(self, "_groups") is None:
-            object.__setattr__(self, "_groups", {})
+            object.__setattr__(self, "_groups", [])
             object.__getattribute__(self, "refresh")()
 
         return object.__getattribute__(self, key)

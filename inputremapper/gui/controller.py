@@ -30,6 +30,7 @@ from .data_manager import DataManager, DEFAULT_PRESET_NAME
 from .helper import is_helper_running
 from ..configs.mapping import MappingData, UIMapping
 from ..event_combination import EventCombination
+from ..exceptions import DataManagementError
 from ..injection.injector import RUNNING, FAILED, NO_GRAB, UPGRADE_EVDEV
 from ..input_event import InputEvent
 from ..logger import logger
@@ -72,7 +73,7 @@ class Controller:
         self.data_manager.create_preset(self.data_manager.get_available_preset_name())
         return self.data_manager.get_newest_preset_name()
 
-    def get_a_group(self) -> str:
+    def get_a_group(self) -> Optional[str]:
         """attempts to get the group with the newest preset
         returns any if that fails"""
         try:
@@ -80,7 +81,8 @@ class Controller:
         except FileNotFoundError:
             pass
 
-        return self.data_manager.get_group_keys()[0]
+        keys = self.data_manager.get_group_keys()
+        return keys[0] if keys else None
 
     def on_init(self, __):
         # make sure we get a groups_changed event when everything is ready
@@ -94,7 +96,9 @@ class Controller:
     def on_groups_changed(self, _):
         """load the newest group as soon as everyone got notified
         about the updated groups"""
-        self.load_group(self.get_a_group())
+        group_key = self.get_a_group()
+        if group_key:
+            self.load_group(self.get_a_group())
 
     def on_preset_changed(self, data: PresetData):
         """load a mapping as soon as everyone got notified about the new preset"""
@@ -241,8 +245,11 @@ class Controller:
         GLib.timeout_add(100, self.show_injection_result)
 
     def stop_injecting(self):
-        self.data_manager.stop_injecting()
-        self.show_status(CTX_APPLY, _("Applied the system default"))
+        try:
+            self.data_manager.stop_injecting()
+            self.show_status(CTX_APPLY, _("Applied the system default"))
+        except DataManagementError:
+            pass
 
     def show_injection_result(self):
         """Show if the injection was successfully started."""

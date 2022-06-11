@@ -433,6 +433,8 @@ class DataManager:
 
     def stop_injecting(self) -> None:
         """stop injecting for the active group"""
+        if not self.active_group:
+            raise DataManagementError("cannot stop injection: group is not set")
         self._daemon.stop_injecting(self.active_group.key)
 
     def start_injecting(self) -> bool:
