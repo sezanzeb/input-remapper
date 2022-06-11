@@ -424,7 +424,8 @@ class DataManager:
         self._reader.refresh_groups()
 
     def start_combination_recording(self):
-        """recorde user input
+        """Record user input.
+        
         Will send "combination_recorded" messages as new input arrives.
         Will eventually send a "recording_finished" message.
         """
