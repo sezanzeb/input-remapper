@@ -18,10 +18,7 @@ class TestUserInterface(unittest.TestCase):
     def setUp(self) -> None:
         self.data_bus = DataBus()
         self.controller_mock = MagicMock()
-        mock = MagicMock()
-        with patch.object(Gtk.StyleContext, "add_provider_for_screen", mock):
-            self.user_interface = UserInterface(self.data_bus, self.controller_mock)
-        mock.assert_called()
+        self.user_interface = UserInterface(self.data_bus, self.controller_mock)
 
     def tearDown(self) -> None:
         super().tearDown()
