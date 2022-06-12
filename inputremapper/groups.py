@@ -464,6 +464,7 @@ class _Groups:
 
     def set_groups(self, new_groups):
         """Overwrite all groups."""
+        logger.debug("overwriting groups with %s", new_groups)
         self._groups = new_groups
 
     def list_group_names(self) -> List[str]:

@@ -55,6 +55,5 @@ if __name__ == '__main__':
 
     atexit.register(on_exit)
     groups = _Groups()
-    groups.refresh()
     helper = RootHelper(groups)
     helper.run()

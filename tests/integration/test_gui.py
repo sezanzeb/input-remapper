@@ -20,6 +20,8 @@
 
 
 # the tests file needs to be imported first to make sure patches are loaded
+from typing import Tuple
+
 from tests.test import (
     get_project_root,
     logger,
@@ -31,7 +33,6 @@ from tests.test import (
     uinput_write_history_pipe,
     MAX_ABS,
     EVENT_READ_TIMEOUT,
-    send_event_to_reader,
     MIN_ABS,
     get_ui_mapping,
 )
@@ -54,7 +55,7 @@ from evdev.ecodes import (
     ABS_X,
 )
 import json
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 from importlib.util import spec_from_loader, module_from_spec
 from importlib.machinery import SourceFileLoader
 
@@ -66,18 +67,19 @@ from gi.repository import Gtk, GLib, Gdk
 
 from inputremapper.configs.system_mapping import system_mapping, XMODMAP_FILENAME
 from inputremapper.configs.mapping import UIMapping
-from inputremapper.gui.active_preset import active_preset
 from inputremapper.configs.paths import CONFIG_PATH, get_preset_path, get_config_path
 from inputremapper.configs.global_config import global_config, WHEEL, MOUSE, BUTTONS
-from inputremapper.gui.reader import reader
+from inputremapper.groups import _Groups
+from inputremapper.gui.data_manager import DataManager
+from inputremapper.gui.data_bus import DataBus
+from inputremapper.gui.reader import Reader
+from inputremapper.gui.controller import Controller
 from inputremapper.gui.helper import RootHelper
 from inputremapper.gui.utils import gtk_iteration
 from inputremapper.gui.user_interface import UserInterface
-from inputremapper.gui.editor.editor import SET_KEY_FIRST
 from inputremapper.injection.injector import RUNNING, FAILED, UNKNOWN
 from inputremapper.event_combination import EventCombination
-from inputremapper.daemon import Daemon
-from inputremapper.groups import groups
+from inputremapper.daemon import Daemon, DaemonProxy
 
 
 # iterate a few times when Gtk.main() is called, but don't block
@@ -89,22 +91,20 @@ Gtk.main = gtk_iteration
 Gtk.main_quit = lambda: None
 
 
-def launch(argv=None) -> UserInterface:
+def launch(
+    argv=None,
+) -> Tuple[UserInterface, Controller, DataManager, DataBus, DaemonProxy]:
     """Start input-remapper-gtk with the command line argument array argv."""
     bin_path = os.path.join(get_project_root(), "bin", "input-remapper-gtk")
 
     if not argv:
         argv = ["-d"]
 
-    with patch(
-        "inputremapper.gui.user_interface.UserInterface.setup_timeouts",
-        lambda *args: None,
-    ):
-        with patch.object(sys, "argv", [""] + [str(arg) for arg in argv]):
-            loader = SourceFileLoader("__main__", bin_path)
-            spec = spec_from_loader("__main__", loader)
-            module = module_from_spec(spec)
-            spec.loader.exec_module(module)
+    with patch.object(sys, "argv", [""] + [str(arg) for arg in argv]):
+        loader = SourceFileLoader("__main__", bin_path)
+        spec = spec_from_loader("__main__", loader)
+        module = module_from_spec(spec)
+        spec.loader.exec_module(module)
 
     gtk_iteration()
 
@@ -112,13 +112,13 @@ def launch(argv=None) -> UserInterface:
     # spams tons of garbage when all tests finish
     atexit.unregister(module.stop)
 
-    # to avoid triggering any timeouts while the module loads, patch it and
-    # do it afterwards. Because some tests don't want them to be triggered
-    # yet and test the windows initial state. This is only a problem on
-    # slow computers that take long for the window import.
-    module.user_interface.setup_timeouts()
-
-    return module.user_interface
+    return (
+        module.user_interface,
+        module.controller,
+        module.data_manager,
+        module.data_bus,
+        module.daemon,
+    )
 
 
 class FakeDeviceDropdown(Gtk.ComboBoxText):
@@ -153,7 +153,7 @@ class FakePresetDropdown(Gtk.ComboBoxText):
 
 
 def clean_up_integration(test):
-    test.user_interface.on_stop_injecting_clicked(None)
+    test.controller.stop_injecting()
     gtk_iteration()
     test.user_interface.on_close()
     test.user_interface.window.destroy()
@@ -161,9 +161,9 @@ def clean_up_integration(test):
     cleanup()
 
     # do this now, not when all tests are finished
-    test.user_interface.dbus.stop_all()
-    if isinstance(test.user_interface.dbus, Daemon):
-        atexit.unregister(test.user_interface.dbus.stop_all)
+    test.daemon.stop_all()
+    if isinstance(test.daemon, Daemon):
+        atexit.unregister(test.daemon.stop_all)
 
 
 class GtkKeyEvent:
@@ -183,26 +183,29 @@ class TestGroupsFromHelper(unittest.TestCase):
         self.original_connect = Daemon.connect
         Daemon.connect = Daemon
 
+        # this is already part of the test. we need a bit of patching and hacking
+        # because we want to discover the groups as early a possible, to reduce startup
+        # time for the application
         self.original_os_system = os.system
+        self.helper_started = MagicMock()
 
         def os_system(cmd):
             # instead of running pkexec, fork instead. This will make
             # the helper aware of all the test patches
             if "pkexec input-remapper-control --command helper" in cmd:
-                # the forked process should get the initial groups
-                groups.refresh()
-                multiprocessing.Process(target=RootHelper).start()
-                # the gui an empty dict, because it doesn't know any devices
-                # without the help of the privileged helper
-                groups.set_groups([])
-                assert len(groups) == 0
+                self.helper_started()  # don't start the helper just log that it was.
                 return 0
 
             return self.original_os_system(cmd)
 
         os.system = os_system
-
-        self.user_interface = launch()
+        (
+            self.user_interface,
+            self.controller,
+            self.data_manager,
+            self.data_bus,
+            self.daemon,
+        ) = launch()
 
     def tearDown(self):
         clean_up_integration(self)
@@ -212,20 +215,24 @@ class TestGroupsFromHelper(unittest.TestCase):
     def test_knows_devices(self):
         # verify that it is working as expected. The gui doesn't have knowledge
         # of groups until the root-helper provides them
+        self.data_manager._reader.groups.set_groups([])
         gtk_iteration()
-        self.assertEqual(len(groups), 0)
+        self.helper_started.assert_called()
+        self.assertEqual(len(self.data_manager.get_group_keys()), 0)
 
-        # perform some iterations so that the gui ends up running
-        # consume_newest_keycode, which will make it receive devices.
-        # Restore patch, otherwise gtk complains when disabling handlers
+        # start the helper delayed
+        multiprocessing.Process(target=RootHelper(_Groups()).run).start()
+        # perform some iterations so that the reader ends up reading from the pipes
+        # which will make it receive devices.
         for _ in range(10):
             time.sleep(0.02)
             gtk_iteration()
 
-        self.assertIsNotNone(groups.find(key="Foo Device 2"))
-        self.assertIsNotNone(groups.find(name="Bar Device"))
-        self.assertIsNotNone(groups.find(name="gamepad"))
-        self.assertEqual(self.user_interface.group.name, "Foo Device")
+        self.assertIn("Foo Device 2", self.data_manager.get_group_keys())
+        self.assertIn("Foo Device 2", self.data_manager.get_group_keys())
+        self.assertIn("Bar Device", self.data_manager.get_group_keys())
+        self.assertIn("gamepad", self.data_manager.get_group_keys())
+        self.assertEqual(self.data_manager.active_group.name, "Foo Device")
 
 
 class PatchedConfirmDelete:

@@ -89,9 +89,6 @@ class RootHelper:
         self.groups = groups
         self._results = Pipe(f"/tmp/input-remapper-{USER}/results")
         self._commands = Pipe(f"/tmp/input-remapper-{USER}/commands")
-
-        self._send_groups()
-
         self._pipe = multiprocessing.Pipe()
 
         self._tasks: Set[asyncio.Task] = set()
@@ -102,6 +99,9 @@ class RootHelper:
         # the reader will check for new commands later, once it is running
         # it keeps running for one device or another.
         loop = asyncio.get_event_loop()
+        logger.debug("Discovering initial groups")
+        self.groups.refresh()
+        self._send_groups()
         logger.debug("Waiting commands")
         loop.run_until_complete(self._read_commands())
         logger.debug("Helper terminates")

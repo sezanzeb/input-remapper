@@ -88,9 +88,13 @@ if __name__ == '__main__':
 
     migrate()
 
-    daemon = start_processes()
     data_bus = DataBus()
+
+    # create the reader before we start the helper (start_processes) otherwise it
+    # can come to race conditions with the creation of pipes
     reader = Reader(data_bus, _Groups())
+    daemon = start_processes()
+
     data_manager = DataManager(
         data_bus, GlobalConfig(), reader, daemon, GlobalUInputs()
     )
