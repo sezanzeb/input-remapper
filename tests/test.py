@@ -25,6 +25,7 @@ This module needs to be imported first in test files.
 """
 
 import argparse
+import json
 import os
 import sys
 import tempfile
@@ -623,7 +624,8 @@ from inputremapper.groups import groups, _Groups
 from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.gui.data_bus import DataBus
 from inputremapper.gui.reader import Reader
-from inputremapper.configs.paths import get_config_path
+from inputremapper.configs.paths import get_config_path, get_preset_path
+from inputremapper.configs.preset import Preset
 
 from inputremapper.injection.global_uinputs import global_uinputs
 
@@ -806,6 +808,32 @@ class FakeDaemonProxy:
     def hello(self, out: str) -> str:
         self.calls["hello"].append(out)
         return out
+
+
+def prepare_presets():
+    """prepare a few presets for use in tests
+    "Foo Device 2/preset3" is the newest and "Foo Device 2/preset2" is set to autoload
+    """
+    preset1 = Preset(get_preset_path("Foo Device", "preset1"))
+    preset1.add(get_key_mapping(combination="1,1,1", output_symbol="b"))
+    preset1.add(get_key_mapping(combination="1,2,1"))
+    preset1.save()
+
+    preset2 = Preset(get_preset_path("Foo Device", "preset2"))
+    preset2.add(get_key_mapping(combination="1,3,1"))
+    preset2.add(get_key_mapping(combination="1,4,1"))
+    preset2.save()
+
+    preset3 = Preset(get_preset_path("Foo Device", "preset3"))
+    preset3.add(get_key_mapping(combination="1,5,1"))
+    preset3.save()
+
+    with open(get_config_path("config.json"), "w") as file:
+        json.dump({"autoload": {"Foo Device 2": "preset2"}}, file, indent=4)
+
+    global_config.load_config()
+
+    return preset1, preset2, preset3
 
 
 cleanup()

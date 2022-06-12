@@ -133,7 +133,7 @@ class DataManager:
     def get_presets(self) -> Tuple[Name, ...]:
         """Get all preset names for active_group and current user,
         starting with the newest."""
-        device_folder = get_preset_path(self.active_group.key)
+        device_folder = get_preset_path(self.active_group.name)
         mkdir(device_folder)
 
         paths = glob.glob(os.path.join(device_folder, "*.json"))
@@ -198,7 +198,7 @@ class DataManager:
         paths = [
             (path, os.path.getmtime(path))
             for path in glob.glob(
-                os.path.join(get_preset_path(self.active_group.key), "*.json")
+                os.path.join(get_preset_path(self.active_group.name), "*.json")
             )
         ]
         if not paths:
@@ -215,7 +215,7 @@ class DataManager:
         name = name.strip()
 
         # find a name that is not already taken
-        if os.path.exists(get_preset_path(self.active_group.key, name)):
+        if os.path.exists(get_preset_path(self.active_group.name, name)):
             # if there already is a trailing number, increment it instead of
             # adding another one
             match = re.match(r"^(.+) (\d+)$", name)
@@ -225,7 +225,7 @@ class DataManager:
             else:
                 i = 2
 
-            while os.path.exists(get_preset_path(self.active_group.key, f"{name} {i}")):
+            while os.path.exists(get_preset_path(self.active_group.name, f"{name} {i}")):
                 i += 1
 
             return f"{name} {i}"
@@ -254,7 +254,7 @@ class DataManager:
         if not self.active_group:
             raise DataManagementError("Unable to load preset. Group is not set")
 
-        preset_path = get_preset_path(self.active_group.key, name)
+        preset_path = get_preset_path(self.active_group.name, name)
         preset = Preset(preset_path, mapping_factory=UIMapping)
         preset.load()
         self._active_mapping = None
@@ -282,12 +282,12 @@ class DataManager:
         if not self._active_preset:
             raise DataManagementError("Unable rename preset: Preset is not set")
 
-        if self._active_preset.path == get_preset_path(self.active_group.key, new_name):
+        if self._active_preset.path == get_preset_path(self.active_group.name, new_name):
             return
 
         old_path = self._active_preset.path
         old_name = os.path.basename(old_path).split(".")[0]
-        new_path = get_preset_path(self.active_group.key, new_name)
+        new_path = get_preset_path(self.active_group.name, new_name)
         if os.path.exists(new_path):
             raise ValueError(
                 f"cannot rename {old_name} to " f"{new_name}, preset already exists"
@@ -301,7 +301,7 @@ class DataManager:
         if self._config.is_autoloaded(self.active_group.key, old_name):
             self._config.set_autoload_preset(self.active_group.key, new_name)
 
-        self._active_preset.path = get_preset_path(self.active_group.key, new_name)
+        self._active_preset.path = get_preset_path(self.active_group.name, new_name)
         self._send_group()
         self._send_preset()
 
@@ -313,13 +313,13 @@ class DataManager:
         if not self._active_preset:
             raise DataManagementError("Unable to copy preset: Preset is not set")
 
-        if self._active_preset.path == get_preset_path(self.active_group.key, name):
+        if self._active_preset.path == get_preset_path(self.active_group.name, name):
             return
 
         if name in self.get_presets():
             raise ValueError(f"a preset with the name {name} already exits")
 
-        new_path = get_preset_path(self.active_group.key, name)
+        new_path = get_preset_path(self.active_group.name, name)
         logger.info('Copy "%s" to "%s"', self.active_preset.path, new_path)
         self._active_preset.path = new_path
         self.save()
@@ -333,7 +333,7 @@ class DataManager:
         if not self.active_group:
             raise DataManagementError("Unable to add preset. Group is not set")
 
-        path = get_preset_path(self.active_group.key, name)
+        path = get_preset_path(self.active_group.name, name)
         if os.path.exists(path):
             raise DataManagementError("Unable to add preset. Preset exists")
 
@@ -439,7 +439,7 @@ class DataManager:
 
     def start_injecting(self) -> bool:
         """start injecting the active preset for the active group"""
-        self._daemon.set_config_dir(self._config.path)
+        self._daemon.set_config_dir(self._config.get_dir())
         return self._daemon.start_injecting(
             self.active_group.key, self.active_preset.name
         )
@@ -447,3 +447,7 @@ class DataManager:
     def get_state(self) -> int:
         """the state of the injector"""
         return self._daemon.get_state(self.active_group.key)
+
+    def refresh_service_config_path(self):
+        """tell the service to refresh its config path"""
+        self._daemon.set_config_dir(self._config.get_dir())

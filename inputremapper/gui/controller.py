@@ -196,6 +196,7 @@ class Controller:
 
     def set_autoload(self, autoload: bool):
         self.data_manager.set_autoload(autoload)
+        self.data_manager.refresh_service_config_path()
 
     def save(self):
         self.data_manager.save()

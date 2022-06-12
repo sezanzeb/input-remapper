@@ -21,6 +21,7 @@ import json
 import os
 import time
 import unittest
+from itertools import permutations
 from typing import List, Dict, Any
 
 from inputremapper.configs.global_config import global_config
@@ -31,7 +32,7 @@ from inputremapper.groups import _Groups
 from inputremapper.gui.data_bus import DataBus, MessageType, GroupData, PresetData
 from inputremapper.gui.reader import Reader
 from inputremapper.injection.global_uinputs import GlobalUInputs
-from tests.test import get_key_mapping, quick_cleanup, FakeDaemonProxy
+from tests.test import get_key_mapping, quick_cleanup, FakeDaemonProxy, prepare_presets
 
 from inputremapper.configs.paths import get_preset_path, get_config_path
 from inputremapper.configs.preset import Preset
@@ -44,29 +45,6 @@ class Listener:
 
     def __call__(self, data):
         self.calls.append(data)
-
-
-def prepare_presets():
-    preset1 = Preset(get_preset_path("Foo Device", "preset1"))
-    preset1.add(get_key_mapping(combination="1,1,1", output_symbol="b"))
-    preset1.add(get_key_mapping(combination="1,2,1"))
-    preset1.save()
-
-    preset2 = Preset(get_preset_path("Foo Device 2", "preset2"))
-    preset2.add(get_key_mapping(combination="1,3,1"))
-    preset2.add(get_key_mapping(combination="1,4,1"))
-    preset2.save()
-
-    preset3 = Preset(get_preset_path("Foo Device 2", "preset3"))
-    preset3.add(get_key_mapping(combination="1,5,1"))
-    preset3.save()
-
-    with open(get_config_path("config.json"), "w") as file:
-        json.dump({"autoload": {"Foo Device 2": "preset2"}}, file, indent=4)
-
-    global_config.load_config()
-
-    return preset1, preset2, preset3
 
 
 class TestDataManager(unittest.TestCase):
@@ -97,6 +75,7 @@ class TestDataManager(unittest.TestCase):
             self.assertIn(
                 preset_name,
                 (
+                    "preset1",
                     "preset2",
                     "preset3",
                 ),
@@ -350,7 +329,7 @@ class TestDataManager(unittest.TestCase):
         self.data_manager.delete_preset()
 
         presets_in_group = [preset for preset in listener.calls[0].presets]
-        self.assertEqual(len(presets_in_group), 1)
+        self.assertEqual(len(presets_in_group), 2)
         self.assertNotIn("preset2", presets_in_group)
         self.assertEqual(len(listener.calls), 1)
 
@@ -431,7 +410,7 @@ class TestDataManager(unittest.TestCase):
         )
         self.data_manager.save()
 
-        preset = Preset(get_preset_path("Foo Device 2", "preset2"), UIMapping)
+        preset = Preset(get_preset_path("Foo Device", "preset2"), UIMapping)
         preset.load()
         mapping = preset.get_mapping(EventCombination("1,4,1"))
         self.assertEqual(mapping.name, "foo")
@@ -450,7 +429,7 @@ class TestDataManager(unittest.TestCase):
         )
         self.data_manager.save()
 
-        preset = Preset(get_preset_path("Foo Device 2", "preset2"), UIMapping)
+        preset = Preset(get_preset_path("Foo Device", "preset2"), UIMapping)
         preset.load()
         mapping = preset.get_mapping(EventCombination("1,4,1"))
         self.assertIsNotNone(mapping.get_error())
@@ -550,7 +529,7 @@ class TestDataManager(unittest.TestCase):
         """should be able to delete a mapping"""
         prepare_presets()
 
-        old_preset = Preset(get_preset_path("Foo Device 2", "preset2"))
+        old_preset = Preset(get_preset_path("Foo Device", "preset2"))
         old_preset.load()
 
         self.data_manager.load_group(group_key="Foo Device 2")
@@ -567,7 +546,7 @@ class TestDataManager(unittest.TestCase):
         deleted_mapping = old_preset.get_mapping(EventCombination("1,3,1"))
         mappings = listener.calls[0].mappings
         preset_name = listener.calls[0].name
-        expected_preset = Preset(get_preset_path("Foo Device 2", "preset2"))
+        expected_preset = Preset(get_preset_path("Foo Device", "preset2"))
         expected_preset.load()
         expected_mappings = [
             (mapping.name, mapping.event_combination) for mapping in expected_preset
@@ -760,8 +739,7 @@ class TestDataManager(unittest.TestCase):
 
         self.assertEqual(self.data_manager.active_group.key, "Foo Device 2")
         data = (
-            GroupData("Foo Device 2", ("preset3", "preset2")),
-            GroupData("Foo Device 2", ("preset2", "preset3")),
+            GroupData("Foo Device 2", (p1, p2, p3)) for p1, p2, p3 in permutations(("preset3", "preset2", "preset1"))
         )
         self.assertIn(listener.calls[0], data)
 

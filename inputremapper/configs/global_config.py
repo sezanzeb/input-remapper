@@ -45,6 +45,10 @@ class GlobalConfig(ConfigBase):
         self.path = os.path.join(CONFIG_PATH, "config.json")
         super().__init__()
 
+    def get_dir(self) -> str:
+        """the folder containing this config"""
+        return os.path.split(self.path)[0]
+
     def set_autoload_preset(self, group_key, preset):
         """Set a preset to be automatically applied on start.
         Parameters

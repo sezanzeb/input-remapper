@@ -66,35 +66,13 @@ from tests.test import (
     get_key_mapping,
     FakeDaemonProxy,
     fixtures,
+    prepare_presets,
 )
 from inputremapper.configs.global_config import global_config, GlobalConfig
 from inputremapper.gui.controller import Controller, MAPPING_DEFAULTS
 from inputremapper.gui.data_manager import DataManager, DEFAULT_PRESET_NAME
 from inputremapper.configs.paths import get_preset_path, get_config_path
 from inputremapper.configs.preset import Preset
-
-
-def prepare_presets():
-    preset1 = Preset(get_preset_path("Foo Device", "preset1"))
-    preset1.add(get_key_mapping(combination="1,1,1", output_symbol="b"))
-    preset1.add(get_key_mapping(combination="1,2,1"))
-    preset1.save()
-
-    preset2 = Preset(get_preset_path("Foo Device 2", "preset2"))
-    preset2.add(get_key_mapping(combination="1,3,1"))
-    preset2.add(get_key_mapping(combination="1,4,1"))
-    preset2.save()
-
-    preset3 = Preset(get_preset_path("Foo Device 2", "preset3"))
-    preset3.add(get_key_mapping(combination="1,5,1"))
-    preset3.save()
-
-    with open(get_config_path("config.json"), "w") as file:
-        json.dump({"autoload": {"Foo Device 2": "preset2"}}, file, indent=4)
-
-    global_config.load_config()
-
-    return preset1, preset2, preset3
 
 
 @dataclass
@@ -373,7 +351,7 @@ class TestController(unittest.TestCase):
 
     def test_on_load_preset_should_provide_default_mapping(self):
         """if there is none"""
-        Preset(get_preset_path("Foo Device 2", "bar")).save()
+        Preset(get_preset_path("Foo Device", "bar")).save()
         data_bus, data_manager, user_interface = get_controller_objects()
         controller = Controller(data_bus, data_manager)
         controller.set_gui(user_interface)
@@ -404,7 +382,7 @@ class TestController(unittest.TestCase):
 
     def test_deletes_preset_when_confirmed(self):
         prepare_presets()
-        self.assertTrue(os.path.isfile(get_preset_path("Foo Device 2", "preset2")))
+        self.assertTrue(os.path.isfile(get_preset_path("Foo Device", "preset2")))
         data_bus, data_manager, user_interface = get_controller_objects()
         controller = Controller(data_bus, data_manager)
         controller.set_gui(user_interface)
@@ -413,13 +391,13 @@ class TestController(unittest.TestCase):
         data_manager.load_preset("preset2")
         user_interface.confirm_delete_ret = Gtk.ResponseType.ACCEPT
 
-        path = get_preset_path("Foo Device 2", "preset2")
+        path = get_preset_path("Foo Device", "preset2")
         controller.delete_preset()
-        self.assertFalse(os.path.exists(get_preset_path("Foo Device 2", "preset2")))
+        self.assertFalse(os.path.exists(get_preset_path("Foo Device", "preset2")))
 
     def test_does_not_delete_preset_when_not_confirmed(self):
         prepare_presets()
-        self.assertTrue(os.path.isfile(get_preset_path("Foo Device 2", "preset2")))
+        self.assertTrue(os.path.isfile(get_preset_path("Foo Device", "preset2")))
         data_bus, data_manager, user_interface = get_controller_objects()
         controller = Controller(data_bus, data_manager)
         controller.set_gui(user_interface)
@@ -428,13 +406,13 @@ class TestController(unittest.TestCase):
         data_manager.load_preset("preset2")
         user_interface.confirm_delete_ret = Gtk.ResponseType.CANCEL
 
-        path = get_preset_path("Foo Device 2", "preset2")
+        path = get_preset_path("Foo Device", "preset2")
         controller.delete_preset()
-        self.assertTrue(os.path.isfile(get_preset_path("Foo Device 2", "preset2")))
+        self.assertTrue(os.path.isfile(get_preset_path("Foo Device", "preset2")))
 
     def test_copy_preset(self):
         prepare_presets()
-        self.assertTrue(os.path.isfile(get_preset_path("Foo Device 2", "preset2")))
+        self.assertTrue(os.path.isfile(get_preset_path("Foo Device", "preset2")))
 
         data_bus, data_manager, user_interface = get_controller_objects()
         controller = Controller(data_bus, data_manager)
@@ -443,12 +421,12 @@ class TestController(unittest.TestCase):
         data_manager.load_preset("preset2")
         controller.copy_preset()
 
-        self.assertTrue(os.path.exists(get_preset_path("Foo Device 2", "preset2")))
-        self.assertTrue(os.path.exists(get_preset_path("Foo Device 2", "preset2 copy")))
+        self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset2")))
+        self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset2 copy")))
 
     def test_copy_preset_should_add_number(self):
         prepare_presets()
-        self.assertTrue(os.path.isfile(get_preset_path("Foo Device 2", "preset2")))
+        self.assertTrue(os.path.isfile(get_preset_path("Foo Device", "preset2")))
 
         data_bus, data_manager, user_interface = get_controller_objects()
         controller = Controller(data_bus, data_manager)
@@ -459,15 +437,15 @@ class TestController(unittest.TestCase):
         data_manager.load_preset("preset2")
         controller.copy_preset()  # creates "preset2 copy 2"
 
-        self.assertTrue(os.path.exists(get_preset_path("Foo Device 2", "preset2")))
-        self.assertTrue(os.path.exists(get_preset_path("Foo Device 2", "preset2 copy")))
+        self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset2")))
+        self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset2 copy")))
         self.assertTrue(
-            os.path.exists(get_preset_path("Foo Device 2", "preset2 copy 2"))
+            os.path.exists(get_preset_path("Foo Device", "preset2 copy 2"))
         )
 
     def test_copy_preset_should_increment_existing_number(self):
         prepare_presets()
-        self.assertTrue(os.path.isfile(get_preset_path("Foo Device 2", "preset2")))
+        self.assertTrue(os.path.isfile(get_preset_path("Foo Device", "preset2")))
 
         data_bus, data_manager, user_interface = get_controller_objects()
         controller = Controller(data_bus, data_manager)
@@ -480,18 +458,18 @@ class TestController(unittest.TestCase):
         data_manager.load_preset("preset2")
         controller.copy_preset()  # creates "preset2 copy 3"
 
-        self.assertTrue(os.path.exists(get_preset_path("Foo Device 2", "preset2")))
-        self.assertTrue(os.path.exists(get_preset_path("Foo Device 2", "preset2 copy")))
+        self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset2")))
+        self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset2 copy")))
         self.assertTrue(
-            os.path.exists(get_preset_path("Foo Device 2", "preset2 copy 2"))
+            os.path.exists(get_preset_path("Foo Device", "preset2 copy 2"))
         )
         self.assertTrue(
-            os.path.exists(get_preset_path("Foo Device 2", "preset2 copy 3"))
+            os.path.exists(get_preset_path("Foo Device", "preset2 copy 3"))
         )
 
     def test_copy_preset_should_not_append_copy_twice(self):
         prepare_presets()
-        self.assertTrue(os.path.isfile(get_preset_path("Foo Device 2", "preset2")))
+        self.assertTrue(os.path.isfile(get_preset_path("Foo Device", "preset2")))
 
         data_bus, data_manager, user_interface = get_controller_objects()
         controller = Controller(data_bus, data_manager)
@@ -501,15 +479,15 @@ class TestController(unittest.TestCase):
         controller.copy_preset()  # creates "preset2 copy"
         controller.copy_preset()  # creates "preset2 copy 2" not "preset2 copy copy"
 
-        self.assertTrue(os.path.exists(get_preset_path("Foo Device 2", "preset2")))
-        self.assertTrue(os.path.exists(get_preset_path("Foo Device 2", "preset2 copy")))
+        self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset2")))
+        self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset2 copy")))
         self.assertTrue(
-            os.path.exists(get_preset_path("Foo Device 2", "preset2 copy 2"))
+            os.path.exists(get_preset_path("Foo Device", "preset2 copy 2"))
         )
 
     def test_copy_preset_should_not_append_copy_to_copy_with_number(self):
         prepare_presets()
-        self.assertTrue(os.path.isfile(get_preset_path("Foo Device 2", "preset2")))
+        self.assertTrue(os.path.isfile(get_preset_path("Foo Device", "preset2")))
 
         data_bus, data_manager, user_interface = get_controller_objects()
         controller = Controller(data_bus, data_manager)
@@ -521,19 +499,19 @@ class TestController(unittest.TestCase):
         controller.copy_preset()  # creates "preset2 copy 2"
         controller.copy_preset()  # creates "preset2 copy 3" not "preset2 copy 2 copy"
 
-        self.assertTrue(os.path.exists(get_preset_path("Foo Device 2", "preset2")))
-        self.assertTrue(os.path.exists(get_preset_path("Foo Device 2", "preset2 copy")))
+        self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset2")))
+        self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset2 copy")))
         self.assertTrue(
-            os.path.exists(get_preset_path("Foo Device 2", "preset2 copy 2"))
+            os.path.exists(get_preset_path("Foo Device", "preset2 copy 2"))
         )
         self.assertTrue(
-            os.path.exists(get_preset_path("Foo Device 2", "preset2 copy 3"))
+            os.path.exists(get_preset_path("Foo Device", "preset2 copy 3"))
         )
 
     def test_rename_preset(self):
         prepare_presets()
-        self.assertTrue(os.path.isfile(get_preset_path("Foo Device 2", "preset2")))
-        self.assertFalse(os.path.exists(get_preset_path("Foo Device 2", "foo")))
+        self.assertTrue(os.path.isfile(get_preset_path("Foo Device", "preset2")))
+        self.assertFalse(os.path.exists(get_preset_path("Foo Device", "foo")))
 
         data_bus, data_manager, user_interface = get_controller_objects()
         controller = Controller(data_bus, data_manager)
@@ -542,43 +520,43 @@ class TestController(unittest.TestCase):
         data_manager.load_preset("preset2")
         controller.rename_preset(new_name="foo")
 
-        self.assertFalse(os.path.exists(get_preset_path("Foo Device 2", "preset2")))
-        self.assertTrue(os.path.exists(get_preset_path("Foo Device 2", "foo")))
+        self.assertFalse(os.path.exists(get_preset_path("Foo Device", "preset2")))
+        self.assertTrue(os.path.exists(get_preset_path("Foo Device", "foo")))
 
     def test_rename_preset_should_pick_available_name(self):
         prepare_presets()
-        self.assertTrue(os.path.exists(get_preset_path("Foo Device 2", "preset2")))
-        self.assertTrue(os.path.exists(get_preset_path("Foo Device 2", "preset3")))
-        self.assertFalse(os.path.exists(get_preset_path("Foo Device 2", "preset3 2")))
+        self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset2")))
+        self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset3")))
+        self.assertFalse(os.path.exists(get_preset_path("Foo Device", "preset3 2")))
 
         data_bus, data_manager, user_interface = get_controller_objects()
         controller = Controller(data_bus, data_manager)
         controller.set_gui(user_interface)
-        data_manager.load_group("Foo Device 2")
+        data_manager.load_group("Foo Device")
         data_manager.load_preset("preset2")
         controller.rename_preset(new_name="preset3")
 
-        self.assertFalse(os.path.exists(get_preset_path("Foo Device 2", "preset2")))
-        self.assertTrue(os.path.exists(get_preset_path("Foo Device 2", "preset3")))
-        self.assertTrue(os.path.exists(get_preset_path("Foo Device 2", "preset3 2")))
+        self.assertFalse(os.path.exists(get_preset_path("Foo Device", "preset2")))
+        self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset3")))
+        self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset3 2")))
 
     def test_rename_preset_should_not_rename_to_empty_name(self):
         prepare_presets()
-        self.assertTrue(os.path.exists(get_preset_path("Foo Device 2", "preset2")))
+        self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset2")))
 
         data_bus, data_manager, user_interface = get_controller_objects()
         controller = Controller(data_bus, data_manager)
         controller.set_gui(user_interface)
-        data_manager.load_group("Foo Device 2")
+        data_manager.load_group("Foo Device")
         data_manager.load_preset("preset2")
         controller.rename_preset(new_name="")
 
-        self.assertTrue(os.path.exists(get_preset_path("Foo Device 2", "preset2")))
+        self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset2")))
 
     def test_rename_preset_should_not_update_same_name(self):
         """when the new name is the same as the current name"""
         prepare_presets()
-        self.assertTrue(os.path.exists(get_preset_path("Foo Device 2", "preset2")))
+        self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset2")))
 
         data_bus, data_manager, user_interface = get_controller_objects()
         controller = Controller(data_bus, data_manager)
@@ -587,12 +565,12 @@ class TestController(unittest.TestCase):
         data_manager.load_preset("preset2")
         controller.rename_preset(new_name="preset2")
 
-        self.assertTrue(os.path.exists(get_preset_path("Foo Device 2", "preset2")))
-        self.assertFalse(os.path.exists(get_preset_path("Foo Device 2", "preset2 2")))
+        self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset2")))
+        self.assertFalse(os.path.exists(get_preset_path("Foo Device", "preset2 2")))
 
     def test_on_add_preset_uses_default_name(self):
         self.assertFalse(
-            os.path.exists(get_preset_path("Foo Device 2", DEFAULT_PRESET_NAME))
+            os.path.exists(get_preset_path("Foo Device", DEFAULT_PRESET_NAME))
         )
 
         data_bus, data_manager, user_interface = get_controller_objects()
@@ -601,10 +579,10 @@ class TestController(unittest.TestCase):
         data_manager.load_group("Foo Device 2")
 
         controller.add_preset()
-        self.assertTrue(os.path.exists(get_preset_path("Foo Device 2", "new preset")))
+        self.assertTrue(os.path.exists(get_preset_path("Foo Device", "new preset")))
 
     def test_on_add_preset_uses_provided_name(self):
-        self.assertFalse(os.path.exists(get_preset_path("Foo Device 2", "foo")))
+        self.assertFalse(os.path.exists(get_preset_path("Foo Device", "foo")))
 
         data_bus, data_manager, user_interface = get_controller_objects()
         controller = Controller(data_bus, data_manager)
@@ -612,7 +590,7 @@ class TestController(unittest.TestCase):
         data_manager.load_group("Foo Device 2")
 
         controller.add_preset(name="foo")
-        self.assertTrue(os.path.exists(get_preset_path("Foo Device 2", "foo")))
+        self.assertTrue(os.path.exists(get_preset_path("Foo Device", "foo")))
 
     def test_on_add_preset_shows_permission_error_status(self):
         data_bus, data_manager, user_interface = get_controller_objects()
@@ -716,7 +694,7 @@ class TestController(unittest.TestCase):
 
     def test_deletes_mapping_when_confirmed(self):
         prepare_presets()
-        self.assertTrue(os.path.isfile(get_preset_path("Foo Device 2", "preset2")))
+        self.assertTrue(os.path.isfile(get_preset_path("Foo Device", "preset2")))
         data_bus, data_manager, user_interface = get_controller_objects()
         controller = Controller(data_bus, data_manager)
         controller.set_gui(user_interface)
@@ -729,13 +707,13 @@ class TestController(unittest.TestCase):
         controller.delete_mapping()
         controller.save()
 
-        preset = Preset(get_preset_path("Foo Device 2", "preset2"))
+        preset = Preset(get_preset_path("Foo Device", "preset2"))
         preset.load()
         self.assertIsNone(preset.get_mapping(EventCombination("1,3,1")))
 
     def test_does_not_delete_mapping_when_not_confirmed(self):
         prepare_presets()
-        self.assertTrue(os.path.isfile(get_preset_path("Foo Device 2", "preset2")))
+        self.assertTrue(os.path.isfile(get_preset_path("Foo Device", "preset2")))
         data_bus, data_manager, user_interface = get_controller_objects()
         controller = Controller(data_bus, data_manager)
         controller.set_gui(user_interface)
@@ -748,7 +726,7 @@ class TestController(unittest.TestCase):
         controller.delete_mapping()
         controller.save()
 
-        preset = Preset(get_preset_path("Foo Device 2", "preset2"))
+        preset = Preset(get_preset_path("Foo Device", "preset2"))
         preset.load()
         self.assertIsNotNone(preset.get_mapping(EventCombination("1,3,1")))
 
@@ -1168,3 +1146,16 @@ class TestController(unittest.TestCase):
         controller.close()
         mock_save.assert_called()
         listener.assert_called()
+
+    def test_set_autoload_refreshes_service_config(self):
+        prepare_presets()
+        data_bus, data_manager, user_interface = get_controller_objects()
+        controller = Controller(data_bus, data_manager)
+        controller.set_gui(user_interface)
+
+        data_manager.load_group("Foo Device 2")
+        data_manager.load_preset("preset2")
+
+        with patch.object(data_manager, "refresh_service_config_path") as mock:
+            controller.set_autoload(True)
+            mock.assert_called()
