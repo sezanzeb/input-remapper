@@ -20,6 +20,7 @@
 
 
 # the tests file needs to be imported first to make sure patches are loaded
+from contextlib import contextmanager
 from typing import Tuple
 
 from tests.test import (
@@ -121,6 +122,29 @@ def launch(
     )
 
 
+@contextmanager
+def patch_launch():
+    """patch the launch function such that we don't connect to
+    the dbus and don't use pkexec to start the helper"""
+    original_connect = Daemon.connect
+    original_os_system = os.system
+    Daemon.connect = Daemon
+
+    def os_system(cmd):
+        # instead of running pkexec, fork instead. This will make
+        # the helper aware of all the test patches
+        if "pkexec input-remapper-control --command helper" in cmd:
+            multiprocessing.Process(target=RootHelper(_Groups()).run).start()
+            return 0
+
+        return original_os_system(cmd)
+
+    os.system = os_system
+    yield
+    os.system = original_os_system
+    Daemon.connect = original_connect
+
+
 class FakeDeviceDropdown(Gtk.ComboBoxText):
     def __init__(self, group):
         if type(group) == str:
@@ -176,9 +200,6 @@ class GtkKeyEvent:
 
 class TestGroupsFromHelper(unittest.TestCase):
     def setUp(self):
-        self.injector = None
-        self.grab = evdev.InputDevice.grab
-
         # don't try to connect, return an object instance of it instead
         self.original_connect = Daemon.connect
         Daemon.connect = Daemon
@@ -236,7 +257,7 @@ class TestGroupsFromHelper(unittest.TestCase):
 
 
 class PatchedConfirmDelete:
-    def __init__(self, user_interface, response=Gtk.ResponseType.ACCEPT):
+    def __init__(self, user_interface: UserInterface, response=Gtk.ResponseType.ACCEPT):
         self.response = response
         self.user_interface = user_interface
         self.patch = None
@@ -265,20 +286,35 @@ class PatchedConfirmDelete:
 
 
 class GuiTestBase(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.injector = None
-        cls.grab = evdev.InputDevice.grab
-        cls.original_start_processes = UserInterface.start_processes
+    def setUp(self):
+        with patch_launch():
+            (
+                self.user_interface,
+                self.controller,
+                self.data_manager,
+                self.data_bus,
+                self.daemon,
+            ) = launch()
 
-        def start_processes(self):
-            """Avoid running pkexec which requires user input, and fork in
-            order to pass the fixtures to the helper and daemon process.
-            """
-            multiprocessing.Process(target=RootHelper).start()
-            self.dbus = Daemon()
+        self.grab_fails = False
 
-        UserInterface.start_processes = start_processes
+        def grab(_):
+            if self.grab_fails:
+                raise OSError()
+
+        evdev.InputDevice.grab = grab
+
+        global_config._save_config()
+
+        self.throttle()
+
+        self.assertIsNotNone(self.data_manager.active_group)
+        self.assertIsNotNone(self.data_manager.active_preset)
+
+    def tearDown(self):
+        clean_up_integration(self)
+
+        self.throttle()
 
     def _callTestMethod(self, method):
         """Retry all tests if they fail.
@@ -301,36 +337,6 @@ class GuiTestBase(unittest.TestCase):
             self.tearDown()
             self.setUp()
 
-    def setUp(self):
-        self.user_interface = launch()
-        self.editor = self.user_interface.editor
-        self.toggle = self.editor.get_recording_toggle()
-        self.selection_label_listbox = self.user_interface.get(
-            "selection_label_listbox"
-        )
-        self.window = self.user_interface.get("window")
-
-        self.grab_fails = False
-
-        def grab(_):
-            if self.grab_fails:
-                raise OSError()
-
-        evdev.InputDevice.grab = grab
-
-        global_config._save_config()
-
-        self.throttle()
-
-        self.assertIsNotNone(self.user_interface.group)
-        self.assertIsNotNone(self.user_interface.group.key)
-        self.assertIsNotNone(self.user_interface.preset_name)
-
-    def tearDown(self):
-        clean_up_integration(self)
-
-        self.throttle()
-
     def throttle(self):
         """Give GTK some time to process everything."""
         # tests suddenly started to freeze my computer up completely and tests started
@@ -340,10 +346,6 @@ class GuiTestBase(unittest.TestCase):
         for _ in range(10):
             gtk_iteration()
             time.sleep(0.002)
-
-    @classmethod
-    def tearDownClass(cls):
-        UserInterface.start_processes = cls.original_start_processes
 
     def activate_recording_toggle(self):
         logger.info("Activating the recording toggle")
@@ -567,6 +569,8 @@ class TestGui(GuiTestBase):
         self.assertEqual(self.get_unfiltered_symbol_input_text(), SET_KEY_FIRST)
 
     def test_ctrl_q(self):
+        # todo: move this we are mocking the on_close function,
+        #  so there is no point for this to be a integration test
         closed = False
 
         def on_close():
@@ -627,6 +631,7 @@ class TestGui(GuiTestBase):
             )
 
     def test_ctrl_r(self):
+        # todo: move this
         with patch.object(reader, "refresh_groups") as reader_get_devices_patch:
             self.user_interface.on_key_press(
                 self.user_interface, GtkKeyEvent(Gdk.KEY_Control_L)
@@ -637,6 +642,7 @@ class TestGui(GuiTestBase):
             reader_get_devices_patch.assert_called_once()
 
     def test_ctrl_del(self):
+        # todo: move this
         with patch.object(self.user_interface.dbus, "stop_injecting") as stop_injecting:
             self.user_interface.on_key_press(
                 self.user_interface, GtkKeyEvent(Gdk.KEY_Control_L)
