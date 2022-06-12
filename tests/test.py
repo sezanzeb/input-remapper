@@ -36,6 +36,17 @@ import tracemalloc
 
 tracemalloc.start()
 
+try:
+    sys.modules.get("tests.test").main
+    raise AssertionError(
+        "test.py was already imported. "
+        "Always use 'from tests.test import ...' "
+        "not 'from test import ...' to import this"
+    )
+    # have fun debugging infinitely blocking tests without this
+except AttributeError:
+    pass
+
 
 def get_project_root():
     """Find the projects root, i.e. the uppermost directory of the repo."""
