@@ -17,6 +17,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
+import builtins
 import json
 import os.path
 import unittest
@@ -612,6 +613,27 @@ class TestController(unittest.TestCase):
 
         controller.add_preset(name="foo")
         self.assertTrue(os.path.exists(get_preset_path("Foo Device 2", "foo")))
+
+    def test_on_add_preset_shows_permission_error_status(self):
+        data_bus, data_manager, user_interface = get_controller_objects()
+        controller = Controller(data_bus, data_manager)
+        controller.set_gui(user_interface)
+        data_manager.load_group("Foo Device 2")
+
+        msg = None
+
+        def f(data):
+            nonlocal msg
+            msg = data
+
+        data_bus.subscribe(MessageType.status, f)
+        mock = MagicMock(side_effect=PermissionError)
+        with patch("inputremapper.configs.preset.Preset.save", mock):
+            controller.add_preset("foo")
+
+        mock.assert_called()
+        self.assertIsNotNone(msg)
+        self.assertIn("Permission denied", msg.msg)
 
     def test_on_update_mapping(self):
         """update_mapping should call data_manager.update_mapping

@@ -150,8 +150,11 @@ class Controller:
 
     def add_preset(self, name: str = DEFAULT_PRESET_NAME):
         name = self.data_manager.get_available_preset_name(name)
-        self.data_manager.create_preset(name)
-        self.data_manager.load_preset(name)
+        try:
+            self.data_manager.create_preset(name)
+            self.data_manager.load_preset(name)
+        except PermissionError as e:
+            self.show_status(CTX_ERROR, _("Permission denied!"), str(e))
 
     def delete_preset(self):
         accept = Gtk.ResponseType.ACCEPT

@@ -44,6 +44,12 @@ class TestUserInterface(unittest.TestCase):
         gtk_iteration()
         mock.assert_called_once()
 
+        mock.reset_mock()
+        event.key.keyval = Gdk.KEY_y
+        self.user_interface.window.emit("key-press-event", event)
+        gtk_iteration()
+        mock.assert_not_called()
+
     def test_connected_shortcuts(self):
         should_be_connected = {Gdk.KEY_q, Gdk.KEY_r, Gdk.KEY_Delete}
         connected = set(self.user_interface.shortcuts.keys())
@@ -60,3 +66,21 @@ class TestUserInterface(unittest.TestCase):
             self.user_interface.shortcuts[Gdk.KEY_Delete],
             self.controller_mock.stop_injecting,
         )
+
+    def test_connect_disconnect_shortcuts(self):
+        mock = MagicMock()
+        self.user_interface.shortcuts[Gdk.KEY_x] = mock
+
+        event = Gdk.Event()
+        event.key.keyval = Gdk.KEY_x
+        event.key.state = Gdk.ModifierType.CONTROL_MASK
+        self.user_interface.disconnect_shortcuts()
+        self.user_interface.window.emit("key-press-event", event)
+        gtk_iteration()
+        mock.assert_not_called()
+
+        self.user_interface.connect_shortcuts()
+        gtk_iteration()
+        self.user_interface.window.emit("key-press-event", event)
+        gtk_iteration()
+        mock.assert_called_once()

@@ -208,7 +208,7 @@ class UserInterface:
         e.g. when recording key combinations
         """
         try:
-            self.window.disconnect(self.gtk_listeners[self.on_shortcut])
+            self.window.disconnect(self.gtk_listeners.pop(self.on_shortcut))
         except KeyError:
             logger.debug("key listeners seem to be not connected")
 
