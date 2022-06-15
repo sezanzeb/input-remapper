@@ -57,7 +57,7 @@ from inputremapper.injection.injector import (
     STOPPED,
     NO_GRAB,
     UNKNOWN,
-    get_udev_name,
+    get_udev_name, FAILED,
 )
 from inputremapper.injection.numlock import is_numlock_on
 from inputremapper.configs.system_mapping import (
@@ -100,9 +100,10 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         evdev.InputDevice.grab = grab_fail_twice
 
     def tearDown(self):
-        if self.injector is not None:
+        if self.injector is not None and self.injector.is_alive():
             self.injector.stop_injecting()
-            self.assertEqual(self.injector.get_state(), STOPPED)
+            time.sleep(0.2)
+            self.assertIn(self.injector.get_state(), (STOPPED, FAILED, NO_GRAB))
             self.injector = None
         evdev.InputDevice.grab = self.grab
 

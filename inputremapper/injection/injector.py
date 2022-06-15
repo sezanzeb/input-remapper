@@ -130,29 +130,30 @@ class Injector(multiprocessing.Process):
 
         Can be safely called from the main process.
         """
+        # before we try to we try to guess anything lets check if there is a message
+        state = self._state
+        while self._msg_pipe[1].poll():
+            state = self._msg_pipe[1].recv()
+
         # figure out what is going on step by step
         alive = self.is_alive()
 
-        if self._state == UNKNOWN and not alive:
+        if state == UNKNOWN and not alive:
             # `self.start()` has not been called yet
+            self._state = state
             return self._state
 
-        if self._state == UNKNOWN and alive:
+        if state == UNKNOWN and alive:
             # if it is alive, it is definitely at least starting up.
-            self._state = STARTING
+            state = STARTING
 
-        if self._state == STARTING and self._msg_pipe[1].poll():
-            # if there is a message available, it might have finished starting up
-            # and the injector has the real status for us
-            msg = self._msg_pipe[1].recv()
-            self._state = msg
-
-        if self._state in [STARTING, RUNNING] and not alive:
+        if state in (STARTING, RUNNING) and not alive:
             # we thought it is running (maybe it was when get_state was previously),
             # but the process is not alive. It probably crashed
-            self._state = FAILED
+            state = FAILED
             logger.error("Injector was unexpectedly found stopped")
 
+        self._state = state
         return self._state
 
     @ensure_numlock
@@ -163,7 +164,6 @@ class Injector(multiprocessing.Process):
         """
         logger.info('Stopping injecting keycodes for group "%s"', self.group.key)
         self._msg_pipe[1].send(CLOSE)
-        self._state = STOPPED
 
     """Process internal stuff"""
 
@@ -274,6 +274,7 @@ class Injector(multiprocessing.Process):
                 # stop the event loop and cause the process to reach its end
                 # cleanly. Using .terminate prevents coverage from working.
                 loop.stop()
+                self._msg_pipe[0].send(STOPPED)
                 return
 
     def run(self) -> None:

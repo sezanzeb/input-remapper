@@ -160,9 +160,9 @@ class TestDaemon(unittest.TestCase):
         self.assertEqual(event.value, 1)
 
         self.daemon.stop_injecting(group.key)
+        time.sleep(0.2)
         self.assertEqual(self.daemon.get_state(group.key), STOPPED)
 
-        time.sleep(0.1)
         try:
             self.assertFalse(uinput_write_history_pipe[0].poll())
         except AssertionError:
@@ -255,6 +255,7 @@ class TestDaemon(unittest.TestCase):
         self.assertEqual(event.t, (EV_KEY, KEY_A, 1))
 
         self.daemon.stop_injecting(group_key)
+        time.sleep(0.2)
         self.assertEqual(self.daemon.get_state(group_key), STOPPED)
 
     def test_refresh_for_unknown_key(self):
@@ -354,6 +355,7 @@ class TestDaemon(unittest.TestCase):
         self.assertNotIn(group.key, daemon.autoload_history._autoload_history)
         self.assertTrue(daemon.autoload_history.may_autoload(group.key, preset_name))
         self.assertIn(group.key, daemon.injectors)
+        time.sleep(0.2)
         self.assertEqual(previous_injector.get_state(), STOPPED)
         # a different injetor is now running
         self.assertNotEqual(previous_injector, daemon.injectors[group.key])
@@ -377,6 +379,7 @@ class TestDaemon(unittest.TestCase):
 
         # stop
         daemon.stop_injecting(group.key)
+        time.sleep(0.2)
         self.assertNotIn(group.key, daemon.autoload_history._autoload_history)
         self.assertEqual(daemon.injectors[group.key].get_state(), STOPPED)
         self.assertTrue(daemon.autoload_history.may_autoload(group.key, preset_name))
