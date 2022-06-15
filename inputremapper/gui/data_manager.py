@@ -431,6 +431,13 @@ class DataManager:
         """
         self._reader.start_recorder()
 
+    def stop_combination_recording(self):
+        """Stop recording user input.
+
+        Will send RecordingFinished message if a recording is running.
+        """
+        self._reader.stop_recorder()
+
     def stop_injecting(self) -> None:
         """stop injecting for the active group"""
         if not self.active_group:

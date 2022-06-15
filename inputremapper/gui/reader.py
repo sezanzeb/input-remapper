@@ -118,6 +118,16 @@ class Reader:
         self._recording_generator = self._recorder()
         next(self._recording_generator)
 
+    def stop_recorder(self) -> None:
+        """Stop recording the input.
+
+        Will send RecordingFinished message.
+        """
+        if self._recording_generator:
+            self._recording_generator.close()
+            self._recording_generator = None
+            self.data_bus.signal(MessageType.recording_finished)
+
     def _recorder(self) -> RecordingGenerator:
         """Generator which receives InputEvents.
 
