@@ -191,9 +191,9 @@ class MappingListBox:
     @staticmethod
     def sort_func(row1: SelectionLabel, row2: SelectionLabel) -> int:
         """sort alphanumerical by name"""
-        if row1.name == EMPTY_MAPPING_NAME:
+        if row1.combination == EventCombination.empty_combination():
             return 1
-        if row2.name == EMPTY_MAPPING_NAME:
+        if row2.combination == EventCombination.empty_combination():
             return 0
 
         return 0 if row1.name < row2.name else 1

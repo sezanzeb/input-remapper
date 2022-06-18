@@ -130,7 +130,16 @@ class Controller:
             self.save()
         except KeyError:
             # the combination was a duplicate
-            pass
+            return
+
+        if combination.is_problematic():
+            self.show_status(
+                CTX_WARNING,
+                _("ctrl, alt and shift may not combine properly"),
+                _("Your system might reinterpret combinations ")
+                + _("with those after they are injected, and by doing so ")
+                + _("break them."),
+            )
 
     def load_groups(self):
         self.data_manager.refresh_groups()
@@ -199,7 +208,10 @@ class Controller:
         self.data_manager.refresh_service_config_path()
 
     def save(self):
-        self.data_manager.save()
+        try:
+            self.data_manager.save()
+        except PermissionError as e:
+            self.show_status(CTX_ERROR, _("Permission denied!"), str(e))
 
     def start_key_recording(self):
         logger.debug("Recording Keys")

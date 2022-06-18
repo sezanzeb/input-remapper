@@ -51,6 +51,7 @@ from evdev.ecodes import (
     EV_ABS,
     KEY_LEFTSHIFT,
     KEY_A,
+    KEY_Q,
     ABS_RX,
     EV_REL,
     REL_X,
@@ -273,13 +274,13 @@ class PatchedConfirmDelete:
 
     def _confirm_delete_run_patch(self):
         """A patch for the deletion confirmation that briefly shows the dialog."""
-        confirm_delete = self.user_interface.confirm_delete
+        confirm_delete_dialog = self.user_interface.confirm_delete_dialog
         # the emitted signal causes the dialog to close
         GLib.timeout_add(
             100,
-            lambda: confirm_delete.emit("response", self.response),
+            lambda: confirm_delete_dialog.emit("response", self.response),
         )
-        Gtk.MessageDialog.run(confirm_delete)  # don't recursively call the patch
+        Gtk.MessageDialog.run(confirm_delete_dialog)  # don't recursively call the patch
         return self.response
 
     def __enter__(self):
@@ -761,6 +762,89 @@ class TestGui(GuiTestBase):
 
         self.assertFalse(self.recording_toggle.get_active())
 
+    def test_cannot_create_duplicate_event_combination(self):
+        # load a device with more capabilities
+        self.controller.load_group("Foo Device 2")
+        gtk_iteration()
+
+        # update the combination of the active mapping
+        self.controller.start_key_recording()
+        push_events(
+            "Foo Device 2",
+            [InputEvent.from_string("1,30,1"), InputEvent.from_string("1,30,0")],
+        )
+        self.throttle(20)
+
+        self.assertEqual(
+            self.data_manager.active_mapping.event_combination,
+            EventCombination.from_string("1,30,1"),
+        )
+
+        # create a new mapping
+        self.controller.create_mapping()
+        gtk_iteration()
+        self.assertEqual(
+            self.data_manager.active_mapping.event_combination,
+            EventCombination.empty_combination(),
+        )
+
+        # try to recorde the same combination
+        self.controller.start_key_recording()
+        push_events(
+            "Foo Device 2",
+            [InputEvent.from_string("1,30,1"), InputEvent.from_string("1,30,0")],
+        )
+        self.throttle(20)
+        # should still be the empty mapping
+        self.assertEqual(
+            self.data_manager.active_mapping.event_combination,
+            EventCombination.empty_combination(),
+        )
+
+        # try to recorde a different combination
+        self.controller.start_key_recording()
+        push_events("Foo Device 2", [InputEvent.from_string("1,30,1")])
+        self.throttle(20)
+        # nothing changed yet, as we got the duplicate combination
+        self.assertEqual(
+            self.data_manager.active_mapping.event_combination,
+            EventCombination.empty_combination(),
+        )
+        push_events("Foo Device 2", [InputEvent.from_string("1,31,1")])
+        self.throttle(20)
+        # now the combination is different
+        self.assertEqual(
+            self.data_manager.active_mapping.event_combination,
+            EventCombination.from_string("1,30,1+1,31,1"),
+        )
+
+        # let's make the combination even longer
+        push_events("Foo Device 2", [InputEvent.from_string("1,32,1")])
+        self.throttle(20)
+        self.assertEqual(
+            self.data_manager.active_mapping.event_combination,
+            EventCombination.from_string("1,30,1+1,31,1+1,32,1"),
+        )
+
+        # make sure we stop recording by releasing all keys
+        push_events(
+            "Foo Device 2",
+            [
+                InputEvent.from_string("1,31,0"),
+                InputEvent.from_string("1,30,0"),
+                InputEvent.from_string("1,32,0"),
+            ],
+        )
+        self.throttle(20)
+
+        # sending a combination update now should not do anything
+        self.data_bus.send(CombinationRecorded(EventCombination.from_string("1,35,1")))
+        gtk_iteration()
+        self.assertEqual(
+            self.data_manager.active_mapping.event_combination,
+            EventCombination.from_string("1,30,1+1,31,1+1,32,1"),
+        )
+
     def test_create_simple_mapping(self):
         # 1. create a mapping
         self.create_mapping_btn.clicked()
@@ -853,151 +937,187 @@ class TestGui(GuiTestBase):
         text = self.get_status_text()
         self.assertNotIn("...", text)
 
-    def test_editor(self):
-        """Comprehensive test for the editor."""
-        system_mapping.clear()
-        system_mapping._set("Foo_BAR", 41)
-        system_mapping._set("B", 42)
-        system_mapping._set("c", 43)
-        system_mapping._set("d", 44)
-
-        # how many selection_labels there should be in the end
-        num_selection_labels_target = 3
-
-        ev_1 = EventCombination([EV_KEY, 10, 1])
-        ev_2 = EventCombination([EV_ABS, evdev.ecodes.ABS_HAT0X, -1])
-
-        """edit"""
-
-        # add two selection_labels by modifiying the one empty selection_label that
-        # exists. Insert lowercase, it should be corrected to uppercase as stored
-        # in system_mapping
-        self.add_mapping_via_ui(ev_1, "foo_bar", target="mouse")
-        self.add_mapping_via_ui(ev_2, "k(b).k(c)")
-
-        # one empty selection_label added automatically again
-        time.sleep(0.1)
+    def test_hat_switch(self):
+        # load a device with more capabilities
+        self.controller.load_group("Foo Device 2")
         gtk_iteration()
-        self.assertEqual(len(self.get_selection_labels()), num_selection_labels_target)
 
-        self.assertEqual(active_preset.get_mapping(ev_1), ("Foo_BAR", "mouse"))
-        self.assertEqual(active_preset.get_mapping(ev_2), ("k(b).k(c)", "keyboard"))
-
-        """edit first selection_label"""
-
-        self.select_mapping(0)
-        self.assertEqual(self.editor.get_combination(), ev_1)
-        self.set_focus(self.editor.get_code_editor())
-        self.editor.set_symbol_input_text("c")
-        self.set_focus(None)
-
-        # after unfocusing, it stores the mapping. So loading it again will retain
-        # the mapping that was used
-        preset_name = self.user_interface.preset_name
-        preset_path = self.user_interface.group.get_preset_path(preset_name)
-        active_preset.load(preset_path)
-
-        self.assertEqual(active_preset.get_mapping(ev_1), ("c", "mouse"))
-        self.assertEqual(active_preset.get_mapping(ev_2), ("k(b).k(c)", "keyboard"))
-
-        """add duplicate"""
-
-        # try to add a duplicate keycode, it should be ignored
-        self.add_mapping_via_ui(ev_2, "d", expect_success=False)
-        self.assertEqual(active_preset.get_mapping(ev_2), ("k(b).k(c)", "keyboard"))
-        # and the number of selection_labels shouldn't change
-        self.assertEqual(len(self.get_selection_labels()), num_selection_labels_target)
-
-    def test_hat0x(self):
         # it should be possible to add all of them
-        ev_1 = EventCombination([EV_ABS, evdev.ecodes.ABS_HAT0X, -1])
-        ev_2 = EventCombination([EV_ABS, evdev.ecodes.ABS_HAT0X, 1])
-        ev_3 = EventCombination([EV_ABS, evdev.ecodes.ABS_HAT0Y, -1])
-        ev_4 = EventCombination([EV_ABS, evdev.ecodes.ABS_HAT0Y, 1])
+        ev_1 = InputEvent.from_tuple((EV_ABS, evdev.ecodes.ABS_HAT0X, -1))
+        ev_2 = InputEvent.from_tuple((EV_ABS, evdev.ecodes.ABS_HAT0X, 1))
+        ev_3 = InputEvent.from_tuple((EV_ABS, evdev.ecodes.ABS_HAT0Y, -1))
+        ev_4 = InputEvent.from_tuple((EV_ABS, evdev.ecodes.ABS_HAT0Y, 1))
 
-        self.add_mapping_via_ui(ev_1, "a")
-        self.add_mapping_via_ui(ev_2, "b")
-        self.add_mapping_via_ui(ev_3, "c")
-        self.add_mapping_via_ui(ev_4, "d")
+        def add_mapping(event, symbol):
+            self.controller.create_mapping()
+            gtk_iteration()
+            self.controller.start_key_recording()
+            push_events("Foo Device 2", [event, event.modify(value=0)])
+            self.throttle(20)
+            gtk_iteration()
+            self.code_editor.get_buffer().set_text(symbol)
+            gtk_iteration()
 
-        self.assertEqual(active_preset.get_mapping(ev_1), ("a", "keyboard"))
-        self.assertEqual(active_preset.get_mapping(ev_2), ("b", "keyboard"))
-        self.assertEqual(active_preset.get_mapping(ev_3), ("c", "keyboard"))
-        self.assertEqual(active_preset.get_mapping(ev_4), ("d", "keyboard"))
+        add_mapping(ev_1, "a")
+        add_mapping(ev_2, "b")
+        add_mapping(ev_3, "c")
+        add_mapping(ev_4, "d")
 
-        # and trying to add them as duplicate selection_labels will be ignored for each
-        # of them
-        self.add_mapping_via_ui(ev_1, "e", expect_success=False)
-        self.add_mapping_via_ui(ev_2, "f", expect_success=False)
-        self.add_mapping_via_ui(ev_3, "g", expect_success=False)
-        self.add_mapping_via_ui(ev_4, "h", expect_success=False)
-
-        self.assertEqual(active_preset.get_mapping(ev_1), ("a", "keyboard"))
-        self.assertEqual(active_preset.get_mapping(ev_2), ("b", "keyboard"))
-        self.assertEqual(active_preset.get_mapping(ev_3), ("c", "keyboard"))
-        self.assertEqual(active_preset.get_mapping(ev_4), ("d", "keyboard"))
+        self.assertEqual(
+            self.data_manager.active_preset.get_mapping(
+                EventCombination(ev_1)
+            ).output_symbol,
+            "a",
+        )
+        self.assertEqual(
+            self.data_manager.active_preset.get_mapping(
+                EventCombination(ev_2)
+            ).output_symbol,
+            "b",
+        )
+        self.assertEqual(
+            self.data_manager.active_preset.get_mapping(
+                EventCombination(ev_3)
+            ).output_symbol,
+            "c",
+        )
+        self.assertEqual(
+            self.data_manager.active_preset.get_mapping(
+                EventCombination(ev_4)
+            ).output_symbol,
+            "d",
+        )
 
     def test_combination(self):
+        # load a device with more capabilities
+        self.controller.load_group("Foo Device 2")
+        gtk_iteration()
+
         # it should be possible to write a combination combination
         ev_1 = InputEvent.from_tuple((EV_KEY, evdev.ecodes.KEY_A, 1))
         ev_2 = InputEvent.from_tuple((EV_ABS, evdev.ecodes.ABS_HAT0X, 1))
         ev_3 = InputEvent.from_tuple((EV_KEY, evdev.ecodes.KEY_C, 1))
         ev_4 = InputEvent.from_tuple((EV_ABS, evdev.ecodes.ABS_HAT0X, -1))
-        combination_1 = EventCombination(ev_1, ev_2, ev_3)
-        combination_2 = EventCombination(ev_2, ev_1, ev_3)
+        combination_1 = EventCombination((ev_1, ev_2, ev_3))
+        combination_2 = EventCombination((ev_2, ev_1, ev_3))
 
         # same as 1, but different D-Pad direction
-        combination_3 = EventCombination(ev_1, ev_4, ev_3)
-        combination_4 = EventCombination(ev_4, ev_1, ev_3)
+        combination_3 = EventCombination((ev_1, ev_4, ev_3))
+        combination_4 = EventCombination((ev_4, ev_1, ev_3))
 
         # same as 1, but the last combination is different
-        combination_5 = EventCombination(ev_1, ev_3, ev_2)
-        combination_6 = EventCombination(ev_3, ev_1, ev_2)
+        combination_5 = EventCombination((ev_1, ev_3, ev_2))
+        combination_6 = EventCombination((ev_3, ev_1, ev_2))
 
-        self.add_mapping_via_ui(combination_1, "a")
-        self.assertEqual(active_preset.get_mapping(combination_1), ("a", "keyboard"))
-        self.assertEqual(active_preset.get_mapping(combination_2), ("a", "keyboard"))
-        self.assertIsNone(active_preset.get_mapping(combination_3))
-        self.assertIsNone(active_preset.get_mapping(combination_4))
-        self.assertIsNone(active_preset.get_mapping(combination_5))
-        self.assertIsNone(active_preset.get_mapping(combination_6))
+        def add_mapping(combi: EventCombination, symbol):
+            self.controller.create_mapping()
+            gtk_iteration()
+            self.controller.start_key_recording()
+            push_events("Foo Device 2", [event for event in combi])
+            push_events("Foo Device 2", [event.modify(value=0) for event in combi])
+            self.throttle(20)
+            gtk_iteration()
+            self.code_editor.get_buffer().set_text(symbol)
+            gtk_iteration()
+
+        add_mapping(combination_1, "a")
+        self.assertEqual(
+            self.data_manager.active_preset.get_mapping(combination_1).output_symbol,
+            "a",
+        )
+        self.assertEqual(
+            self.data_manager.active_preset.get_mapping(combination_2).output_symbol,
+            "a",
+        )
+        self.assertIsNone(self.data_manager.active_preset.get_mapping(combination_3))
+        self.assertIsNone(self.data_manager.active_preset.get_mapping(combination_4))
+        self.assertIsNone(self.data_manager.active_preset.get_mapping(combination_5))
+        self.assertIsNone(self.data_manager.active_preset.get_mapping(combination_6))
 
         # it won't write the same combination again, even if the
         # first two events are in a different order
-        self.add_mapping_via_ui(combination_2, "b", expect_success=False)
-        self.assertEqual(active_preset.get_mapping(combination_1), ("a", "keyboard"))
-        self.assertEqual(active_preset.get_mapping(combination_2), ("a", "keyboard"))
-        self.assertIsNone(active_preset.get_mapping(combination_3))
-        self.assertIsNone(active_preset.get_mapping(combination_4))
-        self.assertIsNone(active_preset.get_mapping(combination_5))
-        self.assertIsNone(active_preset.get_mapping(combination_6))
+        add_mapping(combination_2, "b")
+        self.assertEqual(
+            self.data_manager.active_preset.get_mapping(combination_1).output_symbol,
+            "a",
+        )
+        self.assertEqual(
+            self.data_manager.active_preset.get_mapping(combination_2).output_symbol,
+            "a",
+        )
+        self.assertIsNone(self.data_manager.active_preset.get_mapping(combination_3))
+        self.assertIsNone(self.data_manager.active_preset.get_mapping(combination_4))
+        self.assertIsNone(self.data_manager.active_preset.get_mapping(combination_5))
+        self.assertIsNone(self.data_manager.active_preset.get_mapping(combination_6))
 
-        self.add_mapping_via_ui(combination_3, "c")
-        self.assertEqual(active_preset.get_mapping(combination_1), ("a", "keyboard"))
-        self.assertEqual(active_preset.get_mapping(combination_2), ("a", "keyboard"))
-        self.assertEqual(active_preset.get_mapping(combination_3), ("c", "keyboard"))
-        self.assertEqual(active_preset.get_mapping(combination_4), ("c", "keyboard"))
-        self.assertIsNone(active_preset.get_mapping(combination_5))
-        self.assertIsNone(active_preset.get_mapping(combination_6))
+        add_mapping(combination_3, "c")
+        self.assertEqual(
+            self.data_manager.active_preset.get_mapping(combination_1).output_symbol,
+            "a",
+        )
+        self.assertEqual(
+            self.data_manager.active_preset.get_mapping(combination_2).output_symbol,
+            "a",
+        )
+        self.assertEqual(
+            self.data_manager.active_preset.get_mapping(combination_3).output_symbol,
+            "c",
+        )
+        self.assertEqual(
+            self.data_manager.active_preset.get_mapping(combination_4).output_symbol,
+            "c",
+        )
+        self.assertIsNone(self.data_manager.active_preset.get_mapping(combination_5))
+        self.assertIsNone(self.data_manager.active_preset.get_mapping(combination_6))
 
         # same as with combination_2, the existing combination_3 blocks
         # combination_4 because they have the same keys and end in the
         # same key.
-        self.add_mapping_via_ui(combination_4, "d", expect_success=False)
-        self.assertEqual(active_preset.get_mapping(combination_1), ("a", "keyboard"))
-        self.assertEqual(active_preset.get_mapping(combination_2), ("a", "keyboard"))
-        self.assertEqual(active_preset.get_mapping(combination_3), ("c", "keyboard"))
-        self.assertEqual(active_preset.get_mapping(combination_4), ("c", "keyboard"))
-        self.assertIsNone(active_preset.get_mapping(combination_5))
-        self.assertIsNone(active_preset.get_mapping(combination_6))
+        add_mapping(combination_4, "d")
+        self.assertEqual(
+            self.data_manager.active_preset.get_mapping(combination_1).output_symbol,
+            "a",
+        )
+        self.assertEqual(
+            self.data_manager.active_preset.get_mapping(combination_2).output_symbol,
+            "a",
+        )
+        self.assertEqual(
+            self.data_manager.active_preset.get_mapping(combination_3).output_symbol,
+            "c",
+        )
+        self.assertEqual(
+            self.data_manager.active_preset.get_mapping(combination_4).output_symbol,
+            "c",
+        )
+        self.assertIsNone(self.data_manager.active_preset.get_mapping(combination_5))
+        self.assertIsNone(self.data_manager.active_preset.get_mapping(combination_6))
 
-        self.add_mapping_via_ui(combination_5, "e")
-        self.assertEqual(active_preset.get_mapping(combination_1), ("a", "keyboard"))
-        self.assertEqual(active_preset.get_mapping(combination_2), ("a", "keyboard"))
-        self.assertEqual(active_preset.get_mapping(combination_3), ("c", "keyboard"))
-        self.assertEqual(active_preset.get_mapping(combination_4), ("c", "keyboard"))
-        self.assertEqual(active_preset.get_mapping(combination_5), ("e", "keyboard"))
-        self.assertEqual(active_preset.get_mapping(combination_6), ("e", "keyboard"))
+        add_mapping(combination_5, "e")
+        self.assertEqual(
+            self.data_manager.active_preset.get_mapping(combination_1).output_symbol,
+            "a",
+        )
+        self.assertEqual(
+            self.data_manager.active_preset.get_mapping(combination_2).output_symbol,
+            "a",
+        )
+        self.assertEqual(
+            self.data_manager.active_preset.get_mapping(combination_3).output_symbol,
+            "c",
+        )
+        self.assertEqual(
+            self.data_manager.active_preset.get_mapping(combination_4).output_symbol,
+            "c",
+        )
+        self.assertEqual(
+            self.data_manager.active_preset.get_mapping(combination_5).output_symbol,
+            "e",
+        )
+        self.assertEqual(
+            self.data_manager.active_preset.get_mapping(combination_6).output_symbol,
+            "e",
+        )
 
         error_icon = self.user_interface.get("error_status_icon")
         warning_icon = self.user_interface.get("warning_status_icon")
@@ -1005,103 +1125,172 @@ class TestGui(GuiTestBase):
         self.assertFalse(error_icon.get_visible())
         self.assertFalse(warning_icon.get_visible())
 
-    def test_remove_selection_label(self):
-        """Comprehensive test for selection_labels 2."""
+    def test_only_one_empty_mapping_possible(self):
+        self.assertEqual(
+            self.selection_label_listbox.get_selected_row().combination,
+            EventCombination.from_string("1,5,1"),
+        )
+        self.assertEqual(len(self.selection_label_listbox.get_children()), 1)
+        self.assertEqual(len(self.data_manager.active_preset), 1)
 
-        def remove(
-            selection_label,
-            code,
-            symbol,
-            num_selection_labels_after,
-            target="keyboard",
-        ):
-            """Remove a selection_label by clicking the delete button.
+        self.create_mapping_btn.clicked()
+        gtk_iteration()
+        self.assertEqual(
+            self.selection_label_listbox.get_selected_row().combination,
+            EventCombination.empty_combination(),
+        )
+        self.assertEqual(len(self.selection_label_listbox.get_children()), 2)
+        self.assertEqual(len(self.data_manager.active_preset), 2)
 
-            Parameters
-            ----------
-            selection_label : SelectionLabel
-            code : int or None
-                keycode of the mapping that is associated with this selection_label
-            symbol : string
-                ouptut of the mapping that is associated with this selection_label
-            num_selection_labels_after : int
-                after deleting, how many selection_labels are expected to still be there
-            target :
-                selected target in target_selector
-            """
-            self.selection_label_listbox.select_row(selection_label)
+        self.create_mapping_btn.clicked()
+        gtk_iteration()
+        self.assertEqual(len(self.selection_label_listbox.get_children()), 2)
+        self.assertEqual(len(self.data_manager.active_preset), 2)
 
-            if code is not None and symbol is not None:
-                self.assertEqual(
-                    active_preset.get_mapping(EventCombination([EV_KEY, code, 1])),
-                    (symbol, target),
-                )
+    def test_selection_labels_sort_alphabetically(self):
+        self.controller.load_preset("preset1")
+        # contains two mappings (1,1,1 -> b) and (1,2,1 -> a)
+        gtk_iteration()
+        # we expect (1,2,1 -> a) to be selected because "1" < "Escape"
+        self.assertEqual(self.data_manager.active_mapping.output_symbol, "a")
+        self.assertIs(
+            self.selection_label_listbox.get_row_at_index(0),
+            self.selection_label_listbox.get_selected_row(),
+        )
 
-            if symbol is not None:
-                self.assertEqual(self.editor.get_symbol_input_text(), symbol)
+        self.recording_toggle.set_active(True)
+        gtk_iteration()
+        self.data_bus.send(CombinationRecorded(EventCombination((EV_KEY, KEY_Q, 1))))
+        gtk_iteration()
+        self.data_bus.signal(MessageType.recording_finished)
+        gtk_iteration()
+        # the combination and the order changed "Escape" < "q"
+        self.assertEqual(self.data_manager.active_mapping.output_symbol, "a")
+        self.assertIs(
+            self.selection_label_listbox.get_row_at_index(1),
+            self.selection_label_listbox.get_selected_row(),
+        )
 
-            self.assertEqual(self.editor.get_target_selection(), target)
+    def test_selection_labels_sort_empty_mapping_to_the_bottom(self):
+        # make sure we have a mapping which would sort to the bottom only
+        # considering alphanumeric sorting: "q" > "Empty Mapping"
+        self.controller.load_preset("preset1")
+        gtk_iteration()
+        self.recording_toggle.set_active(True)
+        gtk_iteration()
+        self.data_bus.send(CombinationRecorded(EventCombination((EV_KEY, KEY_Q, 1))))
+        gtk_iteration()
+        self.data_bus.signal(MessageType.recording_finished)
+        gtk_iteration()
 
-            if code is None:
-                self.assertIsNone(selection_label.get_combination())
-            else:
-                self.assertEqual(
-                    selection_label.get_combination(),
-                    EventCombination([EV_KEY, code, 1]),
-                )
+        self.controller.create_mapping()
+        gtk_iteration()
+        row = self.selection_label_listbox.get_selected_row()
+        self.assertEqual(row.combination, EventCombination.empty_combination())
+        self.assertEqual(row.label.get_text(), "Empty Mapping")
+        self.assertIs(self.selection_label_listbox.get_row_at_index(2), row)
 
-            with PatchedConfirmDelete(self.user_interface):
-                self.editor._on_delete_button_clicked()
+    def test_select_mapping(self):
+        self.controller.load_preset("preset1")
+        # contains two mappings (1,1,1 -> b) and (1,2,1 -> a)
+        gtk_iteration()
+        # we expect (1,2,1 -> a) to be selected because "1" < "Escape"
+        self.assertEqual(self.data_manager.active_mapping.output_symbol, "a")
 
-            time.sleep(0.2)
+        # select the second entry in the listbox
+        row = self.selection_label_listbox.get_row_at_index(1)
+        self.selection_label_listbox.select_row(row)
+        gtk_iteration()
+        self.assertEqual(self.data_manager.active_mapping.output_symbol, "b")
+
+    def test_selection_label_uses_name_if_available(self):
+        self.controller.load_preset("preset1")
+        gtk_iteration()
+        row = self.selection_label_listbox.get_selected_row()
+        self.assertEqual(row.label.get_text(), "1")
+        self.assertIs(row, self.selection_label_listbox.get_row_at_index(0))
+
+        self.controller.update_mapping(name="foo")
+        self.throttle()
+        self.assertEqual(row.label.get_text(), "foo")
+        self.assertIs(row, self.selection_label_listbox.get_row_at_index(1))
+
+        # Empty Mapping still sorts to the bottom
+        self.controller.create_mapping()
+        gtk_iteration()
+        row = self.selection_label_listbox.get_selected_row()
+        self.assertEqual(row.combination, EventCombination.empty_combination())
+        self.assertEqual(row.label.get_text(), "Empty Mapping")
+        self.assertIs(self.selection_label_listbox.get_row_at_index(2), row)
+
+    def test_fake_empty_mapping_does_not_sort_to_bottom(self):
+        """If someone chooses to name a mapping "Empty Mapping"
+        it is not sorted to the bottom"""
+        self.controller.load_preset("preset1")
+        gtk_iteration()
+
+        self.controller.update_mapping(name="Empty Mapping")
+        self.throttle()  # sorting seems to take a bit
+
+        # "Empty Mapping" < "Escape" so we still expect this to be the first row
+        row = self.selection_label_listbox.get_selected_row()
+        self.assertIs(row, self.selection_label_listbox.get_row_at_index(0))
+
+        # now create a real empty mapping
+        self.controller.create_mapping()
+        self.throttle()
+
+        # for some reason we no longer can use assertIs maybe a gtk bug?
+        # self.assertIs(row, self.selection_label_listbox.get_row_at_index(0))
+
+        # we expect the fake empty mapping in row 0 and the real one in row 2
+        self.selection_label_listbox.select_row(
+            self.selection_label_listbox.get_row_at_index(0)
+        )
+        gtk_iteration()
+        self.assertEqual(self.data_manager.active_mapping.name, "Empty Mapping")
+        self.assertEqual(self.data_manager.active_mapping.output_symbol, "a")
+
+        self.selection_label_listbox.select_row(
+            self.selection_label_listbox.get_row_at_index(2)
+        )
+        self.assertIsNone(self.data_manager.active_mapping.name)
+        self.assertEqual(
+            self.data_manager.active_mapping.event_combination,
+            EventCombination.empty_combination(),
+        )
+
+    def test_remove_mapping(self):
+        self.controller.load_preset("preset1")
+        gtk_iteration()
+        self.assertEqual(len(self.data_manager.active_preset), 2)
+        self.assertEqual(len(self.selection_label_listbox.get_children()), 2)
+
+        with PatchedConfirmDelete(self.user_interface):
+            self.delete_mapping_btn.clicked()
             gtk_iteration()
 
-            # if a reference to the selection_label is held somewhere and it is
-            # accidentally used again, make sure to not provide any outdated
-            # information that is supposed to be deleted
-            self.assertIsNone(selection_label.get_combination())
-            if code is not None:
-                self.assertIsNone(
-                    active_preset.get_mapping(EventCombination([EV_KEY, code, 1])),
-                )
-
-            self.assertEqual(
-                len(self.get_selection_labels()),
-                num_selection_labels_after,
-            )
-
-        # sleeps are added to be able to visually follow and debug the test. Add two
-        # selection_labels by modifiying the one empty selection_label that exists
-        selection_label_1 = self.add_mapping_via_ui(
-            EventCombination([EV_KEY, 10, 1]),
-            "a",
-        )
-        selection_label_2 = self.add_mapping_via_ui(
-            EventCombination([EV_KEY, 11, 1]),
-            "b",
-        )
-
-        # no empty selection_label added because one is unfinished
-        time.sleep(0.2)
-        gtk_iteration()
-        self.assertEqual(len(self.get_selection_labels()), 3)
-
-        self.assertEqual(
-            active_preset.get_mapping(EventCombination([EV_KEY, 11, 1])),
-            ("b", "keyboard"),
-        )
-
-        remove(selection_label_1, 10, "a", 2)
-        remove(selection_label_2, 11, "b", 1)
-
-        # there is no empty selection_label at the moment, so after removing that one,
-        # which is the only selection_label, one empty selection_label will be there.
-        # So the number of selection_labels won't change.
-        remove(self.selection_label_listbox.get_children()[-1], None, None, 1)
+        self.assertEqual(len(self.data_manager.active_preset), 1)
+        self.assertEqual(len(self.selection_label_listbox.get_children()), 1)
 
     def test_problematic_combination(self):
-        combination = EventCombination((EV_KEY, KEY_LEFTSHIFT, 1), (EV_KEY, 82, 1))
-        self.add_mapping_via_ui(combination, "b")
+        # load a device with more capabilities
+        self.controller.load_group("Foo Device 2")
+        gtk_iteration()
+
+        def add_mapping(combi: EventCombination, symbol):
+            self.controller.create_mapping()
+            gtk_iteration()
+            self.controller.start_key_recording()
+            push_events("Foo Device 2", [event for event in combi])
+            push_events("Foo Device 2", [event.modify(value=0) for event in combi])
+            self.throttle(20)
+            gtk_iteration()
+            self.code_editor.get_buffer().set_text(symbol)
+            gtk_iteration()
+
+        combination = EventCombination(((EV_KEY, KEY_LEFTSHIFT, 1), (EV_KEY, 82, 1)))
+        add_mapping(combination, "b")
         text = self.get_status_text()
         self.assertIn("shift", text)
 
@@ -1112,156 +1301,68 @@ class TestGui(GuiTestBase):
         self.assertTrue(warning_icon.get_visible())
 
     def test_rename_and_save(self):
-        self.assertEqual(self.user_interface.group.name, "Foo Device")
-        self.assertFalse(global_config.is_autoloaded("Foo Device", "new preset"))
+        # only a basic test, TestController and TestDataManager go more in detail
+        self.rename_input.set_text("foo")
+        self.rename_btn.clicked()
+        gtk_iteration()
 
-        m1 = get_ui_mapping()
-        active_preset.add(m1)
-        self.assertEqual(self.user_interface.preset_name, "new preset")
-        self.user_interface.save_preset()
-        self.assertEqual(
-            active_preset.get_mapping(EventCombination([99, 99, 99])),
-            m1,
-        )
-        global_config.set_autoload_preset("Foo Device", "new preset")
-        self.assertTrue(global_config.is_autoloaded("Foo Device", "new preset"))
-
-        m2 = get_ui_mapping()
-        m2.output_symbol = "b"
-        active_preset.get_mapping(EventCombination([99, 99, 99])).output_symbol = "b"
-        self.user_interface.get("preset_name_input").set_text("asdf")
-        self.user_interface.save_preset()
-        self.user_interface.on_rename_button_clicked(None)
-        self.assertEqual(self.user_interface.preset_name, "asdf")
-        preset_path = f"{CONFIG_PATH}/presets/Foo Device/asdf.json"
+        preset_path = f"{CONFIG_PATH}/presets/Foo Device/foo.json"
         self.assertTrue(os.path.exists(preset_path))
-        self.assertEqual(
-            active_preset.get_mapping(EventCombination([99, 99, 99])),
-            m2,
-        )
-
-        # after renaming the preset it is still set to autoload
-        self.assertTrue(global_config.is_autoloaded("Foo Device", "asdf"))
-        # ALSO IN THE ACTUAL CONFIG FILE!
-        global_config.load_config()
-        self.assertTrue(global_config.is_autoloaded("Foo Device", "asdf"))
-
         error_icon = self.user_interface.get("error_status_icon")
         self.assertFalse(error_icon.get_visible())
-
-        # otherwise save won't do anything
-        m2.output_symbol = "c"
-        active_preset.get_mapping(EventCombination([99, 99, 99])).output_symbol = "c"
-        self.assertTrue(active_preset.has_unsaved_changes())
 
         def save():
             raise PermissionError
 
-        with patch.object(active_preset, "save", save):
-            self.user_interface.save_preset()
-            status = self.get_status_text()
-            self.assertIn("Permission denied", status)
+        with patch.object(self.data_manager.active_preset, "save", save):
+            self.code_editor.get_buffer().set_text("f")
+            gtk_iteration()
+        status = self.get_status_text()
+        self.assertIn("Permission denied", status)
 
         with PatchedConfirmDelete(self.user_interface):
-            self.user_interface.on_delete_preset_clicked(None)
-            self.assertFalse(os.path.exists(preset_path))
-
-    def test_rename_create_switch(self):
-        # after renaming a preset and saving it, new presets
-        # start with "new preset" again
-        m1 = get_ui_mapping()
-        active_preset.add(m1)
-        self.user_interface.get("preset_name_input").set_text("asdf")
-        self.user_interface.save_preset()
-        self.user_interface.on_rename_button_clicked(None)
-        self.assertEqual(len(active_preset), 1)
-        self.assertEqual(self.user_interface.preset_name, "asdf")
-
-        self.user_interface.on_create_preset_clicked()
-        self.assertEqual(self.user_interface.preset_name, "new preset")
-        self.assertEqual(len(self.selection_label_listbox.get_children()), 1)
-        self.assertEqual(len(active_preset), 0)
-        self.user_interface.save_preset()
-
-        # symbol and code in the gui won't be carried over after selecting a preset
-        combination = EventCombination([EV_KEY, 15, 1])
-        self.controller.update_mapping(event_combination=combination)
-        self.editor.set_symbol_input_text("b")
-
-        # selecting the first preset again loads the saved mapping, and saves
-        # the current changes in the gui
-        self.user_interface.on_select_preset(FakePresetDropdown("asdf"))
-        self.assertEqual(
-            active_preset.get_mapping(EventCombination([99, 99, 99])),
-            m1,
-        )
-        self.assertEqual(len(active_preset), 1)
-        self.assertEqual(len(self.selection_label_listbox.get_children()), 2)
-        global_config.set_autoload_preset("Foo Device", "new preset")
-
-        # renaming a preset to an existing name appends a number
-        self.user_interface.on_select_preset(FakePresetDropdown("new preset"))
-        self.user_interface.get("preset_name_input").set_text("asdf")
-        self.user_interface.on_rename_button_clicked(None)
-        self.assertEqual(self.user_interface.preset_name, "asdf 2")
-        # and that added number is correctly used in the autoload
-        # configuration as well
-        self.assertTrue(global_config.is_autoloaded("Foo Device", "asdf 2"))
-        m2 = get_ui_mapping()
-        m2.event_combination = "1,15,1"
-        m2.output_symbol = "b"
-        self.assertEqual(
-            active_preset.get_mapping(EventCombination([EV_KEY, 15, 1])).dict(),
-            m2.dict(),
-        )
-        self.assertEqual(len(active_preset), 1)
-        self.assertEqual(len(self.selection_label_listbox.get_children()), 2)
-
-        self.assertEqual(self.user_interface.get("preset_name_input").get_text(), "")
-
-        # renaming the current preset to itself doesn't append a number and
-        # it doesn't do anything on the file system
-        def _raise(*_):
-            # should not get called
-            raise AssertionError
-
-        with patch.object(os, "rename", _raise):
-            self.user_interface.get("preset_name_input").set_text("asdf 2")
-            self.user_interface.on_rename_button_clicked(None)
-            self.assertEqual(self.user_interface.preset_name, "asdf 2")
-
-            self.user_interface.get("preset_name_input").set_text("")
-            self.user_interface.on_rename_button_clicked(None)
-            self.assertEqual(self.user_interface.preset_name, "asdf 2")
+            self.delete_preset_btn.clicked()
+            gtk_iteration()
+        self.assertFalse(os.path.exists(preset_path))
 
     def test_check_for_unknown_symbols(self):
         status = self.user_interface.get("status_bar")
         error_icon = self.user_interface.get("error_status_icon")
         warning_icon = self.user_interface.get("warning_status_icon")
 
-        active_preset.change(EventCombination([EV_KEY, 71, 1]), "keyboard", "qux", None)
-        active_preset.change(EventCombination([EV_KEY, 72, 1]), "keyboard", "foo", None)
-        self.user_interface.save_preset()
+        self.controller.load_preset("preset1")
+        gtk_iteration()
+        self.controller.load_mapping(EventCombination.from_string("1,1,1"))
+        gtk_iteration()
+        self.controller.update_mapping(output_symbol="foo")
+        gtk_iteration()
+        self.controller.load_mapping(EventCombination.from_string("1,2,1"))
+        gtk_iteration()
+        self.controller.update_mapping(output_symbol="qux")
+        gtk_iteration()
+
         tooltip = status.get_tooltip_text().lower()
         self.assertIn("qux", tooltip)
         self.assertTrue(error_icon.get_visible())
         self.assertFalse(warning_icon.get_visible())
 
         # it will still save it though
-        with open(get_preset_path("Foo Device", "new preset")) as f:
+        with open(get_preset_path("Foo Device", "preset1")) as f:
             content = f.read()
             self.assertIn("qux", content)
             self.assertIn("foo", content)
 
-        active_preset.change(EventCombination([EV_KEY, 71, 1]), "keyboard", "a", None)
-        self.user_interface.save_preset()
+        self.controller.update_mapping(output_symbol="a")
+        gtk_iteration()
         tooltip = status.get_tooltip_text().lower()
         self.assertIn("foo", tooltip)
         self.assertTrue(error_icon.get_visible())
         self.assertFalse(warning_icon.get_visible())
 
-        active_preset.change(EventCombination([EV_KEY, 72, 1]), "keyboard", "b", None)
-        self.user_interface.save_preset()
+        self.controller.load_mapping(EventCombination.from_string("1,1,1"))
+        gtk_iteration()
+        self.controller.update_mapping(output_symbol="b")
+        gtk_iteration()
         tooltip = status.get_tooltip_text()
         self.assertIsNone(tooltip)
         self.assertFalse(error_icon.get_visible())
