@@ -439,9 +439,7 @@ class TestController(unittest.TestCase):
 
         self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset2")))
         self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset2 copy")))
-        self.assertTrue(
-            os.path.exists(get_preset_path("Foo Device", "preset2 copy 2"))
-        )
+        self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset2 copy 2")))
 
     def test_copy_preset_should_increment_existing_number(self):
         prepare_presets()
@@ -460,12 +458,8 @@ class TestController(unittest.TestCase):
 
         self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset2")))
         self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset2 copy")))
-        self.assertTrue(
-            os.path.exists(get_preset_path("Foo Device", "preset2 copy 2"))
-        )
-        self.assertTrue(
-            os.path.exists(get_preset_path("Foo Device", "preset2 copy 3"))
-        )
+        self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset2 copy 2")))
+        self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset2 copy 3")))
 
     def test_copy_preset_should_not_append_copy_twice(self):
         prepare_presets()
@@ -481,9 +475,7 @@ class TestController(unittest.TestCase):
 
         self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset2")))
         self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset2 copy")))
-        self.assertTrue(
-            os.path.exists(get_preset_path("Foo Device", "preset2 copy 2"))
-        )
+        self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset2 copy 2")))
 
     def test_copy_preset_should_not_append_copy_to_copy_with_number(self):
         prepare_presets()
@@ -501,12 +493,8 @@ class TestController(unittest.TestCase):
 
         self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset2")))
         self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset2 copy")))
-        self.assertTrue(
-            os.path.exists(get_preset_path("Foo Device", "preset2 copy 2"))
-        )
-        self.assertTrue(
-            os.path.exists(get_preset_path("Foo Device", "preset2 copy 3"))
-        )
+        self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset2 copy 2")))
+        self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset2 copy 3")))
 
     def test_rename_preset(self):
         prepare_presets()

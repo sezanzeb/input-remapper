@@ -57,7 +57,8 @@ from inputremapper.injection.injector import (
     STOPPED,
     NO_GRAB,
     UNKNOWN,
-    get_udev_name, FAILED,
+    get_udev_name,
+    FAILED,
 )
 from inputremapper.injection.numlock import is_numlock_on
 from inputremapper.configs.system_mapping import (

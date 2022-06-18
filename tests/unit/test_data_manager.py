@@ -739,7 +739,8 @@ class TestDataManager(unittest.TestCase):
 
         self.assertEqual(self.data_manager.active_group.key, "Foo Device 2")
         data = (
-            GroupData("Foo Device 2", (p1, p2, p3)) for p1, p2, p3 in permutations(("preset3", "preset2", "preset1"))
+            GroupData("Foo Device 2", (p1, p2, p3))
+            for p1, p2, p3 in permutations(("preset3", "preset2", "preset1"))
         )
         self.assertIn(listener.calls[0], data)
 

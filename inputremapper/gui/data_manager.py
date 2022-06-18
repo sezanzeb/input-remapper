@@ -225,7 +225,9 @@ class DataManager:
             else:
                 i = 2
 
-            while os.path.exists(get_preset_path(self.active_group.name, f"{name} {i}")):
+            while os.path.exists(
+                get_preset_path(self.active_group.name, f"{name} {i}")
+            ):
                 i += 1
 
             return f"{name} {i}"
@@ -282,7 +284,9 @@ class DataManager:
         if not self._active_preset:
             raise DataManagementError("Unable rename preset: Preset is not set")
 
-        if self._active_preset.path == get_preset_path(self.active_group.name, new_name):
+        if self._active_preset.path == get_preset_path(
+            self.active_group.name, new_name
+        ):
             return
 
         old_path = self._active_preset.path

@@ -202,6 +202,8 @@ class Controller:
         self.data_manager.save()
 
     def start_key_recording(self):
+        logger.debug("Recording Keys")
+
         def f(_):
             self.data_bus.unsubscribe(f)
             self.stop_key_recording()
@@ -214,6 +216,7 @@ class Controller:
         self.data_manager.start_combination_recording()
 
     def stop_key_recording(self):
+        logger.debug("Finished Key recording")
         self.data_bus.unsubscribe(self.on_combination_recorded)
         self.gui.connect_shortcuts()
 

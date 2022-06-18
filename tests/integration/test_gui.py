@@ -21,7 +21,7 @@
 
 # the tests file needs to be imported first to make sure patches are loaded
 from contextlib import contextmanager
-from typing import Tuple
+from typing import Tuple, List
 
 from tests.test import (
     get_project_root,
@@ -36,6 +36,7 @@ from tests.test import (
     EVENT_READ_TIMEOUT,
     MIN_ABS,
     get_ui_mapping,
+    prepare_presets,
 )
 
 import sys
@@ -56,7 +57,7 @@ from evdev.ecodes import (
     ABS_X,
 )
 import json
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, call
 from importlib.util import spec_from_loader, module_from_spec
 from importlib.machinery import SourceFileLoader
 
@@ -64,15 +65,23 @@ import gi
 from inputremapper.input_event import InputEvent
 
 gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk, GLib, Gdk
+gi.require_version("GLib", "2.0")
+gi.require_version("GtkSource", "4")
+from gi.repository import Gtk, GLib, Gdk, GtkSource
 
 from inputremapper.configs.system_mapping import system_mapping, XMODMAP_FILENAME
-from inputremapper.configs.mapping import UIMapping
+from inputremapper.configs.mapping import UIMapping, Mapping
 from inputremapper.configs.paths import CONFIG_PATH, get_preset_path, get_config_path
 from inputremapper.configs.global_config import global_config, WHEEL, MOUSE, BUTTONS
 from inputremapper.groups import _Groups
 from inputremapper.gui.data_manager import DataManager
-from inputremapper.gui.data_bus import DataBus
+from inputremapper.gui.data_bus import (
+    DataBus,
+    MessageType,
+    StatusData,
+    CombinationRecorded,
+)
+from inputremapper.gui.components import SelectionLabel
 from inputremapper.gui.reader import Reader
 from inputremapper.gui.controller import Controller
 from inputremapper.gui.helper import RootHelper
@@ -287,6 +296,7 @@ class PatchedConfirmDelete:
 
 class GuiTestBase(unittest.TestCase):
     def setUp(self):
+        prepare_presets()
         with patch_launch():
             (
                 self.user_interface,
@@ -295,6 +305,26 @@ class GuiTestBase(unittest.TestCase):
                 self.data_bus,
                 self.daemon,
             ) = launch()
+
+        get = self.user_interface.get
+        self.device_selection: Gtk.ComboBox = get("device_selection")
+        self.preset_selection: Gtk.ComboBoxText = get("preset_selection")
+        self.selection_label_listbox: Gtk.ListBox = get("selection_label_listbox")
+        self.target_selection: Gtk.ComboBox = get("target-selector")
+        self.recording_toggle: Gtk.ToggleButton = get("key_recording_toggle")
+        self.status_bar: Gtk.Statusbar = get("status_bar")
+        self.autoload_toggle: Gtk.Switch = get("preset_autoload_switch")
+        self.code_editor: GtkSource.View = get("code_editor")
+
+        self.delete_preset_btn: Gtk.Button = get("delete_preset")
+        self.copy_preset_btn: Gtk.Button = get("copy_preset")
+        self.create_preset_btn: Gtk.Button = get("create_preset")
+        self.start_injector_btn: Gtk.Button = get("apply_preset")
+        self.stop_injector_btn: Gtk.Button = get("apply_system_layout")
+        self.rename_btn: Gtk.Button = get("rename-button")
+        self.rename_input: Gtk.Entry = get("preset_name_input")
+        self.create_mapping_btn: Gtk.Button = get("create_mapping_button")
+        self.delete_mapping_btn: Gtk.Button = get("delete-mapping")
 
         self.grab_fails = False
 
@@ -337,26 +367,27 @@ class GuiTestBase(unittest.TestCase):
             self.tearDown()
             self.setUp()
 
-    def throttle(self):
+    def throttle(self, iterations=10):
         """Give GTK some time to process everything."""
         # tests suddenly started to freeze my computer up completely and tests started
         # to fail. By using this (and by optimizing some redundant calls in the gui) it
         # worked again. EDIT: Might have been caused by my broken/bloated ssd. I'll
         # keep it in some places, since it did make the tests more reliable after all.
-        for _ in range(10):
+        for _ in range(iterations):
             gtk_iteration()
             time.sleep(0.002)
 
     def activate_recording_toggle(self):
         logger.info("Activating the recording toggle")
-        self.set_focus(self.toggle)
-        self.toggle.set_active(True)
+        self.recording_toggle.set_active(True)
+        gtk_iteration()
 
     def disable_recording_toggle(self):
         logger.info("Deactivating the recording toggle")
-        self.set_focus(None)
+        self.recording_toggle.set_active(False)
+        gtk_iteration()
         # should happen automatically:
-        self.assertFalse(self.toggle.get_active())
+        self.assertFalse(self.recording_toggle.get_active())
 
     def set_focus(self, widget):
         logger.info("Focusing %s", widget)
@@ -365,7 +396,7 @@ class GuiTestBase(unittest.TestCase):
 
         self.throttle()
 
-    def get_selection_labels(self):
+    def get_selection_labels(self) -> List[SelectionLabel]:
         return self.selection_label_listbox.get_children()
 
     def get_status_text(self):
@@ -373,7 +404,7 @@ class GuiTestBase(unittest.TestCase):
         return status_bar.get_message_area().get_children()[0].get_label()
 
     def get_unfiltered_symbol_input_text(self):
-        buffer = self.editor.get_code_editor().get_buffer()
+        buffer = self.code_editor.get_buffer()
         return buffer.get_text(buffer.get_start_iter(), buffer.get_end_iter(), True)
 
     def select_mapping(self, i: int):
@@ -382,7 +413,7 @@ class GuiTestBase(unittest.TestCase):
         Parameters
         ----------
         i
-            if -1, will select the "empty row",
+            if -1, will select the last row,
             0 will select the uppermost row.
             1 will select the second row, and so on
         """
@@ -390,10 +421,19 @@ class GuiTestBase(unittest.TestCase):
         self.selection_label_listbox.select_row(selection_label)
         logger.info(
             'Selecting mapping %s "%s"',
-            selection_label.get_combination(),
-            selection_label.get_label(),
+            selection_label.combination,
+            selection_label.name,
         )
+        gtk_iteration()
         return selection_label
+
+    def add_mapping(self, mapping: Mapping = None):
+        self.controller.create_mapping()
+        self.controller.load_mapping(EventCombination.empty_combination())
+        gtk_iteration()
+        if mapping:
+            self.controller.update_mapping(**mapping.dict(exclude_defaults=True))
+            gtk_iteration()
 
     def add_mapping_via_ui(self, key, symbol, expect_success=True, target=None):
         """Modify the one empty mapping that always exists.
@@ -525,20 +565,6 @@ class GuiTestBase(unittest.TestCase):
 
         gtk_iteration()
 
-    def set_combination(self, combination: EventCombination) -> None:
-        """Partial implementation of editor.consume_newest_keycode
-        simplifies setting combination without going through the add mapping via ui function
-        """
-        previous_key = self.editor.get_combination()
-        # keycode didn't change, do nothing
-        if combination == previous_key:
-            return
-
-        self.editor.set_combination(combination)
-        self.editor.active_mapping.event_combination = combination
-        if previous_key is None and combination is not None:
-            active_preset.add(self.editor.active_mapping)
-
 
 class TestGui(GuiTestBase):
     """For tests that use the window.
@@ -568,105 +594,106 @@ class TestGui(GuiTestBase):
         self.assertEqual(self.editor.get_recording_toggle().get_label(), "Change Key")
         self.assertEqual(self.get_unfiltered_symbol_input_text(), SET_KEY_FIRST)
 
-    def test_show_device_mapping_status(self):
+    def test_initial_state(self):
+        self.assertEqual(self.data_manager.active_group.key, "Foo Device")
+        self.assertEqual(self.device_selection.get_active_id(), "Foo Device")
+        self.assertEqual(self.data_manager.active_preset.name, "preset3")
+        self.assertEqual(self.preset_selection.get_active_id(), "preset3")
+        self.assertFalse(self.data_manager.get_autoload())
+        self.assertFalse(self.autoload_toggle.get_active())
+        self.assertEqual(
+            self.selection_label_listbox.get_selected_row().combination, ((1, 5, 1),)
+        )
+        self.assertEqual(
+            self.data_manager.active_mapping.event_combination, ((1, 5, 1),)
+        )
+        self.assertEqual(self.selection_label_listbox.get_selected_row().name, "4")
+        self.assertIsNone(self.data_manager.active_mapping.name)
+        self.assertTrue(self.data_manager.active_mapping.is_valid())
+        self.assertTrue(self.data_manager.active_preset.is_valid())
+        # todo
+
+    def test_show_injection_result_returns_false(self):
         # this function may not return True, otherwise the timeout
         # runs forever
-        self.assertFalse(self.user_interface.show_device_mapping_status())
+        self.start_injector_btn.clicked()
+        gtk_iteration()
+        self.sleep(20)
+        self.assertFalse(self.controller.show_injection_result())
 
-    def test_autoload(self):
-        self.assertFalse(
-            global_config.is_autoloaded(
-                self.user_interface.group.key, self.user_interface.preset_name
-            )
-        )
-
-        with spy(self.user_interface.dbus, "set_config_dir") as set_config_dir:
-            self.user_interface.on_autoload_switch(None, False)
+    def test_set_autoload_refreshes_service_config(self):
+        self.assertFalse(self.data_manager.get_autoload())
+        with spy(self.daemon, "set_config_dir") as set_config_dir:
+            self.autoload_toggle.set_active(True)
+            gtk_iteration()
             set_config_dir.assert_called_once()
+        self.assertTrue(self.data_manager.get_autoload())
 
-        self.assertFalse(
-            global_config.is_autoloaded(
-                self.user_interface.group.key, self.user_interface.preset_name
-            )
-        )
+    def test_autoload_sets_correctly(self):
+        self.assertFalse(self.data_manager.get_autoload())
+        self.assertFalse(self.autoload_toggle.get_active())
 
-        self.user_interface.on_select_device(FakeDeviceDropdown("Foo Device 2"))
+        self.autoload_toggle.set_active(True)
         gtk_iteration()
-        self.assertFalse(self.user_interface.get("preset_autoload_switch").get_active())
+        self.assertTrue(self.data_manager.get_autoload())
+        self.assertTrue(self.autoload_toggle.get_active())
 
-        # select a preset for the first device
-        self.user_interface.get("preset_autoload_switch").set_active(True)
+        self.autoload_toggle.set_active(False)
         gtk_iteration()
-        self.assertTrue(self.user_interface.get("preset_autoload_switch").get_active())
-        self.assertEqual(self.user_interface.group.key, "Foo Device 2")
-        self.assertEqual(self.user_interface.group.name, "Foo Device")
-        self.assertTrue(
-            global_config.is_autoloaded(self.user_interface.group.key, "new preset")
-        )
-        self.assertFalse(global_config.is_autoloaded("Bar Device", "new preset"))
-        self.assertListEqual(
-            list(global_config.iterate_autoload_presets()),
-            [("Foo Device 2", "new preset")],
-        )
+        self.assertFalse(self.data_manager.get_autoload())
+        self.assertFalse(self.autoload_toggle.get_active())
 
-        # create a new preset, the switch should be correctly off and the
-        # global_config not changed.
-        self.user_interface.on_create_preset_clicked()
+    def test_autoload_is_set_when_changing_preset(self):
+        self.assertFalse(self.data_manager.get_autoload())
+        self.assertFalse(self.autoload_toggle.get_active())
+
+        self.device_selection.set_active_id("Foo Device 2")
+        self.preset_selection.set_active_id("preset2")
         gtk_iteration()
-        self.assertEqual(self.user_interface.preset_name, "new preset 2")
-        self.assertFalse(self.user_interface.get("preset_autoload_switch").get_active())
-        self.assertTrue(global_config.is_autoloaded("Foo Device 2", "new preset"))
-        self.assertFalse(global_config.is_autoloaded("Foo Device", "new preset"))
-        self.assertFalse(global_config.is_autoloaded("Foo Device", "new preset 2"))
-        self.assertFalse(global_config.is_autoloaded("Foo Device 2", "new preset 2"))
+        self.assertTrue(self.data_manager.get_autoload())
+        self.assertTrue(self.autoload_toggle.get_active())
 
-        # select a preset for the second device
-        self.user_interface.on_select_device(FakeDeviceDropdown("Bar Device"))
-        self.user_interface.get("preset_autoload_switch").set_active(True)
+    def test_only_one_autoload_per_group(self):
+        self.assertFalse(self.data_manager.get_autoload())
+        self.assertFalse(self.autoload_toggle.get_active())
+
+        self.device_selection.set_active_id("Foo Device 2")
+        self.preset_selection.set_active_id("preset2")
         gtk_iteration()
-        self.assertTrue(global_config.is_autoloaded("Foo Device 2", "new preset"))
-        self.assertFalse(global_config.is_autoloaded("Foo Device", "new preset"))
-        self.assertTrue(global_config.is_autoloaded("Bar Device", "new preset"))
-        self.assertListEqual(
-            list(global_config.iterate_autoload_presets()),
-            [("Foo Device 2", "new preset"), ("Bar Device", "new preset")],
-        )
+        self.assertTrue(self.data_manager.get_autoload())
+        self.assertTrue(self.autoload_toggle.get_active())
 
-        # disable autoloading for the second device
-        self.user_interface.get("preset_autoload_switch").set_active(False)
+        self.preset_selection.set_active_id("preset3")
         gtk_iteration()
-        self.assertTrue(global_config.is_autoloaded("Foo Device 2", "new preset"))
-        self.assertFalse(global_config.is_autoloaded("Foo Device", "new preset"))
-        self.assertFalse(global_config.is_autoloaded("Bar Device", "new preset"))
-        self.assertListEqual(
-            list(global_config.iterate_autoload_presets()),
-            [("Foo Device 2", "new preset")],
-        )
+        self.autoload_toggle.set_active(True)
+        gtk_iteration()
+        self.preset_selection.set_active_id("preset2")
+        gtk_iteration()
+        self.assertFalse(self.data_manager.get_autoload())
+        self.assertFalse(self.autoload_toggle.get_active())
 
-    def test_select_device(self):
+    def test_each_device_can_have_autoload(self):
+        self.autoload_toggle.set_active(True)
+        gtk_iteration()
+        self.device_selection.set_active_id("Foo Device")
+        gtk_iteration()
+        self.autoload_toggle.set_active(True)
+        gtk_iteration()
+
+        self.assertTrue(self.data_manager.get_autoload())
+        self.assertTrue(self.autoload_toggle.get_active())
+
+        self.device_selection.set_active_id("Foo Device 2")
+        gtk_iteration()
+        self.assertTrue(self.data_manager.get_autoload())
+        self.assertTrue(self.autoload_toggle.get_active())
+
+    def test_select_device_without_preset(self):
         # creates a new empty preset when no preset exists for the device
-        self.user_interface.on_select_device(FakeDeviceDropdown("Foo Device"))
-        m1 = UIMapping(
-            event_combination="1,50,1",
-            output_symbol="q",
-            target_uinput="keyboard",
-        )
-        m2 = UIMapping(
-            event_combination="1,51,1",
-            output_symbol="u",
-            target_uinput="keyboard",
-        )
-        m3 = UIMapping(
-            event_combination="1,52,1",
-            output_symbol="x",
-            target_uinput="keyboard",
-        )
-        active_preset.add(m1)
-        active_preset.add(m2)
-        active_preset.add(m3)
-        self.assertEqual(len(active_preset), 3)
-        self.user_interface.on_select_device(FakeDeviceDropdown("Bar Device"))
-        self.assertEqual(len(active_preset), 0)
+        self.device_selection.set_active_id("Bar Device")
+        self.assertEqual(self.preset_selection.get_active_id(), "new preset")
+        self.assertEqual(len(self.data_manager.active_preset), 0)
+
         # it creates the file for that right away. It may have been possible
         # to write it such that it doesn't (its empty anyway), but it does,
         # so use that to test it in more detail.
@@ -675,145 +702,156 @@ class TestGui(GuiTestBase):
         with open(path, "r") as file:
             self.assertEqual(file.read(), "")
 
-    def test_editor_simple(self):
-        self.assertEqual(self.toggle.get_label(), "Change Key")
+    def test_recording_toggle_labels(self):
+        self.assertEqual(self.recording_toggle.get_label(), "Record Keys")
+        self.recording_toggle.set_active(True)
+        gtk_iteration()
+        self.assertEqual(self.recording_toggle.get_label(), "Recording ...")
+        self.recording_toggle.set_active(False)
+        gtk_iteration()
+        self.assertEqual(self.recording_toggle.get_label(), "Record Keys")
 
-        self.assertEqual(len(self.selection_label_listbox.get_children()), 1)
+    def test_recording_label_updates_on_recording_finished(self):
+        self.assertEqual(self.recording_toggle.get_label(), "Record Keys")
+        self.recording_toggle.set_active(True)
+        gtk_iteration()
+        self.assertEqual(self.recording_toggle.get_label(), "Recording ...")
+        self.data_bus.signal(MessageType.recording_finished)
+        gtk_iteration()
+        self.assertEqual(self.recording_toggle.get_label(), "Record Keys")
+        self.assertFalse(self.recording_toggle.get_active())
 
-        selection_label = self.selection_label_listbox.get_children()[0]
-        self.activate_recording_toggle()
-        self.assertTrue(self.editor.is_waiting_for_input())
-        self.assertEqual(self.toggle.get_label(), "Press Key")
+    def test_events_from_helper_arrive(self):
+        # load a device with more capabilities
+        self.controller.load_group("Foo Device 2")
+        gtk_iteration()
+        mock1 = MagicMock()
+        mock2 = MagicMock()
+        self.data_bus.subscribe(MessageType.combination_recorded, mock1)
+        self.data_bus.subscribe(MessageType.recording_finished, mock2)
+        self.recording_toggle.set_active(True)
+        gtk_iteration()
 
-        self.user_interface.consume_newest_keycode()
-        # nothing happens
-        self.assertIsNone(selection_label.get_combination())
-        self.assertEqual(len(active_preset), 0)
-        self.assertEqual(self.toggle.get_label(), "Press Key")
+        push_events(
+            "Foo Device 2",
+            [InputEvent.from_string("1,30,1"), InputEvent.from_string("1,31,1")],
+        )
+        self.throttle(20)
+        mock1.assert_has_calls(
+            (
+                call(CombinationRecorded(EventCombination.from_string("1,30,1"))),
+                call(
+                    CombinationRecorded(EventCombination.from_string("1,30,1+1,31,1"))
+                ),
+            ),
+            any_order=False,
+        )
+        self.assertEqual(mock1.call_count, 2)
+        mock2.assert_not_called()
 
-        send_event_to_reader(InputEvent.from_tuple((EV_KEY, 30, 1)))
-        self.user_interface.consume_newest_keycode()
-        # no symbol configured yet, so the active_preset remains empty
-        self.assertEqual(len(active_preset), 0)
-        self.assertEqual(len(selection_label.get_combination()), 1)
-        self.assertEqual(selection_label.get_combination()[0], (EV_KEY, 30, 1))
-        # this is KEY_A in linux/input-event-codes.h,
-        # but KEY_ is removed from the text for display purposes
-        self.assertEqual(selection_label.get_label(), "a")
+        push_events("Foo Device 2", [InputEvent.from_string("1,31,0")])
+        self.throttle(20)
+        self.assertEqual(mock1.call_count, 2)
+        mock2.assert_not_called()
 
-        # providing the same key again doesn't do any harm
-        # (Maybe this could happen for gamepads or something, idk)
-        send_event_to_reader(InputEvent.from_tuple((EV_KEY, 30, 1)))
-        self.user_interface.consume_newest_keycode()
-        self.assertEqual(len(active_preset), 0)  # not released yet
-        self.assertEqual(len(selection_label.get_combination()), 1)
-        self.assertEqual(selection_label.get_combination()[0], (EV_KEY, 30, 1))
+        push_events("Foo Device 2", [InputEvent.from_string("1,30,0")])
+        self.throttle(20)
+        self.assertEqual(mock1.call_count, 2)
+        mock2.assert_called_once()
 
-        time.sleep(0.11)
-        # new empty entry was added
+        self.assertFalse(self.recording_toggle.get_active())
+
+    def test_create_simple_mapping(self):
+        # 1. create a mapping
+        self.create_mapping_btn.clicked()
+        gtk_iteration()
+
+        self.assertEqual(
+            self.selection_label_listbox.get_selected_row().combination,
+            EventCombination.empty_combination(),
+        )
+        self.assertEqual(
+            self.data_manager.active_mapping.event_combination,
+            EventCombination.empty_combination(),
+        )
+        self.assertEqual(
+            self.selection_label_listbox.get_selected_row().name, "Empty Mapping"
+        )
+        self.assertIsNone(self.data_manager.active_mapping.name)
+
+        # there are now 2 mappings
+        self.assertEqual(len(self.selection_label_listbox.get_children()), 2)
+        self.assertEqual(len(self.data_manager.active_preset), 2)
+
+        # 2. recorde a combination for that mapping
+        self.recording_toggle.set_active(True)
+        gtk_iteration()
+        push_events("Foo Device", [InputEvent.from_string("1,30,1")])
+        self.throttle(20)
+        push_events("Foo Device", [InputEvent.from_string("1,30,0")])
+        self.throttle(20)
+
+        # check the event_combination
+        self.assertEqual(
+            self.selection_label_listbox.get_selected_row().combination,
+            EventCombination.from_string("1,30,1"),
+        )
+        self.assertEqual(
+            self.data_manager.active_mapping.event_combination,
+            EventCombination.from_string("1,30,1"),
+        )
+        self.assertEqual(self.selection_label_listbox.get_selected_row().name, "a")
+        self.assertIsNone(self.data_manager.active_mapping.name)
+
+        # 3. set the output symbol
+        self.code_editor.get_buffer().set_text("Shift_L")
+        gtk_iteration()
+
+        # the mapping and preset should be valid by now
+        self.assertTrue(self.data_manager.active_mapping.is_valid())
+        self.assertTrue(self.data_manager.active_preset.is_valid())
+
+        self.assertEqual(
+            self.data_manager.active_mapping,
+            Mapping(
+                event_combination="1,30,1",
+                output_symbol="Shift_L",
+                target_uinput="keyboard",
+            ),
+        )
+        self.assertEqual(self.target_selection.get_active_id(), "keyboard")
+        buffer = self.code_editor.get_buffer()
+        self.assertEqual(
+            buffer.get_text(buffer.get_start_iter(), buffer.get_end_iter(), True),
+            "Shift_L",
+        )
+        self.assertEqual(
+            self.selection_label_listbox.get_selected_row().combination,
+            EventCombination.from_string("1,30,1"),
+        )
+
+        # 4. update target to mouse
+        self.target_selection.set_active_id("mouse")
         gtk_iteration()
         self.assertEqual(
-            len(self.selection_label_listbox.get_children()),
-            2,
+            self.data_manager.active_mapping,
+            Mapping(
+                event_combination="1,30,1",
+                output_symbol="Shift_L",
+                target_uinput="mouse",
+            ),
         )
-
-        self.disable_recording_toggle()
-        self.set_focus(self.editor.get_code_editor())
-        self.assertFalse(self.editor.is_waiting_for_input())
-
-        self.editor.set_symbol_input_text("Shift_L")
-
-        self.set_focus(None)
-        self.assertFalse(self.editor.is_waiting_for_input())
-
-        num_mappings = len(active_preset)
-        self.assertEqual(num_mappings, 1)
-
-        time.sleep(0.1)
-        gtk_iteration()
-        self.assertEqual(
-            len(self.selection_label_listbox.get_children()),
-            2,
-        )
-
-        self.assertEqual(
-            active_preset.get_mapping(EventCombination([EV_KEY, 30, 1])),
-            ("Shift_L", "keyboard"),
-        )
-        self.assertEqual(self.editor.get_target_selection(), "keyboard")
-        self.assertEqual(self.editor.get_symbol_input_text(), "Shift_L")
-        self.assertEqual(len(selection_label.get_combination()), 1)
-        self.assertEqual(selection_label.get_combination()[0], (EV_KEY, 30, 1))
-
-        self.editor.set_target_selection("mouse")
-        time.sleep(0.1)
-        gtk_iteration()
-        self.assertEqual(
-            len(self.selection_label_listbox.get_children()),
-            2,
-        )
-        self.assertEqual(
-            active_preset.get_mapping(EventCombination([EV_KEY, 30, 1])),
-            ("Shift_L", "mouse"),
-        )
-        self.assertEqual(self.editor.get_target_selection(), "mouse")
-        self.assertEqual(self.editor.get_symbol_input_text(), "Shift_L")
-        self.assertEqual(selection_label.get_combination()[0], (EV_KEY, 30, 1))
-
-    def test_editor_not_focused(self):
-        # focus anything that is not the selection_label,
-        # no keycode should be inserted into it
-        self.set_focus(self.user_interface.get("preset_name_input"))
-        send_event_to_reader(new_event(1, 61, 1))
-        self.user_interface.consume_newest_keycode()
-
-        selection_labels = self.get_selection_labels()
-        self.assertEqual(len(selection_labels), 1)
-        selection_label = selection_labels[0]
-
-        # the empty selection_label has this combination not set
-        self.assertIsNone(selection_label.get_combination())
-
-        # focus the text input instead
-        self.set_focus(self.editor.get_code_editor())
-        send_event_to_reader(new_event(1, 61, 1))
-        self.user_interface.consume_newest_keycode()
-
-        # still nothing set
-        self.assertIsNone(selection_label.get_combination())
 
     def test_show_status(self):
-        self.user_interface.show_status(0, "a" * 100)
+        self.data_bus.send(StatusData(0, "a" * 100))
+        gtk_iteration()
         text = self.get_status_text()
         self.assertIn("...", text)
 
-        self.user_interface.show_status(0, "b")
+        self.data_bus.send(StatusData(0, "b"))
+        gtk_iteration()
         text = self.get_status_text()
         self.assertNotIn("...", text)
-
-    def test_clears_unreleased_on_focus_change(self):
-        ev_1 = EventCombination([EV_KEY, 41, 1])
-
-        # focus
-        self.set_focus(self.toggle)
-        send_event_to_reader(new_event(*ev_1[0].event_tuple))
-        reader.read()
-        self.assertEqual(reader.get_unreleased_keys(), ev_1)
-
-        # unfocus
-        # doesn't call reader.clear. Otherwise the super key cannot be mapped,
-        # because the start menu that opens up would unfocus the user interface
-        self.set_focus(None)
-        self.assertEqual(reader.get_unreleased_keys(), ev_1)
-
-        # focus the toggle after selecting a different selection_label.
-        # It resets the reader
-        self.editor.add_empty()
-        self.select_mapping(-1)
-        self.set_focus(self.toggle)
-        self.toggle.set_active(True)
-
-        self.assertEqual(reader.get_unreleased_keys(), None)
 
     def test_editor(self):
         """Comprehensive test for the editor."""
@@ -1147,7 +1185,7 @@ class TestGui(GuiTestBase):
 
         # symbol and code in the gui won't be carried over after selecting a preset
         combination = EventCombination([EV_KEY, 15, 1])
-        self.set_combination(combination)
+        self.controller.update_mapping(event_combination=combination)
         self.editor.set_symbol_input_text("b")
 
         # selecting the first preset again loads the saved mapping, and saves
@@ -1230,64 +1268,50 @@ class TestGui(GuiTestBase):
         self.assertFalse(warning_icon.get_visible())
 
     def test_check_macro_syntax(self):
-        status = self.user_interface.get("status_bar")
+        status = self.status_bar
         error_icon = self.user_interface.get("error_status_icon")
         warning_icon = self.user_interface.get("warning_status_icon")
 
-        active_preset.change(
-            EventCombination([EV_KEY, 9, 1]),
-            "keyboard",
-            "k(1))",
-            None,
-        )
-        self.user_interface.save_preset()
+        self.code_editor.get_buffer().set_text("k(1))")
+        gtk_iteration()
         tooltip = status.get_tooltip_text().lower()
         self.assertIn("brackets", tooltip)
         self.assertTrue(error_icon.get_visible())
         self.assertFalse(warning_icon.get_visible())
 
-        active_preset.change(EventCombination([EV_KEY, 9, 1]), "keyboard", "k(1)", None)
-        self.user_interface.save_preset()
+        self.code_editor.get_buffer().set_text("k(1)")
+        gtk_iteration()
         tooltip = (status.get_tooltip_text() or "").lower()
         self.assertNotIn("brackets", tooltip)
         self.assertFalse(error_icon.get_visible())
         self.assertFalse(warning_icon.get_visible())
 
         self.assertEqual(
-            active_preset.get_mapping(EventCombination([EV_KEY, 9, 1])),
-            ("k(1)", "keyboard"),
+            self.data_manager.active_mapping.output_symbol,
+            "k(1)",
         )
 
-    def test_debounce_check_on_typing(self):
+    def test_check_on_typing(self):
         status = self.user_interface.get("status_bar")
-        status.set_tooltip_text(None)
         error_icon = self.user_interface.get("error_status_icon")
         warning_icon = self.user_interface.get("warning_status_icon")
 
-        self.add_mapping_via_ui(EventCombination([EV_KEY, 10, 1]), "")
-        gtk_iteration()
         tooltip = status.get_tooltip_text()
         # nothing wrong yet
         self.assertIsNone(tooltip)
 
         # now change the mapping by typing into the field
-        buffer = self.editor.get_text_input().get_buffer()
+        buffer = self.code_editor.get_buffer()
         buffer.set_text("sdfgkj()")
-        self.throttle()
-        # debouncing, still nothing shown
-        tooltip = status.get_tooltip_text()
-        self.assertIsNone(tooltip)
-
-        # after 510 ms the debouncing should have been triggered a syntax check
-        time.sleep(0.51)
         gtk_iteration()
 
+        # the mapping is immediately validated
         tooltip = status.get_tooltip_text()
         self.assertIn("Unknown function sdfgkj", tooltip)
         self.assertTrue(error_icon.get_visible())
         self.assertFalse(warning_icon.get_visible())
 
-        self.assertEqual(self.editor.get_symbol_input_text(), "sdfgkj()")
+        self.assertEqual(self.data_manager.active_mapping.output_symbol, "sdfgkj()")
 
     def test_select_device_and_preset(self):
         foo_device_path = f"{CONFIG_PATH}/presets/Foo Device"

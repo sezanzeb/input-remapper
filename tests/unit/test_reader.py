@@ -179,6 +179,7 @@ class TestReader(unittest.TestCase):
         push_events("Foo Device 2", [new_event(EV_KEY, KEY_A, 1)])
         time.sleep(0.1)
         self.reader._read()
+        # the duplicate event should be ignored
         push_events("Foo Device 2", [new_event(EV_KEY, KEY_A, 1)])
         time.sleep(0.1)
         self.reader._read()

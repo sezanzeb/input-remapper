@@ -216,10 +216,6 @@ class MappingListBox:
 
     def on_mapping_changed(self, mapping: MappingData):
         with HandlerDisabled(self.gui, self.on_gtk_mapping_selected):
-            # if mapping.is_default():
-            #    self.gui.do_unselect_all(self.gui)
-            #    return
-
             combination = mapping.event_combination
 
             def set_active(row: SelectionLabel):

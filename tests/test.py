@@ -824,6 +824,7 @@ def prepare_presets():
     preset2.add(get_key_mapping(combination="1,4,1"))
     preset2.save()
 
+    time.sleep(0.01)  # make sure the timestamp of preset 3 is the newest
     preset3 = Preset(get_preset_path("Foo Device", "preset3"))
     preset3.add(get_key_mapping(combination="1,5,1"))
     preset3.save()
