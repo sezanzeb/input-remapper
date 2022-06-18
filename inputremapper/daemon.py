@@ -117,7 +117,7 @@ def remove_timeout(func):
     return wrapped
 
 
-class DaemonProxy(Protocol):
+class DaemonProxy(Protocol):  # pragma: no cover
     """the interface provided over the dbus"""
 
     def stop_injecting(self, group_key: str) -> None:
