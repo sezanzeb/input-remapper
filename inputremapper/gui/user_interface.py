@@ -142,6 +142,7 @@ class UserInterface:
         )
         autocompletion = Autocompletion(data_bus, code_editor)
         autocompletion.set_relative_to(self.get("code_editor_container"))
+        self.autocompletion = autocompletion  # only for testing
 
     def _create_dialogs(self):
         """setup different dialogs, such as the about page"""

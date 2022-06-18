@@ -436,127 +436,6 @@ class GuiTestBase(unittest.TestCase):
             self.controller.update_mapping(**mapping.dict(exclude_defaults=True))
             gtk_iteration()
 
-    def add_mapping_via_ui(self, key, symbol, expect_success=True, target=None):
-        """Modify the one empty mapping that always exists.
-
-        Utility function for other tests.
-
-        Parameters
-        ----------
-        key : EventCombination or None
-        expect_success : boolean
-            If the key can be stored in the selection label. False if this change
-            is going to cause a duplicate.
-        target : str
-            the target selection
-        """
-        logger.info(
-            'Adding mapping %s, "%s", expecting to %s',
-            key,
-            symbol,
-            "work" if expect_success else "fail",
-        )
-
-        self.assertIsNone(reader.get_unreleased_keys())
-
-        changed = active_preset.has_unsaved_changes()
-
-        # wait for the window to create a new empty selection_label if needed
-        time.sleep(0.1)
-        gtk_iteration()
-
-        # the empty selection_label is expected to be the last one
-        selection_label = self.select_mapping(-1)
-        self.assertIsNone(selection_label.get_combination())
-        self.assertFalse(self.editor._input_has_arrived)
-
-        if self.toggle.get_active():
-            self.assertEqual(self.toggle.get_label(), "Press Key")
-        else:
-            self.assertEqual(self.toggle.get_label(), "Change Key")
-
-        # the recording toggle connects to focus events
-        self.set_focus(self.toggle)
-        self.toggle.set_active(True)
-        self.assertIsNone(selection_label.get_combination())
-        self.assertEqual(self.toggle.get_label(), "Press Key")
-
-        if key:
-            # modifies the keycode in the selection_label not by writing into the input,
-            # but by sending an event. press down all the keys of a combination
-            for sub_key in key:
-                send_event_to_reader(new_event(*sub_key.event_tuple))
-                # this will be consumed all at once, since no gtk_iteration
-                # is done
-
-            # make the window consume the keycode
-            self.sleep(len(key))
-
-            # holding down
-            self.assertIsNotNone(reader.get_unreleased_keys())
-            self.assertGreater(len(reader.get_unreleased_keys()), 0)
-            self.assertTrue(self.editor._input_has_arrived)
-            self.assertTrue(self.toggle.get_active())
-
-            # release all the keys
-            for sub_key in key:
-                send_event_to_reader(new_event(*sub_key.type_and_code, 0))
-
-            # wait for the window to consume the keycode
-            self.sleep(len(key))
-
-            # released
-            self.assertIsNone(reader.get_unreleased_keys())
-            self.assertFalse(self.editor._input_has_arrived)
-
-            if expect_success:
-                self.assertEqual(self.editor.get_combination(), key)
-                # the previously new entry, which has been edited now, is still the
-                # selected one
-                self.assertEqual(self.editor.active_selection_label, selection_label)
-                self.assertEqual(
-                    self.editor.active_selection_label.get_label(),
-                    key.beautify(),
-                )
-                self.assertFalse(self.toggle.get_active())
-                self.assertEqual(len(reader._unreleased), 0)
-
-        if not expect_success:
-            self.assertIsNone(selection_label.get_combination())
-            self.assertEqual(self.editor.get_symbol_input_text(), "")
-            self.assertFalse(self.editor._input_has_arrived)
-            # it won't switch the focus to the symbol input
-            self.assertTrue(self.toggle.get_active())
-            self.assertEqual(active_preset.has_unsaved_changes(), changed)
-            return selection_label
-
-        if key is None:
-            self.assertEqual(self.get_unfiltered_symbol_input_text(), SET_KEY_FIRST)
-            self.assertEqual(self.editor.get_symbol_input_text(), "")
-
-        # set the target selection
-        if target:
-            self.editor.set_target_selection(target)
-            self.assertEqual(self.editor.get_target_selection(), target)
-        else:
-            self.assertEqual(self.editor.get_target_selection(), "keyboard")
-
-        # set the symbol to make the new selection_label complete
-        self.editor.set_symbol_input_text(symbol)
-        self.assertEqual(self.editor.get_symbol_input_text(), symbol)
-
-        # unfocus them to trigger some final logic
-        self.set_focus(None)
-        correct_case = system_mapping.correct_case(symbol)
-        self.assertEqual(self.editor.get_symbol_input_text(), correct_case)
-        self.assertFalse(active_preset.has_unsaved_changes())
-
-        # TODO I forgot what this is about. Maybe to trigger saving?
-        self.set_focus(self.editor.get_code_editor())
-        self.set_focus(None)
-
-        return selection_label
-
     def sleep(self, num_events):
         for _ in range(num_events * 2):
             time.sleep(EVENT_READ_TIMEOUT)
@@ -1414,206 +1293,91 @@ class TestGui(GuiTestBase):
 
         self.assertEqual(self.data_manager.active_mapping.output_symbol, "sdfgkj()")
 
-    def test_select_device_and_preset(self):
-        foo_device_path = f"{CONFIG_PATH}/presets/Foo Device"
-        key_10 = EventCombination([EV_KEY, 10, 1])
-        key_11 = EventCombination([EV_KEY, 11, 1])
-
-        # created on start because the first device is selected and some empty
-        # preset prepared.
-        self.assertTrue(os.path.exists(f"{foo_device_path}/new preset.json"))
-        self.assertEqual(self.user_interface.group.name, "Foo Device")
-        self.assertEqual(self.user_interface.preset_name, "new preset")
-        # change it to check if the gui loads presets correctly later
-        self.editor.set_combination(key_10)
-        self.editor.set_symbol_input_text("a")
-
-        # create another one
-        self.user_interface.on_create_preset_clicked()
+    def test_select_device(self):
+        # simple test to make sure we can switch between devices
+        # more detailed tests in TestController and TestDataManager
+        self.device_selection.set_active_id("Bar Device")
         gtk_iteration()
-        self.assertTrue(os.path.exists(f"{foo_device_path}/new preset.json"))
-        self.assertTrue(os.path.exists(f"{foo_device_path}/new preset 2.json"))
-        self.assertEqual(self.user_interface.preset_name, "new preset 2")
-        self.assertEqual(len(active_preset), 0)
-        # this should not be loaded when "new preset" is selected, because it belongs
-        # to "new preset 2":
-        self.editor.set_combination(key_11)
-        self.editor.set_symbol_input_text("a")
 
-        # select the first one again
-        self.user_interface.on_select_preset(FakePresetDropdown("new preset"))
+        entries = {entry[0] for entry in self.preset_selection.get_child().get_model()}
+        self.assertEqual(entries, {"new preset"})
+
+        self.device_selection.set_active_id("Foo Device")
         gtk_iteration()
-        self.assertEqual(self.user_interface.preset_name, "new preset")
 
-        self.assertEqual(len(active_preset), 1)
-        self.assertEqual(active_preset.get_mapping(key_10), ("a", "keyboard"))
+        entries = {entry[0] for entry in self.preset_selection.get_child().get_model()}
+        self.assertEqual(entries, {"preset1", "preset2", "preset3"})
 
-        self.assertListEqual(
-            sorted(os.listdir(f"{foo_device_path}")),
-            sorted(["new preset.json", "new preset 2.json"]),
+        # make sure a preset and mapping was loaded
+        self.assertIsNotNone(self.data_manager.active_preset)
+        self.assertEqual(
+            self.data_manager.active_preset.name, self.preset_selection.get_active_id()
+        )
+        self.assertIsNotNone(self.data_manager.active_mapping)
+        self.assertEqual(
+            self.data_manager.active_mapping.event_combination,
+            self.selection_label_listbox.get_selected_row().combination,
         )
 
-        """now try to change the name"""
-
-        self.user_interface.get("preset_name_input").set_text("abc 123")
+    def test_select_preset(self):
+        # simple test to make sure we can switch between presets
+        # more detailed tests in TestController and TestDataManager
+        self.device_selection.set_active_id("Foo Device 2")
         gtk_iteration()
-        self.assertEqual(self.user_interface.preset_name, "new preset")
-        self.assertFalse(os.path.exists(f"{foo_device_path}/abc 123.json"))
-
-        # putting new information into the editor does not lead to some weird
-        # problems. when doing the rename everything will be saved and then moved
-        # to the new path
-        self.editor.set_combination(EventCombination([EV_KEY, 10, 1]))
-        self.editor.set_symbol_input_text("1")
-
-        self.assertEqual(self.user_interface.preset_name, "new preset")
-        self.user_interface.on_rename_button_clicked(None)
-        self.assertEqual(self.user_interface.preset_name, "abc 123")
-
+        self.preset_selection.set_active_id("preset1")
         gtk_iteration()
-        self.assertEqual(self.user_interface.preset_name, "abc 123")
-        self.assertTrue(os.path.exists(f"{foo_device_path}/abc 123.json"))
-        self.assertListEqual(
-            sorted(os.listdir(os.path.join(CONFIG_PATH, "presets"))),
-            sorted(["Foo Device"]),
+
+        mappings = {
+            row.combination for row in self.selection_label_listbox.get_children()
+        }
+        self.assertEqual(
+            mappings,
+            {
+                EventCombination.from_string("1,1,1"),
+                EventCombination.from_string("1,2,1"),
+            },
         )
-        self.assertListEqual(
-            sorted(os.listdir(f"{foo_device_path}")),
-            sorted(["abc 123.json", "new preset 2.json"]),
+        self.assertFalse(self.autoload_toggle.get_active())
+
+        self.preset_selection.set_active_id("preset2")
+        gtk_iteration()
+
+        mappings = {
+            row.combination for row in self.selection_label_listbox.get_children()
+        }
+        self.assertEqual(
+            mappings,
+            {
+                EventCombination.from_string("1,3,1"),
+                EventCombination.from_string("1,4,1"),
+            },
         )
+        self.assertTrue(self.autoload_toggle.get_active())
 
     def test_copy_preset(self):
-        selection_labels = self.selection_label_listbox
-        self.add_mapping_via_ui(EventCombination([EV_KEY, 81, 1]), "a")
-        time.sleep(0.1)
+        # simple tests to ensure it works
+        # more detailed tests in TestController and TestDataManager
+
+        # check the initial state
+        entries = {entry[0] for entry in self.preset_selection.get_child().get_model()}
+        self.assertEqual(entries, {"preset1", "preset2", "preset3"})
+        self.assertEqual(self.preset_selection.get_active_id(), "preset3")
+
+        self.copy_preset_btn.clicked()
         gtk_iteration()
-        self.user_interface.save_preset()
-        # 2 selection_labels: the changed selection_label and an empty selection_label
-        self.assertEqual(len(selection_labels.get_children()), 2)
+        entries = {entry[0] for entry in self.preset_selection.get_child().get_model()}
+        self.assertEqual(entries, {"preset1", "preset2", "preset3", "preset3 copy"})
+        self.assertEqual(self.preset_selection.get_active_id(), "preset3 copy")
 
-        # should be cleared when creating a new preset
-        active_preset.set("a.b", 3)
-        self.assertEqual(active_preset.get("a.b"), 3)
-
-        self.user_interface.on_create_preset_clicked()
-
-        # the preset should be empty, only one empty selection_label present
-        self.assertEqual(len(selection_labels.get_children()), 1)
-        self.assertIsNone(active_preset.get("a.b"))
-
-        # add one new selection_label again and a setting
-        self.add_mapping_via_ui(EventCombination([EV_KEY, 81, 1]), "b")
-        time.sleep(0.1)
+        self.copy_preset_btn.clicked()
         gtk_iteration()
-        self.user_interface.save_preset()
-        self.assertEqual(len(selection_labels.get_children()), 2)
-        active_preset.set(["foo", "bar"], 2)
 
-        # this time it should be copied
-        self.user_interface.on_copy_preset_clicked()
-        self.assertEqual(self.user_interface.preset_name, "new preset 2 copy")
-        self.assertEqual(len(selection_labels.get_children()), 2)
-        self.assertEqual(self.editor.get_symbol_input_text(), "b")
-        self.assertEqual(active_preset.get(["foo", "bar"]), 2)
-
-        # make another copy
-        self.user_interface.on_copy_preset_clicked()
-        self.assertEqual(self.user_interface.preset_name, "new preset 2 copy 2")
-        self.assertEqual(len(selection_labels.get_children()), 2)
-        self.assertEqual(self.editor.get_symbol_input_text(), "b")
-        self.assertEqual(len(active_preset), 1)
-        self.assertEqual(active_preset.get("foo.bar"), 2)
-
-    def test_gamepad_config(self):
-        # set some stuff in the beginning, otherwise gtk fails to
-        # do handler_unblock_by_func, which makes no sense at all.
-        # but it ONLY fails on right_joystick_purpose for some reason,
-        # unblocking the left one works just fine. I should open a bug report
-        # on gtk or something probably.
-        self.user_interface.get("left_joystick_purpose").set_active_id(BUTTONS)
-        self.user_interface.get("right_joystick_purpose").set_active_id(BUTTONS)
-        self.user_interface.get("joystick_mouse_speed").set_value(1)
-        active_preset.set_has_unsaved_changes(False)
-
-        # select a device that is not a gamepad
-        self.user_interface.on_select_device(FakeDeviceDropdown("Foo Device"))
-        self.assertFalse(self.user_interface.get("gamepad_config").is_visible())
-        self.assertFalse(active_preset.has_unsaved_changes())
-
-        # select a gamepad
-        self.user_interface.on_select_device(FakeDeviceDropdown("gamepad"))
-        self.assertTrue(self.user_interface.get("gamepad_config").is_visible())
-        self.assertFalse(active_preset.has_unsaved_changes())
-
-        # set stuff
-        gtk_iteration()
-        self.user_interface.get("left_joystick_purpose").set_active_id(WHEEL)
-        self.user_interface.get("right_joystick_purpose").set_active_id(WHEEL)
-        joystick_mouse_speed = 5
-        self.user_interface.get("joystick_mouse_speed").set_value(joystick_mouse_speed)
-
-        # it should be stored in active_preset, which overwrites the
-        # global_config
-        global_config.set("gamepad.joystick.left_purpose", MOUSE)
-        global_config.set("gamepad.joystick.right_purpose", MOUSE)
-        global_config.set("gamepad.joystick.pointer_speed", 50)
-        self.assertTrue(active_preset.has_unsaved_changes())
-        left_purpose = active_preset.get("gamepad.joystick.left_purpose")
-        right_purpose = active_preset.get("gamepad.joystick.right_purpose")
-        pointer_speed = active_preset.get("gamepad.joystick.pointer_speed")
-        self.assertEqual(left_purpose, WHEEL)
-        self.assertEqual(right_purpose, WHEEL)
-        self.assertEqual(pointer_speed, 2**joystick_mouse_speed)
-
-        # select a device that is not a gamepad again
-        self.user_interface.on_select_device(FakeDeviceDropdown("Foo Device"))
-        self.assertFalse(self.user_interface.get("gamepad_config").is_visible())
-        self.assertFalse(active_preset.has_unsaved_changes())
+        entries = {entry[0] for entry in self.preset_selection.get_child().get_model()}
+        self.assertEqual(
+            entries, {"preset1", "preset2", "preset3", "preset3 copy", "preset3 copy 2"}
+        )
 
     def test_wont_start(self):
-        error_icon = self.user_interface.get("error_status_icon")
-        preset_name = "foo preset"
-        group_name = "Bar Device"
-        self.user_interface.preset_name = preset_name
-        self.user_interface.group = groups.find(name=group_name)
-
-        # empty
-
-        active_preset.empty()
-        self.user_interface.save_preset()
-        self.user_interface.on_apply_preset_clicked(None)
-        text = self.get_status_text()
-        self.assertIn("add keys", text)
-        self.assertTrue(error_icon.get_visible())
-        self.assertNotEqual(
-            self.user_interface.dbus.get_state(self.user_interface.group.key), RUNNING
-        )
-
-        # not empty, but keys are held down
-
-        active_preset.change(EventCombination([EV_KEY, KEY_A, 1]), "keyboard", "a")
-        self.user_interface.save_preset()
-        send_event_to_reader(new_event(EV_KEY, KEY_A, 1))
-        reader.read()
-        self.assertEqual(len(reader._unreleased), 1)
-        self.assertFalse(self.user_interface.unreleased_warn)
-        self.user_interface.on_apply_preset_clicked(None)
-        text = self.get_status_text()
-        self.assertIn("release", text)
-        self.assertTrue(error_icon.get_visible())
-        self.assertNotEqual(
-            self.user_interface.dbus.get_state(self.user_interface.group.key), RUNNING
-        )
-        self.assertTrue(self.user_interface.unreleased_warn)
-        self.assertEqual(
-            self.user_interface.get("apply_system_layout").get_opacity(), 0.4
-        )
-        self.assertEqual(
-            self.user_interface.get("key_recording_toggle").get_opacity(), 1
-        )
-
-        # device grabbing fails
-
         def wait():
             """Wait for the injector process to finish doing stuff."""
             for _ in range(10):
@@ -1622,11 +1386,28 @@ class TestGui(GuiTestBase):
                 if "Starting" not in self.get_status_text():
                     return
 
+        error_icon = self.user_interface.get("error_status_icon")
+        self.controller.load_group("Bar Device")
+
+        # empty
+        self.start_injector_btn.clicked()
+        gtk_iteration()
+        wait()
+        text = self.get_status_text()
+        self.assertIn("add keys", text)
+        self.assertTrue(error_icon.get_visible())
+        self.assertNotEqual(self.daemon.get_state("Bar Device"), RUNNING)
+
+        # device grabbing fails
+        self.controller.load_group("Foo Device 2")
+        gtk_iteration()
+
         for i in range(2):
             # just pressing apply again will overwrite the previous error
             self.grab_fails = True
-            self.user_interface.on_apply_preset_clicked(None)
-            self.assertFalse(self.user_interface.unreleased_warn)
+            self.start_injector_btn.clicked()
+            gtk_iteration()
+
             text = self.get_status_text()
             # it takes a little bit of time
             self.assertIn("Starting injection", text)
@@ -1635,21 +1416,13 @@ class TestGui(GuiTestBase):
             text = self.get_status_text()
             self.assertIn("not grabbed", text)
             self.assertTrue(error_icon.get_visible())
-            self.assertNotEqual(
-                self.user_interface.dbus.get_state(self.user_interface.group.key),
-                RUNNING,
-            )
-
-            # for the second try, release the key. that should also work
-            send_event_to_reader(new_event(EV_KEY, KEY_A, 0))
-            reader.read()
-            self.assertEqual(len(reader._unreleased), 0)
+            self.assertNotEqual(self.daemon.get_state("Foo Device 2"), RUNNING)
 
         # this time work properly
 
         self.grab_fails = False
-        active_preset.save(get_preset_path(group_name, preset_name))
-        self.user_interface.on_apply_preset_clicked(None)
+        self.start_injector_btn.clicked()
+        gtk_iteration()
         text = self.get_status_text()
         self.assertIn("Starting injection", text)
         self.assertFalse(error_icon.get_visible())
@@ -1659,27 +1432,19 @@ class TestGui(GuiTestBase):
         text = self.get_status_text()
         self.assertNotIn("CTRL + DEL", text)  # only shown if btn_left mapped
         self.assertFalse(error_icon.get_visible())
-        self.assertEqual(
-            self.user_interface.dbus.get_state(self.user_interface.group.key), RUNNING
-        )
+        self.assertEqual(self.daemon.get_state("Foo Device 2"), RUNNING)
 
-        self.assertEqual(
-            self.user_interface.get("apply_system_layout").get_opacity(), 1
-        )
-        self.assertEqual(
-            self.user_interface.get("key_recording_toggle").get_opacity(), 0.4
-        )
+    def test_start_with_btn_left(self):
+        self.controller.load_group("Foo Device 2")
+        gtk_iteration()
 
-        # because this test managed to reproduce some minor bug:
-        # The mapping is supposed to be in active_preset._mapping, not in _config.
-        # For reasons I don't remember.
-        self.assertNotIn("mapping", active_preset._config)
-
-    def test_wont_start_2(self):
-        preset_name = "foo preset"
-        group_name = "Bar Device"
-        self.user_interface.preset_name = preset_name
-        self.user_interface.group = groups.find(name=group_name)
+        self.controller.create_mapping()
+        gtk_iteration()
+        self.controller.update_mapping(
+            event_combination=EventCombination(InputEvent.btn_left()),
+            output_symbol="a",
+        )
+        gtk_iteration()
 
         def wait():
             """Wait for the injector process to finish doing stuff."""
@@ -1689,38 +1454,18 @@ class TestGui(GuiTestBase):
                 if "Starting" not in self.get_status_text():
                     return
 
-        # btn_left mapped
-        active_preset.change(EventCombination(InputEvent.btn_left()), "keyboard", "a")
-        self.user_interface.save_preset()
-
-        # and combination held down
-        send_event_to_reader(new_event(EV_KEY, KEY_A, 1))
-        reader.read()
-        self.assertEqual(len(reader._unreleased), 1)
-        self.assertFalse(self.user_interface.unreleased_warn)
-
         # first apply, shows btn_left warning
-        self.user_interface.on_apply_preset_clicked(None)
+        self.start_injector_btn.clicked()
+        gtk_iteration()
         text = self.get_status_text()
         self.assertIn("click", text)
-        self.assertEqual(
-            self.user_interface.dbus.get_state(self.user_interface.group.key), UNKNOWN
-        )
+        self.assertEqual(self.daemon.get_state("Foo Device 2"), UNKNOWN)
 
-        # second apply, shows unreleased warning
-        self.user_interface.on_apply_preset_clicked(None)
-        text = self.get_status_text()
-        self.assertIn("release", text)
-        self.assertEqual(
-            self.user_interface.dbus.get_state(self.user_interface.group.key), UNKNOWN
-        )
-
-        # third apply, overwrites both warnings
-        self.user_interface.on_apply_preset_clicked(None)
+        # second apply, overwrites
+        self.start_injector_btn.clicked()
+        gtk_iteration()
         wait()
-        self.assertEqual(
-            self.user_interface.dbus.get_state(self.user_interface.group.key), RUNNING
-        )
+        self.assertEqual(self.daemon.get_state("Foo Device 2"), RUNNING)
         text = self.get_status_text()
         # because btn_left is mapped, shows help on how to stop
         # injecting via the keyboard
@@ -1831,47 +1576,6 @@ class TestGui(GuiTestBase):
         for entry in self.user_interface.device_store:
             # whichever attribute contains "input-remapper"
             self.assertNotIn("input-remapper", "".join(entry))
-
-    def test_gamepad_purpose_mouse_and_button(self):
-        self.user_interface.on_select_device(FakeDeviceDropdown("gamepad"))
-        self.user_interface.get("right_joystick_purpose").set_active_id(MOUSE)
-        self.user_interface.get("left_joystick_purpose").set_active_id(BUTTONS)
-        self.user_interface.get("joystick_mouse_speed").set_value(6)
-        gtk_iteration()
-        speed = active_preset.get("gamepad.joystick.pointer_speed")
-        active_preset.set("gamepad.joystick.non_linearity", 1)
-        self.assertEqual(speed, 2**6)
-
-        # don't consume the events in the reader, they are used to test
-        # the injection
-        reader.terminate()
-        time.sleep(0.1)
-
-        push_events(
-            "gamepad",
-            [new_event(EV_ABS, ABS_RX, MIN_ABS), new_event(EV_ABS, ABS_X, MAX_ABS)]
-            * 100,
-        )
-
-        active_preset.change(EventCombination([EV_ABS, ABS_X, 1]), "keyboard", "a")
-        self.user_interface.save_preset()
-
-        gtk_iteration()
-
-        self.user_interface.on_apply_preset_clicked(None)
-        time.sleep(0.3)
-
-        history = []
-        while uinput_write_history_pipe[0].poll():
-            history.append(uinput_write_history_pipe[0].recv().t)
-
-        count_mouse = history.count((EV_REL, REL_X, -speed))
-        count_button = history.count((EV_KEY, KEY_A, 1))
-        self.assertGreater(count_mouse, 1)
-        self.assertEqual(count_button, 1)
-        self.assertEqual(count_button + count_mouse, len(history))
-
-        self.assertIn("gamepad", self.user_interface.dbus.injectors)
 
     def test_stop_injecting(self):
         keycode_from = 16
@@ -2083,45 +1787,47 @@ class TestAutocompletion(GuiTestBase):
     def press_key(self, keyval):
         event = Gdk.EventKey()
         event.keyval = keyval
-        self.editor.autocompletion.navigate(None, event)
+        self.user_interface.autocompletion.navigate(None, event)
 
     def test_autocomplete_key(self):
-        self.add_mapping_via_ui(EventCombination([1, 99, 1]), "")
-        source_view = self.editor.get_code_editor()
-        self.set_focus(source_view)
+        self.controller.update_mapping(output_symbol="")
+        gtk_iteration()
+
+        self.set_focus(self.code_editor)
 
         complete_key_name = "Test_Foo_Bar"
 
         system_mapping.clear()
         system_mapping._set(complete_key_name, 1)
+        system_mapping._set("KEY_A", 30)  # we need this for the UIMapping to work
 
         # it can autocomplete a combination inbetween other things
         incomplete = "qux_1\n +  + qux_2"
-        Gtk.TextView.do_insert_at_cursor(source_view, incomplete)
+        Gtk.TextView.do_insert_at_cursor(self.code_editor, incomplete)
         Gtk.TextView.do_move_cursor(
-            source_view,
+            self.code_editor,
             Gtk.MovementStep.VISUAL_POSITIONS,
             -8,
             False,
         )
-        Gtk.TextView.do_insert_at_cursor(source_view, "foo")
 
-        time.sleep(0.11)
-        gtk_iteration()
+        Gtk.TextView.do_insert_at_cursor(self.code_editor, "foo")
+        self.throttle(100)
 
-        autocompletion = self.editor.autocompletion
+        autocompletion = self.user_interface.autocompletion
         self.assertTrue(autocompletion.visible)
 
         self.press_key(Gdk.KEY_Down)
         self.press_key(Gdk.KEY_Return)
+        gtk_iteration()
 
         # the first suggestion should have been selected
-        modified_symbol = self.editor.get_symbol_input_text().strip()
+        modified_symbol = self.data_manager.active_mapping.output_symbol
         self.assertEqual(modified_symbol, f"qux_1\n + {complete_key_name} + qux_2")
 
         # try again, but a whitespace completes the word and so no autocompletion
         # should be shown
-        Gtk.TextView.do_insert_at_cursor(source_view, " + foo ")
+        Gtk.TextView.do_insert_at_cursor(self.code_editor, " + foo ")
 
         time.sleep(0.11)
         gtk_iteration()
@@ -2129,8 +1835,10 @@ class TestAutocompletion(GuiTestBase):
         self.assertFalse(autocompletion.visible)
 
     def test_autocomplete_function(self):
-        self.add_mapping_via_ui(EventCombination([1, 99, 1]), "")
-        source_view = self.editor.get_code_editor()
+        self.controller.update_mapping(output_symbol="")
+        gtk_iteration()
+
+        source_view = self.code_editor
         self.set_focus(source_view)
 
         incomplete = "key(KEY_A).\nepea"
@@ -2139,19 +1847,21 @@ class TestAutocompletion(GuiTestBase):
         time.sleep(0.11)
         gtk_iteration()
 
-        autocompletion = self.editor.autocompletion
+        autocompletion = self.user_interface.autocompletion
         self.assertTrue(autocompletion.visible)
 
         self.press_key(Gdk.KEY_Down)
         self.press_key(Gdk.KEY_Return)
 
         # the first suggestion should have been selected
-        modified_symbol = self.editor.get_symbol_input_text().strip()
+        modified_symbol = self.data_manager.active_mapping.output_symbol
         self.assertEqual(modified_symbol, "key(KEY_A).\nrepeat")
 
     def test_close_autocompletion(self):
-        self.add_mapping_via_ui(EventCombination([1, 99, 1]), "")
-        source_view = self.editor.get_code_editor()
+        self.controller.update_mapping(output_symbol="")
+        gtk_iteration()
+
+        source_view = self.code_editor
         self.set_focus(source_view)
 
         Gtk.TextView.do_insert_at_cursor(source_view, "KEY_")
@@ -2159,7 +1869,7 @@ class TestAutocompletion(GuiTestBase):
         time.sleep(0.11)
         gtk_iteration()
 
-        autocompletion = self.editor.autocompletion
+        autocompletion = self.user_interface.autocompletion
         self.assertTrue(autocompletion.visible)
 
         self.press_key(Gdk.KEY_Down)
@@ -2167,17 +1877,18 @@ class TestAutocompletion(GuiTestBase):
 
         self.assertFalse(autocompletion.visible)
 
-        symbol = self.editor.get_symbol_input_text().strip()
+        symbol = self.data_manager.active_mapping.output_symbol
         self.assertEqual(symbol, "KEY_")
 
     def test_writing_still_works(self):
-        self.add_mapping_via_ui(EventCombination([1, 99, 1]), "")
-        source_view = self.editor.get_code_editor()
+        self.controller.update_mapping(output_symbol="")
+        gtk_iteration()
+        source_view = self.code_editor
         self.set_focus(source_view)
 
         Gtk.TextView.do_insert_at_cursor(source_view, "KEY_")
 
-        autocompletion = self.editor.autocompletion
+        autocompletion = self.user_interface.autocompletion
 
         time.sleep(0.11)
         gtk_iteration()
@@ -2200,13 +1911,14 @@ class TestAutocompletion(GuiTestBase):
         self.assertFalse(autocompletion.visible)
 
     def test_cycling(self):
-        self.add_mapping_via_ui(EventCombination([1, 99, 1]), "")
-        source_view = self.editor.get_code_editor()
+        self.controller.update_mapping(output_symbol="")
+        gtk_iteration()
+        source_view = self.code_editor
         self.set_focus(source_view)
 
         Gtk.TextView.do_insert_at_cursor(source_view, "KEY_")
 
-        autocompletion = self.editor.autocompletion
+        autocompletion = self.user_interface.autocompletion
 
         time.sleep(0.11)
         gtk_iteration()
