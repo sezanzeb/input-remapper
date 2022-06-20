@@ -90,6 +90,9 @@ class DummyGui:
     def disconnect_shortcuts(self):
         self.disconnect_calls += 1
 
+    def set_injection_status(self, status):
+        pass
+
 
 class TestError(Exception):
     pass
@@ -768,6 +771,7 @@ class TestController(unittest.TestCase):
         data_bus, data_manager, user_interface = get_controller_objects()
         controller = Controller(data_bus, data_manager)
         controller.set_gui(user_interface)
+        data_bus.signal(MessageType.init)
 
         self.assertEqual(user_interface.disconnect_calls, 0)
         controller.start_key_recording()
@@ -777,6 +781,7 @@ class TestController(unittest.TestCase):
         data_bus, data_manager, user_interface = get_controller_objects()
         controller = Controller(data_bus, data_manager)
         controller.set_gui(user_interface)
+        data_bus.signal(MessageType.init)
         controller.start_key_recording()
 
         self.assertEqual(user_interface.connect_calls, 0)
@@ -787,6 +792,7 @@ class TestController(unittest.TestCase):
         data_bus, data_manager, user_interface = get_controller_objects()
         controller = Controller(data_bus, data_manager)
         controller.set_gui(user_interface)
+        data_bus.signal(MessageType.init)
         controller.start_key_recording()
 
         self.assertEqual(user_interface.connect_calls, 0)

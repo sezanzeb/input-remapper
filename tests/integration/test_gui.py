@@ -189,7 +189,7 @@ class FakePresetDropdown(Gtk.ComboBoxText):
 def clean_up_integration(test):
     test.controller.stop_injecting()
     gtk_iteration()
-    test.user_interface.on_close()
+    test.user_interface.on_gtk_close()
     test.user_interface.window.destroy()
     gtk_iteration()
     cleanup()

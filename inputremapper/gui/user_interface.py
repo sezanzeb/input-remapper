@@ -35,7 +35,7 @@ from inputremapper.gui.components import (
     AutoloadToggle,
 )
 from inputremapper.gui.controller import Controller
-from inputremapper.gui.data_bus import DataBus, MessageType
+from inputremapper.gui.data_bus import DataBus, MessageType, GroupData
 from inputremapper.gui.autocompletion import Autocompletion
 from inputremapper.configs.data import get_data_path
 from inputremapper.configs.system_mapping import system_mapping
@@ -173,9 +173,9 @@ class UserInterface:
         self.get("apply_system_layout").connect(
             "clicked", lambda *_: self.controller.stop_injecting()
         )
-        self.get("rename-button").connect("clicked", self.on_rename_clicked)
+        self.get("rename-button").connect("clicked", self.on_gtk_rename_clicked)
         self.get("preset_name_input").connect(
-            "key-release-event", self.on_preset_name_input_return
+            "key-release-event", self.on_gtk_preset_name_input_return
         )
         self.get("create_mapping_button").connect(
             "clicked", lambda *_: self.controller.create_mapping()
@@ -185,15 +185,18 @@ class UserInterface:
         )
         self.connect_shortcuts()
 
-    def on_rename_clicked(self, *_):
-        name_input = self.get("preset_name_input")
-        self.controller.rename_preset(name_input.get_text())
-        name_input.set_text("")
-
-    def on_preset_name_input_return(self, _, event: Gdk.EventKey):
-        logger.debug(event)
-        if event.keyval == Gdk.KEY_Return:
-            self.on_rename_clicked()
+    def set_injection_status(self, status: bool):
+        """update the ui to reflect the status of the injector"""
+        stop_injection_btn: Gtk.Button = self.get("apply_system_layout")
+        recording_toggle: Gtk.ToggleButton = self.get("key_recording_toggle")
+        if status:
+            stop_injection_btn.set_opacity(1)
+            stop_injection_btn.set_sensitive(True)
+            recording_toggle.set_opacity(0.4)
+        else:
+            stop_injection_btn.set_opacity(0.4)
+            stop_injection_btn.set_sensitive(True)
+            recording_toggle.set_opacity(1)
 
     def confirm_delete(self, msg):
         """Blocks until the user decided about an action."""
@@ -209,18 +212,27 @@ class UserInterface:
         e.g. when recording key combinations
         """
         try:
-            self.window.disconnect(self.gtk_listeners.pop(self.on_shortcut))
+            self.window.disconnect(self.gtk_listeners.pop(self.on_gtk_shortcut))
         except KeyError:
             logger.debug("key listeners seem to be not connected")
 
     def connect_shortcuts(self):
         """stop listening for shortcuts"""
-        if not self.gtk_listeners.get(self.on_shortcut):
-            self.gtk_listeners[self.on_shortcut] = self.window.connect(
-                "key-press-event", self.on_shortcut
+        if not self.gtk_listeners.get(self.on_gtk_shortcut):
+            self.gtk_listeners[self.on_gtk_shortcut] = self.window.connect(
+                "key-press-event", self.on_gtk_shortcut
             )
 
-    def on_shortcut(self, _, event: Gdk.EventKey):
+    def get(self, name):
+        """Get a widget from the window"""
+        return self.builder.get_object(name)
+
+    def close(self):
+        """Close the window"""
+        logger.debug("Closing window")
+        self.window.hide()
+
+    def on_gtk_shortcut(self, _, event: Gdk.EventKey):
         """execute shortcuts"""
         if event.state & Gdk.ModifierType.CONTROL_MASK:
             try:
@@ -228,24 +240,25 @@ class UserInterface:
             except KeyError:
                 pass
 
-    def get(self, name):
-        """Get a widget from the window"""
-        return self.builder.get_object(name)
-
-    def on_close(self, *_):
+    def on_gtk_close(self, *_):
         self.controller.close()
 
-    def close(self):
-        """Close the window"""
-        logger.debug("Closing window")
-        self.window.hide()
-
-    def on_about_clicked(self, _):
+    def on_gtk_about_clicked(self, _):
         """Show the about/help dialog."""
         self.about.show()
 
-    def on_about_key_press(self, _, event):
+    def on_gtk_about_key_press(self, _, event):
         """Hide the about/help dialog."""
         gdk_keycode = event.get_keyval()[1]
         if gdk_keycode == Gdk.KEY_Escape:
             self.about.hide()
+
+    def on_gtk_rename_clicked(self, *_):
+        name_input = self.get("preset_name_input")
+        self.controller.rename_preset(name_input.get_text())
+        name_input.set_text("")
+
+    def on_gtk_preset_name_input_return(self, _, event: Gdk.EventKey):
+        logger.debug(event)
+        if event.keyval == Gdk.KEY_Return:
+            self.on_gtk_rename_clicked()

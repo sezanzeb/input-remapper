@@ -20,6 +20,7 @@
 from __future__ import annotations  # needed for the TYPE_CHECKING import
 
 import re
+import traceback
 from typing import TYPE_CHECKING, Optional, List, Tuple
 
 from gi.repository import Gtk, GLib
@@ -31,7 +32,7 @@ from .helper import is_helper_running
 from ..configs.mapping import MappingData, UIMapping
 from ..event_combination import EventCombination
 from ..exceptions import DataManagementError
-from ..injection.injector import RUNNING, FAILED, NO_GRAB, UPGRADE_EVDEV
+from ..injection.injector import RUNNING, FAILED, NO_GRAB, UPGRADE_EVDEV, STARTING
 from ..input_event import InputEvent
 from ..logger import logger
 from .utils import CTX_SAVE, CTX_APPLY, CTX_KEYCODE, CTX_ERROR, CTX_WARNING, CTX_MAPPING
@@ -60,6 +61,7 @@ class Controller:
 
     def attach_to_events(self) -> None:
         self.data_bus.subscribe(MessageType.groups, self.on_groups_changed)
+        self.data_bus.subscribe(MessageType.group, self.on_group_changed)
         self.data_bus.subscribe(MessageType.preset, self.on_preset_changed)
         self.data_bus.subscribe(MessageType.init, self.on_init)
 
@@ -100,6 +102,11 @@ class Controller:
         if group_key:
             self.load_group(self.get_a_group())
 
+    def on_group_changed(self, _=None):
+        """update the ui to reflect the injector state"""
+        state = self.data_manager.get_state()
+        self.gui.set_injection_status(state == RUNNING or state == STARTING)
+
     def on_preset_changed(self, data: PresetData):
         """load a mapping as soon as everyone got notified about the new preset"""
         if data.mappings:
@@ -113,6 +120,9 @@ class Controller:
 
     def on_combination_recorded(self, data: CombinationRecorded):
         self.update_combination(data.combination)
+
+    def on_recording_finished(self, _):
+        pass
 
     def copy_preset(self):
         name = self.data_manager.active_preset.name
@@ -142,14 +152,18 @@ class Controller:
             )
 
     def load_groups(self):
+        """refresh the groups"""
         self.data_manager.refresh_groups()
 
     def load_group(self, group_key: str):
+        """load the group and then a preset of that group"""
         self.data_manager.load_group(group_key)
-        self.data_manager.load_preset(self.get_a_preset())
+        self.load_preset(self.get_a_preset())
 
     def load_preset(self, name: str):
+        """load the preset"""
         self.data_manager.load_preset(name)
+        # self.load_mapping(...) # not needed because we have on_preset_changed()
 
     def rename_preset(self, new_name: str):
         if not new_name or new_name == self.data_manager.active_preset.name:
@@ -214,6 +228,14 @@ class Controller:
             self.show_status(CTX_ERROR, _("Permission denied!"), str(e))
 
     def start_key_recording(self):
+        state = self.data_manager.get_state()
+        if state == RUNNING or state == STARTING:
+            self.data_bus.signal(MessageType.recording_finished)
+            self.show_status(
+                CTX_ERROR, _('Use "Stop Injection" to stop before editing')
+            )
+            return
+
         logger.debug("Recording Keys")
 
         def f(_):
@@ -267,6 +289,7 @@ class Controller:
         try:
             self.data_manager.stop_injecting()
             self.show_status(CTX_APPLY, _("Applied the system default"))
+            self.gui.set_injection_status(False)
         except DataManagementError:
             pass
 
@@ -288,6 +311,7 @@ class Controller:
                 'Group "%s" is currently mapped',
                 self.data_manager.active_group.key,
             )
+            self.gui.set_injection_status(True)
             return False
 
         if state == FAILED:

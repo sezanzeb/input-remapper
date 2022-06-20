@@ -407,15 +407,7 @@ class RecordingToggle:
         self.data_bus = data_bus
         self.controller = controller
         self.gui = toggle
-        toggle.connect(
-            "focus-out-event", lambda *__: self.update_label(_("Record Keys"))
-        )
-        toggle.connect(
-            "focus-in-event", lambda *__: self.update_label(_("Recording Keys"))
-        )
 
-        # toggle.connect("focus-out-event", self._reset_keycode_consumption)
-        # toggle.connect("focus-out-event", lambda *_: self.gui.set_active(False))
         toggle.connect("toggled", self.on_gtk_toggle)
         # Don't leave the input when using arrow keys or tab. wait for the
         # window to consume the keycode from the reader. I.e. a tab input should
@@ -434,15 +426,17 @@ class RecordingToggle:
 
     def on_gtk_toggle(self, *__):
         if self.gui.get_active():
-            self.controller.start_key_recording()
             self.update_label(_("Recording ..."))
+            self.controller.start_key_recording()
         else:
-            self.controller.stop_key_recording()
             self.update_label(_("Record Keys"))
+            self.controller.stop_key_recording()
 
-    def on_recording_finished(self, _):
+    def on_recording_finished(self, __):
         logger.debug("finished recording")
-        self.gui.set_active(False)
+        with HandlerDisabled(self.gui, self.on_gtk_toggle):
+            self.gui.set_active(False)
+            self.update_label(_("Record Keys"))
 
 
 class StatusBar:

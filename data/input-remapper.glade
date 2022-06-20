@@ -164,7 +164,7 @@
     <property name="default-width">1000</property>
     <property name="default-height">450</property>
     <property name="icon">input-remapper.svg</property>
-    <signal name="delete-event" handler="on_close" swapped="no"/>
+    <signal name="delete-event" handler="on_gtk_close" swapped="no"/>
     <child>
       <object class="GtkBox" id="vertical-wrapper">
         <property name="visible">True</property>
