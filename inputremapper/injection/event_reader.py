@@ -79,7 +79,14 @@ class EventReader:
                 except StopAsyncIteration:
                     # this will happen in tests
                     logger.debug("unexpected stop of read loop")
-                    break
+                    stop_task.cancel()
+                    return
+
+        logger.debug("read loop stopped")
+        try:
+            ev_task.cancel()
+        except NameError:
+            pass
 
     def send_to_handlers(self, event: InputEvent) -> bool:
         """Send the event to callback."""
