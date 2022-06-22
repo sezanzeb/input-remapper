@@ -413,7 +413,7 @@ class DataManager:
 
     def send_groups(self):
         """send the "groups" message on the DataBus"""
-        self._reader.emit_groups_changed()
+        self._reader.send_groups()
 
     def save(self):
         """save the active preset"""

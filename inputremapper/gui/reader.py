@@ -189,7 +189,7 @@ class Reader:
         """Ask the helper for new device groups."""
         self._commands.send(CMD_REFRESH_GROUPS)
 
-    def emit_groups_changed(self):
+    def send_groups(self):
         """announce all known groups"""
         groups: Dict[str, List[str]] = {
             group.key: group.types or []
@@ -202,4 +202,7 @@ class Reader:
             self.groups.loads(dump)
             logger.debug("Received %d devices", len(self.groups))
             self._groups_updated = True
-            self.emit_groups_changed()
+
+        # send this even if the groups did not change, as the user expects the ui
+        # to respond in some form
+        self.send_groups()

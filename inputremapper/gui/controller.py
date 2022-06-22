@@ -104,8 +104,11 @@ class Controller:
 
     def on_group_changed(self, _=None):
         """update the ui to reflect the injector state"""
-        state = self.data_manager.get_state()
-        self.gui.set_injection_status(state == RUNNING or state == STARTING)
+        if self.gui:
+            # this might run before the ui is ready if the helper was fast sending the
+            # groups. (on_init will send them again)
+            state = self.data_manager.get_state()
+            self.gui.set_injection_status(state == RUNNING or state == STARTING)
 
     def on_preset_changed(self, data: PresetData):
         """load a mapping as soon as everyone got notified about the new preset"""
@@ -240,7 +243,8 @@ class Controller:
 
         def f(_):
             self.data_bus.unsubscribe(f)
-            self.stop_key_recording()
+            self.data_bus.unsubscribe(self.on_combination_recorded)
+            self.gui.connect_shortcuts()
 
         self.gui.disconnect_shortcuts()
         self.data_bus.subscribe(
@@ -250,9 +254,8 @@ class Controller:
         self.data_manager.start_combination_recording()
 
     def stop_key_recording(self):
-        logger.debug("Finished Key recording")
-        self.data_bus.unsubscribe(self.on_combination_recorded)
-        self.gui.connect_shortcuts()
+        logger.debug("Stopping Key recording")
+        self.data_manager.stop_combination_recording()
 
     def start_injecting(self):
         if len(self.data_manager.active_preset) == 0:
