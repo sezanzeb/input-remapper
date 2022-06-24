@@ -362,10 +362,6 @@ class CodeEditor:
         self.gui.set_sensitive(True)
         self.gui.set_opacity(1)
 
-        if self.code == SET_KEY_FIRST:
-            # don't overwrite user input
-            self.code = ""
-
     def disable(self):
         logger.debug("Disabling the code editor")
 
@@ -373,10 +369,6 @@ class CodeEditor:
         # focus-out-event:
         self.gui.set_sensitive(False)
         self.gui.set_opacity(0.5)
-
-        if self.code == "":
-            # don't overwrite user input
-            self.code = SET_KEY_FIRST
 
     def on_gtk_focus_out(self, *_):
         self.controller.save()
@@ -386,14 +378,15 @@ class CodeEditor:
         self.controller.update_mapping(output_symbol=code)
 
     def on_mapping_loaded(self, mapping: MappingData):
-        code = ""
+        code = SET_KEY_FIRST
         if not self.controller.is_empty_mapping():
             code = mapping.output_symbol or ""
             self.enable()
         else:
             self.disable()
 
-        self.code = code
+        if self.code.strip().lower() != code.strip().lower():
+            self.code = code
         self.toggle_line_numbers()
 
     def on_recording_finished(self, _):

@@ -119,7 +119,7 @@ class Controller:
             self.load_mapping(combination)
         else:
             # send an empty mapping to make sure the ui is reset to default values
-            self.data_bus.send(MappingData())
+            self.data_bus.send(MappingData(**MAPPING_DEFAULTS))
 
     def on_combination_recorded(self, data: CombinationRecorded):
         self.update_combination(data.combination)
@@ -352,7 +352,10 @@ class Controller:
 
     def is_empty_mapping(self) -> bool:
         """check if the active_mapping is empty"""
-        return self.data_manager.active_mapping == UIMapping(**MAPPING_DEFAULTS)
+        return (
+            self.data_manager.active_mapping == UIMapping(**MAPPING_DEFAULTS)
+            or self.data_manager.active_mapping is None
+        )
 
     def refresh_groups(self):
         self.data_manager.refresh_groups()

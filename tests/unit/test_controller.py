@@ -264,7 +264,7 @@ class TestController(unittest.TestCase):
         data_bus.subscribe(MessageType.mapping, f)
         data_bus.signal(MessageType.init)
         for m in calls:
-            self.assertEqual(m, UIMapping())
+            self.assertEqual(m, UIMapping(**MAPPING_DEFAULTS))
 
     def test_on_init_should_provide_status_if_helper_is_not_running(self):
         data_bus, data_manager, user_interface = get_controller_objects()
@@ -334,7 +334,7 @@ class TestController(unittest.TestCase):
 
         controller.load_group(group_key="Foo Device")
         for m in calls:
-            self.assertEqual(m, UIMapping())
+            self.assertEqual(m, UIMapping(**MAPPING_DEFAULTS))
 
     def test_on_load_preset_should_provide_mapping(self):
         """if there is one"""
@@ -367,7 +367,7 @@ class TestController(unittest.TestCase):
         data_bus.subscribe(MessageType.mapping, f)
         controller.load_preset(name="bar")
         for m in calls:
-            self.assertEqual(m, UIMapping())
+            self.assertEqual(m, UIMapping(**MAPPING_DEFAULTS))
 
     def test_on_delete_preset_asks_for_confirmation(self):
         prepare_presets()

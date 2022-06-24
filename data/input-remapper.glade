@@ -253,7 +253,7 @@ Gives your keys back their original function</property>
                     <property name="valign">center</property>
                     <property name="image">about-icon</property>
                     <property name="always-show-image">True</property>
-                    <signal name="clicked" handler="on_about_clicked" swapped="no"/>
+                    <signal name="clicked" handler="on_gtk_about_clicked" swapped="no"/>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -919,7 +919,7 @@ Gives your keys back their original function</property>
     <property name="urgency-hint">True</property>
     <property name="transient-for">window</property>
     <property name="attached-to">window</property>
-    <signal name="key-press-event" handler="on_about_key_press" swapped="no"/>
+    <signal name="key-press-event" handler="on_gtk_about_key_press" swapped="no"/>
     <child>
       <object class="GtkStack" id="stack1">
         <property name="visible">True</property>

@@ -156,37 +156,6 @@ def patch_launch():
     Daemon.connect = original_connect
 
 
-class FakeDeviceDropdown(Gtk.ComboBoxText):
-    def __init__(self, group):
-        if type(group) == str:
-            group = groups.find(key=group)
-
-        self.group = group
-
-    def get_active_text(self):
-        return self.group.name
-
-    def get_active_id(self):
-        return self.group.key
-
-    def set_active_id(self, key):
-        self.group = groups.find(key=key)
-
-
-class FakePresetDropdown(Gtk.ComboBoxText):
-    def __init__(self, name):
-        self.name = name
-
-    def get_active_text(self):
-        return self.name
-
-    def get_active_id(self):
-        return self.name
-
-    def set_active_id(self, name):
-        self.name = name
-
-
 def clean_up_integration(test):
     test.controller.stop_injecting()
     gtk_iteration()
@@ -457,19 +426,11 @@ class TestGui(GuiTestBase):
         self.assertIsNotNone(self.user_interface)
         self.assertTrue(self.user_interface.window.get_visible())
 
-    def _test_gui_clean(self):
-        # check that the test is correctly set up so that the user interface is clean
+    def assert_gui_clean(self):
         selection_labels = self.selection_label_listbox.get_children()
         self.assertEqual(len(selection_labels), 0)
-
         self.assertEqual(len(self.data_manager.active_preset), 0)
-        buffer = self.code_editor.get_buffer()
-        self.assertEqual(
-            buffer.get_text(buffer.get_start_iter(), buffer.get_end_iter(), True), ""
-        )
-        preset_selection = self.user_interface.get("preset_selection")
-        self.assertEqual(preset_selection.get_active_id(), "new preset")
-
+        self.assertEqual(self.preset_selection.get_active_id(), "new preset")
         self.assertEqual(self.recording_toggle.get_label(), "Record Keys")
         self.assertEqual(self.get_unfiltered_symbol_input_text(), SET_KEY_FIRST)
 
@@ -554,15 +515,17 @@ class TestGui(GuiTestBase):
     def test_each_device_can_have_autoload(self):
         self.autoload_toggle.set_active(True)
         gtk_iteration()
-        self.device_selection.set_active_id("Foo Device")
-        gtk_iteration()
-        self.autoload_toggle.set_active(True)
-        gtk_iteration()
-
         self.assertTrue(self.data_manager.get_autoload())
         self.assertTrue(self.autoload_toggle.get_active())
 
         self.device_selection.set_active_id("Foo Device 2")
+        gtk_iteration()
+        self.autoload_toggle.set_active(True)
+        gtk_iteration()
+        self.assertTrue(self.data_manager.get_autoload())
+        self.assertTrue(self.autoload_toggle.get_active())
+
+        self.device_selection.set_active_id("Foo Device")
         gtk_iteration()
         self.assertTrue(self.data_manager.get_autoload())
         self.assertTrue(self.autoload_toggle.get_active())
@@ -1089,7 +1052,7 @@ class TestGui(GuiTestBase):
         self.assertIs(row, self.selection_label_listbox.get_row_at_index(0))
 
         self.controller.update_mapping(name="foo")
-        self.throttle()
+        self.throttle(20)  # it takes a bit to resort the labels
         self.assertEqual(row.label.get_text(), "foo")
         self.assertIs(row, self.selection_label_listbox.get_row_at_index(1))
 
@@ -1209,7 +1172,7 @@ class TestGui(GuiTestBase):
         warning_icon = self.user_interface.get("warning_status_icon")
 
         self.controller.load_preset("preset1")
-        gtk_iteration()
+        self.throttle()
         self.controller.load_mapping(EventCombination.from_string("1,1,1"))
         gtk_iteration()
         self.controller.update_mapping(output_symbol="foo")
@@ -1610,27 +1573,23 @@ class TestGui(GuiTestBase):
         self.assertFalse(pipe.poll())
 
     def test_delete_preset(self):
-        self.editor.set_combination(EventCombination([EV_KEY, 71, 1]))
-        self.editor.set_symbol_input_text("a")
-        self.user_interface.get("preset_name_input").set_text("asdf")
-        self.user_interface.on_rename_button_clicked(None)
-        gtk_iteration()
-        self.assertEqual(self.user_interface.preset_name, "asdf")
-        self.assertEqual(len(active_preset), 1)
-        self.user_interface.save_preset()
-        self.assertTrue(os.path.exists(get_preset_path("Foo Device", "asdf")))
+        # as per test_initial_state we already have preset3 loaded
+
+        self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset3")))
 
         with PatchedConfirmDelete(self.user_interface, Gtk.ResponseType.CANCEL):
-            self.user_interface.on_delete_preset_clicked(None)
-            self.assertTrue(os.path.exists(get_preset_path("Foo Device", "asdf")))
-            self.assertEqual(self.user_interface.preset_name, "asdf")
-            self.assertEqual(self.user_interface.group.name, "Foo Device")
+            self.delete_preset_btn.clicked()
+            gtk_iteration()
+            self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset3")))
+            self.assertEqual(self.data_manager.active_preset.name, "preset3")
+            self.assertEqual(self.data_manager.active_group.name, "Foo Device")
 
-            with PatchedConfirmDelete(self.user_interface):
-                self.user_interface.on_delete_preset_clicked(None)
-                self.assertFalse(os.path.exists(get_preset_path("Foo Device", "asdf")))
-                self.assertEqual(self.user_interface.preset_name, "new preset")
-                self.assertEqual(self.user_interface.group.name, "Foo Device")
+        with PatchedConfirmDelete(self.user_interface):
+            self.delete_preset_btn.clicked()
+            gtk_iteration()
+            self.assertFalse(os.path.exists(get_preset_path("Foo Device", "preset3")))
+            self.assertEqual(self.data_manager.active_preset.name, "preset2")
+            self.assertEqual(self.data_manager.active_group.name, "Foo Device")
 
     def test_refresh_groups(self):
         # sanity check: preset3 should be the newest
@@ -1707,65 +1666,55 @@ class TestGui(GuiTestBase):
             gtk_iteration()
             self.delete_preset_btn.clicked()
             # the ui should be clean
-            self._test_gui_clean()
+            self.assert_gui_clean()
             device_path = f"{CONFIG_PATH}/presets/{self.data_manager.active_group.name}"
             self.assertTrue(os.path.exists(f"{device_path}/new preset.json"))
 
-            self.user_interface.on_delete_preset_clicked()
+            self.delete_preset_btn.clicked()
+            gtk_iteration()
             # deleting an empty preset als doesn't do weird stuff
-            self._test_gui_clean()
-            device_path = f"{CONFIG_PATH}/presets/{self.user_interface.group.key}"
+            self.assert_gui_clean()
+            device_path = f"{CONFIG_PATH}/presets/{self.data_manager.active_group.name}"
             self.assertTrue(os.path.exists(f"{device_path}/new preset.json"))
 
     def test_enable_disable_symbol_input(self):
+        # load a group without any presets
+        self.controller.load_group("Bar Device")
+
         # should be disabled by default since no key is recorded yet
         self.assertEqual(self.get_unfiltered_symbol_input_text(), SET_KEY_FIRST)
-        self.assertFalse(self.editor.get_code_editor().get_sensitive())
+        self.assertFalse(self.code_editor.get_sensitive())
 
-        self.editor.enable_symbol_input()
+        # create a mapping
+        self.controller.create_mapping()
+        gtk_iteration()
+
+        # should still be disabled
+        self.assertEqual(self.get_unfiltered_symbol_input_text(), SET_KEY_FIRST)
+        self.assertFalse(self.code_editor.get_sensitive())
+
+        # enable it by sending a combination
+        self.controller.start_key_recording()
+        gtk_iteration()
+        push_events(
+            "Bar Device",
+            [
+                InputEvent.from_string("1,30,1"),
+                InputEvent.from_string("1,30,0"),
+            ],
+        )
+        self.throttle(50)  # give time for the input to arrive
+
         self.assertEqual(self.get_unfiltered_symbol_input_text(), "")
-        self.assertTrue(self.editor.get_text_input().get_sensitive())
+        self.assertTrue(self.code_editor.get_sensitive())
 
-        # disable it
-        self.editor.disable_symbol_input()
-        self.assertFalse(self.editor.get_text_input().get_sensitive())
+        # disable it by deleting the mapping
+        with PatchedConfirmDelete(self.user_interface):
+            self.delete_mapping_btn.clicked()
+            gtk_iteration()
 
-        # try to enable it by providing a key via set_combination
-        self.editor.set_combination(EventCombination((1, 201, 1)))
-        self.assertEqual(self.get_unfiltered_symbol_input_text(), "")
-        self.assertTrue(self.editor.get_text_input().get_sensitive())
-
-        # disable it again
-        self.editor.set_combination(None)
-        self.assertFalse(self.editor.get_text_input().get_sensitive())
-
-        # try to enable it via the reader
-        self.activate_recording_toggle()
-        send_event_to_reader(InputEvent.from_tuple((EV_KEY, 101, 1)))
-        self.user_interface.consume_newest_keycode()
-        self.assertEqual(self.get_unfiltered_symbol_input_text(), "")
-        self.assertTrue(self.editor.get_code_editor().get_sensitive())
-
-        # it wouldn't clear user input, if for whatever reason (a bug?) there is user
-        # input in there when enable_symbol_input is called.
-        self.editor.set_symbol_input_text("foo")
-        self.editor.enable_symbol_input()
-        self.assertEqual(self.get_unfiltered_symbol_input_text(), "foo")
-
-    def test_whitespace_symbol(self):
-        # test how the editor behaves when the text of a mapping is a whitespace.
-        # Caused an "Expected `symbol` not to be empty" error in the past, because
-        # the symbol was not stripped of whitespaces and logic was performed that
-        # resulted in a call to actually changing the mapping.
-        self.add_mapping_via_ui(EventCombination([1, 201, 1]), "a")
-        self.add_mapping_via_ui(EventCombination([1, 202, 1]), "b")
-
-        self.select_mapping(1)
-        self.assertEqual(self.editor.get_symbol_input_text(), "b")
-        self.editor.set_symbol_input_text(" ")
-
-        self.select_mapping(0)
-        self.assertEqual(self.editor.get_symbol_input_text(), "a")
+        self.assertEqual(self.get_unfiltered_symbol_input_text(), SET_KEY_FIRST)
+        self.assertFalse(self.code_editor.get_sensitive())
 
 
 class TestAutocompletion(GuiTestBase):

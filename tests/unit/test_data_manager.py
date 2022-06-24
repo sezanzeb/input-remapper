@@ -584,6 +584,26 @@ class TestDataManager(unittest.TestCase):
         self.assertTrue(listener.calls[1].autoload)
         self.assertFalse(listener.calls[2].autoload)
 
+    def test_each_device_can_have_autoload(self):
+        prepare_presets()
+        self.data_manager.load_group("Foo Device 2")
+        self.data_manager.load_preset("preset1")
+        self.data_manager.set_autoload(True)
+
+        # switch to another device
+        self.data_manager.load_group("Foo Device")
+        self.data_manager.load_preset("preset1")
+        self.data_manager.set_autoload(True)
+
+        # now check that both are set to autoload
+        self.data_manager.load_group("Foo Device 2")
+        self.data_manager.load_preset("preset1")
+        self.assertTrue(self.data_manager.get_autoload())
+
+        self.data_manager.load_group("Foo Device")
+        self.data_manager.load_preset("preset1")
+        self.assertTrue(self.data_manager.get_autoload())
+
     def test_cannot_set_autoload_without_preset(self):
         prepare_presets()
         self.assertRaises(
