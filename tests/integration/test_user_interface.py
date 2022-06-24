@@ -10,19 +10,19 @@ from gi.repository import Gtk, GtkSource, Gdk, GObject, GLib
 
 from inputremapper.gui.utils import gtk_iteration
 from tests.test import quick_cleanup
-from inputremapper.gui.data_bus import DataBus, MessageType
+from inputremapper.gui.message_broker import MessageBroker, MessageType
 from inputremapper.gui.user_interface import UserInterface
 
 
 class TestUserInterface(unittest.TestCase):
     def setUp(self) -> None:
-        self.data_bus = DataBus()
+        self.message_broker = MessageBroker()
         self.controller_mock = MagicMock()
-        self.user_interface = UserInterface(self.data_bus, self.controller_mock)
+        self.user_interface = UserInterface(self.message_broker, self.controller_mock)
 
     def tearDown(self) -> None:
         super().tearDown()
-        self.data_bus.signal(MessageType.terminate)
+        self.message_broker.signal(MessageType.terminate)
         GLib.timeout_add(0, self.user_interface.window.destroy)
         GLib.timeout_add(0, Gtk.main_quit)
         Gtk.main()

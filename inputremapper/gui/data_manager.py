@@ -31,8 +31,8 @@ from inputremapper.daemon import DaemonProxy
 from inputremapper.event_combination import EventCombination
 from inputremapper.exceptions import DataManagementError
 from inputremapper.groups import _Group
-from inputremapper.gui.data_bus import (
-    DataBus,
+from inputremapper.gui.message_broker import (
+    MessageBroker,
     GroupData,
     PresetData,
     StatusData,
@@ -58,13 +58,13 @@ class DataManager:
 
     def __init__(
         self,
-        data_bus: DataBus,
+        message_broker: MessageBroker,
         config: GlobalConfig,
         reader: Reader,
         daemon: DaemonProxy,
         uinputs: GlobalUInputs,
     ):
-        self.data_bus = data_bus
+        self.message_broker = message_broker
         self._reader = reader
         self._daemon = daemon
         self._uinputs = uinputs
@@ -77,12 +77,12 @@ class DataManager:
         self._active_mapping: Optional[UIMapping] = None
 
     def _send_group(self):
-        """send active group to the data bus"""
-        self.data_bus.send(GroupData(self.active_group.key, self.get_presets()))
+        """send active group to the message_broker"""
+        self.message_broker.send(GroupData(self.active_group.key, self.get_presets()))
 
     def _send_preset(self):
-        """send active preset to the data bus"""
-        self.data_bus.send(
+        """send active preset to the message_broker"""
+        self.message_broker.send(
             PresetData(
                 self.active_preset.name, self.get_mappings(), self.get_autoload()
             )
@@ -90,20 +90,20 @@ class DataManager:
         self._send_mapping_errors()
 
     def _send_mapping(self):
-        """send active mapping to the data bus"""
+        """send active mapping to the message_broker"""
         mapping = self._active_mapping
         if mapping:
-            self.data_bus.send(mapping.get_bus_message())
+            self.message_broker.send(mapping.get_bus_message())
             self._send_mapping_errors()
         else:
-            self.data_bus.send(MappingData())
+            self.message_broker.send(MappingData())
 
     def _send_mapping_errors(self):
         if not self._active_preset:
             return
 
         if self._active_preset.is_valid():
-            self.data_bus.send(StatusData(CTX_MAPPING))
+            self.message_broker.send(StatusData(CTX_MAPPING))
 
         for mapping in self._active_preset:
             error = mapping.get_error()
@@ -112,7 +112,7 @@ class DataManager:
 
             position = mapping.name or mapping.event_combination.beautify()
             msg = _("Mapping error at %s, hover for info") % position
-            self.data_bus.send(StatusData(CTX_MAPPING, msg, str(error)))
+            self.message_broker.send(StatusData(CTX_MAPPING, msg, str(error)))
 
     @property
     def active_group(self) -> Optional[_Group]:
@@ -163,7 +163,7 @@ class DataManager:
 
     def set_autoload(self, status: bool):
         """set the autoload status of the active_preset.
-        Will send "preset" message on the DataBus
+        Will send "preset" message on the MessageBroker
         """
         if not self._active_preset:
             raise DataManagementError("cannot set autoload status: Preset is not set")
@@ -235,7 +235,7 @@ class DataManager:
         return name
 
     def load_group(self, group_key: str):
-        """Load a group. will send "groups" message on the DataBus
+        """Load a group. will send "groups" message on the MessageBroker
 
         this will render the active_mapping and active_preset invalid
         """
@@ -249,7 +249,7 @@ class DataManager:
         self._send_group()
 
     def load_preset(self, name: str):
-        """Load a preset. Will send "preset" message on the DataBus
+        """Load a preset. Will send "preset" message on the MessageBroker
 
         this will render the active_mapping invalid
         """
@@ -264,7 +264,7 @@ class DataManager:
         self._send_preset()
 
     def load_mapping(self, combination: EventCombination):
-        """Load a mapping. Will send "mapping" message on the DataBus"""
+        """Load a mapping. Will send "mapping" message on the MessageBroker"""
         if not self._active_preset:
             raise DataManagementError("Unable to load mapping. Preset is not set")
 
@@ -279,7 +279,7 @@ class DataManager:
 
     def rename_preset(self, new_name: str):
         """rename the current preset and move the correct file
-        Will send "group" and then "preset" message on the DataBus
+        Will send "group" and then "preset" message on the MessageBroker
         """
         if not self._active_preset:
             raise DataManagementError("Unable rename preset: Preset is not set")
@@ -311,7 +311,7 @@ class DataManager:
 
     def copy_preset(self, name: str):
         """copy the current preset to the given name.
-        Will send "group" and "preset" message to the DataBus and load the copy
+        Will send "group" and "preset" message to the MessageBroker and load the copy
         """
         # todo: Do we want to load the copy here? or is this up to the controller?
         if not self._active_preset:
@@ -332,7 +332,7 @@ class DataManager:
 
     def create_preset(self, name: str):
         """create empty preset in the active_group.
-        Will send "group" message to the DataBus
+        Will send "group" message to the MessageBroker
         """
         if not self.active_group:
             raise DataManagementError("Unable to add preset. Group is not set")
@@ -346,7 +346,7 @@ class DataManager:
 
     def delete_preset(self):
         """delete the active preset
-        Will send "group" message to the DataBus
+        Will send "group" message to the MessageBroker
         this will invalidate the active mapping,
         """
         preset_path = self._active_preset.path
@@ -359,7 +359,7 @@ class DataManager:
     def update_mapping(self, **kwargs):
         """update the active mapping with the given keywords and values.
 
-        Will send "mapping" message to the DataBus. In case of a new event_combination
+        Will send "mapping" message to the MessageBroker. In case of a new event_combination
         this will first send a "combination_update" message
         """
         if not self._active_mapping:
@@ -373,14 +373,14 @@ class DataManager:
             "event_combination" in kwargs
             and combination != self.active_mapping.event_combination
         ):
-            self.data_bus.send(
+            self.message_broker.send(
                 CombinationUpdate(combination, self._active_mapping.event_combination)
             )
         self._send_mapping()
 
     def create_mapping(self):
         """create empty mapping in the active preset.
-        Will send "preset" message to the DataBus
+        Will send "preset" message to the MessageBroker
         """
         if not self._active_preset:
             raise DataManagementError("cannot create mapping: preset is not set")
@@ -389,7 +389,7 @@ class DataManager:
 
     def delete_mapping(self):
         """delete the active mapping
-        Will send "preset" message to the DataBus
+        Will send "preset" message to the MessageBroker
         """
         if not self._active_mapping:
             raise DataManagementError(
@@ -401,8 +401,8 @@ class DataManager:
         self._send_preset()
 
     def send_uinputs(self):
-        """send the "uinputs" message on the DataBus"""
-        self.data_bus.send(
+        """send the "uinputs" message on the MessageBroker"""
+        self.message_broker.send(
             UInputsData(
                 {
                     name: uinput.capabilities()
@@ -412,7 +412,7 @@ class DataManager:
         )
 
     def send_groups(self):
-        """send the "groups" message on the DataBus"""
+        """send the "groups" message on the MessageBroker"""
         self._reader.send_groups()
 
     def save(self):
@@ -422,7 +422,7 @@ class DataManager:
 
     def refresh_groups(self):
         """refresh the groups (plugged devices)
-        Should send "groups" message to DataBus this will not happen immediately
+        Should send "groups" message to MessageBroker this will not happen immediately
         because the system might take a bit until the groups are available
         """
         self._reader.refresh_groups()

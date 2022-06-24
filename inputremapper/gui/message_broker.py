@@ -41,7 +41,7 @@ class MessageType(Enum):
 
 
 class Message(Protocol):
-    """the protocol any message must follow to be sent with the DataBus"""
+    """the protocol any message must follow to be sent with the MessageBroker"""
 
     message_type: MessageType
 
@@ -54,7 +54,7 @@ Key = str
 DeviceTypes = List[str]
 
 
-class DataBus:
+class MessageBroker:
     shorten_path = re.compile("inputremapper/")
 
     def __init__(self):

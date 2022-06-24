@@ -29,7 +29,12 @@ from inputremapper.configs.mapping import UIMapping, MappingData
 from inputremapper.event_combination import EventCombination
 from inputremapper.exceptions import DataManagementError
 from inputremapper.groups import _Groups
-from inputremapper.gui.data_bus import DataBus, MessageType, GroupData, PresetData
+from inputremapper.gui.message_broker import (
+    MessageBroker,
+    MessageType,
+    GroupData,
+    PresetData,
+)
 from inputremapper.gui.reader import Reader
 from inputremapper.injection.global_uinputs import GlobalUInputs
 from tests.test import get_key_mapping, quick_cleanup, FakeDaemonProxy, prepare_presets
@@ -49,12 +54,16 @@ class Listener:
 
 class TestDataManager(unittest.TestCase):
     def setUp(self) -> None:
-        self.data_bus = DataBus()
-        self.reader = Reader(self.data_bus, _Groups())
+        self.message_broker = MessageBroker()
+        self.reader = Reader(self.message_broker, _Groups())
         self.uinputs = GlobalUInputs()
         self.uinputs.prepare_all()
         self.data_manager = DataManager(
-            self.data_bus, global_config, self.reader, FakeDaemonProxy(), self.uinputs
+            self.message_broker,
+            global_config,
+            self.reader,
+            FakeDaemonProxy(),
+            self.uinputs,
         )
 
     def tearDown(self) -> None:
@@ -68,7 +77,7 @@ class TestDataManager(unittest.TestCase):
         def listener(data: GroupData):
             response.append(data)
 
-        self.data_bus.subscribe(MessageType.group, listener)
+        self.message_broker.subscribe(MessageType.group, listener)
         self.data_manager.load_group("Foo Device 2")
 
         for preset_name in response[0].presets:
@@ -90,7 +99,7 @@ class TestDataManager(unittest.TestCase):
         def listener(data: GroupData):
             response.append(data)
 
-        self.data_bus.subscribe(MessageType.group, listener)
+        self.message_broker.subscribe(MessageType.group, listener)
 
         self.data_manager.load_group(group_key="Foo Device 2")
         self.assertEqual(len(response[0].presets), 0)
@@ -116,7 +125,7 @@ class TestDataManager(unittest.TestCase):
 
         self.data_manager.load_group(group_key="Foo Device")
         listener = Listener()
-        self.data_bus.subscribe(MessageType.preset, listener)
+        self.message_broker.subscribe(MessageType.preset, listener)
         self.data_manager.load_preset(name="preset1")
         mappings = listener.calls[0].mappings
         preset_name = listener.calls[0].name
@@ -149,7 +158,7 @@ class TestDataManager(unittest.TestCase):
         self.data_manager.load_group(group_key="Foo Device")
         self.data_manager.load_preset(name="preset1")
         listener = Listener()
-        self.data_bus.subscribe(MessageType.mapping, listener)
+        self.message_broker.subscribe(MessageType.mapping, listener)
         self.data_manager.load_mapping(combination=EventCombination("1,1,1"))
 
         mapping: MappingData = listener.calls[0]
@@ -177,8 +186,8 @@ class TestDataManager(unittest.TestCase):
         self.data_manager.load_group(group_key="Foo Device 2")
         self.data_manager.load_preset(name="preset2")
         listener = Listener()
-        self.data_bus.subscribe(MessageType.group, listener)
-        self.data_bus.subscribe(MessageType.preset, listener)
+        self.message_broker.subscribe(MessageType.group, listener)
+        self.message_broker.subscribe(MessageType.preset, listener)
 
         self.data_manager.copy_preset("foo")
 
@@ -225,8 +234,8 @@ class TestDataManager(unittest.TestCase):
         self.data_manager.load_group(group_key="Foo Device 2")
         self.data_manager.load_preset(name="preset2")
         listener = Listener()
-        self.data_bus.subscribe(MessageType.group, listener)
-        self.data_bus.subscribe(MessageType.preset, listener)
+        self.message_broker.subscribe(MessageType.group, listener)
+        self.message_broker.subscribe(MessageType.preset, listener)
 
         self.data_manager.rename_preset(new_name="new preset")
 
@@ -246,7 +255,7 @@ class TestDataManager(unittest.TestCase):
         prepare_presets()
         self.data_manager.load_group(group_key="Foo Device 2")
         listener = Listener()
-        self.data_bus.subscribe(MessageType.preset, listener)
+        self.message_broker.subscribe(MessageType.preset, listener)
         self.data_manager.load_preset(name="preset2")  # sends PresetData
         # sends PresetData with updated name, e. e. should be equal
         self.data_manager.rename_preset(new_name="foo")
@@ -285,7 +294,7 @@ class TestDataManager(unittest.TestCase):
         prepare_presets()
         self.data_manager.load_group(group_key="Foo Device 2")
         listener = Listener()
-        self.data_bus.subscribe(MessageType.group, listener)
+        self.message_broker.subscribe(MessageType.group, listener)
 
         # should emit group_changed
         self.data_manager.create_preset(name="new preset")
@@ -321,9 +330,9 @@ class TestDataManager(unittest.TestCase):
         self.data_manager.load_group(group_key="Foo Device 2")
         self.data_manager.load_preset(name="preset2")
         listener = Listener()
-        self.data_bus.subscribe(MessageType.group, listener)
-        self.data_bus.subscribe(MessageType.preset, listener)
-        self.data_bus.subscribe(MessageType.mapping, listener)
+        self.message_broker.subscribe(MessageType.group, listener)
+        self.message_broker.subscribe(MessageType.preset, listener)
+        self.message_broker.subscribe(MessageType.mapping, listener)
 
         # should emit only group_changed
         self.data_manager.delete_preset()
@@ -341,7 +350,7 @@ class TestDataManager(unittest.TestCase):
         self.data_manager.load_group(group_key="Foo Device")
         self.data_manager.load_preset(name="preset1")
         listener = Listener()
-        self.data_bus.subscribe(MessageType.mapping, listener)
+        self.message_broker.subscribe(MessageType.mapping, listener)
         self.data_manager.load_mapping(combination=EventCombination("1,1,1"))
         mapping = listener.calls[0]
 
@@ -384,7 +393,7 @@ class TestDataManager(unittest.TestCase):
         self.data_manager.load_mapping(combination=EventCombination("1,4,1"))
 
         listener = Listener()
-        self.data_bus.subscribe(MessageType.mapping, listener)
+        self.message_broker.subscribe(MessageType.mapping, listener)
         self.data_manager.update_mapping(
             name="foo",
             output_symbol="f",
@@ -442,8 +451,8 @@ class TestDataManager(unittest.TestCase):
         self.data_manager.load_preset(name="preset2")
         self.data_manager.load_mapping(combination=EventCombination("1,4,1"))
         listener = Listener()
-        self.data_bus.subscribe(MessageType.mapping, listener)
-        self.data_bus.subscribe(MessageType.combination_update, listener)
+        self.message_broker.subscribe(MessageType.mapping, listener)
+        self.message_broker.subscribe(MessageType.combination_update, listener)
 
         # we expect a message for combination update first, and then for mapping
         self.data_manager.update_mapping(
@@ -506,8 +515,8 @@ class TestDataManager(unittest.TestCase):
         self.data_manager.load_group(group_key="Foo Device 2")
         self.data_manager.load_preset(name="preset2")
         listener = Listener()
-        self.data_bus.subscribe(MessageType.mapping, listener)
-        self.data_bus.subscribe(MessageType.preset, listener)
+        self.message_broker.subscribe(MessageType.mapping, listener)
+        self.message_broker.subscribe(MessageType.preset, listener)
         self.data_manager.create_mapping()  # emits preset_changed
 
         self.data_manager.load_mapping(combination=EventCombination.empty_combination())
@@ -537,8 +546,8 @@ class TestDataManager(unittest.TestCase):
         self.data_manager.load_mapping(combination=EventCombination("1,3,1"))
 
         listener = Listener()
-        self.data_bus.subscribe(MessageType.preset, listener)
-        self.data_bus.subscribe(MessageType.mapping, listener)
+        self.message_broker.subscribe(MessageType.preset, listener)
+        self.message_broker.subscribe(MessageType.mapping, listener)
 
         self.data_manager.delete_mapping()  # emits preset
         self.data_manager.save()
@@ -575,7 +584,7 @@ class TestDataManager(unittest.TestCase):
         self.data_manager.load_group(group_key="Foo Device")
 
         listener = Listener()
-        self.data_bus.subscribe(MessageType.preset, listener)
+        self.message_broker.subscribe(MessageType.preset, listener)
         self.data_manager.load_preset(name="preset1")  # sends updated preset data
         self.data_manager.set_autoload(True)  # sends updated preset data
         self.data_manager.set_autoload(False)  # sends updated preset data
@@ -734,7 +743,7 @@ class TestDataManager(unittest.TestCase):
 
     def test_should_send_groups(self):
         listener = Listener()
-        self.data_bus.subscribe(MessageType.groups, listener)
+        self.message_broker.subscribe(MessageType.groups, listener)
 
         self.data_manager.send_groups()
         data = listener.calls[0]
@@ -753,7 +762,7 @@ class TestDataManager(unittest.TestCase):
     def test_should_load_group(self):
         prepare_presets()
         listener = Listener()
-        self.data_bus.subscribe(MessageType.group, listener)
+        self.message_broker.subscribe(MessageType.group, listener)
 
         self.data_manager.load_group("Foo Device 2")
 
@@ -773,7 +782,7 @@ class TestDataManager(unittest.TestCase):
 
     def test_should_send_uinputs(self):
         listener = Listener()
-        self.data_bus.subscribe(MessageType.uinputs, listener)
+        self.message_broker.subscribe(MessageType.uinputs, listener)
 
         self.data_manager.send_uinputs()
         data = listener.calls[0]

@@ -20,7 +20,12 @@
 import json
 from typing import List
 
-from inputremapper.gui.data_bus import DataBus, MessageType, CombinationRecorded, Signal
+from inputremapper.gui.message_broker import (
+    MessageBroker,
+    MessageType,
+    CombinationRecorded,
+    Signal,
+)
 from tests.test import (
     new_event,
     push_events,
@@ -86,8 +91,8 @@ class TestReader(unittest.TestCase):
     def setUp(self):
         self.helper = None
         self.groups = _Groups()
-        self.data_bus = DataBus()
-        self.reader = Reader(self.data_bus, self.groups)
+        self.message_broker = MessageBroker()
+        self.reader = Reader(self.message_broker, self.groups)
 
     def tearDown(self):
         quick_cleanup()
@@ -116,8 +121,8 @@ class TestReader(unittest.TestCase):
     def test_reading(self):
         l1 = Listener()
         l2 = Listener()
-        self.data_bus.subscribe(MessageType.combination_recorded, l1)
-        self.data_bus.subscribe(MessageType.recording_finished, l2)
+        self.message_broker.subscribe(MessageType.combination_recorded, l1)
+        self.message_broker.subscribe(MessageType.recording_finished, l2)
         self.create_helper()
         self.reader.set_group(self.groups.find(key="Foo Device 2"))
         self.reader.start_recorder()
@@ -149,8 +154,8 @@ class TestReader(unittest.TestCase):
         # the timeout is set to 0.3s
         l1 = Listener()
         l2 = Listener()
-        self.data_bus.subscribe(MessageType.combination_recorded, l1)
-        self.data_bus.subscribe(MessageType.recording_finished, l2)
+        self.message_broker.subscribe(MessageType.combination_recorded, l1)
+        self.message_broker.subscribe(MessageType.recording_finished, l2)
         self.create_helper()
         self.reader.set_group(self.groups.find(key="Foo Device 2"))
         self.reader.start_recorder()
@@ -171,7 +176,7 @@ class TestReader(unittest.TestCase):
 
     def test_wont_emit_the_same_combination_twice(self):
         l1 = Listener()
-        self.data_bus.subscribe(MessageType.combination_recorded, l1)
+        self.message_broker.subscribe(MessageType.combination_recorded, l1)
         self.create_helper()
         self.reader.set_group(self.groups.find(key="Foo Device 2"))
         self.reader.start_recorder()
@@ -192,8 +197,8 @@ class TestReader(unittest.TestCase):
     def test_should_read_absolut_axis(self):
         l1 = Listener()
         l2 = Listener()
-        self.data_bus.subscribe(MessageType.combination_recorded, l1)
-        self.data_bus.subscribe(MessageType.recording_finished, l2)
+        self.message_broker.subscribe(MessageType.combination_recorded, l1)
+        self.message_broker.subscribe(MessageType.recording_finished, l2)
         self.create_helper()
         self.reader.set_group(self.groups.find(key="Foo Device 2"))
         self.reader.start_recorder()
@@ -220,7 +225,7 @@ class TestReader(unittest.TestCase):
 
     def test_should_change_direction(self):
         l1 = Listener()
-        self.data_bus.subscribe(MessageType.combination_recorded, l1)
+        self.message_broker.subscribe(MessageType.combination_recorded, l1)
         self.create_helper()
         self.reader.set_group(self.groups.find(key="Foo Device 2"))
         self.reader.start_recorder()
@@ -253,7 +258,7 @@ class TestReader(unittest.TestCase):
 
     def test_change_device(self):
         l1 = Listener()
-        self.data_bus.subscribe(MessageType.combination_recorded, l1)
+        self.message_broker.subscribe(MessageType.combination_recorded, l1)
 
         push_events(
             "Foo Device 2",
@@ -295,7 +300,7 @@ class TestReader(unittest.TestCase):
 
     def test_reading_2(self):
         l1 = Listener()
-        self.data_bus.subscribe(MessageType.combination_recorded, l1)
+        self.message_broker.subscribe(MessageType.combination_recorded, l1)
         # a combination of events
         push_events(
             "Foo Device 2",
@@ -337,7 +342,7 @@ class TestReader(unittest.TestCase):
 
     def test_blacklisted_events(self):
         l1 = Listener()
-        self.data_bus.subscribe(MessageType.combination_recorded, l1)
+        self.message_broker.subscribe(MessageType.combination_recorded, l1)
 
         push_events(
             "Foo Device 2",
@@ -358,7 +363,7 @@ class TestReader(unittest.TestCase):
 
     def test_ignore_value_2(self):
         l1 = Listener()
-        self.data_bus.subscribe(MessageType.combination_recorded, l1)
+        self.message_broker.subscribe(MessageType.combination_recorded, l1)
         # this is not a combination, because (EV_KEY CODE_3, 2) is ignored
         push_events(
             "Foo Device 2",
@@ -375,7 +380,7 @@ class TestReader(unittest.TestCase):
 
     def test_reading_ignore_up(self):
         l1 = Listener()
-        self.data_bus.subscribe(MessageType.combination_recorded, l1)
+        self.message_broker.subscribe(MessageType.combination_recorded, l1)
         push_events(
             "Foo Device 2",
             [
@@ -395,7 +400,7 @@ class TestReader(unittest.TestCase):
 
     def test_wrong_device(self):
         l1 = Listener()
-        self.data_bus.subscribe(MessageType.combination_recorded, l1)
+        self.message_broker.subscribe(MessageType.combination_recorded, l1)
 
         push_events(
             "Foo Device 2",
@@ -418,7 +423,7 @@ class TestReader(unittest.TestCase):
         # intentionally programmed it won't even do that. But it was at some
         # point.
         l1 = Listener()
-        self.data_bus.subscribe(MessageType.combination_recorded, l1)
+        self.message_broker.subscribe(MessageType.combination_recorded, l1)
         push_events(
             "input-remapper Bar Device",
             [
@@ -453,7 +458,7 @@ class TestReader(unittest.TestCase):
 
     def test_are_new_groups_available(self):
         l1 = Listener()
-        self.data_bus.subscribe(MessageType.groups, l1)
+        self.message_broker.subscribe(MessageType.groups, l1)
         self.create_helper()
         self.reader.groups.set_groups({})
 

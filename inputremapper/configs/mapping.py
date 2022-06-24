@@ -38,7 +38,7 @@ import pkg_resources
 from inputremapper.event_combination import EventCombination
 from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.exceptions import MacroParsingError
-from inputremapper.gui.data_bus import MessageType
+from inputremapper.gui.message_broker import MessageType
 from inputremapper.injection.macros.parse import is_this_a_macro, parse
 from inputremapper.input_event import EventActions
 
@@ -433,7 +433,7 @@ class UIMapping(Mapping):
 
 class MappingData(UIMapping):
     Config = ImmutableCfg
-    message_type = MessageType.mapping  # allow this to be sent over the DataBus
+    message_type = MessageType.mapping  # allow this to be sent over the MessageBroker
 
     def __init__(self, **data):
         super(MappingData, self).__init__(**data)

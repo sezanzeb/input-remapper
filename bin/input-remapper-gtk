@@ -27,7 +27,7 @@ import atexit
 import logging
 from argparse import ArgumentParser
 
-from inputremapper.gui.data_bus import DataBus, MessageType
+from inputremapper.gui.message_broker import MessageBroker, MessageType
 from inputremapper.gui.gettext import _, LOCALE_DIR
 
 import gi
@@ -88,21 +88,21 @@ if __name__ == '__main__':
 
     migrate()
 
-    data_bus = DataBus()
+    message_broker = MessageBroker()
 
     # create the reader before we start the helper (start_processes) otherwise it
     # can come to race conditions with the creation of pipes
-    reader = Reader(data_bus, _Groups())
+    reader = Reader(message_broker, _Groups())
     daemon = start_processes()
 
     data_manager = DataManager(
-        data_bus, GlobalConfig(), reader, daemon, GlobalUInputs()
+        message_broker, GlobalConfig(), reader, daemon, GlobalUInputs()
     )
-    controller = Controller(data_bus, data_manager)
-    user_interface = UserInterface(data_bus, controller)
+    controller = Controller(message_broker, data_manager)
+    user_interface = UserInterface(message_broker, controller)
     controller.set_gui(user_interface)
 
-    data_bus.signal(MessageType.init)
+    message_broker.signal(MessageType.init)
 
     def stop():
         if isinstance(daemon, Daemon):

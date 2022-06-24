@@ -622,7 +622,7 @@ from inputremapper.configs.global_config import global_config
 from inputremapper.configs.mapping import Mapping, UIMapping
 from inputremapper.groups import groups, _Groups
 from inputremapper.configs.system_mapping import system_mapping
-from inputremapper.gui.data_bus import DataBus
+from inputremapper.gui.message_broker import MessageBroker
 from inputremapper.gui.reader import Reader
 from inputremapper.configs.paths import get_config_path, get_preset_path
 from inputremapper.configs.preset import Preset

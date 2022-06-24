@@ -77,8 +77,8 @@ from inputremapper.configs.paths import CONFIG_PATH, get_preset_path, get_config
 from inputremapper.configs.global_config import global_config, WHEEL, MOUSE, BUTTONS
 from inputremapper.groups import _Groups
 from inputremapper.gui.data_manager import DataManager
-from inputremapper.gui.data_bus import (
-    DataBus,
+from inputremapper.gui.message_broker import (
+    MessageBroker,
     MessageType,
     StatusData,
     CombinationRecorded,
@@ -105,7 +105,7 @@ Gtk.main_quit = lambda: None
 
 def launch(
     argv=None,
-) -> Tuple[UserInterface, Controller, DataManager, DataBus, DaemonProxy]:
+) -> Tuple[UserInterface, Controller, DataManager, MessageBroker, DaemonProxy]:
     """Start input-remapper-gtk with the command line argument array argv."""
     bin_path = os.path.join(get_project_root(), "bin", "input-remapper-gtk")
 
@@ -128,7 +128,7 @@ def launch(
         module.user_interface,
         module.controller,
         module.data_manager,
-        module.data_bus,
+        module.message_broker,
         module.daemon,
     )
 
@@ -204,7 +204,7 @@ class TestGroupsFromHelper(unittest.TestCase):
             self.user_interface,
             self.controller,
             self.data_manager,
-            self.data_bus,
+            self.message_broker,
             self.daemon,
         ) = launch()
 
@@ -273,7 +273,7 @@ class GuiTestBase(unittest.TestCase):
                 self.user_interface,
                 self.controller,
                 self.data_manager,
-                self.data_bus,
+                self.message_broker,
                 self.daemon,
             ) = launch()
 
@@ -558,7 +558,7 @@ class TestGui(GuiTestBase):
         self.recording_toggle.set_active(True)
         gtk_iteration()
         self.assertEqual(self.recording_toggle.get_label(), "Recording ...")
-        self.data_bus.signal(MessageType.recording_finished)
+        self.message_broker.signal(MessageType.recording_finished)
         gtk_iteration()
         self.assertEqual(self.recording_toggle.get_label(), "Record Keys")
         self.assertFalse(self.recording_toggle.get_active())
@@ -569,8 +569,8 @@ class TestGui(GuiTestBase):
         gtk_iteration()
         mock1 = MagicMock()
         mock2 = MagicMock()
-        self.data_bus.subscribe(MessageType.combination_recorded, mock1)
-        self.data_bus.subscribe(MessageType.recording_finished, mock2)
+        self.message_broker.subscribe(MessageType.combination_recorded, mock1)
+        self.message_broker.subscribe(MessageType.recording_finished, mock2)
         self.recording_toggle.set_active(True)
         gtk_iteration()
 
@@ -679,7 +679,9 @@ class TestGui(GuiTestBase):
         self.throttle(20)
 
         # sending a combination update now should not do anything
-        self.data_bus.send(CombinationRecorded(EventCombination.from_string("1,35,1")))
+        self.message_broker.send(
+            CombinationRecorded(EventCombination.from_string("1,35,1"))
+        )
         gtk_iteration()
         self.assertEqual(
             self.data_manager.active_mapping.event_combination,
@@ -768,12 +770,12 @@ class TestGui(GuiTestBase):
         )
 
     def test_show_status(self):
-        self.data_bus.send(StatusData(0, "a" * 100))
+        self.message_broker.send(StatusData(0, "a" * 100))
         gtk_iteration()
         text = self.get_status_text()
         self.assertIn("...", text)
 
-        self.data_bus.send(StatusData(0, "b"))
+        self.message_broker.send(StatusData(0, "b"))
         gtk_iteration()
         text = self.get_status_text()
         self.assertNotIn("...", text)
@@ -1001,9 +1003,11 @@ class TestGui(GuiTestBase):
 
         self.recording_toggle.set_active(True)
         gtk_iteration()
-        self.data_bus.send(CombinationRecorded(EventCombination((EV_KEY, KEY_Q, 1))))
+        self.message_broker.send(
+            CombinationRecorded(EventCombination((EV_KEY, KEY_Q, 1)))
+        )
         gtk_iteration()
-        self.data_bus.signal(MessageType.recording_finished)
+        self.message_broker.signal(MessageType.recording_finished)
         gtk_iteration()
         # the combination and the order changed "Escape" < "q"
         self.assertEqual(self.data_manager.active_mapping.output_symbol, "a")
@@ -1019,9 +1023,11 @@ class TestGui(GuiTestBase):
         gtk_iteration()
         self.recording_toggle.set_active(True)
         gtk_iteration()
-        self.data_bus.send(CombinationRecorded(EventCombination((EV_KEY, KEY_Q, 1))))
+        self.message_broker.send(
+            CombinationRecorded(EventCombination((EV_KEY, KEY_Q, 1)))
+        )
         gtk_iteration()
-        self.data_bus.signal(MessageType.recording_finished)
+        self.message_broker.signal(MessageType.recording_finished)
         gtk_iteration()
 
         self.controller.create_mapping()
@@ -1052,7 +1058,7 @@ class TestGui(GuiTestBase):
         self.assertIs(row, self.selection_label_listbox.get_row_at_index(0))
 
         self.controller.update_mapping(name="foo")
-        self.throttle(20)  # it takes a bit to resort the labels
+        self.throttle(50)  # it takes a bit to resort the labels
         self.assertEqual(row.label.get_text(), "foo")
         self.assertIs(row, self.selection_label_listbox.get_row_at_index(1))
 

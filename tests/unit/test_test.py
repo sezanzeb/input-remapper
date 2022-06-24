@@ -17,7 +17,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
-from inputremapper.gui.data_bus import DataBus
+from inputremapper.gui.message_broker import MessageBroker
 from tests.test import (
     InputDevice,
     quick_cleanup,
@@ -88,7 +88,7 @@ class TestTest(unittest.TestCase):
         Using push_events after the helper is already forked should work,
         as well as using push_event twice
         """
-        reader = Reader(DataBus(), groups)
+        reader = Reader(MessageBroker(), groups)
 
         def create_helper():
             # this will cause pending events to be copied over to the helper

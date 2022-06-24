@@ -25,7 +25,13 @@ from typing import TYPE_CHECKING, Optional, List, Tuple
 
 from gi.repository import Gtk, GLib
 
-from .data_bus import DataBus, MessageType, PresetData, StatusData, CombinationRecorded
+from .message_broker import (
+    MessageBroker,
+    MessageType,
+    PresetData,
+    StatusData,
+    CombinationRecorded,
+)
 from .gettext import _
 from .data_manager import DataManager, DEFAULT_PRESET_NAME
 from .helper import is_helper_running
@@ -48,8 +54,8 @@ MAPPING_DEFAULTS = {"target_uinput": "keyboard"}
 class Controller:
     """implements the behaviour of the gui"""
 
-    def __init__(self, data_bus: DataBus, data_manager: DataManager):
-        self.data_bus = data_bus
+    def __init__(self, message_broker: MessageBroker, data_manager: DataManager):
+        self.message_broker = message_broker
         self.data_manager = data_manager
         self.gui: Optional[UserInterface] = None
 
@@ -60,10 +66,10 @@ class Controller:
         self.gui = gui
 
     def attach_to_events(self) -> None:
-        self.data_bus.subscribe(MessageType.groups, self.on_groups_changed)
-        self.data_bus.subscribe(MessageType.group, self.on_group_changed)
-        self.data_bus.subscribe(MessageType.preset, self.on_preset_changed)
-        self.data_bus.subscribe(MessageType.init, self.on_init)
+        self.message_broker.subscribe(MessageType.groups, self.on_groups_changed)
+        self.message_broker.subscribe(MessageType.group, self.on_group_changed)
+        self.message_broker.subscribe(MessageType.preset, self.on_preset_changed)
+        self.message_broker.subscribe(MessageType.init, self.on_init)
 
     def get_a_preset(self) -> str:
         """attempts to get the newest preset in the current group
@@ -119,7 +125,7 @@ class Controller:
             self.load_mapping(combination)
         else:
             # send an empty mapping to make sure the ui is reset to default values
-            self.data_bus.send(MappingData(**MAPPING_DEFAULTS))
+            self.message_broker.send(MappingData(**MAPPING_DEFAULTS))
 
     def on_combination_recorded(self, data: CombinationRecorded):
         self.update_combination(data.combination)
@@ -233,7 +239,7 @@ class Controller:
     def start_key_recording(self):
         state = self.data_manager.get_state()
         if state == RUNNING or state == STARTING:
-            self.data_bus.signal(MessageType.recording_finished)
+            self.message_broker.signal(MessageType.recording_finished)
             self.show_status(
                 CTX_ERROR, _('Use "Stop Injection" to stop before editing')
             )
@@ -242,15 +248,15 @@ class Controller:
         logger.debug("Recording Keys")
 
         def f(_):
-            self.data_bus.unsubscribe(f)
-            self.data_bus.unsubscribe(self.on_combination_recorded)
+            self.message_broker.unsubscribe(f)
+            self.message_broker.unsubscribe(self.on_combination_recorded)
             self.gui.connect_shortcuts()
 
         self.gui.disconnect_shortcuts()
-        self.data_bus.subscribe(
+        self.message_broker.subscribe(
             MessageType.combination_recorded, self.on_combination_recorded
         )
-        self.data_bus.subscribe(MessageType.recording_finished, f)
+        self.message_broker.subscribe(MessageType.recording_finished, f)
         self.data_manager.start_combination_recording()
 
     def stop_key_recording(self):
@@ -348,7 +354,7 @@ class Controller:
     def show_status(
         self, ctx_id: int, msg: Optional[str] = None, tooltip: Optional[str] = None
     ):
-        self.data_bus.send(StatusData(ctx_id, msg, tooltip))
+        self.message_broker.send(StatusData(ctx_id, msg, tooltip))
 
     def is_empty_mapping(self) -> bool:
         """check if the active_mapping is empty"""
@@ -364,7 +370,7 @@ class Controller:
         """safely close the application"""
         logger.debug("Closing Application")
         self.save()
-        self.data_bus.signal(MessageType.terminate)
+        self.message_broker.signal(MessageType.terminate)
         logger.debug("Quitting")
         Gtk.main_quit()
 

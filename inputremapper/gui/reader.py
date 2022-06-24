@@ -30,8 +30,8 @@ import evdev
 from gi.repository import GLib
 
 from inputremapper.event_combination import EventCombination
-from inputremapper.gui.data_bus import (
-    DataBus,
+from inputremapper.gui.message_broker import (
+    MessageBroker,
     GroupsData,
     MessageType,
     CombinationRecorded,
@@ -63,9 +63,9 @@ class Reader:
     has knowledge of buttons like the middle-mouse button.
     """
 
-    def __init__(self, data_bus: DataBus, groups: _Groups):
+    def __init__(self, message_broker: MessageBroker, groups: _Groups):
         self.groups = groups
-        self.data_bus = data_bus
+        self.message_broker = message_broker
 
         self.group: Optional[_Group] = None
         self.read_timeout: Optional[int] = None
@@ -85,7 +85,7 @@ class Reader:
 
     def attach_to_events(self):
         """connect listeners to event_reader"""
-        self.data_bus.subscribe(MessageType.terminate, lambda _: self.terminate())
+        self.message_broker.subscribe(MessageType.terminate, lambda _: self.terminate())
 
     def read_continuously(self):
         """poll the result pipe in regular intervals"""
@@ -108,7 +108,7 @@ class Reader:
                     try:
                         self._recording_generator.send(InputEvent(*message_body))
                     except StopIteration:
-                        self.data_bus.signal(MessageType.recording_finished)
+                        self.message_broker.signal(MessageType.recording_finished)
                         self._recording_generator = None
                 continue
         return True
@@ -126,12 +126,12 @@ class Reader:
         if self._recording_generator:
             self._recording_generator.close()
             self._recording_generator = None
-            self.data_bus.signal(MessageType.recording_finished)
+            self.message_broker.signal(MessageType.recording_finished)
 
     def _recorder(self) -> RecordingGenerator:
         """Generator which receives InputEvents.
 
-        it accumulates them into EventCombinations and sends those on the data_bus.
+        it accumulates them into EventCombinations and sends those on the message_broker.
         it will stop once all keys or inputs are released.
         """
         active = set()
@@ -161,11 +161,15 @@ class Reader:
                 # update the event
                 i = accu_type_code.index(event.type_and_code)
                 accumulator[i] = event
-                self.data_bus.send(CombinationRecorded(EventCombination(accumulator)))
+                self.message_broker.send(
+                    CombinationRecorded(EventCombination(accumulator))
+                )
 
             if event not in accumulator:
                 accumulator.append(event)
-                self.data_bus.send(CombinationRecorded(EventCombination(accumulator)))
+                self.message_broker.send(
+                    CombinationRecorded(EventCombination(accumulator))
+                )
 
     def set_group(self, group):
         """Start reading keycodes for a device."""
@@ -195,7 +199,7 @@ class Reader:
             group.key: group.types or []
             for group in self.groups.filter(include_inputremapper=False)
         }
-        self.data_bus.send(GroupsData(groups))
+        self.message_broker.send(GroupsData(groups))
 
     def _update_groups(self, dump):
         if dump != self.groups.dumps():

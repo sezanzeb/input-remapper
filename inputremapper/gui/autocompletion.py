@@ -31,7 +31,7 @@ from evdev.ecodes import EV_KEY
 from inputremapper.configs.mapping import MappingData
 from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.gui.components import CodeEditor
-from inputremapper.gui.data_bus import DataBus, MessageType, UInputsData
+from inputremapper.gui.message_broker import MessageBroker, MessageType, UInputsData
 from inputremapper.injection.macros.parse import (
     FUNCTIONS,
     get_macro_argument_names,
@@ -152,7 +152,7 @@ class Autocompletion(Gtk.Popover):
 
     __gtype_name__ = "Autocompletion"
 
-    def __init__(self, data_bus: DataBus, code_editor: CodeEditor):
+    def __init__(self, message_broker: MessageBroker, code_editor: CodeEditor):
         """Create an autocompletion popover.
 
         It will remain hidden until there is something to autocomplete.
@@ -171,7 +171,7 @@ class Autocompletion(Gtk.Popover):
         )
 
         self.code_editor = code_editor
-        self.data_bus = data_bus
+        self.message_broker = message_broker
         self._uinputs: Optional[Dict[str, Capabilities]] = None
         self._target_key_capabilities = []
 
@@ -215,8 +215,8 @@ class Autocompletion(Gtk.Popover):
         self.popdown()  # hidden by default. this needs to happen after show_all!
 
     def attach_to_events(self):
-        self.data_bus.subscribe(MessageType.mapping, self._on_mapping_loaded)
-        self.data_bus.subscribe(MessageType.uinputs, self._on_uinputs_changed)
+        self.message_broker.subscribe(MessageType.mapping, self._on_mapping_loaded)
+        self.message_broker.subscribe(MessageType.uinputs, self._on_uinputs_changed)
 
     def on_gtk_text_input_unfocus(self, *_):
         """The code editor was unfocused."""

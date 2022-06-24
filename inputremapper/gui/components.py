@@ -17,8 +17,8 @@ from inputremapper.groups import (
 )
 from inputremapper.gui.controller import Controller
 from inputremapper.gui.gettext import _
-from inputremapper.gui.data_bus import (
-    DataBus,
+from inputremapper.gui.message_broker import (
+    MessageBroker,
     MessageType,
     GroupsData,
     GroupData,
@@ -52,9 +52,12 @@ ICON_PRIORITIES = [GRAPHICS_TABLET, TOUCHPAD, GAMEPAD, MOUSE, KEYBOARD, UNKNOWN]
 
 class DeviceSelection:
     def __init__(
-        self, data_bus: DataBus, controller: Controller, combobox: Gtk.ComboBox
+        self,
+        message_broker: MessageBroker,
+        controller: Controller,
+        combobox: Gtk.ComboBox,
     ):
-        self.data_bus = data_bus
+        self.message_broker = message_broker
         self.controller = controller
         self.device_store = Gtk.ListStore(str, str, str)
         self.gui = combobox
@@ -74,8 +77,8 @@ class DeviceSelection:
         combobox.connect("changed", self.on_gtk_select_device)
 
     def attach_to_events(self):
-        self.data_bus.subscribe(MessageType.groups, self.on_groups_changed)
-        self.data_bus.subscribe(MessageType.group, self.on_group_changed)
+        self.message_broker.subscribe(MessageType.groups, self.on_groups_changed)
+        self.message_broker.subscribe(MessageType.group, self.on_group_changed)
 
     def on_groups_changed(self, data: GroupsData):
         with HandlerDisabled(self.gui, self.on_gtk_select_device):
@@ -102,9 +105,12 @@ class DeviceSelection:
 
 class TargetSelection:
     def __init__(
-        self, data_bus: DataBus, controller: Controller, combobox: Gtk.ComboBox
+        self,
+        message_broker: MessageBroker,
+        controller: Controller,
+        combobox: Gtk.ComboBox,
     ):
-        self.data_bus = data_bus
+        self.message_broker = message_broker
         self.controller = controller
         self.gui = combobox
 
@@ -112,8 +118,8 @@ class TargetSelection:
         self.gui.connect("changed", self.on_gtk_target_selected)
 
     def attach_to_events(self):
-        self.data_bus.subscribe(MessageType.uinputs, self.on_uinputs_changed)
-        self.data_bus.subscribe(MessageType.mapping, self.on_mapping_loaded)
+        self.message_broker.subscribe(MessageType.uinputs, self.on_uinputs_changed)
+        self.message_broker.subscribe(MessageType.mapping, self.on_mapping_loaded)
 
     def on_uinputs_changed(self, data: UInputsData):
         target_store = Gtk.ListStore(str)
@@ -150,9 +156,12 @@ class TargetSelection:
 
 class PresetSelection:
     def __init__(
-        self, data_bus: DataBus, controller: Controller, combobox: Gtk.ComboBoxText
+        self,
+        message_broker: MessageBroker,
+        controller: Controller,
+        combobox: Gtk.ComboBoxText,
     ):
-        self.data_bus = data_bus
+        self.message_broker = message_broker
         self.controller = controller
         self.gui = combobox
 
@@ -160,8 +169,8 @@ class PresetSelection:
         combobox.connect("changed", self.on_gtk_select_preset)
 
     def attach_to_events(self):
-        self.data_bus.subscribe(MessageType.group, self.on_group_changed)
-        self.data_bus.subscribe(MessageType.preset, self.on_preset_changed)
+        self.message_broker.subscribe(MessageType.group, self.on_group_changed)
+        self.message_broker.subscribe(MessageType.preset, self.on_preset_changed)
 
     def on_group_changed(self, data: GroupData):
         with HandlerDisabled(self.gui, self.on_gtk_select_preset):
@@ -180,8 +189,13 @@ class PresetSelection:
 
 
 class MappingListBox:
-    def __init__(self, data_bus: DataBus, controller: Controller, listbox: Gtk.ListBox):
-        self.data_bus = data_bus
+    def __init__(
+        self,
+        message_broker: MessageBroker,
+        controller: Controller,
+        listbox: Gtk.ListBox,
+    ):
+        self.message_broker = message_broker
         self.controller = controller
         self.gui = listbox
         self.gui.set_sort_func(self.sort_func)
@@ -199,8 +213,8 @@ class MappingListBox:
         return 0 if row1.name < row2.name else 1
 
     def attach_to_events(self):
-        self.data_bus.subscribe(MessageType.preset, self.on_preset_changed)
-        self.data_bus.subscribe(MessageType.mapping, self.on_mapping_changed)
+        self.message_broker.subscribe(MessageType.preset, self.on_preset_changed)
+        self.message_broker.subscribe(MessageType.mapping, self.on_mapping_changed)
 
     def on_preset_changed(self, data: PresetData):
         self.gui.forall(self.gui.remove)
@@ -209,7 +223,7 @@ class MappingListBox:
 
         for name, combination in data.mappings:
             selection_label = SelectionLabel(
-                self.data_bus, self.controller, name, combination
+                self.message_broker, self.controller, name, combination
             )
             self.gui.insert(selection_label, -1)
         self.gui.invalidate_sort()
@@ -237,13 +251,13 @@ class SelectionLabel(Gtk.ListBoxRow):
 
     def __init__(
         self,
-        data_bus: DataBus,
+        message_broker: MessageBroker,
         controller: Controller,
         name: Optional[str],
         combination: EventCombination,
     ):
         super().__init__()
-        self.data_bus = data_bus
+        self.message_broker = message_broker
         self.controller = controller
         self.combination = combination
         self._name = name
@@ -274,8 +288,8 @@ class SelectionLabel(Gtk.ListBoxRow):
         return self._name or self.combination.beautify()
 
     def attach_to_events(self):
-        self.data_bus.subscribe(MessageType.mapping, self.on_mapping_changed)
-        self.data_bus.subscribe(
+        self.message_broker.subscribe(MessageType.mapping, self.on_mapping_changed)
+        self.message_broker.subscribe(
             MessageType.combination_update, self.on_combination_update
         )
 
@@ -293,12 +307,12 @@ class SelectionLabel(Gtk.ListBoxRow):
 class CodeEditor:
     def __init__(
         self,
-        data_bus: DataBus,
+        message_broker: MessageBroker,
         controller: Controller,
         system_mapping: SystemMapping,
         editor: GtkSource.View,
     ):
-        self.data_bus = data_bus
+        self.message_broker = message_broker
         self.controller = controller
         self.system_mapping = system_mapping
         self.gui = editor
@@ -341,8 +355,8 @@ class CodeEditor:
             self.gui.do_move_cursor(self.gui, Gtk.MovementStep.BUFFER_ENDS, -1, False)
 
     def attach_to_events(self):
-        self.data_bus.subscribe(MessageType.mapping, self.on_mapping_loaded)
-        self.data_bus.subscribe(
+        self.message_broker.subscribe(MessageType.mapping, self.on_mapping_loaded)
+        self.message_broker.subscribe(
             MessageType.recording_finished, self.on_recording_finished
         )
 
@@ -395,9 +409,12 @@ class CodeEditor:
 
 class RecordingToggle:
     def __init__(
-        self, data_bus: DataBus, controller: Controller, toggle: Gtk.ToggleButton
+        self,
+        message_broker: MessageBroker,
+        controller: Controller,
+        toggle: Gtk.ToggleButton,
     ):
-        self.data_bus = data_bus
+        self.message_broker = message_broker
         self.controller = controller
         self.gui = toggle
 
@@ -410,7 +427,7 @@ class RecordingToggle:
         self.attach_to_events()
 
     def attach_to_events(self):
-        self.data_bus.subscribe(
+        self.message_broker.subscribe(
             MessageType.recording_finished, self.on_recording_finished
         )
 
@@ -435,13 +452,13 @@ class RecordingToggle:
 class StatusBar:
     def __init__(
         self,
-        data_bus: DataBus,
+        message_broker: MessageBroker,
         controller: Controller,
         status_bar: Gtk.Statusbar,
         error_icon,
         warning_icon,
     ):
-        self.data_bus = data_bus
+        self.message_broker = message_broker
         self.controller = controller
         self.gui = status_bar
         self.error_icon = error_icon
@@ -450,7 +467,7 @@ class StatusBar:
         self.attach_to_events()
 
     def attach_to_events(self):
-        self.data_bus.subscribe(MessageType.status, self.on_status_update)
+        self.message_broker.subscribe(MessageType.status, self.on_status_update)
 
     def on_status_update(self, data: StatusData):
         """Show a status message and set its tooltip.
@@ -495,8 +512,10 @@ class StatusBar:
 
 
 class AutoloadToggle:
-    def __init__(self, data_bus: DataBus, controller: Controller, switch: Gtk.Switch):
-        self.data_bus = data_bus
+    def __init__(
+        self, message_broker: MessageBroker, controller: Controller, switch: Gtk.Switch
+    ):
+        self.message_broker = message_broker
         self.controller = controller
         self.gui = switch
 
@@ -504,7 +523,7 @@ class AutoloadToggle:
         self.attach_to_events()
 
     def attach_to_events(self):
-        self.data_bus.subscribe(MessageType.preset, self.on_preset_changed)
+        self.message_broker.subscribe(MessageType.preset, self.on_preset_changed)
 
     def on_preset_changed(self, data: PresetData):
         with HandlerDisabled(self.gui, self.on_gtk_toggle):

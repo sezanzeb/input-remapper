@@ -26,7 +26,7 @@ from pydantic import ValidationError
 
 from inputremapper.configs.mapping import Mapping, UIMapping
 from inputremapper.configs.system_mapping import system_mapping
-from inputremapper.gui.data_bus import MessageType
+from inputremapper.gui.message_broker import MessageType
 from inputremapper.input_event import EventActions
 from inputremapper.event_combination import EventCombination
 

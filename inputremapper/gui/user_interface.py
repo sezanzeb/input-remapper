@@ -35,7 +35,7 @@ from inputremapper.gui.components import (
     AutoloadToggle,
 )
 from inputremapper.gui.controller import Controller
-from inputremapper.gui.data_bus import DataBus, MessageType, GroupData
+from inputremapper.gui.message_broker import MessageBroker, MessageType, GroupData
 from inputremapper.gui.autocompletion import Autocompletion
 from inputremapper.configs.data import get_data_path
 from inputremapper.configs.system_mapping import system_mapping
@@ -63,10 +63,10 @@ class UserInterface:
 
     def __init__(
         self,
-        data_bus: DataBus,
+        message_broker: MessageBroker,
         controller: Controller,
     ):
-        self.data_bus = data_bus
+        self.message_broker = message_broker
         self.controller = controller
 
         # all shortcuts executed when ctrl+...
@@ -79,7 +79,7 @@ class UserInterface:
         # stores the ids for all the listeners attached to the gui
         self.gtk_listeners: Dict[Callable, int] = {}
 
-        self.data_bus.subscribe(MessageType.terminate, lambda _: self.close())
+        self.message_broker.subscribe(MessageType.terminate, lambda _: self.close())
 
         self.builder = Gtk.Builder()
         self._build_ui()
@@ -120,27 +120,27 @@ class UserInterface:
 
     def _create_components(self):
         """setup all objects which manage individual components of the ui"""
-        data_bus = self.data_bus
+        message_broker = self.message_broker
         controller = self.controller
-        DeviceSelection(data_bus, controller, self.get("device_selection"))
-        PresetSelection(data_bus, controller, self.get("preset_selection"))
-        MappingListBox(data_bus, controller, self.get("selection_label_listbox"))
-        TargetSelection(data_bus, controller, self.get("target-selector"))
-        RecordingToggle(data_bus, controller, self.get("key_recording_toggle"))
+        DeviceSelection(message_broker, controller, self.get("device_selection"))
+        PresetSelection(message_broker, controller, self.get("preset_selection"))
+        MappingListBox(message_broker, controller, self.get("selection_label_listbox"))
+        TargetSelection(message_broker, controller, self.get("target-selector"))
+        RecordingToggle(message_broker, controller, self.get("key_recording_toggle"))
         StatusBar(
-            data_bus,
+            message_broker,
             controller,
             self.get("status_bar"),
             self.get("error_status_icon"),
             self.get("warning_status_icon"),
         )
-        AutoloadToggle(data_bus, controller, self.get("preset_autoload_switch"))
+        AutoloadToggle(message_broker, controller, self.get("preset_autoload_switch"))
 
         # code editor and autocompletion
         code_editor = CodeEditor(
-            data_bus, controller, system_mapping, self.get("code_editor")
+            message_broker, controller, system_mapping, self.get("code_editor")
         )
-        autocompletion = Autocompletion(data_bus, code_editor)
+        autocompletion = Autocompletion(message_broker, code_editor)
         autocompletion.set_relative_to(self.get("code_editor_container"))
         self.autocompletion = autocompletion  # only for testing
 
