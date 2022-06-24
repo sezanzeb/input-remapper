@@ -44,6 +44,15 @@ DEFAULT_UINPUTS = {
         evdev.ecodes.EV_REL: [*range(0x00, 0x0D)],  # all REL axis
     },
 }
+DEFAULT_UINPUTS["keyboard + mouse"] = {
+    evdev.ecodes.EV_KEY: [
+        *DEFAULT_UINPUTS["keyboard"][evdev.ecodes.EV_KEY],
+        *DEFAULT_UINPUTS["mouse"][evdev.ecodes.EV_KEY],
+    ],
+    evdev.ecodes.EV_REL: [
+        *DEFAULT_UINPUTS["mouse"][evdev.ecodes.EV_REL],
+    ],
+}
 
 
 class UInput(evdev.UInput):
