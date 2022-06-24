@@ -396,6 +396,7 @@ def _copy_to_beta():
         logger.debug(f"copying all from {regular_path} to {CONFIG_PATH}")
         shutil.copytree(regular_path, CONFIG_PATH)
 
+
 def _remove_logs():
     """We will try to rely on journalctl for this in the future."""
     try:
@@ -430,10 +431,12 @@ def migrate():
     if v < pkg_resources.parse_version("1.4.1"):
         _otherwise_to_else()
 
-    if v < pkg_resources.parse_version("1.5.0-beta"):
+    if v < pkg_resources.parse_version("1.5.0"):
+        _remove_logs()
+
+    if v < pkg_resources.parse_version("1.6.0-beta"):
         _convert_to_individual_mappings()
 
-    _remove_logs()
     # add new migrations here
 
     if v < pkg_resources.parse_version(VERSION):

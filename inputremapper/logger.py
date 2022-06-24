@@ -116,7 +116,6 @@ class Logger(logging.Logger):
         self._log(logging.DEBUG, msg, args=None)
 
 
-
 # https://github.com/python/typeshed/issues/1801
 logging.setLoggerClass(Logger)
 logger = cast(Logger, logging.getLogger("input-remapper"))
@@ -249,7 +248,7 @@ logger.setLevel(logging.INFO)
 logging.getLogger("asyncio").setLevel(logging.WARNING)
 
 
-VERSION = "1.5.0-beta"
+VERSION = "1.6.0-beta"
 EVDEV_VERSION = None
 try:
     EVDEV_VERSION = pkg_resources.require("evdev")[0].version
