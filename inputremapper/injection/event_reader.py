@@ -21,12 +21,24 @@
 
 """Because multiple calls to async_read_loop won't work."""
 import asyncio
-from typing import AsyncIterator
+from typing import AsyncIterator, Protocol, Set, Dict, Tuple, List
 
 import evdev
+
+from inputremapper.injection.mapping_handlers.mapping_handler import (
+    EventListener,
+    NotifyCallback,
+)
 from inputremapper.logger import logger
 from inputremapper.input_event import InputEvent, EventActions
-from inputremapper.injection.context import Context
+
+
+class Context(Protocol):
+    listeners: Set[EventListener]
+    callbacks: Dict[Tuple[int, int], List[NotifyCallback]]
+
+    def reset(self):
+        ...
 
 
 class EventReader:

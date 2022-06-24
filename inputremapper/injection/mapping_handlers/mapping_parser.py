@@ -34,6 +34,7 @@ from inputremapper.injection.mapping_handlers.mapping_handler import (
     HandlerEnums,
     MappingHandler,
     ContextProtocol,
+    InputEventHandler,
 )
 from inputremapper.injection.mapping_handlers.combination_handler import (
     CombinationHandler,
@@ -53,7 +54,7 @@ from inputremapper.configs.preset import Preset
 from inputremapper.configs.mapping import Mapping
 from inputremapper.configs.system_mapping import DISABLE_CODE, DISABLE_NAME
 
-EventPipelines = Dict[InputEvent, List[MappingHandler]]
+EventPipelines = Dict[InputEvent, List[InputEventHandler]]
 
 mapping_handler_classes: Dict[HandlerEnums, Type[MappingHandler]] = {
     # all available mapping_handlers

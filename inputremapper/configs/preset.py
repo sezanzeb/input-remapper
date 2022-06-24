@@ -27,7 +27,20 @@ import json
 import glob
 import time
 
-from typing import Tuple, Dict, List, Optional, Iterator, Type, Iterable, Any, Union
+from typing import (
+    Tuple,
+    Dict,
+    List,
+    Optional,
+    Iterator,
+    Type,
+    Iterable,
+    Any,
+    Union,
+    TypeVar,
+    Generic,
+    overload,
+)
 
 from pydantic import ValidationError
 from inputremapper.logger import logger
@@ -52,26 +65,39 @@ def common_data(list1: Iterable, list2: Iterable) -> List:
     return common
 
 
-class Preset:
+MappingModel = TypeVar("MappingModel", bound=Mapping)
+
+
+class Preset(Generic[MappingModel]):
     """Contains and manages mappings of a single preset."""
 
-    _mappings: Dict[EventCombination, Union[Mapping, UIMapping]]
-    # a copy of mappings for keeping track of changes
-    _saved_mappings: Dict[EventCombination, Mapping]
-    _path: Optional[os.PathLike]
-    _mapping_factory: Type[Mapping]  # the mapping class which is used by load()
+    # workaround for typing: https://github.com/python/mypy/issues/4236
+    @overload
+    def __init__(self: Preset[Mapping], path: Optional[os.PathLike] = None):
+        ...
+
+    @overload
+    def __init__(
+        self,
+        path: Optional[os.PathLike] = None,
+        mapping_factory: Type[MappingModel] = ...,
+    ):
+        ...
 
     def __init__(
         self,
         path: Optional[os.PathLike] = None,
-        mapping_factory: Type[Mapping] = Mapping,
+        mapping_factory=Mapping,
     ) -> None:
-        self._mappings = {}
-        self._saved_mappings = {}
-        self._path = path
-        self._mapping_factory = mapping_factory
+        self._mappings: Dict[EventCombination, MappingModel] = {}
+        # a copy of mappings for keeping track of changes
+        self._saved_mappings: Dict[EventCombination, MappingModel] = {}
+        self._path: Optional[os.PathLike] = path
 
-    def __iter__(self) -> Iterator[Union[Mapping, UIMapping]]:
+        # the mapping class which is used by load()
+        self._mapping_factory: Type[MappingModel] = mapping_factory
+
+    def __iter__(self) -> Iterator[MappingModel]:
         """Iterate over Mapping objects."""
         return iter(self._mappings.values())
 
@@ -106,7 +132,7 @@ class Preset:
             logger.debug(f"unable to remove non-existing mapping with {combination = }")
             pass
 
-    def add(self, mapping: Mapping) -> None:
+    def add(self, mapping: MappingModel) -> None:
         """Add a mapping to the preset."""
         for permutation in mapping.event_combination.get_permutations():
             if permutation in self._mappings:
@@ -200,7 +226,7 @@ class Preset:
 
     def get_mapping(
         self, combination: Optional[EventCombination]
-    ) -> Union[Mapping, UIMapping, None]:
+    ) -> Optional[MappingModel]:
         """Return the Mapping that is mapped to this EventCombination.
         Parameters
         ----------
@@ -257,8 +283,8 @@ class Preset:
             return
         self._saved_mappings = self._get_mappings_from_disc()
 
-    def _get_mappings_from_disc(self) -> Dict[EventCombination, Mapping]:
-        mappings: Dict[EventCombination, Mapping] = {}
+    def _get_mappings_from_disc(self) -> Dict[EventCombination, MappingModel]:
+        mappings: Dict[EventCombination, MappingModel] = {}
         if not self.path:
             logger.debug("unable to read preset without a path set Preset.path first")
             return mappings
@@ -304,3 +330,4 @@ class Preset:
     def name(self) -> Optional[str]:
         if self.path:
             return os.path.basename(self.path).split(".")[0]
+        return None

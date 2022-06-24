@@ -513,7 +513,7 @@ class TestModifyCapabilities(unittest.TestCase):
 
         # I don't know what ABS_VOLUME is, for now I would like to just always
         # remove it until somebody complains, since its presence broke stuff
-        self.injector = Injector(None, self.preset)
+        self.injector = Injector(mock.Mock(), self.preset)
         self.fake_device._capabilities = {
             EV_ABS: [ABS_VOLUME, (ABS_X, evdev.AbsInfo(0, 0, 500, 0, 0, 0))],
             EV_KEY: [1, 2, 3],

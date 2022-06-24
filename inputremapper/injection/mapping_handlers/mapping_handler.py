@@ -84,6 +84,22 @@ class ContextProtocol(Protocol):
     listeners: Set[EventListener]
 
 
+class NotifyCallback(Protocol):
+    """Type signature of InputEventHandler.notify
+
+    return True if the event was actually taken care of
+    """
+
+    def __call__(
+        self,
+        event: InputEvent,
+        source: evdev.InputDevice,
+        forward: evdev.UInput,
+        supress: bool = False,
+    ) -> bool:
+        ...
+
+
 class InputEventHandler(Protocol):
     """The protocol any handler, which can be part of an event pipeline, must follow."""
 
@@ -125,7 +141,7 @@ class HandlerEnums(enum.Enum):
     disable = enum.auto()
 
 
-class MappingHandler(InputEventHandler):
+class MappingHandler:
     """The protocol an InputEventHandler must follow if it should be
     dynamically integrated in an event-pipeline by the mapping parser
     """
@@ -160,6 +176,19 @@ class MappingHandler(InputEventHandler):
         self.mapping = mapping
         self.input_events = new_combination
         self._sub_handler = None
+
+    def notify(
+        self,
+        event: InputEvent,
+        source: evdev.InputDevice,
+        forward: evdev.UInput,
+        supress: bool = False,
+    ) -> bool:
+        raise NotImplementedError
+
+    def reset(self) -> None:
+        """Reset the state of the handler e.g. release any buttons."""
+        raise NotImplementedError
 
     def needs_wrapping(self) -> bool:
         """If this handler needs to be wrapped in another MappingHandler."""

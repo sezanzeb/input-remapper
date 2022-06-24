@@ -45,9 +45,9 @@ def chown(path):
         shutil.chown(path, user=USER)
 
 
-def touch(path, log=True):
+def touch(path: os.PathLike, log=True):
     """Create an empty file and all its parent dirs, give it to the user."""
-    if path.endswith("/"):
+    if str(path).endswith("/"):
         raise ValueError(f"Expected path to not end with a slash: {path}")
 
     if os.path.exists(path):

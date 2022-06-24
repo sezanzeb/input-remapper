@@ -126,13 +126,15 @@ class DataManager:
     def active_mapping(self) -> Optional[UIMapping]:
         return self._active_mapping
 
-    def get_group_keys(self) -> Tuple[GroupKey]:
+    def get_group_keys(self) -> Tuple[GroupKey, ...]:
         """Get all group keys (plugged devices)"""
         return tuple(group.key for group in self._reader.groups.filter())
 
     def get_presets(self) -> Tuple[Name, ...]:
         """Get all preset names for active_group and current user,
         starting with the newest."""
+        if not self.active_group:
+            raise DataManagementError("cannot find presets: Group is not set")
         device_folder = get_preset_path(self.active_group.name)
         mkdir(device_folder)
 
@@ -145,7 +147,7 @@ class DataManager:
         presets.reverse()
         return tuple(presets)
 
-    def get_mappings(self) -> Optional[List[Tuple[Name, EventCombination]]]:
+    def get_mappings(self) -> Optional[List[Tuple[Optional[Name], EventCombination]]]:
         """all mapping names and their combination from the active_preset"""
         if not self._active_preset:
             return None
@@ -155,7 +157,7 @@ class DataManager:
 
     def get_autoload(self) -> bool:
         """the autoload status of the active_preset"""
-        if not self._active_preset:
+        if not self.active_preset or not self.active_group:
             return False
         return self._config.is_autoloaded(
             self.active_group.key, self.active_preset.name
@@ -165,7 +167,7 @@ class DataManager:
         """set the autoload status of the active_preset.
         Will send "preset" message on the MessageBroker
         """
-        if not self._active_preset:
+        if not self.active_preset or not self.active_group:
             raise DataManagementError("cannot set autoload status: Preset is not set")
 
         if status:
@@ -281,15 +283,14 @@ class DataManager:
         """rename the current preset and move the correct file
         Will send "group" and then "preset" message on the MessageBroker
         """
-        if not self._active_preset:
+        if not self.active_preset or not self.active_group:
             raise DataManagementError("Unable rename preset: Preset is not set")
 
-        if self._active_preset.path == get_preset_path(
-            self.active_group.name, new_name
-        ):
+        if self.active_preset.path == get_preset_path(self.active_group.name, new_name):
             return
 
-        old_path = self._active_preset.path
+        old_path = self.active_preset.path
+        assert old_path is not None
         old_name = os.path.basename(old_path).split(".")[0]
         new_path = get_preset_path(self.active_group.name, new_name)
         if os.path.exists(new_path):
@@ -305,7 +306,7 @@ class DataManager:
         if self._config.is_autoloaded(self.active_group.key, old_name):
             self._config.set_autoload_preset(self.active_group.key, new_name)
 
-        self._active_preset.path = get_preset_path(self.active_group.name, new_name)
+        self.active_preset.path = get_preset_path(self.active_group.name, new_name)
         self._send_group()
         self._send_preset()
 
@@ -314,10 +315,10 @@ class DataManager:
         Will send "group" and "preset" message to the MessageBroker and load the copy
         """
         # todo: Do we want to load the copy here? or is this up to the controller?
-        if not self._active_preset:
+        if not self.active_preset or not self.active_group:
             raise DataManagementError("Unable to copy preset: Preset is not set")
 
-        if self._active_preset.path == get_preset_path(self.active_group.name, name):
+        if self.active_preset.path == get_preset_path(self.active_group.name, name):
             return
 
         if name in self.get_presets():
@@ -325,7 +326,7 @@ class DataManager:
 
         new_path = get_preset_path(self.active_group.name, name)
         logger.info('Copy "%s" to "%s"', self.active_preset.path, new_path)
-        self._active_preset.path = new_path
+        self.active_preset.path = new_path
         self.save()
         self._send_group()
         self._send_preset()
@@ -450,13 +451,19 @@ class DataManager:
 
     def start_injecting(self) -> bool:
         """start injecting the active preset for the active group"""
+        if not self.active_preset or not self.active_group:
+            raise DataManagementError("cannot start injection: preset is not set")
+
         self._daemon.set_config_dir(self._config.get_dir())
+        assert self.active_preset.name is not None
         return self._daemon.start_injecting(
             self.active_group.key, self.active_preset.name
         )
 
     def get_state(self) -> int:
         """the state of the injector"""
+        if not self.active_group:
+            raise DataManagementError("cannot read state: group is not set")
         return self._daemon.get_state(self.active_group.key)
 
     def refresh_service_config_path(self):

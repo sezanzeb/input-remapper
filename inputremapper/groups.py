@@ -29,13 +29,13 @@ Those groups are what is being displayed in the device dropdown, and
 events are being read from all of the paths of an individual group in the gui
 and the injector.
 """
-
+import os
 import re
 import multiprocessing
 import threading
 import asyncio
 import json
-from typing import List
+from typing import List, Optional
 
 import evdev
 from evdev.ecodes import (
@@ -250,7 +250,9 @@ class _Group:
         presets folder structure
     """
 
-    def __init__(self, paths: List[str], names: List[str], types: List[str], key: str):
+    def __init__(
+        self, paths: List[os.PathLike], names: List[str], types: List[str], key: str
+    ):
         """Specify a group
 
         Parameters
@@ -495,7 +497,7 @@ class _Groups:
         key: str = None,
         path: str = None,
         include_inputremapper: bool = False,
-    ) -> _Group:
+    ) -> Optional[_Group]:
         """Find a group that matches the provided parameters.
 
         Parameters

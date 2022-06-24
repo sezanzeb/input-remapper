@@ -100,7 +100,7 @@ class MessageBroker:
     def get_caller(position: int = 3) -> Tuple[str, int]:
         """extract a file and line from current stack and format for logging"""
         tb = traceback.extract_stack(limit=position)[0]
-        return os.path.basename(tb.filename), tb.lineno
+        return os.path.basename(tb.filename), tb.lineno or 0
 
     def unsubscribe(self, listener: MessageListener) -> None:
         for listeners in self._listeners.values():

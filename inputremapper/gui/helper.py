@@ -49,6 +49,7 @@ from inputremapper.configs.mapping import UIMapping
 from inputremapper.event_combination import EventCombination
 from inputremapper.injection.event_reader import EventReader
 from inputremapper.injection.mapping_handlers.abs_to_btn_handler import AbsToBtnHandler
+from inputremapper.injection.mapping_handlers.mapping_handler import MappingHandler
 from inputremapper.injection.mapping_handlers.rel_to_btn_handler import RelToBtnHandler
 from inputremapper.input_event import InputEvent, EventActions
 from inputremapper.ipc.pipe import Pipe
@@ -188,47 +189,51 @@ class RootHelper:
 
             for ev_code in capabilities.get(EV_ABS) or ():
                 # positive direction
-                mapping1 = UIMapping(
-                    event_combination=EventCombination((EV_ABS, ev_code, 30))
+                mapping = UIMapping(
+                    event_combination=EventCombination((EV_ABS, ev_code, 30)),
+                    target_uinput="keyboard",
                 )
-                handler1 = AbsToBtnHandler(
-                    EventCombination((EV_ABS, ev_code, 30)), mapping1
+                handler: MappingHandler = AbsToBtnHandler(
+                    EventCombination((EV_ABS, ev_code, 30)), mapping
                 )
-                handler1.set_sub_handler(ForwardToUIHandler(self._results))
-                context.callbacks[(EV_ABS, ev_code)].append(handler1.notify)
+                handler.set_sub_handler(ForwardToUIHandler(self._results))
+                context.callbacks[(EV_ABS, ev_code)].append(handler.notify)
 
                 # negative direction
-                mapping1 = UIMapping(
-                    event_combination=EventCombination((EV_ABS, ev_code, -30))
+                mapping = UIMapping(
+                    event_combination=EventCombination((EV_ABS, ev_code, -30)),
+                    target_uinput="keyboard",
                 )
-                handler1 = AbsToBtnHandler(
-                    EventCombination((EV_ABS, ev_code, -30)), mapping1
+                handler = AbsToBtnHandler(
+                    EventCombination((EV_ABS, ev_code, -30)), mapping
                 )
-                handler1.set_sub_handler(ForwardToUIHandler(self._results))
-                context.callbacks[(EV_ABS, ev_code)].append(handler1.notify)
+                handler.set_sub_handler(ForwardToUIHandler(self._results))
+                context.callbacks[(EV_ABS, ev_code)].append(handler.notify)
 
             for ev_code in capabilities.get(EV_REL) or ():
                 # positive direction
-                mapping1 = UIMapping(
+                mapping = UIMapping(
                     event_combination=EventCombination((EV_REL, ev_code, 1)),
+                    target_uinput="keyboard",
                     release_timeout=0.3,
                 )
-                handler1 = RelToBtnHandler(
-                    EventCombination((EV_REL, ev_code, 1)), mapping1
+                handler = RelToBtnHandler(
+                    EventCombination((EV_REL, ev_code, 1)), mapping
                 )
-                handler1.set_sub_handler(ForwardToUIHandler(self._results))
-                context.callbacks[(EV_REL, ev_code)].append(handler1.notify)
+                handler.set_sub_handler(ForwardToUIHandler(self._results))
+                context.callbacks[(EV_REL, ev_code)].append(handler.notify)
 
                 # negative direction
-                mapping1 = UIMapping(
+                mapping = UIMapping(
                     event_combination=EventCombination((EV_REL, ev_code, -1)),
+                    target_uinput="keyboard",
                     release_timeout=0.3,
                 )
-                handler1 = RelToBtnHandler(
-                    EventCombination((EV_REL, ev_code, -1)), mapping1
+                handler = RelToBtnHandler(
+                    EventCombination((EV_REL, ev_code, -1)), mapping
                 )
-                handler1.set_sub_handler(ForwardToUIHandler(self._results))
-                context.callbacks[(EV_REL, ev_code)].append(handler1.notify)
+                handler.set_sub_handler(ForwardToUIHandler(self._results))
+                context.callbacks[(EV_REL, ev_code)].append(handler.notify)
 
         return context
 

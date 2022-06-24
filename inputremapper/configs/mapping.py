@@ -30,8 +30,9 @@ from pydantic import (
     ValidationError,
     PositiveFloat,
     VERSION,
+    BaseConfig,
 )
-from typing import Optional, Callable, Tuple, Dict, Any
+from typing import Optional, Callable, Tuple, Dict, Any, TypeVar
 
 import pkg_resources
 
@@ -51,7 +52,6 @@ needs_workaround = pkg_resources.parse_version(
 ) < pkg_resources.parse_version("1.7.1")
 
 
-# TODO: in python 3.11 inherit enum.StrEnum
 class KnownUinput(str, enum.Enum):
     keyboard = "keyboard"
     mouse = "mouse"
@@ -61,9 +61,10 @@ class KnownUinput(str, enum.Enum):
 CombinationChangedCallback = Optional[
     Callable[[EventCombination, EventCombination], None]
 ]
+MappingModel = TypeVar("MappingModel", bound="Mapping")
 
 
-class Cfg:
+class Cfg(BaseConfig):
     validate_assignment = True
     use_enum_values = True
     underscore_attrs_are_private = True
@@ -97,7 +98,7 @@ class Mapping(BaseModel):
     release_combination_keys: bool = True
 
     # macro settings
-    macro_key_sleep_ms: conint(ge=0) = 0
+    macro_key_sleep_ms: conint(ge=0) = 0  # type: ignore
 
     # Optional attributes for mapping Axis to Axis
     # The deadzone of the input axis
@@ -159,12 +160,9 @@ class Mapping(BaseModel):
 
     if needs_workaround:
         # https://github.com/samuelcolvin/pydantic/issues/1383
-        def copy(self, *args, **kwargs) -> Mapping:
-            try:
-                kwargs.pop("deep")
-            except KeyError:
-                pass
-            copy = super(Mapping, self).copy(*args, deep=True, **kwargs)
+        def copy(self: MappingModel, *args, **kwargs) -> MappingModel:
+            kwargs["deep"] = True
+            copy = super(Mapping, self).copy(*args, **kwargs)
             object.__setattr__(copy, "_combination_changed", self._combination_changed)
             return copy
 
@@ -385,15 +383,12 @@ class UIMapping(Mapping):
 
         return dict_
 
-    def copy(self, *args, **kwargs) -> UIMapping:
+    def copy(self: MappingModel, *args, **kwargs) -> MappingModel:
         # we always need a deep copy otherwise the _cache of the copy will
         # point to the same address
-        try:
-            kwargs.pop("deep")
-        except KeyError:
-            pass
-
-        copy = super().copy(*args, deep=True, **kwargs)
+        kwargs["deep"] = True
+        # seems to be related: https://github.com/python/mypy/issues/9282
+        copy = super().copy(*args, **kwargs)  # type: ignore
         object.__setattr__(copy, "_combination_changed", self._combination_changed)
         return copy
 
@@ -434,9 +429,6 @@ class UIMapping(Mapping):
 class MappingData(UIMapping):
     Config = ImmutableCfg
     message_type = MessageType.mapping  # allow this to be sent over the MessageBroker
-
-    def __init__(self, **data):
-        super(MappingData, self).__init__(**data)
 
     def __str__(self):
         return str(self.dict(exclude_defaults=True))

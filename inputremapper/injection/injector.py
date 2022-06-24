@@ -26,10 +26,11 @@ import sys
 import asyncio
 import time
 import multiprocessing
+from multiprocessing.connection import Connection
 
 import evdev
 
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 from inputremapper.configs.preset import Preset
 
@@ -93,7 +94,7 @@ class Injector(multiprocessing.Process):
     preset: Preset
     context: Optional[Context]
     _state: int
-    _msg_pipe: multiprocessing.Pipe
+    _msg_pipe: Tuple[Connection, Connection]
     _consumer_controls: List[EventReader]
     _stop_event: asyncio.Event
 
@@ -119,9 +120,8 @@ class Injector(multiprocessing.Process):
         self.context = None  # only needed inside the injection process
 
         self._consumer_controls = []
-        self._stop_event = None
 
-        super().__init__(name=group)
+        super().__init__(name=group.key)
 
     """Functions to interact with the running process"""
 

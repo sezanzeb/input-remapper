@@ -30,6 +30,7 @@ import sys
 import json
 import time
 import atexit
+from pathlib import PurePath
 from typing import Protocol, Dict
 
 from pydbus import SystemBus
@@ -335,7 +336,7 @@ class Daemon:
             This path contains config.json, xmodmap.json and the
             presets directory
         """
-        config_path = os.path.join(config_dir, "config.json")
+        config_path = PurePath(config_dir, "config.json")
         if not os.path.exists(config_path):
             logger.error('"%s" does not exist', config_path)
             return
@@ -464,7 +465,7 @@ class Daemon:
             logger.error('Could not find group "%s"', group_key)
             return False
 
-        preset_path = os.path.join(
+        preset_path = PurePath(
             self.config_dir,
             "presets",
             group.name,

@@ -28,7 +28,7 @@ import copy
 import shutil
 import pkg_resources
 
-from typing import List
+from typing import List, Generator, Iterator, Tuple, Dict
 from pathlib import Path
 from evdev.ecodes import (
     EV_KEY,
@@ -55,13 +55,12 @@ from inputremapper.injection.global_uinputs import global_uinputs
 from inputremapper.injection.macros.parse import is_this_a_macro
 
 
-def all_presets() -> List[os.PathLike]:
+def all_presets() -> Iterator[Tuple[os.PathLike, Dict]]:
     """Get all presets for all groups as list."""
     if not os.path.exists(get_preset_path()):
-        return []
+        return
 
     preset_path = Path(get_preset_path())
-    presets = []
     for folder in preset_path.iterdir():
         if not folder.is_dir():
             continue
@@ -77,8 +76,6 @@ def all_presets() -> List[os.PathLike]:
             except json.decoder.JSONDecodeError:
                 logger.warning('Invalid json format in preset "%s"', preset)
                 continue
-
-    return presets
 
 
 def config_version():

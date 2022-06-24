@@ -24,7 +24,7 @@
 see gui.helper.helper
 """
 import traceback
-from typing import Optional, List, Generator, Dict
+from typing import Optional, List, Generator, Dict, Tuple, Set
 
 import evdev
 from gi.repository import GLib
@@ -134,10 +134,10 @@ class Reader:
         it accumulates them into EventCombinations and sends those on the message_broker.
         it will stop once all keys or inputs are released.
         """
-        active = set()
-        accumulator = []
+        active: Set[Tuple[int, int]] = set()
+        accumulator: List[InputEvent] = []
         while True:
-            event = yield
+            event: InputEvent = yield
             if event.type_and_code in BLACKLISTED_EVENTS:
                 continue
 
