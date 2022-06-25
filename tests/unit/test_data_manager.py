@@ -794,5 +794,8 @@ class TestDataManager(unittest.TestCase):
                 "gamepad": self.uinputs.get_uinput("gamepad").capabilities(),
                 "keyboard": self.uinputs.get_uinput("keyboard").capabilities(),
                 "mouse": self.uinputs.get_uinput("mouse").capabilities(),
+                "keyboard + mouse": self.uinputs.get_uinput(
+                    "keyboard + mouse"
+                ).capabilities(),
             },
         )

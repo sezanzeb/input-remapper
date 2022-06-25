@@ -191,7 +191,8 @@ class TestController(unittest.TestCase):
         message_broker.subscribe(MessageType.uinputs, f)
         message_broker.signal(MessageType.init)
         self.assertEqual(
-            ["keyboard", "gamepad", "mouse"], list(calls[-1].uinputs.keys())
+            ["keyboard", "gamepad", "mouse", "keyboard + mouse"],
+            list(calls[-1].uinputs.keys()),
         )
 
     def test_on_init_should_provide_groups(self):
