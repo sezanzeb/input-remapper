@@ -9,44 +9,10 @@ All pull requests will at some point require unittests (see below for more
 info), the code coverage may only be improved, not decreased. It also has to
 be mostly compliant with pylint.
 
-## Roadmap
-
-- [x] show a dropdown to select valid devices
-- [x] creating presets per device
-- [x] renaming presets
-- [x] show a mapping table
-- [x] make that list extend itself automatically
-- [x] read keycodes with evdev
-- [x] inject the mapping
-- [x] keep the system defaults for unmapped buttons
-- [x] button to stop mapping and using system defaults
-- [x] highlight changes and alert before discarding unsaved changes
-- [x] automatically load presets on login for plugged in devices
-- [x] make sure it works on wayland
-- [x] support timed macros, maybe using some sort of syntax
-- [x] add to the AUR, provide .deb file
-- [x] basic support for gamepads as keyboard and mouse combi
-- [x] executing a macro forever while holding down the key using `h`
-- [x] mapping D-Pad directions as buttons
-- [x] configure joystick purpose and speed via the GUI
-- [x] support for non-GUI TTY environments with a command to stop and start
-- [x] start the daemon in such a way to not require usermod
-- [x] mapping a combined button press to a key
-- [x] add "disable" as mapping option
-- [x] mapping joystick directions as buttons, making it act like a D-Pad
-- [x] mapping mouse wheel events to buttons
-- [x] automatically load presets when devices get plugged in after login (udev)
-- [x] map keys using a `modifier + modifier + ... + key` syntax
-- [x] inject in an additional device instead to avoid clashing capabilities
-- [x] don't run any GUI code as root for improved wayland compatibility
-- [x] advanced multiline editor
-- [ ] plugin support
-- [x] getting it into the official debian repo
-
 ## Tests
 
 ```bash
-sudo pip install coverage
+pip install coverage --user
 pylint inputremapper --extension-pkg-whitelist=evdev
 sudo pkill -f input-remapper
 sudo pip install . && coverage run tests/test.py
@@ -88,12 +54,15 @@ ssh/login into a debian/ubuntu environment
 ./scripts/build.sh
 ```
 
-This will generate `input-remapper/deb/input-remapper-1.5.0-beta.deb`
+This will generate `input-remapper/deb/input-remapper-1.6.0-beta.deb`
 
 ## Badges
 
 ```bash
-sudo pip install git+https://github.com/jongracecox/anybadge
+sudo pip install anybadge pylint
+sudo pkill -f input-remapper
+sudo pip install .
+# the source path in .coveragerc might be incorrect for your system
 ./scripts/badges.sh
 ```
 
@@ -175,99 +144,6 @@ The helper provides information to the user interface like events and
 devices. Communicates via pipes. It should not exceed the lifetime of
 the user interface because it exposes all the input events. Starts via
 pkexec.
-
-## Unsupported Devices
-
-Either open up an issue or debug it yourself and make a pull request.
-
-You will need to work with the devices capabilities. You can get those using
-
-```
-sudo evtest
-```
-
-**It tries or doesn't try to map ABS_X/ABS_Y**
-
-Is the device a gamepad? Does the GUI show joystick configurations?
-
-- if yes, no: adjust `is_gamepad` to loosen up the constraints
-- if no, yes: adjust `is_gamepad` to tighten up the constraints
-
-Try to do it in such a way that other devices won't break. Also see 
-readme/capabilities.md
-
-**It won't offer mapping a button**
-
-If `sudo evtest` shows an event for the button, try to
-modify `should_map_as_btn`. If not, the button cannot be mapped.
-
-## How it works
-
-It uses evdev. The links below point to the 1.0.0 release, line numbers might have changed in the current main.
-
-1. It grabs a device (e.g. /dev/input/event3), so that the key events won't
-   reach X11/Wayland anymore
-   [source](https://github.com/sezanzeb/input-remapper/blob/1.0.0/inputremapper/injection/injector.py#L197)
-2. Reads the events from it (`evtest` can do it, you can also do
-   `cat /dev/input/event3` which yields binary stuff)
-   [source](https://github.com/sezanzeb/input-remapper/blob/1.0.0/inputremapper/injection/injector.py#L443)
-3. Looks up the mapping if that event maps to anything
-   [source](https://github.com/sezanzeb/input-remapper/blob/1.0.0/inputremapper/injection/keycode_mapper.py#L434)
-4. Injects the output event in a new device that input-remapper created (another
-   new path in /dev/input, device name is suffixed by "mapped")
-   [source](https://github.com/sezanzeb/input-remapper/blob/1.0.0/inputremapper/injection/keycode_mapper.py#L242),
-   [new device](https://github.com/sezanzeb/input-remapper/blob/1.0.0/inputremapper/injection/injector.py#L356)
-5. Forwards any events that should not be mapped to anything in another new
-   device (device name is suffixed by "forwarded")
-   [source](https://github.com/sezanzeb/input-remapper/blob/1.0.0/inputremapper/injection/keycode_mapper.py#L247),
-   [new device](https://github.com/sezanzeb/input-remapper/blob/1.0.0/inputremapper/injection/injector.py#L367)
-
-This stuff is going on as a daemon in the background
-
-## How combinations are injected
-
-Here is an example how combinations are injected:
-
-```
-a -> x
-a + b -> y
-```
-
-1. the `a` button is pressed with your finger, `a 1` arrives via evdev in input-remapper
-2. input-remapper maps it to `x 1` and injects it
-3. `b` is pressed with your finger, `b 1` arrives via evdev in input-remapper
-4. input-remapper sees a triggered combination and maps it to `y 1` and injects it
-5. `b` is released, `b 0` arrives at input-remapper
-6. input-remapper remembered that it was the trigger for a combination and maps that release to `y 0` and injects it
-7. the `a` button is released, `a 0` arrives at input-remapper
-8. input-remapper maps that release to `x 0` and injects it
-
-## Multiple sources, single UInput
-
-https://github.com/sezanzeb/input-remapper/blob/1.0.0/inputremapper/injection/injector.py
-
-This "Injector" process is the only process that injects if input-remapper is used for a single device.
-
-Inside `run` of that process there is an iteration of `for source in sources:`,
-which runs an event loop for each possible source for events.
-Each event loop has convenient access to the "context" to read some globals.
-
-Consider this typical example of device capabilities:
-
-- "BrandXY Mouse" -> EV_REL, BTN_LEFT, ...
-- "BrandXY Mouse" -> KEY_1, KEY_2
-
-There are two devices called "BrandXY Mouse", and they report different events.
-Input-remapper creates a single uinput to inject all mapped events to. For example
-
-- BTN_LEFT -> a
-- KEY_2 -> b
-
-so you end up with a new device with the following capabilities
-
-"input-remapper BrandXY Mouse mapped" -> KEY_A, KEY_B
-
-while input-remapper reads from multiple InputDevices it injects the mapped letters into a single UInput.
 
 ## Resources
 

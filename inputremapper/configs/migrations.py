@@ -49,7 +49,7 @@ from inputremapper.configs.mapping import Mapping, UIMapping
 from inputremapper.event_combination import EventCombination
 from inputremapper.logger import logger, VERSION, IS_BETA
 from inputremapper.user import HOME
-from inputremapper.configs.paths import get_preset_path, mkdir, CONFIG_PATH
+from inputremapper.configs.paths import get_preset_path, mkdir, CONFIG_PATH, remove
 from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.injection.global_uinputs import global_uinputs
 from inputremapper.injection.macros.parse import is_this_a_macro
@@ -166,7 +166,7 @@ def _rename_config(new_path=CONFIG_PATH):
 
 
 def _find_target(symbol):
-    """Try to find a uinput with the required capabilities for the symbol."""
+    """try to find a uinput with the required capabilities for the symbol."""
     capabilities = {EV_KEY: set(), EV_REL: set()}
 
     if is_this_a_macro(symbol):
@@ -188,7 +188,7 @@ def _find_target(symbol):
 
 
 def _add_target():
-    """Add the target field to each preset mapping."""
+    """add the target field to each preset mapping"""
     for preset, preset_dict in all_presets():
         if "mapping" not in preset_dict.keys():
             continue
@@ -394,6 +394,18 @@ def _copy_to_beta():
         shutil.copytree(regular_path, CONFIG_PATH)
 
 
+def _remove_logs():
+    """We will try to rely on journalctl for this in the future."""
+    try:
+        remove(f"{HOME}/.log/input-remapper")
+        remove("/var/log/input-remapper")
+        remove("/var/log/input-remapper-control")
+    except Exception as error:
+        logger.debug("Failed to remove deprecated logfiles: %s", str(error))
+        # this migration is not important. Continue
+        pass
+
+
 def migrate():
     """Migrate config files to the current release."""
 
@@ -416,7 +428,10 @@ def migrate():
     if v < pkg_resources.parse_version("1.4.1"):
         _otherwise_to_else()
 
-    if v < pkg_resources.parse_version("1.5.0-beta"):
+    if v < pkg_resources.parse_version("1.5.0"):
+        _remove_logs()
+
+    if v < pkg_resources.parse_version("1.6.0-beta"):
         _convert_to_individual_mappings()
 
     # add new migrations here

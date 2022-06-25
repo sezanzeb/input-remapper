@@ -25,7 +25,7 @@
 import sys
 from argparse import ArgumentParser
 
-from inputremapper.logger import update_verbosity, log_info, add_filehandler
+from inputremapper.logger import update_verbosity, log_info
 
 
 if __name__ == '__main__':
@@ -46,7 +46,6 @@ if __name__ == '__main__':
     # import input-remapper stuff after setting the log verbosity
     from inputremapper.daemon import Daemon
 
-    add_filehandler()
     if not options.hide_info:
         log_info('input-remapper-service')
 

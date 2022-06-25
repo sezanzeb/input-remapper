@@ -55,9 +55,9 @@ if_tap(
 For regular combinations on only single devices it is not required to
 configure macros. See [readme/usage.md](usage.md#combinations).
 
-**Keyboard** `space` `set(foo, 1).hold(space).set(foo, 0)`
+**Keyboard** `space` `set(foo, 1).hold_keys(space).set(foo, 0)`
 
-**Mouse** `middle` `if_eq($foo, 1, hold(a), hold(BTN_MIDDLE))`
+**Mouse** `middle` `if_eq($foo, 1, hold_keys(a), hold_keys(BTN_MIDDLE))`
 
 Apply both presets. If you press space on your keyboard, it will write a
 space exactly like it used to. If you hold down space and press the middle
@@ -66,7 +66,7 @@ middle button of your mouse it behaves like a regular middle mouse button.
 
 **Explanation**
 
-`hold(space)` makes your key work exactly like if it was mapped to "space".
+`hold_keys(space)` makes your key work exactly like if it was mapped to "space".
 It will inject a key-down event if you press it, does nothing as long you
 hold your key down, and injects a key-up event after releasing.
 `set(foo, 1).set(foo, 0)` sets "foo" to 1 and then sets "foo" to 0.

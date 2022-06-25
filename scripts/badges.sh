@@ -6,6 +6,7 @@ coverage_badge() {
   coverage run tests/test.py
   coverage combine
   rating=$(coverage report | tail -n 1 | ack "\d+%" -o | ack "\d+" -o)
+  echo "coverage rating: $rating"
   rm readme/coverage.svg
   anybadge -l coverage -v $rating -f readme/coverage.svg coverage
 
@@ -19,7 +20,7 @@ pylint_badge() {
   rm readme/pylint.svg
   anybadge -l pylint -v $rating -f readme/pylint.svg pylint
 
-  echo $rating
+  echo "pylint rating: $rating"
   echo "pylint badge created"
 }
 
