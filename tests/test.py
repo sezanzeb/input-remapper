@@ -442,13 +442,12 @@ class InputDevice:
 
     def read_one(self):
         """Read one event or none if nothing available."""
-        if pending_events.get(self.group_key) is None:
+        if not pending_events.get(self.group_key):
             return None
 
-        if len(pending_events[self.group_key]) == 0:
+        if not pending_events[self.group_key][1].poll():
             return None
 
-        time.sleep(EVENT_READ_TIMEOUT)
         try:
             event = pending_events[self.group_key][1].recv()
         except (UnpicklingError, EOFError):

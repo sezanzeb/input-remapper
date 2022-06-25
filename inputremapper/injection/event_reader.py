@@ -76,29 +76,25 @@ class EventReader:
         self.stop_event = stop_event
 
     async def read_loop(self) -> AsyncIterator[evdev.InputEvent]:
-        iterator = self._source.async_read_loop().__aiter__()
         stop_task = asyncio.Task(self.stop_event.wait())
-
-        while not self.stop_event.is_set():
-            ev_task = asyncio.Task(iterator.__anext__())
-            done, pending = await asyncio.wait(
-                {ev_task, stop_task},
+        loop = asyncio.get_running_loop()
+        events_ready = asyncio.Event()
+        loop.add_reader(self._source.fileno(), events_ready.set)
+        while True:
+            _, pending = await asyncio.wait(
+                {stop_task, events_ready.wait()},
                 return_when=asyncio.FIRST_COMPLETED,
             )
-            if ev_task in done:
-                try:
-                    yield ev_task.result()
-                except StopAsyncIteration:
-                    # this will happen in tests
-                    logger.debug("unexpected stop of read loop")
-                    stop_task.cancel()
-                    return
+            if stop_task.done():
+                for task in pending:
+                    task.cancel()
+                loop.remove_reader(self._source.fileno())
+                logger.debug("read loop stopped")
+                return
 
-        logger.debug("read loop stopped")
-        try:
-            ev_task.cancel()
-        except NameError:
-            pass
+            events_ready.clear()
+            while event := self._source.read_one():
+                yield event
 
     def send_to_handlers(self, event: InputEvent) -> bool:
         """Send the event to callback."""
