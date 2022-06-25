@@ -179,7 +179,7 @@ class Preset(Generic[MappingModel]):
             logger.debug("unable to save preset without a path set Preset.path first")
             return
 
-        touch(str(self.path))  # touch expects a string, not a Posix path
+        touch(self.path)
         if not self.has_unsaved_changes():
             logger.debug("Not saving unchanged preset")
             return

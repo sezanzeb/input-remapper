@@ -175,7 +175,11 @@ class Controller:
         # self.load_mapping(...) # not needed because we have on_preset_changed()
 
     def rename_preset(self, new_name: str):
-        if not new_name or new_name == self.data_manager.active_preset.name:
+        if (
+            not self.data_manager.active_preset
+            or not new_name
+            or new_name == self.data_manager.active_preset.name
+        ):
             return
         name = self.data_manager.get_available_preset_name(new_name)
         self.data_manager.rename_preset(name)

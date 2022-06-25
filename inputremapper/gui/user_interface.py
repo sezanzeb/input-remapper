@@ -254,9 +254,9 @@ class UserInterface:
             self.about.hide()
 
     def on_gtk_rename_clicked(self, *_):
-        name_input = self.get("preset_name_input")
-        self.controller.rename_preset(name_input.get_text())
-        name_input.set_text("")
+        name = self.get("preset_name_input").get_text()
+        self.controller.rename_preset(name)
+        self.get("preset_name_input").set_text("")
 
     def on_gtk_preset_name_input_return(self, _, event: Gdk.EventKey):
         logger.debug(event)

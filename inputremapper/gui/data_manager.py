@@ -192,7 +192,7 @@ class DataManager:
         path, _ = max(paths, key=lambda x: x[1])
         return split_all(path)[-2]
 
-    def get_newest_preset_name(self) -> Optional[Name]:
+    def get_newest_preset_name(self) -> Name:
         """preset name of the most recently modified preset in the active group"""
         if not self.active_group:
             raise DataManagementError("cannot find newest preset: Group is not set")

@@ -14,6 +14,7 @@ from typing import (
     Optional,
     List,
     NamedTuple,
+    Any,
 )
 
 from inputremapper.event_combination import EventCombination
@@ -47,7 +48,7 @@ class Message(Protocol):
 
 
 # useful type aliases
-MessageListener = Callable[[Message], None]
+MessageListener = Callable[[Any], None]
 Capabilities = Dict[int, List]
 Name = str
 Key = str
