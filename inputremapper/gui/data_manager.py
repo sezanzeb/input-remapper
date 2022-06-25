@@ -25,12 +25,13 @@ from typing import Optional, List, Tuple
 
 from inputremapper.configs.global_config import GlobalConfig
 from inputremapper.configs.mapping import UIMapping, MappingData
-from inputremapper.configs.preset import Preset
 from inputremapper.configs.paths import get_preset_path, mkdir, split_all
+from inputremapper.configs.preset import Preset
 from inputremapper.daemon import DaemonProxy
 from inputremapper.event_combination import EventCombination
 from inputremapper.exceptions import DataManagementError
 from inputremapper.groups import _Group
+from inputremapper.gui.gettext import _
 from inputremapper.gui.message_broker import (
     MessageBroker,
     GroupData,
@@ -40,8 +41,7 @@ from inputremapper.gui.message_broker import (
     UInputsData,
 )
 from inputremapper.gui.reader import Reader
-from inputremapper.gui.utils import CTX_MAPPING, CTX_APPLY
-from inputremapper.gui.gettext import _
+from inputremapper.gui.utils import CTX_MAPPING
 from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.logger import logger
 

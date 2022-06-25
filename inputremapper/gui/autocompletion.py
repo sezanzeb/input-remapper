@@ -25,22 +25,20 @@
 import re
 from typing import Dict, Optional, List
 
-from gi.repository import Gdk, Gtk, GLib, GObject
 from evdev.ecodes import EV_KEY
+from gi.repository import Gdk, Gtk, GLib, GObject
 
 from inputremapper.configs.mapping import MappingData
 from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.gui.components import CodeEditor
 from inputremapper.gui.message_broker import MessageBroker, MessageType, UInputsData
+from inputremapper.gui.utils import debounce
 from inputremapper.injection.macros.parse import (
     FUNCTIONS,
     get_macro_argument_names,
     remove_comments,
 )
-from inputremapper.injection.global_uinputs import FrontendUInput
 from inputremapper.logger import logger
-from inputremapper.gui.utils import debounce
-
 
 # no deprecated shorthand function-names
 FUNCTION_NAMES = [name for name in FUNCTIONS.keys() if len(name) > 1]

@@ -21,15 +21,15 @@
 
 """Migration functions"""
 
+import copy
+import json
 import os
 import re
-import json
-import copy
 import shutil
-import pkg_resources
-
-from typing import List, Generator, Iterator, Tuple, Dict
 from pathlib import Path
+from typing import Iterator, Tuple, Dict
+
+import pkg_resources
 from evdev.ecodes import (
     EV_KEY,
     EV_ABS,
@@ -44,15 +44,15 @@ from evdev.ecodes import (
     REL_HWHEEL_HI_RES,
 )
 
-from inputremapper.configs.preset import Preset
 from inputremapper.configs.mapping import Mapping, UIMapping
-from inputremapper.event_combination import EventCombination
-from inputremapper.logger import logger, VERSION, IS_BETA
-from inputremapper.user import HOME
 from inputremapper.configs.paths import get_preset_path, mkdir, CONFIG_PATH, remove
+from inputremapper.configs.preset import Preset
 from inputremapper.configs.system_mapping import system_mapping
+from inputremapper.event_combination import EventCombination
 from inputremapper.injection.global_uinputs import global_uinputs
 from inputremapper.injection.macros.parse import is_this_a_macro
+from inputremapper.logger import logger, VERSION, IS_BETA
+from inputremapper.user import HOME
 
 
 def all_presets() -> Iterator[Tuple[os.PathLike, Dict]]:

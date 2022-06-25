@@ -21,26 +21,23 @@
 
 """Keeps injecting keycodes in the background based on the preset."""
 
+import asyncio
+import multiprocessing
 import os
 import sys
-import asyncio
 import time
-import multiprocessing
 from multiprocessing.connection import Connection
+from typing import Dict, List, Optional, Tuple
 
 import evdev
 
-from typing import Dict, List, Optional, Tuple
-
 from inputremapper.configs.preset import Preset
-
-from inputremapper.logger import logger
-from inputremapper.groups import classify, GAMEPAD, _Group
-from inputremapper.injection.context import Context
-from inputremapper.injection.numlock import set_numlock, is_numlock_on, ensure_numlock
-from inputremapper.injection.event_reader import EventReader
 from inputremapper.event_combination import EventCombination
-
+from inputremapper.groups import _Group
+from inputremapper.injection.context import Context
+from inputremapper.injection.event_reader import EventReader
+from inputremapper.injection.numlock import set_numlock, is_numlock_on, ensure_numlock
+from inputremapper.logger import logger
 
 CapabilitiesDict = Dict[int, List[int]]
 GroupSources = List[evdev.InputDevice]

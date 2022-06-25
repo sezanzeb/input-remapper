@@ -17,23 +17,21 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
-import asyncio
+
+from typing import Dict, Tuple
 
 import evdev
-
-from typing import Dict, Tuple, Optional, List
-from evdev.ecodes import EV_ABS, EV_REL, EV_KEY
+from evdev.ecodes import EV_ABS, EV_REL
 
 from inputremapper.configs.mapping import Mapping
-from inputremapper.input_event import InputEvent, EventActions
 from inputremapper.event_combination import EventCombination
-from inputremapper.logger import logger
 from inputremapper.injection.mapping_handlers.mapping_handler import (
-    ContextProtocol,
     MappingHandler,
     InputEventHandler,
     HandlerEnums,
 )
+from inputremapper.input_event import InputEvent
+from inputremapper.logger import logger
 
 
 class CombinationHandler(MappingHandler):

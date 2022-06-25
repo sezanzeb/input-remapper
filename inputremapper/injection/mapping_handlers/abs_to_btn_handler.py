@@ -19,19 +19,18 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
-import evdev
 from typing import Tuple
 
+import evdev
 from evdev.ecodes import EV_ABS
 
 from inputremapper.configs.mapping import Mapping
 from inputremapper.event_combination import EventCombination
-from inputremapper.logger import logger
-from inputremapper.input_event import InputEvent, EventActions
 from inputremapper.injection.mapping_handlers.mapping_handler import (
     MappingHandler,
     InputEventHandler,
 )
+from inputremapper.input_event import InputEvent, EventActions
 
 
 class AbsToBtnHandler(MappingHandler):

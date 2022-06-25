@@ -23,13 +23,19 @@
 
 see gui.helper.helper
 """
-import traceback
 from typing import Optional, List, Generator, Dict, Tuple, Set
 
 import evdev
 from gi.repository import GLib
 
 from inputremapper.event_combination import EventCombination
+from inputremapper.groups import _Groups, _Group
+from inputremapper.gui.helper import (
+    MSG_EVENT,
+    MSG_GROUPS,
+    CMD_TERMINATE,
+    CMD_REFRESH_GROUPS,
+)
 from inputremapper.gui.message_broker import (
     MessageBroker,
     GroupsData,
@@ -37,17 +43,9 @@ from inputremapper.gui.message_broker import (
     CombinationRecorded,
 )
 from inputremapper.input_event import InputEvent
-from inputremapper.logger import logger
-from inputremapper.groups import _Groups, _Group
 from inputremapper.ipc.pipe import Pipe
-from inputremapper.gui.helper import (
-    MSG_EVENT,
-    MSG_GROUPS,
-    CMD_TERMINATE,
-    CMD_REFRESH_GROUPS,
-)
+from inputremapper.logger import logger
 from inputremapper.user import USER
-
 
 BLACKLISTED_EVENTS = [(1, evdev.ecodes.BTN_TOOL_DOUBLETAP)]
 RecordingGenerator = Generator[None, InputEvent, None]

@@ -21,16 +21,15 @@ from typing import Dict, Tuple
 
 import evdev
 
-from inputremapper.logger import logger
 from inputremapper.configs.mapping import Mapping
 from inputremapper.event_combination import EventCombination
 from inputremapper.injection.mapping_handlers.mapping_handler import (
     MappingHandler,
-    ContextProtocol,
     HandlerEnums,
     InputEventHandler,
 )
 from inputremapper.input_event import InputEvent, EventActions
+from inputremapper.logger import logger
 
 
 class AxisSwitchHandler(MappingHandler):

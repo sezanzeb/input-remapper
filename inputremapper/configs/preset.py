@@ -22,10 +22,7 @@ from __future__ import annotations
 """Contains and manages mappings."""
 
 import os
-import re
 import json
-import glob
-import time
 
 from typing import (
     Tuple,
@@ -35,8 +32,6 @@ from typing import (
     Iterator,
     Type,
     Iterable,
-    Any,
-    Union,
     TypeVar,
     Generic,
     overload,
@@ -44,12 +39,11 @@ from typing import (
 
 from pydantic import ValidationError
 from inputremapper.logger import logger
-from inputremapper.configs.mapping import Mapping, UIMapping
-from inputremapper.configs.paths import touch, get_preset_path, mkdir
+from inputremapper.configs.mapping import Mapping
+from inputremapper.configs.paths import touch
 
 from inputremapper.input_event import InputEvent
 from inputremapper.event_combination import EventCombination
-from inputremapper.groups import groups
 
 
 def common_data(list1: Iterable, list2: Iterable) -> List:

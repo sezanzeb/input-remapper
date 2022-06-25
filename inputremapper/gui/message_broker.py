@@ -1,7 +1,7 @@
 import os.path
 import re
 import traceback
-from collections import defaultdict, deque, namedtuple
+from collections import defaultdict, deque
 from dataclasses import dataclass
 from enum import Enum
 from typing import (
@@ -13,7 +13,6 @@ from typing import (
     Deque,
     Optional,
     List,
-    NamedTuple,
     Any,
 )
 

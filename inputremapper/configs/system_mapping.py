@@ -19,13 +19,14 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 """Make the systems/environments mapping of keys and codes accessible."""
 
-import re
 import json
+import re
 import subprocess
+
 import evdev
 
-from inputremapper.logger import logger
 from inputremapper.configs.paths import get_config_path, touch
+from inputremapper.logger import logger
 from inputremapper.utils import is_service
 
 DISABLE_NAME = "disable"

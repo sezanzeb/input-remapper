@@ -22,13 +22,13 @@
 """Get stuff from /usr/share/input-remapper, depending on the prefix."""
 
 
-import sys
 import os
 import site
+import sys
+
 import pkg_resources
 
 from inputremapper.logger import logger
-
 
 logged = False
 

@@ -18,20 +18,19 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-from typing import Tuple, Dict, Optional
+from typing import Tuple, Dict
 
 from inputremapper import exceptions
 from inputremapper.configs.mapping import Mapping
 from inputremapper.event_combination import EventCombination
 from inputremapper.exceptions import MappingParsingError
+from inputremapper.injection.global_uinputs import global_uinputs
 from inputremapper.injection.mapping_handlers.mapping_handler import (
     MappingHandler,
-    ContextProtocol,
     HandlerEnums,
 )
-from inputremapper.logger import logger
 from inputremapper.input_event import InputEvent
-from inputremapper.injection.global_uinputs import global_uinputs
+from inputremapper.logger import logger
 
 
 class KeyHandler(MappingHandler):

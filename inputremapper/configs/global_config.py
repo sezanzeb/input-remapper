@@ -19,13 +19,13 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 """Store which presets should be enabled for which device on login."""
 
-import os
-import json
 import copy
+import json
+import os
 
+from inputremapper.configs.base_config import ConfigBase, INITIAL_CONFIG
 from inputremapper.configs.paths import CONFIG_PATH, USER, touch
 from inputremapper.logger import logger
-from inputremapper.configs.base_config import ConfigBase, INITIAL_CONFIG
 
 MOUSE = "mouse"
 WHEEL = "wheel"

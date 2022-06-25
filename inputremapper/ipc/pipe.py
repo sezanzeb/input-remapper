@@ -36,13 +36,13 @@ Beware that pipes read any available messages,
 even those written by themselves.
 """
 import asyncio
+import json
 import os
 import time
-import json
 from typing import Optional, AsyncIterator
 
-from inputremapper.logger import logger
 from inputremapper.configs.paths import mkdir, chown
+from inputremapper.logger import logger
 
 
 class Pipe:

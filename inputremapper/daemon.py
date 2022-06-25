@@ -25,16 +25,16 @@ https://github.com/LEW21/pydbus/tree/cc407c8b1d25b7e28a6d661a29f9e661b1c9b964/ex
 """
 
 
+import atexit
+import json
 import os
 import sys
-import json
 import time
-import atexit
 from pathlib import PurePath
 from typing import Protocol, Dict
 
-from pydbus import SystemBus
 import gi
+from pydbus import SystemBus
 
 gi.require_version("GLib", "2.0")
 from gi.repository import GLib

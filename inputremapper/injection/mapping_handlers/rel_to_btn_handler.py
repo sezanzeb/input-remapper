@@ -18,23 +18,20 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-import evdev
-import time
 import asyncio
+import time
 
-from typing import Optional, Dict
+import evdev
 from evdev.ecodes import EV_REL
 
 from inputremapper.configs.mapping import Mapping
-from inputremapper.logger import logger
-from inputremapper.input_event import InputEvent, EventActions
 from inputremapper.event_combination import EventCombination
 from inputremapper.injection.mapping_handlers.mapping_handler import (
     MappingHandler,
-    ContextProtocol,
-    HandlerEnums,
     InputEventHandler,
 )
+from inputremapper.input_event import InputEvent, EventActions
+from inputremapper.logger import logger
 
 
 class RelToBtnHandler(MappingHandler):

@@ -20,20 +20,17 @@
 
 
 """Stores injection-process wide information."""
-import asyncio
 from collections import defaultdict
-from typing import Awaitable, List, Dict, Tuple, Protocol, Set, Callable, TypeVar, Type
-
-import evdev
+from typing import List, Dict, Tuple, Set
 
 from inputremapper.configs.preset import Preset
-from inputremapper.input_event import InputEvent
-from inputremapper.injection.mapping_handlers.mapping_parser import parse_mappings
 from inputremapper.injection.mapping_handlers.mapping_handler import (
     InputEventHandler,
     EventListener,
     NotifyCallback,
 )
+from inputremapper.injection.mapping_handlers.mapping_parser import parse_mappings
+from inputremapper.input_event import InputEvent
 
 
 class Context:

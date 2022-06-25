@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from typing import List, Tuple, Optional, Dict, Any
+from typing import List, Optional, Dict
 
-from gi.repository import Gtk, GtkSource, Gdk, GLib, GObject
+from gi.repository import Gtk, GtkSource, Gdk
 
 from inputremapper.configs.mapping import MappingData
 from inputremapper.configs.system_mapping import SystemMapping
@@ -24,13 +24,11 @@ from inputremapper.gui.message_broker import (
     GroupData,
     UInputsData,
     PresetData,
-    CombinationRecorded,
     StatusData,
     CombinationUpdate,
 )
 from inputremapper.gui.utils import HandlerDisabled, CTX_ERROR, CTX_MAPPING, CTX_WARNING
 from inputremapper.logger import logger
-
 
 Capabilities = Dict[int, List]
 

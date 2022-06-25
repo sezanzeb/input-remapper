@@ -18,21 +18,20 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 import asyncio
-
-from typing import Dict, Optional
+from typing import Dict
 
 from inputremapper.configs.mapping import Mapping
 from inputremapper.event_combination import EventCombination
-from inputremapper.logger import logger
-from inputremapper.input_event import InputEvent
 from inputremapper.injection.global_uinputs import global_uinputs
-from inputremapper.injection.macros.parse import parse
 from inputremapper.injection.macros.macro import Macro
+from inputremapper.injection.macros.parse import parse
 from inputremapper.injection.mapping_handlers.mapping_handler import (
     ContextProtocol,
     MappingHandler,
     HandlerEnums,
 )
+from inputremapper.input_event import InputEvent
+from inputremapper.logger import logger
 
 
 class MacroHandler(MappingHandler):

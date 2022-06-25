@@ -29,8 +29,8 @@ from inputremapper.injection.mapping_handlers.mapping_handler import (
     EventListener,
     NotifyCallback,
 )
+from inputremapper.input_event import InputEvent
 from inputremapper.logger import logger
-from inputremapper.input_event import InputEvent, EventActions
 
 
 class Context(Protocol):

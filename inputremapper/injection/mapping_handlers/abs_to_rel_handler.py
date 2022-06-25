@@ -17,14 +17,13 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
-from functools import partial
-
-import evdev
-import time
 import asyncio
 import math
+import time
+from functools import partial
+from typing import Dict, Tuple, Optional
 
-from typing import Dict, Tuple, Optional, List, Union
+import evdev
 from evdev.ecodes import (
     EV_REL,
     EV_ABS,
@@ -35,16 +34,16 @@ from evdev.ecodes import (
 )
 
 from inputremapper.configs.mapping import Mapping
+from inputremapper.event_combination import EventCombination
+from inputremapper.injection.global_uinputs import global_uinputs
+from inputremapper.injection.mapping_handlers.axis_transform import Transformation
 from inputremapper.injection.mapping_handlers.mapping_handler import (
     MappingHandler,
     HandlerEnums,
     InputEventHandler,
 )
-from inputremapper.injection.mapping_handlers.axis_transform import Transformation
-from inputremapper.logger import logger
-from inputremapper.event_combination import EventCombination
 from inputremapper.input_event import InputEvent, EventActions
-from inputremapper.injection.global_uinputs import global_uinputs
+from inputremapper.logger import logger
 
 
 async def _run_normal(self) -> None:

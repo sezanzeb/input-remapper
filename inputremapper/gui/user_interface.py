@@ -20,10 +20,13 @@
 
 
 """User Interface."""
-from collections import defaultdict
 from typing import Dict, Callable
+
 from gi.repository import Gtk, GtkSource, Gdk, GObject
 
+from inputremapper.configs.data import get_data_path
+from inputremapper.configs.system_mapping import system_mapping
+from inputremapper.gui.autocompletion import Autocompletion
 from inputremapper.gui.components import (
     DeviceSelection,
     PresetSelection,
@@ -35,15 +38,11 @@ from inputremapper.gui.components import (
     AutoloadToggle,
 )
 from inputremapper.gui.controller import Controller
-from inputremapper.gui.message_broker import MessageBroker, MessageType, GroupData
-from inputremapper.gui.autocompletion import Autocompletion
-from inputremapper.configs.data import get_data_path
-from inputremapper.configs.system_mapping import system_mapping
-from inputremapper.logger import logger, COMMIT_HASH, VERSION, EVDEV_VERSION
+from inputremapper.gui.message_broker import MessageBroker, MessageType
 from inputremapper.gui.utils import (
     gtk_iteration,
 )
-
+from inputremapper.logger import logger, COMMIT_HASH, VERSION, EVDEV_VERSION
 
 # TODO add to .deb and AUR dependencies
 # https://cjenkins.wordpress.com/2012/05/08/use-gtksourceview-widget-in-glade/

@@ -61,15 +61,14 @@ Step 2 and 3:
 from __future__ import annotations
 
 import enum
-
-import evdev
 from typing import Dict, Protocol, Set, Optional, List
 
+import evdev
+
 from inputremapper.configs.mapping import Mapping
-from inputremapper.configs.preset import Preset
+from inputremapper.event_combination import EventCombination
 from inputremapper.exceptions import MappingParsingError
 from inputremapper.input_event import InputEvent, EventActions
-from inputremapper.event_combination import EventCombination
 from inputremapper.logger import logger
 
 

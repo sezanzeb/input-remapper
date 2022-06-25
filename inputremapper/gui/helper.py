@@ -34,10 +34,9 @@ closes.
 from __future__ import annotations
 
 import asyncio
-import sys
 import multiprocessing
 import subprocess
-import traceback
+import sys
 from collections import defaultdict
 from typing import Set, List
 
@@ -47,6 +46,7 @@ from evdev.ecodes import EV_KEY, EV_ABS
 
 from inputremapper.configs.mapping import UIMapping
 from inputremapper.event_combination import EventCombination
+from inputremapper.groups import _Groups, _Group
 from inputremapper.injection.event_reader import EventReader
 from inputremapper.injection.mapping_handlers.abs_to_btn_handler import AbsToBtnHandler
 from inputremapper.injection.mapping_handlers.mapping_handler import MappingHandler
@@ -54,9 +54,7 @@ from inputremapper.injection.mapping_handlers.rel_to_btn_handler import RelToBtn
 from inputremapper.input_event import InputEvent, EventActions
 from inputremapper.ipc.pipe import Pipe
 from inputremapper.logger import logger
-from inputremapper.groups import _Groups, _Group
 from inputremapper.user import USER
-
 
 # received by the helper
 CMD_TERMINATE = "terminate"

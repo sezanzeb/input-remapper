@@ -18,7 +18,11 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
+
 import enum
+from typing import Optional, Callable, Tuple, Dict, Any, TypeVar
+
+import pkg_resources
 from evdev.ecodes import EV_KEY, EV_ABS, EV_REL
 from pydantic import (
     BaseModel,
@@ -32,12 +36,9 @@ from pydantic import (
     VERSION,
     BaseConfig,
 )
-from typing import Optional, Callable, Tuple, Dict, Any, TypeVar
 
-import pkg_resources
-
-from inputremapper.event_combination import EventCombination
 from inputremapper.configs.system_mapping import system_mapping
+from inputremapper.event_combination import EventCombination
 from inputremapper.exceptions import MacroParsingError
 from inputremapper.gui.message_broker import MessageType
 from inputremapper.injection.macros.parse import is_this_a_macro, parse
@@ -45,7 +46,6 @@ from inputremapper.input_event import EventActions
 
 # TODO: remove pydantic VERSION check as soon as we no longer support
 #  Ubuntu 20.04 and with it the ainchant pydantic 1.2
-from inputremapper.logger import logger
 
 needs_workaround = pkg_resources.parse_version(
     str(VERSION)

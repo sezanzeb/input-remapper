@@ -21,10 +21,9 @@ from typing import Dict, Union
 
 import evdev
 
-import inputremapper.utils
 import inputremapper.exceptions
+import inputremapper.utils
 from inputremapper.logger import logger
-
 
 DEV_NAME = "input-remapper"
 DEFAULT_UINPUTS = {

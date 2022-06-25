@@ -20,39 +20,40 @@
 """Functions to assemble the mapping handlers"""
 
 from typing import Dict, List, Type, Optional, Set, Iterable, Sized, Tuple, Sequence
+
 from evdev.ecodes import (
     EV_KEY,
     EV_ABS,
     EV_REL,
 )
 
-from inputremapper.exceptions import MappingParsingError
-from inputremapper.logger import logger
+from inputremapper.configs.mapping import Mapping
+from inputremapper.configs.preset import Preset
+from inputremapper.configs.system_mapping import DISABLE_CODE, DISABLE_NAME
 from inputremapper.event_combination import EventCombination
-from inputremapper.input_event import InputEvent
+from inputremapper.exceptions import MappingParsingError
+from inputremapper.injection.macros.parse import is_this_a_macro
+from inputremapper.injection.mapping_handlers.abs_to_btn_handler import AbsToBtnHandler
+from inputremapper.injection.mapping_handlers.abs_to_rel_handler import AbsToRelHandler
+from inputremapper.injection.mapping_handlers.axis_switch_handler import (
+    AxisSwitchHandler,
+)
+from inputremapper.injection.mapping_handlers.combination_handler import (
+    CombinationHandler,
+)
+from inputremapper.injection.mapping_handlers.hierarchy_handler import HierarchyHandler
+from inputremapper.injection.mapping_handlers.key_handler import KeyHandler
+from inputremapper.injection.mapping_handlers.macro_handler import MacroHandler
 from inputremapper.injection.mapping_handlers.mapping_handler import (
     HandlerEnums,
     MappingHandler,
     ContextProtocol,
     InputEventHandler,
 )
-from inputremapper.injection.mapping_handlers.combination_handler import (
-    CombinationHandler,
-)
-from inputremapper.injection.mapping_handlers.hierarchy_handler import HierarchyHandler
-from inputremapper.injection.mapping_handlers.abs_to_btn_handler import AbsToBtnHandler
-from inputremapper.injection.mapping_handlers.rel_to_btn_handler import RelToBtnHandler
-from inputremapper.injection.mapping_handlers.abs_to_rel_handler import AbsToRelHandler
-from inputremapper.injection.mapping_handlers.macro_handler import MacroHandler
-from inputremapper.injection.mapping_handlers.key_handler import KeyHandler
-from inputremapper.injection.mapping_handlers.axis_switch_handler import (
-    AxisSwitchHandler,
-)
 from inputremapper.injection.mapping_handlers.null_handler import NullHandler
-from inputremapper.injection.macros.parse import is_this_a_macro
-from inputremapper.configs.preset import Preset
-from inputremapper.configs.mapping import Mapping
-from inputremapper.configs.system_mapping import DISABLE_CODE, DISABLE_NAME
+from inputremapper.injection.mapping_handlers.rel_to_btn_handler import RelToBtnHandler
+from inputremapper.input_event import InputEvent
+from inputremapper.logger import logger
 
 EventPipelines = Dict[InputEvent, List[InputEventHandler]]
 

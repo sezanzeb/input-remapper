@@ -20,11 +20,26 @@
 from __future__ import annotations  # needed for the TYPE_CHECKING import
 
 import re
-import traceback
-from typing import TYPE_CHECKING, Optional, List, Tuple
+from typing import TYPE_CHECKING, Optional
 
 from gi.repository import Gtk, GLib
 
+from inputremapper.configs.mapping import MappingData, UIMapping
+from inputremapper.event_combination import EventCombination
+from inputremapper.exceptions import DataManagementError
+from inputremapper.gui.data_manager import DataManager, DEFAULT_PRESET_NAME
+from inputremapper.gui.gettext import _
+from inputremapper.gui.helper import is_helper_running
+from inputremapper.gui.utils import CTX_APPLY, CTX_ERROR, CTX_WARNING
+from inputremapper.injection.injector import (
+    RUNNING,
+    FAILED,
+    NO_GRAB,
+    UPGRADE_EVDEV,
+    STARTING,
+)
+from inputremapper.input_event import InputEvent
+from inputremapper.logger import logger
 from .message_broker import (
     MessageBroker,
     MessageType,
@@ -32,16 +47,6 @@ from .message_broker import (
     StatusData,
     CombinationRecorded,
 )
-from .gettext import _
-from .data_manager import DataManager, DEFAULT_PRESET_NAME
-from .helper import is_helper_running
-from ..configs.mapping import MappingData, UIMapping
-from ..event_combination import EventCombination
-from ..exceptions import DataManagementError
-from ..injection.injector import RUNNING, FAILED, NO_GRAB, UPGRADE_EVDEV, STARTING
-from ..input_event import InputEvent
-from ..logger import logger
-from .utils import CTX_SAVE, CTX_APPLY, CTX_KEYCODE, CTX_ERROR, CTX_WARNING, CTX_MAPPING
 
 if TYPE_CHECKING:
     # avoids gtk import error in tests

@@ -29,12 +29,12 @@ Those groups are what is being displayed in the device dropdown, and
 events are being read from all of the paths of an individual group in the gui
 and the injector.
 """
-import os
-import re
-import multiprocessing
-import threading
 import asyncio
 import json
+import multiprocessing
+import os
+import re
+import threading
 from typing import List, Optional
 
 import evdev
@@ -52,8 +52,8 @@ from evdev.ecodes import (
     REL_WHEEL,
 )
 
-from inputremapper.logger import logger
 from inputremapper.configs.paths import get_preset_path
+from inputremapper.logger import logger
 
 TABLET_KEYS = [
     evdev.ecodes.BTN_STYLUS,

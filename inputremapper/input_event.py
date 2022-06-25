@@ -20,14 +20,12 @@
 from __future__ import annotations
 
 import enum
-
-import evdev
-
 from dataclasses import dataclass
 from typing import Tuple, Union, Sequence, Callable
 
-from inputremapper.exceptions import InputEventCreationError
+import evdev
 
+from inputremapper.exceptions import InputEventCreationError
 
 InputEventValidationType = Union[
     str,
