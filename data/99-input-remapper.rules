@@ -7,4 +7,4 @@
 #   journalctl -f
 # to get available variables:
 #   udevadm monitor --environment --udev --subsystem input
-ACTION=="add", SUBSYSTEM=="input", RUN+="/bin/input-remapper-control --command autoload --device $env{DEVNAME}"
+ACTION=="add", SUBSYSTEM=="input", ENV{ID_PATH}!="platform-sound", RUN+="/bin/input-remapper-control --command autoload --device $env{DEVNAME}"
