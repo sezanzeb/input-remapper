@@ -25,7 +25,9 @@ from typing import Dict, Callable
 from gi.repository import Gtk, GtkSource, Gdk, GObject
 
 from inputremapper.configs.data import get_data_path
+from inputremapper.configs.mapping import MappingData
 from inputremapper.configs.system_mapping import system_mapping
+from inputremapper.event_combination import EventCombination
 from inputremapper.gui.autocompletion import Autocompletion
 from inputremapper.gui.components import (
     DeviceSelection,
@@ -43,6 +45,7 @@ from inputremapper.gui.utils import (
     gtk_iteration,
 )
 from inputremapper.logger import logger, COMMIT_HASH, VERSION, EVDEV_VERSION
+from inputremapper.gui.gettext import _
 
 # TODO add to .deb and AUR dependencies
 # https://cjenkins.wordpress.com/2012/05/08/use-gtksourceview-widget-in-glade/
@@ -89,6 +92,7 @@ class UserInterface:
         self._create_dialogs()
         self._create_components()
         self._connect_gtk_signals()
+        self._connect_message_listener()
 
         self.window.show()
         # hide everything until stuff is populated
@@ -184,6 +188,11 @@ class UserInterface:
         )
         self.connect_shortcuts()
 
+    def _connect_message_listener(self):
+        self.message_broker.subscribe(
+            MessageType.mapping, self.update_combination_label
+        )
+
     def set_injection_status(self, status: bool):
         """update the ui to reflect the status of the injector"""
         stop_injection_btn: Gtk.Button = self.get("apply_system_layout")
@@ -230,6 +239,19 @@ class UserInterface:
         """Close the window"""
         logger.debug("Closing window")
         self.window.hide()
+
+    def update_combination_label(self, mapping: MappingData):
+        """listens for mapping and updates the combination label"""
+        label: Gtk.Label = self.get("combination-label")
+        if mapping.event_combination.beautify() == label.get_label():
+            return
+        if mapping.event_combination == EventCombination.empty_combination():
+            label.set_opacity(0.4)
+            label.set_label(_("no input configured"))
+            return
+
+        label.set_opacity(1)
+        label.set_label(mapping.event_combination.beautify())
 
     def on_gtk_shortcut(self, _, event: Gdk.EventKey):
         """execute shortcuts"""

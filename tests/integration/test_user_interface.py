@@ -1,5 +1,6 @@
 import unittest
 from unittest.mock import MagicMock, patch
+from evdev.ecodes import EV_KEY, KEY_A
 
 import gi
 
@@ -12,6 +13,8 @@ from inputremapper.gui.utils import gtk_iteration
 from tests.test import quick_cleanup
 from inputremapper.gui.message_broker import MessageBroker, MessageType
 from inputremapper.gui.user_interface import UserInterface
+from inputremapper.configs.mapping import MappingData
+from inputremapper.event_combination import EventCombination
 
 
 class TestUserInterface(unittest.TestCase):
@@ -84,3 +87,21 @@ class TestUserInterface(unittest.TestCase):
         self.user_interface.window.emit("key-press-event", event)
         gtk_iteration()
         mock.assert_called_once()
+
+    def test_combination_label_shows_combination(self):
+        self.message_broker.send(
+            MappingData(
+                event_combination=EventCombination((EV_KEY, KEY_A, 1)), name="foo"
+            )
+        )
+        gtk_iteration()
+        label: Gtk.Label = self.user_interface.get("combination-label")
+        self.assertEqual(label.get_text(), "a")
+        self.assertEqual(label.get_opacity(), 1)
+
+    def test_combination_label_shows_text_when_empty_mapping(self):
+        self.message_broker.send(MappingData())
+        gtk_iteration()
+        label: Gtk.Label = self.user_interface.get("combination-label")
+        self.assertEqual(label.get_text(), "no input configured")
+        self.assertEqual(label.get_opacity(), 0.4)

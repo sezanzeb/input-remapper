@@ -215,7 +215,7 @@ class MappingListBox:
         self.message_broker.subscribe(MessageType.mapping, self.on_mapping_changed)
 
     def on_preset_changed(self, data: PresetData):
-        self.gui.forall(self.gui.remove)
+        self.gui.forall(lambda label: (label.cleanup(), self.gui.remove(label)))
         if not data.mappings:
             return
 
@@ -260,18 +260,44 @@ class SelectionLabel(Gtk.ListBoxRow):
         self.combination = combination
         self._name = name
 
-        self.label = Gtk.Label()
         # Make the child label widget break lines, important for
         # long combinations
+        self.label = Gtk.Label()
         self.label.set_line_wrap(True)
         self.label.set_line_wrap_mode(Gtk.WrapMode.WORD)
         self.label.set_justify(Gtk.Justification.CENTER)
         # set the name or combination.beautify as label
         self.label.set_label(self.name)
-        self.add(self.label)
 
+        # button to edit the name of the mapping
+        self.edit_btn = Gtk.Button()
+        self.edit_btn.set_relief(Gtk.ReliefStyle.NONE)
+        self.edit_btn.set_image(
+            Gtk.Image.new_from_stock(Gtk.STOCK_EDIT, Gtk.IconSize.MENU)
+        )
+        self.edit_btn.set_tooltip_text(_("Change Mapping Name"))
+        self.edit_btn.set_margin_top(4)
+        self.edit_btn.set_margin_bottom(4)
+        self.edit_btn.connect("clicked", self.set_edit_mode)
+
+        self.name_input = Gtk.Entry()
+        self.name_input.set_text(self.name)
+        self.name_input.set_width_chars(12)
+        self.name_input.set_margin_top(4)
+        self.name_input.set_margin_bottom(4)
+        self.name_input.connect("activate", self.on_gtk_rename_finished)
+
+        self.box = Gtk.Box(Gtk.Orientation.HORIZONTAL)
+        self.box.set_center_widget(self.label)
+        self.box.add(self.edit_btn)
+        self.box.set_child_packing(self.edit_btn, False, False, 4, Gtk.PackType.END)
+
+        self.add(self.box)
         self.attach_to_events()
         self.show_all()
+
+        self.box.add(self.name_input)
+        self.box.set_child_packing(self.name_input, False, True, 4, Gtk.PackType.START)
 
     def __repr__(self):
         return f"SelectionLabel for {self.combination} as {self.name}"
@@ -291,15 +317,46 @@ class SelectionLabel(Gtk.ListBoxRow):
             MessageType.combination_update, self.on_combination_update
         )
 
+    def set_not_selected(self):
+        self.edit_btn.hide()
+        self.name_input.hide()
+        self.label.show()
+
+    def set_selected(self):
+        self.label.set_label(self.name)
+        self.edit_btn.show()
+        self.name_input.hide()
+        self.label.show()
+
+    def set_edit_mode(self, *_):
+        self.name_input.set_text(self.name)
+        self.label.hide()
+        self.name_input.show()
+        self.controller.set_focus(self.name_input)
+
     def on_mapping_changed(self, mapping: MappingData):
         if mapping.event_combination != self.combination:
+            self.set_not_selected()
             return
         self._name = mapping.name
-        self.label.set_label(self.name)
+        self.set_selected()
 
     def on_combination_update(self, data: CombinationUpdate):
-        if data.old_combination == self.combination:
+        if data.old_combination == self.combination and self.is_selected():
             self.combination = data.new_combination
+
+    def on_gtk_rename_finished(self, *_):
+        name = self.name_input.get_text()
+        if name.lower().strip() == self.combination.beautify().lower():
+            name = ""
+        self._name = name
+        self.set_selected()
+        self.controller.update_mapping(name=name)
+
+    def cleanup(self) -> None:
+        """clean up message listeners. Execute before removing from gui!"""
+        self.message_broker.unsubscribe(self.on_mapping_changed)
+        self.message_broker.unsubscribe(self.on_combination_update)
 
 
 class CodeEditor:

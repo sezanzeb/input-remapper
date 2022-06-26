@@ -1058,7 +1058,7 @@ class TestGui(GuiTestBase):
         self.assertIs(row, self.selection_label_listbox.get_row_at_index(0))
 
         self.controller.update_mapping(name="foo")
-        self.throttle(50)  # it takes a bit to resort the labels
+        self.throttle(100)  # it takes a bit to resort the labels
         self.assertEqual(row.label.get_text(), "foo")
         self.assertIs(row, self.selection_label_listbox.get_row_at_index(1))
 
