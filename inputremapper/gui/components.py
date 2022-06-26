@@ -215,7 +215,7 @@ class MappingListBox:
         self.message_broker.subscribe(MessageType.mapping, self.on_mapping_changed)
 
     def on_preset_changed(self, data: PresetData):
-        self.gui.forall(lambda label: (label.cleanup(), self.gui.remove(label)))
+        self.gui.foreach(lambda label: (label.cleanup(), self.gui.remove(label)))
         if not data.mappings:
             return
 
@@ -291,13 +291,15 @@ class SelectionLabel(Gtk.ListBoxRow):
         self.box.set_center_widget(self.label)
         self.box.add(self.edit_btn)
         self.box.set_child_packing(self.edit_btn, False, False, 4, Gtk.PackType.END)
+        self.box.add(self.name_input)
+        self.box.set_child_packing(self.name_input, False, True, 4, Gtk.PackType.START)
 
         self.add(self.box)
         self.attach_to_events()
         self.show_all()
 
-        self.box.add(self.name_input)
-        self.box.set_child_packing(self.name_input, False, True, 4, Gtk.PackType.START)
+        self.edit_btn.hide()
+        self.name_input.hide()
 
     def __repr__(self):
         return f"SelectionLabel for {self.combination} as {self.name}"
@@ -317,12 +319,12 @@ class SelectionLabel(Gtk.ListBoxRow):
             MessageType.combination_update, self.on_combination_update
         )
 
-    def set_not_selected(self):
+    def _set_not_selected(self):
         self.edit_btn.hide()
         self.name_input.hide()
         self.label.show()
 
-    def set_selected(self):
+    def _set_selected(self):
         self.label.set_label(self.name)
         self.edit_btn.show()
         self.name_input.hide()
@@ -336,10 +338,10 @@ class SelectionLabel(Gtk.ListBoxRow):
 
     def on_mapping_changed(self, mapping: MappingData):
         if mapping.event_combination != self.combination:
-            self.set_not_selected()
+            self._set_not_selected()
             return
         self._name = mapping.name
-        self.set_selected()
+        self._set_selected()
 
     def on_combination_update(self, data: CombinationUpdate):
         if data.old_combination == self.combination and self.is_selected():
@@ -350,7 +352,7 @@ class SelectionLabel(Gtk.ListBoxRow):
         if name.lower().strip() == self.combination.beautify().lower():
             name = ""
         self._name = name
-        self.set_selected()
+        self._set_selected()
         self.controller.update_mapping(name=name)
 
     def cleanup(self) -> None:

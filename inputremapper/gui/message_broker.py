@@ -133,7 +133,7 @@ class GroupData:
 class PresetData:
     message_type = MessageType.preset
     name: Optional[Name]
-    mappings: Optional[Tuple[Tuple[Name, EventCombination]]]
+    mappings: Optional[Tuple[Tuple[Name, EventCombination], ...]]
     autoload: bool = False
 
 
