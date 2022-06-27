@@ -55,6 +55,7 @@ from evdev.ecodes import (
     REL_X,
     ABS_X,
     ABS_RZ,
+    REL_HWHEEL,
 )
 
 from inputremapper.gui.reader import Reader
@@ -130,7 +131,7 @@ class TestReader(unittest.TestCase):
         push_events("Foo Device 2", [new_event(EV_ABS, ABS_HAT0X, 1)])
 
         # relative axis events should be released automagically after 0.3s
-        push_events("Foo Device 2", [new_event(EV_REL, REL_X, 1)])
+        push_events("Foo Device 2", [new_event(EV_REL, REL_X, 5)])
         time.sleep(0.2)
         # read all pending events. Having a glib mainloop would be better,
         # as it would call read automatically periodically
@@ -160,7 +161,7 @@ class TestReader(unittest.TestCase):
         self.reader.set_group(self.groups.find(key="Foo Device 2"))
         self.reader.start_recorder()
 
-        push_events("Foo Device 2", [new_event(EV_REL, REL_X, -1)])
+        push_events("Foo Device 2", [new_event(EV_REL, REL_X, -5)])
         time.sleep(0.1)
         self.reader._read()
 
@@ -173,6 +174,40 @@ class TestReader(unittest.TestCase):
         time.sleep(0.3)
         self.reader._read()
         self.assertEqual([Signal(MessageType.recording_finished)], l2.calls)
+
+    def test_should_not_trigger_at_low_speed_for_rel_axis(self):
+        l1 = Listener()
+        self.message_broker.subscribe(MessageType.combination_recorded, l1)
+        self.create_helper()
+        self.reader.set_group(self.groups.find(key="Foo Device 2"))
+        self.reader.start_recorder()
+
+        push_events("Foo Device 2", [new_event(EV_REL, REL_X, -1)])
+        time.sleep(0.1)
+        self.reader._read()
+        self.assertEqual(0, len(l1.calls))
+
+    def test_should_trigger_wheel_at_low_speed(self):
+        l1 = Listener()
+        self.message_broker.subscribe(MessageType.combination_recorded, l1)
+        self.create_helper()
+        self.reader.set_group(self.groups.find(key="Foo Device 2"))
+        self.reader.start_recorder()
+
+        push_events(
+            "Foo Device 2",
+            [new_event(EV_REL, REL_WHEEL, -1), new_event(EV_REL, REL_HWHEEL, 1)],
+        )
+        time.sleep(0.1)
+        self.reader._read()
+
+        self.assertEqual(
+            [
+                CombinationRecorded(EventCombination.from_string("2,8,-1")),
+                CombinationRecorded(EventCombination.from_string("2,8,-1+2,6,1")),
+            ],
+            l1.calls,
+        )
 
     def test_wont_emit_the_same_combination_twice(self):
         l1 = Listener()

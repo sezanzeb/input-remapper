@@ -41,8 +41,7 @@ from collections import defaultdict
 from typing import Set, List
 
 import evdev
-from evdev._ecodes import EV_REL
-from evdev.ecodes import EV_KEY, EV_ABS
+from evdev.ecodes import EV_KEY, EV_ABS, EV_REL, REL_HWHEEL, REL_WHEEL
 
 from inputremapper.configs.mapping import UIMapping
 from inputremapper.event_combination import EventCombination
@@ -82,6 +81,14 @@ class RootHelper:
     Commands are either numbers for generic commands,
     or strings to start listening on a specific device.
     """
+
+    # the speed threshold at which relative axis are considered moving
+    # and will be sent as "pressed" to the frontend.
+    # We want to allow some mouse movement before we record it as an input
+    rel_speed = defaultdict(lambda: 3)
+    # wheel events usually don't produce values higher than 1
+    rel_speed[REL_WHEEL] = 1
+    rel_speed[REL_HWHEEL] = 1
 
     def __init__(self, groups: _Groups):
         """Construct the helper and initialize its sockets."""
@@ -211,24 +218,30 @@ class RootHelper:
             for ev_code in capabilities.get(EV_REL) or ():
                 # positive direction
                 mapping = UIMapping(
-                    event_combination=EventCombination((EV_REL, ev_code, 1)),
+                    event_combination=EventCombination(
+                        (EV_REL, ev_code, self.rel_speed[ev_code])
+                    ),
                     target_uinput="keyboard",
                     release_timeout=0.3,
                 )
                 handler = RelToBtnHandler(
-                    EventCombination((EV_REL, ev_code, 1)), mapping
+                    EventCombination((EV_REL, ev_code, self.rel_speed[ev_code])),
+                    mapping,
                 )
                 handler.set_sub_handler(ForwardToUIHandler(self._results))
                 context.callbacks[(EV_REL, ev_code)].append(handler.notify)
 
                 # negative direction
                 mapping = UIMapping(
-                    event_combination=EventCombination((EV_REL, ev_code, -1)),
+                    event_combination=EventCombination(
+                        (EV_REL, ev_code, -self.rel_speed[ev_code])
+                    ),
                     target_uinput="keyboard",
                     release_timeout=0.3,
                 )
                 handler = RelToBtnHandler(
-                    EventCombination((EV_REL, ev_code, -1)), mapping
+                    EventCombination((EV_REL, ev_code, -self.rel_speed[ev_code])),
+                    mapping,
                 )
                 handler.set_sub_handler(ForwardToUIHandler(self._results))
                 context.callbacks[(EV_REL, ev_code)].append(handler.notify)
