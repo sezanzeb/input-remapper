@@ -89,6 +89,7 @@ class UserInterface:
         self.window: Gtk.Window = self.get("window")
         self.confirm_delete_dialog: Gtk.MessageDialog = self.get("confirm-delete")
         self.about: Gtk.Window = self.get("about-dialog")
+        self.combination_editor: Gtk.Dialog = self.get("combination-editor")
 
         self._create_dialogs()
         self._create_components()
@@ -189,6 +190,21 @@ class UserInterface:
         )
         self.get("delete-mapping").connect(
             "clicked", lambda *_: self.controller.delete_mapping()
+        )
+        self.combination_editor.connect(
+            # it only takes self as argument, but delete-events provides more
+            # probably a gtk bug
+            "delete-event",
+            lambda dialog, *_: Gtk.Widget.hide_on_delete(dialog),
+        )
+        self.get("edit-combination-btn").connect(
+            "clicked", lambda *_: self.combination_editor.show()
+        )
+        self.get("combination-editor-confirm-btn").connect(
+            "clicked", lambda *_: self.combination_editor.hide()
+        )
+        self.get("combination-editor-abort-btn").connect(
+            "clicked", lambda *_: self.combination_editor.hide()
         )
         self.connect_shortcuts()
 

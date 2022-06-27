@@ -34,11 +34,6 @@
     <property name="can-focus">False</property>
     <property name="icon-name">gtk-delete</property>
   </object>
-  <object class="GtkImage" id="edit_icon">
-    <property name="visible">True</property>
-    <property name="can-focus">False</property>
-    <property name="icon-name">input-keyboard</property>
-  </object>
   <object class="GtkImage" id="gtk-redo-icon">
     <property name="visible">True</property>
     <property name="can-focus">False</property>
@@ -67,11 +62,15 @@
     <property name="can-focus">False</property>
     <property name="icon-name">list-add</property>
   </object>
-  <object class="GtkAdjustment" id="mouse_speed_adjustment">
-    <property name="lower">2</property>
-    <property name="upper">9</property>
-    <property name="step-increment">1</property>
-    <property name="page-increment">6</property>
+  <object class="GtkImage" id="image4">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <property name="icon-name">dialog-ok</property>
+  </object>
+  <object class="GtkImage" id="image5">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <property name="icon-name">dialog-cancel</property>
   </object>
   <object class="GtkImage" id="new-icon">
     <property name="visible">True</property>
@@ -670,9 +669,8 @@ Gives your keys back their original function</property>
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkToggleButton">
+                      <object class="GtkButton" id="edit-combination-btn">
                         <property name="label" translatable="yes">Edit Input</property>
-                        <property name="name">edit-combination-toggle</property>
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
                         <property name="receives-default">True</property>
@@ -1241,10 +1239,70 @@ Macros allow multiple characters to be written with a single key-press. Informat
       </object>
     </child>
   </object>
-  <object class="GtkMessageDialog" id="confirm-delete">
+  <object class="GtkDialog" id="combination-editor">
     <property name="can-focus">False</property>
+    <property name="modal">True</property>
     <property name="window-position">center-on-parent</property>
     <property name="type-hint">dialog</property>
+    <property name="urgency-hint">True</property>
+    <property name="transient-for">window</property>
+    <property name="attached-to">window</property>
+    <child internal-child="vbox">
+      <object class="GtkBox">
+        <property name="can-focus">False</property>
+        <property name="orientation">vertical</property>
+        <property name="spacing">2</property>
+        <child internal-child="action_area">
+          <object class="GtkButtonBox">
+            <property name="can-focus">False</property>
+            <property name="layout-style">expand</property>
+            <child>
+              <object class="GtkButton" id="combination-editor-abort-btn">
+                <property name="label" translatable="yes">Abort</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="image">image5</property>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="combination-editor-confirm-btn">
+                <property name="label" translatable="yes">Confirm</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="image">image4</property>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">False</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <placeholder/>
+        </child>
+      </object>
+    </child>
+  </object>
+  <object class="GtkMessageDialog" id="confirm-delete">
+    <property name="can-focus">False</property>
+    <property name="modal">True</property>
+    <property name="window-position">center-on-parent</property>
+    <property name="type-hint">dialog</property>
+    <property name="urgency-hint">True</property>
     <property name="transient-for">window</property>
     <property name="attached-to">window</property>
     <child internal-child="vbox">
