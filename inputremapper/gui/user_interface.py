@@ -37,7 +37,8 @@ from inputremapper.gui.components import (
     CodeEditor,
     RecordingToggle,
     StatusBar,
-    AutoloadToggle,
+    AutoloadSwitch,
+    ReleaseCombinationSwitch,
 )
 from inputremapper.gui.controller import Controller
 from inputremapper.gui.message_broker import MessageBroker, MessageType
@@ -137,7 +138,10 @@ class UserInterface:
             self.get("error_status_icon"),
             self.get("warning_status_icon"),
         )
-        AutoloadToggle(message_broker, controller, self.get("preset_autoload_switch"))
+        AutoloadSwitch(message_broker, controller, self.get("preset_autoload_switch"))
+        ReleaseCombinationSwitch(
+            message_broker, controller, self.get("release-combination-switch")
+        )
 
         # code editor and autocompletion
         code_editor = CodeEditor(

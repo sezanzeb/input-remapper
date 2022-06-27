@@ -431,7 +431,7 @@ class TestGui(GuiTestBase):
         self.assertEqual(len(selection_labels), 0)
         self.assertEqual(len(self.data_manager.active_preset), 0)
         self.assertEqual(self.preset_selection.get_active_id(), "new preset")
-        self.assertEqual(self.recording_toggle.get_label(), "Record Keys")
+        self.assertEqual(self.recording_toggle.get_label(), "Record Input")
         self.assertEqual(self.get_unfiltered_symbol_input_text(), SET_KEY_FIRST)
 
     def test_initial_state(self):
@@ -545,22 +545,22 @@ class TestGui(GuiTestBase):
             self.assertEqual(file.read(), "")
 
     def test_recording_toggle_labels(self):
-        self.assertEqual(self.recording_toggle.get_label(), "Record Keys")
+        self.assertEqual(self.recording_toggle.get_label(), "Record Input")
         self.recording_toggle.set_active(True)
         gtk_iteration()
         self.assertEqual(self.recording_toggle.get_label(), "Recording ...")
         self.recording_toggle.set_active(False)
         gtk_iteration()
-        self.assertEqual(self.recording_toggle.get_label(), "Record Keys")
+        self.assertEqual(self.recording_toggle.get_label(), "Record Input")
 
     def test_recording_label_updates_on_recording_finished(self):
-        self.assertEqual(self.recording_toggle.get_label(), "Record Keys")
+        self.assertEqual(self.recording_toggle.get_label(), "Record Input")
         self.recording_toggle.set_active(True)
         gtk_iteration()
         self.assertEqual(self.recording_toggle.get_label(), "Recording ...")
         self.message_broker.signal(MessageType.recording_finished)
         gtk_iteration()
-        self.assertEqual(self.recording_toggle.get_label(), "Record Keys")
+        self.assertEqual(self.recording_toggle.get_label(), "Record Input")
         self.assertFalse(self.recording_toggle.get_active())
 
     def test_events_from_helper_arrive(self):

@@ -496,14 +496,14 @@ class RecordingToggle:
             self.update_label(_("Recording ..."))
             self.controller.start_key_recording()
         else:
-            self.update_label(_("Record Keys"))
+            self.update_label(_("Record Input"))
             self.controller.stop_key_recording()
 
     def on_recording_finished(self, __):
         logger.debug("finished recording")
         with HandlerDisabled(self.gui, self.on_gtk_toggle):
             self.gui.set_active(False)
-            self.update_label(_("Record Keys"))
+            self.update_label(_("Record Input"))
 
 
 class StatusBar:
@@ -568,7 +568,7 @@ class StatusBar:
             status_bar.set_tooltip_text(tooltip)
 
 
-class AutoloadToggle:
+class AutoloadSwitch:
     def __init__(
         self, message_broker: MessageBroker, controller: Controller, switch: Gtk.Switch
     ):
@@ -588,3 +588,25 @@ class AutoloadToggle:
 
     def on_gtk_toggle(self, *_):
         self.controller.set_autoload(self.gui.get_active())
+
+
+class ReleaseCombinationSwitch:
+    def __init__(
+        self, message_broker: MessageBroker, controller: Controller, switch: Gtk.Switch
+    ):
+        self.message_broker = message_broker
+        self.controller = controller
+        self.gui = switch
+
+        self.gui.connect("state-set", self.on_gtk_toggle)
+        self.attach_to_events()
+
+    def attach_to_events(self):
+        self.message_broker.subscribe(MessageType.mapping, self.on_mapping_changed)
+
+    def on_mapping_changed(self, data: MappingData):
+        with HandlerDisabled(self.gui, self.on_gtk_toggle):
+            self.gui.set_active(data.release_combination_keys)
+
+    def on_gtk_toggle(self, *_):
+        self.controller.update_mapping(release_combination_keys=self.gui.get_active())
