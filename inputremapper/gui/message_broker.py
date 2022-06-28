@@ -115,6 +115,23 @@ class UInputsData:
     message_type = MessageType.uinputs
     uinputs: Dict[Name, Capabilities]
 
+    def __str__(self):
+        string = f"{self.__class__.__name__}(uinputs={self.uinputs})"
+
+        # find all sequences of comma+space separated numbers, and shorten them
+        # to the first and last number
+        all_matches = [m for m in re.finditer("(\d+, )+", string)]
+        all_matches.reverse()
+        for match in all_matches:
+            start = match.start()
+            end = match.end()
+            start += string[start:].find(",") + 2
+            if start == end:
+                continue
+            string = f"{string[:start]}... {string[end:]}"
+
+        return string
+
 
 @dataclass(frozen=True)
 class GroupsData:
