@@ -28,6 +28,7 @@ from inputremapper.gui.message_broker import (
     CombinationUpdate,
 )
 from inputremapper.gui.utils import HandlerDisabled, CTX_ERROR, CTX_MAPPING, CTX_WARNING
+from inputremapper.input_event import InputEvent
 from inputremapper.logger import logger
 
 Capabilities = Dict[int, List]
@@ -71,10 +72,10 @@ class DeviceSelection:
         combobox.add_attribute(renderer_text, "text", 2)
         combobox.set_id_column(0)
 
-        self.attach_to_events()
+        self._connect_message_listener()
         combobox.connect("changed", self.on_gtk_select_device)
 
-    def attach_to_events(self):
+    def _connect_message_listener(self):
         self.message_broker.subscribe(MessageType.groups, self.on_groups_changed)
         self.message_broker.subscribe(MessageType.group, self.on_group_changed)
 
@@ -112,10 +113,10 @@ class TargetSelection:
         self.controller = controller
         self.gui = combobox
 
-        self.attach_to_events()
+        self._connect_message_listener()
         self.gui.connect("changed", self.on_gtk_target_selected)
 
-    def attach_to_events(self):
+    def _connect_message_listener(self):
         self.message_broker.subscribe(MessageType.uinputs, self.on_uinputs_changed)
         self.message_broker.subscribe(MessageType.mapping, self.on_mapping_loaded)
 
@@ -163,10 +164,10 @@ class PresetSelection:
         self.controller = controller
         self.gui = combobox
 
-        self.attach_to_events()
+        self._connect_message_listener()
         combobox.connect("changed", self.on_gtk_select_preset)
 
-    def attach_to_events(self):
+    def _connect_message_listener(self):
         self.message_broker.subscribe(MessageType.group, self.on_group_changed)
         self.message_broker.subscribe(MessageType.preset, self.on_preset_changed)
 
@@ -198,7 +199,7 @@ class MappingListBox:
         self.gui = listbox
         self.gui.set_sort_func(self.sort_func)
         self.gui.connect("row-selected", self.on_gtk_mapping_selected)
-        self.attach_to_events()
+        self._connect_message_listener()
 
     @staticmethod
     def sort_func(row1: SelectionLabel, row2: SelectionLabel) -> int:
@@ -210,7 +211,7 @@ class MappingListBox:
 
         return 0 if row1.name < row2.name else 1
 
-    def attach_to_events(self):
+    def _connect_message_listener(self):
         self.message_broker.subscribe(MessageType.preset, self.on_preset_changed)
         self.message_broker.subscribe(MessageType.mapping, self.on_mapping_changed)
 
@@ -295,7 +296,7 @@ class SelectionLabel(Gtk.ListBoxRow):
         self.box.set_child_packing(self.name_input, False, True, 4, Gtk.PackType.START)
 
         self.add(self.box)
-        self.attach_to_events()
+        self._connect_message_listener()
         self.show_all()
 
         self.edit_btn.hide()
@@ -313,7 +314,7 @@ class SelectionLabel(Gtk.ListBoxRow):
             return EMPTY_MAPPING_NAME
         return self._name or self.combination.beautify()
 
-    def attach_to_events(self):
+    def _connect_message_listener(self):
         self.message_broker.subscribe(MessageType.mapping, self.on_mapping_changed)
         self.message_broker.subscribe(
             MessageType.combination_update, self.on_combination_update
@@ -394,7 +395,7 @@ class CodeEditor:
 
         self.gui.connect("focus-out-event", self.on_gtk_focus_out)
         self.gui.get_buffer().connect("changed", self.on_gtk_changed)
-        self.attach_to_events()
+        self._connect_message_listener()
 
     @property
     def code(self) -> str:
@@ -411,7 +412,7 @@ class CodeEditor:
             buffer.set_text(code)
             self.gui.do_move_cursor(self.gui, Gtk.MovementStep.BUFFER_ENDS, -1, False)
 
-    def attach_to_events(self):
+    def _connect_message_listener(self):
         self.message_broker.subscribe(MessageType.mapping, self.on_mapping_loaded)
         self.message_broker.subscribe(
             MessageType.recording_finished, self.on_recording_finished
@@ -481,9 +482,9 @@ class RecordingToggle:
         # be recorded, instead of causing the recording to stop.
         toggle.connect("key-press-event", lambda *args: Gdk.EVENT_STOP)
 
-        self.attach_to_events()
+        self._connect_message_listener()
 
-    def attach_to_events(self):
+    def _connect_message_listener(self):
         self.message_broker.subscribe(
             MessageType.recording_finished, self.on_recording_finished
         )
@@ -521,9 +522,9 @@ class StatusBar:
         self.error_icon = error_icon
         self.warning_icon = warning_icon
 
-        self.attach_to_events()
+        self._connect_message_listener()
 
-    def attach_to_events(self):
+    def _connect_message_listener(self):
         self.message_broker.subscribe(MessageType.status, self.on_status_update)
 
     def on_status_update(self, data: StatusData):
@@ -577,9 +578,9 @@ class AutoloadSwitch:
         self.gui = switch
 
         self.gui.connect("state-set", self.on_gtk_toggle)
-        self.attach_to_events()
+        self._connect_message_listener()
 
-    def attach_to_events(self):
+    def _connect_message_listener(self):
         self.message_broker.subscribe(MessageType.preset, self.on_preset_changed)
 
     def on_preset_changed(self, data: PresetData):
@@ -599,9 +600,9 @@ class ReleaseCombinationSwitch:
         self.gui = switch
 
         self.gui.connect("state-set", self.on_gtk_toggle)
-        self.attach_to_events()
+        self._connect_message_listener()
 
-    def attach_to_events(self):
+    def _connect_message_listener(self):
         self.message_broker.subscribe(MessageType.mapping, self.on_mapping_changed)
 
     def on_mapping_changed(self, data: MappingData):
