@@ -1203,7 +1203,7 @@ Macros allow multiple characters to be written with a single key-press. Informat
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
                 <child>
-                  <object class="GtkListBox">
+                  <object class="GtkListBox" id="combination-listbox">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
                   </object>

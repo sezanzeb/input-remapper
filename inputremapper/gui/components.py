@@ -610,3 +610,71 @@ class ReleaseCombinationSwitch:
 
     def on_gtk_toggle(self, *_):
         self.controller.update_mapping(release_combination_keys=self.gui.get_active())
+
+
+class EventEntry(Gtk.ListBoxRow):
+    """One row per InputEvent in the EventCombination."""
+
+    __gtype_name__ = "CombinationEntry"
+
+    def __init__(self, event: InputEvent):
+        super().__init__()
+
+        self.event = event
+        hbox = Gtk.Box(Gtk.Orientation.HORIZONTAL, spacing=4)
+
+        label = Gtk.Label()
+        label.set_label(event.json_str())
+        hbox.pack_start(label, False, False, 0)
+
+        up_btn = Gtk.Button()
+        up_btn.set_halign(Gtk.Align.END)
+        up_btn.set_relief(Gtk.ReliefStyle.NONE)
+        up_btn.get_style_context().add_class("no-v-padding")
+        up_img = Gtk.Image.new_from_icon_name("go-up", Gtk.IconSize.BUTTON)
+        up_btn.add(up_img)
+
+        down_btn = Gtk.Button()
+        down_btn.set_halign(Gtk.Align.END)
+        down_btn.set_relief(Gtk.ReliefStyle.NONE)
+        down_btn.get_style_context().add_class("no-v-padding")
+        down_img = Gtk.Image.new_from_icon_name("go-down", Gtk.IconSize.BUTTON)
+        down_btn.add(down_img)
+
+        vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        vbox.pack_start(up_btn, False, True, 0)
+        vbox.pack_end(down_btn, False, True, 0)
+        hbox.pack_end(vbox, False, False, 0)
+
+        self.add(hbox)
+        self.show_all()
+
+    def cleanup(self):
+        """cleanup any message listeners we are about to get destroyed"""
+        # todo: see if we can do this with a gtk signal handler
+        pass
+
+
+class CombinationListbox:
+    def __init__(
+        self,
+        message_broker: MessageBroker,
+        controller: Controller,
+        listbox: Gtk.ListBox,
+    ):
+        self.message_broker = message_broker
+        self.controller = controller
+        self.gui = listbox
+
+        self._connect_message_listeners()
+
+    def _connect_message_listeners(self):
+        self.message_broker.subscribe(MessageType.mapping, self.on_mapping_changed)
+
+    def on_mapping_changed(self, mapping: MappingData):
+        if self.controller.is_empty_mapping():
+            return
+
+        self.gui.foreach(lambda label: (label.cleanup(), self.gui.remove(label)))
+        for event in mapping.event_combination:
+            self.gui.insert(EventEntry(event), -1)

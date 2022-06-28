@@ -39,6 +39,7 @@ from inputremapper.gui.components import (
     StatusBar,
     AutoloadSwitch,
     ReleaseCombinationSwitch,
+    CombinationListbox,
 )
 from inputremapper.gui.controller import Controller
 from inputremapper.gui.message_broker import MessageBroker, MessageType
@@ -143,6 +144,7 @@ class UserInterface:
         ReleaseCombinationSwitch(
             message_broker, controller, self.get("release-combination-switch")
         )
+        CombinationListbox(message_broker, controller, self.get("combination-listbox"))
 
         # code editor and autocompletion
         code_editor = CodeEditor(
