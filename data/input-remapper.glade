@@ -62,15 +62,15 @@
     <property name="can-focus">False</property>
     <property name="icon-name">list-add</property>
   </object>
-  <object class="GtkImage" id="image4">
+  <object class="GtkImage" id="image6">
     <property name="visible">True</property>
     <property name="can-focus">False</property>
-    <property name="icon-name">dialog-ok</property>
+    <property name="icon-name">go-up</property>
   </object>
-  <object class="GtkImage" id="image5">
+  <object class="GtkImage" id="image7">
     <property name="visible">True</property>
     <property name="can-focus">False</property>
-    <property name="icon-name">dialog-cancel</property>
+    <property name="icon-name">go-down</property>
   </object>
   <object class="GtkImage" id="new-icon">
     <property name="visible">True</property>
@@ -643,46 +643,15 @@ Gives your keys back their original function</property>
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkBox">
+                  <object class="GtkToggleButton" id="key_recording_toggle">
+                    <property name="label" translatable="yes">Record Input</property>
                     <property name="visible">True</property>
-                    <property name="can-focus">False</property>
-                    <property name="margin-left">9</property>
-                    <property name="margin-right">9</property>
-                    <property name="margin-start">9</property>
-                    <property name="margin-end">9</property>
-                    <property name="homogeneous">True</property>
-                    <child>
-                      <object class="GtkToggleButton" id="key_recording_toggle">
-                        <property name="label" translatable="yes">Record Input</property>
-                        <property name="visible">True</property>
-                        <property name="can-focus">True</property>
-                        <property name="receives-default">True</property>
-                        <property name="tooltip-text" translatable="yes">Record a button of your device that should be remapped</property>
-                        <property name="image">image2</property>
-                        <property name="relief">none</property>
-                        <property name="always-show-image">True</property>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">0</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkButton" id="edit-combination-btn">
-                        <property name="label" translatable="yes">Edit Input</property>
-                        <property name="visible">True</property>
-                        <property name="can-focus">True</property>
-                        <property name="receives-default">True</property>
-                        <property name="image">image1</property>
-                        <property name="relief">none</property>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">1</property>
-                      </packing>
-                    </child>
+                    <property name="can-focus">True</property>
+                    <property name="receives-default">True</property>
+                    <property name="tooltip-text" translatable="yes">Record a button of your device that should be remapped</property>
+                    <property name="image">image2</property>
+                    <property name="relief">none</property>
+                    <property name="always-show-image">True</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -691,42 +660,13 @@ Gives your keys back their original function</property>
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkBox">
+                  <object class="GtkButton" id="edit-combination-btn">
+                    <property name="label" translatable="yes">Advanced Input Configuration</property>
                     <property name="visible">True</property>
-                    <property name="can-focus">False</property>
-                    <property name="tooltip-text" translatable="yes">Release all inputs before the mapping is executed.
-This can help when mapping a combination like Shift+A to map to a lowercase letter, because it relesases the Shift key before executing the mapping.</property>
-                    <property name="margin-left">9</property>
-                    <property name="margin-right">9</property>
-                    <property name="margin-start">9</property>
-                    <property name="margin-end">9</property>
-                    <property name="margin-top">7</property>
-                    <property name="margin-bottom">8</property>
-                    <property name="spacing">18</property>
-                    <child>
-                      <object class="GtkLabel">
-                        <property name="visible">True</property>
-                        <property name="can-focus">False</property>
-                        <property name="label" translatable="yes">Release Input:</property>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">0</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkSwitch" id="release-combination-switch">
-                        <property name="visible">True</property>
-                        <property name="can-focus">True</property>
-                        <property name="active">True</property>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">1</property>
-                      </packing>
-                    </child>
+                    <property name="can-focus">True</property>
+                    <property name="receives-default">True</property>
+                    <property name="image">image1</property>
+                    <property name="relief">none</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -1239,60 +1179,205 @@ Macros allow multiple characters to be written with a single key-press. Informat
       </object>
     </child>
   </object>
-  <object class="GtkDialog" id="combination-editor">
+  <object class="GtkWindow" id="combination-editor">
+    <property name="width-request">200</property>
+    <property name="height-request">200</property>
     <property name="can-focus">False</property>
     <property name="modal">True</property>
     <property name="window-position">center-on-parent</property>
-    <property name="type-hint">dialog</property>
     <property name="urgency-hint">True</property>
     <property name="transient-for">window</property>
     <property name="attached-to">window</property>
-    <child internal-child="vbox">
+    <child>
       <object class="GtkBox">
+        <property name="visible">True</property>
         <property name="can-focus">False</property>
-        <property name="orientation">vertical</property>
-        <property name="spacing">2</property>
-        <child internal-child="action_area">
-          <object class="GtkButtonBox">
-            <property name="can-focus">False</property>
-            <property name="layout-style">expand</property>
+        <child>
+          <object class="GtkScrolledWindow">
+            <property name="width-request">200</property>
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="shadow-type">in</property>
             <child>
-              <object class="GtkButton" id="combination-editor-abort-btn">
-                <property name="label" translatable="yes">Abort</property>
+              <object class="GtkViewport">
                 <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="receives-default">True</property>
-                <property name="image">image5</property>
+                <property name="can-focus">False</property>
+                <child>
+                  <object class="GtkListBox">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">True</property>
+            <property name="fill">True</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkBox">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <property name="margin-start">8</property>
+            <property name="margin-end">8</property>
+            <property name="margin-top">18</property>
+            <property name="margin-bottom">8</property>
+            <property name="orientation">vertical</property>
+            <property name="spacing">4</property>
+            <child>
+              <!-- n-columns=2 n-rows=2 -->
+              <object class="GtkGrid">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="row-spacing">4</property>
+                <property name="column-spacing">4</property>
+                <child>
+                  <object class="GtkButton">
+                    <property name="visible">True</property>
+                    <property name="can-focus">True</property>
+                    <property name="receives-default">True</property>
+                    <property name="halign">end</property>
+                    <property name="image">image6</property>
+                    <property name="relief">none</property>
+                  </object>
+                  <packing>
+                    <property name="left-attach">1</property>
+                    <property name="top-attach">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkButton">
+                    <property name="visible">True</property>
+                    <property name="can-focus">True</property>
+                    <property name="receives-default">True</property>
+                    <property name="halign">end</property>
+                    <property name="image">image7</property>
+                    <property name="relief">none</property>
+                  </object>
+                  <packing>
+                    <property name="left-attach">1</property>
+                    <property name="top-attach">1</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="label" translatable="yes">Move up</property>
+                    <property name="xalign">0</property>
+                  </object>
+                  <packing>
+                    <property name="left-attach">0</property>
+                    <property name="top-attach">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="label" translatable="yes">Move down</property>
+                    <property name="xalign">0</property>
+                  </object>
+                  <packing>
+                    <property name="left-attach">0</property>
+                    <property name="top-attach">1</property>
+                  </packing>
+                </child>
               </object>
               <packing>
-                <property name="expand">True</property>
+                <property name="expand">False</property>
                 <property name="fill">True</property>
                 <property name="position">0</property>
               </packing>
             </child>
             <child>
-              <object class="GtkButton" id="combination-editor-confirm-btn">
-                <property name="label" translatable="yes">Confirm</property>
+              <object class="GtkBox">
                 <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="receives-default">True</property>
-                <property name="image">image4</property>
+                <property name="can-focus">False</property>
+                <property name="tooltip-text" translatable="yes">Use this input for mapping to an analog axis.
+This can not be used with key or macro mappings.</property>
+                <property name="spacing">4</property>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="hexpand">True</property>
+                    <property name="label" translatable="yes">Use as Analog</property>
+                    <property name="xalign">0</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkSwitch">
+                    <property name="visible">True</property>
+                    <property name="can-focus">True</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="pack-type">end</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
               </object>
               <packing>
-                <property name="expand">True</property>
+                <property name="expand">False</property>
                 <property name="fill">True</property>
                 <property name="position">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkBox">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="tooltip-text" translatable="yes">Release all inputs before the mapping is executed.
+This can help when mapping a combination like Shift+A to map to a lowercase letter, because it relesases the Shift key before executing the mapping.</property>
+                <property name="spacing">18</property>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="label" translatable="yes">Release Input:</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkSwitch" id="release-combination-switch">
+                    <property name="visible">True</property>
+                    <property name="can-focus">True</property>
+                    <property name="active">True</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="pack-type">end</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">2</property>
               </packing>
             </child>
           </object>
           <packing>
             <property name="expand">False</property>
-            <property name="fill">False</property>
-            <property name="position">0</property>
+            <property name="fill">True</property>
+            <property name="position">1</property>
           </packing>
-        </child>
-        <child>
-          <placeholder/>
         </child>
       </object>
     </child>

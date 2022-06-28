@@ -200,12 +200,6 @@ class UserInterface:
         self.get("edit-combination-btn").connect(
             "clicked", lambda *_: self.combination_editor.show()
         )
-        self.get("combination-editor-confirm-btn").connect(
-            "clicked", lambda *_: self.combination_editor.hide()
-        )
-        self.get("combination-editor-abort-btn").connect(
-            "clicked", lambda *_: self.combination_editor.hide()
-        )
         self.connect_shortcuts()
 
     def _connect_message_listener(self):
