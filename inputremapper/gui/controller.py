@@ -20,7 +20,7 @@
 from __future__ import annotations  # needed for the TYPE_CHECKING import
 
 import re
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Optional, Union, Literal
 
 from gi.repository import Gtk, GLib
 
@@ -164,6 +164,43 @@ class Controller:
                 + _("with those after they are injected, and by doing so ")
                 + _("break them."),
             )
+
+    def move_event_in_combination(
+        self, event: InputEvent, direction: Union[Literal["up"], Literal["down"]]
+    ):
+        """move self.event up or down in the mapping_combination"""
+        if (
+            not self.data_manager.active_mapping
+            or len(self.data_manager.active_mapping.event_combination) == 1
+        ):
+            return
+        combination = self.data_manager.active_mapping.event_combination
+        i = combination.index(event)
+        if (
+            i + 1 == len(combination)
+            and direction == "down"
+            or i == 0
+            and direction == "up"
+        ):
+            return
+
+        if direction == "up":
+            combination = (
+                list(combination[: i - 1])
+                + [event]
+                + [combination[i - 1]]
+                + list(combination[i + 1 :])
+            )
+        elif direction == "down":
+            combination = (
+                list(combination[:i])
+                + [combination[i + 1]]
+                + [event]
+                + list(combination[i + 2 :])
+            )
+        else:
+            raise ValueError(f"unknown direction: {direction}")
+        self.update_combination(EventCombination(combination))
 
     def load_groups(self):
         """refresh the groups"""

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Literal, Union
 
 from gi.repository import Gtk, GtkSource, Gdk
 
@@ -616,13 +616,14 @@ class ReleaseCombinationSwitch:
 class EventEntry(Gtk.ListBoxRow):
     """One row per InputEvent in the EventCombination."""
 
-    __gtype_name__ = "CombinationEntry"
+    __gtype_name__ = "EventEntry"
 
-    def __init__(self, event: InputEvent):
+    def __init__(self, event: InputEvent, controller: Controller):
         super().__init__()
 
         self.event = event
-        hbox = Gtk.Box(Gtk.Orientation.HORIZONTAL, spacing=4)
+        self.controller = controller
+        hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
 
         label = Gtk.Label()
         label.set_label(event.description())
@@ -647,6 +648,14 @@ class EventEntry(Gtk.ListBoxRow):
         vbox.pack_end(down_btn, False, True, 0)
         hbox.pack_end(vbox, False, False, 0)
 
+        up_btn.connect(
+            "clicked",
+            lambda *_: self.controller.move_event_in_combination(self.event, "up"),
+        )
+        down_btn.connect(
+            "clicked",
+            lambda *_: self.controller.move_event_in_combination(self.event, "down"),
+        )
         self.add(hbox)
         self.show_all()
 
@@ -678,4 +687,5 @@ class CombinationListbox:
 
         self.gui.foreach(lambda label: (label.cleanup(), self.gui.remove(label)))
         for event in mapping.event_combination:
-            self.gui.insert(EventEntry(event), -1)
+            self.gui.insert(EventEntry(event, self.controller), -1)
+        self.gui.select_row(self.gui.get_row_at_index(0))
