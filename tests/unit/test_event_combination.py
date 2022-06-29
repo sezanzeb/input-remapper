@@ -155,7 +155,7 @@ class TestKey(unittest.TestCase):
             EventCombination((EV_KEY, BTN_A, 1)).beautify(),
             "Button A",
         )
-        self.assertEqual(EventCombination((EV_KEY, 1234, 1)).beautify(), "1234")
+        self.assertEqual(EventCombination((EV_KEY, 1234, 1)).beautify(), "unknown")
         self.assertEqual(
             EventCombination([EV_ABS, ABS_HAT0X, -1]).beautify(),
             "DPad Left",
@@ -168,7 +168,6 @@ class TestKey(unittest.TestCase):
             EventCombination([EV_KEY, BTN_A, 1]).beautify(),
             "Button A",
         )
-        self.assertEqual(EventCombination([EV_KEY, 1234, 1]).beautify(), "1234")
         self.assertEqual(
             EventCombination([EV_ABS, ABS_X, 1]).beautify(),
             "Joystick Right",

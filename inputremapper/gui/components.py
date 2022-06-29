@@ -236,7 +236,6 @@ class MappingListBox:
                     self.gui.select_row(row)
 
             self.gui.foreach(set_active)
-            self.gui.invalidate_sort()
 
     def on_gtk_mapping_selected(self, _, row: Optional[SelectionLabel]):
         if not row:
@@ -343,6 +342,7 @@ class SelectionLabel(Gtk.ListBoxRow):
             return
         self._name = mapping.name
         self._set_selected()
+        self.get_parent().invalidate_sort()
 
     def on_combination_update(self, data: CombinationUpdate):
         if data.old_combination == self.combination and self.is_selected():
@@ -625,7 +625,7 @@ class EventEntry(Gtk.ListBoxRow):
         hbox = Gtk.Box(Gtk.Orientation.HORIZONTAL, spacing=4)
 
         label = Gtk.Label()
-        label.set_label(event.json_str())
+        label.set_label(event.description())
         hbox.pack_start(label, False, False, 0)
 
         up_btn = Gtk.Button()
