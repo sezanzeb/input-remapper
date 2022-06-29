@@ -102,6 +102,9 @@ class RelToBtnHandler(MappingHandler):
             if self._active:
                 # the axis is below the threshold and the stage_release
                 # function is running
+                if self.mapping.force_release_timeout:
+                    # consume the event
+                    return True
                 event = event.modify(value=0, actions=(EventActions.as_key,))
                 logger.debug_key(event.event_tuple, "sending to sub_handler")
                 self._abort_release = True

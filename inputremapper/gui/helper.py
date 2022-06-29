@@ -223,6 +223,7 @@ class RootHelper:
                     ),
                     target_uinput="keyboard",
                     release_timeout=0.3,
+                    force_release_timeout=True,
                 )
                 handler = RelToBtnHandler(
                     EventCombination((EV_REL, ev_code, self.rel_speed[ev_code])),
@@ -238,6 +239,7 @@ class RootHelper:
                     ),
                     target_uinput="keyboard",
                     release_timeout=0.3,
+                    force_release_timeout=True,
                 )
                 handler = RelToBtnHandler(
                     EventCombination((EV_REL, ev_code, -self.rel_speed[ev_code])),

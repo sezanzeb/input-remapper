@@ -117,6 +117,9 @@ class Mapping(BaseModel):
     rel_input_cutoff: PositiveInt = 100
     # the time until a relative axis is considered stationary if no new events arrive
     release_timeout: PositiveFloat = 0.05
+    # don't release immediately when a relative axis drops below the speed threshold
+    # instead wait until it dropped for loger than release_timeout below the threshold
+    force_release_timeout: bool = False
 
     # callback which gets called if the event_combination is updated
     if not needs_workaround:
