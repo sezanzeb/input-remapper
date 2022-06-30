@@ -43,6 +43,7 @@ from inputremapper.gui.message_broker import (
 from inputremapper.gui.reader import Reader
 from inputremapper.gui.utils import CTX_MAPPING
 from inputremapper.injection.global_uinputs import GlobalUInputs
+from inputremapper.input_event import InputEvent
 from inputremapper.logger import logger
 
 DEFAULT_PRESET_NAME = "new preset"
@@ -53,8 +54,11 @@ GroupKey = str
 
 
 class DataManager:
-    """provides an interface to create configurations
-    and send commands to the service"""
+    """DataManager provides an interface to create and modify configurations as well
+    as modify the state of the Service.
+
+    Any state changes will be announced via the MessageBroker.
+    """
 
     def __init__(
         self,
@@ -75,30 +79,57 @@ class DataManager:
 
         self._active_preset: Optional[Preset] = None
         self._active_mapping: Optional[UIMapping] = None
+        self._active_event: Optional[InputEvent] = None
 
-    def _send_group(self):
-        """send active group to the message_broker"""
+    def send_group(self):
+        """send active group to the MessageBroker.
+
+        This is internally called whenever the group changes.
+        It is usually not necessary to call this explicitly from
+        outside DataManager"""
         self.message_broker.send(GroupData(self.active_group.key, self.get_presets()))
 
-    def _send_preset(self):
-        """send active preset to the message_broker"""
+    def send_preset(self):
+        """send active preset to the MessageBroker.
+
+        This is internally called whenever the preset changes.
+        It is usually not necessary to call this explicitly from
+        outside DataManager"""
         self.message_broker.send(
             PresetData(
                 self.active_preset.name, self.get_mappings(), self.get_autoload()
             )
         )
-        self._send_mapping_errors()
+        self.send_mapping_errors()
 
-    def _send_mapping(self):
-        """send active mapping to the message_broker"""
-        mapping = self._active_mapping
-        if mapping:
-            self.message_broker.send(mapping.get_bus_message())
-            self._send_mapping_errors()
+    def send_mapping(self):
+        """send active mapping to the MessageBroker
+
+        This is internally called whenever the mapping changes.
+        It is usually not necessary to call this explicitly from
+        outside DataManager"""
+        if self.active_mapping:
+            self.message_broker.send(self.active_mapping.get_bus_message())
+            self.send_mapping_errors()
         else:
             self.message_broker.send(MappingData())
 
-    def _send_mapping_errors(self):
+    def send_event(self):
+        """send active event to the MessageBroker.
+
+        This is internally called whenever the event changes.
+        It is usually not necessary to call this explicitly from
+        outside DataManager"""
+        if self.active_event:
+            assert self.active_event in self.active_mapping.event_combination
+            self.message_broker.send(self.active_event)
+
+    def send_mapping_errors(self):
+        """send mapping ValidationErrors to the MessageBroker.
+
+        This is internally called whenever the errors change.
+        It is usually not necessary to call this explicitly from
+        outside DataManager"""
         if not self._active_preset:
             return
 
@@ -114,17 +145,40 @@ class DataManager:
             msg = _("Mapping error at %s, hover for info") % position
             self.message_broker.send(StatusData(CTX_MAPPING, msg, str(error)))
 
+    def send_uinputs(self):
+        """send the "uinputs" message on the MessageBroker"""
+        self.message_broker.send(
+            UInputsData(
+                {
+                    name: uinput.capabilities()
+                    for name, uinput in self._uinputs.devices.items()
+                }
+            )
+        )
+
+    def send_groups(self):
+        """send the "groups" message on the MessageBroker"""
+        self._reader.send_groups()
+
     @property
     def active_group(self) -> Optional[_Group]:
+        """the currently loaded group"""
         return self._reader.group
 
     @property
     def active_preset(self) -> Optional[Preset]:
+        """the currently loaded preset"""
         return self._active_preset
 
     @property
     def active_mapping(self) -> Optional[UIMapping]:
+        """the currently loaded mapping"""
         return self._active_mapping
+
+    @property
+    def active_event(self) -> Optional[InputEvent]:
+        """the currently loaded event"""
+        return self._active_event
 
     def get_group_keys(self) -> Tuple[GroupKey, ...]:
         """Get all group keys (plugged devices)"""
@@ -177,7 +231,7 @@ class DataManager:
         elif self.get_autoload:
             self._config.set_autoload_preset(self.active_group.key, None)
 
-        self._send_preset()
+        self.send_preset()
 
     def get_newest_group_key(self) -> GroupKey:
         """group_key of the group with the most recently modified preset"""
@@ -244,11 +298,12 @@ class DataManager:
         if group_key not in self.get_group_keys():
             raise DataManagementError("Unable to load non existing group")
 
+        self._active_event = None
         self._active_mapping = None
         self._active_preset = None
         group = self._reader.groups.find(key=group_key)
         self._reader.set_group(group)
-        self._send_group()
+        self.send_group()
 
     def load_preset(self, name: str):
         """Load a preset. Will send "preset" message on the MessageBroker
@@ -261,9 +316,10 @@ class DataManager:
         preset_path = get_preset_path(self.active_group.name, name)
         preset = Preset(preset_path, mapping_factory=UIMapping)
         preset.load()
+        self._active_event = None
         self._active_mapping = None
         self._active_preset = preset
-        self._send_preset()
+        self.send_preset()
 
     def load_mapping(self, combination: EventCombination):
         """Load a mapping. Will send "mapping" message on the MessageBroker"""
@@ -276,11 +332,27 @@ class DataManager:
                 f"the mapping with {combination = } does not "
                 f"exist in the {self._active_preset.path}"
             )
+        self._active_event = None
         self._active_mapping = mapping
-        self._send_mapping()
+        self.send_mapping()
+
+    def load_event(self, event: InputEvent):
+        """Load a InputEvent from the combination in the active mapping.
+
+        Will send "event" message on the MessageBroker"""
+        if not self.active_mapping:
+            raise DataManagementError("Unable to load event. mapping is not set")
+        if event not in self.active_mapping.event_combination:
+            raise ValueError(
+                f"{event} is not member of active_mapping.event_combination: "
+                f"{self.active_mapping.event_combination}"
+            )
+        self._active_event = event
+        self.send_event()
 
     def rename_preset(self, new_name: str):
         """rename the current preset and move the correct file
+
         Will send "group" and then "preset" message on the MessageBroker
         """
         if not self.active_preset or not self.active_group:
@@ -307,8 +379,8 @@ class DataManager:
             self._config.set_autoload_preset(self.active_group.key, new_name)
 
         self.active_preset.path = get_preset_path(self.active_group.name, new_name)
-        self._send_group()
-        self._send_preset()
+        self.send_group()
+        self.send_preset()
 
     def copy_preset(self, name: str):
         """copy the current preset to the given name.
@@ -328,8 +400,8 @@ class DataManager:
         logger.info('Copy "%s" to "%s"', self.active_preset.path, new_path)
         self.active_preset.path = new_path
         self.save()
-        self._send_group()
-        self._send_preset()
+        self.send_group()
+        self.send_preset()
 
     def create_preset(self, name: str):
         """create empty preset in the active_group.
@@ -343,7 +415,7 @@ class DataManager:
             raise DataManagementError("Unable to add preset. Preset exists")
 
         Preset(path).save()
-        self._send_group()
+        self.send_group()
 
     def delete_preset(self):
         """delete the active preset
@@ -355,7 +427,7 @@ class DataManager:
         os.remove(preset_path)
         self._active_mapping = None
         self._active_preset = None
-        self._send_group()
+        self.send_group()
 
     def update_mapping(self, **kwargs):
         """update the active mapping with the given keywords and values.
@@ -374,10 +446,26 @@ class DataManager:
             "event_combination" in kwargs
             and combination != self.active_mapping.event_combination
         ):
+            self._active_event = None
             self.message_broker.send(
                 CombinationUpdate(combination, self._active_mapping.event_combination)
             )
-        self._send_mapping()
+        self.send_mapping()
+
+    def update_event(self, new_event: InputEvent):
+        """update the active event.
+
+        Will send "combination_update", "mapping" and "event" messages to the
+        MessageBroker (in that order)
+        """
+        if not self._active_mapping or not self._active_event:
+            raise DataManagementError("Cannot modify event: event is not set")
+
+        combination = list(self.active_mapping.event_combination)
+        combination[combination.index(self.active_event)] = new_event
+        self.update_mapping(event_combination=EventCombination(combination))
+        self._active_event = new_event
+        self.send_event()
 
     def create_mapping(self):
         """create empty mapping in the active preset.
@@ -386,7 +474,7 @@ class DataManager:
         if not self._active_preset:
             raise DataManagementError("cannot create mapping: preset is not set")
         self._active_preset.add(UIMapping())
-        self._send_preset()
+        self.send_preset()
 
     def delete_mapping(self):
         """delete the active mapping
@@ -399,22 +487,7 @@ class DataManager:
 
         self._active_preset.remove(self._active_mapping.event_combination)
         self._active_mapping = None
-        self._send_preset()
-
-    def send_uinputs(self):
-        """send the "uinputs" message on the MessageBroker"""
-        self.message_broker.send(
-            UInputsData(
-                {
-                    name: uinput.capabilities()
-                    for name, uinput in self._uinputs.devices.items()
-                }
-            )
-        )
-
-    def send_groups(self):
-        """send the "groups" message on the MessageBroker"""
-        self._reader.send_groups()
+        self.send_preset()
 
     def save(self):
         """save the active preset"""

@@ -128,6 +128,7 @@ class Controller:
             mappings.sort(key=lambda t: t[0] or t[1].beautify())
             combination = mappings[0][1]
             self.load_mapping(combination)
+            self.load_event(combination[0])
         else:
             # send an empty mapping to make sure the ui is reset to default values
             self.message_broker.send(MappingData(**MAPPING_DEFAULTS))
@@ -201,6 +202,18 @@ class Controller:
         else:
             raise ValueError(f"unknown direction: {direction}")
         self.update_combination(EventCombination(combination))
+        self.load_event(event)
+
+    def load_event(self, event: InputEvent):
+        self.data_manager.load_event(event)
+
+    def update_event(self, new_event: InputEvent):
+        try:
+            self.data_manager.update_event(new_event)
+        except KeyError:
+            # we need to synchronize the gui
+            self.data_manager.send_mapping()
+            self.data_manager.send_event()
 
     def load_groups(self):
         """refresh the groups"""
@@ -247,6 +260,7 @@ class Controller:
 
     def load_mapping(self, event_combination: EventCombination):
         self.data_manager.load_mapping(event_combination)
+        self.load_event(event_combination[0])
 
     def update_mapping(self, **kwargs):
         self.data_manager.update_mapping(**kwargs)

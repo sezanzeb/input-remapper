@@ -14,10 +14,12 @@ from typing import (
     Optional,
     List,
     Any,
+    TYPE_CHECKING,
 )
-
-from inputremapper.event_combination import EventCombination
 from inputremapper.logger import logger
+
+if TYPE_CHECKING:
+    from inputremapper.event_combination import EventCombination
 
 
 class MessageType(Enum):
@@ -30,6 +32,7 @@ class MessageType(Enum):
     group = "group"
     preset = "preset"
     mapping = "mapping"
+    event = "event"
     combination_recorded = "combination_recorded"
     recording_finished = "recording_finished"
     combination_update = "combination_update"
@@ -150,7 +153,7 @@ class GroupData:
 class PresetData:
     message_type = MessageType.preset
     name: Optional[Name]
-    mappings: Optional[Tuple[Tuple[Name, EventCombination], ...]]
+    mappings: Optional[Tuple[Tuple[Name, "EventCombination"], ...]]
     autoload: bool = False
 
 
@@ -165,14 +168,14 @@ class StatusData:
 @dataclass(frozen=True)
 class CombinationRecorded:
     message_type = MessageType.combination_recorded
-    combination: EventCombination
+    combination: "EventCombination"
 
 
 @dataclass(frozen=True)
 class CombinationUpdate:
     message_type = MessageType.combination_update
-    old_combination: EventCombination
-    new_combination: EventCombination
+    old_combination: "EventCombination"
+    new_combination: "EventCombination"
 
 
 class Signal(Message):

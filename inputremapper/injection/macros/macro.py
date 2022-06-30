@@ -131,6 +131,7 @@ def _type_check_symbol(keyname):
         return keyname
 
     symbol = str(keyname)
+    logger.debug(f"check system mapping for {symbol}")
     code = system_mapping.get(symbol)
 
     if code is None:

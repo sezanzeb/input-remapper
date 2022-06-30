@@ -278,7 +278,7 @@ class SelectionLabel(Gtk.ListBoxRow):
         self.edit_btn.set_tooltip_text(_("Change Mapping Name"))
         self.edit_btn.set_margin_top(4)
         self.edit_btn.set_margin_bottom(4)
-        self.edit_btn.connect("clicked", self.set_edit_mode)
+        self.edit_btn.connect("clicked", self._set_edit_mode)
 
         self.name_input = Gtk.Entry()
         self.name_input.set_text(self.name)
@@ -330,7 +330,7 @@ class SelectionLabel(Gtk.ListBoxRow):
         self.name_input.hide()
         self.label.show()
 
-    def set_edit_mode(self, *_):
+    def _set_edit_mode(self, *_):
         self.name_input.set_text(self.name)
         self.label.hide()
         self.name_input.show()
@@ -621,7 +621,7 @@ class EventEntry(Gtk.ListBoxRow):
     def __init__(self, event: InputEvent, controller: Controller):
         super().__init__()
 
-        self.event = event
+        self.input_event = event
         self.controller = controller
         hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
 
@@ -650,11 +650,15 @@ class EventEntry(Gtk.ListBoxRow):
 
         up_btn.connect(
             "clicked",
-            lambda *_: self.controller.move_event_in_combination(self.event, "up"),
+            lambda *_: self.controller.move_event_in_combination(
+                self.input_event, "up"
+            ),
         )
         down_btn.connect(
             "clicked",
-            lambda *_: self.controller.move_event_in_combination(self.event, "down"),
+            lambda *_: self.controller.move_event_in_combination(
+                self.input_event, "down"
+            ),
         )
         self.add(hbox)
         self.show_all()
@@ -675,17 +679,46 @@ class CombinationListbox:
         self.message_broker = message_broker
         self.controller = controller
         self.gui = listbox
-
+        self.combination: Optional[EventCombination] = None
         self._connect_message_listeners()
+
+        self.gui.connect("row-selected", self.on_gtk_row_selected)
 
     def _connect_message_listeners(self):
         self.message_broker.subscribe(MessageType.mapping, self.on_mapping_changed)
+        self.message_broker.subscribe(MessageType.event, self.on_event_changed)
+
+    def select_row(self, event: InputEvent):
+        def select(r: EventEntry):
+            if r.input_event == event:
+                self.gui.select_row(r)
+
+        self.gui.foreach(select)
 
     def on_mapping_changed(self, mapping: MappingData):
-        if self.controller.is_empty_mapping():
+        if self.combination == mapping.event_combination:
             return
 
         self.gui.foreach(lambda label: (label.cleanup(), self.gui.remove(label)))
-        for event in mapping.event_combination:
-            self.gui.insert(EventEntry(event, self.controller), -1)
-        self.gui.select_row(self.gui.get_row_at_index(0))
+        if self.controller.is_empty_mapping():
+            self.combination = None
+        else:
+            self.combination = mapping.event_combination
+            for event in self.combination:
+                self.gui.insert(EventEntry(event, self.controller), -1)
+
+    def on_event_changed(self, event: InputEvent):
+        with HandlerDisabled(self.gui, self.on_gtk_row_selected):
+            self.select_row(event)
+
+    def on_gtk_row_selected(self, *_):
+        row: Optional[EventEntry] = None
+
+        def find_row(r: EventEntry):
+            nonlocal row
+            if r.is_selected():
+                row = r
+
+        self.gui.foreach(find_row)
+        if row:
+            self.controller.load_event(row.input_event)
