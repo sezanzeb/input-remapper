@@ -22,7 +22,7 @@ import json
 import os.path
 import unittest
 from dataclasses import dataclass
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, call
 from typing import Tuple, List, Any
 
 import gi
@@ -921,3 +921,104 @@ class TestController(unittest.TestCase):
         with patch.object(self.data_manager, "refresh_service_config_path") as mock:
             self.controller.set_autoload(True)
             mock.assert_called()
+
+    def test_move_event_up(self):
+        prepare_presets()
+        self.data_manager.load_group("Foo Device 2")
+        self.data_manager.load_preset("preset2")
+        self.data_manager.load_mapping(EventCombination("1,3,1"))
+        self.data_manager.update_mapping(
+            event_combination=EventCombination.from_string("1,1,1+1,2,1+1,3,1")
+        )
+
+        self.controller.move_event_in_combination(InputEvent.from_string("1,2,1"), "up")
+        self.assertEqual(
+            self.data_manager.active_mapping.event_combination,
+            EventCombination.from_string("1,2,1+1,1,1+1,3,1"),
+        )
+        # now nothing changes
+        self.controller.move_event_in_combination(InputEvent.from_string("1,2,1"), "up")
+        self.assertEqual(
+            self.data_manager.active_mapping.event_combination,
+            EventCombination.from_string("1,2,1+1,1,1+1,3,1"),
+        )
+
+    def test_move_event_down(self):
+        prepare_presets()
+        self.data_manager.load_group("Foo Device 2")
+        self.data_manager.load_preset("preset2")
+        self.data_manager.load_mapping(EventCombination("1,3,1"))
+        self.data_manager.update_mapping(
+            event_combination=EventCombination.from_string("1,1,1+1,2,1+1,3,1")
+        )
+
+        self.controller.move_event_in_combination(
+            InputEvent.from_string("1,2,1"), "down"
+        )
+        self.assertEqual(
+            self.data_manager.active_mapping.event_combination,
+            EventCombination.from_string("1,1,1+1,3,1+1,2,1"),
+        )
+        # now nothing changes
+        self.controller.move_event_in_combination(
+            InputEvent.from_string("1,2,1"), "down"
+        )
+        self.assertEqual(
+            self.data_manager.active_mapping.event_combination,
+            EventCombination.from_string("1,1,1+1,3,1+1,2,1"),
+        )
+
+    def test_move_event_in_combination_of_len_1(self):
+        prepare_presets()
+        self.data_manager.load_group("Foo Device 2")
+        self.data_manager.load_preset("preset2")
+        self.data_manager.load_mapping(EventCombination("1,3,1"))
+        self.controller.move_event_in_combination(
+            InputEvent.from_string("1,3,1"), "down"
+        )
+        self.assertEqual(
+            self.data_manager.active_mapping.event_combination,
+            EventCombination.from_string("1,3,1"),
+        )
+
+    def test_move_event_loads_it_again(self):
+        prepare_presets()
+        self.data_manager.load_group("Foo Device 2")
+        self.data_manager.load_preset("preset2")
+        self.data_manager.load_mapping(EventCombination("1,3,1"))
+        self.data_manager.update_mapping(
+            event_combination=EventCombination.from_string("1,1,1+1,2,1+1,3,1")
+        )
+        mock = MagicMock()
+        self.message_broker.subscribe(MessageType.event, mock)
+        self.controller.move_event_in_combination(
+            InputEvent.from_string("1,2,1"), "down"
+        )
+        mock.assert_called_once_with(InputEvent.from_string("1,2,1"))
+
+    def test_update_event(self):
+        prepare_presets()
+        self.data_manager.load_group("Foo Device 2")
+        self.data_manager.load_preset("preset2")
+        self.data_manager.load_mapping(EventCombination("1,3,1"))
+        self.data_manager.load_event(InputEvent.from_string("1,3,1"))
+        mock = MagicMock()
+        self.message_broker.subscribe(MessageType.event, mock)
+        self.controller.update_event(InputEvent.from_string("1,10,1"))
+        mock.assert_called_once_with(InputEvent.from_string("1,10,1"))
+
+    def test_update_event_reloads_mapping_and_event_when_update_fails(self):
+        prepare_presets()
+        self.data_manager.load_group("Foo Device 2")
+        self.data_manager.load_preset("preset2")
+        self.data_manager.load_mapping(EventCombination("1,3,1"))
+        self.data_manager.load_event(InputEvent.from_string("1,3,1"))
+        mock = MagicMock()
+        self.message_broker.subscribe(MessageType.event, mock)
+        self.message_broker.subscribe(MessageType.mapping, mock)
+        self.controller.update_event(InputEvent.from_string("1,4,1"))  # already exists
+        calls = [
+            call(self.data_manager.active_mapping.get_bus_message()),
+            call(InputEvent.from_string("1,3,1")),
+        ]
+        mock.assert_has_calls(calls, any_order=False)
