@@ -87,7 +87,9 @@ class DataManager:
         This is internally called whenever the group changes.
         It is usually not necessary to call this explicitly from
         outside DataManager"""
-        self.message_broker.send(GroupData(self.active_group.key, self.get_presets()))
+        self.message_broker.send(
+            GroupData(self.active_group.key, self.get_preset_names())
+        )
 
     def send_preset(self):
         """send active preset to the MessageBroker.
@@ -111,8 +113,6 @@ class DataManager:
         if self.active_mapping:
             self.message_broker.send(self.active_mapping.get_bus_message())
             self.send_mapping_errors()
-        else:
-            self.message_broker.send(MappingData())
 
     def send_event(self):
         """send active event to the MessageBroker.
@@ -184,7 +184,7 @@ class DataManager:
         """Get all group keys (plugged devices)"""
         return tuple(group.key for group in self._reader.groups.filter())
 
-    def get_presets(self) -> Tuple[Name, ...]:
+    def get_preset_names(self) -> Tuple[Name, ...]:
         """Get all preset names for active_group and current user,
         starting with the newest."""
         if not self.active_group:
@@ -393,7 +393,7 @@ class DataManager:
         if self.active_preset.path == get_preset_path(self.active_group.name, name):
             return
 
-        if name in self.get_presets():
+        if name in self.get_preset_names():
             raise ValueError(f"a preset with the name {name} already exits")
 
         new_path = get_preset_path(self.active_group.name, name)

@@ -23,6 +23,7 @@ import time
 import unittest
 from itertools import permutations
 from typing import List, Dict, Any
+from unittest.mock import MagicMock, call
 
 from inputremapper.configs.global_config import global_config
 from inputremapper.configs.mapping import UIMapping, MappingData
@@ -34,9 +35,11 @@ from inputremapper.gui.message_broker import (
     MessageType,
     GroupData,
     PresetData,
+    CombinationUpdate,
 )
 from inputremapper.gui.reader import Reader
 from inputremapper.injection.global_uinputs import GlobalUInputs
+from inputremapper.input_event import InputEvent
 from tests.test import get_key_mapping, quick_cleanup, FakeDaemonProxy, prepare_presets
 
 from inputremapper.configs.paths import get_preset_path, get_config_path
@@ -378,12 +381,89 @@ class TestDataManager(unittest.TestCase):
             self.data_manager.load_mapping,
             combination=EventCombination("1,1,1"),
         )
-        self.data_manager.load_group(group_key="Foo Device")
+        self.data_manager.load_group("Foo Device")
         self.assertRaises(
             DataManagementError,
             self.data_manager.load_mapping,
             combination=EventCombination("1,1,1"),
         )
+
+    def test_load_event(self):
+        prepare_presets()
+        mock = MagicMock()
+        self.message_broker.subscribe(MessageType.event, mock)
+        self.data_manager.load_group("Foo Device")
+        self.data_manager.load_preset("preset1")
+        self.data_manager.load_mapping(EventCombination("1,1,1"))
+        self.data_manager.load_event(InputEvent.from_string("1,1,1"))
+        mock.assert_called_once_with(InputEvent.from_string("1,1,1"))
+        self.assertEqual(
+            self.data_manager.active_event, InputEvent.from_string("1,1,1")
+        )
+
+    def test_cannot_load_event_when_mapping_not_set(self):
+        prepare_presets()
+        self.data_manager.load_group("Foo Device")
+        self.data_manager.load_preset("preset1")
+        with self.assertRaises(DataManagementError):
+            self.data_manager.load_event(InputEvent.from_string("1,1,1"))
+
+    def test_cannot_load_event_when_not_in_mapping_combination(self):
+        prepare_presets()
+        self.data_manager.load_group("Foo Device")
+        self.data_manager.load_preset("preset1")
+        self.data_manager.load_mapping(EventCombination("1,1,1"))
+        with self.assertRaises(ValueError):
+            self.data_manager.load_event(InputEvent.from_string("1,5,1"))
+
+    def test_update_event(self):
+        prepare_presets()
+        self.data_manager.load_group("Foo Device")
+        self.data_manager.load_preset("preset1")
+        self.data_manager.load_mapping(EventCombination("1,1,1"))
+        self.data_manager.load_event(InputEvent.from_string("1,1,1"))
+        self.data_manager.update_event(InputEvent.from_string("1,5,1"))
+        self.assertEqual(
+            self.data_manager.active_event, InputEvent.from_string("1,5,1")
+        )
+
+    def test_update_event_sends_messages(self):
+        prepare_presets()
+        self.data_manager.load_group("Foo Device")
+        self.data_manager.load_preset("preset1")
+        self.data_manager.load_mapping(EventCombination("1,1,1"))
+        self.data_manager.load_event(InputEvent.from_string("1,1,1"))
+
+        mock = MagicMock()
+        self.message_broker.subscribe(MessageType.event, mock)
+        self.message_broker.subscribe(MessageType.combination_update, mock)
+        self.message_broker.subscribe(MessageType.mapping, mock)
+        self.data_manager.update_event(InputEvent.from_string("1,5,1"))
+        expected = [
+            call(
+                CombinationUpdate(EventCombination("1,1,1"), EventCombination("1,5,1"))
+            ),
+            call(self.data_manager.active_mapping.get_bus_message()),
+            call(InputEvent.from_string("1,5,1")),
+        ]
+        mock.assert_has_calls(expected, any_order=False)
+
+    def test_cannot_update_event_when_resulting_combination_exists(self):
+        prepare_presets()
+        self.data_manager.load_group("Foo Device")
+        self.data_manager.load_preset("preset1")
+        self.data_manager.load_mapping(EventCombination("1,1,1"))
+        self.data_manager.load_event(InputEvent.from_string("1,1,1"))
+        with self.assertRaises(KeyError):
+            self.data_manager.update_event(InputEvent.from_string("1,2,1"))
+
+    def test_cannot_update_event_when_not_loaded(self):
+        prepare_presets()
+        self.data_manager.load_group("Foo Device")
+        self.data_manager.load_preset("preset1")
+        self.data_manager.load_mapping(EventCombination("1,1,1"))
+        with self.assertRaises(DataManagementError):
+            self.data_manager.update_event(InputEvent.from_string("1,2,1"))
 
     def test_update_mapping_emits_mapping_changed(self):
         """update mapping should emit a mapping_changed event"""
@@ -799,3 +879,13 @@ class TestDataManager(unittest.TestCase):
                 ).capabilities(),
             },
         )
+
+    def test_cannot_stop_injecting_without_group(self):
+        self.assertRaises(DataManagementError, self.data_manager.stop_injecting)
+
+    def test_cannot_start_injecting_without_preset(self):
+        self.data_manager.load_group("Foo Device")
+        self.assertRaises(DataManagementError, self.data_manager.start_injecting)
+
+    def test_cannot_get_injector_state_without_group(self):
+        self.assertRaises(DataManagementError, self.data_manager.get_state)

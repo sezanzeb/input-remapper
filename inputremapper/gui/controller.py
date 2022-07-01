@@ -136,9 +136,6 @@ class Controller:
     def on_combination_recorded(self, data: CombinationRecorded):
         self.update_combination(data.combination)
 
-    def on_recording_finished(self, _):
-        pass
-
     def copy_preset(self):
         name = self.data_manager.active_preset.name
         match = re.search(" copy *\d*$", name)
@@ -253,7 +250,7 @@ class Controller:
             _("Are you sure to delete preset %s?")
             % self.data_manager.active_preset.name
         )
-        if self.data_manager.get_mappings() and self.gui.confirm_delete(msg) != accept:
+        if self.data_manager.active_preset and self.gui.confirm_delete(msg) != accept:
             return
         self.data_manager.delete_preset()
         self.data_manager.load_preset(self.get_a_preset())
@@ -278,7 +275,7 @@ class Controller:
     def delete_mapping(self):
         accept = Gtk.ResponseType.ACCEPT
         if (
-            self.data_manager.get_mappings()
+            self.data_manager.active_mapping
             and self.gui.confirm_delete(_("Are you sure to delete this mapping?"))
             != accept
         ):

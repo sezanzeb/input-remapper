@@ -1649,13 +1649,13 @@ class TestGui(GuiTestBase):
         # Those devices would usually be of the same model of keyboard for example
         # Todo: move this to unit tests, there is no point in having the ui around
         self.controller.load_group("Foo Device")
-        presets1 = self.data_manager.get_presets()
+        presets1 = self.data_manager.get_preset_names()
         self.controller.load_group("Foo Device 2")
         gtk_iteration()
-        presets2 = self.data_manager.get_presets()
+        presets2 = self.data_manager.get_preset_names()
         self.controller.load_group("Bar Device")
         gtk_iteration()
-        presets3 = self.data_manager.get_presets()
+        presets3 = self.data_manager.get_preset_names()
 
         self.assertEqual(presets1, presets2)
         self.assertNotEqual(presets1, presets3)
