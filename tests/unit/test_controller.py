@@ -75,355 +75,247 @@ from inputremapper.configs.paths import get_preset_path, get_config_path
 from inputremapper.configs.preset import Preset
 
 
-@dataclass
-class DummyGui:
-    confirm_delete_ret: Gtk.ResponseType = Gtk.ResponseType.ACCEPT
-    connect_calls: int = 0
-    disconnect_calls: int = 0
-
-    def confirm_delete(self, msg):
-        return self.confirm_delete_ret
-
-    def connect_shortcuts(self):
-        self.connect_calls += 1
-
-    def disconnect_shortcuts(self):
-        self.disconnect_calls += 1
-
-    def set_injection_status(self, status):
-        pass
-
-
-class TestError(Exception):
-    pass
-
-
-def get_controller_objects(
-    message_broker=None, data_manager=None, user_interface=None
-) -> Tuple[MessageBroker, DataManager, Any]:
-    """useful to supply directly to the Controller.__init__"""
-    if not message_broker:
-        message_broker = MessageBroker()
-
-    if not data_manager:
+class TestController(unittest.TestCase):
+    def setUp(self) -> None:
+        super(TestController, self).setUp()
+        self.message_broker = MessageBroker()
         uinputs = GlobalUInputs()
         uinputs.prepare_all()
-        data_manager = DataManager(
-            message_broker,
+        self.data_manager = DataManager(
+            self.message_broker,
             GlobalConfig(),
-            Reader(message_broker, _Groups()),
+            Reader(self.message_broker, _Groups()),
             FakeDaemonProxy(),
             uinputs,
         )
+        self.user_interface = MagicMock()
+        self.controller = Controller(self.message_broker, self.data_manager)
+        self.controller.set_gui(self.user_interface)
 
-    if not user_interface:
-        user_interface = DummyGui()
-    return message_broker, data_manager, user_interface
-
-
-class TestController(unittest.TestCase):
     def tearDown(self) -> None:
         quick_cleanup()
 
     def test_should_get_newest_group(self):
         """get_a_group should the newest group"""
-
-        def f():
-            return "foo"
-
-        message_broker, data_manager, user_interface = get_controller_objects()
-        controller = Controller(message_broker, data_manager)
-        controller.set_gui(user_interface)
-        data_manager.get_newest_group_key = f
-
-        self.assertEqual(controller.get_a_group(), "foo")
+        with patch.object(
+            self.data_manager, "get_newest_group_key", MagicMock(return_value="foo")
+        ):
+            self.assertEqual(self.controller.get_a_group(), "foo")
 
     def test_should_get_any_group(self):
         """get_a_group should return a valid group"""
-
-        def f():
-            raise FileNotFoundError()
-
-        message_broker, data_manager, user_interface = get_controller_objects()
-        controller = Controller(message_broker, data_manager)
-        controller.set_gui(user_interface)
-        data_manager.get_newest_group_key = f
-
-        fixture_keys = [
-            fixture.get("group_key") or fixture.get("name")
-            for fixture in fixtures.values()
-        ]
-        self.assertIn(controller.get_a_group(), fixture_keys)
+        with patch.object(
+            self.data_manager,
+            "get_newest_group_key",
+            MagicMock(side_effect=FileNotFoundError),
+        ):
+            fixture_keys = [
+                fixture.get("group_key") or fixture.get("name")
+                for fixture in fixtures.values()
+            ]
+            self.assertIn(self.controller.get_a_group(), fixture_keys)
 
     def test_should_get_newest_preset(self):
         """get_a_group should the newest group"""
-
-        def f():
-            return "bar"
-
-        message_broker, data_manager, user_interface = get_controller_objects()
-        controller = Controller(message_broker, data_manager)
-        controller.set_gui(user_interface)
-        data_manager.get_newest_preset_name = f
-        data_manager.load_group("Foo Device")
-
-        self.assertEqual(controller.get_a_preset(), "bar")
+        with patch.object(
+            self.data_manager, "get_newest_preset_name", MagicMock(return_value="bar")
+        ):
+            self.data_manager.load_group("Foo Device")
+            self.assertEqual(self.controller.get_a_preset(), "bar")
 
     def test_should_get_any_preset(self):
         """get_a_preset should return a new preset if none exist"""
-
-        message_broker, data_manager, user_interface = get_controller_objects()
-        controller = Controller(message_broker, data_manager)
-        controller.set_gui(user_interface)
-        data_manager.load_group("Foo Device")
-
-        self.assertEqual(controller.get_a_preset(), "new preset")  # the default name
+        self.data_manager.load_group("Foo Device")
+        self.assertEqual(
+            self.controller.get_a_preset(), "new preset"
+        )  # the default name
 
     def test_on_init_should_provide_uinputs(self):
-        message_broker, data_manager, user_interface = get_controller_objects()
-        controller = Controller(message_broker, data_manager)
-        controller.set_gui(user_interface)
-        calls: List[UInputsData] = []
+        calls = []
 
         def f(data):
             calls.append(data)
 
-        message_broker.subscribe(MessageType.uinputs, f)
-        message_broker.signal(MessageType.init)
+        self.message_broker.subscribe(MessageType.uinputs, f)
+        self.message_broker.signal(MessageType.init)
         self.assertEqual(
             ["keyboard", "gamepad", "mouse", "keyboard + mouse"],
             list(calls[-1].uinputs.keys()),
         )
 
     def test_on_init_should_provide_groups(self):
-        message_broker, data_manager, user_interface = get_controller_objects()
-        controller = Controller(message_broker, data_manager)
-        controller.set_gui(user_interface)
         calls: List[GroupsData] = []
 
         def f(groups):
             calls.append(groups)
 
-        message_broker.subscribe(MessageType.groups, f)
-        message_broker.signal(MessageType.init)
+        self.message_broker.subscribe(MessageType.groups, f)
+        self.message_broker.signal(MessageType.init)
         self.assertEqual(
             ["Foo Device", "Foo Device 2", "Bar Device", "gamepad"],
             list(calls[-1].groups.keys()),
         )
 
     def test_on_init_should_provide_a_group(self):
-        message_broker, data_manager, user_interface = get_controller_objects()
-        controller = Controller(message_broker, data_manager)
-        controller.set_gui(user_interface)
         calls: List[GroupData] = []
 
         def f(data):
             calls.append(data)
 
-        message_broker.subscribe(MessageType.group, f)
-        message_broker.signal(MessageType.init)
+        self.message_broker.subscribe(MessageType.group, f)
+        self.message_broker.signal(MessageType.init)
         self.assertGreaterEqual(len(calls), 1)
 
     def test_on_init_should_provide_a_preset(self):
-        message_broker, data_manager, user_interface = get_controller_objects()
-        controller = Controller(message_broker, data_manager)
-        controller.set_gui(user_interface)
         calls: List[PresetData] = []
 
         def f(data):
             calls.append(data)
 
-        message_broker.subscribe(MessageType.preset, f)
-        message_broker.signal(MessageType.init)
+        self.message_broker.subscribe(MessageType.preset, f)
+        self.message_broker.signal(MessageType.init)
         self.assertGreaterEqual(len(calls), 1)
 
     def test_on_init_should_provide_a_mapping(self):
         """only if there is one"""
         prepare_presets()
-        message_broker, data_manager, user_interface = get_controller_objects()
-        controller = Controller(message_broker, data_manager)
-        controller.set_gui(user_interface)
         calls: List[MappingData] = []
 
         def f(data):
             calls.append(data)
 
-        message_broker.subscribe(MessageType.mapping, f)
-        message_broker.signal(MessageType.init)
+        self.message_broker.subscribe(MessageType.mapping, f)
+        self.message_broker.signal(MessageType.init)
         self.assertTrue(calls[-1].is_valid())
 
     def test_on_init_should_provide_a_default_mapping(self):
         """if there is no real preset available"""
-        message_broker, data_manager, user_interface = get_controller_objects()
-        controller = Controller(message_broker, data_manager)
-        controller.set_gui(user_interface)
         calls: List[MappingData] = []
 
         def f(data):
             calls.append(data)
 
-        message_broker.subscribe(MessageType.mapping, f)
-        message_broker.signal(MessageType.init)
+        self.message_broker.subscribe(MessageType.mapping, f)
+        self.message_broker.signal(MessageType.init)
         for m in calls:
             self.assertEqual(m, UIMapping(**MAPPING_DEFAULTS))
 
     def test_on_init_should_provide_status_if_helper_is_not_running(self):
-        message_broker, data_manager, user_interface = get_controller_objects()
-        controller = Controller(message_broker, data_manager)
-        controller.set_gui(user_interface)
         calls: List[StatusData] = []
 
         def f(data):
             calls.append(data)
 
-        message_broker.subscribe(MessageType.status, f)
+        self.message_broker.subscribe(MessageType.status, f)
         with patch("inputremapper.gui.controller.is_helper_running", lambda: False):
-            message_broker.signal(MessageType.init)
+            self.message_broker.signal(MessageType.init)
         self.assertIn(StatusData(CTX_ERROR, _("The helper did not start")), calls)
 
     def test_on_init_should_not_provide_status_if_helper_is_running(self):
-        message_broker, data_manager, user_interface = get_controller_objects()
-        controller = Controller(message_broker, data_manager)
-        controller.set_gui(user_interface)
         calls: List[StatusData] = []
 
         def f(data):
             calls.append(data)
 
-        message_broker.subscribe(MessageType.status, f)
+        self.message_broker.subscribe(MessageType.status, f)
         with patch("inputremapper.gui.controller.is_helper_running", lambda: True):
-            message_broker.signal(MessageType.init)
+            self.message_broker.signal(MessageType.init)
 
         self.assertNotIn(StatusData(CTX_ERROR, _("The helper did not start")), calls)
 
     def test_on_load_group_should_provide_preset(self):
-        def f(*_):
-            raise TestError()
-
-        message_broker, data_manager, user_interface = get_controller_objects()
-        controller = Controller(message_broker, data_manager)
-        controller.set_gui(user_interface)
-        data_manager.load_preset = f
-        self.assertRaises(TestError, controller.load_group, group_key="Foo Device")
+        with patch.object(self.data_manager, "load_preset") as mock:
+            self.controller.load_group("Foo Device")
+            mock.assert_called_once()
 
     def test_on_load_group_should_provide_mapping(self):
         """if there is one"""
         prepare_presets()
-        message_broker, data_manager, user_interface = get_controller_objects()
-        controller = Controller(message_broker, data_manager)
-        controller.set_gui(user_interface)
         calls: List[MappingData] = []
 
         def f(data):
             calls.append(data)
 
-        message_broker.subscribe(MessageType.mapping, f)
-        controller.load_group(group_key="Foo Device 2")
+        self.message_broker.subscribe(MessageType.mapping, f)
+        self.controller.load_group(group_key="Foo Device 2")
         self.assertTrue(calls[-1].is_valid())
 
     def test_on_load_group_should_provide_default_mapping(self):
         """if there is none"""
-        message_broker, data_manager, user_interface = get_controller_objects()
-        controller = Controller(message_broker, data_manager)
-        controller.set_gui(user_interface)
         calls: List[MappingData] = []
 
         def f(data):
             calls.append(data)
 
-        message_broker.subscribe(MessageType.mapping, f)
+        self.message_broker.subscribe(MessageType.mapping, f)
 
-        controller.load_group(group_key="Foo Device")
+        self.controller.load_group(group_key="Foo Device")
         for m in calls:
             self.assertEqual(m, UIMapping(**MAPPING_DEFAULTS))
 
     def test_on_load_preset_should_provide_mapping(self):
         """if there is one"""
         prepare_presets()
-        message_broker, data_manager, user_interface = get_controller_objects()
-        controller = Controller(message_broker, data_manager)
-        controller.set_gui(user_interface)
-        data_manager.load_group("Foo Device 2")
+        self.data_manager.load_group("Foo Device 2")
         calls: List[MappingData] = []
 
         def f(data):
             calls.append(data)
 
-        message_broker.subscribe(MessageType.mapping, f)
-        controller.load_preset(name="preset2")
+        self.message_broker.subscribe(MessageType.mapping, f)
+        self.controller.load_preset(name="preset2")
         self.assertTrue(calls[-1].is_valid())
 
     def test_on_load_preset_should_provide_default_mapping(self):
         """if there is none"""
         Preset(get_preset_path("Foo Device", "bar")).save()
-        message_broker, data_manager, user_interface = get_controller_objects()
-        controller = Controller(message_broker, data_manager)
-        controller.set_gui(user_interface)
-        data_manager.load_group("Foo Device 2")
+        self.data_manager.load_group("Foo Device 2")
         calls: List[MappingData] = []
 
         def f(data):
             calls.append(data)
 
-        message_broker.subscribe(MessageType.mapping, f)
-        controller.load_preset(name="bar")
+        self.message_broker.subscribe(MessageType.mapping, f)
+        self.controller.load_preset(name="bar")
         for m in calls:
             self.assertEqual(m, UIMapping(**MAPPING_DEFAULTS))
 
     def test_on_delete_preset_asks_for_confirmation(self):
         prepare_presets()
-        message_broker, data_manager, user_interface = get_controller_objects()
-        controller = Controller(message_broker, data_manager)
-        controller.set_gui(user_interface)
-
-        def f(*_):
-            raise TestError()
-
-        user_interface.confirm_delete = f
-
-        message_broker.signal(MessageType.init)
-        self.assertRaises(TestError, controller.delete_preset)
+        with patch.object(self.user_interface, "confirm_delete") as mock:
+            self.message_broker.signal(MessageType.init)
+            self.controller.delete_preset()
+            mock.assert_called_once()
 
     def test_deletes_preset_when_confirmed(self):
         prepare_presets()
         self.assertTrue(os.path.isfile(get_preset_path("Foo Device", "preset2")))
-        message_broker, data_manager, user_interface = get_controller_objects()
-        controller = Controller(message_broker, data_manager)
-        controller.set_gui(user_interface)
 
-        data_manager.load_group("Foo Device 2")
-        data_manager.load_preset("preset2")
-        user_interface.confirm_delete_ret = Gtk.ResponseType.ACCEPT
-
-        path = get_preset_path("Foo Device", "preset2")
-        controller.delete_preset()
+        self.data_manager.load_group("Foo Device 2")
+        self.data_manager.load_preset("preset2")
+        self.user_interface.confirm_delete.configure_mock(
+            return_value=Gtk.ResponseType.ACCEPT
+        )
+        self.controller.delete_preset()
         self.assertFalse(os.path.exists(get_preset_path("Foo Device", "preset2")))
 
     def test_does_not_delete_preset_when_not_confirmed(self):
         prepare_presets()
         self.assertTrue(os.path.isfile(get_preset_path("Foo Device", "preset2")))
-        message_broker, data_manager, user_interface = get_controller_objects()
-        controller = Controller(message_broker, data_manager)
-        controller.set_gui(user_interface)
-
-        data_manager.load_group("Foo Device 2")
-        data_manager.load_preset("preset2")
-        user_interface.confirm_delete_ret = Gtk.ResponseType.CANCEL
-
-        path = get_preset_path("Foo Device", "preset2")
-        controller.delete_preset()
+        self.data_manager.load_group("Foo Device 2")
+        self.data_manager.load_preset("preset2")
+        self.user_interface.confirm_delete.configure_mock(
+            return_value=Gtk.ResponseType.CANCEL
+        )
+        self.controller.delete_preset()
         self.assertTrue(os.path.isfile(get_preset_path("Foo Device", "preset2")))
 
     def test_copy_preset(self):
         prepare_presets()
         self.assertTrue(os.path.isfile(get_preset_path("Foo Device", "preset2")))
-
-        message_broker, data_manager, user_interface = get_controller_objects()
-        controller = Controller(message_broker, data_manager)
-        controller.set_gui(user_interface)
-        data_manager.load_group("Foo Device 2")
-        data_manager.load_preset("preset2")
-        controller.copy_preset()
+        self.data_manager.load_group("Foo Device 2")
+        self.data_manager.load_preset("preset2")
+        self.controller.copy_preset()
 
         self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset2")))
         self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset2 copy")))
@@ -432,14 +324,11 @@ class TestController(unittest.TestCase):
         prepare_presets()
         self.assertTrue(os.path.isfile(get_preset_path("Foo Device", "preset2")))
 
-        message_broker, data_manager, user_interface = get_controller_objects()
-        controller = Controller(message_broker, data_manager)
-        controller.set_gui(user_interface)
-        data_manager.load_group("Foo Device 2")
-        data_manager.load_preset("preset2")
-        controller.copy_preset()  # creates "preset2 copy"
-        data_manager.load_preset("preset2")
-        controller.copy_preset()  # creates "preset2 copy 2"
+        self.data_manager.load_group("Foo Device 2")
+        self.data_manager.load_preset("preset2")
+        self.controller.copy_preset()  # creates "preset2 copy"
+        self.data_manager.load_preset("preset2")
+        self.controller.copy_preset()  # creates "preset2 copy 2"
 
         self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset2")))
         self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset2 copy")))
@@ -449,16 +338,13 @@ class TestController(unittest.TestCase):
         prepare_presets()
         self.assertTrue(os.path.isfile(get_preset_path("Foo Device", "preset2")))
 
-        message_broker, data_manager, user_interface = get_controller_objects()
-        controller = Controller(message_broker, data_manager)
-        controller.set_gui(user_interface)
-        data_manager.load_group("Foo Device 2")
-        data_manager.load_preset("preset2")
-        controller.copy_preset()  # creates "preset2 copy"
-        data_manager.load_preset("preset2")
-        controller.copy_preset()  # creates "preset2 copy 2"
-        data_manager.load_preset("preset2")
-        controller.copy_preset()  # creates "preset2 copy 3"
+        self.data_manager.load_group("Foo Device 2")
+        self.data_manager.load_preset("preset2")
+        self.controller.copy_preset()  # creates "preset2 copy"
+        self.data_manager.load_preset("preset2")
+        self.controller.copy_preset()  # creates "preset2 copy 2"
+        self.data_manager.load_preset("preset2")
+        self.controller.copy_preset()  # creates "preset2 copy 3"
 
         self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset2")))
         self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset2 copy")))
@@ -469,13 +355,10 @@ class TestController(unittest.TestCase):
         prepare_presets()
         self.assertTrue(os.path.isfile(get_preset_path("Foo Device", "preset2")))
 
-        message_broker, data_manager, user_interface = get_controller_objects()
-        controller = Controller(message_broker, data_manager)
-        controller.set_gui(user_interface)
-        data_manager.load_group("Foo Device 2")
-        data_manager.load_preset("preset2")
-        controller.copy_preset()  # creates "preset2 copy"
-        controller.copy_preset()  # creates "preset2 copy 2" not "preset2 copy copy"
+        self.data_manager.load_group("Foo Device 2")
+        self.data_manager.load_preset("preset2")
+        self.controller.copy_preset()  # creates "preset2 copy"
+        self.controller.copy_preset()  # creates "preset2 copy 2" not "preset2 copy copy"
 
         self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset2")))
         self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset2 copy")))
@@ -485,15 +368,12 @@ class TestController(unittest.TestCase):
         prepare_presets()
         self.assertTrue(os.path.isfile(get_preset_path("Foo Device", "preset2")))
 
-        message_broker, data_manager, user_interface = get_controller_objects()
-        controller = Controller(message_broker, data_manager)
-        controller.set_gui(user_interface)
-        data_manager.load_group("Foo Device 2")
-        data_manager.load_preset("preset2")
-        controller.copy_preset()  # creates "preset2 copy"
-        data_manager.load_preset("preset2")
-        controller.copy_preset()  # creates "preset2 copy 2"
-        controller.copy_preset()  # creates "preset2 copy 3" not "preset2 copy 2 copy"
+        self.data_manager.load_group("Foo Device 2")
+        self.data_manager.load_preset("preset2")
+        self.controller.copy_preset()  # creates "preset2 copy"
+        self.data_manager.load_preset("preset2")
+        self.controller.copy_preset()  # creates "preset2 copy 2"
+        self.controller.copy_preset()  # creates "preset2 copy 3" not "preset2 copy 2 copy"
 
         self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset2")))
         self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset2 copy")))
@@ -505,12 +385,9 @@ class TestController(unittest.TestCase):
         self.assertTrue(os.path.isfile(get_preset_path("Foo Device", "preset2")))
         self.assertFalse(os.path.exists(get_preset_path("Foo Device", "foo")))
 
-        message_broker, data_manager, user_interface = get_controller_objects()
-        controller = Controller(message_broker, data_manager)
-        controller.set_gui(user_interface)
-        data_manager.load_group("Foo Device 2")
-        data_manager.load_preset("preset2")
-        controller.rename_preset(new_name="foo")
+        self.data_manager.load_group("Foo Device 2")
+        self.data_manager.load_preset("preset2")
+        self.controller.rename_preset(new_name="foo")
 
         self.assertFalse(os.path.exists(get_preset_path("Foo Device", "preset2")))
         self.assertTrue(os.path.exists(get_preset_path("Foo Device", "foo")))
@@ -521,12 +398,9 @@ class TestController(unittest.TestCase):
         self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset3")))
         self.assertFalse(os.path.exists(get_preset_path("Foo Device", "preset3 2")))
 
-        message_broker, data_manager, user_interface = get_controller_objects()
-        controller = Controller(message_broker, data_manager)
-        controller.set_gui(user_interface)
-        data_manager.load_group("Foo Device")
-        data_manager.load_preset("preset2")
-        controller.rename_preset(new_name="preset3")
+        self.data_manager.load_group("Foo Device")
+        self.data_manager.load_preset("preset2")
+        self.controller.rename_preset(new_name="preset3")
 
         self.assertFalse(os.path.exists(get_preset_path("Foo Device", "preset2")))
         self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset3")))
@@ -536,12 +410,9 @@ class TestController(unittest.TestCase):
         prepare_presets()
         self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset2")))
 
-        message_broker, data_manager, user_interface = get_controller_objects()
-        controller = Controller(message_broker, data_manager)
-        controller.set_gui(user_interface)
-        data_manager.load_group("Foo Device")
-        data_manager.load_preset("preset2")
-        controller.rename_preset(new_name="")
+        self.data_manager.load_group("Foo Device")
+        self.data_manager.load_preset("preset2")
+        self.controller.rename_preset(new_name="")
 
         self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset2")))
 
@@ -550,12 +421,9 @@ class TestController(unittest.TestCase):
         prepare_presets()
         self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset2")))
 
-        message_broker, data_manager, user_interface = get_controller_objects()
-        controller = Controller(message_broker, data_manager)
-        controller.set_gui(user_interface)
-        data_manager.load_group("Foo Device 2")
-        data_manager.load_preset("preset2")
-        controller.rename_preset(new_name="preset2")
+        self.data_manager.load_group("Foo Device 2")
+        self.data_manager.load_preset("preset2")
+        self.controller.rename_preset(new_name="preset2")
 
         self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset2")))
         self.assertFalse(os.path.exists(get_preset_path("Foo Device", "preset2 2")))
@@ -565,30 +433,21 @@ class TestController(unittest.TestCase):
             os.path.exists(get_preset_path("Foo Device", DEFAULT_PRESET_NAME))
         )
 
-        message_broker, data_manager, user_interface = get_controller_objects()
-        controller = Controller(message_broker, data_manager)
-        controller.set_gui(user_interface)
-        data_manager.load_group("Foo Device 2")
+        self.data_manager.load_group("Foo Device 2")
 
-        controller.add_preset()
+        self.controller.add_preset()
         self.assertTrue(os.path.exists(get_preset_path("Foo Device", "new preset")))
 
     def test_on_add_preset_uses_provided_name(self):
         self.assertFalse(os.path.exists(get_preset_path("Foo Device", "foo")))
 
-        message_broker, data_manager, user_interface = get_controller_objects()
-        controller = Controller(message_broker, data_manager)
-        controller.set_gui(user_interface)
-        data_manager.load_group("Foo Device 2")
+        self.data_manager.load_group("Foo Device 2")
 
-        controller.add_preset(name="foo")
+        self.controller.add_preset(name="foo")
         self.assertTrue(os.path.exists(get_preset_path("Foo Device", "foo")))
 
     def test_on_add_preset_shows_permission_error_status(self):
-        message_broker, data_manager, user_interface = get_controller_objects()
-        controller = Controller(message_broker, data_manager)
-        controller.set_gui(user_interface)
-        data_manager.load_group("Foo Device 2")
+        self.data_manager.load_group("Foo Device 2")
 
         msg = None
 
@@ -596,10 +455,10 @@ class TestController(unittest.TestCase):
             nonlocal msg
             msg = data
 
-        message_broker.subscribe(MessageType.status, f)
+        self.message_broker.subscribe(MessageType.status, f)
         mock = MagicMock(side_effect=PermissionError)
         with patch("inputremapper.configs.preset.Preset.save", mock):
-            controller.add_preset("foo")
+            self.controller.add_preset("foo")
 
         mock.assert_called()
         self.assertIsNotNone(msg)
@@ -610,94 +469,68 @@ class TestController(unittest.TestCase):
         this ensures mapping_changed is emitted
         """
         prepare_presets()
-        message_broker, data_manager, user_interface = get_controller_objects()
-        controller = Controller(message_broker, data_manager)
-        controller.set_gui(user_interface)
+        self.data_manager.load_group("Foo Device 2")
+        self.data_manager.load_preset("preset2")
+        self.data_manager.load_mapping(combination=EventCombination("1,4,1"))
 
-        data_manager.load_group("Foo Device 2")
-        data_manager.load_preset("preset2")
-        data_manager.load_mapping(combination=EventCombination("1,4,1"))
-
-        def f(**_):
-            raise TestError()
-
-        data_manager.update_mapping = f
-        self.assertRaises(
-            TestError,
-            controller.update_mapping,
-            name="foo",
-            output_symbol="f",
-            release_timeout=0.3,
-        )
+        with patch.object(self.data_manager, "update_mapping") as mock:
+            self.controller.update_mapping(
+                name="foo",
+                output_symbol="f",
+                release_timeout=0.3,
+            )
+            mock.assert_called_once()
 
     def test_create_mapping_will_load_the_created_mapping(self):
         prepare_presets()
-        message_broker, data_manager, user_interface = get_controller_objects()
-        controller = Controller(message_broker, data_manager)
-        controller.set_gui(user_interface)
-
-        data_manager.load_group("Foo Device 2")
-        data_manager.load_preset("preset2")
+        self.data_manager.load_group("Foo Device 2")
+        self.data_manager.load_preset("preset2")
 
         calls: List[MappingData] = []
 
         def f(data):
             calls.append(data)
 
-        message_broker.subscribe(MessageType.mapping, f)
-        controller.create_mapping()
+        self.message_broker.subscribe(MessageType.mapping, f)
+        self.controller.create_mapping()
 
         self.assertEqual(calls[-1], UIMapping(**MAPPING_DEFAULTS))
 
     def test_create_mapping_should_not_create_multiple_empty_mappings(self):
         prepare_presets()
-        message_broker, data_manager, user_interface = get_controller_objects()
-        controller = Controller(message_broker, data_manager)
-        controller.set_gui(user_interface)
-
-        data_manager.load_group("Foo Device 2")
-        data_manager.load_preset("preset2")
-        controller.create_mapping()  # create a first empty mapping
+        self.data_manager.load_group("Foo Device 2")
+        self.data_manager.load_preset("preset2")
+        self.controller.create_mapping()  # create a first empty mapping
 
         calls = []
 
         def f(data):
             calls.append(data)
 
-        message_broker.subscribe(MessageType.mapping, f)
-        message_broker.subscribe(MessageType.preset, f)
+        self.message_broker.subscribe(MessageType.mapping, f)
+        self.message_broker.subscribe(MessageType.preset, f)
 
-        controller.create_mapping()  # try to create a second one
+        self.controller.create_mapping()  # try to create a second one
         self.assertEqual(len(calls), 0)
 
     def test_delete_mapping_asks_for_confirmation(self):
         prepare_presets()
-        message_broker, data_manager, user_interface = get_controller_objects()
-        controller = Controller(message_broker, data_manager)
-        controller.set_gui(user_interface)
-
-        def f(*_):
-            raise TestError()
-
-        user_interface.confirm_delete = f
-
-        message_broker.signal(MessageType.init)
-        self.assertRaises(TestError, controller.delete_mapping)
+        self.message_broker.signal(MessageType.init)
+        self.controller.delete_mapping()
+        self.user_interface.confirm_delete.assert_called_once()
 
     def test_deletes_mapping_when_confirmed(self):
         prepare_presets()
         self.assertTrue(os.path.isfile(get_preset_path("Foo Device", "preset2")))
-        message_broker, data_manager, user_interface = get_controller_objects()
-        controller = Controller(message_broker, data_manager)
-        controller.set_gui(user_interface)
 
-        data_manager.load_group("Foo Device 2")
-        data_manager.load_preset("preset2")
-        data_manager.load_mapping(EventCombination("1,3,1"))
-        user_interface.confirm_delete_ret = Gtk.ResponseType.ACCEPT
-
-        controller.delete_mapping()
-        controller.save()
+        self.data_manager.load_group("Foo Device 2")
+        self.data_manager.load_preset("preset2")
+        self.data_manager.load_mapping(EventCombination("1,3,1"))
+        self.user_interface.confirm_delete.configure_mock(
+            return_value=Gtk.ResponseType.ACCEPT
+        )
+        self.controller.delete_mapping()
+        self.controller.save()
 
         preset = Preset(get_preset_path("Foo Device", "preset2"))
         preset.load()
@@ -706,17 +539,16 @@ class TestController(unittest.TestCase):
     def test_does_not_delete_mapping_when_not_confirmed(self):
         prepare_presets()
         self.assertTrue(os.path.isfile(get_preset_path("Foo Device", "preset2")))
-        message_broker, data_manager, user_interface = get_controller_objects()
-        controller = Controller(message_broker, data_manager)
-        controller.set_gui(user_interface)
 
-        data_manager.load_group("Foo Device 2")
-        data_manager.load_preset("preset2")
-        data_manager.load_mapping(EventCombination("1,3,1"))
-        user_interface.confirm_delete_ret = Gtk.ResponseType.CANCEL
+        self.data_manager.load_group("Foo Device 2")
+        self.data_manager.load_preset("preset2")
+        self.data_manager.load_mapping(EventCombination("1,3,1"))
+        self.user_interface.confirm_delete.configure_mock(
+            return_value=Gtk.ResponseType.CANCEL
+        )
 
-        controller.delete_mapping()
-        controller.save()
+        self.controller.delete_mapping()
+        self.controller.save()
 
         preset = Preset(get_preset_path("Foo Device", "preset2"))
         preset.load()
@@ -725,21 +557,17 @@ class TestController(unittest.TestCase):
     def test_should_update_combination(self):
         """when combination is free"""
         prepare_presets()
-        message_broker, data_manager, user_interface = get_controller_objects()
-        controller = Controller(message_broker, data_manager)
-        controller.set_gui(user_interface)
-
-        data_manager.load_group("Foo Device 2")
-        data_manager.load_preset("preset2")
-        data_manager.load_mapping(EventCombination.from_string("1,3,1"))
+        self.data_manager.load_group("Foo Device 2")
+        self.data_manager.load_preset("preset2")
+        self.data_manager.load_mapping(EventCombination.from_string("1,3,1"))
 
         calls: List[CombinationUpdate] = []
 
         def f(data):
             calls.append(data)
 
-        message_broker.subscribe(MessageType.combination_update, f)
-        controller.update_combination(EventCombination.from_string("1,10,1"))
+        self.message_broker.subscribe(MessageType.combination_update, f)
+        self.controller.update_combination(EventCombination.from_string("1,10,1"))
         self.assertEqual(
             calls[0],
             CombinationUpdate(
@@ -751,74 +579,58 @@ class TestController(unittest.TestCase):
     def test_should_not_update_combination(self):
         """when combination is already used"""
         prepare_presets()
-        message_broker, data_manager, user_interface = get_controller_objects()
-        controller = Controller(message_broker, data_manager)
-        controller.set_gui(user_interface)
-
-        data_manager.load_group("Foo Device 2")
-        data_manager.load_preset("preset2")
-        data_manager.load_mapping(EventCombination.from_string("1,3,1"))
+        self.data_manager.load_group("Foo Device 2")
+        self.data_manager.load_preset("preset2")
+        self.data_manager.load_mapping(EventCombination.from_string("1,3,1"))
 
         calls: List[CombinationUpdate] = []
 
         def f(data):
             calls.append(data)
 
-        message_broker.subscribe(MessageType.combination_update, f)
-        controller.update_combination(EventCombination.from_string("1,4,1"))
+        self.message_broker.subscribe(MessageType.combination_update, f)
+        self.controller.update_combination(EventCombination.from_string("1,4,1"))
         self.assertEqual(len(calls), 0)
 
     def test_key_recording_disables_gui_shortcuts(self):
-        message_broker, data_manager, user_interface = get_controller_objects()
-        controller = Controller(message_broker, data_manager)
-        controller.set_gui(user_interface)
-        message_broker.signal(MessageType.init)
-
-        self.assertEqual(user_interface.disconnect_calls, 0)
-        controller.start_key_recording()
-        self.assertEqual(user_interface.disconnect_calls, 1)
+        self.message_broker.signal(MessageType.init)
+        self.user_interface.disconnect_shortcuts.assert_not_called()
+        self.controller.start_key_recording()
+        self.user_interface.disconnect_shortcuts.assert_called_once()
 
     def test_key_recording_enables_gui_shortcuts_when_finished(self):
-        message_broker, data_manager, user_interface = get_controller_objects()
-        controller = Controller(message_broker, data_manager)
-        controller.set_gui(user_interface)
-        message_broker.signal(MessageType.init)
-        controller.start_key_recording()
+        self.message_broker.signal(MessageType.init)
+        self.controller.start_key_recording()
 
-        self.assertEqual(user_interface.connect_calls, 0)
-        message_broker.signal(MessageType.recording_finished)
-        self.assertEqual(user_interface.connect_calls, 1)
+        self.user_interface.connect_shortcuts.assert_not_called()
+        self.message_broker.signal(MessageType.recording_finished)
+        self.user_interface.connect_shortcuts.assert_called_once()
 
     def test_key_recording_enables_gui_shortcuts_when_stopped(self):
-        message_broker, data_manager, user_interface = get_controller_objects()
-        controller = Controller(message_broker, data_manager)
-        controller.set_gui(user_interface)
-        message_broker.signal(MessageType.init)
-        controller.start_key_recording()
+        self.message_broker.signal(MessageType.init)
+        self.controller.start_key_recording()
 
-        self.assertEqual(user_interface.connect_calls, 0)
-        controller.stop_key_recording()
-        self.assertEqual(user_interface.connect_calls, 1)
+        self.user_interface.connect_shortcuts.assert_not_called()
+        self.controller.stop_key_recording()
+        self.user_interface.connect_shortcuts.assert_called_once()
 
     def test_key_recording_updates_mapping_combination(self):
         prepare_presets()
-        message_broker, data_manager, user_interface = get_controller_objects()
-        controller = Controller(message_broker, data_manager)
-        controller.set_gui(user_interface)
-
-        data_manager.load_group("Foo Device 2")
-        data_manager.load_preset("preset2")
-        data_manager.load_mapping(EventCombination.from_string("1,3,1"))
+        self.data_manager.load_group("Foo Device 2")
+        self.data_manager.load_preset("preset2")
+        self.data_manager.load_mapping(EventCombination.from_string("1,3,1"))
 
         calls: List[CombinationUpdate] = []
 
         def f(data):
             calls.append(data)
 
-        message_broker.subscribe(MessageType.combination_update, f)
+        self.message_broker.subscribe(MessageType.combination_update, f)
 
-        controller.start_key_recording()
-        message_broker.send(CombinationRecorded(EventCombination.from_string("1,10,1")))
+        self.controller.start_key_recording()
+        self.message_broker.send(
+            CombinationRecorded(EventCombination.from_string("1,10,1"))
+        )
         self.assertEqual(
             calls[0],
             CombinationUpdate(
@@ -826,7 +638,7 @@ class TestController(unittest.TestCase):
                 EventCombination.from_string("1,10,1"),
             ),
         )
-        message_broker.send(
+        self.message_broker.send(
             CombinationRecorded(EventCombination.from_string("1,10,1+1,3,1"))
         )
         self.assertEqual(
@@ -839,45 +651,41 @@ class TestController(unittest.TestCase):
 
     def test_no_key_recording_when_not_started(self):
         prepare_presets()
-        message_broker, data_manager, user_interface = get_controller_objects()
-        controller = Controller(message_broker, data_manager)
-        controller.set_gui(user_interface)
-
-        data_manager.load_group("Foo Device 2")
-        data_manager.load_preset("preset2")
-        data_manager.load_mapping(EventCombination.from_string("1,3,1"))
+        self.data_manager.load_group("Foo Device 2")
+        self.data_manager.load_preset("preset2")
+        self.data_manager.load_mapping(EventCombination.from_string("1,3,1"))
 
         calls: List[CombinationUpdate] = []
 
         def f(data):
             calls.append(data)
 
-        message_broker.subscribe(MessageType.combination_update, f)
+        self.message_broker.subscribe(MessageType.combination_update, f)
 
-        message_broker.send(CombinationRecorded(EventCombination.from_string("1,10,1")))
+        self.message_broker.send(
+            CombinationRecorded(EventCombination.from_string("1,10,1"))
+        )
         self.assertEqual(len(calls), 0)
 
     def test_key_recording_stops_when_finished(self):
         prepare_presets()
-        message_broker, data_manager, user_interface = get_controller_objects()
-        controller = Controller(message_broker, data_manager)
-        controller.set_gui(user_interface)
-
-        data_manager.load_group("Foo Device 2")
-        data_manager.load_preset("preset2")
-        data_manager.load_mapping(EventCombination.from_string("1,3,1"))
+        self.data_manager.load_group("Foo Device 2")
+        self.data_manager.load_preset("preset2")
+        self.data_manager.load_mapping(EventCombination.from_string("1,3,1"))
 
         calls: List[CombinationUpdate] = []
 
         def f(data):
             calls.append(data)
 
-        message_broker.subscribe(MessageType.combination_update, f)
+        self.message_broker.subscribe(MessageType.combination_update, f)
 
-        controller.start_key_recording()
-        message_broker.send(CombinationRecorded(EventCombination.from_string("1,10,1")))
-        message_broker.signal(MessageType.recording_finished)
-        message_broker.send(
+        self.controller.start_key_recording()
+        self.message_broker.send(
+            CombinationRecorded(EventCombination.from_string("1,10,1"))
+        )
+        self.message_broker.signal(MessageType.recording_finished)
+        self.message_broker.send(
             CombinationRecorded(EventCombination.from_string("1,10,1+1,3,1"))
         )
 
@@ -885,65 +693,55 @@ class TestController(unittest.TestCase):
 
     def test_key_recording_stops_when_stopped(self):
         prepare_presets()
-        message_broker, data_manager, user_interface = get_controller_objects()
-        controller = Controller(message_broker, data_manager)
-        controller.set_gui(user_interface)
-
-        data_manager.load_group("Foo Device 2")
-        data_manager.load_preset("preset2")
-        data_manager.load_mapping(EventCombination.from_string("1,3,1"))
+        self.data_manager.load_group("Foo Device 2")
+        self.data_manager.load_preset("preset2")
+        self.data_manager.load_mapping(EventCombination.from_string("1,3,1"))
 
         calls: List[CombinationUpdate] = []
 
         def f(data):
             calls.append(data)
 
-        message_broker.subscribe(MessageType.combination_update, f)
+        self.message_broker.subscribe(MessageType.combination_update, f)
 
-        controller.start_key_recording()
-        message_broker.send(CombinationRecorded(EventCombination.from_string("1,10,1")))
-        controller.stop_key_recording()
-        message_broker.send(
+        self.controller.start_key_recording()
+        self.message_broker.send(
+            CombinationRecorded(EventCombination.from_string("1,10,1"))
+        )
+        self.controller.stop_key_recording()
+        self.message_broker.send(
             CombinationRecorded(EventCombination.from_string("1,10,1+1,3,1"))
         )
 
         self.assertEqual(len(calls), 1)  # only the first was processed
 
     def test_start_injecting_shows_status_when_preset_empty(self):
-        message_broker, data_manager, user_interface = get_controller_objects()
-        controller = Controller(message_broker, data_manager)
-        controller.set_gui(user_interface)
-
-        data_manager.load_group("Foo Device 2")
-        data_manager.create_preset("foo")
-        data_manager.load_preset("foo")
+        self.data_manager.load_group("Foo Device 2")
+        self.data_manager.create_preset("foo")
+        self.data_manager.load_preset("foo")
         calls: List[StatusData] = []
 
         def f(data):
             calls.append(data)
 
-        message_broker.subscribe(MessageType.status, f)
+        self.message_broker.subscribe(MessageType.status, f)
 
         def f2():
             raise AssertionError("Injection started unexpectedly")
 
-        data_manager.start_injecting = f2
-        controller.start_injecting()
+        self.data_manager.start_injecting = f2
+        self.controller.start_injecting()
 
         self.assertEqual(
             calls[-1], StatusData(CTX_ERROR, _("You need to add keys and save first"))
         )
 
     def test_start_injecting_warns_about_btn_left(self):
-        message_broker, data_manager, user_interface = get_controller_objects()
-        controller = Controller(message_broker, data_manager)
-        controller.set_gui(user_interface)
-
-        data_manager.load_group("Foo Device 2")
-        data_manager.create_preset("foo")
-        data_manager.load_preset("foo")
-        data_manager.create_mapping()
-        data_manager.update_mapping(
+        self.data_manager.load_group("Foo Device 2")
+        self.data_manager.create_preset("foo")
+        self.data_manager.load_preset("foo")
+        self.data_manager.create_mapping()
+        self.data_manager.update_mapping(
             event_combination=EventCombination(InputEvent.btn_left()),
             target_uinput="keyboard",
             output_symbol="a",
@@ -953,144 +751,119 @@ class TestController(unittest.TestCase):
         def f(data):
             calls.append(data)
 
-        message_broker.subscribe(MessageType.status, f)
+        self.message_broker.subscribe(MessageType.status, f)
 
         def f2():
             raise AssertionError("Injection started unexpectedly")
 
-        data_manager.start_injecting = f2
-        controller.start_injecting()
+        self.data_manager.start_injecting = f2
+        self.controller.start_injecting()
 
         self.assertEqual(calls[-1].ctx_id, CTX_ERROR)
         self.assertIn("BTN_LEFT", calls[-1].tooltip)
 
     def test_start_injecting_starts_with_btn_left_on_second_try(self):
-        message_broker, data_manager, user_interface = get_controller_objects()
-        controller = Controller(message_broker, data_manager)
-        controller.set_gui(user_interface)
-
-        data_manager.load_group("Foo Device 2")
-        data_manager.create_preset("foo")
-        data_manager.load_preset("foo")
-        data_manager.create_mapping()
-        data_manager.update_mapping(
+        self.data_manager.load_group("Foo Device 2")
+        self.data_manager.create_preset("foo")
+        self.data_manager.load_preset("foo")
+        self.data_manager.create_mapping()
+        self.data_manager.update_mapping(
             event_combination=EventCombination(InputEvent.btn_left()),
             target_uinput="keyboard",
             output_symbol="a",
         )
 
-        def f2():
-            raise TestError()
-
-        data_manager.start_injecting = f2
-        controller.start_injecting()
-        self.assertRaises(TestError, controller.start_injecting)
+        with patch.object(self.data_manager, "start_injecting") as mock:
+            self.controller.start_injecting()
+            mock.assert_not_called()
+            self.controller.start_injecting()
+            mock.assert_called_once()
 
     def test_start_injecting_starts_with_btn_left_when_mapped_to_other_button(self):
-        message_broker, data_manager, user_interface = get_controller_objects()
-        controller = Controller(message_broker, data_manager)
-        controller.set_gui(user_interface)
-
-        data_manager.load_group("Foo Device 2")
-        data_manager.create_preset("foo")
-        data_manager.load_preset("foo")
-        data_manager.create_mapping()
-        data_manager.update_mapping(
+        self.data_manager.load_group("Foo Device 2")
+        self.data_manager.create_preset("foo")
+        self.data_manager.load_preset("foo")
+        self.data_manager.create_mapping()
+        self.data_manager.update_mapping(
             event_combination=EventCombination(InputEvent.btn_left()),
             target_uinput="keyboard",
             output_symbol="a",
         )
-        data_manager.create_mapping()
-        data_manager.load_mapping(EventCombination.empty_combination())
-        data_manager.update_mapping(
+        self.data_manager.create_mapping()
+        self.data_manager.load_mapping(EventCombination.empty_combination())
+        self.data_manager.update_mapping(
             event_combination=EventCombination.from_string("1,5,1"),
             target_uinput="mouse",
             output_symbol="BTN_LEFT",
         )
 
         mock = MagicMock(return_value=True)
-        data_manager.start_injecting = mock
-        controller.start_injecting()
+        self.data_manager.start_injecting = mock
+        self.controller.start_injecting()
         mock.assert_called()
 
     def test_start_injecting_shows_status(self):
         prepare_presets()
-        message_broker, data_manager, user_interface = get_controller_objects()
-        controller = Controller(message_broker, data_manager)
-        controller.set_gui(user_interface)
-
-        data_manager.load_group("Foo Device 2")
-        data_manager.load_preset("preset2")
+        self.data_manager.load_group("Foo Device 2")
+        self.data_manager.load_preset("preset2")
         calls: List[StatusData] = []
 
         def f(data):
             calls.append(data)
 
-        message_broker.subscribe(MessageType.status, f)
+        self.message_broker.subscribe(MessageType.status, f)
         mock = MagicMock(return_value=True)
-        data_manager.start_injecting = mock
-        controller.start_injecting()
+        self.data_manager.start_injecting = mock
+        self.controller.start_injecting()
 
         mock.assert_called()
         self.assertEqual(calls[0], StatusData(CTX_APPLY, _("Starting injection...")))
 
     def test_start_injecting_shows_failure_status(self):
         prepare_presets()
-        message_broker, data_manager, user_interface = get_controller_objects()
-        controller = Controller(message_broker, data_manager)
-        controller.set_gui(user_interface)
-
-        data_manager.load_group("Foo Device 2")
-        data_manager.load_preset("preset2")
+        self.data_manager.load_group("Foo Device 2")
+        self.data_manager.load_preset("preset2")
         calls: List[StatusData] = []
 
         def f(data):
             calls.append(data)
 
-        message_broker.subscribe(MessageType.status, f)
+        self.message_broker.subscribe(MessageType.status, f)
         mock = MagicMock(return_value=False)
-        data_manager.start_injecting = mock
-        controller.start_injecting()
+        self.data_manager.start_injecting = mock
+        self.controller.start_injecting()
 
         mock.assert_called()
         self.assertEqual(
             calls[0],
             StatusData(
                 CTX_APPLY,
-                _("Failed to apply preset %s") % data_manager.active_preset.name,
+                _("Failed to apply preset %s") % self.data_manager.active_preset.name,
             ),
         )
 
     def test_start_injecting_adds_timeout_to_update_injector_status(self):
         prepare_presets()
-        message_broker, data_manager, user_interface = get_controller_objects()
-        controller = Controller(message_broker, data_manager)
-        controller.set_gui(user_interface)
-
-        data_manager.load_group("Foo Device 2")
-        data_manager.load_preset("preset2")
+        self.data_manager.load_group("Foo Device 2")
+        self.data_manager.load_preset("preset2")
 
         with patch("inputremapper.gui.controller.GLib.timeout_add") as mock:
-            controller.start_injecting()
-            mock.assert_called_with(100, controller.show_injection_result)
+            self.controller.start_injecting()
+            mock.assert_called_with(100, self.controller.show_injection_result)
 
     def test_stop_injecting_shows_status(self):
         prepare_presets()
-        message_broker, data_manager, user_interface = get_controller_objects()
-        controller = Controller(message_broker, data_manager)
-        controller.set_gui(user_interface)
-
-        data_manager.load_group("Foo Device 2")
-        data_manager.load_preset("preset2")
+        self.data_manager.load_group("Foo Device 2")
+        self.data_manager.load_preset("preset2")
         calls: List[StatusData] = []
 
         def f(data):
             calls.append(data)
 
-        message_broker.subscribe(MessageType.status, f)
+        self.message_broker.subscribe(MessageType.status, f)
         mock = MagicMock()
-        data_manager.stop_injecting = mock
-        controller.stop_injecting()
+        self.data_manager.stop_injecting = mock
+        self.controller.stop_injecting()
 
         mock.assert_called()
         self.assertEqual(
@@ -1099,64 +872,52 @@ class TestController(unittest.TestCase):
 
     def test_show_injection_result(self):
         prepare_presets()
-        message_broker, data_manager, user_interface = get_controller_objects()
-        controller = Controller(message_broker, data_manager)
-        controller.set_gui(user_interface)
-
-        data_manager.load_group("Foo Device 2")
-        data_manager.load_preset("preset2")
-        controller.start_injecting()
+        self.data_manager.load_group("Foo Device 2")
+        self.data_manager.load_preset("preset2")
+        self.controller.start_injecting()
 
         mock = MagicMock(return_value=RUNNING)
-        data_manager.get_state = mock
+        self.data_manager.get_state = mock
         calls: List[StatusData] = []
 
         def f(data):
             calls.append(data)
 
-        message_broker.subscribe(MessageType.status, f)
+        self.message_broker.subscribe(MessageType.status, f)
 
-        assert not controller.show_injection_result()
+        assert not self.controller.show_injection_result()
         self.assertEqual(calls[-1].msg, _("Applied preset %s") % "preset2")
 
         mock.return_value = FAILED
-        assert not controller.show_injection_result()
+        assert not self.controller.show_injection_result()
         self.assertEqual(calls[-1].msg, _("Failed to apply preset %s") % "preset2")
 
         mock.return_value = NO_GRAB
-        assert not controller.show_injection_result()
+        assert not self.controller.show_injection_result()
         self.assertEqual(calls[-1].msg, "The device was not grabbed")
 
         mock.return_value = UPGRADE_EVDEV
-        assert not controller.show_injection_result()
+        assert not self.controller.show_injection_result()
         self.assertEqual(calls[-1].msg, "Upgrade python-evdev")
 
         mock.return_value = UNKNOWN
-        assert controller.show_injection_result()
+        assert self.controller.show_injection_result()
 
     def test_close(self):
-        message_broker, data_manager, user_interface = get_controller_objects()
-        controller = Controller(message_broker, data_manager)
-        controller.set_gui(user_interface)
-
         mock_save = MagicMock()
         listener = MagicMock()
-        message_broker.subscribe(MessageType.terminate, listener)
-        data_manager.save = mock_save
+        self.message_broker.subscribe(MessageType.terminate, listener)
+        self.data_manager.save = mock_save
 
-        controller.close()
+        self.controller.close()
         mock_save.assert_called()
         listener.assert_called()
 
     def test_set_autoload_refreshes_service_config(self):
         prepare_presets()
-        message_broker, data_manager, user_interface = get_controller_objects()
-        controller = Controller(message_broker, data_manager)
-        controller.set_gui(user_interface)
+        self.data_manager.load_group("Foo Device 2")
+        self.data_manager.load_preset("preset2")
 
-        data_manager.load_group("Foo Device 2")
-        data_manager.load_preset("preset2")
-
-        with patch.object(data_manager, "refresh_service_config_path") as mock:
-            controller.set_autoload(True)
+        with patch.object(self.data_manager, "refresh_service_config_path") as mock:
+            self.controller.set_autoload(True)
             mock.assert_called()
