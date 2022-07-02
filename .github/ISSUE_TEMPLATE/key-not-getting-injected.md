@@ -19,4 +19,4 @@ Share some logs please:
 
 6. paste the affected preset .json file from ~/.config/input-remapper/presets
 7. `sudo pkill -f input-remapper-service && input-remapper-gtk -d`, start the injection and hit your key. Then share that log.
-8. `sudo evtest` would also be interesting while the first command is still running, to see how your mappings are injected.
+8. `sudo evtest` while the previous command is running, to see how events are injected. Devices starting with `input-remapper ...` are of interest.
