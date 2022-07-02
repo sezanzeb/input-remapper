@@ -21,10 +21,10 @@ from __future__ import annotations  # needed for the TYPE_CHECKING import
 
 import re
 from functools import partial
-from typing import TYPE_CHECKING, Optional, Union, Literal
+from typing import TYPE_CHECKING, Optional, Union, Literal, Sequence, Dict, Callable
 
 from evdev.ecodes import EV_KEY, EV_REL, EV_ABS
-from gi.repository import Gtk, GLib
+from gi.repository import Gtk
 
 from inputremapper.configs.mapping import MappingData, UIMapping
 from inputremapper.event_combination import EventCombination
@@ -32,7 +32,7 @@ from inputremapper.exceptions import DataManagementError
 from inputremapper.gui.data_manager import DataManager, DEFAULT_PRESET_NAME
 from inputremapper.gui.gettext import _
 from inputremapper.gui.helper import is_helper_running
-from inputremapper.gui.utils import CTX_APPLY, CTX_ERROR, CTX_WARNING, gtk_iteration
+from inputremapper.gui.utils import CTX_APPLY, CTX_ERROR, CTX_WARNING
 from inputremapper.injection.injector import (
     RUNNING,
     FAILED,
@@ -167,7 +167,10 @@ class Controller:
             or len(self.data_manager.active_mapping.event_combination) == 1
         ):
             return
-        combination = self.data_manager.active_mapping.event_combination
+        combination: Sequence[
+            InputEvent
+        ] = self.data_manager.active_mapping.event_combination
+
         i = combination.index(event)
         if (
             i + 1 == len(combination)
@@ -391,7 +394,8 @@ class Controller:
                 'Group "%s" is currently mapped', self.data_manager.active_group.key
             )
 
-        {
+        assert self.data_manager.active_preset  # make mypy happy
+        state_calls: Dict[int, Callable] = {
             RUNNING: running,
             FAILED: partial(
                 self.show_status,
@@ -412,7 +416,8 @@ class Controller:
                 "Upgrade python-evdev",
                 "Your python-evdev version is too old.",
             ),
-        }[state]()
+        }
+        state_calls[state]()
 
     def stop_injecting(self):
         def show_result(msg: InjectorState):

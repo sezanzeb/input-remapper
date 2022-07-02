@@ -477,7 +477,7 @@ class DataManager:
         Will send "combination_update", "mapping" and "event" messages to the
         MessageBroker (in that order)
         """
-        if not self._active_mapping or not self._active_event:
+        if not self.active_mapping or not self.active_event:
             raise DataManagementError("Cannot modify event: event is not set")
 
         combination = list(self.active_mapping.event_combination)
