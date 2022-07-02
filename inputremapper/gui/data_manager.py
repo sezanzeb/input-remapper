@@ -556,8 +556,9 @@ class DataManager:
         self._daemon.set_config_dir(self._config.get_dir())
         assert self.active_preset.name is not None
         if self._daemon.start_injecting(self.active_group.key, self.active_preset.name):
-            self.do_when_injector_state({RUNNING, FAILED, NO_GRAB, UPGRADE_EVDEV},
-                                        self.send_injector_state)
+            self.do_when_injector_state(
+                {RUNNING, FAILED, NO_GRAB, UPGRADE_EVDEV}, self.send_injector_state
+            )
             return True
         return False
 
