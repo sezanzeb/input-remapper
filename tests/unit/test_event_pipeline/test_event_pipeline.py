@@ -307,8 +307,8 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
             )
 
         # each axis writes speed*gain*rate*sleep=1*0.5*60 events
-        self.assertGreater(len(history), speed * gain * rate * sleep * 0.9 * 2)
-        self.assertLess(len(history), speed * gain * rate * sleep * 1.1 * 2)
+        self.assertGreater(len(history), speed * gain * rate * sleep * 0.8 * 2)
+        self.assertLess(len(history), speed * gain * rate * sleep * 1.2 * 2)
 
         # those may be in arbitrary order
         count_x = history.count((EV_REL, REL_X, -1))
