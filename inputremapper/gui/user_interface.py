@@ -42,6 +42,7 @@ from inputremapper.gui.components import (
     CombinationListbox,
     AnalogInputSwitch,
     TriggerThresholdInput,
+    OutputAxisSelector,
 )
 from inputremapper.gui.controller import Controller
 from inputremapper.gui.message_broker import MessageBroker, MessageType
@@ -151,6 +152,7 @@ class UserInterface:
         TriggerThresholdInput(
             message_broker, controller, self.get("trigger-threshold-spin-btn")
         )
+        OutputAxisSelector(message_broker, controller, self.get("output-axis-selector"))
 
         # code editor and autocompletion
         code_editor = CodeEditor(

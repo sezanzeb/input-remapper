@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from typing import List, Optional, Dict, Literal, Union
+from collections import defaultdict
+from typing import List, Optional, Dict, Literal, Union, Tuple
 
-from evdev.ecodes import EV_KEY, EV_ABS, EV_REL
+from evdev.ecodes import EV_KEY, EV_ABS, EV_REL, bytype
 from gi.repository import Gtk, GtkSource, Gdk
 
 from inputremapper.configs.mapping import MappingData
@@ -797,3 +798,64 @@ class TriggerThresholdInput:
 
     def on_gtk_changed(self, *_):
         self.controller.update_event(self.event.modify(value=int(self.gui.get_value())))
+
+
+class OutputAxisSelector:
+    def __init__(
+        self,
+        message_broker: MessageBroker,
+        controller: Controller,
+        gui: Gtk.ComboBox,
+    ):
+        self.message_broker = message_broker
+        self.controller = controller
+        self.gui = gui
+        self.uinputs: Dict[str, Capabilities] = {}
+        self.model = Gtk.ListStore(str, str)
+
+        self._current_target: Optional[str] = None
+
+        self.gui.set_model(self.model)
+        renderer_text = Gtk.CellRendererText()
+        self.gui.pack_start(renderer_text, False)
+        self.gui.add_attribute(renderer_text, "text", 1)
+        self.gui.set_id_column(0)
+
+        self.gui.connect("changed", self.on_gtk_select_axis)
+        self._connect_message_listeners()
+
+    def set_model(self, target: str):
+        if target == self._current_target:
+            return
+
+        capabilities = self.uinputs.get(target) or defaultdict(list)
+        types_codes = [(EV_ABS, code) for code in capabilities.get(EV_ABS) or ()]
+        types_codes.extend((EV_REL, code) for code in capabilities.get(EV_REL) or ())
+        self.model.clear()
+        self.model.append([repr((None, None)), _("No Axis")])
+        for type_code in types_codes:
+            key_name = bytype[type_code[0]][type_code[1]]
+            if isinstance(key_name, list):
+                key_name = key_name[0]
+            self.model.append([repr(type_code), key_name])
+
+        self._current_target = target
+
+    def _connect_message_listeners(self):
+        self.message_broker.subscribe(MessageType.mapping, self.on_mapping_message)
+        self.message_broker.subscribe(MessageType.uinputs, self.on_uinputs_message)
+
+    def on_mapping_message(self, mapping: MappingData):
+        with HandlerDisabled(self.gui, self.on_gtk_select_axis):
+            self.set_model(mapping.target_uinput)
+            self.gui.set_active_id(repr((mapping.output_type, mapping.output_code)))
+
+    def on_uinputs_message(self, uinputs: UInputsData):
+        self.uinputs = uinputs.uinputs
+
+    def on_gtk_select_axis(self, *_):
+        type_code = eval(self.gui.get_active_id())
+        assert isinstance(type_code, tuple)
+        self.controller.update_mapping(
+            output_type=type_code[0], output_code=type_code[1]
+        )

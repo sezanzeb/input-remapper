@@ -56,6 +56,7 @@ class KnownUinput(str, enum.Enum):
     keyboard = "keyboard"
     mouse = "mouse"
     gamepad = "gamepad"
+    keyboard_mouse = "keyboard + mouse"
 
 
 CombinationChangedCallback = Optional[
