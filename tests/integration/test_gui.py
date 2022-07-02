@@ -244,18 +244,18 @@ class PatchedConfirmDelete:
 
     def _confirm_delete_run_patch(self):
         """A patch for the deletion confirmation that briefly shows the dialog."""
-        confirm_delete_dialog = self.user_interface.confirm_delete_dialog
+        confirm_cancel_dialog = self.user_interface.confirm_cancel_dialog
         # the emitted signal causes the dialog to close
         GLib.timeout_add(
             100,
-            lambda: confirm_delete_dialog.emit("response", self.response),
+            lambda: confirm_cancel_dialog.emit("response", self.response),
         )
-        Gtk.MessageDialog.run(confirm_delete_dialog)  # don't recursively call the patch
+        Gtk.MessageDialog.run(confirm_cancel_dialog)  # don't recursively call the patch
         return self.response
 
     def __enter__(self):
         self.patch = patch.object(
-            self.user_interface.get("confirm-delete"),
+            self.user_interface.get("confirm-cancel"),
             "run",
             self._confirm_delete_run_patch,
         )

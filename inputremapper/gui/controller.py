@@ -50,6 +50,7 @@ from inputremapper.gui.message_broker import (
     PresetData,
     StatusData,
     CombinationRecorded,
+    UserConfirmRequest,
 )
 
 if TYPE_CHECKING:
@@ -272,15 +273,18 @@ class Controller:
             self.show_status(CTX_ERROR, _("Permission denied!"), str(e))
 
     def delete_preset(self):
-        accept = Gtk.ResponseType.ACCEPT
+        def f(answer: bool):
+            if answer:
+                self.data_manager.delete_preset()
+                self.data_manager.load_preset(self.get_a_preset())
+
+        if not self.data_manager.active_preset:
+            return
         msg = (
-            _("Are you sure to delete preset %s?")
+            _("Are you sure you want to delete the \npreset: '%s' ?")
             % self.data_manager.active_preset.name
         )
-        if self.data_manager.active_preset and self.gui.confirm_delete(msg) != accept:
-            return
-        self.data_manager.delete_preset()
-        self.data_manager.load_preset(self.get_a_preset())
+        self.message_broker.send(UserConfirmRequest(msg, f))
 
     def load_mapping(self, event_combination: EventCombination):
         self.data_manager.load_mapping(event_combination)
@@ -300,15 +304,16 @@ class Controller:
         self.data_manager.update_mapping(**MAPPING_DEFAULTS)
 
     def delete_mapping(self):
-        accept = Gtk.ResponseType.ACCEPT
-        if (
-            self.data_manager.active_mapping
-            and self.gui.confirm_delete(_("Are you sure to delete this mapping?"))
-            != accept
-        ):
+        def f(answer: bool):
+            if answer:
+                self.data_manager.delete_mapping()
+                self.save()
+
+        if not self.data_manager.active_mapping:
             return
-        self.data_manager.delete_mapping()
-        self.save()
+        self.message_broker.send(
+            UserConfirmRequest(_("Are you sure you want to delete \nthis mapping?"), f)
+        )
 
     def set_autoload(self, autoload: bool):
         self.data_manager.set_autoload(autoload)

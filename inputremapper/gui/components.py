@@ -28,6 +28,7 @@ from inputremapper.gui.message_broker import (
     PresetData,
     StatusData,
     CombinationUpdate,
+    UserConfirmRequest,
 )
 from inputremapper.gui.utils import HandlerDisabled, CTX_ERROR, CTX_MAPPING, CTX_WARNING
 from inputremapper.input_event import InputEvent
@@ -859,3 +860,31 @@ class OutputAxisSelector:
         self.controller.update_mapping(
             output_type=type_code[0], output_code=type_code[1]
         )
+
+
+class ConfirmCancelDialog:
+    def __init__(
+        self,
+        message_broker: MessageBroker,
+        controller: Controller,
+        gui: Gtk.Dialog,
+        label: Gtk.Label,
+    ):
+        self.message_broker = message_broker
+        self.controller = controller
+        self.gui = gui
+        self.label = label
+
+        self._connect_message_listeners()
+
+    def _connect_message_listeners(self):
+        self.message_broker.subscribe(
+            MessageType.user_confirm_request, self.on_user_confirm_request
+        )
+
+    def on_user_confirm_request(self, msg: UserConfirmRequest):
+        self.label.set_label(msg.msg)
+        self.gui.show()
+        response = self.gui.run()
+        self.gui.hide()
+        msg.response(response == Gtk.ResponseType.ACCEPT)

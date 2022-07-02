@@ -43,6 +43,7 @@ from inputremapper.gui.components import (
     AnalogInputSwitch,
     TriggerThresholdInput,
     OutputAxisSelector,
+    ConfirmCancelDialog,
 )
 from inputremapper.gui.controller import Controller
 from inputremapper.gui.message_broker import MessageBroker, MessageType
@@ -92,7 +93,7 @@ class UserInterface:
         self.builder = Gtk.Builder()
         self._build_ui()
         self.window: Gtk.Window = self.get("window")
-        self.confirm_delete_dialog: Gtk.MessageDialog = self.get("confirm-delete")
+        self.confirm_cancel_dialog: Gtk.MessageDialog = self.get("confirm-cancel")
         self.about: Gtk.Window = self.get("about-dialog")
         self.combination_editor: Gtk.Dialog = self.get("combination-editor")
 
@@ -154,6 +155,12 @@ class UserInterface:
             message_broker, controller, self.get("trigger-threshold-spin-btn")
         )
         OutputAxisSelector(message_broker, controller, self.get("output-axis-selector"))
+        ConfirmCancelDialog(
+            message_broker,
+            controller,
+            self.get("confirm-cancel"),
+            self.get("confirm-cancel-label"),
+        )
 
         # code editor and autocompletion
         code_editor = CodeEditor(
@@ -233,14 +240,6 @@ class UserInterface:
             stop_injection_btn.set_opacity(0.4)
             stop_injection_btn.set_sensitive(True)
             recording_toggle.set_opacity(1)
-
-    def confirm_delete(self, msg):
-        """Blocks until the user decided about an action."""
-        self.get("confirm-delete-label").set_text(msg)
-        self.confirm_delete_dialog.show()
-        response = self.confirm_delete_dialog.run()
-        self.confirm_delete_dialog.hide()
-        return response
 
     def disconnect_shortcuts(self):
         """stop listening for shortcuts

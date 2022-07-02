@@ -41,7 +41,7 @@ class MessageType(Enum):
     injector_state = "injector_state"
 
     gui_focus_request = "gui_focus_request"
-    user_action_request = "user_action_request"
+    user_confirm_request = "user_confirm_request"
 
     # for unit tests:
     test1 = "test1"
@@ -181,6 +181,13 @@ class CombinationUpdate:
     message_type = MessageType.combination_update
     old_combination: "EventCombination"
     new_combination: "EventCombination"
+
+
+@dataclass(frozen=True)
+class UserConfirmRequest:
+    message_type = MessageType.user_confirm_request
+    msg: str
+    response: Callable[[bool], None] = lambda _: None
 
 
 class Signal(Message):

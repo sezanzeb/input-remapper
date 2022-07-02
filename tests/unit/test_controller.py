@@ -57,6 +57,7 @@ from inputremapper.gui.message_broker import (
     StatusData,
     CombinationUpdate,
     CombinationRecorded,
+    UserConfirmRequest,
 )
 from inputremapper.gui.reader import Reader
 from inputremapper.gui.utils import CTX_ERROR, CTX_APPLY, gtk_iteration
@@ -284,10 +285,11 @@ class TestController(unittest.TestCase):
 
     def test_on_delete_preset_asks_for_confirmation(self):
         prepare_presets()
-        with patch.object(self.user_interface, "confirm_delete") as mock:
-            self.message_broker.signal(MessageType.init)
-            self.controller.delete_preset()
-            mock.assert_called_once()
+        self.message_broker.signal(MessageType.init)
+        mock = MagicMock()
+        self.message_broker.subscribe(MessageType.user_confirm_request, mock)
+        self.controller.delete_preset()
+        mock.assert_called_once()
 
     def test_deletes_preset_when_confirmed(self):
         prepare_presets()
@@ -295,8 +297,8 @@ class TestController(unittest.TestCase):
 
         self.data_manager.load_group("Foo Device 2")
         self.data_manager.load_preset("preset2")
-        self.user_interface.confirm_delete.configure_mock(
-            return_value=Gtk.ResponseType.ACCEPT
+        self.message_broker.subscribe(
+            MessageType.user_confirm_request, lambda msg: msg.response(True)
         )
         self.controller.delete_preset()
         self.assertFalse(os.path.exists(get_preset_path("Foo Device", "preset2")))
@@ -518,8 +520,10 @@ class TestController(unittest.TestCase):
     def test_delete_mapping_asks_for_confirmation(self):
         prepare_presets()
         self.message_broker.signal(MessageType.init)
+        mock = MagicMock()
+        self.message_broker.subscribe(MessageType.user_confirm_request, mock)
         self.controller.delete_mapping()
-        self.user_interface.confirm_delete.assert_called_once()
+        mock.assert_called_once()
 
     def test_deletes_mapping_when_confirmed(self):
         prepare_presets()
@@ -528,8 +532,8 @@ class TestController(unittest.TestCase):
         self.data_manager.load_group("Foo Device 2")
         self.data_manager.load_preset("preset2")
         self.data_manager.load_mapping(EventCombination("1,3,1"))
-        self.user_interface.confirm_delete.configure_mock(
-            return_value=Gtk.ResponseType.ACCEPT
+        self.message_broker.subscribe(
+            MessageType.user_confirm_request, lambda msg: msg.response(True)
         )
         self.controller.delete_mapping()
         self.controller.save()
