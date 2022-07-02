@@ -453,14 +453,6 @@ class TestGui(GuiTestBase):
         self.assertTrue(self.data_manager.active_preset.is_valid())
         # todo
 
-    def test_show_injection_result_returns_false(self):
-        # this function may not return True, otherwise the timeout
-        # runs forever
-        self.start_injector_btn.clicked()
-        gtk_iteration()
-        self.sleep(20)
-        self.assertFalse(self.controller.show_injection_result())
-
     def test_set_autoload_refreshes_service_config(self):
         self.assertFalse(self.data_manager.get_autoload())
         with spy(self.daemon, "set_config_dir") as set_config_dir:

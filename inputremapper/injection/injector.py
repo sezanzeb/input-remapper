@@ -26,6 +26,7 @@ import multiprocessing
 import os
 import sys
 import time
+from dataclasses import dataclass
 from multiprocessing.connection import Connection
 from typing import Dict, List, Optional, Tuple
 
@@ -34,6 +35,7 @@ import evdev
 from inputremapper.configs.preset import Preset
 from inputremapper.event_combination import EventCombination
 from inputremapper.groups import _Group
+from inputremapper.gui.message_broker import MessageType
 from inputremapper.injection.context import Context
 from inputremapper.injection.event_reader import EventReader
 from inputremapper.injection.numlock import set_numlock, is_numlock_on, ensure_numlock
@@ -77,6 +79,15 @@ def get_udev_name(name: str, suffix: str) -> str:
     middle = name[:remaining_len]
     name = f"{DEV_NAME} {middle} {suffix}"
     return name
+
+
+@dataclass(frozen=True)
+class InjectorState:
+    message_type = MessageType.injector_state
+    state: int
+
+    def active(self) -> bool:
+        return self.state == RUNNING or self.state == STARTING or self.state == NO_GRAB
 
 
 class Injector(multiprocessing.Process):

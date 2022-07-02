@@ -20,6 +20,7 @@
 from __future__ import annotations  # needed for the TYPE_CHECKING import
 
 import re
+from functools import partial
 from typing import TYPE_CHECKING, Optional, Union, Literal
 
 from evdev.ecodes import EV_KEY, EV_REL, EV_ABS
@@ -31,17 +32,19 @@ from inputremapper.exceptions import DataManagementError
 from inputremapper.gui.data_manager import DataManager, DEFAULT_PRESET_NAME
 from inputremapper.gui.gettext import _
 from inputremapper.gui.helper import is_helper_running
-from inputremapper.gui.utils import CTX_APPLY, CTX_ERROR, CTX_WARNING
+from inputremapper.gui.utils import CTX_APPLY, CTX_ERROR, CTX_WARNING, gtk_iteration
 from inputremapper.injection.injector import (
     RUNNING,
     FAILED,
     NO_GRAB,
     UPGRADE_EVDEV,
     STARTING,
+    STOPPED,
+    InjectorState,
 )
 from inputremapper.input_event import InputEvent
 from inputremapper.logger import logger
-from .message_broker import (
+from inputremapper.gui.message_broker import (
     MessageBroker,
     MessageType,
     PresetData,
@@ -73,7 +76,6 @@ class Controller:
 
     def attach_to_events(self) -> None:
         self.message_broker.subscribe(MessageType.groups, self.on_groups_changed)
-        self.message_broker.subscribe(MessageType.group, self.on_group_changed)
         self.message_broker.subscribe(MessageType.preset, self.on_preset_changed)
         self.message_broker.subscribe(MessageType.init, self.on_init)
 
@@ -113,14 +115,6 @@ class Controller:
         group_key = self.get_a_group()
         if group_key:
             self.load_group(self.get_a_group())
-
-    def on_group_changed(self, _=None):
-        """update the ui to reflect the injector state"""
-        if self.gui:
-            # this might run before the ui is ready if the helper was fast sending the
-            # groups. (on_init will send them again)
-            state = self.data_manager.get_state()
-            self.gui.set_injection_status(state == RUNNING or state == STARTING)
 
     def on_preset_changed(self, data: PresetData):
         """load a mapping as soon as everyone got notified about the new preset"""
@@ -369,74 +363,68 @@ class Controller:
                 return
 
         # todo: warn about unreleased keys
-
         self.button_left_warn = False
-        if self.data_manager.start_injecting():
-            self.show_status(CTX_APPLY, _("Starting injection..."))
-        else:
+        self.message_broker.subscribe(
+            MessageType.injector_state, self.show_injector_result
+        )
+        self.show_status(CTX_APPLY, _("Starting injection..."))
+        if not self.data_manager.start_injecting():
+            self.message_broker.unsubscribe(self.show_injector_result)
             self.show_status(
                 CTX_APPLY,
                 _("Failed to apply preset %s") % self.data_manager.active_preset.name,
             )
 
-        GLib.timeout_add(100, self.show_injection_result)
-
-    def stop_injecting(self):
-        try:
-            self.data_manager.stop_injecting()
-            self.show_status(CTX_APPLY, _("Applied the system default"))
-            self.gui.set_injection_status(False)
-        except DataManagementError:
-            pass
-
-    def show_injection_result(self):
+    def show_injector_result(self, msg: InjectorState):
         """Show if the injection was successfully started."""
+        self.message_broker.unsubscribe(self.show_injector_result)
+        state = msg.state
 
-        state = self.data_manager.get_state()
-
-        if state == RUNNING:
+        def running():
             msg = _("Applied preset %s") % self.data_manager.active_preset.name
-
             if self.data_manager.active_preset.get_mapping(
                 EventCombination(InputEvent.btn_left())
             ):
                 msg += _(", CTRL + DEL to stop")
-
             self.show_status(CTX_APPLY, msg)
             logger.info(
-                'Group "%s" is currently mapped',
-                self.data_manager.active_group.key,
+                'Group "%s" is currently mapped', self.data_manager.active_group.key
             )
-            self.gui.set_injection_status(True)
-            return False
 
-        if state == FAILED:
-            self.show_status(
+        {
+            RUNNING: running,
+            FAILED: partial(
+                self.show_status,
                 CTX_ERROR,
                 _("Failed to apply preset %s") % self.data_manager.active_preset.name,
-            )
-            return False
-
-        if state == NO_GRAB:
-            self.show_status(
+            ),
+            NO_GRAB: partial(
+                self.show_status,
                 CTX_ERROR,
                 "The device was not grabbed",
                 "Either another application is already grabbing it or "
                 "your preset doesn't contain anything that is sent by the "
                 "device.",
-            )
-            return False
-
-        if state == UPGRADE_EVDEV:
-            self.show_status(
+            ),
+            UPGRADE_EVDEV: partial(
+                self.show_status,
                 CTX_ERROR,
                 "Upgrade python-evdev",
                 "Your python-evdev version is too old.",
-            )
-            return False
+            ),
+        }[state]()
 
-        # keep the timeout running until a relevant state is found
-        return True
+    def stop_injecting(self):
+        def show_result(msg: InjectorState):
+            self.message_broker.unsubscribe(show_result)
+            assert msg.state == STOPPED
+            self.show_status(CTX_APPLY, _("Applied the system default"))
+
+        try:
+            self.message_broker.subscribe(MessageType.injector_state, show_result)
+            self.data_manager.stop_injecting()
+        except DataManagementError:
+            self.message_broker.unsubscribe(show_result)
 
     def show_status(
         self, ctx_id: int, msg: Optional[str] = None, tooltip: Optional[str] = None

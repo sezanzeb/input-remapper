@@ -20,6 +20,7 @@
 import builtins
 import json
 import os.path
+import time
 import unittest
 from dataclasses import dataclass
 from unittest.mock import patch, MagicMock, call
@@ -33,6 +34,7 @@ from inputremapper.injection.injector import (
     NO_GRAB,
     UPGRADE_EVDEV,
     UNKNOWN,
+    STOPPED,
 )
 from inputremapper.input_event import InputEvent
 
@@ -57,7 +59,7 @@ from inputremapper.gui.message_broker import (
     CombinationRecorded,
 )
 from inputremapper.gui.reader import Reader
-from inputremapper.gui.utils import CTX_ERROR, CTX_APPLY
+from inputremapper.gui.utils import CTX_ERROR, CTX_APPLY, gtk_iteration
 from inputremapper.gui.gettext import _
 from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.configs.mapping import Mapping, UIMapping, MappingData
@@ -206,7 +208,7 @@ class TestController(unittest.TestCase):
         def f(data):
             calls.append(data)
 
-        self.message_broker.subscribe(MessageType.status, f)
+        self.message_broker.subscribe(MessageType.status_msg, f)
         with patch("inputremapper.gui.controller.is_helper_running", lambda: False):
             self.message_broker.signal(MessageType.init)
         self.assertIn(StatusData(CTX_ERROR, _("The helper did not start")), calls)
@@ -217,7 +219,7 @@ class TestController(unittest.TestCase):
         def f(data):
             calls.append(data)
 
-        self.message_broker.subscribe(MessageType.status, f)
+        self.message_broker.subscribe(MessageType.status_msg, f)
         with patch("inputremapper.gui.controller.is_helper_running", lambda: True):
             self.message_broker.signal(MessageType.init)
 
@@ -455,7 +457,7 @@ class TestController(unittest.TestCase):
             nonlocal msg
             msg = data
 
-        self.message_broker.subscribe(MessageType.status, f)
+        self.message_broker.subscribe(MessageType.status_msg, f)
         mock = MagicMock(side_effect=PermissionError)
         with patch("inputremapper.configs.preset.Preset.save", mock):
             self.controller.add_preset("foo")
@@ -724,7 +726,7 @@ class TestController(unittest.TestCase):
         def f(data):
             calls.append(data)
 
-        self.message_broker.subscribe(MessageType.status, f)
+        self.message_broker.subscribe(MessageType.status_msg, f)
 
         def f2():
             raise AssertionError("Injection started unexpectedly")
@@ -751,7 +753,7 @@ class TestController(unittest.TestCase):
         def f(data):
             calls.append(data)
 
-        self.message_broker.subscribe(MessageType.status, f)
+        self.message_broker.subscribe(MessageType.status_msg, f)
 
         def f2():
             raise AssertionError("Injection started unexpectedly")
@@ -811,7 +813,7 @@ class TestController(unittest.TestCase):
         def f(data):
             calls.append(data)
 
-        self.message_broker.subscribe(MessageType.status, f)
+        self.message_broker.subscribe(MessageType.status_msg, f)
         mock = MagicMock(return_value=True)
         self.data_manager.start_injecting = mock
         self.controller.start_injecting()
@@ -828,28 +830,30 @@ class TestController(unittest.TestCase):
         def f(data):
             calls.append(data)
 
-        self.message_broker.subscribe(MessageType.status, f)
+        self.message_broker.subscribe(MessageType.status_msg, f)
         mock = MagicMock(return_value=False)
         self.data_manager.start_injecting = mock
         self.controller.start_injecting()
 
         mock.assert_called()
         self.assertEqual(
-            calls[0],
+            calls[-1],
             StatusData(
                 CTX_APPLY,
                 _("Failed to apply preset %s") % self.data_manager.active_preset.name,
             ),
         )
 
-    def test_start_injecting_adds_timeout_to_update_injector_status(self):
+    def test_start_injecting_adds_listener_to_update_injector_status(self):
         prepare_presets()
         self.data_manager.load_group("Foo Device 2")
         self.data_manager.load_preset("preset2")
 
-        with patch("inputremapper.gui.controller.GLib.timeout_add") as mock:
+        with patch.object(self.message_broker, "subscribe") as mock:
             self.controller.start_injecting()
-            mock.assert_called_with(100, self.controller.show_injection_result)
+            mock.assert_called_once_with(
+                MessageType.injector_state, self.controller.show_injector_result
+            )
 
     def test_stop_injecting_shows_status(self):
         prepare_presets()
@@ -860,10 +864,11 @@ class TestController(unittest.TestCase):
         def f(data):
             calls.append(data)
 
-        self.message_broker.subscribe(MessageType.status, f)
-        mock = MagicMock()
-        self.data_manager.stop_injecting = mock
+        self.message_broker.subscribe(MessageType.status_msg, f)
+        mock = MagicMock(return_value=STOPPED)
+        self.data_manager.get_state = mock
         self.controller.stop_injecting()
+        gtk_iteration(50)
 
         mock.assert_called()
         self.assertEqual(
@@ -874,7 +879,6 @@ class TestController(unittest.TestCase):
         prepare_presets()
         self.data_manager.load_group("Foo Device 2")
         self.data_manager.load_preset("preset2")
-        self.controller.start_injecting()
 
         mock = MagicMock(return_value=RUNNING)
         self.data_manager.get_state = mock
@@ -883,25 +887,26 @@ class TestController(unittest.TestCase):
         def f(data):
             calls.append(data)
 
-        self.message_broker.subscribe(MessageType.status, f)
+        self.message_broker.subscribe(MessageType.status_msg, f)
 
-        assert not self.controller.show_injection_result()
+        self.controller.start_injecting()
+        gtk_iteration(50)
         self.assertEqual(calls[-1].msg, _("Applied preset %s") % "preset2")
 
         mock.return_value = FAILED
-        assert not self.controller.show_injection_result()
+        self.controller.start_injecting()
+        gtk_iteration(50)
         self.assertEqual(calls[-1].msg, _("Failed to apply preset %s") % "preset2")
 
         mock.return_value = NO_GRAB
-        assert not self.controller.show_injection_result()
+        self.controller.start_injecting()
+        gtk_iteration(50)
         self.assertEqual(calls[-1].msg, "The device was not grabbed")
 
         mock.return_value = UPGRADE_EVDEV
-        assert not self.controller.show_injection_result()
+        self.controller.start_injecting()
+        gtk_iteration(50)
         self.assertEqual(calls[-1].msg, "Upgrade python-evdev")
-
-        mock.return_value = UNKNOWN
-        assert self.controller.show_injection_result()
 
     def test_close(self):
         mock_save = MagicMock()

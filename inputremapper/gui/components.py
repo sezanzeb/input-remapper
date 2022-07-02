@@ -527,7 +527,7 @@ class StatusBar:
         self._connect_message_listener()
 
     def _connect_message_listener(self):
-        self.message_broker.subscribe(MessageType.status, self.on_status_update)
+        self.message_broker.subscribe(MessageType.status_msg, self.on_status_update)
 
     def on_status_update(self, data: StatusData):
         """Show a status message and set its tooltip.

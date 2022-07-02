@@ -21,7 +21,9 @@ import glob
 import os
 import re
 import time
-from typing import Optional, List, Tuple
+from typing import Optional, List, Tuple, Set
+
+from gi.repository import GLib
 
 from inputremapper.configs.global_config import GlobalConfig
 from inputremapper.configs.mapping import UIMapping, MappingData
@@ -43,6 +45,14 @@ from inputremapper.gui.message_broker import (
 from inputremapper.gui.reader import Reader
 from inputremapper.gui.utils import CTX_MAPPING
 from inputremapper.injection.global_uinputs import GlobalUInputs
+from inputremapper.injection.injector import (
+    STOPPED,
+    RUNNING,
+    FAILED,
+    UPGRADE_EVDEV,
+    NO_GRAB,
+    InjectorState,
+)
 from inputremapper.input_event import InputEvent
 from inputremapper.logger import logger
 
@@ -159,6 +169,13 @@ class DataManager:
     def send_groups(self):
         """send the "groups" message on the MessageBroker"""
         self._reader.send_groups()
+
+    def send_injector_state(self):
+        """send the "injector_state" message with the state of the injector
+        for the active_group"""
+        if not self.active_group:
+            return
+        self.message_broker.send(InjectorState(self.get_state()))
 
     @property
     def active_group(self) -> Optional[_Group]:
@@ -291,7 +308,8 @@ class DataManager:
         return name
 
     def load_group(self, group_key: str):
-        """Load a group. will send "groups" message on the MessageBroker
+        """Load a group. will send "groups" and "injector_state"
+        messages on the MessageBroker.
 
         this will render the active_mapping and active_preset invalid
         """
@@ -304,6 +322,7 @@ class DataManager:
         group = self._reader.groups.find(key=group_key)
         self._reader.set_group(group)
         self.send_group()
+        self.send_injector_state()
 
     def load_preset(self, name: str):
         """Load a preset. Will send "preset" message on the MessageBroker
@@ -517,21 +536,30 @@ class DataManager:
         self._reader.stop_recorder()
 
     def stop_injecting(self) -> None:
-        """stop injecting for the active group"""
+        """stop injecting for the active group
+
+        Will send "injector_state" message once the injector has stopped"""
         if not self.active_group:
             raise DataManagementError("cannot stop injection: group is not set")
         self._daemon.stop_injecting(self.active_group.key)
+        self.do_when_injector_state({STOPPED}, self.send_injector_state)
 
     def start_injecting(self) -> bool:
-        """start injecting the active preset for the active group"""
+        """start injecting the active preset for the active group.
+
+        returns if the startup was successfully initialized.
+        Will send "injector_state" message once the startup is complete.
+        """
         if not self.active_preset or not self.active_group:
             raise DataManagementError("cannot start injection: preset is not set")
 
         self._daemon.set_config_dir(self._config.get_dir())
         assert self.active_preset.name is not None
-        return self._daemon.start_injecting(
-            self.active_group.key, self.active_preset.name
-        )
+        if self._daemon.start_injecting(self.active_group.key, self.active_preset.name):
+            self.do_when_injector_state({RUNNING, FAILED, NO_GRAB, UPGRADE_EVDEV},
+                                        self.send_injector_state)
+            return True
+        return False
 
     def get_state(self) -> int:
         """the state of the injector"""
@@ -542,3 +570,14 @@ class DataManager:
     def refresh_service_config_path(self):
         """tell the service to refresh its config path"""
         self._daemon.set_config_dir(self._config.get_dir())
+
+    def do_when_injector_state(self, states: Set[int], callback):
+        """run callback once the injector state is one of states"""
+
+        def do():
+            if self.get_state() in states:
+                callback()
+                return False
+            return True
+
+        GLib.timeout_add(100, do)

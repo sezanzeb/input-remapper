@@ -17,7 +17,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
-
+import time
 
 from gi.repository import Gtk, GLib
 
@@ -79,7 +79,11 @@ class HandlerDisabled:
         self.widget.handler_unblock_by_func(self.handler)
 
 
-def gtk_iteration():
+def gtk_iteration(iterations=0):
     """Iterate while events are pending."""
     while Gtk.events_pending():
         Gtk.main_iteration()
+    for _ in range(iterations):
+        time.sleep(0.002)
+        while Gtk.events_pending():
+            Gtk.main_iteration()

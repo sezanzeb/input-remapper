@@ -49,6 +49,7 @@ from inputremapper.gui.message_broker import MessageBroker, MessageType
 from inputremapper.gui.utils import (
     gtk_iteration,
 )
+from inputremapper.injection.injector import InjectorState
 from inputremapper.logger import logger, COMMIT_HASH, VERSION, EVDEV_VERSION
 from inputremapper.gui.gettext import _
 
@@ -216,12 +217,15 @@ class UserInterface:
         self.message_broker.subscribe(
             MessageType.mapping, self.update_combination_label
         )
+        self.message_broker.subscribe(
+            MessageType.injector_state, self.on_injector_state_msg
+        )
 
-    def set_injection_status(self, status: bool):
+    def on_injector_state_msg(self, msg: InjectorState):
         """update the ui to reflect the status of the injector"""
         stop_injection_btn: Gtk.Button = self.get("apply_system_layout")
         recording_toggle: Gtk.ToggleButton = self.get("key_recording_toggle")
-        if status:
+        if msg.active():
             stop_injection_btn.set_opacity(1)
             stop_injection_btn.set_sensitive(True)
             recording_toggle.set_opacity(0.4)

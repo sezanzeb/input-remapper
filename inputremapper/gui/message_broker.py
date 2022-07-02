@@ -16,6 +16,7 @@ from typing import (
     Any,
     TYPE_CHECKING,
 )
+
 from inputremapper.logger import logger
 
 if TYPE_CHECKING:
@@ -36,7 +37,11 @@ class MessageType(Enum):
     combination_recorded = "combination_recorded"
     recording_finished = "recording_finished"
     combination_update = "combination_update"
-    status = "status"
+    status_msg = "status_msg"
+    injector_state = "injector_state"
+
+    gui_focus_request = "gui_focus_request"
+    user_action_request = "user_action_request"
 
     # for unit tests:
     test1 = "test1"
@@ -159,7 +164,7 @@ class PresetData:
 
 @dataclass(frozen=True)
 class StatusData:
-    message_type = MessageType.status
+    message_type = MessageType.status_msg
     ctx_id: int
     msg: Optional[str] = None
     tooltip: Optional[str] = None
