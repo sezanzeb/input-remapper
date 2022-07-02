@@ -1218,7 +1218,7 @@ Macros allow multiple characters to be written with a single key-press. Informat
             <property name="visible">True</property>
             <property name="can-focus">False</property>
             <property name="orientation">vertical</property>
-            <property name="spacing">4</property>
+            <property name="spacing">8</property>
             <child>
               <object class="GtkLabel">
                 <property name="visible">True</property>
@@ -1295,7 +1295,7 @@ This can not be used with key or macro mappings.</property>
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
                     <property name="hexpand">True</property>
-                    <property name="label" translatable="yes">Use as Analog</property>
+                    <property name="label" translatable="yes">Use as Analog:</property>
                     <property name="xalign">0</property>
                   </object>
                   <packing>
@@ -1305,7 +1305,7 @@ This can not be used with key or macro mappings.</property>
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkSwitch">
+                  <object class="GtkSwitch" id="analog-input-switch">
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
                   </object>
@@ -1321,6 +1321,50 @@ This can not be used with key or macro mappings.</property>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
                 <property name="position">3</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkBox" id="trigger-threshold-box">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="tooltip-text" translatable="yes">The threshold at which this axis is considered active.</property>
+                <property name="spacing">4</property>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="label" translatable="yes">Trigger 
+threshold:</property>
+                    <property name="xalign">0</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkSpinButton" id="trigger-threshold-spin-btn">
+                    <property name="visible">True</property>
+                    <property name="can-focus">True</property>
+                    <property name="width-chars">4</property>
+                    <property name="input-purpose">number</property>
+                    <property name="climb-rate">1</property>
+                    <property name="snap-to-ticks">True</property>
+                    <property name="numeric">True</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="pack-type">end</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">4</property>
               </packing>
             </child>
           </object>

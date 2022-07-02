@@ -40,6 +40,8 @@ from inputremapper.gui.components import (
     AutoloadSwitch,
     ReleaseCombinationSwitch,
     CombinationListbox,
+    AnalogInputSwitch,
+    TriggerThresholdInput,
 )
 from inputremapper.gui.controller import Controller
 from inputremapper.gui.message_broker import MessageBroker, MessageType
@@ -145,6 +147,10 @@ class UserInterface:
             message_broker, controller, self.get("release-combination-switch")
         )
         CombinationListbox(message_broker, controller, self.get("combination-listbox"))
+        AnalogInputSwitch(message_broker, controller, self.get("analog-input-switch"))
+        TriggerThresholdInput(
+            message_broker, controller, self.get("trigger-threshold-spin-btn")
+        )
 
         # code editor and autocompletion
         code_editor = CodeEditor(
@@ -296,6 +302,5 @@ class UserInterface:
         self.get("preset_name_input").set_text("")
 
     def on_gtk_preset_name_input_return(self, _, event: Gdk.EventKey):
-        logger.debug(event)
         if event.keyval == Gdk.KEY_Return:
             self.on_gtk_rename_clicked()

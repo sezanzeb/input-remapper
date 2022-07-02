@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import List, Optional, Dict, Literal, Union
 
+from evdev.ecodes import EV_KEY, EV_ABS, EV_REL
 from gi.repository import Gtk, GtkSource, Gdk
 
 from inputremapper.configs.mapping import MappingData
@@ -722,3 +723,77 @@ class CombinationListbox:
         self.gui.foreach(find_row)
         if row:
             self.controller.load_event(row.input_event)
+
+
+class AnalogInputSwitch:
+    def __init__(
+        self,
+        message_broker: MessageBroker,
+        controller: Controller,
+        gui: Gtk.Switch,
+    ):
+        self.message_broker = message_broker
+        self.controller = controller
+        self.gui = gui
+        self.event: Optional[InputEvent] = None
+
+        self.gui.connect("state-set", self.on_gtk_toggle)
+        self._connect_message_listeners()
+
+    def _connect_message_listeners(self):
+        self.message_broker.subscribe(MessageType.event, self.on_event)
+
+    def on_event(self, event: InputEvent):
+        with HandlerDisabled(self.gui, self.on_gtk_toggle):
+            self.gui.set_active(event.value == 0)
+            self.event = event
+
+        if event.type == EV_KEY:
+            self.gui.set_sensitive(False)
+            self.gui.set_opacity(0.5)
+        else:
+            self.gui.set_sensitive(True)
+            self.gui.set_opacity(1)
+
+    def on_gtk_toggle(self, *_):
+        self.controller.set_event_as_analog(self.gui.get_active())
+
+
+class TriggerThresholdInput:
+    def __init__(
+        self,
+        message_broker: MessageBroker,
+        controller: Controller,
+        gui: Gtk.SpinButton,
+    ):
+        self.message_broker = message_broker
+        self.controller = controller
+        self.gui = gui
+        self.event: Optional[InputEvent] = None
+
+        self.gui.set_increments(1, 1)
+        self.gui.connect("value-changed", self.on_gtk_changed)
+        self._connect_message_listeners()
+
+    def _connect_message_listeners(self):
+        self.message_broker.subscribe(MessageType.event, self.on_event)
+
+    def on_event(self, event: InputEvent):
+        if event.type == EV_KEY:
+            self.gui.set_sensitive(False)
+            self.gui.set_opacity(0.5)
+        elif event.type == EV_ABS:
+            self.gui.set_sensitive(True)
+            self.gui.set_opacity(1)
+            self.gui.set_range(-99, 99)
+        else:
+            self.gui.set_sensitive(True)
+            self.gui.set_opacity(1)
+            self.gui.set_range(-999, 999)
+
+        with HandlerDisabled(self.gui, self.on_gtk_changed):
+            self.gui.set_value(event.value)
+            self.event = event
+
+    def on_gtk_changed(self, *_):
+        self.controller.update_event(self.event.modify(value=int(self.gui.get_value())))

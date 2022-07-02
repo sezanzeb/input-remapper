@@ -22,6 +22,7 @@ from __future__ import annotations  # needed for the TYPE_CHECKING import
 import re
 from typing import TYPE_CHECKING, Optional, Union, Literal
 
+from evdev.ecodes import EV_KEY, EV_REL, EV_ABS
 from gi.repository import Gtk, GLib
 
 from inputremapper.configs.mapping import MappingData, UIMapping
@@ -202,15 +203,44 @@ class Controller:
         self.load_event(event)
 
     def load_event(self, event: InputEvent):
+        """load an InputEvent form the active mapping event combination"""
         self.data_manager.load_event(event)
 
     def update_event(self, new_event: InputEvent):
+        """modify the active event"""
         try:
             self.data_manager.update_event(new_event)
         except KeyError:
             # we need to synchronize the gui
             self.data_manager.send_mapping()
             self.data_manager.send_event()
+
+    def set_event_as_analog(self, analog: bool):
+        """use the active event as an analog input"""
+        assert self.data_manager.active_event is not None
+        event = self.data_manager.active_event
+        if event.type == EV_KEY:
+            pass
+
+        elif analog:
+            try:
+                self.data_manager.update_event(event.modify(value=0))
+                return
+            except KeyError:
+                pass
+        else:
+            try_values = {EV_REL: [1, -1], EV_ABS: [10, -10]}
+            for value in try_values[event.type]:
+                try:
+                    self.data_manager.update_event(event.modify(value=value))
+                    return
+                except KeyError:
+                    pass
+
+        # didn't update successfully
+        # we need to synchronize the gui
+        self.data_manager.send_mapping()
+        self.data_manager.send_event()
 
     def load_groups(self):
         """refresh the groups"""
