@@ -46,6 +46,7 @@ from inputremapper.gui.components import (
     ConfirmCancelDialog,
     KeyAxisStack,
     ReleaseTimeoutInput,
+    TransformationDrawArea,
 )
 from inputremapper.gui.controller import Controller
 from inputremapper.gui.message_broker import MessageBroker, MessageType
@@ -166,6 +167,9 @@ class UserInterface:
         KeyAxisStack(message_broker, controller, self.get("editor-stack"))
         ReleaseTimeoutInput(
             message_broker, controller, self.get("release-timeout-spin-button")
+        )
+        TransformationDrawArea(
+            message_broker, controller, self.get("transformation-draw-area")
         )
 
         # code editor and autocompletion

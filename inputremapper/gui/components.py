@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import List, Optional, Dict, Literal, Union, Tuple
+from typing import List, Optional, Dict, Literal, Union, Tuple, Callable
 
+import cairo
 from evdev.ecodes import EV_KEY, EV_ABS, EV_REL, bytype
 from gi.repository import Gtk, GtkSource, Gdk
 
@@ -31,6 +32,7 @@ from inputremapper.gui.message_broker import (
     UserConfirmRequest,
 )
 from inputremapper.gui.utils import HandlerDisabled, CTX_ERROR, CTX_MAPPING, CTX_WARNING
+from inputremapper.injection.mapping_handlers.axis_transform import Transformation
 from inputremapper.input_event import InputEvent
 from inputremapper.logger import logger
 
@@ -946,3 +948,67 @@ class KeyAxisStack:
             self.gui.set_visible_child_name("Analog Axis")
         elif mapping.output_symbol and not (mapping.output_code or mapping.output_type):
             self.gui.set_visible_child_name("Key or Macro")
+
+
+class TransformationDrawArea:
+    def __init__(
+        self,
+        message_broker: MessageBroker,
+        controller: Controller,
+        gui: Gtk.DrawingArea,
+    ):
+        self.message_broker = message_broker
+        self.controller = controller
+        self.gui = gui
+
+        self.transformation: Callable[[Union[float, int]], float] = lambda x: x
+
+        self.gui.connect("draw", self.on_gtk_draw)
+        self._connect_message_listeners()
+
+    def _connect_message_listeners(self):
+        self.message_broker.subscribe(MessageType.mapping, self.on_mapping_message)
+
+    def on_mapping_message(self, mapping: MappingData):
+        self.transformation = Transformation(
+            100, -100, mapping.deadzone, mapping.gain, mapping.expo
+        )
+
+    def on_gtk_draw(self, _, context: cairo.Context):
+        points = [
+            (x / 200 + 0.5, -0.5 * self.transformation(x) + 0.5)
+            for x in range(-100, 100)
+        ]
+
+        w = self.gui.get_allocated_width()
+        h = self.gui.get_allocated_height()
+        b = min((w, h))
+        scaled_points = [(x * b, y * b) for x, y in points]
+
+        # x arrow
+        context.move_to(0 * b, 0.5 * b)
+        context.line_to(1 * b, 0.5 * b)
+        context.line_to(0.96 * b, 0.52 * b)
+        context.move_to(1 * b, 0.5 * b)
+        context.line_to(0.96 * b, 0.48 * b)
+
+        # y arrow
+        context.move_to(0.5 * b, 1 * b)
+        context.line_to(0.5 * b, 0)
+        context.line_to(0.48 * b, 0.04 * b)
+        context.move_to(0.5 * b, 0)
+        context.line_to(0.52 * b, 0.04 * b)
+
+        context.set_line_width(2)
+        context.set_source_rgb(0.7, 0.7, 0.7)
+        context.stroke()
+
+        # graph
+        context.move_to(*scaled_points[0])
+        for p in scaled_points[1:]:
+            # Ploting point
+            context.line_to(*p)
+
+        context.set_line_width(2)
+        context.set_source_rgb(0.2, 0.2, 1)
+        context.stroke()
