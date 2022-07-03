@@ -944,9 +944,15 @@ class KeyAxisStack:
         self.message_broker.subscribe(MessageType.mapping, self.on_mapping_message)
 
     def on_mapping_message(self, mapping: MappingData):
-        if mapping.output_type and mapping.output_code and not mapping.output_symbol:
+        if (
+            mapping.output_type
+            and mapping.output_code is not None
+            and not mapping.output_symbol
+        ):
             self.gui.set_visible_child_name("Analog Axis")
-        elif mapping.output_symbol and not (mapping.output_code or mapping.output_type):
+        elif mapping.output_symbol and not (
+            mapping.output_code is not None or mapping.output_type
+        ):
             self.gui.set_visible_child_name("Key or Macro")
 
 
