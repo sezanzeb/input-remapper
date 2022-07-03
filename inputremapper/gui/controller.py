@@ -55,7 +55,7 @@ from inputremapper.gui.message_broker import (
 
 if TYPE_CHECKING:
     # avoids gtk import error in tests
-    from .user_interface import UserInterface
+    from inputremapper.gui.user_interface import UserInterface
 
 
 MAPPING_DEFAULTS = {"target_uinput": "keyboard"}

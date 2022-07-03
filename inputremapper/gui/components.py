@@ -801,6 +801,41 @@ class TriggerThresholdInput:
         self.controller.update_event(self.event.modify(value=int(self.gui.get_value())))
 
 
+class ReleaseTimeoutInput:
+    def __init__(
+        self,
+        message_broker: MessageBroker,
+        controller: Controller,
+        gui: Gtk.SpinButton,
+    ):
+        self.message_broker = message_broker
+        self.controller = controller
+        self.gui = gui
+
+        self.gui.set_increments(0.01, 0.01)
+        self.gui.set_range(0, 2)
+        self.gui.connect("value-changed", self.on_gtk_changed)
+
+        self._connect_message_listeners()
+
+    def _connect_message_listeners(self):
+        self.message_broker.subscribe(MessageType.mapping, self.on_mapping_message)
+
+    def on_mapping_message(self, mapping: MappingData):
+        if EV_REL in [event.type for event in mapping.event_combination]:
+            self.gui.set_sensitive(True)
+            self.gui.set_opacity(1)
+        else:
+            self.gui.set_sensitive(False)
+            self.gui.set_opacity(0.5)
+
+        with HandlerDisabled(self.gui, self.on_gtk_changed):
+            self.gui.set_value(mapping.release_timeout)
+
+    def on_gtk_changed(self, *_):
+        self.controller.update_mapping(release_timeout=self.gui.get_value())
+
+
 class OutputAxisSelector:
     def __init__(
         self,
@@ -888,3 +923,26 @@ class ConfirmCancelDialog:
         response = self.gui.run()
         self.gui.hide()
         msg.response(response == Gtk.ResponseType.ACCEPT)
+
+
+class KeyAxisStack:
+    def __init__(
+        self,
+        message_broker: MessageBroker,
+        controller: Controller,
+        gui: Gtk.Stack,
+    ):
+        self.message_broker = message_broker
+        self.controller = controller
+        self.gui = gui
+
+        self._connect_message_listeners()
+
+    def _connect_message_listeners(self):
+        self.message_broker.subscribe(MessageType.mapping, self.on_mapping_message)
+
+    def on_mapping_message(self, mapping: MappingData):
+        if mapping.output_type and mapping.output_code and not mapping.output_symbol:
+            self.gui.set_visible_child_name("Analog Axis")
+        elif mapping.output_symbol and not (mapping.output_code or mapping.output_type):
+            self.gui.set_visible_child_name("Key or Macro")

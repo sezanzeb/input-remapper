@@ -44,6 +44,8 @@ from inputremapper.gui.components import (
     TriggerThresholdInput,
     OutputAxisSelector,
     ConfirmCancelDialog,
+    KeyAxisStack,
+    ReleaseTimeoutInput,
 )
 from inputremapper.gui.controller import Controller
 from inputremapper.gui.message_broker import MessageBroker, MessageType
@@ -160,6 +162,10 @@ class UserInterface:
             controller,
             self.get("confirm-cancel"),
             self.get("confirm-cancel-label"),
+        )
+        KeyAxisStack(message_broker, controller, self.get("editor-stack"))
+        ReleaseTimeoutInput(
+            message_broker, controller, self.get("release-timeout-spin-button")
         )
 
         # code editor and autocompletion
