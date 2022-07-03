@@ -483,6 +483,13 @@ class Daemon:
                 # date when the system layout changes.
                 xmodmap = json.load(file)
                 logger.debug('Using keycodes from "%s"', xmodmap_path)
+
+                # this creates the system_mapping._xmodmap, which we need to do now
+                # otherwise it might be created later which will override the changes
+                # we do here.
+                # Do we really need to lazyload in the system_mapping?
+                # this kind of bug is stupid to track down
+                system_mapping.get_name(0)
                 system_mapping.update(xmodmap)
                 # the service now has process wide knowledge of xmodmap
                 # keys of the users session
