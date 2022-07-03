@@ -973,17 +973,27 @@ class TransformationDrawArea:
         self.transformation = Transformation(
             100, -100, mapping.deadzone, mapping.gain, mapping.expo
         )
+        self.gui.queue_draw()
 
     def on_gtk_draw(self, _, context: cairo.Context):
         points = [
             (x / 200 + 0.5, -0.5 * self.transformation(x) + 0.5)
             for x in range(-100, 100)
         ]
-
         w = self.gui.get_allocated_width()
         h = self.gui.get_allocated_height()
         b = min((w, h))
         scaled_points = [(x * b, y * b) for x, y in points]
+
+        # box
+        context.move_to(0, 0)
+        context.line_to(0, b)
+        context.line_to(b, b)
+        context.line_to(b, 0)
+        context.line_to(0, 0)
+        context.set_line_width(1)
+        context.set_source_rgb(0.7, 0.7, 0.7)
+        context.stroke()
 
         # x arrow
         context.move_to(0 * b, 0.5 * b)
@@ -1000,7 +1010,7 @@ class TransformationDrawArea:
         context.line_to(0.52 * b, 0.04 * b)
 
         context.set_line_width(2)
-        context.set_source_rgb(0.7, 0.7, 0.7)
+        context.set_source_rgb(0.5, 0.5, 0.5)
         context.stroke()
 
         # graph
@@ -1012,3 +1022,50 @@ class TransformationDrawArea:
         context.set_line_width(2)
         context.set_source_rgb(0.2, 0.2, 1)
         context.stroke()
+
+
+class Sliders:
+    def __init__(
+        self,
+        message_broker: MessageBroker,
+        controller: Controller,
+        gain: Gtk.Range,
+        deadzone: Gtk.Range,
+        expo: Gtk.Range,
+    ):
+        self.message_broker = message_broker
+        self.controller = controller
+        self.gain = gain
+        self.deadzone = deadzone
+        self.expo = expo
+
+        self.gain.set_range(-2, 2)
+        self.deadzone.set_range(0, 0.9)
+        self.expo.set_range(-1, 1)
+
+        self.gain.connect("value-changed", self.on_gtk_gain_changed)
+        self.expo.connect("value-changed", self.on_gtk_expo_changed)
+        self.deadzone.connect("value-changed", self.on_gtk_deadzone_changed)
+        self._connect_message_listeners()
+
+    def _connect_message_listeners(self):
+        self.message_broker.subscribe(MessageType.mapping, self.on_mapping_message)
+
+    def on_mapping_message(self, mapping: MappingData):
+        with HandlerDisabled(self.gain, self.on_gtk_gain_changed):
+            self.gain.set_value(mapping.gain)
+
+        with HandlerDisabled(self.expo, self.on_gtk_expo_changed):
+            self.expo.set_value(mapping.expo)
+
+        with HandlerDisabled(self.deadzone, self.on_gtk_deadzone_changed):
+            self.deadzone.set_value(mapping.deadzone)
+
+    def on_gtk_gain_changed(self, *_):
+        self.controller.update_mapping(gain=self.gain.get_value())
+
+    def on_gtk_deadzone_changed(self, *_):
+        self.controller.update_mapping(deadzone=self.deadzone.get_value())
+
+    def on_gtk_expo_changed(self, *_):
+        self.controller.update_mapping(expo=self.expo.get_value())

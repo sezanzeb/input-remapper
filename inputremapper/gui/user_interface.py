@@ -47,6 +47,7 @@ from inputremapper.gui.components import (
     KeyAxisStack,
     ReleaseTimeoutInput,
     TransformationDrawArea,
+    Sliders,
 )
 from inputremapper.gui.controller import Controller
 from inputremapper.gui.message_broker import MessageBroker, MessageType
@@ -170,6 +171,13 @@ class UserInterface:
         )
         TransformationDrawArea(
             message_broker, controller, self.get("transformation-draw-area")
+        )
+        Sliders(
+            message_broker,
+            controller,
+            self.get("gain-scale"),
+            self.get("deadzone-scale"),
+            self.get("expo-scale"),
         )
 
         # code editor and autocompletion
