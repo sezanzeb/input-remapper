@@ -38,7 +38,7 @@ from inputremapper.logger import logger
 
 Capabilities = Dict[int, List]
 
-SET_KEY_FIRST = _("Set the key first")
+SET_KEY_FIRST = _("Record the input first")
 EMPTY_MAPPING_NAME = _("Empty Mapping")
 
 ICON_NAMES = {
