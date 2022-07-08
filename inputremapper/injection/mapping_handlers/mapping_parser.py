@@ -57,18 +57,18 @@ from inputremapper.logger import logger
 
 EventPipelines = Dict[InputEvent, Set[InputEventHandler]]
 
-mapping_handler_classes: Dict[HandlerEnums, Type[MappingHandler]] = {
+mapping_handler_classes: Dict[HandlerEnums, Optional[Type[MappingHandler]]] = {
     # all available mapping_handlers
     HandlerEnums.abs2btn: AbsToBtnHandler,
     HandlerEnums.rel2btn: RelToBtnHandler,
     HandlerEnums.macro: MacroHandler,
     HandlerEnums.key: KeyHandler,
-    HandlerEnums.btn2rel: None,  # type: ignore
-    HandlerEnums.rel2rel: None,  # type: ignore
+    HandlerEnums.btn2rel: None,
+    HandlerEnums.rel2rel: None,
     HandlerEnums.abs2rel: AbsToRelHandler,
-    HandlerEnums.btn2abs: None,  # type: ignore
-    HandlerEnums.rel2abs: None,  # type: ignore
-    HandlerEnums.abs2abs: None,  # type: ignore
+    HandlerEnums.btn2abs: None,
+    HandlerEnums.rel2abs: None,
+    HandlerEnums.abs2abs: None,
     HandlerEnums.combination: CombinationHandler,
     HandlerEnums.hierarchy: HierarchyHandler,
     HandlerEnums.axisswitch: AxisSwitchHandler,
@@ -86,9 +86,12 @@ def parse_mappings(preset: Preset, context: ContextProtocol) -> EventPipelines:
         handler_enum = _get_output_handler(mapping)
         constructor = mapping_handler_classes[handler_enum]
         if not constructor:
-            raise NotImplementedError(
-                f"mapping handler {handler_enum} is not implemented"
+            logger.warning(
+                "a mapping handler '%s' for %s is not implemented",
+                handler_enum,
+                mapping.name or mapping.event_combination.beautify(),
             )
+            continue
 
         output_handler = constructor(
             mapping.event_combination,
@@ -247,7 +250,7 @@ def _create_hierarchy_handlers(
         # there are multiple handler with the same event.
         # rank them and create the HierarchyHandler
         sorted_combinations = _order_combinations(combinations_with_event, event)
-        sub_handlers = []
+        sub_handlers: List[MappingHandler] = []
         for combination in sorted_combinations:
             sub_handlers.append(*handlers[combination])
 
