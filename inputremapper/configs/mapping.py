@@ -122,6 +122,10 @@ class Mapping(BaseModel):
     # instead wait until it dropped for loger than release_timeout below the threshold
     force_release_timeout: bool = False
 
+    def is_axis_mapping(self) -> bool:
+        """whether this mapping specifies an output axis"""
+        return self.output_type == EV_ABS or self.output_type == EV_REL
+
     # callback which gets called if the event_combination is updated
     if not needs_workaround:
         _combination_changed: CombinationChangedCallback = None

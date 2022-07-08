@@ -112,7 +112,7 @@ class EventCombination(Tuple[InputEvent]):
         UI to indicate that this combination is not set"""
         return cls("99,99,99")
 
-    def is_problematic(self):
+    def is_problematic(self) -> bool:
         """Is this combination going to work properly on all systems?"""
         if len(self) <= 1:
             return False
