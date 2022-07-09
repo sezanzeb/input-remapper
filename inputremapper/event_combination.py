@@ -63,6 +63,9 @@ class EventCombination(Tuple[InputEvent]):
             for event in events:
                 validated_events.append(InputEvent.validate(event))
 
+        if len(validated_events) == 0:
+            raise ValueError(f"failed to create EventCombination with {events = }")
+
         # mypy bug: https://github.com/python/mypy/issues/8957
         # https://github.com/python/mypy/issues/8541
         return super().__new__(cls, validated_events)  # type: ignore

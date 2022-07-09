@@ -213,6 +213,23 @@ class Controller:
             self.data_manager.send_mapping()
             self.data_manager.send_event()
 
+    def remove_event(self):
+        """remove the active InputEvent from the active mapping event combination"""
+        if not self.data_manager.active_mapping or not self.data_manager.active_event:
+            return
+
+        combination = list(self.data_manager.active_mapping.event_combination)
+        combination.remove(self.data_manager.active_event)
+        try:
+            self.data_manager.update_mapping(
+                event_combination=EventCombination(combination)
+            )
+            self.load_event(combination[0])
+        except (KeyError, ValueError):
+            # we need to synchronize the gui
+            self.data_manager.send_mapping()
+            self.data_manager.send_event()
+
     def set_event_as_analog(self, analog: bool):
         """use the active event as an analog input"""
         assert self.data_manager.active_event is not None

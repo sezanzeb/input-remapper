@@ -236,6 +236,9 @@ class UserInterface:
         self.get("edit-combination-btn").connect(
             "clicked", lambda *_: self.combination_editor.show()
         )
+        self.get("remove-event-btn").connect(
+            "clicked", lambda *_: self.controller.remove_event()
+        )
         self.connect_shortcuts()
 
     def _connect_message_listener(self):

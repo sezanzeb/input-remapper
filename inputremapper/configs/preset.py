@@ -162,7 +162,7 @@ class Preset(Generic[MappingModel]):
         self._saved_mappings = self._get_mappings_from_disc()
         self.empty()
         for mapping in self._saved_mappings.values():
-            # use the external add method to make sure
+            # use the public add method to make sure
             # the _combination_changed_callback is attached
             self.add(mapping.copy())
 
