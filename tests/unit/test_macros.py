@@ -381,6 +381,41 @@ class TestMacros(MacroTestBase):
         # it might look like it without the string quotes.
         self.assertIsNone(parse('"modify(a, b)"', self.context))
 
+    async def test_toggle(self):
+        macro = parse("toggle(KEY_B).key(KEY_A).toggle(KEY_B)", self.context)
+        code_a = system_mapping.get("a")
+        code_b = system_mapping.get("b")
+
+        await macro.run(self.handler)
+        self.assertListEqual(
+            self.result,
+            [
+                (EV_KEY, code_b, 1),
+                (EV_KEY, code_a, 1),
+                (EV_KEY, code_a, 0),
+                (EV_KEY, code_b, 0),
+            ],
+        )
+        self.assertEqual(len(macro.child_macros), 0)
+
+    async def test_toggle_multiple_macro_runs(self):
+        macro = parse("toggle(KEY_A)", self.context)
+        code_a = system_mapping.get("a")
+
+        await macro.run(self.handler)
+        self.assertListEqual(self.result, [(EV_KEY, code_a, 1)])
+        self.assertEqual(len(macro.child_macros), 0)
+
+        await macro.run(self.handler)
+        self.assertListEqual(
+            self.result,
+            [
+                (EV_KEY, code_a, 1),
+                (EV_KEY, code_a, 0),
+            ],
+        )
+        self.assertEqual(len(macro.child_macros), 0)
+
     async def test_0(self):
         macro = parse("key(1)", self.context)
         one_code = system_mapping.get("1")

@@ -244,6 +244,14 @@ Bear in mind that anti-cheat software might detect macros in games.
 > if_single(key(KEY_A), key(KEY_B), timeout=1000)
 > ```
 
+### toggle
+
+> Press it once to inject a key-down event, press it a second time to inject a key-up event.
+> 
+> ```c#
+> toggle(KEY_A)
+> ```
+
 ## Syntax
 
 Multiple functions are chained using `.`.
