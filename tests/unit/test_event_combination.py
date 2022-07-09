@@ -149,7 +149,7 @@ class TestKey(unittest.TestCase):
         )
         self.assertEqual(
             EventCombination((EV_ABS, ABS_HAT0Y, -1)).beautify(),
-            "DPad Up",
+            "DPad-Y Up",
         )
         self.assertEqual(
             EventCombination((EV_KEY, BTN_A, 1)).beautify(),
@@ -158,11 +158,11 @@ class TestKey(unittest.TestCase):
         self.assertEqual(EventCombination((EV_KEY, 1234, 1)).beautify(), "unknown")
         self.assertEqual(
             EventCombination([EV_ABS, ABS_HAT0X, -1]).beautify(),
-            "DPad Left",
+            "DPad-X Left",
         )
         self.assertEqual(
             EventCombination([EV_ABS, ABS_HAT0Y, -1]).beautify(),
-            "DPad Up",
+            "DPad-Y Up",
         )
         self.assertEqual(
             EventCombination([EV_KEY, BTN_A, 1]).beautify(),
@@ -170,11 +170,11 @@ class TestKey(unittest.TestCase):
         )
         self.assertEqual(
             EventCombination([EV_ABS, ABS_X, 1]).beautify(),
-            "Joystick Right",
+            "Joystick-X Right",
         )
         self.assertEqual(
             EventCombination([EV_ABS, ABS_RY, 1]).beautify(),
-            "Joystick 2 Down",
+            "Joystick-RY Down",
         )
         self.assertEqual(
             EventCombination([EV_REL, REL_HWHEEL, 1]).beautify(),

@@ -236,17 +236,17 @@ class InputEvent:
         key_name = key_name.replace("ABS_Z", "Trigger Left")
         key_name = key_name.replace("ABS_RZ", "Trigger Right")
 
-        key_name = key_name.replace("ABS_HAT0X", "DPad")
-        key_name = key_name.replace("ABS_HAT0Y", "DPad")
-        key_name = key_name.replace("ABS_HAT1X", "DPad 2")
-        key_name = key_name.replace("ABS_HAT1Y", "DPad 2")
-        key_name = key_name.replace("ABS_HAT2X", "DPad 3")
-        key_name = key_name.replace("ABS_HAT2Y", "DPad 3")
+        key_name = key_name.replace("ABS_HAT0X", "DPad-X")
+        key_name = key_name.replace("ABS_HAT0Y", "DPad-Y")
+        key_name = key_name.replace("ABS_HAT1X", "DPad-2-X")
+        key_name = key_name.replace("ABS_HAT1Y", "DPad-2-Y")
+        key_name = key_name.replace("ABS_HAT2X", "DPad-3-X")
+        key_name = key_name.replace("ABS_HAT2Y", "DPad-3-Y")
 
-        key_name = key_name.replace("ABS_X", "Joystick")
-        key_name = key_name.replace("ABS_Y", "Joystick")
-        key_name = key_name.replace("ABS_RX", "Joystick 2")
-        key_name = key_name.replace("ABS_RY", "Joystick 2")
+        key_name = key_name.replace("ABS_X", "Joystick-X")
+        key_name = key_name.replace("ABS_Y", "Joystick-Y")
+        key_name = key_name.replace("ABS_RX", "Joystick-RX")
+        key_name = key_name.replace("ABS_RY", "Joystick-RY")
 
         key_name = key_name.replace("BTN_", "Button ")
         key_name = key_name.replace("KEY_", "")
@@ -296,7 +296,7 @@ class InputEvent:
             (ecodes.REL_WHEEL, 1): "Up",
             (ecodes.REL_HWHEEL, -1): "Left",
             (ecodes.REL_HWHEEL, 1): "Right",
-        }.get((event.code, event.value)) or ""
+        }.get((event.code, event.value)) or ("+" if event.value > 0 else "-")
 
     def get_threshold(self) -> str:
         if self.value == 0:
