@@ -63,10 +63,10 @@ mapping_handler_classes: Dict[HandlerEnums, Optional[Type[MappingHandler]]] = {
     HandlerEnums.rel2btn: RelToBtnHandler,
     HandlerEnums.macro: MacroHandler,
     HandlerEnums.key: KeyHandler,
-    HandlerEnums.btn2rel: None,
+    HandlerEnums.btn2rel: None,  # can be a macro
     HandlerEnums.rel2rel: None,
     HandlerEnums.abs2rel: AbsToRelHandler,
-    HandlerEnums.btn2abs: None,
+    HandlerEnums.btn2abs: None,  # can be a macro
     HandlerEnums.rel2abs: None,
     HandlerEnums.abs2abs: None,
     HandlerEnums.combination: CombinationHandler,

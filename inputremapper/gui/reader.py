@@ -74,7 +74,7 @@ class Reader:
 
         self.connect()
         self.attach_to_events()
-        self.read_continuously()
+        self._read_continuously()
 
     def connect(self):
         """Connect to the helper."""
@@ -85,7 +85,7 @@ class Reader:
         """connect listeners to event_reader"""
         self.message_broker.subscribe(MessageType.terminate, lambda _: self.terminate())
 
-    def read_continuously(self):
+    def _read_continuously(self):
         """poll the result pipe in regular intervals"""
         self.read_timeout = GLib.timeout_add(30, self._read)
 
@@ -101,14 +101,14 @@ class Reader:
                 continue
 
             if message_type == MSG_EVENT:
-                if self._recording_generator:
-                    # update the generator
-                    try:
-                        self._recording_generator.send(InputEvent(*message_body))
-                    except StopIteration:
-                        self.message_broker.signal(MessageType.recording_finished)
-                        self._recording_generator = None
-                continue
+                if not self._recording_generator:
+                    continue
+                # update the generator
+                try:
+                    self._recording_generator.send(InputEvent(*message_body))
+                except StopIteration:
+                    self.message_broker.signal(MessageType.recording_finished)
+                    self._recording_generator = None
         return True
 
     def start_recorder(self) -> None:
