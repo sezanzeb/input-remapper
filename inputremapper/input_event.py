@@ -58,7 +58,7 @@ class InputEvent:
     as a drop in replacement for evdev.InputEvent
     """
 
-    message_type = MessageType.event
+    message_type = MessageType.selected_event
 
     sec: int
     usec: int

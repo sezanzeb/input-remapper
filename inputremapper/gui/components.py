@@ -691,7 +691,7 @@ class CombinationListbox:
 
     def _connect_message_listeners(self):
         self.message_broker.subscribe(MessageType.mapping, self.on_mapping_changed)
-        self.message_broker.subscribe(MessageType.event, self.on_event_changed)
+        self.message_broker.subscribe(MessageType.selected_event, self.on_event_changed)
 
     def select_row(self, event: InputEvent):
         def select(r: EventEntry):
@@ -745,7 +745,7 @@ class AnalogInputSwitch:
         self._connect_message_listeners()
 
     def _connect_message_listeners(self):
-        self.message_broker.subscribe(MessageType.event, self.on_event)
+        self.message_broker.subscribe(MessageType.selected_event, self.on_event)
 
     def on_event(self, event: InputEvent):
         with HandlerDisabled(self.gui, self.on_gtk_toggle):
@@ -780,7 +780,7 @@ class TriggerThresholdInput:
         self._connect_message_listeners()
 
     def _connect_message_listeners(self):
-        self.message_broker.subscribe(MessageType.event, self.on_event)
+        self.message_broker.subscribe(MessageType.selected_event, self.on_event)
 
     def on_event(self, event: InputEvent):
         if event.type == EV_KEY:

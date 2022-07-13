@@ -391,7 +391,7 @@ class TestDataManager(unittest.TestCase):
     def test_load_event(self):
         prepare_presets()
         mock = MagicMock()
-        self.message_broker.subscribe(MessageType.event, mock)
+        self.message_broker.subscribe(MessageType.selected_event, mock)
         self.data_manager.load_group("Foo Device")
         self.data_manager.load_preset("preset1")
         self.data_manager.load_mapping(EventCombination("1,1,1"))
@@ -435,7 +435,7 @@ class TestDataManager(unittest.TestCase):
         self.data_manager.load_event(InputEvent.from_string("1,1,1"))
 
         mock = MagicMock()
-        self.message_broker.subscribe(MessageType.event, mock)
+        self.message_broker.subscribe(MessageType.selected_event, mock)
         self.message_broker.subscribe(MessageType.combination_update, mock)
         self.message_broker.subscribe(MessageType.mapping, mock)
         self.data_manager.update_event(InputEvent.from_string("1,5,1"))

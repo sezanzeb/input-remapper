@@ -1,5 +1,4 @@
 import unittest
-from typing import List
 from unittest.mock import MagicMock, patch
 from evdev.ecodes import EV_KEY, KEY_A, KEY_B, KEY_C
 
@@ -8,7 +7,7 @@ import gi
 gi.require_version("Gtk", "3.0")
 gi.require_version("GLib", "2.0")
 gi.require_version("GtkSource", "4")
-from gi.repository import Gtk, GtkSource, Gdk, GObject, GLib
+from gi.repository import Gtk, GLib
 
 from inputremapper.gui.utils import gtk_iteration
 from tests.test import quick_cleanup
@@ -21,7 +20,6 @@ from inputremapper.gui.message_broker import (
     PresetData,
     CombinationUpdate,
 )
-from inputremapper.gui.controller import Controller
 from inputremapper.groups import GAMEPAD, KEYBOARD, GRAPHICS_TABLET
 from inputremapper.gui.components import (
     DeviceSelection,
@@ -30,7 +28,6 @@ from inputremapper.gui.components import (
     MappingListBox,
     SelectionLabel,
 )
-from inputremapper.gui.user_interface import UserInterface
 from inputremapper.configs.mapping import MappingData
 from inputremapper.event_combination import EventCombination
 

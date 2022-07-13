@@ -33,7 +33,7 @@ class MessageType(Enum):
     group = "group"
     preset = "preset"
     mapping = "mapping"
-    event = "event"
+    selected_event = "selected_event"
     combination_recorded = "combination_recorded"
     recording_finished = "recording_finished"
     combination_update = "combination_update"

@@ -999,7 +999,7 @@ class TestController(unittest.TestCase):
             event_combination=EventCombination.from_string("1,1,1+1,2,1+1,3,1")
         )
         mock = MagicMock()
-        self.message_broker.subscribe(MessageType.event, mock)
+        self.message_broker.subscribe(MessageType.selected_event, mock)
         self.controller.move_event_in_combination(
             InputEvent.from_string("1,2,1"), "down"
         )
@@ -1012,7 +1012,7 @@ class TestController(unittest.TestCase):
         self.data_manager.load_mapping(EventCombination("1,3,1"))
         self.data_manager.load_event(InputEvent.from_string("1,3,1"))
         mock = MagicMock()
-        self.message_broker.subscribe(MessageType.event, mock)
+        self.message_broker.subscribe(MessageType.selected_event, mock)
         self.controller.update_event(InputEvent.from_string("1,10,1"))
         mock.assert_called_once_with(InputEvent.from_string("1,10,1"))
 
@@ -1023,7 +1023,7 @@ class TestController(unittest.TestCase):
         self.data_manager.load_mapping(EventCombination("1,3,1"))
         self.data_manager.load_event(InputEvent.from_string("1,3,1"))
         mock = MagicMock()
-        self.message_broker.subscribe(MessageType.event, mock)
+        self.message_broker.subscribe(MessageType.selected_event, mock)
         self.message_broker.subscribe(MessageType.mapping, mock)
         self.controller.update_event(InputEvent.from_string("1,4,1"))  # already exists
         calls = [
