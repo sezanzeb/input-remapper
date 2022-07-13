@@ -35,7 +35,7 @@ from inputremapper.logger import logger
 
 class Context(Protocol):
     listeners: Set[EventListener]
-    callbacks: Dict[Tuple[int, int], List[NotifyCallback]]
+    notify_callbacks: Dict[Tuple[int, int], List[NotifyCallback]]
 
     def reset(self):
         ...
@@ -105,7 +105,7 @@ class EventReader:
             return False
 
         results = set()
-        for callback in self.context.callbacks.get(event.type_and_code) or ():
+        for callback in self.context.notify_callbacks.get(event.type_and_code) or ():
             results.add(callback(event, source=self._source, forward=self._forward_to))
 
         return True in results

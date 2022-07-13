@@ -188,7 +188,7 @@ class RootHelper:
             capabilities = device.capabilities(absinfo=False)
 
             for ev_code in capabilities.get(EV_KEY) or ():
-                context.callbacks[(EV_KEY, ev_code)].append(
+                context.notify_callbacks[(EV_KEY, ev_code)].append(
                     ForwardToUIHandler(self._results).notify
                 )
 
@@ -202,7 +202,7 @@ class RootHelper:
                     EventCombination((EV_ABS, ev_code, 30)), mapping
                 )
                 handler.set_sub_handler(ForwardToUIHandler(self._results))
-                context.callbacks[(EV_ABS, ev_code)].append(handler.notify)
+                context.notify_callbacks[(EV_ABS, ev_code)].append(handler.notify)
 
                 # negative direction
                 mapping = UIMapping(
@@ -213,7 +213,7 @@ class RootHelper:
                     EventCombination((EV_ABS, ev_code, -30)), mapping
                 )
                 handler.set_sub_handler(ForwardToUIHandler(self._results))
-                context.callbacks[(EV_ABS, ev_code)].append(handler.notify)
+                context.notify_callbacks[(EV_ABS, ev_code)].append(handler.notify)
 
             for ev_code in capabilities.get(EV_REL) or ():
                 # positive direction
@@ -230,7 +230,7 @@ class RootHelper:
                     mapping,
                 )
                 handler.set_sub_handler(ForwardToUIHandler(self._results))
-                context.callbacks[(EV_REL, ev_code)].append(handler.notify)
+                context.notify_callbacks[(EV_REL, ev_code)].append(handler.notify)
 
                 # negative direction
                 mapping = UIMapping(
@@ -246,7 +246,7 @@ class RootHelper:
                     mapping,
                 )
                 handler.set_sub_handler(ForwardToUIHandler(self._results))
-                context.callbacks[(EV_REL, ev_code)].append(handler.notify)
+                context.notify_callbacks[(EV_REL, ev_code)].append(handler.notify)
 
         return context
 
@@ -254,7 +254,7 @@ class RootHelper:
 class ContextDummy:
     def __init__(self):
         self.listeners = set()
-        self.callbacks = defaultdict(list)
+        self.notify_callbacks = defaultdict(list)
 
     def reset(self):
         pass

@@ -62,12 +62,12 @@ class Context:
     """
 
     listeners: Set[EventListener]
-    callbacks: Dict[Tuple[int, int], List[NotifyCallback]]
-    _handlers: Dict[InputEvent, List[InputEventHandler]]
+    notify_callbacks: Dict[Tuple[int, int], List[NotifyCallback]]
+    _handlers: Dict[InputEvent, Set[InputEventHandler]]
 
     def __init__(self, preset: Preset):
         self.listeners = set()
-        self.callbacks = defaultdict(list)
+        self.notify_callbacks = defaultdict(list)
         self._handlers = parse_mappings(preset, self)
 
         self._create_callbacks()
@@ -81,6 +81,6 @@ class Context:
     def _create_callbacks(self) -> None:
         """Add the notify method from all _handlers to self.callbacks."""
         for event, handler_list in self._handlers.items():
-            self.callbacks[event.type_and_code].extend(
+            self.notify_callbacks[event.type_and_code].extend(
                 handler.notify for handler in handler_list
             )
