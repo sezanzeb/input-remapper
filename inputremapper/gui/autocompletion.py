@@ -23,7 +23,7 @@
 
 
 import re
-from typing import Dict, Optional, List
+from typing import Dict, Optional, List, Tuple
 
 from evdev.ecodes import EV_KEY
 from gi.repository import Gdk, Gtk, GLib, GObject
@@ -48,9 +48,9 @@ FUNCTION_NAMES.remove("ifeq")
 Capabilities = Dict[int, List]
 
 
-def _get_left_text(iter):
-    buffer = iter.get_buffer()
-    result = buffer.get_text(buffer.get_start_iter(), iter, True)
+def _get_left_text(iter_: Gtk.TextIter) -> str:
+    buffer = iter_.get_buffer()
+    result = buffer.get_text(buffer.get_start_iter(), iter_, True)
     result = remove_comments(result)
     result = result.replace("\n", " ")
     return result.lower()
@@ -61,9 +61,9 @@ PARAMETER = r".*?[(,=+]\s*"
 FUNCTION_CHAIN = r".*?\)\s*\.\s*"
 
 
-def get_incomplete_function_name(iter):
+def get_incomplete_function_name(iter_: Gtk.TextIter) -> str:
     """Get the word that is written left to the TextIter."""
-    left_text = _get_left_text(iter)
+    left_text = _get_left_text(iter_)
 
     # match foo in:
     #  bar().foo
@@ -81,9 +81,9 @@ def get_incomplete_function_name(iter):
     return match[1]
 
 
-def get_incomplete_parameter(iter):
+def get_incomplete_parameter(iter_: Gtk.TextIter) -> Optional[str]:
     """Get the parameter that is written left to the TextIter."""
-    left_text = _get_left_text(iter)
+    left_text = _get_left_text(iter_)
 
     # match foo in:
     #  bar(foo
@@ -100,7 +100,7 @@ def get_incomplete_parameter(iter):
     return match[1]
 
 
-def propose_symbols(text_iter, codes):
+def propose_symbols(text_iter: Gtk.TextIter, codes: List[int]) -> List[Tuple[str, str]]:
     """Find key names that match the input at the cursor and are mapped to the codes."""
     incomplete_name = get_incomplete_parameter(text_iter)
 
@@ -116,7 +116,7 @@ def propose_symbols(text_iter, codes):
     ]
 
 
-def propose_function_names(text_iter):
+def propose_function_names(text_iter: Gtk.TextIter) -> List[Tuple[str, str]]:
     """Find function names that match the input at the cursor."""
     incomplete_name = get_incomplete_function_name(text_iter)
 
@@ -171,7 +171,7 @@ class Autocompletion(Gtk.Popover):
         self.code_editor = code_editor
         self.message_broker = message_broker
         self._uinputs: Optional[Dict[str, Capabilities]] = None
-        self._target_key_capabilities = []
+        self._target_key_capabilities: List[int] = []
 
         self.scrolled_window = Gtk.ScrolledWindow(
             min_content_width=200,

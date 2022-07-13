@@ -22,6 +22,7 @@
 import json
 import re
 import subprocess
+from typing import Optional, List, Iterable
 
 import evdev
 
@@ -65,7 +66,7 @@ class SystemMapping:
 
         return object.__getattribute__(self, wanted)
 
-    def list_names(self, codes=None):
+    def list_names(self, codes: Optional[Iterable[int]] = None) -> List[str]:
         """Return a list of all possible names in the mapping, optionally filtered by codes.
 
         Parameters
