@@ -1024,7 +1024,7 @@ class TestGui(GuiTestBase):
 
         self.controller.create_mapping()
         gtk_iteration()
-        row = self.selection_label_listbox.get_selected_row()
+        row: SelectionLabel = self.selection_label_listbox.get_selected_row()
         self.assertEqual(row.combination, EventCombination.empty_combination())
         self.assertEqual(row.label.get_text(), "Empty Mapping")
         self.assertIs(self.selection_label_listbox.get_row_at_index(2), row)
@@ -1045,7 +1045,7 @@ class TestGui(GuiTestBase):
     def test_selection_label_uses_name_if_available(self):
         self.controller.load_preset("preset1")
         gtk_iteration()
-        row = self.selection_label_listbox.get_selected_row()
+        row: SelectionLabel = self.selection_label_listbox.get_selected_row()
         self.assertEqual(row.label.get_text(), "1")
         self.assertIs(row, self.selection_label_listbox.get_row_at_index(0))
 
