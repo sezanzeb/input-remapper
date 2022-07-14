@@ -852,14 +852,13 @@ class OutputAxisSelector:
     def _on_mapping_message(self, mapping: MappingData):
         with HandlerDisabled(self._gui, self._on_gtk_select_axis):
             self._set_model(mapping.target_uinput)
-            self._gui.set_active_id(repr((mapping.output_type, mapping.output_code)))
+            self._gui.set_active_id(f"{mapping.output_type}, {mapping.output_code}")
 
     def _on_uinputs_message(self, uinputs: UInputsData):
         self._uinputs = uinputs.uinputs
 
     def _on_gtk_select_axis(self, *_):
-        type_code = eval(self._gui.get_active_id())
-        assert isinstance(type_code, tuple)
+        type_code = tuple(int(i) for i in self._gui.get_active_id().split(","))
         self._controller.update_mapping(
             output_type=type_code[0], output_code=type_code[1]
         )
