@@ -298,7 +298,7 @@ class TestController(unittest.TestCase):
         self.data_manager.load_group("Foo Device 2")
         self.data_manager.load_preset("preset2")
         self.message_broker.subscribe(
-            MessageType.user_confirm_request, lambda msg: msg.response(True)
+            MessageType.user_confirm_request, lambda msg: msg.respond(True)
         )
         self.controller.delete_preset()
         self.assertFalse(os.path.exists(get_preset_path("Foo Device", "preset2")))
@@ -533,7 +533,7 @@ class TestController(unittest.TestCase):
         self.data_manager.load_preset("preset2")
         self.data_manager.load_mapping(EventCombination("1,3,1"))
         self.message_broker.subscribe(
-            MessageType.user_confirm_request, lambda msg: msg.response(True)
+            MessageType.user_confirm_request, lambda msg: msg.respond(True)
         )
         self.controller.delete_mapping()
         self.controller.save()

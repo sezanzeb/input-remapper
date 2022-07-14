@@ -924,7 +924,7 @@ class ConfirmCancelDialog:
         self.gui.show()
         response = self.gui.run()
         self.gui.hide()
-        msg.response(response == Gtk.ResponseType.ACCEPT)
+        msg.respond(response == Gtk.ResponseType.ACCEPT)
 
 
 class KeyAxisStack:

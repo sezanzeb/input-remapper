@@ -143,12 +143,16 @@ class UInputsData:
 
 @dataclass(frozen=True)
 class GroupsData:
+    """Message containing all available groups and their device types"""
+
     message_type = MessageType.groups
     groups: Dict[Key, DeviceTypes]
 
 
 @dataclass(frozen=True)
 class GroupData:
+    """Message with the active group and available presets for the group"""
+
     message_type = MessageType.group
     group_key: str
     presets: Tuple[str, ...]
@@ -156,6 +160,8 @@ class GroupData:
 
 @dataclass(frozen=True)
 class PresetData:
+    """Message with the active preset name and mapping names/combinations"""
+
     message_type = MessageType.preset
     name: Optional[Name]
     mappings: Optional[Tuple[Tuple[Name, "EventCombination"], ...]]
@@ -164,6 +170,8 @@ class PresetData:
 
 @dataclass(frozen=True)
 class StatusData:
+    """Message with the strings and id for the status bar"""
+
     message_type = MessageType.status_msg
     ctx_id: int
     msg: Optional[str] = None
@@ -172,12 +180,16 @@ class StatusData:
 
 @dataclass(frozen=True)
 class CombinationRecorded:
+    """Message with the latest recoded combination"""
+
     message_type = MessageType.combination_recorded
     combination: "EventCombination"
 
 
 @dataclass(frozen=True)
 class CombinationUpdate:
+    """Message with the old and new combination (hash for a mapping) when it changed"""
+
     message_type = MessageType.combination_update
     old_combination: "EventCombination"
     new_combination: "EventCombination"
@@ -185,9 +197,11 @@ class CombinationUpdate:
 
 @dataclass(frozen=True)
 class UserConfirmRequest:
+    """Message for requesting a user response (confirm/cancel) from the gui"""
+
     message_type = MessageType.user_confirm_request
     msg: str
-    response: Callable[[bool], None] = lambda _: None
+    respond: Callable[[bool], None] = lambda _: None
 
 
 class Signal(Message):
