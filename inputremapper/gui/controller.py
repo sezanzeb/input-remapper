@@ -25,6 +25,7 @@ from typing import TYPE_CHECKING, Optional, Union, Literal, Sequence, Dict, Call
 
 from evdev.ecodes import EV_KEY, EV_REL, EV_ABS
 from gi.repository import Gtk
+from pydantic import ValidationError
 
 from inputremapper.configs.mapping import MappingData, UIMapping
 from inputremapper.event_combination import EventCombination
@@ -32,7 +33,7 @@ from inputremapper.exceptions import DataManagementError
 from inputremapper.gui.data_manager import DataManager, DEFAULT_PRESET_NAME
 from inputremapper.gui.gettext import _
 from inputremapper.gui.helper import is_helper_running
-from inputremapper.gui.utils import CTX_APPLY, CTX_ERROR, CTX_WARNING
+from inputremapper.gui.utils import CTX_APPLY, CTX_ERROR, CTX_WARNING, CTX_MAPPING
 from inputremapper.injection.injector import (
     RUNNING,
     FAILED,
@@ -79,6 +80,12 @@ class Controller:
         self.message_broker.subscribe(MessageType.groups, self._on_groups_changed)
         self.message_broker.subscribe(MessageType.preset, self._on_preset_changed)
         self.message_broker.subscribe(MessageType.init, self._on_init)
+        self.message_broker.subscribe(
+            MessageType.preset, self._send_mapping_errors_as_status_msg
+        )
+        self.message_broker.subscribe(
+            MessageType.mapping, self._send_mapping_errors_as_status_msg
+        )
 
     def _on_init(self, __):
         # make sure we get a groups_changed event when everything is ready
@@ -110,6 +117,27 @@ class Controller:
 
     def _on_combination_recorded(self, data: CombinationRecorded):
         self.update_combination(data.combination)
+
+    def _send_mapping_errors_as_status_msg(self, *__):
+        """send mapping ValidationErrors to the MessageBroker."""
+        if not self.data_manager.active_preset:
+            return
+        if self.data_manager.active_preset.is_valid():
+            self.message_broker.send(StatusData(CTX_MAPPING))
+            return
+
+        for mapping in self.data_manager.active_preset:
+            error = mapping.get_error()
+            if not error:
+                continue
+
+            position = mapping.name or mapping.event_combination.beautify()
+            msg = _("Mapping error at %s, hover for info") % position
+            self.show_status(CTX_MAPPING, msg, self._get_ui_error_string(error))
+
+    def _get_ui_error_string(self, error: ValidationError) -> str:
+        """get a human readable error message from a mapping error"""
+        return str(error)
 
     def get_a_preset(self) -> str:
         """attempts to get the newest preset in the current group

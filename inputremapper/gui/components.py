@@ -516,6 +516,16 @@ class StatusBar:
         self._warning_icon = warning_icon
 
         self._message_broker.subscribe(MessageType.status_msg, self._on_status_update)
+        self._message_broker.subscribe(MessageType.init, self._on_init)
+
+        # keep track if there is an error or warning in the stack of statusbar
+        # unfortunately this is not exposed over the api
+        self._error = False
+        self._warning = False
+
+    def _on_init(self, _):
+        self._error_icon.hide()
+        self._warning_icon.hide()
 
     def _on_status_update(self, data: StatusData):
         """Show a status message and set its tooltip.
@@ -533,9 +543,15 @@ class StatusBar:
 
             if context_id in (CTX_ERROR, CTX_MAPPING):
                 self._error_icon.hide()
+                self._error = False
+                if self._warning:
+                    self._warning_icon.show()
 
             if context_id == CTX_WARNING:
                 self._warning_icon.hide()
+                self._warning = False
+                if self._error:
+                    self._error_icon.show()
 
             status_bar.set_tooltip_text("")
         else:
@@ -547,9 +563,11 @@ class StatusBar:
 
             if context_id in (CTX_ERROR, CTX_MAPPING):
                 self._error_icon.show()
+                self._error = True
 
             if context_id == CTX_WARNING:
                 self._warning_icon.show()
+                self._warning = True
 
             max_length = 45
             if len(message) > max_length:

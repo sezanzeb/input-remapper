@@ -112,7 +112,6 @@ class DataManager:
                 self.active_preset.name, self.get_mappings(), self.get_autoload()
             )
         )
-        self.send_mapping_errors()
 
     def send_mapping(self):
         """send active mapping to the MessageBroker
@@ -122,7 +121,6 @@ class DataManager:
         outside DataManager"""
         if self.active_mapping:
             self.message_broker.send(self.active_mapping.get_bus_message())
-            self.send_mapping_errors()
 
     def send_event(self):
         """send active event to the MessageBroker.
@@ -133,27 +131,6 @@ class DataManager:
         if self.active_event:
             assert self.active_event in self.active_mapping.event_combination
             self.message_broker.send(self.active_event)
-
-    def send_mapping_errors(self):
-        """send mapping ValidationErrors to the MessageBroker.
-
-        This is internally called whenever the errors change.
-        It is usually not necessary to call this explicitly from
-        outside DataManager"""
-        if not self._active_preset:
-            return
-
-        if self._active_preset.is_valid():
-            self.message_broker.send(StatusData(CTX_MAPPING))
-
-        for mapping in self._active_preset:
-            error = mapping.get_error()
-            if not error:
-                continue
-
-            position = mapping.name or mapping.event_combination.beautify()
-            msg = _("Mapping error at %s, hover for info") % position
-            self.message_broker.send(StatusData(CTX_MAPPING, msg, str(error)))
 
     def send_uinputs(self):
         """send the "uinputs" message on the MessageBroker"""
