@@ -294,7 +294,7 @@ class Mapping(BaseModel):
     @root_validator
     def output_axis_given(cls, values):
         """Validate that an output type is an axis if we have an input axis."""
-        combination = values.get("event_combination")
+        combination: EventCombination = values.get("event_combination")
         output_type = values.get("output_type")
         event_values = [event.value for event in combination]
         if 0 not in event_values:
@@ -302,6 +302,7 @@ class Mapping(BaseModel):
 
         if output_type not in (EV_ABS, EV_REL):
             raise ValueError(
+                f"missing output axis: "
                 f"the {combination = } specifies a input axis, "
                 f"but the {output_type = } is not an axis "
             )

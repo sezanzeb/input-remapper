@@ -127,17 +127,33 @@ class Controller:
             return
 
         for mapping in self.data_manager.active_preset:
-            error = mapping.get_error()
-            if not error:
+            if not mapping.get_error():
                 continue
 
             position = mapping.name or mapping.event_combination.beautify()
             msg = _("Mapping error at %s, hover for info") % position
-            self.show_status(CTX_MAPPING, msg, self._get_ui_error_string(error))
+            self.show_status(CTX_MAPPING, msg, self._get_ui_error_string(mapping))
 
-    def _get_ui_error_string(self, error: ValidationError) -> str:
+    @staticmethod
+    def _get_ui_error_string(mapping: UIMapping) -> str:
         """get a human readable error message from a mapping error"""
-        return str(error)
+        error_string = str(mapping.get_error())
+
+        # check all the different error messages which are not useful for the user
+        if (
+            "output_symbol is a macro:" in error_string
+            or "output_symbol and output_code mismatch:" in error_string
+        ) and mapping.event_combination.has_input_axis():
+            return _(
+                "Remove the macro or key from the macro input field "
+                "when specifying an analog output"
+            )
+        if "missing output axis:" in error_string:
+            return _(
+                "The input specifies a analog axis, but no output axis is selected"
+            )
+
+        return error_string
 
     def get_a_preset(self) -> str:
         """attempts to get the newest preset in the current group

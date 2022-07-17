@@ -129,6 +129,9 @@ class EventCombination(Tuple[InputEvent]):
 
         return False
 
+    def has_input_axis(self) -> bool:
+        return False in (event.is_key_event for event in self)
+
     def get_permutations(self):
         """Get a list of EventCombination objects representing all possible permutations.
 
