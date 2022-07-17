@@ -70,15 +70,46 @@ class Controller:
         self.gui: Optional[UserInterface] = None
 
         self.button_left_warn = False
-        self.attach_to_events()
+        self._attach_to_events()
 
     def set_gui(self, gui: UserInterface):
         self.gui = gui
 
-    def attach_to_events(self) -> None:
-        self.message_broker.subscribe(MessageType.groups, self.on_groups_changed)
-        self.message_broker.subscribe(MessageType.preset, self.on_preset_changed)
-        self.message_broker.subscribe(MessageType.init, self.on_init)
+    def _attach_to_events(self) -> None:
+        self.message_broker.subscribe(MessageType.groups, self._on_groups_changed)
+        self.message_broker.subscribe(MessageType.preset, self._on_preset_changed)
+        self.message_broker.subscribe(MessageType.init, self._on_init)
+
+    def _on_init(self, __):
+        # make sure we get a groups_changed event when everything is ready
+        # this might not be necessary if the helper takes longer to provide the
+        # initial groups
+        self.data_manager.send_groups()
+        self.data_manager.send_uinputs()
+        if not is_helper_running():
+            self.show_status(CTX_ERROR, _("The helper did not start"))
+
+    def _on_groups_changed(self, _):
+        """load the newest group as soon as everyone got notified
+        about the updated groups"""
+        group_key = self.get_a_group()
+        if group_key:
+            self.load_group(self.get_a_group())
+
+    def _on_preset_changed(self, data: PresetData):
+        """load a mapping as soon as everyone got notified about the new preset"""
+        if data.mappings:
+            mappings = list(data.mappings)
+            mappings.sort(key=lambda t: t[0] or t[1].beautify())
+            combination = mappings[0][1]
+            self.load_mapping(combination)
+            self.load_event(combination[0])
+        else:
+            # send an empty mapping to make sure the ui is reset to default values
+            self.message_broker.send(MappingData(**MAPPING_DEFAULTS))
+
+    def _on_combination_recorded(self, data: CombinationRecorded):
+        self.update_combination(data.combination)
 
     def get_a_preset(self) -> str:
         """attempts to get the newest preset in the current group
@@ -100,37 +131,6 @@ class Controller:
 
         keys = self.data_manager.get_group_keys()
         return keys[0] if keys else None
-
-    def on_init(self, __):
-        # make sure we get a groups_changed event when everything is ready
-        # this might not be necessary if the helper takes longer to provide the
-        # initial groups
-        self.data_manager.send_groups()
-        self.data_manager.send_uinputs()
-        if not is_helper_running():
-            self.show_status(CTX_ERROR, _("The helper did not start"))
-
-    def on_groups_changed(self, _):
-        """load the newest group as soon as everyone got notified
-        about the updated groups"""
-        group_key = self.get_a_group()
-        if group_key:
-            self.load_group(self.get_a_group())
-
-    def on_preset_changed(self, data: PresetData):
-        """load a mapping as soon as everyone got notified about the new preset"""
-        if data.mappings:
-            mappings = list(data.mappings)
-            mappings.sort(key=lambda t: t[0] or t[1].beautify())
-            combination = mappings[0][1]
-            self.load_mapping(combination)
-            self.load_event(combination[0])
-        else:
-            # send an empty mapping to make sure the ui is reset to default values
-            self.message_broker.send(MappingData(**MAPPING_DEFAULTS))
-
-    def on_combination_recorded(self, data: CombinationRecorded):
-        self.update_combination(data.combination)
 
     def copy_preset(self):
         name = self.data_manager.active_preset.name
@@ -355,12 +355,12 @@ class Controller:
 
         def f(_):
             self.message_broker.unsubscribe(f)
-            self.message_broker.unsubscribe(self.on_combination_recorded)
+            self.message_broker.unsubscribe(self._on_combination_recorded)
             self.gui.connect_shortcuts()
 
         self.gui.disconnect_shortcuts()
         self.message_broker.subscribe(
-            MessageType.combination_recorded, self.on_combination_recorded
+            MessageType.combination_recorded, self._on_combination_recorded
         )
         self.message_broker.subscribe(MessageType.recording_finished, f)
         self.data_manager.start_combination_recording()

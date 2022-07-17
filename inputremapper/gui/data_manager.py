@@ -26,7 +26,7 @@ from typing import Optional, List, Tuple, Set
 from gi.repository import GLib
 
 from inputremapper.configs.global_config import GlobalConfig
-from inputremapper.configs.mapping import UIMapping, MappingData
+from inputremapper.configs.mapping import UIMapping
 from inputremapper.configs.paths import get_preset_path, mkdir, split_all
 from inputremapper.configs.preset import Preset
 from inputremapper.daemon import DaemonProxy
@@ -87,7 +87,7 @@ class DataManager:
         self._config = config
         self._config.load_config()
 
-        self._active_preset: Optional[Preset] = None
+        self._active_preset: Optional[Preset[UIMapping]] = None
         self._active_mapping: Optional[UIMapping] = None
         self._active_event: Optional[InputEvent] = None
 
@@ -183,7 +183,7 @@ class DataManager:
         return self._reader.group
 
     @property
-    def active_preset(self) -> Optional[Preset]:
+    def active_preset(self) -> Optional[Preset[UIMapping]]:
         """the currently loaded preset"""
         return self._active_preset
 
