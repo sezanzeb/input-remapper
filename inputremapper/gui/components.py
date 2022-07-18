@@ -475,6 +475,7 @@ class RecordingToggle:
         self._message_broker.subscribe(
             MessageType.recording_finished, self._on_recording_finished
         )
+        self._update_label(_("Record Input"))
 
     def _update_label(self, msg: str):
         self._gui.set_label(msg)
@@ -500,8 +501,8 @@ class StatusBar:
         message_broker: MessageBroker,
         controller: Controller,
         status_bar: Gtk.Statusbar,
-        error_icon,
-        warning_icon,
+        error_icon: Gtk.Image,
+        warning_icon: Gtk.Image,
     ):
         self._message_broker = message_broker
         self._controller = controller
@@ -591,6 +592,8 @@ class AutoloadSwitch:
 
 
 class ReleaseCombinationSwitch:
+    """switch for Mapping.release_combination_keys"""
+
     def __init__(
         self, message_broker: MessageBroker, controller: Controller, switch: Gtk.Switch
     ):
