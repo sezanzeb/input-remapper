@@ -26,7 +26,6 @@ from gi.repository import Gtk, GtkSource, Gdk, GObject
 
 from inputremapper.configs.data import get_data_path
 from inputremapper.configs.mapping import MappingData
-from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.event_combination import EventCombination
 from inputremapper.gui.autocompletion import Autocompletion
 from inputremapper.gui.components import (
@@ -182,7 +181,7 @@ class UserInterface:
 
         # code editor and autocompletion
         code_editor = CodeEditor(
-            message_broker, controller, system_mapping, self.get("code_editor")
+            message_broker, controller, self.get("code_editor")
         )
         autocompletion = Autocompletion(message_broker, code_editor)
         autocompletion.set_relative_to(self.get("code_editor_container"))

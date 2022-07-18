@@ -27,6 +27,7 @@ from unittest.mock import MagicMock, call
 
 from inputremapper.configs.global_config import global_config
 from inputremapper.configs.mapping import UIMapping, MappingData
+from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.event_combination import EventCombination
 from inputremapper.exceptions import DataManagementError
 from inputremapper.groups import _Groups
@@ -67,6 +68,7 @@ class TestDataManager(unittest.TestCase):
             self.reader,
             FakeDaemonProxy(),
             self.uinputs,
+            system_mapping,
         )
 
     def tearDown(self) -> None:

@@ -25,9 +25,7 @@ from typing import Tuple, Iterable, Union, Callable, Sequence
 
 from evdev import ecodes
 
-from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.input_event import InputEvent, InputEventValidationType
-from inputremapper.logger import logger
 
 # having shift in combinations modifies the configured output,
 # ctrl might not work at all

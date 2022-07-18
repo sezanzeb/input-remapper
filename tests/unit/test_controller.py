@@ -28,6 +28,7 @@ from typing import Tuple, List, Any
 
 import gi
 
+from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.injection.injector import (
     RUNNING,
     FAILED,
@@ -90,6 +91,7 @@ class TestController(unittest.TestCase):
             Reader(self.message_broker, _Groups()),
             FakeDaemonProxy(),
             uinputs,
+            system_mapping,
         )
         self.user_interface = MagicMock()
         self.controller = Controller(self.message_broker, self.data_manager)

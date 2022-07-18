@@ -29,6 +29,7 @@ from inputremapper.configs.global_config import GlobalConfig
 from inputremapper.configs.mapping import UIMapping
 from inputremapper.configs.paths import get_preset_path, mkdir, split_all
 from inputremapper.configs.preset import Preset
+from inputremapper.configs.system_mapping import SystemMapping
 from inputremapper.daemon import DaemonProxy
 from inputremapper.event_combination import EventCombination
 from inputremapper.exceptions import DataManagementError
@@ -77,11 +78,13 @@ class DataManager:
         reader: Reader,
         daemon: DaemonProxy,
         uinputs: GlobalUInputs,
+        system_mapping: SystemMapping,
     ):
         self.message_broker = message_broker
         self._reader = reader
         self._daemon = daemon
         self._uinputs = uinputs
+        self._system_mapping = system_mapping
         uinputs.prepare_all()
 
         self._config = config
@@ -433,6 +436,9 @@ class DataManager:
         """
         if not self._active_mapping:
             raise DataManagementError("Cannot modify Mapping: mapping is not set")
+
+        if symbol := kwargs.get("output_symbol"):
+            kwargs["output_symbol"] = self._system_mapping.correct_case(symbol)
 
         combination = self.active_mapping.event_combination
         for key, value in kwargs.items():

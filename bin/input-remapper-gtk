@@ -27,7 +27,6 @@ import atexit
 import logging
 from argparse import ArgumentParser
 
-from inputremapper.gui.message_broker import MessageBroker, MessageType
 from inputremapper.gui.gettext import _, LOCALE_DIR
 
 import gi
@@ -75,7 +74,8 @@ if __name__ == '__main__':
     logger.debug('Using locale directory: {}'.format(LOCALE_DIR))
 
     # import input-remapper stuff after setting the log verbosity
-
+    from inputremapper.gui.message_broker import MessageBroker, MessageType
+    from inputremapper.configs.system_mapping import system_mapping
     from inputremapper.gui.data_manager import DataManager
     from inputremapper.gui.user_interface import UserInterface
     from inputremapper.gui.controller import Controller
@@ -96,7 +96,7 @@ if __name__ == '__main__':
     daemon = start_processes()
 
     data_manager = DataManager(
-        message_broker, GlobalConfig(), reader, daemon, GlobalUInputs()
+        message_broker, GlobalConfig(), reader, daemon, GlobalUInputs(), system_mapping
     )
     controller = Controller(message_broker, data_manager)
     user_interface = UserInterface(message_broker, controller)

@@ -364,19 +364,17 @@ class CodeEditor:
         self,
         message_broker: MessageBroker,
         controller: Controller,
-        system_mapping: SystemMapping,
         editor: GtkSource.View,
     ):
         self._message_broker = message_broker
         self._controller = controller
-        self._system_mapping = system_mapping
         self.gui = editor
 
         # without this the wrapping ScrolledWindow acts weird when new lines are added,
         # not offering enough space to the text editor so the whole thing is suddenly
         # scrollable by a few pixels.
         # Found this after making blind guesses with settings in glade, and then
-        # actually looking at the snaphot preview! In glades editor this didn have an
+        # actually looking at the snapshot preview! In glades editor this didn't have an
         # effect.
         self.gui.set_resize_mode(Gtk.ResizeMode.IMMEDIATE)
         # Syntax Highlighting
@@ -401,9 +399,6 @@ class CodeEditor:
 
     @code.setter
     def code(self, code: str) -> None:
-        if code == self.code:
-            return
-
         buffer = self.gui.get_buffer()
         with HandlerDisabled(buffer, self._on_gtk_changed):
             buffer.set_text(code)
@@ -443,8 +438,7 @@ class CodeEditor:
         self._controller.save()
 
     def _on_gtk_changed(self, *_):
-        code = self._system_mapping.correct_case(self.code)
-        self._controller.update_mapping(output_symbol=code)
+        self._controller.update_mapping(output_symbol=self.code)
 
     def _on_mapping_loaded(self, mapping: MappingData):
         code = SET_KEY_FIRST
