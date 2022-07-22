@@ -620,7 +620,7 @@ class EventEntry(Gtk.ListBoxRow):
     def __init__(self, event: InputEvent, controller: Controller):
         super().__init__()
 
-        self._input_event = event
+        self.input_event = event
         self._controller = controller
         hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
 
@@ -650,17 +650,21 @@ class EventEntry(Gtk.ListBoxRow):
         up_btn.connect(
             "clicked",
             lambda *_: self._controller.move_event_in_combination(
-                self._input_event, "up"
+                self.input_event, "up"
             ),
         )
         down_btn.connect(
             "clicked",
             lambda *_: self._controller.move_event_in_combination(
-                self._input_event, "down"
+                self.input_event, "down"
             ),
         )
         self.add(hbox)
         self.show_all()
+
+        # only used in testing
+        self._up_btn = up_btn
+        self._down_btn = down_btn
 
     def cleanup(self):
         """remove any message listeners we are about to get destroyed"""
@@ -687,7 +691,7 @@ class CombinationListbox:
 
     def _select_row(self, event: InputEvent):
         def select(r: EventEntry):
-            if r._input_event == event:
+            if r.input_event == event:
                 self._gui.select_row(r)
 
         self._gui.foreach(select)
@@ -718,7 +722,7 @@ class CombinationListbox:
 
         self._gui.foreach(find_row)
         if row:
-            self._controller.load_event(row._input_event)
+            self._controller.load_event(row.input_event)
 
 
 class AnalogInputSwitch:
@@ -855,12 +859,12 @@ class OutputAxisSelector:
         types_codes = [(EV_ABS, code) for code in capabilities.get(EV_ABS) or ()]
         types_codes.extend((EV_REL, code) for code in capabilities.get(EV_REL) or ())
         self.model.clear()
-        self.model.append([repr((None, None)), _("No Axis")])
+        self.model.append([f"None, None", _("No Axis")])
         for type_code in types_codes:
             key_name = bytype[type_code[0]][type_code[1]]
             if isinstance(key_name, list):
                 key_name = key_name[0]
-            self.model.append([repr(type_code), key_name])
+            self.model.append([f"{type_code[0]}, {type_code[1]}", key_name])
 
         self._current_target = target
 
@@ -873,7 +877,10 @@ class OutputAxisSelector:
         self._uinputs = uinputs.uinputs
 
     def _on_gtk_select_axis(self, *_):
-        type_code = tuple(int(i) for i in self._gui.get_active_id().split(","))
+        if self._gui.get_active_id() == f"None, None":
+            type_code = (None, None)
+        else:
+            type_code = tuple(int(i) for i in self._gui.get_active_id().split(","))
         self._controller.update_mapping(
             output_type=type_code[0], output_code=type_code[1]
         )

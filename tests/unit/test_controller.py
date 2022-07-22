@@ -71,6 +71,7 @@ from tests.test import (
     FakeDaemonProxy,
     fixtures,
     prepare_presets,
+    spy,
 )
 from inputremapper.configs.global_config import global_config, GlobalConfig
 from inputremapper.gui.controller import Controller, MAPPING_DEFAULTS
@@ -1027,9 +1028,162 @@ class TestController(unittest.TestCase):
         mock = MagicMock()
         self.message_broker.subscribe(MessageType.selected_event, mock)
         self.message_broker.subscribe(MessageType.mapping, mock)
-        self.controller.update_event(InputEvent.from_string("1,4,1"))  # already exists
         calls = [
             call(self.data_manager.active_mapping.get_bus_message()),
             call(InputEvent.from_string("1,3,1")),
         ]
+        self.controller.update_event(InputEvent.from_string("1,4,1"))  # already exists
         mock.assert_has_calls(calls, any_order=False)
+
+    def test_remove_event_does_nothing_when_mapping_not_loaded(self):
+        with spy(self.data_manager, "update_mapping") as mock:
+            self.controller.remove_event()
+            mock.assert_not_called()
+
+    def test_remove_event_removes_active_event(self):
+        prepare_presets()
+        self.data_manager.load_group("Foo Device 2")
+        self.data_manager.load_preset("preset2")
+        self.data_manager.load_mapping(EventCombination("1,3,1"))
+        self.data_manager.update_mapping(event_combination="1,3,1+1,4,1")
+        self.assertEqual(
+            self.data_manager.active_mapping.event_combination,
+            EventCombination.from_string("1,3,1+1,4,1"),
+        )
+        self.data_manager.load_event(InputEvent.from_string("1,4,1"))
+
+        self.controller.remove_event()
+        self.assertEqual(
+            self.data_manager.active_mapping.event_combination,
+            EventCombination.from_string("1,3,1"),
+        )
+
+    def test_remove_event_loads_a_event(self):
+        prepare_presets()
+        self.data_manager.load_group("Foo Device 2")
+        self.data_manager.load_preset("preset2")
+        self.data_manager.load_mapping(EventCombination("1,3,1"))
+        self.data_manager.update_mapping(event_combination="1,3,1+1,4,1")
+        self.assertEqual(
+            self.data_manager.active_mapping.event_combination,
+            EventCombination.from_string("1,3,1+1,4,1"),
+        )
+        self.data_manager.load_event(InputEvent.from_string("1,4,1"))
+
+        mock = MagicMock()
+        self.message_broker.subscribe(MessageType.selected_event, mock)
+        self.controller.remove_event()
+        mock.assert_called_once_with(InputEvent.from_string("1,3,1"))
+
+    def test_remove_event_reloads_mapping_and_event_when_update_fails(self):
+        prepare_presets()
+        self.data_manager.load_group("Foo Device 2")
+        self.data_manager.load_preset("preset2")
+        self.data_manager.load_mapping(EventCombination("1,3,1"))
+        self.data_manager.update_mapping(event_combination="1,3,1+1,4,1")
+        self.data_manager.load_event(InputEvent.from_string("1,3,1"))
+
+        # removing "1,3,1" will throw a key error because a mapping with combination
+        # "1,4,1" already exists in preset
+        mock = MagicMock()
+        self.message_broker.subscribe(MessageType.selected_event, mock)
+        self.message_broker.subscribe(MessageType.mapping, mock)
+        calls = [
+            call(self.data_manager.active_mapping.get_bus_message()),
+            call(InputEvent.from_string("1,3,1")),
+        ]
+        self.controller.remove_event()
+        mock.assert_has_calls(calls, any_order=False)
+
+    def test_set_event_as_analog_sets_input_to_analog(self):
+        prepare_presets()
+        self.data_manager.load_group("Foo Device 2")
+        self.data_manager.load_preset("preset2")
+        self.data_manager.load_mapping(EventCombination("1,3,1"))
+        self.data_manager.update_mapping(event_combination="3,0,10")
+        self.data_manager.load_event(InputEvent.from_string("3,0,10"))
+
+        self.controller.set_event_as_analog(True)
+        self.assertEqual(
+            self.data_manager.active_mapping.event_combination,
+            EventCombination.from_string("3,0,0"),
+        )
+
+    def test_set_event_as_analog_adds_rel_threshold(self):
+        prepare_presets()
+        self.data_manager.load_group("Foo Device 2")
+        self.data_manager.load_preset("preset2")
+        self.data_manager.load_mapping(EventCombination("1,3,1"))
+        self.data_manager.update_mapping(event_combination="2,0,0")
+        self.data_manager.load_event(InputEvent.from_string("2,0,0"))
+
+        self.controller.set_event_as_analog(False)
+        combinations = [EventCombination("2,0,1"), EventCombination("2,0,-1")]
+        self.assertIn(self.data_manager.active_mapping.event_combination, combinations)
+
+    def test_set_event_as_analog_adds_abs_threshold(self):
+        prepare_presets()
+        self.data_manager.load_group("Foo Device 2")
+        self.data_manager.load_preset("preset2")
+        self.data_manager.load_mapping(EventCombination("1,3,1"))
+        self.data_manager.update_mapping(event_combination="3,0,0")
+        self.data_manager.load_event(InputEvent.from_string("3,0,0"))
+
+        self.controller.set_event_as_analog(False)
+        combinations = [EventCombination("3,0,10"), EventCombination("3,0,-10")]
+        self.assertIn(self.data_manager.active_mapping.event_combination, combinations)
+
+    def test_set_event_as_analog_reloads_mapping_and_event_when_key_event(self):
+        prepare_presets()
+        self.data_manager.load_group("Foo Device 2")
+        self.data_manager.load_preset("preset2")
+        self.data_manager.load_mapping(EventCombination("1,3,1"))
+        self.data_manager.load_event(InputEvent.from_string("1,3,1"))
+
+        mock = MagicMock()
+        self.message_broker.subscribe(MessageType.selected_event, mock)
+        self.message_broker.subscribe(MessageType.mapping, mock)
+        calls = [
+            call(self.data_manager.active_mapping.get_bus_message()),
+            call(InputEvent.from_string("1,3,1")),
+        ]
+        self.controller.set_event_as_analog(True)
+        mock.assert_has_calls(calls, any_order=False)
+
+    def test_set_event_as_analog_reloads_when_setting_to_analog_fails(self):
+        prepare_presets()
+        self.data_manager.load_group("Foo Device 2")
+        self.data_manager.load_preset("preset2")
+        self.data_manager.load_mapping(EventCombination("1,3,1"))
+        self.data_manager.update_mapping(event_combination="3,0,10")
+        self.data_manager.load_event(InputEvent.from_string("3,0,10"))
+
+        mock = MagicMock()
+        self.message_broker.subscribe(MessageType.selected_event, mock)
+        self.message_broker.subscribe(MessageType.mapping, mock)
+        calls = [
+            call(self.data_manager.active_mapping.get_bus_message()),
+            call(InputEvent.from_string("3,0,10")),
+        ]
+        with patch.object(self.data_manager, "update_mapping", side_effect=KeyError):
+            self.controller.set_event_as_analog(True)
+            mock.assert_has_calls(calls, any_order=False)
+
+    def test_set_event_as_analog_reloads_when_setting_to_key_fails(self):
+        prepare_presets()
+        self.data_manager.load_group("Foo Device 2")
+        self.data_manager.load_preset("preset2")
+        self.data_manager.load_mapping(EventCombination("1,3,1"))
+        self.data_manager.update_mapping(event_combination="3,0,0")
+        self.data_manager.load_event(InputEvent.from_string("3,0,0"))
+
+        mock = MagicMock()
+        self.message_broker.subscribe(MessageType.selected_event, mock)
+        self.message_broker.subscribe(MessageType.mapping, mock)
+        calls = [
+            call(self.data_manager.active_mapping.get_bus_message()),
+            call(InputEvent.from_string("3,0,0")),
+        ]
+        with patch.object(self.data_manager, "update_mapping", side_effect=KeyError):
+            self.controller.set_event_as_analog(False)
+            mock.assert_has_calls(calls, any_order=False)
