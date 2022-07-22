@@ -30,6 +30,9 @@ The service shouldn't do that even though it has root rights, because that
 would provide a key-logger that can be accessed by any user at all times,
 whereas for the helper to start a password is needed and it stops when the ui
 closes.
+
+This uses the backend injection.event_reader and mapping_handlers to process all the
+different input-events into simple on/off events and sends them to the gui.
 """
 from __future__ import annotations
 
@@ -148,7 +151,8 @@ class RootHelper:
             logger.error('Received unknown command "%s"', cmd)
 
     def _start_reading(self, group: _Group):
-        # find all devices of that group and filter interesting ones
+        """find all devices of that group, filter interesting ones and send the events
+        to the gui"""
         sources = []
         for path in group.paths:
             try:
@@ -172,6 +176,7 @@ class RootHelper:
             self._tasks.add(asyncio.create_task(reader.run()))
 
     async def _stop_reading(self):
+        """stop the running event_reader"""
         self._stop_event.set()
         if self._tasks:
             await asyncio.gather(*self._tasks)

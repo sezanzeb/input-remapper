@@ -88,6 +88,7 @@ class Controller:
         )
 
     def _on_init(self, __):
+        """initialize the gui and the data_manager"""
         # make sure we get a groups_changed event when everything is ready
         # this might not be necessary if the helper takes longer to provide the
         # initial groups
@@ -177,6 +178,7 @@ class Controller:
         return keys[0] if keys else None
 
     def copy_preset(self):
+        """create a copy of the active preset and name it `preset_name copy`"""
         name = self.data_manager.active_preset.name
         match = re.search(" copy *\d*$", name)
         if match:
@@ -187,6 +189,7 @@ class Controller:
         )
 
     def update_combination(self, combination: EventCombination):
+        """update the event_combination of the active mapping"""
         try:
             self.data_manager.update_mapping(event_combination=combination)
             self.save()
@@ -206,7 +209,8 @@ class Controller:
     def move_event_in_combination(
         self, event: InputEvent, direction: Union[Literal["up"], Literal["down"]]
     ):
-        """move self.event up or down in the mapping_combination"""
+        """move the active_event up or down in the event_combination of the
+        active_mapping"""
         if (
             not self.data_manager.active_mapping
             or len(self.data_manager.active_mapping.event_combination) == 1
@@ -316,6 +320,7 @@ class Controller:
         # self.load_mapping(...) # not needed because we have on_preset_changed()
 
     def rename_preset(self, new_name: str):
+        """rename the active_preset"""
         if (
             not self.data_manager.active_preset
             or not new_name
@@ -326,6 +331,7 @@ class Controller:
         self.data_manager.rename_preset(name)
 
     def add_preset(self, name: str = DEFAULT_PRESET_NAME):
+        """create a new preset, add it to the active_group and name it `new preset n`"""
         name = self.data_manager.get_available_preset_name(name)
         try:
             self.data_manager.create_preset(name)
@@ -334,6 +340,8 @@ class Controller:
             self.show_status(CTX_ERROR, _("Permission denied!"), str(e))
 
     def delete_preset(self):
+        """delete the active_preset from the disc"""
+
         def f(answer: bool):
             if answer:
                 self.data_manager.delete_preset()
@@ -348,14 +356,17 @@ class Controller:
         self.message_broker.send(UserConfirmRequest(msg, f))
 
     def load_mapping(self, event_combination: EventCombination):
+        """load the mapping with the given event_combination form the active_preset"""
         self.data_manager.load_mapping(event_combination)
         self.load_event(event_combination[0])
 
     def update_mapping(self, **kwargs):
+        """update the active_mapping with the given keywords and values"""
         self.data_manager.update_mapping(**kwargs)
         self.save()
 
     def create_mapping(self):
+        """create a new empty mapping in the active_preset"""
         try:
             self.data_manager.create_mapping()
         except KeyError:
@@ -365,6 +376,8 @@ class Controller:
         self.data_manager.update_mapping(**MAPPING_DEFAULTS)
 
     def delete_mapping(self):
+        """remove the active_mapping form the active_preset"""
+
         def f(answer: bool):
             if answer:
                 self.data_manager.delete_mapping()
@@ -377,16 +390,20 @@ class Controller:
         )
 
     def set_autoload(self, autoload: bool):
+        """set the autoload state for the active_preset and active_group"""
         self.data_manager.set_autoload(autoload)
         self.data_manager.refresh_service_config_path()
 
     def save(self):
+        """save all data to the disc"""
         try:
             self.data_manager.save()
         except PermissionError as e:
             self.show_status(CTX_ERROR, _("Permission denied!"), str(e))
 
     def start_key_recording(self):
+        """recorde the input of the active_group and update the
+        active_mapping.event_combination with the recorded events"""
         state = self.data_manager.get_state()
         if state == RUNNING or state == STARTING:
             self.message_broker.signal(MessageType.recording_finished)
@@ -410,10 +427,12 @@ class Controller:
         self.data_manager.start_combination_recording()
 
     def stop_key_recording(self):
+        """stop recording the input"""
         logger.debug("Stopping Key recording")
         self.data_manager.stop_combination_recording()
 
     def start_injecting(self):
+        """inject the active_preset for the active_group"""
         if len(self.data_manager.active_preset) == 0:
             logger.error(_("Cannot apply empty preset file"))
             # also helpful for first time use
@@ -486,6 +505,8 @@ class Controller:
         state_calls[state]()
 
     def stop_injecting(self):
+        """stop injecting any preset for the active_group"""
+
         def show_result(msg: InjectorState):
             self.message_broker.unsubscribe(show_result)
             assert msg.state == STOPPED
@@ -500,6 +521,7 @@ class Controller:
     def show_status(
         self, ctx_id: int, msg: Optional[str] = None, tooltip: Optional[str] = None
     ):
+        """send a status message to the ui to show it in the status-bar"""
         self.message_broker.send(StatusData(ctx_id, msg, tooltip))
 
     def is_empty_mapping(self) -> bool:
@@ -510,6 +532,9 @@ class Controller:
         )
 
     def refresh_groups(self):
+        """reload the connected devices and send them as a groups message
+
+        runs asynchronously"""
         self.data_manager.refresh_groups()
 
     def close(self):

@@ -1,14 +1,13 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import List, Optional, Dict, Literal, Union, Tuple, Callable
+from typing import List, Optional, Dict, Union, Callable
 
 import cairo
 from evdev.ecodes import EV_KEY, EV_ABS, EV_REL, bytype
 from gi.repository import Gtk, GtkSource, Gdk
 
 from inputremapper.configs.mapping import MappingData
-from inputremapper.configs.system_mapping import SystemMapping
 from inputremapper.event_combination import EventCombination
 from inputremapper.groups import DeviceType
 from inputremapper.gui.controller import Controller
@@ -55,6 +54,8 @@ ICON_PRIORITIES = [
 
 
 class DeviceSelection:
+    """the dropdown menu to select the active_group"""
+
     def __init__(
         self,
         message_broker: MessageBroker,
@@ -105,6 +106,8 @@ class DeviceSelection:
 
 
 class TargetSelection:
+    """the dropdown menu to select the targe_uinput of the active_mapping"""
+
     def __init__(
         self,
         message_broker: MessageBroker,
@@ -153,6 +156,8 @@ class TargetSelection:
 
 
 class PresetSelection:
+    """the dropdown menu to select the active_preset"""
+
     def __init__(
         self,
         message_broker: MessageBroker,
@@ -187,6 +192,8 @@ class PresetSelection:
 
 
 class MappingListBox:
+    """the listbox showing all available mapping in the active_preset"""
+
     def __init__(
         self,
         message_broker: MessageBroker,
@@ -241,6 +248,7 @@ class MappingListBox:
 
 
 class SelectionLabel(Gtk.ListBoxRow):
+    """the ListBoxRow representing a mapping inside the MappingListBox"""
 
     __gtype_name__ = "SelectionLabel"
 
@@ -360,6 +368,8 @@ class SelectionLabel(Gtk.ListBoxRow):
 
 
 class CodeEditor:
+    """the editor used to edit the output_symbol of the active_mapping"""
+
     def __init__(
         self,
         message_broker: MessageBroker,
@@ -457,6 +467,9 @@ class CodeEditor:
 
 
 class RecordingToggle:
+    """the toggle used to record the input form the active_group in order to update the
+    event_combination of the active_mapping"""
+
     def __init__(
         self,
         message_broker: MessageBroker,
@@ -496,6 +509,8 @@ class RecordingToggle:
 
 
 class StatusBar:
+    """the status bar on the bottom of the main window"""
+
     def __init__(
         self,
         message_broker: MessageBroker,
@@ -573,6 +588,9 @@ class StatusBar:
 
 
 class AutoloadSwitch:
+    """the switch used to toggle the autoload state of the active_preset for
+    the acive_group"""
+
     def __init__(
         self, message_broker: MessageBroker, controller: Controller, switch: Gtk.Switch
     ):
@@ -592,7 +610,7 @@ class AutoloadSwitch:
 
 
 class ReleaseCombinationSwitch:
-    """switch for Mapping.release_combination_keys"""
+    """the switch used to set the active_mapping.release_combination_keys parameter"""
 
     def __init__(
         self, message_broker: MessageBroker, controller: Controller, switch: Gtk.Switch
@@ -613,7 +631,7 @@ class ReleaseCombinationSwitch:
 
 
 class EventEntry(Gtk.ListBoxRow):
-    """One row per InputEvent in the EventCombination."""
+    """the ListBoxRow representing a single event inside the CombinationListBox"""
 
     __gtype_name__ = "EventEntry"
 
@@ -672,6 +690,8 @@ class EventEntry(Gtk.ListBoxRow):
 
 
 class CombinationListbox:
+    """the ListBox with all the events inside active_mapping.event_combination"""
+
     def __init__(
         self,
         message_broker: MessageBroker,
@@ -726,6 +746,9 @@ class CombinationListbox:
 
 
 class AnalogInputSwitch:
+    """the switch used to modify the active_event in order to be
+    marked as an analog input"""
+
     def __init__(
         self,
         message_broker: MessageBroker,
@@ -757,6 +780,9 @@ class AnalogInputSwitch:
 
 
 class TriggerThresholdInput:
+    """the number selection used to set the speed or position threshold of the
+    active_event when it is an ABS or REL event used as a key"""
+
     def __init__(
         self,
         message_broker: MessageBroker,
@@ -796,6 +822,8 @@ class TriggerThresholdInput:
 
 
 class ReleaseTimeoutInput:
+    """the number selector used to set the active_mapping.release_timeout parameter"""
+
     def __init__(
         self,
         message_broker: MessageBroker,
@@ -827,6 +855,12 @@ class ReleaseTimeoutInput:
 
 
 class OutputAxisSelector:
+    """the dropdown menu used to select the output axis if the active_mapping is a
+    mapping targeting an analog axis
+
+    modifies the active_mapping.output_code and active_mapping.output_type parameters
+    """
+
     def __init__(
         self,
         message_broker: MessageBroker,
@@ -887,6 +921,8 @@ class OutputAxisSelector:
 
 
 class ConfirmCancelDialog:
+    """the dialog shown to the user to query a confirm or cancel action form the user"""
+
     def __init__(
         self,
         message_broker: MessageBroker,
@@ -912,6 +948,9 @@ class ConfirmCancelDialog:
 
 
 class KeyAxisStack:
+    """the stack used to show either the gui to modify a key-mapping or the gui to
+    modify a analog-axis mapping"""
+
     def __init__(
         self,
         message_broker: MessageBroker,
@@ -938,6 +977,8 @@ class KeyAxisStack:
 
 
 class TransformationDrawArea:
+    """the graph which shows the relation between input- and output-axis"""
+
     def __init__(
         self,
         message_broker: MessageBroker,
@@ -1009,6 +1050,9 @@ class TransformationDrawArea:
 
 
 class Sliders:
+    """the different sliders to modify the gain, deadzone and expo parameters of the
+    active_mapping"""
+
     def __init__(
         self,
         message_broker: MessageBroker,
