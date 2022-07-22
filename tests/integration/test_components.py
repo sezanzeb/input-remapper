@@ -25,7 +25,7 @@ from inputremapper.gui.message_broker import (
     CombinationUpdate,
     StatusData,
 )
-from inputremapper.groups import GAMEPAD, KEYBOARD, GRAPHICS_TABLET
+from inputremapper.groups import DeviceType
 from inputremapper.gui.components import (
     DeviceSelection,
     TargetSelection,
@@ -80,7 +80,11 @@ class TestDeviceSelection(ComponentBaseTest):
         )
         self.message_broker.send(
             GroupsData(
-                {"foo": [GAMEPAD, KEYBOARD], "bar": [], "baz": [GRAPHICS_TABLET]}
+                {
+                    "foo": [DeviceType.GAMEPAD, DeviceType.KEYBOARD],
+                    "bar": [],
+                    "baz": [DeviceType.GRAPHICS_TABLET],
+                }
             )
         )
 
@@ -93,8 +97,8 @@ class TestDeviceSelection(ComponentBaseTest):
         self.message_broker.send(
             GroupsData(
                 {
-                    "kuu": [KEYBOARD],
-                    "qux": [GAMEPAD],
+                    "kuu": [DeviceType.KEYBOARD],
+                    "qux": [DeviceType.GAMEPAD],
                 }
             )
         )

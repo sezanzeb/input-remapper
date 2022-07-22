@@ -17,6 +17,7 @@ from typing import (
     TYPE_CHECKING,
 )
 
+from inputremapper.groups import DeviceType
 from inputremapper.logger import logger
 
 if TYPE_CHECKING:
@@ -59,7 +60,7 @@ MessageListener = Callable[[Any], None]
 Capabilities = Dict[int, List]
 Name = str
 Key = str
-DeviceTypes = List[str]
+DeviceTypes = List[DeviceType]
 
 
 class MessageBroker:

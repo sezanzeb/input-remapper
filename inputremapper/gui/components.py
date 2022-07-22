@@ -10,14 +10,7 @@ from gi.repository import Gtk, GtkSource, Gdk
 from inputremapper.configs.mapping import MappingData
 from inputremapper.configs.system_mapping import SystemMapping
 from inputremapper.event_combination import EventCombination
-from inputremapper.groups import (
-    GAMEPAD,
-    KEYBOARD,
-    UNKNOWN,
-    GRAPHICS_TABLET,
-    TOUCHPAD,
-    MOUSE,
-)
+from inputremapper.groups import DeviceType
 from inputremapper.gui.controller import Controller
 from inputremapper.gui.gettext import _
 from inputremapper.gui.message_broker import (
@@ -42,16 +35,23 @@ SET_KEY_FIRST = _("Record the input first")
 EMPTY_MAPPING_NAME = _("Empty Mapping")
 
 ICON_NAMES = {
-    GAMEPAD: "input-gaming",
-    MOUSE: "input-mouse",
-    KEYBOARD: "input-keyboard",
-    GRAPHICS_TABLET: "input-tablet",
-    TOUCHPAD: "input-touchpad",
-    UNKNOWN: None,
+    DeviceType.GAMEPAD: "input-gaming",
+    DeviceType.MOUSE: "input-mouse",
+    DeviceType.KEYBOARD: "input-keyboard",
+    DeviceType.GRAPHICS_TABLET: "input-tablet",
+    DeviceType.TOUCHPAD: "input-touchpad",
+    DeviceType.UNKNOWN: None,
 }
 
 # sort types that most devices would fall in easily to the right.
-ICON_PRIORITIES = [GRAPHICS_TABLET, TOUCHPAD, GAMEPAD, MOUSE, KEYBOARD, UNKNOWN]
+ICON_PRIORITIES = [
+    DeviceType.GRAPHICS_TABLET,
+    DeviceType.TOUCHPAD,
+    DeviceType.GAMEPAD,
+    DeviceType.MOUSE,
+    DeviceType.KEYBOARD,
+    DeviceType.UNKNOWN,
+]
 
 
 class DeviceSelection:

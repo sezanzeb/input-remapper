@@ -29,7 +29,9 @@ Those groups are what is being displayed in the device dropdown, and
 events are being read from all of the paths of an individual group in the gui
 and the injector.
 """
+from __future__ import annotations
 import asyncio
+import enum
 import json
 import multiprocessing
 import os
@@ -62,13 +64,16 @@ TABLET_KEYS = [
     evdev.ecodes.BTN_TOOL_RUBBER,
 ]
 
-GAMEPAD = "gamepad"
-KEYBOARD = "keyboard"
-MOUSE = "mouse"
-TOUCHPAD = "touchpad"
-GRAPHICS_TABLET = "graphics-tablet"
-CAMERA = "camera"
-UNKNOWN = "unknown"
+
+class DeviceType(str, enum.Enum):
+    GAMEPAD = "gamepad"
+    KEYBOARD = "keyboard"
+    MOUSE = "mouse"
+    TOUCHPAD = "touchpad"
+    GRAPHICS_TABLET = "graphics-tablet"
+    CAMERA = "camera"
+    UNKNOWN = "unknown"
+
 
 if not hasattr(evdev.InputDevice, "path"):
     # for evdev < 1.0.0 patch the path property
@@ -153,7 +158,7 @@ def _is_camera(capabilities):
     return key_capa and len(key_capa) == 1 and key_capa[0] == KEY_CAMERA
 
 
-def classify(device):
+def classify(device) -> DeviceType:
     """Figure out what kind of device this is.
 
     Use this instead of functions like _is_keyboard to avoid getting false
@@ -164,26 +169,26 @@ def classify(device):
     if _is_graphics_tablet(capabilities):
         # check this before is_gamepad to avoid classifying abs_x
         # as joysticks when they are actually stylus positions
-        return GRAPHICS_TABLET
+        return DeviceType.GRAPHICS_TABLET
 
     if _is_touchpad(capabilities):
-        return TOUCHPAD
+        return DeviceType.TOUCHPAD
 
     if _is_gamepad(capabilities):
-        return GAMEPAD
+        return DeviceType.GAMEPAD
 
     if _is_mouse(capabilities):
-        return MOUSE
+        return DeviceType.MOUSE
 
     if _is_camera(capabilities):
-        return CAMERA
+        return DeviceType.CAMERA
 
     if _is_keyboard(capabilities):
         # very low in the chain to avoid classifying most devices
         # as keyboard, because there are many with ev_key capabilities
-        return KEYBOARD
+        return DeviceType.KEYBOARD
 
-    return UNKNOWN
+    return DeviceType.UNKNOWN
 
 
 DENYLIST = [".*Yubico.*YubiKey.*", "Eee PC WMI hotkeys"]
@@ -251,7 +256,11 @@ class _Group:
     """
 
     def __init__(
-        self, paths: List[os.PathLike], names: List[str], types: List[str], key: str
+        self,
+        paths: List[os.PathLike],
+        names: List[str],
+        types: List[DeviceType | str],
+        key: str,
     ):
         """Specify a group
 
@@ -261,7 +270,7 @@ class _Group:
             Paths in /dev/input of the grouped devices
         names : str[]
             Names of the grouped devices
-        types : str[]
+        types : list[DeviceType]
             Types of the grouped devices
         key : str
             Unique identifier of the group.
@@ -282,7 +291,7 @@ class _Group:
 
         self.paths = paths
         self.names = names
-        self.types = types
+        self.types = [DeviceType(type_) for type_ in types]
 
     def get_preset_path(self, preset=None):
         """Get a path to the stored preset, or to store a preset to.
@@ -355,7 +364,7 @@ class _FindGroups(threading.Thread):
 
             device_type = classify(device)
 
-            if device_type == CAMERA:
+            if device_type == DeviceType.CAMERA:
                 continue
 
             # https://www.kernel.org/doc/html/latest/input/event-codes.html
@@ -363,7 +372,7 @@ class _FindGroups(threading.Thread):
 
             key_capa = capabilities.get(EV_KEY)
 
-            if key_capa is None and device_type != GAMEPAD:
+            if key_capa is None and device_type != DeviceType.GAMEPAD:
                 # skip devices that don't provide buttons that can be mapped
                 continue
 
@@ -404,7 +413,9 @@ class _FindGroups(threading.Thread):
                 key=key,
                 paths=devs,
                 names=names,
-                types=sorted(list({item[2] for item in group if item[2] != UNKNOWN})),
+                types=sorted(
+                    list({item[2] for item in group if item[2] != DeviceType.UNKNOWN})
+                ),
             )
 
             result.append(group.dumps())

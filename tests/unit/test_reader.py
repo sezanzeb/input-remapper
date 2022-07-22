@@ -37,7 +37,6 @@ from tests.test import (
 )
 
 import unittest
-from unittest import mock
 import time
 import multiprocessing
 
@@ -59,10 +58,9 @@ from evdev.ecodes import (
 )
 
 from inputremapper.gui.reader import Reader
-from inputremapper.configs.global_config import BUTTONS, MOUSE
 from inputremapper.event_combination import EventCombination
 from inputremapper.gui.helper import RootHelper
-from inputremapper.groups import _Groups, KEYBOARD, GAMEPAD
+from inputremapper.groups import _Groups, DeviceType
 
 CODE_1 = 100
 CODE_2 = 101
@@ -512,7 +510,7 @@ class TestReader(unittest.TestCase):
                                 "/dev/input/event1",
                             ],
                             "names": ["Foo Device"],
-                            "types": [KEYBOARD],
+                            "types": [DeviceType.KEYBOARD],
                             "key": "Foo Device",
                         }
                     ),
@@ -530,7 +528,11 @@ class TestReader(unittest.TestCase):
                                 "Foo Device",
                                 "Foo Device bar",
                             ],
-                            "types": [GAMEPAD, KEYBOARD, MOUSE],
+                            "types": [
+                                DeviceType.GAMEPAD,
+                                DeviceType.KEYBOARD,
+                                DeviceType.MOUSE,
+                            ],
                             "key": "Foo Device 2",
                         }
                     ),
@@ -538,7 +540,7 @@ class TestReader(unittest.TestCase):
                         {
                             "paths": ["/dev/input/event20"],
                             "names": ["Bar Device"],
-                            "types": [KEYBOARD],
+                            "types": [DeviceType.KEYBOARD],
                             "key": "Bar Device",
                         }
                     ),
@@ -546,7 +548,7 @@ class TestReader(unittest.TestCase):
                         {
                             "paths": ["/dev/input/event30"],
                             "names": ["gamepad"],
-                            "types": [GAMEPAD],
+                            "types": [DeviceType.GAMEPAD],
                             "key": "gamepad",
                         }
                     ),
@@ -554,7 +556,7 @@ class TestReader(unittest.TestCase):
                         {
                             "paths": ["/dev/input/event40"],
                             "names": ["input-remapper Bar Device"],
-                            "types": [KEYBOARD],
+                            "types": [DeviceType.KEYBOARD],
                             "key": "input-remapper Bar Device",
                         }
                     ),
