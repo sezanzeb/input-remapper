@@ -362,7 +362,7 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
             event_reader,
         )
         # wait a bit more for it to sum up
-        sleep = 0.5
+        sleep = 0.8
         await asyncio.sleep(sleep)
         # stop it
         await self.send_events(
