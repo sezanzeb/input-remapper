@@ -149,6 +149,14 @@ class Controller:
                 "Remove the macro or key from the macro input field "
                 "when specifying an analog output"
             )
+        elif (
+            "output_symbol is a macro:" in error_string
+            or "output_symbol and output_code mismatch:" in error_string
+        ) and not mapping.event_combination.has_input_axis():
+            return _(
+                "Remove the Analog Output Axis "
+                "when specifying an macro or key output"
+            )
         if "missing output axis:" in error_string:
             return _(
                 "The input specifies a analog axis, but no output axis is selected"
