@@ -242,6 +242,7 @@ class TestMappingListbox(ComponentBaseTest):
                 row = r
 
         self.gui.foreach(find_row)
+        assert row is not None
         return row
 
     def select_row(self, combination: EventCombination):
@@ -746,7 +747,9 @@ class TestCombinationListbox(ComponentBaseTest):
             self.message_broker, self.controller_mock, self.gui
         )
         self.controller_mock.is_empty_mapping.return_value = False
-        self.message_broker.send(MappingData(event_combination="1,1,1+3,0,1+1,2,1"))
+        self.message_broker.send(
+            MappingData(event_combination="1,1,1+3,0,1+1,2,1", target_uinput="keyboard")
+        )
 
     def get_selected_row(self) -> EventEntry:
         row = None
@@ -757,6 +760,7 @@ class TestCombinationListbox(ComponentBaseTest):
                 row = r
 
         self.gui.foreach(find_row)
+        assert row is not None
         return row
 
     def select_row(self, event: InputEvent):
@@ -884,7 +888,9 @@ class TestReleaseTimeoutInput(ComponentBaseTest):
             self.message_broker, self.controller_mock, self.gui
         )
         self.message_broker.send(
-            MappingData(event_combination=EventCombination("2,0,1"))
+            MappingData(
+                event_combination=EventCombination("2,0,1"), target_uinput="keyboard"
+            )
         )
 
     def test_updates_timeout_on_mapping_message(self):
@@ -943,13 +949,15 @@ class TestOutputAxisSelector(ComponentBaseTest):
                 }
             )
         )
-        self.message_broker.send(MappingData(target_uinput="mouse"))
+        self.message_broker.send(
+            MappingData(target_uinput="mouse", event_combination="1,1,1")
+        )
 
     def set_active_selection(self, selection: Tuple):
         self.gui.set_active_id(f"{selection[0]}, {selection[1]}")
 
     def get_active_selection(self) -> Tuple[int, int]:
-        return tuple(int(i) for i in self.gui.get_active_id().split(","))
+        return tuple(int(i) for i in self.gui.get_active_id().split(","))  # type: ignore
 
     def test_updates_mapping(self):
         self.set_active_selection((2, 0))
@@ -1077,7 +1085,9 @@ class TestSliders(ComponentBaseTest):
             self.deadzone,
             self.expo,
         )
-        self.message_broker.send(MappingData())
+        self.message_broker.send(
+            MappingData(event_combination="3,0,0", target_uinput="mouse")
+        )
 
     @staticmethod
     def get_range(range: Gtk.Range) -> Tuple[int, int]:
