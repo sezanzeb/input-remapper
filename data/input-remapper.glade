@@ -74,33 +74,6 @@
     <property name="can-focus">False</property>
     <property name="icon-name">list-add</property>
   </object>
-  <object class="GtkImage" id="image4">
-    <property name="visible">True</property>
-    <property name="can-focus">False</property>
-    <property name="icon-name">list-remove</property>
-  </object>
-  <object class="GtkImage" id="image5">
-    <property name="visible">True</property>
-    <property name="can-focus">False</property>
-    <property name="icon-name">dialog-cancel</property>
-  </object>
-  <object class="GtkImage" id="image6">
-    <property name="visible">True</property>
-    <property name="can-focus">False</property>
-    <property name="icon-name">dialog-ok</property>
-  </object>
-  <object class="GtkImage" id="new-icon">
-    <property name="visible">True</property>
-    <property name="can-focus">False</property>
-    <property name="margin-right">2</property>
-    <property name="margin-end">2</property>
-    <property name="icon-name">document-new</property>
-  </object>
-  <object class="GtkImage" id="save-icon">
-    <property name="visible">True</property>
-    <property name="can-focus">False</property>
-    <property name="icon-name">document-save</property>
-  </object>
   <object class="GtkWindow" id="window">
     <property name="width-request">800</property>
     <property name="can-focus">False</property>
@@ -118,8 +91,6 @@
           <object class="GtkBox">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
-            <property name="margin-start">18</property>
-            <property name="margin-end">18</property>
             <property name="orientation">vertical</property>
             <child>
               <object class="GtkMenuBar">
@@ -138,6 +109,8 @@
               <object class="GtkBox" id="devices">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
+                <property name="margin-start">18</property>
+                <property name="margin-end">18</property>
                 <property name="margin-bottom">18</property>
                 <property name="border-width">0</property>
                 <property name="spacing">12</property>
@@ -235,16 +208,13 @@ Gives your keys back their original function</property>
           <object class="GtkBox">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
-            <property name="margin-start">18</property>
-            <property name="margin-end">18</property>
-            <property name="margin-top">18</property>
-            <property name="margin-bottom">18</property>
-            <property name="spacing">6</property>
             <child>
               <!-- n-columns=2 n-rows=2 -->
               <object class="GtkGrid">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
+                <property name="margin-top">18</property>
+                <property name="margin-bottom">18</property>
                 <property name="row-spacing">6</property>
                 <property name="column-spacing">12</property>
                 <property name="row-homogeneous">True</property>
@@ -330,7 +300,19 @@ Gives your keys back their original function</property>
               <packing>
                 <property name="expand">True</property>
                 <property name="fill">True</property>
+                <property name="padding">18</property>
                 <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkSeparator">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
               </packing>
             </child>
             <child>
@@ -338,7 +320,8 @@ Gives your keys back their original function</property>
               <object class="GtkGrid">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
-                <property name="margin-start">18</property>
+                <property name="margin-top">18</property>
+                <property name="margin-bottom">18</property>
                 <property name="row-spacing">6</property>
                 <property name="column-spacing">30</property>
                 <child>
@@ -407,44 +390,56 @@ Gives your keys back their original function</property>
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkSwitch" id="preset_autoload_switch">
-                    <property name="visible">True</property>
-                    <property name="can-focus">True</property>
-                    <property name="halign">start</property>
-                    <property name="valign">center</property>
-                  </object>
-                  <packing>
-                    <property name="left-attach">1</property>
-                    <property name="top-attach">1</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkLabel">
+                  <object class="GtkBox">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
-                    <property name="halign">end</property>
-                    <property name="valign">center</property>
-                    <property name="label" translatable="yes">Autoload:</property>
-                    <property name="xalign">0</property>
+                    <child>
+                      <object class="GtkSwitch" id="preset_autoload_switch">
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="halign">start</property>
+                        <property name="valign">center</property>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="margin-left">6</property>
+                        <property name="margin-start">6</property>
+                        <property name="label" translatable="yes">Autoload</property>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">1</property>
+                      </packing>
+                    </child>
                   </object>
                   <packing>
                     <property name="left-attach">0</property>
                     <property name="top-attach">1</property>
+                    <property name="width">2</property>
                   </packing>
                 </child>
               </object>
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
-                <property name="position">1</property>
+                <property name="padding">18</property>
+                <property name="position">2</property>
               </packing>
             </child>
           </object>
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="padding">4</property>
-            <property name="position">3</property>
+            <property name="position">2</property>
           </packing>
         </child>
         <child>
@@ -468,7 +463,7 @@ Gives your keys back their original function</property>
               <object class="GtkBox">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
-                <property name="margin-end">9</property>
+                <property name="margin-end">18</property>
                 <property name="margin-top">18</property>
                 <property name="margin-bottom">18</property>
                 <property name="orientation">vertical</property>
@@ -542,14 +537,14 @@ Gives your keys back their original function</property>
                 <property name="margin-top">18</property>
                 <property name="margin-bottom">18</property>
                 <property name="orientation">vertical</property>
-                <property name="spacing">6</property>
+                <property name="spacing">12</property>
                 <child>
                   <object class="GtkStackSwitcher">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
                     <property name="halign">center</property>
-                    <property name="margin-start">9</property>
-                    <property name="margin-end">9</property>
+                    <property name="margin-start">18</property>
+                    <property name="margin-end">18</property>
                     <property name="stack">editor-stack</property>
                   </object>
                   <packing>
@@ -562,8 +557,8 @@ Gives your keys back their original function</property>
                   <object class="GtkBox">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
-                    <property name="margin-start">9</property>
-                    <property name="margin-end">9</property>
+                    <property name="margin-start">18</property>
+                    <property name="margin-end">18</property>
                     <property name="spacing">6</property>
                     <child>
                       <object class="GtkLabel">
@@ -602,8 +597,6 @@ Gives your keys back their original function</property>
                   <object class="GtkSeparator">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
-                    <property name="margin-top">3</property>
-                    <property name="margin-bottom">3</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -615,8 +608,8 @@ Gives your keys back their original function</property>
                   <object class="GtkBox">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
-                    <property name="margin-start">9</property>
-                    <property name="margin-end">9</property>
+                    <property name="margin-start">18</property>
+                    <property name="margin-end">18</property>
                     <property name="spacing">6</property>
                     <child>
                       <object class="GtkLabel">
@@ -636,7 +629,6 @@ Gives your keys back their original function</property>
                       <object class="GtkLabel" id="combination-label">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
-                        <property name="margin-top">7</property>
                         <property name="margin-bottom">8</property>
                         <property name="label" translatable="yes">no input configured</property>
                         <property name="wrap">True</property>
@@ -661,6 +653,8 @@ Gives your keys back their original function</property>
                     <property name="can-focus">True</property>
                     <property name="receives-default">True</property>
                     <property name="tooltip-text" translatable="yes">Record a button of your device that should be remapped</property>
+                    <property name="margin-start">18</property>
+                    <property name="margin-end">18</property>
                     <property name="image">image2</property>
                     <property name="relief">none</property>
                     <property name="always-show-image">True</property>
@@ -677,6 +671,8 @@ Gives your keys back their original function</property>
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
                     <property name="receives-default">True</property>
+                    <property name="margin-start">18</property>
+                    <property name="margin-end">18</property>
                     <property name="image">image1</property>
                     <property name="relief">none</property>
                   </object>
@@ -708,8 +704,7 @@ Gives your keys back their original function</property>
               <object class="GtkBox">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
-                <property name="margin-start">9</property>
-                <property name="margin-end">9</property>
+                <property name="margin-start">18</property>
                 <property name="margin-top">18</property>
                 <property name="margin-bottom">18</property>
                 <property name="orientation">vertical</property>
@@ -758,8 +753,7 @@ Gives your keys back their original function</property>
                           <object class="GtkBox">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
-                            <property name="margin-start">9</property>
-                            <property name="margin-end">9</property>
+                            <property name="margin-end">12</property>
                             <property name="orientation">vertical</property>
                             <property name="spacing">6</property>
                             <child>
@@ -1366,6 +1360,11 @@ Macros allow multiple characters to be written with a single key-press. Informat
       </object>
     </child>
   </object>
+  <object class="GtkImage" id="image4">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <property name="icon-name">list-remove</property>
+  </object>
   <object class="GtkWindow" id="combination-editor">
     <property name="width-request">200</property>
     <property name="height-request">200</property>
@@ -1656,6 +1655,16 @@ Timeout:</property>
       </object>
     </child>
   </object>
+  <object class="GtkImage" id="image5">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <property name="icon-name">dialog-cancel</property>
+  </object>
+  <object class="GtkImage" id="image6">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <property name="icon-name">dialog-ok</property>
+  </object>
   <object class="GtkDialog" id="confirm-cancel">
     <property name="width-request">300</property>
     <property name="height-request">150</property>
@@ -1764,5 +1773,17 @@ Timeout:</property>
       <action-widget response="-6">button3</action-widget>
       <action-widget response="-3">button4</action-widget>
     </action-widgets>
+  </object>
+  <object class="GtkImage" id="new-icon">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <property name="margin-right">2</property>
+    <property name="margin-end">2</property>
+    <property name="icon-name">document-new</property>
+  </object>
+  <object class="GtkImage" id="save-icon">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <property name="icon-name">document-save</property>
   </object>
 </interface>
