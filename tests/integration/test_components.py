@@ -1,6 +1,8 @@
 import unittest
 from typing import Optional, Tuple
 from unittest.mock import MagicMock, patch
+
+import evdev
 from evdev.ecodes import EV_KEY, KEY_A, KEY_B, KEY_C
 
 import gi
@@ -943,13 +945,16 @@ class TestOutputAxisSelector(ComponentBaseTest):
         self.selection = OutputAxisSelector(
             self.message_broker, self.controller_mock, self.gui
         )
-
+        absinfo = evdev.AbsInfo(0, -10, 10, 0, 0, 0)
         self.message_broker.send(
             UInputsData(
                 {
                     "mouse": {1: [1, 2, 3, 4], 2: [0, 1, 2, 3]},
                     "keyboard": {1: [1, 2, 3, 4]},
-                    "gamepad": {2: [0, 1, 2, 3], 3: [0, 1, 2, 3]},
+                    "gamepad": {
+                        2: [0, 1, 2, 3],
+                        3: [(0, absinfo), (1, absinfo), (2, absinfo), (3, absinfo)],
+                    },
                 }
             )
         )
