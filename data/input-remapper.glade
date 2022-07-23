@@ -1392,6 +1392,7 @@ Macros allow multiple characters to be written with a single key-press. Informat
     <property name="width-request">200</property>
     <property name="height-request">200</property>
     <property name="can-focus">False</property>
+    <property name="title" translatable="yes">Combination Editor</property>
     <property name="modal">True</property>
     <property name="window-position">center-on-parent</property>
     <property name="urgency-hint">True</property>
@@ -1405,7 +1406,7 @@ Macros allow multiple characters to be written with a single key-press. Informat
         <property name="margin-end">18</property>
         <property name="margin-top">18</property>
         <property name="margin-bottom">18</property>
-        <property name="spacing">12</property>
+        <property name="spacing">18</property>
         <child>
           <object class="GtkScrolledWindow">
             <property name="width-request">200</property>
@@ -1420,8 +1421,6 @@ Macros allow multiple characters to be written with a single key-press. Informat
                   <object class="GtkListBox" id="combination-listbox">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
-                    <property name="margin-start">8</property>
-                    <property name="margin-end">8</property>
                     <property name="selection-mode">browse</property>
                   </object>
                 </child>
@@ -1492,16 +1491,28 @@ This can help when mapping a combination like Shift+A to map to a lowercase lett
               </packing>
             </child>
             <child>
-              <object class="GtkLabel">
+              <object class="GtkSeparator">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
-                <property name="margin-top">12</property>
-                <property name="label" translatable="yes">Event Specific</property>
+                <property name="margin-top">18</property>
+                <property name="margin-bottom">18</property>
               </object>
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
                 <property name="position">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="label" translatable="yes">Event Specific</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">3</property>
               </packing>
             </child>
             <child>
@@ -1541,7 +1552,7 @@ This can help when mapping a combination like Shift+A to map to a lowercase lett
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
-                <property name="position">3</property>
+                <property name="position">4</property>
               </packing>
             </child>
             <child>
@@ -1581,7 +1592,7 @@ This can not be used with key or macro mappings.</property>
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
-                <property name="position">4</property>
+                <property name="position">5</property>
               </packing>
             </child>
             <child>
@@ -1625,7 +1636,7 @@ threshold:</property>
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
-                <property name="position">5</property>
+                <property name="position">6</property>
               </packing>
             </child>
             <child>
@@ -1665,7 +1676,7 @@ Timeout:</property>
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
-                <property name="position">6</property>
+                <property name="position">7</property>
               </packing>
             </child>
           </object>

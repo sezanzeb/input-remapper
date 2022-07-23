@@ -651,7 +651,7 @@ class ReleaseCombinationSwitch:
 
 
 class EventEntry(Gtk.ListBoxRow):
-    """the ListBoxRow representing a single event inside the CombinationListBox"""
+    """The ListBoxRow representing a single event inside the CombinationListBox."""
 
     __gtype_name__ = "EventEntry"
 
@@ -660,7 +660,9 @@ class EventEntry(Gtk.ListBoxRow):
 
         self.input_event = event
         self._controller = controller
+
         hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
+        hbox.set_margin_start(12)
 
         label = Gtk.Label()
         label.set_label(event.description())
@@ -705,12 +707,12 @@ class EventEntry(Gtk.ListBoxRow):
         self._down_btn = down_btn
 
     def cleanup(self):
-        """remove any message listeners we are about to get destroyed"""
+        """Remove any message listeners we are about to get destroyed."""
         pass
 
 
 class CombinationListbox:
-    """the ListBox with all the events inside active_mapping.event_combination"""
+    """The ListBox with all the events inside active_mapping.event_combination."""
 
     def __init__(
         self,
@@ -723,10 +725,15 @@ class CombinationListbox:
         self._gui = listbox
         self._combination: Optional[EventCombination] = None
 
-        self._message_broker.subscribe(MessageType.mapping, self._on_mapping_changed)
         self._message_broker.subscribe(
-            MessageType.selected_event, self._on_event_changed
+            MessageType.mapping,
+            self._on_mapping_changed,
         )
+        self._message_broker.subscribe(
+            MessageType.selected_event,
+            self._on_event_changed,
+        )
+
         self._gui.connect("row-selected", self._on_gtk_row_selected)
 
     def _select_row(self, event: InputEvent):
