@@ -34,17 +34,14 @@ from inputremapper.daemon import DaemonProxy
 from inputremapper.event_combination import EventCombination
 from inputremapper.exceptions import DataManagementError
 from inputremapper.groups import _Group
-from inputremapper.gui.gettext import _
 from inputremapper.gui.message_broker import (
     MessageBroker,
     GroupData,
     PresetData,
-    StatusData,
     CombinationUpdate,
     UInputsData,
 )
 from inputremapper.gui.reader import Reader
-from inputremapper.gui.utils import CTX_MAPPING
 from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.injection.injector import (
     STOPPED,

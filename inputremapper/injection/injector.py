@@ -23,12 +23,11 @@
 from __future__ import annotations
 import asyncio
 import multiprocessing
-import os
 import sys
 import time
 from dataclasses import dataclass
 from multiprocessing.connection import Connection
-from typing import Dict, List, Optional, Tuple, Iterable, Set
+from typing import Dict, List, Optional, Tuple
 
 import evdev
 

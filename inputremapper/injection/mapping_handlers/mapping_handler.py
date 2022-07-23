@@ -19,7 +19,6 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 """Provides protocols for mapping handlers
 
-
 *** The architecture behind mapping handlers ***
 
 Handling an InputEvent is done in 3 steps:
@@ -53,6 +52,7 @@ Step 1 and 2:
 
 Step 1, 2 and 3:
  - AbsToRelHandler
+ - NullHandler
 
 Step 2 and 3:
  - KeyHandler
@@ -183,6 +183,7 @@ class MappingHandler:
         forward: evdev.UInput,
         supress: bool = False,
     ) -> bool:
+        """notify this handler about an incoming event"""
         raise NotImplementedError
 
     def reset(self) -> None:
@@ -202,10 +203,10 @@ class MappingHandler:
         pass
 
     def wrap_with(self) -> Dict[EventCombination, HandlerEnums]:
-        """A dict of EventCombination -> HandlerEnums."""
-        # this handler should be wrapped with the MappingHandler corresponding
-        # to the HandlerEnums, and the EventCombination as first argument
-        # TODO: better explanation
+        """A dict of EventCombination -> HandlerEnums.
+
+        for each EventCombination this handler should be wrapped
+        with the given MappingHandler"""
         return {}
 
     def set_sub_handler(self, handler: InputEventHandler) -> None:

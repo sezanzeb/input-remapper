@@ -25,7 +25,6 @@ from typing import TYPE_CHECKING, Optional, Union, Literal, Sequence, Dict, Call
 
 from evdev.ecodes import EV_KEY, EV_REL, EV_ABS
 from gi.repository import Gtk
-from pydantic import ValidationError
 
 from inputremapper.configs.mapping import MappingData, UIMapping
 from inputremapper.event_combination import EventCombination
