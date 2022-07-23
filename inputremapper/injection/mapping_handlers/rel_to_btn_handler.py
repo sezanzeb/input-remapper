@@ -18,23 +18,20 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-import evdev
-import time
 import asyncio
+import time
 
-from typing import Optional, Dict
+import evdev
 from evdev.ecodes import EV_REL
 
 from inputremapper.configs.mapping import Mapping
-from inputremapper.logger import logger
-from inputremapper.input_event import InputEvent, EventActions
 from inputremapper.event_combination import EventCombination
 from inputremapper.injection.mapping_handlers.mapping_handler import (
     MappingHandler,
-    ContextProtocol,
-    HandlerEnums,
     InputEventHandler,
 )
+from inputremapper.input_event import InputEvent, EventActions
+from inputremapper.logger import logger
 
 
 class RelToBtnHandler(MappingHandler):
@@ -82,7 +79,7 @@ class RelToBtnHandler(MappingHandler):
             self._abort_release = False
             return
 
-        event = self._input_event.modify(value=0, action=EventActions.as_key)
+        event = self._input_event.modify(value=0, actions=(EventActions.as_key,))
         logger.debug_key(event.event_tuple, "sending to sub_handler")
         self._sub_handler.notify(event, source, forward, supress)
         self._active = False
@@ -103,25 +100,34 @@ class RelToBtnHandler(MappingHandler):
         value = event.value
         if (value < threshold > 0) or (value > threshold < 0):
             if self._active:
-                # the axis is below the threshold and the stage_release function is running
-                event = event.modify(value=0, action=EventActions.as_key)
+                # the axis is below the threshold and the stage_release
+                # function is running
+                if self.mapping.force_release_timeout:
+                    # consume the event
+                    return True
+                event = event.modify(value=0, actions=(EventActions.as_key,))
                 logger.debug_key(event.event_tuple, "sending to sub_handler")
                 self._abort_release = True
-                self._active = False
-                return self._sub_handler.notify(event, source, forward, supress)
             else:
                 # don't consume the event.
                 # We could return True to consume events
                 return False
+        else:
+            # the axis is above the threshold
+            if not self._active:
+                asyncio.ensure_future(self._stage_release(source, forward, supress))
+            if value >= threshold > 0:
+                direction = EventActions.positive_trigger
+            else:
+                direction = EventActions.negative_trigger
+            self._last_activation = time.time()
+            event = event.modify(value=1, actions=(EventActions.as_key, direction))
 
-        # the axis is above the threshold
-        event = event.modify(value=1, action=EventActions.as_key)
-        self._last_activation = time.time()
-        if not self._active:
-            logger.debug_key(event.event_tuple, "sending to sub_handler")
-            asyncio.ensure_future(self._stage_release(source, forward, supress))
-            self._active = True
-        return self._sub_handler.notify(event, source, forward, supress)
+        self._active = bool(event.value)
+        # logger.debug_key(event.event_tuple, "sending to sub_handler")
+        return self._sub_handler.notify(
+            event, source=source, forward=forward, supress=supress
+        )
 
     def reset(self) -> None:
         if self._active:

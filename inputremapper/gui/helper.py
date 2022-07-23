@@ -30,24 +30,33 @@ The service shouldn't do that even though it has root rights, because that
 would provide a key-logger that can be accessed by any user at all times,
 whereas for the helper to start a password is needed and it stops when the ui
 closes.
+
+This uses the backend injection.event_reader and mapping_handlers to process all the
+different input-events into simple on/off events and sends them to the gui.
 """
+from __future__ import annotations
 
-
-import sys
-import select
+import asyncio
 import multiprocessing
 import subprocess
-import time
+import sys
+from collections import defaultdict
+from typing import Set, List
 
 import evdev
-from evdev.ecodes import EV_KEY, EV_ABS
+from evdev.ecodes import EV_KEY, EV_ABS, EV_REL, REL_HWHEEL, REL_WHEEL
 
+from inputremapper.configs.mapping import UIMapping
+from inputremapper.event_combination import EventCombination
+from inputremapper.groups import _Groups, _Group
+from inputremapper.injection.event_reader import EventReader
+from inputremapper.injection.mapping_handlers.abs_to_btn_handler import AbsToBtnHandler
+from inputremapper.injection.mapping_handlers.mapping_handler import MappingHandler
+from inputremapper.injection.mapping_handlers.rel_to_btn_handler import RelToBtnHandler
+from inputremapper.input_event import InputEvent, EventActions
 from inputremapper.ipc.pipe import Pipe
 from inputremapper.logger import logger
-from inputremapper.groups import groups
-from inputremapper import utils
 from inputremapper.user import USER
-
 
 # received by the helper
 CMD_TERMINATE = "terminate"
@@ -76,160 +85,226 @@ class RootHelper:
     or strings to start listening on a specific device.
     """
 
-    def __init__(self):
+    # the speed threshold at which relative axis are considered moving
+    # and will be sent as "pressed" to the frontend.
+    # We want to allow some mouse movement before we record it as an input
+    rel_speed = defaultdict(lambda: 3)
+    # wheel events usually don't produce values higher than 1
+    rel_speed[REL_WHEEL] = 1
+    rel_speed[REL_HWHEEL] = 1
+
+    def __init__(self, groups: _Groups):
         """Construct the helper and initialize its sockets."""
+        self.groups = groups
         self._results = Pipe(f"/tmp/input-remapper-{USER}/results")
         self._commands = Pipe(f"/tmp/input-remapper-{USER}/commands")
-
-        self._send_groups()
-
-        self.group = None
         self._pipe = multiprocessing.Pipe()
+
+        self._tasks: Set[asyncio.Task] = set()
+        self._stop_event = asyncio.Event()
 
     def run(self):
         """Start doing stuff. Blocks."""
-        logger.debug("Waiting for the first command")
         # the reader will check for new commands later, once it is running
         # it keeps running for one device or another.
-        select.select([self._commands], [], [])
-
-        # possibly an alternative to select:
-        """while True:
-            if self._commands.poll():
-                break
-
-            time.sleep(0.1)"""
-
-        logger.debug("Starting mainloop")
-        while True:
-            self._read_commands()
-            self._start_reading()
+        loop = asyncio.get_event_loop()
+        logger.debug("Discovering initial groups")
+        self.groups.refresh()
+        self._send_groups()
+        logger.debug("Waiting commands")
+        loop.run_until_complete(self._read_commands())
+        logger.debug("Helper terminates")
+        sys.exit(0)
 
     def _send_groups(self):
         """Send the groups to the gui."""
         logger.debug("Sending groups")
-        self._results.send({"type": MSG_GROUPS, "message": groups.dumps()})
+        self._results.send({"type": MSG_GROUPS, "message": self.groups.dumps()})
 
-    def _read_commands(self):
-        """Handle all unread commands."""
-        while self._commands.poll():
-            cmd = self._commands.recv()
+    async def _read_commands(self):
+        """Handle all unread commands.
+        this will run until it receives CMD_TERMINATE
+        """
+        async for cmd in self._commands:
             logger.debug('Received command "%s"', cmd)
 
             if cmd == CMD_TERMINATE:
-                logger.debug("Helper terminates")
-                sys.exit(0)
+                await self._stop_reading()
+                return
 
             if cmd == CMD_REFRESH_GROUPS:
-                groups.refresh()
+                self.groups.refresh()
                 self._send_groups()
                 continue
 
-            group = groups.find(key=cmd)
+            group = self.groups.find(key=cmd)
             if group is None:
-                groups.refresh()
-                group = groups.find(key=cmd)
+                # this will block for a bit maybe we want to do this async?
+                self.groups.refresh()
+                group = self.groups.find(key=cmd)
 
             if group is not None:
-                self.group = group
+                await self._stop_reading()
+                self._start_reading(group)
                 continue
 
             logger.error('Received unknown command "%s"', cmd)
 
-        logger.debug("No more commands in pipe")
-
-    def _start_reading(self):
-        """Tell the evdev lib to start looking for keycodes.
-
-        If read is called without prior start_reading, no keycodes
-        will be available.
-
-        This blocks forever until it discovers a new command on the socket.
-        """
-        rlist = {}
-
-        if self.group is None:
-            logger.error("group is None")
-            return
-
-        virtual_devices = []
-        # Watch over each one of the potentially multiple devices per
-        # hardware
-        for path in self.group.paths:
+    def _start_reading(self, group: _Group):
+        """find all devices of that group, filter interesting ones and send the events
+        to the gui"""
+        sources = []
+        for path in group.paths:
             try:
                 device = evdev.InputDevice(path)
-            except FileNotFoundError:
-                continue
+            except (FileNotFoundError, OSError):
+                logger.error('Could not find "%s"', path)
+                return None
 
-            if evdev.ecodes.EV_KEY in device.capabilities():
-                virtual_devices.append(device)
+            capabilities = device.capabilities(absinfo=False)
+            if (
+                EV_KEY in capabilities
+                or EV_ABS in capabilities
+                or EV_REL in capabilities
+            ):
+                sources.append(device)
 
-        if len(virtual_devices) == 0:
-            logger.debug('No interesting device for "%s"', self.group.key)
-            return
+        context = self._create_event_pipeline(sources)
+        # create the event reader and start it
+        for device in sources:
+            reader = EventReader(context, device, ForwardDummy, self._stop_event)
+            self._tasks.add(asyncio.create_task(reader.run()))
 
-        for device in virtual_devices:
-            rlist[device.fd] = device
+    async def _stop_reading(self):
+        """stop the running event_reader"""
+        self._stop_event.set()
+        if self._tasks:
+            await asyncio.gather(*self._tasks)
+        self._tasks = set()
+        self._stop_event.clear()
 
-        logger.debug(
-            'Starting reading keycodes from "%s"',
-            '", "'.join([device.name for device in virtual_devices]),
-        )
+    def _create_event_pipeline(self, sources: List[evdev.InputDevice]) -> ContextDummy:
+        """create a custom event pipeline for each event code in the
+        device capabilities.
+        Instead of sending the events to a uinput they will be sent to the frontend"""
+        context = ContextDummy()
+        # create a context for each source
+        for device in sources:
+            capabilities = device.capabilities(absinfo=False)
 
-        rlist[self._commands] = self._commands
+            for ev_code in capabilities.get(EV_KEY) or ():
+                context.notify_callbacks[(EV_KEY, ev_code)].append(
+                    ForwardToUIHandler(self._results).notify
+                )
 
-        while True:
-            ready_fds = select.select(rlist, [], [])
-            if len(ready_fds[0]) == 0:
-                # happens with sockets sometimes. Sockets are not stable and
-                # not used, so nothing to worry about now.
-                continue
+            for ev_code in capabilities.get(EV_ABS) or ():
+                # positive direction
+                mapping = UIMapping(
+                    event_combination=EventCombination((EV_ABS, ev_code, 30)),
+                    target_uinput="keyboard",
+                )
+                handler: MappingHandler = AbsToBtnHandler(
+                    EventCombination((EV_ABS, ev_code, 30)), mapping
+                )
+                handler.set_sub_handler(ForwardToUIHandler(self._results))
+                context.notify_callbacks[(EV_ABS, ev_code)].append(handler.notify)
 
-            for fd in ready_fds[0]:
-                if rlist[fd] == self._commands:
-                    # all commands will cause the reader to start over
-                    # (possibly for a different device).
-                    # _read_commands will check what is going on
-                    logger.debug("Stops reading due to new command")
-                    return
+                # negative direction
+                mapping = UIMapping(
+                    event_combination=EventCombination((EV_ABS, ev_code, -30)),
+                    target_uinput="keyboard",
+                )
+                handler = AbsToBtnHandler(
+                    EventCombination((EV_ABS, ev_code, -30)), mapping
+                )
+                handler.set_sub_handler(ForwardToUIHandler(self._results))
+                context.notify_callbacks[(EV_ABS, ev_code)].append(handler.notify)
 
-                device = rlist[fd]
+            for ev_code in capabilities.get(EV_REL) or ():
+                # positive direction
+                mapping = UIMapping(
+                    event_combination=EventCombination(
+                        (EV_REL, ev_code, self.rel_speed[ev_code])
+                    ),
+                    target_uinput="keyboard",
+                    release_timeout=0.3,
+                    force_release_timeout=True,
+                )
+                handler = RelToBtnHandler(
+                    EventCombination((EV_REL, ev_code, self.rel_speed[ev_code])),
+                    mapping,
+                )
+                handler.set_sub_handler(ForwardToUIHandler(self._results))
+                context.notify_callbacks[(EV_REL, ev_code)].append(handler.notify)
 
-                try:
-                    event = device.read_one()
-                    if event:
-                        self._send_event(event, device)
-                except OSError:
-                    logger.debug('Device "%s" disappeared', device.path)
-                    return
+                # negative direction
+                mapping = UIMapping(
+                    event_combination=EventCombination(
+                        (EV_REL, ev_code, -self.rel_speed[ev_code])
+                    ),
+                    target_uinput="keyboard",
+                    release_timeout=0.3,
+                    force_release_timeout=True,
+                )
+                handler = RelToBtnHandler(
+                    EventCombination((EV_REL, ev_code, -self.rel_speed[ev_code])),
+                    mapping,
+                )
+                handler.set_sub_handler(ForwardToUIHandler(self._results))
+                context.notify_callbacks[(EV_REL, ev_code)].append(handler.notify)
 
-    def _send_event(self, event, device):
-        """Write the event into the pipe to the main process.
+        return context
 
-        Parameters
-        ----------
-        event : evdev.InputEvent
-        device : evdev.InputDevice
-        """
-        # value: 1 for down, 0 for up, 2 for hold.
-        if event.type == EV_KEY and event.value == 2:
-            # ignore hold-down events
-            return
 
-        blacklisted_keys = [evdev.ecodes.BTN_TOOL_DOUBLETAP]
+class ContextDummy:
+    def __init__(self):
+        self.listeners = set()
+        self.notify_callbacks = defaultdict(list)
 
-        if event.type == EV_KEY and event.code in blacklisted_keys:
-            return
+    def reset(self):
+        pass
 
-        if event.type == EV_ABS:
-            abs_range = utils.get_abs_range(device, event.code)
-            event.value = utils.classify_action(event, abs_range)
-        else:
-            event.value = utils.classify_action(event)
 
-        self._results.send(
-            {
-                "type": MSG_EVENT,
-                "message": (event.sec, event.usec, event.type, event.code, event.value),
-            }
-        )
+class ForwardDummy:
+    @staticmethod
+    def write(*_):
+        pass
+
+
+class ForwardToUIHandler:
+    """implements the InputEventHandler protocol. Sends all events into the pipe"""
+
+    def __init__(self, pipe: Pipe):
+        self.pipe = pipe
+        self._last_event = InputEvent.from_tuple((99, 99, 99))
+
+    def notify(
+        self,
+        event: InputEvent,
+        source: evdev.InputDevice,
+        forward: evdev.UInput,
+        supress: bool = False,
+    ) -> bool:
+        """filter duplicates and send into the pipe"""
+        if event != self._last_event:
+            self._last_event = event
+            if EventActions.negative_trigger in event.actions:
+                event = event.modify(value=-1)
+
+            logger.debug_key(event, f"to frontend:")
+            self.pipe.send(
+                {
+                    "type": MSG_EVENT,
+                    "message": (
+                        event.sec,
+                        event.usec,
+                        event.type,
+                        event.code,
+                        event.value,
+                    ),
+                }
+            )
+        return True
+
+    def reset(self):
+        pass

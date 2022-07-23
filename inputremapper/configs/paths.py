@@ -25,6 +25,7 @@
 
 import os
 import shutil
+from typing import List, Union
 
 from inputremapper.logger import logger, VERSION, IS_BETA
 from inputremapper.user import USER, HOME
@@ -44,9 +45,9 @@ def chown(path):
         shutil.chown(path, user=USER)
 
 
-def touch(path, log=True):
+def touch(path: os.PathLike, log=True):
     """Create an empty file and all its parent dirs, give it to the user."""
-    if path.endswith("/"):
+    if str(path).endswith("/"):
         raise ValueError(f"Expected path to not end with a slash: {path}")
 
     if os.path.exists(path):
@@ -81,6 +82,23 @@ def mkdir(path, log=True):
     chown(path)
 
 
+def split_all(path: Union[os.PathLike, str]) -> List[str]:
+    parts = []
+    while True:
+        path, tail = os.path.split(path)
+        parts.append(tail)
+        if path == os.path.sep:
+            # we arrived at the root '/'
+            parts.append(path)
+            break
+        if not path:
+            # arrived at start of relative path
+            break
+
+    parts.reverse()
+    return parts
+
+
 def remove(path):
     """Remove whatever is at the path."""
     if not os.path.exists(path):
@@ -103,8 +121,8 @@ def get_preset_path(group_name=None, preset=None):
         # the extension of the preset should not be shown in the ui.
         # if a .json extension arrives this place, it has not been
         # stripped away properly prior to this.
-        assert not preset.endswith(".json")
-        preset = f"{preset}.json"
+        if not preset.endswith(".json"):
+            preset = f"{preset}.json"
 
     if preset is None:
         return os.path.join(presets_base, group_name)

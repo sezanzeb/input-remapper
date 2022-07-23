@@ -23,32 +23,32 @@
 
 see gui.helper.helper
 """
+from typing import Optional, List, Generator, Dict, Tuple, Set
 
-from typing import Optional
-from evdev.ecodes import EV_REL
-from inputremapper.input_event import InputEvent
+import evdev
+from gi.repository import GLib
 
-from inputremapper.logger import logger
 from inputremapper.event_combination import EventCombination
-from inputremapper.groups import groups, GAMEPAD
-from inputremapper.ipc.pipe import Pipe
+from inputremapper.groups import _Groups, _Group
 from inputremapper.gui.helper import (
     MSG_EVENT,
     MSG_GROUPS,
     CMD_TERMINATE,
     CMD_REFRESH_GROUPS,
 )
-from inputremapper import utils
-from inputremapper.gui.active_preset import active_preset
+from inputremapper.gui.message_broker import (
+    MessageBroker,
+    GroupsData,
+    MessageType,
+    CombinationRecorded,
+)
+from inputremapper.input_event import InputEvent
+from inputremapper.ipc.pipe import Pipe
+from inputremapper.logger import logger
 from inputremapper.user import USER
 
-
-DEBOUNCE_TICKS = 3
-
-
-def will_report_up(ev_type):
-    """Check if this event will ever report a key up (wheels)."""
-    return ev_type != EV_REL
+BLACKLISTED_EVENTS = [(1, evdev.ecodes.BTN_TOOL_DOUBLETAP)]
+RecordingGenerator = Generator[None, InputEvent, None]
 
 
 class Reader:
@@ -61,192 +61,150 @@ class Reader:
     has knowledge of buttons like the middle-mouse button.
     """
 
-    def __init__(self):
-        self.previous_event = None
-        self.previous_result = None
-        self._unreleased = {}
-        self._debounce_remove = {}
-        self._groups_updated = False
-        self._cleared_at = 0
-        self.group = None
+    def __init__(self, message_broker: MessageBroker, groups: _Groups):
+        self.groups = groups
+        self.message_broker = message_broker
 
+        self.group: Optional[_Group] = None
+        self.read_timeout: Optional[int] = None
+
+        self._recording_generator: Optional[RecordingGenerator] = None
         self._results = None
         self._commands = None
+
         self.connect()
+        self.attach_to_events()
+        self._read_continuously()
 
     def connect(self):
         """Connect to the helper."""
         self._results = Pipe(f"/tmp/input-remapper-{USER}/results")
         self._commands = Pipe(f"/tmp/input-remapper-{USER}/commands")
 
-    def are_new_groups_available(self):
-        """Check if groups contains new devices.
+    def attach_to_events(self):
+        """connect listeners to event_reader"""
+        self.message_broker.subscribe(MessageType.terminate, lambda _: self.terminate())
 
-        The ui should then update its list.
-        """
-        outdated = self._groups_updated
-        self._groups_updated = False  # assume the ui will react accordingly
-        return outdated
+    def _read_continuously(self):
+        """poll the result pipe in regular intervals"""
+        self.read_timeout = GLib.timeout_add(30, self._read)
 
-    def _get_event(self, message) -> Optional[InputEvent]:
-        """Return an InputEvent if the message contains one. None otherwise."""
-        message_type = message["type"]
-        message_body = message["message"]
-
-        if message_type == MSG_GROUPS:
-            if message_body != groups.dumps():
-                groups.loads(message_body)
-                logger.debug("Received %d devices", len(groups))
-                self._groups_updated = True
-            return None
-
-        if message_type == MSG_EVENT:
-            return InputEvent(*message_body)
-
-        logger.error('Received unknown message "%s"', message)
-        return None
-
-    def read(self):
-        """Get the newest key/combination as EventCombination object.
-
-        Only reports keys from down-events.
-
-        On key-down events the pipe returns changed combinations. Release
-        events won't cause that and the reader will return None as in
-        "nothing new to report". So In order to change a combination, one
-        of its keys has to be released and then a different one pressed.
-
-        Otherwise making combinations wouldn't be possible. Because at
-        some point the keys have to be released, and that shouldn't cause
-        the combination to get trimmed.
-        """
-        # this is in some ways similar to the keycode_mapper and
-        # joystick_to_mouse, but its much simpler because it doesn't
-        # have to trigger anything, manage any macros and only
-        # reports key-down events. This function is called periodically
-        # by the window.
-
-        # remember the previous down-event from the pipe in order to
-        # be able to tell if the reader should return the updated combination
-        previous_event = self.previous_event
-        key_down_received = False
-
-        self._debounce_tick()
-
+    def _read(self):
+        """Read the messages from the helper and handle them"""
         while self._results.poll():
             message = self._results.recv()
-            event = self._get_event(message)
-            if event is None:
+
+            message_type = message["type"]
+            message_body = message["message"]
+            if message_type == MSG_GROUPS:
+                self._update_groups(message_body)
                 continue
 
-            gamepad = GAMEPAD in self.group.types
-            if not utils.should_map_as_btn(event, active_preset, gamepad):
+            if message_type == MSG_EVENT:
+                if not self._recording_generator:
+                    continue
+                # update the generator
+                try:
+                    self._recording_generator.send(InputEvent(*message_body))
+                except StopIteration:
+                    self.message_broker.signal(MessageType.recording_finished)
+                    self._recording_generator = None
+        return True
+
+    def start_recorder(self) -> None:
+        """recorde user input"""
+        self._recording_generator = self._recorder()
+        next(self._recording_generator)
+
+    def stop_recorder(self) -> None:
+        """Stop recording the input.
+
+        Will send RecordingFinished message.
+        """
+        if self._recording_generator:
+            self._recording_generator.close()
+            self._recording_generator = None
+            self.message_broker.signal(MessageType.recording_finished)
+
+    def _recorder(self) -> RecordingGenerator:
+        """Generator which receives InputEvents.
+
+        it accumulates them into EventCombinations and sends those on the message_broker.
+        it will stop once all keys or inputs are released.
+        """
+        active: Set[Tuple[int, int]] = set()
+        accumulator: List[InputEvent] = []
+        while True:
+            event: InputEvent = yield
+            if event.type_and_code in BLACKLISTED_EVENTS:
                 continue
 
             if event.value == 0:
-                logger.debug_key(event, "release")
-                self._release(event.type_and_code)
+                try:
+                    active.remove((event.type, event.code))
+                except KeyError:
+                    # we haven't seen this before probably a key got released which
+                    # was pressed before we started recording. ignore it.
+                    continue
+
+                if not active:
+                    # all previously recorded events are released
+                    return
                 continue
 
-            if self._unreleased.get(event.type_and_code) == event:
-                logger.debug_key(event, "duplicate key down")
-                self._debounce_start(event.event_tuple)
-                continue
+            active.add(event.type_and_code)
+            accu_type_code = [e.type_and_code for e in accumulator]
+            if event.type_and_code in accu_type_code and event not in accumulator:
+                # the value has changed but the event is already in the accumulator
+                # update the event
+                i = accu_type_code.index(event.type_and_code)
+                accumulator[i] = event
+                self.message_broker.send(
+                    CombinationRecorded(EventCombination(accumulator))
+                )
 
-            # to keep track of combinations.
-            # "I have got this release event, what was this for?" A release
-            # event for a D-Pad axis might be any direction, hence this maps
-            # from release to input in order to remember it. Since all release
-            # events have value 0, the value is not used in the combination.
-            key_down_received = True
-            logger.debug_key(event, "down")
-            self._unreleased[event.type_and_code] = event
-            self._debounce_start(event.event_tuple)
-            previous_event = event
+            if event not in accumulator:
+                accumulator.append(event)
+                self.message_broker.send(
+                    CombinationRecorded(EventCombination(accumulator))
+                )
 
-        if not key_down_received:
-            # This prevents writing a subset of the combination into
-            # result after keys were released. In order to control the gui,
-            # they have to be released.
-            return None
-
-        self.previous_event = previous_event
-
-        if len(self._unreleased) > 0:
-            result = EventCombination(self._unreleased.values())
-            if result == self.previous_result:
-                # don't return the same stuff twice
-                return None
-
-            self.previous_result = result
-            logger.debug_key(result, "read result")
-
-            return result
-
-        return None
-
-    def start_reading(self, group):
+    def set_group(self, group):
         """Start reading keycodes for a device."""
         logger.debug('Sending start msg to helper for "%s"', group.key)
+        if self._recording_generator:
+            self._recording_generator.close()
+            self._recording_generator = None
         self._commands.send(group.key)
         self.group = group
-        self.clear()
 
     def terminate(self):
         """Stop reading keycodes for good."""
         logger.debug("Sending close msg to helper")
         self._commands.send(CMD_TERMINATE)
+        if self.read_timeout:
+            GLib.source_remove(self.read_timeout)
+        while self._results.poll():
+            self._results.recv()
 
     def refresh_groups(self):
         """Ask the helper for new device groups."""
         self._commands.send(CMD_REFRESH_GROUPS)
 
-    def clear(self):
-        """Next time when reading don't return the previous keycode."""
-        logger.debug("Clearing reader")
-        while self._results.poll():
-            # clear the results pipe and handle any non-event messages,
-            # otherwise a 'groups' message might get lost
-            message = self._results.recv()
-            self._get_event(message)
+    def send_groups(self):
+        """announce all known groups"""
+        groups: Dict[str, List[str]] = {
+            group.key: group.types or []
+            for group in self.groups.filter(include_inputremapper=False)
+        }
+        self.message_broker.send(GroupsData(groups))
 
-        self._unreleased = {}
-        self.previous_event = None
-        self.previous_result = None
+    def _update_groups(self, dump):
+        if dump != self.groups.dumps():
+            self.groups.loads(dump)
+            logger.debug("Received %d devices", len(self.groups))
+            self._groups_updated = True
 
-    def get_unreleased_keys(self):
-        """Get a EventCombination object of the current keyboard state."""
-        unreleased = list(self._unreleased.values())
-
-        if len(unreleased) == 0:
-            return None
-
-        return EventCombination(unreleased)
-
-    def _release(self, type_code):
-        """Modify the state to recognize the releasing of the key."""
-        if type_code in self._unreleased:
-            del self._unreleased[type_code]
-        if type_code in self._debounce_remove:
-            del self._debounce_remove[type_code]
-
-    def _debounce_start(self, event_tuple):
-        """Act like the key was released if no new event arrives in time."""
-        if not will_report_up(event_tuple[0]):
-            self._debounce_remove[event_tuple[:2]] = DEBOUNCE_TICKS
-
-    def _debounce_tick(self):
-        """If the counter reaches 0, the key is not considered held down."""
-        for type_code in list(self._debounce_remove.keys()):
-            if type_code not in self._unreleased:
-                continue
-
-            # clear wheel events from unreleased after some time
-            if self._debounce_remove[type_code] == 0:
-                logger.debug_key(self._unreleased[type_code], "Considered as released")
-                self._release(type_code)
-            else:
-                self._debounce_remove[type_code] -= 1
-
-
-reader = Reader()
+        # send this even if the groups did not change, as the user expects the ui
+        # to respond in some form
+        self.send_groups()

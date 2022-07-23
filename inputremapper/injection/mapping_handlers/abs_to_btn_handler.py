@@ -19,19 +19,18 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
-import evdev
 from typing import Tuple
 
+import evdev
 from evdev.ecodes import EV_ABS
 
 from inputremapper.configs.mapping import Mapping
 from inputremapper.event_combination import EventCombination
-from inputremapper.logger import logger
-from inputremapper.input_event import InputEvent, EventActions
 from inputremapper.injection.mapping_handlers.mapping_handler import (
     MappingHandler,
     InputEventHandler,
 )
+from inputremapper.input_event import InputEvent, EventActions
 
 
 class AbsToBtnHandler(MappingHandler):
@@ -100,21 +99,20 @@ class AbsToBtnHandler(MappingHandler):
         value = event.value
         if (value < threshold > mid_point) or (value > threshold < mid_point):
             if self._active:
-                event = event.modify(value=0, action=EventActions.as_key)
+                event = event.modify(value=0, actions=(EventActions.as_key,))
             else:
                 # consume the event.
                 # We could return False to forward events
                 return True
         else:
-            if not self._active:
-                event = event.modify(value=1, action=EventActions.as_key)
+            if value >= threshold > mid_point:
+                direction = EventActions.positive_trigger
             else:
-                # consume the event.
-                # We could return False to forward events
-                return True
+                direction = EventActions.negative_trigger
+            event = event.modify(value=1, actions=(EventActions.as_key, direction))
 
         self._active = bool(event.value)
-        logger.debug_key(event.event_tuple, "sending to sub_handler")
+        # logger.debug_key(event.event_tuple, "sending to sub_handler")
         return self._sub_handler.notify(
             event,
             source=source,

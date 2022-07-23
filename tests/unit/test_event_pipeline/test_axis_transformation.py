@@ -192,3 +192,15 @@ class TestAxisTransformation(unittest.TestCase):
                 places=5,
                 msg=f"test continuity at {- init_args.deadzone} for {init_args}",
             )
+
+    def test_expo_out_of_range(self):
+        f = Transformation(deadzone=0.1, min_=-20, max_=5, expo=1.3)
+        self.assertRaises(ValueError, f, 0)
+        f = Transformation(deadzone=0.1, min_=-20, max_=5, expo=-1.3)
+        self.assertRaises(ValueError, f, 0)
+
+    def test_returns_one_for_range_between_minus_and_plus_one(self):
+        for init_args in self.get_init_args(max_=(1,), min_=(-1,), gain=(1,)):
+            f = Transformation(*init_args.values())
+            self.assertEqual(f(1), 1)
+            self.assertEqual(f(-1), -1)

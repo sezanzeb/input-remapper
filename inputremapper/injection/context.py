@@ -20,34 +20,17 @@
 
 
 """Stores injection-process wide information."""
-import asyncio
-from typing import Awaitable, List, Dict, Tuple, Protocol, Set
-
-import evdev
+from collections import defaultdict
+from typing import List, Dict, Tuple, Set
 
 from inputremapper.configs.preset import Preset
-from inputremapper.input_event import InputEvent
-from inputremapper.injection.mapping_handlers.mapping_parser import parse_mappings
 from inputremapper.injection.mapping_handlers.mapping_handler import (
     InputEventHandler,
     EventListener,
+    NotifyCallback,
 )
-
-
-class NotifyCallback(Protocol):
-    """Type signature of MappingHandler.notify
-
-    return True if the event was actually taken care of
-    """
-
-    def __call__(
-        self,
-        event: evdev.InputEvent,
-        source: evdev.InputDevice = None,
-        forward: evdev.UInput = None,
-        supress: bool = False,
-    ) -> bool:
-        ...
+from inputremapper.injection.mapping_handlers.mapping_parser import parse_mappings
+from inputremapper.input_event import InputEvent
 
 
 class Context:
@@ -78,15 +61,13 @@ class Context:
         all entry points to the event pipeline sorted by InputEvent.type_and_code
     """
 
-    preset: Preset
     listeners: Set[EventListener]
-    callbacks: Dict[Tuple[int, int], List[NotifyCallback]]
-    _handlers: Dict[InputEvent, List[InputEventHandler]]
+    notify_callbacks: Dict[Tuple[int, int], List[NotifyCallback]]
+    _handlers: Dict[InputEvent, Set[InputEventHandler]]
 
     def __init__(self, preset: Preset):
-        self.preset = preset
         self.listeners = set()
-        self.callbacks = {}
+        self.notify_callbacks = defaultdict(list)
         self._handlers = parse_mappings(preset, self)
 
         self._create_callbacks()
@@ -94,12 +75,12 @@ class Context:
     def reset(self) -> None:
         """Call the reset method for each handler in the context."""
         for handlers in self._handlers.values():
-            [handler.reset() for handler in handlers]
+            for handler in handlers:
+                handler.reset()
 
     def _create_callbacks(self) -> None:
         """Add the notify method from all _handlers to self.callbacks."""
         for event, handler_list in self._handlers.items():
-            if event.type_and_code not in self.callbacks.keys():
-                self.callbacks[event.type_and_code] = []
-            for handler in handler_list:
-                self.callbacks[event.type_and_code].append(handler.notify)
+            self.notify_callbacks[event.type_and_code].extend(
+                handler.notify for handler in handler_list
+            )

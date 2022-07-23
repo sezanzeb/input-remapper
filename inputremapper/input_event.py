@@ -20,14 +20,16 @@
 from __future__ import annotations
 
 import enum
+from dataclasses import dataclass
+from typing import Tuple, Union, Sequence, Callable, Optional
 
 import evdev
+from evdev import ecodes
 
-from dataclasses import dataclass
-from typing import Tuple, Union, Sequence, Callable
-
+from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.exceptions import InputEventCreationError
-
+from inputremapper.gui.message_broker import MessageType
+from inputremapper.logger import logger
 
 InputEventValidationType = Union[
     str,
@@ -39,9 +41,13 @@ InputEventValidationType = Union[
 class EventActions(enum.Enum):
     """Additional information a InputEvent can send through the event pipeline"""
 
-    as_key = enum.auto()
-    recenter = enum.auto()
+    as_key = enum.auto()  # treat this event as a key event
+    recenter = enum.auto()  # recenter the axis when receiving this
     none = enum.auto()
+
+    # used in combination with as_key, for originally abs or rel events
+    positive_trigger = enum.auto()  # original event was positive direction
+    negative_trigger = enum.auto()  # original event was negative direction
 
 
 # Todo: add slots=True as soon as python 3.10 is in common distros
@@ -52,12 +58,14 @@ class InputEvent:
     as a drop in replacement for evdev.InputEvent
     """
 
+    message_type = MessageType.selected_event
+
     sec: int
     usec: int
     type: int
     code: int
     value: int
-    action: EventActions = EventActions.none
+    actions: Tuple[EventActions, ...] = ()
 
     def __hash__(self):
         return hash((self.type, self.code, self.value))
@@ -161,15 +169,18 @@ class InputEvent:
     @property
     def is_key_event(self) -> bool:
         """Whether this is interpreted as a key event."""
-        return self.type == evdev.ecodes.EV_KEY or self.action == EventActions.as_key
+        return self.type == evdev.ecodes.EV_KEY or EventActions.as_key in self.actions
 
     def __str__(self):
-        if self.type == evdev.ecodes.EV_KEY:
-            key_name = evdev.ecodes.bytype[self.type].get(self.code, "unknown")
-            action = "down" if self.value == 1 else "up"
-            return f"<InputEvent {key_name} ({self.code}) {action}>"
+        return f"InputEvent{self.event_tuple}"
 
-        return f"<InputEvent {self.event_tuple}>"
+    def description(self, exclude_threshold=False, exclude_direction=False) -> str:
+        """get a human-readable description of the event"""
+        return (
+            f"{self.get_name()} "
+            f"{self.get_direction() if not exclude_direction else ''} "
+            f"{self.get_threshold() if not exclude_threshold else ''}".strip()
+        )
 
     def timestamp(self):
         """Return the unix timestamp of when the event was seen."""
@@ -182,7 +193,7 @@ class InputEvent:
         type: int = None,
         code: int = None,
         value: int = None,
-        action: EventActions = EventActions.none,
+        actions: Tuple[EventActions, ...] = None,
     ) -> InputEvent:
         """Return a new modified event."""
         return InputEvent(
@@ -191,8 +202,106 @@ class InputEvent:
             type if type is not None else self.type,
             code if code is not None else self.code,
             value if value is not None else self.value,
-            action if action is not EventActions.none else self.action,
+            actions if actions is not None else self.actions,
         )
 
     def json_str(self) -> str:
         return ",".join([str(self.type), str(self.code), str(self.value)])
+
+    def get_name(self) -> Optional[str]:
+        """human-readable name"""
+        if self.type not in ecodes.bytype:
+            logger.error("Unknown type for %s", self)
+            return "unknown"
+
+        if self.code not in ecodes.bytype[self.type]:
+            logger.error("Unknown code for %s", self)
+            return "unknown"
+
+        key_name = None
+
+        # first try to find the name in xmodmap to not display wrong
+        # names due to the keyboard layout
+        if self.type == ecodes.EV_KEY:
+            key_name = system_mapping.get_name(self.code)
+
+        if key_name is None:
+            # if no result, look in the linux combination constants. On a german
+            # keyboard for example z and y are switched, which will therefore
+            # cause the wrong letter to be displayed.
+            key_name = ecodes.bytype[self.type][self.code]
+            if isinstance(key_name, list):
+                key_name = key_name[0]
+
+        key_name = key_name.replace("ABS_Z", "Trigger Left")
+        key_name = key_name.replace("ABS_RZ", "Trigger Right")
+
+        key_name = key_name.replace("ABS_HAT0X", "DPad-X")
+        key_name = key_name.replace("ABS_HAT0Y", "DPad-Y")
+        key_name = key_name.replace("ABS_HAT1X", "DPad-2-X")
+        key_name = key_name.replace("ABS_HAT1Y", "DPad-2-Y")
+        key_name = key_name.replace("ABS_HAT2X", "DPad-3-X")
+        key_name = key_name.replace("ABS_HAT2Y", "DPad-3-Y")
+
+        key_name = key_name.replace("ABS_X", "Joystick-X")
+        key_name = key_name.replace("ABS_Y", "Joystick-Y")
+        key_name = key_name.replace("ABS_RX", "Joystick-RX")
+        key_name = key_name.replace("ABS_RY", "Joystick-RY")
+
+        key_name = key_name.replace("BTN_", "Button ")
+        key_name = key_name.replace("KEY_", "")
+
+        key_name = key_name.replace("REL_", "")
+        key_name = key_name.replace("HWHEEL", "Wheel")
+        key_name = key_name.replace("WHEEL", "Wheel")
+
+        key_name = key_name.replace("_", " ")
+        key_name = key_name.replace("  ", " ")
+        return key_name
+
+    def get_direction(self) -> str:
+        if self.type == ecodes.EV_KEY:
+            return ""
+
+        try:
+            event = self.modify(value=self.value // abs(self.value))
+        except ZeroDivisionError:
+            return ""
+
+        return {
+            # D-Pad
+            (ecodes.ABS_HAT0X, -1): "Left",
+            (ecodes.ABS_HAT0X, 1): "Right",
+            (ecodes.ABS_HAT0Y, -1): "Up",
+            (ecodes.ABS_HAT0Y, 1): "Down",
+            (ecodes.ABS_HAT1X, -1): "Left",
+            (ecodes.ABS_HAT1X, 1): "Right",
+            (ecodes.ABS_HAT1Y, -1): "Up",
+            (ecodes.ABS_HAT1Y, 1): "Down",
+            (ecodes.ABS_HAT2X, -1): "Left",
+            (ecodes.ABS_HAT2X, 1): "Right",
+            (ecodes.ABS_HAT2Y, -1): "Up",
+            (ecodes.ABS_HAT2Y, 1): "Down",
+            # joystick
+            (ecodes.ABS_X, 1): "Right",
+            (ecodes.ABS_X, -1): "Left",
+            (ecodes.ABS_Y, 1): "Down",
+            (ecodes.ABS_Y, -1): "Up",
+            (ecodes.ABS_RX, 1): "Right",
+            (ecodes.ABS_RX, -1): "Left",
+            (ecodes.ABS_RY, 1): "Down",
+            (ecodes.ABS_RY, -1): "Up",
+            # wheel
+            (ecodes.REL_WHEEL, -1): "Down",
+            (ecodes.REL_WHEEL, 1): "Up",
+            (ecodes.REL_HWHEEL, -1): "Left",
+            (ecodes.REL_HWHEEL, 1): "Right",
+        }.get((event.code, event.value)) or ("+" if event.value > 0 else "-")
+
+    def get_threshold(self) -> str:
+        if self.value == 0:
+            return ""
+        return {
+            ecodes.EV_REL: f"{abs(self.value)}",
+            ecodes.EV_ABS: f"{abs(self.value)}%",
+        }.get(self.type) or ""

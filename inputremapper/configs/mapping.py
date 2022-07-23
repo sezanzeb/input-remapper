@@ -18,45 +18,62 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
+
 import enum
+from typing import Optional, Callable, Tuple, Dict, Any, TypeVar
+
+import pkg_resources
 from evdev.ecodes import EV_KEY, EV_ABS, EV_REL
 from pydantic import (
     BaseModel,
     PositiveInt,
     confloat,
+    conint,
     root_validator,
     validator,
     ValidationError,
     PositiveFloat,
     VERSION,
+    BaseConfig,
 )
-from typing import Optional, Callable, Tuple, Dict, Union, Any
 
-import pkg_resources
-
-from inputremapper.event_combination import EventCombination
 from inputremapper.configs.system_mapping import system_mapping
+from inputremapper.event_combination import EventCombination
 from inputremapper.exceptions import MacroParsingError
+from inputremapper.gui.message_broker import MessageType
 from inputremapper.injection.macros.parse import is_this_a_macro, parse
 from inputremapper.input_event import EventActions
 
 # TODO: remove pydantic VERSION check as soon as we no longer support
 #  Ubuntu 20.04 and with it the ainchant pydantic 1.2
+
 needs_workaround = pkg_resources.parse_version(
     str(VERSION)
 ) < pkg_resources.parse_version("1.7.1")
 
 
-# TODO: in python 3.11 inherit enum.StrEnum
 class KnownUinput(str, enum.Enum):
     keyboard = "keyboard"
     mouse = "mouse"
     gamepad = "gamepad"
+    keyboard_mouse = "keyboard + mouse"
 
 
 CombinationChangedCallback = Optional[
     Callable[[EventCombination, EventCombination], None]
 ]
+MappingModel = TypeVar("MappingModel", bound="Mapping")
+
+
+class Cfg(BaseConfig):
+    validate_assignment = True
+    use_enum_values = True
+    underscore_attrs_are_private = True
+    json_encoders = {EventCombination: lambda v: v.json_str()}
+
+
+class ImmutableCfg(Cfg):
+    allow_mutation = False
 
 
 class Mapping(BaseModel):
@@ -75,12 +92,14 @@ class Mapping(BaseModel):
     output_type: Optional[int] = None  # The event type of the mapped event
     output_code: Optional[int] = None  # The event code of the mapped event
 
+    name: Optional[str] = None
+
     # if release events will be sent to the forwarded device as soon as a combination
     # triggers see also #229
     release_combination_keys: bool = True
 
     # macro settings
-    macro_key_sleep_ms: PositiveInt = 0
+    macro_key_sleep_ms: conint(ge=0) = 0  # type: ignore
 
     # Optional attributes for mapping Axis to Axis
     # The deadzone of the input axis
@@ -99,6 +118,13 @@ class Mapping(BaseModel):
     rel_input_cutoff: PositiveInt = 100
     # the time until a relative axis is considered stationary if no new events arrive
     release_timeout: PositiveFloat = 0.05
+    # don't release immediately when a relative axis drops below the speed threshold
+    # instead wait until it dropped for loger than release_timeout below the threshold
+    force_release_timeout: bool = False
+
+    def is_axis_mapping(self) -> bool:
+        """whether this mapping specifies an output axis"""
+        return self.output_type == EV_ABS or self.output_type == EV_REL
 
     # callback which gets called if the event_combination is updated
     if not needs_workaround:
@@ -142,8 +168,9 @@ class Mapping(BaseModel):
 
     if needs_workaround:
         # https://github.com/samuelcolvin/pydantic/issues/1383
-        def copy(self, *args, **kwargs) -> Mapping:
-            copy = super(Mapping, self).copy(*args, deep=True, **kwargs)
+        def copy(self: MappingModel, *args, **kwargs) -> MappingModel:
+            kwargs["deep"] = True
+            copy = super(Mapping, self).copy(*args, **kwargs)
             object.__setattr__(copy, "_combination_changed", self._combination_changed)
             return copy
 
@@ -218,11 +245,11 @@ class Mapping(BaseModel):
 
     @validator("event_combination")
     def set_event_actions(cls, combination):
-        """Sets the correct action for each event."""
+        """Sets the correct actions for each event."""
         new_combination = []
         for event in combination:
             if event.value != 0:
-                event = event.modify(action=EventActions.as_key)
+                event = event.modify(actions=(EventActions.as_key,))
             new_combination.append(event)
         return EventCombination(new_combination)
 
@@ -267,7 +294,7 @@ class Mapping(BaseModel):
     @root_validator
     def output_axis_given(cls, values):
         """Validate that an output type is an axis if we have an input axis."""
-        combination = values.get("event_combination")
+        combination: EventCombination = values.get("event_combination")
         output_type = values.get("output_type")
         event_values = [event.value for event in combination]
         if 0 not in event_values:
@@ -275,18 +302,14 @@ class Mapping(BaseModel):
 
         if output_type not in (EV_ABS, EV_REL):
             raise ValueError(
+                f"missing output axis: "
                 f"the {combination = } specifies a input axis, "
                 f"but the {output_type = } is not an axis "
             )
 
         return values
 
-    class Config:
-        validate_assignment = True
-        use_enum_values = True
-        underscore_attrs_are_private = True
-
-        json_encoders = {EventCombination: lambda v: v.json_str()}
+    Config = Cfg
 
 
 class UIMapping(Mapping):
@@ -308,12 +331,11 @@ class UIMapping(Mapping):
     def __init__(self, **data):  # type: ignore
         object.__setattr__(self, "_last_error", None)
         super().__init__(
-            event_combination="99,99,99",
+            event_combination=EventCombination.empty_combination(),
             target_uinput="keyboard",
             output_symbol="KEY_A",
         )
         cache = {
-            "event_combination": None,
             "target_uinput": None,
             "output_symbol": None,
         }
@@ -330,6 +352,7 @@ class UIMapping(Mapping):
             super(UIMapping, self).__setattr__(key, value)
             if key in self._cache:
                 del self._cache[key]
+            self._last_error = None
 
         except ValidationError as error:
             # cache the value
@@ -369,9 +392,22 @@ class UIMapping(Mapping):
 
         return dict_
 
+    def copy(self: MappingModel, *args, **kwargs) -> MappingModel:
+        # we always need a deep copy otherwise the _cache of the copy will
+        # point to the same address
+        kwargs["deep"] = True
+        # seems to be related: https://github.com/python/mypy/issues/9282
+        copy = super().copy(*args, **kwargs)  # type: ignore
+        object.__setattr__(copy, "_combination_changed", self._combination_changed)
+        return copy
+
     def get_error(self) -> Optional[ValidationError]:
         """The validation error or None."""
         return self._last_error
+
+    def get_bus_message(self) -> MappingData:
+        """return a immutable copy for use in the"""
+        return MappingData(**self.dict())
 
     def _validate(self) -> None:
         """Try to validate the mapping."""
@@ -397,3 +433,18 @@ class UIMapping(Mapping):
             self._cache["event_combination"] = EventCombination.validate(
                 self._cache["event_combination"]
             )
+
+
+class MappingData(UIMapping):
+    Config = ImmutableCfg
+    message_type = MessageType.mapping  # allow this to be sent over the MessageBroker
+
+    def __str__(self):
+        return str(self.dict(exclude_defaults=True))
+
+    def dict(self, *args, **kwargs):
+        """will not include the message_type"""
+        dict_ = super(MappingData, self).dict(*args, **kwargs)
+        if "message_type" in dict_:
+            del dict_["message_type"]
+        return dict_

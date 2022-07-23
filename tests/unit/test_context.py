@@ -85,9 +85,9 @@ class TestContext(unittest.TestCase):
             (1, 33): 1,
             (1, 34): 1,
         }
-        self.assertEqual(set(callbacks.keys()), set(context.callbacks.keys()))
+        self.assertEqual(set(callbacks.keys()), set(context.notify_callbacks.keys()))
         for key, val in callbacks.items():
-            self.assertEqual(val, len(context.callbacks[key]))
+            self.assertEqual(val, len(context.notify_callbacks[key]))
 
         self.assertEqual(
             7, len(context._handlers)

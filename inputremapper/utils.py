@@ -39,8 +39,6 @@ from evdev.ecodes import (
 )
 
 from inputremapper.logger import logger
-from inputremapper.configs.global_config import BUTTONS
-
 
 # other events for ABS include buttons
 JOYSTICK = [

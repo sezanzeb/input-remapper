@@ -39,9 +39,8 @@ import asyncio
 import copy
 import math
 import re
-from typing import Optional, List, Callable, Awaitable, Tuple
+from typing import List, Callable, Awaitable, Tuple
 
-import evdev
 from evdev.ecodes import (
     ecodes,
     EV_KEY,
@@ -53,10 +52,11 @@ from evdev.ecodes import (
     REL_WHEEL,
     REL_HWHEEL,
 )
-from inputremapper.logger import logger
+
 from inputremapper.configs.system_mapping import system_mapping
-from inputremapper.ipc.shared_dict import SharedDict
 from inputremapper.exceptions import MacroParsingError
+from inputremapper.ipc.shared_dict import SharedDict
+from inputremapper.logger import logger
 
 Handler = Callable[[Tuple[int, int, int]], None]
 MacroTask = Callable[[Handler], Awaitable]

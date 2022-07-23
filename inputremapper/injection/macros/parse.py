@@ -22,13 +22,12 @@
 """Parse macro code"""
 
 
-import re
-import traceback
 import inspect
+import re
 
-from inputremapper.logger import logger
-from inputremapper.injection.macros.macro import Macro, Variable
 from inputremapper.exceptions import MacroParsingError
+from inputremapper.injection.macros.macro import Macro, Variable
+from inputremapper.logger import logger
 
 
 def is_this_a_macro(output):

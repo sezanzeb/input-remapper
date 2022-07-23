@@ -35,14 +35,14 @@
 Beware that pipes read any available messages,
 even those written by themselves.
 """
-
-
+import asyncio
+import json
 import os
 import time
-import json
+from typing import Optional, AsyncIterator
 
-from inputremapper.logger import logger
 from inputremapper.configs.paths import mkdir, chown
+from inputremapper.logger import logger
 
 
 class Pipe:
@@ -53,6 +53,9 @@ class Pipe:
         self._path = path
         self._unread = []
         self._created_at = time.time()
+
+        self._transport: Optional[asyncio.ReadTransport] = None
+        self._async_iterator: Optional[AsyncIterator] = None
 
         paths = (f"{path}r", f"{path}w")
 
@@ -93,6 +96,13 @@ class Pipe:
             leftover = self.recv()
             logger.debug('Cleared leftover message "%s"', leftover)
 
+    def __del__(self):
+        if self._transport:
+            logger.debug("closing transport")
+            self._transport.close()
+        for file in self._handles:
+            file.close()
+
     def recv(self):
         """Read an object from the pipe or None if nothing available.
 
@@ -107,6 +117,9 @@ class Pipe:
         if len(line) == 0:
             return None
 
+        return self._get_msg(line)
+
+    def _get_msg(self, line):
         parsed = json.loads(line)
         if parsed[0] < self._created_at and os.environ.get("UNITTEST"):
             # important to avoid race conditions between multiple unittests,
@@ -143,3 +156,23 @@ class Pipe:
     def fileno(self):
         """Compatibility to select.select."""
         return self._handles[0].fileno()
+
+    def __aiter__(self):
+        return self
+
+    async def __anext__(self):
+        if not self._async_iterator:
+            loop = asyncio.get_running_loop()
+            reader = asyncio.StreamReader()
+
+            self._transport, _ = await loop.connect_read_pipe(
+                lambda: asyncio.StreamReaderProtocol(reader), self._handles[0]
+            )
+            self._async_iterator = reader.__aiter__()
+
+        return self._get_msg(await self._async_iterator.__anext__())
+
+    async def recv_async(self):
+        """read the next line with async. Do not use this when using
+        the async for loop."""
+        return await self.__aiter__().__anext__()

@@ -21,7 +21,24 @@
 
 import unittest
 
-from evdev.ecodes import KEY_LEFTSHIFT, KEY_RIGHTALT, KEY_LEFTCTRL
+from evdev.ecodes import (
+    EV_KEY,
+    EV_ABS,
+    EV_REL,
+    BTN_C,
+    BTN_B,
+    BTN_A,
+    REL_WHEEL,
+    REL_HWHEEL,
+    ABS_RY,
+    ABS_X,
+    ABS_HAT0Y,
+    ABS_HAT0X,
+    KEY_A,
+    KEY_LEFTSHIFT,
+    KEY_RIGHTALT,
+    KEY_LEFTCTRL,
+)
 
 from inputremapper.event_combination import EventCombination
 from inputremapper.input_event import InputEvent
@@ -119,6 +136,66 @@ class TestKey(unittest.TestCase):
         c2 = EventCombination(((1, 2, 3), (4, 5, 6)))
         self.assertEqual(c1.json_str(), "1,2,3")
         self.assertEqual(c2.json_str(), "1,2,3+4,5,6")
+
+    def test_beautify(self):
+        # not an integration test, but I have all the selection_label tests here already
+        self.assertEqual(
+            EventCombination((EV_KEY, KEY_A, 1)).beautify(),
+            "a",
+        )
+        self.assertEqual(
+            EventCombination([EV_KEY, KEY_A, 1]).beautify(),
+            "a",
+        )
+        self.assertEqual(
+            EventCombination((EV_ABS, ABS_HAT0Y, -1)).beautify(),
+            "DPad-Y Up",
+        )
+        self.assertEqual(
+            EventCombination((EV_KEY, BTN_A, 1)).beautify(),
+            "Button A",
+        )
+        self.assertEqual(EventCombination((EV_KEY, 1234, 1)).beautify(), "unknown")
+        self.assertEqual(
+            EventCombination([EV_ABS, ABS_HAT0X, -1]).beautify(),
+            "DPad-X Left",
+        )
+        self.assertEqual(
+            EventCombination([EV_ABS, ABS_HAT0Y, -1]).beautify(),
+            "DPad-Y Up",
+        )
+        self.assertEqual(
+            EventCombination([EV_KEY, BTN_A, 1]).beautify(),
+            "Button A",
+        )
+        self.assertEqual(
+            EventCombination([EV_ABS, ABS_X, 1]).beautify(),
+            "Joystick-X Right",
+        )
+        self.assertEqual(
+            EventCombination([EV_ABS, ABS_RY, 1]).beautify(),
+            "Joystick-RY Down",
+        )
+        self.assertEqual(
+            EventCombination([EV_REL, REL_HWHEEL, 1]).beautify(),
+            "Wheel Right",
+        )
+        self.assertEqual(
+            EventCombination([EV_REL, REL_WHEEL, -1]).beautify(),
+            "Wheel Down",
+        )
+
+        # combinations
+        self.assertEqual(
+            EventCombination(
+                (
+                    (EV_KEY, BTN_A, 1),
+                    (EV_KEY, BTN_B, 1),
+                    (EV_KEY, BTN_C, 1),
+                ),
+            ).beautify(),
+            "Button A + Button B + Button C",
+        )
 
 
 if __name__ == "__main__":

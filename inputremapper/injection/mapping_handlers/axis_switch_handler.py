@@ -21,16 +21,15 @@ from typing import Dict, Tuple
 
 import evdev
 
-from inputremapper.logger import logger
 from inputremapper.configs.mapping import Mapping
 from inputremapper.event_combination import EventCombination
 from inputremapper.injection.mapping_handlers.mapping_handler import (
     MappingHandler,
-    ContextProtocol,
     HandlerEnums,
     InputEventHandler,
 )
 from inputremapper.input_event import InputEvent, EventActions
+from inputremapper.logger import logger
 
 
 class AxisSwitchHandler(MappingHandler):
@@ -97,7 +96,7 @@ class AxisSwitchHandler(MappingHandler):
                 return False
 
             self._active = bool(event.value)
-            if not self._active:
+            if not self._active and self._axis_source:
                 # recenter the axis
                 logger.debug_key(self.mapping.event_combination, "stopping axis")
                 event = InputEvent(
@@ -105,10 +104,10 @@ class AxisSwitchHandler(MappingHandler):
                     0,
                     *self._map_axis,
                     0,
-                    action=EventActions.recenter,
+                    actions=(EventActions.recenter,),
                 )
                 self._sub_handler.notify(event, self._axis_source, self._forward_device)
-            elif self._map_axis[0] == evdev.ecodes.EV_ABS:
+            elif self._map_axis[0] == evdev.ecodes.EV_ABS and self._axis_source:
                 # send the last cached value so that the abs axis
                 # is at the correct position
                 logger.debug_key(self.mapping.event_combination, "starting axis")

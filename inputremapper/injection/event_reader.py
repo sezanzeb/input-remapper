@@ -21,38 +21,24 @@
 
 """Because multiple calls to async_read_loop won't work."""
 import asyncio
+from typing import AsyncIterator, Protocol, Set, Dict, Tuple, List
+
 import evdev
+
+from inputremapper.injection.mapping_handlers.mapping_handler import (
+    EventListener,
+    NotifyCallback,
+)
+from inputremapper.input_event import InputEvent
 from inputremapper.logger import logger
-from inputremapper.input_event import InputEvent, EventActions
-from inputremapper.injection.context import Context
 
 
-class _ReadLoop:
-    def __init__(self, device: evdev.InputDevice, stop_event: asyncio.Event):
-        self.iterator = device.async_read_loop().__aiter__()
-        self.stop_event = stop_event
-        self.wait_for_stop = asyncio.Task(stop_event.wait())
+class Context(Protocol):
+    listeners: Set[EventListener]
+    notify_callbacks: Dict[Tuple[int, int], List[NotifyCallback]]
 
-    def __aiter__(self):
-        return self
-
-    def __anext__(self):
-        if self.stop_event.is_set():
-            raise StopAsyncIteration
-
-        return self.future()
-
-    async def future(self):
-        ev_task = asyncio.Task(self.iterator.__anext__())
-        stop_task = self.wait_for_stop
-        done, pending = await asyncio.wait(
-            {ev_task, stop_task},
-            return_when=asyncio.FIRST_COMPLETED,
-        )
-        if stop_task in done:
-            raise StopAsyncIteration
-
-        return done.pop().result()
+    def reset(self):
+        ...
 
 
 class EventReader:
@@ -89,6 +75,27 @@ class EventReader:
         self.context = context
         self.stop_event = stop_event
 
+    async def read_loop(self) -> AsyncIterator[evdev.InputEvent]:
+        stop_task = asyncio.Task(self.stop_event.wait())
+        loop = asyncio.get_running_loop()
+        events_ready = asyncio.Event()
+        loop.add_reader(self._source.fileno(), events_ready.set)
+        while True:
+            _, pending = await asyncio.wait(
+                {stop_task, events_ready.wait()},
+                return_when=asyncio.FIRST_COMPLETED,
+            )
+            if stop_task.done():
+                for task in pending:
+                    task.cancel()
+                loop.remove_reader(self._source.fileno())
+                logger.debug("read loop stopped")
+                return
+
+            events_ready.clear()
+            while event := self._source.read_one():
+                yield event
+
     def send_to_handlers(self, event: InputEvent) -> bool:
         """Send the event to callback."""
         if event.type == evdev.ecodes.EV_MSC:
@@ -98,7 +105,7 @@ class EventReader:
             return False
 
         results = set()
-        for callback in self.context.callbacks.get(event.type_and_code) or ():
+        for callback in self.context.notify_callbacks.get(event.type_and_code) or ():
             results.add(callback(event, source=self._source, forward=self._forward_to))
 
         return True in results
@@ -153,8 +160,8 @@ class EventReader:
     async def run(self):
         """Start doing things.
 
-        Can be stopped by stopping the asyncio loop. This loop
-        reads events from a single device only.
+        Can be stopped by stopping the asyncio loop or by setting the stop_event.
+        This loop reads events from a single device only.
         """
         logger.debug(
             "Starting to listen for events from %s, fd %s",
@@ -162,7 +169,7 @@ class EventReader:
             self._source.fd,
         )
 
-        async for event in _ReadLoop(self._source, self.stop_event):
+        async for event in self.read_loop():
             await self.handle(InputEvent.from_event(event))
 
         self.context.reset()

@@ -22,18 +22,14 @@
 """Logging setup for input-remapper."""
 
 
-import os
-import re
-import sys
-import shutil
-import time
 import logging
+import os
+import sys
+import time
+from datetime import datetime
 from typing import cast
 
 import pkg_resources
-from datetime import datetime
-
-from inputremapper.user import HOME
 
 try:
     from inputremapper.commit_hash import COMMIT_HASH

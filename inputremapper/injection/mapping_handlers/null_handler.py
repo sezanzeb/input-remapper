@@ -18,17 +18,16 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-import evdev
-from typing import Optional, Dict
+from typing import Dict
 
-from evdev.ecodes import EV_KEY
+import evdev
 
 from inputremapper.event_combination import EventCombination
-from inputremapper.input_event import InputEvent
 from inputremapper.injection.mapping_handlers.mapping_handler import (
     MappingHandler,
     HandlerEnums,
 )
+from inputremapper.input_event import InputEvent
 
 
 class NullHandler(MappingHandler):

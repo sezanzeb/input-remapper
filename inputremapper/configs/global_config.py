@@ -19,13 +19,13 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 """Store which presets should be enabled for which device on login."""
 
-import os
-import json
 import copy
+import json
+import os
 
+from inputremapper.configs.base_config import ConfigBase, INITIAL_CONFIG
 from inputremapper.configs.paths import CONFIG_PATH, USER, touch
 from inputremapper.logger import logger
-from inputremapper.configs.base_config import ConfigBase, INITIAL_CONFIG
 
 MOUSE = "mouse"
 WHEEL = "wheel"
@@ -44,6 +44,10 @@ class GlobalConfig(ConfigBase):
     def __init__(self):
         self.path = os.path.join(CONFIG_PATH, "config.json")
         super().__init__()
+
+    def get_dir(self) -> str:
+        """the folder containing this config"""
+        return os.path.split(self.path)[0]
 
     def set_autoload_preset(self, group_key, preset):
         """Set a preset to be automatically applied on start.

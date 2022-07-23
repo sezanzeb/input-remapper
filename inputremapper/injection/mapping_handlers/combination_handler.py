@@ -17,23 +17,21 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
-import asyncio
+
+from typing import Dict, Tuple
 
 import evdev
-
-from typing import Dict, Tuple, Optional, List
-from evdev.ecodes import EV_ABS, EV_REL, EV_KEY
+from evdev.ecodes import EV_ABS, EV_REL
 
 from inputremapper.configs.mapping import Mapping
-from inputremapper.input_event import InputEvent, EventActions
 from inputremapper.event_combination import EventCombination
-from inputremapper.logger import logger
 from inputremapper.injection.mapping_handlers.mapping_handler import (
-    ContextProtocol,
     MappingHandler,
     InputEventHandler,
     HandlerEnums,
 )
+from inputremapper.input_event import InputEvent
+from inputremapper.logger import logger
 
 
 class CombinationHandler(MappingHandler):
@@ -100,10 +98,13 @@ class CombinationHandler(MappingHandler):
             self.forward_release(forward)
             event = event.modify(value=1)
         else:
-            if self._output_state:
+            if self._output_state or self.mapping.is_axis_mapping():
                 # we ignore the supress argument for release events
                 # otherwise we might end up with stuck keys
                 # (test_event_pipeline.test_combination)
+
+                # we also ignore it if the mapping specifies an output axis
+                # this will enable us to activate multiple axis with the same button
                 supress = False
             event = event.modify(value=0)
 
@@ -131,13 +132,10 @@ class CombinationHandler(MappingHandler):
 
         this might cause duplicate key-up events but those are ignored by evdev anyway
         """
-        if (
-            len(self.mapping.event_combination) == 1
-            or not self.mapping.release_combination_keys
-        ):
+        if len(self._pressed_keys) == 1 or not self.mapping.release_combination_keys:
             return
-        for event in self.mapping.event_combination:
-            forward.write(*event.type_and_code, 0)
+        for type_and_code in self._pressed_keys:
+            forward.write(*type_and_code, 0)
         forward.syn()
 
     def needs_ranking(self) -> bool:

@@ -19,7 +19,6 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 """Provides protocols for mapping handlers
 
-
 *** The architecture behind mapping handlers ***
 
 Handling an InputEvent is done in 3 steps:
@@ -53,6 +52,7 @@ Step 1 and 2:
 
 Step 1, 2 and 3:
  - AbsToRelHandler
+ - NullHandler
 
 Step 2 and 3:
  - KeyHandler
@@ -61,15 +61,14 @@ Step 2 and 3:
 from __future__ import annotations
 
 import enum
-
-import evdev
 from typing import Dict, Protocol, Set, Optional, List
 
+import evdev
+
 from inputremapper.configs.mapping import Mapping
-from inputremapper.configs.preset import Preset
+from inputremapper.event_combination import EventCombination
 from inputremapper.exceptions import MappingParsingError
 from inputremapper.input_event import InputEvent, EventActions
-from inputremapper.event_combination import EventCombination
 from inputremapper.logger import logger
 
 
@@ -81,8 +80,23 @@ class EventListener(Protocol):
 class ContextProtocol(Protocol):
     """The parts from context needed for macros."""
 
-    preset: Preset
     listeners: Set[EventListener]
+
+
+class NotifyCallback(Protocol):
+    """Type signature of InputEventHandler.notify
+
+    return True if the event was actually taken care of
+    """
+
+    def __call__(
+        self,
+        event: InputEvent,
+        source: evdev.InputDevice,
+        forward: evdev.UInput,
+        supress: bool = False,
+    ) -> bool:
+        ...
 
 
 class InputEventHandler(Protocol):
@@ -126,7 +140,7 @@ class HandlerEnums(enum.Enum):
     disable = enum.auto()
 
 
-class MappingHandler(InputEventHandler):
+class MappingHandler:
     """The protocol an InputEventHandler must follow if it should be
     dynamically integrated in an event-pipeline by the mapping parser
     """
@@ -155,12 +169,26 @@ class MappingHandler(InputEventHandler):
         new_combination = []
         for event in combination:
             if event.value != 0:
-                event = event.modify(action=EventActions.as_key)
+                event = event.modify(actions=(EventActions.as_key,))
             new_combination.append(event)
 
         self.mapping = mapping
         self.input_events = new_combination
         self._sub_handler = None
+
+    def notify(
+        self,
+        event: InputEvent,
+        source: evdev.InputDevice,
+        forward: evdev.UInput,
+        supress: bool = False,
+    ) -> bool:
+        """notify this handler about an incoming event"""
+        raise NotImplementedError
+
+    def reset(self) -> None:
+        """Reset the state of the handler e.g. release any buttons."""
+        raise NotImplementedError
 
     def needs_wrapping(self) -> bool:
         """If this handler needs to be wrapped in another MappingHandler."""
@@ -175,10 +203,10 @@ class MappingHandler(InputEventHandler):
         pass
 
     def wrap_with(self) -> Dict[EventCombination, HandlerEnums]:
-        """A dict of EventCombination -> HandlerEnums."""
-        # this handler should be wrapped with the MappingHandler corresponding
-        # to the HandlerEnums, and the EventCombination as first argument
-        # TODO: better explanation
+        """A dict of EventCombination -> HandlerEnums.
+
+        for each EventCombination this handler should be wrapped
+        with the given MappingHandler"""
         return {}
 
     def set_sub_handler(self, handler: InputEventHandler) -> None:

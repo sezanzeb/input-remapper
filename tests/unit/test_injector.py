@@ -58,6 +58,7 @@ from inputremapper.injection.injector import (
     NO_GRAB,
     UNKNOWN,
     get_udev_name,
+    FAILED,
 )
 from inputremapper.injection.numlock import is_numlock_on
 from inputremapper.configs.system_mapping import (
@@ -65,12 +66,11 @@ from inputremapper.configs.system_mapping import (
     DISABLE_CODE,
     DISABLE_NAME,
 )
-from inputremapper.gui.active_preset import active_preset
 from inputremapper.configs.preset import Preset
 from inputremapper.event_combination import EventCombination
 from inputremapper.injection.macros.parse import parse
 from inputremapper.injection.context import Context
-from inputremapper.groups import groups, classify, GAMEPAD
+from inputremapper.groups import groups, classify, DeviceType
 
 
 def wait_for_uinput_write():
@@ -101,9 +101,10 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         evdev.InputDevice.grab = grab_fail_twice
 
     def tearDown(self):
-        if self.injector is not None:
+        if self.injector is not None and self.injector.is_alive():
             self.injector.stop_injecting()
-            self.assertEqual(self.injector.get_state(), STOPPED)
+            time.sleep(0.2)
+            self.assertIn(self.injector.get_state(), (STOPPED, FAILED, NO_GRAB))
             self.injector = None
         evdev.InputDevice.grab = self.grab
 
@@ -119,8 +120,8 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         # this test needs to pass around all other constraints of
         # _grab_device
         self.injector.context = Context(preset)
-        device = self.injector._grab_device(path)
-        gamepad = classify(device) == GAMEPAD
+        device = self.injector._grab_device(evdev.InputDevice(path))
+        gamepad = classify(device) == DeviceType.GAMEPAD
         self.assertFalse(gamepad)
         self.assertEqual(self.failed, 2)
         # success on the third try
@@ -134,7 +135,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         self.injector = Injector(groups.find(key="Foo Device 2"), preset)
         path = "/dev/input/event10"
         self.injector.context = Context(preset)
-        device = self.injector._grab_device(path)
+        device = self.injector._grab_device(evdev.InputDevice(path))
         self.assertIsNone(device)
         self.assertGreaterEqual(self.failed, 1)
 
@@ -154,14 +155,15 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         )
         self.injector = Injector(groups.find(name="gamepad"), preset)
         self.injector.context = Context(preset)
+        self.injector.group.paths = [
+            "/dev/input/event10",
+            "/dev/input/event30",
+            "/dev/input/event1234",
+        ]
 
-        _grab_device = self.injector._grab_device
-        # doesn't have the required capability
-        self.assertIsNone(_grab_device("/dev/input/event10"))
-        # according to the fixtures, /dev/input/event30 can do ABS_HAT0X
-        self.assertIsNotNone(_grab_device("/dev/input/event30"))
-        # this doesn't exist
-        self.assertIsNone(_grab_device("/dev/input/event1234"))
+        grabbed = self.injector._grab_devices()
+        self.assertEqual(len(grabbed), 1)
+        self.assertEqual(grabbed[0].path, "/dev/input/event30")
 
     def test_forward_gamepad_events(self):
         # forward abs joystick events
@@ -170,15 +172,16 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         self.injector.context = Context(preset)
 
         path = "/dev/input/event30"
-        device = self.injector._grab_device(path)
-        self.assertIsNone(device)  # no capability is used, so it won't grab
+        device = self.injector._grab_devices()
+        self.assertEqual(device, [])  # no capability is used, so it won't grab
 
         preset.add(
             get_key_mapping(EventCombination([EV_KEY, BTN_A, 1]), "keyboard", "a"),
         )
-        device = self.injector._grab_device(path)
-        self.assertIsNotNone(device)
-        gamepad = classify(device) == GAMEPAD
+        devices = self.injector._grab_devices()
+        self.assertEqual(len(devices), 1)
+        self.assertEqual(devices[0].path, path)
+        gamepad = classify(devices[0]) == DeviceType.GAMEPAD
         self.assertTrue(gamepad)
 
     def test_skip_unused_device(self):
@@ -188,8 +191,9 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         self.injector = Injector(groups.find(key="Foo Device 2"), preset)
         self.injector.context = Context(preset)
         path = "/dev/input/event11"
-        device = self.injector._grab_device(path)
-        self.assertIsNone(device)
+        self.injector.group.paths = [path]
+        devices = self.injector._grab_devices()
+        self.assertEqual(devices, [])
         self.assertEqual(self.failed, 0)
 
     def test_skip_unknown_device(self):
@@ -199,15 +203,17 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         # skips a device because its capabilities are not used in the preset
         self.injector = Injector(groups.find(key="Foo Device 2"), preset)
         self.injector.context = Context(preset)
+
         path = "/dev/input/event11"
-        device = self.injector._grab_device(path)
+        self.injector.group.paths = [path]
+        devices = self.injector._grab_devices()
 
         # skips the device alltogether, so no grab attempts fail
         self.assertEqual(self.failed, 0)
-        self.assertIsNone(device)
+        self.assertEqual(devices, [])
 
     def test_get_udev_name(self):
-        self.injector = Injector(groups.find(key="Foo Device 2"), active_preset)
+        self.injector = Injector(groups.find(key="Foo Device 2"), Preset())
         suffix = "mapped"
         prefix = "input-remapper"
         expected = f'{prefix} {"a" * (80 - len(suffix) - len(prefix) - 2)} {suffix}'
@@ -236,15 +242,11 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         self.injector.run()
 
         self.assertEqual(
-            self.injector.context.preset.get_mapping(
-                EventCombination([EV_KEY, KEY_A, 1])
-            ),
+            self.injector.preset.get_mapping(EventCombination([EV_KEY, KEY_A, 1])),
             m1,
         )
         self.assertEqual(
-            self.injector.context.preset.get_mapping(
-                EventCombination([EV_REL, REL_HWHEEL, 1])
-            ),
+            self.injector.preset.get_mapping(EventCombination([EV_REL, REL_HWHEEL, 1])),
             m2,
         )
 
@@ -516,7 +518,7 @@ class TestModifyCapabilities(unittest.TestCase):
 
         # I don't know what ABS_VOLUME is, for now I would like to just always
         # remove it until somebody complains, since its presence broke stuff
-        self.injector = Injector(None, self.preset)
+        self.injector = Injector(mock.Mock(), self.preset)
         self.fake_device._capabilities = {
             EV_ABS: [ABS_VOLUME, (ABS_X, evdev.AbsInfo(0, 0, 500, 0, 0, 0))],
             EV_KEY: [1, 2, 3],

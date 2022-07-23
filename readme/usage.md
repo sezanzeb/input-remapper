@@ -10,17 +10,19 @@ You can also start it via `input-remapper-gtk`.
   <img src="usage_2.png"/>
 </p>
 
-First, select your device (like your keyboard) from the large dropdown on the top.
-Then you can already edit your keys, as shown in the screenshots.
+First, select your device (like your keyboard) from the large dropdown on the top,
+and add a mapping.
+Then you can already edit your inputs, as shown in the screenshots.
 
 In the text input field, type the key to which you would like to map this key.
 More information about the possible mappings can be found [below](#key-names).
 
-Changes are saved automatically. Afterwards press the "Apply" button.
+Changes are saved automatically. 
+Press the "Apply" button to activate (inject) the mapping you created.
 
-To change the mapping, you need to use the "Stop Injection" button, so that
-the application can read the original keycode. It would otherwise be
-invisible since the daemon maps it independently of the GUI.
+If you later want to modify the Input of your mapping you need to use the 
+"Stop Injection" button, so that the application can read your original input. 
+It would otherwise be invisible since the daemon maps it independently of the GUI.
 
 ## Troubleshooting
 
@@ -35,31 +37,22 @@ No injection should be running anymore.
 
 ## Combinations
 
-Change the key of your mapping (`Change Key` - Button) and hold a few of your
-device keys down. Releasing them will make your text cursor jump into the
-mapping column  to type in what you want to map it to.
+You can use combinations of different inputs to trigger a mapping: While you recorde
+the input (`Recorde Input` - Button) press multiple keys and/or move axis at once.
+The mapping will be triggered as soon as all the recorded inputs are pressed.
 
-Combinations involving Modifiers might not work. Configuring a combination
-of two keys to output a single key will require you to push down the first
-key, which of course ends up injecting that first key. Then the second key
-will trigger the mapping, because the combination is complete. This is
-not a bug. Otherwise every combination would have to automatically disable
-all keys that are involved in it.
+If you use an axis an input you can modify the threshold at which the mapping is 
+activated in the `Advanced Input Configuration`.
 
-For example a combination of `LEFTSHIFT + a` for `b` would write "B" instead,
-because shift will be activated before you hit the "a". Therefore the
-environment will see shift and a "b", which will then be capitalized.
-
-Consider using a different key for the combination than shift. You could use
-`KP1 + a` and map `KP1` to `disable`.
-
-The second option is to release the modifier in your combination by writing
-the modifier one more time. This will write lowercase "b" characters. To make
-this work shift has to be injected via key-mappers devices though, which just
-means it has to be forwarded. So the complete mapping for this would look like:
-
-- `Shift L + a` -> `key(Shift_L).hold(b)`
-- `Shift L` -> `Shift_L`
+A mapping with an input combination is only injected once all combination keys 
+are pressed. This means all the input keys you press before the combination is complete 
+will be injected unmodified. In some cases this can be desirable, in others not. 
+In the `Advanced Input Configuration` is the `Release Input` toggle. 
+This will release all inputs which are part of the combination before the mapping is 
+injected. Consider a mapping `Shift+1 -> a` this will inject a lowercase `a` if the 
+toggle is on and an uppercase `A` if it is off. The exact behaviour if the toggle is off 
+is dependent on keys (are modifiers involved?), the order in which they are pressed and 
+on your environment (X11/Wayland). By default the toggle is on.
 
 ## Writing Combinations
 
@@ -111,6 +104,18 @@ and it won't be able to inject anything a usb keyboard wouldn't been able to. Th
 the benefit of being compatible to all display servers, but means the environment will
 ultimately decide which character to write.
 
+## Analog Axis
+
+It is possible to map analog inputs to analog outputs. E.g. use a gamepad as a mouse.
+For this you need to create a mapping and recorde the input axis. Then go to 
+`Advanced Input Configuration` and select `Use as Analog`. Make sure to select a target 
+which supports analog axis and switch to the `Analog Axis` tab. 
+There you can select an output axis and use the different sliders to configure the 
+sensitivity, non-linearity and other parameters as you like. 
+
+It is also possible to use an analog output with an input combination. 
+This will result in the analog axis to be only injected if the combination is pressed 
+
 # External tools
 
 Repositories listed here are made by input-remappers users. Feel free to extend. Beware,
@@ -131,7 +136,7 @@ Note for the Beta branch: All configuration files are copied to:
 
 The default configuration is stored at `~/.config/input-remapper/config.json`,
 which doesn't include any mappings, but rather other parameters that
-are interesting for injections. The current default configuration as of 1.5
+are interesting for injections. The current default configuration as of 1.6
 looks like, with  an example autoload entry:
 
 ```json
@@ -139,7 +144,7 @@ looks like, with  an example autoload entry:
   "autoload": {
       "Logitech USB Keyboard": "preset name"
     },
-  "version": "1.5"
+  "version": "1.6"
 }
 ```
 

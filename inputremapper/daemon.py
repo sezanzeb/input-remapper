@@ -25,14 +25,16 @@ https://github.com/LEW21/pydbus/tree/cc407c8b1d25b7e28a6d661a29f9e661b1c9b964/ex
 """
 
 
+import atexit
+import json
 import os
 import sys
-import json
 import time
-import atexit
+from pathlib import PurePath
+from typing import Protocol, Dict
 
-from pydbus import SystemBus
 import gi
+from pydbus import SystemBus
 
 gi.require_version("GLib", "2.0")
 from gi.repository import GLib
@@ -116,6 +118,34 @@ def remove_timeout(func):
     return wrapped
 
 
+class DaemonProxy(Protocol):  # pragma: no cover
+    """the interface provided over the dbus"""
+
+    def stop_injecting(self, group_key: str) -> None:
+        ...
+
+    def get_state(self, group_key: str) -> int:
+        ...
+
+    def start_injecting(self, group_key: str, preset: str) -> bool:
+        ...
+
+    def stop_all(self) -> None:
+        ...
+
+    def set_config_dir(self, config_dir: str) -> None:
+        ...
+
+    def autoload(self) -> None:
+        ...
+
+    def autoload_single(self, group_key: str) -> None:
+        ...
+
+    def hello(self, out: str) -> str:
+        ...
+
+
 class Daemon:
     """Starts injecting keycodes based on the configuration.
 
@@ -164,7 +194,7 @@ class Daemon:
     def __init__(self):
         """Constructs the daemon."""
         logger.debug("Creating daemon")
-        self.injectors = {}
+        self.injectors: Dict[str, Injector] = {}
 
         self.config_dir = None
 
@@ -184,7 +214,7 @@ class Daemon:
         macro_variables.start()
 
     @classmethod
-    def connect(cls, fallback=True):
+    def connect(cls, fallback=True) -> DaemonProxy:
         """Get an interface to start and stop injecting keystrokes.
 
         Parameters
@@ -193,8 +223,8 @@ class Daemon:
             If true, returns an instance of the daemon instead if it cannot
             connect
         """
+        bus = SystemBus()
         try:
-            bus = SystemBus()
             interface = bus.get(BUS_NAME, timeout=BUS_TIMEOUT)
             logger.info("Connected to the service")
         except GLib.GError as error:
@@ -306,7 +336,7 @@ class Daemon:
             This path contains config.json, xmodmap.json and the
             presets directory
         """
-        config_path = os.path.join(config_dir, "config.json")
+        config_path = PurePath(config_dir, "config.json")
         if not os.path.exists(config_path):
             logger.error('"%s" does not exist', config_path)
             return
@@ -405,7 +435,7 @@ class Daemon:
         for group_key, _ in autoload_presets:
             self._autoload(group_key)
 
-    def start_injecting(self, group_key, preset):
+    def start_injecting(self, group_key, preset) -> bool:
         """Start injecting the preset for the device.
 
         Returns True on success. If an injection is already ongoing for
@@ -435,7 +465,7 @@ class Daemon:
             logger.error('Could not find group "%s"', group_key)
             return False
 
-        preset_path = os.path.join(
+        preset_path = PurePath(
             self.config_dir,
             "presets",
             group.name,
@@ -453,6 +483,13 @@ class Daemon:
                 # date when the system layout changes.
                 xmodmap = json.load(file)
                 logger.debug('Using keycodes from "%s"', xmodmap_path)
+
+                # this creates the system_mapping._xmodmap, which we need to do now
+                # otherwise it might be created later which will override the changes
+                # we do here.
+                # Do we really need to lazyload in the system_mapping?
+                # this kind of bug is stupid to track down
+                system_mapping.get_name(0)
                 system_mapping.update(xmodmap)
                 # the service now has process wide knowledge of xmodmap
                 # keys of the users session

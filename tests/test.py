@@ -25,9 +25,28 @@ This module needs to be imported first in test files.
 """
 
 import argparse
+import json
 import os
 import sys
 import tempfile
+import traceback
+import warnings
+from multiprocessing.connection import Connection
+from typing import Dict, Tuple
+import tracemalloc
+
+tracemalloc.start()
+
+try:
+    sys.modules.get("tests.test").main
+    raise AssertionError(
+        "test.py was already imported. "
+        "Always use 'from tests.test import ...' "
+        "not 'from test import ...' to import this"
+    )
+    # have fun debugging infinitely blocking tests without this
+except AttributeError:
+    pass
 
 
 def get_project_root():
@@ -132,7 +151,7 @@ tmp = temporary_directory.name
 uinput_write_history = []
 # for tests that makes the injector create its processes
 uinput_write_history_pipe = multiprocessing.Pipe()
-pending_events = {}
+pending_events: Dict[str, Tuple[Connection, Connection]] = {}
 
 
 def read_write_history_pipe():
@@ -166,7 +185,10 @@ fixtures = {
     # see if the groups correct attribute is used in functions and paths.
     "/dev/input/event11": {
         "capabilities": {
-            evdev.ecodes.EV_KEY: [evdev.ecodes.BTN_LEFT],
+            evdev.ecodes.EV_KEY: [
+                evdev.ecodes.BTN_LEFT,
+                evdev.ecodes.BTN_TOOL_DOUBLETAP,
+            ],
             evdev.ecodes.EV_REL: [
                 evdev.ecodes.REL_X,
                 evdev.ecodes.REL_Y,
@@ -198,6 +220,26 @@ fixtures = {
         "phys": f"{phys_foo}/input0",
         "info": info_foo,
         "name": "Foo Device qux",
+        "group_key": "Foo Device 2",
+    },
+    "/dev/input/event15": {
+        "capabilities": {
+            evdev.ecodes.EV_SYN: [],
+            evdev.ecodes.EV_ABS: [
+                evdev.ecodes.ABS_X,
+                evdev.ecodes.ABS_Y,
+                evdev.ecodes.ABS_RX,
+                evdev.ecodes.ABS_RY,
+                evdev.ecodes.ABS_Z,
+                evdev.ecodes.ABS_RZ,
+                evdev.ecodes.ABS_HAT0X,
+                evdev.ecodes.ABS_HAT0Y,
+            ],
+            evdev.ecodes.EV_KEY: [evdev.ecodes.BTN_A],
+        },
+        "phys": f"{phys_foo}/input4",
+        "info": info_foo,
+        "name": "Foo Device bar",
         "group_key": "Foo Device 2",
     },
     # Bar Device
@@ -256,6 +298,7 @@ def setup_pipe(group_key):
     which in turn will be sent to the reader
     """
     if pending_events.get(group_key) is None:
+        logger.info("creating Pipe for %s", group_key)
         pending_events[group_key] = multiprocessing.Pipe()
 
 
@@ -284,6 +327,7 @@ def push_event(group_key, event):
     event : InputEvent
     """
     setup_pipe(group_key)
+    logger.info("Simulating %s for %s", event, group_key)
     pending_events[group_key][0].send(event)
 
 
@@ -355,19 +399,21 @@ class InputDevice:
         logger.info("ungrab %s %s", self.name, self.path)
 
     async def async_read_loop(self):
-        if pending_events.get(self.group_key) is None:
-            self.log("no events to read", self.group_key)
-            return
+        logger.info("starting read loop for %s", self.path)
+        new_frame = asyncio.Event()
+        asyncio.get_running_loop().add_reader(self.fd, new_frame.set)
+        while True:
+            await new_frame.wait()
+            new_frame.clear()
+            if not pending_events[self.group_key][1].poll():
+                # todo: why? why do we need this?
+                # sometimes this happens, as if a other process calls recv on
+                # the pipe
+                continue
 
-        # consume all of them
-        while pending_events[self.group_key][1].poll():
-            result = pending_events[self.group_key][1].recv()
-            self.log(result, "async_read_loop")
-            yield result
-            await asyncio.sleep(0.01)
-
-        # doesn't loop endlessly in order to run tests for the injector in
-        # the main process
+            event = pending_events[self.group_key][1].recv()
+            logger.info("got %s at %s", event, self.path)
+            yield event
 
     def read(self):
         # the patched fake InputDevice objects read anything pending from
@@ -396,13 +442,12 @@ class InputDevice:
 
     def read_one(self):
         """Read one event or none if nothing available."""
-        if pending_events.get(self.group_key) is None:
+        if not pending_events.get(self.group_key):
             return None
 
-        if len(pending_events[self.group_key]) == 0:
+        if not pending_events[self.group_key][1].poll():
             return None
 
-        time.sleep(EVENT_READ_TIMEOUT)
         try:
             event = pending_events[self.group_key][1].recv()
         except (UnpicklingError, EOFError):
@@ -541,6 +586,19 @@ def clear_write_history():
         uinput_write_history_pipe[0].recv()
 
 
+def warn_with_traceback(message, category, filename, lineno, file=None, line=None):
+
+    log = file if hasattr(file, "write") else sys.stderr
+    traceback.print_stack(file=log)
+    log.write(warnings.formatwarning(message, category, filename, lineno, line))
+
+
+def patch_warnings():
+    # show traceback
+    warnings.showwarning = warn_with_traceback
+    warnings.simplefilter("always")
+
+
 # quickly fake some stuff before any other file gets a chance to import
 # the original versions
 patch_paths()
@@ -548,23 +606,26 @@ patch_evdev()
 patch_events()
 patch_os_system()
 patch_check_output()
+# patch_warnings()
 
 from inputremapper.logger import update_verbosity
 
 update_verbosity(True)
 
+from inputremapper.daemon import DaemonProxy
 from inputremapper.input_event import InputEvent as InternalInputEvent
-from inputremapper.injection.injector import Injector
+from inputremapper.injection.injector import Injector, RUNNING, STOPPED
+from inputremapper.injection.macros.macro import macro_variables
+from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.configs.global_config import global_config
 from inputremapper.configs.mapping import Mapping, UIMapping
-from inputremapper.gui.reader import reader
-from inputremapper.groups import groups
+from inputremapper.groups import groups, _Groups
 from inputremapper.configs.system_mapping import system_mapping
-from inputremapper.gui.active_preset import active_preset
-from inputremapper.configs.paths import get_config_path
-from inputremapper.injection.macros.macro import macro_variables
+from inputremapper.gui.message_broker import MessageBroker
+from inputremapper.gui.reader import Reader
+from inputremapper.configs.paths import get_config_path, get_preset_path
+from inputremapper.configs.preset import Preset
 
-# from inputremapper.injection.mapping_handlers.keycode_mapper import active_macros, unreleased
 from inputremapper.injection.global_uinputs import global_uinputs
 
 # no need for a high number in tests
@@ -602,16 +663,6 @@ def get_ui_mapping(
     )
 
 
-def send_event_to_reader(event):
-    """Act like the helper and send input events to the reader."""
-    reader._results._unread.append(
-        {
-            "type": "event",
-            "message": (event.sec, event.usec, event.type, event.code, event.value),
-        }
-    )
-
-
 def quick_cleanup(log=True):
     """Reset the applications state."""
     if log:
@@ -627,11 +678,6 @@ def quick_cleanup(log=True):
         # setup new pipes for the next test
         pending_events[device] = None
         setup_pipe(device)
-
-    try:
-        reader.terminate()
-    except (BrokenPipeError, OSError):
-        pass
 
     try:
         if asyncio.get_event_loop().is_running():
@@ -662,7 +708,6 @@ def quick_cleanup(log=True):
     global_config._save_config()
 
     system_mapping.populate()
-    active_preset.empty()
 
     clear_write_history()
 
@@ -684,8 +729,6 @@ def quick_cleanup(log=True):
     for device in list(os.environ.keys()):
         if device not in environ_copy:
             del os.environ[device]
-
-    reader.clear()
 
     for _, pipe in pending_events.values():
         assert not pipe.poll()
@@ -723,6 +766,75 @@ def cleanup():
 def spy(obj, name):
     """Convenient wrapper for patch.object(..., ..., wraps=...)."""
     return patch.object(obj, name, wraps=obj.__getattribute__(name))
+
+
+class FakeDaemonProxy:
+    def __init__(self):
+        self.calls = {
+            "stop_injecting": [],
+            "get_state": [],
+            "start_injecting": [],
+            "stop_all": 0,
+            "set_config_dir": [],
+            "autoload": 0,
+            "autoload_single": [],
+            "hello": [],
+        }
+
+    def stop_injecting(self, group_key: str) -> None:
+        self.calls["stop_injecting"].append(group_key)
+
+    def get_state(self, group_key: str) -> int:
+        self.calls["get_state"].append(group_key)
+        return STOPPED
+
+    def start_injecting(self, group_key: str, preset: str) -> bool:
+        self.calls["start_injecting"].append((group_key, preset))
+        return True
+
+    def stop_all(self) -> None:
+        self.calls["stop_all"] += 1
+
+    def set_config_dir(self, config_dir: str) -> None:
+        self.calls["set_config_dir"].append(config_dir)
+
+    def autoload(self) -> None:
+        self.calls["autoload"] += 1
+
+    def autoload_single(self, group_key: str) -> None:
+        self.calls["autoload_single"].append(group_key)
+
+    def hello(self, out: str) -> str:
+        self.calls["hello"].append(out)
+        return out
+
+
+def prepare_presets():
+    """prepare a few presets for use in tests
+    "Foo Device 2/preset3" is the newest and "Foo Device 2/preset2" is set to autoload
+    """
+    preset1 = Preset(get_preset_path("Foo Device", "preset1"))
+    preset1.add(get_key_mapping(combination="1,1,1", output_symbol="b"))
+    preset1.add(get_key_mapping(combination="1,2,1"))
+    preset1.save()
+
+    time.sleep(0.05)
+    preset2 = Preset(get_preset_path("Foo Device", "preset2"))
+    preset2.add(get_key_mapping(combination="1,3,1"))
+    preset2.add(get_key_mapping(combination="1,4,1"))
+    preset2.save()
+
+    time.sleep(0.05)  # make sure the timestamp of preset 3 is the newest
+    preset3 = Preset(get_preset_path("Foo Device", "preset3"))
+    preset3.add(get_key_mapping(combination="1,5,1"))
+    preset3.save()
+
+    with open(get_config_path("config.json"), "w") as file:
+        json.dump({"autoload": {"Foo Device 2": "preset2"}}, file, indent=4)
+
+    global_config.load_config()
+
+    return preset1, preset2, preset3
 
 
 cleanup()

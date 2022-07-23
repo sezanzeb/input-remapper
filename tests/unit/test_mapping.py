@@ -24,8 +24,9 @@ from functools import partial
 from evdev.ecodes import EV_KEY
 from pydantic import ValidationError
 
-from inputremapper.configs.mapping import Mapping
+from inputremapper.configs.mapping import Mapping, UIMapping
 from inputremapper.configs.system_mapping import system_mapping
+from inputremapper.gui.message_broker import MessageType
 from inputremapper.input_event import EventActions
 from inputremapper.event_combination import EventCombination
 
@@ -84,20 +85,20 @@ class TestMapping(unittest.IsolatedAsyncioTestCase):
             "output_code": 3,
         }
         m = Mapping(**cfg)
-        expected_actions = [EventActions.as_key, EventActions.as_key, EventActions.none]
-        actions = [event.action for event in m.event_combination]
+        expected_actions = [(EventActions.as_key,), (EventActions.as_key,), ()]
+        actions = [event.actions for event in m.event_combination]
         self.assertEqual(expected_actions, actions)
 
-        # copy keeps the event action
+        # copy keeps the event actions
         m2 = m.copy()
-        actions = [event.action for event in m2.event_combination]
+        actions = [event.actions for event in m2.event_combination]
         self.assertEqual(expected_actions, actions)
 
-        # changing the combination sets the action
+        # changing the combination sets the actions
         m3 = m.copy()
         m3.event_combination = "1,2,1+2,1,0+3,1,10"
-        expected_actions = [EventActions.as_key, EventActions.none, EventActions.as_key]
-        actions = [event.action for event in m3.event_combination]
+        expected_actions = [(EventActions.as_key,), (), (EventActions.as_key,)]
+        actions = [event.actions for event in m3.event_combination]
         self.assertEqual(expected_actions, actions)
 
     def test_combination_changed_callback(self):
@@ -329,6 +330,58 @@ class TestMapping(unittest.IsolatedAsyncioTestCase):
         }
         m = Mapping(**cfg)
         self.assertTrue(m.is_valid())
+
+
+class TestUIMapping(unittest.IsolatedAsyncioTestCase):
+    def test_init(self):
+        """should be able to initialize without an error"""
+        UIMapping()
+
+    def test_is_valid(self):
+        """should be invalid at first
+        and become valid once all data is provided"""
+        m = UIMapping()
+        self.assertFalse(m.is_valid())
+
+        m.event_combination = "1,2,3"
+        m.output_symbol = "a"
+        self.assertFalse(m.is_valid())
+        m.target_uinput = "keyboard"
+        self.assertTrue(m.is_valid())
+
+    def test_updates_validation_error(self):
+        m = UIMapping()
+        self.assertIn("2 validation errors for UIMapping", str(m.get_error()))
+        m.event_combination = "1,2,3"
+        m.output_symbol = "a"
+        self.assertIn(
+            "1 validation error for UIMapping\ntarget_uinput", str(m.get_error())
+        )
+        m.target_uinput = "keyboard"
+        self.assertTrue(m.is_valid())
+        self.assertIsNone(m.get_error())
+
+    def test_copy_returns_ui_mapping(self):
+        """copy should also be a UIMapping with all the invalid data"""
+        m = UIMapping()
+        m2 = m.copy()
+        self.assertIsInstance(m2, UIMapping)
+        self.assertEqual(m2.event_combination, EventCombination.empty_combination())
+        self.assertIsNone(m2.target_uinput)
+
+    def test_get_bus_massage(self):
+        m = UIMapping()
+        m2 = m.get_bus_message()
+        self.assertEqual(m2.message_type, MessageType.mapping)
+
+        with self.assertRaises(TypeError):
+            # the massage should be immutable
+            m2.output_symbol = "a"
+        self.assertIsNone(m2.output_symbol)
+
+        # the original should be not immutable
+        m.output_symbol = "a"
+        self.assertEqual(m.output_symbol, "a")
 
 
 if __name__ == "__main__":

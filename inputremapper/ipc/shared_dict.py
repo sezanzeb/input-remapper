@@ -22,8 +22,8 @@
 """Share a dictionary across processes."""
 
 
-import multiprocessing
 import atexit
+import multiprocessing
 import select
 
 from inputremapper.logger import logger

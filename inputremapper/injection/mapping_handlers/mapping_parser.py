@@ -18,55 +18,57 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 """Functions to assemble the mapping handlers"""
-
+from collections import defaultdict
 from typing import Dict, List, Type, Optional, Set, Iterable, Sized, Tuple, Sequence
+
 from evdev.ecodes import (
     EV_KEY,
     EV_ABS,
     EV_REL,
 )
 
-from inputremapper.exceptions import MappingParsingError
-from inputremapper.logger import logger
+from inputremapper.configs.mapping import Mapping
+from inputremapper.configs.preset import Preset
+from inputremapper.configs.system_mapping import DISABLE_CODE, DISABLE_NAME
 from inputremapper.event_combination import EventCombination
-from inputremapper.input_event import InputEvent
-from inputremapper.injection.mapping_handlers.mapping_handler import (
-    HandlerEnums,
-    MappingHandler,
-    ContextProtocol,
+from inputremapper.exceptions import MappingParsingError
+from inputremapper.injection.macros.parse import is_this_a_macro
+from inputremapper.injection.mapping_handlers.abs_to_btn_handler import AbsToBtnHandler
+from inputremapper.injection.mapping_handlers.abs_to_rel_handler import AbsToRelHandler
+from inputremapper.injection.mapping_handlers.axis_switch_handler import (
+    AxisSwitchHandler,
 )
 from inputremapper.injection.mapping_handlers.combination_handler import (
     CombinationHandler,
 )
 from inputremapper.injection.mapping_handlers.hierarchy_handler import HierarchyHandler
-from inputremapper.injection.mapping_handlers.abs_to_btn_handler import AbsToBtnHandler
-from inputremapper.injection.mapping_handlers.rel_to_btn_handler import RelToBtnHandler
-from inputremapper.injection.mapping_handlers.abs_to_rel_handler import AbsToRelHandler
-from inputremapper.injection.mapping_handlers.macro_handler import MacroHandler
 from inputremapper.injection.mapping_handlers.key_handler import KeyHandler
-from inputremapper.injection.mapping_handlers.axis_switch_handler import (
-    AxisSwitchHandler,
+from inputremapper.injection.mapping_handlers.macro_handler import MacroHandler
+from inputremapper.injection.mapping_handlers.mapping_handler import (
+    HandlerEnums,
+    MappingHandler,
+    ContextProtocol,
+    InputEventHandler,
 )
 from inputremapper.injection.mapping_handlers.null_handler import NullHandler
-from inputremapper.injection.macros.parse import is_this_a_macro
-from inputremapper.configs.preset import Preset
-from inputremapper.configs.mapping import Mapping
-from inputremapper.configs.system_mapping import DISABLE_CODE, DISABLE_NAME
+from inputremapper.injection.mapping_handlers.rel_to_btn_handler import RelToBtnHandler
+from inputremapper.input_event import InputEvent
+from inputremapper.logger import logger
 
-EventPipelines = Dict[InputEvent, List[MappingHandler]]
+EventPipelines = Dict[InputEvent, Set[InputEventHandler]]
 
-mapping_handler_classes: Dict[HandlerEnums, Type[MappingHandler]] = {
+mapping_handler_classes: Dict[HandlerEnums, Optional[Type[MappingHandler]]] = {
     # all available mapping_handlers
     HandlerEnums.abs2btn: AbsToBtnHandler,
     HandlerEnums.rel2btn: RelToBtnHandler,
     HandlerEnums.macro: MacroHandler,
     HandlerEnums.key: KeyHandler,
-    HandlerEnums.btn2rel: None,  # type: ignore
-    HandlerEnums.rel2rel: None,  # type: ignore
+    HandlerEnums.btn2rel: None,  # can be a macro
+    HandlerEnums.rel2rel: None,
     HandlerEnums.abs2rel: AbsToRelHandler,
-    HandlerEnums.btn2abs: None,  # type: ignore
-    HandlerEnums.rel2abs: None,  # type: ignore
-    HandlerEnums.abs2abs: None,  # type: ignore
+    HandlerEnums.btn2abs: None,  # can be a macro
+    HandlerEnums.rel2abs: None,
+    HandlerEnums.abs2abs: None,
     HandlerEnums.combination: CombinationHandler,
     HandlerEnums.hierarchy: HierarchyHandler,
     HandlerEnums.axisswitch: AxisSwitchHandler,
@@ -84,9 +86,12 @@ def parse_mappings(preset: Preset, context: ContextProtocol) -> EventPipelines:
         handler_enum = _get_output_handler(mapping)
         constructor = mapping_handler_classes[handler_enum]
         if not constructor:
-            raise NotImplementedError(
-                f"mapping handler {handler_enum} is not implemented"
+            logger.warning(
+                "a mapping handler '%s' for %s is not implemented",
+                handler_enum,
+                mapping.name or mapping.event_combination.beautify(),
             )
+            continue
 
         output_handler = constructor(
             mapping.event_combination,
@@ -99,7 +104,7 @@ def parse_mappings(preset: Preset, context: ContextProtocol) -> EventPipelines:
         handlers.extend(_create_event_pipeline(output_handler, context))
 
     # figure out which handlers need ranking and wrap them with hierarchy_handlers
-    need_ranking = {}
+    need_ranking = defaultdict(set)
     for handler in handlers.copy():
         if handler.needs_ranking():
             combination = handler.rank_by()
@@ -109,7 +114,7 @@ def parse_mappings(preset: Preset, context: ContextProtocol) -> EventPipelines:
                     f"return a combination to rank by",
                     mapping_handler=handler,
                 )
-            need_ranking[combination] = handler
+            need_ranking[combination].add(handler)
             handlers.remove(handler)
 
     # the HierarchyHandler's might not be the starting point of the event pipeline
@@ -120,18 +125,13 @@ def parse_mappings(preset: Preset, context: ContextProtocol) -> EventPipelines:
 
     # group all handlers by the input events they take care of. One handler might end
     # up in multiple groups if it takes care of multiple InputEvents
-    event_pipelines: EventPipelines = {}
+    event_pipelines: EventPipelines = defaultdict(set)
     for handler in handlers:
         assert handler.input_events
         for event in handler.input_events:
-            if event in event_pipelines.keys():
-                logger.debug("event-pipeline with entry point: %s", event.type_and_code)
-                logger.debug_mapping_handler(handler)
-                event_pipelines[event].append(handler)
-            else:
-                logger.debug("event-pipeline with entry point: %s", event.type_and_code)
-                logger.debug_mapping_handler(handler)
-                event_pipelines[event] = [handler]
+            logger.debug("event-pipeline with entry point: %s", event.type_and_code)
+            logger.debug_mapping_handler(handler)
+            event_pipelines[event].add(handler)
 
     return event_pipelines
 
@@ -223,7 +223,7 @@ def _maps_axis(combination: EventCombination) -> Optional[InputEvent]:
 
 
 def _create_hierarchy_handlers(
-    handlers: Dict[EventCombination, MappingHandler]
+    handlers: Dict[EventCombination, Set[MappingHandler]]
 ) -> Set[MappingHandler]:
     """Sort handlers by input events and create Hierarchy handlers."""
     sorted_handlers = set()
@@ -244,15 +244,15 @@ def _create_hierarchy_handlers(
 
         if len(combinations_with_event) == 1:
             # there was only one handler containing that event return it as is
-            sorted_handlers.add(handlers[combinations_with_event[0]])
+            sorted_handlers.update(handlers[combinations_with_event[0]])
             continue
 
         # there are multiple handler with the same event.
         # rank them and create the HierarchyHandler
         sorted_combinations = _order_combinations(combinations_with_event, event)
-        sub_handlers = []
+        sub_handlers: List[MappingHandler] = []
         for combination in sorted_combinations:
-            sub_handlers.append(handlers[combination])
+            sub_handlers.append(*handlers[combination])
 
         sorted_handlers.add(HierarchyHandler(sub_handlers, event))
         for handler in sub_handlers:

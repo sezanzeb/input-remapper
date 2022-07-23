@@ -17,8 +17,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
-
-
+from inputremapper.gui.message_broker import MessageBroker
 from tests.test import (
     InputDevice,
     quick_cleanup,
@@ -38,8 +37,8 @@ import multiprocessing
 import evdev
 from evdev.ecodes import EV_ABS, EV_KEY
 
-from inputremapper.groups import groups
-from inputremapper.gui.reader import reader
+from inputremapper.groups import groups, _Groups
+from inputremapper.gui.reader import Reader
 from inputremapper.gui.helper import RootHelper
 
 
@@ -89,12 +88,15 @@ class TestTest(unittest.TestCase):
         Using push_events after the helper is already forked should work,
         as well as using push_event twice
         """
+        reader = Reader(MessageBroker(), groups)
 
         def create_helper():
             # this will cause pending events to be copied over to the helper
             # process
             def start_helper():
-                helper = RootHelper()
+                # there is no point in using the global groups object
+                # because the helper runs in a different process
+                helper = RootHelper(_Groups())
                 helper.run()
 
             self.helper = multiprocessing.Process(target=start_helper)
@@ -108,23 +110,26 @@ class TestTest(unittest.TestCase):
                 if reader._results.poll():
                     break
 
-        event = new_event(EV_KEY, 102, 1)
         create_helper()
-        reader.start_reading(groups.find(key="Foo Device 2"))
+        reader.set_group(groups.find(key="Foo Device 2"))
         time.sleep(START_READING_DELAY)
 
+        event = new_event(EV_KEY, 102, 1)
         push_events("Foo Device 2", [event])
         wait_for_results()
         self.assertTrue(reader._results.poll())
 
-        reader.clear()
+        reader._read()
         self.assertFalse(reader._results.poll())
 
         # can push more events to the helper that is inside a separate
         # process, which end up being sent to the reader
+        event = new_event(EV_KEY, 102, 0)
         push_events("Foo Device 2", [event])
         wait_for_results()
         self.assertTrue(reader._results.poll())
+
+        reader.terminate()
 
 
 if __name__ == "__main__":

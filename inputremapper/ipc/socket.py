@@ -50,15 +50,14 @@ are much easier to handle.
 # by _Server all the time.
 
 
+import json
+import os
 import select
 import socket
-import os
 import time
-import json
 
-from inputremapper.logger import logger
 from inputremapper.configs.paths import mkdir, chown
-
+from inputremapper.logger import logger
 
 # something funny that most likely won't appear in messages.
 # also add some ones so that 01 in the payload won't offset

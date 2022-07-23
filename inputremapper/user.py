@@ -22,8 +22,8 @@
 """Figure out the user."""
 
 
-import os
 import getpass
+import os
 import pwd
 
 

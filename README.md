@@ -16,10 +16,9 @@
 
 #### Known Issues (Beta Branch)
 
- * The GUI is currently is not adapted to reflect all new features and might behave strange.
-   Mapping a gamepad to mouse is currently not possible in the GUI. 
-   Also mapping joystick or mouse axis to buttons might not work.
-   Those are only limitations of the GUI, when editing the preset manually all those features are still available.
+ * Mapping relative axis to relative axis (mouse to mouse) is not possible
+ * Mapping relative axis to absolute axis (mouse to gamepad) is not possible
+ * Mapping absolute axis to absolute axis (gamepad to gamepad) is not possible
 
 ## Installation
 

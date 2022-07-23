@@ -19,13 +19,15 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 """Make the systems/environments mapping of keys and codes accessible."""
 
-import re
 import json
+import re
 import subprocess
+from typing import Optional, List, Iterable
+
 import evdev
 
-from inputremapper.logger import logger
 from inputremapper.configs.paths import get_config_path, touch
+from inputremapper.logger import logger
 from inputremapper.utils import is_service
 
 DISABLE_NAME = "disable"
@@ -64,7 +66,7 @@ class SystemMapping:
 
         return object.__getattribute__(self, wanted)
 
-    def list_names(self, codes=None):
+    def list_names(self, codes: Optional[Iterable[int]] = None) -> List[str]:
         """Return a list of all possible names in the mapping, optionally filtered by codes.
 
         Parameters
