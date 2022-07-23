@@ -82,17 +82,19 @@ class Reader:
         self._commands = Pipe(f"/tmp/input-remapper-{USER}/commands")
 
     def attach_to_events(self):
-        """connect listeners to event_reader"""
+        """Connect listeners to event_reader."""
         self.message_broker.subscribe(MessageType.terminate, lambda _: self.terminate())
 
     def _read_continuously(self):
-        """poll the result pipe in regular intervals"""
+        """Poll the result pipe in regular intervals."""
         self.read_timeout = GLib.timeout_add(30, self._read)
 
     def _read(self):
-        """Read the messages from the helper and handle them"""
+        """Read the messages from the helper and handle them."""
         while self._results.poll():
             message = self._results.recv()
+
+            logger.debug("Reader received %s", message)
 
             message_type = message["type"]
             message_body = message["message"]
@@ -103,16 +105,18 @@ class Reader:
             if message_type == MSG_EVENT:
                 if not self._recording_generator:
                     continue
+
                 # update the generator
                 try:
                     self._recording_generator.send(InputEvent(*message_body))
                 except StopIteration:
                     self.message_broker.signal(MessageType.recording_finished)
                     self._recording_generator = None
+
         return True
 
     def start_recorder(self) -> None:
-        """recorde user input"""
+        """Record user input."""
         self._recording_generator = self._recorder()
         next(self._recording_generator)
 
