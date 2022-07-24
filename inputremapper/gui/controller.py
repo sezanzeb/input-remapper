@@ -157,9 +157,32 @@ class Controller:
                 "when specifying an macro or key output"
             )
         if "missing output axis:" in error_string:
-            return _(
-                "The input specifies a analog axis, but no output axis is selected"
+            message = _(
+                "The input specifies a analog axis, but no output axis is selected."
             )
+            if mapping.output_symbol is not None:
+                event = [
+                    event for event in mapping.event_combination if event.value == 0
+                ][0]
+                message += _(
+                    "\nIf you mean to create a key or macro mapping "
+                    "go to the 'Advanced Input Configuration'"
+                    " and set a 'Trigger Threshold' for "
+                    f"{event.description()}"
+                )
+            return message
+
+        if "missing macro or key:" in error_string and mapping.output_symbol is None:
+            message = _(
+                "The input specifies a key or macro input, but no macro or key is "
+                "programmed."
+            )
+            if mapping.output_type in (EV_ABS, EV_REL):
+                message += _(
+                    "\nIf you mean to create a analog axis mapping go to the "
+                    "'Advanced Input Configuration' and set a input to 'Use as Analog'."
+                )
+            return message
 
         return error_string
 

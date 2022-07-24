@@ -288,6 +288,21 @@ class TestMapping(unittest.IsolatedAsyncioTestCase):
         Mapping(**cfg, release_timeout=0.05)
         Mapping(**cfg, release_timeout=0.3)
 
+        # analog output but no analog input
+        cfg = {
+            "event_combination": "3,1,-1",
+            "target_uinput": "gamepad",
+            "output_type": 3,
+            "output_code": 1,
+        }
+        test(**cfg)
+        cfg["event_combination"] = "2,1,-1"
+        test(**cfg)
+        cfg["output_type"] = 2
+        test(**cfg)
+        cfg["event_combination"] = "3,1,-1"
+        test(**cfg)
+
     def test_revalidate_at_assignment(self):
         cfg = {
             "event_combination": "1,1,1",
@@ -351,7 +366,7 @@ class TestUIMapping(unittest.IsolatedAsyncioTestCase):
 
     def test_updates_validation_error(self):
         m = UIMapping()
-        self.assertIn("2 validation errors for UIMapping", str(m.get_error()))
+        self.assertIn("3 validation errors for UIMapping", str(m.get_error()))
         m.event_combination = "1,2,3"
         m.output_symbol = "a"
         self.assertIn(
