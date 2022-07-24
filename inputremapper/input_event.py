@@ -211,12 +211,12 @@ class InputEvent:
     def get_name(self) -> Optional[str]:
         """human-readable name"""
         if self.type not in ecodes.bytype:
-            logger.error("Unknown type for %s", self)
-            return "unknown"
+            logger.warning("Unknown type for %s", self)
+            return f"unknown {self.type, self.code}"
 
         if self.code not in ecodes.bytype[self.type]:
-            logger.error("Unknown code for %s", self)
-            return "unknown"
+            logger.warning("Unknown code for %s", self)
+            return f"unknown {self.type, self.code}"
 
         key_name = None
 
