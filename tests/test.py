@@ -506,8 +506,13 @@ class UInput:
         global uinputs
         uinputs[name] = self
 
-    def capabilities(self, *args, **kwargs):
-        return self.events
+    def capabilities(self, verbose=False, absinfo=True):
+        if absinfo or 3 not in self.events:
+            return self.events
+        else:
+            events = self.events.copy()
+            events[3] = [code for code, _ in self.events[3]]
+            return events
 
     def write(self, type, code, value):
         self.write_count += 1
