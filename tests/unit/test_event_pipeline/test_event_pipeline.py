@@ -241,6 +241,102 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
         self.assertIn((1, c, 0), kb_history)
         self.assertIn((1, d, 0), kb_history)
 
+    async def test_abs_to_abs(self):
+        gain = 0.5
+        preset = Preset()
+        # left x to mouse x
+        cfg = {
+            "event_combination": ",".join((str(EV_ABS), str(ABS_X), "0")),
+            "target_uinput": "gamepad",
+            "output_type": EV_ABS,
+            "output_code": ABS_X,
+            "gain": gain,
+            "deadzone": 0,
+        }
+        m1 = Mapping(**cfg)
+        preset.add(m1)
+        cfg["event_combination"] = ",".join((str(EV_ABS), str(ABS_Y), "0"))
+        cfg["output_code"] = ABS_Y
+        m2 = Mapping(**cfg)
+        preset.add(m2)
+
+        x = MAX_ABS
+        y = MAX_ABS
+
+        event_reader = self.get_event_reader(
+            preset, InputDevice("/dev/input/event30")
+        )  # gamepad Fixture
+
+        await self.send_events(
+            [
+                InputEvent.from_tuple((EV_ABS, ABS_X, -x)),
+                InputEvent.from_tuple((EV_ABS, ABS_Y, y)),
+            ],
+            event_reader,
+        )
+
+        await asyncio.sleep(0.2)
+        # convert the write history to some easier to manage list
+        history = convert_to_internal_events(
+            global_uinputs.get_uinput("gamepad").write_history
+        )
+        self.assertEqual(
+            history,
+            [
+                InputEvent.from_tuple((3, 0, -16384)),
+                InputEvent.from_tuple((3, 1, 16384)),
+            ],
+        )
+
+    async def test_abs_to_abs_with_input_switch(self):
+        gain = 0.5
+        preset = Preset()
+        # left x to mouse x
+        cfg = {
+            "event_combination": f"3,0,0+3,1,10",
+            "target_uinput": "gamepad",
+            "output_type": EV_ABS,
+            "output_code": ABS_X,
+            "gain": gain,
+            "deadzone": 0,
+        }
+        m1 = Mapping(**cfg)
+        preset.add(m1)
+
+        x = MAX_ABS
+        y = MAX_ABS
+
+        event_reader = self.get_event_reader(
+            preset, InputDevice("/dev/input/event30")
+        )  # gamepad Fixture
+
+        await self.send_events(
+            [
+                InputEvent.from_tuple((EV_ABS, ABS_X, -x // 5)),  # will not map
+                InputEvent.from_tuple((EV_ABS, ABS_X, -x)),  # will map later
+                # switch axis on sends initial position (previous event)
+                InputEvent.from_tuple((EV_ABS, ABS_Y, y)),
+                InputEvent.from_tuple((EV_ABS, ABS_X, x)),  # normally mapped
+                InputEvent.from_tuple((EV_ABS, ABS_Y, y // 15)),  # off, re-centers axis
+                InputEvent.from_tuple((EV_ABS, ABS_X, -x // 5)),  # will not map
+            ],
+            event_reader,
+        )
+
+        await asyncio.sleep(0.2)
+        # convert the write history to some easier to manage list
+        history = convert_to_internal_events(
+            global_uinputs.get_uinput("gamepad").write_history
+        )
+        self.assertEqual(
+            history,
+            [
+                InputEvent.from_tuple((3, 0, -16384)),
+                InputEvent.from_tuple((3, 0, 16384)),
+                InputEvent.from_tuple((3, 0, 0)),
+            ],
+        )
+
     async def test_abs_to_rel(self):
         """Map gamepad EV_ABS events to EV_REL events."""
 

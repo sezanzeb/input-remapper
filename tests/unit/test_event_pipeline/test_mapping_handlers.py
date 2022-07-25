@@ -49,6 +49,7 @@ from evdev.ecodes import (
     BTN_TL,
 )
 
+from inputremapper.injection.mapping_handlers.abs_to_abs_handler import AbsToAbsHandler
 from inputremapper.injection.mapping_handlers.abs_to_btn_handler import AbsToBtnHandler
 from inputremapper.injection.mapping_handlers.abs_to_rel_handler import AbsToRelHandler
 from inputremapper.injection.mapping_handlers.axis_switch_handler import (
@@ -120,6 +121,32 @@ class TestAbsToBtnHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
                 target_uinput="mouse",
                 output_symbol="BTN_LEFT",
             ),
+        )
+
+
+class TestAbsToAbsHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
+    def setUp(self):
+        self.handler = AbsToAbsHandler(
+            EventCombination((EV_ABS, ABS_X, 0)),
+            Mapping(
+                event_combination=f"{EV_ABS},{ABS_X},0",
+                target_uinput="gamepad",
+                output_type=EV_ABS,
+                output_code=ABS_X,
+            ),
+        )
+
+    async def test_reset(self):
+        self.handler.notify(
+            InputEvent(0, 0, EV_ABS, ABS_X, MAX_ABS),
+            source=InputDevice("/dev/input/event15"),
+            forward=evdev.UInput(),
+        )
+        self.handler.reset()
+        history = global_uinputs.get_uinput("gamepad").write_history
+        self.assertEqual(
+            history,
+            [InputEvent.from_tuple((3, 0, 32768)), InputEvent.from_tuple((3, 0, 0))],
         )
 
 

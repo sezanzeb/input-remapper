@@ -33,6 +33,7 @@ from inputremapper.configs.system_mapping import DISABLE_CODE, DISABLE_NAME
 from inputremapper.event_combination import EventCombination
 from inputremapper.exceptions import MappingParsingError
 from inputremapper.injection.macros.parse import is_this_a_macro
+from inputremapper.injection.mapping_handlers.abs_to_abs_handler import AbsToAbsHandler
 from inputremapper.injection.mapping_handlers.abs_to_btn_handler import AbsToBtnHandler
 from inputremapper.injection.mapping_handlers.abs_to_rel_handler import AbsToRelHandler
 from inputremapper.injection.mapping_handlers.axis_switch_handler import (
@@ -68,7 +69,7 @@ mapping_handler_classes: Dict[HandlerEnums, Optional[Type[MappingHandler]]] = {
     HandlerEnums.abs2rel: AbsToRelHandler,
     HandlerEnums.btn2abs: None,  # can be a macro
     HandlerEnums.rel2abs: None,
-    HandlerEnums.abs2abs: None,
+    HandlerEnums.abs2abs: AbsToAbsHandler,
     HandlerEnums.combination: CombinationHandler,
     HandlerEnums.hierarchy: HierarchyHandler,
     HandlerEnums.axisswitch: AxisSwitchHandler,

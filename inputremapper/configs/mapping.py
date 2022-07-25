@@ -292,15 +292,22 @@ class Mapping(BaseModel):
         return values
 
     @root_validator
-    def output_axis_given(cls, values):
-        """Validate that an output type is an axis if we have an input axis."""
+    def output_matches_input(cls, values):
+        """Validate that an output type is an axis if we have an input axis.
+        And vice versa"""
         combination: EventCombination = values.get("event_combination")
         output_type = values.get("output_type")
         event_values = [event.value for event in combination]
-        if 0 not in event_values:
-            return values
+        output_symbol = values.get("output_symbol")
 
-        if output_type not in (EV_ABS, EV_REL):
+        if 0 not in event_values and not output_symbol and output_type != EV_KEY:
+            raise ValueError(
+                f"missing macro or key: "
+                f"the {combination = } specifies a key input, "
+                f"but no output macro or key is programmed"
+            )
+
+        if 0 in event_values and output_type not in (EV_ABS, EV_REL):
             raise ValueError(
                 f"missing output axis: "
                 f"the {combination = } specifies a input axis, "

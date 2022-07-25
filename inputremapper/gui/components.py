@@ -917,15 +917,18 @@ class OutputAxisSelector:
             return
 
         capabilities = self._uinputs.get(target) or defaultdict(list)
-        types_codes = [(EV_ABS, code) for code in capabilities.get(EV_ABS) or ()]
+        types_codes = [
+            (EV_ABS, code) for code, absinfo in capabilities.get(EV_ABS) or ()
+        ]
         types_codes.extend((EV_REL, code) for code in capabilities.get(EV_REL) or ())
         self.model.clear()
         self.model.append([f"None, None", _("No Axis")])
-        for type_code in types_codes:
-            key_name = bytype[type_code[0]][type_code[1]]
+        for type, code in types_codes:
+
+            key_name = bytype[type][code]
             if isinstance(key_name, list):
                 key_name = key_name[0]
-            self.model.append([f"{type_code[0]}, {type_code[1]}", key_name])
+            self.model.append([f"{type}, {code}", key_name])
 
         self._current_target = target
 
