@@ -52,6 +52,7 @@ from inputremapper.injection.mapping_handlers.mapping_handler import (
     InputEventHandler,
 )
 from inputremapper.injection.mapping_handlers.null_handler import NullHandler
+from inputremapper.injection.mapping_handlers.rel_to_abs_handler import RelToAbsHandler
 from inputremapper.injection.mapping_handlers.rel_to_btn_handler import RelToBtnHandler
 from inputremapper.input_event import InputEvent
 from inputremapper.logger import logger
@@ -68,7 +69,7 @@ mapping_handler_classes: Dict[HandlerEnums, Optional[Type[MappingHandler]]] = {
     HandlerEnums.rel2rel: None,
     HandlerEnums.abs2rel: AbsToRelHandler,
     HandlerEnums.btn2abs: None,  # can be a macro
-    HandlerEnums.rel2abs: None,
+    HandlerEnums.rel2abs: RelToAbsHandler,
     HandlerEnums.abs2abs: AbsToAbsHandler,
     HandlerEnums.combination: CombinationHandler,
     HandlerEnums.hierarchy: HierarchyHandler,
