@@ -881,6 +881,42 @@ class ReleaseTimeoutInput:
         self._controller.update_mapping(release_timeout=self._gui.get_value())
 
 
+class RelativeInputCutoffInput:
+    """the number selector to set active_mapping.rel_input_cutoff"""
+
+    def __init__(
+        self,
+        message_broker: MessageBroker,
+        controller: Controller,
+        gui: Gtk.SpinButton,
+    ):
+        self._message_broker = message_broker
+        self._controller = controller
+        self._gui = gui
+
+        self._gui.set_increments(1, 1)
+        self._gui.set_range(1, 1000)
+        self._gui.connect("value-changed", self._on_gtk_changed)
+        self._message_broker.subscribe(MessageType.mapping, self._on_mapping_message)
+
+    def _on_mapping_message(self, mapping: MappingData):
+        if (
+            EV_REL in [event.type for event in mapping.event_combination]
+            and mapping.output_type == EV_ABS
+        ):
+            self._gui.set_sensitive(True)
+            self._gui.set_opacity(1)
+        else:
+            self._gui.set_sensitive(False)
+            self._gui.set_opacity(0.5)
+
+        with HandlerDisabled(self._gui, self._on_gtk_changed):
+            self._gui.set_value(mapping.rel_input_cutoff)
+
+    def _on_gtk_changed(self, *_):
+        self._controller.update_mapping(rel_input_cutoff=self._gui.get_value())
+
+
 class OutputAxisSelector:
     """the dropdown menu used to select the output axis if the active_mapping is a
     mapping targeting an analog axis

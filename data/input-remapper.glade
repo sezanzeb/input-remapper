@@ -958,7 +958,43 @@ Gives your keys back their original function</property>
                               </packing>
                             </child>
                             <child>
-                              <placeholder/>
+                              <object class="GtkBox">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="tooltip-text" translatable="yes">The Speed at wich the Input is concidered at maximum.
+Only relevant when mapping relative inputs (e.g. mouse) to absolute outputs (e.g. gamepad)</property>
+                                <property name="spacing">12</property>
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="label" translatable="yes">Input Cutoff:</property>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">0</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkSpinButton" id="input-cutoff-spin-btn">
+                                    <property name="width-request">150</property>
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">True</property>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="pack-type">end</property>
+                                    <property name="position">1</property>
+                                  </packing>
+                                </child>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">4</property>
+                              </packing>
                             </child>
                           </object>
                           <packing>
@@ -1491,6 +1527,46 @@ This can help when mapping a combination like Shift+A to map to a lowercase lett
               </packing>
             </child>
             <child>
+              <object class="GtkBox">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="tooltip-text" translatable="yes">The time [s] until a relative axis (e.g. mouse) is concidered stationary and will be released.</property>
+                <property name="spacing">12</property>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="label" translatable="yes">Release
+Timeout:</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkSpinButton" id="release-timeout-spin-button">
+                    <property name="visible">True</property>
+                    <property name="can-focus">True</property>
+                    <property name="width-chars">5</property>
+                    <property name="digits">3</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="pack-type">end</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">2</property>
+              </packing>
+            </child>
+            <child>
               <object class="GtkSeparator">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
@@ -1500,7 +1576,7 @@ This can help when mapping a combination like Shift+A to map to a lowercase lett
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
-                <property name="position">2</property>
+                <property name="position">3</property>
               </packing>
             </child>
             <child>
@@ -1512,7 +1588,7 @@ This can help when mapping a combination like Shift+A to map to a lowercase lett
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
-                <property name="position">3</property>
+                <property name="position">4</property>
               </packing>
             </child>
             <child>
@@ -1552,7 +1628,7 @@ This can help when mapping a combination like Shift+A to map to a lowercase lett
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
-                <property name="position">4</property>
+                <property name="position">5</property>
               </packing>
             </child>
             <child>
@@ -1592,7 +1668,7 @@ This can not be used with key or macro mappings.</property>
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
-                <property name="position">5</property>
+                <property name="position">6</property>
               </packing>
             </child>
             <child>
@@ -1624,46 +1700,6 @@ threshold:</property>
                     <property name="climb-rate">1</property>
                     <property name="snap-to-ticks">True</property>
                     <property name="numeric">True</property>
-                  </object>
-                  <packing>
-                    <property name="expand">False</property>
-                    <property name="fill">True</property>
-                    <property name="pack-type">end</property>
-                    <property name="position">1</property>
-                  </packing>
-                </child>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">6</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkBox">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="tooltip-text" translatable="yes">The time [s] until a relative axis (e.g. mouse) is concidered stationary and will be released.</property>
-                <property name="spacing">12</property>
-                <child>
-                  <object class="GtkLabel">
-                    <property name="visible">True</property>
-                    <property name="can-focus">False</property>
-                    <property name="label" translatable="yes">Release
-Timeout:</property>
-                  </object>
-                  <packing>
-                    <property name="expand">False</property>
-                    <property name="fill">True</property>
-                    <property name="position">0</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkSpinButton" id="release-timeout-spin-button">
-                    <property name="visible">True</property>
-                    <property name="can-focus">True</property>
-                    <property name="width-chars">5</property>
-                    <property name="digits">3</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>

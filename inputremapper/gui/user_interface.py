@@ -47,6 +47,7 @@ from inputremapper.gui.components import (
     ReleaseTimeoutInput,
     TransformationDrawArea,
     Sliders,
+    RelativeInputCutoffInput,
 )
 from inputremapper.gui.controller import Controller
 from inputremapper.gui.message_broker import MessageBroker, MessageType
@@ -156,6 +157,9 @@ class UserInterface:
         AnalogInputSwitch(message_broker, controller, self.get("analog-input-switch"))
         TriggerThresholdInput(
             message_broker, controller, self.get("trigger-threshold-spin-btn")
+        )
+        RelativeInputCutoffInput(
+            message_broker, controller, self.get("input-cutoff-spin-btn")
         )
         OutputAxisSelector(message_broker, controller, self.get("output-axis-selector"))
         ConfirmCancelDialog(
