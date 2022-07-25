@@ -300,9 +300,7 @@ class Mapping(BaseModel):
         event_values = [event.value for event in combination]
         output_symbol = values.get("output_symbol")
 
-        if 0 not in event_values and not (
-            output_symbol is not None or output_type == EV_KEY
-        ):
+        if 0 not in event_values and not output_symbol and output_type != EV_KEY:
             raise ValueError(
                 f"missing macro or key: "
                 f"the {combination = } specifies a key input, "
