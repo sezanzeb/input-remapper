@@ -52,7 +52,8 @@ class AbsToAbsHandler(MappingHandler):
     ) -> None:
         super(AbsToAbsHandler, self).__init__(combination, mapping)
 
-        # find the input event we are supposed to map
+        # find the input event we are supposed to map. If the input combination is
+        # BTN_A + ABS_X + BTN_B, then use the value of ABS_X for the transformation
         for event in combination:
             if event.value == 0:
                 assert event.type == EV_ABS
@@ -138,7 +139,7 @@ class AbsToAbsHandler(MappingHandler):
                 (*self._output_axis, value), self.mapping.target_uinput
             )
         except OverflowError:
-            # screwed up the calculation of mouse movements
+            # screwed up the calculation of the event value
             logger.error("OverflowError (%s, %s, %s)", *self._output_axis, value)
 
     def needs_wrapping(self) -> bool:
