@@ -23,7 +23,6 @@
 from contextlib import contextmanager
 from typing import Tuple, List
 
-from inputremapper.exceptions import DataManagementError
 from tests.test import (
     get_project_root,
     logger,
@@ -38,6 +37,8 @@ from tests.test import (
     MIN_ABS,
     get_ui_mapping,
     prepare_presets,
+    fixtures,
+    push_event,
 )
 
 import sys
@@ -567,7 +568,7 @@ class TestGui(GuiTestBase):
         gtk_iteration()
 
         push_events(
-            "Foo Device 2",
+            fixtures.foo_device_2_keyboard,
             [InputEvent.from_string("1,30,1"), InputEvent.from_string("1,31,1")],
         )
         self.throttle(20)
@@ -583,12 +584,12 @@ class TestGui(GuiTestBase):
         self.assertEqual(mock1.call_count, 2)
         mock2.assert_not_called()
 
-        push_events("Foo Device 2", [InputEvent.from_string("1,31,0")])
+        push_events(fixtures.foo_device_2_keyboard, [InputEvent.from_string("1,31,0")])
         self.throttle(20)
         self.assertEqual(mock1.call_count, 2)
         mock2.assert_not_called()
 
-        push_events("Foo Device 2", [InputEvent.from_string("1,30,0")])
+        push_events(fixtures.foo_device_2_keyboard, [InputEvent.from_string("1,30,0")])
         self.throttle(20)
         self.assertEqual(mock1.call_count, 2)
         mock2.assert_called_once()
@@ -603,7 +604,7 @@ class TestGui(GuiTestBase):
         # update the combination of the active mapping
         self.controller.start_key_recording()
         push_events(
-            "Foo Device 2",
+            fixtures.foo_device_2_keyboard,
             [InputEvent.from_string("1,30,1"), InputEvent.from_string("1,30,0")],
         )
         self.throttle(20)
@@ -624,7 +625,7 @@ class TestGui(GuiTestBase):
         # try to recorde the same combination
         self.controller.start_key_recording()
         push_events(
-            "Foo Device 2",
+            fixtures.foo_device_2_keyboard,
             [InputEvent.from_string("1,30,1"), InputEvent.from_string("1,30,0")],
         )
         self.throttle(20)
@@ -636,14 +637,14 @@ class TestGui(GuiTestBase):
 
         # try to recorde a different combination
         self.controller.start_key_recording()
-        push_events("Foo Device 2", [InputEvent.from_string("1,30,1")])
+        push_events(fixtures.foo_device_2_keyboard, [InputEvent.from_string("1,30,1")])
         self.throttle(20)
         # nothing changed yet, as we got the duplicate combination
         self.assertEqual(
             self.data_manager.active_mapping.event_combination,
             EventCombination.empty_combination(),
         )
-        push_events("Foo Device 2", [InputEvent.from_string("1,31,1")])
+        push_events(fixtures.foo_device_2_keyboard, [InputEvent.from_string("1,31,1")])
         self.throttle(20)
         # now the combination is different
         self.assertEqual(
@@ -652,7 +653,7 @@ class TestGui(GuiTestBase):
         )
 
         # let's make the combination even longer
-        push_events("Foo Device 2", [InputEvent.from_string("1,32,1")])
+        push_events(fixtures.foo_device_2_keyboard, [InputEvent.from_string("1,32,1")])
         self.throttle(20)
         self.assertEqual(
             self.data_manager.active_mapping.event_combination,
@@ -661,7 +662,7 @@ class TestGui(GuiTestBase):
 
         # make sure we stop recording by releasing all keys
         push_events(
-            "Foo Device 2",
+            fixtures.foo_device_2_keyboard,
             [
                 InputEvent.from_string("1,31,0"),
                 InputEvent.from_string("1,30,0"),
@@ -681,6 +682,7 @@ class TestGui(GuiTestBase):
         )
 
     def test_create_simple_mapping(self):
+        self.device_selection.set_active_id("Foo Device 2")
         # 1. create a mapping
         self.create_mapping_btn.clicked()
         gtk_iteration()
@@ -705,9 +707,9 @@ class TestGui(GuiTestBase):
         # 2. recorde a combination for that mapping
         self.recording_toggle.set_active(True)
         gtk_iteration()
-        push_events("Foo Device", [InputEvent.from_string("1,30,1")])
+        push_events(fixtures.foo_device_2_keyboard, [InputEvent.from_string("1,30,1")])
         self.throttle(20)
-        push_events("Foo Device", [InputEvent.from_string("1,30,0")])
+        push_events(fixtures.foo_device_2_keyboard, [InputEvent.from_string("1,30,0")])
         self.throttle(20)
 
         # check the event_combination
@@ -787,7 +789,7 @@ class TestGui(GuiTestBase):
             self.controller.create_mapping()
             gtk_iteration()
             self.controller.start_key_recording()
-            push_events("Foo Device 2", [event, event.modify(value=0)])
+            push_events(fixtures.foo_device_2_gamepad, [event, event.modify(value=0)])
             self.throttle(20)
             gtk_iteration()
             self.code_editor.get_buffer().set_text(symbol)
@@ -848,8 +850,25 @@ class TestGui(GuiTestBase):
             self.controller.create_mapping()
             gtk_iteration()
             self.controller.start_key_recording()
-            push_events("Foo Device 2", [event for event in combi])
-            push_events("Foo Device 2", [event.modify(value=0) for event in combi])
+            previous_event = InputEvent.from_string("1,1,1")
+            for event in combi:
+                if event.type != previous_event.type:
+                    self.throttle()  # avoid race condition if we switch fixture
+                if event.type == EV_KEY:
+                    push_event(fixtures.foo_device_2_keyboard, event)
+                if event.type == EV_ABS:
+                    push_event(fixtures.foo_device_2_gamepad, event)
+                if event.type == EV_REL:
+                    push_event(fixtures.foo_device_2_mouse, event)
+
+            for event in combi:
+                if event.type == EV_KEY:
+                    push_event(fixtures.foo_device_2_keyboard, event.modify(value=0))
+                if event.type == EV_ABS:
+                    push_event(fixtures.foo_device_2_gamepad, event.modify(value=0))
+                if event.type == EV_REL:
+                    pass
+
             self.throttle(20)
             gtk_iteration()
             self.code_editor.get_buffer().set_text(symbol)
@@ -1121,8 +1140,11 @@ class TestGui(GuiTestBase):
             self.controller.create_mapping()
             gtk_iteration()
             self.controller.start_key_recording()
-            push_events("Foo Device 2", [event for event in combi])
-            push_events("Foo Device 2", [event.modify(value=0) for event in combi])
+            push_events(fixtures.foo_device_2_keyboard, [event for event in combi])
+            push_events(
+                fixtures.foo_device_2_keyboard,
+                [event.modify(value=0) for event in combi],
+            )
             self.throttle(20)
             gtk_iteration()
             self.code_editor.get_buffer().set_text(symbol)
@@ -1491,7 +1513,7 @@ class TestGui(GuiTestBase):
         gtk_iteration()
 
         push_events(
-            "Foo Device 2",
+            fixtures.foo_device_2_keyboard,
             [
                 new_event(evdev.events.EV_KEY, 5, 1),
                 new_event(evdev.events.EV_KEY, 5, 0),
@@ -1537,7 +1559,7 @@ class TestGui(GuiTestBase):
         self.assertFalse(pipe.poll())
 
         push_events(
-            "Foo Device 2",
+            fixtures.foo_device_2_keyboard,
             [
                 new_event(evdev.events.EV_KEY, 5, 1),
                 new_event(evdev.events.EV_KEY, 5, 0),
@@ -1561,7 +1583,7 @@ class TestGui(GuiTestBase):
         self.assertEqual(self.data_manager.get_state(), STOPPED)
 
         push_events(
-            "Foo Device 2",
+            fixtures.foo_device_2_keyboard,
             [
                 new_event(evdev.events.EV_KEY, 5, 1),
                 new_event(evdev.events.EV_KEY, 5, 0),
@@ -1695,7 +1717,7 @@ class TestGui(GuiTestBase):
         self.controller.start_key_recording()
         gtk_iteration()
         push_events(
-            "Bar Device",
+            fixtures.bar_device,
             [
                 InputEvent.from_string("1,30,1"),
                 InputEvent.from_string("1,30,0"),

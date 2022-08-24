@@ -115,10 +115,7 @@ class TestController(unittest.TestCase):
             "get_newest_group_key",
             MagicMock(side_effect=FileNotFoundError),
         ):
-            fixture_keys = [
-                fixture.get("group_key") or fixture.get("name")
-                for fixture in fixtures.values()
-            ]
+            fixture_keys = [fixture.group_key or fixture.name for fixture in fixtures]
             self.assertIn(self.controller.get_a_group(), fixture_keys)
 
     def test_should_get_newest_preset(self):

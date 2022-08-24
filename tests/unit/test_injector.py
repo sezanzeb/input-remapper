@@ -125,7 +125,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(gamepad)
         self.assertEqual(self.failed, 2)
         # success on the third try
-        self.assertEqual(device.name, fixtures[path]["name"])
+        self.assertEqual(device.name, fixtures[path].name)
 
     def test_fail_grab(self):
         self.make_it_fail = 999
@@ -313,7 +313,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
             )
 
         push_events(
-            "gamepad",
+            fixtures.gamepad,
             [
                 # should execute a macro...
                 new_event(EV_KEY, 8, 1),  # forwarded
@@ -328,6 +328,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
                 new_event(EV_KEY, 10, 0),
                 new_event(3124, 3564, 6542),
             ],
+            force=True,
         )
 
         self.injector = Injector(groups.find(name="gamepad"), preset)

@@ -34,6 +34,8 @@ from tests.test import (
     quick_cleanup,
     MAX_ABS,
     MIN_ABS,
+    fixtures,
+    push_event,
 )
 
 import unittest
@@ -126,11 +128,14 @@ class TestReader(unittest.TestCase):
         self.reader.set_group(self.groups.find(key="Foo Device 2"))
         self.reader.start_recorder()
 
-        push_events("Foo Device 2", [new_event(EV_ABS, ABS_HAT0X, 1)])
+        push_events(fixtures.foo_device_2_gamepad, [new_event(EV_ABS, ABS_HAT0X, 1)])
+        # we need to sleep because we have two different fixtures,
+        # which will lead to race conditions
+        time.sleep(0.1)
 
         # relative axis events should be released automagically after 0.3s
-        push_events("Foo Device 2", [new_event(EV_REL, REL_X, 5)])
-        time.sleep(0.2)
+        push_events(fixtures.foo_device_2_mouse, [new_event(EV_REL, REL_X, 5)])
+        time.sleep(0.1)
         # read all pending events. Having a glib mainloop would be better,
         # as it would call read automatically periodically
         self.reader._read()
@@ -144,7 +149,7 @@ class TestReader(unittest.TestCase):
 
         # release the hat switch should emit the recording finished event
         # as both the hat and relative axis are released by now
-        push_events("Foo Device 2", [new_event(EV_ABS, ABS_HAT0X, 0)])
+        push_events(fixtures.foo_device_2_gamepad, [new_event(EV_ABS, ABS_HAT0X, 0)])
         time.sleep(0.3)
         self.reader._read()
         self.assertEqual([Signal(MessageType.recording_finished)], l2.calls)
@@ -159,7 +164,7 @@ class TestReader(unittest.TestCase):
         self.reader.set_group(self.groups.find(key="Foo Device 2"))
         self.reader.start_recorder()
 
-        push_events("Foo Device 2", [new_event(EV_REL, REL_X, -5)])
+        push_events(fixtures.foo_device_2_mouse, [new_event(EV_REL, REL_X, -5)])
         time.sleep(0.1)
         self.reader._read()
 
@@ -180,7 +185,7 @@ class TestReader(unittest.TestCase):
         self.reader.set_group(self.groups.find(key="Foo Device 2"))
         self.reader.start_recorder()
 
-        push_events("Foo Device 2", [new_event(EV_REL, REL_X, -1)])
+        push_events(fixtures.foo_device_2_mouse, [new_event(EV_REL, REL_X, -1)])
         time.sleep(0.1)
         self.reader._read()
         self.assertEqual(0, len(l1.calls))
@@ -193,7 +198,7 @@ class TestReader(unittest.TestCase):
         self.reader.start_recorder()
 
         push_events(
-            "Foo Device 2",
+            fixtures.foo_device_2_mouse,
             [new_event(EV_REL, REL_WHEEL, -1), new_event(EV_REL, REL_HWHEEL, 1)],
         )
         time.sleep(0.1)
@@ -214,11 +219,11 @@ class TestReader(unittest.TestCase):
         self.reader.set_group(self.groups.find(key="Foo Device 2"))
         self.reader.start_recorder()
 
-        push_events("Foo Device 2", [new_event(EV_KEY, KEY_A, 1)])
+        push_events(fixtures.foo_device_2_keyboard, [new_event(EV_KEY, KEY_A, 1)])
         time.sleep(0.1)
         self.reader._read()
         # the duplicate event should be ignored
-        push_events("Foo Device 2", [new_event(EV_KEY, KEY_A, 1)])
+        push_events(fixtures.foo_device_2_keyboard, [new_event(EV_KEY, KEY_A, 1)])
         time.sleep(0.1)
         self.reader._read()
 
@@ -237,7 +242,10 @@ class TestReader(unittest.TestCase):
         self.reader.start_recorder()
 
         # over 30% should trigger
-        push_events("Foo Device 2", [new_event(EV_ABS, ABS_X, int(MAX_ABS * 0.4))])
+        push_events(
+            fixtures.foo_device_2_gamepad,
+            [new_event(EV_ABS, ABS_X, int(MAX_ABS * 0.4))],
+        )
         time.sleep(0.1)
         self.reader._read()
         self.assertEqual(
@@ -247,7 +255,10 @@ class TestReader(unittest.TestCase):
         self.assertEqual([], l2.calls)  # no stop recording yet
 
         # less the 30% should release
-        push_events("Foo Device 2", [new_event(EV_ABS, ABS_X, int(MAX_ABS * 0.2))])
+        push_events(
+            fixtures.foo_device_2_gamepad,
+            [new_event(EV_ABS, ABS_X, int(MAX_ABS * 0.2))],
+        )
         time.sleep(0.1)
         self.reader._read()
         self.assertEqual(
@@ -263,12 +274,17 @@ class TestReader(unittest.TestCase):
         self.reader.set_group(self.groups.find(key="Foo Device 2"))
         self.reader.start_recorder()
 
+        push_event(fixtures.foo_device_2_keyboard, new_event(EV_KEY, KEY_A, 1))
+        time.sleep(0.1)
+        push_event(
+            fixtures.foo_device_2_gamepad, new_event(EV_ABS, ABS_X, int(MAX_ABS * 0.4))
+        )
+        time.sleep(0.1)
+        push_event(fixtures.foo_device_2_keyboard, new_event(EV_KEY, KEY_COMMA, 1))
+        time.sleep(0.1)
         push_events(
-            "Foo Device 2",
+            fixtures.foo_device_2_gamepad,
             [
-                new_event(EV_KEY, KEY_A, 1),
-                new_event(EV_ABS, ABS_X, int(MAX_ABS * 0.4)),
-                new_event(EV_KEY, KEY_COMMA, 1),
                 new_event(EV_ABS, ABS_X, int(MAX_ABS * 0.1)),
                 new_event(EV_ABS, ABS_X, int(MIN_ABS * 0.4)),
             ],
@@ -294,7 +310,7 @@ class TestReader(unittest.TestCase):
         self.message_broker.subscribe(MessageType.combination_recorded, l1)
 
         push_events(
-            "Foo Device 2",
+            fixtures.foo_device_2_keyboard,
             [
                 new_event(EV_KEY, 1, 1),
             ]
@@ -302,7 +318,7 @@ class TestReader(unittest.TestCase):
         )
 
         push_events(
-            "Bar Device",
+            fixtures.bar_device,
             [
                 new_event(EV_KEY, 2, 1),
                 new_event(EV_KEY, 2, 0),
@@ -326,7 +342,7 @@ class TestReader(unittest.TestCase):
         self.assertEqual(len(l1.calls), 1)
 
         self.reader.start_recorder()
-        push_events("Bar Device", [new_event(EV_KEY, 2, 1)])
+        push_events(fixtures.bar_device, [new_event(EV_KEY, 2, 1)])
         time.sleep(0.1)
         self.reader._read()
         self.assertEqual(l1.calls[1].combination, EventCombination((EV_KEY, 2, 1)))
@@ -336,7 +352,7 @@ class TestReader(unittest.TestCase):
         self.message_broker.subscribe(MessageType.combination_recorded, l1)
         # a combination of events
         push_events(
-            "Foo Device 2",
+            fixtures.foo_device_2_keyboard,
             [
                 new_event(EV_KEY, CODE_1, 1, 10000.1234),
                 new_event(EV_KEY, CODE_3, 1, 10001.1234),
@@ -360,7 +376,10 @@ class TestReader(unittest.TestCase):
         # sending anything arbitrary does not stop the helper
         self.reader._commands.send(856794)
         time.sleep(0.2)
-        push_events("Foo Device 2", [new_event(EV_ABS, ABS_HAT0X, -1, 10002.1234)])
+        push_events(
+            fixtures.foo_device_2_gamepad,
+            [new_event(EV_ABS, ABS_HAT0X, -1, 10002.1234)],
+        )
         time.sleep(0.1)
         # but it makes it look for new devices because maybe its list of
         # self.groups is not up-to-date
@@ -378,12 +397,13 @@ class TestReader(unittest.TestCase):
         self.message_broker.subscribe(MessageType.combination_recorded, l1)
 
         push_events(
-            "Foo Device 2",
+            fixtures.foo_device_2_mouse,
             [
                 new_event(EV_KEY, BTN_TOOL_DOUBLETAP, 1),
                 new_event(EV_KEY, CODE_2, 1),
                 new_event(EV_KEY, BTN_TOOL_DOUBLETAP, 1),
             ],
+            force=True,
         )
         self.create_helper()
         self.reader.set_group(self.groups.find(key="Foo Device 2"))
@@ -399,8 +419,9 @@ class TestReader(unittest.TestCase):
         self.message_broker.subscribe(MessageType.combination_recorded, l1)
         # this is not a combination, because (EV_KEY CODE_3, 2) is ignored
         push_events(
-            "Foo Device 2",
+            fixtures.foo_device_2_gamepad,
             [new_event(EV_ABS, ABS_HAT0X, 1), new_event(EV_KEY, CODE_3, 2)],
+            force=True,
         )
         self.create_helper()
         self.reader.set_group(self.groups.find(key="Foo Device 2"))
@@ -415,7 +436,7 @@ class TestReader(unittest.TestCase):
         l1 = Listener()
         self.message_broker.subscribe(MessageType.combination_recorded, l1)
         push_events(
-            "Foo Device 2",
+            fixtures.foo_device_2_keyboard,
             [
                 new_event(EV_KEY, CODE_1, 0, 10),
                 new_event(EV_KEY, CODE_2, 1, 11),
@@ -436,7 +457,7 @@ class TestReader(unittest.TestCase):
         self.message_broker.subscribe(MessageType.combination_recorded, l1)
 
         push_events(
-            "Foo Device 2",
+            fixtures.foo_device_2_keyboard,
             [
                 new_event(EV_KEY, CODE_1, 1),
                 new_event(EV_KEY, CODE_2, 1),
@@ -458,7 +479,7 @@ class TestReader(unittest.TestCase):
         l1 = Listener()
         self.message_broker.subscribe(MessageType.combination_recorded, l1)
         push_events(
-            "input-remapper Bar Device",
+            fixtures.input_remapper_bar_device,
             [
                 new_event(EV_KEY, CODE_1, 1),
                 new_event(EV_KEY, CODE_2, 1),
@@ -476,7 +497,7 @@ class TestReader(unittest.TestCase):
         self.create_helper()
         self.reader.set_group(self.groups.find(key="Foo Device 2"))
 
-        push_events("Foo Device 2", [new_event(EV_KEY, CODE_3, 1)])
+        push_events(fixtures.foo_device_2_keyboard, [new_event(EV_KEY, CODE_3, 1)])
         time.sleep(START_READING_DELAY + EVENT_READ_TIMEOUT)
         self.assertTrue(self.reader._results.poll())
 
@@ -485,7 +506,7 @@ class TestReader(unittest.TestCase):
         self.assertFalse(self.reader._results.poll())
 
         # no new events arrive after terminating
-        push_events("Foo Device 2", [new_event(EV_KEY, CODE_3, 1)])
+        push_events(fixtures.foo_device_2_keyboard, [new_event(EV_KEY, CODE_3, 1)])
         time.sleep(EVENT_READ_TIMEOUT * 3)
         self.assertFalse(self.reader._results.poll())
 
