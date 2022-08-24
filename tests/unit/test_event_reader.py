@@ -74,7 +74,7 @@ class TestEventReader(unittest.IsolatedAsyncioTestCase):
         # won't care about the event, because the purpose is not set to BUTTON
         code_a = system_mapping.get("a")
         code_shift = system_mapping.get("KEY_LEFTSHIFT")
-        trigger = 1
+        trigger = evdev.ecodes.BTN_A
 
         self.preset.add(
             get_key_mapping(
@@ -117,9 +117,8 @@ class TestEventReader(unittest.IsolatedAsyncioTestCase):
             [
                 new_event(EV_KEY, trigger, 1),  # start the macro
                 new_event(EV_ABS, ABS_Y, 10),  # ignored
-                new_event(EV_KEY, 2, 2),  # ignored
-                new_event(EV_KEY, 2, 0),  # ignored
-                new_event(EV_REL, 1, 1),  # ignored
+                new_event(EV_KEY, evdev.ecodes.BTN_B, 2),  # ignored
+                new_event(EV_KEY, evdev.ecodes.BTN_B, 0),  # ignored
                 # stop it, the only way to trigger `then`
                 new_event(EV_KEY, trigger, 0),
             ]
@@ -138,7 +137,7 @@ class TestEventReader(unittest.IsolatedAsyncioTestCase):
         """Triggers then because the joystick events value is too low."""
         # TODO: Move this somewhere more sensible
         code_a = system_mapping.get("a")
-        trigger = 1
+        trigger = evdev.ecodes.BTN_A
         self.preset.add(
             get_key_mapping(
                 EventCombination([EV_KEY, trigger, 1]),

@@ -23,8 +23,10 @@
 
 This module needs to be imported first in test files.
 """
+from __future__ import annotations
 
 import argparse
+import dataclasses
 import json
 import os
 import sys
@@ -32,11 +34,19 @@ import tempfile
 import traceback
 import warnings
 from multiprocessing.connection import Connection
-from typing import Dict, Tuple
+from typing import Dict, Tuple, Optional
 import tracemalloc
 
 tracemalloc.start()
 
+# ensure nothing has loaded
+if module := sys.modules.get("inputremapper"):
+    imported = [m for m in module.__dict__ if not m.startswith("__")]
+    raise AssertionError(
+        f"the modules {imported} from inputremapper where already imported, this can "
+        f"cause issues with the tests. Make sure to always import tests.test before any"
+        f" inputremapper module"
+    )
 try:
     sys.modules.get("tests.test").main
     raise AssertionError(
@@ -151,7 +161,7 @@ tmp = temporary_directory.name
 uinput_write_history = []
 # for tests that makes the injector create its processes
 uinput_write_history_pipe = multiprocessing.Pipe()
-pending_events: Dict[str, Tuple[Connection, Connection]] = {}
+pending_events: Dict[Fixture, Tuple[Connection, Connection]] = {}
 
 
 def read_write_history_pipe():
@@ -170,21 +180,36 @@ info_foo = evdev.device.DeviceInfo(1, 1, 1, 1)
 
 keyboard_keys = sorted(evdev.ecodes.keys.keys())[:255]
 
-fixtures = {
-    "/dev/input/event1": {
-        "capabilities": {
+
+@dataclasses.dataclass(frozen=True)
+class Fixture:
+    capabilities: Dict = dataclasses.field(default_factory=dict)
+    path: str = ""
+    name: str = "unset"
+    info: evdev.device.DeviceInfo = evdev.device.DeviceInfo(None, None, None, None)
+    phys: str = "unset"
+    group_key: Optional[str] = None
+
+    def __hash__(self):
+        return hash(self.path)
+
+
+class _Fixtures:
+    dev_input_event1 = Fixture(
+        capabilities={
             evdev.ecodes.EV_KEY: [evdev.ecodes.KEY_A],
         },
-        "phys": "usb-0000:03:00.0-0/input1",
-        "info": info_foo,
-        "name": "Foo Device",
-    },
+        phys="usb-0000:03:00.0-0/input1",
+        info=info_foo,
+        name="Foo Device",
+        path="/dev/input/event1",
+    )
     # Another "Foo Device", which will get an incremented key.
     # If possible write tests using this one, because name != key here and
     # that would be important to test as well. Otherwise the tests can't
     # see if the groups correct attribute is used in functions and paths.
-    "/dev/input/event11": {
-        "capabilities": {
+    dev_input_event11 = Fixture(
+        capabilities={
             evdev.ecodes.EV_KEY: [
                 evdev.ecodes.BTN_LEFT,
                 evdev.ecodes.BTN_TOOL_DOUBLETAP,
@@ -196,34 +221,38 @@ fixtures = {
                 evdev.ecodes.REL_HWHEEL,
             ],
         },
-        "phys": f"{phys_foo}/input2",
-        "info": info_foo,
-        "name": "Foo Device foo",
-        "group_key": "Foo Device 2",  # expected key
-    },
-    "/dev/input/event10": {
-        "capabilities": {evdev.ecodes.EV_KEY: keyboard_keys},
-        "phys": f"{phys_foo}/input3",
-        "info": info_foo,
-        "name": "Foo Device",
-        "group_key": "Foo Device 2",
-    },
-    "/dev/input/event13": {
-        "capabilities": {evdev.ecodes.EV_KEY: [], evdev.ecodes.EV_SYN: []},
-        "phys": f"{phys_foo}/input1",
-        "info": info_foo,
-        "name": "Foo Device",
-        "group_key": "Foo Device 2",
-    },
-    "/dev/input/event14": {
-        "capabilities": {evdev.ecodes.EV_SYN: []},
-        "phys": f"{phys_foo}/input0",
-        "info": info_foo,
-        "name": "Foo Device qux",
-        "group_key": "Foo Device 2",
-    },
-    "/dev/input/event15": {
-        "capabilities": {
+        phys=f"{phys_foo}/input2",
+        info=info_foo,
+        name="Foo Device foo",
+        group_key="Foo Device 2",  # expected key
+        path="/dev/input/event11",
+    )
+    dev_input_event10 = Fixture(
+        capabilities={evdev.ecodes.EV_KEY: keyboard_keys},
+        phys=f"{phys_foo}/input3",
+        info=info_foo,
+        name="Foo Device",
+        group_key="Foo Device 2",
+        path="/dev/input/event10",
+    )
+    dev_input_event13 = Fixture(
+        capabilities={evdev.ecodes.EV_KEY: [], evdev.ecodes.EV_SYN: []},
+        phys=f"{phys_foo}/input1",
+        info=info_foo,
+        name="Foo Device",
+        group_key="Foo Device 2",
+        path="/dev/input/event13",
+    )
+    dev_input_event14 = Fixture(
+        capabilities={evdev.ecodes.EV_SYN: []},
+        phys=f"{phys_foo}/input0",
+        info=info_foo,
+        name="Foo Device qux",
+        group_key="Foo Device 2",
+        path="/dev/input/event14",
+    )
+    dev_input_event15 = Fixture(
+        capabilities={
             evdev.ecodes.EV_SYN: [],
             evdev.ecodes.EV_ABS: [
                 evdev.ecodes.ABS_X,
@@ -237,20 +266,22 @@ fixtures = {
             ],
             evdev.ecodes.EV_KEY: [evdev.ecodes.BTN_A],
         },
-        "phys": f"{phys_foo}/input4",
-        "info": info_foo,
-        "name": "Foo Device bar",
-        "group_key": "Foo Device 2",
-    },
+        phys=f"{phys_foo}/input4",
+        info=info_foo,
+        name="Foo Device bar",
+        group_key="Foo Device 2",
+        path="/dev/input/event15",
+    )
     # Bar Device
-    "/dev/input/event20": {
-        "capabilities": {evdev.ecodes.EV_KEY: keyboard_keys},
-        "phys": "usb-0000:03:00.0-2/input1",
-        "info": evdev.device.DeviceInfo(2, 1, 2, 1),
-        "name": "Bar Device",
-    },
-    "/dev/input/event30": {
-        "capabilities": {
+    dev_input_event20 = Fixture(
+        capabilities={evdev.ecodes.EV_KEY: keyboard_keys},
+        phys="usb-0000:03:00.0-2/input1",
+        info=evdev.device.DeviceInfo(2, 1, 2, 1),
+        name="Bar Device",
+        path="/dev/input/event20",
+    )
+    dev_input_event30 = Fixture(
+        capabilities={
             evdev.ecodes.EV_SYN: [],
             evdev.ecodes.EV_ABS: [
                 evdev.ecodes.ABS_X,
@@ -262,51 +293,156 @@ fixtures = {
                 evdev.ecodes.ABS_HAT0X,
                 evdev.ecodes.ABS_HAT0Y,
             ],
-            evdev.ecodes.EV_KEY: [evdev.ecodes.BTN_A],
+            evdev.ecodes.EV_KEY: [
+                evdev.ecodes.BTN_A,
+                evdev.ecodes.BTN_B,
+                evdev.ecodes.BTN_X,
+                evdev.ecodes.BTN_Y,
+            ],
         },
-        "phys": "",  # this is empty sometimes
-        "info": evdev.device.DeviceInfo(3, 1, 3, 1),
-        "name": "gamepad",
-    },
+        phys="",  # this is empty sometimes
+        info=evdev.device.DeviceInfo(3, 1, 3, 1),
+        name="gamepad",
+        path="/dev/input/event30",
+    )
     # device that is completely ignored
-    "/dev/input/event31": {
-        "capabilities": {evdev.ecodes.EV_SYN: []},
-        "phys": "usb-0000:03:00.0-4/input1",
-        "info": evdev.device.DeviceInfo(4, 1, 4, 1),
-        "name": "Power Button",
-    },
+    dev_input_event31 = Fixture(
+        capabilities={evdev.ecodes.EV_SYN: []},
+        phys="usb-0000:03:00.0-4/input1",
+        info=evdev.device.DeviceInfo(4, 1, 4, 1),
+        name="Power Button",
+        path="/dev/input/event31",
+    )
     # input-remapper devices are not displayed in the ui, some instance
     # of input-remapper started injecting apparently.
-    "/dev/input/event40": {
-        "capabilities": {evdev.ecodes.EV_KEY: keyboard_keys},
-        "phys": "input-remapper/input1",
-        "info": evdev.device.DeviceInfo(5, 1, 5, 1),
-        "name": "input-remapper Bar Device",
-    },
+    dev_input_event40 = Fixture(
+        capabilities={evdev.ecodes.EV_KEY: keyboard_keys},
+        phys="input-remapper/input1",
+        info=evdev.device.DeviceInfo(5, 1, 5, 1),
+        name="input-remapper Bar Device",
+        path="/dev/input/event40",
+    )
     # denylisted
-    "/dev/input/event51": {
-        "capabilities": {evdev.ecodes.EV_KEY: keyboard_keys},
-        "phys": "usb-0000:03:00.0-5/input1",
-        "info": evdev.device.DeviceInfo(6, 1, 6, 1),
-        "name": "YuBiCofooYuBiKeYbar",
-    },
-}
+    dev_input_event51 = Fixture(
+        capabilities={evdev.ecodes.EV_KEY: keyboard_keys},
+        phys="usb-0000:03:00.0-5/input1",
+        info=evdev.device.DeviceInfo(6, 1, 6, 1),
+        name="YuBiCofooYuBiKeYbar",
+        path="/dev/input/event51",
+    )
+
+    def __init__(self):
+        self._iter = [
+            self.dev_input_event1,
+            self.dev_input_event11,
+            self.dev_input_event10,
+            self.dev_input_event13,
+            self.dev_input_event14,
+            self.dev_input_event15,
+            self.dev_input_event20,
+            self.dev_input_event30,
+            self.dev_input_event31,
+            self.dev_input_event40,
+            self.dev_input_event51,
+        ]
+        self._dynamic_fixtures = {}
+
+    def __getitem__(self, item: str) -> Fixture:
+        if fixture := self._dynamic_fixtures.get(item):
+            return fixture
+        item = self._path_to_attribute(item)
+
+        try:
+            return getattr(self, item)
+        except AttributeError as e:
+            raise KeyError(str(e))
+
+    def __setitem__(self, key: str, value: [Fixture | dict]):
+        if isinstance(value, Fixture):
+            self._dynamic_fixtures[key] = value
+        elif isinstance(value, dict):
+            self._dynamic_fixtures[key] = Fixture(path=key, **value)
+
+    def __iter__(self):
+        return iter([*self._iter, *self._dynamic_fixtures.values()])
+
+    def reset(self):
+        self._dynamic_fixtures = {}
+
+    @staticmethod
+    def _path_to_attribute(path) -> str:
+        if path.startswith("/"):
+            path = path[1:]
+        if "/" in path:
+            path = path.replace("/", "_")
+        return path
+
+    def get(self, item) -> Optional[Fixture]:
+        try:
+            return self[item]
+        except KeyError:
+            return None
+
+    @property
+    def foo_device_1_1(self):
+        return self["/dev/input/event1"]
+
+    @property
+    def foo_device_2_mouse(self):
+        return self["/dev/input/event11"]
+
+    @property
+    def foo_device_2_keyboard(self):
+        return self["/dev/input/event10"]
+
+    @property
+    def foo_device_2_13(self):
+        return self["/dev/input/event13"]
+
+    @property
+    def foo_device_2_qux(self):
+        return self["/dev/input/event14"]
+
+    @property
+    def foo_device_2_gamepad(self):
+        return self["/dev/input/event15"]
+
+    @property
+    def bar_device(self):
+        return self["/dev/input/event20"]
+
+    @property
+    def gamepad(self):
+        return self["/dev/input/event30"]
+
+    @property
+    def power_button(self):
+        return self["/dev/input/event31"]
+
+    @property
+    def input_remapper_bar_device(self):
+        return self["/dev/input/event40"]
+
+    @property
+    def YuBiCofooYuBiKeYbar(self):
+        return self["/dev/input/event51"]
 
 
-def setup_pipe(group_key):
+fixtures = _Fixtures()
+
+
+def setup_pipe(fixture: Fixture):
     """Create a pipe that can be used to send events to the helper,
     which in turn will be sent to the reader
     """
-    if pending_events.get(group_key) is None:
-        logger.info("creating Pipe for %s", group_key)
-        pending_events[group_key] = multiprocessing.Pipe()
+    if pending_events.get(fixture) is None:
+        pending_events[fixture] = multiprocessing.Pipe()
 
 
 # make sure those pipes exist before any process (the helper) gets forked,
 # so that events can be pushed after the fork.
-for fixture in fixtures.values():
-    if "group_key" in fixture:
-        setup_pipe(fixture["group_key"])
+for _fixture in fixtures:
+    setup_pipe(_fixture)
 
 
 def get_events():
@@ -314,7 +450,7 @@ def get_events():
     return uinput_write_history
 
 
-def push_event(group_key, event):
+def push_event(fixture: Fixture, event, force=False):
     """Make a device act like it is reading events from evdev.
 
     push_event is like hitting a key on a keyboard for stuff that reads from
@@ -322,19 +458,25 @@ def push_event(group_key, event):
 
     Parameters
     ----------
-    group_key : string
+    fixture : Fixture
         For example 'Foo Device'
     event : InputEvent
+    force : bool don't check if the event is in fixture.capabilities
     """
-    setup_pipe(group_key)
-    logger.info("Simulating %s for %s", event, group_key)
-    pending_events[group_key][0].send(event)
+    setup_pipe(fixture)
+    if not force and (
+        not fixture.capabilities.get(event.type)
+        or event.code not in fixture.capabilities[event.type]
+    ):
+        raise AssertionError(f"Fixture {fixture.path} cannot send {event}")
+    logger.info("Simulating %s for %s", event, fixture.path)
+    pending_events[fixture][0].send(event)
 
 
-def push_events(group_key, events):
+def push_events(fixture: Fixture, events, force=False):
     """Push multiple events."""
     for event in events:
-        push_event(group_key, event)
+        push_event(fixture, event, force)
 
 
 def new_event(type, code, value, timestamp=None, offset=0):
@@ -360,27 +502,30 @@ class InputDevice:
     path = None
 
     def __init__(self, path):
-        if path != "justdoit" and path not in fixtures:
+        if path != "justdoit" and not fixtures.get(path):
             raise FileNotFoundError()
+        if path == "justdoit":
+            self._fixture = Fixture()
+        else:
+            self._fixture = fixtures[path]
 
         self.path = path
-        fixture = fixtures.get(path, {})
-        self.phys = fixture.get("phys", "unset")
-        self.info = fixture.get("info", evdev.device.DeviceInfo(None, None, None, None))
-        self.name = fixture.get("name", "unset")
+        self.phys = self._fixture.phys
+        self.info = self._fixture.info
+        self.name = self._fixture.name
 
         # this property exists only for test purposes and is not part of
         # the original evdev.InputDevice class
-        self.group_key = fixture.get("group_key", self.name)
+        self.group_key = self._fixture.group_key or self._fixture.name
 
         # ensure a pipe exists to make this object act like
         # it is reading events from a device
-        setup_pipe(self.group_key)
+        setup_pipe(self._fixture)
 
-        self.fd = pending_events[self.group_key][1].fileno()
+        self.fd = pending_events[self._fixture][1].fileno()
 
     def push_events(self, events):
-        push_events(self.group_key, events)
+        push_events(self._fixture, events)
 
     def fileno(self):
         """Compatibility to select.select."""
@@ -405,13 +550,13 @@ class InputDevice:
         while True:
             await new_frame.wait()
             new_frame.clear()
-            if not pending_events[self.group_key][1].poll():
+            if not pending_events[self._fixture][1].poll():
                 # todo: why? why do we need this?
                 # sometimes this happens, as if a other process calls recv on
                 # the pipe
                 continue
 
-            event = pending_events[self.group_key][1].recv()
+            event = pending_events[self._fixture][1].recv()
             logger.info("got %s at %s", event, self.path)
             yield event
 
@@ -425,8 +570,8 @@ class InputDevice:
             return
 
         # consume all of them
-        while pending_events[self.group_key][1].poll():
-            event = pending_events[self.group_key][1].recv()
+        while pending_events[self._fixture][1].poll():
+            event = pending_events[self._fixture][1].recv()
             self.log(event, "read")
             yield event
             time.sleep(EVENT_READ_TIMEOUT)
@@ -434,7 +579,7 @@ class InputDevice:
     def read_loop(self):
         """Endless loop that yields events."""
         while True:
-            event = pending_events[self.group_key][1].recv()
+            event = pending_events[self._fixture][1].recv()
             if event is not None:
                 self.log(event, "read_loop")
                 yield event
@@ -442,14 +587,14 @@ class InputDevice:
 
     def read_one(self):
         """Read one event or none if nothing available."""
-        if not pending_events.get(self.group_key):
+        if not pending_events.get(self._fixture):
             return None
 
-        if not pending_events[self.group_key][1].poll():
+        if not pending_events[self._fixture][1].poll():
             return None
 
         try:
-            event = pending_events[self.group_key][1].recv()
+            event = pending_events[self._fixture][1].recv()
         except (UnpicklingError, EOFError):
             # failed in tests sometimes
             return None
@@ -458,7 +603,7 @@ class InputDevice:
         return event
 
     def capabilities(self, absinfo=True, verbose=False):
-        result = copy.deepcopy(fixtures[self.path]["capabilities"])
+        result = copy.deepcopy(self._fixture.capabilities)
 
         if absinfo and evdev.ecodes.EV_ABS in result:
             absinfo_obj = evdev.AbsInfo(
@@ -537,7 +682,7 @@ class InputEvent(evdev.InputEvent):
 
 def patch_evdev():
     def list_devices():
-        return fixtures.keys()
+        return [fixture_.path for fixture_ in fixtures]
 
     evdev.list_devices = list_devices
     evdev.InputDevice = InputDevice
@@ -637,7 +782,6 @@ from inputremapper.injection.global_uinputs import global_uinputs
 Injector.regrab_timeout = 0.05
 
 
-_fixture_copy = copy.deepcopy(fixtures)
 environ_copy = copy.deepcopy(os.environ)
 
 
@@ -681,7 +825,9 @@ def quick_cleanup(log=True):
             pass
 
         # setup new pipes for the next test
-        pending_events[device] = None
+        pending_events[device][1].close()
+        pending_events[device][0].close()
+        del pending_events[device]
         setup_pipe(device)
 
     try:
@@ -723,13 +869,7 @@ def quick_cleanup(log=True):
     #    del active_macros[device]
     # for device in list(unreleased.keys()):
     #    del unreleased[device]
-
-    for path in list(fixtures.keys()):
-        if path not in _fixture_copy:
-            del fixtures[path]
-    for path in list(_fixture_copy.keys()):
-        fixtures[path] = copy.deepcopy(_fixture_copy[path])
-
+    fixtures.reset()
     os.environ.update(environ_copy)
     for device in list(os.environ.keys()):
         if device not in environ_copy:
@@ -823,13 +963,13 @@ def prepare_presets():
     preset1.add(get_key_mapping(combination="1,2,1"))
     preset1.save()
 
-    time.sleep(0.05)
+    time.sleep(0.1)
     preset2 = Preset(get_preset_path("Foo Device", "preset2"))
     preset2.add(get_key_mapping(combination="1,3,1"))
     preset2.add(get_key_mapping(combination="1,4,1"))
     preset2.save()
 
-    time.sleep(0.05)  # make sure the timestamp of preset 3 is the newest
+    time.sleep(0.1)  # make sure the timestamp of preset 3 is the newest
     preset3 = Preset(get_preset_path("Foo Device", "preset3"))
     preset3.add(get_key_mapping(combination="1,5,1"))
     preset3.save()

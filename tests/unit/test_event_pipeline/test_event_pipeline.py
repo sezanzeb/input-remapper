@@ -56,6 +56,8 @@ from tests.test import (
     convert_to_internal_events,
     MAX_ABS,
     MIN_ABS,
+    Fixture,
+    fixtures,
 )
 
 from inputremapper.input_event import InputEvent
@@ -77,6 +79,10 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
     def tearDown(self) -> None:
         cleanup()
 
+    async def asyncTearDown(self) -> None:
+        self.stop_event.set()
+        await asyncio.sleep(0.5)
+
     @staticmethod
     async def send_events(events: Iterable[InputEvent], event_reader: EventReader):
         for event in events:
@@ -86,10 +92,17 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
     def get_event_reader(
         self,
         preset: Preset,
-        source: evdev.InputDevice,
+        source: Fixture,
     ) -> EventReader:
         context = Context(preset)
-        return EventReader(context, source, self.forward_uinput, self.stop_event)
+        reader = EventReader(
+            context,
+            evdev.InputDevice(source.path),
+            self.forward_uinput,
+            self.stop_event,
+        )
+        asyncio.ensure_future(reader.run())
+        return reader
 
     async def test_any_event_as_button(self):
         """As long as there is an event handler and a mapping we should be able
@@ -149,7 +162,7 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
         )
 
         event_reader = self.get_event_reader(
-            preset, InputDevice("/dev/input/event30")
+            preset, fixtures.gamepad
         )  # gamepad fixture
 
         await self.send_events(
@@ -198,7 +211,7 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
         preset.add(
             get_key_mapping(combination="1,3,1", output_symbol="modify(c,hold(d))"),
         )
-        event_reader = self.get_event_reader(preset, InputDevice("/dev/input/event10"))
+        event_reader = self.get_event_reader(preset, fixtures.foo_device_2_keyboard)
 
         a = system_mapping.get("a")
         b = system_mapping.get("b")
@@ -264,7 +277,7 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
         y = MAX_ABS
 
         event_reader = self.get_event_reader(
-            preset, InputDevice("/dev/input/event30")
+            preset, fixtures.gamepad
         )  # gamepad Fixture
 
         await self.send_events(
@@ -307,7 +320,7 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
         y = MAX_ABS
 
         event_reader = self.get_event_reader(
-            preset, InputDevice("/dev/input/event30")
+            preset, fixtures.gamepad
         )  # gamepad Fixture
 
         await self.send_events(
@@ -369,7 +382,7 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
         y = MAX_ABS
 
         event_reader = self.get_event_reader(
-            preset, InputDevice("/dev/input/event30")
+            preset, fixtures.gamepad
         )  # gamepad Fixture
 
         await self.send_events(
@@ -447,7 +460,7 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
         y = MAX_ABS
 
         event_reader = self.get_event_reader(
-            preset, InputDevice("/dev/input/event30")
+            preset, fixtures.gamepad
         )  # gamepad Fixture
 
         await self.send_events(
@@ -493,7 +506,7 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
         system_mapping._set("b", 77)
         preset.add(get_key_mapping(EventCombination([1, BTN_A, 1]), "keyboard", "b"))
         event_reader = self.get_event_reader(
-            preset, InputDevice("/dev/input/event30")
+            preset, fixtures.gamepad
         )  # gamepad Fixture
 
         # should forward them unmodified
@@ -530,7 +543,7 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
         system_mapping._set("b", 77)
         preset.add(get_key_mapping(EventCombination([1, BTN_LEFT, 1]), "keyboard", "b"))
         event_reader = self.get_event_reader(
-            preset, InputDevice("/dev/input/event11")
+            preset, fixtures.gamepad
         )  # gamepad Fixture
 
         # should forward them unmodified
@@ -587,14 +600,7 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
         preset.add(m1)
         preset.add(m2)
 
-        device = InputDevice("/dev/input/event11")
-        event_reader = self.get_event_reader(preset, device)
-
-        # make sure this test uses a device that has the needed capabilities
-        # for the injector to grab it
-        self.assertIn(EV_REL, device.capabilities())
-        self.assertIn(REL_WHEEL, device.capabilities()[EV_REL])
-        self.assertIn(REL_HWHEEL, device.capabilities()[EV_REL])
+        event_reader = self.get_event_reader(preset, fixtures.foo_device_2_mouse)
 
         await self.send_events(
             [InputEvent.from_tuple(hw_right), InputEvent.from_tuple(w_up)] * 5,
@@ -643,7 +649,7 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
         a = system_mapping.get("a")
         b = system_mapping.get("b")
 
-        event_reader = self.get_event_reader(preset, InputDevice("/dev/input/event30"))
+        event_reader = self.get_event_reader(preset, fixtures.gamepad)
 
         await self.send_events(
             [
@@ -712,7 +718,7 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
         a = system_mapping.get("a")
         b = system_mapping.get("b")
 
-        event_reader = self.get_event_reader(preset, InputDevice("/dev/input/event11"))
+        event_reader = self.get_event_reader(preset, fixtures.foo_device_2_mouse)
 
         await self.send_events(
             [
@@ -782,7 +788,7 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
         preset.add(m1)
         preset.add(m2)
         preset.add(m3)
-        event_reader = self.get_event_reader(preset, InputDevice("/dev/input/event30"))
+        event_reader = self.get_event_reader(preset, fixtures.gamepad)
 
         await self.send_events(
             [
@@ -835,7 +841,7 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
         preset.add(get_key_mapping(EventCombination(ev_1), output_symbol="a"))
         a = system_mapping.get("a")
 
-        event_reader = self.get_event_reader(preset, InputDevice("/dev/input/event30"))
+        event_reader = self.get_event_reader(preset, fixtures.gamepad)
         await self.send_events(
             [
                 InputEvent.from_tuple(ev_1),
@@ -876,7 +882,7 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
         b = system_mapping.get("b")
         c = system_mapping.get("c")
 
-        event_reader = self.get_event_reader(preset, InputDevice("/dev/input/event30"))
+        event_reader = self.get_event_reader(preset, fixtures.gamepad)
 
         """Single keys"""
         await self.send_events(
@@ -977,7 +983,7 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
             get_key_mapping(EventCombination((down_1, down_2)), output_symbol="b")
         )
 
-        event_reader = self.get_event_reader(preset, InputDevice("/dev/input/event30"))
+        event_reader = self.get_event_reader(preset, fixtures.gamepad)
         # macro starts
         await self.send_events([InputEvent.from_tuple(down_1)], event_reader)
         await asyncio.sleep(0.05)
@@ -1056,7 +1062,7 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
         m.release_timeout = 0.1  # a higher release timeout to give time for assertions
         preset.add(m)
 
-        event_reader = self.get_event_reader(preset, InputDevice("/dev/input/event11"))
+        event_reader = self.get_event_reader(preset, fixtures.foo_device_2_mouse)
 
         await self.send_events([btn_down], event_reader)
         fw_history = convert_to_internal_events(self.forward_uinput.write_history)
@@ -1120,7 +1126,7 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
         preset.add(m1)
         preset.add(m2)
 
-        event_reader = self.get_event_reader(preset, InputDevice("/dev/input/event11"))
+        event_reader = self.get_event_reader(preset, fixtures.foo_device_2_mouse)
         # send key-down and up
         await self.send_events(
             [
@@ -1177,7 +1183,7 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
         # set input x-axis to 100%
         x = MAX_ABS
         event_reader = self.get_event_reader(
-            preset, InputDevice("/dev/input/event30")
+            preset, fixtures.gamepad
         )  # gamepad Fixture
 
         await event_reader.handle(InputEvent.from_tuple((EV_ABS, ABS_X, x)))

@@ -68,10 +68,9 @@ class TestTest(unittest.TestCase):
         self.assertIsInstance(capabilities[EV_KEY][0], int)
 
     def test_restore_fixtures(self):
-        fixtures[1] = [1234]
-        del fixtures["/dev/input/event11"]
+        fixtures["/bar/dev"] = {"name": "bla"}
         cleanup()
-        self.assertIsNone(fixtures.get(1))
+        self.assertIsNone(fixtures.get("/bar/dev"))
         self.assertIsNotNone(fixtures.get("/dev/input/event11"))
 
     def test_restore_os_environ(self):
@@ -115,7 +114,7 @@ class TestTest(unittest.TestCase):
         time.sleep(START_READING_DELAY)
 
         event = new_event(EV_KEY, 102, 1)
-        push_events("Foo Device 2", [event])
+        push_events(fixtures.foo_device_2_keyboard, [event])
         wait_for_results()
         self.assertTrue(reader._results.poll())
 
@@ -125,7 +124,7 @@ class TestTest(unittest.TestCase):
         # can push more events to the helper that is inside a separate
         # process, which end up being sent to the reader
         event = new_event(EV_KEY, 102, 0)
-        push_events("Foo Device 2", [event])
+        push_events(fixtures.foo_device_2_keyboard, [event])
         wait_for_results()
         self.assertTrue(reader._results.poll())
 

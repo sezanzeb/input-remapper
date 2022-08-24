@@ -37,7 +37,7 @@ import subprocess
 import json
 
 import evdev
-from evdev.ecodes import EV_KEY, EV_ABS, KEY_B, KEY_A, ABS_X, BTN_A
+from evdev.ecodes import EV_KEY, EV_ABS, KEY_B, KEY_A, ABS_X, BTN_A, BTN_B
 from pydbus import SystemBus
 
 from inputremapper.configs.system_mapping import system_mapping
@@ -135,7 +135,7 @@ class TestDaemon(unittest.TestCase):
         """Injection 1"""
 
         # should forward the event unchanged
-        push_events(group.key, [new_event(EV_KEY, 13, 1)])
+        push_events(fixtures.gamepad, [new_event(EV_KEY, BTN_B, 1)])
 
         self.daemon = Daemon()
 
@@ -156,7 +156,7 @@ class TestDaemon(unittest.TestCase):
         event = uinput_write_history_pipe[0].recv()
         self.assertEqual(self.daemon.get_state(group.key), RUNNING)
         self.assertEqual(event.type, EV_KEY)
-        self.assertEqual(event.code, 13)
+        self.assertEqual(event.code, BTN_B)
         self.assertEqual(event.value, 1)
 
         self.daemon.stop_injecting(group.key)
@@ -175,7 +175,7 @@ class TestDaemon(unittest.TestCase):
 
         time.sleep(0.1)
         # -1234 will be classified as -1 by the injector
-        push_events(group.key, [new_event(*ev_2, -1234)])
+        push_events(fixtures.gamepad, [new_event(*ev_2, -1234)])
         time.sleep(0.1)
 
         self.assertTrue(uinput_write_history_pipe[0].poll())
@@ -227,7 +227,6 @@ class TestDaemon(unittest.TestCase):
 
         preset.save()
         global_config.set_autoload_preset(group_key, preset_name)
-        push_events(group_key, [new_event(*ev, 1)])
         self.daemon = Daemon()
 
         # make sure the devices are populated
@@ -240,7 +239,7 @@ class TestDaemon(unittest.TestCase):
             "info": evdev.device.DeviceInfo(4, 5, 6, 7),
             "name": group_name,
         }
-
+        push_events(fixtures[self.new_fixture_path], [new_event(*ev, 1)])
         self.daemon.start_injecting(group_key, preset_name)
 
         # test if the injector called groups.refresh successfully
@@ -304,7 +303,7 @@ class TestDaemon(unittest.TestCase):
 
         system_mapping.clear()
 
-        push_events(group.key, [new_event(*event)])
+        push_events(fixtures.bar_device, [new_event(*event)])
 
         # an existing config file is needed otherwise set_config_dir refuses
         # to use the directory

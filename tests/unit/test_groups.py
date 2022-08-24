@@ -19,7 +19,7 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from tests.test import quick_cleanup, fixtures
+from tests.test import quick_cleanup, fixtures, keyboard_keys
 
 import os
 import unittest
@@ -185,12 +185,17 @@ class TestGroups(unittest.TestCase):
         self.assertIsNone(groups.find(name="qux"))
 
         # verify this test even works at all
-        fixtures["/foo/bar"]["capabilities"][EV_KEY] = [KEY_A]
+        fixtures["/foo/bar"].capabilities[EV_KEY] = [KEY_A]
         groups.refresh()
         self.assertIsNotNone(groups.find(name="qux"))
 
     def test_duplicate_device(self):
-        fixtures["/dev/input/event20"]["name"] = "Foo Device"
+        fixtures["/dev/input/event100"] = {
+            "capabilities": {evdev.ecodes.EV_KEY: keyboard_keys},
+            "phys": "usb-0000:03:00.0-3/input1",
+            "info": evdev.device.DeviceInfo(2, 1, 2, 1),
+            "name": "Foo Device",
+        }
         groups.refresh()
 
         group1 = groups.find(key="Foo Device")
@@ -199,7 +204,7 @@ class TestGroups(unittest.TestCase):
 
         self.assertIn("/dev/input/event1", group1.paths)
         self.assertIn("/dev/input/event10", group2.paths)
-        self.assertIn("/dev/input/event20", group3.paths)
+        self.assertIn("/dev/input/event100", group3.paths)
 
         self.assertEqual(group1.key, "Foo Device")
         self.assertEqual(group2.key, "Foo Device 2")
