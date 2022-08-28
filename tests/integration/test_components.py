@@ -4,18 +4,15 @@ from unittest.mock import MagicMock, patch
 
 import evdev
 from evdev.ecodes import EV_KEY, KEY_A, KEY_B, KEY_C
-
 import gi
-
-from inputremapper.input_event import InputEvent
 
 gi.require_version("Gtk", "3.0")
 gi.require_version("GLib", "2.0")
 gi.require_version("GtkSource", "4")
 from gi.repository import Gtk, GLib, GtkSource
 
-
 from tests.test import quick_cleanup, spy
+from inputremapper.input_event import InputEvent
 from inputremapper.gui.utils import CTX_ERROR, CTX_WARNING, gtk_iteration
 from inputremapper.gui.message_broker import (
     MessageBroker,
