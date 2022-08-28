@@ -195,6 +195,9 @@ class Fixture:
 
 
 class _Fixtures:
+    """contains all predefined Fixtures.
+    Can be extended with new Fixtures during runtime"""
+
     dev_input_event1 = Fixture(
         capabilities={
             evdev.ecodes.EV_KEY: [evdev.ecodes.KEY_A],
@@ -347,13 +350,14 @@ class _Fixtures:
         ]
         self._dynamic_fixtures = {}
 
-    def __getitem__(self, item: str) -> Fixture:
-        if fixture := self._dynamic_fixtures.get(item):
+    def __getitem__(self, path: str) -> Fixture:
+        """get a Fixture by it's unique /dev/input/eventX path"""
+        if fixture := self._dynamic_fixtures.get(path):
             return fixture
-        item = self._path_to_attribute(item)
+        path = self._path_to_attribute(path)
 
         try:
-            return getattr(self, item)
+            return getattr(self, path)
         except AttributeError as e:
             raise KeyError(str(e))
 
@@ -969,7 +973,9 @@ def prepare_presets():
     preset2.add(get_key_mapping(combination="1,4,1"))
     preset2.save()
 
-    time.sleep(0.1)  # make sure the timestamp of preset 3 is the newest
+    # make sure the timestamp of preset 3 is the newest,
+    # so that it will be automatically loaded by the GUI
+    time.sleep(0.1)
     preset3 = Preset(get_preset_path("Foo Device", "preset3"))
     preset3.add(get_key_mapping(combination="1,5,1"))
     preset3.save()
