@@ -45,6 +45,7 @@ from inputremapper.gui.components import (
     KeyAxisStack,
     Sliders,
     TransformationDrawArea,
+    RelativeInputCutoffInput,
 )
 from inputremapper.configs.mapping import MappingData
 from inputremapper.event_combination import EventCombination
@@ -1142,3 +1143,105 @@ class TestSliders(ComponentBaseTest):
         self.controller_mock.update_mapping.assert_not_called()
         self.message_broker.send(MappingData(deadzone=0.5))
         self.controller_mock.update_mapping.assert_not_called()
+
+
+class TestRelativeInputCutoffInput(ComponentBaseTest):
+    def setUp(self) -> None:
+        super(TestRelativeInputCutoffInput, self).setUp()
+        self.gui = Gtk.SpinButton()
+        self.input = RelativeInputCutoffInput(
+            self.message_broker, self.controller_mock, self.gui
+        )
+        self.message_broker.send(
+            MappingData(
+                target_uinput="mouse",
+                event_combination="2,0,0",
+                rel_input_cutoff=50,
+                output_type=3,
+                output_code=0,
+            )
+        )
+
+    def assert_active(self):
+        self.assertTrue(self.gui.get_sensitive())
+        self.assertEqual(self.gui.get_opacity(), 1)
+
+    def assert_inactive(self):
+        self.assertFalse(self.gui.get_sensitive())
+        self.assertLess(self.gui.get_opacity(), 0.6)
+
+    def test_avoids_infinite_recursion(self):
+        self.message_broker.send(
+            MappingData(
+                target_uinput="mouse",
+                event_combination="2,0,0",
+                rel_input_cutoff=200,
+                output_type=3,
+                output_code=0,
+            )
+        )
+        self.controller_mock.update_mapping.assert_not_called()
+
+    def test_updates_value(self):
+        self.message_broker.send(
+            MappingData(
+                target_uinput="mouse",
+                event_combination="2,0,0",
+                rel_input_cutoff=200,
+                output_type=3,
+                output_code=0,
+            )
+        )
+        self.assertEqual(self.gui.get_value(), 200)
+
+    def test_updates_mapping(self):
+        self.gui.set_value(300)
+        self.controller_mock.update_mapping.assert_called_once_with(
+            rel_input_cutoff=300
+        )
+
+    def test_disables_input_when_no_rel_axis_input(self):
+        self.assert_active()
+        self.message_broker.send(
+            MappingData(
+                target_uinput="mouse",
+                event_combination="3,0,0",
+                output_type=3,
+                output_code=0,
+            )
+        )
+        self.assert_inactive()
+
+    def test_disables_input_when_no_abs_axis_output(self):
+        self.assert_active()
+        self.message_broker.send(
+            MappingData(
+                target_uinput="mouse",
+                event_combination="2,0,0",
+                rel_input_cutoff=200,
+                output_type=2,
+                output_code=0,
+            )
+        )
+        self.assert_inactive()
+
+    def test_enables_input(self):
+        self.message_broker.send(
+            MappingData(
+                target_uinput="mouse",
+                event_combination="3,0,0",
+                output_type=3,
+                output_code=0,
+            )
+        )
+        self.assert_inactive()
+        self.message_broker.send(
+            MappingData(
+                target_uinput="mouse",
+                event_combination="2,0,0",
+                rel_input_cutoff=50,
+                output_type=3,
+                output_code=0,
+            )
+        )
+        self.assert_active()
