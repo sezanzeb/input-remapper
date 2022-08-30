@@ -37,7 +37,7 @@ from pydantic import (
     BaseConfig,
 )
 
-from inputremapper.configs.system_mapping import system_mapping
+from inputremapper.configs.system_mapping import system_mapping, DISABLE_NAME
 from inputremapper.event_combination import EventCombination
 from inputremapper.exceptions import MacroParsingError
 from inputremapper.gui.message_broker import MessageType
@@ -307,7 +307,11 @@ class Mapping(BaseModel):
                 f"but no output macro or key is programmed"
             )
 
-        if 0 in event_values and output_type not in (EV_ABS, EV_REL):
+        if (
+            0 in event_values
+            and output_type not in (EV_ABS, EV_REL)
+            and output_symbol != DISABLE_NAME
+        ):
             raise ValueError(
                 f"missing output axis: "
                 f"the {combination = } specifies a input axis, "

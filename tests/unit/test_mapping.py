@@ -25,7 +25,7 @@ from evdev.ecodes import EV_KEY
 from pydantic import ValidationError
 
 from inputremapper.configs.mapping import Mapping, UIMapping
-from inputremapper.configs.system_mapping import system_mapping
+from inputremapper.configs.system_mapping import system_mapping, DISABLE_NAME
 from inputremapper.gui.message_broker import MessageType
 from inputremapper.input_event import EventActions
 from inputremapper.event_combination import EventCombination
@@ -217,6 +217,9 @@ class TestMapping(unittest.IsolatedAsyncioTestCase):
         # map axis but no output type and code given
         cfg["event_combination"] = "3,0,0"
         test(**cfg)
+        # output symbol=disable is allowed
+        cfg["output_symbol"] = DISABLE_NAME
+        Mapping(**cfg)
         del cfg["output_symbol"]
         cfg["output_code"] = 1
         cfg["output_type"] = 3

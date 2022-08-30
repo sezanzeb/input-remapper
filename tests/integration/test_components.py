@@ -3,13 +3,13 @@ from typing import Optional, Tuple
 from unittest.mock import MagicMock, patch
 
 import evdev
-from evdev.ecodes import EV_KEY, KEY_A, KEY_B, KEY_C
+from evdev.ecodes import EV_KEY, KEY_A, KEY_B, KEY_C, KEY_X
 import gi
 
 gi.require_version("Gtk", "3.0")
 gi.require_version("GLib", "2.0")
 gi.require_version("GtkSource", "4")
-from gi.repository import Gtk, GLib, GtkSource
+from gi.repository import Gtk, GLib, GtkSource, Gdk
 
 from tests.test import quick_cleanup, spy
 from inputremapper.input_event import InputEvent
@@ -326,6 +326,14 @@ class TestSelectionLabel(ComponentBaseTest):
         )
         self.gui.insert(self.label, -1)
 
+    def assert_edit_mode(self):
+        self.assertTrue(self.label.name_input.get_visible())
+        self.assertFalse(self.label.label.get_visible())
+
+    def assert_selected(self):
+        self.assertTrue(self.label.label.get_visible())
+        self.assertFalse(self.label.name_input.get_visible())
+
     def test_shows_combination_without_name(self):
         self.assertEqual(self.label.label.get_label(), "a + b")
 
@@ -418,17 +426,28 @@ class TestSelectionLabel(ComponentBaseTest):
                 event_combination=EventCombination([(1, KEY_A, 1), (1, KEY_B, 1)]),
             )
         )
-
-        self.assertTrue(self.label.label.get_visible())
-        self.assertFalse(self.label.name_input.get_visible())
-
+        self.assert_selected()
         self.label.edit_btn.clicked()
-        self.assertTrue(self.label.name_input.get_visible())
-        self.assertFalse(self.label.label.get_visible())
-
+        self.assert_edit_mode()
         self.label.name_input.activate()  # aka hit the return key
-        self.assertTrue(self.label.label.get_visible())
-        self.assertFalse(self.label.name_input.get_visible())
+        self.assert_selected()
+
+    def test_leaves_edit_mode_on_esc(self):
+        self.message_broker.send(
+            MappingData(
+                event_combination=EventCombination([(1, KEY_A, 1), (1, KEY_B, 1)]),
+            )
+        )
+        self.label.edit_btn.clicked()
+        self.assert_edit_mode()
+        self.label.name_input.set_text("foo")
+
+        event = Gdk.Event()
+        event.key.keyval = Gdk.KEY_Escape
+        self.label._on_gtk_rename_abort(None, event.key)  # send the "key-press-event"
+        self.assert_selected()
+        self.assertEqual(self.label.label.get_text(), "a + b")
+        self.controller_mock.update_mapping.assert_not_called()
 
     def test_update_name(self):
         self.message_broker.send(

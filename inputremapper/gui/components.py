@@ -298,7 +298,7 @@ class SelectionLabel(Gtk.ListBoxRow):
         self.edit_btn = Gtk.Button()
         self.edit_btn.set_relief(Gtk.ReliefStyle.NONE)
         self.edit_btn.set_image(
-            Gtk.Image.new_from_stock(Gtk.STOCK_EDIT, Gtk.IconSize.MENU)
+            Gtk.Image.new_from_icon_name(Gtk.STOCK_EDIT, Gtk.IconSize.MENU)
         )
         self.edit_btn.set_tooltip_text(_("Change Mapping Name"))
         self.edit_btn.set_margin_top(4)
@@ -311,8 +311,9 @@ class SelectionLabel(Gtk.ListBoxRow):
         self.name_input.set_margin_top(4)
         self.name_input.set_margin_bottom(4)
         self.name_input.connect("activate", self._on_gtk_rename_finished)
+        self.name_input.connect("key-press-event", self._on_gtk_rename_abort)
 
-        self._box = Gtk.Box(Gtk.Orientation.HORIZONTAL)
+        self._box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
         self._box.set_center_widget(self.label)
         self._box.add(self.edit_btn)
         self._box.set_child_packing(self.edit_btn, False, False, 4, Gtk.PackType.END)
@@ -320,8 +321,11 @@ class SelectionLabel(Gtk.ListBoxRow):
         self._box.set_child_packing(self.name_input, False, True, 4, Gtk.PackType.START)
 
         self.add(self._box)
-        self._connect_message_listener()
         self.show_all()
+        self._message_broker.subscribe(MessageType.mapping, self._on_mapping_changed)
+        self._message_broker.subscribe(
+            MessageType.combination_update, self._on_combination_update
+        )
 
         self.edit_btn.hide()
         self.name_input.hide()
@@ -337,12 +341,6 @@ class SelectionLabel(Gtk.ListBoxRow):
         ):
             return EMPTY_MAPPING_NAME
         return self._name or self.combination.beautify()
-
-    def _connect_message_listener(self):
-        self._message_broker.subscribe(MessageType.mapping, self._on_mapping_changed)
-        self._message_broker.subscribe(
-            MessageType.combination_update, self._on_combination_update
-        )
 
     def _set_not_selected(self):
         self.edit_btn.hide()
@@ -380,6 +378,11 @@ class SelectionLabel(Gtk.ListBoxRow):
         self._name = name
         self._set_selected()
         self._controller.update_mapping(name=name)
+
+    def _on_gtk_rename_abort(self, _, key_event: Gdk.EventKey):
+        logger.error("called")
+        if key_event.keyval == Gdk.KEY_Escape:
+            self._set_selected()
 
     def cleanup(self) -> None:
         """clean up message listeners. Execute before removing from gui!"""
