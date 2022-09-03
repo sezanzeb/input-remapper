@@ -213,7 +213,10 @@ EVDEV_VERSION = None
 try:
     VERSION = pkg_resources.require("input-remapper")[0].version
     EVDEV_VERSION = pkg_resources.require("evdev")[0].version
-except pkg_resources.DistributionNotFound as error:
+except Exception as error:
+    # there have been pkg_resources.DistributionNotFound and
+    # pkg_resources.ContextualVersionConflict errors so far.
+    # We can safely ignore all Exceptions here
     logger.info("Could not figure out the version")
     logger.debug(error)
 
