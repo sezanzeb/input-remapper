@@ -20,7 +20,8 @@
 from __future__ import annotations
 
 import enum
-from typing import Optional, Callable, Tuple, Dict, Any, TypeVar
+import traceback
+from typing import Optional, Callable, Tuple, Dict, Any, TypeVar, Literal
 
 import pkg_resources
 from evdev.ecodes import EV_KEY, EV_ABS, EV_REL
@@ -93,6 +94,7 @@ class Mapping(BaseModel):
     output_code: Optional[int] = None  # The event code of the mapped event
 
     name: Optional[str] = None
+    mapping_type: Optional[Literal["key_macro"] | Literal["analog"]] = None
 
     # if release events will be sent to the forwarded device as soon as a combination
     # triggers see also #229
@@ -313,6 +315,21 @@ class Mapping(BaseModel):
                 f"the {combination = } specifies a input axis, "
                 f"but the {output_type = } is not an axis "
             )
+
+        return values
+
+    @root_validator
+    def validate_mapping_type(cls, values):
+        """overrides the mapping type if the output mapping type is obvious"""
+        output_type = values.get("output_type")
+        output_code = values.get("output_code")
+        output_symbol = values.get("output_symbol")
+
+        if output_type is not None and output_code is not None and not output_symbol:
+            values["mapping_type"] = "analog"
+
+        if output_type is None and output_code is None and output_symbol:
+            values["mapping_type"] = "key_macro"
 
         return values
 

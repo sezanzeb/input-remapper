@@ -21,7 +21,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import List, Optional, Dict, Union, Callable
+from typing import List, Optional, Dict, Union, Callable, Literal
 
 import cairo
 from evdev.ecodes import EV_KEY, EV_ABS, EV_REL, bytype
@@ -1013,33 +1013,62 @@ class ConfirmCancelDialog:
         msg.respond(response == Gtk.ResponseType.ACCEPT)
 
 
-class KeyAxisStack:
-    """the stack used to show either the gui to modify a key-mapping or the gui to
-    modify a analog-axis mapping"""
+class KeyAxisStackSwitcher:
+    """the controls used to switch between the gui to modify a key-mapping or
+    an analog-axis mapping"""
 
     def __init__(
         self,
         message_broker: MessageBroker,
         controller: Controller,
-        gui: Gtk.Stack,
+        stack: Gtk.Stack,
+        key_macro_toggle: Gtk.ToggleButton,
+        analog_toggle: Gtk.ToggleButton,
     ):
         self._message_broker = message_broker
         self._controller = controller
-        self._gui = gui
+        self._stack = stack
+        self._key_macro_toggle = key_macro_toggle
+        self._analog_toggle = analog_toggle
 
+        self._key_macro_toggle.connect("toggled", self._on_gtk_toggle)
+        self._analog_toggle.connect("toggled", self._on_gtk_toggle)
         self._message_broker.subscribe(MessageType.mapping, self._on_mapping_message)
 
+    def _set_active(self, mapping_type: Literal["key_macro", "analog"]):
+        if mapping_type == "analog":
+            self._stack.set_visible_child_name("Analog Axis")
+            active = self._analog_toggle
+            inactive = self._key_macro_toggle
+        else:
+            self._stack.set_visible_child_name("Key or Macro")
+            active = self._key_macro_toggle
+            inactive = self._analog_toggle
+
+        with HandlerDisabled(active, self._on_gtk_toggle):
+            active.set_active(True)
+        with HandlerDisabled(inactive, self._on_gtk_toggle):
+            inactive.set_active(False)
+
     def _on_mapping_message(self, mapping: MappingData):
-        if (
-            mapping.output_type
-            and mapping.output_code is not None
-            and not mapping.output_symbol
-        ):
-            self._gui.set_visible_child_name("Analog Axis")
-        elif mapping.output_symbol and not (
-            mapping.output_code is not None or mapping.output_type
-        ):
-            self._gui.set_visible_child_name("Key or Macro")
+        # fist check the actual mapping
+        if mapping.mapping_type == "analog":
+            self._set_active("analog")
+
+        if mapping.mapping_type == "key_macro":
+            self._set_active("key_macro")
+
+    def _on_gtk_toggle(self, this: Gtk.ToggleButton):
+        if not this.get_active():
+            # cannot deactivate manually
+            with HandlerDisabled(this, self._on_gtk_toggle):
+                this.set_active(True)
+            return
+
+        if this is self._key_macro_toggle:
+            self._controller.update_mapping(mapping_type="key_macro")
+        else:
+            self._controller.update_mapping(mapping_type="analog")
 
 
 class TransformationDrawArea:
