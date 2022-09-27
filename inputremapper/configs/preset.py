@@ -203,7 +203,12 @@ class Preset(Generic[MappingModel]):
                     continue
 
             d = mapping.dict(exclude_defaults=True)
-            combination = d.pop("event_combination")
+            d["target_uinput"] = mapping.target_uinput
+            combination = mapping.event_combination
+            try:
+                del d["event_combination"]
+            except KeyError:
+                pass
             json_ready[combination.json_str()] = d
 
             saved_mappings[combination] = mapping.copy()

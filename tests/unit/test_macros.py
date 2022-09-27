@@ -400,39 +400,45 @@ class TestMacros(MacroTestBase):
         expect(",,", ["", "", ""])
 
     async def test_parse_params(self):
-        self.assertEqual(_parse_recurse("", self.context, DummyMapping), None)
+        self.assertEqual(_parse_recurse("", self.context, DummyMapping, True), None)
 
         # strings. If it is wrapped in quotes, don't parse the contents
-        self.assertEqual(_parse_recurse('"foo"', self.context, DummyMapping), "foo")
         self.assertEqual(
-            _parse_recurse('"\tf o o\n"', self.context, DummyMapping),
+            _parse_recurse('"foo"', self.context, DummyMapping, True), "foo"
+        )
+        self.assertEqual(
+            _parse_recurse('"\tf o o\n"', self.context, DummyMapping, True),
             "\tf o o\n",
         )
         self.assertEqual(
-            _parse_recurse('"foo(a,b)"', self.context, DummyMapping),
+            _parse_recurse('"foo(a,b)"', self.context, DummyMapping, True),
             "foo(a,b)",
         )
-        self.assertEqual(_parse_recurse('",,,()"', self.context, DummyMapping), ",,,()")
+        self.assertEqual(
+            _parse_recurse('",,,()"', self.context, DummyMapping, True), ",,,()"
+        )
 
         # strings without quotes only work as long as there is no function call or
         # anything. This is only really acceptable for constants like KEY_A and for
         # variable names, which are not allowed to contain special characters that may
         # have a meaning in the macro syntax.
-        self.assertEqual(_parse_recurse("foo", self.context, DummyMapping), "foo")
+        self.assertEqual(_parse_recurse("foo", self.context, DummyMapping, True), "foo")
 
-        self.assertEqual(_parse_recurse("", self.context, DummyMapping), None)
-        self.assertEqual(_parse_recurse("None", self.context, DummyMapping), None)
+        self.assertEqual(_parse_recurse("", self.context, DummyMapping, True), None)
+        self.assertEqual(_parse_recurse("None", self.context, DummyMapping, True), None)
 
-        self.assertEqual(_parse_recurse("5", self.context, DummyMapping), 5)
-        self.assertEqual(_parse_recurse("5.2", self.context, DummyMapping), 5.2)
+        self.assertEqual(_parse_recurse("5", self.context, DummyMapping, True), 5)
+        self.assertEqual(_parse_recurse("5.2", self.context, DummyMapping, True), 5.2)
         self.assertIsInstance(
-            _parse_recurse("$foo", self.context, DummyMapping),
+            _parse_recurse("$foo", self.context, DummyMapping, True),
             Variable,
         )
-        self.assertEqual(_parse_recurse("$foo", self.context, DummyMapping).name, "foo")
+        self.assertEqual(
+            _parse_recurse("$foo", self.context, DummyMapping, True).name, "foo"
+        )
 
     async def test_0(self):
-        macro = parse("key(1)", self.context, DummyMapping)
+        macro = parse("key(1)", self.context, DummyMapping, True)
         one_code = system_mapping.get("1")
 
         await macro.run(self.handler)

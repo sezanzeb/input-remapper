@@ -370,7 +370,7 @@ class TestUIMapping(unittest.IsolatedAsyncioTestCase):
         m.event_combination = "1,2,3"
         m.output_symbol = "a"
         self.assertIn(
-            "1 validation error for UIMapping\ntarget_uinput", str(m.get_error())
+            "1 validation error for Mapping\ntarget_uinput", str(m.get_error())
         )
         m.target_uinput = "keyboard"
         self.assertTrue(m.is_valid())
@@ -382,7 +382,7 @@ class TestUIMapping(unittest.IsolatedAsyncioTestCase):
         m2 = m.copy()
         self.assertIsInstance(m2, UIMapping)
         self.assertEqual(m2.event_combination, EventCombination.empty_combination())
-        self.assertIsNone(m2.target_uinput)
+        self.assertIsNone(m2.output_symbol)
 
     def test_get_bus_massage(self):
         m = UIMapping()
