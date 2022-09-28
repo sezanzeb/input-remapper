@@ -21,7 +21,16 @@ from __future__ import annotations  # needed for the TYPE_CHECKING import
 
 import re
 from functools import partial
-from typing import TYPE_CHECKING, Optional, Union, Literal, Sequence, Dict, Callable
+from typing import (
+    TYPE_CHECKING,
+    Optional,
+    Union,
+    Literal,
+    Sequence,
+    Dict,
+    Callable,
+    List,
+)
 
 from evdev.ecodes import EV_KEY, EV_REL, EV_ABS
 from gi.repository import Gtk
@@ -593,7 +602,30 @@ class Controller:
             return kwargs
 
         if kwargs["mapping_type"] == "analog":
-            if not mapping.output_symbol:
+            msg = f"You are about to change the mapping to analog!"
+            if mapping.output_symbol:
+                msg += (
+                    f"\nThis will remove the '{mapping.output_symbol}' "
+                    f"from the text input."
+                )
+
+            if not [e for e in mapping.event_combination if e.value == 0]:
+                # there is no analog input configured, let's try to autoconfigure it
+                events: List[InputEvent] = list(mapping.event_combination)
+                for i, e in enumerate(events):
+                    if e.type in [EV_ABS, EV_REL]:
+                        events[i] = e.modify(value=0)
+                        kwargs["event_combination"] = EventCombination(events)
+                        msg += (
+                            f"\nThe input {e.description()} "
+                            f"will be used as analog input."
+                        )
+                        break
+                else:
+                    # not possible to autoconfigure inform the user
+                    msg += "\nNote: you need to recorde an analog input."
+
+            elif not mapping.output_symbol:
                 return kwargs
 
             answer = None
@@ -602,15 +634,7 @@ class Controller:
                 nonlocal answer
                 answer = a
 
-            self.message_broker.send(
-                UserConfirmRequest(
-                    f"You are about to change the mapping to analog!\n"
-                    f"This will remove the '{mapping.output_symbol}' from the text "
-                    f"input.\n Note: you need to configure a Analog input in the "
-                    f"'Advanced Input Configuration'",
-                    f,
-                )
-            )
+            self.message_broker.send(UserConfirmRequest(msg, f))
             if answer:
                 kwargs["output_symbol"] = None
                 return kwargs
