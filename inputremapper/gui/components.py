@@ -1058,14 +1058,14 @@ class KeyAxisStackSwitcher:
         if mapping.mapping_type == "key_macro":
             self._set_active("key_macro")
 
-    def _on_gtk_toggle(self, this: Gtk.ToggleButton):
-        if not this.get_active():
+    def _on_gtk_toggle(self, btn: Gtk.ToggleButton):
+        if not btn.get_active():
             # cannot deactivate manually
-            with HandlerDisabled(this, self._on_gtk_toggle):
-                this.set_active(True)
+            with HandlerDisabled(btn, self._on_gtk_toggle):
+                btn.set_active(True)
             return
 
-        if this is self._key_macro_toggle:
+        if btn is self._key_macro_toggle:
             self._controller.update_mapping(mapping_type="key_macro")
         else:
             self._controller.update_mapping(mapping_type="analog")

@@ -1001,44 +1001,66 @@ class TestOutputAxisSelector(ComponentBaseTest):
         self.assertEqual(len(self.gui.get_model()), 9)
 
 
-class TestKeyAxisStack(ComponentBaseTest):
+class TestKeyAxisStackSwitcher(ComponentBaseTest):
     def setUp(self) -> None:
-        super(TestKeyAxisStack, self).setUp()
-        self.gui = Gtk.Stack()
-        self.gui.add_named(Gtk.Box(), "Analog Axis")
-        self.gui.add_named(Gtk.Box(), "Key or Macro")
-        self.stack = KeyAxisStack(self.message_broker, self.controller_mock, self.gui)
+        super(TestKeyAxisStackSwitcher, self).setUp()
+        self.gui = Gtk.Box()
+        self.gtk_stack = Gtk.Stack()
+        self.analog_toggle = Gtk.ToggleButton()
+        self.key_toggle = Gtk.ToggleButton()
+
+        self.gui.add(self.gtk_stack)
+        self.gui.add(self.analog_toggle)
+        self.gui.add(self.key_toggle)
+        self.gtk_stack.add_named(Gtk.Box(), "Analog Axis")
+        self.gtk_stack.add_named(Gtk.Box(), "Key or Macro")
+
+        self.stack = KeyAxisStackSwitcher(
+            self.message_broker,
+            self.controller_mock,
+            self.gtk_stack,
+            self.key_toggle,
+            self.analog_toggle,
+        )
+
         self.gui.show_all()
-        self.gui.set_visible_child_name("Key or Macro")
+        self.gtk_stack.set_visible_child_name("Key or Macro")
 
-    def test_switches_to_axis_when_mapping_has_output_type_code_but_not_symbol(self):
-        self.message_broker.send(MappingData(output_type=2, output_code=0))
-        self.assertEqual(self.gui.get_visible_child_name(), "Analog Axis")
+    def assert_key_macro_active(self):
+        self.assertEqual(self.gtk_stack.get_visible_child_name(), "Key or Macro")
+        self.assertTrue(self.key_toggle.get_active())
+        self.assertFalse(self.analog_toggle.get_active())
 
-    def test_switches_to_key_when_mapping_has_output_symbol_but_type_code(self):
-        self.gui.set_visible_child_name("Analog Axis")
-        self.message_broker.send(MappingData(output_symbol="a"))
-        self.assertEqual(self.gui.get_visible_child_name(), "Key or Macro")
+    def assert_analog_active(self):
+        self.assertEqual(self.gtk_stack.get_visible_child_name(), "Analog Axis")
+        self.assertFalse(self.key_toggle.get_active())
+        self.assertTrue(self.analog_toggle.get_active())
 
-    def test_does_not_switch_when_mapping_is_ambiguous(self):
-        self.message_broker.send(
-            MappingData(output_type=2, output_code=0, output_symbol="a")
+    def test_switches_to_axis(self):
+        self.message_broker.send(MappingData(mapping_type="analog"))
+        self.assert_analog_active()
+
+    def test_switches_to_key_macro(self):
+        self.message_broker.send(MappingData(mapping_type="analog"))
+        self.message_broker.send(MappingData(mapping_type="key_macro"))
+        self.assert_key_macro_active()
+
+    def test_updates_mapping_type(self):
+        self.key_toggle.set_active(True)
+        self.controller_mock.update_mapping.assert_called_once_with(
+            mapping_type="key_macro"
         )
-        self.assertEqual(self.gui.get_visible_child_name(), "Key or Macro")
-        self.message_broker.send(MappingData(output_type=2, output_symbol="a"))
-        self.assertEqual(self.gui.get_visible_child_name(), "Key or Macro")
-        self.message_broker.send(MappingData(output_code=0, output_symbol="a"))
-        self.assertEqual(self.gui.get_visible_child_name(), "Key or Macro")
+        self.controller_mock.update_mapping.reset_mock()
 
-        self.gui.set_visible_child_name("Analog Axis")
-        self.message_broker.send(
-            MappingData(output_type=2, output_code=0, output_symbol="a")
+        self.analog_toggle.set_active(True)
+        self.controller_mock.update_mapping.assert_called_once_with(
+            mapping_type="analog"
         )
-        self.assertEqual(self.gui.get_visible_child_name(), "Analog Axis")
-        self.message_broker.send(MappingData(output_type=2, output_symbol="a"))
-        self.assertEqual(self.gui.get_visible_child_name(), "Analog Axis")
-        self.message_broker.send(MappingData(output_code=0, output_symbol="a"))
-        self.assertEqual(self.gui.get_visible_child_name(), "Analog Axis")
+
+    def test_avoids_infinite_recursion(self):
+        self.message_broker.send(MappingData(mapping_type="analog"))
+        self.message_broker.send(MappingData(mapping_type="key_macro"))
+        self.controller_mock.update_mapping.assert_not_called()
 
 
 class TestTransformationDrawArea(ComponentBaseTest):
