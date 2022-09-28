@@ -42,7 +42,7 @@ from inputremapper.gui.components import (
     TriggerThresholdInput,
     ReleaseTimeoutInput,
     OutputAxisSelector,
-    KeyAxisStack,
+    KeyAxisStackSwitcher,
     Sliders,
     TransformationDrawArea,
     RelativeInputCutoffInput,
