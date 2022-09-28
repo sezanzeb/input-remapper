@@ -20,7 +20,7 @@
 from __future__ import annotations
 
 import enum
-from typing import Optional, Callable, Tuple, TypeVar, Literal
+from typing import Optional, Callable, Tuple, TypeVar, Literal, Union
 
 import pkg_resources
 from evdev.ecodes import EV_KEY, EV_ABS, EV_REL
@@ -90,7 +90,7 @@ class UIMapping(BaseModel):
     # The InputEvent or InputEvent combination which is mapped
     event_combination: EventCombination = EventCombination.empty_combination()
     # The UInput to which the mapped event will be sent
-    target_uinput: Optional[str | KnownUinput] = None
+    target_uinput: Optional[Union[str, KnownUinput]] = None
 
     # Either `output_symbol` or `output_type` and `output_code` is required
     output_symbol: Optional[str] = None  # The symbol or macro string if applicable
@@ -98,7 +98,7 @@ class UIMapping(BaseModel):
     output_code: Optional[int] = None  # The event code of the mapped event
 
     name: Optional[str] = None
-    mapping_type: Optional[Literal["key_macro"] | Literal["analog"]] = None
+    mapping_type: Optional[Literal["key_macro", "analog"]] = None
 
     # if release events will be sent to the forwarded device as soon as a combination
     # triggers see also #229
