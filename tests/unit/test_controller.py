@@ -1184,3 +1184,171 @@ class TestController(unittest.TestCase):
         with patch.object(self.data_manager, "update_mapping", side_effect=KeyError):
             self.controller.set_event_as_analog(False)
             mock.assert_has_calls(calls, any_order=False)
+
+    def test_update_mapping_type_will_ask_user_when_output_symbol_is_set(self):
+        prepare_presets()
+        self.data_manager.load_group("Foo Device 2")
+        self.data_manager.load_preset("preset2")
+        self.data_manager.load_mapping(EventCombination("1,3,1"))
+        request: UserConfirmRequest = None
+
+        def f(r: UserConfirmRequest):
+            nonlocal request
+            request = r
+
+        self.message_broker.subscribe(MessageType.user_confirm_request, f)
+        self.controller.update_mapping(mapping_type="analog")
+        self.assertIn("This will remove the 'a' from the text input", request.msg)
+
+    def test_update_mapping_type_will_notify_user_to_recorde_analog_input(self):
+        prepare_presets()
+        self.data_manager.load_group("Foo Device 2")
+        self.data_manager.load_preset("preset2")
+        self.data_manager.load_mapping(EventCombination("1,3,1"))
+        self.data_manager.update_mapping(output_symbol=None)
+        request: UserConfirmRequest = None
+
+        def f(r: UserConfirmRequest):
+            nonlocal request
+            request = r
+
+        self.message_broker.subscribe(MessageType.user_confirm_request, f)
+        self.controller.update_mapping(mapping_type="analog")
+        self.assertIn("Note: you need to recorde an analog input.", request.msg)
+
+    def test_update_mapping_type_will_tell_user_which_input_is_used_as_analog(self):
+        prepare_presets()
+        self.data_manager.load_group("Foo Device 2")
+        self.data_manager.load_preset("preset2")
+        self.data_manager.load_mapping(EventCombination("1,3,1"))
+        self.data_manager.update_mapping(
+            event_combination="1,3,1+2,1,1", output_symbol=None
+        )
+        request: UserConfirmRequest = None
+
+        def f(r: UserConfirmRequest):
+            nonlocal request
+            request = r
+
+        self.message_broker.subscribe(MessageType.user_confirm_request, f)
+        self.controller.update_mapping(mapping_type="analog")
+        self.assertIn("The input 'Y Down 1' will be used as analog input.", request.msg)
+
+    def test_update_mapping_type_will_will_autoconfigure_the_input(self):
+        prepare_presets()
+        self.data_manager.load_group("Foo Device 2")
+        self.data_manager.load_preset("preset2")
+        self.data_manager.load_mapping(EventCombination("1,3,1"))
+        self.data_manager.update_mapping(
+            event_combination="1,3,1+2,1,1", output_symbol=None
+        )
+
+        self.message_broker.subscribe(
+            MessageType.user_confirm_request, lambda r: r.respond(True)
+        )
+        with patch.object(self.data_manager, "update_mapping") as mock:
+            self.controller.update_mapping(mapping_type="analog")
+            mock.assert_called_once_with(
+                mapping_type="analog",
+                output_symbol=None,
+                event_combination=EventCombination.from_string("1,3,1+2,1,0"),
+            )
+
+    def test_update_mapping_type_will_abort_when_user_denys(self):
+        prepare_presets()
+        self.data_manager.load_group("Foo Device 2")
+        self.data_manager.load_preset("preset2")
+        self.data_manager.load_mapping(EventCombination("1,3,1"))
+
+        self.message_broker.subscribe(
+            MessageType.user_confirm_request, lambda r: r.respond(False)
+        )
+        with patch.object(self.data_manager, "update_mapping") as mock:
+            self.controller.update_mapping(mapping_type="analog")
+            mock.assert_not_called()
+
+        self.data_manager.update_mapping(
+            event_combination="1,3,1+2,1,0", output_symbol=None, mapping_type="analog"
+        )
+        with patch.object(self.data_manager, "update_mapping") as mock:
+            self.controller.update_mapping(mapping_type="key_macro")
+            mock.assert_not_called()
+
+    def test_update_mapping_type_will_delete_output_symbol_when_user_confirms(self):
+        prepare_presets()
+        self.data_manager.load_group("Foo Device 2")
+        self.data_manager.load_preset("preset2")
+        self.data_manager.load_mapping(EventCombination("1,3,1"))
+
+        self.message_broker.subscribe(
+            MessageType.user_confirm_request, lambda r: r.respond(True)
+        )
+        with patch.object(self.data_manager, "update_mapping") as mock:
+            self.controller.update_mapping(mapping_type="analog")
+            mock.assert_called_once_with(mapping_type="analog", output_symbol=None)
+
+    def test_update_mapping_will_ask_user_to_set_trigger_threshold(self):
+        prepare_presets()
+        self.data_manager.load_group("Foo Device 2")
+        self.data_manager.load_preset("preset2")
+        self.data_manager.load_mapping(EventCombination("1,3,1"))
+        self.data_manager.update_mapping(
+            event_combination="1,3,1+2,1,0", output_symbol=None, mapping_type="analog"
+        )
+        request: UserConfirmRequest = None
+
+        def f(r: UserConfirmRequest):
+            nonlocal request
+            request = r
+
+        self.message_broker.subscribe(MessageType.user_confirm_request, f)
+        self.controller.update_mapping(mapping_type="key_macro")
+        self.assertIn("and set a 'Trigger Threshold' for 'Y'.", request.msg)
+
+    def test_update_mapping_update_to_analog_without_asking(self):
+        prepare_presets()
+        self.data_manager.load_group("Foo Device 2")
+        self.data_manager.load_preset("preset2")
+        self.data_manager.load_mapping(EventCombination("1,3,1"))
+        self.data_manager.update_mapping(
+            event_combination="1,3,1+2,1,0",
+            output_symbol=None,
+        )
+        mock = MagicMock()
+        self.message_broker.subscribe(MessageType.user_confirm_request, mock)
+        self.controller.update_mapping(mapping_type="analog")
+        mock.assert_not_called()
+
+    def test_update_mapping_update_to_key_macro_without_asking(self):
+        prepare_presets()
+        self.data_manager.load_group("Foo Device 2")
+        self.data_manager.load_preset("preset2")
+        self.data_manager.load_mapping(EventCombination("1,3,1"))
+        self.data_manager.update_mapping(
+            event_combination="1,3,1+2,1,1",
+            mapping_type="analog",
+            output_symbol=None,
+        )
+        mock = MagicMock()
+        self.message_broker.subscribe(MessageType.user_confirm_request, mock)
+        self.controller.update_mapping(mapping_type="key_macro")
+        mock.assert_not_called()
+
+    def test_update_mapping_will_remove_output_type_and_code(self):
+        prepare_presets()
+        self.data_manager.load_group("Foo Device 2")
+        self.data_manager.load_preset("preset2")
+        self.data_manager.load_mapping(EventCombination("1,3,1"))
+        self.data_manager.update_mapping(
+            event_combination="1,3,1+2,1,0", output_symbol=None, mapping_type="analog"
+        )
+        self.message_broker.subscribe(
+            MessageType.user_confirm_request, lambda r: r.respond(True)
+        )
+        with patch.object(self.data_manager, "update_mapping") as mock:
+            self.controller.update_mapping(mapping_type="key_macro")
+            mock.assert_called_once_with(
+                mapping_type="key_macro",
+                output_type=None,
+                output_code=None,
+            )

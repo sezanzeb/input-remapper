@@ -617,7 +617,7 @@ class Controller:
                         events[i] = e.modify(value=0)
                         kwargs["event_combination"] = EventCombination(events)
                         msg += (
-                            f"\nThe input {e.description()} "
+                            f"\nThe input '{e.description()}' "
                             f"will be used as analog input."
                         )
                         break
@@ -659,7 +659,7 @@ class Controller:
                 UserConfirmRequest(
                     f"You are about to change the mapping to a Key or Macro mapping!\n"
                     f"Go to the 'Advanced Input Configuration' and set a "
-                    f"'Trigger Threshold' for {analog_input.description()}.",
+                    f"'Trigger Threshold' for '{analog_input.description()}'.",
                     f,
                 )
             )
