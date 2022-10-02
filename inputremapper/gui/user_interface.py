@@ -33,6 +33,7 @@ from inputremapper.gui.components import (
     PresetSelection,
     MappingListBox,
     TargetSelection,
+    Stack,
     CodeEditor,
     RecordingToggle,
     StatusBar,
@@ -141,6 +142,7 @@ class UserInterface:
         PresetSelection(message_broker, controller, self.get("preset_selection"))
         MappingListBox(message_broker, controller, self.get("selection_label_listbox"))
         TargetSelection(message_broker, controller, self.get("target-selector"))
+        Stack(message_broker, controller, self.get("main_stack"))
         RecordingToggle(message_broker, controller, self.get("key_recording_toggle"))
         StatusBar(
             message_broker,

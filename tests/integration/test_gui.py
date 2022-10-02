@@ -420,7 +420,10 @@ class GuiTestBase(unittest.TestCase):
 class TestGui(GuiTestBase):
     """For tests that use the window.
 
+    It is intentional that there is no access to the Components.
     Try to modify the configuration only by calling functions of the window.
+    For example by simulating clicks on buttons. Get the widget to interact with
+    by going through the windows children.
     """
     def click_on_group(self, group_key):
         for child in self.device_selection.get_children():

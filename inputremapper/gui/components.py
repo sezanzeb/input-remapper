@@ -176,10 +176,6 @@ class DeviceGroupSelection:
             if device_group_entry.get_active():
                 return device_group_entry
 
-    def __iter__(self):
-        for child in self._gui.get_children():
-            yield child.get_children()[0]
-
     def set_active_group_key(self, group_key: str):
         """Change the currently selected group."""
         for child in self._gui.get_children():
@@ -193,8 +189,27 @@ class DeviceGroupSelection:
             device_group_entry.show_active(device_group_entry.group_key == group_key)
 
 
+class Stack:
+    """Wraps the Stack ("Devices", "Presets", "Editor")."""
+    def __init__(
+        self,
+        message_broker: MessageBroker,
+        controller: Controller,
+        stack: Gtk.Stack,
+    ):
+        self._message_broker = message_broker
+        self._controller = controller
+        self._gui = stack
+
+        self._message_broker.subscribe(MessageType.group, self._on_group_changed)
+
+    def _on_group_changed(self, data: GroupData):
+        # switch to the preset selection
+        self._gui.set_visible_child(self._gui.get_children()[1])
+
+
 class TargetSelection:
-    """the dropdown menu to select the targe_uinput of the active_mapping,
+    """The dropdown menu to select the targe_uinput of the active_mapping,
 
     For example "keyboard" or "gamepad".
     """
