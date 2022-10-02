@@ -29,7 +29,7 @@ from inputremapper.configs.mapping import MappingData
 from inputremapper.event_combination import EventCombination
 from inputremapper.gui.autocompletion import Autocompletion
 from inputremapper.gui.components import (
-    DeviceSelection,
+    DeviceGroupSelection,
     PresetSelection,
     MappingListBox,
     TargetSelection,
@@ -137,7 +137,7 @@ class UserInterface:
         """setup all objects which manage individual components of the ui"""
         message_broker = self.message_broker
         controller = self.controller
-        DeviceSelection(message_broker, controller, self.get("device_selection"))
+        DeviceGroupSelection(message_broker, controller, self.get("device_selection"))
         PresetSelection(message_broker, controller, self.get("preset_selection"))
         MappingListBox(message_broker, controller, self.get("selection_label_listbox"))
         TargetSelection(message_broker, controller, self.get("target-selector"))

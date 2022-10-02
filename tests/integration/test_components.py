@@ -26,7 +26,7 @@ from inputremapper.gui.message_broker import (
 )
 from inputremapper.groups import DeviceType
 from inputremapper.gui.components import (
-    DeviceSelection,
+    DeviceGroupSelection,
     TargetSelection,
     PresetSelection,
     MappingListBox,
@@ -71,11 +71,11 @@ class ComponentBaseTest(unittest.TestCase):
         quick_cleanup()
 
 
-class TestDeviceSelection(ComponentBaseTest):
+class TestDeviceGroupSelection(ComponentBaseTest):
     def setUp(self) -> None:
-        super(TestDeviceSelection, self).setUp()
+        super(TestDeviceGroupSelection, self).setUp()
         self.gui = Gtk.ComboBox()
-        self.selection = DeviceSelection(
+        self.selection = DeviceGroupSelection(
             self.message_broker, self.controller_mock, self.gui
         )
         self.message_broker.send(

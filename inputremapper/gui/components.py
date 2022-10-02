@@ -73,70 +73,109 @@ ICON_PRIORITIES = [
 ]
 
 
-class DeviceSelection:
-    """the dropdown menu to select the active_group"""
+class DeviceGroupEntry(Gtk.Button):
+    """A device that can be selected in the GUI.
+
+    For example a keyboard or a mouse.
+    """
+
+    __gtype_name__ = "DeviceGroupEntry"
 
     def __init__(
         self,
         message_broker: MessageBroker,
         controller: Controller,
-        combobox: Gtk.ComboBox,
+        icon_name: str,
+        group_key: str,
+    ):
+        super().__init__()
+        self.icon_name = icon_name
+        self.group_key = group_key
+        self._controller = controller
+
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+
+        icon = Gtk.Image.new_from_icon_name(icon_name, Gtk.IconSize.DND)
+        box.add(icon)
+
+        label = Gtk.Label()
+        label.set_label(group_key)
+        box.add(label)
+
+        box.set_homogeneous(True)
+
+        self.add(box)
+
+        self.show_all()
+
+        self.connect("clicked", self._on_gtk_select_device)
+
+    def _on_gtk_select_device(self, *_, **__):
+        logger.debug('Selecting device "%s"', self.group_key)
+        self._controller.load_group(self.group_key)
+        # TTODO switch to preset selection
+
+
+class DeviceGroupSelection:
+    """The menu to select the active_group.
+
+    A group is a collection of devices.
+    """
+
+    def __init__(
+        self,
+        message_broker: MessageBroker,
+        controller: Controller,
+        flowbox: Gtk.FlowBox,
     ):
         self._message_broker = message_broker
         self._controller = controller
-        self._device_store = Gtk.ListStore(str, str, str)
-        self._gui = combobox
-
-        # https://python-gtk-3-tutorial.readthedocs.io/en/latest/treeview.html#the-view
-        combobox.set_model(self._device_store)
-        renderer_icon = Gtk.CellRendererPixbuf()
-        renderer_text = Gtk.CellRendererText()
-        renderer_text.set_padding(5, 0)
-        combobox.pack_start(renderer_icon, False)
-        combobox.pack_start(renderer_text, False)
-        combobox.add_attribute(renderer_icon, "icon-name", 1)
-        combobox.add_attribute(renderer_text, "text", 2)
-        combobox.set_id_column(0)
+        self._gui = flowbox
 
         self._message_broker.subscribe(MessageType.groups, self._on_groups_changed)
         self._message_broker.subscribe(MessageType.group, self._on_group_changed)
-        combobox.connect("changed", self._on_gtk_select_device)
 
     def _on_groups_changed(self, data: GroupsData):
-        with HandlerDisabled(self._gui, self._on_gtk_select_device):
-            self._device_store.clear()
-            for group_key, types in data.groups.items():
-                if len(types) > 0:
-                    device_type = sorted(types, key=ICON_PRIORITIES.index)[0]
-                    icon_name = ICON_NAMES[device_type]
-                else:
-                    icon_name = None
+        self._gui.foreach(lambda group: self._gui.remove(group))
 
-                logger.debug(f"adding {group_key} to device dropdown ")
-                self._device_store.append([group_key, icon_name, group_key])
+        for group_key, types in data.groups.items():
+            if len(types) > 0:
+                device_type = sorted(types, key=ICON_PRIORITIES.index)[0]
+                icon_name = ICON_NAMES[device_type]
+            else:
+                icon_name = None
+
+            logger.debug(f"adding {group_key} to device selection")
+            group_entry = DeviceGroupEntry(
+                self._message_broker,
+                self._controller,
+                icon_name,
+                group_key,
+            )
+            self._gui.insert(group_entry, -1)
 
     def _on_group_changed(self, data: GroupData):
-        with HandlerDisabled(self._gui, self._on_gtk_select_device):
-            self._gui.set_active_id(data.group_key)
-
-    def _on_gtk_select_device(self, *_, **__):
-        group_key = self._gui.get_active_id()
-        logger.debug('Selecting device "%s"', group_key)
-        self._controller.load_group(group_key)
+        # TTODO is this when the group is changed externally?
+        # self._gui.set_active_id(data.group_key)
+        # TTODO highlight the selected group
+        pass
 
 
 class TargetSelection:
-    """the dropdown menu to select the targe_uinput of the active_mapping"""
+    """the dropdown menu to select the targe_uinput of the active_mapping,
+
+    For example "keyboard" or "gamepad".
+    """
 
     def __init__(
         self,
         message_broker: MessageBroker,
         controller: Controller,
-        combobox: Gtk.ComboBox,
+        listbox: Gtk.listbox,
     ):
         self._message_broker = message_broker
         self._controller = controller
-        self._gui = combobox
+        self._gui = listbox
 
         self._message_broker.subscribe(MessageType.uinputs, self._on_uinputs_changed)
         self._message_broker.subscribe(MessageType.mapping, self._on_mapping_loaded)
@@ -176,20 +215,20 @@ class TargetSelection:
 
 
 class PresetSelection:
-    """the dropdown menu to select the active_preset"""
+    """The dropdown menu to select the active_preset."""
 
     def __init__(
         self,
         message_broker: MessageBroker,
         controller: Controller,
-        combobox: Gtk.ComboBoxText,
+        listbox: Gtk.listboxText,
     ):
         self._message_broker = message_broker
         self._controller = controller
-        self._gui = combobox
+        self._gui = listbox
 
         self._connect_message_listener()
-        combobox.connect("changed", self._on_gtk_select_preset)
+        listbox.connect("changed", self._on_gtk_select_preset)
 
     def _connect_message_listener(self):
         self._message_broker.subscribe(MessageType.group, self._on_group_changed)
@@ -246,7 +285,10 @@ class MappingListBox:
 
         for name, combination in data.mappings:
             selection_label = SelectionLabel(
-                self._message_broker, self._controller, name, combination
+                self._message_broker,
+                self._controller,
+                name,
+                combination,
             )
             self._gui.insert(selection_label, -1)
         self._gui.invalidate_sort()
@@ -931,7 +973,7 @@ class OutputAxisSelector:
         self,
         message_broker: MessageBroker,
         controller: Controller,
-        gui: Gtk.ComboBox,
+        gui: Gtk.listbox,
     ):
         self._message_broker = message_broker
         self._controller = controller
