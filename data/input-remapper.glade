@@ -1159,7 +1159,8 @@ Only relevant when mapping relative inputs (e.g. mouse) to absolute outputs (e.g
             <property name="visible">True</property>
             <property name="can-focus">True</property>
             <property name="receives-default">True</property>
-            <property name="tooltip-text" translatable="yes">Stops the Injection, gives your keys their original function  back
+            <property name="tooltip-text" translatable="yes">Stops the Injection for the selected device,
+gives your keys their original function back
 Shortcut: ctrl + del</property>
             <property name="halign">end</property>
             <property name="image">gtk-redo-icon</property>

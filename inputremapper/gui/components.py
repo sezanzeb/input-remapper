@@ -85,7 +85,7 @@ class DeviceGroupEntry(Gtk.Button):
         self,
         message_broker: MessageBroker,
         controller: Controller,
-        icon_name: str,
+        icon_name: Optional[str],
         group_key: str,
     ):
         super().__init__()
@@ -95,14 +95,17 @@ class DeviceGroupEntry(Gtk.Button):
 
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
 
-        icon = Gtk.Image.new_from_icon_name(icon_name, Gtk.IconSize.DND)
-        box.add(icon)
+        if icon_name:
+            icon = Gtk.Image.new_from_icon_name(icon_name, Gtk.IconSize.DND)
+            box.add(icon)
 
         label = Gtk.Label()
         label.set_label(group_key)
         box.add(label)
 
-        box.set_homogeneous(True)
+        box.set_margin_top(18)
+        box.set_margin_bottom(18)
+        box.set_spacing(12)
 
         self.add(box)
 
