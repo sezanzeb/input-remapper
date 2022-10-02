@@ -39,7 +39,7 @@ from typing import (
 
 from pydantic import ValidationError
 from inputremapper.logger import logger
-from inputremapper.configs.mapping import Mapping
+from inputremapper.configs.mapping import Mapping, UIMapping
 from inputremapper.configs.paths import touch
 
 from inputremapper.input_event import InputEvent
@@ -59,7 +59,7 @@ def common_data(list1: Iterable, list2: Iterable) -> List:
     return common
 
 
-MappingModel = TypeVar("MappingModel", bound=Mapping)
+MappingModel = TypeVar("MappingModel", bound=UIMapping)
 
 
 class Preset(Generic[MappingModel]):
@@ -203,7 +203,12 @@ class Preset(Generic[MappingModel]):
                     continue
 
             d = mapping.dict(exclude_defaults=True)
-            combination = d.pop("event_combination")
+            d["target_uinput"] = mapping.target_uinput
+            combination = mapping.event_combination
+            try:
+                del d["event_combination"]
+            except KeyError:
+                pass
             json_ready[combination.json_str()] = d
 
             saved_mappings[combination] = mapping.copy()

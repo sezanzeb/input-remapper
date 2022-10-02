@@ -20,7 +20,7 @@
 from __future__ import annotations
 
 import enum
-from typing import Optional, Callable, Tuple, Dict, Any, TypeVar
+from typing import Optional, Callable, Tuple, TypeVar, Literal, Union
 
 import pkg_resources
 from evdev.ecodes import EV_KEY, EV_ABS, EV_REL
@@ -76,16 +76,21 @@ class ImmutableCfg(Cfg):
     allow_mutation = False
 
 
-class Mapping(BaseModel):
-    """Holds all the data for mapping an input action to an output action."""
+class UIMapping(BaseModel):
+    """Holds all the data for mapping an input action to an output action.
+
+    This mapping does not validate the structure of the mapping or macros, only basic
+    values. It is meant to be used in the GUI where invalid mappings are expected.
+    """
 
     if needs_workaround:
         __slots__ = ("_combination_changed",)
 
     # Required attributes
     # The InputEvent or InputEvent combination which is mapped
-    event_combination: EventCombination
-    target_uinput: KnownUinput  # The UInput to which the mapped event will be sent
+    event_combination: EventCombination = EventCombination.empty_combination()
+    # The UInput to which the mapped event will be sent
+    target_uinput: Optional[Union[str, KnownUinput]] = None
 
     # Either `output_symbol` or `output_type` and `output_code` is required
     output_symbol: Optional[str] = None  # The symbol or macro string if applicable
@@ -93,6 +98,7 @@ class Mapping(BaseModel):
     output_code: Optional[int] = None  # The event code of the mapped event
 
     name: Optional[str] = None
+    mapping_type: Optional[Literal["key_macro", "analog"]] = None
 
     # if release events will be sent to the forwarded device as soon as a combination
     # triggers see also #229
@@ -122,10 +128,6 @@ class Mapping(BaseModel):
     # instead wait until it dropped for loger than release_timeout below the threshold
     force_release_timeout: bool = False
 
-    def is_axis_mapping(self) -> bool:
-        """whether this mapping specifies an output axis"""
-        return self.output_type == EV_ABS or self.output_type == EV_REL
-
     # callback which gets called if the event_combination is updated
     if not needs_workaround:
         _combination_changed: CombinationChangedCallback = None
@@ -145,7 +147,7 @@ class Mapping(BaseModel):
             if key == "_combination_changed" and needs_workaround:
                 object.__setattr__(self, "_combination_changed", value)
                 return
-            super(Mapping, self).__setattr__(key, value)
+            super(UIMapping, self).__setattr__(key, value)
             return
 
         # the new combination is not yet validated
@@ -153,7 +155,7 @@ class Mapping(BaseModel):
             new_combi = EventCombination.validate(value)
         except ValueError:
             raise ValidationError(
-                f"failed to Validate {value} as EventCombination", Mapping
+                f"failed to Validate {value} as EventCombination", UIMapping
             )
 
         if new_combi == self.event_combination:
@@ -161,18 +163,26 @@ class Mapping(BaseModel):
 
         # raises a keyError if the combination or a permutation is already mapped
         self._combination_changed(new_combi, self.event_combination)
-        super(Mapping, self).__setattr__(key, value)
+        super(UIMapping, self).__setattr__(key, value)
 
     def __str__(self):
-        return str(self.dict(exclude_defaults=True))
+        return str(
+            self.dict(
+                exclude_defaults=True, include={"event_combination", "target_uinput"}
+            )
+        )
 
     if needs_workaround:
         # https://github.com/samuelcolvin/pydantic/issues/1383
         def copy(self: MappingModel, *args, **kwargs) -> MappingModel:
             kwargs["deep"] = True
-            copy = super(Mapping, self).copy(*args, **kwargs)
+            copy = super(UIMapping, self).copy(*args, **kwargs)
             object.__setattr__(copy, "_combination_changed", self._combination_changed)
             return copy
+
+    def is_axis_mapping(self) -> bool:
+        """whether this mapping specifies an output axis"""
+        return self.output_type == EV_ABS or self.output_type == EV_REL
 
     def set_combination_changed_callback(self, callback: CombinationChangedCallback):
         self._combination_changed = callback
@@ -193,6 +203,50 @@ class Mapping(BaseModel):
 
     def is_valid(self) -> bool:
         """If the mapping is valid."""
+        return not self.get_error()
+
+    def get_error(self) -> Optional[ValidationError]:
+        """The validation error or None."""
+        try:
+            Mapping(**self.dict())
+        except ValidationError as e:
+            return e
+        return None
+
+    def get_bus_message(self) -> MappingData:
+        """return a immutable copy for use in the"""
+        return MappingData(**self.dict())
+
+    @root_validator
+    def validate_mapping_type(cls, values):
+        """overrides the mapping type if the output mapping type is obvious"""
+        output_type = values.get("output_type")
+        output_code = values.get("output_code")
+        output_symbol = values.get("output_symbol")
+
+        if output_type is not None and output_code is not None and not output_symbol:
+            values["mapping_type"] = "analog"
+
+        if output_type is None and output_code is None and output_symbol:
+            values["mapping_type"] = "key_macro"
+
+        return values
+
+    Config = Cfg
+
+
+class Mapping(UIMapping):
+    """Holds all the data for mapping an input action to an output action.
+
+    This implements the missing validations from UIMapping.
+    """
+
+    # Override Required attributes to enforce they are set
+    event_combination: EventCombination
+    target_uinput: KnownUinput
+
+    def is_valid(self) -> bool:
+        """If the mapping is valid."""
         return True
 
     @validator("output_symbol", pre=True)
@@ -202,7 +256,7 @@ class Mapping(BaseModel):
 
         if is_this_a_macro(symbol):
             try:
-                parse(symbol)  # raises MacroParsingError
+                parse(symbol, verbose=False)  # raises MacroParsingError
                 return symbol
             except MacroParsingError as e:
                 raise ValueError(
@@ -319,131 +373,6 @@ class Mapping(BaseModel):
             )
 
         return values
-
-    Config = Cfg
-
-
-class UIMapping(Mapping):
-    """The UI Mapping adds the ability to create Invalid Mapping objects.
-
-    Intended for use in the frontend, where invalid data is allowed
-    during creation of the mapping. Invalid assignments are cached and
-    revalidation is attempted as soon as the mapping changes.
-    """
-
-    _cache: Dict[str, Any]  # the invalid mapping data
-    _last_error: Optional[ValidationError]  # the last validation error
-
-    # all attributes that __setattr__ will not forward to super() or _cache
-    ATTRIBUTES = ("_cache", "_last_error")
-
-    # use type: ignore, looks like a mypy bug related to:
-    # https://github.com/samuelcolvin/pydantic/issues/2949
-    def __init__(self, **data):  # type: ignore
-        object.__setattr__(self, "_last_error", None)
-        super().__init__(
-            event_combination=EventCombination.empty_combination(),
-            target_uinput="keyboard",
-            output_symbol="KEY_A",
-        )
-        cache = {
-            "target_uinput": None,
-            "output_symbol": None,
-        }
-        cache.update(**data)
-        object.__setattr__(self, "_cache", cache)
-        self._validate()
-
-    def __setattr__(self, key, value):
-        if key in self.ATTRIBUTES:
-            object.__setattr__(self, key, value)
-            return
-
-        try:
-            super(UIMapping, self).__setattr__(key, value)
-            if key in self._cache:
-                del self._cache[key]
-            self._last_error = None
-
-        except ValidationError as error:
-            # cache the value
-            self._last_error = error
-            self._cache[key] = value
-
-        # retry the validation
-        self._validate()
-
-    def __getattribute__(self, item):
-        # intercept any getattribute and prioritize attributes from the cache
-        try:
-            return object.__getattribute__(self, "_cache")[item]
-        except (KeyError, AttributeError):
-            pass
-
-        return object.__getattribute__(self, item)
-
-    def is_valid(self) -> bool:
-        """If the mapping is valid."""
-        return len(self._cache) == 0
-
-    def dict(self, *args, **kwargs):
-        """Dict will include the invalid data."""
-        dict_ = super(UIMapping, self).dict(*args, **kwargs)
-        # combine all valid values with the invalid ones
-        dict_.update(**self._cache)
-        if "ATTRIBUTES" in dict_:
-            # remove so that super().__eq__ succeeds
-            # for comparing Mapping with UIMapping
-            del dict_["ATTRIBUTES"]
-
-        if needs_workaround:
-            if "_last_error" in dict_.keys():
-                del dict_["_last_error"]
-                del dict_["_cache"]
-
-        return dict_
-
-    def copy(self: MappingModel, *args, **kwargs) -> MappingModel:
-        # we always need a deep copy otherwise the _cache of the copy will
-        # point to the same address
-        kwargs["deep"] = True
-        # seems to be related: https://github.com/python/mypy/issues/9282
-        copy = super().copy(*args, **kwargs)  # type: ignore
-        object.__setattr__(copy, "_combination_changed", self._combination_changed)
-        return copy
-
-    def get_error(self) -> Optional[ValidationError]:
-        """The validation error or None."""
-        return self._last_error
-
-    def get_bus_message(self) -> MappingData:
-        """return a immutable copy for use in the"""
-        return MappingData(**self.dict())
-
-    def _validate(self) -> None:
-        """Try to validate the mapping."""
-        if self.is_valid():
-            return
-
-        # preserve the combination_changed callback
-        callback = self._combination_changed
-        try:
-            super(UIMapping, self).__init__(**self.dict(exclude_defaults=True))
-            self._cache = {}
-            self._last_error = None
-            self.set_combination_changed_callback(callback)
-            return
-        except ValidationError as error:
-            self._last_error = error
-
-        if (
-            "event_combination" in self._cache.keys()
-            and self._cache["event_combination"]
-        ):
-            # the event_combination needs to be valid
-            self._cache["event_combination"] = EventCombination.validate(
-                self._cache["event_combination"]
-            )
 
 
 class MappingData(UIMapping):

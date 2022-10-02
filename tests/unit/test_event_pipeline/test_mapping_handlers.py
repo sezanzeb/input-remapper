@@ -59,6 +59,7 @@ from inputremapper.injection.mapping_handlers.hierarchy_handler import Hierarchy
 from inputremapper.injection.mapping_handlers.key_handler import KeyHandler
 from inputremapper.injection.mapping_handlers.macro_handler import MacroHandler
 from inputremapper.injection.mapping_handlers.mapping_handler import MappingHandler
+from inputremapper.injection.mapping_handlers.rel_to_abs_handler import RelToAbsHandler
 from inputremapper.logger import logger
 from inputremapper.configs.mapping import Mapping
 from inputremapper.injection.context import Context
@@ -139,6 +140,32 @@ class TestAbsToAbsHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
     async def test_reset(self):
         self.handler.notify(
             InputEvent(0, 0, EV_ABS, ABS_X, MAX_ABS),
+            source=InputDevice("/dev/input/event15"),
+            forward=evdev.UInput(),
+        )
+        self.handler.reset()
+        history = global_uinputs.get_uinput("gamepad").write_history
+        self.assertEqual(
+            history,
+            [InputEvent.from_tuple((3, 0, 32768)), InputEvent.from_tuple((3, 0, 0))],
+        )
+
+
+class TestRelToAbsHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
+    def setUp(self):
+        self.handler = RelToAbsHandler(
+            EventCombination((EV_REL, REL_X, 0)),
+            Mapping(
+                event_combination=f"{EV_REL},{REL_X},0",
+                target_uinput="gamepad",
+                output_type=EV_ABS,
+                output_code=ABS_X,
+            ),
+        )
+
+    async def test_reset(self):
+        self.handler.notify(
+            InputEvent(0, 0, EV_REL, REL_X, 100),
             source=InputDevice("/dev/input/event15"),
             forward=evdev.UInput(),
         )

@@ -499,14 +499,26 @@ class TestPreset(unittest.TestCase):
         preset = Preset(get_config_path("test.json"))
         preset.load()
         self.assertEqual(len(preset), 1)
-        self.assertEqual(preset.get_mapping(m.event_combination), m)
+
+        a = preset.get_mapping(m.event_combination).dict()
+        b = m.dict()
+        a.pop("mapping_type")
+        b.pop("mapping_type")
+        self.assertEqual(a, b)
+        # self.assertEqual(preset.get_mapping(m.event_combination), m)
 
         # both presets load
         ui_preset.clear()
         ui_preset.path = get_config_path("test.json")
         ui_preset.load()
         self.assertEqual(len(ui_preset), 2)
-        self.assertEqual(ui_preset.get_mapping(m.event_combination), m)
+
+        a = ui_preset.get_mapping(m.event_combination).dict()
+        b = m.dict()
+        a.pop("mapping_type")
+        b.pop("mapping_type")
+        self.assertEqual(a, b)
+        # self.assertEqual(ui_preset.get_mapping(m.event_combination), m)
         self.assertEqual(ui_preset.get_mapping(m2.event_combination), m2)
 
 

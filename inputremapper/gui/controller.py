@@ -21,7 +21,16 @@ from __future__ import annotations  # needed for the TYPE_CHECKING import
 
 import re
 from functools import partial
-from typing import TYPE_CHECKING, Optional, Union, Literal, Sequence, Dict, Callable
+from typing import (
+    TYPE_CHECKING,
+    Optional,
+    Union,
+    Literal,
+    Sequence,
+    Dict,
+    Callable,
+    List,
+)
 
 from evdev.ecodes import EV_KEY, EV_REL, EV_ABS
 from gi.repository import Gtk
@@ -392,6 +401,13 @@ class Controller:
 
     def update_mapping(self, **kwargs):
         """update the active_mapping with the given keywords and values"""
+        if "mapping_type" in kwargs.keys():
+            if not (kwargs := self._change_mapping_type(kwargs)):
+                # we need to synchronize the gui
+                self.data_manager.send_mapping()
+                self.data_manager.send_event()
+                return
+
         self.data_manager.update_mapping(**kwargs)
         self.save()
 
@@ -578,3 +594,80 @@ class Controller:
     def set_focus(self, component):
         """focus the given component"""
         self.gui.window.set_focus(component)
+
+    def _change_mapping_type(self, kwargs):
+        """query the user to update the mapping in order to change the mapping type"""
+        mapping = self.data_manager.active_mapping
+        if kwargs["mapping_type"] == mapping.mapping_type:
+            return kwargs
+
+        if kwargs["mapping_type"] == "analog":
+            msg = f"You are about to change the mapping to analog!"
+            if mapping.output_symbol:
+                msg += (
+                    f"\nThis will remove the '{mapping.output_symbol}' "
+                    f"from the text input."
+                )
+
+            if not [e for e in mapping.event_combination if e.value == 0]:
+                # there is no analog input configured, let's try to autoconfigure it
+                events: List[InputEvent] = list(mapping.event_combination)
+                for i, e in enumerate(events):
+                    if e.type in [EV_ABS, EV_REL]:
+                        events[i] = e.modify(value=0)
+                        kwargs["event_combination"] = EventCombination(events)
+                        msg += (
+                            f"\nThe input '{e.description()}' "
+                            f"will be used as analog input."
+                        )
+                        break
+                else:
+                    # not possible to autoconfigure inform the user
+                    msg += "\nNote: you need to recorde an analog input."
+
+            elif not mapping.output_symbol:
+                return kwargs
+
+            answer = None
+
+            def f(a: bool):
+                nonlocal answer
+                answer = a
+
+            self.message_broker.send(UserConfirmRequest(msg, f))
+            if answer:
+                kwargs["output_symbol"] = None
+                return kwargs
+            else:
+                return None
+
+        if kwargs["mapping_type"] == "key_macro":
+            try:
+                analog_input = [e for e in mapping.event_combination if e.value == 0][0]
+            except IndexError:
+                kwargs["output_type"] = None
+                kwargs["output_code"] = None
+                return kwargs
+
+            answer = None
+
+            def f(a: bool):
+                nonlocal answer
+                answer = a
+
+            self.message_broker.send(
+                UserConfirmRequest(
+                    f"You are about to change the mapping to a Key or Macro mapping!\n"
+                    f"Go to the 'Advanced Input Configuration' and set a "
+                    f"'Trigger Threshold' for '{analog_input.description()}'.",
+                    f,
+                )
+            )
+            if answer:
+                kwargs["output_type"] = None
+                kwargs["output_code"] = None
+                return kwargs
+            else:
+                return None
+
+        return kwargs

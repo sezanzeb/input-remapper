@@ -209,7 +209,7 @@ def _is_number(value):
         return False
 
 
-def _parse_recurse(code, context, mapping, macro_instance=None, depth=0):
+def _parse_recurse(code, context, mapping, verbose, macro_instance=None, depth=0):
     """Handle a subset of the macro, e.g. one parameter or function call.
 
     Not using eval for security reasons.
@@ -228,6 +228,10 @@ def _parse_recurse(code, context, mapping, macro_instance=None, depth=0):
     assert isinstance(code, str)
     assert isinstance(depth, int)
 
+    def debug(*args, **kwargs):
+        if verbose:
+            logger.debug(*args, **kwargs)
+
     space = "  " * depth
 
     code = code.strip()
@@ -239,7 +243,7 @@ def _parse_recurse(code, context, mapping, macro_instance=None, depth=0):
     if code.startswith('"'):
         # a string, don't parse. remove quotes
         string = code[1:-1]
-        logger.debug("%sstring %s", space, string)
+        debug("%sstring %s", space, string)
         return string
 
     if code.startswith("$"):
@@ -251,7 +255,7 @@ def _parse_recurse(code, context, mapping, macro_instance=None, depth=0):
             code = float(code)
         else:
             code = int(code)
-        logger.debug("%snumber %s", space, code)
+        debug("%snumber %s", space, code)
         return code
 
     # is it another macro?
@@ -272,7 +276,7 @@ def _parse_recurse(code, context, mapping, macro_instance=None, depth=0):
         # get all the stuff inbetween
         position = _count_brackets(code)
         inner = code[code.index("(") + 1 : position - 1]
-        logger.debug("%scalls %s with %s", space, call, inner)
+        debug("%scalls %s with %s", space, call, inner)
 
         # split "3, foo=a(2, k(a).w(10))" into arguments
         raw_string_args = _extract_args(inner)
@@ -282,7 +286,9 @@ def _parse_recurse(code, context, mapping, macro_instance=None, depth=0):
         keyword_args = {}
         for param in raw_string_args:
             key, value = _split_keyword_arg(param)
-            parsed = _parse_recurse(value.strip(), context, mapping, None, depth + 1)
+            parsed = _parse_recurse(
+                value.strip(), context, mapping, verbose, None, depth + 1
+            )
             if key is None:
                 if len(keyword_args) > 0:
                     msg = f'Positional argument "{key}" follows keyword argument'
@@ -295,7 +301,7 @@ def _parse_recurse(code, context, mapping, macro_instance=None, depth=0):
                     )
                 keyword_args[key] = parsed
 
-        logger.debug(
+        debug(
             "%sadd call to %s with %s, %s",
             space,
             call,
@@ -326,15 +332,15 @@ def _parse_recurse(code, context, mapping, macro_instance=None, depth=0):
         # is after this another call? Chain it to the macro_instance
         if len(code) > position and code[position] == ".":
             chain = code[position + 1 :]
-            logger.debug("%sfollowed by %s", space, chain)
-            _parse_recurse(chain, context, mapping, macro_instance, depth)
+            debug("%sfollowed by %s", space, chain)
+            _parse_recurse(chain, context, mapping, verbose, macro_instance, depth)
 
         return macro_instance
 
     # It is probably either a key name like KEY_A or a variable name as in `set(var,1)`,
     # both won't contain special characters that can break macro syntax so they don't
     # have to be wrapped in quotes.
-    logger.debug("%sstring %s", space, code)
+    debug("%sstring %s", space, code)
     return code
 
 
@@ -404,7 +410,7 @@ def clean(code):
     return remove_whitespaces(remove_comments(code), '"')
 
 
-def parse(macro, context=None, mapping=None):
+def parse(macro, context=None, mapping=None, verbose=True):
     """Parse and generate a Macro that can be run as often as you want.
 
     Parameters
@@ -415,12 +421,13 @@ def parse(macro, context=None, mapping=None):
         "wait(1000).modify(Shift_L, repeat(2, k(a))).wait(10, 20).key(b)"
     context : Context, or None for use in Frontend
     mapping : the mapping for the macro, or None for use in Frontend
+    verbose : log the parsing True by default
     """
     logger.debug("parsing macro %s", macro)
     macro = clean(macro)
     macro = handle_plus_syntax(macro)
 
-    macro_obj = _parse_recurse(macro, context, mapping)
+    macro_obj = _parse_recurse(macro, context, mapping, verbose)
     if not isinstance(macro_obj, Macro):
         raise MacroParsingError(macro, "The provided code was not a macro")
 

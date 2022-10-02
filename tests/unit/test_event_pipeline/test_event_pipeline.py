@@ -350,6 +350,115 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
             ],
         )
 
+    async def test_rel_to_abs(self):
+        gain = 0.5
+        preset = Preset()
+        # left mouse x to abs x
+        cfg = {
+            "event_combination": f"{EV_REL},{REL_X},0",
+            "target_uinput": "gamepad",
+            "output_type": EV_ABS,
+            "output_code": ABS_X,
+            "gain": gain,
+            "rel_input_cutoff": 100,
+            "release_timeout": 0.5,
+            "deadzone": 0,
+        }
+        m1 = Mapping(**cfg)
+        preset.add(m1)
+        cfg["event_combination"] = f"{EV_REL},{REL_Y},0"
+        cfg["output_code"] = ABS_Y
+        m2 = Mapping(**cfg)
+        preset.add(m2)
+
+        event_reader = self.get_event_reader(preset, fixtures.gamepad)
+
+        await self.send_events(
+            [
+                InputEvent.from_tuple((EV_REL, REL_X, -100)),
+                InputEvent.from_tuple((EV_REL, REL_Y, 100)),
+            ],
+            event_reader,
+        )
+
+        await asyncio.sleep(0.1)
+        # convert the write history to some easier to manage list
+        history = convert_to_internal_events(
+            global_uinputs.get_uinput("gamepad").write_history
+        )
+        self.assertEqual(
+            history,
+            [
+                InputEvent.from_tuple((3, 0, -16384)),
+                InputEvent.from_tuple((3, 1, 16384)),
+            ],
+        )
+
+        # send more events, then wait until the release timeout
+        await self.send_events(
+            [
+                InputEvent.from_tuple((EV_REL, REL_X, -50)),
+                InputEvent.from_tuple((EV_REL, REL_Y, 50)),
+            ],
+            event_reader,
+        )
+        await asyncio.sleep(0.7)
+        history = convert_to_internal_events(
+            global_uinputs.get_uinput("gamepad").write_history
+        )
+        self.assertEqual(
+            history,
+            [
+                InputEvent.from_tuple((3, 0, -16384)),
+                InputEvent.from_tuple((3, 1, 16384)),
+                InputEvent.from_tuple((3, 0, -8192)),
+                InputEvent.from_tuple((3, 1, 8192)),
+                InputEvent.from_tuple((3, 0, 0)),
+                InputEvent.from_tuple((3, 1, 0)),
+            ],
+        )
+
+    async def test_rel_to_abs_with_input_switch(self):
+        gain = 0.5
+        preset = Preset()
+        # left mouse x to x
+        cfg = {
+            "event_combination": f"{EV_REL},{REL_X},0+{EV_REL},{REL_Y},10",
+            "target_uinput": "gamepad",
+            "output_type": EV_ABS,
+            "output_code": ABS_X,
+            "gain": gain,
+            "deadzone": 0,
+        }
+        m1 = Mapping(**cfg)
+        preset.add(m1)
+
+        event_reader = self.get_event_reader(preset, fixtures.gamepad)
+
+        await self.send_events(
+            [
+                InputEvent.from_tuple((EV_REL, REL_X, -25)),  # will not map
+                InputEvent.from_tuple((EV_REL, REL_Y, 20)),  # switch axis on
+                InputEvent.from_tuple((EV_REL, REL_X, 100)),  # normally mapped
+                InputEvent.from_tuple((EV_REL, REL_Y, 5)),  # off, re-centers axis
+                InputEvent.from_tuple((EV_REL, REL_X, 50)),  # will not map
+            ],
+            event_reader,
+        )
+
+        await asyncio.sleep(0.2)
+        # convert the write history to some easier to manage list
+        history = convert_to_internal_events(
+            global_uinputs.get_uinput("gamepad").write_history
+        )
+        self.assertEqual(
+            history,
+            [
+                InputEvent.from_tuple((3, 0, 16384)),
+                InputEvent.from_tuple((3, 0, 0)),
+            ],
+        )
+
     async def test_abs_to_rel(self):
         """Map gamepad EV_ABS events to EV_REL events."""
 
