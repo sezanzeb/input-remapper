@@ -74,9 +74,11 @@ class ComponentBaseTest(unittest.TestCase):
 class TestDeviceGroupSelection(ComponentBaseTest):
     def setUp(self) -> None:
         super(TestDeviceGroupSelection, self).setUp()
-        self.gui = Gtk.ComboBox()
+        self.gui = Gtk.FlowBox()
         self.selection = DeviceGroupSelection(
-            self.message_broker, self.controller_mock, self.gui
+            self.message_broker,
+            self.controller_mock,
+            self.gui,
         )
         self.message_broker.send(
             GroupsData(
@@ -88,10 +90,21 @@ class TestDeviceGroupSelection(ComponentBaseTest):
             )
         )
 
+    def get_displayed_group_keys_and_icons(self):
+        """Get a list of all group_keys and icons of the displayed groups."""
+        group_keys = []
+        icons = []
+        for child in self.gui.get_children():
+            device_group_entry = child.get_children()[0]
+            group_keys.append(device_group_entry.group_key)
+            icons.append(device_group_entry.icon_name)
+
+        return group_keys, icons
+
     def test_populates_devices(self):
-        names = [row[0] for row in self.gui.get_model()]
-        self.assertEqual(names, ["foo", "bar", "baz"])
-        icons = [row[1] for row in self.gui.get_model()]
+        # tests that all devices sent via the broker end up in the gui
+        group_keys, icons = self.get_displayed_group_keys_and_icons()
+        self.assertEqual(group_keys, ["foo", "bar", "baz"])
         self.assertEqual(icons, ["input-gaming", None, "input-tablet"])
 
         self.message_broker.send(
@@ -102,19 +115,24 @@ class TestDeviceGroupSelection(ComponentBaseTest):
                 }
             )
         )
-        names = [row[0] for row in self.gui.get_model()]
-        self.assertEqual(names, ["kuu", "qux"])
-        icons = [row[1] for row in self.gui.get_model()]
+
+        group_keys, icons = self.get_displayed_group_keys_and_icons()
+        self.assertEqual(group_keys, ["kuu", "qux"])
         self.assertEqual(icons, ["input-keyboard", "input-gaming"])
 
     def test_selects_correct_device(self):
         self.message_broker.send(GroupData("bar", ()))
-        self.assertEqual(self.gui.get_active_id(), "bar")
+        self.assertEqual(
+            self.selection.get_active_device_group_entry().group_key, "bar"
+        )
         self.message_broker.send(GroupData("baz", ()))
-        self.assertEqual(self.gui.get_active_id(), "baz")
+        self.assertEqual(
+            self.selection.get_active_device_group_entry().group_key, "baz"
+        )
 
     def test_loads_group(self):
-        self.gui.set_active_id("bar")
+        # TTODO this was self.gui.set_active_id, is a call like that somewhere?
+        self.selection.set_active_group_key("bar")
         self.controller_mock.load_group.assert_called_once_with("bar")
 
     def test_avoids_infinite_recursion(self):
@@ -1093,6 +1111,7 @@ class TestTransformationDrawArea(ComponentBaseTest):
         )
 
     def test_draws_transform(self):
+        # TTODO might fail because the editor is not displayed yet
         with spy(self.transform_draw_area, "_transformation") as mock:
             self.gui.show_all()
             gtk_iteration()

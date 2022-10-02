@@ -279,7 +279,7 @@ class GuiTestBase(unittest.TestCase):
             ) = launch()
 
         get = self.user_interface.get
-        self.device_selection: Gtk.ComboBox = get("device_selection")
+        self.device_selection: Gtk.FlowBox = get("device_selection")
         self.preset_selection: Gtk.ComboBoxText = get("preset_selection")
         self.selection_label_listbox: Gtk.ListBox = get("selection_label_listbox")
         self.target_selection: Gtk.ComboBox = get("target-selector")
@@ -422,6 +422,12 @@ class TestGui(GuiTestBase):
 
     Try to modify the configuration only by calling functions of the window.
     """
+    def click_on_group(self, group_key):
+        for child in self.device_selection.get_children():
+            device_group_entry = child.get_children()[0]
+
+            if device_group_entry.group_key == group_key:
+                device_group_entry.set_active(True)
 
     def test_can_start(self):
         self.assertIsNotNone(self.user_interface)
@@ -480,7 +486,7 @@ class TestGui(GuiTestBase):
         self.assertFalse(self.data_manager.get_autoload())
         self.assertFalse(self.autoload_toggle.get_active())
 
-        self.device_selection.set_active_id("Foo Device 2")
+        self.click_on_group("Foo Device 2")
         self.preset_selection.set_active_id("preset2")
         gtk_iteration()
         self.assertTrue(self.data_manager.get_autoload())
@@ -490,7 +496,7 @@ class TestGui(GuiTestBase):
         self.assertFalse(self.data_manager.get_autoload())
         self.assertFalse(self.autoload_toggle.get_active())
 
-        self.device_selection.set_active_id("Foo Device 2")
+        self.click_on_group("Foo Device 2")
         self.preset_selection.set_active_id("preset2")
         gtk_iteration()
         self.assertTrue(self.data_manager.get_autoload())
@@ -511,21 +517,21 @@ class TestGui(GuiTestBase):
         self.assertTrue(self.data_manager.get_autoload())
         self.assertTrue(self.autoload_toggle.get_active())
 
-        self.device_selection.set_active_id("Foo Device 2")
+        self.click_on_group("Foo Device 2")
         gtk_iteration()
         self.autoload_toggle.set_active(True)
         gtk_iteration()
         self.assertTrue(self.data_manager.get_autoload())
         self.assertTrue(self.autoload_toggle.get_active())
 
-        self.device_selection.set_active_id("Foo Device")
+        self.click_on_group("Foo Device")
         gtk_iteration()
         self.assertTrue(self.data_manager.get_autoload())
         self.assertTrue(self.autoload_toggle.get_active())
 
     def test_select_device_without_preset(self):
         # creates a new empty preset when no preset exists for the device
-        self.device_selection.set_active_id("Bar Device")
+        self.click_on_group("Bar Device")
         self.assertEqual(self.preset_selection.get_active_id(), "new preset")
         self.assertEqual(len(self.data_manager.active_preset), 0)
 
@@ -682,7 +688,7 @@ class TestGui(GuiTestBase):
         )
 
     def test_create_simple_mapping(self):
-        self.device_selection.set_active_id("Foo Device 2")
+        self.click_on_group("Foo Device 2")
         # 1. create a mapping
         self.create_mapping_btn.clicked()
         gtk_iteration()
@@ -1278,13 +1284,13 @@ class TestGui(GuiTestBase):
     def test_select_device(self):
         # simple test to make sure we can switch between devices
         # more detailed tests in TestController and TestDataManager
-        self.device_selection.set_active_id("Bar Device")
+        self.click_on_group("Bar Device")
         gtk_iteration()
 
         entries = {entry[0] for entry in self.preset_selection.get_child().get_model()}
         self.assertEqual(entries, {"new preset"})
 
-        self.device_selection.set_active_id("Foo Device")
+        self.click_on_group("Foo Device")
         gtk_iteration()
 
         entries = {entry[0] for entry in self.preset_selection.get_child().get_model()}
@@ -1304,7 +1310,7 @@ class TestGui(GuiTestBase):
     def test_select_preset(self):
         # simple test to make sure we can switch between presets
         # more detailed tests in TestController and TestDataManager
-        self.device_selection.set_active_id("Foo Device 2")
+        self.click_on_group("Foo Device 2")
         gtk_iteration()
         self.preset_selection.set_active_id("preset1")
         gtk_iteration()
@@ -1534,9 +1540,9 @@ class TestGui(GuiTestBase):
         self.controller.refresh_groups()
         gtk_iteration()
 
-        for entry in self.device_selection.get_child().get_model():
+        for entry in self.device_selection:
             # whichever attribute contains "input-remapper"
-            self.assertNotIn("input-remapper", "".join(entry))
+            self.assertNotIn("input-remapper", entry.group_key)
 
     def test_stop_injecting(self):
         self.controller.load_group("Foo Device 2")

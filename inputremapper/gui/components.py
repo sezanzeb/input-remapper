@@ -73,7 +73,7 @@ ICON_PRIORITIES = [
 ]
 
 
-class DeviceGroupEntry(Gtk.Button):
+class DeviceGroupEntry(Gtk.ToggleButton):
     """A device that can be selected in the GUI.
 
     For example a keyboard or a mouse.
@@ -105,24 +105,32 @@ class DeviceGroupEntry(Gtk.Button):
 
         box.set_margin_top(18)
         box.set_margin_bottom(18)
+        box.set_homogeneous(True)
         box.set_spacing(12)
 
         self.add(box)
 
         self.show_all()
 
-        self.connect("clicked", self._on_gtk_select_device)
+        self.connect("toggled", self._on_gtk_select_device)
 
     def _on_gtk_select_device(self, *_, **__):
         logger.debug('Selecting device "%s"', self.group_key)
         self._controller.load_group(self.group_key)
-        # TTODO switch to preset selection
+        # TTODO switch to preset selection. via message_broker?
+
+    def show_active(self, active):
+        """Show the active state without triggering anything."""
+        with HandlerDisabled(self, self._on_gtk_select_device):
+            self.set_active(active)
 
 
 class DeviceGroupSelection:
-    """The menu to select the active_group.
+    """A wrapper for the container with our groups.
 
     A group is a collection of devices.
+
+    This class wraps the GTK Widget that displays the groups.
     """
 
     def __init__(
@@ -149,19 +157,40 @@ class DeviceGroupSelection:
                 icon_name = None
 
             logger.debug(f"adding {group_key} to device selection")
-            group_entry = DeviceGroupEntry(
+            device_group_entry = DeviceGroupEntry(
                 self._message_broker,
                 self._controller,
                 icon_name,
                 group_key,
             )
-            self._gui.insert(group_entry, -1)
+            self._gui.insert(device_group_entry, -1)
 
     def _on_group_changed(self, data: GroupData):
-        # TTODO is this when the group is changed externally?
-        # self._gui.set_active_id(data.group_key)
-        # TTODO highlight the selected group
-        pass
+        self.show_active_group_key(data.group_key)
+
+    def get_active_device_group_entry(self) -> DeviceGroupEntry:
+        """Find the currently selected DeviceGroupEntry."""
+        for child in self._gui.get_children():
+            device_group_entry = child.get_children()[0]
+
+            if device_group_entry.get_active():
+                return device_group_entry
+
+    def __iter__(self):
+        for child in self._gui.get_children():
+            yield child.get_children()[0]
+
+    def set_active_group_key(self, group_key: str):
+        """Change the currently selected group."""
+        for child in self._gui.get_children():
+            device_group_entry = child.get_children()[0]
+            device_group_entry.set_active(device_group_entry.group_key == group_key)
+
+    def show_active_group_key(self, group_key: str):
+        """Show the currently selected group."""
+        for child in self._gui.get_children():
+            device_group_entry = child.get_children()[0]
+            device_group_entry.show_active(device_group_entry.group_key == group_key)
 
 
 class TargetSelection:
