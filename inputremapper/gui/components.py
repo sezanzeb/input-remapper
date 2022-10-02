@@ -42,6 +42,7 @@ from inputremapper.gui.message_broker import (
     StatusData,
     CombinationUpdate,
     UserConfirmRequest,
+    DoStackSwitch,
 )
 from inputremapper.gui.utils import HandlerDisabled, CTX_ERROR, CTX_MAPPING, CTX_WARNING
 from inputremapper.injection.mapping_handlers.axis_transform import Transformation
@@ -90,6 +91,7 @@ class DeviceGroupEntry(Gtk.ToggleButton):
     ):
         super().__init__()
         self.icon_name = icon_name
+        self.message_broker = message_broker
         self.group_key = group_key
         self._controller = controller
 
@@ -117,6 +119,7 @@ class DeviceGroupEntry(Gtk.ToggleButton):
     def _on_gtk_select_device(self, *_, **__):
         logger.debug('Selecting device "%s"', self.group_key)
         self._controller.load_group(self.group_key)
+        self.message_broker.send(DoStackSwitch(Stack.presets_page))
 
     def show_active(self, active):
         """Show the active state without triggering anything."""
@@ -194,6 +197,11 @@ class DeviceGroupSelection:
 # TODO test
 class Stack:
     """Wraps the Stack ("Devices", "Presets", "Editor")."""
+
+    devices_page = 0
+    presets_page = 1
+    editor_page = 2
+
     def __init__(
         self,
         message_broker: MessageBroker,
@@ -204,11 +212,10 @@ class Stack:
         self._controller = controller
         self._gui = stack
 
-        self._message_broker.subscribe(MessageType.group, self._on_group_changed)
+        self._message_broker.subscribe(MessageType.do_stack_switch, self._do_stack_switch)
 
-    def _on_group_changed(self, _):
-        # switch to the preset selection
-        self._gui.set_visible_child(self._gui.get_children()[1])
+    def _do_stack_switch(self, msg: DoStackSwitch):
+        self._gui.set_visible_child(self._gui.get_children()[msg.page_index])
 
 
 class TargetSelection:
@@ -276,6 +283,7 @@ class PresetEntry(Gtk.ToggleButton):
         preset_name: str,
     ):
         super().__init__()
+        self.message_broker = message_broker
         self.preset_name = preset_name
         self._controller = controller
 
@@ -299,6 +307,7 @@ class PresetEntry(Gtk.ToggleButton):
     def _on_gtk_select_preset(self, *_, **__):
         logger.debug('Selecting preset "%s"', self.preset_name)
         self._controller.load_preset(self.preset_name)
+        self.message_broker.send(DoStackSwitch(Stack.editor_page))
 
     def show_active(self, active):
         """Show the active state without triggering anything."""
@@ -343,15 +352,15 @@ class EditorTitle:
         self._gui = label
         self._connect_message_listener()
 
-        self._group_key = ""
-        self._preset_name = ""
+        self._group_key: str = ""
+        self._preset_name: str = ""
 
     def _connect_message_listener(self):
         self._message_broker.subscribe(MessageType.group, self._on_group_changed)
         self._message_broker.subscribe(MessageType.preset, self._on_preset_changed)
 
     def _on_preset_changed(self, data: PresetData):
-        self._preset_name = data.name
+        self._preset_name = data.name or ""
         self._render()
 
     def _on_group_changed(self, data: GroupData):

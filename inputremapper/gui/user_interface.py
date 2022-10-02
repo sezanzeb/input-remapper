@@ -145,7 +145,9 @@ class UserInterface:
         MappingListBox(message_broker, controller, self.get("selection_label_listbox"))
         TargetSelection(message_broker, controller, self.get("target-selector"))
 
-        PresetSelectionTitle(message_broker, controller, self.get("selected_device_name"))
+        PresetSelectionTitle(
+            message_broker, controller, self.get("selected_device_name")
+        )
         EditorTitle(message_broker, controller, self.get("selected_preset_name"))
 
         Stack(message_broker, controller, self.get("main_stack"))
@@ -229,7 +231,7 @@ class UserInterface:
         self.get("apply_preset").connect(
             "clicked", lambda *_: self.controller.start_injecting()
         )
-        self.get("apply_system_layout").connect(
+        self.get("stop_injection_preset_page").connect(
             "clicked", lambda *_: self.controller.stop_injecting()
         )
         self.get("rename-button").connect("clicked", self.on_gtk_rename_clicked)
@@ -266,15 +268,21 @@ class UserInterface:
 
     def on_injector_state_msg(self, msg: InjectorState):
         """update the ui to reflect the status of the injector"""
-        stop_injection_btn: Gtk.Button = self.get("apply_system_layout")
+        stop_injection_preset_page: Gtk.Button = self.get("stop_injection_preset_page")
+        stop_injection_editor_page: Gtk.Button = self.get("stop_injection_editor_page")
         recording_toggle: Gtk.ToggleButton = self.get("key_recording_toggle")
+
         if msg.active():
-            stop_injection_btn.set_opacity(1)
-            stop_injection_btn.set_sensitive(True)
+            stop_injection_preset_page.set_opacity(1)
+            stop_injection_editor_page.set_opacity(1)
+            stop_injection_preset_page.set_sensitive(True)
+            stop_injection_editor_page.set_sensitive(True)
             recording_toggle.set_opacity(0.4)
         else:
-            stop_injection_btn.set_opacity(0.4)
-            stop_injection_btn.set_sensitive(True)
+            stop_injection_preset_page.set_opacity(0.4)
+            stop_injection_editor_page.set_opacity(0.4)
+            stop_injection_preset_page.set_sensitive(True)
+            stop_injection_editor_page.set_sensitive(True)
             recording_toggle.set_opacity(1)
 
     def disconnect_shortcuts(self):

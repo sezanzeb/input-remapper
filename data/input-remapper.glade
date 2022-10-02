@@ -77,6 +77,13 @@
     <property name="margin-end">2</property>
     <property name="icon-name">media-playback-stop</property>
   </object>
+  <object class="GtkImage" id="gtk-redo-icon1">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <property name="margin-right">2</property>
+    <property name="margin-end">2</property>
+    <property name="icon-name">media-playback-stop</property>
+  </object>
   <object class="GtkImage" id="icon-delete-row">
     <property name="visible">True</property>
     <property name="can-focus">False</property>
@@ -204,7 +211,7 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkButton" id="apply_system_layout">
+                      <object class="GtkButton" id="stop_injection_preset_page">
                         <property name="label" translatable="yes">Stop</property>
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
@@ -212,7 +219,6 @@
                         <property name="tooltip-text" translatable="yes">Stops the Injection for the selected device,
 gives your keys their original function back
 Shortcut: ctrl + del</property>
-                        <property name="halign">end</property>
                         <property name="image">gtk-redo-icon</property>
                         <property name="relief">none</property>
                         <property name="always-show-image">True</property>
@@ -339,6 +345,25 @@ Shortcut: ctrl + del</property>
                         <property name="receives-default">True</property>
                         <property name="tooltip-text" translatable="yes">Start injecting. Don't hold down any keys while the injection starts</property>
                         <property name="image">check-icon1</property>
+                        <property name="relief">none</property>
+                        <property name="always-show-image">True</property>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">2</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="stop_injection_editor_page">
+                        <property name="label" translatable="yes">Stop</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">True</property>
+                        <property name="tooltip-text" translatable="yes">Stops the Injection for the selected device,
+gives your keys their original function back
+Shortcut: ctrl + del</property>
+                        <property name="image">gtk-redo-icon1</property>
                         <property name="relief">none</property>
                         <property name="always-show-image">True</property>
                       </object>

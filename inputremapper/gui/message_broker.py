@@ -64,6 +64,8 @@ class MessageType(Enum):
     gui_focus_request = "gui_focus_request"
     user_confirm_request = "user_confirm_request"
 
+    do_stack_switch = "do_stack_switch"
+
     # for unit tests:
     test1 = "test1"
     test2 = "test2"
@@ -223,6 +225,14 @@ class UserConfirmRequest:
     message_type = MessageType.user_confirm_request
     msg: str
     respond: Callable[[bool], None] = lambda _: None
+
+
+@dataclass(frozen=True)
+class DoStackSwitch:
+    """Command the stack to switch to a different page."""
+
+    message_type = MessageType.do_stack_switch
+    page_index: int
 
 
 class Signal(Message):

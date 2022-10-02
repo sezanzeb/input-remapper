@@ -292,7 +292,7 @@ class GuiTestBase(unittest.TestCase):
         self.copy_preset_btn: Gtk.Button = get("copy_preset")
         self.create_preset_btn: Gtk.Button = get("create_preset")
         self.start_injector_btn: Gtk.Button = get("apply_preset")
-        self.stop_injector_btn: Gtk.Button = get("apply_system_layout")
+        self.stop_injector_btn: Gtk.Button = get("stop_injection_preset_page")
         self.rename_btn: Gtk.Button = get("rename-button")
         self.rename_input: Gtk.Entry = get("preset_name_input")
         self.create_mapping_btn: Gtk.Button = get("create_mapping_button")
@@ -425,6 +425,7 @@ class TestGui(GuiTestBase):
     For example by simulating clicks on buttons. Get the widget to interact with
     by going through the windows children.
     """
+
     def click_on_group(self, group_key):
         for child in self.device_selection.get_children():
             device_group_entry = child.get_children()[0]
