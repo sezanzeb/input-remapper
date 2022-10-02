@@ -65,7 +65,7 @@ class AbsToBtnHandler(MappingHandler):
 
     def _trigger_point(self, abs_min: int, abs_max: int) -> Tuple[float, float]:
         """Calculate the axis mid and trigger point."""
-        #  TODO: potentially cash this function
+        #  TODO: potentially cache this function
         if abs_min == -1 and abs_max == 1:
             # this is a hat switch
             return (

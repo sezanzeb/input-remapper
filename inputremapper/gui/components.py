@@ -117,7 +117,6 @@ class DeviceGroupEntry(Gtk.ToggleButton):
     def _on_gtk_select_device(self, *_, **__):
         logger.debug('Selecting device "%s"', self.group_key)
         self._controller.load_group(self.group_key)
-        # TTODO switch to preset selection. via message_broker?
 
     def show_active(self, active):
         """Show the active state without triggering anything."""
@@ -129,8 +128,6 @@ class DeviceGroupSelection:
     """A wrapper for the container with our groups.
 
     A group is a collection of devices.
-
-    This class wraps the GTK Widget that displays the groups.
     """
 
     def __init__(
@@ -170,25 +167,31 @@ class DeviceGroupSelection:
 
     def get_active_device_group_entry(self) -> DeviceGroupEntry:
         """Find the currently selected DeviceGroupEntry."""
+        # TODO only used in tests, move there
         for child in self._gui.get_children():
             device_group_entry = child.get_children()[0]
 
             if device_group_entry.get_active():
                 return device_group_entry
 
+        # I dunno if this can happen
+        raise Exception("Expected one device group to be selected.")
+
     def set_active_group_key(self, group_key: str):
         """Change the currently selected group."""
+        # TODO only used in tests
         for child in self._gui.get_children():
-            device_group_entry = child.get_children()[0]
+            device_group_entry: DeviceGroupEntry = child.get_children()[0]
             device_group_entry.set_active(device_group_entry.group_key == group_key)
 
     def show_active_group_key(self, group_key: str):
-        """Show the currently selected group."""
+        """Highlight the button of the given group."""
         for child in self._gui.get_children():
-            device_group_entry = child.get_children()[0]
+            device_group_entry: DeviceGroupEntry = child.get_children()[0]
             device_group_entry.show_active(device_group_entry.group_key == group_key)
 
 
+# TODO test
 class Stack:
     """Wraps the Stack ("Devices", "Presets", "Editor")."""
     def __init__(
@@ -203,7 +206,7 @@ class Stack:
 
         self._message_broker.subscribe(MessageType.group, self._on_group_changed)
 
-    def _on_group_changed(self, data: GroupData):
+    def _on_group_changed(self, _):
         # switch to the preset selection
         self._gui.set_visible_child(self._gui.get_children()[1])
 
@@ -261,40 +264,150 @@ class TargetSelection:
         self._controller.update_mapping(target_uinput=target)
 
 
-class PresetSelection:
-    """The dropdown menu to select the active_preset."""
+class PresetEntry(Gtk.ToggleButton):
+    """A preset that can be selected in the GUI."""
+
+    __gtype_name__ = "PresetEntry"
 
     def __init__(
         self,
         message_broker: MessageBroker,
         controller: Controller,
-        listbox: Gtk.listboxText,
+        preset_name: str,
+    ):
+        super().__init__()
+        self.preset_name = preset_name
+        self._controller = controller
+
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+
+        label = Gtk.Label()
+        label.set_label(preset_name)
+        box.add(label)
+
+        box.set_margin_top(18)
+        box.set_margin_bottom(18)
+        box.set_homogeneous(True)
+        box.set_spacing(12)
+
+        self.add(box)
+
+        self.show_all()
+
+        self.connect("toggled", self._on_gtk_select_preset)
+
+    def _on_gtk_select_preset(self, *_, **__):
+        logger.debug('Selecting preset "%s"', self.preset_name)
+        self._controller.load_preset(self.preset_name)
+
+    def show_active(self, active):
+        """Show the active state without triggering anything."""
+        with HandlerDisabled(self, self._on_gtk_select_preset):
+            self.set_active(active)
+
+
+# TODO test
+class PresetSelectionTitle:
+    """The title of the preset selection, which is the device name."""
+
+    def __init__(
+        self,
+        message_broker: MessageBroker,
+        controller: Controller,
+        label: Gtk.Label,
     ):
         self._message_broker = message_broker
         self._controller = controller
-        self._gui = listbox
-
+        self._gui = label
         self._connect_message_listener()
-        listbox.connect("changed", self._on_gtk_select_preset)
+
+    def _connect_message_listener(self):
+        self._message_broker.subscribe(MessageType.group, self._on_group_changed)
+
+    def _on_group_changed(self, data: GroupData):
+        self._gui.set_label(data.group_key)
+
+
+# TODO test
+class EditorTitle:
+    """The title of the editor, which is the device and preset name."""
+
+    def __init__(
+        self,
+        message_broker: MessageBroker,
+        controller: Controller,
+        label: Gtk.Label,
+    ):
+        self._message_broker = message_broker
+        self._controller = controller
+        self._gui = label
+        self._connect_message_listener()
+
+        self._group_key = ""
+        self._preset_name = ""
+
+    def _connect_message_listener(self):
+        self._message_broker.subscribe(MessageType.group, self._on_group_changed)
+        self._message_broker.subscribe(MessageType.preset, self._on_preset_changed)
+
+    def _on_preset_changed(self, data: PresetData):
+        self._preset_name = data.name
+        self._render()
+
+    def _on_group_changed(self, data: GroupData):
+        self._group_key = data.group_key
+        self._render()
+
+    def _render(self):
+        self._gui.set_label(f"{self._group_key} / {self._preset_name}")
+
+
+class PresetSelection:
+    """A wrapper for the container with our presets.
+
+    Selectes the active_preset.
+    """
+
+    def __init__(
+        self,
+        message_broker: MessageBroker,
+        controller: Controller,
+        flowbox: Gtk.FlowBox,
+    ):
+        self._message_broker = message_broker
+        self._controller = controller
+        self._gui = flowbox
+        self._connect_message_listener()
 
     def _connect_message_listener(self):
         self._message_broker.subscribe(MessageType.group, self._on_group_changed)
         self._message_broker.subscribe(MessageType.preset, self._on_preset_changed)
 
     def _on_group_changed(self, data: GroupData):
-        with HandlerDisabled(self._gui, self._on_gtk_select_preset):
-            self._gui.remove_all()
-            for preset in data.presets:
-                self._gui.append(preset, preset)
+        self._gui.foreach(lambda preset: self._gui.remove(preset))
+        for preset in data.presets:
+            preset_entry = PresetEntry(
+                self._message_broker,
+                self._controller,
+                preset,
+            )
+            self._gui.insert(preset_entry, -1)
 
     def _on_preset_changed(self, data: PresetData):
-        with HandlerDisabled(self._gui, self._on_gtk_select_preset):
-            self._gui.set_active_id(data.name)
+        self.show_active_preset(data.name)
 
-    def _on_gtk_select_preset(self, *_, **__):
-        name = self._gui.get_active_id()
-        logger.debug('Selecting preset "%s"', name)
-        self._controller.load_preset(name)
+    def set_active_preset(self, preset_name: str):
+        """Change the currently selected preset."""
+        # TODO might only be needed in tests
+        for child in self._gui.get_children():
+            preset_entry: PresetEntry = child.get_children()[0]
+            preset_entry.set_active(preset_entry.preset_name == preset_name)
+
+    def show_active_preset(self, preset_name: str):
+        """Highlight the button of the given preset."""
+        for child in self._gui.get_children():
+            preset_entry: PresetEntry = child.get_children()[0]
+            preset_entry.show_active(preset_entry.preset_name == preset_name)
 
 
 class MappingListBox:
