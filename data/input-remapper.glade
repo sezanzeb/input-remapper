@@ -165,40 +165,10 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkButton" id="apply_system_layout">
-                        <property name="label" translatable="yes">Stop Injection</property>
-                        <property name="visible">True</property>
-                        <property name="can-focus">True</property>
-                        <property name="receives-default">True</property>
-                        <property name="tooltip-text" translatable="yes">Shortcut: ctrl + del
-Gives your keys back their original function</property>
-                        <property name="halign">end</property>
-                        <property name="image">gtk-redo-icon</property>
-                        <property name="always-show-image">True</property>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">False</property>
-                        <property name="position">2</property>
-                      </packing>
+                      <placeholder/>
                     </child>
                     <child>
-                      <object class="GtkButton" id="about">
-                        <property name="visible">True</property>
-                        <property name="can-focus">True</property>
-                        <property name="receives-default">True</property>
-                        <property name="tooltip-text" translatable="yes">Help</property>
-                        <property name="halign">end</property>
-                        <property name="valign">center</property>
-                        <property name="image">about-icon</property>
-                        <property name="always-show-image">True</property>
-                        <signal name="clicked" handler="on_gtk_about_clicked" swapped="no"/>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">False</property>
-                        <property name="position">5</property>
-                      </packing>
+                      <placeholder/>
                     </child>
                   </object>
                   <packing>
@@ -1179,6 +1149,23 @@ Only relevant when mapping relative inputs (e.g. mouse) to absolute outputs (e.g
         <property name="has-subtitle">False</property>
         <property name="show-close-button">True</property>
         <child>
+          <object class="GtkButton" id="about">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="tooltip-text" translatable="yes">Help</property>
+            <property name="halign">end</property>
+            <property name="valign">center</property>
+            <property name="image">about-icon</property>
+            <property name="always-show-image">True</property>
+            <signal name="clicked" handler="on_gtk_about_clicked" swapped="no"/>
+          </object>
+          <packing>
+            <property name="pack-type">end</property>
+            <property name="position">1</property>
+          </packing>
+        </child>
+        <child>
           <object class="GtkStackSwitcher">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
@@ -1186,7 +1173,24 @@ Only relevant when mapping relative inputs (e.g. mouse) to absolute outputs (e.g
             <property name="stack">main_stack</property>
           </object>
           <packing>
-            <property name="position">1</property>
+            <property name="position">2</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkButton" id="apply_system_layout">
+            <property name="label" translatable="yes">Stop Injection</property>
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="tooltip-text" translatable="yes">Shortcut: ctrl + del
+Gives your keys back their original function</property>
+            <property name="halign">end</property>
+            <property name="image">gtk-redo-icon</property>
+            <property name="always-show-image">True</property>
+          </object>
+          <packing>
+            <property name="pack-type">end</property>
+            <property name="position">2</property>
           </packing>
         </child>
       </object>
