@@ -193,12 +193,12 @@
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
                 <property name="orientation">vertical</property>
-                <property name="spacing">18</property>
                 <child>
                   <object class="GtkLabel" id="selected_device_name">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
                     <property name="margin-top">18</property>
+                    <property name="margin-bottom">18</property>
                     <property name="label" translatable="yes">Device Name</property>
                   </object>
                   <packing>
@@ -214,6 +214,7 @@
                     <property name="halign">center</property>
                     <property name="margin-start">18</property>
                     <property name="margin-end">18</property>
+                    <property name="margin-bottom">18</property>
                     <property name="homogeneous">True</property>
                     <child>
                       <object class="GtkButton" id="create_preset">
@@ -285,6 +286,8 @@ Shortcut: ctrl + del</property>
                             <property name="valign">start</property>
                             <property name="margin-start">18</property>
                             <property name="margin-end">18</property>
+                            <property name="margin-top">18</property>
+                            <property name="margin-bottom">18</property>
                             <property name="homogeneous">True</property>
                             <property name="column-spacing">18</property>
                             <property name="row-spacing">18</property>
