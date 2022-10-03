@@ -634,7 +634,7 @@ class Controller:
                         break
                 else:
                     # not possible to autoconfigure inform the user
-                    msg += "\nNote: you need to recorde an analog input."
+                    msg += "\nNote: you need to record an analog input."
 
             elif not mapping.output_symbol:
                 return kwargs
