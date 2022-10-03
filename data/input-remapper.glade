@@ -196,7 +196,6 @@
                         <property name="receives-default">True</property>
                         <property name="tooltip-text" translatable="yes">Create a new preset</property>
                         <property name="image">new-icon</property>
-                        <property name="relief">none</property>
                         <property name="always-show-image">True</property>
                         <accelerator key="n" signal="activate" modifiers="GDK_CONTROL_MASK"/>
                       </object>
@@ -216,7 +215,6 @@
 gives your keys their original function back
 Shortcut: ctrl + del</property>
                         <property name="image">gtk-redo-icon</property>
-                        <property name="relief">none</property>
                         <property name="always-show-image">True</property>
                       </object>
                       <packing>
@@ -326,7 +324,6 @@ Shortcut: ctrl + del</property>
                         <property name="receives-default">True</property>
                         <property name="tooltip-text" translatable="yes">Delete this preset</property>
                         <property name="image">delete-icon1</property>
-                        <property name="relief">none</property>
                         <property name="always-show-image">True</property>
                       </object>
                       <packing>
@@ -343,7 +340,6 @@ Shortcut: ctrl + del</property>
                         <property name="receives-default">True</property>
                         <property name="tooltip-text" translatable="yes">Duplicate this preset</property>
                         <property name="image">copy-icon1</property>
-                        <property name="relief">none</property>
                         <property name="always-show-image">True</property>
                       </object>
                       <packing>
@@ -360,7 +356,6 @@ Shortcut: ctrl + del</property>
                         <property name="receives-default">True</property>
                         <property name="tooltip-text" translatable="yes">Start injecting. Don't hold down any keys while the injection starts</property>
                         <property name="image">check-icon1</property>
-                        <property name="relief">none</property>
                         <property name="always-show-image">True</property>
                       </object>
                       <packing>
@@ -379,7 +374,6 @@ Shortcut: ctrl + del</property>
 gives your keys their original function back
 Shortcut: ctrl + del</property>
                         <property name="image">gtk-redo-icon1</property>
-                        <property name="relief">none</property>
                         <property name="always-show-image">True</property>
                       </object>
                       <packing>
