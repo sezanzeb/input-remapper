@@ -892,6 +892,8 @@ class EventEntry(Gtk.ListBoxRow):
         self.input_event = event
         self._controller = controller
 
+        self.set_margin_bottom(6)
+
         hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
         hbox.set_margin_start(12)
 
@@ -991,16 +993,10 @@ class CombinationListbox:
             self._select_row(event)
 
     def _on_gtk_row_selected(self, *_):
-        row: Optional[EventEntry] = None
-
-        def find_row(r: EventEntry):
-            nonlocal row
-            if r.is_selected():
-                row = r
-
-        self._gui.foreach(find_row)
-        if row:
-            self._controller.load_event(row.input_event)
+        for row in self._gui.get_children():
+            if row.is_selected():
+                self._controller.load_event(row.input_event)
+                break
 
 
 class AnalogInputSwitch:
