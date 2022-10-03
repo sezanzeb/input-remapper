@@ -103,10 +103,14 @@ class DeviceGroupEntry(Gtk.ToggleButton):
 
         label = Gtk.Label()
         label.set_label(group_key)
+
+        # wrap very long names properly
         label.set_line_wrap(True)
         label.set_line_wrap_mode(2)
+        # this affeects how many device entries fit next to each other
         label.set_width_chars(28)
         label.set_max_width_chars(28)
+
         box.add(label)
 
         box.set_margin_top(18)
@@ -294,10 +298,14 @@ class PresetEntry(Gtk.ToggleButton):
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
 
         label = Gtk.Label()
+
+        # wrap very long names properly
         label.set_line_wrap(True)
         label.set_line_wrap_mode(2)
+        # this affeects how many device entries fit next to each other
         label.set_width_chars(28)
         label.set_max_width_chars(28)
+
         label.set_label(preset_name)
         box.add(label)
 
