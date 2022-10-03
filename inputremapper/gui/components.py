@@ -119,6 +119,8 @@ class DeviceGroupEntry(Gtk.ToggleButton):
         box.set_homogeneous(True)
         box.set_spacing(12)
 
+        # self.set_relief(Gtk.ReliefStyle.NONE)
+
         self.add(box)
 
         self.show_all()
@@ -177,25 +179,6 @@ class DeviceGroupSelection:
     def _on_group_changed(self, data: GroupData):
         self.show_active_group_key(data.group_key)
 
-    def get_active_device_group_entry(self) -> DeviceGroupEntry:
-        """Find the currently selected DeviceGroupEntry."""
-        # TODO only used in tests, move there
-        for child in self._gui.get_children():
-            device_group_entry = child.get_children()[0]
-
-            if device_group_entry.get_active():
-                return device_group_entry
-
-        # I dunno if this can happen
-        raise Exception("Expected one device group to be selected.")
-
-    def set_active_group_key(self, group_key: str):
-        """Change the currently selected group."""
-        # TODO only used in tests
-        for child in self._gui.get_children():
-            device_group_entry: DeviceGroupEntry = child.get_children()[0]
-            device_group_entry.set_active(device_group_entry.group_key == group_key)
-
     def show_active_group_key(self, group_key: str):
         """Highlight the button of the given group."""
         for child in self._gui.get_children():
@@ -205,7 +188,7 @@ class DeviceGroupSelection:
 
 # TODO test
 class Stack:
-    """Wraps the Stack ("Devices", "Presets", "Editor")."""
+    """Wraps the Stack, which contains the main menu pages."""
 
     devices_page = 0
     presets_page = 1
@@ -221,7 +204,9 @@ class Stack:
         self._controller = controller
         self._gui = stack
 
-        self._message_broker.subscribe(MessageType.do_stack_switch, self._do_stack_switch)
+        self._message_broker.subscribe(
+            MessageType.do_stack_switch, self._do_stack_switch
+        )
 
     def _do_stack_switch(self, msg: DoStackSwitch):
         self._gui.set_visible_child(self._gui.get_children()[msg.page_index])
@@ -314,6 +299,8 @@ class PresetEntry(Gtk.ToggleButton):
         box.set_margin_bottom(18)
         box.set_homogeneous(True)
         box.set_spacing(12)
+
+        # self.set_relief(Gtk.ReliefStyle.NONE)
 
         self.add(box)
 
@@ -462,7 +449,7 @@ class MappingListBox:
         self._gui.connect("row-selected", self._on_gtk_mapping_selected)
 
     @staticmethod
-    def _sort_func(row1: SelectionLabel, row2: SelectionLabel) -> int:
+    def _sort_func(row1: MappingSelectionLabel, row2: MappingSelectionLabel) -> int:
         """sort alphanumerical by name"""
         if row1.combination == EventCombination.empty_combination():
             return 1
@@ -477,7 +464,7 @@ class MappingListBox:
             return
 
         for name, combination in data.mappings:
-            selection_label = SelectionLabel(
+            selection_label = MappingSelectionLabel(
                 self._message_broker,
                 self._controller,
                 name,
@@ -490,22 +477,22 @@ class MappingListBox:
         with HandlerDisabled(self._gui, self._on_gtk_mapping_selected):
             combination = mapping.event_combination
 
-            def set_active(row: SelectionLabel):
+            def set_active(row: MappingSelectionLabel):
                 if row.combination == combination:
                     self._gui.select_row(row)
 
             self._gui.foreach(set_active)
 
-    def _on_gtk_mapping_selected(self, _, row: Optional[SelectionLabel]):
+    def _on_gtk_mapping_selected(self, _, row: Optional[MappingSelectionLabel]):
         if not row:
             return
         self._controller.load_mapping(row.combination)
 
 
-class SelectionLabel(Gtk.ListBoxRow):
+class MappingSelectionLabel(Gtk.ListBoxRow):
     """the ListBoxRow representing a mapping inside the MappingListBox"""
 
-    __gtype_name__ = "SelectionLabel"
+    __gtype_name__ = "MappingSelectionLabel"
 
     def __init__(
         self,
@@ -533,7 +520,7 @@ class SelectionLabel(Gtk.ListBoxRow):
         self.edit_btn = Gtk.Button()
         self.edit_btn.set_relief(Gtk.ReliefStyle.NONE)
         self.edit_btn.set_image(
-            Gtk.Image.new_from_icon_name(Gtk.STOCK_EDIT, Gtk.IconSize.MENU)
+            Gtk.Image.new_from_icon_name("text-x-generic", Gtk.IconSize.MENU)
         )
         self.edit_btn.set_tooltip_text(_("Change Mapping Name"))
         self.edit_btn.set_margin_top(4)
@@ -566,7 +553,7 @@ class SelectionLabel(Gtk.ListBoxRow):
         self.name_input.hide()
 
     def __repr__(self):
-        return f"SelectionLabel for {self.combination} as {self.name}"
+        return f"MappingSelectionLabel for {self.combination} as {self.name}"
 
     @property
     def name(self) -> str:

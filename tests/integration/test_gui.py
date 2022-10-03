@@ -84,7 +84,7 @@ from inputremapper.gui.message_broker import (
     StatusData,
     CombinationRecorded,
 )
-from inputremapper.gui.components import SelectionLabel, SET_KEY_FIRST
+from inputremapper.gui.components import MappingSelectionLabel, SET_KEY_FIRST
 from inputremapper.gui.reader import Reader
 from inputremapper.gui.controller import Controller
 from inputremapper.gui.helper import RootHelper
@@ -368,7 +368,7 @@ class GuiTestBase(unittest.TestCase):
 
         self.throttle()
 
-    def get_selection_labels(self) -> List[SelectionLabel]:
+    def get_selection_labels(self) -> List[MappingSelectionLabel]:
         return self.selection_label_listbox.get_children()
 
     def get_status_text(self):
@@ -1053,7 +1053,7 @@ class TestGui(GuiTestBase):
 
         self.controller.create_mapping()
         gtk_iteration()
-        row: SelectionLabel = self.selection_label_listbox.get_selected_row()
+        row: MappingSelectionLabel = self.selection_label_listbox.get_selected_row()
         self.assertEqual(row.combination, EventCombination.empty_combination())
         self.assertEqual(row.label.get_text(), "Empty Mapping")
         self.assertIs(self.selection_label_listbox.get_row_at_index(2), row)
@@ -1074,7 +1074,7 @@ class TestGui(GuiTestBase):
     def test_selection_label_uses_name_if_available(self):
         self.controller.load_preset("preset1")
         gtk_iteration()
-        row: SelectionLabel = self.selection_label_listbox.get_selected_row()
+        row: MappingSelectionLabel = self.selection_label_listbox.get_selected_row()
         self.assertEqual(row.label.get_text(), "1")
         self.assertIs(row, self.selection_label_listbox.get_row_at_index(0))
 

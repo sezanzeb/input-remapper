@@ -30,7 +30,7 @@ from inputremapper.gui.components import (
     TargetSelection,
     PresetSelection,
     MappingListBox,
-    SelectionLabel,
+    MappingSelectionLabel,
     CodeEditor,
     RecordingToggle,
     StatusBar,
@@ -46,6 +46,7 @@ from inputremapper.gui.components import (
     Sliders,
     TransformationDrawArea,
     RelativeInputCutoffInput,
+    DeviceGroupEntry,
 )
 from inputremapper.configs.mapping import MappingData
 from inputremapper.event_combination import EventCombination
@@ -90,6 +91,23 @@ class TestDeviceGroupSelection(ComponentBaseTest):
             )
         )
 
+    def get_active_device_group_entry(self) -> DeviceGroupEntry:
+        """Find the currently selected DeviceGroupEntry."""
+        for child in self.selection._gui.get_children():
+            device_group_entry = child.get_children()[0]
+
+            if device_group_entry.get_active():
+                return device_group_entry
+
+        # I dunno if this can happen
+        raise Exception("Expected one device group to be selected.")
+
+    def set_active_group_key(self, group_key: str):
+        """Change the currently selected group."""
+        for child in self.selection._gui.get_children():
+            device_group_entry: DeviceGroupEntry = child.get_children()[0]
+            device_group_entry.set_active(device_group_entry.group_key == group_key)
+
     def get_displayed_group_keys_and_icons(self):
         """Get a list of all group_keys and icons of the displayed groups."""
         group_keys = []
@@ -122,17 +140,12 @@ class TestDeviceGroupSelection(ComponentBaseTest):
 
     def test_selects_correct_device(self):
         self.message_broker.send(GroupData("bar", ()))
-        self.assertEqual(
-            self.selection.get_active_device_group_entry().group_key, "bar"
-        )
+        self.assertEqual(self.get_active_device_group_entry().group_key, "bar")
         self.message_broker.send(GroupData("baz", ()))
-        self.assertEqual(
-            self.selection.get_active_device_group_entry().group_key, "baz"
-        )
+        self.assertEqual(self.get_active_device_group_entry().group_key, "baz")
 
     def test_loads_group(self):
-        # TTODO this was self.gui.set_active_id, is a call like that somewhere?
-        self.selection.set_active_group_key("bar")
+        self.set_active_group_key("bar")
         self.controller_mock.load_group.assert_called_once_with("bar")
 
     def test_avoids_infinite_recursion(self):
@@ -255,10 +268,10 @@ class TestMappingListbox(ComponentBaseTest):
             )
         )
 
-    def get_selected_row(self) -> SelectionLabel:
+    def get_selected_row(self) -> MappingSelectionLabel:
         row = None
 
-        def find_row(r: SelectionLabel):
+        def find_row(r: MappingSelectionLabel):
             nonlocal row
             if r.is_selected():
                 row = r
@@ -268,7 +281,7 @@ class TestMappingListbox(ComponentBaseTest):
         return row
 
     def select_row(self, combination: EventCombination):
-        def select(row: SelectionLabel):
+        def select(row: MappingSelectionLabel):
             if row.combination == combination:
                 self.gui.select_row(row)
 
@@ -317,7 +330,7 @@ class TestMappingListbox(ComponentBaseTest):
                 ),
             )
         )
-        bottom_row: SelectionLabel = self.gui.get_row_at_index(2)
+        bottom_row: MappingSelectionLabel = self.gui.get_row_at_index(2)
         self.assertEqual(bottom_row.combination, EventCombination.empty_combination())
         self.message_broker.send(
             PresetData(
@@ -329,15 +342,15 @@ class TestMappingListbox(ComponentBaseTest):
                 ),
             )
         )
-        bottom_row: SelectionLabel = self.gui.get_row_at_index(2)
+        bottom_row: MappingSelectionLabel = self.gui.get_row_at_index(2)
         self.assertEqual(bottom_row.combination, EventCombination.empty_combination())
 
 
-class TestSelectionLabel(ComponentBaseTest):
+class TestMappingSelectionLabel(ComponentBaseTest):
     def setUp(self) -> None:
         super().setUp()
         self.gui = Gtk.ListBox()
-        self.label = SelectionLabel(
+        self.label = MappingSelectionLabel(
             self.message_broker,
             self.controller_mock,
             "",
@@ -357,7 +370,7 @@ class TestSelectionLabel(ComponentBaseTest):
         self.assertEqual(self.label.label.get_label(), "a + b")
 
     def test_shows_name_when_given(self):
-        self.gui = SelectionLabel(
+        self.gui = MappingSelectionLabel(
             self.message_broker,
             self.controller_mock,
             "foo",

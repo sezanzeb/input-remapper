@@ -66,5 +66,6 @@ class DataManagementError(Error):
 
 class NoMappingError(Error):
     """This action requires at least one Mapping to exist."""
+
     def __init__(self):
         super().__init__()

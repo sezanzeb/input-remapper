@@ -234,6 +234,9 @@ class UserInterface:
         self.get("stop_injection_preset_page").connect(
             "clicked", lambda *_: self.controller.stop_injecting()
         )
+        self.get("stop_injection_editor_page").connect(
+            "clicked", lambda *_: self.controller.stop_injecting()
+        )
         self.get("rename-button").connect("clicked", self.on_gtk_rename_clicked)
         self.get("preset_name_input").connect(
             "key-release-event", self.on_gtk_preset_name_input_return
