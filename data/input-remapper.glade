@@ -111,7 +111,6 @@
   </object>
   <object class="GtkWindow" id="window">
     <property name="width-request">800</property>
-    <property name="height-request">700</property>
     <property name="can-focus">False</property>
     <property name="default-width">1000</property>
     <property name="default-height">450</property>
@@ -187,6 +186,7 @@
                     <property name="margin-start">18</property>
                     <property name="margin-end">18</property>
                     <property name="margin-bottom">18</property>
+                    <property name="spacing">6</property>
                     <property name="homogeneous">True</property>
                     <child>
                       <object class="GtkButton" id="create_preset">
@@ -316,6 +316,7 @@ Shortcut: ctrl + del</property>
                     <property name="margin-end">18</property>
                     <property name="margin-top">18</property>
                     <property name="margin-bottom">18</property>
+                    <property name="spacing">6</property>
                     <property name="homogeneous">True</property>
                     <child>
                       <object class="GtkButton" id="delete_preset">
@@ -597,7 +598,7 @@ Shortcut: ctrl + del</property>
                                 <property name="margin-top">18</property>
                                 <property name="margin-bottom">18</property>
                                 <property name="orientation">vertical</property>
-                                <property name="spacing">8</property>
+                                <property name="spacing">6</property>
                                 <child>
                                   <object class="GtkButton" id="create_mapping_button">
                                     <property name="label" translatable="yes">Add Mapping</property>
@@ -732,7 +733,6 @@ Shortcut: ctrl + del</property>
                         <property name="margin-top">18</property>
                         <property name="margin-bottom">18</property>
                         <property name="orientation">vertical</property>
-                        <property name="spacing">6</property>
                         <child>
                           <object class="GtkLabel">
                             <property name="visible">True</property>
@@ -794,11 +794,12 @@ Shortcut: ctrl + del</property>
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
                             <property name="tooltip-text" translatable="yes">The type of device this mapping is emulating.</property>
+                            <property name="margin-top">6</property>
                             <property name="margin-bottom">18</property>
                             <property name="spacing">6</property>
                             <child>
                               <object class="GtkLabel">
-                                <property name="width-request">60</property>
+                                <property name="width-request">100</property>
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
                                 <property name="label" translatable="yes">Target:</property>
@@ -881,13 +882,15 @@ Shortcut: ctrl + del</property>
                                       <object class="GtkBox">
                                         <property name="visible">True</property>
                                         <property name="can-focus">False</property>
-                                        <property name="spacing">12</property>
+                                        <property name="spacing">6</property>
                                         <child>
                                           <object class="GtkLabel">
+                                            <property name="width-request">100</property>
                                             <property name="visible">True</property>
                                             <property name="can-focus">False</property>
                                             <property name="tooltip-text" translatable="yes">Available output axes are affected by the Target setting.</property>
                                             <property name="label" translatable="yes">Output Axis:</property>
+                                            <property name="xalign">0</property>
                                           </object>
                                           <packing>
                                             <property name="expand">False</property>
@@ -918,7 +921,7 @@ Shortcut: ctrl + del</property>
                                       <object class="GtkBox">
                                         <property name="visible">True</property>
                                         <property name="can-focus">False</property>
-                                        <property name="spacing">12</property>
+                                        <property name="spacing">6</property>
                                         <child>
                                           <object class="GtkScale" id="deadzone-scale">
                                             <property name="width-request">150</property>
@@ -937,9 +940,11 @@ Shortcut: ctrl + del</property>
                                         </child>
                                         <child>
                                           <object class="GtkLabel">
+                                            <property name="width-request">100</property>
                                             <property name="visible">True</property>
                                             <property name="can-focus">False</property>
                                             <property name="label" translatable="yes">Deadzone:</property>
+                                            <property name="xalign">0</property>
                                           </object>
                                           <packing>
                                             <property name="expand">False</property>
@@ -958,7 +963,7 @@ Shortcut: ctrl + del</property>
                                       <object class="GtkBox">
                                         <property name="visible">True</property>
                                         <property name="can-focus">False</property>
-                                        <property name="spacing">12</property>
+                                        <property name="spacing">6</property>
                                         <child>
                                           <object class="GtkScale" id="gain-scale">
                                             <property name="width-request">150</property>
@@ -977,9 +982,11 @@ Shortcut: ctrl + del</property>
                                         </child>
                                         <child>
                                           <object class="GtkLabel">
+                                            <property name="width-request">100</property>
                                             <property name="visible">True</property>
                                             <property name="can-focus">False</property>
                                             <property name="label" translatable="yes">Gain:</property>
+                                            <property name="xalign">0</property>
                                           </object>
                                           <packing>
                                             <property name="expand">False</property>
@@ -998,7 +1005,7 @@ Shortcut: ctrl + del</property>
                                       <object class="GtkBox">
                                         <property name="visible">True</property>
                                         <property name="can-focus">False</property>
-                                        <property name="spacing">12</property>
+                                        <property name="spacing">6</property>
                                         <child>
                                           <object class="GtkScale" id="expo-scale">
                                             <property name="width-request">150</property>
@@ -1017,9 +1024,11 @@ Shortcut: ctrl + del</property>
                                         </child>
                                         <child>
                                           <object class="GtkLabel">
+                                            <property name="width-request">100</property>
                                             <property name="visible">True</property>
                                             <property name="can-focus">False</property>
                                             <property name="label" translatable="yes">Expo:</property>
+                                            <property name="xalign">0</property>
                                           </object>
                                           <packing>
                                             <property name="expand">False</property>
@@ -1040,12 +1049,14 @@ Shortcut: ctrl + del</property>
                                         <property name="can-focus">False</property>
                                         <property name="tooltip-text" translatable="yes">The Speed at wich the Input is concidered at maximum.
 Only relevant when mapping relative inputs (e.g. mouse) to absolute outputs (e.g. gamepad)</property>
-                                        <property name="spacing">12</property>
+                                        <property name="spacing">6</property>
                                         <child>
                                           <object class="GtkLabel">
+                                            <property name="width-request">100</property>
                                             <property name="visible">True</property>
                                             <property name="can-focus">False</property>
                                             <property name="label" translatable="yes">Input Cutoff:</property>
+                                            <property name="xalign">0</property>
                                           </object>
                                           <packing>
                                             <property name="expand">False</property>
