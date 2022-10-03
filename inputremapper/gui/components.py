@@ -103,6 +103,10 @@ class DeviceGroupEntry(Gtk.ToggleButton):
 
         label = Gtk.Label()
         label.set_label(group_key)
+        label.set_line_wrap(True)
+        label.set_line_wrap_mode(2)
+        label.set_width_chars(28)
+        label.set_max_width_chars(28)
         box.add(label)
 
         box.set_margin_top(18)
@@ -292,11 +296,8 @@ class PresetEntry(Gtk.ToggleButton):
         label = Gtk.Label()
         label.set_line_wrap(True)
         label.set_line_wrap_mode(2)
-
-        # this requires any small number to be set. it will be as wide as
-        # the flowbox stretches it. Without this, there is no line wrap.
-        label.set_max_width_chars(0)
-
+        label.set_width_chars(28)
+        label.set_max_width_chars(28)
         label.set_label(preset_name)
         box.add(label)
 

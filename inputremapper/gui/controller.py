@@ -60,6 +60,7 @@ from inputremapper.gui.message_broker import (
     StatusData,
     CombinationRecorded,
     UserConfirmRequest,
+    DoStackSwitch,
 )
 
 if TYPE_CHECKING:
@@ -385,6 +386,7 @@ class Controller:
             if answer:
                 self.data_manager.delete_preset()
                 self.data_manager.load_preset(self.get_a_preset())
+                self.message_broker.send(DoStackSwitch(1))
 
         if not self.data_manager.active_preset:
             return

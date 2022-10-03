@@ -16,7 +16,10 @@
           <object class="GtkLabel">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
-            <property name="label" translatable="yes">label</property>
+            <property name="label" translatable="yes">mmmmmmmmmmmmmmmmmmmm mmmmmmmmmmmmmmmmmmmm mmmmmmmmmmmmmmmmmmmm mmmmmmmmmmmmmmmmmmmm mmmmmmmmmmmmmmmmmmmm mmmmmmmmmmmmmmmmmmmm </property>
+            <property name="wrap">True</property>
+            <property name="wrap-mode">word-char</property>
+            <property name="width-chars">25</property>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -128,8 +131,14 @@
     <property name="margin-end">2</property>
     <property name="icon-name">document-new</property>
   </object>
+  <object class="GtkImage" id="save-icon">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <property name="icon-name">document-save</property>
+  </object>
   <object class="GtkWindow" id="window">
     <property name="width-request">800</property>
+    <property name="height-request">700</property>
     <property name="can-focus">False</property>
     <property name="default-width">1000</property>
     <property name="default-height">450</property>
@@ -146,19 +155,33 @@
             <property name="can-focus">False</property>
             <property name="transition-type">crossfade</property>
             <child>
-              <object class="GtkFlowBox" id="device_selection">
+              <object class="GtkScrolledWindow">
                 <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="valign">start</property>
-                <property name="margin-start">18</property>
-                <property name="margin-end">18</property>
-                <property name="margin-top">18</property>
-                <property name="margin-bottom">18</property>
-                <property name="homogeneous">True</property>
-                <property name="column-spacing">18</property>
-                <property name="row-spacing">18</property>
-                <property name="max-children-per-line">3</property>
-                <property name="selection-mode">none</property>
+                <property name="can-focus">True</property>
+                <property name="shadow-type">in</property>
+                <child>
+                  <object class="GtkViewport">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="shadow-type">none</property>
+                    <child>
+                      <object class="GtkFlowBox" id="device_selection">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="valign">start</property>
+                        <property name="margin-start">18</property>
+                        <property name="margin-end">18</property>
+                        <property name="margin-top">18</property>
+                        <property name="margin-bottom">18</property>
+                        <property name="homogeneous">True</property>
+                        <property name="column-spacing">18</property>
+                        <property name="row-spacing">18</property>
+                        <property name="max-children-per-line">99</property>
+                        <property name="selection-mode">none</property>
+                      </object>
+                    </child>
+                  </object>
+                </child>
               </object>
               <packing>
                 <property name="name">Devices</property>
@@ -248,20 +271,32 @@ Shortcut: ctrl + del</property>
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkFlowBox" id="preset_selection">
+                  <object class="GtkScrolledWindow">
                     <property name="visible">True</property>
-                    <property name="can-focus">False</property>
-                    <property name="valign">start</property>
-                    <property name="margin-start">18</property>
-                    <property name="margin-end">18</property>
-                    <property name="homogeneous">True</property>
-                    <property name="column-spacing">18</property>
-                    <property name="row-spacing">18</property>
-                    <property name="max-children-per-line">3</property>
-                    <property name="selection-mode">none</property>
+                    <property name="can-focus">True</property>
+                    <child>
+                      <object class="GtkViewport">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <child>
+                          <object class="GtkFlowBox" id="preset_selection">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="valign">start</property>
+                            <property name="margin-start">18</property>
+                            <property name="margin-end">18</property>
+                            <property name="homogeneous">True</property>
+                            <property name="column-spacing">18</property>
+                            <property name="row-spacing">18</property>
+                            <property name="max-children-per-line">99</property>
+                            <property name="selection-mode">none</property>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
                   </object>
                   <packing>
-                    <property name="expand">False</property>
+                    <property name="expand">True</property>
                     <property name="fill">True</property>
                     <property name="position">3</property>
                   </packing>
@@ -1968,10 +2003,5 @@ threshold:</property>
       <action-widget response="-6">button3</action-widget>
       <action-widget response="-3">button4</action-widget>
     </action-widgets>
-  </object>
-  <object class="GtkImage" id="save-icon">
-    <property name="visible">True</property>
-    <property name="can-focus">False</property>
-    <property name="icon-name">document-save</property>
   </object>
 </interface>
