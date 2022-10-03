@@ -516,6 +516,9 @@ class MappingSelectionLabel(Gtk.ListBoxRow):
         # set the name or combination.beautify as label
         self.label.set_label(self.name)
 
+        self.label.set_margin_top(11)
+        self.label.set_margin_bottom(11)
+
         # button to edit the name of the mapping
         self.edit_btn = Gtk.Button()
         self.edit_btn.set_relief(Gtk.ReliefStyle.NONE)
@@ -543,6 +546,9 @@ class MappingSelectionLabel(Gtk.ListBoxRow):
         self._box.set_child_packing(self.name_input, False, True, 4, Gtk.PackType.START)
 
         self.add(self._box)
+
+        self.set_margin_bottom(6)
+
         self.show_all()
         self._message_broker.subscribe(MessageType.mapping, self._on_mapping_changed)
         self._message_broker.subscribe(

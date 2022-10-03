@@ -1,61 +1,14 @@
-row {
-    padding: 0;
-}
-
 .status_bar frame {
     /* the status bar is ugly in elementary os otherwise */
     border: 0px;
-}
-
-/* adds a bottom border for themes that don't add one in primary-toolbar
-classes. Interestingly, those that do add a border ignore this separator,
-which is perfect. */
-.top_separator {
-    border: 0px; /* fixes light pixels on each end in arc-dark */
-}
-
-.table-header, .row-box {
-    padding: 2px;
-}
-
-.changed {
-    background: @selected_bg_color;
-}
-
-list entry {
-    border-radius: 4px;
-    border: 0px;
-    box-shadow: none;
-}
-
-list.basic-editor button:not(:focus) {
-    border-color: transparent;
-    background: transparent;
-    box-shadow: none;
-}
-
-list button {
-    border-color: transparent;
-}
-
-.invalid_input {
-    background-color: #ea9697;
 }
 
 .transparent {
     background: transparent;
 }
 
-.code-editor-text-view > * {
-    border-radius: 2px;
-}
-
 .copyright {
     font-size: 7pt;
-}
-
-.editor-key-list label {
-    padding: 11px;
 }
 
 .autocompletion label {
@@ -67,17 +20,12 @@ list button {
     box-shadow: none;
 }
 
-.no-border {
-    border: 0px;
-    box-shadow: none;
-}
-
 .code-editor-text-view.multiline {
   /* extra space between text editor and line numbers */
   padding-left: 18px;
 }
 
-.no-v-padding{
+.no-v-padding {
     padding-top: 0;
     padding-bottom: 0;
 }
