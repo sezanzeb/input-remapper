@@ -290,6 +290,13 @@ class PresetEntry(Gtk.ToggleButton):
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
 
         label = Gtk.Label()
+        label.set_line_wrap(True)
+        label.set_line_wrap_mode(2)
+
+        # this requires any small number to be set. it will be as wide as
+        # the flowbox stretches it. Without this, there is no line wrap.
+        label.set_max_width_chars(0)
+
         label.set_label(preset_name)
         box.add(label)
 
@@ -329,6 +336,9 @@ class PresetSelectionTitle:
         self._controller = controller
         self._gui = label
         self._connect_message_listener()
+        label.set_max_width_chars(50)
+        label.set_line_wrap(True)
+        label.set_line_wrap_mode(2)
 
     def _connect_message_listener(self):
         self._message_broker.subscribe(MessageType.group, self._on_group_changed)
@@ -354,6 +364,10 @@ class EditorTitle:
 
         self._group_key: str = ""
         self._preset_name: str = ""
+
+        label.set_max_width_chars(50)
+        label.set_line_wrap(True)
+        label.set_line_wrap_mode(2)
 
     def _connect_message_listener(self):
         self._message_broker.subscribe(MessageType.group, self._on_group_changed)
@@ -394,11 +408,11 @@ class PresetSelection:
 
     def _on_group_changed(self, data: GroupData):
         self._gui.foreach(lambda preset: self._gui.remove(preset))
-        for preset in data.presets:
+        for preset_name in data.presets:
             preset_entry = PresetEntry(
                 self._message_broker,
                 self._controller,
-                preset,
+                preset_name,
             )
             self._gui.insert(preset_entry, -1)
 
