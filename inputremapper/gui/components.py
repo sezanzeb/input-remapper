@@ -99,7 +99,7 @@ class DeviceGroupEntry(Gtk.ToggleButton):
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
 
         if icon_name:
-            icon = Gtk.Image.new_from_icon_name(icon_name, Gtk.IconSize.DND)
+            icon = Gtk.Image.new_from_icon_name(icon_name, Gtk.IconSize.DIALOG)
             box.add(icon)
 
         label = Gtk.Label()
