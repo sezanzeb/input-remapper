@@ -171,6 +171,9 @@
                     <property name="margin-top">18</property>
                     <property name="margin-bottom">18</property>
                     <property name="label" translatable="yes">Device Name</property>
+                    <attributes>
+                      <attribute name="weight" value="bold"/>
+                    </attributes>
                   </object>
                   <packing>
                     <property name="expand">False</property>
