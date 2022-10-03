@@ -32,6 +32,7 @@ from inputremapper.event_combination import EventCombination
 from inputremapper.groups import DeviceType
 from inputremapper.gui.controller import Controller
 from inputremapper.gui.gettext import _
+from inputremapper.exceptions import NoMappingError
 from inputremapper.gui.message_broker import (
     MessageBroker,
     MessageType,
@@ -1296,16 +1297,25 @@ class KeyAxisStackSwitcher:
             self._set_active("key_macro")
 
     def _on_gtk_toggle(self, btn: Gtk.ToggleButton):
-        if not btn.get_active():
+        # get_active returns the new toggle state already
+        was_active = not btn.get_active()
+
+        if was_active:
             # cannot deactivate manually
             with HandlerDisabled(btn, self._on_gtk_toggle):
                 btn.set_active(True)
             return
 
-        if btn is self._key_macro_toggle:
-            self._controller.update_mapping(mapping_type="key_macro")
-        else:
-            self._controller.update_mapping(mapping_type="analog")
+        try:
+            if btn is self._key_macro_toggle:
+                self._controller.update_mapping(mapping_type="key_macro")
+            else:
+                self._controller.update_mapping(mapping_type="analog")
+        except NoMappingError:
+            # Revert the button active state, otherwise the guard on top will prevent
+            # the function from doing anything forever
+            with HandlerDisabled(btn, self._on_gtk_toggle):
+                btn.set_active(was_active)
 
 
 class TransformationDrawArea:

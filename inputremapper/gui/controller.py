@@ -37,7 +37,7 @@ from gi.repository import Gtk
 
 from inputremapper.configs.mapping import MappingData, UIMapping
 from inputremapper.event_combination import EventCombination
-from inputremapper.exceptions import DataManagementError
+from inputremapper.exceptions import DataManagementError, NoMappingError
 from inputremapper.gui.data_manager import DataManager, DEFAULT_PRESET_NAME
 from inputremapper.gui.gettext import _
 from inputremapper.gui.helper import is_helper_running
@@ -403,6 +403,9 @@ class Controller:
 
     def update_mapping(self, **kwargs):
         """update the active_mapping with the given keywords and values"""
+        if len(self.data_manager.get_mappings()) == 0:
+            raise NoMappingError()
+
         if "mapping_type" in kwargs.keys():
             if not (kwargs := self._change_mapping_type(kwargs)):
                 # we need to synchronize the gui
@@ -420,6 +423,7 @@ class Controller:
         except KeyError:
             # there is already an empty mapping
             return
+
         self.data_manager.load_mapping(combination=EventCombination.empty_combination())
         self.data_manager.update_mapping(**MAPPING_DEFAULTS)
 
@@ -600,6 +604,10 @@ class Controller:
     def _change_mapping_type(self, kwargs):
         """query the user to update the mapping in order to change the mapping type"""
         mapping = self.data_manager.active_mapping
+
+        if mapping is None:
+            return kwargs
+
         if kwargs["mapping_type"] == mapping.mapping_type:
             return kwargs
 
