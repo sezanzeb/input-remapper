@@ -227,6 +227,7 @@ class Controller:
         self.data_manager.copy_preset(
             self.data_manager.get_available_preset_name(f"{name} copy")
         )
+        self.message_broker.send(DoStackSwitch(1))
 
     def update_combination(self, combination: EventCombination):
         """update the event_combination of the active mapping"""

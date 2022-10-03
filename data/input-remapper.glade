@@ -3,33 +3,6 @@
 <interface>
   <requires lib="gtk+" version="3.22"/>
   <requires lib="gtksourceview" version="4.0"/>
-  <object class="GtkButton">
-    <property name="visible">True</property>
-    <property name="can-focus">True</property>
-    <property name="receives-default">True</property>
-    <child>
-      <object class="GtkBox">
-        <property name="visible">True</property>
-        <property name="can-focus">False</property>
-        <property name="orientation">vertical</property>
-        <child>
-          <object class="GtkLabel">
-            <property name="visible">True</property>
-            <property name="can-focus">False</property>
-            <property name="label" translatable="yes">mmmmmmmmmmmmmmmmmmmm mmmmmmmmmmmmmmmmmmmm mmmmmmmmmmmmmmmmmmmm mmmmmmmmmmmmmmmmmmmm mmmmmmmmmmmmmmmmmmmm mmmmmmmmmmmmmmmmmmmm </property>
-            <property name="wrap">True</property>
-            <property name="wrap-mode">word-char</property>
-            <property name="width-chars">25</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">1</property>
-          </packing>
-        </child>
-      </object>
-    </child>
-  </object>
   <object class="GtkImage" id="about-icon">
     <property name="visible">True</property>
     <property name="can-focus">False</property>
@@ -158,7 +131,6 @@
               <object class="GtkScrolledWindow">
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
-                <property name="shadow-type">in</property>
                 <child>
                   <object class="GtkViewport">
                     <property name="visible">True</property>
@@ -279,6 +251,7 @@ Shortcut: ctrl + del</property>
                       <object class="GtkViewport">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
+                        <property name="shadow-type">none</property>
                         <child>
                           <object class="GtkFlowBox" id="preset_selection">
                             <property name="visible">True</property>
