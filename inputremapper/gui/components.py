@@ -734,26 +734,47 @@ class RecordingToggle:
         # be recorded, instead of causing the recording to stop.
         toggle.connect("key-press-event", lambda *args: Gdk.EVENT_STOP)
         self._message_broker.subscribe(
-            MessageType.recording_finished, self._on_recording_finished
+            MessageType.recording_finished,
+            self._on_recording_finished,
         )
-        self._update_label(_("Record Input"))
-
-    def _update_label(self, msg: str):
-        self._gui.set_label(msg)
 
     def _on_gtk_toggle(self, *__):
         if self._gui.get_active():
-            self._update_label(_("Recording ..."))
             self._controller.start_key_recording()
         else:
-            self._update_label(_("Record Input"))
             self._controller.stop_key_recording()
 
     def _on_recording_finished(self, __):
         logger.debug("finished recording")
         with HandlerDisabled(self._gui, self._on_gtk_toggle):
             self._gui.set_active(False)
-            self._update_label(_("Record Input"))
+
+
+class RecordingStatus:
+    """Displays if keys are being recorded for a mapping."""
+
+    def __init__(
+        self,
+        message_broker: MessageBroker,
+        label: Gtk.Label,
+    ):
+        self._gui = label
+
+        message_broker.subscribe(
+            MessageType.recording_started,
+            self._on_recording_started,
+        )
+
+        message_broker.subscribe(
+            MessageType.recording_finished,
+            self._on_recording_finished,
+        )
+
+    def _on_recording_started(self, _):
+        self._gui.set_visible(True)
+
+    def _on_recording_finished(self, _):
+        self._gui.set_visible(False)
 
 
 class StatusBar:

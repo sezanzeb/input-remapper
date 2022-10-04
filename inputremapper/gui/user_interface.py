@@ -39,6 +39,7 @@ from inputremapper.gui.components import (
     CodeEditor,
     RecordingToggle,
     StatusBar,
+    RecordingStatus,
     AutoloadSwitch,
     ReleaseCombinationSwitch,
     CombinationListbox,
@@ -158,6 +159,10 @@ class UserInterface:
             self.get("status_bar"),
             self.get("error_status_icon"),
             self.get("warning_status_icon"),
+        )
+        RecordingStatus(
+            message_broker,
+            self.get("recording_status")
         )
         AutoloadSwitch(message_broker, controller, self.get("preset_autoload_switch"))
         ReleaseCombinationSwitch(

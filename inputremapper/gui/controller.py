@@ -455,8 +455,12 @@ class Controller:
             self.show_status(CTX_ERROR, _("Permission denied!"), str(e))
 
     def start_key_recording(self):
-        """recorde the input of the active_group and update the
-        active_mapping.event_combination with the recorded events"""
+        """Record the input of the active_group
+
+        Updates the active_mapping.event_combination with the recorded events.
+        """
+        self.message_broker.signal(MessageType.recording_started)  # TODO test
+
         state = self.data_manager.get_state()
         if state == RUNNING or state == STARTING:
             self.message_broker.signal(MessageType.recording_finished)
