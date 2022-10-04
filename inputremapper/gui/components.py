@@ -32,7 +32,6 @@ from inputremapper.event_combination import EventCombination
 from inputremapper.groups import DeviceType
 from inputremapper.gui.controller import Controller
 from inputremapper.gui.gettext import _
-from inputremapper.exceptions import NoMappingError
 from inputremapper.gui.message_broker import (
     MessageBroker,
     MessageType,
@@ -244,25 +243,44 @@ class TargetSelection:
         self._gui.set_id_column(0)
 
     def _on_mapping_loaded(self, mapping: MappingData):
+        with HandlerDisabled(self._gui, self._on_gtk_target_selected):
+            self._gui.set_active_id(mapping.target_uinput)
+
+    def _on_gtk_target_selected(self, *_):
+        target = self._gui.get_active_id()
+        self._controller.update_mapping(target_uinput=target)
+
+
+class Output:
+    """The box that contains all the output settings."""
+
+    def __init__(
+        self,
+        message_broker: MessageBroker,
+        controller: Controller,
+        box: Gtk.Box,
+    ):
+        self._message_broker = message_broker
+        self._controller = controller
+        self._gui = box
+
+        self._message_broker.subscribe(MessageType.mapping, self._on_mapping_loaded)
+
+    def _on_mapping_loaded(self, _):
         if not self._controller.is_empty_mapping():
             self._enable()
         else:
             self._disable()
 
-        with HandlerDisabled(self._gui, self._on_gtk_target_selected):
-            self._gui.set_active_id(mapping.target_uinput)
-
     def _enable(self):
         self._gui.set_sensitive(True)
         self._gui.set_opacity(1)
+        self._gui.set_tooltip_text("")
 
     def _disable(self):
         self._gui.set_sensitive(False)
         self._gui.set_opacity(0.5)
-
-    def _on_gtk_target_selected(self, *_):
-        target = self._gui.get_active_id()
-        self._controller.update_mapping(target_uinput=target)
+        self._gui.set_tooltip_text(_("Add a mapping and record some input first"))
 
 
 class PresetEntry(Gtk.ToggleButton):
@@ -1311,16 +1329,10 @@ class KeyAxisStackSwitcher:
                 btn.set_active(True)
             return
 
-        try:
-            if btn is self._key_macro_toggle:
-                self._controller.update_mapping(mapping_type="key_macro")
-            else:
-                self._controller.update_mapping(mapping_type="analog")
-        except NoMappingError:
-            # Revert the button active state, otherwise the guard on top will prevent
-            # the function from doing anything forever
-            with HandlerDisabled(btn, self._on_gtk_toggle):
-                btn.set_active(was_active)
+        if btn is self._key_macro_toggle:
+            self._controller.update_mapping(mapping_type="key_macro")
+        else:
+            self._controller.update_mapping(mapping_type="analog")
 
 
 class TransformationDrawArea:

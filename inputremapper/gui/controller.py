@@ -37,7 +37,7 @@ from gi.repository import Gtk
 
 from inputremapper.configs.mapping import MappingData, UIMapping
 from inputremapper.event_combination import EventCombination
-from inputremapper.exceptions import DataManagementError, NoMappingError
+from inputremapper.exceptions import DataManagementError
 from inputremapper.gui.data_manager import DataManager, DEFAULT_PRESET_NAME
 from inputremapper.gui.gettext import _
 from inputremapper.gui.helper import is_helper_running
@@ -176,7 +176,7 @@ class Controller:
                 ][0]
                 message += _(
                     "\nIf you mean to create a key or macro mapping "
-                    "go to the 'Advanced Input Configuration'"
+                    "go to the advanced input configuration"
                     " and set a 'Trigger Threshold' for "
                     f"{event.description()}"
                 )
@@ -190,7 +190,7 @@ class Controller:
             if mapping.output_type in (EV_ABS, EV_REL):
                 message += _(
                     "\nIf you mean to create a analog axis mapping go to the "
-                    "'Advanced Input Configuration' and set a input to 'Use as Analog'."
+                    "advanced input configuration and set a input to 'Use as Analog'."
                 )
             return message
 
@@ -404,9 +404,6 @@ class Controller:
 
     def update_mapping(self, **kwargs):
         """update the active_mapping with the given keywords and values"""
-        if len(self.data_manager.get_mappings()) == 0:
-            raise NoMappingError()
-
         if "mapping_type" in kwargs.keys():
             if not (kwargs := self._change_mapping_type(kwargs)):
                 # we need to synchronize the gui
@@ -638,7 +635,7 @@ class Controller:
                         break
                 else:
                     # not possible to autoconfigure inform the user
-                    msg += "\nNote: you need to record an analog input."
+                    msg += "\nYou need to record an analog input."
 
             elif not mapping.output_symbol:
                 return kwargs
@@ -673,7 +670,7 @@ class Controller:
             self.message_broker.send(
                 UserConfirmRequest(
                     f"You are about to change the mapping to a Key or Macro mapping!\n"
-                    f"Go to the 'Advanced Input Configuration' and set a "
+                    f"Go to the advanced input configuration and set a "
                     f"'Trigger Threshold' for '{analog_input.description()}'.",
                     f,
                 )

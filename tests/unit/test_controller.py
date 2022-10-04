@@ -1214,7 +1214,7 @@ class TestController(unittest.TestCase):
 
         self.message_broker.subscribe(MessageType.user_confirm_request, f)
         self.controller.update_mapping(mapping_type="analog")
-        self.assertIn("Note: you need to record an analog input.", request.msg)
+        self.assertIn("You need to record an analog input.", request.msg)
 
     def test_update_mapping_type_will_tell_user_which_input_is_used_as_analog(self):
         prepare_presets()

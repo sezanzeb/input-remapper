@@ -62,10 +62,3 @@ class InputEventCreationError(Error):
 class DataManagementError(Error):
     def __init__(self, msg):
         super().__init__(msg)
-
-
-class NoMappingError(Error):
-    """This action requires at least one Mapping to exist."""
-
-    def __init__(self):
-        super().__init__()

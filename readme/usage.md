@@ -42,12 +42,13 @@ the input (`Recorde Input` - Button) press multiple keys and/or move axis at onc
 The mapping will be triggered as soon as all the recorded inputs are pressed.
 
 If you use an axis an input you can modify the threshold at which the mapping is 
-activated in the `Advanced Input Configuration`.
+activated in the advanced input configuration, which can be opened by clicking on the
+`Advanced` button.
 
 A mapping with an input combination is only injected once all combination keys 
 are pressed. This means all the input keys you press before the combination is complete 
 will be injected unmodified. In some cases this can be desirable, in others not. 
-In the `Advanced Input Configuration` is the `Release Input` toggle. 
+In the advanced input configuration there is the `Release Input` toggle. 
 This will release all inputs which are part of the combination before the mapping is 
 injected. Consider a mapping `Shift+1 -> a` this will inject a lowercase `a` if the 
 toggle is on and an uppercase `A` if it is off. The exact behaviour if the toggle is off 
@@ -107,8 +108,8 @@ ultimately decide which character to write.
 ## Analog Axis
 
 It is possible to map analog inputs to analog outputs. E.g. use a gamepad as a mouse.
-For this you need to create a mapping and recorde the input axis. Then go to 
-`Advanced Input Configuration` and select `Use as Analog`. Make sure to select a target 
+For this you need to create a mapping and recorde the input axis. Then click on 
+`Advanced` and select `Use as Analog`. Make sure to select a target 
 which supports analog axis and switch to the `Analog Axis` tab. 
 There you can select an output axis and use the different sliders to configure the 
 sensitivity, non-linearity and other parameters as you like. 

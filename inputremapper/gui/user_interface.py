@@ -33,6 +33,7 @@ from inputremapper.gui.components import (
     PresetSelection,
     MappingListBox,
     TargetSelection,
+    Output,
     PresetSelectionTitle,
     EditorTitle,
     Stack,
@@ -145,6 +146,7 @@ class UserInterface:
         PresetSelection(message_broker, controller, self.get("preset_selection"))
         MappingListBox(message_broker, controller, self.get("selection_label_listbox"))
         TargetSelection(message_broker, controller, self.get("target-selector"))
+        Output(message_broker, controller, self.get("output"))
 
         PresetSelectionTitle(
             message_broker, controller, self.get("selected_device_name")
