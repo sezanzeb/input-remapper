@@ -546,9 +546,6 @@ class MappingSelectionLabel(Gtk.ListBoxRow):
         self._box.set_child_packing(self.name_input, False, True, 4, Gtk.PackType.START)
 
         self.add(self._box)
-
-        self.set_margin_bottom(6)
-
         self.show_all()
         self._message_broker.subscribe(MessageType.mapping, self._on_mapping_changed)
         self._message_broker.subscribe(
@@ -891,8 +888,6 @@ class EventEntry(Gtk.ListBoxRow):
 
         self.input_event = event
         self._controller = controller
-
-        self.set_margin_bottom(6)
 
         hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
         hbox.set_margin_start(12)

@@ -518,6 +518,7 @@ Shortcut: ctrl + del</property>
                     <property name="can-focus">False</property>
                     <property name="margin-start">18</property>
                     <property name="margin-end">18</property>
+                    <property name="homogeneous">True</property>
                     <child>
                       <object class="GtkBox">
                         <property name="visible">True</property>
@@ -554,7 +555,6 @@ Shortcut: ctrl + del</property>
                                 <property name="spacing">6</property>
                                 <child>
                                   <object class="GtkScrolledWindow">
-                                    <property name="width-request">200</property>
                                     <property name="visible">True</property>
                                     <property name="can-focus">True</property>
                                     <property name="shadow-type">in</property>
@@ -583,28 +583,61 @@ Shortcut: ctrl + del</property>
                                 </child>
                               </object>
                               <packing>
-                                <property name="expand">False</property>
+                                <property name="expand">True</property>
                                 <property name="fill">True</property>
                                 <property name="position">0</property>
                               </packing>
                             </child>
                             <child>
                               <object class="GtkBox">
+                                <property name="width-request">200</property>
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
                                 <property name="margin-start">18</property>
                                 <property name="margin-top">18</property>
                                 <property name="margin-bottom">18</property>
                                 <property name="orientation">vertical</property>
-                                <property name="spacing">6</property>
                                 <child>
-                                  <object class="GtkButton" id="create_mapping_button">
-                                    <property name="label" translatable="yes">Add Mapping</property>
+                                  <object class="GtkBox">
                                     <property name="visible">True</property>
-                                    <property name="can-focus">True</property>
-                                    <property name="receives-default">True</property>
-                                    <property name="image">image3</property>
-                                    <property name="always-show-image">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="orientation">vertical</property>
+                                    <property name="spacing">6</property>
+                                    <property name="homogeneous">True</property>
+                                    <child>
+                                      <object class="GtkButton" id="create_mapping_button">
+                                        <property name="label" translatable="yes">Add Mapping</property>
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">True</property>
+                                        <property name="receives-default">True</property>
+                                        <property name="image">image3</property>
+                                        <property name="always-show-image">True</property>
+                                      </object>
+                                      <packing>
+                                        <property name="expand">False</property>
+                                        <property name="fill">True</property>
+                                        <property name="position">0</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkButton" id="delete-mapping">
+                                        <property name="label" translatable="yes">Delete Mapping</property>
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">True</property>
+                                        <property name="receives-default">True</property>
+                                        <property name="tooltip-text" translatable="yes">Delete this entry</property>
+                                        <property name="image">icon-delete-row</property>
+                                        <property name="always-show-image">True</property>
+                                        <style>
+                                          <class name="delete-mapping-button"/>
+                                        </style>
+                                      </object>
+                                      <packing>
+                                        <property name="expand">False</property>
+                                        <property name="fill">True</property>
+                                        <property name="position">1</property>
+                                      </packing>
+                                    </child>
                                   </object>
                                   <packing>
                                     <property name="expand">False</property>
@@ -613,67 +646,62 @@ Shortcut: ctrl + del</property>
                                   </packing>
                                 </child>
                                 <child>
-                                  <object class="GtkButton" id="delete-mapping">
-                                    <property name="label" translatable="yes">Delete Mapping</property>
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">True</property>
-                                    <property name="receives-default">True</property>
-                                    <property name="tooltip-text" translatable="yes">Delete this entry</property>
-                                    <property name="image">icon-delete-row</property>
-                                    <property name="always-show-image">True</property>
-                                    <style>
-                                      <class name="delete-mapping-button"/>
-                                    </style>
-                                  </object>
-                                  <packing>
-                                    <property name="expand">False</property>
-                                    <property name="fill">True</property>
-                                    <property name="position">1</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkButton" id="edit-combination-btn">
-                                    <property name="label" translatable="yes">Advanced Input Configuration</property>
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">True</property>
-                                    <property name="receives-default">True</property>
-                                    <property name="image">image1</property>
-                                  </object>
-                                  <packing>
-                                    <property name="expand">False</property>
-                                    <property name="fill">True</property>
-                                    <property name="pack-type">end</property>
-                                    <property name="position">2</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkToggleButton" id="key_recording_toggle">
-                                    <property name="label" translatable="yes">Record Input</property>
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">True</property>
-                                    <property name="receives-default">True</property>
-                                    <property name="tooltip-text" translatable="yes">Record a button of your device that should be remapped</property>
-                                    <property name="image">image2</property>
-                                    <property name="always-show-image">True</property>
-                                  </object>
-                                  <packing>
-                                    <property name="expand">False</property>
-                                    <property name="fill">True</property>
-                                    <property name="pack-type">end</property>
-                                    <property name="position">3</property>
-                                  </packing>
-                                </child>
-                                <child>
                                   <object class="GtkBox">
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
                                     <property name="spacing">6</property>
                                     <child>
-                                      <object class="GtkLabel" id="combination-label">
+                                      <object class="GtkBox">
                                         <property name="visible">True</property>
                                         <property name="can-focus">False</property>
-                                        <property name="label" translatable="yes">no input configured</property>
-                                        <property name="wrap">True</property>
+                                        <property name="orientation">vertical</property>
+                                        <property name="spacing">6</property>
+                                        <property name="homogeneous">True</property>
+                                        <child>
+                                          <object class="GtkLabel" id="combination-label">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
+                                            <property name="label" translatable="yes">no input configured</property>
+                                            <property name="wrap">True</property>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">True</property>
+                                            <property name="position">0</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkToggleButton" id="key_recording_toggle">
+                                            <property name="label" translatable="yes">Record Input</property>
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">True</property>
+                                            <property name="receives-default">True</property>
+                                            <property name="tooltip-text" translatable="yes">Record a button of your device that should be remapped</property>
+                                            <property name="image">image2</property>
+                                            <property name="always-show-image">True</property>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">True</property>
+                                            <property name="pack-type">end</property>
+                                            <property name="position">1</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkButton" id="edit-combination-btn">
+                                            <property name="label" translatable="yes">Advanced</property>
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">True</property>
+                                            <property name="receives-default">True</property>
+                                            <property name="image">image1</property>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">True</property>
+                                            <property name="pack-type">end</property>
+                                            <property name="position">2</property>
+                                          </packing>
+                                        </child>
                                       </object>
                                       <packing>
                                         <property name="expand">True</property>
@@ -692,7 +720,7 @@ Shortcut: ctrl + del</property>
                                 </child>
                               </object>
                               <packing>
-                                <property name="expand">True</property>
+                                <property name="expand">False</property>
                                 <property name="fill">True</property>
                                 <property name="position">1</property>
                               </packing>
@@ -708,38 +736,17 @@ Shortcut: ctrl + del</property>
                       <packing>
                         <property name="expand">False</property>
                         <property name="fill">True</property>
-                        <property name="position">1</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkSeparator">
-                        <property name="visible">True</property>
-                        <property name="can-focus">False</property>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">3</property>
+                        <property name="position">0</property>
                       </packing>
                     </child>
                     <child>
                       <object class="GtkBox">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
-                        <property name="margin-left">18</property>
-                        <property name="margin-start">18</property>
-                        <property name="margin-top">18</property>
-                        <property name="margin-bottom">18</property>
-                        <property name="orientation">vertical</property>
                         <child>
-                          <object class="GtkLabel">
+                          <object class="GtkSeparator">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
-                            <property name="margin-bottom">18</property>
-                            <property name="label" translatable="yes">Output</property>
-                            <attributes>
-                              <attribute name="weight" value="bold"/>
-                            </attributes>
                           </object>
                           <packing>
                             <property name="expand">False</property>
@@ -751,142 +758,25 @@ Shortcut: ctrl + del</property>
                           <object class="GtkBox">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
-                            <property name="spacing">6</property>
-                            <child>
-                              <object class="GtkLabel">
-                                <property name="width-request">100</property>
-                                <property name="visible">True</property>
-                                <property name="can-focus">False</property>
-                                <property name="label" translatable="yes">Type:</property>
-                                <property name="xalign">0</property>
-                              </object>
-                              <packing>
-                                <property name="expand">False</property>
-                                <property name="fill">True</property>
-                                <property name="position">0</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkButtonBox">
-                                <property name="visible">True</property>
-                                <property name="can-focus">False</property>
-                                <property name="homogeneous">True</property>
-                                <property name="layout-style">expand</property>
-                                <child>
-                                  <object class="GtkToggleButton" id="key_macro_toggle_btn">
-                                    <property name="label" translatable="yes">Key or Macro</property>
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">True</property>
-                                    <property name="receives-default">True</property>
-                                  </object>
-                                  <packing>
-                                    <property name="expand">True</property>
-                                    <property name="fill">True</property>
-                                    <property name="position">0</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkToggleButton" id="analog_toggle_btn">
-                                    <property name="label" translatable="yes">Analog Axis</property>
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">True</property>
-                                    <property name="receives-default">True</property>
-                                  </object>
-                                  <packing>
-                                    <property name="expand">True</property>
-                                    <property name="fill">True</property>
-                                    <property name="pack-type">end</property>
-                                    <property name="position">1</property>
-                                  </packing>
-                                </child>
-                              </object>
-                              <packing>
-                                <property name="expand">True</property>
-                                <property name="fill">True</property>
-                                <property name="position">1</property>
-                              </packing>
-                            </child>
-                          </object>
-                          <packing>
-                            <property name="expand">False</property>
-                            <property name="fill">True</property>
-                            <property name="position">1</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkBox">
-                            <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <property name="tooltip-text" translatable="yes">The type of device this mapping is emulating.</property>
-                            <property name="margin-top">6</property>
+                            <property name="margin-left">18</property>
+                            <property name="margin-start">18</property>
+                            <property name="margin-top">18</property>
                             <property name="margin-bottom">18</property>
-                            <property name="spacing">6</property>
+                            <property name="orientation">vertical</property>
                             <child>
                               <object class="GtkLabel">
-                                <property name="width-request">100</property>
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
-                                <property name="label" translatable="yes">Target:</property>
-                                <property name="xalign">0</property>
+                                <property name="margin-bottom">18</property>
+                                <property name="label" translatable="yes">Output</property>
+                                <attributes>
+                                  <attribute name="weight" value="bold"/>
+                                </attributes>
                               </object>
                               <packing>
                                 <property name="expand">False</property>
                                 <property name="fill">True</property>
                                 <property name="position">0</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkComboBox" id="target-selector">
-                                <property name="visible">True</property>
-                                <property name="can-focus">False</property>
-                              </object>
-                              <packing>
-                                <property name="expand">True</property>
-                                <property name="fill">True</property>
-                                <property name="position">1</property>
-                              </packing>
-                            </child>
-                          </object>
-                          <packing>
-                            <property name="expand">False</property>
-                            <property name="fill">True</property>
-                            <property name="position">2</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkStack" id="editor-stack">
-                            <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <property name="hexpand">True</property>
-                            <property name="vexpand">True</property>
-                            <child>
-                              <object class="GtkScrolledWindow" id="code_editor_container">
-                                <property name="visible">True</property>
-                                <property name="can-focus">True</property>
-                                <child>
-                                  <object class="GtkSourceView" id="code_editor">
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">True</property>
-                                    <property name="tooltip-text" translatable="yes">What should be written. For example KEY_A</property>
-                                    <property name="valign">start</property>
-                                    <property name="resize-mode">immediate</property>
-                                    <property name="wrap-mode">word</property>
-                                    <property name="left-margin">10</property>
-                                    <property name="right-margin">10</property>
-                                    <property name="top-margin">10</property>
-                                    <property name="bottom-margin">10</property>
-                                    <property name="monospace">True</property>
-                                    <property name="tab-width">2</property>
-                                    <property name="auto-indent">True</property>
-                                    <style>
-                                      <class name="code-editor-text-view"/>
-                                    </style>
-                                  </object>
-                                </child>
-                              </object>
-                              <packing>
-                                <property name="name">Key or Macro</property>
-                                <property name="title" translatable="yes">Key or Macro</property>
                               </packing>
                             </child>
                             <child>
@@ -895,219 +785,12 @@ Shortcut: ctrl + del</property>
                                 <property name="can-focus">False</property>
                                 <property name="spacing">6</property>
                                 <child>
-                                  <object class="GtkBox">
+                                  <object class="GtkLabel">
+                                    <property name="width-request">100</property>
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
-                                    <property name="margin-right">12</property>
-                                    <property name="margin-end">12</property>
-                                    <property name="orientation">vertical</property>
-                                    <property name="spacing">6</property>
-                                    <child>
-                                      <object class="GtkBox">
-                                        <property name="visible">True</property>
-                                        <property name="can-focus">False</property>
-                                        <property name="spacing">6</property>
-                                        <child>
-                                          <object class="GtkLabel">
-                                            <property name="width-request">100</property>
-                                            <property name="visible">True</property>
-                                            <property name="can-focus">False</property>
-                                            <property name="tooltip-text" translatable="yes">Available output axes are affected by the Target setting.</property>
-                                            <property name="label" translatable="yes">Output Axis:</property>
-                                            <property name="xalign">0</property>
-                                          </object>
-                                          <packing>
-                                            <property name="expand">False</property>
-                                            <property name="fill">True</property>
-                                            <property name="position">0</property>
-                                          </packing>
-                                        </child>
-                                        <child>
-                                          <object class="GtkComboBox" id="output-axis-selector">
-                                            <property name="width-request">100</property>
-                                            <property name="visible">True</property>
-                                            <property name="can-focus">False</property>
-                                          </object>
-                                          <packing>
-                                            <property name="expand">True</property>
-                                            <property name="fill">True</property>
-                                            <property name="position">1</property>
-                                          </packing>
-                                        </child>
-                                      </object>
-                                      <packing>
-                                        <property name="expand">False</property>
-                                        <property name="fill">True</property>
-                                        <property name="position">0</property>
-                                      </packing>
-                                    </child>
-                                    <child>
-                                      <object class="GtkBox">
-                                        <property name="visible">True</property>
-                                        <property name="can-focus">False</property>
-                                        <property name="spacing">6</property>
-                                        <child>
-                                          <object class="GtkScale" id="deadzone-scale">
-                                            <property name="width-request">150</property>
-                                            <property name="visible">True</property>
-                                            <property name="can-focus">True</property>
-                                            <property name="adjustment">deadzone-adjustment</property>
-                                            <property name="round-digits">2</property>
-                                            <property name="digits">2</property>
-                                          </object>
-                                          <packing>
-                                            <property name="expand">False</property>
-                                            <property name="fill">True</property>
-                                            <property name="pack-type">end</property>
-                                            <property name="position">0</property>
-                                          </packing>
-                                        </child>
-                                        <child>
-                                          <object class="GtkLabel">
-                                            <property name="width-request">100</property>
-                                            <property name="visible">True</property>
-                                            <property name="can-focus">False</property>
-                                            <property name="label" translatable="yes">Deadzone:</property>
-                                            <property name="xalign">0</property>
-                                          </object>
-                                          <packing>
-                                            <property name="expand">False</property>
-                                            <property name="fill">True</property>
-                                            <property name="position">1</property>
-                                          </packing>
-                                        </child>
-                                      </object>
-                                      <packing>
-                                        <property name="expand">False</property>
-                                        <property name="fill">True</property>
-                                        <property name="position">1</property>
-                                      </packing>
-                                    </child>
-                                    <child>
-                                      <object class="GtkBox">
-                                        <property name="visible">True</property>
-                                        <property name="can-focus">False</property>
-                                        <property name="spacing">6</property>
-                                        <child>
-                                          <object class="GtkScale" id="gain-scale">
-                                            <property name="width-request">150</property>
-                                            <property name="visible">True</property>
-                                            <property name="can-focus">True</property>
-                                            <property name="adjustment">gain-adjustment</property>
-                                            <property name="round-digits">2</property>
-                                            <property name="digits">2</property>
-                                          </object>
-                                          <packing>
-                                            <property name="expand">False</property>
-                                            <property name="fill">True</property>
-                                            <property name="pack-type">end</property>
-                                            <property name="position">0</property>
-                                          </packing>
-                                        </child>
-                                        <child>
-                                          <object class="GtkLabel">
-                                            <property name="width-request">100</property>
-                                            <property name="visible">True</property>
-                                            <property name="can-focus">False</property>
-                                            <property name="label" translatable="yes">Gain:</property>
-                                            <property name="xalign">0</property>
-                                          </object>
-                                          <packing>
-                                            <property name="expand">False</property>
-                                            <property name="fill">True</property>
-                                            <property name="position">1</property>
-                                          </packing>
-                                        </child>
-                                      </object>
-                                      <packing>
-                                        <property name="expand">False</property>
-                                        <property name="fill">True</property>
-                                        <property name="position">2</property>
-                                      </packing>
-                                    </child>
-                                    <child>
-                                      <object class="GtkBox">
-                                        <property name="visible">True</property>
-                                        <property name="can-focus">False</property>
-                                        <property name="spacing">6</property>
-                                        <child>
-                                          <object class="GtkScale" id="expo-scale">
-                                            <property name="width-request">150</property>
-                                            <property name="visible">True</property>
-                                            <property name="can-focus">True</property>
-                                            <property name="adjustment">expo-adjustment</property>
-                                            <property name="round-digits">2</property>
-                                            <property name="digits">2</property>
-                                          </object>
-                                          <packing>
-                                            <property name="expand">False</property>
-                                            <property name="fill">True</property>
-                                            <property name="pack-type">end</property>
-                                            <property name="position">0</property>
-                                          </packing>
-                                        </child>
-                                        <child>
-                                          <object class="GtkLabel">
-                                            <property name="width-request">100</property>
-                                            <property name="visible">True</property>
-                                            <property name="can-focus">False</property>
-                                            <property name="label" translatable="yes">Expo:</property>
-                                            <property name="xalign">0</property>
-                                          </object>
-                                          <packing>
-                                            <property name="expand">False</property>
-                                            <property name="fill">True</property>
-                                            <property name="position">1</property>
-                                          </packing>
-                                        </child>
-                                      </object>
-                                      <packing>
-                                        <property name="expand">False</property>
-                                        <property name="fill">True</property>
-                                        <property name="position">3</property>
-                                      </packing>
-                                    </child>
-                                    <child>
-                                      <object class="GtkBox">
-                                        <property name="visible">True</property>
-                                        <property name="can-focus">False</property>
-                                        <property name="tooltip-text" translatable="yes">The Speed at wich the Input is concidered at maximum.
-Only relevant when mapping relative inputs (e.g. mouse) to absolute outputs (e.g. gamepad)</property>
-                                        <property name="spacing">6</property>
-                                        <child>
-                                          <object class="GtkLabel">
-                                            <property name="width-request">100</property>
-                                            <property name="visible">True</property>
-                                            <property name="can-focus">False</property>
-                                            <property name="label" translatable="yes">Input Cutoff:</property>
-                                            <property name="xalign">0</property>
-                                          </object>
-                                          <packing>
-                                            <property name="expand">False</property>
-                                            <property name="fill">True</property>
-                                            <property name="position">0</property>
-                                          </packing>
-                                        </child>
-                                        <child>
-                                          <object class="GtkSpinButton" id="input-cutoff-spin-btn">
-                                            <property name="width-request">150</property>
-                                            <property name="visible">True</property>
-                                            <property name="can-focus">True</property>
-                                          </object>
-                                          <packing>
-                                            <property name="expand">False</property>
-                                            <property name="fill">True</property>
-                                            <property name="pack-type">end</property>
-                                            <property name="position">1</property>
-                                          </packing>
-                                        </child>
-                                      </object>
-                                      <packing>
-                                        <property name="expand">False</property>
-                                        <property name="fill">True</property>
-                                        <property name="position">4</property>
-                                      </packing>
-                                    </child>
+                                    <property name="label" translatable="yes">Type:</property>
+                                    <property name="xalign">0</property>
                                   </object>
                                   <packing>
                                     <property name="expand">False</property>
@@ -1116,16 +799,347 @@ Only relevant when mapping relative inputs (e.g. mouse) to absolute outputs (e.g
                                   </packing>
                                 </child>
                                 <child>
+                                  <object class="GtkButtonBox">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="homogeneous">True</property>
+                                    <property name="layout-style">expand</property>
+                                    <child>
+                                      <object class="GtkToggleButton" id="key_macro_toggle_btn">
+                                        <property name="label" translatable="yes">Key or Macro</property>
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">True</property>
+                                        <property name="receives-default">True</property>
+                                      </object>
+                                      <packing>
+                                        <property name="expand">True</property>
+                                        <property name="fill">True</property>
+                                        <property name="position">0</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkToggleButton" id="analog_toggle_btn">
+                                        <property name="label" translatable="yes">Analog Axis</property>
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">True</property>
+                                        <property name="receives-default">True</property>
+                                      </object>
+                                      <packing>
+                                        <property name="expand">True</property>
+                                        <property name="fill">True</property>
+                                        <property name="pack-type">end</property>
+                                        <property name="position">1</property>
+                                      </packing>
+                                    </child>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">True</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">1</property>
+                                  </packing>
+                                </child>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">1</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkBox">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="tooltip-text" translatable="yes">The type of device this mapping is emulating.</property>
+                                <property name="margin-top">6</property>
+                                <property name="margin-bottom">18</property>
+                                <property name="spacing">6</property>
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="width-request">100</property>
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="label" translatable="yes">Target:</property>
+                                    <property name="xalign">0</property>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">0</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkComboBox" id="target-selector">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">True</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">1</property>
+                                  </packing>
+                                </child>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">2</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkStack" id="editor-stack">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="hexpand">True</property>
+                                <property name="vexpand">True</property>
+                                <child>
+                                  <object class="GtkScrolledWindow" id="code_editor_container">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">True</property>
+                                    <child>
+                                      <object class="GtkSourceView" id="code_editor">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">True</property>
+                                        <property name="tooltip-text" translatable="yes">What should be written. For example KEY_A</property>
+                                        <property name="valign">start</property>
+                                        <property name="resize-mode">immediate</property>
+                                        <property name="wrap-mode">word</property>
+                                        <property name="left-margin">10</property>
+                                        <property name="right-margin">10</property>
+                                        <property name="top-margin">10</property>
+                                        <property name="bottom-margin">10</property>
+                                        <property name="monospace">True</property>
+                                        <property name="tab-width">2</property>
+                                        <property name="auto-indent">True</property>
+                                        <style>
+                                          <class name="code-editor-text-view"/>
+                                        </style>
+                                      </object>
+                                    </child>
+                                  </object>
+                                  <packing>
+                                    <property name="name">Key or Macro</property>
+                                    <property name="title" translatable="yes">Key or Macro</property>
+                                  </packing>
+                                </child>
+                                <child>
                                   <object class="GtkBox">
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
-                                    <property name="orientation">vertical</property>
+                                    <property name="spacing">6</property>
                                     <child>
-                                      <object class="GtkDrawingArea" id="transformation-draw-area">
-                                        <property name="width-request">150</property>
-                                        <property name="height-request">150</property>
+                                      <object class="GtkBox">
                                         <property name="visible">True</property>
                                         <property name="can-focus">False</property>
+                                        <property name="margin-right">12</property>
+                                        <property name="margin-end">12</property>
+                                        <property name="orientation">vertical</property>
+                                        <property name="spacing">6</property>
+                                        <child>
+                                          <object class="GtkBox">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
+                                            <property name="spacing">6</property>
+                                            <child>
+                                              <object class="GtkLabel">
+                                                <property name="width-request">100</property>
+                                                <property name="visible">True</property>
+                                                <property name="can-focus">False</property>
+                                                <property name="tooltip-text" translatable="yes">Available output axes are affected by the Target setting.</property>
+                                                <property name="label" translatable="yes">Output Axis:</property>
+                                                <property name="xalign">0</property>
+                                              </object>
+                                              <packing>
+                                                <property name="expand">False</property>
+                                                <property name="fill">True</property>
+                                                <property name="position">0</property>
+                                              </packing>
+                                            </child>
+                                            <child>
+                                              <object class="GtkComboBox" id="output-axis-selector">
+                                                <property name="width-request">100</property>
+                                                <property name="visible">True</property>
+                                                <property name="can-focus">False</property>
+                                              </object>
+                                              <packing>
+                                                <property name="expand">True</property>
+                                                <property name="fill">True</property>
+                                                <property name="position">1</property>
+                                              </packing>
+                                            </child>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">True</property>
+                                            <property name="position">0</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkBox">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
+                                            <property name="spacing">6</property>
+                                            <child>
+                                              <object class="GtkScale" id="deadzone-scale">
+                                                <property name="width-request">150</property>
+                                                <property name="visible">True</property>
+                                                <property name="can-focus">True</property>
+                                                <property name="adjustment">deadzone-adjustment</property>
+                                                <property name="round-digits">2</property>
+                                                <property name="digits">2</property>
+                                              </object>
+                                              <packing>
+                                                <property name="expand">False</property>
+                                                <property name="fill">True</property>
+                                                <property name="pack-type">end</property>
+                                                <property name="position">0</property>
+                                              </packing>
+                                            </child>
+                                            <child>
+                                              <object class="GtkLabel">
+                                                <property name="width-request">100</property>
+                                                <property name="visible">True</property>
+                                                <property name="can-focus">False</property>
+                                                <property name="label" translatable="yes">Deadzone:</property>
+                                                <property name="xalign">0</property>
+                                              </object>
+                                              <packing>
+                                                <property name="expand">False</property>
+                                                <property name="fill">True</property>
+                                                <property name="position">1</property>
+                                              </packing>
+                                            </child>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">True</property>
+                                            <property name="position">1</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkBox">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
+                                            <property name="spacing">6</property>
+                                            <child>
+                                              <object class="GtkScale" id="gain-scale">
+                                                <property name="width-request">150</property>
+                                                <property name="visible">True</property>
+                                                <property name="can-focus">True</property>
+                                                <property name="adjustment">gain-adjustment</property>
+                                                <property name="round-digits">2</property>
+                                                <property name="digits">2</property>
+                                              </object>
+                                              <packing>
+                                                <property name="expand">False</property>
+                                                <property name="fill">True</property>
+                                                <property name="pack-type">end</property>
+                                                <property name="position">0</property>
+                                              </packing>
+                                            </child>
+                                            <child>
+                                              <object class="GtkLabel">
+                                                <property name="width-request">100</property>
+                                                <property name="visible">True</property>
+                                                <property name="can-focus">False</property>
+                                                <property name="label" translatable="yes">Gain:</property>
+                                                <property name="xalign">0</property>
+                                              </object>
+                                              <packing>
+                                                <property name="expand">False</property>
+                                                <property name="fill">True</property>
+                                                <property name="position">1</property>
+                                              </packing>
+                                            </child>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">True</property>
+                                            <property name="position">2</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkBox">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
+                                            <property name="spacing">6</property>
+                                            <child>
+                                              <object class="GtkScale" id="expo-scale">
+                                                <property name="width-request">150</property>
+                                                <property name="visible">True</property>
+                                                <property name="can-focus">True</property>
+                                                <property name="adjustment">expo-adjustment</property>
+                                                <property name="round-digits">2</property>
+                                                <property name="digits">2</property>
+                                              </object>
+                                              <packing>
+                                                <property name="expand">False</property>
+                                                <property name="fill">True</property>
+                                                <property name="pack-type">end</property>
+                                                <property name="position">0</property>
+                                              </packing>
+                                            </child>
+                                            <child>
+                                              <object class="GtkLabel">
+                                                <property name="width-request">100</property>
+                                                <property name="visible">True</property>
+                                                <property name="can-focus">False</property>
+                                                <property name="label" translatable="yes">Expo:</property>
+                                                <property name="xalign">0</property>
+                                              </object>
+                                              <packing>
+                                                <property name="expand">False</property>
+                                                <property name="fill">True</property>
+                                                <property name="position">1</property>
+                                              </packing>
+                                            </child>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">True</property>
+                                            <property name="position">3</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkBox">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
+                                            <property name="tooltip-text" translatable="yes">The Speed at wich the Input is concidered at maximum.
+Only relevant when mapping relative inputs (e.g. mouse) to absolute outputs (e.g. gamepad)</property>
+                                            <property name="spacing">6</property>
+                                            <child>
+                                              <object class="GtkLabel">
+                                                <property name="width-request">100</property>
+                                                <property name="visible">True</property>
+                                                <property name="can-focus">False</property>
+                                                <property name="label" translatable="yes">Input Cutoff:</property>
+                                                <property name="xalign">0</property>
+                                              </object>
+                                              <packing>
+                                                <property name="expand">False</property>
+                                                <property name="fill">True</property>
+                                                <property name="position">0</property>
+                                              </packing>
+                                            </child>
+                                            <child>
+                                              <object class="GtkSpinButton" id="input-cutoff-spin-btn">
+                                                <property name="width-request">150</property>
+                                                <property name="visible">True</property>
+                                                <property name="can-focus">True</property>
+                                              </object>
+                                              <packing>
+                                                <property name="expand">False</property>
+                                                <property name="fill">True</property>
+                                                <property name="pack-type">end</property>
+                                                <property name="position">1</property>
+                                              </packing>
+                                            </child>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">True</property>
+                                            <property name="position">4</property>
+                                          </packing>
+                                        </child>
                                       </object>
                                       <packing>
                                         <property name="expand">False</property>
@@ -1134,28 +1148,53 @@ Only relevant when mapping relative inputs (e.g. mouse) to absolute outputs (e.g
                                       </packing>
                                     </child>
                                     <child>
-                                      <placeholder/>
+                                      <object class="GtkBox">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="orientation">vertical</property>
+                                        <child>
+                                          <object class="GtkDrawingArea" id="transformation-draw-area">
+                                            <property name="width-request">150</property>
+                                            <property name="height-request">150</property>
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">True</property>
+                                            <property name="position">0</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <placeholder/>
+                                        </child>
+                                      </object>
+                                      <packing>
+                                        <property name="expand">False</property>
+                                        <property name="fill">True</property>
+                                        <property name="pack-type">end</property>
+                                        <property name="position">1</property>
+                                      </packing>
                                     </child>
                                   </object>
                                   <packing>
-                                    <property name="expand">False</property>
-                                    <property name="fill">True</property>
-                                    <property name="pack-type">end</property>
+                                    <property name="name">Analog Axis</property>
+                                    <property name="title" translatable="yes">Analog Axis</property>
                                     <property name="position">1</property>
                                   </packing>
                                 </child>
                               </object>
                               <packing>
-                                <property name="name">Analog Axis</property>
-                                <property name="title" translatable="yes">Analog Axis</property>
-                                <property name="position">1</property>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">3</property>
                               </packing>
                             </child>
                           </object>
                           <packing>
                             <property name="expand">False</property>
                             <property name="fill">True</property>
-                            <property name="position">3</property>
+                            <property name="position">1</property>
                           </packing>
                         </child>
                       </object>
