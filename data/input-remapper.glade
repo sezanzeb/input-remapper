@@ -850,7 +850,6 @@ Shortcut: ctrl + del</property>
                                 <property name="can-focus">False</property>
                                 <property name="tooltip-text" translatable="yes">The type of device this mapping is emulating.</property>
                                 <property name="margin-top">6</property>
-                                <property name="margin-bottom">18</property>
                                 <property name="spacing">6</property>
                                 <child>
                                   <object class="GtkLabel">
@@ -894,6 +893,7 @@ Shortcut: ctrl + del</property>
                                   <object class="GtkScrolledWindow" id="code_editor_container">
                                     <property name="visible">True</property>
                                     <property name="can-focus">True</property>
+                                    <property name="margin-top">18</property>
                                     <child>
                                       <object class="GtkSourceView" id="code_editor">
                                         <property name="visible">True</property>
@@ -924,13 +924,12 @@ Shortcut: ctrl + del</property>
                                   <object class="GtkBox">
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
+                                    <property name="margin-top">6</property>
                                     <property name="spacing">6</property>
                                     <child>
                                       <object class="GtkBox">
                                         <property name="visible">True</property>
                                         <property name="can-focus">False</property>
-                                        <property name="margin-right">12</property>
-                                        <property name="margin-end">12</property>
                                         <property name="orientation">vertical</property>
                                         <property name="spacing">6</property>
                                         <child>
@@ -967,7 +966,7 @@ Shortcut: ctrl + del</property>
                                             </child>
                                           </object>
                                           <packing>
-                                            <property name="expand">False</property>
+                                            <property name="expand">True</property>
                                             <property name="fill">True</property>
                                             <property name="position">0</property>
                                           </packing>
@@ -987,7 +986,7 @@ Shortcut: ctrl + del</property>
                                                 <property name="digits">2</property>
                                               </object>
                                               <packing>
-                                                <property name="expand">False</property>
+                                                <property name="expand">True</property>
                                                 <property name="fill">True</property>
                                                 <property name="pack-type">end</property>
                                                 <property name="position">0</property>
@@ -1009,7 +1008,7 @@ Shortcut: ctrl + del</property>
                                             </child>
                                           </object>
                                           <packing>
-                                            <property name="expand">False</property>
+                                            <property name="expand">True</property>
                                             <property name="fill">True</property>
                                             <property name="position">1</property>
                                           </packing>
@@ -1029,7 +1028,7 @@ Shortcut: ctrl + del</property>
                                                 <property name="digits">2</property>
                                               </object>
                                               <packing>
-                                                <property name="expand">False</property>
+                                                <property name="expand">True</property>
                                                 <property name="fill">True</property>
                                                 <property name="pack-type">end</property>
                                                 <property name="position">0</property>
@@ -1051,7 +1050,7 @@ Shortcut: ctrl + del</property>
                                             </child>
                                           </object>
                                           <packing>
-                                            <property name="expand">False</property>
+                                            <property name="expand">True</property>
                                             <property name="fill">True</property>
                                             <property name="position">2</property>
                                           </packing>
@@ -1071,7 +1070,7 @@ Shortcut: ctrl + del</property>
                                                 <property name="digits">2</property>
                                               </object>
                                               <packing>
-                                                <property name="expand">False</property>
+                                                <property name="expand">True</property>
                                                 <property name="fill">True</property>
                                                 <property name="pack-type">end</property>
                                                 <property name="position">0</property>
@@ -1093,7 +1092,7 @@ Shortcut: ctrl + del</property>
                                             </child>
                                           </object>
                                           <packing>
-                                            <property name="expand">False</property>
+                                            <property name="expand">True</property>
                                             <property name="fill">True</property>
                                             <property name="position">3</property>
                                           </packing>
@@ -1126,7 +1125,7 @@ Only relevant when mapping relative inputs (e.g. mouse) to absolute outputs (e.g
                                                 <property name="can-focus">True</property>
                                               </object>
                                               <packing>
-                                                <property name="expand">False</property>
+                                                <property name="expand">True</property>
                                                 <property name="fill">True</property>
                                                 <property name="pack-type">end</property>
                                                 <property name="position">1</property>
@@ -1134,14 +1133,14 @@ Only relevant when mapping relative inputs (e.g. mouse) to absolute outputs (e.g
                                             </child>
                                           </object>
                                           <packing>
-                                            <property name="expand">False</property>
+                                            <property name="expand">True</property>
                                             <property name="fill">True</property>
                                             <property name="position">4</property>
                                           </packing>
                                         </child>
                                       </object>
                                       <packing>
-                                        <property name="expand">False</property>
+                                        <property name="expand">True</property>
                                         <property name="fill">True</property>
                                         <property name="position">0</property>
                                       </packing>
