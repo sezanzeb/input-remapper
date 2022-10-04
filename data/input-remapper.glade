@@ -887,13 +887,13 @@ Shortcut: ctrl + del</property>
                               <object class="GtkStack" id="editor-stack">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
+                                <property name="margin-top">6</property>
                                 <property name="hexpand">True</property>
                                 <property name="vexpand">True</property>
                                 <child>
                                   <object class="GtkScrolledWindow" id="code_editor_container">
                                     <property name="visible">True</property>
                                     <property name="can-focus">True</property>
-                                    <property name="margin-top">18</property>
                                     <child>
                                       <object class="GtkSourceView" id="code_editor">
                                         <property name="visible">True</property>
@@ -924,7 +924,6 @@ Shortcut: ctrl + del</property>
                                   <object class="GtkBox">
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
-                                    <property name="margin-top">6</property>
                                     <property name="spacing">6</property>
                                     <child>
                                       <object class="GtkBox">
