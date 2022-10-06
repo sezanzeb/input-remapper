@@ -104,6 +104,11 @@
     <property name="margin-end">2</property>
     <property name="icon-name">document-new</property>
   </object>
+  <object class="GtkImage" id="save-icon1">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <property name="icon-name">document-save</property>
+  </object>
   <object class="GtkWindow" id="window">
     <property name="width-request">1000</property>
     <property name="can-focus">False</property>
@@ -320,19 +325,37 @@ Shortcut: ctrl + del</property>
                         <property name="spacing">6</property>
                         <property name="homogeneous">True</property>
                         <child>
-                          <object class="GtkButton" id="delete_preset">
-                            <property name="label" translatable="yes">Delete</property>
+                          <object class="GtkButton" id="apply_preset">
+                            <property name="label" translatable="yes">Apply</property>
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
                             <property name="receives-default">True</property>
-                            <property name="tooltip-text" translatable="yes">Delete this preset</property>
-                            <property name="image">delete-icon1</property>
+                            <property name="tooltip-text" translatable="yes">Start injecting. Don't hold down any keys while the injection starts</property>
+                            <property name="image">check-icon1</property>
                             <property name="always-show-image">True</property>
                           </object>
                           <packing>
                             <property name="expand">False</property>
                             <property name="fill">True</property>
                             <property name="position">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkButton" id="stop_injection_editor_page">
+                            <property name="label" translatable="yes">Stop</property>
+                            <property name="visible">True</property>
+                            <property name="can-focus">True</property>
+                            <property name="receives-default">True</property>
+                            <property name="tooltip-text" translatable="yes">Stops the Injection for the selected device,
+gives your keys their original function back
+Shortcut: ctrl + del</property>
+                            <property name="image">gtk-redo-icon1</property>
+                            <property name="always-show-image">True</property>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">1</property>
                           </packing>
                         </child>
                         <child>
@@ -348,35 +371,17 @@ Shortcut: ctrl + del</property>
                           <packing>
                             <property name="expand">False</property>
                             <property name="fill">True</property>
-                            <property name="position">1</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkButton" id="apply_preset">
-                            <property name="label" translatable="yes">Apply</property>
-                            <property name="visible">True</property>
-                            <property name="can-focus">True</property>
-                            <property name="receives-default">True</property>
-                            <property name="tooltip-text" translatable="yes">Start injecting. Don't hold down any keys while the injection starts</property>
-                            <property name="image">check-icon1</property>
-                            <property name="always-show-image">True</property>
-                          </object>
-                          <packing>
-                            <property name="expand">False</property>
-                            <property name="fill">True</property>
                             <property name="position">2</property>
                           </packing>
                         </child>
                         <child>
-                          <object class="GtkButton" id="stop_injection_editor_page">
-                            <property name="label" translatable="yes">Stop</property>
+                          <object class="GtkButton" id="delete_preset">
+                            <property name="label" translatable="yes">Delete</property>
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
                             <property name="receives-default">True</property>
-                            <property name="tooltip-text" translatable="yes">Stops the Injection for the selected device,
-gives your keys their original function back
-Shortcut: ctrl + del</property>
-                            <property name="image">gtk-redo-icon1</property>
+                            <property name="tooltip-text" translatable="yes">Delete this preset</property>
+                            <property name="image">delete-icon1</property>
                             <property name="always-show-image">True</property>
                           </object>
                           <packing>
@@ -585,25 +590,6 @@ Shortcut: ctrl + del</property>
                                   </packing>
                                 </child>
                                 <child>
-                                  <object class="GtkButton" id="delete-mapping">
-                                    <property name="label" translatable="yes">Delete</property>
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">True</property>
-                                    <property name="receives-default">True</property>
-                                    <property name="tooltip-text" translatable="yes">Delete this entry</property>
-                                    <property name="image">icon-delete-row</property>
-                                    <property name="always-show-image">True</property>
-                                    <style>
-                                      <class name="delete-mapping-button"/>
-                                    </style>
-                                  </object>
-                                  <packing>
-                                    <property name="expand">False</property>
-                                    <property name="fill">True</property>
-                                    <property name="position">2</property>
-                                  </packing>
-                                </child>
-                                <child>
                                   <object class="GtkToggleButton" id="key_recording_toggle">
                                     <property name="label" translatable="yes">Record</property>
                                     <property name="visible">True</property>
@@ -616,7 +602,7 @@ Shortcut: ctrl + del</property>
                                   <packing>
                                     <property name="expand">False</property>
                                     <property name="fill">True</property>
-                                    <property name="position">3</property>
+                                    <property name="position">1</property>
                                   </packing>
                                 </child>
                                 <child>
@@ -626,6 +612,25 @@ Shortcut: ctrl + del</property>
                                     <property name="can-focus">True</property>
                                     <property name="receives-default">True</property>
                                     <property name="image">image1</property>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">2</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkButton" id="delete-mapping">
+                                    <property name="label" translatable="yes">Delete</property>
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">True</property>
+                                    <property name="receives-default">True</property>
+                                    <property name="tooltip-text" translatable="yes">Delete this entry</property>
+                                    <property name="image">icon-delete-row</property>
+                                    <property name="always-show-image">True</property>
+                                    <style>
+                                      <class name="delete-mapping-button"/>
+                                    </style>
                                   </object>
                                   <packing>
                                     <property name="expand">False</property>
@@ -1966,10 +1971,5 @@ threshold:</property>
       <action-widget response="-6">button3</action-widget>
       <action-widget response="-3">button4</action-widget>
     </action-widgets>
-  </object>
-  <object class="GtkImage" id="save-icon1">
-    <property name="visible">True</property>
-    <property name="can-focus">False</property>
-    <property name="icon-name">document-save</property>
   </object>
 </interface>
