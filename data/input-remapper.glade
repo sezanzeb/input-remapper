@@ -104,11 +104,6 @@
     <property name="margin-end">2</property>
     <property name="icon-name">document-new</property>
   </object>
-  <object class="GtkImage" id="save-icon">
-    <property name="visible">True</property>
-    <property name="can-focus">False</property>
-    <property name="icon-name">document-save</property>
-  </object>
   <object class="GtkWindow" id="window">
     <property name="width-request">1000</property>
     <property name="can-focus">False</property>
@@ -187,7 +182,7 @@
                     <property name="halign">center</property>
                     <property name="margin-start">18</property>
                     <property name="margin-end">18</property>
-                    <property name="margin-bottom">18</property>
+                    <property name="margin-bottom">36</property>
                     <property name="spacing">6</property>
                     <property name="homogeneous">True</property>
                     <child>
@@ -294,6 +289,7 @@ Shortcut: ctrl + del</property>
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
                     <property name="margin-top">18</property>
+                    <property name="margin-bottom">18</property>
                     <property name="label" translatable="yes">Preset Name</property>
                     <attributes>
                       <attribute name="weight" value="bold"/>
@@ -306,117 +302,138 @@ Shortcut: ctrl + del</property>
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkBox">
+                  <!-- n-columns=2 n-rows=3 -->
+                  <object class="GtkGrid">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
                     <property name="halign">center</property>
-                    <property name="margin-left">18</property>
-                    <property name="margin-right">18</property>
-                    <property name="margin-start">18</property>
-                    <property name="margin-end">18</property>
-                    <property name="margin-top">18</property>
-                    <property name="margin-bottom">18</property>
-                    <property name="spacing">6</property>
-                    <property name="homogeneous">True</property>
+                    <property name="margin-right">106</property>
+                    <property name="margin-end">106</property>
+                    <property name="margin-bottom">36</property>
+                    <property name="row-spacing">6</property>
+                    <property name="column-spacing">6</property>
                     <child>
-                      <object class="GtkButton" id="delete_preset">
-                        <property name="label" translatable="yes">Delete</property>
+                      <object class="GtkBox">
+                        <property name="width-request">400</property>
                         <property name="visible">True</property>
-                        <property name="can-focus">True</property>
-                        <property name="receives-default">True</property>
-                        <property name="tooltip-text" translatable="yes">Delete this preset</property>
-                        <property name="image">delete-icon1</property>
-                        <property name="always-show-image">True</property>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">0</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkButton" id="copy_preset">
-                        <property name="label" translatable="yes">Copy</property>
-                        <property name="visible">True</property>
-                        <property name="can-focus">True</property>
-                        <property name="receives-default">True</property>
-                        <property name="tooltip-text" translatable="yes">Duplicate this preset</property>
-                        <property name="image">copy-icon1</property>
-                        <property name="always-show-image">True</property>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">1</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkButton" id="apply_preset">
-                        <property name="label" translatable="yes">Apply</property>
-                        <property name="visible">True</property>
-                        <property name="can-focus">True</property>
-                        <property name="receives-default">True</property>
-                        <property name="tooltip-text" translatable="yes">Start injecting. Don't hold down any keys while the injection starts</property>
-                        <property name="image">check-icon1</property>
-                        <property name="always-show-image">True</property>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">2</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkButton" id="stop_injection_editor_page">
-                        <property name="label" translatable="yes">Stop</property>
-                        <property name="visible">True</property>
-                        <property name="can-focus">True</property>
-                        <property name="receives-default">True</property>
-                        <property name="tooltip-text" translatable="yes">Stops the Injection for the selected device,
+                        <property name="can-focus">False</property>
+                        <property name="spacing">6</property>
+                        <property name="homogeneous">True</property>
+                        <child>
+                          <object class="GtkButton" id="delete_preset">
+                            <property name="label" translatable="yes">Delete</property>
+                            <property name="visible">True</property>
+                            <property name="can-focus">True</property>
+                            <property name="receives-default">True</property>
+                            <property name="tooltip-text" translatable="yes">Delete this preset</property>
+                            <property name="image">delete-icon1</property>
+                            <property name="always-show-image">True</property>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkButton" id="copy_preset">
+                            <property name="label" translatable="yes">Copy</property>
+                            <property name="visible">True</property>
+                            <property name="can-focus">True</property>
+                            <property name="receives-default">True</property>
+                            <property name="tooltip-text" translatable="yes">Duplicate this preset</property>
+                            <property name="image">copy-icon1</property>
+                            <property name="always-show-image">True</property>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">1</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkButton" id="apply_preset">
+                            <property name="label" translatable="yes">Apply</property>
+                            <property name="visible">True</property>
+                            <property name="can-focus">True</property>
+                            <property name="receives-default">True</property>
+                            <property name="tooltip-text" translatable="yes">Start injecting. Don't hold down any keys while the injection starts</property>
+                            <property name="image">check-icon1</property>
+                            <property name="always-show-image">True</property>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">2</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkButton" id="stop_injection_editor_page">
+                            <property name="label" translatable="yes">Stop</property>
+                            <property name="visible">True</property>
+                            <property name="can-focus">True</property>
+                            <property name="receives-default">True</property>
+                            <property name="tooltip-text" translatable="yes">Stops the Injection for the selected device,
 gives your keys their original function back
 Shortcut: ctrl + del</property>
-                        <property name="image">gtk-redo-icon1</property>
-                        <property name="always-show-image">True</property>
+                            <property name="image">gtk-redo-icon1</property>
+                            <property name="always-show-image">True</property>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">3</property>
+                          </packing>
+                        </child>
                       </object>
                       <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">3</property>
+                        <property name="left-attach">1</property>
+                        <property name="top-attach">0</property>
                       </packing>
                     </child>
-                  </object>
-                  <packing>
-                    <property name="expand">False</property>
-                    <property name="fill">True</property>
-                    <property name="position">1</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkBox">
-                    <property name="visible">True</property>
-                    <property name="can-focus">False</property>
-                    <property name="margin-start">18</property>
-                    <property name="margin-end">18</property>
-                    <property name="margin-bottom">18</property>
                     <child>
                       <object class="GtkLabel">
-                        <property name="width-request">160</property>
+                        <property name="width-request">100</property>
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
                         <property name="label" translatable="yes">Rename</property>
                         <property name="width-chars">13</property>
-                        <property name="xalign">0</property>
                       </object>
                       <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">0</property>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="margin-top">6</property>
+                        <property name="margin-bottom">7</property>
+                        <property name="label" translatable="yes">Autoload</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">2</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkSwitch" id="preset_autoload_switch">
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="halign">start</property>
+                        <property name="valign">center</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">1</property>
+                        <property name="top-attach">2</property>
                       </packing>
                     </child>
                     <child>
                       <object class="GtkBox">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
+                        <property name="spacing">6</property>
                         <child>
                           <object class="GtkEntry" id="preset_name_input">
                             <property name="visible">True</property>
@@ -434,10 +451,8 @@ Shortcut: ctrl + del</property>
                             <property name="can-focus">True</property>
                             <property name="receives-default">True</property>
                             <property name="tooltip-text" translatable="yes">Save the entered name</property>
-                            <property name="margin-left">6</property>
-                            <property name="margin-start">6</property>
-                            <property name="image">save-icon</property>
-                            <property name="relief">none</property>
+                            <property name="halign">start</property>
+                            <property name="image">save-icon1</property>
                           </object>
                           <packing>
                             <property name="expand">False</property>
@@ -447,57 +462,18 @@ Shortcut: ctrl + del</property>
                         </child>
                       </object>
                       <packing>
-                        <property name="expand">True</property>
-                        <property name="fill">True</property>
-                        <property name="position">1</property>
+                        <property name="left-attach">1</property>
+                        <property name="top-attach">1</property>
                       </packing>
+                    </child>
+                    <child>
+                      <placeholder/>
                     </child>
                   </object>
                   <packing>
                     <property name="expand">False</property>
                     <property name="fill">True</property>
-                    <property name="position">2</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkBox">
-                    <property name="visible">True</property>
-                    <property name="can-focus">False</property>
-                    <property name="margin-start">18</property>
-                    <property name="margin-end">18</property>
-                    <property name="margin-bottom">18</property>
-                    <child>
-                      <object class="GtkLabel">
-                        <property name="width-request">160</property>
-                        <property name="visible">True</property>
-                        <property name="can-focus">False</property>
-                        <property name="label" translatable="yes">Autoload</property>
-                        <property name="xalign">0</property>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">0</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkSwitch" id="preset_autoload_switch">
-                        <property name="visible">True</property>
-                        <property name="can-focus">True</property>
-                        <property name="halign">start</property>
-                        <property name="valign">center</property>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">1</property>
-                      </packing>
-                    </child>
-                  </object>
-                  <packing>
-                    <property name="expand">False</property>
-                    <property name="fill">True</property>
-                    <property name="position">3</property>
+                    <property name="position">1</property>
                   </packing>
                 </child>
                 <child>
@@ -508,7 +484,7 @@ Shortcut: ctrl + del</property>
                   <packing>
                     <property name="expand">False</property>
                     <property name="fill">True</property>
-                    <property name="position">4</property>
+                    <property name="position">5</property>
                   </packing>
                 </child>
                 <child>
@@ -1167,7 +1143,7 @@ Only relevant when mapping relative inputs (e.g. mouse) to absolute outputs (e.g
                   <packing>
                     <property name="expand">True</property>
                     <property name="fill">True</property>
-                    <property name="position">5</property>
+                    <property name="position">6</property>
                   </packing>
                 </child>
               </object>
@@ -1990,5 +1966,10 @@ threshold:</property>
       <action-widget response="-6">button3</action-widget>
       <action-widget response="-3">button4</action-widget>
     </action-widgets>
+  </object>
+  <object class="GtkImage" id="save-icon1">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <property name="icon-name">document-save</property>
   </object>
 </interface>
