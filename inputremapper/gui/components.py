@@ -1268,6 +1268,8 @@ class ConfirmCancelDialog:
         )
 
     def _on_user_confirm_request(self, msg: UserConfirmRequest):
+        # if the message contains a line-break, use the first chunk for the primary
+        # message, and the rest for the secondary message.
         primary = msg.msg.split("\n")[0]
         secondary = " ".join(msg.msg.split("\n")[1:])
 
