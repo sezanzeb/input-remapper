@@ -1268,14 +1268,19 @@ class ConfirmCancelDialog:
         )
 
     def _on_user_confirm_request(self, msg: UserConfirmRequest):
+        primary = msg.msg.split("\n")[0]
+        secondary = " ".join(msg.msg.split("\n")[1:])
+
         message_dialog = Gtk.MessageDialog(
             self.window,
             Gtk.DialogFlags.MODAL | Gtk.DialogFlags.DESTROY_WITH_PARENT,
             Gtk.MessageType.QUESTION,
             Gtk.ButtonsType.NONE,
-            msg.msg,
+            primary,
         )
-        # message_dialog.format_secondary_text("secondary">
+
+        if secondary:
+            message_dialog.format_secondary_text(secondary)
 
         message_dialog.add_button("Cancel", Gtk.ResponseType.CANCEL)
 
