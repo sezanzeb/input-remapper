@@ -392,7 +392,7 @@ class Controller:
         if not self.data_manager.active_preset:
             return
         msg = (
-            _("Are you sure you want to delete the \npreset: '%s' ?")
+            _('Are you sure you want to delete the preset "%s" ?')
             % self.data_manager.active_preset.name
         )
         self.message_broker.send(UserConfirmRequest(msg, f))
@@ -436,7 +436,7 @@ class Controller:
         if not self.data_manager.active_mapping:
             return
         self.message_broker.send(
-            UserConfirmRequest(_("Are you sure you want to delete \nthis mapping?"), f)
+            UserConfirmRequest(_("Are you sure you want to delete this mapping?"), f)
         )
 
     def set_autoload(self, autoload: bool):

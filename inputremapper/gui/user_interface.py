@@ -182,12 +182,7 @@ class UserInterface:
             message_broker, controller, self.get("input-cutoff-spin-btn")
         )
         OutputAxisSelector(message_broker, controller, self.get("output-axis-selector"))
-        ConfirmCancelDialog(
-            message_broker,
-            controller,
-            self.get("confirm-cancel"),
-            self.get("confirm-cancel-label"),
-        )
+        ConfirmCancelDialog(message_broker, controller, self.window)
         KeyAxisStackSwitcher(
             message_broker,
             controller,
