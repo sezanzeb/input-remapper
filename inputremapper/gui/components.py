@@ -1270,8 +1270,9 @@ class ConfirmCancelDialog:
     def _on_user_confirm_request(self, msg: UserConfirmRequest):
         # if the message contains a line-break, use the first chunk for the primary
         # message, and the rest for the secondary message.
-        primary = msg.msg.split("\n")[0]
-        secondary = " ".join(msg.msg.split("\n")[1:])
+        chunks = msg.msg.split("\n")
+        primary = chunks[0]
+        secondary = " ".join(chunks[1:])
 
         message_dialog = Gtk.MessageDialog(
             self.window,
