@@ -22,6 +22,7 @@ from __future__ import annotations
 
 from gi.repository import Gtk
 
+from inputremapper.gui.components.common import FlowBoxEntry, FlowBoxWrapper
 from inputremapper.gui.components.main import Stack
 from inputremapper.gui.controller import Controller
 from inputremapper.gui.message_broker import (
@@ -35,7 +36,7 @@ from inputremapper.gui.utils import HandlerDisabled
 from inputremapper.logger import logger
 
 
-class PresetEntry(Gtk.ToggleButton):
+class PresetEntry(FlowBoxEntry):
     """A preset that can be selected in the GUI."""
 
     __gtype_name__ = "PresetEntry"
@@ -46,50 +47,18 @@ class PresetEntry(Gtk.ToggleButton):
         controller: Controller,
         preset_name: str,
     ):
-        super().__init__()
-        self.message_broker = message_broker
+        super().__init__(
+            message_broker=message_broker, controller=controller, name=preset_name
+        )
         self.preset_name = preset_name
-        self._controller = controller
 
-        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-
-        label = Gtk.Label()
-
-        # wrap very long names properly
-        label.set_line_wrap(True)
-        label.set_line_wrap_mode(2)
-        # this affeects how many device entries fit next to each other
-        label.set_width_chars(28)
-        label.set_max_width_chars(28)
-
-        label.set_label(preset_name)
-        box.add(label)
-
-        box.set_margin_top(18)
-        box.set_margin_bottom(18)
-        box.set_homogeneous(True)
-        box.set_spacing(12)
-
-        # self.set_relief(Gtk.ReliefStyle.NONE)
-
-        self.add(box)
-
-        self.show_all()
-
-        self.connect("toggled", self._on_gtk_select_preset)
-
-    def _on_gtk_select_preset(self, *_, **__):
+    def _on_gtk_toggle(self, *_, **__):
         logger.debug('Selecting preset "%s"', self.preset_name)
         self._controller.load_preset(self.preset_name)
         self.message_broker.send(DoStackSwitch(Stack.editor_page))
 
-    def show_active(self, active):
-        """Show the active state without triggering anything."""
-        with HandlerDisabled(self, self._on_gtk_select_preset):
-            self.set_active(active)
 
-
-class PresetSelection:
+class PresetSelection(FlowBoxWrapper):
     """A wrapper for the container with our presets.
 
     Selectes the active_preset.
@@ -121,8 +90,7 @@ class PresetSelection:
             self._gui.insert(preset_entry, -1)
 
     def _on_preset_changed(self, data: PresetData):
-        if data.name:
-            self.show_active_preset(data.name)
+        self.show_active_entry(data.name)
 
     def set_active_preset(self, preset_name: str):
         """Change the currently selected preset."""
@@ -130,9 +98,3 @@ class PresetSelection:
         for child in self._gui.get_children():
             preset_entry: PresetEntry = child.get_children()[0]
             preset_entry.set_active(preset_entry.preset_name == preset_name)
-
-    def show_active_preset(self, preset_name: str):
-        """Highlight the button of the given preset."""
-        for child in self._gui.get_children():
-            preset_entry: PresetEntry = child.get_children()[0]
-            preset_entry.show_active(preset_entry.preset_name == preset_name)
