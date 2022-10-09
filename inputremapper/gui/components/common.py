@@ -108,7 +108,8 @@ class FlowBoxEntry(Gtk.ToggleButton):
 # TODO test
 class FlowBoxWrapper:
     """A wrapper for a flowbox that contains FlowBoxEntry widgets."""
-    def __init__(self, flowbox: Gtk.FlowBox,):
+
+    def __init__(self, flowbox: Gtk.FlowBox):
         self._gui = flowbox
 
     def show_active_entry(self, name: Optional[str]):
