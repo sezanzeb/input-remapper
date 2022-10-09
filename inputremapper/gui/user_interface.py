@@ -34,7 +34,6 @@ from inputremapper.gui.components.editor import (
     Output,
     CodeEditor,
     RecordingToggle,
-    StatusBar,
     RecordingStatus,
     AutoloadSwitch,
     ReleaseCombinationSwitch,
@@ -49,7 +48,8 @@ from inputremapper.gui.components.editor import (
     KeyAxisStackSwitcher,
 )
 from inputremapper.gui.components.presets import PresetSelection
-from inputremapper.gui.components.main import Stack, Breadcrumbs, ConfirmCancelDialog
+from inputremapper.gui.components.main import Stack, StatusBar
+from inputremapper.gui.components.common import ConfirmCancelDialog, Breadcrumbs
 from inputremapper.gui.components.device_groups import DeviceGroupSelection
 from inputremapper.gui.controller import Controller
 from inputremapper.gui.message_broker import MessageBroker, MessageType

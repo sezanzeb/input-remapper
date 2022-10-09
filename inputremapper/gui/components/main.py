@@ -18,22 +18,21 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
+
+"""Components that wrap everything."""
+
+
 from __future__ import annotations
 
 from gi.repository import Gtk
 
-from inputremapper.configs.mapping import MappingData
-from inputremapper.event_combination import EventCombination
 from inputremapper.gui.controller import Controller
-from inputremapper.gui.gettext import _
 from inputremapper.gui.message_broker import (
     MessageBroker,
     MessageType,
-    DoStackSwitch,
-    PresetData,
-    GroupData,
-    UserConfirmRequest,
+    DoStackSwitch, StatusData,
 )
+from inputremapper.gui.utils import CTX_ERROR, CTX_MAPPING, CTX_WARNING
 
 
 # TODO test
@@ -62,113 +61,80 @@ class Stack:
         self._gui.set_visible_child(self._gui.get_children()[msg.page_index])
 
 
-# TODO test
-class Breadcrumbs:
-    """Writes a breadcrumbs string into a given label."""
-
-    def __init__(
-        self,
-        message_broker: MessageBroker,
-        label: Gtk.Label,
-        show_device_group: bool = False,
-        show_preset: bool = False,
-        show_mapping: bool = False,
-    ):
-        self._message_broker = message_broker
-        self._gui = label
-        self._connect_message_listener()
-
-        self.show_device_group = show_device_group
-        self.show_preset = show_preset
-        self.show_mapping = show_mapping
-
-        self._group_key: str = ""
-        self._preset_name: str = ""
-        self._mapping_name: str = ""
-
-        label.set_max_width_chars(50)
-        label.set_line_wrap(True)
-        label.set_line_wrap_mode(2)
-
-    def _connect_message_listener(self):
-        self._message_broker.subscribe(MessageType.group, self._on_group_changed)
-        self._message_broker.subscribe(MessageType.preset, self._on_preset_changed)
-        self._message_broker.subscribe(MessageType.mapping, self._on_mapping_changed)
-
-    def _on_preset_changed(self, data: PresetData):
-        self._preset_name = data.name or ""
-        self._render()
-
-    def _on_group_changed(self, data: GroupData):
-        self._group_key = data.group_key
-        self._render()
-
-    def _on_mapping_changed(self, mapping: MappingData):
-        if mapping.name:
-            self._mapping_name = mapping.name
-        elif mapping.event_combination != EventCombination.empty_combination():
-            self._mapping_name = mapping.event_combination.beautify()
-        else:
-            self._mapping_name = _("empty mapping")
-
-        self._render()
-
-    def _render(self):
-        label = []
-
-        if self.show_device_group:
-            label.append(self._group_key)
-
-        if self.show_preset:
-            label.append(self._preset_name)
-
-        if self.show_mapping:
-            label.append(self._mapping_name)
-
-        self._gui.set_label("  /  ".join(label))
-
-
-class ConfirmCancelDialog:
-    """the dialog shown to the user to query a confirm or cancel action form the user"""
+class StatusBar:
+    """the status bar on the bottom of the main window"""
 
     def __init__(
         self,
         message_broker: MessageBroker,
         controller: Controller,
-        window: Gtk.Window,
+        status_bar: Gtk.Statusbar,
+        error_icon: Gtk.Image,
+        warning_icon: Gtk.Image,
     ):
         self._message_broker = message_broker
         self._controller = controller
-        self.window = window
+        self._gui = status_bar
+        self._error_icon = error_icon
+        self._warning_icon = warning_icon
 
-        self._message_broker.subscribe(
-            MessageType.user_confirm_request, self._on_user_confirm_request
-        )
+        self._message_broker.subscribe(MessageType.status_msg, self._on_status_update)
+        self._message_broker.subscribe(MessageType.init, self._on_init)
 
-    def _on_user_confirm_request(self, msg: UserConfirmRequest):
-        # if the message contains a line-break, use the first chunk for the primary
-        # message, and the rest for the secondary message.
-        chunks = msg.msg.split("\n")
-        primary = chunks[0]
-        secondary = " ".join(chunks[1:])
+        # keep track if there is an error or warning in the stack of statusbar
+        # unfortunately this is not exposed over the api
+        self._error = False
+        self._warning = False
 
-        message_dialog = Gtk.MessageDialog(
-            self.window,
-            Gtk.DialogFlags.MODAL | Gtk.DialogFlags.DESTROY_WITH_PARENT,
-            Gtk.MessageType.QUESTION,
-            Gtk.ButtonsType.NONE,
-            primary,
-        )
+    def _on_init(self, _):
+        self._error_icon.hide()
+        self._warning_icon.hide()
 
-        if secondary:
-            message_dialog.format_secondary_text(secondary)
+    def _on_status_update(self, data: StatusData):
+        """Show a status message and set its tooltip.
 
-        message_dialog.add_button("Cancel", Gtk.ResponseType.CANCEL)
+        If message is None, it will remove the newest message of the
+        given context_id.
+        """
+        context_id = data.ctx_id
+        message = data.msg
+        tooltip = data.tooltip
+        status_bar = self._gui
 
-        confirm_button = message_dialog.add_button("Confirm", Gtk.ResponseType.ACCEPT)
-        confirm_button.get_style_context().add_class(Gtk.STYLE_CLASS_DESTRUCTIVE_ACTION)
+        if message is None:
+            status_bar.remove_all(context_id)
 
-        response = message_dialog.run()
-        msg.respond(response == Gtk.ResponseType.ACCEPT)
+            if context_id in (CTX_ERROR, CTX_MAPPING):
+                self._error_icon.hide()
+                self._error = False
+                if self._warning:
+                    self._warning_icon.show()
 
-        message_dialog.hide()
+            if context_id == CTX_WARNING:
+                self._warning_icon.hide()
+                self._warning = False
+                if self._error:
+                    self._error_icon.show()
+
+            status_bar.set_tooltip_text("")
+        else:
+            if tooltip is None:
+                tooltip = message
+
+            self._error_icon.hide()
+            self._warning_icon.hide()
+
+            if context_id in (CTX_ERROR, CTX_MAPPING):
+                self._error_icon.show()
+                self._error = True
+
+            if context_id == CTX_WARNING:
+                self._warning_icon.show()
+                self._warning = True
+
+            max_length = 45
+            if len(message) > max_length:
+                message = message[: max_length - 3] + "..."
+
+            status_bar.push(context_id, message)
+            status_bar.set_tooltip_text(tooltip)

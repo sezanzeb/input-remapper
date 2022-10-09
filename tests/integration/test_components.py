@@ -33,7 +33,6 @@ from inputremapper.gui.components.editor import (
     MappingSelectionLabel,
     CodeEditor,
     RecordingToggle,
-    StatusBar,
     AutoloadSwitch,
     ReleaseCombinationSwitch,
     CombinationListbox,
@@ -47,6 +46,7 @@ from inputremapper.gui.components.editor import (
     TransformationDrawArea,
     RelativeInputCutoffInput,
 )
+from inputremapper.gui.components.main import StatusBar
 from inputremapper.gui.components.presets import PresetSelection
 from inputremapper.gui.components.device_groups import (
     DeviceGroupEntry,

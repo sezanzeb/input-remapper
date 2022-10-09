@@ -18,6 +18,10 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
+
+"""All components that are visible on the page that shows all the presets."""
+
+
 from __future__ import annotations
 
 from gi.repository import Gtk
@@ -32,7 +36,6 @@ from inputremapper.gui.message_broker import (
     GroupData,
     PresetData,
 )
-from inputremapper.gui.utils import HandlerDisabled
 from inputremapper.logger import logger
 
 

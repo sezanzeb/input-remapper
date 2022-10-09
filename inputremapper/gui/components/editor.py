@@ -18,6 +18,10 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
+
+"""All components that control a single preset."""
+
+
 from __future__ import annotations
 
 from collections import defaultdict
@@ -38,10 +42,9 @@ from inputremapper.gui.message_broker import (
     MessageType,
     UInputsData,
     PresetData,
-    StatusData,
     CombinationUpdate,
 )
-from inputremapper.gui.utils import HandlerDisabled, CTX_ERROR, CTX_MAPPING, CTX_WARNING
+from inputremapper.gui.utils import HandlerDisabled
 from inputremapper.injection.mapping_handlers.axis_transform import Transformation
 from inputremapper.input_event import InputEvent
 from inputremapper.logger import logger
@@ -69,9 +72,6 @@ ICON_PRIORITIES = [
     DeviceType.KEYBOARD,
     DeviceType.UNKNOWN,
 ]
-
-
-# TODO test
 
 
 class TargetSelection:
@@ -491,85 +491,6 @@ class RecordingStatus:
 
     def _on_recording_finished(self, _):
         self._gui.set_visible(False)
-
-
-class StatusBar:
-    """the status bar on the bottom of the main window"""
-
-    def __init__(
-        self,
-        message_broker: MessageBroker,
-        controller: Controller,
-        status_bar: Gtk.Statusbar,
-        error_icon: Gtk.Image,
-        warning_icon: Gtk.Image,
-    ):
-        self._message_broker = message_broker
-        self._controller = controller
-        self._gui = status_bar
-        self._error_icon = error_icon
-        self._warning_icon = warning_icon
-
-        self._message_broker.subscribe(MessageType.status_msg, self._on_status_update)
-        self._message_broker.subscribe(MessageType.init, self._on_init)
-
-        # keep track if there is an error or warning in the stack of statusbar
-        # unfortunately this is not exposed over the api
-        self._error = False
-        self._warning = False
-
-    def _on_init(self, _):
-        self._error_icon.hide()
-        self._warning_icon.hide()
-
-    def _on_status_update(self, data: StatusData):
-        """Show a status message and set its tooltip.
-
-        If message is None, it will remove the newest message of the
-        given context_id.
-        """
-        context_id = data.ctx_id
-        message = data.msg
-        tooltip = data.tooltip
-        status_bar = self._gui
-
-        if message is None:
-            status_bar.remove_all(context_id)
-
-            if context_id in (CTX_ERROR, CTX_MAPPING):
-                self._error_icon.hide()
-                self._error = False
-                if self._warning:
-                    self._warning_icon.show()
-
-            if context_id == CTX_WARNING:
-                self._warning_icon.hide()
-                self._warning = False
-                if self._error:
-                    self._error_icon.show()
-
-            status_bar.set_tooltip_text("")
-        else:
-            if tooltip is None:
-                tooltip = message
-
-            self._error_icon.hide()
-            self._warning_icon.hide()
-
-            if context_id in (CTX_ERROR, CTX_MAPPING):
-                self._error_icon.show()
-                self._error = True
-
-            if context_id == CTX_WARNING:
-                self._warning_icon.show()
-                self._warning = True
-
-            max_length = 45
-            if len(message) > max_length:
-                message = message[: max_length - 3] + "..."
-
-            status_bar.push(context_id, message)
-            status_bar.set_tooltip_text(tooltip)
 
 
 class AutoloadSwitch:
