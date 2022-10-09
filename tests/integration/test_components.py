@@ -1059,7 +1059,7 @@ class TestKeyAxisStackSwitcher(ComponentBaseTest):
     def setUp(self) -> None:
         super(TestKeyAxisStackSwitcher, self).setUp()
         self.gui = Gtk.Box()
-        self.gtk_stack = inputremapper.gui.components.main.Stack()
+        self.gtk_stack = Gtk.Stack()
         self.analog_toggle = Gtk.ToggleButton()
         self.key_toggle = Gtk.ToggleButton()
 

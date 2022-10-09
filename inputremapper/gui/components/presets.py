@@ -121,7 +121,8 @@ class PresetSelection:
             self._gui.insert(preset_entry, -1)
 
     def _on_preset_changed(self, data: PresetData):
-        self.show_active_preset(data.name)
+        if data.name:
+            self.show_active_preset(data.name)
 
     def set_active_preset(self, preset_name: str):
         """Change the currently selected preset."""
