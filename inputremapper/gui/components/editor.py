@@ -363,16 +363,6 @@ class CodeEditor:
             self.gui.set_monospace(False)
             self.gui.get_style_context().remove_class("multiline")
 
-    def _enable(self):
-        self.gui.set_sensitive(True)
-        self.gui.set_opacity(1)
-
-    def _disable(self):
-        # beware that this also appeared to disable event listeners like
-        # focus-out-event:
-        self.gui.set_sensitive(False)
-        self.gui.set_opacity(0.5)
-
     def _on_gtk_focus_out(self, *_):
         self._controller.save()
 
@@ -383,12 +373,10 @@ class CodeEditor:
         code = SET_KEY_FIRST
         if not self._controller.is_empty_mapping():
             code = mapping.output_symbol or ""
-            self._enable()
-        else:
-            self._disable()
 
         if self.code.strip().lower() != code.strip().lower():
             self.code = code
+
         self._toggle_line_numbers()
 
     def _on_recording_finished(self, _):
