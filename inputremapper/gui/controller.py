@@ -461,9 +461,7 @@ class Controller:
         state = self.data_manager.get_state()
         if state == RUNNING or state == STARTING:
             self.message_broker.signal(MessageType.recording_finished)
-            self.show_status(
-                CTX_ERROR, _('Use "Stop" to stop before editing')
-            )
+            self.show_status(CTX_ERROR, _('Use "Stop" to stop before editing'))
             return
 
         logger.debug("Recording Keys")
