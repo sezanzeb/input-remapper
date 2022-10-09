@@ -301,10 +301,10 @@ class UserInterface:
             stop_injection_editor_page.set_opacity(1)
             stop_injection_preset_page.set_sensitive(True)
             stop_injection_editor_page.set_sensitive(True)
-            recording_toggle.set_opacity(0.4)
+            recording_toggle.set_opacity(0.5)
         else:
-            stop_injection_preset_page.set_opacity(0.4)
-            stop_injection_editor_page.set_opacity(0.4)
+            stop_injection_preset_page.set_opacity(0.5)
+            stop_injection_editor_page.set_opacity(0.5)
             stop_injection_preset_page.set_sensitive(True)
             stop_injection_editor_page.set_sensitive(True)
             recording_toggle.set_opacity(1)
@@ -341,7 +341,7 @@ class UserInterface:
         if mapping.event_combination.beautify() == label.get_label():
             return
         if mapping.event_combination == EventCombination.empty_combination():
-            label.set_opacity(0.4)
+            label.set_opacity(0.5)
             label.set_label(_("no input configured"))
             return
 
