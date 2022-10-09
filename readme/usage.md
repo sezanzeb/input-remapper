@@ -21,7 +21,7 @@ Changes are saved automatically.
 Press the "Apply" button to activate (inject) the mapping you created.
 
 If you later want to modify the Input of your mapping you need to use the 
-"Stop Injection" button, so that the application can read your original input. 
+"Stop" button, so that the application can read your original input. 
 It would otherwise be invisible since the daemon maps it independently of the GUI.
 
 ## Troubleshooting

@@ -1457,7 +1457,7 @@ class TestGui(GuiTestBase):
     def test_cannot_record_keys(self):
         self.controller.load_group("Foo Device 2")
         self.assertNotEqual(self.data_manager.get_state(), RUNNING)
-        self.assertNotIn("Stop Injection", self.get_status_text())
+        self.assertNotIn("Stop", self.get_status_text())
 
         self.recording_toggle.set_active(True)
         gtk_iteration()
@@ -1482,7 +1482,7 @@ class TestGui(GuiTestBase):
         gtk_iteration()
         self.assertFalse(self.recording_toggle.get_active())
         text = self.get_status_text()
-        self.assertIn("Stop Injection", text)
+        self.assertIn("Stop", text)
 
     def test_start_injecting(self):
         self.controller.load_group("Foo Device 2")

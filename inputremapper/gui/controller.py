@@ -462,7 +462,7 @@ class Controller:
         if state == RUNNING or state == STARTING:
             self.message_broker.signal(MessageType.recording_finished)
             self.show_status(
-                CTX_ERROR, _('Use "Stop Injection" to stop before editing')
+                CTX_ERROR, _('Use "Stop" to stop before editing')
             )
             return
 

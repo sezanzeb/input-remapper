@@ -225,7 +225,7 @@ msgid "Starting injection..."
 msgstr "Spúšťanie injektáže..."
 
 #: data/input-remapper.glade:217
-msgid "Stop Injection"
+msgid "Stop"
 msgstr "Zastaviť injektáž"
 
 #: inputremapper/gui/user_interface.py:477
@@ -257,7 +257,7 @@ msgid "Usage"
 msgstr "Použitie"
 
 #: inputremapper/gui/editor/editor.py:482
-msgid "Use \"Stop Injection\" to stop before editing"
+msgid "Use \"Stop\" to stop before editing"
 msgstr "Pred editovaním použite \"Zastaviť injektáž\""
 
 #: data/input-remapper.glade:1015
