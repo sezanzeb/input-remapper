@@ -44,7 +44,7 @@ from inputremapper.gui.message_broker import (
     PresetData,
     CombinationUpdate,
 )
-from inputremapper.gui.utils import HandlerDisabled
+from inputremapper.gui.utils import HandlerDisabled, CTX_ERROR
 from inputremapper.injection.mapping_handlers.axis_transform import Transformation
 from inputremapper.input_event import InputEvent
 from inputremapper.logger import logger
@@ -430,6 +430,7 @@ class CodeEditor:
         self._controller.set_focus(self.gui)
 
 
+# TODO disable if no mapping selected
 class RecordingToggle:
     """the toggle used to record the input form the active_group in order to update the
     event_combination of the active_mapping"""
@@ -455,6 +456,12 @@ class RecordingToggle:
         )
 
     def _on_gtk_toggle(self, *__):
+        if len(self._controller.data_manager.active_preset) == 0:
+            # TODO test
+            self._controller.show_status(CTX_ERROR, _("Add a mapping first"))
+            self._gui.set_active(False)
+            return
+
         if self._gui.get_active():
             self._controller.start_key_recording()
         else:
