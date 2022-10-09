@@ -78,6 +78,8 @@ class DeviceGroupSelection(FlowBoxWrapper):
         controller: Controller,
         flowbox: Gtk.FlowBox,
     ):
+        super().__init__(flowbox)
+
         self._message_broker = message_broker
         self._controller = controller
         self._gui = flowbox
