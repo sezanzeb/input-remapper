@@ -26,16 +26,12 @@ from typing import Tuple, List
 from tests.test import (
     get_project_root,
     logger,
-    tmp,
     push_events,
     new_event,
     spy,
     cleanup,
     uinput_write_history_pipe,
-    MAX_ABS,
     EVENT_READ_TIMEOUT,
-    MIN_ABS,
-    get_ui_mapping,
     prepare_presets,
     fixtures,
     push_event,
@@ -54,12 +50,8 @@ from evdev.ecodes import (
     KEY_LEFTSHIFT,
     KEY_A,
     KEY_Q,
-    ABS_RX,
     EV_REL,
-    REL_X,
-    ABS_X,
 )
-import json
 from unittest.mock import patch, MagicMock, call
 from importlib.util import spec_from_loader, module_from_spec
 from importlib.machinery import SourceFileLoader
@@ -72,10 +64,10 @@ gi.require_version("GLib", "2.0")
 gi.require_version("GtkSource", "4")
 from gi.repository import Gtk, GLib, Gdk, GtkSource
 
-from inputremapper.configs.system_mapping import system_mapping, XMODMAP_FILENAME
-from inputremapper.configs.mapping import UIMapping, Mapping
+from inputremapper.configs.system_mapping import system_mapping
+from inputremapper.configs.mapping import Mapping
 from inputremapper.configs.paths import CONFIG_PATH, get_preset_path, get_config_path
-from inputremapper.configs.global_config import global_config, WHEEL, MOUSE, BUTTONS
+from inputremapper.configs.global_config import global_config
 from inputremapper.groups import _Groups
 from inputremapper.gui.data_manager import DataManager
 from inputremapper.gui.message_broker import (
@@ -84,13 +76,12 @@ from inputremapper.gui.message_broker import (
     StatusData,
     CombinationRecorded,
 )
-from inputremapper.gui.components import MappingSelectionLabel, SET_KEY_FIRST
-from inputremapper.gui.reader import Reader
+from inputremapper.gui.components.editor import MappingSelectionLabel, SET_KEY_FIRST
 from inputremapper.gui.controller import Controller
 from inputremapper.gui.helper import RootHelper
 from inputremapper.gui.utils import gtk_iteration
 from inputremapper.gui.user_interface import UserInterface
-from inputremapper.injection.injector import RUNNING, FAILED, UNKNOWN, STOPPED
+from inputremapper.injection.injector import RUNNING, UNKNOWN, STOPPED
 from inputremapper.event_combination import EventCombination
 from inputremapper.daemon import Daemon, DaemonProxy
 

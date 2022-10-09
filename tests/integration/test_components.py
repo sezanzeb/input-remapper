@@ -1,10 +1,12 @@
 import unittest
 from typing import Optional, Tuple
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import evdev
-from evdev.ecodes import EV_KEY, KEY_A, KEY_B, KEY_C, KEY_X
+from evdev.ecodes import KEY_A, KEY_B, KEY_C
 import gi
+
+import inputremapper.gui.components.main
 
 gi.require_version("Gtk", "3.0")
 gi.require_version("GLib", "2.0")
@@ -25,10 +27,8 @@ from inputremapper.gui.message_broker import (
     StatusData,
 )
 from inputremapper.groups import DeviceType
-from inputremapper.gui.components import (
-    DeviceGroupSelection,
+from inputremapper.gui.components.editor import (
     TargetSelection,
-    PresetSelection,
     MappingListBox,
     MappingSelectionLabel,
     CodeEditor,
@@ -46,7 +46,11 @@ from inputremapper.gui.components import (
     Sliders,
     TransformationDrawArea,
     RelativeInputCutoffInput,
+)
+from inputremapper.gui.components.presets import PresetSelection
+from inputremapper.gui.components.device_groups import (
     DeviceGroupEntry,
+    DeviceGroupSelection,
 )
 from inputremapper.configs.mapping import MappingData
 from inputremapper.event_combination import EventCombination
@@ -1055,7 +1059,7 @@ class TestKeyAxisStackSwitcher(ComponentBaseTest):
     def setUp(self) -> None:
         super(TestKeyAxisStackSwitcher, self).setUp()
         self.gui = Gtk.Box()
-        self.gtk_stack = Gtk.Stack()
+        self.gtk_stack = inputremapper.gui.components.main.Stack()
         self.analog_toggle = Gtk.ToggleButton()
         self.key_toggle = Gtk.ToggleButton()
 

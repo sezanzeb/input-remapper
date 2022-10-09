@@ -27,6 +27,7 @@ import cairo
 from evdev.ecodes import EV_KEY, EV_ABS, EV_REL, bytype
 from gi.repository import Gtk, GtkSource, Gdk
 
+import inputremapper.gui.components.main
 from inputremapper.configs.mapping import MappingData
 from inputremapper.event_combination import EventCombination
 from inputremapper.groups import DeviceType
@@ -35,14 +36,10 @@ from inputremapper.gui.gettext import _
 from inputremapper.gui.message_broker import (
     MessageBroker,
     MessageType,
-    GroupsData,
-    GroupData,
     UInputsData,
     PresetData,
     StatusData,
     CombinationUpdate,
-    UserConfirmRequest,
-    DoStackSwitch,
 )
 from inputremapper.gui.utils import HandlerDisabled, CTX_ERROR, CTX_MAPPING, CTX_WARNING
 from inputremapper.injection.mapping_handlers.axis_transform import Transformation
@@ -74,141 +71,7 @@ ICON_PRIORITIES = [
 ]
 
 
-class DeviceGroupEntry(Gtk.ToggleButton):
-    """A device that can be selected in the GUI.
-
-    For example a keyboard or a mouse.
-    """
-
-    __gtype_name__ = "DeviceGroupEntry"
-
-    def __init__(
-        self,
-        message_broker: MessageBroker,
-        controller: Controller,
-        icon_name: Optional[str],
-        group_key: str,
-    ):
-        super().__init__()
-        self.icon_name = icon_name
-        self.message_broker = message_broker
-        self.group_key = group_key
-        self._controller = controller
-
-        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-
-        if icon_name:
-            icon = Gtk.Image.new_from_icon_name(icon_name, Gtk.IconSize.DIALOG)
-            box.add(icon)
-
-        label = Gtk.Label()
-        label.set_label(group_key)
-
-        # wrap very long names properly
-        label.set_line_wrap(True)
-        label.set_line_wrap_mode(2)
-        # this affeects how many device entries fit next to each other
-        label.set_width_chars(28)
-        label.set_max_width_chars(28)
-
-        box.add(label)
-
-        box.set_margin_top(18)
-        box.set_margin_bottom(18)
-        box.set_homogeneous(True)
-        box.set_spacing(12)
-
-        # self.set_relief(Gtk.ReliefStyle.NONE)
-
-        self.add(box)
-
-        self.show_all()
-
-        self.connect("toggled", self._on_gtk_select_device)
-
-    def _on_gtk_select_device(self, *_, **__):
-        logger.debug('Selecting device "%s"', self.group_key)
-        self._controller.load_group(self.group_key)
-        self.message_broker.send(DoStackSwitch(Stack.presets_page))
-
-    def show_active(self, active):
-        """Show the active state without triggering anything."""
-        with HandlerDisabled(self, self._on_gtk_select_device):
-            self.set_active(active)
-
-
-class DeviceGroupSelection:
-    """A wrapper for the container with our groups.
-
-    A group is a collection of devices.
-    """
-
-    def __init__(
-        self,
-        message_broker: MessageBroker,
-        controller: Controller,
-        flowbox: Gtk.FlowBox,
-    ):
-        self._message_broker = message_broker
-        self._controller = controller
-        self._gui = flowbox
-
-        self._message_broker.subscribe(MessageType.groups, self._on_groups_changed)
-        self._message_broker.subscribe(MessageType.group, self._on_group_changed)
-
-    def _on_groups_changed(self, data: GroupsData):
-        self._gui.foreach(lambda group: self._gui.remove(group))
-
-        for group_key, types in data.groups.items():
-            if len(types) > 0:
-                device_type = sorted(types, key=ICON_PRIORITIES.index)[0]
-                icon_name = ICON_NAMES[device_type]
-            else:
-                icon_name = None
-
-            logger.debug(f"adding {group_key} to device selection")
-            device_group_entry = DeviceGroupEntry(
-                self._message_broker,
-                self._controller,
-                icon_name,
-                group_key,
-            )
-            self._gui.insert(device_group_entry, -1)
-
-    def _on_group_changed(self, data: GroupData):
-        self.show_active_group_key(data.group_key)
-
-    def show_active_group_key(self, group_key: str):
-        """Highlight the button of the given group."""
-        for child in self._gui.get_children():
-            device_group_entry: DeviceGroupEntry = child.get_children()[0]
-            device_group_entry.show_active(device_group_entry.group_key == group_key)
-
-
 # TODO test
-class Stack:
-    """Wraps the Stack, which contains the main menu pages."""
-
-    devices_page = 0
-    presets_page = 1
-    editor_page = 2
-
-    def __init__(
-        self,
-        message_broker: MessageBroker,
-        controller: Controller,
-        stack: Gtk.Stack,
-    ):
-        self._message_broker = message_broker
-        self._controller = controller
-        self._gui = stack
-
-        self._message_broker.subscribe(
-            MessageType.do_stack_switch, self._do_stack_switch
-        )
-
-    def _do_stack_switch(self, msg: DoStackSwitch):
-        self._gui.set_visible_child(self._gui.get_children()[msg.page_index])
 
 
 class TargetSelection:
@@ -281,174 +144,6 @@ class Output:
         self._gui.set_sensitive(False)
         self._gui.set_opacity(0.5)
         self._gui.set_tooltip_text(_("Add a mapping and record some input first"))
-
-
-class PresetEntry(Gtk.ToggleButton):
-    """A preset that can be selected in the GUI."""
-
-    __gtype_name__ = "PresetEntry"
-
-    def __init__(
-        self,
-        message_broker: MessageBroker,
-        controller: Controller,
-        preset_name: str,
-    ):
-        super().__init__()
-        self.message_broker = message_broker
-        self.preset_name = preset_name
-        self._controller = controller
-
-        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-
-        label = Gtk.Label()
-
-        # wrap very long names properly
-        label.set_line_wrap(True)
-        label.set_line_wrap_mode(2)
-        # this affeects how many device entries fit next to each other
-        label.set_width_chars(28)
-        label.set_max_width_chars(28)
-
-        label.set_label(preset_name)
-        box.add(label)
-
-        box.set_margin_top(18)
-        box.set_margin_bottom(18)
-        box.set_homogeneous(True)
-        box.set_spacing(12)
-
-        # self.set_relief(Gtk.ReliefStyle.NONE)
-
-        self.add(box)
-
-        self.show_all()
-
-        self.connect("toggled", self._on_gtk_select_preset)
-
-    def _on_gtk_select_preset(self, *_, **__):
-        logger.debug('Selecting preset "%s"', self.preset_name)
-        self._controller.load_preset(self.preset_name)
-        self.message_broker.send(DoStackSwitch(Stack.editor_page))
-
-    def show_active(self, active):
-        """Show the active state without triggering anything."""
-        with HandlerDisabled(self, self._on_gtk_select_preset):
-            self.set_active(active)
-
-
-# TODO test
-class Breadcrumbs:
-    """Writes a breadcrumbs string into a given label."""
-
-    def __init__(
-        self,
-        message_broker: MessageBroker,
-        label: Gtk.Label,
-        show_device_group: bool = False,
-        show_preset: bool = False,
-        show_mapping: bool = False,
-    ):
-        self._message_broker = message_broker
-        self._gui = label
-        self._connect_message_listener()
-
-        self.show_device_group = show_device_group
-        self.show_preset = show_preset
-        self.show_mapping = show_mapping
-
-        self._group_key: str = ""
-        self._preset_name: str = ""
-        self._mapping_name: str = ""
-
-        label.set_max_width_chars(50)
-        label.set_line_wrap(True)
-        label.set_line_wrap_mode(2)
-
-    def _connect_message_listener(self):
-        self._message_broker.subscribe(MessageType.group, self._on_group_changed)
-        self._message_broker.subscribe(MessageType.preset, self._on_preset_changed)
-        self._message_broker.subscribe(MessageType.mapping, self._on_mapping_changed)
-
-    def _on_preset_changed(self, data: PresetData):
-        self._preset_name = data.name or ""
-        self._render()
-
-    def _on_group_changed(self, data: GroupData):
-        self._group_key = data.group_key
-        self._render()
-
-    def _on_mapping_changed(self, mapping: MappingData):
-        if mapping.name:
-            self._mapping_name = mapping.name
-        elif mapping.event_combination != EventCombination.empty_combination():
-            self._mapping_name = mapping.event_combination.beautify()
-        else:
-            self._mapping_name = _("empty mapping")
-
-        self._render()
-
-    def _render(self):
-        label = []
-
-        if self.show_device_group:
-            label.append(self._group_key)
-
-        if self.show_preset:
-            label.append(self._preset_name)
-
-        if self.show_mapping:
-            label.append(self._mapping_name)
-
-        self._gui.set_label("  /  ".join(label))
-
-
-class PresetSelection:
-    """A wrapper for the container with our presets.
-
-    Selectes the active_preset.
-    """
-
-    def __init__(
-        self,
-        message_broker: MessageBroker,
-        controller: Controller,
-        flowbox: Gtk.FlowBox,
-    ):
-        self._message_broker = message_broker
-        self._controller = controller
-        self._gui = flowbox
-        self._connect_message_listener()
-
-    def _connect_message_listener(self):
-        self._message_broker.subscribe(MessageType.group, self._on_group_changed)
-        self._message_broker.subscribe(MessageType.preset, self._on_preset_changed)
-
-    def _on_group_changed(self, data: GroupData):
-        self._gui.foreach(lambda preset: self._gui.remove(preset))
-        for preset_name in data.presets:
-            preset_entry = PresetEntry(
-                self._message_broker,
-                self._controller,
-                preset_name,
-            )
-            self._gui.insert(preset_entry, -1)
-
-    def _on_preset_changed(self, data: PresetData):
-        self.show_active_preset(data.name)
-
-    def set_active_preset(self, preset_name: str):
-        """Change the currently selected preset."""
-        # TODO might only be needed in tests
-        for child in self._gui.get_children():
-            preset_entry: PresetEntry = child.get_children()[0]
-            preset_entry.set_active(preset_entry.preset_name == preset_name)
-
-    def show_active_preset(self, preset_name: str):
-        """Highlight the button of the given preset."""
-        for child in self._gui.get_children():
-            preset_entry: PresetEntry = child.get_children()[0]
-            preset_entry.show_active(preset_entry.preset_name == preset_name)
 
 
 class MappingListBox:
@@ -1250,52 +945,6 @@ class OutputAxisSelector:
         )
 
 
-class ConfirmCancelDialog:
-    """the dialog shown to the user to query a confirm or cancel action form the user"""
-
-    def __init__(
-        self,
-        message_broker: MessageBroker,
-        controller: Controller,
-        window: Gtk.Window,
-    ):
-        self._message_broker = message_broker
-        self._controller = controller
-        self.window = window
-
-        self._message_broker.subscribe(
-            MessageType.user_confirm_request, self._on_user_confirm_request
-        )
-
-    def _on_user_confirm_request(self, msg: UserConfirmRequest):
-        # if the message contains a line-break, use the first chunk for the primary
-        # message, and the rest for the secondary message.
-        chunks = msg.msg.split("\n")
-        primary = chunks[0]
-        secondary = " ".join(chunks[1:])
-
-        message_dialog = Gtk.MessageDialog(
-            self.window,
-            Gtk.DialogFlags.MODAL | Gtk.DialogFlags.DESTROY_WITH_PARENT,
-            Gtk.MessageType.QUESTION,
-            Gtk.ButtonsType.NONE,
-            primary,
-        )
-
-        if secondary:
-            message_dialog.format_secondary_text(secondary)
-
-        message_dialog.add_button("Cancel", Gtk.ResponseType.CANCEL)
-
-        confirm_button = message_dialog.add_button("Confirm", Gtk.ResponseType.ACCEPT)
-        confirm_button.get_style_context().add_class(Gtk.STYLE_CLASS_DESTRUCTIVE_ACTION)
-
-        response = message_dialog.run()
-        msg.respond(response == Gtk.ResponseType.ACCEPT)
-
-        message_dialog.hide()
-
-
 class KeyAxisStackSwitcher:
     """the controls used to switch between the gui to modify a key-mapping or
     an analog-axis mapping"""
@@ -1304,7 +953,7 @@ class KeyAxisStackSwitcher:
         self,
         message_broker: MessageBroker,
         controller: Controller,
-        stack: Gtk.Stack,
+        stack: inputremapper.gui.components.main.Stack,
         key_macro_toggle: Gtk.ToggleButton,
         analog_toggle: Gtk.ToggleButton,
     ):

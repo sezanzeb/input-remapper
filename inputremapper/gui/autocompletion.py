@@ -30,7 +30,7 @@ from gi.repository import Gdk, Gtk, GLib, GObject
 
 from inputremapper.configs.mapping import MappingData
 from inputremapper.configs.system_mapping import system_mapping
-from inputremapper.gui.components import CodeEditor
+from inputremapper.gui.components.editor import CodeEditor
 from inputremapper.gui.message_broker import MessageBroker, MessageType, UInputsData
 from inputremapper.gui.utils import debounce
 from inputremapper.injection.macros.parse import (

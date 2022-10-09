@@ -28,14 +28,10 @@ from inputremapper.configs.data import get_data_path
 from inputremapper.configs.mapping import MappingData
 from inputremapper.event_combination import EventCombination
 from inputremapper.gui.autocompletion import Autocompletion
-from inputremapper.gui.components import (
-    DeviceGroupSelection,
-    PresetSelection,
+from inputremapper.gui.components.editor import (
     MappingListBox,
     TargetSelection,
     Output,
-    Breadcrumbs,
-    Stack,
     CodeEditor,
     RecordingToggle,
     StatusBar,
@@ -46,13 +42,15 @@ from inputremapper.gui.components import (
     AnalogInputSwitch,
     TriggerThresholdInput,
     OutputAxisSelector,
-    ConfirmCancelDialog,
     ReleaseTimeoutInput,
     TransformationDrawArea,
     Sliders,
     RelativeInputCutoffInput,
     KeyAxisStackSwitcher,
 )
+from inputremapper.gui.components.presets import PresetSelection
+from inputremapper.gui.components.main import Stack, Breadcrumbs, ConfirmCancelDialog
+from inputremapper.gui.components.device_groups import DeviceGroupSelection
 from inputremapper.gui.controller import Controller
 from inputremapper.gui.message_broker import MessageBroker, MessageType
 from inputremapper.gui.utils import (
