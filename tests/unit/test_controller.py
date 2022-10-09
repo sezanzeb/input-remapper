@@ -1198,7 +1198,7 @@ class TestController(unittest.TestCase):
 
         self.message_broker.subscribe(MessageType.user_confirm_request, f)
         self.controller.update_mapping(mapping_type="analog")
-        self.assertIn("This will remove the 'a' from the text input", request.msg)
+        self.assertIn('This will remove the "a" from the text input', request.msg)
 
     def test_update_mapping_type_will_notify_user_to_recorde_analog_input(self):
         prepare_presets()
