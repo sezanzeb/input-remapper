@@ -33,7 +33,13 @@ from inputremapper.event_combination import EventCombination
 
 from inputremapper.gui.controller import Controller
 from inputremapper.gui.gettext import _
-from inputremapper.gui.message_broker import MessageBroker, MessageType, UserConfirmRequest, PresetData, GroupData
+from inputremapper.gui.message_broker import (
+    MessageBroker,
+    MessageType,
+    UserConfirmRequest,
+    PresetData,
+    GroupData,
+)
 from inputremapper.gui.utils import HandlerDisabled
 
 
@@ -154,7 +160,6 @@ class ConfirmCancelDialog:
         msg.respond(response == Gtk.ResponseType.ACCEPT)
 
         message_dialog.hide()
-
 
 
 # TODO test

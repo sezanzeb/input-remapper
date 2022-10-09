@@ -30,7 +30,8 @@ from inputremapper.gui.controller import Controller
 from inputremapper.gui.message_broker import (
     MessageBroker,
     MessageType,
-    DoStackSwitch, StatusData,
+    DoStackSwitch,
+    StatusData,
 )
 from inputremapper.gui.utils import CTX_ERROR, CTX_MAPPING, CTX_WARNING
 
