@@ -114,38 +114,6 @@ class TargetSelection:
         self._controller.update_mapping(target_uinput=target)
 
 
-class Output:
-    """The box that contains all the output settings."""
-
-    def __init__(
-        self,
-        message_broker: MessageBroker,
-        controller: Controller,
-        box: Gtk.Box,
-    ):
-        self._message_broker = message_broker
-        self._controller = controller
-        self._gui = box
-
-        self._message_broker.subscribe(MessageType.mapping, self._on_mapping_loaded)
-
-    def _on_mapping_loaded(self, _):
-        if not self._controller.is_empty_mapping():
-            self._enable()
-        else:
-            self._disable()
-
-    def _enable(self):
-        self._gui.set_sensitive(True)
-        self._gui.set_opacity(1)
-        self._gui.set_tooltip_text("")
-
-    def _disable(self):
-        self._gui.set_sensitive(False)
-        self._gui.set_opacity(0.5)
-        self._gui.set_tooltip_text(_("Add a mapping and record some input first"))
-
-
 class MappingListBox:
     """the listbox showing all available mapping in the active_preset"""
 
@@ -396,13 +364,10 @@ class CodeEditor:
             self.gui.get_style_context().remove_class("multiline")
 
     def _enable(self):
-        logger.debug("Enabling the code editor")
         self.gui.set_sensitive(True)
         self.gui.set_opacity(1)
 
     def _disable(self):
-        logger.debug("Disabling the code editor")
-
         # beware that this also appeared to disable event listeners like
         # focus-out-event:
         self.gui.set_sensitive(False)
@@ -430,6 +395,49 @@ class CodeEditor:
         self._controller.set_focus(self.gui)
 
 
+# TODO test
+class RequireActiveMapping:
+    """Disable the widget if no mapping is selected."""
+
+    def __init__(
+        self,
+        message_broker: MessageBroker,
+        controller: Controller,
+        widget: Gtk.ToggleButton,
+        require_recorded_input: False,
+    ):
+        self._widget = widget
+        self._default_tooltip = self._widget.get_tooltip_text()
+        self._require_recorded_input = require_recorded_input
+        self._controller = controller
+
+        message_broker.subscribe(MessageType.preset, self._check)
+        message_broker.subscribe(MessageType.mapping, self._check)
+
+        self._check()
+
+    def _check(self, *__):
+        active_preset = self._controller.data_manager.active_preset
+
+        if not active_preset or len(active_preset) == 0:
+            self._disable()
+            self._widget.set_tooltip_text(_("Add a mapping first"))
+        elif self._require_recorded_input and self._controller.is_empty_mapping():
+            self._disable()
+            self._widget.set_tooltip_text(_("Record input first"))
+        else:
+            self._enable()
+            self._widget.set_tooltip_text(self._default_tooltip)
+
+    def _enable(self):
+        self._widget.set_sensitive(True)
+        self._widget.set_opacity(1)
+
+    def _disable(self):
+        self._widget.set_sensitive(False)
+        self._widget.set_opacity(0.5)
+
+
 # TODO disable if no mapping selected
 class RecordingToggle:
     """the toggle used to record the input form the active_group in order to update the
@@ -455,13 +463,14 @@ class RecordingToggle:
             self._on_recording_finished,
         )
 
-    def _on_gtk_toggle(self, *__):
-        if len(self._controller.data_manager.active_preset) == 0:
-            # TODO test
-            self._controller.show_status(CTX_ERROR, _("Add a mapping first"))
-            self._gui.set_active(False)
-            return
+        RequireActiveMapping(
+            message_broker,
+            controller,
+            toggle,
+            require_recorded_input=False,
+        )
 
+    def _on_gtk_toggle(self, *__):
         if self._gui.get_active():
             self._controller.start_key_recording()
         else:

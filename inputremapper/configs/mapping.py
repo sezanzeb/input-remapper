@@ -180,6 +180,11 @@ class UIMapping(BaseModel):
             object.__setattr__(copy, "_combination_changed", self._combination_changed)
             return copy
 
+    def has_input_defined(self) -> bool:
+        """Whether this mapping defines an event-input."""
+        # TODO test
+        return self.event_combination != EventCombination.empty_combination()
+
     def is_axis_mapping(self) -> bool:
         """whether this mapping specifies an output axis"""
         return self.output_type == EV_ABS or self.output_type == EV_REL

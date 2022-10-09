@@ -31,7 +31,6 @@ from inputremapper.gui.autocompletion import Autocompletion
 from inputremapper.gui.components.editor import (
     MappingListBox,
     TargetSelection,
-    Output,
     CodeEditor,
     RecordingToggle,
     RecordingStatus,
@@ -46,6 +45,7 @@ from inputremapper.gui.components.editor import (
     Sliders,
     RelativeInputCutoffInput,
     KeyAxisStackSwitcher,
+    RequireActiveMapping,
 )
 from inputremapper.gui.components.presets import PresetSelection
 from inputremapper.gui.components.main import Stack, StatusBar
@@ -143,7 +143,6 @@ class UserInterface:
         PresetSelection(message_broker, controller, self.get("preset_selection"))
         MappingListBox(message_broker, controller, self.get("selection_label_listbox"))
         TargetSelection(message_broker, controller, self.get("target-selector"))
-        Output(message_broker, controller, self.get("output"))
 
         Breadcrumbs(
             message_broker,
@@ -200,6 +199,25 @@ class UserInterface:
             self.get("gain-scale"),
             self.get("deadzone-scale"),
             self.get("expo-scale"),
+        )
+
+        RequireActiveMapping(
+            message_broker,
+            controller,
+            self.get("edit-combination-btn"),
+            require_recorded_input=True,
+        )
+        RequireActiveMapping(
+            message_broker,
+            controller,
+            self.get("output"),
+            require_recorded_input=True,
+        )
+        RequireActiveMapping(
+            message_broker,
+            controller,
+            self.get("delete-mapping"),
+            require_recorded_input=False,
         )
 
         # code editor and autocompletion
