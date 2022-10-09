@@ -61,7 +61,7 @@ DEFAULT_UINPUTS["keyboard + mouse"] = {
 
 class UInput(evdev.UInput):
     def __init__(self, *args, **kwargs):
-        name = kwargs['name']
+        name = kwargs["name"]
         logger.debug(f'creating UInput device: "{name}"')
         super().__init__(*args, **kwargs)
 
