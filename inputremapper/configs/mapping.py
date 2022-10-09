@@ -266,7 +266,7 @@ class Mapping(UIMapping):
         if system_mapping.get(symbol) is not None:
             return symbol
         raise ValueError(
-            f"the output_symbol '{symbol}' is not a macro and not a valid keycode-name"
+            f'the output_symbol "{symbol}" is not a macro and not a valid keycode-name'
         )
 
     @validator("event_combination")

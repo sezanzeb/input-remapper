@@ -177,8 +177,8 @@ class Controller:
                 message += _(
                     "\nIf you mean to create a key or macro mapping "
                     "go to the advanced input configuration"
-                    " and set a 'Trigger Threshold' for "
-                    f"{event.description()}"
+                    ' and set a "Trigger Threshold" for '
+                    f'"{event.description()}"'
                 )
             return message
 
@@ -190,7 +190,7 @@ class Controller:
             if mapping.output_type in (EV_ABS, EV_REL):
                 message += _(
                     "\nIf you mean to create a analog axis mapping go to the "
-                    "advanced input configuration and set a input to 'Use as Analog'."
+                    'advanced input configuration and set a input to "Use as Analog".'
                 )
             return message
 
@@ -617,7 +617,7 @@ class Controller:
             msg = f"You are about to change the mapping to analog!"
             if mapping.output_symbol:
                 msg += (
-                    f"\nThis will remove the '{mapping.output_symbol}' "
+                    f'\nThis will remove "{mapping.output_symbol}" '
                     f"from the text input."
                 )
 
@@ -629,7 +629,7 @@ class Controller:
                         events[i] = e.modify(value=0)
                         kwargs["event_combination"] = EventCombination(events)
                         msg += (
-                            f"\nThe input '{e.description()}' "
+                            f'\nThe input "{e.description()}" '
                             f"will be used as analog input."
                         )
                         break
@@ -671,7 +671,7 @@ class Controller:
                 UserConfirmRequest(
                     f"You are about to change the mapping to a Key or Macro mapping!\n"
                     f"Go to the advanced input configuration and set a "
-                    f"'Trigger Threshold' for '{analog_input.description()}'.",
+                    f'"Trigger Threshold" for "{analog_input.description()}".',
                     f,
                 )
             )

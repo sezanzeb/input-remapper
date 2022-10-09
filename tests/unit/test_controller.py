@@ -1232,7 +1232,7 @@ class TestController(unittest.TestCase):
 
         self.message_broker.subscribe(MessageType.user_confirm_request, f)
         self.controller.update_mapping(mapping_type="analog")
-        self.assertIn("The input 'Y Down 1' will be used as analog input.", request.msg)
+        self.assertIn('The input "Y Down 1" will be used as analog input.', request.msg)
 
     def test_update_mapping_type_will_will_autoconfigure_the_input(self):
         prepare_presets()
@@ -1303,7 +1303,7 @@ class TestController(unittest.TestCase):
 
         self.message_broker.subscribe(MessageType.user_confirm_request, f)
         self.controller.update_mapping(mapping_type="key_macro")
-        self.assertIn("and set a 'Trigger Threshold' for 'Y'.", request.msg)
+        self.assertIn('and set a "Trigger Threshold" for "Y".', request.msg)
 
     def test_update_mapping_update_to_analog_without_asking(self):
         prepare_presets()
