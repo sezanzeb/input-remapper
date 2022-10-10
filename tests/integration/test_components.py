@@ -59,10 +59,11 @@ from inputremapper.event_combination import EventCombination
 
 
 class ComponentBaseTest(unittest.TestCase):
-    """test a gui component
+    """Test a gui component.
 
-    ensures to tearDown self.gui
-    all gtk objects must be a child of self.gui in order to ensure proper cleanup"""
+    Ensures to tearDown gtk widgets
+    IMPORTANT: all gtk objects must be a child of self in order to ensure proper cleanup
+    """
 
     def setUp(self) -> None:
         self.message_broker = MessageBroker()
@@ -72,7 +73,13 @@ class ComponentBaseTest(unittest.TestCase):
     def tearDown(self) -> None:
         super().tearDown()
         self.message_broker.signal(MessageType.terminate)
-        GLib.timeout_add(0, self.gui.destroy)
+
+        # destroy all Gtk Widgets
+        for attribute in dir(self):
+            stuff = getattr(self, attribute, None)
+            if isinstance(stuff, Gtk.Widget):
+                GLib.timeout_add(0, stuff.destroy)
+
         GLib.timeout_add(0, Gtk.main_quit)
         Gtk.main()
         quick_cleanup()
@@ -630,6 +637,7 @@ class TestRecordingToggle(ComponentBaseTest):
         super(TestRecordingToggle, self).setUp()
 
         self.toggle_button = Gtk.ToggleButton()
+
         self.recording_toggle = RecordingToggle(
             self.message_broker,
             self.controller_mock,
