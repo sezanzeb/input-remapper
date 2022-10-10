@@ -63,6 +63,9 @@ class ComponentBaseTest(unittest.TestCase):
 
     Ensures to tearDown gtk widgets
     IMPORTANT: all gtk objects must be a child of self in order to ensure proper cleanup
+
+    If widgets are not destroyed, tests might freeze with no apparent reason, while
+    the cpu usage jumps to 100%.
     """
 
     def setUp(self) -> None:
