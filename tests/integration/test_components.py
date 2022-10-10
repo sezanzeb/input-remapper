@@ -77,7 +77,7 @@ class ComponentBaseTest(unittest.TestCase):
         super().tearDown()
         self.message_broker.signal(MessageType.terminate)
 
-        # destroy all Gtk Widgets
+        # destroy all Gtk Widgets that are stored in self
         for attribute in dir(self):
             stuff = getattr(self, attribute, None)
             if isinstance(stuff, Gtk.Widget):
@@ -640,7 +640,6 @@ class TestRecordingToggle(ComponentBaseTest):
         super(TestRecordingToggle, self).setUp()
 
         self.toggle_button = Gtk.ToggleButton()
-
         self.recording_toggle = RecordingToggle(
             self.message_broker,
             self.controller_mock,
