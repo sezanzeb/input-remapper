@@ -426,7 +426,6 @@ class RequireActiveMapping:
         self._widget.set_opacity(0.5)
 
 
-# TODO disable if no mapping selected
 class RecordingToggle:
     """the toggle used to record the input form the active_group in order to update the
     event_combination of the active_mapping"""
@@ -465,11 +464,11 @@ class RecordingToggle:
             self._controller.stop_key_recording()
 
     def _on_recording_finished(self, __):
-        logger.debug("finished recording")
         with HandlerDisabled(self._gui, self._on_gtk_toggle):
             self._gui.set_active(False)
 
 
+# TODO test, maybe integrate into TestRecordingToggle
 class RecordingStatus:
     """Displays if keys are being recorded for a mapping."""
 

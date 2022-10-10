@@ -45,8 +45,10 @@ from inputremapper.gui.components.editor import (
     Sliders,
     TransformationDrawArea,
     RelativeInputCutoffInput,
+    RecordingStatus,
 )
 from inputremapper.gui.components.main import StatusBar
+from inputremapper.gui.components.common import FlowBoxEntry
 from inputremapper.gui.components.presets import PresetSelection
 from inputremapper.gui.components.device_groups import (
     DeviceGroupEntry,
@@ -76,6 +78,37 @@ class ComponentBaseTest(unittest.TestCase):
         quick_cleanup()
 
 
+class FlowBoxTestUtils:
+    """Methods to test the FlowBoxes that contain presets and devices."""
+
+    @staticmethod
+    def set_active(flow_box: Gtk.FlowBox, name: str):
+        """Change the currently selected group."""
+        for child in flow_box.get_children():
+            flow_box_entry: FlowBoxEntry = child.get_children()[0]
+            flow_box_entry.set_active(flow_box_entry.name == name)
+
+    @staticmethod
+    def get_active_entry(flow_box: Gtk.FlowBox) -> DeviceGroupEntry:
+        """Find the currently selected DeviceGroupEntry."""
+        for child in flow_box.get_children():
+            flow_box_entry: FlowBoxEntry = child.get_children()[0]
+
+            if flow_box_entry.get_active():
+                return flow_box_entry
+
+        raise AssertionError("Expected one entry to be selected.")
+
+    @staticmethod
+    def get_child_names(flow_box: Gtk.FlowBox):
+        names = []
+        for child in flow_box.get_children():
+            flow_box_entry: FlowBoxEntry = child.get_children()[0]
+            names.append(flow_box_entry.name)
+
+        return names
+
+
 class TestDeviceGroupSelection(ComponentBaseTest):
     def setUp(self) -> None:
         super(TestDeviceGroupSelection, self).setUp()
@@ -94,23 +127,6 @@ class TestDeviceGroupSelection(ComponentBaseTest):
                 }
             )
         )
-
-    def get_active_device_group_entry(self) -> DeviceGroupEntry:
-        """Find the currently selected DeviceGroupEntry."""
-        for child in self.selection._gui.get_children():
-            device_group_entry = child.get_children()[0]
-
-            if device_group_entry.get_active():
-                return device_group_entry
-
-        # I dunno if this can happen
-        raise Exception("Expected one device group to be selected.")
-
-    def set_active_group_key(self, group_key: str):
-        """Change the currently selected group."""
-        for child in self.selection._gui.get_children():
-            device_group_entry: DeviceGroupEntry = child.get_children()[0]
-            device_group_entry.set_active(device_group_entry.group_key == group_key)
 
     def get_displayed_group_keys_and_icons(self):
         """Get a list of all group_keys and icons of the displayed groups."""
@@ -142,14 +158,15 @@ class TestDeviceGroupSelection(ComponentBaseTest):
         self.assertEqual(group_keys, ["kuu", "qux"])
         self.assertEqual(icons, ["input-keyboard", "input-gaming"])
 
+    # TODO replicate this test for the presets flowbox
     def test_selects_correct_device(self):
         self.message_broker.send(GroupData("bar", ()))
-        self.assertEqual(self.get_active_device_group_entry().group_key, "bar")
+        self.assertEqual(FlowBoxTestUtils.get_active_entry(self.gui).group_key, "bar")
         self.message_broker.send(GroupData("baz", ()))
-        self.assertEqual(self.get_active_device_group_entry().group_key, "baz")
+        self.assertEqual(FlowBoxTestUtils.get_active_entry(self.gui).group_key, "baz")
 
     def test_loads_group(self):
-        self.set_active_group_key("bar")
+        FlowBoxTestUtils.set_active(self.gui, "bar")
         self.controller_mock.load_group.assert_called_once_with("bar")
 
     def test_avoids_infinite_recursion(self):
@@ -203,7 +220,8 @@ class TestTargetSelection(ComponentBaseTest):
         self.message_broker.send(MappingData(target_uinput="baz"))
         self.controller_mock.update_mapping.assert_not_called()
 
-    def test_disabled_with_invalid_mapping(self):
+    # TODO test this for the wrapping component that is disabled instead
+    """def test_disabled_with_invalid_mapping(self):
         self.controller_mock.is_empty_mapping.return_value = True
         self.message_broker.send(MappingData())
         self.assertFalse(self.gui.get_sensitive())
@@ -213,43 +231,54 @@ class TestTargetSelection(ComponentBaseTest):
         self.controller_mock.is_empty_mapping.return_value = False
         self.message_broker.send(MappingData())
         self.assertTrue(self.gui.get_sensitive())
-        self.assertEqual(self.gui.get_opacity(), 1)
+        self.assertEqual(self.gui.get_opacity(), 1)"""
 
 
 class TestPresetSelection(ComponentBaseTest):
     def setUp(self) -> None:
         super().setUp()
-        self.gui = Gtk.ComboBoxText()
+        self.gui = Gtk.FlowBox()
         self.selection = PresetSelection(
             self.message_broker, self.controller_mock, self.gui
         )
         self.message_broker.send(GroupData("foo", ("preset1", "preset2")))
 
     def test_populates_presets(self):
-        names = [row[0] for row in self.gui.get_model()]
+        names = FlowBoxTestUtils.get_child_names(self.gui)
         self.assertEqual(names, ["preset1", "preset2"])
+
         self.message_broker.send(GroupData("foo", ("preset3", "preset4")))
-        names = [row[0] for row in self.gui.get_model()]
+        names = FlowBoxTestUtils.get_child_names(self.gui)
         self.assertEqual(names, ["preset3", "preset4"])
 
     def test_selects_preset(self):
         self.message_broker.send(
-            PresetData("preset2", (("m1", EventCombination((1, 2, 3))),))
+            PresetData(
+                "preset2",
+                (("m1", EventCombination((1, 2, 3))),),
+            )
         )
-        self.assertEqual(self.gui.get_active_id(), "preset2")
+        self.assertEqual(FlowBoxTestUtils.get_active_entry(self.gui).name, "preset2")
+
         self.message_broker.send(
-            PresetData("preset1", (("m1", EventCombination((1, 2, 3))),))
+            PresetData(
+                "preset1",
+                (("m1", EventCombination((1, 2, 3))),),
+            )
         )
-        self.assertEqual(self.gui.get_active_id(), "preset1")
+        self.assertEqual(FlowBoxTestUtils.get_active_entry(self.gui).name, "preset1")
 
     def test_avoids_infinite_recursion(self):
         self.message_broker.send(
-            PresetData("preset2", (("m1", EventCombination((1, 2, 3))),))
+            PresetData(
+                "preset2",
+                (("m1", EventCombination((1, 2, 3))),),
+            )
         )
         self.controller_mock.load_preset.assert_not_called()
 
     def test_loads_preset(self):
-        self.gui.set_active_id("preset2")
+        FlowBoxTestUtils.set_active(self.gui, "preset2")
         self.controller_mock.load_preset.assert_called_once_with("preset2")
 
 
@@ -549,11 +578,12 @@ class TestCodeEditor(ComponentBaseTest):
         self.message_broker.send(MappingData(output_symbol="foo"))
         self.assertEqual(self.get_text(), "Record the input first")
 
-    def test_inactive_when_mapping_is_empty(self):
+    # TODO test affects the wrapping box, not the individual components anymore
+    """def test_inactive_when_mapping_is_empty(self):
         self.controller_mock.is_empty_mapping.return_value = True
         self.message_broker.send(MappingData(output_symbol="foo"))
         self.assertFalse(self.gui.get_sensitive())
-        self.assertLess(self.gui.get_opacity(), 0.6)
+        self.assertLess(self.gui.get_opacity(), 0.6)"""
 
     def test_active_when_mapping_is_not_empty(self):
         self.message_broker.send(MappingData(output_symbol="foo"))
@@ -598,42 +628,45 @@ class TestCodeEditor(ComponentBaseTest):
 class TestRecordingToggle(ComponentBaseTest):
     def setUp(self) -> None:
         super(TestRecordingToggle, self).setUp()
-        self.gui = Gtk.ToggleButton()
-        self.toggle = RecordingToggle(
-            self.message_broker, self.controller_mock, self.gui
+
+        self.toggle_button = Gtk.ToggleButton()
+        self.recording_toggle = RecordingToggle(
+            self.message_broker,
+            self.controller_mock,
+            self.toggle_button,
         )
 
-    def assert_recording(self):
-        self.assertEqual(self.gui.get_label(), "Recording ...")
-        self.assertTrue(self.gui.get_active())
+        self.label = Gtk.Label()
+        self.recording_status = RecordingStatus(self.message_broker, self.label)
 
     def assert_not_recording(self):
-        self.assertEqual(self.gui.get_label(), "Record Input")
-        self.assertFalse(self.gui.get_active())
+        self.assertFalse(self.label.get_visible())
+        self.assertFalse(self.toggle_button.get_active())
 
     def test_starts_recording(self):
-        self.gui.set_active(True)
+        self.toggle_button.set_active(True)
         self.controller_mock.start_key_recording.assert_called_once()
 
     def test_stops_recording_when_clicked(self):
-        self.gui.set_active(True)
-        self.gui.set_active(False)
+        self.toggle_button.set_active(True)
+        self.toggle_button.set_active(False)
         self.controller_mock.stop_key_recording.assert_called_once()
 
     def test_not_recording_initially(self):
         self.assert_not_recording()
 
-    def test_shows_recording_when_toggled(self):
-        self.gui.set_active(True)
-        self.assert_recording()
+    def test_shows_recording_when_message_sent(self):
+        self.assertFalse(self.label.get_visible())
+        self.message_broker.signal(MessageType.recording_started)
+        self.assertTrue(self.label.get_visible())
 
     def test_shows_not_recording_after_toggle(self):
-        self.gui.set_active(True)
-        self.gui.set_active(False)
+        self.toggle_button.set_active(True)
+        self.toggle_button.set_active(False)
         self.assert_not_recording()
 
     def test_shows_not_recording_when_recording_finished(self):
-        self.gui.set_active(True)
+        self.toggle_button.set_active(True)
         self.message_broker.signal(MessageType.recording_finished)
         self.assert_not_recording()
 
@@ -1124,11 +1157,12 @@ class TestTransformationDrawArea(ComponentBaseTest):
         self.draw_area = Gtk.DrawingArea()
         self.gui.add(self.draw_area)
         self.transform_draw_area = TransformationDrawArea(
-            self.message_broker, self.controller_mock, self.draw_area
+            self.message_broker,
+            self.controller_mock,
+            self.draw_area,
         )
 
     def test_draws_transform(self):
-        # TTODO might fail because the editor is not displayed yet
         with spy(self.transform_draw_area, "_transformation") as mock:
             self.gui.show_all()
             gtk_iteration()

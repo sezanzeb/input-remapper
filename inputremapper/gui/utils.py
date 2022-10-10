@@ -65,7 +65,7 @@ def debounce(timeout):
 class HandlerDisabled:
     """Safely modify a widget without causing handlers to be called.
 
-    Use in a with statement.
+    Use in a `with` statement.
     """
 
     def __init__(self, widget, handler):
