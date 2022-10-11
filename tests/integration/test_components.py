@@ -6,6 +6,7 @@ import evdev
 from evdev.ecodes import KEY_A, KEY_B, KEY_C
 import gi
 
+# TODO required?
 import inputremapper.gui.components.main
 
 gi.require_version("Gtk", "3.0")
@@ -96,6 +97,7 @@ class ComponentBaseTest(unittest.TestCase):
 
     def destroy_all_member_widgets(self):
         # destroy all Gtk Widgets that are stored in self
+        # TODO why is this necessary?
         for attribute in dir(self):
             stuff = getattr(self, attribute, None)
             if isinstance(stuff, Gtk.Widget):
