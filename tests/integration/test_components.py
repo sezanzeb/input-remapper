@@ -1,6 +1,27 @@
+#!/usr/bin/python3
+# -*- coding: utf-8 -*-
+# input-remapper - GUI for device specific keyboard mappings
+# Copyright (C) 2022 sezanzeb <proxima@sezanzeb.de>
+#
+# This file is part of input-remapper.
+#
+# input-remapper is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# input-remapper is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
+
 import unittest
 from typing import Optional, Tuple
 from unittest.mock import MagicMock
+import time
 
 import evdev
 from evdev.ecodes import KEY_A, KEY_B, KEY_C
@@ -1200,8 +1221,12 @@ class TestTransformationDrawArea(ComponentBaseTest):
 
     def test_draws_transform(self):
         with spy(self.transform_draw_area, "_transformation") as mock:
+            # show the window, it takes some time and iterations until it pops up
             self.gui.show_all()
-            gtk_iteration()
+            for _ in range(5):
+                gtk_iteration()
+                time.sleep(0.01)
+
             mock.assert_called()
 
     def test_updates_transform_when_mapping_updates(self):
