@@ -136,7 +136,10 @@ class ComponentBaseTest(unittest.TestCase):
 
 
 class FlowBoxTestUtils:
-    """Methods to test the FlowBoxes that contain presets and devices."""
+    """Methods to test the FlowBoxes that contain presets and devices.
+
+    Those are only used in tests, so I moved them here instead.
+    """
 
     @staticmethod
     def set_active(flow_box: Gtk.FlowBox, name: str):
@@ -164,6 +167,15 @@ class FlowBoxTestUtils:
             names.append(flow_box_entry.name)
 
         return names
+
+    @staticmethod
+    def get_child_icons(flow_box: Gtk.FlowBox):
+        icon_names = []
+        for child in flow_box.get_children():
+            flow_box_entry: FlowBoxEntry = child.get_children()[0]
+            icon_names.append(flow_box_entry.icon_name)
+
+        return icon_names
 
 
 class TestDeviceGroupSelection(ComponentBaseTest):

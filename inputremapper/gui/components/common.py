@@ -36,7 +36,6 @@ from inputremapper.gui.gettext import _
 from inputremapper.gui.message_broker import (
     MessageBroker,
     MessageType,
-    UserConfirmRequest,
     PresetData,
     GroupData,
 )

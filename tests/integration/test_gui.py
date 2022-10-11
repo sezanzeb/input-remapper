@@ -78,6 +78,7 @@ from inputremapper.gui.message_broker import (
     CombinationRecorded,
 )
 from inputremapper.gui.components.editor import MappingSelectionLabel, SET_KEY_FIRST
+from inputremapper.gui.components.device_groups import DeviceGroupEntry
 from inputremapper.gui.controller import Controller
 from inputremapper.gui.helper import RootHelper
 from inputremapper.gui.utils import gtk_iteration
@@ -443,7 +444,7 @@ class TestGui(GuiTestBase):
 
     def test_initial_state(self):
         self.assertEqual(self.data_manager.active_group.key, "Foo Device")
-        self.assertEqual(self.device_selection.get_active_id(), "Foo Device")
+        self.assertEqual(FlowBoxTestUtils.get_active_entry(self.device_selection).name, "Foo Device")
         self.assertEqual(self.data_manager.active_preset.name, "preset3")
         self.assertEqual(FlowBoxTestUtils.get_active_entry(self.preset_selection).name, "preset3")
         self.assertFalse(self.data_manager.get_autoload())
@@ -544,6 +545,7 @@ class TestGui(GuiTestBase):
         with open(path, "r") as file:
             self.assertEqual(file.read(), "")
 
+    # TODO test the "recording_status" widget instead
     def test_recording_toggle_labels(self):
         self.assertEqual(self.recording_toggle.get_label(), "Record Input")
         self.recording_toggle.set_active(True)
@@ -553,6 +555,7 @@ class TestGui(GuiTestBase):
         gtk_iteration()
         self.assertEqual(self.recording_toggle.get_label(), "Record Input")
 
+    # TODO test the "recording_status" widget instead
     def test_recording_label_updates_on_recording_finished(self):
         self.assertEqual(self.recording_toggle.get_label(), "Record Input")
         self.recording_toggle.set_active(True)
@@ -747,7 +750,7 @@ class TestGui(GuiTestBase):
                 target_uinput="keyboard",
             ),
         )
-        self.assertEqual(self.target_selection.get_active_id(), "keyboard")
+        self.assertEqual(FlowBoxTestUtils.get_active_entry(self.target_selection).name, "keyboard")
         buffer = self.code_editor.get_buffer()
         self.assertEqual(
             buffer.get_text(buffer.get_start_iter(), buffer.get_end_iter(), True),
@@ -1300,7 +1303,7 @@ class TestGui(GuiTestBase):
         # make sure a preset and mapping was loaded
         self.assertIsNotNone(self.data_manager.active_preset)
         self.assertEqual(
-            self.data_manager.active_preset.name, self.preset_selection.get_active_id()
+            self.data_manager.active_preset.name, FlowBoxTestUtils.get_active_entry(self.preset_selection).name,
         )
         self.assertIsNotNone(self.data_manager.active_mapping)
         self.assertEqual(
@@ -1541,9 +1544,10 @@ class TestGui(GuiTestBase):
         self.controller.refresh_groups()
         gtk_iteration()
 
-        for entry in self.device_selection:
+        for child in self.device_selection.get_children():
+            device_group_entry = child.get_children()[0]
             # whichever attribute contains "input-remapper"
-            self.assertNotIn("input-remapper", entry.group_key)
+            self.assertNotIn("input-remapper", device_group_entry.name)
 
     def test_stop_injecting(self):
         self.controller.load_group("Foo Device 2")
@@ -1628,8 +1632,9 @@ class TestGui(GuiTestBase):
 
         # add a device that doesn't exist to the dropdown
         unknown_key = "key-1234"
-        self.device_selection.get_child().get_model().insert(
-            0, [unknown_key, None, "foo"]
+        self.device_selection.insert(
+            DeviceGroupEntry(self.message_broker, self.controller, None, unknown_key), 0
+            # 0, [unknown_key, None, "foo"]
         )
 
         self.controller.refresh_groups()
@@ -1641,17 +1646,19 @@ class TestGui(GuiTestBase):
 
         # the list contains correct entries
         # and the non-existing entry should be removed
-        entries = [
-            tuple(entry) for entry in self.device_selection.get_child().get_model()
-        ]
-        keys = [entry[0] for entry in self.device_selection.get_child().get_model()]
-        self.assertNotIn(unknown_key, keys)
+        names = FlowBoxTestUtils.get_child_names(self.device_selection)
+        icons = FlowBoxTestUtils.get_child_icons(self.device_selection)
+        self.assertNotIn(unknown_key, names)
 
-        self.assertIn("Foo Device", keys)
-        self.assertIn(("Foo Device", "input-keyboard", "Foo Device"), entries)
-        self.assertIn(("Foo Device 2", "input-gaming", "Foo Device 2"), entries)
-        self.assertIn(("Bar Device", "input-keyboard", "Bar Device"), entries)
-        self.assertIn(("gamepad", "input-gaming", "gamepad"), entries)
+        self.assertIn("Foo Device", names)
+        self.assertIn("Foo Device 2", names)
+        self.assertIn("Bar Device", names)
+        self.assertIn("gamepad", names)
+
+        self.assertIn("input-keyboard", icons)
+        self.assertIn("input-gaming", icons)
+        self.assertIn("input-keyboard", icons)
+        self.assertIn("input-gaming", icons)
 
         # it won't crash due to "list index out of range"
         # when `types` is an empty list. Won't show an icon
@@ -1659,8 +1666,8 @@ class TestGui(GuiTestBase):
         self.data_manager._reader.send_groups()
         gtk_iteration()
         self.assertIn(
-            ("Foo Device 2", None, "Foo Device 2"),
-            [tuple(entry) for entry in self.device_selection.get_child().get_model()],
+            "Foo Device 2",
+            FlowBoxTestUtils.get_child_names(self.device_selection),
         )
 
     def test_shared_presets(self):
@@ -1704,6 +1711,7 @@ class TestGui(GuiTestBase):
             device_path = f"{CONFIG_PATH}/presets/{self.data_manager.active_group.name}"
             self.assertTrue(os.path.exists(f"{device_path}/new preset.json"))
 
+    # TODO this should test the whole output box instead
     def test_enable_disable_symbol_input(self):
         # load a group without any presets
         self.controller.load_group("Bar Device")
