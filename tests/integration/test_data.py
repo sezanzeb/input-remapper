@@ -27,6 +27,13 @@ from inputremapper.configs.data import get_data_path
 
 
 class TestData(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.original_location = pkg_resources.require("input-remapper")[0].location
+
+    def tearDown(self):
+        pkg_resources.require("input-remapper")[0].location = self.original_location
+
     def test_data_editable(self):
         path = os.getcwd()
         pkg_resources.require("input-remapper")[0].location = path
