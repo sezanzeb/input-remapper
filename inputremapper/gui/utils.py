@@ -17,9 +17,12 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
+
 import time
 
 from gi.repository import Gtk, GLib
+
+from inputremapper.logger import logger
 
 
 # status ctx ids
@@ -73,10 +76,18 @@ class HandlerDisabled:
         self.handler = handler
 
     def __enter__(self):
-        self.widget.handler_block_by_func(self.handler)
+        try:
+            self.widget.handler_block_by_func(self.handler)
+        except TypeError as error:
+            # if nothing is connected to the given signal, it is not critical
+            # at all
+            logger.warning('HandlerDisabled entry failed: "%s"', error)
 
     def __exit__(self, *_):
-        self.widget.handler_unblock_by_func(self.handler)
+        try:
+            self.widget.handler_unblock_by_func(self.handler)
+        except TypeError as error:
+            logger.warning('HandlerDisabled exit failed: "%s"', error)
 
 
 def gtk_iteration(iterations=0):

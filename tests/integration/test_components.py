@@ -13,7 +13,7 @@ gi.require_version("GLib", "2.0")
 gi.require_version("GtkSource", "4")
 from gi.repository import Gtk, GLib, GtkSource, Gdk
 
-from tests.test import quick_cleanup, spy
+from tests.test import quick_cleanup, spy, logger
 from inputremapper.input_event import InputEvent
 from inputremapper.gui.utils import CTX_ERROR, CTX_WARNING, gtk_iteration
 from inputremapper.gui.message_broker import (
@@ -58,31 +58,55 @@ from inputremapper.configs.mapping import MappingData
 from inputremapper.event_combination import EventCombination
 
 
+def destroy_widgets(func):
+    """Decorator to destroy all unreferenced widgets afterwards."""
+
+    def wrapped(self, *args, **kwargs):
+        unreferenced_widgets = []
+
+        def del_widget(widget: Gtk.Widget):
+            unreferenced_widgets.append(widget)
+
+        # __del__ has not been in use before this, so this is safe.
+        # by doing this, we can keep track of widgets without having
+        # to store them anywhere
+        Gtk.Widget.__del__ = del_widget
+
+        func(self, *args, **kwargs)
+
+        # clean up
+        for widget in unreferenced_widgets:
+            logger.info("destroying unreferenced %s", widget)
+            GLib.timeout_add(0, widget.destroy)
+
+        # restore back to doing nothing,
+        # otherwise segmentation faults appear later on
+        Gtk.Widget.__del__ = lambda: None
+
+    return wrapped
+
+
 class ComponentBaseTest(unittest.TestCase):
-    """Test a gui component.
-
-    Ensures to tearDown gtk widgets
-    IMPORTANT: all gtk objects must be a child of self in order to ensure proper cleanup
-
-    If widgets are not destroyed, tests might freeze with no apparent reason, while
-    the cpu usage jumps to 100%.
-    """
+    """Test a gui component."""
 
     def setUp(self) -> None:
         self.message_broker = MessageBroker()
         self.controller_mock = MagicMock()
         self.gui = MagicMock()
 
-    def tearDown(self) -> None:
-        super().tearDown()
-        self.message_broker.signal(MessageType.terminate)
-
+    def destroy_all_member_widgets(self):
         # destroy all Gtk Widgets that are stored in self
         for attribute in dir(self):
             stuff = getattr(self, attribute, None)
             if isinstance(stuff, Gtk.Widget):
+                logger.info("destroying member %s", stuff)
                 GLib.timeout_add(0, stuff.destroy)
+                setattr(self, attribute, None)
 
+    def tearDown(self) -> None:
+        super().tearDown()
+        self.message_broker.signal(MessageType.terminate)
+        self.destroy_all_member_widgets()
         GLib.timeout_add(0, Gtk.main_quit)
         Gtk.main()
         quick_cleanup()
