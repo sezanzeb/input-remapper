@@ -104,4 +104,6 @@ class TestUserInterface(unittest.TestCase):
         gtk_iteration()
         label: Gtk.Label = self.user_interface.get("combination-label")
         self.assertEqual(label.get_text(), "no input configured")
-        self.assertEqual(label.get_opacity(), 0.4)
+
+        # 0.5 != 0.501960..., for whatever reason this number is all screwed up
+        self.assertLess(abs(label.get_opacity() - 0.5), 0.1)

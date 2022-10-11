@@ -438,15 +438,21 @@ class TestGui(GuiTestBase):
         selection_labels = self.selection_label_listbox.get_children()
         self.assertEqual(len(selection_labels), 0)
         self.assertEqual(len(self.data_manager.active_preset), 0)
-        self.assertEqual(FlowBoxTestUtils.get_active_entry(self.preset_selection).name, "new preset")
+        self.assertEqual(
+            FlowBoxTestUtils.get_active_entry(self.preset_selection).name, "new preset"
+        )
         self.assertEqual(self.recording_toggle.get_label(), "Record")
         self.assertEqual(self.get_unfiltered_symbol_input_text(), SET_KEY_FIRST)
 
     def test_initial_state(self):
         self.assertEqual(self.data_manager.active_group.key, "Foo Device")
-        self.assertEqual(FlowBoxTestUtils.get_active_entry(self.device_selection).name, "Foo Device")
+        self.assertEqual(
+            FlowBoxTestUtils.get_active_entry(self.device_selection).name, "Foo Device"
+        )
         self.assertEqual(self.data_manager.active_preset.name, "preset3")
-        self.assertEqual(FlowBoxTestUtils.get_active_entry(self.preset_selection).name, "preset3")
+        self.assertEqual(
+            FlowBoxTestUtils.get_active_entry(self.preset_selection).name, "preset3"
+        )
         self.assertFalse(self.data_manager.get_autoload())
         self.assertFalse(self.autoload_toggle.get_active())
         self.assertEqual(
@@ -489,7 +495,7 @@ class TestGui(GuiTestBase):
 
         self.click_on_group("Foo Device 2")
         FlowBoxTestUtils.set_active(self.preset_selection, "preset2")
-        
+
         gtk_iteration()
         self.assertTrue(self.data_manager.get_autoload())
         self.assertTrue(self.autoload_toggle.get_active())
@@ -534,7 +540,9 @@ class TestGui(GuiTestBase):
     def test_select_device_without_preset(self):
         # creates a new empty preset when no preset exists for the device
         self.click_on_group("Bar Device")
-        self.assertEqual(FlowBoxTestUtils.get_active_entry(self.preset_selection).name, "new preset")
+        self.assertEqual(
+            FlowBoxTestUtils.get_active_entry(self.preset_selection).name, "new preset"
+        )
         self.assertEqual(len(self.data_manager.active_preset), 0)
 
         # it creates the file for that right away. It may have been possible
@@ -1303,7 +1311,8 @@ class TestGui(GuiTestBase):
         # make sure a preset and mapping was loaded
         self.assertIsNotNone(self.data_manager.active_preset)
         self.assertEqual(
-            self.data_manager.active_preset.name, FlowBoxTestUtils.get_active_entry(self.preset_selection).name,
+            self.data_manager.active_preset.name,
+            FlowBoxTestUtils.get_active_entry(self.preset_selection).name,
         )
         self.assertIsNotNone(self.data_manager.active_mapping)
         self.assertEqual(
@@ -1353,13 +1362,18 @@ class TestGui(GuiTestBase):
         # check the initial state
         entries = {*FlowBoxTestUtils.get_child_names(self.preset_selection)}
         self.assertEqual(entries, {"preset1", "preset2", "preset3"})
-        self.assertEqual(FlowBoxTestUtils.get_active_entry(self.preset_selection).name, "preset3")
+        self.assertEqual(
+            FlowBoxTestUtils.get_active_entry(self.preset_selection).name, "preset3"
+        )
 
         self.copy_preset_btn.clicked()
         gtk_iteration()
         entries = {*FlowBoxTestUtils.get_child_names(self.preset_selection)}
         self.assertEqual(entries, {"preset1", "preset2", "preset3", "preset3 copy"})
-        self.assertEqual(FlowBoxTestUtils.get_active_entry(self.preset_selection).name, "preset3 copy")
+        self.assertEqual(
+            FlowBoxTestUtils.get_active_entry(self.preset_selection).name,
+            "preset3 copy",
+        )
 
         self.copy_preset_btn.clicked()
         gtk_iteration()
@@ -1621,7 +1635,9 @@ class TestGui(GuiTestBase):
 
     def test_refresh_groups(self):
         # sanity check: preset3 should be the newest
-        self.assertEqual(FlowBoxTestUtils.get_active_entry(self.preset_selection).name, "preset3")
+        self.assertEqual(
+            FlowBoxTestUtils.get_active_entry(self.preset_selection).name, "preset3"
+        )
 
         # select the older one
         FlowBoxTestUtils.set_active(self.preset_selection, "preset1")
@@ -1631,7 +1647,8 @@ class TestGui(GuiTestBase):
         # add a device that doesn't exist to the dropdown
         unknown_key = "key-1234"
         self.device_selection.insert(
-            DeviceGroupEntry(self.message_broker, self.controller, None, unknown_key), 0
+            DeviceGroupEntry(self.message_broker, self.controller, None, unknown_key),
+            0
             # 0, [unknown_key, None, "foo"]
         )
 
