@@ -19,7 +19,7 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 import unittest
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Union
 from unittest.mock import MagicMock
 import time
 
@@ -149,9 +149,14 @@ class FlowBoxTestUtils:
             flow_box_entry.set_active(flow_box_entry.name == name)
 
     @staticmethod
-    def get_active_entry(flow_box: Gtk.FlowBox) -> DeviceGroupEntry:
+    def get_active_entry(flow_box: Gtk.FlowBox) -> Union[DeviceGroupEntry, None]:
         """Find the currently selected DeviceGroupEntry."""
-        for child in flow_box.get_children():
+        children = flow_box.get_children()
+
+        if len(children) == 0:
+            return None
+
+        for child in children:
             flow_box_entry: FlowBoxEntry = child.get_children()[0]
 
             if flow_box_entry.get_active():

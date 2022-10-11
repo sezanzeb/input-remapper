@@ -750,7 +750,7 @@ class TestGui(GuiTestBase):
                 target_uinput="keyboard",
             ),
         )
-        self.assertEqual(FlowBoxTestUtils.get_active_entry(self.target_selection).name, "keyboard")
+        self.assertEqual(self.target_selection.get_active_id(), "keyboard")
         buffer = self.code_editor.get_buffer()
         self.assertEqual(
             buffer.get_text(buffer.get_start_iter(), buffer.get_end_iter(), True),
@@ -1543,10 +1543,8 @@ class TestGui(GuiTestBase):
         # the input-remapper device will not be shown
         self.controller.refresh_groups()
         gtk_iteration()
-
         for child in self.device_selection.get_children():
             device_group_entry = child.get_children()[0]
-            # whichever attribute contains "input-remapper"
             self.assertNotIn("input-remapper", device_group_entry.name)
 
     def test_stop_injecting(self):
