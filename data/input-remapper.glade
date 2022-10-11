@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.38.2 -->
+<!-- Generated with glade 3.40.0 -->
 <interface>
   <requires lib="gtk+" version="3.22"/>
   <requires lib="gtksourceview" version="4.0"/>
@@ -352,7 +352,6 @@ Gives your keys back their original function</property>
                             <property name="relief">none</property>
                             <property name="always-show-image">True</property>
                             <signal name="clicked" handler="on_create_preset_clicked" swapped="no"/>
-                            <accelerator key="n" signal="activate" modifiers="GDK_CONTROL_MASK"/>
                           </object>
                           <packing>
                             <property name="expand">True</property>
