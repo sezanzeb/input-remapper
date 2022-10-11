@@ -15,7 +15,7 @@ and add a mapping.
 Then you can already edit your inputs, as shown in the screenshots.
 
 In the text input field, type the key to which you would like to map this key.
-More information about the possible mappings can be found [below](#key-names).
+More information about the possible mappings can be found in [examples.md](./examples.md) and [below](#key-names).
 
 Changes are saved automatically. 
 Press the "Apply" button to activate (inject) the mapping you created.
