@@ -189,7 +189,6 @@
                         <property name="tooltip-text" translatable="yes">Create a new preset</property>
                         <property name="image">new-icon</property>
                         <property name="always-show-image">True</property>
-                        <accelerator key="n" signal="activate" modifiers="GDK_CONTROL_MASK"/>
                       </object>
                       <packing>
                         <property name="expand">False</property>

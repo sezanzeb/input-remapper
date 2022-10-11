@@ -93,6 +93,7 @@ class UserInterface:
             Gdk.KEY_q: self.controller.close,
             Gdk.KEY_r: self.controller.refresh_groups,
             Gdk.KEY_Delete: self.controller.stop_injecting,
+            Gdk.KEY_n: self.controller.add_preset,
         }
 
         # stores the ids for all the listeners attached to the gui
@@ -349,7 +350,7 @@ class UserInterface:
             recording_toggle.set_opacity(1)
 
     def disconnect_shortcuts(self):
-        """stop listening for shortcuts
+        """Stop listening for shortcuts.
 
         e.g. when recording key combinations
         """
@@ -359,7 +360,7 @@ class UserInterface:
             logger.debug("key listeners seem to be not connected")
 
     def connect_shortcuts(self):
-        """stop listening for shortcuts"""
+        """Start listening for shortcuts."""
         if not self.gtk_listeners.get(self.on_gtk_shortcut):
             self.gtk_listeners[self.on_gtk_shortcut] = self.window.connect(
                 "key-press-event", self.on_gtk_shortcut

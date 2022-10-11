@@ -80,34 +80,6 @@ from inputremapper.configs.mapping import MappingData
 from inputremapper.event_combination import EventCombination
 
 
-def destroy_widgets(func):
-    """Decorator to destroy all unreferenced widgets afterwards."""
-
-    def wrapped(self, *args, **kwargs):
-        unreferenced_widgets = []
-
-        def del_widget(widget: Gtk.Widget):
-            unreferenced_widgets.append(widget)
-
-        # __del__ has not been in use before this, so this is safe.
-        # by doing this, we can keep track of widgets without having
-        # to store them anywhere
-        Gtk.Widget.__del__ = del_widget
-
-        func(self, *args, **kwargs)
-
-        # clean up
-        for widget in unreferenced_widgets:
-            logger.info("destroying unreferenced %s", widget)
-            GLib.timeout_add(0, widget.destroy)
-
-        # restore back to doing nothing,
-        # otherwise segmentation faults appear later on
-        Gtk.Widget.__del__ = lambda: None
-
-    return wrapped
-
-
 class ComponentBaseTest(unittest.TestCase):
     """Test a gui component."""
 
