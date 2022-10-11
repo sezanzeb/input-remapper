@@ -248,8 +248,11 @@ VERSION = "1.6.0-beta"
 EVDEV_VERSION = None
 try:
     EVDEV_VERSION = pkg_resources.require("evdev")[0].version
-except pkg_resources.DistributionNotFound as error:
-    logger.info("Could not figure out the evdev version")
+except Exception as error:
+    # there have been pkg_resources.DistributionNotFound and
+    # pkg_resources.ContextualVersionConflict errors so far.
+    # We can safely ignore all Exceptions here
+    logger.info("Could not figure out the version")
     logger.debug(error)
 
 # check if the version is something like 1.5.0-beta or 1.5.0-beta.5
