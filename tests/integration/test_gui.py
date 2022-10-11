@@ -36,6 +36,7 @@ from tests.test import (
     fixtures,
     push_event,
 )
+from tests.integration.test_components import FlowBoxTestUtils
 
 import sys
 import time
@@ -232,24 +233,28 @@ class PatchedConfirmDelete:
     def __init__(self, user_interface: UserInterface, response=Gtk.ResponseType.ACCEPT):
         self.response = response
         self.user_interface = user_interface
+        self._original_create_dialog = user_interface._create_dialog
         self.patch = None
 
-    def _confirm_delete_run_patch(self):
+    def _create_dialog_patch(self, *args, **kwargs):
         """A patch for the deletion confirmation that briefly shows the dialog."""
-        confirm_cancel_dialog = self.user_interface.confirm_cancel_dialog
+        confirm_cancel_dialog = self._original_create_dialog(*args, **kwargs)
         # the emitted signal causes the dialog to close
         GLib.timeout_add(
             100,
             lambda: confirm_cancel_dialog.emit("response", self.response),
         )
         Gtk.MessageDialog.run(confirm_cancel_dialog)  # don't recursively call the patch
-        return self.response
+
+        confirm_cancel_dialog.run = lambda: self.response
+
+        return confirm_cancel_dialog
 
     def __enter__(self):
         self.patch = patch.object(
-            self.user_interface.get("confirm-cancel"),
-            "run",
-            self._confirm_delete_run_patch,
+            self.user_interface,
+            "_create_dialog",
+            self._create_dialog_patch,
         )
         self.patch.__enter__()
 
@@ -432,15 +437,15 @@ class TestGui(GuiTestBase):
         selection_labels = self.selection_label_listbox.get_children()
         self.assertEqual(len(selection_labels), 0)
         self.assertEqual(len(self.data_manager.active_preset), 0)
-        self.assertEqual(self.preset_selection.get_active_id(), "new preset")
-        self.assertEqual(self.recording_toggle.get_label(), "Record Input")
+        self.assertEqual(FlowBoxTestUtils.get_active_entry(self.preset_selection).name, "new preset")
+        self.assertEqual(self.recording_toggle.get_label(), "Record")
         self.assertEqual(self.get_unfiltered_symbol_input_text(), SET_KEY_FIRST)
 
     def test_initial_state(self):
         self.assertEqual(self.data_manager.active_group.key, "Foo Device")
         self.assertEqual(self.device_selection.get_active_id(), "Foo Device")
         self.assertEqual(self.data_manager.active_preset.name, "preset3")
-        self.assertEqual(self.preset_selection.get_active_id(), "preset3")
+        self.assertEqual(FlowBoxTestUtils.get_active_entry(self.preset_selection).name, "preset3")
         self.assertFalse(self.data_manager.get_autoload())
         self.assertFalse(self.autoload_toggle.get_active())
         self.assertEqual(
@@ -482,7 +487,8 @@ class TestGui(GuiTestBase):
         self.assertFalse(self.autoload_toggle.get_active())
 
         self.click_on_group("Foo Device 2")
-        self.preset_selection.set_active_id("preset2")
+        FlowBoxTestUtils.set_active(self.preset_selection, "preset2")
+        
         gtk_iteration()
         self.assertTrue(self.data_manager.get_autoload())
         self.assertTrue(self.autoload_toggle.get_active())
@@ -492,16 +498,16 @@ class TestGui(GuiTestBase):
         self.assertFalse(self.autoload_toggle.get_active())
 
         self.click_on_group("Foo Device 2")
-        self.preset_selection.set_active_id("preset2")
+        FlowBoxTestUtils.set_active(self.preset_selection, "preset2")
         gtk_iteration()
         self.assertTrue(self.data_manager.get_autoload())
         self.assertTrue(self.autoload_toggle.get_active())
 
-        self.preset_selection.set_active_id("preset3")
+        FlowBoxTestUtils.set_active(self.preset_selection, "preset3")
         gtk_iteration()
         self.autoload_toggle.set_active(True)
         gtk_iteration()
-        self.preset_selection.set_active_id("preset2")
+        FlowBoxTestUtils.set_active(self.preset_selection, "preset2")
         gtk_iteration()
         self.assertFalse(self.data_manager.get_autoload())
         self.assertFalse(self.autoload_toggle.get_active())
@@ -527,7 +533,7 @@ class TestGui(GuiTestBase):
     def test_select_device_without_preset(self):
         # creates a new empty preset when no preset exists for the device
         self.click_on_group("Bar Device")
-        self.assertEqual(self.preset_selection.get_active_id(), "new preset")
+        self.assertEqual(FlowBoxTestUtils.get_active_entry(self.preset_selection).name, "new preset")
         self.assertEqual(len(self.data_manager.active_preset), 0)
 
         # it creates the file for that right away. It may have been possible
@@ -1282,13 +1288,13 @@ class TestGui(GuiTestBase):
         self.click_on_group("Bar Device")
         gtk_iteration()
 
-        entries = {entry[0] for entry in self.preset_selection.get_child().get_model()}
+        entries = {*FlowBoxTestUtils.get_child_names(self.preset_selection)}
         self.assertEqual(entries, {"new preset"})
 
         self.click_on_group("Foo Device")
         gtk_iteration()
 
-        entries = {entry[0] for entry in self.preset_selection.get_child().get_model()}
+        entries = {*FlowBoxTestUtils.get_child_names(self.preset_selection)}
         self.assertEqual(entries, {"preset1", "preset2", "preset3"})
 
         # make sure a preset and mapping was loaded
@@ -1307,7 +1313,7 @@ class TestGui(GuiTestBase):
         # more detailed tests in TestController and TestDataManager
         self.click_on_group("Foo Device 2")
         gtk_iteration()
-        self.preset_selection.set_active_id("preset1")
+        FlowBoxTestUtils.set_active(self.preset_selection, "preset1")
         gtk_iteration()
 
         mappings = {
@@ -1322,7 +1328,7 @@ class TestGui(GuiTestBase):
         )
         self.assertFalse(self.autoload_toggle.get_active())
 
-        self.preset_selection.set_active_id("preset2")
+        FlowBoxTestUtils.set_active(self.preset_selection, "preset2")
         gtk_iteration()
 
         mappings = {
@@ -1342,20 +1348,20 @@ class TestGui(GuiTestBase):
         # more detailed tests in TestController and TestDataManager
 
         # check the initial state
-        entries = {entry[0] for entry in self.preset_selection.get_child().get_model()}
+        entries = {*FlowBoxTestUtils.get_child_names(self.preset_selection)}
         self.assertEqual(entries, {"preset1", "preset2", "preset3"})
-        self.assertEqual(self.preset_selection.get_active_id(), "preset3")
+        self.assertEqual(FlowBoxTestUtils.get_active_entry(self.preset_selection).name, "preset3")
 
         self.copy_preset_btn.clicked()
         gtk_iteration()
-        entries = {entry[0] for entry in self.preset_selection.get_child().get_model()}
+        entries = {*FlowBoxTestUtils.get_child_names(self.preset_selection)}
         self.assertEqual(entries, {"preset1", "preset2", "preset3", "preset3 copy"})
-        self.assertEqual(self.preset_selection.get_active_id(), "preset3 copy")
+        self.assertEqual(FlowBoxTestUtils.get_active_entry(self.preset_selection).name, "preset3 copy")
 
         self.copy_preset_btn.clicked()
         gtk_iteration()
 
-        entries = {entry[0] for entry in self.preset_selection.get_child().get_model()}
+        entries = {*FlowBoxTestUtils.get_child_names(self.preset_selection)}
         self.assertEqual(
             entries, {"preset1", "preset2", "preset3", "preset3 copy", "preset3 copy 2"}
         )
@@ -1595,7 +1601,6 @@ class TestGui(GuiTestBase):
 
     def test_delete_preset(self):
         # as per test_initial_state we already have preset3 loaded
-
         self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset3")))
 
         with PatchedConfirmDelete(self.user_interface, Gtk.ResponseType.CANCEL):
@@ -1614,10 +1619,10 @@ class TestGui(GuiTestBase):
 
     def test_refresh_groups(self):
         # sanity check: preset3 should be the newest
-        self.assertEqual(self.preset_selection.get_active_id(), "preset3")
+        self.assertEqual(FlowBoxTestUtils.get_active_entry(self.preset_selection).name, "preset3")
 
         # select the older one
-        self.preset_selection.set_active_id("preset1")
+        FlowBoxTestUtils.set_active(self.preset_selection, "preset1")
         gtk_iteration()
         self.assertEqual(self.data_manager.active_preset.name, "preset1")
 
@@ -1678,6 +1683,7 @@ class TestGui(GuiTestBase):
     def test_delete_last_preset(self):
         with PatchedConfirmDelete(self.user_interface):
             # as per test_initial_state we already have preset3 loaded
+            self.assertEqual(self.data_manager.active_preset.name, "preset3")
 
             self.delete_preset_btn.clicked()
             gtk_iteration()

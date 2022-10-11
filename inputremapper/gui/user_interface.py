@@ -49,10 +49,10 @@ from inputremapper.gui.components.editor import (
 )
 from inputremapper.gui.components.presets import PresetSelection
 from inputremapper.gui.components.main import Stack, StatusBar
-from inputremapper.gui.components.common import ConfirmCancelDialog, Breadcrumbs
+from inputremapper.gui.components.common import Breadcrumbs
 from inputremapper.gui.components.device_groups import DeviceGroupSelection
 from inputremapper.gui.controller import Controller
-from inputremapper.gui.message_broker import MessageBroker, MessageType
+from inputremapper.gui.message_broker import MessageBroker, MessageType, UserConfirmRequest
 from inputremapper.gui.utils import (
     gtk_iteration,
 )
@@ -99,7 +99,6 @@ class UserInterface:
         self.builder = Gtk.Builder()
         self._build_ui()
         self.window: Gtk.Window = self.get("window")
-        self.confirm_cancel_dialog: Gtk.MessageDialog = self.get("confirm-cancel")
         self.about: Gtk.Window = self.get("about-dialog")
         self.combination_editor: Gtk.Dialog = self.get("combination-editor")
 
@@ -179,7 +178,6 @@ class UserInterface:
             message_broker, controller, self.get("input-cutoff-spin-btn")
         )
         OutputAxisSelector(message_broker, controller, self.get("output-axis-selector"))
-        ConfirmCancelDialog(message_broker, controller, self.window)
         KeyAxisStackSwitcher(
             message_broker,
             controller,
@@ -289,6 +287,43 @@ class UserInterface:
         self.message_broker.subscribe(
             MessageType.injector_state, self.on_injector_state_msg
         )
+        self.message_broker.subscribe(
+            MessageType.user_confirm_request, self._on_user_confirm_request
+        )
+
+    def _create_dialog(self, primary: str, secondary: str) -> Gtk.MessageDialog:
+        """Create a message dialog with cancel and confirm buttons."""
+        message_dialog = Gtk.MessageDialog(
+            self.window,
+            Gtk.DialogFlags.MODAL | Gtk.DialogFlags.DESTROY_WITH_PARENT,
+            Gtk.MessageType.QUESTION,
+            Gtk.ButtonsType.NONE,
+            primary,
+        )
+
+        if secondary:
+            message_dialog.format_secondary_text(secondary)
+
+        message_dialog.add_button("Cancel", Gtk.ResponseType.CANCEL)
+
+        confirm_button = message_dialog.add_button("Confirm", Gtk.ResponseType.ACCEPT)
+        confirm_button.get_style_context().add_class(Gtk.STYLE_CLASS_DESTRUCTIVE_ACTION)
+
+        return message_dialog
+
+    def _on_user_confirm_request(self, msg: UserConfirmRequest):
+        # if the message contains a line-break, use the first chunk for the primary
+        # message, and the rest for the secondary message.
+        chunks = msg.msg.split("\n")
+        primary = chunks[0]
+        secondary = " ".join(chunks[1:])
+
+        message_dialog = self._create_dialog(primary, secondary)
+
+        response = message_dialog.run()
+        msg.respond(response == Gtk.ResponseType.ACCEPT)
+
+        message_dialog.hide()
 
     def on_injector_state_msg(self, msg: InjectorState):
         """update the ui to reflect the status of the injector"""

@@ -119,52 +119,6 @@ class FlowBoxWrapper:
             flow_box_entry.show_active(flow_box_entry.name == name)
 
 
-class ConfirmCancelDialog:
-    """the dialog shown to the user to query a confirm or cancel action form the user"""
-
-    def __init__(
-        self,
-        message_broker: MessageBroker,
-        controller: Controller,
-        window: Gtk.Window,
-    ):
-        self._message_broker = message_broker
-        self._controller = controller
-        self.window = window
-
-        self._message_broker.subscribe(
-            MessageType.user_confirm_request, self._on_user_confirm_request
-        )
-
-    def _on_user_confirm_request(self, msg: UserConfirmRequest):
-        # if the message contains a line-break, use the first chunk for the primary
-        # message, and the rest for the secondary message.
-        chunks = msg.msg.split("\n")
-        primary = chunks[0]
-        secondary = " ".join(chunks[1:])
-
-        message_dialog = Gtk.MessageDialog(
-            self.window,
-            Gtk.DialogFlags.MODAL | Gtk.DialogFlags.DESTROY_WITH_PARENT,
-            Gtk.MessageType.QUESTION,
-            Gtk.ButtonsType.NONE,
-            primary,
-        )
-
-        if secondary:
-            message_dialog.format_secondary_text(secondary)
-
-        message_dialog.add_button("Cancel", Gtk.ResponseType.CANCEL)
-
-        confirm_button = message_dialog.add_button("Confirm", Gtk.ResponseType.ACCEPT)
-        confirm_button.get_style_context().add_class(Gtk.STYLE_CLASS_DESTRUCTIVE_ACTION)
-
-        response = message_dialog.run()
-        msg.respond(response == Gtk.ResponseType.ACCEPT)
-
-        message_dialog.hide()
-
-
 # TODO test
 class Breadcrumbs:
     """Writes a breadcrumbs string into a given label."""
