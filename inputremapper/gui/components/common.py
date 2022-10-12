@@ -42,7 +42,6 @@ from inputremapper.gui.message_broker import (
 from inputremapper.gui.utils import HandlerDisabled
 
 
-# TODO test
 class FlowBoxEntry(Gtk.ToggleButton):
     """A device that can be selected in the GUI.
 
@@ -104,7 +103,6 @@ class FlowBoxEntry(Gtk.ToggleButton):
             self.set_active(active)
 
 
-# TODO test
 class FlowBoxWrapper:
     """A wrapper for a flowbox that contains FlowBoxEntry widgets."""
 
@@ -118,7 +116,6 @@ class FlowBoxWrapper:
             flow_box_entry.show_active(flow_box_entry.name == name)
 
 
-# TODO test
 class Breadcrumbs:
     """Writes a breadcrumbs string into a given label."""
 
@@ -145,6 +142,8 @@ class Breadcrumbs:
         label.set_max_width_chars(50)
         label.set_line_wrap(True)
         label.set_line_wrap_mode(2)
+
+        self._render()
 
     def _connect_message_listener(self):
         self._message_broker.subscribe(MessageType.group, self._on_group_changed)
@@ -173,12 +172,12 @@ class Breadcrumbs:
         label = []
 
         if self.show_device_group:
-            label.append(self._group_key)
+            label.append(self._group_key or "?")
 
         if self.show_preset:
-            label.append(self._preset_name)
+            label.append(self._preset_name or "?")
 
         if self.show_mapping:
-            label.append(self._mapping_name)
+            label.append(self._mapping_name or "?")
 
         self._gui.set_label("  /  ".join(label))

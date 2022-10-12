@@ -45,7 +45,7 @@ from inputremapper.injection.macros.parse import is_this_a_macro, parse
 from inputremapper.input_event import EventActions
 
 # TODO: remove pydantic VERSION check as soon as we no longer support
-#  Ubuntu 20.04 and with it the ainchant pydantic 1.2
+#  Ubuntu 20.04 and with it the ancient pydantic 1.2
 
 needs_workaround = pkg_resources.parse_version(
     str(VERSION)
@@ -182,7 +182,6 @@ class UIMapping(BaseModel):
 
     def has_input_defined(self) -> bool:
         """Whether this mapping defines an event-input."""
-        # TODO test
         return self.event_combination != EventCombination.empty_combination()
 
     def is_axis_mapping(self) -> bool:

@@ -64,7 +64,6 @@ from inputremapper.injection.injector import InjectorState
 from inputremapper.logger import logger, COMMIT_HASH, VERSION, EVDEV_VERSION
 from inputremapper.gui.gettext import _
 
-# TODO add to .deb and AUR dependencies
 # https://cjenkins.wordpress.com/2012/05/08/use-gtksourceview-widget-in-glade/
 GObject.type_register(GtkSource.View)
 # GtkSource.View() also works:

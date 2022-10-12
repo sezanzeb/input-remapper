@@ -27,9 +27,6 @@ import evdev
 from evdev.ecodes import KEY_A, KEY_B, KEY_C
 import gi
 
-# TODO required?
-import inputremapper.gui.components.main
-
 gi.require_version("Gtk", "3.0")
 gi.require_version("GLib", "2.0")
 gi.require_version("GtkSource", "4")
@@ -70,7 +67,7 @@ from inputremapper.gui.components.editor import (
     RecordingStatus,
 )
 from inputremapper.gui.components.main import StatusBar
-from inputremapper.gui.components.common import FlowBoxEntry
+from inputremapper.gui.components.common import FlowBoxEntry, Breadcrumbs
 from inputremapper.gui.components.presets import PresetSelection
 from inputremapper.gui.components.device_groups import (
     DeviceGroupEntry,
@@ -94,7 +91,7 @@ class ComponentBaseTest(unittest.TestCase):
         for attribute in dir(self):
             stuff = getattr(self, attribute, None)
             if isinstance(stuff, Gtk.Widget):
-                logger.info("destroying member %s", stuff)
+                logger.info('destroying member "%s" %s', attribute, stuff)
                 GLib.timeout_add(0, stuff.destroy)
                 setattr(self, attribute, None)
 
@@ -204,7 +201,6 @@ class TestDeviceGroupSelection(ComponentBaseTest):
         self.assertEqual(group_keys, ["kuu", "qux"])
         self.assertEqual(icons, ["input-keyboard", "input-gaming"])
 
-    # TODO replicate this test for the presets flowbox
     def test_selects_correct_device(self):
         self.message_broker.send(GroupData("bar", ()))
         self.assertEqual(FlowBoxTestUtils.get_active_entry(self.gui).group_key, "bar")
@@ -1406,3 +1402,61 @@ class TestRelativeInputCutoffInput(ComponentBaseTest):
             )
         )
         self.assert_active()
+
+
+class TestBreadcrumbs(ComponentBaseTest):
+    def test_breadcrumbs(self):
+        self.label_1 = Gtk.Label()
+        self.label_2 = Gtk.Label()
+        self.label_3 = Gtk.Label()
+        self.label_4 = Gtk.Label()
+        self.label_5 = Gtk.Label()
+
+        Breadcrumbs(self.message_broker, self.label_1, show_device_group=False, show_preset=False, show_mapping=False)
+        Breadcrumbs(self.message_broker, self.label_2, show_device_group=True, show_preset=False, show_mapping=False)
+        Breadcrumbs(self.message_broker, self.label_3, show_device_group=True, show_preset=True, show_mapping=False)
+        Breadcrumbs(self.message_broker, self.label_4, show_device_group=True, show_preset=True, show_mapping=True)
+        Breadcrumbs(self.message_broker, self.label_5, show_device_group=False, show_preset=False, show_mapping=True)
+
+        self.assertEqual(self.label_1.get_text(), "")
+        self.assertEqual(self.label_2.get_text(), "?")
+        self.assertEqual(self.label_3.get_text(), "?  /  ?")
+        self.assertEqual(self.label_4.get_text(), "?  /  ?  /  ?")
+        self.assertEqual(self.label_5.get_text(), "?")
+
+        self.message_broker.send(GroupData("foo_group", ()))
+
+        self.assertEqual(self.label_1.get_text(), "")
+        self.assertEqual(self.label_2.get_text(), "foo_group")
+        self.assertEqual(self.label_3.get_text(), "foo_group  /  ?")
+        self.assertEqual(self.label_4.get_text(), "foo_group  /  ?  /  ?")
+        self.assertEqual(self.label_5.get_text(), "?")
+
+        self.message_broker.send(PresetData("foo_preset", None))
+
+        self.assertEqual(self.label_1.get_text(), "")
+        self.assertEqual(self.label_2.get_text(), "foo_group")
+        self.assertEqual(self.label_3.get_text(), "foo_group  /  foo_preset")
+        self.assertEqual(self.label_4.get_text(), "foo_group  /  foo_preset  /  ?")
+        self.assertEqual(self.label_5.get_text(), "?")
+
+        self.message_broker.send(MappingData())
+
+        self.assertEqual(self.label_1.get_text(), "")
+        self.assertEqual(self.label_2.get_text(), "foo_group")
+        self.assertEqual(self.label_3.get_text(), "foo_group  /  foo_preset")
+        self.assertEqual(self.label_4.get_text(), "foo_group  /  foo_preset  /  empty mapping")
+        self.assertEqual(self.label_5.get_text(), "empty mapping")
+
+        self.message_broker.send(MappingData(name="bar"))
+        self.assertEqual(self.label_4.get_text(), "foo_group  /  foo_preset  /  bar")
+        self.assertEqual(self.label_5.get_text(), "bar")
+
+        self.message_broker.send(MappingData(event_combination=EventCombination([(1, KEY_A, 1), (1, KEY_B, 1)])))
+        self.assertEqual(self.label_4.get_text(), "foo_group  /  foo_preset  /  a + b")
+        self.assertEqual(self.label_5.get_text(), "a + b")
+
+        self.message_broker.send(MappingData(name="qux", event_combination=EventCombination([(1, KEY_A, 1)])))
+        self.assertEqual(self.label_4.get_text(), "foo_group  /  foo_preset  /  qux")
+        self.assertEqual(self.label_5.get_text(), "qux")
+

@@ -401,6 +401,12 @@ class TestUIMapping(unittest.IsolatedAsyncioTestCase):
         m.output_symbol = "a"
         self.assertEqual(m.output_symbol, "a")
 
+    def test_has_input_defined(self):
+        m = UIMapping()
+        self.assertFalse(m.has_input_defined())
+        m.output_symbol = "a"
+        self.assertTrue(m.has_input_defined())
+
 
 if __name__ == "__main__":
     unittest.main()
