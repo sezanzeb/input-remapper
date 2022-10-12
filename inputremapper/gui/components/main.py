@@ -36,7 +36,6 @@ from inputremapper.gui.message_broker import (
 from inputremapper.gui.utils import CTX_ERROR, CTX_MAPPING, CTX_WARNING
 
 
-# TODO test
 class Stack:
     """Wraps the Stack, which contains the main menu pages."""
 

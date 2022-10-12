@@ -404,7 +404,7 @@ class TestUIMapping(unittest.IsolatedAsyncioTestCase):
     def test_has_input_defined(self):
         m = UIMapping()
         self.assertFalse(m.has_input_defined())
-        m.output_symbol = "a"
+        m.event_combination = EventCombination((EV_KEY, 1, 1))
         self.assertTrue(m.has_input_defined())
 
 

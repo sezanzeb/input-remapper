@@ -620,6 +620,23 @@ class TestController(unittest.TestCase):
         self.controller.stop_key_recording()
         self.user_interface.connect_shortcuts.assert_called_once()
 
+    def test_recording_messages(self):
+        mock1 = MagicMock()
+        mock2 = MagicMock()
+        self.message_broker.subscribe(MessageType.recording_started, mock1)
+        self.message_broker.subscribe(MessageType.recording_finished, mock2)
+
+        self.message_broker.signal(MessageType.init)
+        self.controller.start_key_recording()
+
+        mock1.assert_called_once()
+        mock2.assert_not_called()
+
+        self.controller.stop_key_recording()
+
+        mock1.assert_called_once()
+        mock2.assert_called_once()
+
     def test_key_recording_updates_mapping_combination(self):
         prepare_presets()
         self.data_manager.load_group("Foo Device 2")

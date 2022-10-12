@@ -348,18 +348,6 @@ class GuiTestBase(unittest.TestCase):
             gtk_iteration()
             time.sleep(0.002)
 
-    def activate_recording_toggle(self):
-        logger.info("Activating the recording toggle")
-        self.recording_toggle.set_active(True)
-        gtk_iteration()
-
-    def disable_recording_toggle(self):
-        logger.info("Deactivating the recording toggle")
-        self.recording_toggle.set_active(False)
-        gtk_iteration()
-        # should happen automatically:
-        self.assertFalse(self.recording_toggle.get_active())
-
     def set_focus(self, widget):
         logger.info("Focusing %s", widget)
 
@@ -584,9 +572,12 @@ class TestGui(GuiTestBase):
         gtk_iteration()
         mock1 = MagicMock()
         mock2 = MagicMock()
+        mock3 = MagicMock()
         self.message_broker.subscribe(MessageType.combination_recorded, mock1)
         self.message_broker.subscribe(MessageType.recording_finished, mock2)
+        self.message_broker.subscribe(MessageType.recording_started, mock3)
         self.recording_toggle.set_active(True)
+        mock3.assert_called_once()
         gtk_iteration()
 
         push_events(
@@ -617,6 +608,7 @@ class TestGui(GuiTestBase):
         mock2.assert_called_once()
 
         self.assertFalse(self.recording_toggle.get_active())
+        mock3.assert_called_once()
 
     def test_cannot_create_duplicate_event_combination(self):
         # load a device with more capabilities

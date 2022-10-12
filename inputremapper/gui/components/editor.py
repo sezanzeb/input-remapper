@@ -383,39 +383,50 @@ class CodeEditor:
         self._controller.set_focus(self.gui)
 
 
-# TODO test
 class RequireActiveMapping:
     """Disable the widget if no mapping is selected."""
 
     def __init__(
         self,
         message_broker: MessageBroker,
-        controller: Controller,
         widget: Gtk.ToggleButton,
         require_recorded_input: False,
     ):
         self._widget = widget
         self._default_tooltip = self._widget.get_tooltip_text()
         self._require_recorded_input = require_recorded_input
-        self._controller = controller
 
-        message_broker.subscribe(MessageType.preset, self._check)
-        message_broker.subscribe(MessageType.mapping, self._check)
+        self._active_preset = None
+        self._active_mapping = None
 
+        message_broker.subscribe(MessageType.preset, self._on_preset)
+        message_broker.subscribe(MessageType.mapping, self._on_mapping)
+
+    def _on_preset(self, preset_data: PresetData):
+        self._active_preset = preset_data
+        self._check()
+
+    def _on_mapping(self, mapping_data: MappingData):
+        self._active_mapping = mapping_data
         self._check()
 
     def _check(self, *__):
-        active_preset = self._controller.data_manager.active_preset
-
-        if not active_preset or len(active_preset) == 0:
+        if not self._active_preset or len(self._active_preset.mappings) == 0:
             self._disable()
             self._widget.set_tooltip_text(_("Add a mapping first"))
-        elif self._require_recorded_input and self._controller.is_empty_mapping():
+            return
+
+        if (
+            self._require_recorded_input
+            and self._active_mapping
+            and not self._active_mapping.has_input_defined()
+        ):
             self._disable()
             self._widget.set_tooltip_text(_("Record input first"))
-        else:
-            self._enable()
-            self._widget.set_tooltip_text(self._default_tooltip)
+            return
+
+        self._enable()
+        self._widget.set_tooltip_text(self._default_tooltip)
 
     def _enable(self):
         self._widget.set_sensitive(True)
@@ -452,7 +463,6 @@ class RecordingToggle:
 
         RequireActiveMapping(
             message_broker,
-            controller,
             toggle,
             require_recorded_input=False,
         )
@@ -468,7 +478,6 @@ class RecordingToggle:
             self._gui.set_active(False)
 
 
-# TODO test, maybe integrate into TestRecordingToggle
 class RecordingStatus:
     """Displays if keys are being recorded for a mapping."""
 

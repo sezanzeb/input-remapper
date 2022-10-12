@@ -44,6 +44,7 @@ from inputremapper.gui.message_broker import (
     PresetData,
     CombinationUpdate,
     StatusData,
+    DoStackSwitch,
 )
 from inputremapper.groups import DeviceType
 from inputremapper.gui.components.editor import (
@@ -65,8 +66,9 @@ from inputremapper.gui.components.editor import (
     TransformationDrawArea,
     RelativeInputCutoffInput,
     RecordingStatus,
+    RequireActiveMapping,
 )
-from inputremapper.gui.components.main import StatusBar
+from inputremapper.gui.components.main import Stack, StatusBar
 from inputremapper.gui.components.common import FlowBoxEntry, Breadcrumbs
 from inputremapper.gui.components.presets import PresetSelection
 from inputremapper.gui.components.device_groups import (
@@ -261,19 +263,6 @@ class TestTargetSelection(ComponentBaseTest):
     def test_avoids_infinite_recursion(self):
         self.message_broker.send(MappingData(target_uinput="baz"))
         self.controller_mock.update_mapping.assert_not_called()
-
-    # TODO test this for the wrapping component that is disabled instead
-    """def test_disabled_with_invalid_mapping(self):
-        self.controller_mock.is_empty_mapping.return_value = True
-        self.message_broker.send(MappingData())
-        self.assertFalse(self.gui.get_sensitive())
-        self.assertLess(self.gui.get_opacity(), 0.8)
-
-    def test_enabled_with_valid_mapping(self):
-        self.controller_mock.is_empty_mapping.return_value = False
-        self.message_broker.send(MappingData())
-        self.assertTrue(self.gui.get_sensitive())
-        self.assertEqual(self.gui.get_opacity(), 1)"""
 
 
 class TestPresetSelection(ComponentBaseTest):
@@ -619,13 +608,6 @@ class TestCodeEditor(ComponentBaseTest):
         self.controller_mock.is_empty_mapping.return_value = True
         self.message_broker.send(MappingData(output_symbol="foo"))
         self.assertEqual(self.get_text(), "Record the input first")
-
-    # TODO test affects the wrapping box, not the individual components anymore
-    """def test_inactive_when_mapping_is_empty(self):
-        self.controller_mock.is_empty_mapping.return_value = True
-        self.message_broker.send(MappingData(output_symbol="foo"))
-        self.assertFalse(self.gui.get_sensitive())
-        self.assertLess(self.gui.get_opacity(), 0.6)"""
 
     def test_active_when_mapping_is_not_empty(self):
         self.message_broker.send(MappingData(output_symbol="foo"))
@@ -1404,6 +1386,88 @@ class TestRelativeInputCutoffInput(ComponentBaseTest):
         self.assert_active()
 
 
+class TestRequireActiveMapping(ComponentBaseTest):
+    def test_no_reqorded_input_required(self):
+        self.box = Gtk.Box()
+        RequireActiveMapping(
+            self.message_broker,
+            self.box,
+            require_recorded_input=False,
+        )
+        combination = EventCombination([(1, KEY_A, 1)])
+
+        self.message_broker.send(MappingData())
+        self.assert_inactive(self.box)
+
+        self.message_broker.send(PresetData(name="preset", mappings=()))
+        self.assert_inactive(self.box)
+
+        # a mapping is available, that is all the widget needs to be activated. one
+        # mapping is always selected, so there is no need to check the mapping message
+        self.message_broker.send(PresetData(name="preset", mappings=(combination,)))
+        self.assert_active(self.box)
+
+        self.message_broker.send(MappingData(event_combination=combination))
+        self.assert_active(self.box)
+
+        self.message_broker.send(MappingData())
+        self.assert_active(self.box)
+
+    def test_reqorded_input_required(self):
+        self.box = Gtk.Box()
+        RequireActiveMapping(
+            self.message_broker,
+            self.box,
+            require_recorded_input=True,
+        )
+        combination = EventCombination([(1, KEY_A, 1)])
+
+        self.message_broker.send(MappingData())
+        self.assert_inactive(self.box)
+
+        self.message_broker.send(PresetData(name="preset", mappings=()))
+        self.assert_inactive(self.box)
+
+        self.message_broker.send(PresetData(name="preset", mappings=(combination,)))
+        self.assert_inactive(self.box)
+
+        # the widget will be enabled once a mapping with recorded input is selected
+        self.message_broker.send(MappingData(event_combination=combination))
+        self.assert_active(self.box)
+
+        # this mapping doesn't have input recorded, so the box is disabled
+        self.message_broker.send(MappingData())
+        self.assert_inactive(self.box)
+
+    def assert_inactive(self, widget: Gtk.Widget):
+        self.assertFalse(widget.get_sensitive())
+        self.assertLess(widget.get_opacity(), 0.6)
+        self.assertGreater(widget.get_opacity(), 0.4)
+
+    def assert_active(self, widget: Gtk.Widget):
+        self.assertTrue(widget.get_sensitive())
+        self.assertEqual(widget.get_opacity(), 1)
+
+
+class TestStack(ComponentBaseTest):
+    def test_switches_pages(self):
+        self.stack = Gtk.Stack()
+        self.stack.add_named(Gtk.Label(), "Devices")
+        self.stack.add_named(Gtk.Label(), "Presets")
+        self.stack.add_named(Gtk.Label(), "Editor")
+        self.stack.show_all()
+        stack_wrapper = Stack(self.message_broker, self.controller_mock, self.stack)
+
+        self.message_broker.send(DoStackSwitch(Stack.devices_page))
+        self.assertEqual(self.stack.get_visible_child_name(), "Devices")
+
+        self.message_broker.send(DoStackSwitch(Stack.presets_page))
+        self.assertEqual(self.stack.get_visible_child_name(), "Presets")
+
+        self.message_broker.send(DoStackSwitch(Stack.editor_page))
+        self.assertEqual(self.stack.get_visible_child_name(), "Editor")
+
+
 class TestBreadcrumbs(ComponentBaseTest):
     def test_breadcrumbs(self):
         self.label_1 = Gtk.Label()
@@ -1412,11 +1476,41 @@ class TestBreadcrumbs(ComponentBaseTest):
         self.label_4 = Gtk.Label()
         self.label_5 = Gtk.Label()
 
-        Breadcrumbs(self.message_broker, self.label_1, show_device_group=False, show_preset=False, show_mapping=False)
-        Breadcrumbs(self.message_broker, self.label_2, show_device_group=True, show_preset=False, show_mapping=False)
-        Breadcrumbs(self.message_broker, self.label_3, show_device_group=True, show_preset=True, show_mapping=False)
-        Breadcrumbs(self.message_broker, self.label_4, show_device_group=True, show_preset=True, show_mapping=True)
-        Breadcrumbs(self.message_broker, self.label_5, show_device_group=False, show_preset=False, show_mapping=True)
+        Breadcrumbs(
+            self.message_broker,
+            self.label_1,
+            show_device_group=False,
+            show_preset=False,
+            show_mapping=False,
+        )
+        Breadcrumbs(
+            self.message_broker,
+            self.label_2,
+            show_device_group=True,
+            show_preset=False,
+            show_mapping=False,
+        )
+        Breadcrumbs(
+            self.message_broker,
+            self.label_3,
+            show_device_group=True,
+            show_preset=True,
+            show_mapping=False,
+        )
+        Breadcrumbs(
+            self.message_broker,
+            self.label_4,
+            show_device_group=True,
+            show_preset=True,
+            show_mapping=True,
+        )
+        Breadcrumbs(
+            self.message_broker,
+            self.label_5,
+            show_device_group=False,
+            show_preset=False,
+            show_mapping=True,
+        )
 
         self.assertEqual(self.label_1.get_text(), "")
         self.assertEqual(self.label_2.get_text(), "?")
@@ -1424,39 +1518,40 @@ class TestBreadcrumbs(ComponentBaseTest):
         self.assertEqual(self.label_4.get_text(), "?  /  ?  /  ?")
         self.assertEqual(self.label_5.get_text(), "?")
 
-        self.message_broker.send(GroupData("foo_group", ()))
+        self.message_broker.send(PresetData("preset", None))
 
         self.assertEqual(self.label_1.get_text(), "")
-        self.assertEqual(self.label_2.get_text(), "foo_group")
-        self.assertEqual(self.label_3.get_text(), "foo_group  /  ?")
-        self.assertEqual(self.label_4.get_text(), "foo_group  /  ?  /  ?")
+        self.assertEqual(self.label_2.get_text(), "?")
+        self.assertEqual(self.label_3.get_text(), "?  /  preset")
+        self.assertEqual(self.label_4.get_text(), "?  /  preset  /  ?")
         self.assertEqual(self.label_5.get_text(), "?")
 
-        self.message_broker.send(PresetData("foo_preset", None))
+        self.message_broker.send(GroupData("group", ()))
 
         self.assertEqual(self.label_1.get_text(), "")
-        self.assertEqual(self.label_2.get_text(), "foo_group")
-        self.assertEqual(self.label_3.get_text(), "foo_group  /  foo_preset")
-        self.assertEqual(self.label_4.get_text(), "foo_group  /  foo_preset  /  ?")
+        self.assertEqual(self.label_2.get_text(), "group")
+        self.assertEqual(self.label_3.get_text(), "group  /  preset")
+        self.assertEqual(self.label_4.get_text(), "group  /  preset  /  ?")
         self.assertEqual(self.label_5.get_text(), "?")
 
         self.message_broker.send(MappingData())
 
         self.assertEqual(self.label_1.get_text(), "")
-        self.assertEqual(self.label_2.get_text(), "foo_group")
-        self.assertEqual(self.label_3.get_text(), "foo_group  /  foo_preset")
-        self.assertEqual(self.label_4.get_text(), "foo_group  /  foo_preset  /  empty mapping")
+        self.assertEqual(self.label_2.get_text(), "group")
+        self.assertEqual(self.label_3.get_text(), "group  /  preset")
+        self.assertEqual(self.label_4.get_text(), "group  /  preset  /  empty mapping")
         self.assertEqual(self.label_5.get_text(), "empty mapping")
 
-        self.message_broker.send(MappingData(name="bar"))
-        self.assertEqual(self.label_4.get_text(), "foo_group  /  foo_preset  /  bar")
-        self.assertEqual(self.label_5.get_text(), "bar")
+        self.message_broker.send(MappingData(name="mapping"))
+        self.assertEqual(self.label_4.get_text(), "group  /  preset  /  mapping")
+        self.assertEqual(self.label_5.get_text(), "mapping")
 
-        self.message_broker.send(MappingData(event_combination=EventCombination([(1, KEY_A, 1), (1, KEY_B, 1)])))
-        self.assertEqual(self.label_4.get_text(), "foo_group  /  foo_preset  /  a + b")
+        combination = EventCombination([(1, KEY_A, 1), (1, KEY_B, 1)])
+        self.message_broker.send(MappingData(event_combination=combination))
+        self.assertEqual(self.label_4.get_text(), "group  /  preset  /  a + b")
         self.assertEqual(self.label_5.get_text(), "a + b")
 
-        self.message_broker.send(MappingData(name="qux", event_combination=EventCombination([(1, KEY_A, 1)])))
-        self.assertEqual(self.label_4.get_text(), "foo_group  /  foo_preset  /  qux")
+        combination = EventCombination([(1, KEY_A, 1)])
+        self.message_broker.send(MappingData(name="qux", event_combination=combination))
+        self.assertEqual(self.label_4.get_text(), "group  /  preset  /  qux")
         self.assertEqual(self.label_5.get_text(), "qux")
-

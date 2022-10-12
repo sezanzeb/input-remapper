@@ -1,13 +1,13 @@
 import unittest
-from unittest.mock import MagicMock, patch
-from evdev.ecodes import EV_KEY, KEY_A
+from unittest.mock import MagicMock
 
 import gi
+from evdev.ecodes import EV_KEY, KEY_A
 
 gi.require_version("Gtk", "3.0")
 gi.require_version("GLib", "2.0")
 gi.require_version("GtkSource", "4")
-from gi.repository import Gtk, GtkSource, Gdk, GObject, GLib
+from gi.repository import Gtk, Gdk, GLib
 
 from inputremapper.gui.utils import gtk_iteration
 from tests.test import quick_cleanup

@@ -205,19 +205,16 @@ class UserInterface:
 
         RequireActiveMapping(
             message_broker,
-            controller,
             self.get("edit-combination-btn"),
             require_recorded_input=True,
         )
         RequireActiveMapping(
             message_broker,
-            controller,
             self.get("output"),
             require_recorded_input=True,
         )
         RequireActiveMapping(
             message_broker,
-            controller,
             self.get("delete-mapping"),
             require_recorded_input=False,
         )
