@@ -281,9 +281,11 @@ class GuiTestBase(unittest.TestCase):
         self.selection_label_listbox: Gtk.ListBox = get("selection_label_listbox")
         self.target_selection: Gtk.ComboBox = get("target-selector")
         self.recording_toggle: Gtk.ToggleButton = get("key_recording_toggle")
+        self.recording_status: Gtk.ToggleButton = get("recording_status")
         self.status_bar: Gtk.Statusbar = get("status_bar")
         self.autoload_toggle: Gtk.Switch = get("preset_autoload_switch")
         self.code_editor: GtkSource.View = get("code_editor")
+        self.output_box: GtkSource.View = get("output")
 
         self.delete_preset_btn: Gtk.Button = get("delete_preset")
         self.copy_preset_btn: Gtk.Button = get("copy_preset")
@@ -553,25 +555,27 @@ class TestGui(GuiTestBase):
         with open(path, "r") as file:
             self.assertEqual(file.read(), "")
 
-    # TODO test the "recording_status" widget instead
     def test_recording_toggle_labels(self):
-        self.assertEqual(self.recording_toggle.get_label(), "Record Input")
+        self.assertFalse(self.recording_status.get_visible())
+
         self.recording_toggle.set_active(True)
         gtk_iteration()
-        self.assertEqual(self.recording_toggle.get_label(), "Recording ...")
+        self.assertTrue(self.recording_status.get_visible())
+
         self.recording_toggle.set_active(False)
         gtk_iteration()
-        self.assertEqual(self.recording_toggle.get_label(), "Record Input")
+        self.assertFalse(self.recording_status.get_visible())
 
-    # TODO test the "recording_status" widget instead
     def test_recording_label_updates_on_recording_finished(self):
-        self.assertEqual(self.recording_toggle.get_label(), "Record Input")
+        self.assertFalse(self.recording_status.get_visible())
+
         self.recording_toggle.set_active(True)
         gtk_iteration()
-        self.assertEqual(self.recording_toggle.get_label(), "Recording ...")
+        self.assertTrue(self.recording_status.get_visible())
+
         self.message_broker.signal(MessageType.recording_finished)
         gtk_iteration()
-        self.assertEqual(self.recording_toggle.get_label(), "Record Input")
+        self.assertFalse(self.recording_status.get_visible())
         self.assertFalse(self.recording_toggle.get_active())
 
     def test_events_from_helper_arrive(self):
@@ -1726,14 +1730,13 @@ class TestGui(GuiTestBase):
             device_path = f"{CONFIG_PATH}/presets/{self.data_manager.active_group.name}"
             self.assertTrue(os.path.exists(f"{device_path}/new preset.json"))
 
-    # TODO this should test the whole output box instead
-    def test_enable_disable_symbol_input(self):
+    def test_enable_disable_output(self):
         # load a group without any presets
         self.controller.load_group("Bar Device")
 
         # should be disabled by default since no key is recorded yet
         self.assertEqual(self.get_unfiltered_symbol_input_text(), SET_KEY_FIRST)
-        self.assertFalse(self.code_editor.get_sensitive())
+        self.assertFalse(self.output_box.get_sensitive())
 
         # create a mapping
         self.controller.create_mapping()
@@ -1741,7 +1744,7 @@ class TestGui(GuiTestBase):
 
         # should still be disabled
         self.assertEqual(self.get_unfiltered_symbol_input_text(), SET_KEY_FIRST)
-        self.assertFalse(self.code_editor.get_sensitive())
+        self.assertFalse(self.output_box.get_sensitive())
 
         # enable it by sending a combination
         self.controller.start_key_recording()
@@ -1756,7 +1759,7 @@ class TestGui(GuiTestBase):
         self.throttle(50)  # give time for the input to arrive
 
         self.assertEqual(self.get_unfiltered_symbol_input_text(), "")
-        self.assertTrue(self.code_editor.get_sensitive())
+        self.assertTrue(self.output_box.get_sensitive())
 
         # disable it by deleting the mapping
         with PatchedConfirmDelete(self.user_interface):
@@ -1764,7 +1767,7 @@ class TestGui(GuiTestBase):
             gtk_iteration()
 
         self.assertEqual(self.get_unfiltered_symbol_input_text(), SET_KEY_FIRST)
-        self.assertFalse(self.code_editor.get_sensitive())
+        self.assertFalse(self.output_box.get_sensitive())
 
 
 class TestAutocompletion(GuiTestBase):

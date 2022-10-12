@@ -54,7 +54,7 @@ class TestUserInterface(unittest.TestCase):
         mock.assert_not_called()
 
     def test_connected_shortcuts(self):
-        should_be_connected = {Gdk.KEY_q, Gdk.KEY_r, Gdk.KEY_Delete}
+        should_be_connected = {Gdk.KEY_q, Gdk.KEY_r, Gdk.KEY_Delete, Gdk.KEY_n}
         connected = set(self.user_interface.shortcuts.keys())
         self.assertEqual(connected, should_be_connected)
 
