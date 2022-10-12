@@ -41,6 +41,15 @@ from inputremapper.exceptions import DataManagementError
 from inputremapper.gui.data_manager import DataManager, DEFAULT_PRESET_NAME
 from inputremapper.gui.gettext import _
 from inputremapper.gui.helper import is_helper_running
+from inputremapper.gui.message_broker import (
+    MessageBroker,
+    MessageType,
+    PresetData,
+    StatusData,
+    CombinationRecorded,
+    UserConfirmRequest,
+    DoStackSwitch,
+)
 from inputremapper.gui.utils import CTX_APPLY, CTX_ERROR, CTX_WARNING, CTX_MAPPING
 from inputremapper.injection.injector import (
     RUNNING,
@@ -53,15 +62,6 @@ from inputremapper.injection.injector import (
 )
 from inputremapper.input_event import InputEvent
 from inputremapper.logger import logger
-from inputremapper.gui.message_broker import (
-    MessageBroker,
-    MessageType,
-    PresetData,
-    StatusData,
-    CombinationRecorded,
-    UserConfirmRequest,
-    DoStackSwitch,
-)
 
 if TYPE_CHECKING:
     # avoids gtk import error in tests

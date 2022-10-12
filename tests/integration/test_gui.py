@@ -778,7 +778,7 @@ class TestGui(GuiTestBase):
         )
 
     def test_show_status(self):
-        self.message_broker.send(StatusData(0, "a" * 100))
+        self.message_broker.send(StatusData(0, "a" * 500))
         gtk_iteration()
         text = self.get_status_text()
         self.assertIn("...", text)
