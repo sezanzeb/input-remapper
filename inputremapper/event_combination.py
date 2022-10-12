@@ -145,8 +145,9 @@ class EventCombination(Tuple[InputEvent]):
 
         return permutations
 
-    def json_str(self) -> str:
-        return "+".join([event.json_str() for event in self])
+    def json_key(self) -> str:
+        """Get a representation of the input that works as key in a json object."""
+        return "+".join([event.json_key() for event in self])
 
     def beautify(self) -> str:
         """Get a human readable string representation."""

@@ -69,7 +69,7 @@ class Cfg(BaseConfig):
     validate_assignment = True
     use_enum_values = True
     underscore_attrs_are_private = True
-    json_encoders = {EventCombination: lambda v: v.json_str()}
+    json_encoders = {EventCombination: lambda v: v.json_key()}
 
 
 class ImmutableCfg(Cfg):

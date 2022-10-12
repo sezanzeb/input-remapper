@@ -132,7 +132,7 @@ class StatusBar:
                 self._warning_icon.show()
                 self._warning = True
 
-            max_length = 45
+            max_length = 135
             if len(message) > max_length:
                 message = message[: max_length - 3] + "..."
 

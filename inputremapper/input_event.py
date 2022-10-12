@@ -205,7 +205,7 @@ class InputEvent:
             actions if actions is not None else self.actions,
         )
 
-    def json_str(self) -> str:
+    def json_key(self) -> str:
         return ",".join([str(self.type), str(self.code), str(self.value)])
 
     def get_name(self) -> Optional[str]:

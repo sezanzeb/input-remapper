@@ -235,7 +235,10 @@ class Controller:
             self.data_manager.update_mapping(event_combination=combination)
             self.save()
         except KeyError:
-            # the combination was a duplicate
+            self.show_status(
+                CTX_MAPPING,
+                f'"{combination.beautify()}" already mapped to something else',
+            )
             return
 
         if combination.is_problematic():
