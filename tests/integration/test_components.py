@@ -103,7 +103,7 @@ class ComponentBaseTest(unittest.TestCase):
         # Shut down the gui properly
         self.destroy_all_member_widgets()
         GLib.timeout_add(0, Gtk.main_quit)
-        
+
         # Gtk.main() will start the Gtk event loop and process all pending events.
         # So the gui will do whatever is queued up this ensures that the next tests
         # starts without pending events.
