@@ -399,8 +399,8 @@ class RequireActiveMapping:
         self._default_tooltip = self._widget.get_tooltip_text()
         self._require_recorded_input = require_recorded_input
 
-        self._active_preset = None
-        self._active_mapping = None
+        self._active_preset: Optional[PresetData] = None
+        self._active_mapping: Optional[MappingData] = None
 
         message_broker.subscribe(MessageType.preset, self._on_preset)
         message_broker.subscribe(MessageType.mapping, self._on_mapping)
