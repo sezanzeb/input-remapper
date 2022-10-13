@@ -10,9 +10,9 @@ You can also start it via `input-remapper-gtk`.
   <img src="usage_2.png"/>
 </p>
 
-First, select your device (like your keyboard) from the large dropdown on the top,
-and add a mapping.
-Then you can already edit your inputs, as shown in the screenshots.
+First, select your device (like your keyboard) on the first page, then create a new
+preset on the second page, and add a mapping. Then you can already edit your inputs,
+as shown in the screenshots.
 
 In the text input field, type the key to which you would like to map this key.
 More information about the possible mappings can be found in [examples.md](./examples.md) and [below](#key-names).
