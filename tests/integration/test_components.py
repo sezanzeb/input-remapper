@@ -85,7 +85,6 @@ class ComponentBaseTest(unittest.TestCase):
     def setUp(self) -> None:
         self.message_broker = MessageBroker()
         self.controller_mock = MagicMock()
-        self.gui = MagicMock()
 
     def destroy_all_member_widgets(self):
         # destroy all Gtk Widgets that are stored in self
@@ -1413,7 +1412,7 @@ class TestRequireActiveMapping(ComponentBaseTest):
         self.message_broker.send(MappingData())
         self.assert_active(self.box)
 
-    def test_reqorded_input_required(self):
+    def test_recorded_input_required(self):
         self.box = Gtk.Box()
         RequireActiveMapping(
             self.message_broker,

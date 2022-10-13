@@ -84,11 +84,11 @@ class TargetSelection:
         self,
         message_broker: MessageBroker,
         controller: Controller,
-        listbox: Gtk.listbox,
+        combobox: Gtk.ComboBox,
     ):
         self._message_broker = message_broker
         self._controller = controller
-        self._gui = listbox
+        self._gui = combobox
 
         self._message_broker.subscribe(MessageType.uinputs, self._on_uinputs_changed)
         self._message_broker.subscribe(MessageType.mapping, self._on_mapping_loaded)
@@ -356,10 +356,13 @@ class CodeEditor:
         """Show line numbers if multiline, otherwise remove them"""
         if "\n" in self.code:
             self.gui.set_show_line_numbers(True)
+            # adds a bit of space between numbers and text:
+            self.gui.set_show_line_marks(True)
             self.gui.set_monospace(True)
             self.gui.get_style_context().add_class("multiline")
         else:
             self.gui.set_show_line_numbers(False)
+            self.gui.set_show_line_marks(False)
             self.gui.set_monospace(False)
             self.gui.get_style_context().remove_class("multiline")
 
@@ -820,7 +823,7 @@ class OutputAxisSelector:
         self,
         message_broker: MessageBroker,
         controller: Controller,
-        gui: Gtk.listbox,
+        gui: Gtk.ComboBox,
     ):
         self._message_broker = message_broker
         self._controller = controller
@@ -886,7 +889,7 @@ class KeyAxisStackSwitcher:
         self,
         message_broker: MessageBroker,
         controller: Controller,
-        stack: inputremapper.gui.components.main.Stack,
+        stack: Gtk.Stack,
         key_macro_toggle: Gtk.ToggleButton,
         analog_toggle: Gtk.ToggleButton,
     ):

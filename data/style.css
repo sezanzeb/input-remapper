@@ -20,11 +20,6 @@
     box-shadow: none;
 }
 
-.code-editor-text-view.multiline {
-  /* extra space between text editor and line numbers */
-  padding-left: 18px;
-}
-
 .no-v-padding {
     padding-top: 0;
     padding-bottom: 0;

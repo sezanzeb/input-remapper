@@ -106,4 +106,4 @@ class TestUserInterface(unittest.TestCase):
         self.assertEqual(label.get_text(), "no input configured")
 
         # 0.5 != 0.501960..., for whatever reason this number is all screwed up
-        self.assertLess(abs(label.get_opacity() - 0.5), 0.1)
+        self.assertAlmostEqual(label.get_opacity(), 0.5, delta=0.1)
