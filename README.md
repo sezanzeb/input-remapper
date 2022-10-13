@@ -17,8 +17,6 @@
 #### Known Issues (Beta Branch)
 
  * Mapping relative axis to relative axis (mouse to mouse) is not possible
- * Mapping relative axis to absolute axis (mouse to gamepad) is not possible
- * Mapping absolute axis to absolute axis (gamepad to gamepad) is not possible
 
 ## Installation
 
