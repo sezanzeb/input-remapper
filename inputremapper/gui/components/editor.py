@@ -951,7 +951,7 @@ class Colors:
     @staticmethod
     def get_accent_color() -> Gdk.RGBA:
         """Look up the accent color from the current theme."""
-        names = ["accent_bg_color", "theme_selected_bg_color"]  # Adwaita  # Breeze
+        names = ["accent_bg_color", "theme_selected_bg_color"]
         for name in names:
             found, color = Gtk.StyleContext().lookup_color(name)
             if found:
@@ -962,52 +962,36 @@ class Colors:
     @staticmethod
     def get_background_color() -> Gdk.RGBA:
         """Look up the background-color from the current theme."""
-        names = [
-            "theme_bg_color",  # Adwaita, Breeze
-        ]
-        for name in names:
-            found, color = Gtk.StyleContext().lookup_color(name)
-            if found:
-                return color
+        found, color = Gtk.StyleContext().lookup_color("theme_bg_color")
+        if found:
+            return color
 
         return Gdk.RGBA(0.98, 0.98, 0.98, 1)
 
     @staticmethod
     def get_base_color() -> Gdk.RGBA:
         """Look up the base-color from the current theme."""
-        names = [
-            "theme_base_color",  # Adwaita, Breeze
-        ]
-        for name in names:
-            found, color = Gtk.StyleContext().lookup_color(name)
-            if found:
-                return color
+        found, color = Gtk.StyleContext().lookup_color("theme_base_color")
+        if found:
+            return color
 
         return Gdk.RGBA(1, 1, 1, 1)
 
     @staticmethod
     def get_border_color() -> Gdk.RGBA:
         """Look up the border from the current theme."""
-        names = [
-            "borders",  # Adwaita, Breeze
-        ]
-        for name in names:
-            found, color = Gtk.StyleContext().lookup_color(name)
-            if found:
-                return color
+        found, color = Gtk.StyleContext().lookup_color("borders")
+        if found:
+            return color
 
         return Gdk.RGBA(0.87, 0.87, 0.87, 1)
 
     @staticmethod
     def get_font_color() -> Gdk.RGBA:
         """Look up the border from the current theme."""
-        names = [
-            "theme_fg_color",  # Adwaita, Breeze
-        ]
-        for name in names:
-            found, color = Gtk.StyleContext().lookup_color(name)
-            if found:
-                return color
+        found, color = Gtk.StyleContext().lookup_color("theme_fg_color")
+        if found:
+            return color
 
         return Gdk.RGBA(0.20, 0.20, 0.20, 1)
 
