@@ -1062,7 +1062,6 @@ class TransformationDrawArea:
         context.line_to(0.52 * b, 0.04 * b)
 
         context.set_line_width(2)
-        # arrow_color = Colors.get_border_color()
         arrow_color = Gdk.RGBA(0.5, 0.5, 0.5, 0.2)
         context.set_source_rgba(
             arrow_color.red,
