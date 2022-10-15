@@ -969,22 +969,13 @@ class TransformationDrawArea:
     def _on_gtk_draw(self, _, context: cairo.Context):
         points = [
             (x / 200 + 0.5, -0.5 * self._transformation(x) + 0.5)
-            for x in range(-100, 100)
+            # leave some space left and right for the lineCap to be visible
+            for x in range(-97, 97)
         ]
         w = self._gui.get_allocated_width()
         h = self._gui.get_allocated_height()
         b = min((w, h))
         scaled_points = [(x * b, y * b) for x, y in points]
-
-        # box
-        context.move_to(0, 0)
-        context.line_to(0, b)
-        context.line_to(b, b)
-        context.line_to(b, 0)
-        context.line_to(0, 0)
-        context.set_line_width(1)
-        context.set_source_rgb(0.7, 0.7, 0.7)
-        context.stroke()
 
         # x arrow
         context.move_to(0 * b, 0.5 * b)
@@ -1001,7 +992,7 @@ class TransformationDrawArea:
         context.line_to(0.52 * b, 0.04 * b)
 
         context.set_line_width(2)
-        context.set_source_rgb(0.5, 0.5, 0.5)
+        context.set_source_rgba(0, 0, 0, 0.3)
         context.stroke()
 
         # graph
@@ -1010,8 +1001,10 @@ class TransformationDrawArea:
             # Ploting point
             context.line_to(*p)
 
-        context.set_line_width(2)
-        context.set_source_rgb(0.2, 0.2, 1)
+        context.set_line_width(3)
+        context.set_line_cap(cairo.LineCap.ROUND)
+        # the default gtk adwaita highlight color:
+        context.set_source_rgb(0.208, 0.518, 0.894)
         context.stroke()
 
 

@@ -25,4 +25,15 @@
     padding-bottom: 0;
 }
 
-/* @theme_bg_color, @theme_fg_color */
+.transformation-draw-area {
+    /* this color is carefully selected to exactly match the background-color of inputs
+    in both the light and dark adwaita themes */
+	background: RGBa(145, 145, 145, 0.195);
+	border-radius: 6px;
+}
+
+/*
+@theme_bg_color
+@theme_selected_bg_color
+@theme_base_color
+*/
