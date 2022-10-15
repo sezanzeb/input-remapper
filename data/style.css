@@ -26,9 +26,9 @@
 }
 
 .transformation-draw-area {
-	border: 1px solid @borders;
-	border-radius: 6px;
-	background: @theme_base_color;
+    border: 1px solid @borders;
+    border-radius: 6px;
+    background: @theme_base_color;
 }
 
 /*

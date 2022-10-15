@@ -168,7 +168,7 @@ class Controller:
             )
         if "missing output axis:" in error_string:
             message = _(
-                "The input specifies a analog axis, but no output axis is selected."
+                "The input specifies an analog axis, but no output axis is selected."
             )
             if mapping.output_symbol is not None:
                 event = [
@@ -189,7 +189,7 @@ class Controller:
             )
             if mapping.output_type in (EV_ABS, EV_REL):
                 message += _(
-                    "\nIf you mean to create a analog axis mapping go to the "
+                    "\nIf you mean to create an analog axis mapping go to the "
                     'advanced input configuration and set a input to "Use as Analog".'
                 )
             return message
