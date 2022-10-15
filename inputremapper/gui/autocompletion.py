@@ -365,7 +365,7 @@ class Autocompletion(Gtk.Popover):
         cursor.y += 12
 
         if self.code_editor.gui.get_show_line_numbers():
-            cursor.x += 25
+            cursor.x += 48
 
         self.set_pointing_to(cursor)
 
