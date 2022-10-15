@@ -31,7 +31,6 @@ import cairo
 from evdev.ecodes import EV_KEY, EV_ABS, EV_REL, bytype
 from gi.repository import Gtk, GtkSource, Gdk
 
-import inputremapper.gui.components.main
 from inputremapper.configs.mapping import MappingData
 from inputremapper.event_combination import EventCombination
 from inputremapper.groups import DeviceType
@@ -44,7 +43,7 @@ from inputremapper.gui.message_broker import (
     PresetData,
     CombinationUpdate,
 )
-from inputremapper.gui.utils import HandlerDisabled, CTX_ERROR
+from inputremapper.gui.utils import HandlerDisabled, Colors
 from inputremapper.injection.mapping_handlers.axis_transform import Transformation
 from inputremapper.input_event import InputEvent
 from inputremapper.logger import logger
@@ -940,63 +939,6 @@ class KeyAxisStackSwitcher:
             self._controller.update_mapping(mapping_type="key_macro")
         else:
             self._controller.update_mapping(mapping_type="analog")
-
-
-class Colors:
-    """Looks up colors from the GTK theme.
-
-    Defaults to libadwaita-light theme colors if the lookup fails.
-    """
-
-    @staticmethod
-    def get_color(names: List[str], fallback: Gdk.RGBA) -> Gdk.RGBA:
-        """Get theme colors. Provide multiple names for fallback purposes."""
-        for name in names:
-            found, color = Gtk.StyleContext().lookup_color(name)
-            if found:
-                return color
-
-        return fallback
-
-    @staticmethod
-    def get_accent_color() -> Gdk.RGBA:
-        """Look up the accent color from the current theme."""
-        return Colors.get_color(
-            ["accent_bg_color", "theme_selected_bg_color"],
-            Gdk.RGBA(0.21, 0.52, 0.89, 1),
-        )
-
-    @staticmethod
-    def get_background_color() -> Gdk.RGBA:
-        """Look up the background-color from the current theme."""
-        return Colors.get_color(
-            ["theme_bg_color"],
-            Gdk.RGBA(0.98, 0.98, 0.98, 1),
-        )
-
-    @staticmethod
-    def get_base_color() -> Gdk.RGBA:
-        """Look up the base-color from the current theme."""
-        return Colors.get_color(
-            ["theme_base_color"],
-            Gdk.RGBA(1, 1, 1, 1),
-        )
-
-    @staticmethod
-    def get_border_color() -> Gdk.RGBA:
-        """Look up the border from the current theme."""
-        return Colors.get_color(
-            ["borders"],
-            Gdk.RGBA(0.87, 0.87, 0.87, 1),
-        )
-
-    @staticmethod
-    def get_font_color() -> Gdk.RGBA:
-        """Look up the border from the current theme."""
-        return Colors.get_color(
-            ["theme_fg_color"],
-            Gdk.RGBA(0.20, 0.20, 0.20, 1),
-        )
 
 
 class TransformationDrawArea:
