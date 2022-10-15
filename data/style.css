@@ -26,10 +26,9 @@
 }
 
 .transformation-draw-area {
-    /* this color is carefully selected to exactly match the background-color of inputs
-    in both the light and dark adwaita themes */
-	background: RGBa(145, 145, 145, 0.195);
+	border: 1px solid @borders;
 	border-radius: 6px;
+	background: @theme_base_color;
 }
 
 /*

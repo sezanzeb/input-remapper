@@ -942,6 +942,76 @@ class KeyAxisStackSwitcher:
             self._controller.update_mapping(mapping_type="analog")
 
 
+class Colors:
+    """Looks up colors from the GTK theme.
+
+    Defaults to libadwaita-light theme colors if the lookup fails.
+    """
+
+    @staticmethod
+    def get_accent_color() -> Gdk.RGBA:
+        """Look up the accent color from the current theme."""
+        names = ["accent_bg_color", "theme_selected_bg_color"]  # Adwaita  # Breeze
+        for name in names:
+            found, color = Gtk.StyleContext().lookup_color(name)
+            if found:
+                return color
+
+        return Gdk.RGBA(0.21, 0.52, 0.89, 1)
+
+    @staticmethod
+    def get_background_color() -> Gdk.RGBA:
+        """Look up the background-color from the current theme."""
+        names = [
+            "theme_bg_color",  # Adwaita, Breeze
+        ]
+        for name in names:
+            found, color = Gtk.StyleContext().lookup_color(name)
+            if found:
+                return color
+
+        return Gdk.RGBA(0.98, 0.98, 0.98, 1)
+
+    @staticmethod
+    def get_base_color() -> Gdk.RGBA:
+        """Look up the base-color from the current theme."""
+        names = [
+            "theme_base_color",  # Adwaita, Breeze
+        ]
+        for name in names:
+            found, color = Gtk.StyleContext().lookup_color(name)
+            if found:
+                return color
+
+        return Gdk.RGBA(1, 1, 1, 1)
+
+    @staticmethod
+    def get_border_color() -> Gdk.RGBA:
+        """Look up the border from the current theme."""
+        names = [
+            "borders",  # Adwaita, Breeze
+        ]
+        for name in names:
+            found, color = Gtk.StyleContext().lookup_color(name)
+            if found:
+                return color
+
+        return Gdk.RGBA(0.87, 0.87, 0.87, 1)
+
+    @staticmethod
+    def get_font_color() -> Gdk.RGBA:
+        """Look up the border from the current theme."""
+        names = [
+            "theme_fg_color",  # Adwaita, Breeze
+        ]
+        for name in names:
+            found, color = Gtk.StyleContext().lookup_color(name)
+            if found:
+                return color
+
+        return Gdk.RGBA(0.20, 0.20, 0.20, 1)
+
+
 class TransformationDrawArea:
     """the graph which shows the relation between input- and output-axis"""
 
@@ -992,7 +1062,14 @@ class TransformationDrawArea:
         context.line_to(0.52 * b, 0.04 * b)
 
         context.set_line_width(2)
-        context.set_source_rgba(0, 0, 0, 0.3)
+        # arrow_color = Colors.get_border_color()
+        arrow_color = Gdk.RGBA(0.5, 0.5, 0.5, 0.2)
+        context.set_source_rgba(
+            arrow_color.red,
+            arrow_color.green,
+            arrow_color.blue,
+            arrow_color.alpha,
+        )
         context.stroke()
 
         # graph
@@ -1001,10 +1078,16 @@ class TransformationDrawArea:
             # Ploting point
             context.line_to(*p)
 
+        line_color = Colors.get_accent_color()
         context.set_line_width(3)
         context.set_line_cap(cairo.LineCap.ROUND)
         # the default gtk adwaita highlight color:
-        context.set_source_rgb(0.208, 0.518, 0.894)
+        context.set_source_rgba(
+            line_color.red,
+            line_color.green,
+            line_color.blue,
+            line_color.alpha,
+        )
         context.stroke()
 
 
