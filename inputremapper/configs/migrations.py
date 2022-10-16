@@ -268,7 +268,7 @@ def _convert_to_individual_mappings():
         if "mapping" in old_preset.keys():
             for combination, symbol_target in old_preset["mapping"].items():
                 logger.info(
-                    f"migrating from '{combination}: {symbol_target}' to mapping dict"
+                    f'migrating from "{combination}: {symbol_target}" to mapping dict'
                 )
                 try:
                     combination = EventCombination.from_string(combination)

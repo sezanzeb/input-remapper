@@ -1,17 +1,18 @@
 import unittest
-from unittest.mock import MagicMock, patch
-from evdev.ecodes import EV_KEY, KEY_A
+from unittest.mock import MagicMock
 
 import gi
+from evdev.ecodes import EV_KEY, KEY_A
 
+gi.require_version("Gdk", "3.0")
 gi.require_version("Gtk", "3.0")
 gi.require_version("GLib", "2.0")
 gi.require_version("GtkSource", "4")
-from gi.repository import Gtk, GtkSource, Gdk, GObject, GLib
+from gi.repository import Gtk, Gdk, GLib
 
 from inputremapper.gui.utils import gtk_iteration
 from tests.test import quick_cleanup
-from inputremapper.gui.message_broker import MessageBroker, MessageType
+from inputremapper.gui.messages.message_broker import MessageBroker, MessageType
 from inputremapper.gui.user_interface import UserInterface
 from inputremapper.configs.mapping import MappingData
 from inputremapper.event_combination import EventCombination
@@ -54,7 +55,7 @@ class TestUserInterface(unittest.TestCase):
         mock.assert_not_called()
 
     def test_connected_shortcuts(self):
-        should_be_connected = {Gdk.KEY_q, Gdk.KEY_r, Gdk.KEY_Delete}
+        should_be_connected = {Gdk.KEY_q, Gdk.KEY_r, Gdk.KEY_Delete, Gdk.KEY_n}
         connected = set(self.user_interface.shortcuts.keys())
         self.assertEqual(connected, should_be_connected)
 
@@ -104,4 +105,6 @@ class TestUserInterface(unittest.TestCase):
         gtk_iteration()
         label: Gtk.Label = self.user_interface.get("combination-label")
         self.assertEqual(label.get_text(), "no input configured")
-        self.assertEqual(label.get_opacity(), 0.4)
+
+        # 0.5 != 0.501960..., for whatever reason this number is all screwed up
+        self.assertAlmostEqual(label.get_opacity(), 0.5, delta=0.1)

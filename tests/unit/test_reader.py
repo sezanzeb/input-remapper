@@ -20,12 +20,12 @@
 import json
 from typing import List
 
-from inputremapper.gui.message_broker import (
+from inputremapper.gui.messages.message_types import MessageType
+from inputremapper.gui.messages.message_broker import (
     MessageBroker,
-    MessageType,
-    CombinationRecorded,
     Signal,
 )
+from inputremapper.gui.messages.message_data import CombinationRecorded
 from tests.test import (
     new_event,
     push_events,

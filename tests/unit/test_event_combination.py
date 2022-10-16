@@ -131,11 +131,11 @@ class TestKey(unittest.TestCase):
         EventCombination(("1, 2, 3", (1, 3, 4), InputEvent.from_string(" 1,5 , 1 ")))
         EventCombination(((1, 2, 3), (1, 2, "3")))
 
-    def test_json_str(self):
+    def test_json_key(self):
         c1 = EventCombination((1, 2, 3))
         c2 = EventCombination(((1, 2, 3), (4, 5, 6)))
-        self.assertEqual(c1.json_str(), "1,2,3")
-        self.assertEqual(c2.json_str(), "1,2,3+4,5,6")
+        self.assertEqual(c1.json_key(), "1,2,3")
+        self.assertEqual(c2.json_key(), "1,2,3+4,5,6")
 
     def test_beautify(self):
         # not an integration test, but I have all the selection_label tests here already

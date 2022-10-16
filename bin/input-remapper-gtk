@@ -74,7 +74,7 @@ if __name__ == '__main__':
     logger.debug('Using locale directory: {}'.format(LOCALE_DIR))
 
     # import input-remapper stuff after setting the log verbosity
-    from inputremapper.gui.message_broker import MessageBroker, MessageType
+    from inputremapper.gui.messages.message_broker import MessageBroker, MessageType
     from inputremapper.configs.system_mapping import system_mapping
     from inputremapper.gui.data_manager import DataManager
     from inputremapper.gui.user_interface import UserInterface

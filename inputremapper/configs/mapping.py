@@ -40,16 +40,20 @@ from pydantic import (
 from inputremapper.configs.system_mapping import system_mapping, DISABLE_NAME
 from inputremapper.event_combination import EventCombination
 from inputremapper.exceptions import MacroParsingError
-from inputremapper.gui.message_broker import MessageType
+from inputremapper.gui.messages.message_types import MessageType
+from inputremapper.gui.gettext import _
 from inputremapper.injection.macros.parse import is_this_a_macro, parse
 from inputremapper.input_event import EventActions
 
 # TODO: remove pydantic VERSION check as soon as we no longer support
-#  Ubuntu 20.04 and with it the ainchant pydantic 1.2
+#  Ubuntu 20.04 and with it the ancient pydantic 1.2
 
 needs_workaround = pkg_resources.parse_version(
     str(VERSION)
 ) < pkg_resources.parse_version("1.7.1")
+
+
+EMPTY_MAPPING_NAME = _("Empty Mapping")
 
 
 class KnownUinput(str, enum.Enum):
@@ -69,7 +73,7 @@ class Cfg(BaseConfig):
     validate_assignment = True
     use_enum_values = True
     underscore_attrs_are_private = True
-    json_encoders = {EventCombination: lambda v: v.json_str()}
+    json_encoders = {EventCombination: lambda v: v.json_key()}
 
 
 class ImmutableCfg(Cfg):
@@ -180,6 +184,23 @@ class UIMapping(BaseModel):
             object.__setattr__(copy, "_combination_changed", self._combination_changed)
             return copy
 
+    def format_name(self) -> str:
+        """Get the custom-name or a readable representation of the combination."""
+        if self.name:
+            return self.name
+
+        if (
+            self.event_combination == EventCombination.empty_combination()
+            or self.event_combination is None
+        ):
+            return EMPTY_MAPPING_NAME
+
+        return self.event_combination.beautify()
+
+    def has_input_defined(self) -> bool:
+        """Whether this mapping defines an event-input."""
+        return self.event_combination != EventCombination.empty_combination()
+
     def is_axis_mapping(self) -> bool:
         """whether this mapping specifies an output axis"""
         return self.output_type == EV_ABS or self.output_type == EV_REL
@@ -214,7 +235,7 @@ class UIMapping(BaseModel):
         return None
 
     def get_bus_message(self) -> MappingData:
-        """return a immutable copy for use in the"""
+        """return an immutable copy for use in the message broker"""
         return MappingData(**self.dict())
 
     @root_validator
@@ -266,7 +287,7 @@ class Mapping(UIMapping):
         if system_mapping.get(symbol) is not None:
             return symbol
         raise ValueError(
-            f"the output_symbol '{symbol}' is not a macro and not a valid keycode-name"
+            f'the output_symbol "{symbol}" is not a macro and not a valid keycode-name'
         )
 
     @validator("event_combination")

@@ -28,29 +28,35 @@ from inputremapper.configs.data import get_data_path
 from inputremapper.configs.mapping import MappingData
 from inputremapper.event_combination import EventCombination
 from inputremapper.gui.autocompletion import Autocompletion
-from inputremapper.gui.components import (
-    DeviceSelection,
-    PresetSelection,
+from inputremapper.gui.components.editor import (
     MappingListBox,
     TargetSelection,
     CodeEditor,
     RecordingToggle,
-    StatusBar,
+    RecordingStatus,
     AutoloadSwitch,
     ReleaseCombinationSwitch,
     CombinationListbox,
     AnalogInputSwitch,
     TriggerThresholdInput,
     OutputAxisSelector,
-    ConfirmCancelDialog,
     ReleaseTimeoutInput,
     TransformationDrawArea,
     Sliders,
     RelativeInputCutoffInput,
     KeyAxisStackSwitcher,
+    RequireActiveMapping,
 )
+from inputremapper.gui.components.presets import PresetSelection
+from inputremapper.gui.components.main import Stack, StatusBar
+from inputremapper.gui.components.common import Breadcrumbs
+from inputremapper.gui.components.device_groups import DeviceGroupSelection
 from inputremapper.gui.controller import Controller
-from inputremapper.gui.message_broker import MessageBroker, MessageType
+from inputremapper.gui.messages.message_broker import (
+    MessageBroker,
+    MessageType,
+)
+from inputremapper.gui.messages.message_data import UserConfirmRequest
 from inputremapper.gui.utils import (
     gtk_iteration,
 )
@@ -58,7 +64,6 @@ from inputremapper.injection.injector import InjectorState
 from inputremapper.logger import logger, COMMIT_HASH, VERSION, EVDEV_VERSION
 from inputremapper.gui.gettext import _
 
-# TODO add to .deb and AUR dependencies
 # https://cjenkins.wordpress.com/2012/05/08/use-gtksourceview-widget-in-glade/
 GObject.type_register(GtkSource.View)
 # GtkSource.View() also works:
@@ -87,6 +92,7 @@ class UserInterface:
             Gdk.KEY_q: self.controller.close,
             Gdk.KEY_r: self.controller.refresh_groups,
             Gdk.KEY_Delete: self.controller.stop_injecting,
+            Gdk.KEY_n: self.controller.add_preset,
         }
 
         # stores the ids for all the listeners attached to the gui
@@ -97,7 +103,6 @@ class UserInterface:
         self.builder = Gtk.Builder()
         self._build_ui()
         self.window: Gtk.Window = self.get("window")
-        self.confirm_cancel_dialog: Gtk.MessageDialog = self.get("confirm-cancel")
         self.about: Gtk.Window = self.get("about-dialog")
         self.combination_editor: Gtk.Dialog = self.get("combination-editor")
 
@@ -137,10 +142,24 @@ class UserInterface:
         """setup all objects which manage individual components of the ui"""
         message_broker = self.message_broker
         controller = self.controller
-        DeviceSelection(message_broker, controller, self.get("device_selection"))
+        DeviceGroupSelection(message_broker, controller, self.get("device_selection"))
         PresetSelection(message_broker, controller, self.get("preset_selection"))
         MappingListBox(message_broker, controller, self.get("selection_label_listbox"))
         TargetSelection(message_broker, controller, self.get("target-selector"))
+
+        Breadcrumbs(
+            message_broker,
+            self.get("selected_device_name"),
+            show_device_group=True,
+        )
+        Breadcrumbs(
+            message_broker,
+            self.get("selected_preset_name"),
+            show_device_group=True,
+            show_preset=True,
+        )
+
+        Stack(message_broker, controller, self.get("main_stack"))
         RecordingToggle(message_broker, controller, self.get("key_recording_toggle"))
         StatusBar(
             message_broker,
@@ -149,6 +168,7 @@ class UserInterface:
             self.get("error_status_icon"),
             self.get("warning_status_icon"),
         )
+        RecordingStatus(message_broker, self.get("recording_status"))
         AutoloadSwitch(message_broker, controller, self.get("preset_autoload_switch"))
         ReleaseCombinationSwitch(
             message_broker, controller, self.get("release-combination-switch")
@@ -162,12 +182,6 @@ class UserInterface:
             message_broker, controller, self.get("input-cutoff-spin-btn")
         )
         OutputAxisSelector(message_broker, controller, self.get("output-axis-selector"))
-        ConfirmCancelDialog(
-            message_broker,
-            controller,
-            self.get("confirm-cancel"),
-            self.get("confirm-cancel-label"),
-        )
         KeyAxisStackSwitcher(
             message_broker,
             controller,
@@ -187,6 +201,22 @@ class UserInterface:
             self.get("gain-scale"),
             self.get("deadzone-scale"),
             self.get("expo-scale"),
+        )
+
+        RequireActiveMapping(
+            message_broker,
+            self.get("edit-combination-btn"),
+            require_recorded_input=True,
+        )
+        RequireActiveMapping(
+            message_broker,
+            self.get("output"),
+            require_recorded_input=True,
+        )
+        RequireActiveMapping(
+            message_broker,
+            self.get("delete-mapping"),
+            require_recorded_input=False,
         )
 
         # code editor and autocompletion
@@ -221,7 +251,10 @@ class UserInterface:
         self.get("apply_preset").connect(
             "clicked", lambda *_: self.controller.start_injecting()
         )
-        self.get("apply_system_layout").connect(
+        self.get("stop_injection_preset_page").connect(
+            "clicked", lambda *_: self.controller.stop_injecting()
+        )
+        self.get("stop_injection_editor_page").connect(
             "clicked", lambda *_: self.controller.stop_injecting()
         )
         self.get("rename-button").connect("clicked", self.on_gtk_rename_clicked)
@@ -255,22 +288,65 @@ class UserInterface:
         self.message_broker.subscribe(
             MessageType.injector_state, self.on_injector_state_msg
         )
+        self.message_broker.subscribe(
+            MessageType.user_confirm_request, self._on_user_confirm_request
+        )
+
+    def _create_dialog(self, primary: str, secondary: str) -> Gtk.MessageDialog:
+        """Create a message dialog with cancel and confirm buttons."""
+        message_dialog = Gtk.MessageDialog(
+            self.window,
+            Gtk.DialogFlags.MODAL | Gtk.DialogFlags.DESTROY_WITH_PARENT,
+            Gtk.MessageType.QUESTION,
+            Gtk.ButtonsType.NONE,
+            primary,
+        )
+
+        if secondary:
+            message_dialog.format_secondary_text(secondary)
+
+        message_dialog.add_button("Cancel", Gtk.ResponseType.CANCEL)
+
+        confirm_button = message_dialog.add_button("Confirm", Gtk.ResponseType.ACCEPT)
+        confirm_button.get_style_context().add_class(Gtk.STYLE_CLASS_DESTRUCTIVE_ACTION)
+
+        return message_dialog
+
+    def _on_user_confirm_request(self, msg: UserConfirmRequest):
+        # if the message contains a line-break, use the first chunk for the primary
+        # message, and the rest for the secondary message.
+        chunks = msg.msg.split("\n")
+        primary = chunks[0]
+        secondary = " ".join(chunks[1:])
+
+        message_dialog = self._create_dialog(primary, secondary)
+
+        response = message_dialog.run()
+        msg.respond(response == Gtk.ResponseType.ACCEPT)
+
+        message_dialog.hide()
 
     def on_injector_state_msg(self, msg: InjectorState):
         """update the ui to reflect the status of the injector"""
-        stop_injection_btn: Gtk.Button = self.get("apply_system_layout")
+        stop_injection_preset_page: Gtk.Button = self.get("stop_injection_preset_page")
+        stop_injection_editor_page: Gtk.Button = self.get("stop_injection_editor_page")
         recording_toggle: Gtk.ToggleButton = self.get("key_recording_toggle")
+
         if msg.active():
-            stop_injection_btn.set_opacity(1)
-            stop_injection_btn.set_sensitive(True)
-            recording_toggle.set_opacity(0.4)
+            stop_injection_preset_page.set_opacity(1)
+            stop_injection_editor_page.set_opacity(1)
+            stop_injection_preset_page.set_sensitive(True)
+            stop_injection_editor_page.set_sensitive(True)
+            recording_toggle.set_opacity(0.5)
         else:
-            stop_injection_btn.set_opacity(0.4)
-            stop_injection_btn.set_sensitive(True)
+            stop_injection_preset_page.set_opacity(0.5)
+            stop_injection_editor_page.set_opacity(0.5)
+            stop_injection_preset_page.set_sensitive(True)
+            stop_injection_editor_page.set_sensitive(True)
             recording_toggle.set_opacity(1)
 
     def disconnect_shortcuts(self):
-        """stop listening for shortcuts
+        """Stop listening for shortcuts.
 
         e.g. when recording key combinations
         """
@@ -280,7 +356,7 @@ class UserInterface:
             logger.debug("key listeners seem to be not connected")
 
     def connect_shortcuts(self):
-        """stop listening for shortcuts"""
+        """Start listening for shortcuts."""
         if not self.gtk_listeners.get(self.on_gtk_shortcut):
             self.gtk_listeners[self.on_gtk_shortcut] = self.window.connect(
                 "key-press-event", self.on_gtk_shortcut
@@ -301,7 +377,7 @@ class UserInterface:
         if mapping.event_combination.beautify() == label.get_label():
             return
         if mapping.event_combination == EventCombination.empty_combination():
-            label.set_opacity(0.4)
+            label.set_opacity(0.5)
             label.set_label(_("no input configured"))
             return
 

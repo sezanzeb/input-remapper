@@ -31,9 +31,11 @@ from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.event_combination import EventCombination
 from inputremapper.exceptions import DataManagementError
 from inputremapper.groups import _Groups
-from inputremapper.gui.message_broker import (
+from inputremapper.gui.messages.message_broker import (
     MessageBroker,
     MessageType,
+)
+from inputremapper.gui.messages.message_data import (
     GroupData,
     PresetData,
     CombinationUpdate,
@@ -137,9 +139,7 @@ class TestDataManager(unittest.TestCase):
 
         expected_preset = Preset(get_preset_path("Foo Device", "preset1"))
         expected_preset.load()
-        expected_mappings = [
-            (mapping.name, mapping.event_combination) for mapping in expected_preset
-        ]
+        expected_mappings = list(expected_preset)
 
         self.assertEqual(preset_name, "preset1")
         for mapping in expected_mappings:
@@ -504,7 +504,7 @@ class TestDataManager(unittest.TestCase):
         preset = Preset(get_preset_path("Foo Device", "preset2"), UIMapping)
         preset.load()
         mapping = preset.get_mapping(EventCombination("1,4,1"))
-        self.assertEqual(mapping.name, "foo")
+        self.assertEqual(mapping.format_name(), "foo")
         self.assertEqual(mapping.output_symbol, "f")
         self.assertEqual(mapping.release_timeout, 0.3)
 
@@ -639,17 +639,13 @@ class TestDataManager(unittest.TestCase):
         preset_name = listener.calls[0].name
         expected_preset = Preset(get_preset_path("Foo Device", "preset2"))
         expected_preset.load()
-        expected_mappings = [
-            (mapping.name, mapping.event_combination) for mapping in expected_preset
-        ]
+        expected_mappings = list(expected_preset)
 
         self.assertEqual(preset_name, "preset2")
         for mapping in expected_mappings:
             self.assertIn(mapping, mappings)
 
-        self.assertNotIn(
-            (deleted_mapping.name, deleted_mapping.event_combination), mappings
-        )
+        self.assertNotIn(deleted_mapping, mappings)
 
     def test_cannot_delete_mapping(self):
         """deleting a mapping should not be possible if the mapping was not loaded"""

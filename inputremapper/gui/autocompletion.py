@@ -30,8 +30,9 @@ from gi.repository import Gdk, Gtk, GLib, GObject
 
 from inputremapper.configs.mapping import MappingData
 from inputremapper.configs.system_mapping import system_mapping
-from inputremapper.gui.components import CodeEditor
-from inputremapper.gui.message_broker import MessageBroker, MessageType, UInputsData
+from inputremapper.gui.components.editor import CodeEditor
+from inputremapper.gui.messages.message_broker import MessageBroker, MessageType
+from inputremapper.gui.messages.message_data import UInputsData
 from inputremapper.gui.utils import debounce
 from inputremapper.injection.macros.parse import (
     FUNCTIONS,
@@ -293,19 +294,43 @@ class Autocompletion(Gtk.Popover):
         # to write code is possible), so here is a custom solution.
         row_height = row.get_allocation().height
 
+        list_box_height = self.list_box.get_allocated_height()
+
         if row:
-            y_offset = row.translate_coordinates(self.list_box, 0, 0)[1]
+            # get coordinate relative to the list_box,
+            # measured from the top of the selected row to the top of the list_box
+            row_y_position = row.translate_coordinates(self.list_box, 0, 0)[1]
+
+            # Depending on the theme, the y_offset will be > 0, even though it
+            # is the uppermost element, due to margins/paddings.
+            if row_y_position < row_height:
+                row_y_position = 0
+
+            # if the selected row sits lower than the second to last row,
+            # then scroll all the way down. otherwise it will only scroll down
+            # to the bottom edge of the selected-row, which might not actually be the
+            # bottom of the list-box due to paddings.
+            if row_y_position > list_box_height - row_height * 1.5:
+                # using a value that is too high doesn't hurt here.
+                row_y_position = list_box_height
+
+            # the visible height of the scrolled_window. not the content.
             height = self.scrolled_window.get_max_content_height()
+
             current_y_scroll = self.scrolled_window.get_vadjustment().get_value()
 
             vadjustment = self.scrolled_window.get_vadjustment()
 
-            if y_offset > current_y_scroll + (height - row_height):
-                vadjustment.set_value(y_offset - (height - row_height))
+            # for the selected row to still be visible, its y_offset has to be
+            # at height - row_height. If the y_offset is higher than that, then
+            # the autocompletion needs to scroll down to make it visible again.
+            if row_y_position > current_y_scroll + (height - row_height):
+                value = row_y_position - (height - row_height)
+                vadjustment.set_value(value)
 
-            if y_offset < current_y_scroll:
-                # scroll up because the element is not visible anymore
-                vadjustment.set_value(y_offset)
+            if row_y_position < current_y_scroll:
+                # the selected element is not visiable, so we need to scroll up.
+                vadjustment.set_value(row_y_position)
 
     def _get_text_iter_at_cursor(self):
         """Get Gtk.TextIter at the current text cursor location."""
@@ -341,7 +366,7 @@ class Autocompletion(Gtk.Popover):
         cursor.y += 12
 
         if self.code_editor.gui.get_show_line_numbers():
-            cursor.x += 25
+            cursor.x += 48
 
         self.set_pointing_to(cursor)
 

@@ -19,13 +19,11 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from tests.test import logger, quick_cleanup, new_event
-
-import time
-import unittest
-import re
 import asyncio
 import multiprocessing
+import re
+import time
+import unittest
 from unittest import mock
 
 from evdev.ecodes import (
@@ -34,10 +32,7 @@ from evdev.ecodes import (
     EV_KEY,
     ABS_Y,
     REL_Y,
-    REL_X,
-    REL_WHEEL,
     REL_HWHEEL,
-    REL_WHEEL_HI_RES,
     REL_HWHEEL_HI_RES,
     KEY_A,
     KEY_B,
@@ -45,6 +40,10 @@ from evdev.ecodes import (
     KEY_E,
 )
 
+from inputremapper.configs.preset import Preset
+from inputremapper.configs.system_mapping import system_mapping
+from inputremapper.exceptions import MacroParsingError
+from inputremapper.injection.context import Context
 from inputremapper.injection.macros.macro import (
     Macro,
     _type_check,
@@ -66,12 +65,7 @@ from inputremapper.injection.macros.parse import (
     get_macro_argument_names,
     get_num_parameters,
 )
-from inputremapper.exceptions import MacroParsingError
-from inputremapper.injection.context import Context
-from inputremapper.configs.global_config import global_config
-from inputremapper.configs.preset import Preset
-from inputremapper.configs.system_mapping import system_mapping
-from inputremapper.utils import PRESS, RELEASE
+from tests.test import logger, quick_cleanup, new_event
 
 
 class MacroTestBase(unittest.IsolatedAsyncioTestCase):

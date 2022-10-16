@@ -17,7 +17,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
-from inputremapper.gui.message_broker import MessageBroker
+from inputremapper.gui.messages.message_broker import MessageBroker
 from tests.test import (
     InputDevice,
     quick_cleanup,

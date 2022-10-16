@@ -61,7 +61,8 @@ DEFAULT_UINPUTS["keyboard + mouse"] = {
 
 class UInput(evdev.UInput):
     def __init__(self, *args, **kwargs):
-        logger.debug(f"creating UInput device: '{kwargs['name']}'")
+        name = kwargs["name"]
+        logger.debug(f'creating UInput device: "{name}"')
         super().__init__(*args, **kwargs)
 
     def can_emit(self, event):
@@ -80,7 +81,7 @@ class FrontendUInput:
         self.events = events
         self.name = name
 
-        logger.debug(f"creating fake UInput device: '{self.name}'")
+        logger.debug(f'creating fake UInput device: "{self.name}"')
 
     def capabilities(self):
         return self.events

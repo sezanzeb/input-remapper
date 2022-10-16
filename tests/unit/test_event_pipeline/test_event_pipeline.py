@@ -1277,7 +1277,7 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
         # left x to mouse x if left y is above 10%
         combination = EventCombination(((EV_ABS, ABS_X, 0), (EV_ABS, ABS_Y, 10)))
         cfg = {
-            "event_combination": combination.json_str(),
+            "event_combination": combination.json_key(),
             "target_uinput": "mouse",
             "output_type": EV_REL,
             "output_code": REL_X,

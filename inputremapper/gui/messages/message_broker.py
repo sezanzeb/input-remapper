@@ -22,8 +22,6 @@ import os.path
 import re
 import traceback
 from collections import defaultdict, deque
-from dataclasses import dataclass
-from enum import Enum
 from typing import (
     Callable,
     Dict,
@@ -31,42 +29,15 @@ from typing import (
     Protocol,
     Tuple,
     Deque,
-    Optional,
-    List,
     Any,
     TYPE_CHECKING,
 )
 
-from inputremapper.groups import DeviceType
+from inputremapper.gui.messages.message_types import MessageType
 from inputremapper.logger import logger
 
 if TYPE_CHECKING:
-    from inputremapper.event_combination import EventCombination
-
-
-class MessageType(Enum):
-    reset_gui = "reset_gui"
-    terminate = "terminate"
-    init = "init"
-
-    uinputs = "uinputs"
-    groups = "groups"
-    group = "group"
-    preset = "preset"
-    mapping = "mapping"
-    selected_event = "selected_event"
-    combination_recorded = "combination_recorded"
-    recording_finished = "recording_finished"
-    combination_update = "combination_update"
-    status_msg = "status_msg"
-    injector_state = "injector_state"
-
-    gui_focus_request = "gui_focus_request"
-    user_confirm_request = "user_confirm_request"
-
-    # for unit tests:
-    test1 = "test1"
-    test2 = "test2"
+    pass
 
 
 class Message(Protocol):
@@ -77,10 +48,6 @@ class Message(Protocol):
 
 # useful type aliases
 MessageListener = Callable[[Any], None]
-Capabilities = Dict[int, List]
-Name = str
-Key = str
-DeviceTypes = List[DeviceType]
 
 
 class MessageBroker:
@@ -121,7 +88,7 @@ class MessageBroker:
 
     def subscribe(self, massage_type: MessageType, listener: MessageListener):
         """attach a listener to an event"""
-        logger.debug("adding new Listener: %s", listener)
+        logger.debug("adding new Listener for %s: %s", massage_type, listener)
         self._listeners[massage_type].add(listener)
         return self
 
@@ -137,92 +104,6 @@ class MessageBroker:
                 listeners.remove(listener)
             except KeyError:
                 pass
-
-
-@dataclass(frozen=True)
-class UInputsData:
-    message_type = MessageType.uinputs
-    uinputs: Dict[Name, Capabilities]
-
-    def __str__(self):
-        string = f"{self.__class__.__name__}(uinputs={self.uinputs})"
-
-        # find all sequences of comma+space separated numbers, and shorten them
-        # to the first and last number
-        all_matches = [m for m in re.finditer("(\d+, )+", string)]
-        all_matches.reverse()
-        for match in all_matches:
-            start = match.start()
-            end = match.end()
-            start += string[start:].find(",") + 2
-            if start == end:
-                continue
-            string = f"{string[:start]}... {string[end:]}"
-
-        return string
-
-
-@dataclass(frozen=True)
-class GroupsData:
-    """Message containing all available groups and their device types"""
-
-    message_type = MessageType.groups
-    groups: Dict[Key, DeviceTypes]
-
-
-@dataclass(frozen=True)
-class GroupData:
-    """Message with the active group and available presets for the group"""
-
-    message_type = MessageType.group
-    group_key: str
-    presets: Tuple[str, ...]
-
-
-@dataclass(frozen=True)
-class PresetData:
-    """Message with the active preset name and mapping names/combinations"""
-
-    message_type = MessageType.preset
-    name: Optional[Name]
-    mappings: Optional[Tuple[Tuple[Name, "EventCombination"], ...]]
-    autoload: bool = False
-
-
-@dataclass(frozen=True)
-class StatusData:
-    """Message with the strings and id for the status bar"""
-
-    message_type = MessageType.status_msg
-    ctx_id: int
-    msg: Optional[str] = None
-    tooltip: Optional[str] = None
-
-
-@dataclass(frozen=True)
-class CombinationRecorded:
-    """Message with the latest recoded combination"""
-
-    message_type = MessageType.combination_recorded
-    combination: "EventCombination"
-
-
-@dataclass(frozen=True)
-class CombinationUpdate:
-    """Message with the old and new combination (hash for a mapping) when it changed"""
-
-    message_type = MessageType.combination_update
-    old_combination: "EventCombination"
-    new_combination: "EventCombination"
-
-
-@dataclass(frozen=True)
-class UserConfirmRequest:
-    """Message for requesting a user response (confirm/cancel) from the gui"""
-
-    message_type = MessageType.user_confirm_request
-    msg: str
-    respond: Callable[[bool], None] = lambda _: None
 
 
 class Signal(Message):

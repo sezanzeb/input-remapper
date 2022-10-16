@@ -41,6 +41,17 @@ from inputremapper.exceptions import DataManagementError
 from inputremapper.gui.data_manager import DataManager, DEFAULT_PRESET_NAME
 from inputremapper.gui.gettext import _
 from inputremapper.gui.helper import is_helper_running
+from inputremapper.gui.messages.message_broker import (
+    MessageBroker,
+    MessageType,
+)
+from inputremapper.gui.messages.message_data import (
+    PresetData,
+    StatusData,
+    CombinationRecorded,
+    UserConfirmRequest,
+    DoStackSwitch,
+)
 from inputremapper.gui.utils import CTX_APPLY, CTX_ERROR, CTX_WARNING, CTX_MAPPING
 from inputremapper.injection.injector import (
     RUNNING,
@@ -53,14 +64,6 @@ from inputremapper.injection.injector import (
 )
 from inputremapper.input_event import InputEvent
 from inputremapper.logger import logger
-from inputremapper.gui.message_broker import (
-    MessageBroker,
-    MessageType,
-    PresetData,
-    StatusData,
-    CombinationRecorded,
-    UserConfirmRequest,
-)
 
 if TYPE_CHECKING:
     # avoids gtk import error in tests
@@ -116,8 +119,12 @@ class Controller:
         """load a mapping as soon as everyone got notified about the new preset"""
         if data.mappings:
             mappings = list(data.mappings)
-            mappings.sort(key=lambda t: t[0] or t[1].beautify())
-            combination = mappings[0][1]
+            mappings.sort(
+                key=lambda mapping: (
+                    mapping.format_name() or mapping.event_combination.beautify()
+                )
+            )
+            combination = mappings[0].event_combination
             self.load_mapping(combination)
             self.load_event(combination[0])
         else:
@@ -139,7 +146,7 @@ class Controller:
             if not mapping.get_error():
                 continue
 
-            position = mapping.name or mapping.event_combination.beautify()
+            position = mapping.format_name()
             msg = _("Mapping error at %s, hover for info") % position
             self.show_status(CTX_MAPPING, msg, self._get_ui_error_string(mapping))
 
@@ -167,7 +174,7 @@ class Controller:
             )
         if "missing output axis:" in error_string:
             message = _(
-                "The input specifies a analog axis, but no output axis is selected."
+                "The input specifies an analog axis, but no output axis is selected."
             )
             if mapping.output_symbol is not None:
                 event = [
@@ -175,9 +182,9 @@ class Controller:
                 ][0]
                 message += _(
                     "\nIf you mean to create a key or macro mapping "
-                    "go to the 'Advanced Input Configuration'"
-                    " and set a 'Trigger Threshold' for "
-                    f"{event.description()}"
+                    "go to the advanced input configuration"
+                    ' and set a "Trigger Threshold" for '
+                    f'"{event.description()}"'
                 )
             return message
 
@@ -188,8 +195,8 @@ class Controller:
             )
             if mapping.output_type in (EV_ABS, EV_REL):
                 message += _(
-                    "\nIf you mean to create a analog axis mapping go to the "
-                    "'Advanced Input Configuration' and set a input to 'Use as Analog'."
+                    "\nIf you mean to create an analog axis mapping go to the "
+                    'advanced input configuration and set a input to "Use as Analog".'
                 )
             return message
 
@@ -226,6 +233,7 @@ class Controller:
         self.data_manager.copy_preset(
             self.data_manager.get_available_preset_name(f"{name} copy")
         )
+        self.message_broker.send(DoStackSwitch(1))
 
     def update_combination(self, combination: EventCombination):
         """update the event_combination of the active mapping"""
@@ -233,7 +241,10 @@ class Controller:
             self.data_manager.update_mapping(event_combination=combination)
             self.save()
         except KeyError:
-            # the combination was a duplicate
+            self.show_status(
+                CTX_MAPPING,
+                f'"{combination.beautify()}" already mapped to something else',
+            )
             return
 
         if combination.is_problematic():
@@ -385,11 +396,12 @@ class Controller:
             if answer:
                 self.data_manager.delete_preset()
                 self.data_manager.load_preset(self.get_a_preset())
+                self.message_broker.send(DoStackSwitch(1))
 
         if not self.data_manager.active_preset:
             return
         msg = (
-            _("Are you sure you want to delete the \npreset: '%s' ?")
+            _('Are you sure you want to delete the preset "%s"?')
             % self.data_manager.active_preset.name
         )
         self.message_broker.send(UserConfirmRequest(msg, f))
@@ -418,6 +430,7 @@ class Controller:
         except KeyError:
             # there is already an empty mapping
             return
+
         self.data_manager.load_mapping(combination=EventCombination.empty_combination())
         self.data_manager.update_mapping(**MAPPING_DEFAULTS)
 
@@ -432,7 +445,7 @@ class Controller:
         if not self.data_manager.active_mapping:
             return
         self.message_broker.send(
-            UserConfirmRequest(_("Are you sure you want to delete \nthis mapping?"), f)
+            UserConfirmRequest(_("Are you sure you want to delete this mapping?"), f)
         )
 
     def set_autoload(self, autoload: bool):
@@ -448,14 +461,16 @@ class Controller:
             self.show_status(CTX_ERROR, _("Permission denied!"), str(e))
 
     def start_key_recording(self):
-        """recorde the input of the active_group and update the
-        active_mapping.event_combination with the recorded events"""
+        """Record the input of the active_group
+
+        Updates the active_mapping.event_combination with the recorded events.
+        """
+        self.message_broker.signal(MessageType.recording_started)  # TODO test
+
         state = self.data_manager.get_state()
         if state == RUNNING or state == STARTING:
             self.message_broker.signal(MessageType.recording_finished)
-            self.show_status(
-                CTX_ERROR, _('Use "Stop Injection" to stop before editing')
-            )
+            self.show_status(CTX_ERROR, _('Use "Stop" to stop before editing'))
             return
 
         logger.debug("Recording Keys")
@@ -598,15 +613,19 @@ class Controller:
     def _change_mapping_type(self, kwargs):
         """query the user to update the mapping in order to change the mapping type"""
         mapping = self.data_manager.active_mapping
+
+        if mapping is None:
+            return kwargs
+
         if kwargs["mapping_type"] == mapping.mapping_type:
             return kwargs
 
         if kwargs["mapping_type"] == "analog":
-            msg = f"You are about to change the mapping to analog!"
+            msg = f"You are about to change the mapping to analog."
             if mapping.output_symbol:
                 msg += (
-                    f"\nThis will remove the '{mapping.output_symbol}' "
-                    f"from the text input."
+                    f'\nThis will remove "{mapping.output_symbol}" '
+                    f"from the text input!"
                 )
 
             if not [e for e in mapping.event_combination if e.value == 0]:
@@ -617,13 +636,13 @@ class Controller:
                         events[i] = e.modify(value=0)
                         kwargs["event_combination"] = EventCombination(events)
                         msg += (
-                            f"\nThe input '{e.description()}' "
+                            f'\nThe input "{e.description()}" '
                             f"will be used as analog input."
                         )
                         break
                 else:
                     # not possible to autoconfigure inform the user
-                    msg += "\nNote: you need to recorde an analog input."
+                    msg += "\nYou need to record an analog input."
 
             elif not mapping.output_symbol:
                 return kwargs
@@ -658,8 +677,8 @@ class Controller:
             self.message_broker.send(
                 UserConfirmRequest(
                     f"You are about to change the mapping to a Key or Macro mapping!\n"
-                    f"Go to the 'Advanced Input Configuration' and set a "
-                    f"'Trigger Threshold' for '{analog_input.description()}'.",
+                    f"Go to the advanced input configuration and set a "
+                    f'"Trigger Threshold" for "{analog_input.description()}".',
                     f,
                 )
             )

@@ -39,6 +39,7 @@ from inputremapper.injection.injector import (
 )
 from inputremapper.input_event import InputEvent
 
+gi.require_version("Gdk", "3.0")
 gi.require_version("Gtk", "3.0")
 gi.require_version("GLib", "2.0")
 gi.require_version("GtkSource", "4")
@@ -47,17 +48,19 @@ from gi.repository import Gtk
 # from inputremapper.gui.helper import is_helper_running
 from inputremapper.event_combination import EventCombination
 from inputremapper.groups import _Groups
-from inputremapper.gui.message_broker import (
+from inputremapper.gui.messages.message_broker import (
     MessageBroker,
     MessageType,
     Signal,
+)
+from inputremapper.gui.messages.message_data import (
     UInputsData,
     GroupsData,
     GroupData,
     PresetData,
     StatusData,
-    CombinationUpdate,
     CombinationRecorded,
+    CombinationUpdate,
     UserConfirmRequest,
 )
 from inputremapper.gui.reader import Reader
@@ -619,6 +622,23 @@ class TestController(unittest.TestCase):
         self.user_interface.connect_shortcuts.assert_not_called()
         self.controller.stop_key_recording()
         self.user_interface.connect_shortcuts.assert_called_once()
+
+    def test_recording_messages(self):
+        mock1 = MagicMock()
+        mock2 = MagicMock()
+        self.message_broker.subscribe(MessageType.recording_started, mock1)
+        self.message_broker.subscribe(MessageType.recording_finished, mock2)
+
+        self.message_broker.signal(MessageType.init)
+        self.controller.start_key_recording()
+
+        mock1.assert_called_once()
+        mock2.assert_not_called()
+
+        self.controller.stop_key_recording()
+
+        mock1.assert_called_once()
+        mock2.assert_called_once()
 
     def test_key_recording_updates_mapping_combination(self):
         prepare_presets()
@@ -1198,7 +1218,7 @@ class TestController(unittest.TestCase):
 
         self.message_broker.subscribe(MessageType.user_confirm_request, f)
         self.controller.update_mapping(mapping_type="analog")
-        self.assertIn("This will remove the 'a' from the text input", request.msg)
+        self.assertIn('This will remove "a" from the text input', request.msg)
 
     def test_update_mapping_type_will_notify_user_to_recorde_analog_input(self):
         prepare_presets()
@@ -1214,7 +1234,7 @@ class TestController(unittest.TestCase):
 
         self.message_broker.subscribe(MessageType.user_confirm_request, f)
         self.controller.update_mapping(mapping_type="analog")
-        self.assertIn("Note: you need to recorde an analog input.", request.msg)
+        self.assertIn("You need to record an analog input.", request.msg)
 
     def test_update_mapping_type_will_tell_user_which_input_is_used_as_analog(self):
         prepare_presets()
@@ -1232,7 +1252,7 @@ class TestController(unittest.TestCase):
 
         self.message_broker.subscribe(MessageType.user_confirm_request, f)
         self.controller.update_mapping(mapping_type="analog")
-        self.assertIn("The input 'Y Down 1' will be used as analog input.", request.msg)
+        self.assertIn('The input "Y Down 1" will be used as analog input.', request.msg)
 
     def test_update_mapping_type_will_will_autoconfigure_the_input(self):
         prepare_presets()
@@ -1303,7 +1323,7 @@ class TestController(unittest.TestCase):
 
         self.message_broker.subscribe(MessageType.user_confirm_request, f)
         self.controller.update_mapping(mapping_type="key_macro")
-        self.assertIn("and set a 'Trigger Threshold' for 'Y'.", request.msg)
+        self.assertIn('and set a "Trigger Threshold" for "Y".', request.msg)
 
     def test_update_mapping_update_to_analog_without_asking(self):
         prepare_presets()

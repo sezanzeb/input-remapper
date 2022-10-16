@@ -1,39 +1,61 @@
+#!/usr/bin/python3
+# -*- coding: utf-8 -*-
+# input-remapper - GUI for device specific keyboard mappings
+# Copyright (C) 2022 sezanzeb <proxima@sezanzeb.de>
+#
+# This file is part of input-remapper.
+#
+# input-remapper is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# input-remapper is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
+
 import unittest
-from typing import Optional, Tuple
-from unittest.mock import MagicMock, patch
+from typing import Optional, Tuple, Union
+from unittest.mock import MagicMock
+import time
 
 import evdev
-from evdev.ecodes import EV_KEY, KEY_A, KEY_B, KEY_C, KEY_X
+from evdev.ecodes import KEY_A, KEY_B, KEY_C
 import gi
 
+gi.require_version("Gdk", "3.0")
 gi.require_version("Gtk", "3.0")
 gi.require_version("GLib", "2.0")
 gi.require_version("GtkSource", "4")
 from gi.repository import Gtk, GLib, GtkSource, Gdk
 
-from tests.test import quick_cleanup, spy
+from tests.test import quick_cleanup, spy, logger
 from inputremapper.input_event import InputEvent
 from inputremapper.gui.utils import CTX_ERROR, CTX_WARNING, gtk_iteration
-from inputremapper.gui.message_broker import (
+from inputremapper.gui.messages.message_broker import (
     MessageBroker,
     MessageType,
-    GroupData,
-    GroupsData,
+)
+from inputremapper.gui.messages.message_data import (
     UInputsData,
+    GroupsData,
+    GroupData,
     PresetData,
-    CombinationUpdate,
     StatusData,
+    CombinationUpdate,
+    DoStackSwitch,
 )
 from inputremapper.groups import DeviceType
-from inputremapper.gui.components import (
-    DeviceSelection,
+from inputremapper.gui.components.editor import (
     TargetSelection,
-    PresetSelection,
     MappingListBox,
-    SelectionLabel,
+    MappingSelectionLabel,
     CodeEditor,
     RecordingToggle,
-    StatusBar,
     AutoloadSwitch,
     ReleaseCombinationSwitch,
     CombinationListbox,
@@ -46,37 +68,109 @@ from inputremapper.gui.components import (
     Sliders,
     TransformationDrawArea,
     RelativeInputCutoffInput,
+    RecordingStatus,
+    RequireActiveMapping,
+)
+from inputremapper.gui.components.main import Stack, StatusBar
+from inputremapper.gui.components.common import FlowBoxEntry, Breadcrumbs
+from inputremapper.gui.components.presets import PresetSelection
+from inputremapper.gui.components.device_groups import (
+    DeviceGroupEntry,
+    DeviceGroupSelection,
 )
 from inputremapper.configs.mapping import MappingData
 from inputremapper.event_combination import EventCombination
 
 
 class ComponentBaseTest(unittest.TestCase):
-    """test a gui component
-
-    ensures to tearDown self.gui
-    all gtk objects must be a child of self.gui in order to ensure proper cleanup"""
+    """Test a gui component."""
 
     def setUp(self) -> None:
         self.message_broker = MessageBroker()
         self.controller_mock = MagicMock()
-        self.gui = MagicMock()
+
+    def destroy_all_member_widgets(self):
+        # destroy all Gtk Widgets that are stored in self
+        # TODO why is this necessary?
+        for attribute in dir(self):
+            stuff = getattr(self, attribute, None)
+            if isinstance(stuff, Gtk.Widget):
+                logger.info('destroying member "%s" %s', attribute, stuff)
+                GLib.timeout_add(0, stuff.destroy)
+                setattr(self, attribute, None)
 
     def tearDown(self) -> None:
         super().tearDown()
         self.message_broker.signal(MessageType.terminate)
-        GLib.timeout_add(0, self.gui.destroy)
+
+        # Shut down the gui properly
+        self.destroy_all_member_widgets()
         GLib.timeout_add(0, Gtk.main_quit)
+
+        # Gtk.main() will start the Gtk event loop and process all pending events.
+        # So the gui will do whatever is queued up this ensures that the next tests
+        # starts without pending events.
         Gtk.main()
+
         quick_cleanup()
 
 
-class TestDeviceSelection(ComponentBaseTest):
+class FlowBoxTestUtils:
+    """Methods to test the FlowBoxes that contain presets and devices.
+
+    Those are only used in tests, so I moved them here instead.
+    """
+
+    @staticmethod
+    def set_active(flow_box: Gtk.FlowBox, name: str):
+        """Change the currently selected group."""
+        for child in flow_box.get_children():
+            flow_box_entry: FlowBoxEntry = child.get_children()[0]
+            flow_box_entry.set_active(flow_box_entry.name == name)
+
+    @staticmethod
+    def get_active_entry(flow_box: Gtk.FlowBox) -> Union[DeviceGroupEntry, None]:
+        """Find the currently selected DeviceGroupEntry."""
+        children = flow_box.get_children()
+
+        if len(children) == 0:
+            return None
+
+        for child in children:
+            flow_box_entry: FlowBoxEntry = child.get_children()[0]
+
+            if flow_box_entry.get_active():
+                return flow_box_entry
+
+        raise AssertionError("Expected one entry to be selected.")
+
+    @staticmethod
+    def get_child_names(flow_box: Gtk.FlowBox):
+        names = []
+        for child in flow_box.get_children():
+            flow_box_entry: FlowBoxEntry = child.get_children()[0]
+            names.append(flow_box_entry.name)
+
+        return names
+
+    @staticmethod
+    def get_child_icons(flow_box: Gtk.FlowBox):
+        icon_names = []
+        for child in flow_box.get_children():
+            flow_box_entry: FlowBoxEntry = child.get_children()[0]
+            icon_names.append(flow_box_entry.icon_name)
+
+        return icon_names
+
+
+class TestDeviceGroupSelection(ComponentBaseTest):
     def setUp(self) -> None:
-        super(TestDeviceSelection, self).setUp()
-        self.gui = Gtk.ComboBox()
-        self.selection = DeviceSelection(
-            self.message_broker, self.controller_mock, self.gui
+        super(TestDeviceGroupSelection, self).setUp()
+        self.gui = Gtk.FlowBox()
+        self.selection = DeviceGroupSelection(
+            self.message_broker,
+            self.controller_mock,
+            self.gui,
         )
         self.message_broker.send(
             GroupsData(
@@ -88,10 +182,21 @@ class TestDeviceSelection(ComponentBaseTest):
             )
         )
 
+    def get_displayed_group_keys_and_icons(self):
+        """Get a list of all group_keys and icons of the displayed groups."""
+        group_keys = []
+        icons = []
+        for child in self.gui.get_children():
+            device_group_entry = child.get_children()[0]
+            group_keys.append(device_group_entry.group_key)
+            icons.append(device_group_entry.icon_name)
+
+        return group_keys, icons
+
     def test_populates_devices(self):
-        names = [row[0] for row in self.gui.get_model()]
-        self.assertEqual(names, ["foo", "bar", "baz"])
-        icons = [row[1] for row in self.gui.get_model()]
+        # tests that all devices sent via the broker end up in the gui
+        group_keys, icons = self.get_displayed_group_keys_and_icons()
+        self.assertEqual(group_keys, ["foo", "bar", "baz"])
         self.assertEqual(icons, ["input-gaming", None, "input-tablet"])
 
         self.message_broker.send(
@@ -102,19 +207,19 @@ class TestDeviceSelection(ComponentBaseTest):
                 }
             )
         )
-        names = [row[0] for row in self.gui.get_model()]
-        self.assertEqual(names, ["kuu", "qux"])
-        icons = [row[1] for row in self.gui.get_model()]
+
+        group_keys, icons = self.get_displayed_group_keys_and_icons()
+        self.assertEqual(group_keys, ["kuu", "qux"])
         self.assertEqual(icons, ["input-keyboard", "input-gaming"])
 
     def test_selects_correct_device(self):
         self.message_broker.send(GroupData("bar", ()))
-        self.assertEqual(self.gui.get_active_id(), "bar")
+        self.assertEqual(FlowBoxTestUtils.get_active_entry(self.gui).group_key, "bar")
         self.message_broker.send(GroupData("baz", ()))
-        self.assertEqual(self.gui.get_active_id(), "baz")
+        self.assertEqual(FlowBoxTestUtils.get_active_entry(self.gui).group_key, "baz")
 
     def test_loads_group(self):
-        self.gui.set_active_id("bar")
+        FlowBoxTestUtils.set_active(self.gui, "bar")
         self.controller_mock.load_group.assert_called_once_with("bar")
 
     def test_avoids_infinite_recursion(self):
@@ -168,53 +273,64 @@ class TestTargetSelection(ComponentBaseTest):
         self.message_broker.send(MappingData(target_uinput="baz"))
         self.controller_mock.update_mapping.assert_not_called()
 
-    def test_disabled_with_invalid_mapping(self):
-        self.controller_mock.is_empty_mapping.return_value = True
-        self.message_broker.send(MappingData())
-        self.assertFalse(self.gui.get_sensitive())
-        self.assertLess(self.gui.get_opacity(), 0.8)
-
-    def test_enabled_with_valid_mapping(self):
-        self.controller_mock.is_empty_mapping.return_value = False
-        self.message_broker.send(MappingData())
-        self.assertTrue(self.gui.get_sensitive())
-        self.assertEqual(self.gui.get_opacity(), 1)
-
 
 class TestPresetSelection(ComponentBaseTest):
     def setUp(self) -> None:
         super().setUp()
-        self.gui = Gtk.ComboBoxText()
+        self.gui = Gtk.FlowBox()
         self.selection = PresetSelection(
             self.message_broker, self.controller_mock, self.gui
         )
         self.message_broker.send(GroupData("foo", ("preset1", "preset2")))
 
     def test_populates_presets(self):
-        names = [row[0] for row in self.gui.get_model()]
+        names = FlowBoxTestUtils.get_child_names(self.gui)
         self.assertEqual(names, ["preset1", "preset2"])
+
         self.message_broker.send(GroupData("foo", ("preset3", "preset4")))
-        names = [row[0] for row in self.gui.get_model()]
+        names = FlowBoxTestUtils.get_child_names(self.gui)
         self.assertEqual(names, ["preset3", "preset4"])
 
     def test_selects_preset(self):
         self.message_broker.send(
-            PresetData("preset2", (("m1", EventCombination((1, 2, 3))),))
+            PresetData(
+                "preset2",
+                (
+                    MappingData(
+                        name="m1", event_combination=EventCombination((1, 2, 3))
+                    ),
+                ),
+            )
         )
-        self.assertEqual(self.gui.get_active_id(), "preset2")
+        self.assertEqual(FlowBoxTestUtils.get_active_entry(self.gui).name, "preset2")
+
         self.message_broker.send(
-            PresetData("preset1", (("m1", EventCombination((1, 2, 3))),))
+            PresetData(
+                "preset1",
+                (
+                    MappingData(
+                        name="m1", event_combination=EventCombination((1, 2, 3))
+                    ),
+                ),
+            )
         )
-        self.assertEqual(self.gui.get_active_id(), "preset1")
+        self.assertEqual(FlowBoxTestUtils.get_active_entry(self.gui).name, "preset1")
 
     def test_avoids_infinite_recursion(self):
         self.message_broker.send(
-            PresetData("preset2", (("m1", EventCombination((1, 2, 3))),))
+            PresetData(
+                "preset2",
+                (
+                    MappingData(
+                        name="m1", event_combination=EventCombination((1, 2, 3))
+                    ),
+                ),
+            )
         )
         self.controller_mock.load_preset.assert_not_called()
 
     def test_loads_preset(self):
-        self.gui.set_active_id("preset2")
+        FlowBoxTestUtils.set_active(self.gui, "preset2")
         self.controller_mock.load_preset.assert_called_once_with("preset2")
 
 
@@ -230,17 +346,28 @@ class TestMappingListbox(ComponentBaseTest):
             PresetData(
                 "preset1",
                 (
-                    ("mapping1", EventCombination((1, KEY_C, 1))),
-                    ("", EventCombination([(1, KEY_A, 1), (1, KEY_B, 1)])),
-                    ("mapping2", EventCombination((1, KEY_B, 1))),
+                    MappingData(
+                        name="mapping1",
+                        event_combination=EventCombination((1, KEY_C, 1)),
+                    ),
+                    MappingData(
+                        name="",
+                        event_combination=EventCombination(
+                            [(1, KEY_A, 1), (1, KEY_B, 1)]
+                        ),
+                    ),
+                    MappingData(
+                        name="mapping2",
+                        event_combination=EventCombination((1, KEY_B, 1)),
+                    ),
                 ),
             )
         )
 
-    def get_selected_row(self) -> SelectionLabel:
+    def get_selected_row(self) -> MappingSelectionLabel:
         row = None
 
-        def find_row(r: SelectionLabel):
+        def find_row(r: MappingSelectionLabel):
             nonlocal row
             if r.is_selected():
                 row = r
@@ -250,7 +377,7 @@ class TestMappingListbox(ComponentBaseTest):
         return row
 
     def select_row(self, combination: EventCombination):
-        def select(row: SelectionLabel):
+        def select(row: MappingSelectionLabel):
             if row.combination == combination:
                 self.gui.select_row(row)
 
@@ -293,53 +420,71 @@ class TestMappingListbox(ComponentBaseTest):
             PresetData(
                 "preset1",
                 (
-                    ("qux", EventCombination((1, KEY_C, 1))),
-                    ("foo", EventCombination.empty_combination()),
-                    ("bar", EventCombination((1, KEY_B, 1))),
+                    MappingData(
+                        name="qux",
+                        event_combination=EventCombination((1, KEY_C, 1)),
+                    ),
+                    MappingData(
+                        name="foo",
+                        event_combination=EventCombination.empty_combination(),
+                    ),
+                    MappingData(
+                        name="bar",
+                        event_combination=EventCombination((1, KEY_B, 1)),
+                    ),
                 ),
             )
         )
-        bottom_row: SelectionLabel = self.gui.get_row_at_index(2)
+        bottom_row: MappingSelectionLabel = self.gui.get_row_at_index(2)
         self.assertEqual(bottom_row.combination, EventCombination.empty_combination())
         self.message_broker.send(
             PresetData(
                 "preset1",
                 (
-                    ("foo", EventCombination.empty_combination()),
-                    ("qux", EventCombination((1, KEY_C, 1))),
-                    ("bar", EventCombination((1, KEY_B, 1))),
+                    MappingData(
+                        name="foo",
+                        event_combination=EventCombination.empty_combination(),
+                    ),
+                    MappingData(
+                        name="qux",
+                        event_combination=EventCombination((1, KEY_C, 1)),
+                    ),
+                    MappingData(
+                        name="bar",
+                        event_combination=EventCombination((1, KEY_B, 1)),
+                    ),
                 ),
             )
         )
-        bottom_row: SelectionLabel = self.gui.get_row_at_index(2)
+        bottom_row: MappingSelectionLabel = self.gui.get_row_at_index(2)
         self.assertEqual(bottom_row.combination, EventCombination.empty_combination())
 
 
-class TestSelectionLabel(ComponentBaseTest):
+class TestMappingSelectionLabel(ComponentBaseTest):
     def setUp(self) -> None:
         super().setUp()
         self.gui = Gtk.ListBox()
-        self.label = SelectionLabel(
+        self.mapping_selection_label = MappingSelectionLabel(
             self.message_broker,
             self.controller_mock,
             "",
             EventCombination([(1, KEY_A, 1), (1, KEY_B, 1)]),
         )
-        self.gui.insert(self.label, -1)
+        self.gui.insert(self.mapping_selection_label, -1)
 
     def assert_edit_mode(self):
-        self.assertTrue(self.label.name_input.get_visible())
-        self.assertFalse(self.label.label.get_visible())
+        self.assertTrue(self.mapping_selection_label.name_input.get_visible())
+        self.assertFalse(self.mapping_selection_label.label.get_visible())
 
     def assert_selected(self):
-        self.assertTrue(self.label.label.get_visible())
-        self.assertFalse(self.label.name_input.get_visible())
+        self.assertTrue(self.mapping_selection_label.label.get_visible())
+        self.assertFalse(self.mapping_selection_label.name_input.get_visible())
 
     def test_shows_combination_without_name(self):
-        self.assertEqual(self.label.label.get_label(), "a + b")
+        self.assertEqual(self.mapping_selection_label.label.get_label(), "a + b")
 
     def test_shows_name_when_given(self):
-        self.gui = SelectionLabel(
+        self.gui = MappingSelectionLabel(
             self.message_broker,
             self.controller_mock,
             "foo",
@@ -348,9 +493,10 @@ class TestSelectionLabel(ComponentBaseTest):
         self.assertEqual(self.gui.label.get_label(), "foo")
 
     def test_updates_combination_when_selected(self):
-        self.gui.select_row(self.label)
+        self.gui.select_row(self.mapping_selection_label)
         self.assertEqual(
-            self.label.combination, EventCombination([(1, KEY_A, 1), (1, KEY_B, 1)])
+            self.mapping_selection_label.combination,
+            EventCombination([(1, KEY_A, 1), (1, KEY_B, 1)]),
         )
         self.message_broker.send(
             CombinationUpdate(
@@ -358,11 +504,14 @@ class TestSelectionLabel(ComponentBaseTest):
                 EventCombination((1, KEY_A, 1)),
             )
         )
-        self.assertEqual(self.label.combination, EventCombination((1, KEY_A, 1)))
+        self.assertEqual(
+            self.mapping_selection_label.combination, EventCombination((1, KEY_A, 1))
+        )
 
     def test_doesnt_update_combination_when_not_selected(self):
         self.assertEqual(
-            self.label.combination, EventCombination([(1, KEY_A, 1), (1, KEY_B, 1)])
+            self.mapping_selection_label.combination,
+            EventCombination([(1, KEY_A, 1), (1, KEY_B, 1)]),
         )
         self.message_broker.send(
             CombinationUpdate(
@@ -371,7 +520,8 @@ class TestSelectionLabel(ComponentBaseTest):
             )
         )
         self.assertEqual(
-            self.label.combination, EventCombination([(1, KEY_A, 1), (1, KEY_B, 1)])
+            self.mapping_selection_label.combination,
+            EventCombination([(1, KEY_A, 1), (1, KEY_B, 1)]),
         )
 
     def test_updates_name_when_mapping_changed_and_combination_matches(self):
@@ -381,7 +531,7 @@ class TestSelectionLabel(ComponentBaseTest):
                 name="foo",
             )
         )
-        self.assertEqual(self.label.label.get_label(), "foo")
+        self.assertEqual(self.mapping_selection_label.label.get_label(), "foo")
 
     def test_ignores_mapping_when_combination_does_not_match(self):
         self.message_broker.send(
@@ -390,11 +540,11 @@ class TestSelectionLabel(ComponentBaseTest):
                 name="foo",
             )
         )
-        self.assertEqual(self.label.label.get_label(), "a + b")
+        self.assertEqual(self.mapping_selection_label.label.get_label(), "a + b")
 
     def test_edit_button_visibility(self):
         # start off invisible
-        self.assertFalse(self.label.edit_btn.get_visible())
+        self.assertFalse(self.mapping_selection_label.edit_btn.get_visible())
 
         # load the mapping associated with the ListBoxRow
         self.message_broker.send(
@@ -402,7 +552,7 @@ class TestSelectionLabel(ComponentBaseTest):
                 event_combination=EventCombination([(1, KEY_A, 1), (1, KEY_B, 1)]),
             )
         )
-        self.assertTrue(self.label.edit_btn.get_visible())
+        self.assertTrue(self.mapping_selection_label.edit_btn.get_visible())
 
         # load a different row
         self.message_broker.send(
@@ -410,7 +560,7 @@ class TestSelectionLabel(ComponentBaseTest):
                 event_combination=EventCombination([(1, KEY_A, 1), (1, KEY_C, 1)]),
             )
         )
-        self.assertFalse(self.label.edit_btn.get_visible())
+        self.assertFalse(self.mapping_selection_label.edit_btn.get_visible())
 
     def test_enter_edit_mode_focuses_name_input(self):
         self.message_broker.send(
@@ -418,8 +568,10 @@ class TestSelectionLabel(ComponentBaseTest):
                 event_combination=EventCombination([(1, KEY_A, 1), (1, KEY_B, 1)]),
             )
         )
-        self.label.edit_btn.clicked()
-        self.controller_mock.set_focus.assert_called_once_with(self.label.name_input)
+        self.mapping_selection_label.edit_btn.clicked()
+        self.controller_mock.set_focus.assert_called_once_with(
+            self.mapping_selection_label.name_input
+        )
 
     def test_enter_edit_mode_updates_visibility(self):
         self.message_broker.send(
@@ -428,9 +580,9 @@ class TestSelectionLabel(ComponentBaseTest):
             )
         )
         self.assert_selected()
-        self.label.edit_btn.clicked()
+        self.mapping_selection_label.edit_btn.clicked()
         self.assert_edit_mode()
-        self.label.name_input.activate()  # aka hit the return key
+        self.mapping_selection_label.name_input.activate()  # aka hit the return key
         self.assert_selected()
 
     def test_leaves_edit_mode_on_esc(self):
@@ -439,15 +591,17 @@ class TestSelectionLabel(ComponentBaseTest):
                 event_combination=EventCombination([(1, KEY_A, 1), (1, KEY_B, 1)]),
             )
         )
-        self.label.edit_btn.clicked()
+        self.mapping_selection_label.edit_btn.clicked()
         self.assert_edit_mode()
-        self.label.name_input.set_text("foo")
+        self.mapping_selection_label.name_input.set_text("foo")
 
         event = Gdk.Event()
         event.key.keyval = Gdk.KEY_Escape
-        self.label._on_gtk_rename_abort(None, event.key)  # send the "key-press-event"
+        self.mapping_selection_label._on_gtk_rename_abort(
+            None, event.key
+        )  # send the "key-press-event"
         self.assert_selected()
-        self.assertEqual(self.label.label.get_text(), "a + b")
+        self.assertEqual(self.mapping_selection_label.label.get_text(), "a + b")
         self.controller_mock.update_mapping.assert_not_called()
 
     def test_update_name(self):
@@ -456,10 +610,10 @@ class TestSelectionLabel(ComponentBaseTest):
                 event_combination=EventCombination([(1, KEY_A, 1), (1, KEY_B, 1)]),
             )
         )
-        self.label.edit_btn.clicked()
+        self.mapping_selection_label.edit_btn.clicked()
 
-        self.label.name_input.set_text("foo")
-        self.label.name_input.activate()
+        self.mapping_selection_label.name_input.set_text("foo")
+        self.mapping_selection_label.name_input.activate()
         self.controller_mock.update_mapping.assert_called_once_with(name="foo")
 
     def test_name_input_contains_combination_when_name_not_set(self):
@@ -468,8 +622,8 @@ class TestSelectionLabel(ComponentBaseTest):
                 event_combination=EventCombination([(1, KEY_A, 1), (1, KEY_B, 1)]),
             )
         )
-        self.label.edit_btn.clicked()
-        self.assertEqual(self.label.name_input.get_text(), "a + b")
+        self.mapping_selection_label.edit_btn.clicked()
+        self.assertEqual(self.mapping_selection_label.name_input.get_text(), "a + b")
 
     def test_name_input_contains_name(self):
         self.message_broker.send(
@@ -478,8 +632,8 @@ class TestSelectionLabel(ComponentBaseTest):
                 name="foo",
             )
         )
-        self.label.edit_btn.clicked()
-        self.assertEqual(self.label.name_input.get_text(), "foo")
+        self.mapping_selection_label.edit_btn.clicked()
+        self.assertEqual(self.mapping_selection_label.name_input.get_text(), "foo")
 
     def test_removes_name_when_name_matches_combination(self):
         self.message_broker.send(
@@ -488,9 +642,9 @@ class TestSelectionLabel(ComponentBaseTest):
                 name="foo",
             )
         )
-        self.label.edit_btn.clicked()
-        self.label.name_input.set_text("a + b")
-        self.label.name_input.activate()
+        self.mapping_selection_label.edit_btn.clicked()
+        self.mapping_selection_label.name_input.set_text("a + b")
+        self.mapping_selection_label.name_input.activate()
         self.controller_mock.update_mapping.assert_called_once_with(name="")
 
 
@@ -513,12 +667,6 @@ class TestCodeEditor(ComponentBaseTest):
         self.controller_mock.is_empty_mapping.return_value = True
         self.message_broker.send(MappingData(output_symbol="foo"))
         self.assertEqual(self.get_text(), "Record the input first")
-
-    def test_inactive_when_mapping_is_empty(self):
-        self.controller_mock.is_empty_mapping.return_value = True
-        self.message_broker.send(MappingData(output_symbol="foo"))
-        self.assertFalse(self.gui.get_sensitive())
-        self.assertLess(self.gui.get_opacity(), 0.6)
 
     def test_active_when_mapping_is_not_empty(self):
         self.message_broker.send(MappingData(output_symbol="foo"))
@@ -563,42 +711,45 @@ class TestCodeEditor(ComponentBaseTest):
 class TestRecordingToggle(ComponentBaseTest):
     def setUp(self) -> None:
         super(TestRecordingToggle, self).setUp()
-        self.gui = Gtk.ToggleButton()
-        self.toggle = RecordingToggle(
-            self.message_broker, self.controller_mock, self.gui
+
+        self.toggle_button = Gtk.ToggleButton()
+        self.recording_toggle = RecordingToggle(
+            self.message_broker,
+            self.controller_mock,
+            self.toggle_button,
         )
 
-    def assert_recording(self):
-        self.assertEqual(self.gui.get_label(), "Recording ...")
-        self.assertTrue(self.gui.get_active())
+        self.label = Gtk.Label()
+        self.recording_status = RecordingStatus(self.message_broker, self.label)
 
     def assert_not_recording(self):
-        self.assertEqual(self.gui.get_label(), "Record Input")
-        self.assertFalse(self.gui.get_active())
+        self.assertFalse(self.label.get_visible())
+        self.assertFalse(self.toggle_button.get_active())
 
     def test_starts_recording(self):
-        self.gui.set_active(True)
+        self.toggle_button.set_active(True)
         self.controller_mock.start_key_recording.assert_called_once()
 
     def test_stops_recording_when_clicked(self):
-        self.gui.set_active(True)
-        self.gui.set_active(False)
+        self.toggle_button.set_active(True)
+        self.toggle_button.set_active(False)
         self.controller_mock.stop_key_recording.assert_called_once()
 
     def test_not_recording_initially(self):
         self.assert_not_recording()
 
-    def test_shows_recording_when_toggled(self):
-        self.gui.set_active(True)
-        self.assert_recording()
+    def test_shows_recording_when_message_sent(self):
+        self.assertFalse(self.label.get_visible())
+        self.message_broker.signal(MessageType.recording_started)
+        self.assertTrue(self.label.get_visible())
 
     def test_shows_not_recording_after_toggle(self):
-        self.gui.set_active(True)
-        self.gui.set_active(False)
+        self.toggle_button.set_active(True)
+        self.toggle_button.set_active(False)
         self.assert_not_recording()
 
     def test_shows_not_recording_when_recording_finished(self):
-        self.gui.set_active(True)
+        self.toggle_button.set_active(True)
         self.message_broker.signal(MessageType.recording_finished)
         self.assert_not_recording()
 
@@ -1089,13 +1240,19 @@ class TestTransformationDrawArea(ComponentBaseTest):
         self.draw_area = Gtk.DrawingArea()
         self.gui.add(self.draw_area)
         self.transform_draw_area = TransformationDrawArea(
-            self.message_broker, self.controller_mock, self.draw_area
+            self.message_broker,
+            self.controller_mock,
+            self.draw_area,
         )
 
     def test_draws_transform(self):
         with spy(self.transform_draw_area, "_transformation") as mock:
+            # show the window, it takes some time and iterations until it pops up
             self.gui.show_all()
-            gtk_iteration()
+            for _ in range(5):
+                gtk_iteration()
+                time.sleep(0.01)
+
             mock.assert_called()
 
     def test_updates_transform_when_mapping_updates(self):
@@ -1286,3 +1443,174 @@ class TestRelativeInputCutoffInput(ComponentBaseTest):
             )
         )
         self.assert_active()
+
+
+class TestRequireActiveMapping(ComponentBaseTest):
+    def test_no_reqorded_input_required(self):
+        self.box = Gtk.Box()
+        RequireActiveMapping(
+            self.message_broker,
+            self.box,
+            require_recorded_input=False,
+        )
+        combination = EventCombination([(1, KEY_A, 1)])
+
+        self.message_broker.send(MappingData())
+        self.assert_inactive(self.box)
+
+        self.message_broker.send(PresetData(name="preset", mappings=()))
+        self.assert_inactive(self.box)
+
+        # a mapping is available, that is all the widget needs to be activated. one
+        # mapping is always selected, so there is no need to check the mapping message
+        self.message_broker.send(PresetData(name="preset", mappings=(combination,)))
+        self.assert_active(self.box)
+
+        self.message_broker.send(MappingData(event_combination=combination))
+        self.assert_active(self.box)
+
+        self.message_broker.send(MappingData())
+        self.assert_active(self.box)
+
+    def test_recorded_input_required(self):
+        self.box = Gtk.Box()
+        RequireActiveMapping(
+            self.message_broker,
+            self.box,
+            require_recorded_input=True,
+        )
+        combination = EventCombination([(1, KEY_A, 1)])
+
+        self.message_broker.send(MappingData())
+        self.assert_inactive(self.box)
+
+        self.message_broker.send(PresetData(name="preset", mappings=()))
+        self.assert_inactive(self.box)
+
+        self.message_broker.send(PresetData(name="preset", mappings=(combination,)))
+        self.assert_inactive(self.box)
+
+        # the widget will be enabled once a mapping with recorded input is selected
+        self.message_broker.send(MappingData(event_combination=combination))
+        self.assert_active(self.box)
+
+        # this mapping doesn't have input recorded, so the box is disabled
+        self.message_broker.send(MappingData())
+        self.assert_inactive(self.box)
+
+    def assert_inactive(self, widget: Gtk.Widget):
+        self.assertFalse(widget.get_sensitive())
+        self.assertLess(widget.get_opacity(), 0.6)
+        self.assertGreater(widget.get_opacity(), 0.4)
+
+    def assert_active(self, widget: Gtk.Widget):
+        self.assertTrue(widget.get_sensitive())
+        self.assertEqual(widget.get_opacity(), 1)
+
+
+class TestStack(ComponentBaseTest):
+    def test_switches_pages(self):
+        self.stack = Gtk.Stack()
+        self.stack.add_named(Gtk.Label(), "Devices")
+        self.stack.add_named(Gtk.Label(), "Presets")
+        self.stack.add_named(Gtk.Label(), "Editor")
+        self.stack.show_all()
+        stack_wrapper = Stack(self.message_broker, self.controller_mock, self.stack)
+
+        self.message_broker.send(DoStackSwitch(Stack.devices_page))
+        self.assertEqual(self.stack.get_visible_child_name(), "Devices")
+
+        self.message_broker.send(DoStackSwitch(Stack.presets_page))
+        self.assertEqual(self.stack.get_visible_child_name(), "Presets")
+
+        self.message_broker.send(DoStackSwitch(Stack.editor_page))
+        self.assertEqual(self.stack.get_visible_child_name(), "Editor")
+
+
+class TestBreadcrumbs(ComponentBaseTest):
+    def test_breadcrumbs(self):
+        self.label_1 = Gtk.Label()
+        self.label_2 = Gtk.Label()
+        self.label_3 = Gtk.Label()
+        self.label_4 = Gtk.Label()
+        self.label_5 = Gtk.Label()
+
+        Breadcrumbs(
+            self.message_broker,
+            self.label_1,
+            show_device_group=False,
+            show_preset=False,
+            show_mapping=False,
+        )
+        Breadcrumbs(
+            self.message_broker,
+            self.label_2,
+            show_device_group=True,
+            show_preset=False,
+            show_mapping=False,
+        )
+        Breadcrumbs(
+            self.message_broker,
+            self.label_3,
+            show_device_group=True,
+            show_preset=True,
+            show_mapping=False,
+        )
+        Breadcrumbs(
+            self.message_broker,
+            self.label_4,
+            show_device_group=True,
+            show_preset=True,
+            show_mapping=True,
+        )
+        Breadcrumbs(
+            self.message_broker,
+            self.label_5,
+            show_device_group=False,
+            show_preset=False,
+            show_mapping=True,
+        )
+
+        self.assertEqual(self.label_1.get_text(), "")
+        self.assertEqual(self.label_2.get_text(), "?")
+        self.assertEqual(self.label_3.get_text(), "?  /  ?")
+        self.assertEqual(self.label_4.get_text(), "?  /  ?  /  ?")
+        self.assertEqual(self.label_5.get_text(), "?")
+
+        self.message_broker.send(PresetData("preset", None))
+
+        self.assertEqual(self.label_1.get_text(), "")
+        self.assertEqual(self.label_2.get_text(), "?")
+        self.assertEqual(self.label_3.get_text(), "?  /  preset")
+        self.assertEqual(self.label_4.get_text(), "?  /  preset  /  ?")
+        self.assertEqual(self.label_5.get_text(), "?")
+
+        self.message_broker.send(GroupData("group", ()))
+
+        self.assertEqual(self.label_1.get_text(), "")
+        self.assertEqual(self.label_2.get_text(), "group")
+        self.assertEqual(self.label_3.get_text(), "group  /  preset")
+        self.assertEqual(self.label_4.get_text(), "group  /  preset  /  ?")
+        self.assertEqual(self.label_5.get_text(), "?")
+
+        self.message_broker.send(MappingData())
+
+        self.assertEqual(self.label_1.get_text(), "")
+        self.assertEqual(self.label_2.get_text(), "group")
+        self.assertEqual(self.label_3.get_text(), "group  /  preset")
+        self.assertEqual(self.label_4.get_text(), "group  /  preset  /  Empty Mapping")
+        self.assertEqual(self.label_5.get_text(), "Empty Mapping")
+
+        self.message_broker.send(MappingData(name="mapping"))
+        self.assertEqual(self.label_4.get_text(), "group  /  preset  /  mapping")
+        self.assertEqual(self.label_5.get_text(), "mapping")
+
+        combination = EventCombination([(1, KEY_A, 1), (1, KEY_B, 1)])
+        self.message_broker.send(MappingData(event_combination=combination))
+        self.assertEqual(self.label_4.get_text(), "group  /  preset  /  a + b")
+        self.assertEqual(self.label_5.get_text(), "a + b")
+
+        combination = EventCombination([(1, KEY_A, 1)])
+        self.message_broker.send(MappingData(name="qux", event_combination=combination))
+        self.assertEqual(self.label_4.get_text(), "group  /  preset  /  qux")
+        self.assertEqual(self.label_5.get_text(), "qux")

@@ -17,9 +17,14 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
-import time
+from __future__ import annotations
 
-from gi.repository import Gtk, GLib
+import time
+from typing import List
+
+from gi.repository import Gtk, GLib, Gdk
+
+from inputremapper.logger import logger
 
 
 # status ctx ids
@@ -65,7 +70,7 @@ def debounce(timeout):
 class HandlerDisabled:
     """Safely modify a widget without causing handlers to be called.
 
-    Use in a with statement.
+    Use in a `with` statement.
     """
 
     def __init__(self, widget, handler):
@@ -73,10 +78,18 @@ class HandlerDisabled:
         self.handler = handler
 
     def __enter__(self):
-        self.widget.handler_block_by_func(self.handler)
+        try:
+            self.widget.handler_block_by_func(self.handler)
+        except TypeError as error:
+            # if nothing is connected to the given signal, it is not critical
+            # at all
+            logger.warning('HandlerDisabled entry failed: "%s"', error)
 
     def __exit__(self, *_):
-        self.widget.handler_unblock_by_func(self.handler)
+        try:
+            self.widget.handler_unblock_by_func(self.handler)
+        except TypeError as error:
+            logger.warning('HandlerDisabled exit failed: "%s"', error)
 
 
 def gtk_iteration(iterations=0):
@@ -87,3 +100,63 @@ def gtk_iteration(iterations=0):
         time.sleep(0.002)
         while Gtk.events_pending():
             Gtk.main_iteration()
+
+
+class Colors:
+    """Looks up colors from the GTK theme.
+
+    Defaults to libadwaita-light theme colors if the lookup fails.
+    """
+
+    fallback_accent = Gdk.RGBA(0.21, 0.52, 0.89, 1)
+    fallback_background = Gdk.RGBA(0.98, 0.98, 0.98, 1)
+    fallback_base = Gdk.RGBA(1, 1, 1, 1)
+    fallback_border = Gdk.RGBA(0.87, 0.87, 0.87, 1)
+    fallback_font = Gdk.RGBA(0.20, 0.20, 0.20, 1)
+
+    @staticmethod
+    def get_color(names: List[str], fallback: Gdk.RGBA) -> Gdk.RGBA:
+        """Get theme colors. Provide multiple names for fallback purposes."""
+        for name in names:
+            found, color = Gtk.StyleContext().lookup_color(name)
+            if found:
+                return color
+
+        return fallback
+
+    @staticmethod
+    def get_accent_color() -> Gdk.RGBA:
+        """Look up the accent color from the current theme."""
+        return Colors.get_color(
+            ["accent_bg_color", "theme_selected_bg_color"],
+            Colors.fallback_accent,
+        )
+
+    @staticmethod
+    def get_background_color() -> Gdk.RGBA:
+        """Look up the background-color from the current theme."""
+        return Colors.get_color(
+            ["theme_bg_color"],
+            Colors.fallback_background,
+        )
+
+    @staticmethod
+    def get_base_color() -> Gdk.RGBA:
+        """Look up the base-color from the current theme."""
+        return Colors.get_color(
+            ["theme_base_color"],
+            Colors.fallback_base,
+        )
+
+    @staticmethod
+    def get_border_color() -> Gdk.RGBA:
+        """Look up the border from the current theme."""
+        return Colors.get_color(["borders"], Colors.fallback_border)
+
+    @staticmethod
+    def get_font_color() -> Gdk.RGBA:
+        """Look up the border from the current theme."""
+        return Colors.get_color(
+            ["theme_fg_color"],
+            Colors.fallback_font,
+        )

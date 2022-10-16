@@ -18,6 +18,10 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
+
+"""All components that control a single preset."""
+
+
 from __future__ import annotations
 
 from collections import defaultdict
@@ -32,18 +36,16 @@ from inputremapper.event_combination import EventCombination
 from inputremapper.groups import DeviceType
 from inputremapper.gui.controller import Controller
 from inputremapper.gui.gettext import _
-from inputremapper.gui.message_broker import (
+from inputremapper.gui.messages.message_broker import (
     MessageBroker,
     MessageType,
-    GroupsData,
-    GroupData,
+)
+from inputremapper.gui.messages.message_data import (
     UInputsData,
     PresetData,
-    StatusData,
     CombinationUpdate,
-    UserConfirmRequest,
 )
-from inputremapper.gui.utils import HandlerDisabled, CTX_ERROR, CTX_MAPPING, CTX_WARNING
+from inputremapper.gui.utils import HandlerDisabled, Colors
 from inputremapper.injection.mapping_handlers.axis_transform import Transformation
 from inputremapper.input_event import InputEvent
 from inputremapper.logger import logger
@@ -51,7 +53,6 @@ from inputremapper.logger import logger
 Capabilities = Dict[int, List]
 
 SET_KEY_FIRST = _("Record the input first")
-EMPTY_MAPPING_NAME = _("Empty Mapping")
 
 ICON_NAMES = {
     DeviceType.GAMEPAD: "input-gaming",
@@ -73,60 +74,11 @@ ICON_PRIORITIES = [
 ]
 
 
-class DeviceSelection:
-    """the dropdown menu to select the active_group"""
-
-    def __init__(
-        self,
-        message_broker: MessageBroker,
-        controller: Controller,
-        combobox: Gtk.ComboBox,
-    ):
-        self._message_broker = message_broker
-        self._controller = controller
-        self._device_store = Gtk.ListStore(str, str, str)
-        self._gui = combobox
-
-        # https://python-gtk-3-tutorial.readthedocs.io/en/latest/treeview.html#the-view
-        combobox.set_model(self._device_store)
-        renderer_icon = Gtk.CellRendererPixbuf()
-        renderer_text = Gtk.CellRendererText()
-        renderer_text.set_padding(5, 0)
-        combobox.pack_start(renderer_icon, False)
-        combobox.pack_start(renderer_text, False)
-        combobox.add_attribute(renderer_icon, "icon-name", 1)
-        combobox.add_attribute(renderer_text, "text", 2)
-        combobox.set_id_column(0)
-
-        self._message_broker.subscribe(MessageType.groups, self._on_groups_changed)
-        self._message_broker.subscribe(MessageType.group, self._on_group_changed)
-        combobox.connect("changed", self._on_gtk_select_device)
-
-    def _on_groups_changed(self, data: GroupsData):
-        with HandlerDisabled(self._gui, self._on_gtk_select_device):
-            self._device_store.clear()
-            for group_key, types in data.groups.items():
-                if len(types) > 0:
-                    device_type = sorted(types, key=ICON_PRIORITIES.index)[0]
-                    icon_name = ICON_NAMES[device_type]
-                else:
-                    icon_name = None
-
-                logger.debug(f"adding {group_key} to device dropdown ")
-                self._device_store.append([group_key, icon_name, group_key])
-
-    def _on_group_changed(self, data: GroupData):
-        with HandlerDisabled(self._gui, self._on_gtk_select_device):
-            self._gui.set_active_id(data.group_key)
-
-    def _on_gtk_select_device(self, *_, **__):
-        group_key = self._gui.get_active_id()
-        logger.debug('Selecting device "%s"', group_key)
-        self._controller.load_group(group_key)
-
-
 class TargetSelection:
-    """the dropdown menu to select the targe_uinput of the active_mapping"""
+    """The dropdown menu to select the targe_uinput of the active_mapping,
+
+    For example "keyboard" or "gamepad".
+    """
 
     def __init__(
         self,
@@ -154,61 +106,12 @@ class TargetSelection:
         self._gui.set_id_column(0)
 
     def _on_mapping_loaded(self, mapping: MappingData):
-        if not self._controller.is_empty_mapping():
-            self._enable()
-        else:
-            self._disable()
-
         with HandlerDisabled(self._gui, self._on_gtk_target_selected):
             self._gui.set_active_id(mapping.target_uinput)
-
-    def _enable(self):
-        self._gui.set_sensitive(True)
-        self._gui.set_opacity(1)
-
-    def _disable(self):
-        self._gui.set_sensitive(False)
-        self._gui.set_opacity(0.5)
 
     def _on_gtk_target_selected(self, *_):
         target = self._gui.get_active_id()
         self._controller.update_mapping(target_uinput=target)
-
-
-class PresetSelection:
-    """the dropdown menu to select the active_preset"""
-
-    def __init__(
-        self,
-        message_broker: MessageBroker,
-        controller: Controller,
-        combobox: Gtk.ComboBoxText,
-    ):
-        self._message_broker = message_broker
-        self._controller = controller
-        self._gui = combobox
-
-        self._connect_message_listener()
-        combobox.connect("changed", self._on_gtk_select_preset)
-
-    def _connect_message_listener(self):
-        self._message_broker.subscribe(MessageType.group, self._on_group_changed)
-        self._message_broker.subscribe(MessageType.preset, self._on_preset_changed)
-
-    def _on_group_changed(self, data: GroupData):
-        with HandlerDisabled(self._gui, self._on_gtk_select_preset):
-            self._gui.remove_all()
-            for preset in data.presets:
-                self._gui.append(preset, preset)
-
-    def _on_preset_changed(self, data: PresetData):
-        with HandlerDisabled(self._gui, self._on_gtk_select_preset):
-            self._gui.set_active_id(data.name)
-
-    def _on_gtk_select_preset(self, *_, **__):
-        name = self._gui.get_active_id()
-        logger.debug('Selecting preset "%s"', name)
-        self._controller.load_preset(name)
 
 
 class MappingListBox:
@@ -230,7 +133,7 @@ class MappingListBox:
         self._gui.connect("row-selected", self._on_gtk_mapping_selected)
 
     @staticmethod
-    def _sort_func(row1: SelectionLabel, row2: SelectionLabel) -> int:
+    def _sort_func(row1: MappingSelectionLabel, row2: MappingSelectionLabel) -> int:
         """sort alphanumerical by name"""
         if row1.combination == EventCombination.empty_combination():
             return 1
@@ -244,9 +147,12 @@ class MappingListBox:
         if not data.mappings:
             return
 
-        for name, combination in data.mappings:
-            selection_label = SelectionLabel(
-                self._message_broker, self._controller, name, combination
+        for mapping in data.mappings:
+            selection_label = MappingSelectionLabel(
+                self._message_broker,
+                self._controller,
+                mapping.format_name(),
+                mapping.event_combination,
             )
             self._gui.insert(selection_label, -1)
         self._gui.invalidate_sort()
@@ -255,22 +161,22 @@ class MappingListBox:
         with HandlerDisabled(self._gui, self._on_gtk_mapping_selected):
             combination = mapping.event_combination
 
-            def set_active(row: SelectionLabel):
+            def set_active(row: MappingSelectionLabel):
                 if row.combination == combination:
                     self._gui.select_row(row)
 
             self._gui.foreach(set_active)
 
-    def _on_gtk_mapping_selected(self, _, row: Optional[SelectionLabel]):
+    def _on_gtk_mapping_selected(self, _, row: Optional[MappingSelectionLabel]):
         if not row:
             return
         self._controller.load_mapping(row.combination)
 
 
-class SelectionLabel(Gtk.ListBoxRow):
+class MappingSelectionLabel(Gtk.ListBoxRow):
     """the ListBoxRow representing a mapping inside the MappingListBox"""
 
-    __gtype_name__ = "SelectionLabel"
+    __gtype_name__ = "MappingSelectionLabel"
 
     def __init__(
         self,
@@ -282,7 +188,11 @@ class SelectionLabel(Gtk.ListBoxRow):
         super().__init__()
         self._message_broker = message_broker
         self._controller = controller
-        self._name = name
+
+        if not name:
+            name = combination.beautify()
+
+        self.name = name
         self.combination = combination
 
         # Make the child label widget break lines, important for
@@ -293,6 +203,9 @@ class SelectionLabel(Gtk.ListBoxRow):
         self.label.set_justify(Gtk.Justification.CENTER)
         # set the name or combination.beautify as label
         self.label.set_label(self.name)
+
+        self.label.set_margin_top(11)
+        self.label.set_margin_bottom(11)
 
         # button to edit the name of the mapping
         self.edit_btn = Gtk.Button()
@@ -307,7 +220,7 @@ class SelectionLabel(Gtk.ListBoxRow):
 
         self.name_input = Gtk.Entry()
         self.name_input.set_text(self.name)
-        self.name_input.set_width_chars(12)
+        self.name_input.set_halign(Gtk.Align.FILL)
         self.name_input.set_margin_top(4)
         self.name_input.set_margin_bottom(4)
         self.name_input.connect("activate", self._on_gtk_rename_finished)
@@ -318,7 +231,7 @@ class SelectionLabel(Gtk.ListBoxRow):
         self._box.add(self.edit_btn)
         self._box.set_child_packing(self.edit_btn, False, False, 4, Gtk.PackType.END)
         self._box.add(self.name_input)
-        self._box.set_child_packing(self.name_input, False, True, 4, Gtk.PackType.START)
+        self._box.set_child_packing(self.name_input, True, True, 4, Gtk.PackType.START)
 
         self.add(self._box)
         self.show_all()
@@ -331,16 +244,7 @@ class SelectionLabel(Gtk.ListBoxRow):
         self.name_input.hide()
 
     def __repr__(self):
-        return f"SelectionLabel for {self.combination} as {self.name}"
-
-    @property
-    def name(self) -> str:
-        if (
-            self.combination == EventCombination.empty_combination()
-            or self.combination is None
-        ):
-            return EMPTY_MAPPING_NAME
-        return self._name or self.combination.beautify()
+        return f"MappingSelectionLabel for {self.combination} as {self.name}"
 
     def _set_not_selected(self):
         self.edit_btn.hide()
@@ -363,7 +267,7 @@ class SelectionLabel(Gtk.ListBoxRow):
         if mapping.event_combination != self.combination:
             self._set_not_selected()
             return
-        self._name = mapping.name
+        self.name = mapping.format_name()
         self._set_selected()
         self.get_parent().invalidate_sort()
 
@@ -375,7 +279,7 @@ class SelectionLabel(Gtk.ListBoxRow):
         name = self.name_input.get_text()
         if name.lower().strip() == self.combination.beautify().lower():
             name = ""
-        self._name = name
+        self.name = name
         self._set_selected()
         self._controller.update_mapping(name=name)
 
@@ -447,25 +351,15 @@ class CodeEditor:
         """Show line numbers if multiline, otherwise remove them"""
         if "\n" in self.code:
             self.gui.set_show_line_numbers(True)
+            # adds a bit of space between numbers and text:
+            self.gui.set_show_line_marks(True)
             self.gui.set_monospace(True)
             self.gui.get_style_context().add_class("multiline")
         else:
             self.gui.set_show_line_numbers(False)
+            self.gui.set_show_line_marks(False)
             self.gui.set_monospace(False)
             self.gui.get_style_context().remove_class("multiline")
-
-    def _enable(self):
-        logger.debug("Enabling the code editor")
-        self.gui.set_sensitive(True)
-        self.gui.set_opacity(1)
-
-    def _disable(self):
-        logger.debug("Disabling the code editor")
-
-        # beware that this also appeared to disable event listeners like
-        # focus-out-event:
-        self.gui.set_sensitive(False)
-        self.gui.set_opacity(0.5)
 
     def _on_gtk_focus_out(self, *_):
         self._controller.save()
@@ -477,16 +371,68 @@ class CodeEditor:
         code = SET_KEY_FIRST
         if not self._controller.is_empty_mapping():
             code = mapping.output_symbol or ""
-            self._enable()
-        else:
-            self._disable()
 
         if self.code.strip().lower() != code.strip().lower():
             self.code = code
+
         self._toggle_line_numbers()
 
     def _on_recording_finished(self, _):
         self._controller.set_focus(self.gui)
+
+
+class RequireActiveMapping:
+    """Disable the widget if no mapping is selected."""
+
+    def __init__(
+        self,
+        message_broker: MessageBroker,
+        widget: Gtk.ToggleButton,
+        require_recorded_input: False,
+    ):
+        self._widget = widget
+        self._default_tooltip = self._widget.get_tooltip_text()
+        self._require_recorded_input = require_recorded_input
+
+        self._active_preset: Optional[PresetData] = None
+        self._active_mapping: Optional[MappingData] = None
+
+        message_broker.subscribe(MessageType.preset, self._on_preset)
+        message_broker.subscribe(MessageType.mapping, self._on_mapping)
+
+    def _on_preset(self, preset_data: PresetData):
+        self._active_preset = preset_data
+        self._check()
+
+    def _on_mapping(self, mapping_data: MappingData):
+        self._active_mapping = mapping_data
+        self._check()
+
+    def _check(self, *__):
+        if not self._active_preset or len(self._active_preset.mappings) == 0:
+            self._disable()
+            self._widget.set_tooltip_text(_("Add a mapping first"))
+            return
+
+        if (
+            self._require_recorded_input
+            and self._active_mapping
+            and not self._active_mapping.has_input_defined()
+        ):
+            self._disable()
+            self._widget.set_tooltip_text(_("Record input first"))
+            return
+
+        self._enable()
+        self._widget.set_tooltip_text(self._default_tooltip)
+
+    def _enable(self):
+        self._widget.set_sensitive(True)
+        self._widget.set_opacity(1)
+
+    def _disable(self):
+        self._widget.set_sensitive(False)
+        self._widget.set_opacity(0.5)
 
 
 class RecordingToggle:
@@ -509,105 +455,52 @@ class RecordingToggle:
         # be recorded, instead of causing the recording to stop.
         toggle.connect("key-press-event", lambda *args: Gdk.EVENT_STOP)
         self._message_broker.subscribe(
-            MessageType.recording_finished, self._on_recording_finished
+            MessageType.recording_finished,
+            self._on_recording_finished,
         )
-        self._update_label(_("Record Input"))
 
-    def _update_label(self, msg: str):
-        self._gui.set_label(msg)
+        RequireActiveMapping(
+            message_broker,
+            toggle,
+            require_recorded_input=False,
+        )
 
     def _on_gtk_toggle(self, *__):
         if self._gui.get_active():
-            self._update_label(_("Recording ..."))
             self._controller.start_key_recording()
         else:
-            self._update_label(_("Record Input"))
             self._controller.stop_key_recording()
 
     def _on_recording_finished(self, __):
-        logger.debug("finished recording")
         with HandlerDisabled(self._gui, self._on_gtk_toggle):
             self._gui.set_active(False)
-            self._update_label(_("Record Input"))
 
 
-class StatusBar:
-    """the status bar on the bottom of the main window"""
+class RecordingStatus:
+    """Displays if keys are being recorded for a mapping."""
 
     def __init__(
         self,
         message_broker: MessageBroker,
-        controller: Controller,
-        status_bar: Gtk.Statusbar,
-        error_icon: Gtk.Image,
-        warning_icon: Gtk.Image,
+        label: Gtk.Label,
     ):
-        self._message_broker = message_broker
-        self._controller = controller
-        self._gui = status_bar
-        self._error_icon = error_icon
-        self._warning_icon = warning_icon
+        self._gui = label
 
-        self._message_broker.subscribe(MessageType.status_msg, self._on_status_update)
-        self._message_broker.subscribe(MessageType.init, self._on_init)
+        message_broker.subscribe(
+            MessageType.recording_started,
+            self._on_recording_started,
+        )
 
-        # keep track if there is an error or warning in the stack of statusbar
-        # unfortunately this is not exposed over the api
-        self._error = False
-        self._warning = False
+        message_broker.subscribe(
+            MessageType.recording_finished,
+            self._on_recording_finished,
+        )
 
-    def _on_init(self, _):
-        self._error_icon.hide()
-        self._warning_icon.hide()
+    def _on_recording_started(self, _):
+        self._gui.set_visible(True)
 
-    def _on_status_update(self, data: StatusData):
-        """Show a status message and set its tooltip.
-
-        If message is None, it will remove the newest message of the
-        given context_id.
-        """
-        context_id = data.ctx_id
-        message = data.msg
-        tooltip = data.tooltip
-        status_bar = self._gui
-
-        if message is None:
-            status_bar.remove_all(context_id)
-
-            if context_id in (CTX_ERROR, CTX_MAPPING):
-                self._error_icon.hide()
-                self._error = False
-                if self._warning:
-                    self._warning_icon.show()
-
-            if context_id == CTX_WARNING:
-                self._warning_icon.hide()
-                self._warning = False
-                if self._error:
-                    self._error_icon.show()
-
-            status_bar.set_tooltip_text("")
-        else:
-            if tooltip is None:
-                tooltip = message
-
-            self._error_icon.hide()
-            self._warning_icon.hide()
-
-            if context_id in (CTX_ERROR, CTX_MAPPING):
-                self._error_icon.show()
-                self._error = True
-
-            if context_id == CTX_WARNING:
-                self._warning_icon.show()
-                self._warning = True
-
-            max_length = 45
-            if len(message) > max_length:
-                message = message[: max_length - 3] + "..."
-
-            status_bar.push(context_id, message)
-            status_bar.set_tooltip_text(tooltip)
+    def _on_recording_finished(self, _):
+        self._gui.set_visible(False)
 
 
 class AutoloadSwitch:
@@ -763,16 +656,10 @@ class CombinationListbox:
             self._select_row(event)
 
     def _on_gtk_row_selected(self, *_):
-        row: Optional[EventEntry] = None
-
-        def find_row(r: EventEntry):
-            nonlocal row
-            if r.is_selected():
-                row = r
-
-        self._gui.foreach(find_row)
-        if row:
-            self._controller.load_event(row.input_event)
+        for row in self._gui.get_children():
+            if row.is_selected():
+                self._controller.load_event(row.input_event)
+                break
 
 
 class AnalogInputSwitch:
@@ -989,33 +876,6 @@ class OutputAxisSelector:
         )
 
 
-class ConfirmCancelDialog:
-    """the dialog shown to the user to query a confirm or cancel action form the user"""
-
-    def __init__(
-        self,
-        message_broker: MessageBroker,
-        controller: Controller,
-        gui: Gtk.Dialog,
-        label: Gtk.Label,
-    ):
-        self._message_broker = message_broker
-        self._controller = controller
-        self._gui = gui
-        self._label = label
-
-        self._message_broker.subscribe(
-            MessageType.user_confirm_request, self._on_user_confirm_request
-        )
-
-    def _on_user_confirm_request(self, msg: UserConfirmRequest):
-        self._label.set_label(msg.msg)
-        self._gui.show()
-        response = self._gui.run()
-        self._gui.hide()
-        msg.respond(response == Gtk.ResponseType.ACCEPT)
-
-
 class KeyAxisStackSwitcher:
     """the controls used to switch between the gui to modify a key-mapping or
     an analog-axis mapping"""
@@ -1062,7 +922,10 @@ class KeyAxisStackSwitcher:
             self._set_active("key_macro")
 
     def _on_gtk_toggle(self, btn: Gtk.ToggleButton):
-        if not btn.get_active():
+        # get_active returns the new toggle state already
+        was_active = not btn.get_active()
+
+        if was_active:
             # cannot deactivate manually
             with HandlerDisabled(btn, self._on_gtk_toggle):
                 btn.set_active(True)
@@ -1101,22 +964,13 @@ class TransformationDrawArea:
     def _on_gtk_draw(self, _, context: cairo.Context):
         points = [
             (x / 200 + 0.5, -0.5 * self._transformation(x) + 0.5)
-            for x in range(-100, 100)
+            # leave some space left and right for the lineCap to be visible
+            for x in range(-97, 97)
         ]
         w = self._gui.get_allocated_width()
         h = self._gui.get_allocated_height()
         b = min((w, h))
         scaled_points = [(x * b, y * b) for x, y in points]
-
-        # box
-        context.move_to(0, 0)
-        context.line_to(0, b)
-        context.line_to(b, b)
-        context.line_to(b, 0)
-        context.line_to(0, 0)
-        context.set_line_width(1)
-        context.set_source_rgb(0.7, 0.7, 0.7)
-        context.stroke()
 
         # x arrow
         context.move_to(0 * b, 0.5 * b)
@@ -1133,7 +987,13 @@ class TransformationDrawArea:
         context.line_to(0.52 * b, 0.04 * b)
 
         context.set_line_width(2)
-        context.set_source_rgb(0.5, 0.5, 0.5)
+        arrow_color = Gdk.RGBA(0.5, 0.5, 0.5, 0.2)
+        context.set_source_rgba(
+            arrow_color.red,
+            arrow_color.green,
+            arrow_color.blue,
+            arrow_color.alpha,
+        )
         context.stroke()
 
         # graph
@@ -1142,8 +1002,16 @@ class TransformationDrawArea:
             # Ploting point
             context.line_to(*p)
 
-        context.set_line_width(2)
-        context.set_source_rgb(0.2, 0.2, 1)
+        line_color = Colors.get_accent_color()
+        context.set_line_width(3)
+        context.set_line_cap(cairo.LineCap.ROUND)
+        # the default gtk adwaita highlight color:
+        context.set_source_rgba(
+            line_color.red,
+            line_color.green,
+            line_color.blue,
+            line_color.alpha,
+        )
         context.stroke()
 
 

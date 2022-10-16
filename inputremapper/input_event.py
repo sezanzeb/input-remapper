@@ -28,7 +28,7 @@ from evdev import ecodes
 
 from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.exceptions import InputEventCreationError
-from inputremapper.gui.message_broker import MessageType
+from inputremapper.gui.messages.message_broker import MessageType
 from inputremapper.logger import logger
 
 InputEventValidationType = Union[
@@ -205,7 +205,7 @@ class InputEvent:
             actions if actions is not None else self.actions,
         )
 
-    def json_str(self) -> str:
+    def json_key(self) -> str:
         return ",".join([str(self.type), str(self.code), str(self.value)])
 
     def get_name(self) -> Optional[str]:

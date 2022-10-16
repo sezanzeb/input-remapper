@@ -36,12 +36,9 @@ from inputremapper.gui.helper import (
     CMD_TERMINATE,
     CMD_REFRESH_GROUPS,
 )
-from inputremapper.gui.message_broker import (
-    MessageBroker,
-    GroupsData,
-    MessageType,
-    CombinationRecorded,
-)
+from inputremapper.gui.messages.message_types import MessageType
+from inputremapper.gui.messages.message_broker import MessageBroker
+from inputremapper.gui.messages.message_data import GroupsData, CombinationRecorded
 from inputremapper.input_event import InputEvent
 from inputremapper.ipc.pipe import Pipe
 from inputremapper.logger import logger

@@ -26,21 +26,19 @@ from typing import Tuple, List
 from tests.test import (
     get_project_root,
     logger,
-    tmp,
     push_events,
     new_event,
     spy,
     cleanup,
     uinput_write_history_pipe,
-    MAX_ABS,
     EVENT_READ_TIMEOUT,
-    MIN_ABS,
-    get_ui_mapping,
     prepare_presets,
     fixtures,
     push_event,
 )
+from tests.integration.test_components import FlowBoxTestUtils
 
+import random
 import sys
 import time
 import atexit
@@ -54,12 +52,8 @@ from evdev.ecodes import (
     KEY_LEFTSHIFT,
     KEY_A,
     KEY_Q,
-    ABS_RX,
     EV_REL,
-    REL_X,
-    ABS_X,
 )
-import json
 from unittest.mock import patch, MagicMock, call
 from importlib.util import spec_from_loader, module_from_spec
 from importlib.machinery import SourceFileLoader
@@ -67,30 +61,30 @@ from importlib.machinery import SourceFileLoader
 import gi
 from inputremapper.input_event import InputEvent
 
+gi.require_version("Gdk", "3.0")
 gi.require_version("Gtk", "3.0")
 gi.require_version("GLib", "2.0")
 gi.require_version("GtkSource", "4")
 from gi.repository import Gtk, GLib, Gdk, GtkSource
 
-from inputremapper.configs.system_mapping import system_mapping, XMODMAP_FILENAME
-from inputremapper.configs.mapping import UIMapping, Mapping
+from inputremapper.configs.system_mapping import system_mapping
+from inputremapper.configs.mapping import Mapping
 from inputremapper.configs.paths import CONFIG_PATH, get_preset_path, get_config_path
-from inputremapper.configs.global_config import global_config, WHEEL, MOUSE, BUTTONS
+from inputremapper.configs.global_config import global_config
 from inputremapper.groups import _Groups
 from inputremapper.gui.data_manager import DataManager
-from inputremapper.gui.message_broker import (
+from inputremapper.gui.messages.message_broker import (
     MessageBroker,
     MessageType,
-    StatusData,
-    CombinationRecorded,
 )
-from inputremapper.gui.components import SelectionLabel, SET_KEY_FIRST
-from inputremapper.gui.reader import Reader
+from inputremapper.gui.messages.message_data import StatusData, CombinationRecorded
+from inputremapper.gui.components.editor import MappingSelectionLabel, SET_KEY_FIRST
+from inputremapper.gui.components.device_groups import DeviceGroupEntry
 from inputremapper.gui.controller import Controller
 from inputremapper.gui.helper import RootHelper
-from inputremapper.gui.utils import gtk_iteration
+from inputremapper.gui.utils import gtk_iteration, Colors
 from inputremapper.gui.user_interface import UserInterface
-from inputremapper.injection.injector import RUNNING, FAILED, UNKNOWN, STOPPED
+from inputremapper.injection.injector import RUNNING, UNKNOWN, STOPPED
 from inputremapper.event_combination import EventCombination
 from inputremapper.daemon import Daemon, DaemonProxy
 
@@ -241,24 +235,28 @@ class PatchedConfirmDelete:
     def __init__(self, user_interface: UserInterface, response=Gtk.ResponseType.ACCEPT):
         self.response = response
         self.user_interface = user_interface
+        self._original_create_dialog = user_interface._create_dialog
         self.patch = None
 
-    def _confirm_delete_run_patch(self):
+    def _create_dialog_patch(self, *args, **kwargs):
         """A patch for the deletion confirmation that briefly shows the dialog."""
-        confirm_cancel_dialog = self.user_interface.confirm_cancel_dialog
+        confirm_cancel_dialog = self._original_create_dialog(*args, **kwargs)
         # the emitted signal causes the dialog to close
         GLib.timeout_add(
             100,
             lambda: confirm_cancel_dialog.emit("response", self.response),
         )
         Gtk.MessageDialog.run(confirm_cancel_dialog)  # don't recursively call the patch
-        return self.response
+
+        confirm_cancel_dialog.run = lambda: self.response
+
+        return confirm_cancel_dialog
 
     def __enter__(self):
         self.patch = patch.object(
-            self.user_interface.get("confirm-cancel"),
-            "run",
-            self._confirm_delete_run_patch,
+            self.user_interface,
+            "_create_dialog",
+            self._create_dialog_patch,
         )
         self.patch.__enter__()
 
@@ -279,20 +277,22 @@ class GuiTestBase(unittest.TestCase):
             ) = launch()
 
         get = self.user_interface.get
-        self.device_selection: Gtk.ComboBox = get("device_selection")
+        self.device_selection: Gtk.FlowBox = get("device_selection")
         self.preset_selection: Gtk.ComboBoxText = get("preset_selection")
         self.selection_label_listbox: Gtk.ListBox = get("selection_label_listbox")
         self.target_selection: Gtk.ComboBox = get("target-selector")
         self.recording_toggle: Gtk.ToggleButton = get("key_recording_toggle")
+        self.recording_status: Gtk.ToggleButton = get("recording_status")
         self.status_bar: Gtk.Statusbar = get("status_bar")
         self.autoload_toggle: Gtk.Switch = get("preset_autoload_switch")
         self.code_editor: GtkSource.View = get("code_editor")
+        self.output_box: GtkSource.View = get("output")
 
         self.delete_preset_btn: Gtk.Button = get("delete_preset")
         self.copy_preset_btn: Gtk.Button = get("copy_preset")
         self.create_preset_btn: Gtk.Button = get("create_preset")
         self.start_injector_btn: Gtk.Button = get("apply_preset")
-        self.stop_injector_btn: Gtk.Button = get("apply_system_layout")
+        self.stop_injector_btn: Gtk.Button = get("stop_injection_preset_page")
         self.rename_btn: Gtk.Button = get("rename-button")
         self.rename_input: Gtk.Entry = get("preset_name_input")
         self.create_mapping_btn: Gtk.Button = get("create_mapping_button")
@@ -349,18 +349,6 @@ class GuiTestBase(unittest.TestCase):
             gtk_iteration()
             time.sleep(0.002)
 
-    def activate_recording_toggle(self):
-        logger.info("Activating the recording toggle")
-        self.recording_toggle.set_active(True)
-        gtk_iteration()
-
-    def disable_recording_toggle(self):
-        logger.info("Deactivating the recording toggle")
-        self.recording_toggle.set_active(False)
-        gtk_iteration()
-        # should happen automatically:
-        self.assertFalse(self.recording_toggle.get_active())
-
     def set_focus(self, widget):
         logger.info("Focusing %s", widget)
 
@@ -368,7 +356,7 @@ class GuiTestBase(unittest.TestCase):
 
         self.throttle()
 
-    def get_selection_labels(self) -> List[SelectionLabel]:
+    def get_selection_labels(self) -> List[MappingSelectionLabel]:
         return self.selection_label_listbox.get_children()
 
     def get_status_text(self):
@@ -417,11 +405,70 @@ class GuiTestBase(unittest.TestCase):
         gtk_iteration()
 
 
+class TestColors(GuiTestBase):
+    # requires a running ui, otherwise fails with segmentation faults
+    def test_get_color_falls_back(self):
+        fallback = Gdk.RGBA(0, 0.5, 1, 0.8)
+
+        color = Colors.get_color(["doesnt_exist_1234"], fallback)
+
+        self.assertIsInstance(color, Gdk.RGBA)
+        self.assertAlmostEqual(color.red, fallback.red, delta=0.01)
+        self.assertAlmostEqual(color.green, fallback.green, delta=0.01)
+        self.assertAlmostEqual(color.blue, fallback.blue, delta=0.01)
+        self.assertAlmostEqual(color.alpha, fallback.alpha, delta=0.01)
+
+    def test_get_color_works(self):
+        fallback = Gdk.RGBA(1, 0, 1, 0.1)
+
+        color = Colors.get_color(
+            ["accent_bg_color", "theme_selected_bg_color"], fallback
+        )
+
+        self.assertIsInstance(color, Gdk.RGBA)
+        self.assertNotAlmostEquals(color.red, fallback.red, delta=0.01)
+        self.assertNotAlmostEquals(color.green, fallback.blue, delta=0.01)
+        self.assertNotAlmostEquals(color.blue, fallback.green, delta=0.01)
+        self.assertNotAlmostEquals(color.alpha, fallback.alpha, delta=0.01)
+
+    def _test_color_wont_fallback(self, get_color, fallback):
+        color = get_color()
+        self.assertIsInstance(color, Gdk.RGBA)
+        if (
+            (abs(color.green - fallback.green) < 0.01)
+            and (abs(color.red - fallback.red) < 0.01)
+            and (abs(color.blue - fallback.blue) < 0.01)
+            and (abs(color.alpha - fallback.alpha) < 0.01)
+        ):
+            raise AssertionError(
+                f"Color {color.to_string()} is similar to {fallback.toString()}"
+            )
+
+    def test_get_colors(self):
+        self._test_color_wont_fallback(Colors.get_accent_color, Colors.fallback_accent)
+        self._test_color_wont_fallback(Colors.get_border_color, Colors.fallback_border)
+        self._test_color_wont_fallback(
+            Colors.get_background_color, Colors.fallback_background
+        )
+        self._test_color_wont_fallback(Colors.get_base_color, Colors.fallback_base)
+        self._test_color_wont_fallback(Colors.get_font_color, Colors.fallback_font)
+
+
 class TestGui(GuiTestBase):
     """For tests that use the window.
 
+    It is intentional that there is no access to the Components.
     Try to modify the configuration only by calling functions of the window.
+    For example by simulating clicks on buttons. Get the widget to interact with
+    by going through the windows children. (See click_on_group for inspiration)
     """
+
+    def click_on_group(self, group_key):
+        for child in self.device_selection.get_children():
+            device_group_entry = child.get_children()[0]
+
+            if device_group_entry.group_key == group_key:
+                device_group_entry.set_active(True)
 
     def test_can_start(self):
         self.assertIsNotNone(self.user_interface)
@@ -431,15 +478,21 @@ class TestGui(GuiTestBase):
         selection_labels = self.selection_label_listbox.get_children()
         self.assertEqual(len(selection_labels), 0)
         self.assertEqual(len(self.data_manager.active_preset), 0)
-        self.assertEqual(self.preset_selection.get_active_id(), "new preset")
-        self.assertEqual(self.recording_toggle.get_label(), "Record Input")
+        self.assertEqual(
+            FlowBoxTestUtils.get_active_entry(self.preset_selection).name, "new preset"
+        )
+        self.assertEqual(self.recording_toggle.get_label(), "Record")
         self.assertEqual(self.get_unfiltered_symbol_input_text(), SET_KEY_FIRST)
 
     def test_initial_state(self):
         self.assertEqual(self.data_manager.active_group.key, "Foo Device")
-        self.assertEqual(self.device_selection.get_active_id(), "Foo Device")
+        self.assertEqual(
+            FlowBoxTestUtils.get_active_entry(self.device_selection).name, "Foo Device"
+        )
         self.assertEqual(self.data_manager.active_preset.name, "preset3")
-        self.assertEqual(self.preset_selection.get_active_id(), "preset3")
+        self.assertEqual(
+            FlowBoxTestUtils.get_active_entry(self.preset_selection).name, "preset3"
+        )
         self.assertFalse(self.data_manager.get_autoload())
         self.assertFalse(self.autoload_toggle.get_active())
         self.assertEqual(
@@ -480,8 +533,9 @@ class TestGui(GuiTestBase):
         self.assertFalse(self.data_manager.get_autoload())
         self.assertFalse(self.autoload_toggle.get_active())
 
-        self.device_selection.set_active_id("Foo Device 2")
-        self.preset_selection.set_active_id("preset2")
+        self.click_on_group("Foo Device 2")
+        FlowBoxTestUtils.set_active(self.preset_selection, "preset2")
+
         gtk_iteration()
         self.assertTrue(self.data_manager.get_autoload())
         self.assertTrue(self.autoload_toggle.get_active())
@@ -490,17 +544,17 @@ class TestGui(GuiTestBase):
         self.assertFalse(self.data_manager.get_autoload())
         self.assertFalse(self.autoload_toggle.get_active())
 
-        self.device_selection.set_active_id("Foo Device 2")
-        self.preset_selection.set_active_id("preset2")
+        self.click_on_group("Foo Device 2")
+        FlowBoxTestUtils.set_active(self.preset_selection, "preset2")
         gtk_iteration()
         self.assertTrue(self.data_manager.get_autoload())
         self.assertTrue(self.autoload_toggle.get_active())
 
-        self.preset_selection.set_active_id("preset3")
+        FlowBoxTestUtils.set_active(self.preset_selection, "preset3")
         gtk_iteration()
         self.autoload_toggle.set_active(True)
         gtk_iteration()
-        self.preset_selection.set_active_id("preset2")
+        FlowBoxTestUtils.set_active(self.preset_selection, "preset2")
         gtk_iteration()
         self.assertFalse(self.data_manager.get_autoload())
         self.assertFalse(self.autoload_toggle.get_active())
@@ -511,22 +565,24 @@ class TestGui(GuiTestBase):
         self.assertTrue(self.data_manager.get_autoload())
         self.assertTrue(self.autoload_toggle.get_active())
 
-        self.device_selection.set_active_id("Foo Device 2")
+        self.click_on_group("Foo Device 2")
         gtk_iteration()
         self.autoload_toggle.set_active(True)
         gtk_iteration()
         self.assertTrue(self.data_manager.get_autoload())
         self.assertTrue(self.autoload_toggle.get_active())
 
-        self.device_selection.set_active_id("Foo Device")
+        self.click_on_group("Foo Device")
         gtk_iteration()
         self.assertTrue(self.data_manager.get_autoload())
         self.assertTrue(self.autoload_toggle.get_active())
 
     def test_select_device_without_preset(self):
         # creates a new empty preset when no preset exists for the device
-        self.device_selection.set_active_id("Bar Device")
-        self.assertEqual(self.preset_selection.get_active_id(), "new preset")
+        self.click_on_group("Bar Device")
+        self.assertEqual(
+            FlowBoxTestUtils.get_active_entry(self.preset_selection).name, "new preset"
+        )
         self.assertEqual(len(self.data_manager.active_preset), 0)
 
         # it creates the file for that right away. It may have been possible
@@ -538,22 +594,26 @@ class TestGui(GuiTestBase):
             self.assertEqual(file.read(), "")
 
     def test_recording_toggle_labels(self):
-        self.assertEqual(self.recording_toggle.get_label(), "Record Input")
+        self.assertFalse(self.recording_status.get_visible())
+
         self.recording_toggle.set_active(True)
         gtk_iteration()
-        self.assertEqual(self.recording_toggle.get_label(), "Recording ...")
+        self.assertTrue(self.recording_status.get_visible())
+
         self.recording_toggle.set_active(False)
         gtk_iteration()
-        self.assertEqual(self.recording_toggle.get_label(), "Record Input")
+        self.assertFalse(self.recording_status.get_visible())
 
     def test_recording_label_updates_on_recording_finished(self):
-        self.assertEqual(self.recording_toggle.get_label(), "Record Input")
+        self.assertFalse(self.recording_status.get_visible())
+
         self.recording_toggle.set_active(True)
         gtk_iteration()
-        self.assertEqual(self.recording_toggle.get_label(), "Recording ...")
+        self.assertTrue(self.recording_status.get_visible())
+
         self.message_broker.signal(MessageType.recording_finished)
         gtk_iteration()
-        self.assertEqual(self.recording_toggle.get_label(), "Record Input")
+        self.assertFalse(self.recording_status.get_visible())
         self.assertFalse(self.recording_toggle.get_active())
 
     def test_events_from_helper_arrive(self):
@@ -562,9 +622,12 @@ class TestGui(GuiTestBase):
         gtk_iteration()
         mock1 = MagicMock()
         mock2 = MagicMock()
+        mock3 = MagicMock()
         self.message_broker.subscribe(MessageType.combination_recorded, mock1)
         self.message_broker.subscribe(MessageType.recording_finished, mock2)
+        self.message_broker.subscribe(MessageType.recording_started, mock3)
         self.recording_toggle.set_active(True)
+        mock3.assert_called_once()
         gtk_iteration()
 
         push_events(
@@ -595,6 +658,7 @@ class TestGui(GuiTestBase):
         mock2.assert_called_once()
 
         self.assertFalse(self.recording_toggle.get_active())
+        mock3.assert_called_once()
 
     def test_cannot_create_duplicate_event_combination(self):
         # load a device with more capabilities
@@ -682,7 +746,7 @@ class TestGui(GuiTestBase):
         )
 
     def test_create_simple_mapping(self):
-        self.device_selection.set_active_id("Foo Device 2")
+        self.click_on_group("Foo Device 2")
         # 1. create a mapping
         self.create_mapping_btn.clicked()
         gtk_iteration()
@@ -764,7 +828,7 @@ class TestGui(GuiTestBase):
         )
 
     def test_show_status(self):
-        self.message_broker.send(StatusData(0, "a" * 100))
+        self.message_broker.send(StatusData(0, "a" * 500))
         gtk_iteration()
         text = self.get_status_text()
         self.assertIn("...", text)
@@ -1043,7 +1107,7 @@ class TestGui(GuiTestBase):
 
         self.controller.create_mapping()
         gtk_iteration()
-        row: SelectionLabel = self.selection_label_listbox.get_selected_row()
+        row: MappingSelectionLabel = self.selection_label_listbox.get_selected_row()
         self.assertEqual(row.combination, EventCombination.empty_combination())
         self.assertEqual(row.label.get_text(), "Empty Mapping")
         self.assertIs(self.selection_label_listbox.get_row_at_index(2), row)
@@ -1064,7 +1128,7 @@ class TestGui(GuiTestBase):
     def test_selection_label_uses_name_if_available(self):
         self.controller.load_preset("preset1")
         gtk_iteration()
-        row: SelectionLabel = self.selection_label_listbox.get_selected_row()
+        row: MappingSelectionLabel = self.selection_label_listbox.get_selected_row()
         self.assertEqual(row.label.get_text(), "1")
         self.assertIs(row, self.selection_label_listbox.get_row_at_index(0))
 
@@ -1278,22 +1342,23 @@ class TestGui(GuiTestBase):
     def test_select_device(self):
         # simple test to make sure we can switch between devices
         # more detailed tests in TestController and TestDataManager
-        self.device_selection.set_active_id("Bar Device")
+        self.click_on_group("Bar Device")
         gtk_iteration()
 
-        entries = {entry[0] for entry in self.preset_selection.get_child().get_model()}
+        entries = {*FlowBoxTestUtils.get_child_names(self.preset_selection)}
         self.assertEqual(entries, {"new preset"})
 
-        self.device_selection.set_active_id("Foo Device")
+        self.click_on_group("Foo Device")
         gtk_iteration()
 
-        entries = {entry[0] for entry in self.preset_selection.get_child().get_model()}
+        entries = {*FlowBoxTestUtils.get_child_names(self.preset_selection)}
         self.assertEqual(entries, {"preset1", "preset2", "preset3"})
 
         # make sure a preset and mapping was loaded
         self.assertIsNotNone(self.data_manager.active_preset)
         self.assertEqual(
-            self.data_manager.active_preset.name, self.preset_selection.get_active_id()
+            self.data_manager.active_preset.name,
+            FlowBoxTestUtils.get_active_entry(self.preset_selection).name,
         )
         self.assertIsNotNone(self.data_manager.active_mapping)
         self.assertEqual(
@@ -1304,9 +1369,9 @@ class TestGui(GuiTestBase):
     def test_select_preset(self):
         # simple test to make sure we can switch between presets
         # more detailed tests in TestController and TestDataManager
-        self.device_selection.set_active_id("Foo Device 2")
+        self.click_on_group("Foo Device 2")
         gtk_iteration()
-        self.preset_selection.set_active_id("preset1")
+        FlowBoxTestUtils.set_active(self.preset_selection, "preset1")
         gtk_iteration()
 
         mappings = {
@@ -1321,7 +1386,7 @@ class TestGui(GuiTestBase):
         )
         self.assertFalse(self.autoload_toggle.get_active())
 
-        self.preset_selection.set_active_id("preset2")
+        FlowBoxTestUtils.set_active(self.preset_selection, "preset2")
         gtk_iteration()
 
         mappings = {
@@ -1341,20 +1406,25 @@ class TestGui(GuiTestBase):
         # more detailed tests in TestController and TestDataManager
 
         # check the initial state
-        entries = {entry[0] for entry in self.preset_selection.get_child().get_model()}
+        entries = {*FlowBoxTestUtils.get_child_names(self.preset_selection)}
         self.assertEqual(entries, {"preset1", "preset2", "preset3"})
-        self.assertEqual(self.preset_selection.get_active_id(), "preset3")
+        self.assertEqual(
+            FlowBoxTestUtils.get_active_entry(self.preset_selection).name, "preset3"
+        )
 
         self.copy_preset_btn.clicked()
         gtk_iteration()
-        entries = {entry[0] for entry in self.preset_selection.get_child().get_model()}
+        entries = {*FlowBoxTestUtils.get_child_names(self.preset_selection)}
         self.assertEqual(entries, {"preset1", "preset2", "preset3", "preset3 copy"})
-        self.assertEqual(self.preset_selection.get_active_id(), "preset3 copy")
+        self.assertEqual(
+            FlowBoxTestUtils.get_active_entry(self.preset_selection).name,
+            "preset3 copy",
+        )
 
         self.copy_preset_btn.clicked()
         gtk_iteration()
 
-        entries = {entry[0] for entry in self.preset_selection.get_child().get_model()}
+        entries = {*FlowBoxTestUtils.get_child_names(self.preset_selection)}
         self.assertEqual(
             entries, {"preset1", "preset2", "preset3", "preset3 copy", "preset3 copy 2"}
         )
@@ -1456,7 +1526,7 @@ class TestGui(GuiTestBase):
     def test_cannot_record_keys(self):
         self.controller.load_group("Foo Device 2")
         self.assertNotEqual(self.data_manager.get_state(), RUNNING)
-        self.assertNotIn("Stop Injection", self.get_status_text())
+        self.assertNotIn("Stop", self.get_status_text())
 
         self.recording_toggle.set_active(True)
         gtk_iteration()
@@ -1481,7 +1551,7 @@ class TestGui(GuiTestBase):
         gtk_iteration()
         self.assertFalse(self.recording_toggle.get_active())
         text = self.get_status_text()
-        self.assertIn("Stop Injection", text)
+        self.assertIn("Stop", text)
 
     def test_start_injecting(self):
         self.controller.load_group("Foo Device 2")
@@ -1533,10 +1603,9 @@ class TestGui(GuiTestBase):
         # the input-remapper device will not be shown
         self.controller.refresh_groups()
         gtk_iteration()
-
-        for entry in self.device_selection.get_child().get_model():
-            # whichever attribute contains "input-remapper"
-            self.assertNotIn("input-remapper", "".join(entry))
+        for child in self.device_selection.get_children():
+            device_group_entry = child.get_children()[0]
+            self.assertNotIn("input-remapper", device_group_entry.name)
 
     def test_stop_injecting(self):
         self.controller.load_group("Foo Device 2")
@@ -1594,7 +1663,6 @@ class TestGui(GuiTestBase):
 
     def test_delete_preset(self):
         # as per test_initial_state we already have preset3 loaded
-
         self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset3")))
 
         with PatchedConfirmDelete(self.user_interface, Gtk.ResponseType.CANCEL):
@@ -1613,17 +1681,21 @@ class TestGui(GuiTestBase):
 
     def test_refresh_groups(self):
         # sanity check: preset3 should be the newest
-        self.assertEqual(self.preset_selection.get_active_id(), "preset3")
+        self.assertEqual(
+            FlowBoxTestUtils.get_active_entry(self.preset_selection).name, "preset3"
+        )
 
         # select the older one
-        self.preset_selection.set_active_id("preset1")
+        FlowBoxTestUtils.set_active(self.preset_selection, "preset1")
         gtk_iteration()
         self.assertEqual(self.data_manager.active_preset.name, "preset1")
 
         # add a device that doesn't exist to the dropdown
         unknown_key = "key-1234"
-        self.device_selection.get_child().get_model().insert(
-            0, [unknown_key, None, "foo"]
+        self.device_selection.insert(
+            DeviceGroupEntry(self.message_broker, self.controller, None, unknown_key),
+            0
+            # 0, [unknown_key, None, "foo"]
         )
 
         self.controller.refresh_groups()
@@ -1635,17 +1707,19 @@ class TestGui(GuiTestBase):
 
         # the list contains correct entries
         # and the non-existing entry should be removed
-        entries = [
-            tuple(entry) for entry in self.device_selection.get_child().get_model()
-        ]
-        keys = [entry[0] for entry in self.device_selection.get_child().get_model()]
-        self.assertNotIn(unknown_key, keys)
+        names = FlowBoxTestUtils.get_child_names(self.device_selection)
+        icons = FlowBoxTestUtils.get_child_icons(self.device_selection)
+        self.assertNotIn(unknown_key, names)
 
-        self.assertIn("Foo Device", keys)
-        self.assertIn(("Foo Device", "input-keyboard", "Foo Device"), entries)
-        self.assertIn(("Foo Device 2", "input-gaming", "Foo Device 2"), entries)
-        self.assertIn(("Bar Device", "input-keyboard", "Bar Device"), entries)
-        self.assertIn(("gamepad", "input-gaming", "gamepad"), entries)
+        self.assertIn("Foo Device", names)
+        self.assertIn("Foo Device 2", names)
+        self.assertIn("Bar Device", names)
+        self.assertIn("gamepad", names)
+
+        self.assertIn("input-keyboard", icons)
+        self.assertIn("input-gaming", icons)
+        self.assertIn("input-keyboard", icons)
+        self.assertIn("input-gaming", icons)
 
         # it won't crash due to "list index out of range"
         # when `types` is an empty list. Won't show an icon
@@ -1653,8 +1727,8 @@ class TestGui(GuiTestBase):
         self.data_manager._reader.send_groups()
         gtk_iteration()
         self.assertIn(
-            ("Foo Device 2", None, "Foo Device 2"),
-            [tuple(entry) for entry in self.device_selection.get_child().get_model()],
+            "Foo Device 2",
+            FlowBoxTestUtils.get_child_names(self.device_selection),
         )
 
     def test_shared_presets(self):
@@ -1677,6 +1751,7 @@ class TestGui(GuiTestBase):
     def test_delete_last_preset(self):
         with PatchedConfirmDelete(self.user_interface):
             # as per test_initial_state we already have preset3 loaded
+            self.assertEqual(self.data_manager.active_preset.name, "preset3")
 
             self.delete_preset_btn.clicked()
             gtk_iteration()
@@ -1697,13 +1772,13 @@ class TestGui(GuiTestBase):
             device_path = f"{CONFIG_PATH}/presets/{self.data_manager.active_group.name}"
             self.assertTrue(os.path.exists(f"{device_path}/new preset.json"))
 
-    def test_enable_disable_symbol_input(self):
+    def test_enable_disable_output(self):
         # load a group without any presets
         self.controller.load_group("Bar Device")
 
         # should be disabled by default since no key is recorded yet
         self.assertEqual(self.get_unfiltered_symbol_input_text(), SET_KEY_FIRST)
-        self.assertFalse(self.code_editor.get_sensitive())
+        self.assertFalse(self.output_box.get_sensitive())
 
         # create a mapping
         self.controller.create_mapping()
@@ -1711,7 +1786,7 @@ class TestGui(GuiTestBase):
 
         # should still be disabled
         self.assertEqual(self.get_unfiltered_symbol_input_text(), SET_KEY_FIRST)
-        self.assertFalse(self.code_editor.get_sensitive())
+        self.assertFalse(self.output_box.get_sensitive())
 
         # enable it by sending a combination
         self.controller.start_key_recording()
@@ -1726,7 +1801,7 @@ class TestGui(GuiTestBase):
         self.throttle(50)  # give time for the input to arrive
 
         self.assertEqual(self.get_unfiltered_symbol_input_text(), "")
-        self.assertTrue(self.code_editor.get_sensitive())
+        self.assertTrue(self.output_box.get_sensitive())
 
         # disable it by deleting the mapping
         with PatchedConfirmDelete(self.user_interface):
@@ -1734,7 +1809,7 @@ class TestGui(GuiTestBase):
             gtk_iteration()
 
         self.assertEqual(self.get_unfiltered_symbol_input_text(), SET_KEY_FIRST)
-        self.assertFalse(self.code_editor.get_sensitive())
+        self.assertFalse(self.output_box.get_sensitive())
 
 
 class TestAutocompletion(GuiTestBase):

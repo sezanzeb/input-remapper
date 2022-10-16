@@ -209,7 +209,7 @@ class Preset(Generic[MappingModel]):
                 del d["event_combination"]
             except KeyError:
                 pass
-            json_ready[combination.json_str()] = d
+            json_ready[combination.json_key()] = d
 
             saved_mappings[combination] = mapping.copy()
             saved_mappings[combination].remove_combination_changed_callback()
