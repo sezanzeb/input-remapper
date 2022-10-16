@@ -235,7 +235,7 @@ class UIMapping(BaseModel):
         return None
 
     def get_bus_message(self) -> MappingData:
-        """return a immutable copy for use in the"""
+        """return an immutable copy for use in the message broker"""
         return MappingData(**self.dict())
 
     @root_validator

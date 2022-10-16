@@ -26,7 +26,7 @@ from typing import Optional, List, Tuple, Set
 from gi.repository import GLib
 
 from inputremapper.configs.global_config import GlobalConfig
-from inputremapper.configs.mapping import UIMapping
+from inputremapper.configs.mapping import UIMapping, MappingData
 from inputremapper.configs.paths import get_preset_path, mkdir, split_all
 from inputremapper.configs.preset import Preset
 from inputremapper.configs.system_mapping import SystemMapping
@@ -197,12 +197,12 @@ class DataManager:
         presets.reverse()
         return tuple(presets)
 
-    def get_mappings(self) -> Optional[List[UIMapping]]:
-        """all mapping names and their combination from the active_preset"""
+    def get_mappings(self) -> Optional[List[MappingData]]:
+        """all mappings from the active_preset"""
         if not self._active_preset:
             return None
 
-        return list(self._active_preset)
+        return [mapping.get_bus_message() for mapping in self._active_preset]
 
     def get_autoload(self) -> bool:
         """the autoload status of the active_preset"""
