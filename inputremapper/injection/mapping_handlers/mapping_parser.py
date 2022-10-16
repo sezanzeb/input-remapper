@@ -91,7 +91,7 @@ def parse_mappings(preset: Preset, context: ContextProtocol) -> EventPipelines:
             logger.warning(
                 "a mapping handler '%s' for %s is not implemented",
                 handler_enum,
-                mapping.name or mapping.event_combination.beautify(),
+                mapping.format_name(),
             )
             continue
 

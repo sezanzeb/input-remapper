@@ -38,6 +38,7 @@ from tests.test import (
 )
 from tests.integration.test_components import FlowBoxTestUtils
 
+import random
 import sys
 import time
 import atexit
@@ -60,6 +61,7 @@ from importlib.machinery import SourceFileLoader
 import gi
 from inputremapper.input_event import InputEvent
 
+gi.require_version("Gdk", "3.0")
 gi.require_version("Gtk", "3.0")
 gi.require_version("GLib", "2.0")
 gi.require_version("GtkSource", "4")
@@ -71,17 +73,16 @@ from inputremapper.configs.paths import CONFIG_PATH, get_preset_path, get_config
 from inputremapper.configs.global_config import global_config
 from inputremapper.groups import _Groups
 from inputremapper.gui.data_manager import DataManager
-from inputremapper.gui.message_broker import (
+from inputremapper.gui.messages.message_broker import (
     MessageBroker,
     MessageType,
-    StatusData,
-    CombinationRecorded,
 )
+from inputremapper.gui.messages.message_classes import StatusData, CombinationRecorded
 from inputremapper.gui.components.editor import MappingSelectionLabel, SET_KEY_FIRST
 from inputremapper.gui.components.device_groups import DeviceGroupEntry
 from inputremapper.gui.controller import Controller
 from inputremapper.gui.helper import RootHelper
-from inputremapper.gui.utils import gtk_iteration
+from inputremapper.gui.utils import gtk_iteration, Colors
 from inputremapper.gui.user_interface import UserInterface
 from inputremapper.injection.injector import RUNNING, UNKNOWN, STOPPED
 from inputremapper.event_combination import EventCombination
@@ -404,13 +405,62 @@ class GuiTestBase(unittest.TestCase):
         gtk_iteration()
 
 
+class TestColors(GuiTestBase):
+    # requires a running ui, otherwise fails with segmentation faults
+    def test_get_color_falls_back(self):
+        fallback = Gdk.RGBA(0, 0.5, 1, 0.8)
+
+        color = Colors.get_color(["doesnt_exist_1234"], fallback)
+
+        self.assertIsInstance(color, Gdk.RGBA)
+        self.assertAlmostEqual(color.red, fallback.red, delta=0.01)
+        self.assertAlmostEqual(color.green, fallback.green, delta=0.01)
+        self.assertAlmostEqual(color.blue, fallback.blue, delta=0.01)
+        self.assertAlmostEqual(color.alpha, fallback.alpha, delta=0.01)
+
+    def test_get_color_works(self):
+        fallback = Gdk.RGBA(1, 0, 1, 0.1)
+
+        color = Colors.get_color(
+            ["accent_bg_color", "theme_selected_bg_color"], fallback
+        )
+
+        self.assertIsInstance(color, Gdk.RGBA)
+        self.assertNotAlmostEquals(color.red, fallback.red, delta=0.01)
+        self.assertNotAlmostEquals(color.green, fallback.blue, delta=0.01)
+        self.assertNotAlmostEquals(color.blue, fallback.green, delta=0.01)
+        self.assertNotAlmostEquals(color.alpha, fallback.alpha, delta=0.01)
+
+    def _test_color_wont_fallback(self, get_color, fallback):
+        color = get_color()
+        self.assertIsInstance(color, Gdk.RGBA)
+        if (
+            (abs(color.green - fallback.green) < 0.01)
+            and (abs(color.red - fallback.red) < 0.01)
+            and (abs(color.blue - fallback.blue) < 0.01)
+            and (abs(color.alpha - fallback.alpha) < 0.01)
+        ):
+            raise AssertionError(
+                f"Color {color.to_string()} is similar to {fallback.toString()}"
+            )
+
+    def test_get_colors(self):
+        self._test_color_wont_fallback(Colors.get_accent_color, Colors.fallback_accent)
+        self._test_color_wont_fallback(Colors.get_border_color, Colors.fallback_border)
+        self._test_color_wont_fallback(
+            Colors.get_background_color, Colors.fallback_background
+        )
+        self._test_color_wont_fallback(Colors.get_base_color, Colors.fallback_base)
+        self._test_color_wont_fallback(Colors.get_font_color, Colors.fallback_font)
+
+
 class TestGui(GuiTestBase):
     """For tests that use the window.
 
     It is intentional that there is no access to the Components.
     Try to modify the configuration only by calling functions of the window.
     For example by simulating clicks on buttons. Get the widget to interact with
-    by going through the windows children.
+    by going through the windows children. (See click_on_group for inspiration)
     """
 
     def click_on_group(self, group_key):

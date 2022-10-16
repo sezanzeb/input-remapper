@@ -41,9 +41,11 @@ from inputremapper.exceptions import DataManagementError
 from inputremapper.gui.data_manager import DataManager, DEFAULT_PRESET_NAME
 from inputremapper.gui.gettext import _
 from inputremapper.gui.helper import is_helper_running
-from inputremapper.gui.message_broker import (
+from inputremapper.gui.messages.message_broker import (
     MessageBroker,
     MessageType,
+)
+from inputremapper.gui.messages.message_classes import (
     PresetData,
     StatusData,
     CombinationRecorded,
@@ -117,8 +119,12 @@ class Controller:
         """load a mapping as soon as everyone got notified about the new preset"""
         if data.mappings:
             mappings = list(data.mappings)
-            mappings.sort(key=lambda t: t[0] or t[1].beautify())
-            combination = mappings[0][1]
+            mappings.sort(
+                key=lambda mapping: (
+                    mapping.format_name() or mapping.event_combination.beautify()
+                )
+            )
+            combination = mappings[0].event_combination
             self.load_mapping(combination)
             self.load_event(combination[0])
         else:
@@ -140,7 +146,7 @@ class Controller:
             if not mapping.get_error():
                 continue
 
-            position = mapping.name or mapping.event_combination.beautify()
+            position = mapping.format_name()
             msg = _("Mapping error at %s, hover for info") % position
             self.show_status(CTX_MAPPING, msg, self._get_ui_error_string(mapping))
 

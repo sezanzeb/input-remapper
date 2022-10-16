@@ -38,7 +38,7 @@ from inputremapper.groups import (
     classify,
     DeviceType,
 )
-from inputremapper.gui.message_broker import MessageType
+from inputremapper.gui.messages.message_broker import MessageType
 from inputremapper.injection.context import Context
 from inputremapper.injection.event_reader import EventReader
 from inputremapper.injection.numlock import set_numlock, is_numlock_on, ensure_numlock

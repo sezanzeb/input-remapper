@@ -36,9 +36,11 @@ from inputremapper.event_combination import EventCombination
 from inputremapper.groups import DeviceType
 from inputremapper.gui.controller import Controller
 from inputremapper.gui.gettext import _
-from inputremapper.gui.message_broker import (
+from inputremapper.gui.messages.message_broker import (
     MessageBroker,
     MessageType,
+)
+from inputremapper.gui.messages.message_classes import (
     UInputsData,
     PresetData,
     CombinationUpdate,
@@ -51,7 +53,6 @@ from inputremapper.logger import logger
 Capabilities = Dict[int, List]
 
 SET_KEY_FIRST = _("Record the input first")
-EMPTY_MAPPING_NAME = _("Empty Mapping")
 
 ICON_NAMES = {
     DeviceType.GAMEPAD: "input-gaming",
@@ -146,12 +147,12 @@ class MappingListBox:
         if not data.mappings:
             return
 
-        for name, combination in data.mappings:
+        for mapping in data.mappings:
             selection_label = MappingSelectionLabel(
                 self._message_broker,
                 self._controller,
-                name,
-                combination,
+                mapping.format_name(),
+                mapping.event_combination,
             )
             self._gui.insert(selection_label, -1)
         self._gui.invalidate_sort()
@@ -187,7 +188,11 @@ class MappingSelectionLabel(Gtk.ListBoxRow):
         super().__init__()
         self._message_broker = message_broker
         self._controller = controller
-        self._name = name
+
+        if not name:
+            name = combination.beautify()
+
+        self.name = name
         self.combination = combination
 
         # Make the child label widget break lines, important for
@@ -206,7 +211,7 @@ class MappingSelectionLabel(Gtk.ListBoxRow):
         self.edit_btn = Gtk.Button()
         self.edit_btn.set_relief(Gtk.ReliefStyle.NONE)
         self.edit_btn.set_image(
-            Gtk.Image.new_from_icon_name("text-x-generic", Gtk.IconSize.MENU)
+            Gtk.Image.new_from_icon_name(Gtk.STOCK_EDIT, Gtk.IconSize.MENU)
         )
         self.edit_btn.set_tooltip_text(_("Change Mapping Name"))
         self.edit_btn.set_margin_top(4)
@@ -215,7 +220,7 @@ class MappingSelectionLabel(Gtk.ListBoxRow):
 
         self.name_input = Gtk.Entry()
         self.name_input.set_text(self.name)
-        self.name_input.set_width_chars(12)
+        self.name_input.set_halign(Gtk.Align.FILL)
         self.name_input.set_margin_top(4)
         self.name_input.set_margin_bottom(4)
         self.name_input.connect("activate", self._on_gtk_rename_finished)
@@ -226,7 +231,7 @@ class MappingSelectionLabel(Gtk.ListBoxRow):
         self._box.add(self.edit_btn)
         self._box.set_child_packing(self.edit_btn, False, False, 4, Gtk.PackType.END)
         self._box.add(self.name_input)
-        self._box.set_child_packing(self.name_input, False, True, 4, Gtk.PackType.START)
+        self._box.set_child_packing(self.name_input, True, True, 4, Gtk.PackType.START)
 
         self.add(self._box)
         self.show_all()
@@ -240,15 +245,6 @@ class MappingSelectionLabel(Gtk.ListBoxRow):
 
     def __repr__(self):
         return f"MappingSelectionLabel for {self.combination} as {self.name}"
-
-    @property
-    def name(self) -> str:
-        if (
-            self.combination == EventCombination.empty_combination()
-            or self.combination is None
-        ):
-            return EMPTY_MAPPING_NAME
-        return self._name or self.combination.beautify()
 
     def _set_not_selected(self):
         self.edit_btn.hide()
@@ -271,7 +267,7 @@ class MappingSelectionLabel(Gtk.ListBoxRow):
         if mapping.event_combination != self.combination:
             self._set_not_selected()
             return
-        self._name = mapping.name
+        self.name = mapping.format_name()
         self._set_selected()
         self.get_parent().invalidate_sort()
 
@@ -283,7 +279,7 @@ class MappingSelectionLabel(Gtk.ListBoxRow):
         name = self.name_input.get_text()
         if name.lower().strip() == self.combination.beautify().lower():
             name = ""
-        self._name = name
+        self.name = name
         self._set_selected()
         self._controller.update_mapping(name=name)
 

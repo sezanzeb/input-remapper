@@ -108,6 +108,12 @@ class Colors:
     Defaults to libadwaita-light theme colors if the lookup fails.
     """
 
+    fallback_accent = Gdk.RGBA(0.21, 0.52, 0.89, 1)
+    fallback_background = Gdk.RGBA(0.98, 0.98, 0.98, 1)
+    fallback_base = Gdk.RGBA(1, 1, 1, 1)
+    fallback_border = Gdk.RGBA(0.87, 0.87, 0.87, 1)
+    fallback_font = Gdk.RGBA(0.20, 0.20, 0.20, 1)
+
     @staticmethod
     def get_color(names: List[str], fallback: Gdk.RGBA) -> Gdk.RGBA:
         """Get theme colors. Provide multiple names for fallback purposes."""
@@ -123,7 +129,7 @@ class Colors:
         """Look up the accent color from the current theme."""
         return Colors.get_color(
             ["accent_bg_color", "theme_selected_bg_color"],
-            Gdk.RGBA(0.21, 0.52, 0.89, 1),
+            Colors.fallback_accent,
         )
 
     @staticmethod
@@ -131,7 +137,7 @@ class Colors:
         """Look up the background-color from the current theme."""
         return Colors.get_color(
             ["theme_bg_color"],
-            Gdk.RGBA(0.98, 0.98, 0.98, 1),
+            Colors.fallback_background,
         )
 
     @staticmethod
@@ -139,21 +145,18 @@ class Colors:
         """Look up the base-color from the current theme."""
         return Colors.get_color(
             ["theme_base_color"],
-            Gdk.RGBA(1, 1, 1, 1),
+            Colors.fallback_base,
         )
 
     @staticmethod
     def get_border_color() -> Gdk.RGBA:
         """Look up the border from the current theme."""
-        return Colors.get_color(
-            ["borders"],
-            Gdk.RGBA(0.87, 0.87, 0.87, 1),
-        )
+        return Colors.get_color(["borders"], Colors.fallback_border)
 
     @staticmethod
     def get_font_color() -> Gdk.RGBA:
         """Look up the border from the current theme."""
         return Colors.get_color(
             ["theme_fg_color"],
-            Gdk.RGBA(0.20, 0.20, 0.20, 1),
+            Colors.fallback_font,
         )

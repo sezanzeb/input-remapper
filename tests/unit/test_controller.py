@@ -39,6 +39,7 @@ from inputremapper.injection.injector import (
 )
 from inputremapper.input_event import InputEvent
 
+gi.require_version("Gdk", "3.0")
 gi.require_version("Gtk", "3.0")
 gi.require_version("GLib", "2.0")
 gi.require_version("GtkSource", "4")
@@ -47,17 +48,19 @@ from gi.repository import Gtk
 # from inputremapper.gui.helper import is_helper_running
 from inputremapper.event_combination import EventCombination
 from inputremapper.groups import _Groups
-from inputremapper.gui.message_broker import (
+from inputremapper.gui.messages.message_broker import (
     MessageBroker,
     MessageType,
     Signal,
+)
+from inputremapper.gui.messages.message_classes import (
     UInputsData,
     GroupsData,
     GroupData,
     PresetData,
     StatusData,
-    CombinationUpdate,
     CombinationRecorded,
+    CombinationUpdate,
     UserConfirmRequest,
 )
 from inputremapper.gui.reader import Reader

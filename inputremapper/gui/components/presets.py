@@ -29,12 +29,14 @@ from gi.repository import Gtk
 from inputremapper.gui.components.common import FlowBoxEntry, FlowBoxWrapper
 from inputremapper.gui.components.main import Stack
 from inputremapper.gui.controller import Controller
-from inputremapper.gui.message_broker import (
+from inputremapper.gui.messages.message_broker import (
     MessageBroker,
-    DoStackSwitch,
     MessageType,
+)
+from inputremapper.gui.messages.message_classes import (
     GroupData,
     PresetData,
+    DoStackSwitch,
 )
 from inputremapper.logger import logger
 

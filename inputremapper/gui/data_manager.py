@@ -34,12 +34,14 @@ from inputremapper.daemon import DaemonProxy
 from inputremapper.event_combination import EventCombination
 from inputremapper.exceptions import DataManagementError
 from inputremapper.groups import _Group
-from inputremapper.gui.message_broker import (
+from inputremapper.gui.messages.message_broker import (
     MessageBroker,
+)
+from inputremapper.gui.messages.message_classes import (
+    UInputsData,
     GroupData,
     PresetData,
     CombinationUpdate,
-    UInputsData,
 )
 from inputremapper.gui.reader import Reader
 from inputremapper.injection.global_uinputs import GlobalUInputs
@@ -199,9 +201,8 @@ class DataManager:
         """all mapping names and their combination from the active_preset"""
         if not self._active_preset:
             return None
-        return [
-            (mapping.name, mapping.event_combination) for mapping in self._active_preset
-        ]
+
+        return list(self._active_preset)
 
     def get_autoload(self) -> bool:
         """the autoload status of the active_preset"""

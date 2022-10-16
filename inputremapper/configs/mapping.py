@@ -40,7 +40,8 @@ from pydantic import (
 from inputremapper.configs.system_mapping import system_mapping, DISABLE_NAME
 from inputremapper.event_combination import EventCombination
 from inputremapper.exceptions import MacroParsingError
-from inputremapper.gui.message_broker import MessageType
+from inputremapper.gui.messages.message_types import MessageType
+from inputremapper.gui.gettext import _
 from inputremapper.injection.macros.parse import is_this_a_macro, parse
 from inputremapper.input_event import EventActions
 
@@ -50,6 +51,9 @@ from inputremapper.input_event import EventActions
 needs_workaround = pkg_resources.parse_version(
     str(VERSION)
 ) < pkg_resources.parse_version("1.7.1")
+
+
+EMPTY_MAPPING_NAME = _("Empty Mapping")
 
 
 class KnownUinput(str, enum.Enum):
@@ -179,6 +183,19 @@ class UIMapping(BaseModel):
             copy = super(UIMapping, self).copy(*args, **kwargs)
             object.__setattr__(copy, "_combination_changed", self._combination_changed)
             return copy
+
+    def format_name(self) -> str:
+        """Get the custom-name or a readable representation of the combination."""
+        if self.name:
+            return self.name
+
+        if (
+            self.event_combination == EventCombination.empty_combination()
+            or self.event_combination is None
+        ):
+            return EMPTY_MAPPING_NAME
+
+        return self.event_combination.beautify()
 
     def has_input_defined(self) -> bool:
         """Whether this mapping defines an event-input."""

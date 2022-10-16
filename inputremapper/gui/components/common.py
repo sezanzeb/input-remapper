@@ -33,12 +33,11 @@ from inputremapper.event_combination import EventCombination
 
 from inputremapper.gui.controller import Controller
 from inputremapper.gui.gettext import _
-from inputremapper.gui.message_broker import (
+from inputremapper.gui.messages.message_broker import (
     MessageBroker,
     MessageType,
-    PresetData,
-    GroupData,
 )
+from inputremapper.gui.messages.message_classes import GroupData, PresetData
 from inputremapper.gui.utils import HandlerDisabled
 
 
@@ -158,14 +157,8 @@ class Breadcrumbs:
         self._group_key = data.group_key
         self._render()
 
-    def _on_mapping_changed(self, mapping: MappingData):
-        if mapping.name:
-            self._mapping_name = mapping.name
-        elif mapping.event_combination != EventCombination.empty_combination():
-            self._mapping_name = mapping.event_combination.beautify()
-        else:
-            self._mapping_name = _("empty mapping")
-
+    def _on_mapping_changed(self, mapping_data: MappingData):
+        self._mapping_name = mapping_data.format_name()
         self._render()
 
     def _render(self):

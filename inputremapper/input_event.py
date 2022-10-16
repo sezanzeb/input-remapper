@@ -28,7 +28,7 @@ from evdev import ecodes
 
 from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.exceptions import InputEventCreationError
-from inputremapper.gui.message_broker import MessageType
+from inputremapper.gui.messages.message_broker import MessageType
 from inputremapper.logger import logger
 
 InputEventValidationType = Union[

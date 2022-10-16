@@ -52,11 +52,11 @@ from inputremapper.gui.components.main import Stack, StatusBar
 from inputremapper.gui.components.common import Breadcrumbs
 from inputremapper.gui.components.device_groups import DeviceGroupSelection
 from inputremapper.gui.controller import Controller
-from inputremapper.gui.message_broker import (
+from inputremapper.gui.messages.message_broker import (
     MessageBroker,
     MessageType,
-    UserConfirmRequest,
 )
+from inputremapper.gui.messages.message_classes import UserConfirmRequest
 from inputremapper.gui.utils import (
     gtk_iteration,
 )

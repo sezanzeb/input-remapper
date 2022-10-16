@@ -1,7 +1,7 @@
 import unittest
 from dataclasses import dataclass
 
-from inputremapper.gui.message_broker import MessageBroker, MessageType
+from inputremapper.gui.messages.message_broker import MessageBroker, MessageType
 
 
 class Listener:

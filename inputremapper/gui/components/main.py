@@ -27,12 +27,11 @@ from __future__ import annotations
 from gi.repository import Gtk
 
 from inputremapper.gui.controller import Controller
-from inputremapper.gui.message_broker import (
+from inputremapper.gui.messages.message_broker import (
     MessageBroker,
     MessageType,
-    DoStackSwitch,
-    StatusData,
 )
+from inputremapper.gui.messages.message_classes import StatusData, DoStackSwitch
 from inputremapper.gui.utils import CTX_ERROR, CTX_MAPPING, CTX_WARNING
 
 
