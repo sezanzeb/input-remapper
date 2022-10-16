@@ -46,12 +46,43 @@ from inputremapper.logger import logger
 WHEEL_FACTOR = 16
 
 
+def is_wheel(event) -> bool:
+    return event.type == EV_REL and event.code in (REL_WHEEL, REL_HWHEEL)
+
+
+# TODO
+"""
+00:16:22.695476 35088 Service ERROR preset.py:308: failed to Validate mapping for 2,0,1: 1 validation error for Mapping
+__root__
+  missing macro or key: the combination = <EventCombination (2, 0, 1)> specifies a key input, but no output macro or key is programmed (type=value_error)
+  
+  
+00:18:34.576837 35275 Service ERROR preset.py:308: failed to Validate mapping for 2,0,1: 2 validation errors for Mapping
+__root__
+  missing Argument: Mapping must either contain `output_symbol` or `output_type` and `output_code` (type=value_error)
+__root__
+  missing macro or key: the combination = <EventCombination (2, 0, 1)> specifies a key input, but no output macro or key is programmed (type=value_error)
+"""
+
+# TODO after "The device was not grabbed" message, reset the "Stop" button
+
+
+# TODO
+"""
+│   571 │   │   def show_result(msg: InjectorState):                                               │
+│   572 │   │   │   self.message_broker.unsubscribe(show_result)                                   │
+│ ❱ 573 │   │   │   assert msg.state == STOPPED
+if this fails, then fix the inconsistency instead of crashing
+"""
+
+
 class RelToRelHandler(MappingHandler):
     """Handler which transforms EV_REL to EV_REL events"""
 
     _input_movement: Tuple[int, int]  # (type, code) of the relative movement we map
     _output_axis: Tuple[int, int]  # the (type, code) of the output axis
     _transform: Transformation
+    _wheel_input: bool
 
     # infinite loop which centers the output when input stops
     _recenter_loop: Optional[asyncio.Task]
@@ -77,13 +108,20 @@ class RelToRelHandler(MappingHandler):
             expo=self.mapping.expo,
         )
 
+        self._wheel_input = False
+
         # TODO duplicate code
         # find the input event we are supposed to map. If the input combination is
         # BTN_A + REL_X + BTN_B, then use the value of REL_X for the transformation
         for event in combination:
+            # TODO search for "Use as Analog"?
             if event.value == 0:
                 assert event.type == EV_REL
                 self._input_movement = event.type_and_code
+
+                if is_wheel(event):
+                    self._wheel_input = True
+
                 break
 
     def __str__(self):
@@ -97,8 +135,17 @@ class RelToRelHandler(MappingHandler):
         return f"maps to: {self.mapping.output_code} at {self.mapping.target_uinput}"
 
     def _transform(self, input_value: int):
-
         return input_value
+
+    def _should_map(self, event):
+        # TODO docstring
+        if self._wheel_input and is_wheel(event):
+            return True
+
+        if event.type_and_code == self._input_movement:
+            return True
+
+        return False
 
     def notify(
         self,
@@ -107,7 +154,8 @@ class RelToRelHandler(MappingHandler):
         forward: evdev.UInput = None,
         supress: bool = False,
     ) -> bool:
-        if event.type_and_code != self._input_movement:
+        if not self._should_map(event):
+            print("no")
             return False
 
         try:
@@ -121,13 +169,17 @@ class RelToRelHandler(MappingHandler):
 
     def _write(self, value: int) -> None:
         """Inject."""
+        scaled = value
         if self.mapping.output_code in (
             REL_WHEEL,
             REL_HWHEEL,
         ):
-            scaled = value * WHEEL_FACTOR
+            scaled *= WHEEL_FACTOR
         else:
-            scaled = value * 256
+            scaled *= 256
+
+        if self._wheel_input:
+            scaled *= WHEEL_FACTOR
 
         # if the mouse moves very flow, it might not move at all because it rounds to 0.
         # store the remainder and add it up, until the mouse moves a little.
