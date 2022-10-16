@@ -17,11 +17,16 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
+
 import asyncio
-from typing import Tuple, Dict, Optional
+from typing import Dict, Tuple, Optional
 
 import evdev
-from evdev.ecodes import EV_REL
+from evdev.ecodes import (
+    EV_REL,
+    REL_WHEEL,
+    REL_HWHEEL,
+)
 
 from inputremapper import exceptions
 from inputremapper.configs.mapping import Mapping
@@ -33,8 +38,12 @@ from inputremapper.injection.mapping_handlers.mapping_handler import (
     HandlerEnums,
     InputEventHandler,
 )
-from inputremapper.input_event import InputEvent, EventActions
+from inputremapper.input_event import InputEvent
 from inputremapper.logger import logger
+
+# a trial-and-error value for the wheel speed
+# TODO move to preset config and use 16 as default
+WHEEL_FACTOR = 16
 
 
 class RelToRelHandler(MappingHandler):
@@ -48,6 +57,8 @@ class RelToRelHandler(MappingHandler):
     _recenter_loop: Optional[asyncio.Task]
     _moving: asyncio.Event  # event to notify the _recenter_loop
 
+    _remainder: int
+
     def __init__(
         self,
         combination: EventCombination,
@@ -56,6 +67,17 @@ class RelToRelHandler(MappingHandler):
     ) -> None:
         super().__init__(combination, mapping)
 
+        self._remainder = 0
+
+        self._transform = Transformation(
+            max_=256,
+            min_=-256,
+            deadzone=self.mapping.deadzone,
+            gain=self.mapping.gain,
+            expo=self.mapping.expo,
+        )
+
+        # TODO duplicate code
         # find the input event we are supposed to map. If the input combination is
         # BTN_A + REL_X + BTN_B, then use the value of REL_X for the transformation
         for event in combination:
@@ -63,13 +85,6 @@ class RelToRelHandler(MappingHandler):
                 assert event.type == EV_REL
                 self._input_movement = event.type_and_code
                 break
-
-        assert mapping.output_code is not None
-        assert mapping.output_type == EV_REL
-        self._output_axis = (mapping.output_type, mapping.output_code)
-
-        self._moving = asyncio.Event()
-        self._recenter_loop = None
 
     def __str__(self):
         return f"RelToRelHandler for {self._input_movement} <{id(self)}>:"
@@ -81,6 +96,10 @@ class RelToRelHandler(MappingHandler):
     def child(self):  # used for logging
         return f"maps to: {self.mapping.output_code} at {self.mapping.target_uinput}"
 
+    def _transform(self, input_value: int):
+
+        return input_value
+
     def notify(
         self,
         event: InputEvent,
@@ -88,20 +107,9 @@ class RelToRelHandler(MappingHandler):
         forward: evdev.UInput = None,
         supress: bool = False,
     ) -> bool:
-
         if event.type_and_code != self._input_movement:
             return False
 
-        if EventActions.recenter in event.actions:
-            if self._recenter_loop:
-                self._recenter_loop.cancel()
-            self._recenter()
-            return True
-
-        if not self._recenter_loop:
-            self._recenter_loop = asyncio.create_task(self._create_recenter_loop())
-
-        self._moving.set()  # notify the _recenter_loop
         try:
             self._write(self._transform(event.value))
             return True
@@ -109,30 +117,35 @@ class RelToRelHandler(MappingHandler):
             return False
 
     def reset(self) -> None:
-        if self._recenter_loop:
-            self._recenter_loop.cancel()
-        self._recenter()
-
-    async def _create_recenter_loop(self) -> None:
-        """coroutine which waits for the input to start moving,
-        then waits until the input stops moving, centers the output and repeat.
-
-        runs forever"""
-        while True:
-            await self._moving.wait()  # input moving started
-            while (
-                await asyncio.wait(
-                    (self._moving.wait(),), timeout=self.mapping.release_timeout
-                )
-            )[0]:
-                self._moving.clear()  # still moving
-            self._recenter()  # input moving stopped
+        pass
 
     def _write(self, value: int) -> None:
         """Inject."""
+        if self.mapping.output_code in (
+            REL_WHEEL,
+            REL_HWHEEL,
+        ):
+            scaled = value * WHEEL_FACTOR
+        else:
+            scaled = value * 256
+
+        # if the mouse moves very flow, it might not move at all because it rounds to 0.
+        # store the remainder and add it up, until the mouse moves a little.
+        floored = int(scaled)
+        self._remainder += scaled - floored
+        if abs(self._remainder) >= 1:
+            output_value = int(scaled + self._remainder)
+            self._remainder = scaled - output_value
+        else:
+            output_value = floored
+
+        if output_value == 0:
+            return
+
         try:
             global_uinputs.write(
-                (*self._output_axis, value), self.mapping.target_uinput
+                (EV_REL, self.mapping.output_code, output_value),
+                self.mapping.target_uinput,
             )
         except OverflowError:
             # screwed up the calculation of the event value

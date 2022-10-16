@@ -128,7 +128,6 @@ class HandlerEnums(enum.Enum):
     btn2rel = enum.auto()
     rel2rel = enum.auto()
     abs2rel = enum.auto()
-    rel2rel = enum.auto()
 
     btn2abs = enum.auto()
     rel2abs = enum.auto()
