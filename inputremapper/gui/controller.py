@@ -621,11 +621,11 @@ class Controller:
             return kwargs
 
         if kwargs["mapping_type"] == "analog":
-            msg = f"You are about to change the mapping to analog!"
+            msg = f"You are about to change the mapping to analog."
             if mapping.output_symbol:
                 msg += (
                     f'\nThis will remove "{mapping.output_symbol}" '
-                    f"from the text input."
+                    f"from the text input!"
                 )
 
             if not [e for e in mapping.event_combination if e.value == 0]:
