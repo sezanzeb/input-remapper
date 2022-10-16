@@ -45,6 +45,8 @@ from inputremapper.logger import logger
 # TODO move to preset config and use 16 as default
 WHEEL_FACTOR = 16
 
+MAX_REL_XY = 256
+
 
 def is_wheel(event) -> bool:
     return event.type == EV_REL and event.code in (REL_WHEEL, REL_HWHEEL)
@@ -74,6 +76,13 @@ __root__
 │ ❱ 573 │   │   │   assert msg.state == STOPPED
 if this fails, then fix the inconsistency instead of crashing
 """
+
+# TODO test
+
+
+# TODO high-res wheel as input
+# TODO high-res wheel as output
+
 
 
 class RelToRelHandler(MappingHandler):
@@ -134,11 +143,8 @@ class RelToRelHandler(MappingHandler):
     def child(self):  # used for logging
         return f"maps to: {self.mapping.output_code} at {self.mapping.target_uinput}"
 
-    def _transform(self, input_value: int):
-        return input_value
-
     def _should_map(self, event):
-        # TODO docstring
+        """Check if this input event is relevant for this handler."""
         if self._wheel_input and is_wheel(event):
             return True
 
@@ -155,7 +161,6 @@ class RelToRelHandler(MappingHandler):
         supress: bool = False,
     ) -> bool:
         if not self._should_map(event):
-            print("no")
             return False
 
         try:
@@ -169,20 +174,20 @@ class RelToRelHandler(MappingHandler):
 
     def _write(self, value: int) -> None:
         """Inject."""
-        scaled = value
-        if self.mapping.output_code in (
+        wheel_output = self.mapping.output_code in (
             REL_WHEEL,
             REL_HWHEEL,
-        ):
-            scaled *= WHEEL_FACTOR
+        )
+
+        if wheel_output or self._wheel_input:
+            scaled = value * WHEEL_FACTOR
         else:
-            scaled *= 256
+            # value is between 0 and 1, scale up
+            scaled = value * MAX_REL_XY
 
-        if self._wheel_input:
-            scaled *= WHEEL_FACTOR
-
-        # if the mouse moves very flow, it might not move at all because it rounds to 0.
-        # store the remainder and add it up, until the mouse moves a little.
+        # if the mouse moves very slow, it might not move at all because of the
+        # int-conversion (which is required when writing). store the remainder
+        # (the decimal places) and add it up, until the mouse moves a little.
         floored = int(scaled)
         self._remainder += scaled - floored
         if abs(self._remainder) >= 1:
