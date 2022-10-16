@@ -37,7 +37,7 @@ from inputremapper.groups import _Group
 from inputremapper.gui.messages.message_broker import (
     MessageBroker,
 )
-from inputremapper.gui.messages.message_classes import (
+from inputremapper.gui.messages.message_data import (
     UInputsData,
     GroupData,
     PresetData,

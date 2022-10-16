@@ -53,7 +53,7 @@ from inputremapper.gui.messages.message_broker import (
     MessageType,
     Signal,
 )
-from inputremapper.gui.messages.message_classes import (
+from inputremapper.gui.messages.message_data import (
     UInputsData,
     GroupsData,
     GroupData,

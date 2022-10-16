@@ -33,7 +33,7 @@ from inputremapper.gui.messages.message_broker import (
     MessageBroker,
     MessageType,
 )
-from inputremapper.gui.messages.message_classes import (
+from inputremapper.gui.messages.message_data import (
     GroupData,
     PresetData,
     DoStackSwitch,

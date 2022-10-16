@@ -56,7 +56,7 @@ from inputremapper.gui.messages.message_broker import (
     MessageBroker,
     MessageType,
 )
-from inputremapper.gui.messages.message_classes import UserConfirmRequest
+from inputremapper.gui.messages.message_data import UserConfirmRequest
 from inputremapper.gui.utils import (
     gtk_iteration,
 )

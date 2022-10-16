@@ -77,7 +77,7 @@ from inputremapper.gui.messages.message_broker import (
     MessageBroker,
     MessageType,
 )
-from inputremapper.gui.messages.message_classes import StatusData, CombinationRecorded
+from inputremapper.gui.messages.message_data import StatusData, CombinationRecorded
 from inputremapper.gui.components.editor import MappingSelectionLabel, SET_KEY_FIRST
 from inputremapper.gui.components.device_groups import DeviceGroupEntry
 from inputremapper.gui.controller import Controller

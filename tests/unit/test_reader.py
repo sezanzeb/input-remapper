@@ -25,7 +25,7 @@ from inputremapper.gui.messages.message_broker import (
     MessageBroker,
     Signal,
 )
-from inputremapper.gui.messages.message_classes import CombinationRecorded
+from inputremapper.gui.messages.message_data import CombinationRecorded
 from tests.test import (
     new_event,
     push_events,
