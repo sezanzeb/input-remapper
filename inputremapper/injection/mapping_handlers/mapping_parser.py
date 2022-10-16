@@ -36,6 +36,7 @@ from inputremapper.injection.macros.parse import is_this_a_macro
 from inputremapper.injection.mapping_handlers.abs_to_abs_handler import AbsToAbsHandler
 from inputremapper.injection.mapping_handlers.abs_to_btn_handler import AbsToBtnHandler
 from inputremapper.injection.mapping_handlers.abs_to_rel_handler import AbsToRelHandler
+from inputremapper.injection.mapping_handlers.rel_to_rel_handler import RelToRelHandler
 from inputremapper.injection.mapping_handlers.axis_switch_handler import (
     AxisSwitchHandler,
 )
@@ -68,6 +69,7 @@ mapping_handler_classes: Dict[HandlerEnums, Optional[Type[MappingHandler]]] = {
     HandlerEnums.btn2rel: None,  # can be a macro
     HandlerEnums.rel2rel: None,
     HandlerEnums.abs2rel: AbsToRelHandler,
+    HandlerEnums.rel2rel: RelToRelHandler,
     HandlerEnums.btn2abs: None,  # can be a macro
     HandlerEnums.rel2abs: RelToAbsHandler,
     HandlerEnums.abs2abs: AbsToAbsHandler,

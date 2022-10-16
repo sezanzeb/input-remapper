@@ -96,7 +96,7 @@ async def _run_wheel(
 class AbsToRelHandler(MappingHandler):
     """Handler which transforms an EV_ABS to EV_REL events."""
 
-    _map_axis: Tuple[int, int]  # the (type, code) of the axis we map
+    _map_axis: Tuple[int, int]  # the input (type, code) of the axis we map
     _value: float  # the current output value
     _running: bool  # if the run method is active
     _stop: bool  # if the run loop should return
