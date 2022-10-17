@@ -274,8 +274,8 @@ def _parse_recurse(code, context, mapping, verbose, macro_instance=None, depth=0
             raise MacroParsingError(code, f"Unknown function {call}")
 
         # get all the stuff inbetween
-        position = _count_brackets(code)
-        inner = code[code.index("(") + 1 : position - 1]
+        closing_bracket_position = _count_brackets(code) - 1
+        inner = code[code.index("(") + 1 : closing_bracket_position]
         debug("%scalls %s with %s", space, call, inner)
 
         # split "3, foo=a(2, k(a).w(10))" into arguments
@@ -330,10 +330,20 @@ def _parse_recurse(code, context, mapping, verbose, macro_instance=None, depth=0
             raise MacroParsingError(msg=str(err))
 
         # is after this another call? Chain it to the macro_instance
-        if len(code) > position and code[position] == ".":
-            chain = code[position + 1 :]
+        more_code_exists = len(code) > closing_bracket_position + 1
+        # require statements to be closed with semicolons, to reduce the complexity
+        # of parsing https://stackoverflow.com/questions/4701137/why-do-some-languages-need-semicolons
+        statement_closed = code[closing_bracket_position + 1] == ";"
+        if more_code_exists and statement_closed:
+            # TODO test ";"
+            # TODO migrate ")." to ");" and ") ." to "); ", and the last ) in the code to ");"
+            # TODO remove "." from all docs
+            # TODO {}?
+            chain = code[closing_bracket_position:]
             debug("%sfollowed by %s", space, chain)
             _parse_recurse(chain, context, mapping, verbose, macro_instance, depth)
+
+        # TODO is there a readable error message if ; is missing between statements?
 
         return macro_instance
 
