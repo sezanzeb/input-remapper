@@ -127,7 +127,7 @@ class TestMacros(MacroTestBase):
             result.append((a, b, c, d))
 
         functions = {"key": patch}
-        with mock.patch("inputremapper.injection.macros.parse.FUNCTIONS", functions):
+        with mock.patch("inputremapper.injection.macros.parse.TASK_FACTORIES", functions):
             await parse("key(1, d=4, b=2, c=3)", self.context, DummyMapping).run(
                 self.handler
             )

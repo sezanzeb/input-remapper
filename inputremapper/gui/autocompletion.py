@@ -35,14 +35,14 @@ from inputremapper.gui.messages.message_broker import MessageBroker, MessageType
 from inputremapper.gui.messages.message_data import UInputsData
 from inputremapper.gui.utils import debounce
 from inputremapper.injection.macros.parse import (
-    FUNCTIONS,
+    TASK_FACTORIES,
     get_macro_argument_names,
     remove_comments,
 )
 from inputremapper.logger import logger
 
 # no deprecated shorthand function-names
-FUNCTION_NAMES = [name for name in FUNCTIONS.keys() if len(name) > 1]
+FUNCTION_NAMES = [name for name in TASK_FACTORIES.keys() if len(name) > 1]
 # no deprecated functions
 FUNCTION_NAMES.remove("ifeq")
 
@@ -127,7 +127,7 @@ def propose_function_names(text_iter: Gtk.TextIter) -> List[Tuple[str, str]]:
     incomplete_name = incomplete_name.lower()
 
     return [
-        (name, f"{name}({', '.join(get_macro_argument_names(FUNCTIONS[name]))})")
+        (name, f"{name}({', '.join(get_macro_argument_names(TASK_FACTORIES[name]))})")
         for name in FUNCTION_NAMES
         if incomplete_name in name.lower() and incomplete_name != name.lower()
     ]
