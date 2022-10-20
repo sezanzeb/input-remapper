@@ -121,9 +121,10 @@ class UIMapping(BaseModel):
     # when mapping to relative axis
     rate: PositiveInt = 60  # The frequency [Hz] at which EV_REL events get generated
     # the base speed of the relative axis, compounds with the gain
+    # TODO split into wheel and XY speed?
     rel_speed: PositiveInt = 100
 
-    # when mapping from relative axis:
+    # when mapping from a relative axis:
     # the absolute value at which a EV_REL axis is considered at its maximum
     rel_input_cutoff: PositiveInt = 100
     # the time until a relative axis is considered stationary if no new events arrive

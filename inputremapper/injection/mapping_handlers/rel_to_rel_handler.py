@@ -41,12 +41,6 @@ from inputremapper.injection.mapping_handlers.mapping_handler import (
 from inputremapper.input_event import InputEvent
 from inputremapper.logger import logger
 
-# a trial-and-error value for the wheel speed
-# TODO move to preset config and use 16 as default
-WHEEL_FACTOR = 16
-
-MAX_REL_XY = 256
-
 
 def is_wheel(event) -> bool:
     return event.type == EV_REL and event.code in (REL_WHEEL, REL_HWHEEL)
@@ -91,7 +85,7 @@ class RelToRelHandler(MappingHandler):
     _input_movement: Tuple[int, int]  # (type, code) of the relative movement we map
     _output_axis: Tuple[int, int]  # the (type, code) of the output axis
     _transform: Transformation
-    _wheel_input: bool
+    _is_wheel_input: bool
 
     # infinite loop which centers the output when input stops
     _recenter_loop: Optional[asyncio.Task]
@@ -117,7 +111,7 @@ class RelToRelHandler(MappingHandler):
             expo=self.mapping.expo,
         )
 
-        self._wheel_input = False
+        self._is_wheel_input = False
 
         # TODO duplicate code
         # find the input event we are supposed to map. If the input combination is
@@ -129,7 +123,7 @@ class RelToRelHandler(MappingHandler):
                 self._input_movement = event.type_and_code
 
                 if is_wheel(event):
-                    self._wheel_input = True
+                    self._is_wheel_input = True
 
                 break
 
@@ -145,7 +139,7 @@ class RelToRelHandler(MappingHandler):
 
     def _should_map(self, event):
         """Check if this input event is relevant for this handler."""
-        if self._wheel_input and is_wheel(event):
+        if self._is_wheel_input and is_wheel(event):
             return True
 
         if event.type_and_code == self._input_movement:
@@ -174,16 +168,21 @@ class RelToRelHandler(MappingHandler):
 
     def _write(self, value: int) -> None:
         """Inject."""
-        wheel_output = self.mapping.output_code in (
+        # value is between 0 and 1, scale up
+        # TODO split into wheel and XY speed?
+        scaled = value * self.mapping.rel_speed
+
+        """
+        is_wheel_output = self.mapping.output_code in (
             REL_WHEEL,
             REL_HWHEEL,
         )
-
-        if wheel_output or self._wheel_input:
-            scaled = value * WHEEL_FACTOR
+        
+        if is_wheel_output or self._is_wheel_input:
+            scaled = value * 16
         else:
-            # value is between 0 and 1, scale up
-            scaled = value * MAX_REL_XY
+            scaled = value * 256
+        """
 
         # if the mouse moves very slow, it might not move at all because of the
         # int-conversion (which is required when writing). store the remainder
