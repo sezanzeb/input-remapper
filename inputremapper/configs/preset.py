@@ -46,11 +46,6 @@ from inputremapper.input_event import InputEvent
 from inputremapper.event_combination import EventCombination
 
 
-def union(list1: Iterable, list2: Iterable) -> List:
-    """Return common members of two iterables as list."""
-    return list(set(list1) & set(list2))
-
-
 MappingModel = TypeVar("MappingModel", bound=UIMapping)
 
 
@@ -161,11 +156,11 @@ class Preset(Generic[MappingModel]):
     def _is_duplicate_input_combination(self, mapping) -> bool:
         """Check if the input of the mapping is already mapped to something else."""
         all_input_combinations = [mapping_.event_combination for mapping_ in self]
-        union_ = union(
-            mapping.event_combination.get_permutations(),
-            all_input_combinations,
+        union = (
+            set(mapping.event_combination.get_permutations()) &
+            set(all_input_combinations)
         )
-        return len(union_) > 1
+        return len(union) > 1
 
     def _has_valid_event_combination(self, mapping) -> bool:
         """Check if the mapping has a valid input event combination."""
