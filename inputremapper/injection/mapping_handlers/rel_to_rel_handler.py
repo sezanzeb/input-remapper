@@ -90,7 +90,7 @@ class RelToRelHandler(MappingHandler):
     _recenter_loop: Optional[asyncio.Task]
     _moving: asyncio.Event  # event to notify the _recenter_loop
 
-    _remainder: int
+    _remainder: float
 
     def __init__(
         self,
