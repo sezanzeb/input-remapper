@@ -46,29 +46,6 @@ def is_wheel(event) -> bool:
     return event.type == EV_REL and event.code in (REL_WHEEL, REL_HWHEEL)
 
 
-# TODO
-"""
-00:16:22.695476 35088 Service ERROR preset.py:308: failed to Validate mapping for 2,0,1: 1 validation error for Mapping
-__root__
-  missing macro or key: the combination = <EventCombination (2, 0, 1)> specifies a key input, but no output macro or key is programmed (type=value_error)
-  
-  
-00:18:34.576837 35275 Service ERROR preset.py:308: failed to Validate mapping for 2,0,1: 2 validation errors for Mapping
-__root__
-  missing Argument: Mapping must either contain `output_symbol` or `output_type` and `output_code` (type=value_error)
-__root__
-  missing macro or key: the combination = <EventCombination (2, 0, 1)> specifies a key input, but no output macro or key is programmed (type=value_error)
-"""
-
-
-# TODO
-"""
-│   571 │   │   def show_result(msg: InjectorState):                                               │
-│   572 │   │   │   self.message_broker.unsubscribe(show_result)                                   │
-│ ❱ 573 │   │   │   assert msg.state == STOPPED
-if this fails, then fix the inconsistency instead of crashing
-"""
-
 # TODO test
 
 

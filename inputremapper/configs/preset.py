@@ -153,12 +153,12 @@ class Preset(Generic[MappingModel]):
             # the _combination_changed_callback is attached
             self.add(mapping.copy())
 
-    def _is_duplicate_input_combination(self, mapping) -> bool:
-        """Check if the input of the mapping is already mapped to something else."""
-        all_input_combinations = [mapping_.event_combination for mapping_ in self]
-        union = set(mapping.event_combination.get_permutations()) & set(
-            all_input_combinations
-        )
+    def _is_mapped_multiple_times(self, event_combination: EventCombination) -> bool:
+        """Check if the event combination maps to multiple mappings."""
+        all_input_combinations = {mapping.event_combination for mapping in self}
+        permutations = set(event_combination.get_permutations())
+        union = permutations & all_input_combinations
+        # if there are more than one matches, then there is a duplicate
         return len(union) > 1
 
     def _has_valid_event_combination(self, mapping) -> bool:
@@ -191,7 +191,7 @@ class Preset(Generic[MappingModel]):
                     logger.debug("skipping invalid mapping %s", mapping)
                     continue
 
-                if self._is_duplicate_input_combination(mapping):
+                if self._is_mapped_multiple_times(mapping.event_combination):
                     logger.debug(
                         "skipping mapping with duplicate event combination %s",
                         mapping,
