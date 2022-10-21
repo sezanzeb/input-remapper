@@ -52,7 +52,9 @@ class TestMapping(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(m.gain, 1)
         self.assertEqual(m.expo, 0)
         self.assertEqual(m.rel_xy_rate, 60)
-        self.assertEqual(m.rel_xy_speed, 100)
+        self.assertEqual(m.rel_wheel_rate, 60)
+        self.assertEqual(m.rel_xy_speed, 50)
+        self.assertEqual(m.rel_wheel_speed, 5)
         self.assertEqual(m.rel_input_cutoff, 100)
         self.assertEqual(m.release_timeout, 0.05)
 
@@ -268,10 +270,17 @@ class TestMapping(unittest.IsolatedAsyncioTestCase):
         Mapping(**cfg, expo=-1)
 
         # negative rate
-        test(**cfg, rate=-1)
-        test(**cfg, rate=0)
-        Mapping(**cfg, rate=1)
-        Mapping(**cfg, rate=200)
+        test(**cfg, rel_xy_rate=-1)
+        test(**cfg, rel_wheel_rate=-1)
+
+        test(**cfg, rel_xy_rate=0)
+        test(**cfg, rel_wheel_rate=0)
+
+        Mapping(**cfg, rel_xy_rate=1)
+        Mapping(**cfg, rel_xy_rate=200)
+
+        Mapping(**cfg, rel_wheel_rate=1)
+        Mapping(**cfg, rel_wheel_rate=200)
 
         # negative rel_xy_speed
         test(**cfg, rel_xy_speed=-1)
