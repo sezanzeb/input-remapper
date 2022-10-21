@@ -1,0 +1,343 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2022-10-21 23:00+0200\n"
+"PO-Revision-Date: 2022-10-22 00:35+0300\n"
+"Last-Translator: coffebar, 2022\n"
+"Language-Team: \n"
+"Language: uk_UA\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
+"n%10<=4 && (n%100<12 || n%100>14) ? 1 : 2);\n"
+"X-Generator: Poedit 3.1.1\n"
+
+#: inputremapper/gui/editor/editor.py:608
+#, python-format
+msgid "\"%s\" already mapped to \"%s\""
+msgstr "\"%s\" вже призначено до \"%s\""
+
+#: inputremapper/gui/user_interface.py:609
+msgid ", CTRL + DEL to stop"
+msgstr ", CTRL + DEL щоб зупинити"
+
+#: data/input-remapper.glade:1070
+msgid "About"
+msgstr "Про програму"
+
+#: inputremapper/gui/user_interface.py:606
+#, python-format
+msgid "Applied preset %s"
+msgstr "Застосовано пресет %s"
+
+#: inputremapper/gui/user_interface.py:427
+msgid "Applied the system default"
+msgstr "Застосовано за замовченням"
+
+#: data/input-remapper.glade:307
+msgid "Apply"
+msgstr "Застосувати"
+
+#: inputremapper/gui/user_interface.py:251
+#, python-format
+msgid "Are you sure to delete preset %s?"
+msgstr "Ви впевнені що хочете видалити пресет %s?"
+
+#: inputremapper/gui/editor/editor.py:545
+msgid "Are you sure to delete this mapping?"
+msgstr "Ви впевнені, що хочете видалити цей мапінг?"
+
+#: data/input-remapper.glade:504
+msgid "Autoload"
+msgstr "Автозавантаження"
+
+#: data/input-remapper.glade:583 data/input-remapper.glade:627
+msgid "Buttons"
+msgstr "Кнопки"
+
+#: data/input-remapper.glade:65
+msgid "Cancel"
+msgstr "Скасувати"
+
+#: inputremapper/gui/user_interface.py:524
+msgid "Cannot apply empty preset file"
+msgstr "Неможливо застосувати порожній файл попереднього налаштування"
+
+#: data/input-remapper.glade:860 inputremapper/gui/editor/editor.py:253
+msgid "Change Key"
+msgstr "Змінити клавішу"
+
+#: data/input-remapper.glade:326
+msgid "Copy"
+msgstr "Копіювати"
+
+#: data/input-remapper.glade:350
+msgid "Create a new preset"
+msgstr "Стваорити новий пресет"
+
+#: data/input-remapper.glade:365 data/input-remapper.glade:889
+msgid "Delete"
+msgstr "Видалити"
+
+#: data/input-remapper.glade:894
+msgid "Delete this entry"
+msgstr "Видалити запис"
+
+#: data/input-remapper.glade:370
+msgid "Delete this preset"
+msgstr "Видалити пресет"
+
+#: data/input-remapper.glade:193
+msgid "Device"
+msgstr "Пристрій"
+
+#: data/input-remapper.glade:331
+msgid "Duplicate this preset"
+msgstr "Копіювати пресет"
+
+#: inputremapper/gui/user_interface.py:618
+#, python-format
+msgid "Failed to apply preset %s"
+msgstr "Не вдалося застосувати пресет %s"
+
+#: data/input-remapper.glade:239
+msgid "Help"
+msgstr "Допомога"
+
+#: data/input-remapper.glade:149
+msgid "Input Remapper"
+msgstr "Input Remapper"
+
+#: data/input-remapper.glade:584 data/input-remapper.glade:628
+msgid "Joystick"
+msgstr "Джойстик"
+
+#: data/input-remapper.glade:566
+msgid "Left joystick"
+msgstr "Лівий джойстик"
+
+#: data/input-remapper.glade:581 data/input-remapper.glade:625
+msgid "Mouse"
+msgstr "Миша"
+
+#: data/input-remapper.glade:654
+msgid "Mouse speed"
+msgstr "Швидкість миши"
+
+#: data/input-remapper.glade:345
+msgid "New"
+msgstr "Новий"
+
+#: inputremapper/gui/user_interface.py:689
+#: inputremapper/gui/user_interface.py:761
+msgid "Permission denied!"
+msgstr "Доступ відсутній!"
+
+#: data/input-remapper.glade:399
+msgid "Preset"
+msgstr "Пресет"
+
+#: inputremapper/gui/editor/editor.py:249
+msgid "Press Key"
+msgstr "Натисніть клавішу"
+
+#: data/input-remapper.glade:864
+msgid "Record a button of your device that should be remapped"
+msgstr "Записати клавішу яку потрібно перепризначити"
+
+#: data/input-remapper.glade:438
+msgid "Rename"
+msgstr "Перейменувати"
+
+#: data/input-remapper.glade:610
+msgid "Right joystick"
+msgstr "Правий джойстик"
+
+#: data/input-remapper.glade:469
+msgid "Save the entered name"
+msgstr "Зберігти вказану назву"
+
+#: data/input-remapper.glade:1098
+msgid ""
+"See <a href=\"https://github.com/sezanzeb/input-remapper/blob/HEAD/readme/"
+"usage.md\">usage.md</a> online on github for comprehensive information.\n"
+"\n"
+"A \"key + key + ... + key\" syntax can be used to trigger key combinations. "
+"For example \"Control_L + a\".\n"
+"\n"
+"Writing \"disable\" as a mapping disables a key.\n"
+"\n"
+"Macros allow multiple characters to be written with a single key-press. "
+"Information about programming them is available online on github. See <a "
+"href=\"https://github.com/sezanzeb/input-remapper/blob/HEAD/readme/macros."
+"md\">macros.md</a> and <a href=\"https://github.com/sezanzeb/input-remapper/"
+"blob/HEAD/readme/examples.md\">examples.md</a>"
+msgstr ""
+"Дивіться <a href=\"https://github.com/sezanzeb/input-remapper/blob/HEAD/"
+"readme/usage.md\">usage.md</a> в Інтернеті на github для вичерпної "
+"інформації.\n"
+"\n"
+"Ви можете використовувати синтаксис \"key + key + ... + key\" щоб викликати "
+"комбінацію клавіш. Приклад: \"Control_L + a\".\n"
+"\n"
+"Слово \"disable\" в полі прив'язки відключає клавішу.\n"
+"\n"
+"Макроси дозволяють вводити декілька символів одним натисканням клавіші. "
+"Інформація про їх програмування доступна в Інтернеті на github. Дивіться <a "
+"href=\"https://github.com/sezanzeb/input-remapper/blob/HEAD/readme/macros."
+"md\">macros.md</a> та <a href=\"https://github.com/sezanzeb/input-remapper/"
+"blob/HEAD/readme/examples.md\">examples.md</a>"
+
+#: inputremapper/gui/editor/editor.py:108
+msgid "Set the key first"
+msgstr "Спочатку задайте клавішу"
+
+#: data/input-remapper.glade:221
+msgid ""
+"Shortcut: ctrl + del\n"
+"Gives your keys back their original function"
+msgstr ""
+"Комбінація: ctrl + del\n"
+"Повертає вашим клавішам їх початкову функцію"
+
+#: data/input-remapper.glade:1239
+msgid "Shortcuts"
+msgstr "Комбінації"
+
+#: data/input-remapper.glade:1141
+msgid ""
+"Shortcuts only work while keys are not being recorded and the gui is in "
+"focus."
+msgstr ""
+"Комбінації працюють лише тоді, коли клавіші не записуються, а графічний "
+"інтерфейс у фокусі."
+
+#: data/input-remapper.glade:312
+msgid "Start injecting. Don't hold down any keys while the injection starts"
+msgstr ""
+"Запуск перехоплення. Не нажимайте нічого поки перехоплення запускається"
+
+#: inputremapper/gui/user_interface.py:567
+msgid "Starting injection..."
+msgstr "Запуск перехоплення..."
+
+#: data/input-remapper.glade:217
+msgid "Stop Injection"
+msgstr "Зупинити перехоплення"
+
+#: inputremapper/gui/user_interface.py:481
+#, python-format
+msgid "Syntax error at %s, hover for info"
+msgstr "Синтаксична помилка в %s, наведіть курсор для подробиць"
+
+#: inputremapper/gui/user_interface.py:226
+msgid "The helper did not start"
+msgstr "Помічник не запущено"
+
+#: data/input-remapper.glade:879
+msgid "The type of device this mapping is emulating."
+msgstr "Тип пристрою, який емулює цей мапінг."
+
+#: data/input-remapper.glade:499
+msgid "To automatically apply the preset after your login or when it connects."
+msgstr ""
+"Для автоматичного застосування попереднього налаштування після вашого входу "
+"або під час підключення."
+
+#: inputremapper/gui/user_interface.py:779
+#, python-format
+msgid "Unknown mapping %s"
+msgstr "Невідомий мапінг %s"
+
+#: data/input-remapper.glade:1122
+msgid "Usage"
+msgstr "Використання"
+
+#: inputremapper/gui/editor/editor.py:519
+msgid "Use \"Stop Injection\" to stop before editing"
+msgstr "Натисніть \"Зупинити ввод\" перед початком редагування"
+
+#: data/input-remapper.glade:1015
+msgid "Version unknown"
+msgstr "Невідома версія"
+
+#: data/input-remapper.glade:582 data/input-remapper.glade:626
+msgid "Wheel"
+msgstr "Колесо"
+
+#: data/input-remapper.glade:1032
+msgid ""
+"You can find more information and report bugs at\n"
+"<a href=\"https://github.com/sezanzeb/input-remapper\">https://github.com/"
+"sezanzeb/input-remapper</a>"
+msgstr ""
+"Ви можете знайти більше інформації та повідомити про помилки на\n"
+"<a href=\"https://github.com/sezanzeb/input-remapper\">https://github.com/"
+"sezanzeb/input-remapper</a>"
+
+#: inputremapper/gui/user_interface.py:526
+msgid "You need to add keys and save first"
+msgstr "Вам потрібно спочатку додати клавіші та зберегти"
+
+#: inputremapper/gui/editor/editor.py:620
+msgid "Your system might reinterpret combinations "
+msgstr "Ваша система може повторно інтерпретувати комбінації"
+
+#: inputremapper/gui/editor/editor.py:622
+msgid "break them."
+msgstr "порушуючи їх."
+
+#: data/input-remapper.glade:1173
+msgid "closes the application"
+msgstr "закриває програму"
+
+#: data/input-remapper.glade:1161
+msgid "ctrl + del"
+msgstr ""
+
+#: data/input-remapper.glade:1185
+msgid "ctrl + q"
+msgstr ""
+
+#: data/input-remapper.glade:1197
+msgid "ctrl + r"
+msgstr ""
+
+#: inputremapper/gui/editor/editor.py:619
+msgid "ctrl, alt and shift may not combine properly"
+msgstr "ctrl, alt и shift можуть не поєднуватися належним чином"
+
+#: inputremapper/gui/editor/editor.py:78 inputremapper/gui/editor/editor.py:394
+msgid "new entry"
+msgstr "новий запис"
+
+#: data/input-remapper.glade:1209
+msgid "refreshes the device list"
+msgstr "оновлює список пристроїв"
+
+#: data/input-remapper.glade:1221
+msgid "stops the injection"
+msgstr "зупиняє перехоплення"
+
+#: inputremapper/gui/editor/editor.py:621
+msgid "with those after they are injected, and by doing so "
+msgstr "з ними після мапінгу, таким чином"
+
+#: data/input-remapper.glade:1052
+msgid ""
+"© 2021 Sezanzeb proxima@sezanzeb.de\n"
+"This program comes with absolutely no warranty.\n"
+"See the <a href=\"https://www.gnu.org/licenses/gpl-3.0.html\">GNU General "
+"Public License, version 3 or later</a> for details."
+msgstr ""
+"© 2021 Sezanzeb proxima@sezanzeb.de\n"
+"Ця програма постачається без жодних гарантій.\n"
+"Дивіться <a href=\"https://www.gnu.org/licenses/gpl-3.0.html\">GNU General "
+"Public License, версії 3 або новіше</a> щоб дізнатись більше."
