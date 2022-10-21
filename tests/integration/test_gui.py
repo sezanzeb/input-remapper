@@ -1446,7 +1446,7 @@ class TestGui(GuiTestBase):
         gtk_iteration()
         wait()
         text = self.get_status_text()
-        self.assertIn("add keys", text)
+        self.assertIn("add mappings", text)
         self.assertTrue(error_icon.get_visible())
         self.assertNotEqual(self.daemon.get_state("Bar Device"), RUNNING)
 

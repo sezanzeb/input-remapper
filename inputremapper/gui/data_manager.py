@@ -542,7 +542,8 @@ class DataManager:
         assert self.active_preset.name is not None
         if self._daemon.start_injecting(self.active_group.key, self.active_preset.name):
             self.do_when_injector_state(
-                {RUNNING, FAILED, NO_GRAB, UPGRADE_EVDEV}, self.send_injector_state
+                {RUNNING, FAILED, NO_GRAB, UPGRADE_EVDEV},
+                self.send_injector_state,
             )
             return True
         return False
@@ -559,8 +560,16 @@ class DataManager:
 
     def do_when_injector_state(self, states: Set[int], callback):
         """run callback once the injector state is one of states"""
+        start = time.time()
 
         def do():
+            if time.time() - start > 5:
+                # something went wrong, there should have been a state long ago.
+                # the timeout prevents tons of GLib.timeouts to run forever, especially
+                # after spamming the "Stop" button.
+                logger.error(f"Timed out while waiting for injector state {states}")
+                return False
+
             if self.get_state() in states:
                 callback()
                 return False

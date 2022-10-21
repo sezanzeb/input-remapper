@@ -759,7 +759,7 @@ class TestController(unittest.TestCase):
         self.controller.start_injecting()
 
         self.assertEqual(
-            calls[-1], StatusData(CTX_ERROR, _("You need to add keys and save first"))
+            calls[-1], StatusData(CTX_ERROR, _("You need to add mappings first"))
         )
 
     def test_start_injecting_warns_about_btn_left(self):
@@ -896,7 +896,7 @@ class TestController(unittest.TestCase):
 
         mock.assert_called()
         self.assertEqual(
-            calls[-1], StatusData(CTX_APPLY, _("Applied the system default"))
+            calls[-1], StatusData(CTX_APPLY, _("Stopped the injection"))
         )
 
     def test_show_injection_result(self):

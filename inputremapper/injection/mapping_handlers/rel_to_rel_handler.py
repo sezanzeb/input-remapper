@@ -60,8 +60,6 @@ __root__
   missing macro or key: the combination = <EventCombination (2, 0, 1)> specifies a key input, but no output macro or key is programmed (type=value_error)
 """
 
-# TODO after "The device was not grabbed" message, reset the "Stop" button
-
 
 # TODO
 """

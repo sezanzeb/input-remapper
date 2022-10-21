@@ -54,6 +54,7 @@ CLOSE = 0
 UPGRADE_EVDEV = 7
 
 # states
+# TODO enum like MessageType? string states please
 UNKNOWN = -1
 STARTING = 2
 FAILED = 3
@@ -90,7 +91,10 @@ class InjectorState:
     state: int
 
     def active(self) -> bool:
-        return self.state == RUNNING or self.state == STARTING or self.state == NO_GRAB
+        return self.state in [RUNNING, STARTING]
+
+    def inactive(self) -> bool:
+        return self.state in [STOPPED, NO_GRAB]
 
 
 class Injector(multiprocessing.Process):
@@ -341,6 +345,7 @@ class Injector(multiprocessing.Process):
         sources = self._grab_devices()
 
         if len(sources) == 0:
+            # maybe the preset was empty or something
             logger.error("Did not grab any device")
             self._msg_pipe[0].send(NO_GRAB)
             return

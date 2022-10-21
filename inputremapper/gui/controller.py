@@ -497,7 +497,7 @@ class Controller:
         if len(self.data_manager.active_preset) == 0:
             logger.error(_("Cannot apply empty preset file"))
             # also helpful for first time use
-            self.show_status(CTX_ERROR, _("You need to add keys and save first"))
+            self.show_status(CTX_ERROR, _("You need to add mappings first"))
             return
 
         if not self.button_left_warn:
@@ -514,7 +514,8 @@ class Controller:
         # todo: warn about unreleased keys
         self.button_left_warn = False
         self.message_broker.subscribe(
-            MessageType.injector_state, self.show_injector_result
+            MessageType.injector_state,
+            self.show_injector_result,
         )
         self.show_status(CTX_APPLY, _("Starting injection..."))
         if not self.data_manager.start_injecting():
@@ -563,15 +564,27 @@ class Controller:
                 "Your python-evdev version is too old.",
             ),
         }
-        state_calls[state]()
+
+        if state in state_calls:
+            state_calls[state]()
 
     def stop_injecting(self):
         """stop injecting any preset for the active_group"""
 
         def show_result(msg: InjectorState):
             self.message_broker.unsubscribe(show_result)
-            assert msg.state == STOPPED
-            self.show_status(CTX_APPLY, _("Applied the system default"))
+
+            if not msg.inactive():
+                # some speculation: there might be unexpected additional status messages
+                # with a different state, or the status is wrong because something in
+                # the long pipeline of status messages is broken.
+                logger.error(
+                    f"Expected the injection to eventually stop, but got state "
+                    f"{msg.state}"
+                )
+                return
+
+            self.show_status(CTX_APPLY, _("Stopped the injection"))
 
         try:
             self.message_broker.subscribe(MessageType.injector_state, show_result)
