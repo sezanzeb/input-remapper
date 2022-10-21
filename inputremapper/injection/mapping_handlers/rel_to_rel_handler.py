@@ -78,7 +78,6 @@ if this fails, then fix the inconsistency instead of crashing
 # TODO high-res wheel as output
 
 
-
 class RelToRelHandler(MappingHandler):
     """Handler which transforms EV_REL to EV_REL events"""
 

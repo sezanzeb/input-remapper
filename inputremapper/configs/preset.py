@@ -170,10 +170,11 @@ class Preset(Generic[MappingModel]):
     def _is_duplicate_input_combination(self, mapping) -> bool:
         """Check if the input of the mapping is already mapped to something else."""
         all_input_combinations = [mapping_.event_combination for mapping_ in self]
-        return len(union(
+        union_ = union(
             mapping.event_combination.get_permutations(),
             all_input_combinations,
-        )) > 1
+        )
+        return len(union_) > 1
 
     def _has_valid_event_combination(self, mapping) -> bool:
         """Check if the mapping has a valid input event combination."""
