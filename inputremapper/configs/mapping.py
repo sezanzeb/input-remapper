@@ -119,10 +119,12 @@ class UIMapping(BaseModel):
     expo: confloat(ge=-1, le=1) = 0  # type: ignore
 
     # when mapping to relative axis
-    rate: PositiveInt = 60  # The frequency [Hz] at which EV_REL events get generated
+    rel_xy_rate: PositiveInt = 60  # frequency in Hz for REL_X/Y event generation
+    rel_wheel_rate: PositiveInt = 60  # frequency in Hz for REL_WHEEL event generation
+
     # the base speed of the relative axis, compounds with the gain
-    # TODO split into wheel and XY speed?
-    rel_speed: PositiveInt = 100
+    rel_xy_speed: PositiveInt = 50
+    rel_wheel_speed: PositiveInt = 5
 
     # when mapping from a relative axis:
     # the absolute value at which a EV_REL axis is considered at its maximum

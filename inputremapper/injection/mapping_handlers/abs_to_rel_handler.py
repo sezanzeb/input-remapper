@@ -61,7 +61,7 @@ async def _run_normal(self) -> None:
         self._write(EV_REL, self.mapping.output_code, value)
 
         time_taken = time.time() - start
-        await asyncio.sleep(max(0.0, (1 / self.mapping.rate) - time_taken))
+        await asyncio.sleep(max(0.0, (1 / self.mapping.rel_xy_rate) - time_taken))
         start = time.time()
 
     # logger.debug("stopping AbsToRel loop")
@@ -86,7 +86,7 @@ async def _run_wheel(
             self._write(EV_REL, codes[i], value)
 
         time_taken = time.time() - start
-        await asyncio.sleep(max(0.0, (1 / self.mapping.rate) - time_taken))
+        await asyncio.sleep(max(0.0, (1 / self.mapping.rel_wheel_rate) - time_taken))
         start = time.time()
 
     # logger.debug("stopping AbsToRel loop")
@@ -182,7 +182,20 @@ class AbsToRelHandler(MappingHandler):
                 expo=self.mapping.expo,
             )
 
-        self._value = self._transform(event.value) * self.mapping.rel_speed
+        transformed = self._transform(event.value)
+
+        # TODO move to function in mapping, rel_to_rel handler as well
+        is_wheel_output = self.mapping.output_code in (
+            REL_WHEEL,
+            REL_HWHEEL,
+        )
+
+        # transformed is between 0 and 1, scale up
+        if is_wheel_output:
+            self._value = transformed * self.mapping.rel_wheel_speed
+        else:
+            self._value = transformed * self.mapping.rel_xy_speed
+
         if self._value == 0:
             self._stop = True
             return True

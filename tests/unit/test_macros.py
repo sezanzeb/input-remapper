@@ -969,7 +969,7 @@ class TestMacros(MacroTestBase):
         macro_2.release_trigger()
 
         self.assertIn((EV_REL, REL_Y, -4), self.result)
-        expected_wheel_hi_res_event_count = sleep * DummyMapping.rate
+        expected_wheel_hi_res_event_count = sleep * DummyMapping.rel_xy_rate
         expected_wheel_event_count = int(
             expected_wheel_hi_res_event_count / 120 * wheel_speed
         )

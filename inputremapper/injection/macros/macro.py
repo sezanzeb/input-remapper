@@ -494,7 +494,7 @@ class Macro:
             resolved_speed = value * _resolve(speed, [int])
             while self.is_holding():
                 handler(EV_REL, code, resolved_speed)
-                await asyncio.sleep(1 / self.mapping.rate)
+                await asyncio.sleep(1 / self.mapping.rel_xy_rate)
 
         self.tasks.append(task)
 
@@ -519,7 +519,7 @@ class Macro:
                     remainder[i] = math.fmod(float_value, 1)
                     if abs(float_value) >= 1:
                         handler(EV_REL, code[i], int(float_value))
-                await asyncio.sleep(1 / self.mapping.rate)
+                await asyncio.sleep(1 / self.mapping.rel_wheel_rate)
 
         self.tasks.append(task)
 

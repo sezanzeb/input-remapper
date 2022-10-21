@@ -166,23 +166,18 @@ class RelToRelHandler(MappingHandler):
     def reset(self) -> None:
         pass
 
-    def _write(self, value: int) -> None:
+    def _write(self, value: float) -> None:
         """Inject."""
-        # value is between 0 and 1, scale up
-        # TODO split into wheel and XY speed?
-        scaled = value * self.mapping.rel_speed
-
-        """
         is_wheel_output = self.mapping.output_code in (
             REL_WHEEL,
             REL_HWHEEL,
         )
-        
+
+        # value is between 0 and 1, scale up
         if is_wheel_output or self._is_wheel_input:
-            scaled = value * 16
+            scaled = value * self.mapping.rel_wheel_speed
         else:
-            scaled = value * 256
-        """
+            scaled = value * self.mapping.rel_xy_speed
 
         # if the mouse moves very slow, it might not move at all because of the
         # int-conversion (which is required when writing). store the remainder

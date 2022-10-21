@@ -475,7 +475,7 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
             "rate": rate,
             "gain": gain,
             "deadzone": 0,
-            "rel_speed": speed,
+            "rel_xy_speed": speed,
         }
         m1 = Mapping(**cfg)
         preset.add(m1)
@@ -553,7 +553,7 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
             "rate": rate,
             "gain": gain,
             "deadzone": 0,
-            "rel_speed": speed,
+            "rel_xy_speed": speed,
         }
         m1 = Mapping(**cfg)
         preset.add(m1)
@@ -1284,7 +1284,7 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
             "rate": rate,
             "gain": gain,
             "deadzone": 0,
-            "rel_speed": speed,
+            "rel_xy_speed": speed,
         }
         m1 = Mapping(**cfg)
         preset.add(m1)

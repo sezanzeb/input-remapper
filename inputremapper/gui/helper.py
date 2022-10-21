@@ -88,10 +88,10 @@ class RootHelper:
     # the speed threshold at which relative axis are considered moving
     # and will be sent as "pressed" to the frontend.
     # We want to allow some mouse movement before we record it as an input
-    rel_speed = defaultdict(lambda: 3)
+    rel_xy_speed = defaultdict(lambda: 3)
     # wheel events usually don't produce values higher than 1
-    rel_speed[REL_WHEEL] = 1
-    rel_speed[REL_HWHEEL] = 1
+    rel_xy_speed[REL_WHEEL] = 1
+    rel_xy_speed[REL_HWHEEL] = 1
 
     def __init__(self, groups: _Groups):
         """Construct the helper and initialize its sockets."""
@@ -224,14 +224,14 @@ class RootHelper:
                 # positive direction
                 mapping = UIMapping(
                     event_combination=EventCombination(
-                        (EV_REL, ev_code, self.rel_speed[ev_code])
+                        (EV_REL, ev_code, self.rel_xy_speed[ev_code])
                     ),
                     target_uinput="keyboard",
                     release_timeout=0.3,
                     force_release_timeout=True,
                 )
                 handler = RelToBtnHandler(
-                    EventCombination((EV_REL, ev_code, self.rel_speed[ev_code])),
+                    EventCombination((EV_REL, ev_code, self.rel_xy_speed[ev_code])),
                     mapping,
                 )
                 handler.set_sub_handler(ForwardToUIHandler(self._results))
@@ -240,14 +240,14 @@ class RootHelper:
                 # negative direction
                 mapping = UIMapping(
                     event_combination=EventCombination(
-                        (EV_REL, ev_code, -self.rel_speed[ev_code])
+                        (EV_REL, ev_code, -self.rel_xy_speed[ev_code])
                     ),
                     target_uinput="keyboard",
                     release_timeout=0.3,
                     force_release_timeout=True,
                 )
                 handler = RelToBtnHandler(
-                    EventCombination((EV_REL, ev_code, -self.rel_speed[ev_code])),
+                    EventCombination((EV_REL, ev_code, -self.rel_xy_speed[ev_code])),
                     mapping,
                 )
                 handler.set_sub_handler(ForwardToUIHandler(self._results))

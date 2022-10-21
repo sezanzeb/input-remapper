@@ -73,7 +73,7 @@ class RelToBtnHandler(MappingHandler):
 
     async def _stage_release(self, source, forward, supress):
         while time.time() < self._last_activation + self.mapping.release_timeout:
-            await asyncio.sleep(1 / self.mapping.rate)
+            await asyncio.sleep(1 / self.mapping.rel_xy_rate)
 
         if self._abort_release:
             self._abort_release = False
