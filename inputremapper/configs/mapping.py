@@ -23,7 +23,7 @@ import enum
 from typing import Optional, Callable, Tuple, TypeVar, Literal, Union
 
 import pkg_resources
-from evdev.ecodes import EV_KEY, EV_ABS, EV_REL
+from evdev.ecodes import EV_KEY, EV_ABS, EV_REL, REL_WHEEL, REL_HWHEEL
 from pydantic import (
     BaseModel,
     PositiveInt,
@@ -207,6 +207,12 @@ class UIMapping(BaseModel):
     def is_axis_mapping(self) -> bool:
         """whether this mapping specifies an output axis"""
         return self.output_type == EV_ABS or self.output_type == EV_REL
+
+    def is_wheel_output(self) -> bool:
+        return self.output_code in (
+            REL_WHEEL,
+            REL_HWHEEL,
+        )
 
     def set_combination_changed_callback(self, callback: CombinationChangedCallback):
         self._combination_changed = callback

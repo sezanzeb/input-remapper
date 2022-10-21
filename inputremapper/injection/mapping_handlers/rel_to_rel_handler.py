@@ -167,16 +167,12 @@ class RelToRelHandler(MappingHandler):
 
     def _write(self, value: float) -> None:
         """Inject."""
-        is_wheel_output = self.mapping.output_code in (
-            REL_WHEEL,
-            REL_HWHEEL,
-        )
-
         # value is between 0 and 1, scale up
-        if is_wheel_output or self._is_wheel_input:
+        if self.mapping.is_wheel_output() or self._is_wheel_input:
             scaled = value * self.mapping.rel_wheel_speed
         else:
             scaled = value * self.mapping.rel_xy_speed
+        # TODO is_high_res_wheel_output?
 
         # if the mouse moves very slow, it might not move at all because of the
         # int-conversion (which is required when writing). store the remainder

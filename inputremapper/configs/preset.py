@@ -156,9 +156,8 @@ class Preset(Generic[MappingModel]):
     def _is_duplicate_input_combination(self, mapping) -> bool:
         """Check if the input of the mapping is already mapped to something else."""
         all_input_combinations = [mapping_.event_combination for mapping_ in self]
-        union = (
-            set(mapping.event_combination.get_permutations()) &
-            set(all_input_combinations)
+        union = set(mapping.event_combination.get_permutations()) & set(
+            all_input_combinations
         )
         return len(union) > 1
 
@@ -200,8 +199,6 @@ class Preset(Generic[MappingModel]):
                     continue
 
             mapping_dict = mapping.dict(exclude_defaults=True)
-            # TODO why is target_uinput added here explicitly?
-            mapping_dict["target_uinput"] = mapping.target_uinput
             combination = mapping.event_combination
             if "event_combination" in mapping_dict:
                 # used as key, don't store it redundantly

@@ -21,7 +21,6 @@
 
 import asyncio
 import unittest
-from typing import Iterable
 from unittest.mock import MagicMock
 
 import evdev
@@ -30,25 +29,15 @@ from evdev.ecodes import (
     EV_ABS,
     EV_REL,
     ABS_X,
-    ABS_Y,
     REL_X,
-    REL_Y,
-    BTN_A,
-    REL_HWHEEL,
-    REL_WHEEL,
-    REL_WHEEL_HI_RES,
-    REL_HWHEEL_HI_RES,
-    ABS_HAT0X,
     BTN_LEFT,
     BTN_RIGHT,
-    BTN_B,
     KEY_A,
-    ABS_HAT0Y,
-    KEY_B,
-    KEY_C,
-    BTN_TL,
 )
 
+from inputremapper.configs.mapping import Mapping
+from inputremapper.event_combination import EventCombination
+from inputremapper.injection.global_uinputs import global_uinputs
 from inputremapper.injection.mapping_handlers.abs_to_abs_handler import AbsToAbsHandler
 from inputremapper.injection.mapping_handlers.abs_to_btn_handler import AbsToBtnHandler
 from inputremapper.injection.mapping_handlers.abs_to_rel_handler import AbsToRelHandler
@@ -60,24 +49,13 @@ from inputremapper.injection.mapping_handlers.key_handler import KeyHandler
 from inputremapper.injection.mapping_handlers.macro_handler import MacroHandler
 from inputremapper.injection.mapping_handlers.mapping_handler import MappingHandler
 from inputremapper.injection.mapping_handlers.rel_to_abs_handler import RelToAbsHandler
-from inputremapper.logger import logger
-from inputremapper.configs.mapping import Mapping
-from inputremapper.injection.context import Context
-from inputremapper.injection.event_reader import EventReader
+from inputremapper.input_event import InputEvent, EventActions
 from tests.test import (
-    get_key_mapping,
     InputDevice,
     cleanup,
     convert_to_internal_events,
     MAX_ABS,
-    MIN_ABS,
 )
-
-from inputremapper.input_event import InputEvent, EventActions
-from inputremapper.event_combination import EventCombination
-from inputremapper.configs.system_mapping import system_mapping
-from inputremapper.configs.preset import Preset
-from inputremapper.injection.global_uinputs import global_uinputs
 
 
 class BaseTests:
