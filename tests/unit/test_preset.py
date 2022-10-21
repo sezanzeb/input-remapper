@@ -28,10 +28,20 @@ from unittest.mock import patch
 from evdev.ecodes import EV_KEY, EV_ABS, KEY_A
 from inputremapper.input_event import InputEvent
 
-from inputremapper.configs.preset import Preset
+from inputremapper.configs.preset import Preset, union
 from inputremapper.configs.system_mapping import SystemMapping, XMODMAP_FILENAME
 from inputremapper.configs.paths import get_preset_path, get_config_path, CONFIG_PATH
 from inputremapper.event_combination import EventCombination
+
+
+class TestUnion(unittest.TestCase):
+    def test_union(self):
+        self.assertListEqual(union([1, 2, 3], [2, 3, 4]), [2, 3])
+        self.assertListEqual(union([5, 6], [2, 3, 4]), [])
+        self.assertListEqual(union([2], [2, 3, 4]), [2])
+        self.assertListEqual(union([], [2, 3, 4]), [])
+        self.assertListEqual(union([], []), [])
+        self.assertListEqual(union([1], []), [])
 
 
 class TestSystemMapping(unittest.TestCase):

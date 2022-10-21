@@ -48,16 +48,7 @@ from inputremapper.event_combination import EventCombination
 
 def union(list1: Iterable, list2: Iterable) -> List:
     """Return common members of two iterables as list."""
-    # TODO turn to set, union and then return as list?
-    # traverse in the 1st list
-    common = []
-    for x in list1:
-        # traverse in the 2nd list
-        for y in list2:
-            # if one common
-            if x == y:
-                common.append(x)
-    return common
+    return list(set(list1) & set(list2))
 
 
 MappingModel = TypeVar("MappingModel", bound=UIMapping)
