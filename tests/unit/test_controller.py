@@ -895,9 +895,7 @@ class TestController(unittest.TestCase):
         gtk_iteration(50)
 
         mock.assert_called()
-        self.assertEqual(
-            calls[-1], StatusData(CTX_APPLY, _("Stopped the injection"))
-        )
+        self.assertEqual(calls[-1], StatusData(CTX_APPLY, _("Stopped the injection")))
 
     def test_show_injection_result(self):
         prepare_presets()
