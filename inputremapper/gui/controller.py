@@ -332,25 +332,24 @@ class Controller:
         """use the active event as an analog input"""
         assert self.data_manager.active_event is not None
         event = self.data_manager.active_event
-        if event.type == EV_KEY:
-            pass
 
-        elif analog:
-            try:
-                self.data_manager.update_event(event.modify(value=USE_AS_ANALOG_VALUE))
-                self.data_manager.save()  # TODO test
-                return
-            except KeyError:
-                pass
-        else:
-            try_values = {EV_REL: [1, -1], EV_ABS: [10, -10]}
-            for value in try_values[event.type]:
+        if event.type != EV_KEY:
+            if analog:
                 try:
-                    self.data_manager.update_event(event.modify(value=value))
-                    self.data_manager.save()  # TODO test
+                    self.data_manager.update_event(event.modify(value=USE_AS_ANALOG_VALUE))
+                    self.save()  # TODO test
                     return
                 except KeyError:
                     pass
+            else:
+                try_values = {EV_REL: [1, -1], EV_ABS: [10, -10]}
+                for value in try_values[event.type]:
+                    try:
+                        self.data_manager.update_event(event.modify(value=value))
+                        self.save()  # TODO test
+                        return
+                    except KeyError:
+                        pass
 
         # didn't update successfully
         # we need to synchronize the gui

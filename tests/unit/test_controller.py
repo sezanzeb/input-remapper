@@ -1110,6 +1110,22 @@ class TestController(unittest.TestCase):
         self.controller.remove_event()
         mock.assert_has_calls(calls, any_order=False)
 
+    def test_set_event_as_analog_saves(self):
+        prepare_presets()
+        self.data_manager.load_group("Foo Device 2")
+        self.data_manager.load_preset("preset2")
+        self.data_manager.update_mapping(event_combination="3,0,10")
+        self.data_manager.load_mapping(EventCombination("3,0,10"))
+        self.data_manager.load_event(InputEvent.from_string("3,0,10"))
+
+        with patch.object(self.data_manager, "save") as mock:
+            self.controller.set_event_as_analog(False)
+            mock.assert_called_once()
+
+        with patch.object(self.data_manager, "save") as mock:
+            self.controller.set_event_as_analog(True)
+            mock.assert_called_once()
+
     def test_set_event_as_analog_sets_input_to_analog(self):
         prepare_presets()
         self.data_manager.load_group("Foo Device 2")
