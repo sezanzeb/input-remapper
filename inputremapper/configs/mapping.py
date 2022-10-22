@@ -51,7 +51,7 @@ from inputremapper.exceptions import MacroParsingError
 from inputremapper.gui.messages.message_types import MessageType
 from inputremapper.gui.gettext import _
 from inputremapper.injection.macros.parse import is_this_a_macro, parse
-from inputremapper.input_event import EventActions
+from inputremapper.input_event import EventActions, USE_AS_ANALOG_VALUE
 
 # TODO: remove pydantic VERSION check as soon as we no longer support
 #  Ubuntu 20.04 and with it the ancient pydantic 1.2
@@ -86,9 +86,6 @@ class Cfg(BaseConfig):
 
 class ImmutableCfg(Cfg):
     allow_mutation = False
-
-
-USE_AS_ANALOG_VALUE = 0
 
 
 class UIMapping(BaseModel):

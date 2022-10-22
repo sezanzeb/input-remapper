@@ -26,6 +26,7 @@ class Transformation:
 
     def __init__(
         self,
+        # if input values are > max_, the return value will be > 1
         max_: int,
         min_: int,
         deadzone: float,

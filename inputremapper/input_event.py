@@ -39,6 +39,9 @@ InputEventValidationType = Union[
 ]
 
 
+USE_AS_ANALOG_VALUE = 0
+
+
 class EventActions(enum.Enum):
     """Additional information a InputEvent can send through the event pipeline"""
 

@@ -20,7 +20,6 @@
 
 import asyncio
 from typing import Dict, Tuple, Optional
-import enum
 
 import evdev
 from evdev.ecodes import (
@@ -41,7 +40,7 @@ from inputremapper.injection.mapping_handlers.mapping_handler import (
     HandlerEnums,
     InputEventHandler,
 )
-from inputremapper.input_event import InputEvent
+from inputremapper.input_event import InputEvent, USE_AS_ANALOG_VALUE
 from inputremapper.logger import logger
 
 
@@ -79,15 +78,9 @@ class RelToRelHandler(MappingHandler):
 
         self._remainder = 0
 
-        # TODO duplicate code
         # find the input event we are supposed to map. If the input combination is
         # BTN_A + REL_X + BTN_B, then use the value of REL_X for the transformation
-        for event in combination:
-            # TODO search for "Use as Analog"?
-            if event.value == 0:
-                assert event.type == EV_REL
-                self._input_event = event
-                break
+        self._input_movement = combination.find_analog_input_event(type_=EV_REL)
 
         # - If rel_x is mapped to rel_y, it will transform it to between 0 and 1,
         # and then scale it back to exactly its original value.

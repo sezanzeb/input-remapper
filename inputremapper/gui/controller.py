@@ -35,7 +35,8 @@ from typing import (
 from evdev.ecodes import EV_KEY, EV_REL, EV_ABS
 from gi.repository import Gtk
 
-from inputremapper.configs.mapping import MappingData, UIMapping, USE_AS_ANALOG_VALUE
+from inputremapper.configs.mapping import MappingData, UIMapping
+from inputremapper.input_event import USE_AS_ANALOG_VALUE
 from inputremapper.event_combination import EventCombination
 from inputremapper.exceptions import DataManagementError
 from inputremapper.gui.data_manager import DataManager, DEFAULT_PRESET_NAME

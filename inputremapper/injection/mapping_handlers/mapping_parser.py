@@ -27,7 +27,7 @@ from evdev.ecodes import (
     EV_REL,
 )
 
-from inputremapper.configs.mapping import Mapping, USE_AS_ANALOG_VALUE
+from inputremapper.configs.mapping import Mapping
 from inputremapper.configs.preset import Preset
 from inputremapper.configs.system_mapping import DISABLE_CODE, DISABLE_NAME
 from inputremapper.event_combination import EventCombination
@@ -55,7 +55,7 @@ from inputremapper.injection.mapping_handlers.mapping_handler import (
 from inputremapper.injection.mapping_handlers.null_handler import NullHandler
 from inputremapper.injection.mapping_handlers.rel_to_abs_handler import RelToAbsHandler
 from inputremapper.injection.mapping_handlers.rel_to_btn_handler import RelToBtnHandler
-from inputremapper.input_event import InputEvent
+from inputremapper.input_event import InputEvent, USE_AS_ANALOG_VALUE
 from inputremapper.logger import logger
 
 EventPipelines = Dict[InputEvent, Set[InputEventHandler]]
