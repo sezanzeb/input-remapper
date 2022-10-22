@@ -54,13 +54,9 @@ from inputremapper.gui.messages.message_data import (
 )
 from inputremapper.gui.utils import CTX_APPLY, CTX_ERROR, CTX_WARNING, CTX_MAPPING
 from inputremapper.injection.injector import (
-    RUNNING,
-    FAILED,
-    NO_GRAB,
-    UPGRADE_EVDEV,
-    STARTING,
-    STOPPED,
     InjectorState,
+    InjectorMessage,
+    InjectorStateMessage,
 )
 from inputremapper.input_event import InputEvent
 from inputremapper.logger import logger
@@ -471,7 +467,7 @@ class Controller:
         self.message_broker.signal(MessageType.recording_started)  # TODO test
 
         state = self.data_manager.get_state()
-        if state == RUNNING or state == STARTING:
+        if state == InjectorState.RUNNING or state == InjectorState.STARTING:
             self.message_broker.signal(MessageType.recording_finished)
             self.show_status(CTX_ERROR, _('Use "Stop" to stop before editing'))
             return
@@ -528,7 +524,7 @@ class Controller:
                 _("Failed to apply preset %s") % self.data_manager.active_preset.name,
             )
 
-    def show_injector_result(self, msg: InjectorState):
+    def show_injector_result(self, msg: InjectorStateMessage):
         """Show if the injection was successfully started."""
         self.message_broker.unsubscribe(self.show_injector_result)
         state = msg.state
@@ -546,13 +542,13 @@ class Controller:
 
         assert self.data_manager.active_preset  # make mypy happy
         state_calls: Dict[int, Callable] = {
-            RUNNING: running,
-            FAILED: partial(
+            InjectorState.RUNNING: running,
+            InjectorState.FAILED: partial(
                 self.show_status,
                 CTX_ERROR,
                 _("Failed to apply preset %s") % self.data_manager.active_preset.name,
             ),
-            NO_GRAB: partial(
+            InjectorState.NO_GRAB: partial(
                 self.show_status,
                 CTX_ERROR,
                 "The device was not grabbed",
@@ -560,7 +556,7 @@ class Controller:
                 "your preset doesn't contain anything that is sent by the "
                 "device.",
             ),
-            UPGRADE_EVDEV: partial(
+            InjectorMessage.UPGRADE_EVDEV: partial(
                 self.show_status,
                 CTX_ERROR,
                 "Upgrade python-evdev",
@@ -574,7 +570,7 @@ class Controller:
     def stop_injecting(self):
         """stop injecting any preset for the active_group"""
 
-        def show_result(msg: InjectorState):
+        def show_result(msg: InjectorStateMessage):
             self.message_broker.unsubscribe(show_result)
 
             if not msg.inactive():

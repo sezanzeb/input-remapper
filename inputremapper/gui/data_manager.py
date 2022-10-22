@@ -46,12 +46,9 @@ from inputremapper.gui.messages.message_data import (
 from inputremapper.gui.reader import Reader
 from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.injection.injector import (
-    STOPPED,
-    RUNNING,
-    FAILED,
-    UPGRADE_EVDEV,
-    NO_GRAB,
     InjectorState,
+    InjectorMessage,
+    InjectorStateMessage,
 )
 from inputremapper.input_event import InputEvent
 from inputremapper.logger import logger
@@ -154,7 +151,7 @@ class DataManager:
         for the active_group"""
         if not self.active_group:
             return
-        self.message_broker.send(InjectorState(self.get_state()))
+        self.message_broker.send(InjectorStateMessage(self.get_state()))
 
     @property
     def active_group(self) -> Optional[_Group]:
@@ -527,7 +524,7 @@ class DataManager:
         if not self.active_group:
             raise DataManagementError("cannot stop injection: group is not set")
         self._daemon.stop_injecting(self.active_group.key)
-        self.do_when_injector_state({STOPPED}, self.send_injector_state)
+        self.do_when_injector_state({InjectorState.STOPPED}, self.send_injector_state)
 
     def start_injecting(self) -> bool:
         """start injecting the active preset for the active group.
@@ -542,13 +539,18 @@ class DataManager:
         assert self.active_preset.name is not None
         if self._daemon.start_injecting(self.active_group.key, self.active_preset.name):
             self.do_when_injector_state(
-                {RUNNING, FAILED, NO_GRAB, UPGRADE_EVDEV},
+                {
+                    InjectorState.RUNNING,
+                    InjectorState.FAILED,
+                    InjectorState.NO_GRAB,
+                    InjectorMessage.UPGRADE_EVDEV,
+                },
                 self.send_injector_state,
             )
             return True
         return False
 
-    def get_state(self) -> int:
+    def get_state(self) -> str:
         """the state of the injector"""
         if not self.active_group:
             raise DataManagementError("cannot read state: group is not set")
@@ -558,12 +560,12 @@ class DataManager:
         """tell the service to refresh its config path"""
         self._daemon.set_config_dir(self._config.get_dir())
 
-    def do_when_injector_state(self, states: Set[int], callback):
+    def do_when_injector_state(self, states: Set[str], callback):
         """run callback once the injector state is one of states"""
         start = time.time()
 
         def do():
-            if time.time() - start > 5:
+            if time.time() - start > 3:
                 # something went wrong, there should have been a state long ago.
                 # the timeout prevents tons of GLib.timeouts to run forever, especially
                 # after spamming the "Stop" button.

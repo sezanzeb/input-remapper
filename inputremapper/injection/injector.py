@@ -49,20 +49,19 @@ GroupSources = List[evdev.InputDevice]
 
 DEV_NAME = "input-remapper"
 
-# messages
-CLOSE = 0
-UPGRADE_EVDEV = 7
 
-# states
-# TODO enum like MessageType? string states please
-UNKNOWN = -1
-STARTING = 2
-FAILED = 3
-RUNNING = 4
-STOPPED = 5
+class InjectorMessage:
+    CLOSE = "CLOSE"
+    UPGRADE_EVDEV = "UPGRADE_EVDEV"
 
-# for both states and messages
-NO_GRAB = 6
+
+class InjectorState:
+    UNKNOWN = "UNKNOWN"
+    STARTING = "STARTING"
+    FAILED = "FAILED"
+    RUNNING = "RUNNING"
+    STOPPED = "STOPPED"
+    NO_GRAB = "NO_GRAB"
 
 
 def is_in_capabilities(
@@ -86,15 +85,15 @@ def get_udev_name(name: str, suffix: str) -> str:
 
 
 @dataclass(frozen=True)
-class InjectorState:
+class InjectorStateMessage:
     message_type = MessageType.injector_state
-    state: int
+    state: InjectorState
 
     def active(self) -> bool:
-        return self.state in [RUNNING, STARTING]
+        return self.state in [InjectorState.RUNNING, InjectorState.STARTING]
 
     def inactive(self) -> bool:
-        return self.state in [STOPPED, NO_GRAB]
+        return self.state in [InjectorState.STOPPED, InjectorState.NO_GRAB]
 
 
 class Injector(multiprocessing.Process):
@@ -108,7 +107,7 @@ class Injector(multiprocessing.Process):
     group: _Group
     preset: Preset
     context: Optional[Context]
-    _state: int
+    _state: InjectorState
     _msg_pipe: Tuple[Connection, Connection]
     _consumer_controls: List[EventReader]
     _stop_event: asyncio.Event
@@ -125,7 +124,7 @@ class Injector(multiprocessing.Process):
         preset : Preset
         """
         self.group = group
-        self._state = UNKNOWN
+        self._state = InjectorState.UNKNOWN
 
         # used to interact with the parts of this class that are running within
         # the new process
@@ -140,7 +139,7 @@ class Injector(multiprocessing.Process):
 
     """Functions to interact with the running process"""
 
-    def get_state(self) -> int:
+    def get_state(self) -> str:
         """Get the state of the injection.
 
         Can be safely called from the main process.
@@ -154,17 +153,17 @@ class Injector(multiprocessing.Process):
         alive = self.is_alive()
 
         # if `self.start()` has been called
-        started = state != UNKNOWN or alive
+        started = state != InjectorState.UNKNOWN or alive
 
         if started:
-            if state == UNKNOWN and alive:
+            if state == InjectorState.UNKNOWN and alive:
                 # if it is alive, it is definitely at least starting up.
-                state = STARTING
+                state = InjectorState.STARTING
 
-            if state in (STARTING, RUNNING) and not alive:
+            if state in (InjectorState.STARTING, InjectorState.RUNNING) and not alive:
                 # we thought it is running (maybe it was when get_state was previously),
                 # but the process is not alive. It probably crashed
-                state = FAILED
+                state = InjectorState.FAILED
                 logger.error("Injector was unexpectedly found stopped")
 
         logger.debug(
@@ -183,7 +182,7 @@ class Injector(multiprocessing.Process):
         Can be safely called from the main procss.
         """
         logger.info('Stopping injecting keycodes for group "%s"', self.group.key)
-        self._msg_pipe[1].send(CLOSE)
+        self._msg_pipe[1].send(InjectorMessage.CLOSE)
 
     """Process internal stuff"""
 
@@ -290,7 +289,7 @@ class Injector(multiprocessing.Process):
             await frame_available.wait()
             frame_available.clear()
             msg = self._msg_pipe[0].recv()
-            if msg == CLOSE:
+            if msg == InjectorMessage.CLOSE:
                 logger.debug("Received close signal")
                 self._stop_event.set()
                 # give the event pipeline some time to reset devices
@@ -300,7 +299,7 @@ class Injector(multiprocessing.Process):
                 # stop the event loop and cause the process to reach its end
                 # cleanly. Using .terminate prevents coverage from working.
                 loop.stop()
-                self._msg_pipe[0].send(STOPPED)
+                self._msg_pipe[0].send(InjectorState.STOPPED)
                 return
 
     def run(self) -> None:
@@ -352,7 +351,7 @@ class Injector(multiprocessing.Process):
         if len(sources) == 0:
             # maybe the preset was empty or something
             logger.error("Did not grab any device")
-            self._msg_pipe[0].send(NO_GRAB)
+            self._msg_pipe[0].send(InjectorState.NO_GRAB)
             return
 
         numlock_state = is_numlock_on()
@@ -381,7 +380,7 @@ class Injector(multiprocessing.Process):
                     # UInput constructor doesn't support input_props and
                     # source.input_props doesn't exist with old python-evdev versions.
                     logger.error("Please upgrade your python-evdev version. Exiting")
-                    self._msg_pipe[0].send(UPGRADE_EVDEV)
+                    self._msg_pipe[0].send(InjectorMessage.UPGRADE_EVDEV)
                     sys.exit(12)
 
                 raise e
@@ -402,7 +401,7 @@ class Injector(multiprocessing.Process):
         # grabbing devices screws this up
         set_numlock(numlock_state)
 
-        self._msg_pipe[0].send(RUNNING)
+        self._msg_pipe[0].send(InjectorState.RUNNING)
 
         try:
             loop.run_until_complete(asyncio.gather(*coroutines))

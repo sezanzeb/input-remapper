@@ -768,7 +768,7 @@ update_verbosity(True)
 
 from inputremapper.daemon import DaemonProxy
 from inputremapper.input_event import InputEvent as InternalInputEvent
-from inputremapper.injection.injector import Injector, RUNNING, STOPPED
+from inputremapper.injection.injector import Injector, InjectorState
 from inputremapper.injection.macros.macro import macro_variables
 from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.configs.global_config import global_config
@@ -933,9 +933,9 @@ class FakeDaemonProxy:
     def stop_injecting(self, group_key: str) -> None:
         self.calls["stop_injecting"].append(group_key)
 
-    def get_state(self, group_key: str) -> int:
+    def get_state(self, group_key: str) -> str:
         self.calls["get_state"].append(group_key)
-        return STOPPED
+        return InjectorState.STOPPED
 
     def start_injecting(self, group_key: str, preset: str) -> bool:
         self.calls["start_injecting"].append((group_key, preset))

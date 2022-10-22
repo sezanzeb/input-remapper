@@ -84,7 +84,7 @@ from inputremapper.gui.controller import Controller
 from inputremapper.gui.helper import RootHelper
 from inputremapper.gui.utils import gtk_iteration, Colors
 from inputremapper.gui.user_interface import UserInterface
-from inputremapper.injection.injector import RUNNING, UNKNOWN, STOPPED
+from inputremapper.injection.injector import InjectorState
 from inputremapper.event_combination import EventCombination
 from inputremapper.daemon import Daemon, DaemonProxy
 
@@ -1448,7 +1448,7 @@ class TestGui(GuiTestBase):
         text = self.get_status_text()
         self.assertIn("add mappings", text)
         self.assertTrue(error_icon.get_visible())
-        self.assertNotEqual(self.daemon.get_state("Bar Device"), RUNNING)
+        self.assertNotEqual(self.daemon.get_state("Bar Device"), InjectorState.RUNNING)
 
         # device grabbing fails
         self.controller.load_group("Foo Device 2")
@@ -1468,7 +1468,9 @@ class TestGui(GuiTestBase):
             text = self.get_status_text()
             self.assertIn("not grabbed", text)
             self.assertTrue(error_icon.get_visible())
-            self.assertNotEqual(self.daemon.get_state("Foo Device 2"), RUNNING)
+            self.assertNotEqual(
+                self.daemon.get_state("Foo Device 2"), InjectorState.RUNNING
+            )
 
         # this time work properly
 
@@ -1484,7 +1486,7 @@ class TestGui(GuiTestBase):
         text = self.get_status_text()
         self.assertNotIn("CTRL + DEL", text)  # only shown if btn_left mapped
         self.assertFalse(error_icon.get_visible())
-        self.assertEqual(self.daemon.get_state("Foo Device 2"), RUNNING)
+        self.assertEqual(self.daemon.get_state("Foo Device 2"), InjectorState.RUNNING)
 
     def test_start_with_btn_left(self):
         self.controller.load_group("Foo Device 2")
@@ -1511,13 +1513,13 @@ class TestGui(GuiTestBase):
         gtk_iteration()
         text = self.get_status_text()
         self.assertIn("click", text)
-        self.assertEqual(self.daemon.get_state("Foo Device 2"), UNKNOWN)
+        self.assertEqual(self.daemon.get_state("Foo Device 2"), InjectorState.UNKNOWN)
 
         # second apply, overwrites
         self.start_injector_btn.clicked()
         gtk_iteration()
         wait()
-        self.assertEqual(self.daemon.get_state("Foo Device 2"), RUNNING)
+        self.assertEqual(self.daemon.get_state("Foo Device 2"), InjectorState.RUNNING)
         text = self.get_status_text()
         # because btn_left is mapped, shows help on how to stop
         # injecting via the keyboard
@@ -1525,7 +1527,7 @@ class TestGui(GuiTestBase):
 
     def test_cannot_record_keys(self):
         self.controller.load_group("Foo Device 2")
-        self.assertNotEqual(self.data_manager.get_state(), RUNNING)
+        self.assertNotEqual(self.data_manager.get_state(), InjectorState.RUNNING)
         self.assertNotIn("Stop", self.get_status_text())
 
         self.recording_toggle.set_active(True)
@@ -1544,7 +1546,7 @@ class TestGui(GuiTestBase):
             if "Starting" not in self.get_status_text():
                 break
 
-        self.assertEqual(self.data_manager.get_state(), RUNNING)
+        self.assertEqual(self.data_manager.get_state(), InjectorState.RUNNING)
 
         # the toggle button should reset itself shortly
         self.recording_toggle.set_active(True)
@@ -1568,11 +1570,11 @@ class TestGui(GuiTestBase):
         for _ in range(10):
             time.sleep(0.1)
             gtk_iteration()
-            if self.data_manager.get_state() == RUNNING:
+            if self.data_manager.get_state() == InjectorState.RUNNING:
                 break
 
         # fail here so we don't block forever
-        self.assertEqual(self.data_manager.get_state(), RUNNING)
+        self.assertEqual(self.data_manager.get_state(), InjectorState.RUNNING)
 
         # this is a stupid workaround for the bad test fixtures
         # by switching the group we make sure that the helper no longer listens for
@@ -1615,10 +1617,10 @@ class TestGui(GuiTestBase):
         for _ in range(10):
             time.sleep(0.1)
             gtk_iteration()
-            if self.data_manager.get_state() == RUNNING:
+            if self.data_manager.get_state() == InjectorState.RUNNING:
                 break
         # fail here so we don't block forever
-        self.assertEqual(self.data_manager.get_state(), RUNNING)
+        self.assertEqual(self.data_manager.get_state(), InjectorState.RUNNING)
 
         # stupid fixture workaround
         self.controller.load_group("Foo Device")
@@ -1647,9 +1649,9 @@ class TestGui(GuiTestBase):
         for _ in range(10):
             time.sleep(0.1)
             gtk_iteration()
-            if self.data_manager.get_state() == STOPPED:
+            if self.data_manager.get_state() == InjectorState.STOPPED:
                 break
-        self.assertEqual(self.data_manager.get_state(), STOPPED)
+        self.assertEqual(self.data_manager.get_state(), InjectorState.STOPPED)
 
         push_events(
             fixtures.foo_device_2_keyboard,
