@@ -141,9 +141,10 @@ class UIMapping(BaseModel):
 
     # when mapping from a relative axis:
     # the absolute value at which a EV_REL axis is considered at its maximum.
-    rel_xy_max_input: PositiveInt = 105
-    rel_wheel_max_input: PositiveInt = 7
-    rel_hi_res_wheel_max_input: PositiveInt = 840
+    # values are from evtest when moving the input quickly
+    rel_xy_max_input: PositiveInt = 100
+    rel_wheel_max_input: PositiveInt = 3
+    rel_hi_res_wheel_max_input: PositiveInt = 360
 
     # the time until a relative axis is considered stationary if no new events arrive
     release_timeout: PositiveFloat = 0.05
