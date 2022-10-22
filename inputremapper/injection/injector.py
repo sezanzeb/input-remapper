@@ -107,7 +107,7 @@ class Injector(multiprocessing.Process):
     group: _Group
     preset: Preset
     context: Optional[Context]
-    _state: InjectorState
+    _state: str
     _msg_pipe: Tuple[Connection, Connection]
     _consumer_controls: List[EventReader]
     _stop_event: asyncio.Event
