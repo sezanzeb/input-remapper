@@ -87,7 +87,7 @@ def get_udev_name(name: str, suffix: str) -> str:
 @dataclass(frozen=True)
 class InjectorStateMessage:
     message_type = MessageType.injector_state
-    state: InjectorState
+    state: str
 
     def active(self) -> bool:
         return self.state in [InjectorState.RUNNING, InjectorState.STARTING]
@@ -311,24 +311,6 @@ class Injector(multiprocessing.Process):
         Use this function as starting point in a process. It creates
         the loops needed to read and map events and keeps running them.
         """
-        # TODO run all injections in a single process via asyncio
-        #   - Make sure that closing asyncio fds won't lag the service
-        #   - SharedDict becomes obsolete
-        #   - quick_cleanup needs to be able to reliably stop the injection
-        #   - I think I want an event listener architecture so that macros,
-        #     joystick_to_mouse, keycode_mapper and possibly other modules can get
-        #     what they filter for whenever they want, without having to wire
-        #     things through multiple other objects all the time
-        #   - _new_event_arrived moves to the place where events are emitted. injector?
-        #   - active macros and unreleased need to be per injection. it probably
-        #     should move into the keycode_mapper class, but that only works if there
-        #     is only one keycode_mapper per injection, and not per source. Problem was
-        #     that I had to excessively pass around to which device to forward to...
-        #     I also need to have information somewhere which source is a gamepad, I
-        #     probably don't want to evaluate that from scratch each time `notify` is
-        #     called.
-        #   - benefit: writing macros that listen for events from other devices
-
         logger.info('Starting injecting the preset for "%s"', self.group.key)
 
         # create a new event loop, because somehow running an infinite loop
