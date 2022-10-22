@@ -23,7 +23,15 @@ import enum
 from typing import Optional, Callable, Tuple, TypeVar, Literal, Union
 
 import pkg_resources
-from evdev.ecodes import EV_KEY, EV_ABS, EV_REL, REL_WHEEL, REL_HWHEEL
+from evdev.ecodes import (
+    EV_KEY,
+    EV_ABS,
+    EV_REL,
+    REL_WHEEL,
+    REL_HWHEEL,
+    REL_HWHEEL_HI_RES,
+    REL_WHEEL_HI_RES,
+)
 from pydantic import (
     BaseModel,
     PositiveInt,
@@ -125,13 +133,19 @@ class UIMapping(BaseModel):
     rel_xy_rate: PositiveInt = 60  # frequency in Hz for REL_X/Y event generation
     rel_wheel_rate: PositiveInt = 60  # frequency in Hz for REL_WHEEL event generation
 
-    # the base speed of the relative axis, compounds with the gain
-    rel_xy_speed: PositiveInt = 50
-    rel_wheel_speed: PositiveInt = 5
+    # the base speed of the relative axis, compounds with the gain.
+    # values are observed normal output values in evtest
+    rel_xy_speed: PositiveInt = 30
+    rel_wheel_speed: PositiveInt = 1
+    rel_hi_res_wheel_speed: PositiveInt = 120
 
     # when mapping from a relative axis:
-    # the absolute value at which a EV_REL axis is considered at its maximum
-    rel_input_cutoff: PositiveInt = 100
+    # the absolute value at which a EV_REL axis is considered at its maximum.
+    # defaults to 3 times the speed value.
+    rel_xy_input_cutoff: PositiveInt = 90
+    rel_wheel_input_cutoff: PositiveInt = 3
+    rel_hi_res_wheel_input_cutoff: PositiveInt = 360
+
     # the time until a relative axis is considered stationary if no new events arrive
     release_timeout: PositiveFloat = 0.05
     # don't release immediately when a relative axis drops below the speed threshold
@@ -215,6 +229,12 @@ class UIMapping(BaseModel):
         return self.output_code in (
             REL_WHEEL,
             REL_HWHEEL,
+        )
+
+    def is_high_res_wheel_output(self) -> bool:
+        return self.output_code in (
+            REL_WHEEL_HI_RES,
+            REL_HWHEEL_HI_RES,
         )
 
     def set_combination_changed_callback(self, callback: CombinationChangedCallback):
@@ -393,7 +413,7 @@ class Mapping(UIMapping):
         if not use_as_analog and not output_symbol and output_type != EV_KEY:
             raise ValueError(
                 f"missing macro or key: "
-                f'the {combination = } is not used as analog input, '
+                f"the {combination = } is not used as analog input, "
                 f"but no output macro or key is programmed"
             )
 

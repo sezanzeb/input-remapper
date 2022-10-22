@@ -76,9 +76,10 @@ class RelToAbsHandler(MappingHandler):
                 mapping.target_uinput
             ).capabilities(absinfo=True)[EV_ABS]
         }[mapping.output_code]
+        # TODO cutoff depending on rel input code
         self._transform = Transformation(
-            max_=mapping.rel_input_cutoff,
-            min_=-mapping.rel_input_cutoff,
+            max_=mapping.rel_xy_input_cutoff,
+            min_=-mapping.rel_xy_input_cutoff,
             deadzone=mapping.deadzone,
             gain=mapping.gain,
             expo=mapping.expo,

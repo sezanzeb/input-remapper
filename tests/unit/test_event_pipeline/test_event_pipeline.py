@@ -360,7 +360,7 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
             "output_type": EV_ABS,
             "output_code": ABS_X,
             "gain": gain,
-            "rel_input_cutoff": 100,
+            "rel_xy_input_cutoff": 100,
             "release_timeout": 0.5,
             "deadzone": 0,
         }

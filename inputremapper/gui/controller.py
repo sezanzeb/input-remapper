@@ -336,8 +336,10 @@ class Controller:
         if event.type != EV_KEY:
             if analog:
                 try:
-                    self.data_manager.update_event(event.modify(value=USE_AS_ANALOG_VALUE))
-                    self.save()  # TODO test
+                    self.data_manager.update_event(
+                        event.modify(value=USE_AS_ANALOG_VALUE)
+                    )
+                    self.save()
                     return
                 except KeyError:
                     pass
@@ -346,7 +348,7 @@ class Controller:
                 for value in try_values[event.type]:
                     try:
                         self.data_manager.update_event(event.modify(value=value))
-                        self.save()  # TODO test
+                        self.save()
                         return
                     except KeyError:
                         pass
