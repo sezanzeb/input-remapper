@@ -89,6 +89,11 @@ class RelToRelHandler(MappingHandler):
                 self._input_event = event
                 break
 
+        # - If rel_x is mapped to rel_y, it will transform it to between 0 and 1,
+        # and then scale it back to exactly its original value.
+        # - If rel_x is mapped to rel_wheel, and the mouse is moved in a normal
+        # tempo, then the wheel should move in a normal tempo as well.
+        # -> So the same speed is used as max_ and for scaling.
         if self._input_event.is_wheel_event:
             max_ = self.mapping.rel_wheel_speed
         elif self._input_event.is_hi_res_wheel_event:
