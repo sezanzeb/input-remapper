@@ -2,8 +2,6 @@
 
 <h1 align="center">Input Remapper (Beta)</h1>
 
-<p align="center"><b>Formerly Key Mapper</b></p>
-
 <p align="center">
   An easy to use tool to change the mapping of your input device buttons.<br/>
   Supports mice, keyboards, gamepads, X11, Wayland, combined buttons and programmable macros.<br/>
