@@ -61,7 +61,9 @@ class CombinationHandler(MappingHandler):
         assert len(self._pressed_keys) > 0  # no combination handler without a key
 
     def __str__(self):
-        return f"CombinationHandler for {self.mapping.event_combination} <{id(self)}>:"
+        return (
+            f'CombinationHandler for "{self.mapping.event_combination}" <{id(self)}>:'
+        )
 
     def __repr__(self):
         return self.__str__()
