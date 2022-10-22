@@ -21,7 +21,14 @@ import asyncio
 from typing import Tuple, Dict, Optional
 
 import evdev
-from evdev.ecodes import EV_ABS, EV_REL
+from evdev.ecodes import (
+    EV_ABS,
+    EV_REL,
+    REL_WHEEL,
+    REL_HWHEEL,
+    REL_HWHEEL_HI_RES,
+    REL_WHEEL_HI_RES,
+)
 
 from inputremapper import exceptions
 from inputremapper.configs.mapping import Mapping
@@ -78,9 +85,9 @@ class RelToAbsHandler(MappingHandler):
         }[mapping.output_code]
 
         # TODO test?
-        if self._input_type == RelInputType.WHEEL:
+        if self._input_movement[1] in [REL_WHEEL, REL_HWHEEL]:
             max_ = mapping.rel_wheel_max_input
-        elif self._input_type == RelInputType.HI_RES_WHEEL:
+        elif self._input_movement[1] in [REL_WHEEL_HI_RES, REL_HWHEEL_HI_RES]:
             max_ = mapping.rel_hi_res_wheel_max_input
         else:
             max_ = mapping.rel_xy_max_input
