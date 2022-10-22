@@ -145,10 +145,6 @@ class AbsToRelHandler(MappingHandler):
         else:
             self._run = partial(_run_normal, self)
 
-    def _get_evdev_event_name(self, type: int, code: int):
-        """Shortcut to get the"""
-        return evdev.ecodes.bytype[type][code]
-
     def __str__(self):
         name = get_evdev_constant_name(*self._map_axis)
         return f'AbsToRelHandler for "{name}" {self._map_axis} <{id(self)}>:'
