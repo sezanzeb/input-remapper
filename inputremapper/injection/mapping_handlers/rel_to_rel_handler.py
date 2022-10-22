@@ -56,12 +56,6 @@ def is_high_res_wheel(event) -> bool:
 # TODO test
 
 
-class RelInputType(str, enum.Enum):
-    HI_RES_WHEEL = "HI_RES_WHEEL"
-    WHEEL = "WHEEL"
-    REL_XY = "REL_XY"
-
-
 class RelToRelHandler(MappingHandler):
     """Handler which transforms EV_REL to EV_REL events."""
 
