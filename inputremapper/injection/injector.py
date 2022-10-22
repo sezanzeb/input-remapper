@@ -153,21 +153,26 @@ class Injector(multiprocessing.Process):
         # figure out what is going on step by step
         alive = self.is_alive()
 
-        if state == UNKNOWN and not alive:
-            # `self.start()` has not been called yet
-            self._state = state
-            return self._state
+        # if `self.start()` has been called
+        started = state != UNKNOWN or alive
 
-        if state == UNKNOWN and alive:
-            # if it is alive, it is definitely at least starting up.
-            state = STARTING
+        if started:
+            if state == UNKNOWN and alive:
+                # if it is alive, it is definitely at least starting up.
+                state = STARTING
 
-        if state in (STARTING, RUNNING) and not alive:
-            # we thought it is running (maybe it was when get_state was previously),
-            # but the process is not alive. It probably crashed
-            state = FAILED
-            logger.error("Injector was unexpectedly found stopped")
+            if state in (STARTING, RUNNING) and not alive:
+                # we thought it is running (maybe it was when get_state was previously),
+                # but the process is not alive. It probably crashed
+                state = FAILED
+                logger.error("Injector was unexpectedly found stopped")
 
+        logger.debug(
+            'Injector state of "%s", "%s": %s',
+            self.group.key,
+            self.preset.name,
+            state,
+        )
         self._state = state
         return self._state
 

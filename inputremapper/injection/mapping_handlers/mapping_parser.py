@@ -67,9 +67,8 @@ mapping_handler_classes: Dict[HandlerEnums, Optional[Type[MappingHandler]]] = {
     HandlerEnums.macro: MacroHandler,
     HandlerEnums.key: KeyHandler,
     HandlerEnums.btn2rel: None,  # can be a macro
-    HandlerEnums.rel2rel: None,
-    HandlerEnums.abs2rel: AbsToRelHandler,
     HandlerEnums.rel2rel: RelToRelHandler,
+    HandlerEnums.abs2rel: AbsToRelHandler,
     HandlerEnums.btn2abs: None,  # can be a macro
     HandlerEnums.rel2abs: RelToAbsHandler,
     HandlerEnums.abs2abs: AbsToAbsHandler,
@@ -121,7 +120,7 @@ def parse_mappings(preset: Preset, context: ContextProtocol) -> EventPipelines:
             need_ranking[combination].add(handler)
             handlers.remove(handler)
 
-    # the HierarchyHandler's might not be the starting point of the event pipeline
+    # the HierarchyHandler's might not be the starting point of the event pipeline,
     # layer other handlers on top again.
     ranked_handlers = _create_hierarchy_handlers(need_ranking)
     for handler in ranked_handlers:
