@@ -56,10 +56,6 @@ def is_high_res_wheel(event) -> bool:
 # TODO test
 
 
-# TODO high-res wheel as input
-# TODO high-res wheel as output
-
-
 class RelInputType(str, enum.Enum):
     HI_RES_WHEEL = "HI_RES_WHEEL"
     WHEEL = "WHEEL"
@@ -67,7 +63,7 @@ class RelInputType(str, enum.Enum):
 
 
 class RelToRelHandler(MappingHandler):
-    """Handler which transforms EV_REL to EV_REL events"""
+    """Handler which transforms EV_REL to EV_REL events."""
 
     _input_event: InputEvent  # the relative movement we map
     _output_axis: Tuple[int, int]  # the (type, code) of the output axis

@@ -175,6 +175,7 @@ class InputEvent:
     @property
     def is_wheel_event(self) -> bool:
         """Whether this is interpreted as a key event."""
+        # TODO test
         return self.type == evdev.ecodes.EV_REL and self.code in [
             ecodes.REL_WHEEL,
             ecodes.REL_HWHEEL,
@@ -183,6 +184,7 @@ class InputEvent:
     @property
     def is_hi_res_wheel_event(self) -> bool:
         """Whether this is interpreted as a key event."""
+        # TODO test
         return self.type == evdev.ecodes.EV_REL and self.code in [
             ecodes.REL_WHEEL_HI_RES,
             ecodes.REL_HWHEEL_HI_RES,

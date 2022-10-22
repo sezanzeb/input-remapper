@@ -226,12 +226,14 @@ class UIMapping(BaseModel):
         return self.output_type == EV_ABS or self.output_type == EV_REL
 
     def is_wheel_output(self) -> bool:
+        # TODO test
         return self.output_code in (
             REL_WHEEL,
             REL_HWHEEL,
         )
 
     def is_high_res_wheel_output(self) -> bool:
+        # TODO test
         return self.output_code in (
             REL_WHEEL_HI_RES,
             REL_HWHEEL_HI_RES,
