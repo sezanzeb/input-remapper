@@ -108,6 +108,10 @@ class TestCreatePreset(unittest.TestCase):
         self.assertTrue(os.path.exists(f"{PRESETS}/Foo Device/pre set 2.json"))
         self.assertTrue(os.path.exists(f"{PRESETS}/Foo Device/pre set 3.json"))
 
+    def test_create_preset_4(self):
+        create_preset("Qux/Device?", "bla")
+        self.assertTrue(os.path.exists(f"{PRESETS}/Qux_Device_/bla.json"))
+
 
 class TestDeletePreset(unittest.TestCase):
     def tearDown(self):
@@ -127,6 +131,11 @@ class TestDeletePreset(unittest.TestCase):
         # if no preset in the directory, remove the directory
         self.assertFalse(os.path.exists(f"{PRESETS}/Foo Device"))
 
+        create_preset("Qux/Device?", "bla")
+        self.assertTrue(os.path.exists(f"{PRESETS}/Qux_Device_/bla.json"))
+        delete_preset("Qux/Device?", "bla")
+        self.assertFalse(os.path.exists(f"{PRESETS}/Qux_Device_/bla.json"))
+
 
 class TestRenamePreset(unittest.TestCase):
     def tearDown(self):
@@ -137,12 +146,18 @@ class TestRenamePreset(unittest.TestCase):
         create_preset("Foo Device", "preset 1")
         create_preset("Foo Device", "preset 2")
         create_preset("Foo Device", "foobar")
+        create_preset("Qux/Device?", "bla")
+
         rename_preset("Foo Device", "preset 1", "foobar")
         rename_preset("Foo Device", "preset 2", "foobar")
+        rename_preset("Qux/Device?", "bla", "blubb")
+
         self.assertFalse(os.path.exists(f"{PRESETS}/Foo Device/preset 1.json"))
         self.assertTrue(os.path.exists(f"{PRESETS}/Foo Device/foobar.json"))
         self.assertTrue(os.path.exists(f"{PRESETS}/Foo Device/foobar 2.json"))
         self.assertTrue(os.path.exists(f"{PRESETS}/Foo Device/foobar 3.json"))
+        self.assertFalse(os.path.exists(f"{PRESETS}/Qux_Device_/bla.json"))
+        self.assertTrue(os.path.exists(f"{PRESETS}/Qux_Device_/blubb.json"))
 
 
 class TestFindPresets(unittest.TestCase):
@@ -152,6 +167,9 @@ class TestFindPresets(unittest.TestCase):
 
     def test_get_presets(self):
         os.makedirs(os.path.join(PRESETS, "1234"))
+        os.makedirs(f"{PRESETS}/Qux_Device_")
+        os.mknod(f"{PRESETS}/Qux_Device_/blubb.json")
+        self.assertEqual(len(get_presets("Qux/Device?")), 1)
 
         os.mknod(os.path.join(PRESETS, "1234", "picture.png"))
         self.assertEqual(len(get_presets("1234")), 0)

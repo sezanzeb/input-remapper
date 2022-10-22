@@ -125,6 +125,14 @@ class TestGroups(unittest.TestCase):
                             "key": "input-remapper Bar Device",
                         }
                     ),
+                    json.dumps(
+                        {
+                            "paths": ["/dev/input/event52"],
+                            "names": ["Qux/Device?"],
+                            "types": [KEYBOARD],
+                            "key": "Qux/Device?",
+                        }
+                    ),
                 ]
             ),
         )
@@ -142,6 +150,7 @@ class TestGroups(unittest.TestCase):
                 "Foo Device",
                 "Bar Device",
                 "gamepad",
+                "Qux/Device?",
             ],
         )
 
