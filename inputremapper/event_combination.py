@@ -135,7 +135,9 @@ class EventCombination(Tuple[InputEvent]):
         """Check if there is any analog event in self."""
         return False in (event.is_key_event for event in self)
 
-    def find_analog_input_event(self, type_: Optional[int] = None) -> InputEvent:
+    def find_analog_input_event(
+        self, type_: Optional[int] = None
+    ) -> Optional[InputEvent]:
         """Return the first event that is configured with "Use as analog"."""
         # TODO test
         for event in self:
