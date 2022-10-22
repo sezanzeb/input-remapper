@@ -213,27 +213,30 @@ the axis is higher than described by the value.
 
 The following table contains all possible parameters and their default values:
 
-| Parameter                | Default | Type            | Description                                                                                                |
-|--------------------------|---------|-----------------|------------------------------------------------------------------------------------------------------------|
-| target_uinput            |         | string          | The UInput to which the mapped event will be sent                                                          |
-| output_symbol            |         | string          | The symbol or macro string if applicable                                                                   |
-| output_type              |         | int             | The event type of the mapped event                                                                         |
-| output_code              |         | int             | The event code of the mapped event                                                                         |
-| release_combination_keys | true    | bool            | If release events will be sent to the forwarded device as soon as a combination triggers see also #229     |
-| **Macro settings**       |
-| macro_key_sleep_ms       | 20      | positive int    |                                                                                                            |
-| **Axis settings**        |                         
-| deadzone                 | 0.1     | float ∈ (0, 1)  | The deadzone of the input axis                                                                             |
-| gain                     | 1.0     | float           | Scale factor when mapping an axis to an axis                                                               |
-| expo                     | 0       | float ∈ (-1, 1) | Non liniarity factor see also [GeoGebra](https://www.geogebra.org/calculator/mkdqueky)                     |
-| **EV_REL output**        |            
-| rel_xy_rate              | 60      | positive int    | The frequency `[Hz]` at which `REL_X` amd `REL_Y` events get generated (also effects mouse macro)          |
-| rel_wheel_rate           | 60      | positive int    | The frequency `[Hz]` at which `REL_WHEEL` and `REL_HWHEEL` events get generated (also effects wheel macro) |
-| rel_xy_speed             | 50      | positive int    | The base speed of the relative axis, compounds with the gain (also effects mouse and wheel macro)          |
-| rel_wheel_speed          | 5       | positive int    | The base speed of the relative axis, compounds with the gain (also effects mouse and wheel macro)          |
-| **EV_REL as input**      |         
-| rel_xy_input_cutoff         | 100     | positive int    | The absolute value at which a `EV_REL` axis is considered at its maximum                                   |
-| release_timeout          | 0.05    | positive float  | The time `[s]` until a relative axis is considered stationary if no new events arrive                      |
+| Parameter                   | Default | Type            | Description                                                                                                 |
+|-----------------------------|---------|-----------------|-------------------------------------------------------------------------------------------------------------|
+| target_uinput               |         | string          | The UInput to which the mapped event will be sent                                                           |
+| output_symbol               |         | string          | The symbol or macro string if applicable                                                                    |
+| output_type                 |         | int             | The event type of the mapped event                                                                          |
+| output_code                 |         | int             | The event code of the mapped event                                                                          |
+| release_combination_keys    | true    | bool            | If release events will be sent to the forwarded device as soon as a combination triggers see also #229      |
+| **Macro settings**          |
+| macro_key_sleep_ms          | 20      | positive int    |                                                                                                             |
+| **Axis settings**           |                         
+| deadzone                    | 0.1     | float ∈ (0, 1)  | The deadzone of the input axis                                                                              |
+| gain                        | 1.0     | float           | Scale factor when mapping an axis to an axis                                                                |
+| expo                        | 0       | float ∈ (-1, 1) | Non liniarity factor see also [GeoGebra](https://www.geogebra.org/calculator/mkdqueky)                      |
+| **EV_REL output**           |            
+| rel_xy_rate                 | 60      | positive int    | The frequency `[Hz]` at which `REL_X` amd `REL_Y` events get generated (also effects mouse macro)           |
+| rel_wheel_rate              | 60      | positive int    | The frequency `[Hz]` at which `REL_WHEEL` and `REL_HWHEEL` events get generated (also effects wheel macro)  |
+| rel_xy_speed                | 50      | positive int    | The base speed of the relative axis, compounds with the gain (also effects mouse and wheel macro)           |
+| rel_wheel_speed             | 5       | positive int    | The base speed of the relative axis, compounds with the gain (also effects mouse and wheel macro)           |
+| rel_hi_res_wheel_speed      | 5       | positive int    | The base speed of the relative axis, compounds with the gain (also effects mouse and wheel macro)           |
+| **EV_REL as input**         |         
+| rel_xy_max_input            | 90      | positive int    | The absolute value at which `REL_X` and `REL_Y` input (mouse cursor movement) is considered at its maximum  |
+| rel_wheel_max_input         | 3       | positive int    | The absolute value at which a `REL_WHEEL` and `REL_HWHEEL` input is considered at its maximum               |
+| rel_hi_res_wheel_max_input  | 360     | positive int    | The absolute value at which a `REL_WHEEL_HI_RES` and `REL_HWHEEL_HI_RES` input is considered at its maximum |
+| release_timeout             | 0.05    | positive float  | The time `[s]` until a relative axis is considered stationary if no new events arrive                       |
 
 
 ## CLI

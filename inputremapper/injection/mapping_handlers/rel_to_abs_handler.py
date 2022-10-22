@@ -76,10 +76,18 @@ class RelToAbsHandler(MappingHandler):
                 mapping.target_uinput
             ).capabilities(absinfo=True)[EV_ABS]
         }[mapping.output_code]
-        # TODO cutoff depending on rel input code
+
+        # TODO test?
+        if self._input_type == RelInputType.WHEEL:
+            max_ = mapping.rel_wheel_max_input
+        elif self._input_type == RelInputType.HI_RES_WHEEL:
+            max_ = mapping.rel_hi_res_wheel_max_input
+        else:
+            max_ = mapping.rel_xy_max_input
+
         self._transform = Transformation(
-            max_=mapping.rel_xy_input_cutoff,
-            min_=-mapping.rel_xy_input_cutoff,
+            max_=max_,
+            min_=-max_,
             deadzone=mapping.deadzone,
             gain=mapping.gain,
             expo=mapping.expo,

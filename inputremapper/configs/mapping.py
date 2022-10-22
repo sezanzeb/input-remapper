@@ -135,16 +135,15 @@ class UIMapping(BaseModel):
 
     # the base speed of the relative axis, compounds with the gain.
     # values are observed normal output values in evtest
-    rel_xy_speed: PositiveInt = 30
+    rel_xy_speed: PositiveInt = 15
     rel_wheel_speed: PositiveInt = 1
     rel_hi_res_wheel_speed: PositiveInt = 120
 
     # when mapping from a relative axis:
     # the absolute value at which a EV_REL axis is considered at its maximum.
-    # defaults to 3 times the speed value.
-    rel_xy_input_cutoff: PositiveInt = 90
-    rel_wheel_input_cutoff: PositiveInt = 3
-    rel_hi_res_wheel_input_cutoff: PositiveInt = 360
+    rel_xy_max_input: PositiveInt = 105
+    rel_wheel_max_input: PositiveInt = 7
+    rel_hi_res_wheel_max_input: PositiveInt = 840
 
     # the time until a relative axis is considered stationary if no new events arrive
     release_timeout: PositiveFloat = 0.05

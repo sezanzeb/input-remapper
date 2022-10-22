@@ -110,11 +110,11 @@ class RelToRelHandler(MappingHandler):
                 break
 
         if self._input_type == RelInputType.WHEEL:
-            max_ = self.mapping.rel_wheel_input_cutoff
+            max_ = self.mapping.rel_wheel_speed
         elif self._input_type == RelInputType.HI_RES_WHEEL:
-            max_ = self.mapping.rel_hi_res_wheel_input_cutoff
+            max_ = self.mapping.rel_hi_res_wheel_speed
         else:
-            max_ = self.mapping.rel_xy_input_cutoff
+            max_ = self.mapping.rel_xy_speed
 
         self._transform = Transformation(
             max_=max_,
@@ -172,6 +172,7 @@ class RelToRelHandler(MappingHandler):
             scaled = value * self.mapping.rel_hi_res_wheel_speed
         else:
             scaled = value * self.mapping.rel_xy_speed
+        print("_write", value, scaled)
 
         # if the mouse moves very slow, it might not move at all because of the
         # int-conversion (which is required when writing). store the remainder
