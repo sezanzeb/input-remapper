@@ -17,6 +17,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
+
 from __future__ import annotations
 
 import enum
@@ -170,6 +171,22 @@ class InputEvent:
     def is_key_event(self) -> bool:
         """Whether this is interpreted as a key event."""
         return self.type == evdev.ecodes.EV_KEY or EventActions.as_key in self.actions
+
+    @property
+    def is_wheel_event(self) -> bool:
+        """Whether this is interpreted as a key event."""
+        return self.type == evdev.ecodes.EV_REL and self.code in [
+            ecodes.REL_WHEEL,
+            ecodes.REL_HWHEEL,
+        ]
+
+    @property
+    def is_hi_res_wheel_event(self) -> bool:
+        """Whether this is interpreted as a key event."""
+        return self.type == evdev.ecodes.EV_REL and self.code in [
+            ecodes.REL_WHEEL_HI_RES,
+            ecodes.REL_HWHEEL_HI_RES,
+        ]
 
     def __str__(self):
         return f"InputEvent{self.event_tuple}"

@@ -69,10 +69,9 @@ class RelInputType(str, enum.Enum):
 class RelToRelHandler(MappingHandler):
     """Handler which transforms EV_REL to EV_REL events"""
 
-    _input_movement: Tuple[int, int]  # (type, code) of the relative movement we map
+    _input_event: InputEvent  # the relative movement we map
     _output_axis: Tuple[int, int]  # the (type, code) of the output axis
     _transform: Transformation
-    _input_type: RelInputType
 
     # infinite loop which centers the output when input stops
     _recenter_loop: Optional[asyncio.Task]
@@ -90,8 +89,6 @@ class RelToRelHandler(MappingHandler):
 
         self._remainder = 0
 
-        self._input_type = RelInputType.REL_XY
-
         # TODO duplicate code
         # find the input event we are supposed to map. If the input combination is
         # BTN_A + REL_X + BTN_B, then use the value of REL_X for the transformation
@@ -99,19 +96,12 @@ class RelToRelHandler(MappingHandler):
             # TODO search for "Use as Analog"?
             if event.value == 0:
                 assert event.type == EV_REL
-                self._input_movement = event.type_and_code
-
-                if is_wheel(event):
-                    self._input_type = RelInputType.WHEEL
-
-                if is_high_res_wheel(event):
-                    self._input_type = RelInputType.HI_RES_WHEEL
-
+                self._input_event = event
                 break
 
-        if self._input_type == RelInputType.WHEEL:
+        if self._input_event.is_wheel_event:
             max_ = self.mapping.rel_wheel_speed
-        elif self._input_type == RelInputType.HI_RES_WHEEL:
+        elif self._input_event.is_hi_res_wheel_event:
             max_ = self.mapping.rel_hi_res_wheel_speed
         else:
             max_ = self.mapping.rel_xy_speed
@@ -125,7 +115,7 @@ class RelToRelHandler(MappingHandler):
         )
 
     def __str__(self):
-        return f"RelToRelHandler for {self._input_movement} <{id(self)}>:"
+        return f"RelToRelHandler for {self._input_event} <{id(self)}>:"
 
     def __repr__(self):
         return self.__str__()
@@ -136,10 +126,10 @@ class RelToRelHandler(MappingHandler):
 
     def _should_map(self, event):
         """Check if this input event is relevant for this handler."""
-        if self._input_type == RelInputType.WHEEL and is_wheel(event):
+        if self._input_event.is_wheel_event and is_wheel(event):
             return True
 
-        if event.type_and_code == self._input_movement:
+        if event.type_and_code == (self._input_event.type, self._input_event.code):
             return True
 
         return False
@@ -172,7 +162,6 @@ class RelToRelHandler(MappingHandler):
             scaled = value * self.mapping.rel_hi_res_wheel_speed
         else:
             scaled = value * self.mapping.rel_xy_speed
-        print("_write", value, scaled)
 
         # if the mouse moves very slow, it might not move at all because of the
         # int-conversion (which is required when writing). store the remainder
