@@ -135,7 +135,7 @@ class UIMapping(BaseModel):
 
     # the base speed of the relative axis, compounds with the gain.
     # values are observed normal output values in evtest
-    rel_xy_speed: PositiveInt = 15
+    rel_xy_speed: PositiveInt = 30
     rel_wheel_speed: PositiveInt = 1
     rel_hi_res_wheel_speed: PositiveInt = 120
 
