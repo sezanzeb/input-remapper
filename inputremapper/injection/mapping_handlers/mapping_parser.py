@@ -27,7 +27,7 @@ from evdev.ecodes import (
     EV_REL,
 )
 
-from inputremapper.configs.mapping import Mapping
+from inputremapper.configs.mapping import Mapping, USE_AS_ANALOG_VALUE
 from inputremapper.configs.preset import Preset
 from inputremapper.configs.system_mapping import DISABLE_CODE, DISABLE_NAME
 from inputremapper.event_combination import EventCombination
@@ -220,7 +220,7 @@ def _maps_axis(combination: EventCombination) -> Optional[InputEvent]:
     an axis and not a binary (key or button) event.
     """
     for event in combination:
-        if event.value == 0:
+        if event.value == USE_AS_ANALOG_VALUE:
             return event
     return None
 

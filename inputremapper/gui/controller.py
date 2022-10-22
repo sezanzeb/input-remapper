@@ -35,7 +35,7 @@ from typing import (
 from evdev.ecodes import EV_KEY, EV_REL, EV_ABS
 from gi.repository import Gtk
 
-from inputremapper.configs.mapping import MappingData, UIMapping
+from inputremapper.configs.mapping import MappingData, UIMapping, USE_AS_ANALOG_VALUE
 from inputremapper.event_combination import EventCombination
 from inputremapper.exceptions import DataManagementError
 from inputremapper.gui.data_manager import DataManager, DEFAULT_PRESET_NAME
@@ -337,7 +337,8 @@ class Controller:
 
         elif analog:
             try:
-                self.data_manager.update_event(event.modify(value=0))
+                self.data_manager.update_event(event.modify(value=USE_AS_ANALOG_VALUE))
+                self.data_manager.save()  # TODO test
                 return
             except KeyError:
                 pass
@@ -346,6 +347,7 @@ class Controller:
             for value in try_values[event.type]:
                 try:
                     self.data_manager.update_event(event.modify(value=value))
+                    self.data_manager.save()  # TODO test
                     return
                 except KeyError:
                     pass

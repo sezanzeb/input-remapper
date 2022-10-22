@@ -77,14 +77,6 @@ class RelToRelHandler(MappingHandler):
 
         self._remainder = 0
 
-        self._transform = Transformation(
-            max_=256,
-            min_=-256,
-            deadzone=self.mapping.deadzone,
-            gain=self.mapping.gain,
-            expo=self.mapping.expo,
-        )
-
         self._is_wheel_input = False
 
         # TODO duplicate code
@@ -100,6 +92,18 @@ class RelToRelHandler(MappingHandler):
                     self._is_wheel_input = True
 
                 break
+
+        max_ = (
+            self.mapping.rel_wheel_speed if self._is_wheel_input
+            else self.mapping.rel_xy_speed
+        )
+        self._transform = Transformation(
+            max_=max_,
+            min_=-max_,
+            deadzone=self.mapping.deadzone,
+            gain=self.mapping.gain,
+            expo=self.mapping.expo,
+        )
 
     def __str__(self):
         return f"RelToRelHandler for {self._input_movement} <{id(self)}>:"
@@ -143,7 +147,7 @@ class RelToRelHandler(MappingHandler):
     def _write(self, value: float) -> None:
         """Inject."""
         # value is between 0 and 1, scale up
-        if self.mapping.is_wheel_output() or self._is_wheel_input:
+        if self.mapping.is_wheel_output():
             scaled = value * self.mapping.rel_wheel_speed
         else:
             scaled = value * self.mapping.rel_xy_speed

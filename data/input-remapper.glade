@@ -1234,6 +1234,7 @@ Only relevant when mapping relative inputs (e.g. mouse) to absolute outputs (e.g
               <object class="GtkStatusbar" id="status_bar">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
+                <property name="opacity">0.5</property>
                 <property name="margin-left">7</property>
                 <property name="margin-right">7</property>
                 <property name="margin-start">7</property>
@@ -1758,7 +1759,6 @@ Macros allow multiple characters to be written with a single key-press. Informat
                 <property name="receives-default">True</property>
                 <property name="halign">start</property>
                 <property name="image">image4</property>
-                <property name="relief">none</property>
               </object>
               <packing>
                 <property name="left-attach">1</property>
