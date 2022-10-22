@@ -132,16 +132,20 @@ class EventCombination(Tuple[InputEvent]):
         return False
 
     def has_input_axis(self) -> bool:
+        """Check if any event is configured with "Use as analog"."""
         return False in (event.is_key_event for event in self)
 
-    def find_analog_input_event(self, type_: Optional[int] = None) -> bool:
-        """Return the event that is configured with "Use as Analog"."""
+    def find_analog_input_event(self, type_: Optional[int] = None) -> InputEvent:
+        """Return the first event that is configured with "Use as analog"."""
+        # TODO test
         for event in self:
             if event.value == USE_AS_ANALOG_VALUE:
                 if type_ is not None and event.type != type_:
                     continue
 
                 return event
+
+        return None
 
     def get_permutations(self):
         """Get a list of EventCombination objects representing all possible permutations.
