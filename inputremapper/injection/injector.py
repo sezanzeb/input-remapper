@@ -189,7 +189,7 @@ class Injector(multiprocessing.Process):
             DeviceType.UNKNOWN,
         ]
 
-        # query all devices for their capabilities, and type
+        # all devices in this group
         devices: List[evdev.InputDevice] = []
         for path in self.group.paths:
             try:
@@ -202,24 +202,27 @@ class Injector(multiprocessing.Process):
         needed_devices = (
             {}
         )  # use a dict because the InputDevice is not directly hashable
+
         for mapping in self.preset:
-            candidates: List[evdev.InputDevice] = [
-                device
-                for device in devices
-                if is_in_capabilities(
-                    mapping.event_combination, device.capabilities(absinfo=False)
-                )
-            ]
-            if len(candidates) > 1:
-                # there is more than on input device which can be used for this mapping
-                # we choose only one determined by the ranking
-                device = sorted(candidates, key=lambda d: ranking.index(classify(d)))[0]
-            elif len(candidates) == 1:
-                device = candidates.pop()
-            else:
-                logger.error("Could not find input for %s", mapping)
-                continue
-            needed_devices[device.path] = device
+            for event in mapping.event_combination:
+                candidates: List[evdev.InputDevice] = [
+                    device
+                    for device in devices
+                    if event.code
+                    in device.capabilities(absinfo=False).get(event.type, [])
+                ]
+                if len(candidates) > 1:
+                    # there is more than on input device which can be used for this
+                    # event we choose only one determined by the ranking
+                    device = sorted(
+                        candidates, key=lambda d: ranking.index(classify(d))
+                    )[0]
+                elif len(candidates) == 1:
+                    device = candidates.pop()
+                else:
+                    logger.error(f"Could not find input for {event} in {mapping}")
+                    continue
+                needed_devices[device.path] = device
 
         grabbed_devices = []
         for device in needed_devices.values():

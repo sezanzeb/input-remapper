@@ -323,6 +323,7 @@ class Controller:
                 event_combination=EventCombination(combination)
             )
             self.load_event(combination[0])
+            self.save()
         except (KeyError, ValueError):
             # we need to synchronize the gui
             self.data_manager.send_mapping()
