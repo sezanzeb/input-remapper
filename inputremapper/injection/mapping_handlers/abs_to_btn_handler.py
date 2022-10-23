@@ -54,7 +54,10 @@ class AbsToBtnHandler(MappingHandler):
         assert len(combination) == 1
 
     def __str__(self):
-        return f"AbsToBtnHandler for {self._input_event.event_tuple} <{id(self)}>:"
+        return (
+            f'AbsToBtnHandler for "{self._input_event.get_name()}" '
+            f"{self._input_event.event_tuple} <{id(self)}>:"
+        )
 
     def __repr__(self):
         return self.__str__()

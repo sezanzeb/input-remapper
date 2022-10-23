@@ -284,7 +284,6 @@ class MappingSelectionLabel(Gtk.ListBoxRow):
         self._controller.update_mapping(name=name)
 
     def _on_gtk_rename_abort(self, _, key_event: Gdk.EventKey):
-        logger.error("called")
         if key_event.keyval == Gdk.KEY_Escape:
             self._set_selected()
 
