@@ -20,6 +20,8 @@
 
 from typing import Tuple, Dict
 
+import evdev
+
 from inputremapper import exceptions
 from inputremapper.configs.mapping import Mapping
 from inputremapper.event_combination import EventCombination
@@ -31,6 +33,7 @@ from inputremapper.injection.mapping_handlers.mapping_handler import (
 )
 from inputremapper.input_event import InputEvent
 from inputremapper.logger import logger
+from inputremapper.utils import get_evdev_constant_name
 
 
 class KeyHandler(MappingHandler):
@@ -63,7 +66,8 @@ class KeyHandler(MappingHandler):
 
     @property
     def child(self):  # used for logging
-        return f"maps to: {self._maps_to} on {self.mapping.target_uinput}"
+        name = get_evdev_constant_name(*self._map_axis)
+        return f"maps to: {name} {self._maps_to} on {self.mapping.target_uinput}"
 
     def notify(self, event: InputEvent, *_, **__) -> bool:
         """Inject event.value to the target key."""
