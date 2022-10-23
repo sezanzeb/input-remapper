@@ -49,16 +49,19 @@ from inputremapper.utils import get_evdev_constant_name
 
 async def _run_normal_output(self) -> None:
     """Start injecting events."""
+    weight = self.mapping.rel_xy_speed
+
     self._running = True
     self._stop = False
     # logger.debug("starting AbsToRel loop")
     remainder = 0.0
     start = time.time()
     while not self._stop:
-        float_value = self._value + remainder
+        # self._value is between 0 and 1, scale up with weight
+        scaled = self._value * weight + remainder
         # float_value % 1 will result in wrong calculations for negative values
-        remainder = math.fmod(float_value, 1)
-        value = int(float_value)
+        remainder = math.fmod(scaled, 1)
+        value = int(scaled)
         self._write(EV_REL, self.mapping.output_code, value)
 
         time_taken = time.time() - start
@@ -69,14 +72,17 @@ async def _run_normal_output(self) -> None:
     self._running = False
 
 
-async def _run_wheel_output(
-    self, codes: Tuple[int, int], weights: Tuple[float, float]
-) -> None:
+async def _run_wheel_output(self, codes: Tuple[int, int]) -> None:
     """Start injecting wheel events.
 
     made to inject both REL_WHEEL and REL_WHEEL_HI_RES events, because otherwise
     wheel output doesn't work for some people. See issue #354
     """
+    weights = (
+        self.mapping.rel_wheel_speed,
+        self.mapping.rel_wheel_hi_res_speed,
+    )
+
     self._running = True
     self._stop = False
     # logger.debug("starting AbsToRel loop")
@@ -84,10 +90,11 @@ async def _run_wheel_output(
     start = time.time()
     while not self._stop:
         for i in range(len(codes)):
-            float_value = self._value * weights[i] + remainder[i]
+            # self._value is between 0 and 1, scale up with weights
+            scaled = self._value * weights[i] + remainder[i]
             # float_value % 1 will result in wrong calculations for negative values
-            remainder[i] = math.fmod(float_value, 1)
-            value = int(float_value)
+            remainder[i] = math.fmod(scaled, 1)
+            value = int(scaled)
             self._write(EV_REL, codes[i], value)
 
         time_taken = time.time() - start
@@ -139,12 +146,7 @@ class AbsToRelHandler(MappingHandler):
             else:
                 codes = (REL_HWHEEL, REL_HWHEEL_HI_RES)
 
-            if self.mapping.output_code in (REL_WHEEL, REL_HWHEEL):
-                weights = (1.0, 120.0)
-            else:
-                weights = (1 / 120, 1)
-
-            self._run = partial(_run_wheel_output, self, codes=codes, weights=weights)
+            self._run = partial(_run_wheel_output, self, codes=codes)
 
         else:
             self._run = partial(_run_normal_output, self)
@@ -194,14 +196,7 @@ class AbsToRelHandler(MappingHandler):
 
         transformed = self._transform(event.value)
 
-        # transformed is between 0 and 1, scale up
-        if self.mapping.is_wheel_output():
-            self._value = transformed * self.mapping.rel_wheel_speed
-        elif self.mapping.is_high_res_wheel_output():
-            # TODO test?
-            self._value = transformed * self.mapping.rel_wheel_hi_res_speed
-        else:
-            self._value = transformed * self.mapping.rel_xy_speed
+        self._value = transformed
 
         if self._value == 0:
             self._stop = True

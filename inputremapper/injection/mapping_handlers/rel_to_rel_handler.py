@@ -54,9 +54,6 @@ def is_high_res_wheel(event) -> bool:
     return event.type == EV_REL and event.code in (REL_WHEEL_HI_RES, REL_HWHEEL_HI_RES)
 
 
-# TODO test
-
-
 class Remainder:
     _scale: int
     _remainder: float

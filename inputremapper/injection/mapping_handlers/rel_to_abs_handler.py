@@ -81,7 +81,6 @@ class RelToAbsHandler(MappingHandler):
             ).capabilities(absinfo=True)[EV_ABS]
         }[mapping.output_code]
 
-        # TODO test?
         if self._input_movement[1] in [REL_WHEEL, REL_HWHEEL]:
             max_ = mapping.rel_wheel_max_input
         elif self._input_movement[1] in [REL_WHEEL_HI_RES, REL_HWHEEL_HI_RES]:
