@@ -328,9 +328,7 @@ class TestRelToRelHanlder(BaseTests, unittest.IsolatedAsyncioTestCase):
 
         self.assertTrue(self.handler._should_map(input_))
         self.assertFalse(
-            self.handler._should_map(
-                InputEvent(0, 0, EV_REL, REL_WHEEL, 1)
-            )
+            self.handler._should_map(InputEvent(0, 0, EV_REL, REL_WHEEL, 1))
         )
 
     def test_reset(self):
