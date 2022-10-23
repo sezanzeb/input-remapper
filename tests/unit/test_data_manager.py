@@ -762,7 +762,7 @@ class TestDataManager(unittest.TestCase):
         self.assertRaises(FileNotFoundError, self.data_manager.get_newest_preset_name)
 
     def test_newest_preset_raises_data_management_error(self):
-        """should raise data management error without a active group"""
+        """should raise data management error without an active group"""
         self.assertRaises(DataManagementError, self.data_manager.get_newest_preset_name)
 
     def test_newest_preset_only_searches_active_group(self):

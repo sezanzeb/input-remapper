@@ -318,7 +318,7 @@ class Mapping(UIMapping):
         for event in combination:
             if event.type == EV_ABS and abs(event.value) >= 100:
                 raise ValueError(
-                    f"{event = } maps a absolute axis to a button, but the trigger "
+                    f"{event = } maps an absolute axis to a button, but the trigger "
                     f"point (event.value) is not between -100[%] and 100[%]"
                 )
         return combination
@@ -383,7 +383,7 @@ class Mapping(UIMapping):
         if 0 not in event_values and not output_symbol and output_type != EV_KEY:
             raise ValueError(
                 f"missing macro or key: "
-                f"the {combination = } specifies a key input, "
+                f'"{str(combination)}" specifies a key input, '
                 f"but no output macro or key is programmed"
             )
 
@@ -394,7 +394,7 @@ class Mapping(UIMapping):
         ):
             raise ValueError(
                 f"missing output axis: "
-                f"the {combination = } specifies a input axis, "
+                f'"{str(combination)}" specifies an input axis, '
                 f"but the {output_type = } is not an axis "
             )
 

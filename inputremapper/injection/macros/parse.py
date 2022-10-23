@@ -58,6 +58,7 @@ TASK_FACTORIES = {
     "set": Macro.add_set,
     "if_tap": Macro.add_if_tap,
     "if_single": Macro.add_if_single,
+    "add": Macro.add_add,
     # Those are only kept for backwards compatibility with old macros. The space for
     # writing macro was very constrained in the past, so shorthands were introduced:
     "m": Macro.add_modify,
@@ -240,8 +241,7 @@ def _parse_recurse(code, context, mapping, verbose, macro_instance=None, depth=0
 
     if code == "" or code == "None":
         # A function parameter probably
-        # TODO I think "" is the deprecated alternative to "None"
-        #  deprecate completely in 2.0, migrate ",\s+," to ", None"
+        # I think "" is the deprecated alternative to "None"
         return None
 
     if code.startswith('"'):
@@ -255,11 +255,6 @@ def _parse_recurse(code, context, mapping, verbose, macro_instance=None, depth=0
     if code.startswith("$"):
         # will be resolved during the macros runtime
         return Variable(code.split("$", 1)[1])
-
-    if code.startswith("{") and code.endswith("}"):
-        # TODO just remove them and continue. right now there is no
-        #  actual need for them
-        ...
 
     if _is_number(code):
         if "." in code:
@@ -342,19 +337,22 @@ def _parse_recurse(code, context, mapping, verbose, macro_instance=None, depth=0
 
         # is after this another call? Chain it to the macro_instance
         more_code_exists = len(code) > closing_bracket_position + 1
-        # require statements to be closed with semicolons, to reduce the complexity
-        # of parsing https://stackoverflow.com/questions/4701137/why-do-some-languages-need-semicolons
-        statement_closed = code[closing_bracket_position + 1] == ";"
-        if more_code_exists and statement_closed:
-            # TODO test ";"
-            # TODO migrate ")." to ");" and ") ." to "); ", and the last ) in the code to ");"
-            # TODO remove "." from all docs
-            # TODO {}?
-            chain = code[closing_bracket_position:]
-            debug("%sfollowed by %s", space, chain)
-            _parse_recurse(chain, context, mapping, verbose, macro_instance, depth)
+        if more_code_exists:
+            next_char = code[closing_bracket_position + 1]
+            statement_closed = next_char == "."
 
-        # TODO is there a readable error message if ; is missing between statements?
+            if statement_closed:
+                # skip over the ")."
+                chain = code[closing_bracket_position + 2 :]
+                debug("%sfollowed by %s", space, chain)
+                _parse_recurse(chain, context, mapping, verbose, macro_instance, depth)
+            elif re.match(r"[a-zA-Z_]", next_char):
+                # something like foo()bar
+                raise MacroParsingError(
+                    code,
+                    f'Expected a "." to follow after '
+                    f"{code[:closing_bracket_position + 1]}",
+                )
 
         return macro_instance
 

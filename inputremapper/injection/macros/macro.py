@@ -544,6 +544,35 @@ class Macro:
 
         self.tasks.append(task)
 
+    def add_add(self, variable, value):
+        """Add a number to a variable."""
+        _type_check_variablename(variable)
+
+        async def task(_):
+            current = macro_variables[variable]
+            if current is None:
+                logger.debug('"%s" initialized with 0', variable)
+                macro_variables[variable] = 0
+                current = 0
+
+            resolved_value = _resolve(value)
+            if not isinstance(resolved_value, (int, float)):
+                logger.error('Expected delta "%s" to be a number', resolved_value)
+                return
+
+            if not isinstance(current, (int, float)):
+                logger.error(
+                    'Expected variable "%s" to contain a number, but got "%s"',
+                    variable,
+                    current,
+                )
+                return
+
+            logger.debug('"%s" += "%s"', variable, resolved_value)
+            macro_variables[variable] += value
+
+        self.tasks.append(task)
+
     def add_ifeq(self, variable, value, then=None, else_=None):
         """Old version of if_eq, kept for compatibility reasons.
 

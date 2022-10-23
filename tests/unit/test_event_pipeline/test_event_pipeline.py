@@ -538,7 +538,7 @@ class TestEventPipeline(unittest.IsolatedAsyncioTestCase):
 
     async def test_abs_to_wheel_hi_res_quirk(self):
         """When mapping to wheel events we always expect to see both,
-        REL_WHEEL and REL_WHEEL_HI_RES events with a accumulative value ratio of 1/120
+        REL_WHEEL and REL_WHEEL_HI_RES events with an accumulative value ratio of 1/120
         """
         rate = 60  # rate [Hz] at which events are produced
         gain = 1
