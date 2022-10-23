@@ -199,7 +199,7 @@ Bear in mind that anti-cheat software might detect macros in games.
 > Examples:
 >
 > ```c#
-> set(a, 1).add($a, 2).if_eq($a, 3, key(x), key(y))
+> set(a, 1).add(a, 2).if_eq($a, 3, key(x), key(y))
 > ```
 
 ### if_eq
