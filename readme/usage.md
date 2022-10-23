@@ -229,11 +229,11 @@ The following table contains all possible parameters and their default values:
 | **EV_REL output**           |            
 | rel_xy_rate                 | 60      | positive int    | The frequency `[Hz]` at which `REL_X` amd `REL_Y` events get generated (also effects mouse macro)           |
 | rel_wheel_rate              | 60      | positive int    | The frequency `[Hz]` at which wheel events get generated (also effects wheel macro)                         |
-| rel_xy_speed                | 50      | positive int    | The base speed of the relative axis, compounds with the gain (also effects mouse and wheel macro)           |
-| rel_wheel_speed             | 5       | positive int    | The base speed of the relative axis, compounds with the gain (also effects mouse and wheel macro)           |
-| rel_wheel_hi_res_speed      | 5       | positive int    | The base speed of the relative axis, compounds with the gain (also effects mouse and wheel macro)           |
+| rel_xy_speed                | 30      | positive int    | The base speed of the relative axis, compounds with the gain (also effects mouse and wheel macro)           |
+| rel_wheel_speed             | 1       | positive int    | The base speed of the relative axis, compounds with the gain (also effects mouse and wheel macro)           |
+| rel_wheel_hi_res_speed      | 120     | positive int    | The base speed of the relative axis, compounds with the gain (also effects mouse and wheel macro)           |
 | **EV_REL as input**         |         
-| rel_xy_max_input            | 90      | positive int    | The absolute value at which `REL_X` and `REL_Y` input (mouse cursor movement) is considered at its maximum  |
+| rel_xy_max_input            | 100     | positive int    | The absolute value at which `REL_X` and `REL_Y` input (mouse cursor movement) is considered at its maximum  |
 | rel_wheel_max_input         | 3       | positive int    | The absolute value at which a `REL_WHEEL` and `REL_HWHEEL` input is considered at its maximum               |
 | rel_wheel_hi_res_max_input  | 360     | positive int    | The absolute value at which a `REL_WHEEL_HI_RES` and `REL_HWHEEL_HI_RES` input is considered at its maximum |
 | release_timeout             | 0.05    | positive float  | The time `[s]` until a relative axis is considered stationary if no new events arrive                       |
