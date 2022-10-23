@@ -39,6 +39,7 @@ InputEventValidationType = Union[
 ]
 
 
+# if "Use as analog" is set in the advanced mapping editor, the value will be set to 0
 USE_AS_ANALOG_VALUE = 0
 
 
@@ -178,16 +179,14 @@ class InputEvent:
     @property
     def is_wheel_event(self) -> bool:
         """Whether this is interpreted as a key event."""
-        # TODO test
         return self.type == evdev.ecodes.EV_REL and self.code in [
             ecodes.REL_WHEEL,
             ecodes.REL_HWHEEL,
         ]
 
     @property
-    def is_hi_res_wheel_event(self) -> bool:
+    def is_wheel_hi_res_event(self) -> bool:
         """Whether this is interpreted as a key event."""
-        # TODO test
         return self.type == evdev.ecodes.EV_REL and self.code in [
             ecodes.REL_WHEEL_HI_RES,
             ecodes.REL_HWHEEL_HI_RES,

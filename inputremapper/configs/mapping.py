@@ -134,14 +134,14 @@ class UIMapping(BaseModel):
     # values are observed normal output values in evtest
     rel_xy_speed: PositiveInt = 30
     rel_wheel_speed: PositiveInt = 1
-    rel_hi_res_wheel_speed: PositiveInt = 120
+    rel_wheel_hi_res_speed: PositiveInt = 120
 
     # when mapping from a relative axis:
     # the absolute value at which a EV_REL axis is considered at its maximum.
     # values are from evtest when moving the input quickly
     rel_xy_max_input: PositiveInt = 100
     rel_wheel_max_input: PositiveInt = 3
-    rel_hi_res_wheel_max_input: PositiveInt = 360
+    rel_wheel_hi_res_max_input: PositiveInt = 360
 
     # the time until a relative axis is considered stationary if no new events arrive
     release_timeout: PositiveFloat = 0.05
@@ -226,7 +226,6 @@ class UIMapping(BaseModel):
         self, type_: Optional[int] = None
     ) -> Optional[InputEvent]:
         """Return the first event that is configured with "Use as analog"."""
-        # TODO test
         for event in self.event_combination:
             if event.value == USE_AS_ANALOG_VALUE:
                 if type_ is not None and event.type != type_:
@@ -237,14 +236,12 @@ class UIMapping(BaseModel):
         return None
 
     def is_wheel_output(self) -> bool:
-        # TODO test
         return self.output_code in (
             REL_WHEEL,
             REL_HWHEEL,
         )
 
     def is_high_res_wheel_output(self) -> bool:
-        # TODO test
         return self.output_code in (
             REL_WHEEL_HI_RES,
             REL_HWHEEL_HI_RES,

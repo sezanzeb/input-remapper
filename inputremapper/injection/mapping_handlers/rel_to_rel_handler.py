@@ -40,7 +40,7 @@ from inputremapper.injection.mapping_handlers.mapping_handler import (
     HandlerEnums,
     InputEventHandler,
 )
-from inputremapper.input_event import InputEvent, USE_AS_ANALOG_VALUE
+from inputremapper.input_event import InputEvent
 from inputremapper.logger import logger
 
 
@@ -91,8 +91,8 @@ class RelToRelHandler(MappingHandler):
         # -> So the same speed is used as max_ and for scaling.
         if self._input_event.is_wheel_event:
             max_ = self.mapping.rel_wheel_speed
-        elif self._input_event.is_hi_res_wheel_event:
-            max_ = self.mapping.rel_hi_res_wheel_speed
+        elif self._input_event.is_wheel_hi_res_event:
+            max_ = self.mapping.rel_wheel_hi_res_speed
         else:
             max_ = self.mapping.rel_xy_speed
 
@@ -149,7 +149,7 @@ class RelToRelHandler(MappingHandler):
         if self.mapping.is_wheel_output():
             scaled = value * self.mapping.rel_wheel_speed
         elif self.mapping.is_high_res_wheel_output():
-            scaled = value * self.mapping.rel_hi_res_wheel_speed
+            scaled = value * self.mapping.rel_wheel_hi_res_speed
         else:
             scaled = value * self.mapping.rel_xy_speed
 

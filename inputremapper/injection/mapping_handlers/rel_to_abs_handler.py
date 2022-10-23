@@ -85,7 +85,7 @@ class RelToAbsHandler(MappingHandler):
         if self._input_movement[1] in [REL_WHEEL, REL_HWHEEL]:
             max_ = mapping.rel_wheel_max_input
         elif self._input_movement[1] in [REL_WHEEL_HI_RES, REL_HWHEEL_HI_RES]:
-            max_ = mapping.rel_hi_res_wheel_max_input
+            max_ = mapping.rel_wheel_hi_res_max_input
         else:
             max_ = mapping.rel_xy_max_input
 
@@ -116,7 +116,6 @@ class RelToAbsHandler(MappingHandler):
         forward: evdev.UInput = None,
         supress: bool = False,
     ) -> bool:
-
         if event.type_and_code != self._input_movement:
             return False
 

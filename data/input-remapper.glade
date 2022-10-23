@@ -1200,15 +1200,12 @@ Only relevant when mapping relative inputs (e.g. mouse) to absolute outputs (e.g
           <object class="GtkBox" id="warnings">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
-            <property name="margin-left">18</property>
-            <property name="margin-right">18</property>
-            <property name="margin-start">18</property>
             <property name="margin-end">18</property>
             <child>
               <object class="GtkImage" id="warning_status_icon">
                 <property name="can-focus">False</property>
                 <property name="margin-left">6</property>
-                <property name="margin-start">6</property>
+                <property name="margin-start">9</property>
                 <property name="icon-name">dialog-warning</property>
               </object>
               <packing>
@@ -1221,7 +1218,7 @@ Only relevant when mapping relative inputs (e.g. mouse) to absolute outputs (e.g
               <object class="GtkImage" id="error_status_icon">
                 <property name="can-focus">False</property>
                 <property name="margin-left">6</property>
-                <property name="margin-start">6</property>
+                <property name="margin-start">9</property>
                 <property name="icon-name">dialog-error</property>
               </object>
               <packing>

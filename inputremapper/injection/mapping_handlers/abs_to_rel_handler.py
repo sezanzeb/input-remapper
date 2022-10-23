@@ -187,9 +187,11 @@ class AbsToRelHandler(MappingHandler):
         # transformed is between 0 and 1, scale up
         if self.mapping.is_wheel_output():
             self._value = transformed * self.mapping.rel_wheel_speed
+        elif self.mapping.is_high_res_wheel_output():
+            # TODO test?
+            self._value = transformed * self.mapping.rel_wheel_hi_res_speed
         else:
             self._value = transformed * self.mapping.rel_xy_speed
-        # TODO is_high_res_wheel_output?
 
         if self._value == 0:
             self._stop = True

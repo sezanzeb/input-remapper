@@ -21,14 +21,25 @@
 import unittest
 from functools import partial
 
-from evdev.ecodes import EV_KEY
+from evdev.ecodes import (
+    EV_ABS,
+    EV_REL,
+    REL_X,
+    BTN_MIDDLE,
+    EV_KEY,
+    KEY_A,
+    ABS_X,
+    REL_Y,
+    REL_WHEEL,
+    REL_WHEEL_HI_RES,
+)
 from pydantic import ValidationError
 
 from inputremapper.configs.mapping import Mapping, UIMapping
 from inputremapper.configs.system_mapping import system_mapping, DISABLE_NAME
-from inputremapper.gui.messages.message_broker import MessageType
-from inputremapper.input_event import EventActions
 from inputremapper.event_combination import EventCombination
+from inputremapper.gui.messages.message_broker import MessageType
+from inputremapper.input_event import EventActions, InputEvent, USE_AS_ANALOG_VALUE
 
 
 class TestMapping(unittest.IsolatedAsyncioTestCase):
@@ -57,6 +68,74 @@ class TestMapping(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(m.rel_wheel_speed, 1)
         self.assertEqual(m.rel_xy_max_input, 100)
         self.assertEqual(m.release_timeout, 0.05)
+
+    def test_is_wheel_output(self):
+        mapping = Mapping(
+            event_combination=EventCombination(
+                events=(InputEvent(0, 0, EV_REL, REL_X, USE_AS_ANALOG_VALUE),)
+            ),
+            target_uinput="keyboard",
+            output_type=EV_REL,
+            output_code=REL_Y,
+        )
+        self.assertFalse(mapping.is_wheel_output())
+        self.assertFalse(mapping.is_high_res_wheel_output())
+
+        mapping = Mapping(
+            event_combination=EventCombination(
+                events=(InputEvent(0, 0, EV_REL, REL_X, USE_AS_ANALOG_VALUE),)
+            ),
+            target_uinput="keyboard",
+            output_type=EV_REL,
+            output_code=REL_WHEEL,
+        )
+        self.assertTrue(mapping.is_wheel_output())
+        self.assertFalse(mapping.is_high_res_wheel_output())
+
+        mapping = Mapping(
+            event_combination=EventCombination(
+                events=(InputEvent(0, 0, EV_REL, REL_X, USE_AS_ANALOG_VALUE),)
+            ),
+            target_uinput="keyboard",
+            output_type=EV_REL,
+            output_code=REL_WHEEL_HI_RES,
+        )
+        self.assertFalse(mapping.is_wheel_output())
+        self.assertTrue(mapping.is_high_res_wheel_output())
+
+    def test_find_analog_input_event(self):
+        analog_input = InputEvent(0, 0, EV_REL, REL_X, USE_AS_ANALOG_VALUE)
+
+        mapping = Mapping(
+            event_combination=EventCombination(
+                events=(
+                    InputEvent(0, 0, EV_KEY, BTN_MIDDLE, 1),
+                    InputEvent(0, 0, EV_REL, REL_Y, 1),
+                    analog_input,
+                )
+            ),
+            target_uinput="keyboard",
+            output_type=EV_ABS,
+            output_code=ABS_X,
+        )
+        self.assertIsNone(mapping.find_analog_input_event(type_=EV_ABS))
+        self.assertEqual(mapping.find_analog_input_event(type_=EV_REL), analog_input)
+        self.assertEqual(mapping.find_analog_input_event(), analog_input)
+
+        mapping = Mapping(
+            event_combination=EventCombination(
+                events=(
+                    InputEvent(0, 0, EV_REL, REL_X, 1),
+                    InputEvent(0, 0, EV_KEY, BTN_MIDDLE, 1),
+                )
+            ),
+            target_uinput="keyboard",
+            output_type=EV_KEY,
+            output_code=KEY_A,
+        )
+        self.assertIsNone(mapping.find_analog_input_event(type_=EV_ABS))
+        self.assertIsNone(mapping.find_analog_input_event(type_=EV_REL))
+        self.assertIsNone(mapping.find_analog_input_event())
 
     def test_get_output_type_code(self):
         cfg = {

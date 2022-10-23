@@ -19,6 +19,9 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
+"""See TestEventPipeline for more tests."""
+
+
 import asyncio
 import unittest
 from unittest.mock import MagicMock
