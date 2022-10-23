@@ -116,9 +116,6 @@ class RelToRelHandler(MappingHandler):
 
     def _should_map(self, event):
         """Check if this input event is relevant for this handler."""
-        if self._input_event.is_wheel_event and is_wheel(event):
-            return True
-
         if event.type_and_code == (self._input_event.type, self._input_event.code):
             return True
 

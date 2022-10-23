@@ -36,6 +36,8 @@ from evdev.ecodes import (
     BTN_LEFT,
     BTN_RIGHT,
     KEY_A,
+    REL_Y,
+    REL_WHEEL,
 )
 
 from inputremapper.configs.mapping import Mapping
@@ -44,6 +46,7 @@ from inputremapper.injection.global_uinputs import global_uinputs
 from inputremapper.injection.mapping_handlers.abs_to_abs_handler import AbsToAbsHandler
 from inputremapper.injection.mapping_handlers.abs_to_btn_handler import AbsToBtnHandler
 from inputremapper.injection.mapping_handlers.abs_to_rel_handler import AbsToRelHandler
+from inputremapper.injection.mapping_handlers.rel_to_rel_handler import RelToRelHandler
 from inputremapper.injection.mapping_handlers.axis_switch_handler import (
     AxisSwitchHandler,
 )
@@ -52,7 +55,7 @@ from inputremapper.injection.mapping_handlers.key_handler import KeyHandler
 from inputremapper.injection.mapping_handlers.macro_handler import MacroHandler
 from inputremapper.injection.mapping_handlers.mapping_handler import MappingHandler
 from inputremapper.injection.mapping_handlers.rel_to_abs_handler import RelToAbsHandler
-from inputremapper.input_event import InputEvent, EventActions
+from inputremapper.input_event import InputEvent, EventActions, USE_AS_ANALOG_VALUE
 from tests.test import (
     InputDevice,
     cleanup,
@@ -294,3 +297,42 @@ class TestRelToBtnHanlder(BaseTests, unittest.IsolatedAsyncioTestCase):
                 output_symbol="BTN_LEFT",
             ),
         )
+
+
+class TestRelToRelHanlder(BaseTests, unittest.IsolatedAsyncioTestCase):
+    def setUp(self):
+        input_ = InputEvent(0, 0, EV_REL, REL_X, USE_AS_ANALOG_VALUE)
+        self.handler = RelToRelHandler(
+            EventCombination(input_),
+            Mapping(
+                event_combination=EventCombination(input_),
+                output_type=EV_REL,
+                output_code=REL_Y,
+                output_value=20,
+                target_uinput="mouse",
+            ),
+        )
+
+    def test_should_map(self):
+        input_ = InputEvent(0, 0, EV_REL, REL_X, USE_AS_ANALOG_VALUE)
+        self.handler = RelToRelHandler(
+            EventCombination(input_),
+            Mapping(
+                event_combination=EventCombination(input_),
+                output_type=EV_REL,
+                output_code=REL_Y,
+                output_value=20,
+                target_uinput="mouse",
+            ),
+        )
+
+        self.assertTrue(self.handler._should_map(input_))
+        self.assertFalse(
+            self.handler._should_map(
+                InputEvent(0, 0, EV_REL, REL_WHEEL, 1)
+            )
+        )
+
+    def test_reset(self):
+        # nothing special has to happen here
+        pass
