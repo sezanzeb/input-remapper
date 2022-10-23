@@ -193,7 +193,7 @@ class Controller:
             if mapping.output_type in (EV_ABS, EV_REL):
                 message += _(
                     "\nIf you mean to create an analog axis mapping go to the "
-                    'advanced input configuration and set a input to "Use as Analog".'
+                    'advanced input configuration and set an input to "Use as Analog".'
                 )
             return message
 
@@ -320,6 +320,7 @@ class Controller:
                 event_combination=EventCombination(combination)
             )
             self.load_event(combination[0])
+            self.save()
         except (KeyError, ValueError):
             # we need to synchronize the gui
             self.data_manager.send_mapping()

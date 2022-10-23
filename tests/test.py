@@ -790,7 +790,7 @@ environ_copy = copy.deepcopy(os.environ)
 
 
 def convert_to_internal_events(events):
-    """Convert a iterable of InputEvent to a list of inputremapper.InputEvent."""
+    """Convert an iterable of InputEvent to a list of inputremapper.InputEvent."""
     return [InternalInputEvent.from_event(event) for event in events]
 
 
