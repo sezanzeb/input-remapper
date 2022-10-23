@@ -23,7 +23,8 @@ import enum
 from typing import Optional, Callable, Tuple, TypeVar, Literal, Union
 
 import pkg_resources
-from evdev.ecodes import EV_KEY, EV_ABS, EV_REL
+import evdev
+from evdev.ecodes import bytype, EV_KEY, EV_ABS, EV_REL
 from pydantic import (
     BaseModel,
     PositiveInt,
@@ -221,6 +222,10 @@ class UIMapping(BaseModel):
         if not is_this_a_macro(self.output_symbol):
             return EV_KEY, system_mapping.get(self.output_symbol)
         return None
+
+    def get_output_name_constant(self) -> bool:
+        """Get the evdev name costant for the output."""
+        return evdev.ecodes.bytype[self.output_type][self.output_code]
 
     def is_valid(self) -> bool:
         """If the mapping is valid."""

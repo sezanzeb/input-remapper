@@ -34,6 +34,7 @@ from inputremapper.injection.mapping_handlers.mapping_handler import (
 )
 from inputremapper.input_event import InputEvent, EventActions
 from inputremapper.logger import logger
+from inputremapper.utils import get_evdev_constant_name
 
 
 class AbsToAbsHandler(MappingHandler):
@@ -73,14 +74,19 @@ class AbsToAbsHandler(MappingHandler):
         self._transform = None
 
     def __str__(self):
-        return f"AbsToAbsHandler for {self._map_axis} <{id(self)}>:"
+        name = get_evdev_constant_name(*self._map_axis)
+        return f'AbsToAbsHandler for "{name}" {self._map_axis} <{id(self)}>:'
 
     def __repr__(self):
         return self.__str__()
 
     @property
     def child(self):  # used for logging
-        return f"maps to: {self.mapping.output_code} at {self.mapping.target_uinput}"
+        return (
+            f"maps to: {self.mapping.get_output_name_constant()} "
+            f"{self.mapping.get_output_type_code()} at "
+            f"{self.mapping.target_uinput}"
+        )
 
     def notify(
         self,

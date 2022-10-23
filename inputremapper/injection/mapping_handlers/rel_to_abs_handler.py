@@ -93,7 +93,11 @@ class RelToAbsHandler(MappingHandler):
 
     @property
     def child(self):  # used for logging
-        return f"maps to: {self.mapping.output_code} at {self.mapping.target_uinput}"
+        return (
+            f"maps to: {self.mapping.get_output_name_constant()} "
+            f"{self.mapping.get_output_type_code()} at "
+            f"{self.mapping.target_uinput}"
+        )
 
     def notify(
         self,
