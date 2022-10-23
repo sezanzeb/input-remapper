@@ -22,9 +22,17 @@ from __future__ import annotations
 import enum
 from typing import Optional, Callable, Tuple, TypeVar, Literal, Union
 
-import pkg_resources
 import evdev
-from evdev.ecodes import bytype, EV_KEY, EV_ABS, EV_REL
+import pkg_resources
+from evdev.ecodes import (
+    EV_KEY,
+    EV_ABS,
+    EV_REL,
+    REL_WHEEL,
+    REL_HWHEEL,
+    REL_HWHEEL_HI_RES,
+    REL_WHEEL_HI_RES,
+)
 from pydantic import (
     BaseModel,
     PositiveInt,
@@ -41,8 +49,8 @@ from pydantic import (
 from inputremapper.configs.system_mapping import system_mapping, DISABLE_NAME
 from inputremapper.event_combination import EventCombination
 from inputremapper.exceptions import MacroParsingError
-from inputremapper.gui.messages.message_types import MessageType
 from inputremapper.gui.gettext import _
+from inputremapper.gui.messages.message_types import MessageType
 from inputremapper.injection.macros.parse import is_this_a_macro, parse
 from inputremapper.input_event import InputEvent, EventActions, USE_AS_ANALOG_VALUE
 
