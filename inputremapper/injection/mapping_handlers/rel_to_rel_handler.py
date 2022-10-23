@@ -24,6 +24,8 @@ from typing import Dict, Tuple, Optional
 import evdev
 from evdev.ecodes import (
     EV_REL,
+    REL_X,
+    REL_Y,
     REL_WHEEL,
     REL_HWHEEL,
     REL_WHEEL_HI_RES,
@@ -55,18 +57,43 @@ def is_high_res_wheel(event) -> bool:
 # TODO test
 
 
+class Remainder:
+    _scale: int
+    _remainder: float
+
+    def __init__(self, scale):
+        self._scale = scale
+        self._remainder = 0
+
+    def input(self, value):
+        # if the mouse moves very slow, it might not move at all because of the
+        # int-conversion (which is required when writing). store the remainder
+        # (the decimal places) and add it up, until the mouse moves a little.
+        scaled = value * self._scale
+        floored = int(scaled)
+        self._remainder += scaled - floored
+        if abs(self._remainder) >= 1:
+            output_value = int(scaled + self._remainder)
+            self._remainder = self._remainder - output_value
+        else:
+            output_value = floored
+
+        return output_value
+
+
 class RelToRelHandler(MappingHandler):
     """Handler which transforms EV_REL to EV_REL events."""
 
     _input_event: InputEvent  # the relative movement we map
-    _output_axis: Tuple[int, int]  # the (type, code) of the output axis
     _transform: Transformation
 
     # infinite loop which centers the output when input stops
     _recenter_loop: Optional[asyncio.Task]
     _moving: asyncio.Event  # event to notify the _recenter_loop
 
-    _remainder: float
+    _wheel_remainder: Remainder
+    _wheel_hi_res_remainder: Remainder
+    _default_remainder: Remainder
 
     def __init__(
         self,
@@ -95,6 +122,10 @@ class RelToRelHandler(MappingHandler):
             max_ = self.mapping.rel_wheel_hi_res_speed
         else:
             max_ = self.mapping.rel_xy_speed
+
+        self._wheel_remainder = Remainder(self.mapping.rel_wheel_speed)
+        self._wheel_hi_res_remainder = Remainder(self.mapping.rel_wheel_hi_res_speed)
+        self._xy_remainder = Remainder(self.mapping.rel_xy_speed)
 
         self._transform = Transformation(
             max_=max_,
@@ -132,7 +163,38 @@ class RelToRelHandler(MappingHandler):
             return False
 
         try:
-            self._write(self._transform(event.value))
+            transformed = self._transform(event.value)
+
+            # value is between 0 and 1, scale up
+            wheel_output = self.mapping.is_wheel_output()
+            hi_res_wheel_output = self.mapping.is_high_res_wheel_output()
+
+            horizontal = self.mapping.output_code in (
+                REL_HWHEEL_HI_RES,
+                REL_HWHEEL,
+            )
+
+            if wheel_output or hi_res_wheel_output:
+                # inject both kinds of wheels, otherwise wheels don't work for some
+                # people. See issue #354
+                self._write(
+                    REL_HWHEEL if horizontal else REL_WHEEL,
+                    self._wheel_remainder.input(transformed),
+                )
+                self._write(
+                    REL_HWHEEL_HI_RES if horizontal else REL_WHEEL_HI_RES,
+                    self._wheel_hi_res_remainder.input(transformed),
+                )
+            else:
+                self._write(
+                    self.mapping.output_code,
+                    self._xy_remainder.input(transformed),
+                )
+
+            return True
+        except OverflowError:
+            # screwed up the calculation of the event value
+            logger.error("OverflowError while handling %s", event)
             return True
         except (exceptions.UinputNotAvailable, exceptions.EventNotHandled):
             return False
@@ -140,38 +202,14 @@ class RelToRelHandler(MappingHandler):
     def reset(self) -> None:
         pass
 
-    def _write(self, value: float) -> None:
-        """Inject."""
-        # value is between 0 and 1, scale up
-        if self.mapping.is_wheel_output():
-            scaled = value * self.mapping.rel_wheel_speed
-        elif self.mapping.is_high_res_wheel_output():
-            scaled = value * self.mapping.rel_wheel_hi_res_speed
-        else:
-            scaled = value * self.mapping.rel_xy_speed
-
-        # if the mouse moves very slow, it might not move at all because of the
-        # int-conversion (which is required when writing). store the remainder
-        # (the decimal places) and add it up, until the mouse moves a little.
-        floored = int(scaled)
-        self._remainder += scaled - floored
-        if abs(self._remainder) >= 1:
-            output_value = int(scaled + self._remainder)
-            self._remainder = self._remainder - output_value
-        else:
-            output_value = floored
-
-        if output_value == 0:
+    def _write(self, code, value):
+        if value == 0:
             return
 
-        try:
-            global_uinputs.write(
-                (EV_REL, self.mapping.output_code, output_value),
-                self.mapping.target_uinput,
-            )
-        except OverflowError:
-            # screwed up the calculation of the event value
-            logger.error("OverflowError (%s, %s, %s)", *self._output_axis, value)
+        global_uinputs.write(
+            (EV_REL, code, value),
+            self.mapping.target_uinput,
+        )
 
     def needs_wrapping(self) -> bool:
         return len(self.input_events) > 1

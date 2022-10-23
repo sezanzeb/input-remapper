@@ -127,8 +127,11 @@ class UIMapping(BaseModel):
     expo: confloat(ge=-1, le=1) = 0  # type: ignore
 
     # when mapping to relative axis
-    rel_xy_rate: PositiveInt = 60  # frequency in Hz for REL_X/Y event generation
-    rel_wheel_rate: PositiveInt = 60  # frequency in Hz for REL_WHEEL event generation
+
+    # frequency in Hz for REL_X/Y event generation
+    rel_xy_rate: PositiveInt = 60
+    # frequency in Hz for REL_WHEEL and REL_WHEEL_HI_RES event generation
+    rel_wheel_rate: PositiveInt = 60
 
     # the base speed of the relative axis, compounds with the gain.
     # values are observed normal output values in evtest

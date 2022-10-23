@@ -46,7 +46,7 @@ from inputremapper.input_event import InputEvent, EventActions
 from inputremapper.logger import logger
 
 
-async def _run_normal(self) -> None:
+async def _run_normal_output(self) -> None:
     """Start injecting events."""
     self._running = True
     self._stop = False
@@ -68,17 +68,21 @@ async def _run_normal(self) -> None:
     self._running = False
 
 
-async def _run_wheel(
+async def _run_wheel_output(
     self, codes: Tuple[int, int], weights: Tuple[float, float]
 ) -> None:
-    """Start injecting events."""
+    """Start injecting wheel events.
+
+    made to inject both REL_WHEEL and REL_WHEEL_HI_RES events, because otherwise
+    wheel output doesn't work for some people. See issue #354
+    """
     self._running = True
     self._stop = False
     # logger.debug("starting AbsToRel loop")
     remainder = [0.0, 0.0]
     start = time.time()
     while not self._stop:
-        for i in range(0, 2):
+        for i in range(len(codes)):
             float_value = self._value * weights[i] + remainder[i]
             # float_value % 1 will result in wrong calculations for negative values
             remainder[i] = math.fmod(float_value, 1)
@@ -139,10 +143,10 @@ class AbsToRelHandler(MappingHandler):
             else:
                 weights = (1 / 120, 1)
 
-            self._run = partial(_run_wheel, self, codes=codes, weights=weights)
+            self._run = partial(_run_wheel_output, self, codes=codes, weights=weights)
 
         else:
-            self._run = partial(_run_normal, self)
+            self._run = partial(_run_normal_output, self)
 
     def __str__(self):
         return f"AbsToRelHandler for {self._map_axis} <{id(self)}>:"

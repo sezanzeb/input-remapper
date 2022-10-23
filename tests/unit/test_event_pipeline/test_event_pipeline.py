@@ -65,7 +65,7 @@ from tests.test import (
 )
 
 
-def get_mapping_default_value(key):
+def get_default_value(key):
     return Mapping.schema()["properties"][key]["default"]
 
 
@@ -1424,7 +1424,6 @@ class TestRelToRel(EventPipelineTestBase):
     async def _test(self, input_code, input_value, output_code, output_value, gain=1):
         preset = Preset()
 
-        # wheel to mouse-y
         input_event = InputEvent(0, 0, EV_REL, input_code, USE_AS_ANALOG_VALUE)
         mapping = Mapping(
             event_combination=EventCombination(input_event),
@@ -1457,35 +1456,73 @@ class TestRelToRel(EventPipelineTestBase):
     async def test_wheel_to_y(self):
         await self._test(
             input_code=REL_WHEEL,
-            input_value=get_mapping_default_value("rel_wheel_speed"),
+            input_value=get_default_value("rel_wheel_speed"),
             output_code=REL_Y,
-            output_value=get_mapping_default_value("rel_xy_speed"),
-        )
-
-    async def test_x_to_hwheel(self):
-        await self._test(
-            input_code=REL_X,
-            input_value=get_mapping_default_value("rel_xy_speed") * 3,
-            output_code=REL_HWHEEL,
-            output_value=get_mapping_default_value("rel_wheel_speed") * 6,
-            gain=2,
-        )
-
-    async def test_x_to_wheel_hi_res(self):
-        await self._test(
-            input_code=REL_X,
-            input_value=get_mapping_default_value("rel_xy_speed") * 2,
-            output_code=REL_WHEEL_HI_RES,
-            output_value=get_mapping_default_value("rel_wheel_hi_res_speed") * 6,
-            gain=3,
+            output_value=get_default_value("rel_xy_speed"),
         )
 
     async def test_hi_res_wheel_to_y(self):
         await self._test(
             input_code=REL_WHEEL_HI_RES,
-            input_value=get_mapping_default_value("rel_wheel_hi_res_speed"),
+            input_value=get_default_value("rel_wheel_hi_res_speed"),
             output_code=REL_Y,
-            output_value=get_mapping_default_value("rel_xy_speed"),
+            output_value=get_default_value("rel_xy_speed"),
+        )
+
+    async def test_x_to_hwheel(self):
+        input_code = REL_X
+        input_value = get_default_value("rel_xy_speed") * 3
+        output_code = REL_HWHEEL
+        output_value = get_default_value("rel_wheel_speed") * 6
+        gain = 2
+
+        preset = Preset()
+
+        input_event = InputEvent(0, 0, EV_REL, input_code, USE_AS_ANALOG_VALUE)
+        mapping = Mapping(
+            event_combination=EventCombination(input_event),
+            target_uinput="mouse",
+            output_type=EV_REL,
+            output_code=output_code,
+            deadzone=0,
+            gain=gain,
+        )
+        preset.add(mapping)
+
+        event_reader = self.get_event_reader(preset, fixtures.gamepad)
+
+        await self.send_events(
+            [InputEvent(0, 0, EV_REL, input_code, input_value)],
+            event_reader,
+        )
+
+        history = global_uinputs.get_uinput("mouse").write_history
+        # injects both REL_WHEEL and REL_WHEEL_HI_RES events
+        self.assertEqual(len(history), 2)
+        self.assertEqual(
+            history[0],
+            InputEvent(
+                0,
+                0,
+                EV_REL,
+                REL_HWHEEL,
+                output_value,
+            ),
+        )
+
+        rel_wheel_hi_res_speed = get_default_value("rel_wheel_hi_res_speed")
+        rel_wheel_speed = get_default_value("rel_wheel_speed")
+        hi_res_factor = rel_wheel_hi_res_speed / rel_wheel_speed
+
+        self.assertEqual(
+            history[1],
+            InputEvent(
+                0,
+                0,
+                EV_REL,
+                REL_HWHEEL_HI_RES,
+                output_value * get_default_value("rel_wheel_speed") * hi_res_factor,
+            ),
         )
 
     async def test_remainder(self):
