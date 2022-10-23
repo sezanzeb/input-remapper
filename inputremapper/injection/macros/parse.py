@@ -42,7 +42,7 @@ def is_this_a_macro(output):
     return "(" in output and ")" in output and len(output) >= 4
 
 
-FUNCTIONS = {
+TASK_FACTORIES = {
     "modify": Macro.add_modify,
     "repeat": Macro.add_repeat,
     "key": Macro.add_key,
@@ -58,6 +58,7 @@ FUNCTIONS = {
     "set": Macro.add_set,
     "if_tap": Macro.add_if_tap,
     "if_single": Macro.add_if_single,
+    "add": Macro.add_add,
     # Those are only kept for backwards compatibility with old macros. The space for
     # writing macro was very constrained in the past, so shorthands were introduced:
     "m": Macro.add_modify,
@@ -219,9 +220,11 @@ def _parse_recurse(code, context, mapping, verbose, macro_instance=None, depth=0
     code : string
         Just like parse. A single parameter or the complete macro as string.
         Comments and redundant whitespace characters are expected to be removed already.
+        TODO add some examples. Are all of "foo(1);bar(2)" "foo(1)" and "1" valid inputs?
     context : Context
     macro_instance : Macro or None
-        A macro instance to add tasks to
+        A macro instance to add tasks to. This is the output of the parser, and is
+        organized like a tree.
     depth : int
         For logging porposes
     """
@@ -238,9 +241,12 @@ def _parse_recurse(code, context, mapping, verbose, macro_instance=None, depth=0
 
     if code == "" or code == "None":
         # A function parameter probably
+        # I think "" is the deprecated alternative to "None"
         return None
 
     if code.startswith('"'):
+        # TODO and endswith check, if endswith fails throw error?
+        #  what is currently the error if only one quote is set?
         # a string, don't parse. remove quotes
         string = code[1:-1]
         debug("%sstring %s", space, string)
@@ -269,13 +275,13 @@ def _parse_recurse(code, context, mapping, verbose, macro_instance=None, depth=0
             # chain this call to the existing instance
             assert isinstance(macro_instance, Macro)
 
-        function = FUNCTIONS.get(call)
-        if function is None:
+        task_factory = TASK_FACTORIES.get(call)
+        if task_factory is None:
             raise MacroParsingError(code, f"Unknown function {call}")
 
         # get all the stuff inbetween
-        position = _count_brackets(code)
-        inner = code[code.index("(") + 1 : position - 1]
+        closing_bracket_position = _count_brackets(code) - 1
+        inner = code[code.index("(") + 1 : closing_bracket_position]
         debug("%scalls %s with %s", space, call, inner)
 
         # split "3, foo=a(2, k(a).w(10))" into arguments
@@ -309,7 +315,7 @@ def _parse_recurse(code, context, mapping, verbose, macro_instance=None, depth=0
             keyword_args,
         )
 
-        min_args, max_args = get_num_parameters(function)
+        min_args, max_args = get_num_parameters(task_factory)
         num_provided_args = len(raw_string_args)
         if num_provided_args < min_args or num_provided_args > max_args:
             if min_args != max_args:
@@ -325,15 +331,28 @@ def _parse_recurse(code, context, mapping, verbose, macro_instance=None, depth=0
         use_safe_argument_names(keyword_args)
 
         try:
-            function(macro_instance, *positional_args, **keyword_args)
+            task_factory(macro_instance, *positional_args, **keyword_args)
         except TypeError as err:
             raise MacroParsingError(msg=str(err))
 
         # is after this another call? Chain it to the macro_instance
-        if len(code) > position and code[position] == ".":
-            chain = code[position + 1 :]
-            debug("%sfollowed by %s", space, chain)
-            _parse_recurse(chain, context, mapping, verbose, macro_instance, depth)
+        more_code_exists = len(code) > closing_bracket_position + 1
+        if more_code_exists:
+            next_char = code[closing_bracket_position + 1]
+            statement_closed = next_char == "."
+
+            if statement_closed:
+                # skip over the ")."
+                chain = code[closing_bracket_position + 2 :]
+                debug("%sfollowed by %s", space, chain)
+                _parse_recurse(chain, context, mapping, verbose, macro_instance, depth)
+            elif re.match(r"[a-zA-Z_]", next_char):
+                # something like foo()bar
+                raise MacroParsingError(
+                    code,
+                    f'Expected a "." to follow after '
+                    f"{code[:closing_bracket_position + 1]}",
+                )
 
         return macro_instance
 
