@@ -94,7 +94,7 @@ class NotifyCallback(Protocol):
         event: InputEvent,
         source: evdev.InputDevice,
         forward: evdev.UInput,
-        supress: bool = False,
+        suppress: bool = False,
     ) -> bool:
         ...
 
@@ -107,7 +107,7 @@ class InputEventHandler(Protocol):
         event: InputEvent,
         source: evdev.InputDevice,
         forward: evdev.UInput,
-        supress: bool = False,
+        suppress: bool = False,
     ) -> bool:
         ...
 
@@ -181,7 +181,7 @@ class MappingHandler:
         event: InputEvent,
         source: evdev.InputDevice,
         forward: evdev.UInput,
-        supress: bool = False,
+        suppress: bool = False,
     ) -> bool:
         """notify this handler about an incoming event"""
         raise NotImplementedError

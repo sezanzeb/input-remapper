@@ -283,7 +283,7 @@ class ForwardToUIHandler:
         event: InputEvent,
         source: evdev.InputDevice,
         forward: evdev.UInput,
-        supress: bool = False,
+        suppress: bool = False,
     ) -> bool:
         """filter duplicates and send into the pipe"""
         if event != self._last_event:

@@ -163,7 +163,7 @@ class AbsToRelHandler(MappingHandler):
         event: InputEvent,
         source: evdev.InputDevice,
         forward: evdev.UInput = None,
-        supress: bool = False,
+        suppress: bool = False,
     ) -> bool:
 
         if event.type_and_code != self._map_axis:

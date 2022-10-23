@@ -157,7 +157,7 @@ class RelToRelHandler(MappingHandler):
         event: InputEvent,
         source: evdev.InputDevice,
         forward: evdev.UInput = None,
-        supress: bool = False,
+        suppress: bool = False,
     ) -> bool:
         if not self._should_map(event):
             return False

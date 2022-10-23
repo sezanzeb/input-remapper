@@ -81,7 +81,7 @@ class AxisSwitchHandler(MappingHandler):
         event: InputEvent,
         source: evdev.InputDevice,
         forward: evdev.UInput,
-        supress: bool = False,
+        suppress: bool = False,
     ) -> bool:
 
         if (
@@ -127,7 +127,7 @@ class AxisSwitchHandler(MappingHandler):
         self._last_value = event.value
 
         if self._active:
-            return self._sub_handler.notify(event, source, forward, supress)
+            return self._sub_handler.notify(event, source, forward, suppress)
 
         return False
 
