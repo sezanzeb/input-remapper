@@ -228,7 +228,7 @@ The following table contains all possible parameters and their default values:
 | expo                        | 0       | float ∈ (-1, 1) | Non liniarity factor see also [GeoGebra](https://www.geogebra.org/calculator/mkdqueky)                      |
 | **EV_REL output**           |            
 | rel_xy_rate                 | 60      | positive int    | The frequency `[Hz]` at which `REL_X` amd `REL_Y` events get generated (also effects mouse macro)           |
-| rel_wheel_rate              | 60      | positive int    | The frequency `[Hz]` at which `REL_WHEEL` and `REL_HWHEEL` events get generated (also effects wheel macro)  |
+| rel_wheel_rate              | 60      | positive int    | The frequency `[Hz]` at which wheel events get generated (also effects wheel macro)                         |
 | rel_xy_speed                | 50      | positive int    | The base speed of the relative axis, compounds with the gain (also effects mouse and wheel macro)           |
 | rel_wheel_speed             | 5       | positive int    | The base speed of the relative axis, compounds with the gain (also effects mouse and wheel macro)           |
 | rel_wheel_hi_res_speed      | 5       | positive int    | The base speed of the relative axis, compounds with the gain (also effects mouse and wheel macro)           |
