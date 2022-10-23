@@ -157,7 +157,7 @@ class RelToRelHandler(MappingHandler):
         self._remainder += scaled - floored
         if abs(self._remainder) >= 1:
             output_value = int(scaled + self._remainder)
-            self._remainder = scaled - output_value
+            self._remainder = self._remainder - output_value
         else:
             output_value = floored
 

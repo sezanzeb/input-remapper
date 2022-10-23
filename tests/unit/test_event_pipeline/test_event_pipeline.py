@@ -1488,6 +1488,66 @@ class TestRelToRel(EventPipelineTestBase):
             output_value=get_mapping_default_value("rel_xy_speed"),
         )
 
+    async def test_remainder(self):
+        preset = Preset()
+        history = global_uinputs.get_uinput("mouse").write_history
+
+        # wheel to mouse-y
+        input_event = InputEvent(0, 0, EV_REL, REL_WHEEL_HI_RES, USE_AS_ANALOG_VALUE)
+        rel_wheel_hi_res_speed = 100
+        mapping = Mapping(
+            event_combination=EventCombination(input_event),
+            target_uinput="mouse",
+            output_type=EV_REL,
+            output_code=REL_Y,
+            rel_wheel_hi_res_speed=rel_wheel_hi_res_speed,
+            rel_xy_speed=1,
+            deadzone=0,
+            gain=1,
+        )
+        preset.add(mapping)
+
+        event_reader = self.get_event_reader(preset, fixtures.gamepad)
+
+        # the input value of 1 is so small, that it needs to be sent 100 times
+        # until one REL_Y event is written
+        await self.send_events(
+            [InputEvent(0, 0, EV_REL, REL_WHEEL_HI_RES, 1)]
+            * (rel_wheel_hi_res_speed - 1),
+            event_reader,
+        )
+        self.assertEqual(len(history), 0)
+
+        # write the final event that causes the input to accumulate to 1
+        await self.send_events(
+            [InputEvent(0, 0, EV_REL, REL_WHEEL_HI_RES, 1)],
+            event_reader,
+        )
+        self.assertEqual(len(history), 1)
+        self.assertEqual(
+            history[0],
+            InputEvent(0, 0, EV_REL, REL_Y, 1),
+        )
+
+        # repeat it one more time to see if the remainder is reset correctly
+        await self.send_events(
+            [InputEvent(0, 0, EV_REL, REL_WHEEL_HI_RES, 1)]
+            * (rel_wheel_hi_res_speed - 1),
+            event_reader,
+        )
+        self.assertEqual(len(history), 1)
+
+        # the event that causes the second REL_Y to be written
+        await self.send_events(
+            [InputEvent(0, 0, EV_REL, REL_WHEEL_HI_RES, 1)],
+            event_reader,
+        )
+        self.assertEqual(len(history), 2)
+        self.assertEqual(
+            history[1],
+            InputEvent(0, 0, EV_REL, REL_Y, 1),
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
