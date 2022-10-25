@@ -862,7 +862,7 @@ class TestDataManager(unittest.TestCase):
         listener = Listener()
         self.message_broker.subscribe(MessageType.uinputs, listener)
 
-        self.data_manager.send_uinputs()
+        self.data_manager.publish_uinputs()
         data = listener.calls[0]
 
         # we expect a list of tuples with the group key and their device types

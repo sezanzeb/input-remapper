@@ -72,7 +72,7 @@ CMD_REFRESH_GROUPS = "refresh_groups"
 # sent by the reader-service to the reader
 MSG_GROUPS = "groups"
 MSG_EVENT = "event"
-MSG_READY = "ready"
+MSG_STATUS = "status"
 
 
 def get_pipe_paths():
@@ -117,7 +117,7 @@ class ReaderService:
         self._tasks: Set[asyncio.Task] = set()
         self._stop_event = asyncio.Event()
 
-        self._results_pipe.send({"type": MSG_READY, "message": ""})
+        self._results_pipe.send({"type": MSG_STATUS, "message": "ready"})
 
     @staticmethod
     def is_running():

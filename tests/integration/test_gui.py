@@ -686,16 +686,13 @@ class TestGui(GuiTestBase):
         gtk_iteration()
 
         # update the combination of the active mapping
-        logger.info("start_key_recording")
         self.controller.start_key_recording()
         push_events(
             fixtures.foo_device_2_keyboard,
             [InputEvent.from_string("1,30,1"), InputEvent.from_string("1,30,0")],
         )
-        logger.info("throttle")
         self.throttle(20)
 
-        logger.info("assert")
         self.assertEqual(
             self.data_manager.active_mapping.event_combination,
             EventCombination.from_string("1,30,1"),

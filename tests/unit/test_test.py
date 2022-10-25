@@ -27,6 +27,7 @@ from tests.test import (
     push_events,
     EVENT_READ_TIMEOUT,
     START_READING_DELAY,
+    logger
 )
 
 import os
@@ -84,10 +85,10 @@ class TestTest(unittest.TestCase):
     def test_push_events(self):
         """Test that push_event works properly between reader service and client.
 
-        Using push_events after the reader-service is already forked should work,
+        Using push_events after the reader-service is already started should work,
         as well as using push_event twice
         """
-        reader = ReaderClient(MessageBroker(), groups)
+        reader_client = ReaderClient(MessageBroker(), groups)
 
         def create_reader_service():
             # this will cause pending events to be copied over to the reader-service
@@ -106,29 +107,32 @@ class TestTest(unittest.TestCase):
             # wait for the reader-service to send stuff
             for _ in range(10):
                 time.sleep(EVENT_READ_TIMEOUT)
-                if reader._results_pipe.poll():
+                if reader_client._results_pipe.poll():
                     break
 
         create_reader_service()
-        reader.set_group(groups.find(key="Foo Device 2"))
+        reader_client.set_group(groups.find(key="Foo Device 2"))
+        reader_client.start_recorder()
         time.sleep(START_READING_DELAY)
 
         event = new_event(EV_KEY, 102, 1)
         push_events(fixtures.foo_device_2_keyboard, [event])
         wait_for_results()
-        self.assertTrue(reader._results_pipe.poll())
+        self.assertTrue(reader_client._results_pipe.poll())
 
-        reader._read()
-        self.assertFalse(reader._results_pipe.poll())
+        reader_client._read()
+        self.assertFalse(reader_client._results_pipe.poll())
 
         # can push more events to the reader-service that is inside a separate
         # process, which end up being sent to the reader
         event = new_event(EV_KEY, 102, 0)
+        logger.info("push_events")
         push_events(fixtures.foo_device_2_keyboard, [event])
         wait_for_results()
-        self.assertTrue(reader._results_pipe.poll())
+        logger.info("assert")
+        self.assertTrue(reader_client._results_pipe.poll())
 
-        reader.terminate()
+        reader_client.terminate()
 
 
 if __name__ == "__main__":

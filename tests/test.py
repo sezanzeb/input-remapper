@@ -437,7 +437,7 @@ fixtures = _Fixtures()
 
 def setup_pipe(fixture: Fixture):
     """Create a pipe that can be used to send events to the reader-service,
-    which in turn will be sent to the reader
+    which in turn will be sent to the reader-client
     """
     if pending_events.get(fixture) is None:
         pending_events[fixture] = multiprocessing.Pipe()

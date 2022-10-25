@@ -47,7 +47,12 @@ from inputremapper.logger import logger
 
 
 class Pipe:
-    """Pipe object."""
+    """Pipe object.
+
+    This is not for secure communication. If pipes already exist, they will be used,
+    but existing pipes might have open permissions! Only use this for stuff that
+    non-privileged users would be allowed to read.
+    """
 
     def __init__(self, path):
         """Create a pipe, or open it if it already exists."""
