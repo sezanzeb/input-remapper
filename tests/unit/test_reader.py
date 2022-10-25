@@ -90,7 +90,7 @@ def wait(func, timeout=1.0):
 
 class TestReader(unittest.TestCase):
     def setUp(self):
-        self.helper = None
+        self.reader_service = None
         self.groups = _Groups()
         self.message_broker = MessageBroker()
         self.reader = ReaderClient(self.message_broker, self.groups)
@@ -102,21 +102,21 @@ class TestReader(unittest.TestCase):
         except (BrokenPipeError, OSError):
             pass
 
-        if self.helper is not None:
-            self.helper.join()
+        if self.reader_service is not None:
+            self.reader_service.join()
 
-    def create_helper(self, groups: _Groups = None):
-        # this will cause pending events to be copied over to the helper
+    def create_reader_service(self, groups: _Groups = None):
+        # this will cause pending events to be copied over to the reader-service
         # process
         if not groups:
             groups = self.groups
 
-        def start_helper():
-            helper = ReaderService(groups)
-            helper.run()
+        def start_reader_service():
+            reader_service = ReaderService(groups)
+            reader_service.run()
 
-        self.helper = multiprocessing.Process(target=start_helper)
-        self.helper.start()
+        self.reader_service = multiprocessing.Process(target=start_reader_service)
+        self.reader_service.start()
         time.sleep(0.1)
 
     def test_reading(self):
@@ -124,7 +124,7 @@ class TestReader(unittest.TestCase):
         l2 = Listener()
         self.message_broker.subscribe(MessageType.combination_recorded, l1)
         self.message_broker.subscribe(MessageType.recording_finished, l2)
-        self.create_helper()
+        self.create_reader_service()
         self.reader.set_group(self.groups.find(key="Foo Device 2"))
         self.reader.start_recorder()
 
@@ -160,7 +160,7 @@ class TestReader(unittest.TestCase):
         l2 = Listener()
         self.message_broker.subscribe(MessageType.combination_recorded, l1)
         self.message_broker.subscribe(MessageType.recording_finished, l2)
-        self.create_helper()
+        self.create_reader_service()
         self.reader.set_group(self.groups.find(key="Foo Device 2"))
         self.reader.start_recorder()
 
@@ -181,7 +181,7 @@ class TestReader(unittest.TestCase):
     def test_should_not_trigger_at_low_speed_for_rel_axis(self):
         l1 = Listener()
         self.message_broker.subscribe(MessageType.combination_recorded, l1)
-        self.create_helper()
+        self.create_reader_service()
         self.reader.set_group(self.groups.find(key="Foo Device 2"))
         self.reader.start_recorder()
 
@@ -193,7 +193,7 @@ class TestReader(unittest.TestCase):
     def test_should_trigger_wheel_at_low_speed(self):
         l1 = Listener()
         self.message_broker.subscribe(MessageType.combination_recorded, l1)
-        self.create_helper()
+        self.create_reader_service()
         self.reader.set_group(self.groups.find(key="Foo Device 2"))
         self.reader.start_recorder()
 
@@ -215,7 +215,7 @@ class TestReader(unittest.TestCase):
     def test_wont_emit_the_same_combination_twice(self):
         l1 = Listener()
         self.message_broker.subscribe(MessageType.combination_recorded, l1)
-        self.create_helper()
+        self.create_reader_service()
         self.reader.set_group(self.groups.find(key="Foo Device 2"))
         self.reader.start_recorder()
 
@@ -237,7 +237,7 @@ class TestReader(unittest.TestCase):
         l2 = Listener()
         self.message_broker.subscribe(MessageType.combination_recorded, l1)
         self.message_broker.subscribe(MessageType.recording_finished, l2)
-        self.create_helper()
+        self.create_reader_service()
         self.reader.set_group(self.groups.find(key="Foo Device 2"))
         self.reader.start_recorder()
 
@@ -270,7 +270,7 @@ class TestReader(unittest.TestCase):
     def test_should_change_direction(self):
         l1 = Listener()
         self.message_broker.subscribe(MessageType.combination_recorded, l1)
-        self.create_helper()
+        self.create_reader_service()
         self.reader.set_group(self.groups.find(key="Foo Device 2"))
         self.reader.start_recorder()
 
@@ -326,7 +326,7 @@ class TestReader(unittest.TestCase):
             * 3,
         )
 
-        self.create_helper()
+        self.create_reader_service()
         self.reader.set_group(self.groups.find(key="Foo Device 2"))
         self.reader.start_recorder()
         time.sleep(0.1)
@@ -362,18 +362,18 @@ class TestReader(unittest.TestCase):
         pipe = multiprocessing.Pipe()
 
         def refresh():
-            # from within the helper process notify this test that
+            # from within the reader-service process notify this test that
             # refresh was called as expected
             pipe[1].send("refreshed")
 
         groups = _Groups()
         groups.refresh = refresh
-        self.create_helper(groups)
+        self.create_reader_service(groups)
 
         self.reader.set_group(self.groups.find(key="Foo Device 2"))
         self.reader.start_recorder()
 
-        # sending anything arbitrary does not stop the helper
+        # sending anything arbitrary does not stop the reader-service
         self.reader._commands_pipe.send(856794)
         time.sleep(0.2)
         push_events(
@@ -405,7 +405,7 @@ class TestReader(unittest.TestCase):
             ],
             force=True,
         )
-        self.create_helper()
+        self.create_reader_service()
         self.reader.set_group(self.groups.find(key="Foo Device 2"))
         self.reader.start_recorder()
         time.sleep(0.1)
@@ -423,7 +423,7 @@ class TestReader(unittest.TestCase):
             [new_event(EV_ABS, ABS_HAT0X, 1), new_event(EV_KEY, CODE_3, 2)],
             force=True,
         )
-        self.create_helper()
+        self.create_reader_service()
         self.reader.set_group(self.groups.find(key="Foo Device 2"))
         self.reader.start_recorder()
         time.sleep(0.2)
@@ -443,7 +443,7 @@ class TestReader(unittest.TestCase):
                 new_event(EV_KEY, CODE_3, 0, 12),
             ],
         )
-        self.create_helper()
+        self.create_reader_service()
         self.reader.set_group(self.groups.find(key="Foo Device 2"))
         self.reader.start_recorder()
         time.sleep(0.1)
@@ -464,7 +464,7 @@ class TestReader(unittest.TestCase):
                 new_event(EV_KEY, CODE_3, 1),
             ],
         )
-        self.create_helper()
+        self.create_reader_service()
         self.reader.set_group(self.groups.find(name="Bar Device"))
         self.reader.start_recorder()
         time.sleep(EVENT_READ_TIMEOUT * 5)
@@ -486,7 +486,7 @@ class TestReader(unittest.TestCase):
                 new_event(EV_KEY, CODE_3, 1),
             ],
         )
-        self.create_helper()
+        self.create_reader_service()
         self.reader.set_group(self.groups.find(name="Bar Device"))
         self.reader.start_recorder()
         time.sleep(EVENT_READ_TIMEOUT * 5)
@@ -494,7 +494,7 @@ class TestReader(unittest.TestCase):
         self.assertEqual(len(l1.calls), 0)
 
     def test_terminate(self):
-        self.create_helper()
+        self.create_reader_service()
         self.reader.set_group(self.groups.find(key="Foo Device 2"))
 
         push_events(fixtures.foo_device_2_keyboard, [new_event(EV_KEY, CODE_3, 1)])
@@ -513,11 +513,11 @@ class TestReader(unittest.TestCase):
     def test_are_new_groups_available(self):
         l1 = Listener()
         self.message_broker.subscribe(MessageType.groups, l1)
-        self.create_helper()
+        self.create_reader_service()
         self.reader.groups.set_groups({})
 
-        time.sleep(0.1)  # let the helper send the groups
-        # read stuff from the helper, which includes the devices
+        time.sleep(0.1)  # let the reader-service send the groups
+        # read stuff from the reader-service, which includes the devices
         self.assertEqual("[]", self.reader.groups.dumps())
         self.reader._read()
 

@@ -82,34 +82,34 @@ class TestTest(unittest.TestCase):
         self.assertNotIn("foo", environ)
 
     def test_push_events(self):
-        """Test that push_event works properly between helper and reader.
+        """Test that push_event works properly between reader service and client.
 
-        Using push_events after the helper is already forked should work,
+        Using push_events after the reader-service is already forked should work,
         as well as using push_event twice
         """
         reader = ReaderClient(MessageBroker(), groups)
 
-        def create_helper():
-            # this will cause pending events to be copied over to the helper
+        def create_reader_service():
+            # this will cause pending events to be copied over to the reader-service
             # process
-            def start_helper():
+            def start_reader_service():
                 # there is no point in using the global groups object
-                # because the helper runs in a different process
-                helper = ReaderService(_Groups())
-                helper.run()
+                # because the reader-service runs in a different process
+                reader_service = ReaderService(_Groups())
+                reader_service.run()
 
-            self.helper = multiprocessing.Process(target=start_helper)
-            self.helper.start()
+            self.reader_service = multiprocessing.Process(target=start_reader_service)
+            self.reader_service.start()
             time.sleep(0.1)
 
         def wait_for_results():
-            # wait for the helper to send stuff
+            # wait for the reader-service to send stuff
             for _ in range(10):
                 time.sleep(EVENT_READ_TIMEOUT)
                 if reader._results_pipe.poll():
                     break
 
-        create_helper()
+        create_reader_service()
         reader.set_group(groups.find(key="Foo Device 2"))
         time.sleep(START_READING_DELAY)
 
@@ -121,7 +121,7 @@ class TestTest(unittest.TestCase):
         reader._read()
         self.assertFalse(reader._results_pipe.poll())
 
-        # can push more events to the helper that is inside a separate
+        # can push more events to the reader-service that is inside a separate
         # process, which end up being sent to the reader
         event = new_event(EV_KEY, 102, 0)
         push_events(fixtures.foo_device_2_keyboard, [event])

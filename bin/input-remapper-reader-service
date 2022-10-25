@@ -19,7 +19,7 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
-"""Starts the root helper."""
+"""Starts the root reader-service."""
 
 
 import os
@@ -56,5 +56,5 @@ if __name__ == '__main__':
     atexit.register(on_exit)
     # TODO import `groups` instead?
     groups = _Groups()
-    helper = ReaderService(groups)
-    helper.run()
+    reader_service = ReaderService(groups)
+    reader_service.run()

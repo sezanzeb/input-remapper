@@ -63,7 +63,7 @@ RecordingGenerator = Generator[None, InputEvent, None]
 
 
 class ReaderClient:
-    """Processes events from the helper for the GUI to use.
+    """Processes events from the reader-service for the GUI to use.
 
     Does not serve any purpose for the injection service.
 
@@ -85,7 +85,7 @@ class ReaderClient:
         self.connect()
         self.attach_to_events()
 
-        GLib.timeout_add(30, self._read)
+        self._read_timeout = GLib.timeout_add(30, self._read)
 
     def ensure_reader_service_running(self):
         if ReaderService.is_running():
@@ -113,7 +113,7 @@ class ReaderClient:
         else:
             msg = "The reader-service did not start"
             logger.error(msg)
-            self.message_broker.publish(StatusData(CTX_ERROR), _(msg))
+            self.message_broker.publish(StatusData(CTX_ERROR, _(msg)))
 
     def _send_command(self, command):
         """Send a command to the ReaderService."""
@@ -136,7 +136,7 @@ class ReaderClient:
         )
 
     def _read(self):
-        """Read the messages from the helper and handle them."""
+        """Read the messages from the reader-service and handle them."""
         while self._results_pipe.poll():
             message = self._results_pipe.recv()
 
@@ -151,10 +151,15 @@ class ReaderClient:
             if message_type == MSG_EVENT:
                 # update the generator
                 try:
-                    if self._recording_generator:
+                    if self._recording_generator is not None:
                         self._recording_generator.send(InputEvent(*message_body))
+                    else:
+                        # the ReaderService should only send events while the gui
+                        # is recording, so this is unexpected.
+                        logger.error("Got event, but recorder is not running.")
                 except StopIteration:
                     # the _recording_generator returned
+                    logger.debug("Recorder finished.")
                     self.stop_recorder()
                     break
 
@@ -162,7 +167,7 @@ class ReaderClient:
 
     def start_recorder(self) -> None:
         """Record user input."""
-        logger.debug("Starting recorder")
+        logger.debug("Starting recorder.")
         self._send_command(self.group.key)
 
         self._recording_generator = self._recorder()
@@ -175,7 +180,7 @@ class ReaderClient:
 
         Will send RecordingFinished message.
         """
-        logger.debug("Stopping recorder")
+        logger.debug("Stopping recorder.")
         self._send_command(CMD_STOP_READING)
 
         if self._recording_generator:
@@ -240,6 +245,10 @@ class ReaderClient:
         self._send_command(CMD_TERMINATE)
 
         self.stop_recorder()
+
+        if self._read_timeout is not None:
+            GLib.source_remove(self._read_timeout)
+            self._read_timeout = None
 
         while self._results_pipe.poll():
             self._results_pipe.recv()

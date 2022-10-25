@@ -299,7 +299,7 @@ class TestControl(unittest.TestCase):
 
     def test_internals(self):
         with mock.patch("os.system") as os_system_patch:
-            internals(options("helper", None, None, None, False, False, False))
+            internals(options("start-reader-service", None, None, None, False, False, False))
             os_system_patch.assert_called_once()
             self.assertIn(
                 "input-remapper-reader-service", os_system_patch.call_args.args[0]

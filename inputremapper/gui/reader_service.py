@@ -31,8 +31,8 @@ would enable key-loggers to just ask input-remapper for all user-input.
 
 Instead, the ReaderService is used, which will be stopped when the gui closes.
 
-Whereas for the helper to start a password is needed and it stops when the ui
-closes.
+Whereas for the reader-service to start a password is needed and it stops whe
+the ui closes.
 
 This uses the backend injection.event_reader and mapping_handlers to process all the
 different input-events into simple on/off events and sends them to the gui.
@@ -64,12 +64,12 @@ from inputremapper.ipc.pipe import Pipe
 from inputremapper.logger import logger
 from inputremapper.user import USER
 
-# received by the helper
+# received by the reader-service
 CMD_TERMINATE = "terminate"
 CMD_STOP_READING = "stop-reading"
 CMD_REFRESH_GROUPS = "refresh_groups"
 
-# sent by the helper to the reader
+# sent by the reader-service to the reader
 MSG_GROUPS = "groups"
 MSG_EVENT = "event"
 MSG_READY = "ready"
@@ -107,7 +107,7 @@ class ReaderService:
     _timeout_tolerance: int = 60
 
     def __init__(self, groups: _Groups):
-        """Construct the helper and initialize its sockets."""
+        """Construct the reader-service and initialize its communication pipes."""
         self._start_time = time.time()
         self.groups = groups
         self._results_pipe = Pipe(get_pipe_paths()[0])
@@ -161,7 +161,7 @@ class ReaderService:
         self._results_pipe.send({"type": MSG_GROUPS, "message": self.groups.dumps()})
 
     async def _timeout(self):
-        """The helper needs to be kept alive, otherwise it stops automatically."""
+        """Stop automatically after some time."""
         # Prevents a permanent hole for key-loggers to exist, in case the gui crashes.
         # If the ReaderService stops even though the gui needs it, it needs to restart
         # it. This makes it also more comfortable to have debug mode running during

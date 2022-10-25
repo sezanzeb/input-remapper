@@ -43,7 +43,8 @@ are much easier to handle.
 
 
 # Issues:
-# - Tests don't pass with Server (reader) and Client (helper) instead of Pipe
+# - Tests don't pass with Server and Client instead of Pipe for reader-client
+#   and service communication or something
 # - Had one case of a test that was blocking forever, seems very rare.
 # - Hard to debug, generally very problematic compared to Pipes
 # The tool works fine, it's just the tests. BrokenPipe errors reported
@@ -120,7 +121,7 @@ class Base:
                 if len(chunk) == 0:
                     # select keeps telling me the socket has messages
                     # ready to be received, and I keep getting empty
-                    # buffers. Happened during a test that ran two helper
+                    # buffers. Happened during a test that ran two reader-service
                     # processes without stopping the first one.
                     attempts += 1
                     if attempts == 2 or not self.reconnect():
@@ -136,7 +137,7 @@ class Base:
                 if parsed[0] < self._created_at:
                     # important to avoid race conditions between multiple
                     # unittests, for example old terminate messages reaching
-                    # a new instance of the helper.
+                    # a new instance of the reader-service.
                     logger.debug("Ignoring old message %s", parsed)
                     continue
 
@@ -146,7 +147,7 @@ class Base:
         """Get the next message or None if nothing to read.
 
         Doesn't transmit pickles, to avoid injection attacks on the
-        privileged helper. Only messages that can be converted to json
+        privileged reader-service. Only messages that can be converted to json
         are allowed.
         """
         self._receive_new_messages()

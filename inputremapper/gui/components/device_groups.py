@@ -111,5 +111,8 @@ class DeviceGroupSelection(FlowBoxWrapper):
             )
             self._gui.insert(device_group_entry, -1)
 
+        if self._controller.data_manager.active_group:
+            self.show_active_entry(self._controller.data_manager.active_group.key)
+
     def _on_group_changed(self, data: GroupData):
         self.show_active_entry(data.group_key)

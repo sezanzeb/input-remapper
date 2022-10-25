@@ -92,7 +92,7 @@ class Pipe:
         self._handles = (open(self._fds[0], "r"), open(self._fds[1], "w"))
 
         # clear the pipe of any contents, to avoid leftover messages from breaking
-        # the helper
+        # the reader-client or reader-service
         while self.poll():
             leftover = self.recv()
             logger.debug('Cleared leftover message "%s"', leftover)
@@ -125,7 +125,7 @@ class Pipe:
         if parsed[0] < self._created_at and os.environ.get("UNITTEST"):
             # important to avoid race conditions between multiple unittests,
             # for example old terminate messages reaching a new instance of
-            # the helper.
+            # the reader-service.
             logger.debug("Ignoring old message %s", parsed)
             return None
 

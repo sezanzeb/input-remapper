@@ -82,8 +82,8 @@ if __name__ == '__main__':
 
     message_broker = MessageBroker()
 
-    # create the reader before we start the helper (start_processes) otherwise it
-    # can come to race conditions with the creation of pipes
+    # create the reader before we start the reader-service (start_processes) otherwise
+    # it can come to race conditions with the creation of pipes
     reader_client = ReaderClient(message_broker, _Groups())
     daemon = start_processes()
 

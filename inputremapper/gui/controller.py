@@ -104,7 +104,7 @@ class Controller:
     def _on_init(self, __):
         """initialize the gui and the data_manager"""
         # make sure we get a groups_changed event when everything is ready
-        # this might not be necessary if the helper takes longer to provide the
+        # this might not be necessary if the reader-service takes longer to provide the
         # initial groups
         self.data_manager.publish_groups()
         self.data_manager.publish_uinputs()
@@ -373,7 +373,6 @@ class Controller:
 
     def load_group(self, group_key: str):
         """load the group and then a preset of that group"""
-        print("## load_group", group_key)
         self.data_manager.load_group(group_key)
         self.load_preset(self.get_a_preset())
 

@@ -145,7 +145,7 @@ if is_service_running():
 EVENT_READ_TIMEOUT = 0.01
 
 # based on experience how much time passes at most until
-# the helper starts receiving previously pushed events after a
+# the reader-service starts receiving previously pushed events after a
 # call to start_reading
 START_READING_DELAY = 0.05
 
@@ -436,14 +436,14 @@ fixtures = _Fixtures()
 
 
 def setup_pipe(fixture: Fixture):
-    """Create a pipe that can be used to send events to the helper,
+    """Create a pipe that can be used to send events to the reader-service,
     which in turn will be sent to the reader
     """
     if pending_events.get(fixture) is None:
         pending_events[fixture] = multiprocessing.Pipe()
 
 
-# make sure those pipes exist before any process (the helper) gets forked,
+# make sure those pipes exist before any process (the reader-service) gets forked,
 # so that events can be pushed after the fork.
 for _fixture in fixtures:
     setup_pipe(_fixture)
