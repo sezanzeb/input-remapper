@@ -72,6 +72,9 @@ class ReaderClient:
     the middle-mouse button.
     """
 
+    # how long to wait for the reader-service at most
+    _timeout: int = 5
+
     def __init__(self, message_broker: MessageBroker, groups: _Groups):
         self.groups = groups
         self.message_broker = message_broker
@@ -97,14 +100,13 @@ class ReaderClient:
         # wait until the ReaderService is up
 
         # wait no more than:
-        timeout = 5
         polling_period = 0.01
         # this will make the gui non-responsive for 0.4s or something. The pkexec
         # password prompt will appear, so the user understands that the lag has to
         # be connected to the authentication. I would actually prefer the frozen gui
         # over a reactive one here, because the short lag shows that stuff is going on
         # behind the scenes.
-        for __ in range(int(timeout / polling_period)):
+        for __ in range(int(self._timeout / polling_period)):
             if self._results_pipe.poll():
                 logger.info("ReaderService started")
                 break
@@ -167,6 +169,10 @@ class ReaderClient:
 
     def start_recorder(self) -> None:
         """Record user input."""
+        if self.group is None:
+            logger.error("No group set")
+            return
+
         logger.debug("Starting recorder.")
         self._send_command(self.group.key)
 

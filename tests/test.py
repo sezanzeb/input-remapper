@@ -790,7 +790,12 @@ Injector.regrab_timeout = 0.05
 environ_copy = copy.deepcopy(os.environ)
 
 
-ReaderService.is_running = lambda: True
+def is_running_patch():
+    logger.info("is_running is patched to always return True")
+    return True
+
+
+ReaderService.is_running = is_running_patch
 
 
 def convert_to_internal_events(events):

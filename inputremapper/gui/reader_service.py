@@ -132,7 +132,7 @@ class ReaderService:
     def pkexec_reader_service():
         """Start reader-service via pkexec to run in the background."""
         debug = " -d" if logger.level <= logging.DEBUG else ""
-        cmd = f"pkexec input-remapper-control --command start-reader-service {debug}"
+        cmd = f"pkexec input-remapper-control --command start-reader-service{debug}"
 
         logger.debug("Running `%s`", cmd)
         exit_code = os.system(cmd)
