@@ -494,8 +494,7 @@ class Controller:
             self._on_combination_recorded,
         )
         self.message_broker.subscribe(
-            MessageType.recording_finished,
-            on_recording_finished
+            MessageType.recording_finished, on_recording_finished
         )
         self.data_manager.start_combination_recording()
 

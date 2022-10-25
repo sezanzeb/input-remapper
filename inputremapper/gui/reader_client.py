@@ -44,7 +44,11 @@ from inputremapper.gui.reader_service import (
 )
 from inputremapper.gui.messages.message_types import MessageType
 from inputremapper.gui.messages.message_broker import MessageBroker
-from inputremapper.gui.messages.message_data import GroupsData, CombinationRecorded, StatusData
+from inputremapper.gui.messages.message_data import (
+    GroupsData,
+    CombinationRecorded,
+    StatusData,
+)
 from inputremapper.gui.utils import CTX_ERROR
 from inputremapper.gui.gettext import _
 from inputremapper.input_event import InputEvent

@@ -217,7 +217,9 @@ class TestController(unittest.TestCase):
             "inputremapper.gui.controller.is_reader_service_running", lambda: False
         ):
             self.message_broker.signal(MessageType.init)
-        self.assertIn(StatusData(CTX_ERROR, _("The reader-service did not start")), calls)
+        self.assertIn(
+            StatusData(CTX_ERROR, _("The reader-service did not start")), calls
+        )
 
     def test_on_init_should_not_provide_status_if_helper_is_running(self):
         calls: List[StatusData] = []
@@ -231,7 +233,9 @@ class TestController(unittest.TestCase):
         ):
             self.message_broker.signal(MessageType.init)
 
-        self.assertNotIn(StatusData(CTX_ERROR, _("The reader-service did not start")), calls)
+        self.assertNotIn(
+            StatusData(CTX_ERROR, _("The reader-service did not start")), calls
+        )
 
     def test_on_load_group_should_provide_preset(self):
         with patch.object(self.data_manager, "load_preset") as mock:
