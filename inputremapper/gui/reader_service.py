@@ -27,8 +27,11 @@ GUIs should not run as root
 https://wiki.archlinux.org/index.php/Running_GUI_applications_as_root
 
 The service shouldn't do that even though it has root rights, because that
-would provide a key-logger that can be accessed by any user at all times,
-whereas for the helper to start a password is needed and it stops when the ui
+would enable key-loggers to just ask input-remapper for all user-input.
+
+Instead, the ReaderService is used, which will be stopped when the gui closes.
+
+Whereas for the helper to start a password is needed and it stops when the ui
 closes.
 
 This uses the backend injection.event_reader and mapping_handlers to process all the
@@ -36,6 +39,9 @@ different input-events into simple on/off events and sends them to the gui.
 """
 from __future__ import annotations
 
+import time
+import logging
+import os
 import asyncio
 import multiprocessing
 import subprocess
@@ -60,26 +66,48 @@ from inputremapper.user import USER
 
 # received by the helper
 CMD_TERMINATE = "terminate"
+CMD_STOP_READING = "stop-reading"
 CMD_REFRESH_GROUPS = "refresh_groups"
 
 # sent by the helper to the reader
 MSG_GROUPS = "groups"
 MSG_EVENT = "event"
+MSG_READY = "ready"
 
 
-def is_helper_running():
-    """Check if the helper is running."""
+def is_reader_service_running():
+    """Check if the reader-service is running."""
     try:
-        subprocess.check_output(["pgrep", "-f", "input-remapper-helper"])
+        subprocess.check_output(["pgrep", "-f", "input-remapper-reader-service"])
     except subprocess.CalledProcessError:
         return False
     return True
 
 
-class RootHelper:
-    """Client that runs as root and works for the GUI.
+def get_pipe_paths():
+    """Get the path where the pipe can be found."""
+    return (
+        f"/tmp/input-remapper-{USER}/reader-results",
+        f"/tmp/input-remapper-{USER}/reader-commands",
+    )
 
-    Sends device information and keycodes to the GUIs socket.
+
+def pkexec_reader_service():
+    """Start reader-service via pkexec to run in the background."""
+    debug = " -d" if logger.level <= logging.DEBUG else ""
+    cmd = f"pkexec input-remapper-control --command start-reader-service {debug}"
+
+    logger.debug("Running `%s`", cmd)
+    exit_code = os.system(cmd)
+
+    if exit_code != 0:
+        raise Exception(f"Failed to pkexec the reader-service, code {exit_code}")
+
+
+class ReaderService:
+    """Service that only reads events and is supposed to run as root.
+
+    Sends device information and keycodes to the GUI.
 
     Commands are either numbers for generic commands,
     or strings to start listening on a specific device.
@@ -93,15 +121,24 @@ class RootHelper:
     rel_speed[REL_WHEEL] = 1
     rel_speed[REL_HWHEEL] = 1
 
+    # Polkit won't ask for another password if the pid stays the same or something, and
+    # if the previous request was no more than 5 minutes ago. see
+    # https://unix.stackexchange.com/a/458260.
+    _maximum_lifetime: int = 60 * 15
+    _timeout_tolerance: int = 60
+
     def __init__(self, groups: _Groups):
         """Construct the helper and initialize its sockets."""
+        self._start_time = time.time()
         self.groups = groups
-        self._results = Pipe(f"/tmp/input-remapper-{USER}/results")
-        self._commands = Pipe(f"/tmp/input-remapper-{USER}/commands")
+        self._results = Pipe(get_pipe_paths()[0])
+        self._commands = Pipe(get_pipe_paths()[1])
         self._pipe = multiprocessing.Pipe()
 
         self._tasks: Set[asyncio.Task] = set()
         self._stop_event = asyncio.Event()
+
+        self._results.send({"type": MSG_READY, "message": ""})
 
     def run(self):
         """Start doing stuff. Blocks."""
@@ -111,30 +148,63 @@ class RootHelper:
         logger.debug("Discovering initial groups")
         self.groups.refresh()
         self._send_groups()
-        logger.debug("Waiting commands")
-        loop.run_until_complete(self._read_commands())
-        logger.debug("Helper terminates")
-        sys.exit(0)
+        loop.run_until_complete(
+            asyncio.gather(
+                self._read_commands(),
+                self._timeout(),
+            )
+        )
 
     def _send_groups(self):
         """Send the groups to the gui."""
         logger.debug("Sending groups")
         self._results.send({"type": MSG_GROUPS, "message": self.groups.dumps()})
 
+    async def _timeout(self):
+        """The helper needs to be kept alive, otherwise it stops automatically."""
+        # Prevents a permanent hole for key-loggers to exist, in case the gui crashes.
+        # If the ReaderService stops even though the gui needs it, it needs to restart
+        # it. This makes it also more comfortable to have debug mode running during
+        # development, because it won't keep writing inputs containing passwords and
+        # such to the terminal forever.
+
+        await asyncio.sleep(self._maximum_lifetime)
+
+        # if it is currently reading, wait a bit longer for the gui to complete
+        # what it is doing.
+        if self._is_reading():
+            logger.debug("Waiting a bit longer for the gui to finish reading")
+
+            for _ in range(self._timeout_tolerance):
+                if not self._is_reading():
+                    # once reading completes, it should terminate right away
+                    break
+
+                await asyncio.sleep(1)
+
+        logger.debug("Maximum life-span reached, terminating")
+        sys.exit(1)
+
     async def _read_commands(self):
         """Handle all unread commands.
         this will run until it receives CMD_TERMINATE
         """
+        logger.debug("Waiting for commands")
         async for cmd in self._commands:
             logger.debug('Received command "%s"', cmd)
 
             if cmd == CMD_TERMINATE:
                 await self._stop_reading()
-                return
+                logger.debug("Terminating")
+                sys.exit(0)
 
             if cmd == CMD_REFRESH_GROUPS:
                 self.groups.refresh()
                 self._send_groups()
+                continue
+
+            if cmd == CMD_STOP_READING:
+                await self._stop_reading()
                 continue
 
             group = self.groups.find(key=cmd)
@@ -149,6 +219,10 @@ class RootHelper:
                 continue
 
             logger.error('Received unknown command "%s"', cmd)
+
+    def _is_reading(self) -> bool:
+        """Check if the ReaderService is currently sending events to the GUI."""
+        return len(self._tasks) > 0
 
     def _start_reading(self, group: _Group):
         """find all devices of that group, filter interesting ones and send the events

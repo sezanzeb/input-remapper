@@ -81,7 +81,7 @@ from inputremapper.gui.messages.message_data import StatusData, CombinationRecor
 from inputremapper.gui.components.editor import MappingSelectionLabel, SET_KEY_FIRST
 from inputremapper.gui.components.device_groups import DeviceGroupEntry
 from inputremapper.gui.controller import Controller
-from inputremapper.gui.helper import RootHelper
+from inputremapper.gui.reader_service import ReaderService
 from inputremapper.gui.utils import gtk_iteration, Colors
 from inputremapper.gui.user_interface import UserInterface
 from inputremapper.injection.injector import RUNNING, UNKNOWN, STOPPED
@@ -139,8 +139,8 @@ def patch_launch():
     def os_system(cmd):
         # instead of running pkexec, fork instead. This will make
         # the helper aware of all the test patches
-        if "pkexec input-remapper-control --command helper" in cmd:
-            multiprocessing.Process(target=RootHelper(_Groups()).run).start()
+        if "pkexec input-remapper-control --command start-reader-service" in cmd:
+            multiprocessing.Process(target=ReaderService(_Groups()).run).start()
             return 0
 
         return original_os_system(cmd)
@@ -188,7 +188,7 @@ class TestGroupsFromHelper(unittest.TestCase):
         def os_system(cmd):
             # instead of running pkexec, fork instead. This will make
             # the helper aware of all the test patches
-            if "pkexec input-remapper-control --command helper" in cmd:
+            if "pkexec input-remapper-control --command start-reader-service" in cmd:
                 self.helper_started()  # don't start the helper just log that it was.
                 return 0
 
@@ -217,7 +217,7 @@ class TestGroupsFromHelper(unittest.TestCase):
         self.assertEqual(len(self.data_manager.get_group_keys()), 0)
 
         # start the helper delayed
-        multiprocessing.Process(target=RootHelper(_Groups()).run).start()
+        multiprocessing.Process(target=ReaderService(_Groups()).run).start()
         # perform some iterations so that the reader ends up reading from the pipes
         # which will make it receive devices.
         for _ in range(10):
@@ -1724,7 +1724,7 @@ class TestGui(GuiTestBase):
         # it won't crash due to "list index out of range"
         # when `types` is an empty list. Won't show an icon
         self.data_manager._reader.groups.find(key="Foo Device 2").types = []
-        self.data_manager._reader.send_groups()
+        self.data_manager._reader.publish_groups()
         gtk_iteration()
         self.assertIn(
             "Foo Device 2",

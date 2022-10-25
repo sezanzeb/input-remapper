@@ -188,13 +188,16 @@ class ColorfulFormatter(logging.Formatter):
 
     def _get_process_name(self):
         """Generate a beaitiful to read name for this process."""
-        name = sys.argv[0].split("/")[-1].split("-")[-1]
-        return {
-            "gtk": "GUI",
-            "helper": "GUI-Helper",
-            "service": "Service",
-            "control": "Control",
-        }.get(name, name)
+        process_path = sys.argv[0]
+        process_name = process_path.split("/")[-1]
+
+        if "input-remapper-" in process_name:
+            process_name = process_name.replace("input-remapper-", "")
+
+        if process_name == "gtk":
+            process_name = "GUI"
+
+        return process_name
 
     def _get_format(self, record):
         """Generate a message format string."""

@@ -65,7 +65,7 @@ class DeviceGroupEntry(FlowBoxEntry):
     def _on_gtk_toggle(self, *_, **__):
         logger.debug('Selecting device "%s"', self.group_key)
         self._controller.load_group(self.group_key)
-        self.message_broker.send(DoStackSwitch(Stack.presets_page))
+        self.message_broker.publish(DoStackSwitch(Stack.presets_page))
 
 
 class DeviceGroupSelection(FlowBoxWrapper):

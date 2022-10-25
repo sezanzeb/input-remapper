@@ -45,7 +45,7 @@ gi.require_version("GLib", "2.0")
 gi.require_version("GtkSource", "4")
 from gi.repository import Gtk
 
-# from inputremapper.gui.helper import is_helper_running
+# from inputremapper.gui.reader_service import is_reader_service_running
 from inputremapper.event_combination import EventCombination
 from inputremapper.groups import _Groups
 from inputremapper.gui.messages.message_broker import (
@@ -63,7 +63,7 @@ from inputremapper.gui.messages.message_data import (
     CombinationUpdate,
     UserConfirmRequest,
 )
-from inputremapper.gui.reader import Reader
+from inputremapper.gui.reader_client import ReaderClient
 from inputremapper.gui.utils import CTX_ERROR, CTX_APPLY, gtk_iteration
 from inputremapper.gui.gettext import _
 from inputremapper.injection.global_uinputs import GlobalUInputs
@@ -92,7 +92,7 @@ class TestController(unittest.TestCase):
         self.data_manager = DataManager(
             self.message_broker,
             GlobalConfig(),
-            Reader(self.message_broker, _Groups()),
+            ReaderClient(self.message_broker, _Groups()),
             FakeDaemonProxy(),
             uinputs,
             system_mapping,
@@ -213,9 +213,11 @@ class TestController(unittest.TestCase):
             calls.append(data)
 
         self.message_broker.subscribe(MessageType.status_msg, f)
-        with patch("inputremapper.gui.controller.is_helper_running", lambda: False):
+        with patch(
+            "inputremapper.gui.controller.is_reader_service_running", lambda: False
+        ):
             self.message_broker.signal(MessageType.init)
-        self.assertIn(StatusData(CTX_ERROR, _("The helper did not start")), calls)
+        self.assertIn(StatusData(CTX_ERROR, _("The reader-service did not start")), calls)
 
     def test_on_init_should_not_provide_status_if_helper_is_running(self):
         calls: List[StatusData] = []
@@ -224,10 +226,12 @@ class TestController(unittest.TestCase):
             calls.append(data)
 
         self.message_broker.subscribe(MessageType.status_msg, f)
-        with patch("inputremapper.gui.controller.is_helper_running", lambda: True):
+        with patch(
+            "inputremapper.gui.controller.is_reader_service_running", lambda: True
+        ):
             self.message_broker.signal(MessageType.init)
 
-        self.assertNotIn(StatusData(CTX_ERROR, _("The helper did not start")), calls)
+        self.assertNotIn(StatusData(CTX_ERROR, _("The reader-service did not start")), calls)
 
     def test_on_load_group_should_provide_preset(self):
         with patch.object(self.data_manager, "load_preset") as mock:

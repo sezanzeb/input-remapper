@@ -60,7 +60,7 @@ class PresetEntry(FlowBoxEntry):
     def _on_gtk_toggle(self, *_, **__):
         logger.debug('Selecting preset "%s"', self.preset_name)
         self._controller.load_preset(self.preset_name)
-        self.message_broker.send(DoStackSwitch(Stack.editor_page))
+        self.message_broker.publish(DoStackSwitch(Stack.editor_page))
 
 
 class PresetSelection(FlowBoxWrapper):

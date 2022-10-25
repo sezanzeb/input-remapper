@@ -40,7 +40,7 @@ from inputremapper.event_combination import EventCombination
 from inputremapper.exceptions import DataManagementError
 from inputremapper.gui.data_manager import DataManager, DEFAULT_PRESET_NAME
 from inputremapper.gui.gettext import _
-from inputremapper.gui.helper import is_helper_running
+from inputremapper.gui.reader_service import is_reader_service_running
 from inputremapper.gui.messages.message_broker import (
     MessageBroker,
     MessageType,
@@ -92,10 +92,10 @@ class Controller:
         self.message_broker.subscribe(MessageType.preset, self._on_preset_changed)
         self.message_broker.subscribe(MessageType.init, self._on_init)
         self.message_broker.subscribe(
-            MessageType.preset, self._send_mapping_errors_as_status_msg
+            MessageType.preset, self._publish_mapping_errors_as_status_msg
         )
         self.message_broker.subscribe(
-            MessageType.mapping, self._send_mapping_errors_as_status_msg
+            MessageType.mapping, self._publish_mapping_errors_as_status_msg
         )
 
     def _on_init(self, __):
@@ -103,17 +103,25 @@ class Controller:
         # make sure we get a groups_changed event when everything is ready
         # this might not be necessary if the helper takes longer to provide the
         # initial groups
-        self.data_manager.send_groups()
-        self.data_manager.send_uinputs()
-        if not is_helper_running():
-            self.show_status(CTX_ERROR, _("The helper did not start"))
+        self.data_manager.publish_groups()
+        self.data_manager.publish_uinputs()
 
     def _on_groups_changed(self, _):
         """load the newest group as soon as everyone got notified
         about the updated groups"""
+
+        if self.data_manager.active_group is not None:
+            # don't jump to a different group and preset suddenly, if the user
+            # is already looking at one
+            logger.debug("A group is already active")
+            return
+
         group_key = self.get_a_group()
-        if group_key:
-            self.load_group(self.get_a_group())
+        if group_key is None:
+            logger.debug("Could not find a group")
+            return
+
+        self.load_group(group_key)
 
     def _on_preset_changed(self, data: PresetData):
         """load a mapping as soon as everyone got notified about the new preset"""
@@ -129,17 +137,17 @@ class Controller:
             self.load_event(combination[0])
         else:
             # send an empty mapping to make sure the ui is reset to default values
-            self.message_broker.send(MappingData(**MAPPING_DEFAULTS))
+            self.message_broker.publish(MappingData(**MAPPING_DEFAULTS))
 
     def _on_combination_recorded(self, data: CombinationRecorded):
         self.update_combination(data.combination)
 
-    def _send_mapping_errors_as_status_msg(self, *__):
+    def _publish_mapping_errors_as_status_msg(self, *__):
         """send mapping ValidationErrors to the MessageBroker."""
         if not self.data_manager.active_preset:
             return
         if self.data_manager.active_preset.is_valid():
-            self.message_broker.send(StatusData(CTX_MAPPING))
+            self.message_broker.publish(StatusData(CTX_MAPPING))
             return
 
         for mapping in self.data_manager.active_preset:
@@ -233,7 +241,7 @@ class Controller:
         self.data_manager.copy_preset(
             self.data_manager.get_available_preset_name(f"{name} copy")
         )
-        self.message_broker.send(DoStackSwitch(1))
+        self.message_broker.publish(DoStackSwitch(1))
 
     def update_combination(self, combination: EventCombination):
         """update the event_combination of the active mapping"""
@@ -308,8 +316,8 @@ class Controller:
             self.data_manager.update_event(new_event)
         except KeyError:
             # we need to synchronize the gui
-            self.data_manager.send_mapping()
-            self.data_manager.send_event()
+            self.data_manager.publish_mapping()
+            self.data_manager.publish_event()
 
     def remove_event(self):
         """remove the active InputEvent from the active mapping event combination"""
@@ -326,8 +334,8 @@ class Controller:
             self.save()
         except (KeyError, ValueError):
             # we need to synchronize the gui
-            self.data_manager.send_mapping()
-            self.data_manager.send_event()
+            self.data_manager.publish_mapping()
+            self.data_manager.publish_event()
 
     def set_event_as_analog(self, analog: bool):
         """use the active event as an analog input"""
@@ -353,8 +361,8 @@ class Controller:
 
         # didn't update successfully
         # we need to synchronize the gui
-        self.data_manager.send_mapping()
-        self.data_manager.send_event()
+        self.data_manager.publish_mapping()
+        self.data_manager.publish_event()
 
     def load_groups(self):
         """refresh the groups"""
@@ -397,7 +405,7 @@ class Controller:
             if answer:
                 self.data_manager.delete_preset()
                 self.data_manager.load_preset(self.get_a_preset())
-                self.message_broker.send(DoStackSwitch(1))
+                self.message_broker.publish(DoStackSwitch(1))
 
         if not self.data_manager.active_preset:
             return
@@ -405,7 +413,7 @@ class Controller:
             _('Are you sure you want to delete the preset "%s"?')
             % self.data_manager.active_preset.name
         )
-        self.message_broker.send(UserConfirmRequest(msg, f))
+        self.message_broker.publish(UserConfirmRequest(msg, f))
 
     def load_mapping(self, event_combination: EventCombination):
         """load the mapping with the given event_combination form the active_preset"""
@@ -417,8 +425,8 @@ class Controller:
         if "mapping_type" in kwargs.keys():
             if not (kwargs := self._change_mapping_type(kwargs)):
                 # we need to synchronize the gui
-                self.data_manager.send_mapping()
-                self.data_manager.send_event()
+                self.data_manager.publish_mapping()
+                self.data_manager.publish_event()
                 return
 
         self.data_manager.update_mapping(**kwargs)
@@ -445,7 +453,7 @@ class Controller:
 
         if not self.data_manager.active_mapping:
             return
-        self.message_broker.send(
+        self.message_broker.publish(
             UserConfirmRequest(_("Are you sure you want to delete this mapping?"), f)
         )
 
@@ -466,31 +474,34 @@ class Controller:
 
         Updates the active_mapping.event_combination with the recorded events.
         """
-        self.message_broker.signal(MessageType.recording_started)  # TODO test
-
         state = self.data_manager.get_state()
         if state == RUNNING or state == STARTING:
+            self.data_manager.stop_combination_recording()
             self.message_broker.signal(MessageType.recording_finished)
             self.show_status(CTX_ERROR, _('Use "Stop" to stop before editing'))
             return
 
         logger.debug("Recording Keys")
 
-        def f(_):
-            self.message_broker.unsubscribe(f)
+        def on_recording_finished(_):
+            self.message_broker.unsubscribe(on_recording_finished)
             self.message_broker.unsubscribe(self._on_combination_recorded)
             self.gui.connect_shortcuts()
 
         self.gui.disconnect_shortcuts()
         self.message_broker.subscribe(
-            MessageType.combination_recorded, self._on_combination_recorded
+            MessageType.combination_recorded,
+            self._on_combination_recorded,
         )
-        self.message_broker.subscribe(MessageType.recording_finished, f)
+        self.message_broker.subscribe(
+            MessageType.recording_finished,
+            on_recording_finished
+        )
         self.data_manager.start_combination_recording()
 
     def stop_key_recording(self):
         """stop recording the input"""
-        logger.debug("Stopping Key recording")
+        logger.debug("Stopping Recording Keys")
         self.data_manager.stop_combination_recording()
 
     def start_injecting(self):
@@ -584,7 +595,7 @@ class Controller:
         self, ctx_id: int, msg: Optional[str] = None, tooltip: Optional[str] = None
     ):
         """send a status message to the ui to show it in the status-bar"""
-        self.message_broker.send(StatusData(ctx_id, msg, tooltip))
+        self.message_broker.publish(StatusData(ctx_id, msg, tooltip))
 
     def is_empty_mapping(self) -> bool:
         """check if the active_mapping is empty"""
@@ -654,7 +665,7 @@ class Controller:
                 nonlocal answer
                 answer = a
 
-            self.message_broker.send(UserConfirmRequest(msg, f))
+            self.message_broker.publish(UserConfirmRequest(msg, f))
             if answer:
                 kwargs["output_symbol"] = None
                 return kwargs
@@ -675,7 +686,7 @@ class Controller:
                 nonlocal answer
                 answer = a
 
-            self.message_broker.send(
+            self.message_broker.publish(
                 UserConfirmRequest(
                     f"You are about to change the mapping to a Key or Macro mapping!\n"
                     f"Go to the advanced input configuration and set a "

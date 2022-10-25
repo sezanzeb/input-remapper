@@ -301,7 +301,9 @@ class TestControl(unittest.TestCase):
         with mock.patch("os.system") as os_system_patch:
             internals(options("helper", None, None, None, False, False, False))
             os_system_patch.assert_called_once()
-            self.assertIn("input-remapper-helper", os_system_patch.call_args.args[0])
+            self.assertIn(
+                "input-remapper-reader-service", os_system_patch.call_args.args[0]
+            )
             self.assertNotIn("-d", os_system_patch.call_args.args[0])
 
         with mock.patch("os.system") as os_system_patch:

@@ -35,6 +35,7 @@
 Beware that pipes read any available messages,
 even those written by themselves.
 """
+
 import asyncio
 import json
 import os
@@ -107,7 +108,7 @@ class Pipe:
         """Read an object from the pipe or None if nothing available.
 
         Doesn't transmit pickles, to avoid injection attacks on the
-        privileged helper. Only messages that can be converted to json
+        privileged reader-service. Only messages that can be converted to json
         are allowed.
         """
         if len(self._unread) > 0:

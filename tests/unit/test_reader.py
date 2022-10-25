@@ -59,9 +59,9 @@ from evdev.ecodes import (
     REL_HWHEEL,
 )
 
-from inputremapper.gui.reader import Reader
+from inputremapper.gui.reader_client import ReaderClient
 from inputremapper.event_combination import EventCombination
-from inputremapper.gui.helper import RootHelper
+from inputremapper.gui.reader_service import ReaderService
 from inputremapper.groups import _Groups, DeviceType
 
 CODE_1 = 100
@@ -93,7 +93,7 @@ class TestReader(unittest.TestCase):
         self.helper = None
         self.groups = _Groups()
         self.message_broker = MessageBroker()
-        self.reader = Reader(self.message_broker, self.groups)
+        self.reader = ReaderClient(self.message_broker, self.groups)
 
     def tearDown(self):
         quick_cleanup()
@@ -112,7 +112,7 @@ class TestReader(unittest.TestCase):
             groups = self.groups
 
         def start_helper():
-            helper = RootHelper(groups)
+            helper = ReaderService(groups)
             helper.run()
 
         self.helper = multiprocessing.Process(target=start_helper)

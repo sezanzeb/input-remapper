@@ -40,7 +40,7 @@ from inputremapper.gui.messages.message_data import (
     PresetData,
     CombinationUpdate,
 )
-from inputremapper.gui.reader import Reader
+from inputremapper.gui.reader_client import ReaderClient
 from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.input_event import InputEvent
 from tests.test import get_key_mapping, quick_cleanup, FakeDaemonProxy, prepare_presets
@@ -61,7 +61,7 @@ class Listener:
 class TestDataManager(unittest.TestCase):
     def setUp(self) -> None:
         self.message_broker = MessageBroker()
-        self.reader = Reader(self.message_broker, _Groups())
+        self.reader = ReaderClient(self.message_broker, _Groups())
         self.uinputs = GlobalUInputs()
         self.uinputs.prepare_all()
         self.data_manager = DataManager(
@@ -819,11 +819,11 @@ class TestDataManager(unittest.TestCase):
         self.data_manager.load_group("Foo Device")
         self.assertEqual(self.data_manager.get_available_preset_name("foo 1"), "foo 3")
 
-    def test_should_send_groups(self):
+    def test_should_publish_groups(self):
         listener = Listener()
         self.message_broker.subscribe(MessageType.groups, listener)
 
-        self.data_manager.send_groups()
+        self.data_manager.publish_groups()
         data = listener.calls[0]
 
         # we expect a list of tuples with the group key and their device types
