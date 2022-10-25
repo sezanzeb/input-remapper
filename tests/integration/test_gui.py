@@ -58,13 +58,13 @@ from unittest.mock import patch, MagicMock, call
 from importlib.util import spec_from_loader, module_from_spec
 from importlib.machinery import SourceFileLoader
 
-import gi
 from inputremapper.input_event import InputEvent
 
+import gi
 gi.require_version("Gdk", "3.0")
 gi.require_version("Gtk", "3.0")
-gi.require_version("GLib", "2.0")
 gi.require_version("GtkSource", "4")
+gi.require_version("GLib", "2.0")
 from gi.repository import Gtk, GLib, Gdk, GtkSource
 
 from inputremapper.configs.system_mapping import system_mapping
@@ -736,7 +736,7 @@ class TestGui(GuiTestBase):
         self.throttle(20)
 
         # sending a combination update now should not do anything
-        self.message_broker.send(
+        self.message_broker.publish(
             CombinationRecorded(EventCombination.from_string("1,35,1"))
         )
         gtk_iteration()
@@ -828,12 +828,12 @@ class TestGui(GuiTestBase):
         )
 
     def test_show_status(self):
-        self.message_broker.send(StatusData(0, "a" * 500))
+        self.message_broker.publish(StatusData(0, "a" * 500))
         gtk_iteration()
         text = self.get_status_text()
         self.assertIn("...", text)
 
-        self.message_broker.send(StatusData(0, "b"))
+        self.message_broker.publish(StatusData(0, "b"))
         gtk_iteration()
         text = self.get_status_text()
         self.assertNotIn("...", text)
@@ -1078,7 +1078,7 @@ class TestGui(GuiTestBase):
 
         self.recording_toggle.set_active(True)
         gtk_iteration()
-        self.message_broker.send(
+        self.message_broker.publish(
             CombinationRecorded(EventCombination((EV_KEY, KEY_Q, 1)))
         )
         gtk_iteration()
@@ -1098,7 +1098,7 @@ class TestGui(GuiTestBase):
         gtk_iteration()
         self.recording_toggle.set_active(True)
         gtk_iteration()
-        self.message_broker.send(
+        self.message_broker.publish(
             CombinationRecorded(EventCombination((EV_KEY, KEY_Q, 1)))
         )
         gtk_iteration()

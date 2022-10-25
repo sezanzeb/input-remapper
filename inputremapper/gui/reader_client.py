@@ -28,6 +28,9 @@ from typing import Optional, List, Generator, Dict, Tuple, Set
 import time
 
 import evdev
+
+import gi
+gi.require_version("GLib", "2.0")
 from gi.repository import GLib
 
 from inputremapper.event_combination import EventCombination

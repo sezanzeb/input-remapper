@@ -33,9 +33,9 @@ import time
 from pathlib import PurePath
 from typing import Protocol, Dict
 
-import gi
 from pydbus import SystemBus
 
+import gi
 gi.require_version("GLib", "2.0")
 from gi.repository import GLib
 

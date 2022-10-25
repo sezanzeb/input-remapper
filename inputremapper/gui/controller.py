@@ -33,6 +33,9 @@ from typing import (
 )
 
 from evdev.ecodes import EV_KEY, EV_REL, EV_ABS
+
+import gi
+gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 
 from inputremapper.configs.mapping import MappingData, UIMapping

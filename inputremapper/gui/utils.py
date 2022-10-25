@@ -22,6 +22,10 @@ from __future__ import annotations
 import time
 from typing import List
 
+import gi
+gi.require_version("Gdk", "3.0")
+gi.require_version("Gtk", "3.0")
+gi.require_version("GLib", "2.0")
 from gi.repository import Gtk, GLib, Gdk
 
 from inputremapper.logger import logger
