@@ -27,7 +27,7 @@ from tests.test import (
     push_events,
     EVENT_READ_TIMEOUT,
     START_READING_DELAY,
-    logger
+    logger,
 )
 
 import os

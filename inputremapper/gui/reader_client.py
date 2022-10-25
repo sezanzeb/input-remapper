@@ -237,7 +237,8 @@ class ReaderClient:
                 )
 
     def set_group(self, group):
-        # TODO load the active_group from the controller instead
+        """Set the group for which input events should be read later."""
+        # TODO load the active_group from the controller instead?
         self.group = group
 
     def terminate(self):
