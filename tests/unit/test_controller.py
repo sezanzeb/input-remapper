@@ -37,7 +37,6 @@ from inputremapper.input_event import InputEvent
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 
-# from inputremapper.gui.reader_service import is_running
 from inputremapper.event_combination import EventCombination
 from inputremapper.groups import _Groups
 from inputremapper.gui.messages.message_broker import (
@@ -54,7 +53,6 @@ from inputremapper.gui.messages.message_data import (
     UserConfirmRequest,
 )
 from inputremapper.gui.reader_client import ReaderClient
-from inputremapper.gui.reader_service import ReaderService
 from inputremapper.gui.utils import CTX_ERROR, CTX_APPLY, gtk_iteration
 from inputremapper.gui.gettext import _
 from inputremapper.injection.global_uinputs import GlobalUInputs
@@ -195,37 +193,6 @@ class TestController(unittest.TestCase):
         self.message_broker.signal(MessageType.init)
         for m in calls:
             self.assertEqual(m, UIMapping(**MAPPING_DEFAULTS))
-
-    def test_on_init_should_provide_status_if_reader_service_is_not_running(self):
-        calls: List[StatusData] = []
-
-        def f(data):
-            calls.append(data)
-
-        self.message_broker.subscribe(MessageType.status_msg, f)
-        with patch.object(
-            ReaderService, "is_running", lambda: False
-        ):
-            self.message_broker.signal(MessageType.init)
-        self.assertIn(
-            StatusData(CTX_ERROR, _("The reader-service did not start")), calls
-        )
-
-    def test_on_init_should_not_provide_status_if_reader_service_is_running(self):
-        calls: List[StatusData] = []
-
-        def f(data):
-            calls.append(data)
-
-        self.message_broker.subscribe(MessageType.status_msg, f)
-        with patch.object(
-            ReaderService, "is_running", lambda: True
-        ):
-            self.message_broker.signal(MessageType.init)
-
-        self.assertNotIn(
-            StatusData(CTX_ERROR, _("The reader-service did not start")), calls
-        )
 
     def test_on_load_group_should_provide_preset(self):
         with patch.object(self.data_manager, "load_preset") as mock:
