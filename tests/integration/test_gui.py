@@ -61,6 +61,7 @@ from importlib.machinery import SourceFileLoader
 from inputremapper.input_event import InputEvent
 
 import gi
+
 gi.require_version("Gdk", "3.0")
 gi.require_version("Gtk", "3.0")
 gi.require_version("GtkSource", "4")
@@ -275,6 +276,19 @@ class GuiTestBase(unittest.TestCase):
                 self.message_broker,
                 self.daemon,
             ) = launch()
+
+        # make sure each test deals with the same initial state
+        self.assertEqual(self.controller.data_manager, self.data_manager)
+        self.assertEqual(self.data_manager.active_group.key, "Foo Device")
+        # if the modification-date from `prepare_presets` is not destroyed, preset3
+        # should be selected as the newest one
+        self.assertEqual(self.data_manager.active_preset.name, "preset3")
+        self.assertEqual(self.data_manager.active_mapping.target_uinput, "keyboard")
+        self.assertEqual(
+            self.data_manager.active_mapping.event_combination,
+            EventCombination((1, 5, 1)),
+        )
+        self.assertEqual(self.data_manager.active_event, InputEvent(0, 0, 1, 5, 1))
 
         get = self.user_interface.get
         self.device_selection: Gtk.FlowBox = get("device_selection")

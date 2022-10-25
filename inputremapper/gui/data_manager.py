@@ -255,6 +255,7 @@ class DataManager:
                 os.path.join(get_preset_path(self.active_group.name), "*.json")
             )
         ]
+        print("## get_newest_preset_name", paths)
         if not paths:
             raise FileNotFoundError()
 
@@ -316,6 +317,7 @@ class DataManager:
             raise DataManagementError("Unable to load preset. Group is not set")
 
         logger.info('Loading preset "%s"', name)
+        print("## load_preset", self.active_group.name, name)
 
         preset_path = get_preset_path(self.active_group.name, name)
         preset = Preset(preset_path, mapping_factory=UIMapping)

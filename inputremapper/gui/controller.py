@@ -373,6 +373,7 @@ class Controller:
 
     def load_group(self, group_key: str):
         """load the group and then a preset of that group"""
+        print("## load_group", group_key)
         self.data_manager.load_group(group_key)
         self.load_preset(self.get_a_preset())
 
