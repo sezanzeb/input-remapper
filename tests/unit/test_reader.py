@@ -374,7 +374,7 @@ class TestReader(unittest.TestCase):
         self.reader.start_recorder()
 
         # sending anything arbitrary does not stop the helper
-        self.reader._commands.send(856794)
+        self.reader._commands_pipe.send(856794)
         time.sleep(0.2)
         push_events(
             fixtures.foo_device_2_gamepad,
@@ -499,16 +499,16 @@ class TestReader(unittest.TestCase):
 
         push_events(fixtures.foo_device_2_keyboard, [new_event(EV_KEY, CODE_3, 1)])
         time.sleep(START_READING_DELAY + EVENT_READ_TIMEOUT)
-        self.assertTrue(self.reader._results.poll())
+        self.assertTrue(self.reader._results_pipe.poll())
 
         self.reader.terminate()
         time.sleep(EVENT_READ_TIMEOUT)
-        self.assertFalse(self.reader._results.poll())
+        self.assertFalse(self.reader._results_pipe.poll())
 
         # no new events arrive after terminating
         push_events(fixtures.foo_device_2_keyboard, [new_event(EV_KEY, CODE_3, 1)])
         time.sleep(EVENT_READ_TIMEOUT * 3)
-        self.assertFalse(self.reader._results.poll())
+        self.assertFalse(self.reader._results_pipe.poll())
 
     def test_are_new_groups_available(self):
         l1 = Listener()

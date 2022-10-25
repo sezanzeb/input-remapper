@@ -27,6 +27,7 @@ import evdev
 from evdev.ecodes import KEY_A, KEY_B, KEY_C
 
 import gi
+
 gi.require_version("Gdk", "3.0")
 gi.require_version("Gtk", "3.0")
 gi.require_version("GLib", "2.0")
@@ -1611,6 +1612,8 @@ class TestBreadcrumbs(ComponentBaseTest):
         self.assertEqual(self.label_5.get_text(), "a + b")
 
         combination = EventCombination([(1, KEY_A, 1)])
-        self.message_broker.publish(MappingData(name="qux", event_combination=combination))
+        self.message_broker.publish(
+            MappingData(name="qux", event_combination=combination)
+        )
         self.assertEqual(self.label_4.get_text(), "group  /  preset  /  qux")
         self.assertEqual(self.label_5.get_text(), "qux")

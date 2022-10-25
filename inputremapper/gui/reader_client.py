@@ -30,6 +30,7 @@ import time
 import evdev
 
 import gi
+
 gi.require_version("GLib", "2.0")
 from gi.repository import GLib
 
@@ -42,8 +43,7 @@ from inputremapper.gui.reader_service import (
     CMD_REFRESH_GROUPS,
     CMD_STOP_READING,
     get_pipe_paths,
-    is_reader_service_running,
-    pkexec_reader_service,
+    ReaderService,
 )
 from inputremapper.gui.messages.message_types import MessageType
 from inputremapper.gui.messages.message_broker import MessageBroker
@@ -88,11 +88,11 @@ class ReaderClient:
         GLib.timeout_add(30, self._read)
 
     def ensure_reader_service_running(self):
-        if is_reader_service_running():
+        if ReaderService.is_running():
             return
 
         logger.info("ReaderService not running anymore, restarting")
-        pkexec_reader_service()
+        ReaderService.pkexec_reader_service()
 
         # wait until the ReaderService is up
 

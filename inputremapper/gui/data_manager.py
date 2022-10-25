@@ -24,6 +24,7 @@ import time
 from typing import Optional, List, Tuple, Set
 
 import gi
+
 gi.require_version("GLib", "2.0")
 from gi.repository import GLib
 

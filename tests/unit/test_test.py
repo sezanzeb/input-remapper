@@ -106,7 +106,7 @@ class TestTest(unittest.TestCase):
             # wait for the helper to send stuff
             for _ in range(10):
                 time.sleep(EVENT_READ_TIMEOUT)
-                if reader._results.poll():
+                if reader._results_pipe.poll():
                     break
 
         create_helper()
@@ -116,17 +116,17 @@ class TestTest(unittest.TestCase):
         event = new_event(EV_KEY, 102, 1)
         push_events(fixtures.foo_device_2_keyboard, [event])
         wait_for_results()
-        self.assertTrue(reader._results.poll())
+        self.assertTrue(reader._results_pipe.poll())
 
         reader._read()
-        self.assertFalse(reader._results.poll())
+        self.assertFalse(reader._results_pipe.poll())
 
         # can push more events to the helper that is inside a separate
         # process, which end up being sent to the reader
         event = new_event(EV_KEY, 102, 0)
         push_events(fixtures.foo_device_2_keyboard, [event])
         wait_for_results()
-        self.assertTrue(reader._results.poll())
+        self.assertTrue(reader._results_pipe.poll())
 
         reader.terminate()
 

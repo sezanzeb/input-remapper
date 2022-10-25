@@ -39,10 +39,11 @@ from inputremapper.injection.injector import (
 from inputremapper.input_event import InputEvent
 
 import gi
+
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 
-# from inputremapper.gui.reader_service import is_reader_service_running
+# from inputremapper.gui.reader_service import is_running
 from inputremapper.event_combination import EventCombination
 from inputremapper.groups import _Groups
 from inputremapper.gui.messages.message_broker import (
@@ -211,7 +212,7 @@ class TestController(unittest.TestCase):
 
         self.message_broker.subscribe(MessageType.status_msg, f)
         with patch(
-            "inputremapper.gui.controller.is_reader_service_running", lambda: False
+            "inputremapper.gui.controller.is_running", lambda: False
         ):
             self.message_broker.signal(MessageType.init)
         self.assertIn(
@@ -226,7 +227,7 @@ class TestController(unittest.TestCase):
 
         self.message_broker.subscribe(MessageType.status_msg, f)
         with patch(
-            "inputremapper.gui.controller.is_reader_service_running", lambda: True
+            "inputremapper.gui.controller.is_running", lambda: True
         ):
             self.message_broker.signal(MessageType.init)
 

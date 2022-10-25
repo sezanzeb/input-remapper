@@ -75,33 +75,12 @@ MSG_EVENT = "event"
 MSG_READY = "ready"
 
 
-def is_reader_service_running():
-    """Check if the reader-service is running."""
-    try:
-        subprocess.check_output(["pgrep", "-f", "input-remapper-reader-service"])
-    except subprocess.CalledProcessError:
-        return False
-    return True
-
-
 def get_pipe_paths():
     """Get the path where the pipe can be found."""
     return (
         f"/tmp/input-remapper-{USER}/reader-results",
         f"/tmp/input-remapper-{USER}/reader-commands",
     )
-
-
-def pkexec_reader_service():
-    """Start reader-service via pkexec to run in the background."""
-    debug = " -d" if logger.level <= logging.DEBUG else ""
-    cmd = f"pkexec input-remapper-control --command start-reader-service {debug}"
-
-    logger.debug("Running `%s`", cmd)
-    exit_code = os.system(cmd)
-
-    if exit_code != 0:
-        raise Exception(f"Failed to pkexec the reader-service, code {exit_code}")
 
 
 class ReaderService:
@@ -131,14 +110,35 @@ class ReaderService:
         """Construct the helper and initialize its sockets."""
         self._start_time = time.time()
         self.groups = groups
-        self._results = Pipe(get_pipe_paths()[0])
-        self._commands = Pipe(get_pipe_paths()[1])
+        self._results_pipe = Pipe(get_pipe_paths()[0])
+        self._commands_pipe = Pipe(get_pipe_paths()[1])
         self._pipe = multiprocessing.Pipe()
 
         self._tasks: Set[asyncio.Task] = set()
         self._stop_event = asyncio.Event()
 
-        self._results.send({"type": MSG_READY, "message": ""})
+        self._results_pipe.send({"type": MSG_READY, "message": ""})
+
+    @staticmethod
+    def is_running():
+        """Check if the reader-service is running."""
+        try:
+            subprocess.check_output(["pgrep", "-f", "input-remapper-reader-service"])
+        except subprocess.CalledProcessError:
+            return False
+        return True
+
+    @staticmethod
+    def pkexec_reader_service():
+        """Start reader-service via pkexec to run in the background."""
+        debug = " -d" if logger.level <= logging.DEBUG else ""
+        cmd = f"pkexec input-remapper-control --command start-reader-service {debug}"
+
+        logger.debug("Running `%s`", cmd)
+        exit_code = os.system(cmd)
+
+        if exit_code != 0:
+            raise Exception(f"Failed to pkexec the reader-service, code {exit_code}")
 
     def run(self):
         """Start doing stuff. Blocks."""
@@ -158,7 +158,7 @@ class ReaderService:
     def _send_groups(self):
         """Send the groups to the gui."""
         logger.debug("Sending groups")
-        self._results.send({"type": MSG_GROUPS, "message": self.groups.dumps()})
+        self._results_pipe.send({"type": MSG_GROUPS, "message": self.groups.dumps()})
 
     async def _timeout(self):
         """The helper needs to be kept alive, otherwise it stops automatically."""
@@ -190,7 +190,7 @@ class ReaderService:
         this will run until it receives CMD_TERMINATE
         """
         logger.debug("Waiting for commands")
-        async for cmd in self._commands:
+        async for cmd in self._commands_pipe:
             logger.debug('Received command "%s"', cmd)
 
             if cmd == CMD_TERMINATE:
@@ -268,7 +268,7 @@ class ReaderService:
 
             for ev_code in capabilities.get(EV_KEY) or ():
                 context.notify_callbacks[(EV_KEY, ev_code)].append(
-                    ForwardToUIHandler(self._results).notify
+                    ForwardToUIHandler(self._results_pipe).notify
                 )
 
             for ev_code in capabilities.get(EV_ABS) or ():
@@ -280,7 +280,7 @@ class ReaderService:
                 handler: MappingHandler = AbsToBtnHandler(
                     EventCombination((EV_ABS, ev_code, 30)), mapping
                 )
-                handler.set_sub_handler(ForwardToUIHandler(self._results))
+                handler.set_sub_handler(ForwardToUIHandler(self._results_pipe))
                 context.notify_callbacks[(EV_ABS, ev_code)].append(handler.notify)
 
                 # negative direction
@@ -291,7 +291,7 @@ class ReaderService:
                 handler = AbsToBtnHandler(
                     EventCombination((EV_ABS, ev_code, -30)), mapping
                 )
-                handler.set_sub_handler(ForwardToUIHandler(self._results))
+                handler.set_sub_handler(ForwardToUIHandler(self._results_pipe))
                 context.notify_callbacks[(EV_ABS, ev_code)].append(handler.notify)
 
             for ev_code in capabilities.get(EV_REL) or ():
@@ -308,7 +308,7 @@ class ReaderService:
                     EventCombination((EV_REL, ev_code, self.rel_speed[ev_code])),
                     mapping,
                 )
-                handler.set_sub_handler(ForwardToUIHandler(self._results))
+                handler.set_sub_handler(ForwardToUIHandler(self._results_pipe))
                 context.notify_callbacks[(EV_REL, ev_code)].append(handler.notify)
 
                 # negative direction
@@ -324,7 +324,7 @@ class ReaderService:
                     EventCombination((EV_REL, ev_code, -self.rel_speed[ev_code])),
                     mapping,
                 )
-                handler.set_sub_handler(ForwardToUIHandler(self._results))
+                handler.set_sub_handler(ForwardToUIHandler(self._results_pipe))
                 context.notify_callbacks[(EV_REL, ev_code)].append(handler.notify)
 
         return context

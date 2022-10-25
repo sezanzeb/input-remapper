@@ -35,7 +35,7 @@ from gi.repository import Gtk
 Gtk.init()
 
 from inputremapper.gui.gettext import _, LOCALE_DIR
-from inputremapper.gui.reader_service import pkexec_reader_service
+from inputremapper.gui.reader_service import ReaderService
 from inputremapper.daemon import DaemonProxy
 from inputremapper.logger import logger, update_verbosity, log_info
 
@@ -44,7 +44,7 @@ def start_processes() -> DaemonProxy:
     """Start reader-service and daemon via pkexec to run in the background."""
     # this function is overwritten in tests
     try:
-        pkexec_reader_service()
+        ReaderService.pkexec_reader_service()
     except Exception as e:
         logger.error(e)
         sys.exit(11)

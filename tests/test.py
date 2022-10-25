@@ -777,6 +777,7 @@ from inputremapper.groups import groups, _Groups
 from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.gui.messages.message_broker import MessageBroker
 from inputremapper.gui.reader_client import ReaderClient
+from inputremapper.gui.reader_service import ReaderService
 from inputremapper.configs.paths import get_config_path, get_preset_path
 from inputremapper.configs.preset import Preset
 
@@ -787,6 +788,9 @@ Injector.regrab_timeout = 0.05
 
 
 environ_copy = copy.deepcopy(os.environ)
+
+
+ReaderService.is_running = lambda: True
 
 
 def convert_to_internal_events(events):

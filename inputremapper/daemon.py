@@ -36,6 +36,7 @@ from typing import Protocol, Dict
 from pydbus import SystemBus
 
 import gi
+
 gi.require_version("GLib", "2.0")
 from gi.repository import GLib
 

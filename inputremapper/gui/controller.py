@@ -35,6 +35,7 @@ from typing import (
 from evdev.ecodes import EV_KEY, EV_REL, EV_ABS
 
 import gi
+
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 
@@ -43,7 +44,6 @@ from inputremapper.event_combination import EventCombination
 from inputremapper.exceptions import DataManagementError
 from inputremapper.gui.data_manager import DataManager, DEFAULT_PRESET_NAME
 from inputremapper.gui.gettext import _
-from inputremapper.gui.reader_service import is_reader_service_running
 from inputremapper.gui.messages.message_broker import (
     MessageBroker,
     MessageType,
