@@ -129,29 +129,43 @@ class UIMapping(BaseModel):
 
     # when mapping to relative axis
 
-    # frequency in Hz for REL_X/Y event generation
-    rel_xy_rate: PositiveInt = 60
-    # frequency in Hz for REL_WHEEL and REL_WHEEL_HI_RES event generation
-    rel_wheel_rate: PositiveInt = 60
+    # frequency in Hz for REL_ event generation
+    rel_rate: PositiveInt = 60
 
     # the base speed of the relative axis, compounds with the gain.
     # values are observed normal output values in evtest
-    rel_xy_speed: PositiveInt = 30
-    rel_wheel_speed: PositiveInt = 1
-    rel_wheel_hi_res_speed: PositiveInt = 120
+    rel_speed: PositiveInt = 30
 
     # when mapping from a relative axis:
     # the absolute value at which a EV_REL axis is considered at its maximum.
     # values are from evtest when moving the input quickly
-    rel_xy_max_input: PositiveInt = 100
-    rel_wheel_max_input: PositiveInt = 3
-    rel_wheel_hi_res_max_input: PositiveInt = 360
+    rel_input_cutoff: PositiveInt = 100
 
     # the time until a relative axis is considered stationary if no new events arrive
     release_timeout: PositiveFloat = 0.05
     # don't release immediately when a relative axis drops below the speed threshold
     # instead wait until it dropped for loger than release_timeout below the threshold
     force_release_timeout: bool = False
+
+    # special values for REL_WHEEL inputs and outputs. These try to provide good default
+    # values while keeping the number of configurable parameters low
+    @property
+    def rel_wheel_speed(self) -> int:
+        return max((1, self.rel_speed // 30))
+
+    @property
+    def rel_wheel_hi_res_speed(self) -> int:
+        # don't update this, update rel_wheel_speed instead
+        return self.rel_wheel_speed * 120
+
+    @property
+    def rel_wheel_max_input(self) -> int:
+        return max((1, self.rel_input_cutoff // 30))
+
+    @property
+    def rel_wheel_hi_res_max_input(self) -> int:
+        # don't update this, update rel_wheel_max_input instead
+        return self.rel_wheel_max_input * 120
 
     # callback which gets called if the event_combination is updated
     if not needs_workaround:
