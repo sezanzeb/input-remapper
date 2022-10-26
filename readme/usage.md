@@ -16,6 +16,8 @@ as shown in the screenshots.
 
 In the text input field, type the key to which you would like to map this key.
 More information about the possible mappings can be found in [examples.md](./examples.md) and [below](#key-names).
+You can also write your macro into the text input field. If you hit enter, it will switch to a multiline-editor with
+line-numbers.
 
 Changes are saved automatically. 
 Press the "Apply" button to activate (inject) the mapping you created.
