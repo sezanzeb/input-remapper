@@ -67,16 +67,9 @@ class Remainder:
         # if the mouse moves very slow, it might not move at all because of the
         # int-conversion (which is required when writing). store the remainder
         # (the decimal places) and add it up, until the mouse moves a little.
-        scaled = value * self._scale
-        floored = int(scaled)
-        self._remainder += scaled - floored
-        if abs(self._remainder) >= 1:
-            output_value = int(scaled + self._remainder)
-            self._remainder = self._remainder - output_value
-        else:
-            output_value = floored
-
-        return output_value
+        scaled = value * self._scale + self._remainder
+        self._remainder = math.fmod(scaled, 1)
+        return int(scaled)
 
 
 class RelToRelHandler(MappingHandler):
