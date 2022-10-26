@@ -62,6 +62,7 @@ async def _run_normal_output(self) -> None:
         # float_value % 1 will result in wrong calculations for negative values
         remainder = math.fmod(scaled, 1)
         value = int(scaled)
+        remainder = scaled - value
         self._write(EV_REL, self.mapping.output_code, value)
 
         time_taken = time.time() - start

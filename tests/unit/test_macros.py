@@ -116,7 +116,7 @@ class MacroTestBase(unittest.IsolatedAsyncioTestCase):
 
 class DummyMapping:
     macro_key_sleep_ms = 10
-    rel_xy_rate = 60
+    rel_xy_rate = 125
     rel_wheel_rate = 60
 
 
