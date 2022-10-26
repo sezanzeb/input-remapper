@@ -19,6 +19,7 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 import asyncio
+import math
 from typing import Dict, Tuple, Optional
 
 import evdev
