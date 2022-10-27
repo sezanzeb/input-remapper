@@ -772,7 +772,7 @@ class TestIdk(EventPipelineTestBase):
     async def test_switch_axis(self):
         """Test a mapping for an axis that can be switched on or off."""
 
-        rate = 60  # rate [Hz] at which events are produced
+        rel_rate = 60  # rate [Hz] at which events are produced
         gain = 0.5  # halve the speed of the rel axis
         speed = 1
 
@@ -783,7 +783,7 @@ class TestIdk(EventPipelineTestBase):
             "target_uinput": "mouse",
             "output_type": EV_REL,
             "output_code": REL_X,
-            "rel_rate": rate,
+            "rel_rate": rel_rate,
             "gain": gain,
             "deadzone": 0,
             "rel_speed": speed,
@@ -843,8 +843,8 @@ class TestIdk(EventPipelineTestBase):
             raise AssertionError("The injector probably just forwarded them unchanged")
 
         # each axis writes speed*gain*rate*sleep=1*0.5*60 events
-        self.assertGreater(len(history), speed * gain * rate * sleep * 0.9)
-        self.assertLess(len(history), speed * gain * rate * sleep * 1.1)
+        self.assertGreater(len(history), speed * gain * rel_rate * sleep * 0.9)
+        self.assertLess(len(history), speed * gain * rel_rate * sleep * 1.1)
 
         # does not contain anything else
         count_x = history.count((EV_REL, REL_X, 1))
@@ -1064,7 +1064,7 @@ class TestAbsToRel(EventPipelineTestBase):
     async def test_abs_to_rel(self):
         """Map gamepad EV_ABS events to EV_REL events."""
 
-        rate = 60  # rate [Hz] at which events are produced
+        rel_rate = 60  # rate [Hz] at which events are produced
         gain = 0.5  # halve the speed of the rel axis
         speed = 1
         # left x to mouse x
@@ -1073,7 +1073,7 @@ class TestAbsToRel(EventPipelineTestBase):
             "target_uinput": "mouse",
             "output_type": EV_REL,
             "output_code": REL_X,
-            "rel_rate": rate,
+            "rel_rate": rel_rate,
             "gain": gain,
             "deadzone": 0,
             "rel_speed": speed,
@@ -1127,8 +1127,8 @@ class TestAbsToRel(EventPipelineTestBase):
             )
 
         # each axis writes speed*gain*rate*sleep=1*0.5*60 events
-        self.assertGreater(len(history), speed * gain * rate * sleep * 0.8 * 2)
-        self.assertLess(len(history), speed * gain * rate * sleep * 1.2 * 2)
+        self.assertGreater(len(history), speed * gain * rel_rate * sleep * 0.8 * 2)
+        self.assertLess(len(history), speed * gain * rel_rate * sleep * 1.2 * 2)
 
         # those may be in arbitrary order
         count_x = history.count((EV_REL, REL_X, -1))
@@ -1142,7 +1142,7 @@ class TestAbsToRel(EventPipelineTestBase):
         """When mapping to wheel events we always expect to see both,
         REL_WHEEL and REL_WHEEL_HI_RES events with an accumulative value ratio of 1/120
         """
-        rate = 60  # rate [Hz] at which events are produced
+        rel_rate = 60  # rate [Hz] at which events are produced
         gain = 1
         speed = 30
         # left x to mouse x
@@ -1151,7 +1151,7 @@ class TestAbsToRel(EventPipelineTestBase):
             "target_uinput": "mouse",
             "output_type": EV_REL,
             "output_code": REL_WHEEL,
-            "rel_rate": rate,
+            "rel_rate": rel_rate,
             "gain": gain,
             "deadzone": 0,
             "rel_speed": speed,
