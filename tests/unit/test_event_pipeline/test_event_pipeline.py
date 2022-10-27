@@ -45,7 +45,7 @@ from evdev.ecodes import (
     BTN_TL,
 )
 
-from inputremapper.configs.mapping import Mapping
+from inputremapper.configs.mapping import Mapping, UIMapping
 from inputremapper.configs.preset import Preset
 from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.event_combination import EventCombination
@@ -63,10 +63,6 @@ from tests.test import (
     Fixture,
     fixtures,
 )
-
-
-def get_default_value(key):
-    return Mapping.schema()["properties"][key]["default"]
 
 
 class EventPipelineTestBase(unittest.IsolatedAsyncioTestCase):
@@ -787,10 +783,10 @@ class TestIdk(EventPipelineTestBase):
             "target_uinput": "mouse",
             "output_type": EV_REL,
             "output_code": REL_X,
-            "rel_xy_rate": rate,
+            "rel_rate": rate,
             "gain": gain,
             "deadzone": 0,
-            "rel_xy_speed": speed,
+            "rel_speed": speed,
         }
         mapping_1 = Mapping(**mapping_config)
 
@@ -963,7 +959,7 @@ class TestRelToAbs(EventPipelineTestBase):
             "output_type": EV_ABS,
             "output_code": ABS_X,
             "gain": gain,
-            "rel_xy_max_input": 100,
+            "rel_input_cutoff": 100,
             "release_timeout": 0.5,
             "deadzone": 0,
         }
@@ -1077,10 +1073,10 @@ class TestAbsToRel(EventPipelineTestBase):
             "target_uinput": "mouse",
             "output_type": EV_REL,
             "output_code": REL_X,
-            "rel_xy_rate": rate,
+            "rel_rate": rate,
             "gain": gain,
             "deadzone": 0,
-            "rel_xy_speed": speed,
+            "rel_speed": speed,
         }
         mapping_1 = Mapping(**mapping_config)
         preset = Preset()
@@ -1155,10 +1151,10 @@ class TestAbsToRel(EventPipelineTestBase):
             "target_uinput": "mouse",
             "output_type": EV_REL,
             "output_code": REL_WHEEL,
-            "rel_xy_rate": rate,
+            "rel_rate": rate,
             "gain": gain,
             "deadzone": 0,
-            "rel_xy_speed": speed,
+            "rel_speed": speed,
         }
         mapping_1 = Mapping(**mapping_config)
 
@@ -1456,24 +1452,24 @@ class TestRelToRel(EventPipelineTestBase):
     async def test_wheel_to_y(self):
         await self._test(
             input_code=REL_WHEEL,
-            input_value=get_default_value("rel_wheel_speed"),
+            input_value=UIMapping().rel_wheel_speed,
             output_code=REL_Y,
-            output_value=get_default_value("rel_xy_speed"),
+            output_value=UIMapping().rel_speed,
         )
 
     async def test_hi_res_wheel_to_y(self):
         await self._test(
             input_code=REL_WHEEL_HI_RES,
-            input_value=get_default_value("rel_wheel_hi_res_speed"),
+            input_value=UIMapping().rel_wheel_hi_res_speed,
             output_code=REL_Y,
-            output_value=get_default_value("rel_xy_speed"),
+            output_value=UIMapping().rel_speed,
         )
 
     async def test_x_to_hwheel(self):
         input_code = REL_X
-        input_value = get_default_value("rel_xy_speed") * 3
+        input_value = UIMapping().rel_speed * 3
         output_code = REL_HWHEEL
-        output_value = get_default_value("rel_wheel_speed") * 6
+        output_value = UIMapping().rel_wheel_speed * 6
         gain = 2
 
         preset = Preset()
@@ -1510,8 +1506,8 @@ class TestRelToRel(EventPipelineTestBase):
             ),
         )
 
-        rel_wheel_hi_res_speed = get_default_value("rel_wheel_hi_res_speed")
-        rel_wheel_speed = get_default_value("rel_wheel_speed")
+        rel_wheel_hi_res_speed = UIMapping().rel_wheel_hi_res_speed
+        rel_wheel_speed = UIMapping().rel_wheel_speed
         hi_res_factor = rel_wheel_hi_res_speed / rel_wheel_speed
 
         self.assertEqual(
@@ -1521,7 +1517,7 @@ class TestRelToRel(EventPipelineTestBase):
                 0,
                 EV_REL,
                 REL_HWHEEL_HI_RES,
-                output_value * get_default_value("rel_wheel_speed") * hi_res_factor,
+                output_value * UIMapping().rel_wheel_speed * hi_res_factor,
             ),
         )
 
@@ -1537,8 +1533,7 @@ class TestRelToRel(EventPipelineTestBase):
             target_uinput="mouse",
             output_type=EV_REL,
             output_code=REL_Y,
-            rel_wheel_hi_res_speed=rel_wheel_hi_res_speed,
-            rel_xy_speed=1,
+            rel_speed=1,
             deadzone=0,
             gain=1,
         )
@@ -1550,14 +1545,15 @@ class TestRelToRel(EventPipelineTestBase):
         # until one REL_Y event is written
         await self.send_events(
             [InputEvent(0, 0, EV_REL, REL_WHEEL_HI_RES, 1)]
-            * (rel_wheel_hi_res_speed - 1),
+            * (mapping.rel_wheel_hi_res_speed - 1),
             event_reader,
         )
         self.assertEqual(len(history), 0)
 
         # write the final event that causes the input to accumulate to 1
+        # plus one extra event because of floating-point math
         await self.send_events(
-            [InputEvent(0, 0, EV_REL, REL_WHEEL_HI_RES, 1)],
+            [InputEvent(0, 0, EV_REL, REL_WHEEL_HI_RES, 1)] * 2,
             event_reader,
         )
         self.assertEqual(len(history), 1)
@@ -1569,12 +1565,13 @@ class TestRelToRel(EventPipelineTestBase):
         # repeat it one more time to see if the remainder is reset correctly
         await self.send_events(
             [InputEvent(0, 0, EV_REL, REL_WHEEL_HI_RES, 1)]
-            * (rel_wheel_hi_res_speed - 1),
+            * (mapping.rel_wheel_hi_res_speed - 1),
             event_reader,
         )
         self.assertEqual(len(history), 1)
 
         # the event that causes the second REL_Y to be written
+        # this should never need the one extra if the remainder is reset correctly
         await self.send_events(
             [InputEvent(0, 0, EV_REL, REL_WHEEL_HI_RES, 1)],
             event_reader,

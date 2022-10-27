@@ -49,7 +49,7 @@ from inputremapper.utils import get_evdev_constant_name
 
 async def _run_normal_output(self) -> None:
     """Start injecting events."""
-    weight = self.mapping.rel_xy_speed
+    weight = self.mapping.rel_speed
 
     self._running = True
     self._stop = False
@@ -66,7 +66,7 @@ async def _run_normal_output(self) -> None:
         self._write(EV_REL, self.mapping.output_code, value)
 
         time_taken = time.time() - start
-        await asyncio.sleep(max(0.0, (1 / self.mapping.rel_xy_rate) - time_taken))
+        await asyncio.sleep(max(0.0, (1 / self.mapping.rel_rate) - time_taken))
         start = time.time()
 
     # logger.debug("stopping AbsToRel loop")
@@ -99,7 +99,7 @@ async def _run_wheel_output(self, codes: Tuple[int, int]) -> None:
             self._write(EV_REL, codes[i], value)
 
         time_taken = time.time() - start
-        await asyncio.sleep(max(0.0, (1 / self.mapping.rel_wheel_rate) - time_taken))
+        await asyncio.sleep(max(0.0, (1 / self.mapping.rel_rate) - time_taken))
         start = time.time()
 
     # logger.debug("stopping AbsToRel loop")

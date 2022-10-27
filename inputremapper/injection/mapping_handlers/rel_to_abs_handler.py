@@ -86,7 +86,7 @@ class RelToAbsHandler(MappingHandler):
         elif self._input_movement[1] in [REL_WHEEL_HI_RES, REL_HWHEEL_HI_RES]:
             max_ = mapping.rel_wheel_hi_res_max_input
         else:
-            max_ = mapping.rel_xy_max_input
+            max_ = mapping.rel_input_cutoff
 
         self._transform = Transformation(
             max_=max_,

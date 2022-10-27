@@ -116,8 +116,7 @@ class MacroTestBase(unittest.IsolatedAsyncioTestCase):
 
 class DummyMapping:
     macro_key_sleep_ms = 10
-    rel_xy_rate = 125
-    rel_wheel_rate = 60
+    rel_rate = 60
 
 
 class TestMacros(MacroTestBase):
@@ -974,7 +973,7 @@ class TestMacros(MacroTestBase):
         macro_2.release_trigger()
 
         self.assertIn((EV_REL, REL_Y, -4), self.result)
-        expected_wheel_hi_res_event_count = sleep * DummyMapping.rel_wheel_rate
+        expected_wheel_hi_res_event_count = sleep * DummyMapping.rel_rate
         expected_wheel_event_count = int(
             expected_wheel_hi_res_event_count / 120 * wheel_speed
         )

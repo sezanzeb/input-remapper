@@ -771,7 +771,7 @@ class ReleaseTimeoutInput:
 
 
 class RelativeInputCutoffInput:
-    """the number selector to set active_mapping.rel_xy_max_input"""
+    """the number selector to set active_mapping.rel_input_cutoff"""
 
     def __init__(
         self,
@@ -800,7 +800,7 @@ class RelativeInputCutoffInput:
             self._gui.set_opacity(0.5)
 
         with HandlerDisabled(self._gui, self._on_gtk_changed):
-            self._gui.set_value(mapping.rel_xy_max_input)
+            self._gui.set_value(mapping.rel_input_cutoff)
 
     def _on_gtk_changed(self, *_):
         self._controller.update_mapping(rel_xy_max_input=self._gui.get_value())

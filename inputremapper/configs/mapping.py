@@ -64,6 +64,14 @@ needs_workaround = pkg_resources.parse_version(
 
 EMPTY_MAPPING_NAME = _("Empty Mapping")
 
+# Scaling factors for the wheel speed and input_cutoff. The mouse wheel has
+# different sensitivity than any other relative axis, so we scale the default values to
+# account for the different sensitivity.
+WHEEL_SCALING = 30
+# WHEEL_HI_RES always generates events with 120 times higher values than WHEEL
+# https://www.kernel.org/doc/html/latest/input/event-codes.html?highlight=wheel_hi_res#ev-rel
+WHEEL_HI_RES_SCALING = 120
+
 
 class KnownUinput(str, enum.Enum):
     keyboard = "keyboard"
@@ -129,33 +137,41 @@ class UIMapping(BaseModel):
 
     # when mapping to relative axis
 
-    # frequency in Hz for REL_X/Y event generation. This is the rate of observed
-    # events from my generic cheap mouse.
-    rel_xy_rate: PositiveInt = 125
-    # frequency in Hz for REL_WHEEL and REL_WHEEL_HI_RES event generation. This is
-    # the observed rate of events when doing one scroll motion with the finger on
-    # the wheel, i.e. without the breaks inbetween.
-    rel_wheel_rate: PositiveInt = 100
+    # frequency in Hz for REL_ event generation
+    rel_rate: PositiveInt = 60
 
     # the base speed of the relative axis, compounds with the gain.
     # values are observed normal output values in evtest
-    rel_xy_speed: PositiveInt = 30
-    rel_wheel_speed: PositiveInt = 1
-    rel_wheel_hi_res_speed: PositiveInt = 120
+    rel_speed: PositiveInt = 30
 
     # when mapping from a relative axis:
     # the absolute value at which a EV_REL axis is considered at its maximum.
     # values are from evtest when moving the input quickly
-    rel_wheel_max_input: PositiveInt = 3
-    rel_wheel_hi_res_max_input: PositiveInt = 360
-    # this can go much higher, but some value has to be defined for this purpose.
-    rel_xy_max_input: PositiveInt = 100
+    rel_input_cutoff: PositiveInt = 100
 
     # the time until a relative axis is considered stationary if no new events arrive
     release_timeout: PositiveFloat = 0.05
     # don't release immediately when a relative axis drops below the speed threshold
     # instead wait until it dropped for loger than release_timeout below the threshold
     force_release_timeout: bool = False
+
+    # special values for REL_WHEEL inputs and outputs. These try to provide good default
+    # values while keeping the number of configurable parameters low
+    @property
+    def rel_wheel_speed(self) -> int:
+        return max((1, self.rel_speed // WHEEL_SCALING))
+
+    @property
+    def rel_wheel_hi_res_speed(self) -> int:
+        return self.rel_wheel_speed * WHEEL_HI_RES_SCALING
+
+    @property
+    def rel_wheel_max_input(self) -> int:
+        return max((1, self.rel_input_cutoff // WHEEL_SCALING))
+
+    @property
+    def rel_wheel_hi_res_max_input(self) -> int:
+        return self.rel_wheel_max_input * WHEEL_HI_RES_SCALING
 
     # callback which gets called if the event_combination is updated
     if not needs_workaround:

@@ -84,7 +84,7 @@ class RelToRelHandler(MappingHandler):
 
     _wheel_remainder: Remainder
     _wheel_hi_res_remainder: Remainder
-    _default_remainder: Remainder
+    _xy_remainder: Remainder
 
     def __init__(
         self,
@@ -112,11 +112,11 @@ class RelToRelHandler(MappingHandler):
         elif self._input_event.is_wheel_hi_res_event:
             max_ = self.mapping.rel_wheel_hi_res_speed
         else:
-            max_ = self.mapping.rel_xy_speed
+            max_ = self.mapping.rel_speed
 
         self._wheel_remainder = Remainder(self.mapping.rel_wheel_speed)
         self._wheel_hi_res_remainder = Remainder(self.mapping.rel_wheel_hi_res_speed)
-        self._xy_remainder = Remainder(self.mapping.rel_xy_speed)
+        self._xy_remainder = Remainder(self.mapping.rel_speed)
 
         self._transform = Transformation(
             max_=max_,
