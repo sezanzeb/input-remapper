@@ -50,6 +50,14 @@ class Transformation:
 
         return self._cache[x]
 
+    def set_range(self, min_, max_):
+        # TODO docstring
+        if min_ != self._min or max_ != self._max:
+            self._cache = {}
+
+        self._min = min_
+        self._max = max_
+
     def _normalize(self, x: Union[int, float]) -> float:
         """Move and scale x to be between -1 and 1
         return: x

@@ -69,6 +69,7 @@ class Remainder:
         # (the decimal places) and add it up, until the mouse moves a little.
         scaled = value * self._scale + self._remainder
         self._remainder = math.fmod(scaled, 1)
+
         return int(scaled)
 
 
@@ -76,15 +77,19 @@ class RelToRelHandler(MappingHandler):
     """Handler which transforms EV_REL to EV_REL events."""
 
     _input_event: InputEvent  # the relative movement we map
+
+    _previous_input_event: Optional[InputEvent]
+    _observed_input_rate: float
+
     _transform: Transformation
 
     # infinite loop which centers the output when input stops
     _recenter_loop: Optional[asyncio.Task]
     _moving: asyncio.Event  # event to notify the _recenter_loop
 
+    _remainder: Remainder
     _wheel_remainder: Remainder
     _wheel_hi_res_remainder: Remainder
-    _xy_remainder: Remainder
 
     def __init__(
         self,
@@ -95,6 +100,8 @@ class RelToRelHandler(MappingHandler):
         super().__init__(combination, mapping)
 
         self._remainder = 0
+        self._previous_input_event = None
+        self._observed_input_rate = 10
 
         # find the input event we are supposed to map. If the input combination is
         # BTN_A + REL_X + BTN_B, then use the value of REL_X for the transformation
@@ -114,9 +121,9 @@ class RelToRelHandler(MappingHandler):
         else:
             max_ = self.mapping.rel_speed
 
+        self._remainder = Remainder(self.mapping.rel_speed)
         self._wheel_remainder = Remainder(self.mapping.rel_wheel_speed)
         self._wheel_hi_res_remainder = Remainder(self.mapping.rel_wheel_hi_res_speed)
-        self._xy_remainder = Remainder(self.mapping.rel_speed)
 
         self._transform = Transformation(
             max_=max_,
@@ -143,6 +150,21 @@ class RelToRelHandler(MappingHandler):
 
         return False
 
+    def _observe_input_rate(self, event: InputEvent) -> float:
+        """Write down the shortest time between two input events."""
+        if self._previous_input_event:
+            rate = 1 / (event.timestamp() - self._previous_input_event.timestamp())
+        else:
+            # don't assume input to arrive too fast initially
+            rate = 30
+
+        if rate > self._observed_input_rate:
+            self._observed_input_rate = rate
+
+        self._previous_input_event = event
+
+        return self._observed_input_rate
+
     def notify(
         self,
         event: InputEvent,
@@ -153,19 +175,65 @@ class RelToRelHandler(MappingHandler):
         if not self._should_map(event):
             return False
 
+        """
+        rel2rel example:
+        - input every 0.1s (`input_rate` of 10 events/s), value of 200
+        - input speed is 2000, because in 1 second a value of 2000 acumulates
+        - `input_rel_speed` is a const defined as 4000 px/s, how fast mice usually move
+        - `transformed = Transformation(input.value, max=input_rel_speed / input_rate)`
+        - get 0.5 because the expo is 0
+        - `rel_speed` is 5000
+        - inject 2500 therefore per second, making it a bit faster
+        - divide 2500 by the rate of 10 to inject a value of 250 each time input occurs
+
+        ```
+        output_value = Transformation(
+            input.value,
+            max=input_rel_speed / input_rate
+        ) * rel_speed / input_rate
+        ```
+
+        The input_rel_speed could be used here instead of rel_speed, because the gain
+        already controls the speed. In that case it would be a 1:1 ratio of
+        input-to-output value if the gain is 1.
+
+        for wheel and wheel_hi_res, different input speed constants must be set.
+
+        abs2rel needs a base value for the output, so `rel_speed` is still required.
+        `rel_speed / rel_rate * transform(input.value, max=absinfo.max)` is the output
+        value. Both rel_speed and the transformation-gain control speed.
+
+        if rel_speed controls speed in the abs2rel output, it should also do so in other
+        handlers that have EV_REL output.
+        
+        unfortunately input_rate needs to be determined during runtime, which screws
+        the overall speed up when slowly moving the input device in the beginning,
+        because slow input is thought to be the regular input.
+        """
+
+        input_rate = self._observe_input_rate(event)
+
+        input_speed = self.mapping.input_rel_speed
+        if event.is_wheel_event:
+            input_speed = self.mapping.input_rel_wheel_speed
+        elif event.is_wheel_hi_res_event:
+            input_speed = self.mapping.input_rel_wheel_hi_res_speed
+
+        max_ = input_speed / input_rate
+        self._transform.set_range(-max_, max_)
+        # _transform already applies `* self.mapping.rel_speed`
+        transformed = self._transform(event.value) / input_rate
+
+        horizontal = self.mapping.output_code in (
+            REL_HWHEEL_HI_RES,
+            REL_HWHEEL,
+        )
+
+        is_wheel_output = self.mapping.is_wheel_output()
+        is_hi_res_wheel_output = self.mapping.is_high_res_wheel_output()
+
         try:
-            transformed = self._transform(event.value)
-
-            # value is between 0 and 1, scale up
-            wheel_output = self.mapping.is_wheel_output()
-            hi_res_wheel_output = self.mapping.is_high_res_wheel_output()
-
-            horizontal = self.mapping.output_code in (
-                REL_HWHEEL_HI_RES,
-                REL_HWHEEL,
-            )
-
-            if wheel_output or hi_res_wheel_output:
+            if is_wheel_output or is_hi_res_wheel_output:
                 # inject both kinds of wheels, otherwise wheels don't work for some
                 # people. See issue #354
                 self._write(
@@ -179,7 +247,7 @@ class RelToRelHandler(MappingHandler):
             else:
                 self._write(
                     self.mapping.output_code,
-                    self._xy_remainder.input(transformed),
+                    self._remainder.input(transformed),
                 )
 
             return True

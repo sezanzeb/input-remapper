@@ -141,8 +141,8 @@ class UIMapping(BaseModel):
     rel_rate: PositiveInt = 60
 
     # the base speed of the relative axis, compounds with the gain.
-    # values are observed normal output values in evtest
-    rel_speed: PositiveInt = 30
+    # values are observed normal output values in evtest accumulated over 1 second
+    rel_speed: PositiveInt = 4000
 
     # when mapping from a relative axis:
     # the absolute value at which a EV_REL axis is considered at its maximum.
@@ -154,6 +154,12 @@ class UIMapping(BaseModel):
     # don't release immediately when a relative axis drops below the speed threshold
     # instead wait until it dropped for loger than release_timeout below the threshold
     force_release_timeout: bool = False
+
+    # TODO docstring
+    # TODO @property
+    input_rel_speed: PositiveInt = 4000
+    input_rel_wheel_speed: PositiveInt = 100
+    input_rel_wheel_hi_res_speed: PositiveInt = 12000
 
     # special values for REL_WHEEL inputs and outputs. These try to provide good default
     # values while keeping the number of configurable parameters low
