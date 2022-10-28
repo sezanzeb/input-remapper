@@ -36,6 +36,7 @@ from inputremapper.configs.mapping import (
     WHEEL_SCALING,
     WHEEL_HI_RES_SCALING,
     REL_XY_SCALING,
+    DEFAULT_REL_RATE,
 )
 from inputremapper.event_combination import EventCombination
 from inputremapper.injection.global_uinputs import global_uinputs
@@ -65,6 +66,9 @@ class RelToAbsHandler(MappingHandler):
     # infinite loop which centers the output when input stops
     _recenter_loop: Optional[asyncio.Task]
     _moving: asyncio.Event  # event to notify the _recenter_loop
+
+    _previous_event: InputEvent
+    _observed_rate: float  # input events per second
 
     def __init__(
         self,
@@ -108,6 +112,9 @@ class RelToAbsHandler(MappingHandler):
         self._moving = asyncio.Event()
         self._recenter_loop = None
 
+        self._previous_event = None
+        self._observed_rate = DEFAULT_REL_RATE
+
     def __str__(self):
         return f"RelToAbsHandler for {self._input_movement} <{id(self)}>:"
 
@@ -122,6 +129,34 @@ class RelToAbsHandler(MappingHandler):
             f"{self.mapping.target_uinput}"
         )
 
+    def _observe_rate(self, event):
+        if self._previous_event is not None:
+            delta_time = event.timestamp() - self._previous_event.timestamp()
+            rate = 1 / delta_time
+            # mice seem to have a constant rate. wheel events are jaggy and the
+            # rate depends on how fast it is turned.
+            if rate > self._observed_rate:
+                self._observed_rate = rate
+                self._calculate_cutoff()
+
+        self._previous_event = event
+
+    def _calculate_cutoff(self):
+        # cutoff considering the DEFAULT_REL_RATE
+        if self._input_movement[1] in [REL_WHEEL, REL_HWHEEL]:
+            cutoff = self.mapping.rel_to_abs_input_cutoff * WHEEL_SCALING
+        elif self._input_movement[1] in [REL_WHEEL_HI_RES, REL_HWHEEL_HI_RES]:
+            cutoff = self.mapping.rel_to_abs_input_cutoff * WHEEL_HI_RES_SCALING
+        else:
+            cutoff = self.mapping.rel_to_abs_input_cutoff * REL_XY_SCALING
+
+        # Mice that have very high input rates report low values at the same time.
+        # If the rate is high, use a lower cutoff-value. If the rate is low, use a
+        # higher cutoff-value.
+        cutoff *= DEFAULT_REL_RATE / self._observed_rate
+
+        self._transform.set_range(-cutoff, cutoff)
+
     def notify(
         self,
         event: InputEvent,
@@ -129,6 +164,8 @@ class RelToAbsHandler(MappingHandler):
         forward: evdev.UInput = None,
         suppress: bool = False,
     ) -> bool:
+        self._observe_rate(event)
+
         if event.type_and_code != self._input_movement:
             return False
 
