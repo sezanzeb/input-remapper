@@ -795,7 +795,7 @@ def is_running_patch():
     return True
 
 
-ReaderService.is_running = is_running_patch
+setattr(ReaderService, "is_running", is_running_patch)
 
 
 def convert_to_internal_events(events):
