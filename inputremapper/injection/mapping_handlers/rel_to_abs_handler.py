@@ -95,16 +95,10 @@ class RelToAbsHandler(MappingHandler):
             ).capabilities(absinfo=True)[EV_ABS]
         }[mapping.output_code]
 
-        if self._input_movement[1] in [REL_WHEEL, REL_HWHEEL]:
-            max_ = self.mapping.rel_to_abs_input_cutoff * WHEEL_SCALING
-        elif self._input_movement[1] in [REL_WHEEL_HI_RES, REL_HWHEEL_HI_RES]:
-            max_ = self.mapping.rel_to_abs_input_cutoff * WHEEL_HI_RES_SCALING
-        else:
-            max_ = self.mapping.rel_to_abs_input_cutoff * REL_XY_SCALING
-
+        max_ = self._get_default_cutoff()
         self._transform = Transformation(
-            max_=max(1, int(max_)),
             min_=-max(1, int(max_)),
+            max_=max(1, int(max_)),
             deadzone=mapping.deadzone,
             gain=mapping.gain,
             expo=mapping.expo,
@@ -130,6 +124,7 @@ class RelToAbsHandler(MappingHandler):
         )
 
     def _observe_rate(self, event):
+        """Watch incoming events and remember how many events appear per second."""
         if self._previous_event is not None:
             delta_time = event.timestamp() - self._previous_event.timestamp()
             rate = 1 / delta_time
@@ -141,21 +136,25 @@ class RelToAbsHandler(MappingHandler):
 
         self._previous_event = event
 
-    def _calculate_cutoff(self):
-        # cutoff considering the DEFAULT_REL_RATE
+    def _get_default_cutoff(self):
+        """Get the cutoff value assuming the default input rate."""
         if self._input_movement[1] in [REL_WHEEL, REL_HWHEEL]:
-            cutoff = self.mapping.rel_to_abs_input_cutoff * WHEEL_SCALING
-        elif self._input_movement[1] in [REL_WHEEL_HI_RES, REL_HWHEEL_HI_RES]:
-            cutoff = self.mapping.rel_to_abs_input_cutoff * WHEEL_HI_RES_SCALING
-        else:
-            cutoff = self.mapping.rel_to_abs_input_cutoff * REL_XY_SCALING
+            return self.mapping.rel_to_abs_input_cutoff * WHEEL_SCALING
 
+        if self._input_movement[1] in [REL_WHEEL_HI_RES, REL_HWHEEL_HI_RES]:
+            return self.mapping.rel_to_abs_input_cutoff * WHEEL_HI_RES_SCALING
+
+        return self.mapping.rel_to_abs_input_cutoff * REL_XY_SCALING
+
+    def _calculate_cutoff(self):
+        """Correct the default cutoff with the observed input rate, and set it."""
         # Mice that have very high input rates report low values at the same time.
         # If the rate is high, use a lower cutoff-value. If the rate is low, use a
         # higher cutoff-value.
+        cutoff = self._get_default_cutoff()
         cutoff *= DEFAULT_REL_RATE / self._observed_rate
 
-        self._transform.set_range(-cutoff, cutoff)
+        self._transform.set_range(-max(1, int(cutoff)), max(1, int(cutoff)))
 
     def notify(
         self,
