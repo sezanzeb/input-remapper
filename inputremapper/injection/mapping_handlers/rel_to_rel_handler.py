@@ -192,9 +192,9 @@ class RelToRelHandler(MappingHandler):
 
         input_value = event.value
         if event.is_wheel_event:
-            input_value /= WHEEL_SCALING
+            input_value *= WHEEL_SCALING
         elif event.is_wheel_hi_res_event:
-            input_value /= WHEEL_SCALING * WHEEL_HI_RES_SCALING
+            input_value *= WHEEL_SCALING / WHEEL_HI_RES_SCALING
 
         if abs(input_value) > self._max_observed_input:
             self._max_observed_input = abs(input_value)
