@@ -1459,7 +1459,7 @@ class TestRelToRel(EventPipelineTestBase):
             input_code=REL_WHEEL,
             input_value=2 * WHEEL_SCALING,
             output_code=REL_Y,
-            output_value=2,
+            output_value=2 * REL_XY_SCALING,
         )
 
     async def test_hi_res_wheel_to_y(self):
@@ -1467,7 +1467,7 @@ class TestRelToRel(EventPipelineTestBase):
             input_code=REL_WHEEL_HI_RES,
             input_value=3 * WHEEL_HI_RES_SCALING,
             output_code=REL_Y,
-            output_value=3,
+            output_value=3 * REL_XY_SCALING,
         )
 
     async def test_x_to_hwheel(self):
@@ -1532,28 +1532,30 @@ class TestRelToRel(EventPipelineTestBase):
         preset = Preset()
         history = global_uinputs.get_uinput("mouse").write_history
 
-        # wheel to mouse-y
+        # REL_WHEEL_HI_RES to REL_Y
         input_event = InputEvent(0, 0, EV_REL, REL_WHEEL_HI_RES, USE_AS_ANALOG_VALUE)
+        gain = 0.01
         mapping = Mapping(
             event_combination=EventCombination(input_event),
             target_uinput="mouse",
             output_type=EV_REL,
             output_code=REL_Y,
-            abs_to_rel_speed=1,
             deadzone=0,
-            gain=1,
+            gain=gain,
         )
         preset.add(mapping)
 
         event_reader = self.get_event_reader(preset, fixtures.gamepad)
 
-        # the ratio between wheel_hi_res and rel_y
-        rel_y_to_hi_res = int(WHEEL_SCALING * WHEEL_HI_RES_SCALING)
+        events_until_one_rel_y_written = int(
+            WHEEL_HI_RES_SCALING / REL_XY_SCALING / gain
+        )
 
-        # the input value of 1 is so small, that it needs to be sent many times
+        # due to the low gain and low input value, it needs to be sent many times
         # until one REL_Y event is written
         await self.send_events(
-            [InputEvent(0, 0, EV_REL, REL_WHEEL_HI_RES, 1)] * (rel_y_to_hi_res - 1),
+            [InputEvent(0, 0, EV_REL, REL_WHEEL_HI_RES, 1)]
+            * (events_until_one_rel_y_written - 1),
             event_reader,
         )
         self.assertEqual(len(history), 0)
@@ -1572,7 +1574,8 @@ class TestRelToRel(EventPipelineTestBase):
 
         # repeat it one more time to see if the remainder is reset correctly
         await self.send_events(
-            [InputEvent(0, 0, EV_REL, REL_WHEEL_HI_RES, 1)] * (rel_y_to_hi_res - 1),
+            [InputEvent(0, 0, EV_REL, REL_WHEEL_HI_RES, 1)]
+            * (events_until_one_rel_y_written - 1),
             event_reader,
         )
         self.assertEqual(len(history), 1)

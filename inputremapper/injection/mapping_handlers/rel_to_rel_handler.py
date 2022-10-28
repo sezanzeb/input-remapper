@@ -202,12 +202,15 @@ class RelToRelHandler(MappingHandler):
         input_value = float(event.value)
 
         # scale down now, the remainder calculation scales up by the same factor later
-        # depending on what kind of event this becomes
+        # depending on what kind of event this becomes.
         if event.is_wheel_event:
             input_value /= WHEEL_SCALING
         elif event.is_wheel_hi_res_event:
             input_value /= WHEEL_HI_RES_SCALING
         else:
+            # even though the input rate is unknown we can apply REL_XY_SCALING, which
+            # is based on 60hz or something, because the un-scaling also uses values
+            # based on 60hz. So the rate cancels out
             input_value /= REL_XY_SCALING
 
         if abs(input_value) > self._max_observed_input:
