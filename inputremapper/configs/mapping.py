@@ -64,10 +64,12 @@ needs_workaround = pkg_resources.parse_version(
 
 EMPTY_MAPPING_NAME = _("Empty Mapping")
 
-# Scaling factors for the wheel speed and input_cutoff. The mouse wheel has
-# different sensitivity than any other relative axis, so we scale the default values to
-# account for the different sensitivity.
-WHEEL_SCALING = 1 / 30
+# If `1` is the default speed for EV_REL, how much does this value needs to be scaled
+# up to get reasonable speeds for various EV_REL events?
+# Mouse injection rates vary wildly, and so do the values. Those values are assuming
+# a rate of 60hz.
+REL_XY_SCALING = 60
+WHEEL_SCALING = 1
 # WHEEL_HI_RES always generates events with 120 times higher values than WHEEL
 # https://www.kernel.org/doc/html/latest/input/event-codes.html?highlight=wheel_hi_res#ev-rel
 WHEEL_HI_RES_SCALING = 120

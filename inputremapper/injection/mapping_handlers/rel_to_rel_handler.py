@@ -32,7 +32,7 @@ from evdev.ecodes import (
 )
 
 from inputremapper import exceptions
-from inputremapper.configs.mapping import Mapping, WHEEL_SCALING, WHEEL_HI_RES_SCALING
+from inputremapper.configs.mapping import Mapping, REL_XY_SCALING, WHEEL_SCALING, WHEEL_HI_RES_SCALING
 from inputremapper.event_combination import EventCombination
 from inputremapper.injection.global_uinputs import global_uinputs
 from inputremapper.injection.mapping_handlers.axis_transform import Transformation
@@ -57,11 +57,11 @@ class Remainder:
     _scale: int
     _remainder: float
 
-    def __init__(self, scale):
+    def __init__(self, scale: float):
         self._scale = scale
         self._remainder = 0
 
-    def input(self, value):
+    def input(self, value: float) -> int:
         # if the mouse moves very slow, it might not move at all because of the
         # int-conversion (which is required when writing). store the remainder
         # (the decimal places) and add it up, until the mouse moves a little.
@@ -104,11 +104,9 @@ class RelToRelHandler(MappingHandler):
         assert input_event is not None
         self._input_event = input_event
 
-        self._remainder = Remainder(1)
-        self._wheel_remainder = Remainder(1 * WHEEL_SCALING)
-        self._wheel_hi_res_remainder = Remainder(
-            1 * WHEEL_SCALING * WHEEL_HI_RES_SCALING
-        )
+        self._remainder = Remainder(REL_XY_SCALING)
+        self._wheel_remainder = Remainder(WHEEL_SCALING)
+        self._wheel_hi_res_remainder = Remainder(WHEEL_HI_RES_SCALING)
 
         self._transform = Transformation(
             max_=1,
@@ -197,10 +195,15 @@ class RelToRelHandler(MappingHandler):
         """
 
         input_value = event.value
+
+        # scale down now, the remainder calculation scales up by the same factor later
+        # depending on what kind of event this becomes
         if event.is_wheel_event:
             input_value /= WHEEL_SCALING
         elif event.is_wheel_hi_res_event:
-            input_value /= WHEEL_SCALING * WHEEL_HI_RES_SCALING
+            input_value /= WHEEL_HI_RES_SCALING
+        else:
+            input_value /= REL_XY_SCALING
 
         if abs(input_value) > self._max_observed_input:
             self._max_observed_input = abs(input_value)
