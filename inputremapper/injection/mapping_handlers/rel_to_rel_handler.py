@@ -151,7 +151,7 @@ class RelToRelHandler(MappingHandler):
         - `input_rel_speed` is a const defined as 4000 px/s, how fast mice usually move
         - `transformed = Transformation(input.value, max=input_rel_speed / input_rate)`
         - get 0.5 because the expo is 0
-        - `rel_speed` is 5000
+        - `abs_to_rel_speed` is 5000
         - inject 2500 therefore per second, making it a bit faster
         - divide 2500 by the rate of 10 to inject a value of 250 each time input occurs
 
@@ -159,20 +159,20 @@ class RelToRelHandler(MappingHandler):
         output_value = Transformation(
             input.value,
             max=input_rel_speed / input_rate
-        ) * rel_speed / input_rate
+        ) * abs_to_rel_speed / input_rate
         ```
 
-        The input_rel_speed could be used here instead of rel_speed, because the gain
+        The input_rel_speed could be used here instead of abs_to_rel_speed, because the gain
         already controls the speed. In that case it would be a 1:1 ratio of
         input-to-output value if the gain is 1.
 
         for wheel and wheel_hi_res, different input speed constants must be set.
 
-        abs2rel needs a base value for the output, so `rel_speed` is still required.
-        `rel_speed / rel_rate * transform(input.value, max=absinfo.max)` is the output
-        value. Both rel_speed and the transformation-gain control speed.
+        abs2rel needs a base value for the output, so `abs_to_rel_speed` is still required.
+        `abs_to_rel_speed / rel_rate * transform(input.value, max=absinfo.max)` is the output
+        value. Both abs_to_rel_speed and the transformation-gain control speed.
 
-        if rel_speed controls speed in the abs2rel output, it should also do so in other
+        if abs_to_rel_speed controls speed in the abs2rel output, it should also do so in other
         handlers that have EV_REL output.
         
         unfortunately input_rate needs to be determined during runtime, which screws
@@ -186,7 +186,7 @@ class RelToRelHandler(MappingHandler):
         better to use fractional speed values.
         REL_X of 40 = REL_WHEEL of 1 = REL_WHEE_HI_RES of 1/120
         
-        this is why rel_speed does not affect the rel_to_rel handler.
+        this is why abs_to_rel_speed does not affect the rel_to_rel handler.
         
         The expo calculation will be wrong in the beginning, because it is based on
         the highest observed value. The overall gain will be fine though.

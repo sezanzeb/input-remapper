@@ -49,7 +49,7 @@ from inputremapper.utils import get_evdev_constant_name
 
 async def _run_normal_output(self) -> None:
     """Start injecting events."""
-    weight = self.mapping.rel_speed
+    weight = self.mapping.abs_to_rel_speed
 
     self._running = True
     self._stop = False

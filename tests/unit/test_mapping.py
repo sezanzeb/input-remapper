@@ -64,9 +64,9 @@ class TestMapping(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(m.expo, 0)
         self.assertEqual(m.rel_rate, 60)
         self.assertEqual(m.rel_rate, 60)
-        self.assertEqual(m.rel_speed, 30)
+        self.assertEqual(m.abs_to_rel_speed, 30)
         self.assertEqual(m.rel_wheel_speed, 1)
-        self.assertEqual(m.rel_input_cutoff, 100)
+        self.assertEqual(m.rel_to_abs_input_cutoff, 100)
         self.assertEqual(m.release_timeout, 0.05)
 
     def test_is_wheel_output(self):
@@ -355,17 +355,17 @@ class TestMapping(unittest.IsolatedAsyncioTestCase):
         Mapping(**cfg, rel_rate=1)
         Mapping(**cfg, rel_rate=200)
 
-        # negative rel_speed
-        test(**cfg, rel_speed=-1)
-        test(**cfg, rel_speed=0)
-        Mapping(**cfg, rel_speed=1)
-        Mapping(**cfg, rel_speed=200)
+        # negative abs_to_rel_speed
+        test(**cfg, abs_to_rel_speed=-1)
+        test(**cfg, abs_to_rel_speed=0)
+        Mapping(**cfg, abs_to_rel_speed=1)
+        Mapping(**cfg, abs_to_rel_speed=200)
 
-        # negative rel_input_cutoff
-        test(**cfg, rel_input_cutoff=-1)
-        test(**cfg, rel_input_cutoff=0)
-        Mapping(**cfg, rel_input_cutoff=1)
-        Mapping(**cfg, rel_input_cutoff=200)
+        # negative rel_to_abs_input_cutoff
+        test(**cfg, rel_to_abs_input_cutoff=-1)
+        test(**cfg, rel_to_abs_input_cutoff=0)
+        Mapping(**cfg, rel_to_abs_input_cutoff=1)
+        Mapping(**cfg, rel_to_abs_input_cutoff=200)
 
         # negative release timeout
         test(**cfg, release_timeout=-0.1)

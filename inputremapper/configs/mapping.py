@@ -141,12 +141,12 @@ class UIMapping(BaseModel):
     )
     # the base speed of the relative axis, compounds with the gain
     # value is observed normal output values in evtest
-    rel_speed: PositiveInt = 100
+    abs_to_rel_speed: PositiveInt = 100
 
     # when mapping from a relative axis:
     # the absolute value at which a EV_REL axis is considered at its maximum.
     # values are from evtest when moving the input quickly
-    rel_input_cutoff: PositiveInt = 100
+    rel_to_abs_input_cutoff: PositiveInt = 100
 
     # the time until a relative axis is considered stationary if no new events arrive
     release_timeout: PositiveFloat = 0.05
@@ -158,7 +158,7 @@ class UIMapping(BaseModel):
     # values while keeping the number of configurable parameters low
     @property
     def rel_wheel_speed(self) -> int:
-        return max((1, self.rel_speed // WHEEL_SCALING))
+        return max((1, self.abs_to_rel_speed // WHEEL_SCALING))
 
     @property
     def rel_wheel_hi_res_speed(self) -> int:
@@ -166,7 +166,7 @@ class UIMapping(BaseModel):
 
     @property
     def rel_wheel_max_input(self) -> int:
-        return max((1, self.rel_input_cutoff // WHEEL_SCALING))
+        return max((1, self.rel_to_abs_input_cutoff // WHEEL_SCALING))
 
     @property
     def rel_wheel_hi_res_max_input(self) -> int:

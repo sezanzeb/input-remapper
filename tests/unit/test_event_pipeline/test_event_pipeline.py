@@ -786,7 +786,7 @@ class TestIdk(EventPipelineTestBase):
             "rel_rate": rel_rate,
             "gain": gain,
             "deadzone": 0,
-            "rel_speed": speed,
+            "abs_to_rel_speed": speed,
         }
         mapping_1 = Mapping(**mapping_config)
 
@@ -959,7 +959,7 @@ class TestRelToAbs(EventPipelineTestBase):
             "output_type": EV_ABS,
             "output_code": ABS_X,
             "gain": gain,
-            "rel_input_cutoff": 100,
+            "rel_to_abs_input_cutoff": 100,
             "release_timeout": 0.5,
             "deadzone": 0,
         }
@@ -1076,7 +1076,7 @@ class TestAbsToRel(EventPipelineTestBase):
             "rel_rate": rel_rate,
             "gain": gain,
             "deadzone": 0,
-            "rel_speed": speed,
+            "abs_to_rel_speed": speed,
         }
         mapping_1 = Mapping(**mapping_config)
         preset = Preset()
@@ -1154,7 +1154,7 @@ class TestAbsToRel(EventPipelineTestBase):
             "rel_rate": rel_rate,
             "gain": gain,
             "deadzone": 0,
-            "rel_speed": speed,
+            "abs_to_rel_speed": speed,
         }
         mapping_1 = Mapping(**mapping_config)
 
@@ -1454,7 +1454,7 @@ class TestRelToRel(EventPipelineTestBase):
             input_code=REL_WHEEL,
             input_value=UIMapping().rel_wheel_speed,
             output_code=REL_Y,
-            output_value=UIMapping().rel_speed,
+            output_value=UIMapping().abs_to_rel_speed,
         )
 
     async def test_hi_res_wheel_to_y(self):
@@ -1462,12 +1462,12 @@ class TestRelToRel(EventPipelineTestBase):
             input_code=REL_WHEEL_HI_RES,
             input_value=UIMapping().rel_wheel_hi_res_speed,
             output_code=REL_Y,
-            output_value=UIMapping().rel_speed,
+            output_value=UIMapping().abs_to_rel_speed,
         )
 
     async def test_x_to_hwheel(self):
         input_code = REL_X
-        input_value = UIMapping().rel_speed * 3
+        input_value = UIMapping().abs_to_rel_speed * 3
         output_code = REL_HWHEEL
         output_value = UIMapping().rel_wheel_speed * 6
         gain = 2
@@ -1533,7 +1533,7 @@ class TestRelToRel(EventPipelineTestBase):
             target_uinput="mouse",
             output_type=EV_REL,
             output_code=REL_Y,
-            rel_speed=1,
+            abs_to_rel_speed=1,
             deadzone=0,
             gain=1,
         )
