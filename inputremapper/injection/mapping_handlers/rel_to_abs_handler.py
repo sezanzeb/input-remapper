@@ -67,7 +67,7 @@ class RelToAbsHandler(MappingHandler):
     _recenter_loop: Optional[asyncio.Task]
     _moving: asyncio.Event  # event to notify the _recenter_loop
 
-    _previous_event: InputEvent
+    _previous_event: Optional[InputEvent]
     _observed_rate: float  # input events per second
 
     def __init__(
