@@ -31,7 +31,7 @@ from evdev.ecodes import (
 )
 
 from inputremapper import exceptions
-from inputremapper.configs.mapping import Mapping
+from inputremapper.configs.mapping import Mapping, WHEEL_SCALING, WHEEL_HI_RES_SCALING
 from inputremapper.event_combination import EventCombination
 from inputremapper.injection.global_uinputs import global_uinputs
 from inputremapper.injection.mapping_handlers.axis_transform import Transformation
@@ -81,10 +81,13 @@ class RelToAbsHandler(MappingHandler):
             ).capabilities(absinfo=True)[EV_ABS]
         }[mapping.output_code]
 
+        wheel_cutoff = max((1, self.mapping.rel_to_abs_input_cutoff // WHEEL_SCALING))
+        wheel_hi_res_cutoff = wheel_cutoff * WHEEL_HI_RES_SCALING
+
         if self._input_movement[1] in [REL_WHEEL, REL_HWHEEL]:
-            max_ = mapping.rel_wheel_max_input
+            max_ = wheel_cutoff
         elif self._input_movement[1] in [REL_WHEEL_HI_RES, REL_HWHEEL_HI_RES]:
-            max_ = mapping.rel_wheel_hi_res_max_input
+            max_ = wheel_hi_res_cutoff
         else:
             max_ = mapping.rel_to_abs_input_cutoff
 

@@ -33,7 +33,7 @@ from evdev.ecodes import (
     REL_HWHEEL_HI_RES,
 )
 
-from inputremapper.configs.mapping import Mapping
+from inputremapper.configs.mapping import Mapping, WHEEL_SCALING, WHEEL_HI_RES_SCALING
 from inputremapper.event_combination import EventCombination
 from inputremapper.injection.global_uinputs import global_uinputs
 from inputremapper.injection.mapping_handlers.axis_transform import Transformation
@@ -80,8 +80,8 @@ async def _run_wheel_output(self, codes: Tuple[int, int]) -> None:
     wheel output doesn't work for some people. See issue #354
     """
     weights = (
-        self.mapping.rel_wheel_speed,
-        self.mapping.rel_wheel_hi_res_speed,
+        self.wheel_speed,
+        self.wheel_hi_res_speed,
     )
 
     self._running = True
@@ -134,6 +134,11 @@ class AbsToRelHandler(MappingHandler):
         self._running = False
         self._stop = True
         self._transform = None
+
+        # special values for REL_WHEEL inputs and outputs. These try to provide good
+        # default values while keeping the number of configurable parameters low
+        self.wheel_speed = max((1, self.mapping.abs_to_rel_speed // WHEEL_SCALING))
+        self.wheel_hi_res_speed = self.wheel_speed * WHEEL_HI_RES_SCALING
 
         # bind the correct run method
         if self.mapping.output_code in (

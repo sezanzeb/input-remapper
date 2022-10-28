@@ -20,13 +20,11 @@
 
 import asyncio
 import math
-from typing import Dict, Tuple, Optional
+from typing import Dict, Optional
 
 import evdev
 from evdev.ecodes import (
     EV_REL,
-    REL_X,
-    REL_Y,
     REL_WHEEL,
     REL_HWHEEL,
     REL_WHEEL_HI_RES,

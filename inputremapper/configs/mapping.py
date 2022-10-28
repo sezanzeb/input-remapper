@@ -136,9 +136,8 @@ class UIMapping(BaseModel):
     expo: confloat(ge=-1, le=1) = 0  # type: ignore
 
     # when mapping to relative axis
-    rel_rate: PositiveInt = (
-        60  # The frequency [Hz] at which EV_REL events get generated
-    )
+    # The frequency [Hz] at which EV_REL events get generated
+    rel_rate: PositiveInt = 60
     # the base speed of the relative axis, compounds with the gain
     # value is observed normal output values in evtest
     abs_to_rel_speed: PositiveInt = 100
@@ -153,24 +152,6 @@ class UIMapping(BaseModel):
     # don't release immediately when a relative axis drops below the speed threshold
     # instead wait until it dropped for loger than release_timeout below the threshold
     force_release_timeout: bool = False
-
-    # special values for REL_WHEEL inputs and outputs. These try to provide good default
-    # values while keeping the number of configurable parameters low
-    @property
-    def rel_wheel_speed(self) -> int:
-        return max((1, self.abs_to_rel_speed // WHEEL_SCALING))
-
-    @property
-    def rel_wheel_hi_res_speed(self) -> int:
-        return self.rel_wheel_speed * WHEEL_HI_RES_SCALING
-
-    @property
-    def rel_wheel_max_input(self) -> int:
-        return max((1, self.rel_to_abs_input_cutoff // WHEEL_SCALING))
-
-    @property
-    def rel_wheel_hi_res_max_input(self) -> int:
-        return self.rel_wheel_max_input * WHEEL_HI_RES_SCALING
 
     # callback which gets called if the event_combination is updated
     if not needs_workaround:

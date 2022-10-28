@@ -1394,9 +1394,7 @@ class TestRelativeInputCutoffInput(ComponentBaseTest):
 
     def test_updates_mapping(self):
         self.gui.set_value(300)
-        self.controller_mock.update_mapping.assert_called_once_with(
-            rel_xy_max_input=300
-        )
+        self.controller_mock.update_mapping.assert_called_once_with(rel_xy_cutoff=300)
 
     def test_disables_input_when_no_rel_axis_input(self):
         self.assert_active()
