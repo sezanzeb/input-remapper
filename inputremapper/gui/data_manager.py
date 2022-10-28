@@ -47,7 +47,7 @@ from inputremapper.gui.reader import Reader
 from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.injection.injector import (
     InjectorState,
-    InjectorMessage,
+    InjectorCommand,
     InjectorStateMessage,
 )
 from inputremapper.input_event import InputEvent
@@ -543,7 +543,7 @@ class DataManager:
                     InjectorState.RUNNING,
                     InjectorState.FAILED,
                     InjectorState.NO_GRAB,
-                    InjectorMessage.UPGRADE_EVDEV,
+                    InjectorState.UPGRADE_EVDEV,
                 },
                 self.send_injector_state,
             )

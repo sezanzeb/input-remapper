@@ -25,7 +25,7 @@ from unittest.mock import patch, MagicMock, call
 import gi
 
 from inputremapper.configs.system_mapping import system_mapping
-from inputremapper.injection.injector import InjectorMessage, InjectorState
+from inputremapper.injection.injector import Injectorc, InjectorState
 from inputremapper.input_event import InputEvent
 
 gi.require_version("Gdk", "3.0")
@@ -911,7 +911,7 @@ class TestController(unittest.TestCase):
         gtk_iteration(50)
         self.assertEqual(calls[-1].msg, "The device was not grabbed")
 
-        mock.return_value = InjectorMessage.UPGRADE_EVDEV
+        mock.return_value = InjectorState.UPGRADE_EVDEV
         self.controller.start_injecting()
         gtk_iteration(50)
         self.assertEqual(calls[-1].msg, "Upgrade python-evdev")

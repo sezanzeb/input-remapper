@@ -51,11 +51,12 @@ GroupSources = List[evdev.InputDevice]
 DEV_NAME = "input-remapper"
 
 
-class InjectorMessage(str, enum.Enum):
+# messages sent to the injector process
+class InjectorCommand(str, enum.Enum):
     CLOSE = "CLOSE"
-    UPGRADE_EVDEV = "UPGRADE_EVDEV"
 
 
+# messages the injector process reports back to the service
 class InjectorState(str, enum.Enum):
     UNKNOWN = "UNKNOWN"
     STARTING = "STARTING"
@@ -63,6 +64,7 @@ class InjectorState(str, enum.Enum):
     RUNNING = "RUNNING"
     STOPPED = "STOPPED"
     NO_GRAB = "NO_GRAB"
+    UPGRADE_EVDEV = "UPGRADE_EVDEV"
 
 
 def is_in_capabilities(
@@ -88,7 +90,7 @@ def get_udev_name(name: str, suffix: str) -> str:
 @dataclass(frozen=True)
 class InjectorStateMessage:
     message_type = MessageType.injector_state
-    state: Union[InjectorState, InjectorMessage]
+    state: Union[InjectorState]
 
     def active(self) -> bool:
         return self.state in [InjectorState.RUNNING, InjectorState.STARTING]
@@ -183,7 +185,7 @@ class Injector(multiprocessing.Process):
         Can be safely called from the main procss.
         """
         logger.info('Stopping injecting keycodes for group "%s"', self.group.key)
-        self._msg_pipe[1].send(InjectorMessage.CLOSE)
+        self._msg_pipe[1].send(InjectorCommand.CLOSE)
 
     """Process internal stuff"""
 
@@ -293,7 +295,7 @@ class Injector(multiprocessing.Process):
             await frame_available.wait()
             frame_available.clear()
             msg = self._msg_pipe[0].recv()
-            if msg == InjectorMessage.CLOSE:
+            if msg == InjectorCommand.CLOSE:
                 logger.debug("Received close signal")
                 self._stop_event.set()
                 # give the event pipeline some time to reset devices
@@ -366,7 +368,7 @@ class Injector(multiprocessing.Process):
                     # UInput constructor doesn't support input_props and
                     # source.input_props doesn't exist with old python-evdev versions.
                     logger.error("Please upgrade your python-evdev version. Exiting")
-                    self._msg_pipe[0].send(InjectorMessage.UPGRADE_EVDEV)
+                    self._msg_pipe[0].send(InjectorState.UPGRADE_EVDEV)
                     sys.exit(12)
 
                 raise e

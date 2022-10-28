@@ -56,7 +56,7 @@ from inputremapper.gui.messages.message_data import (
 from inputremapper.gui.utils import CTX_APPLY, CTX_ERROR, CTX_WARNING, CTX_MAPPING
 from inputremapper.injection.injector import (
     InjectorState,
-    InjectorMessage,
+    InjectorCommand,
     InjectorStateMessage,
 )
 from inputremapper.input_event import InputEvent
@@ -543,7 +543,7 @@ class Controller:
             )
 
         assert self.data_manager.active_preset  # make mypy happy
-        state_calls: Dict[InjectorState | InjectorMessage, Callable] = {
+        state_calls: Dict[InjectorState, Callable] = {
             InjectorState.RUNNING: running,
             InjectorState.FAILED: partial(
                 self.show_status,
@@ -558,7 +558,7 @@ class Controller:
                 "your preset doesn't contain anything that is sent by the "
                 "device.",
             ),
-            InjectorMessage.UPGRADE_EVDEV: partial(
+            InjectorState.UPGRADE_EVDEV: partial(
                 self.show_status,
                 CTX_ERROR,
                 "Upgrade python-evdev",
