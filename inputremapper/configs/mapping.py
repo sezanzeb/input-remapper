@@ -62,17 +62,17 @@ needs_workaround = pkg_resources.parse_version(
 ) < pkg_resources.parse_version("1.7.1")
 
 
-EMPTY_MAPPING_NAME = _("Empty Mapping")
+EMPTY_MAPPING_NAME: str = _("Empty Mapping")
 
 # If `1` is the default speed for EV_REL, how much does this value needs to be scaled
 # up to get reasonable speeds for various EV_REL events?
 # Mouse injection rates vary wildly, and so do the values. Those values are assuming
 # a rate of 60hz.
-REL_XY_SCALING = 60
-WHEEL_SCALING = 1
+REL_XY_SCALING: float = 60
+WHEEL_SCALING: float = 1
 # WHEEL_HI_RES always generates events with 120 times higher values than WHEEL
 # https://www.kernel.org/doc/html/latest/input/event-codes.html?highlight=wheel_hi_res#ev-rel
-WHEEL_HI_RES_SCALING = 120
+WHEEL_HI_RES_SCALING: float = 120
 
 
 class KnownUinput(str, enum.Enum):

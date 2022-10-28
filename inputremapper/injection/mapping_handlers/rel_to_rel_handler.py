@@ -194,7 +194,7 @@ class RelToRelHandler(MappingHandler):
         the highest observed value. The overall gain will be fine though.
         """
 
-        input_value = event.value
+        input_value = float(event.value)
 
         # scale down now, the remainder calculation scales up by the same factor later
         # depending on what kind of event this becomes
