@@ -143,9 +143,9 @@ class UIMapping(BaseModel):
     rel_rate: PositiveInt = 60
 
     # when mapping from a relative axis:
-    # the absolute value at which a EV_REL axis is considered at its maximum.
-    # values are from evtest when moving the input quickly
-    rel_to_abs_input_cutoff: PositiveInt = 100
+    # the relative value at which a EV_REL axis is considered at its maximum. Moving
+    # a mouse at 2x the regular speed would be considered max by default.
+    rel_to_abs_input_cutoff: PositiveInt = 2
 
     # the time until a relative axis is considered stationary if no new events arrive
     release_timeout: PositiveFloat = 0.05

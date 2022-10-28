@@ -37,7 +37,8 @@ from inputremapper.configs.mapping import (
     Mapping,
     REL_XY_SCALING,
     WHEEL_SCALING,
-    WHEEL_HI_RES_SCALING, DEFAULT_REL_RATE,
+    WHEEL_HI_RES_SCALING,
+    DEFAULT_REL_RATE,
 )
 from inputremapper.event_combination import EventCombination
 from inputremapper.injection.global_uinputs import global_uinputs

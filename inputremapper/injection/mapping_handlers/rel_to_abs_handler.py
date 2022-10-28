@@ -31,7 +31,12 @@ from evdev.ecodes import (
 )
 
 from inputremapper import exceptions
-from inputremapper.configs.mapping import Mapping, WHEEL_SCALING, WHEEL_HI_RES_SCALING
+from inputremapper.configs.mapping import (
+    Mapping,
+    WHEEL_SCALING,
+    WHEEL_HI_RES_SCALING,
+    REL_XY_SCALING,
+)
 from inputremapper.event_combination import EventCombination
 from inputremapper.injection.global_uinputs import global_uinputs
 from inputremapper.injection.mapping_handlers.axis_transform import Transformation
@@ -45,7 +50,12 @@ from inputremapper.logger import logger
 
 
 class RelToAbsHandler(MappingHandler):
-    """Handler which transforms EV_REL to EV_ABS events"""
+    """Handler which transforms EV_REL to EV_ABS events.
+
+    High EV_REL input results in high EV_ABS output.
+    If no new EV_REL events are seen, the EV_ABS output is set to 0 after
+    release_timeout.
+    """
 
     _input_movement: Tuple[int, int]  # (type, code) of the relative movement we map
     _output_axis: Tuple[int, int]  # the (type, code) of the output axis
@@ -81,21 +91,16 @@ class RelToAbsHandler(MappingHandler):
             ).capabilities(absinfo=True)[EV_ABS]
         }[mapping.output_code]
 
-        wheel_cutoff = max(
-            (1, int(self.mapping.rel_to_abs_input_cutoff * WHEEL_SCALING))
-        )
-        wheel_hi_res_cutoff = wheel_cutoff * WHEEL_HI_RES_SCALING
-
         if self._input_movement[1] in [REL_WHEEL, REL_HWHEEL]:
-            max_ = wheel_cutoff
+            max_ = self.mapping.rel_to_abs_input_cutoff * WHEEL_SCALING
         elif self._input_movement[1] in [REL_WHEEL_HI_RES, REL_HWHEEL_HI_RES]:
-            max_ = wheel_hi_res_cutoff
+            max_ = self.mapping.rel_to_abs_input_cutoff * WHEEL_HI_RES_SCALING
         else:
-            max_ = mapping.rel_to_abs_input_cutoff
+            max_ = self.mapping.rel_to_abs_input_cutoff * REL_XY_SCALING
 
         self._transform = Transformation(
-            max_=max_,
-            min_=-max_,
+            max_=max(1, int(max_)),
+            min_=-max(1, int(max_)),
             deadzone=mapping.deadzone,
             gain=mapping.gain,
             expo=mapping.expo,
