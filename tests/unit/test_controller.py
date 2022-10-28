@@ -25,7 +25,7 @@ from unittest.mock import patch, MagicMock, call
 import gi
 
 from inputremapper.configs.system_mapping import system_mapping
-from inputremapper.injection.injector import Injectorc, InjectorState
+from inputremapper.injection.injector import InjectorState
 from inputremapper.input_event import InputEvent
 
 gi.require_version("Gdk", "3.0")

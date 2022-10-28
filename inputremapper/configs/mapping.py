@@ -145,7 +145,6 @@ class UIMapping(BaseModel):
     # when mapping from a relative axis:
     # the absolute value at which a EV_REL axis is considered at its maximum.
     # values are from evtest when moving the input quickly
-    # TODO wheel and wheel_hi_res factors
     rel_to_abs_input_cutoff: PositiveInt = 100
 
     # the time until a relative axis is considered stationary if no new events arrive
