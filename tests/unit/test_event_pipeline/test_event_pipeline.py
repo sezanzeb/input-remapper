@@ -47,7 +47,7 @@ from evdev.ecodes import (
 
 from inputremapper.configs.mapping import (
     Mapping,
-    UIMapping,
+    REL_XY_SCALING,
     WHEEL_SCALING,
     WHEEL_HI_RES_SCALING,
 )
@@ -1465,7 +1465,7 @@ class TestRelToRel(EventPipelineTestBase):
     async def test_hi_res_wheel_to_y(self):
         await self._test(
             input_code=REL_WHEEL_HI_RES,
-            input_value=3 * WHEEL_SCALING * WHEEL_HI_RES_SCALING,
+            input_value=3 * WHEEL_HI_RES_SCALING,
             output_code=REL_Y,
             output_value=3,
         )
@@ -1478,9 +1478,9 @@ class TestRelToRel(EventPipelineTestBase):
         output_code = REL_HWHEEL
         gain = 2
 
-        output_value = int(input_value * WHEEL_SCALING * gain)
+        output_value = int(input_value / REL_XY_SCALING * WHEEL_SCALING * gain)
         output_value_hi_res = int(
-            input_value * WHEEL_SCALING * WHEEL_HI_RES_SCALING * gain
+            input_value / REL_XY_SCALING * WHEEL_HI_RES_SCALING * gain
         )
 
         preset = Preset()
