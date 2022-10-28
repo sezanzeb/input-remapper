@@ -81,7 +81,9 @@ class RelToAbsHandler(MappingHandler):
             ).capabilities(absinfo=True)[EV_ABS]
         }[mapping.output_code]
 
-        wheel_cutoff = max((1, self.mapping.rel_to_abs_input_cutoff // WHEEL_SCALING))
+        wheel_cutoff = max(
+            (1, int(self.mapping.rel_to_abs_input_cutoff * WHEEL_SCALING))
+        )
         wheel_hi_res_cutoff = wheel_cutoff * WHEEL_HI_RES_SCALING
 
         if self._input_movement[1] in [REL_WHEEL, REL_HWHEEL]:

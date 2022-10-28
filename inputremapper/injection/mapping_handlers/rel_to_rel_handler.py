@@ -105,9 +105,9 @@ class RelToRelHandler(MappingHandler):
         self._input_event = input_event
 
         self._remainder = Remainder(1)
-        self._wheel_remainder = Remainder(1 / WHEEL_SCALING)
+        self._wheel_remainder = Remainder(1 * WHEEL_SCALING)
         self._wheel_hi_res_remainder = Remainder(
-            1 / WHEEL_SCALING * WHEEL_HI_RES_SCALING
+            1 * WHEEL_SCALING * WHEEL_HI_RES_SCALING
         )
 
         self._transform = Transformation(
@@ -145,6 +145,8 @@ class RelToRelHandler(MappingHandler):
         if not self._should_map(event):
             return False
         """
+        There was the idea to define speed as "movemnt per second"
+
         rel2rel example:
         - input every 0.1s (`input_rate` of 10 events/s), value of 200
         - input speed is 2000, because in 1 second a value of 2000 acumulates
@@ -162,18 +164,20 @@ class RelToRelHandler(MappingHandler):
         ) * abs_to_rel_speed / input_rate
         ```
 
-        The input_rel_speed could be used here instead of abs_to_rel_speed, because the gain
-        already controls the speed. In that case it would be a 1:1 ratio of
+        The input_rel_speed could be used here instead of abs_to_rel_speed, because the
+        gain already controls the speed. In that case it would be a 1:1 ratio of
         input-to-output value if the gain is 1.
 
         for wheel and wheel_hi_res, different input speed constants must be set.
 
-        abs2rel needs a base value for the output, so `abs_to_rel_speed` is still required.
-        `abs_to_rel_speed / rel_rate * transform(input.value, max=absinfo.max)` is the output
-        value. Both abs_to_rel_speed and the transformation-gain control speed.
+        abs2rel needs a base value for the output, so `abs_to_rel_speed` is still
+        required.
+        `abs_to_rel_speed / rel_rate * transform(input.value, max=absinfo.max)`
+        is the output value. Both abs_to_rel_speed and the transformation-gain control
+        speed.
 
-        if abs_to_rel_speed controls speed in the abs2rel output, it should also do so in other
-        handlers that have EV_REL output.
+        if abs_to_rel_speed controls speed in the abs2rel output, it should also do so
+        in other handlers that have EV_REL output.
         
         unfortunately input_rate needs to be determined during runtime, which screws
         the overall speed up when slowly moving the input device in the beginning,
@@ -194,9 +198,9 @@ class RelToRelHandler(MappingHandler):
 
         input_value = event.value
         if event.is_wheel_event:
-            input_value *= WHEEL_SCALING
+            input_value /= WHEEL_SCALING
         elif event.is_wheel_hi_res_event:
-            input_value *= WHEEL_SCALING / WHEEL_HI_RES_SCALING
+            input_value /= WHEEL_SCALING * WHEEL_HI_RES_SCALING
 
         if abs(input_value) > self._max_observed_input:
             self._max_observed_input = abs(input_value)

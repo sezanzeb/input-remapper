@@ -45,7 +45,12 @@ from evdev.ecodes import (
     BTN_TL,
 )
 
-from inputremapper.configs.mapping import Mapping, UIMapping
+from inputremapper.configs.mapping import (
+    Mapping,
+    UIMapping,
+    WHEEL_SCALING,
+    WHEEL_HI_RES_SCALING,
+)
 from inputremapper.configs.preset import Preset
 from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.event_combination import EventCombination
@@ -53,7 +58,6 @@ from inputremapper.injection.context import Context
 from inputremapper.injection.event_reader import EventReader
 from inputremapper.injection.global_uinputs import global_uinputs
 from inputremapper.input_event import InputEvent, USE_AS_ANALOG_VALUE
-from inputremapper.logger import logger
 from tests.test import (
     get_key_mapping,
     cleanup,
@@ -62,6 +66,7 @@ from tests.test import (
     MIN_ABS,
     Fixture,
     fixtures,
+    logger,
 )
 
 
@@ -1452,25 +1457,31 @@ class TestRelToRel(EventPipelineTestBase):
     async def test_wheel_to_y(self):
         await self._test(
             input_code=REL_WHEEL,
-            input_value=UIMapping().abs_to_rel_wheel_speed,
+            input_value=2 * WHEEL_SCALING,
             output_code=REL_Y,
-            output_value=UIMapping().abs_to_rel_speed,
+            output_value=2,
         )
 
     async def test_hi_res_wheel_to_y(self):
         await self._test(
             input_code=REL_WHEEL_HI_RES,
-            input_value=UIMapping().abs_to_rel_wheel_hi_res_speed,
+            input_value=3 * WHEEL_SCALING * WHEEL_HI_RES_SCALING,
             output_code=REL_Y,
-            output_value=UIMapping().abs_to_rel_speed,
+            output_value=3,
         )
 
     async def test_x_to_hwheel(self):
+        # injects both hi_res and regular wheel events at the same time
+
         input_code = REL_X
-        input_value = UIMapping().abs_to_rel_speed * 3
+        input_value = 100
         output_code = REL_HWHEEL
-        output_value = UIMapping().abs_to_rel_wheel_speed * 6
         gain = 2
+
+        output_value = int(input_value * WHEEL_SCALING * gain)
+        output_value_hi_res = int(
+            input_value * WHEEL_SCALING * WHEEL_HI_RES_SCALING * gain
+        )
 
         preset = Preset()
 
@@ -1506,10 +1517,6 @@ class TestRelToRel(EventPipelineTestBase):
             ),
         )
 
-        abs_to_rel_wheel_hi_res_speed = UIMapping().abs_to_rel_wheel_hi_res_speed
-        abs_to_rel_wheel_speed = UIMapping().abs_to_rel_wheel_speed
-        hi_res_factor = abs_to_rel_wheel_hi_res_speed / abs_to_rel_wheel_speed
-
         self.assertEqual(
             history[1],
             InputEvent(
@@ -1517,7 +1524,7 @@ class TestRelToRel(EventPipelineTestBase):
                 0,
                 EV_REL,
                 REL_HWHEEL_HI_RES,
-                output_value * UIMapping().abs_to_rel_wheel_speed * hi_res_factor,
+                output_value_hi_res,
             ),
         )
 
@@ -1527,7 +1534,6 @@ class TestRelToRel(EventPipelineTestBase):
 
         # wheel to mouse-y
         input_event = InputEvent(0, 0, EV_REL, REL_WHEEL_HI_RES, USE_AS_ANALOG_VALUE)
-        abs_to_rel_wheel_hi_res_speed = 100
         mapping = Mapping(
             event_combination=EventCombination(input_event),
             target_uinput="mouse",
@@ -1541,11 +1547,13 @@ class TestRelToRel(EventPipelineTestBase):
 
         event_reader = self.get_event_reader(preset, fixtures.gamepad)
 
-        # the input value of 1 is so small, that it needs to be sent 100 times
+        # the ratio between wheel_hi_res and rel_y
+        rel_y_to_hi_res = int(WHEEL_SCALING * WHEEL_HI_RES_SCALING)
+
+        # the input value of 1 is so small, that it needs to be sent many times
         # until one REL_Y event is written
         await self.send_events(
-            [InputEvent(0, 0, EV_REL, REL_WHEEL_HI_RES, 1)]
-            * (mapping.abs_to_rel_wheel_hi_res_speed - 1),
+            [InputEvent(0, 0, EV_REL, REL_WHEEL_HI_RES, 1)] * (rel_y_to_hi_res - 1),
             event_reader,
         )
         self.assertEqual(len(history), 0)
@@ -1553,7 +1561,7 @@ class TestRelToRel(EventPipelineTestBase):
         # write the final event that causes the input to accumulate to 1
         # plus one extra event because of floating-point math
         await self.send_events(
-            [InputEvent(0, 0, EV_REL, REL_WHEEL_HI_RES, 1)] * 2,
+            [InputEvent(0, 0, EV_REL, REL_WHEEL_HI_RES, 1)],
             event_reader,
         )
         self.assertEqual(len(history), 1)
@@ -1564,8 +1572,7 @@ class TestRelToRel(EventPipelineTestBase):
 
         # repeat it one more time to see if the remainder is reset correctly
         await self.send_events(
-            [InputEvent(0, 0, EV_REL, REL_WHEEL_HI_RES, 1)]
-            * (mapping.abs_to_rel_wheel_hi_res_speed - 1),
+            [InputEvent(0, 0, EV_REL, REL_WHEEL_HI_RES, 1)] * (rel_y_to_hi_res - 1),
             event_reader,
         )
         self.assertEqual(len(history), 1)

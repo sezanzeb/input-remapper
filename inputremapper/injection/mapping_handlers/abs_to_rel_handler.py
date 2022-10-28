@@ -137,7 +137,7 @@ class AbsToRelHandler(MappingHandler):
 
         # special values for REL_WHEEL inputs and outputs. These try to provide good
         # default values while keeping the number of configurable parameters low
-        self.wheel_speed = max((1, self.mapping.abs_to_rel_speed // WHEEL_SCALING))
+        self.wheel_speed = max((1, int(self.mapping.abs_to_rel_speed * WHEEL_SCALING)))
         self.wheel_hi_res_speed = self.wheel_speed * WHEEL_HI_RES_SCALING
 
         # bind the correct run method

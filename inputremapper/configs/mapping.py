@@ -67,7 +67,7 @@ EMPTY_MAPPING_NAME = _("Empty Mapping")
 # Scaling factors for the wheel speed and input_cutoff. The mouse wheel has
 # different sensitivity than any other relative axis, so we scale the default values to
 # account for the different sensitivity.
-WHEEL_SCALING = 30
+WHEEL_SCALING = 1 / 30
 # WHEEL_HI_RES always generates events with 120 times higher values than WHEEL
 # https://www.kernel.org/doc/html/latest/input/event-codes.html?highlight=wheel_hi_res#ev-rel
 WHEEL_HI_RES_SCALING = 120
@@ -140,11 +140,12 @@ class UIMapping(BaseModel):
     rel_rate: PositiveInt = 60
     # the base speed of the relative axis, compounds with the gain
     # value is observed normal output values in evtest
-    abs_to_rel_speed: PositiveInt = 100
+    abs_to_rel_speed: PositiveInt = 30
 
     # when mapping from a relative axis:
     # the absolute value at which a EV_REL axis is considered at its maximum.
     # values are from evtest when moving the input quickly
+    # TODO wheel and wheel_hi_res factors
     rel_to_abs_input_cutoff: PositiveInt = 100
 
     # the time until a relative axis is considered stationary if no new events arrive

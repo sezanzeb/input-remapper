@@ -63,9 +63,7 @@ class TestMapping(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(m.gain, 1)
         self.assertEqual(m.expo, 0)
         self.assertEqual(m.rel_rate, 60)
-        self.assertEqual(m.rel_rate, 60)
         self.assertEqual(m.abs_to_rel_speed, 30)
-        self.assertEqual(m.abs_to_rel_wheel_speed, 1)
         self.assertEqual(m.rel_to_abs_input_cutoff, 100)
         self.assertEqual(m.release_timeout, 0.05)
 
