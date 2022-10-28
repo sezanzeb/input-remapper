@@ -105,8 +105,8 @@ class RelToRelHandler(MappingHandler):
         self._input_event = input_event
 
         self._remainder = Remainder(1)
-        self._wheel_remainder = Remainder(WHEEL_SCALING)
-        self._wheel_hi_res_remainder = Remainder(WHEEL_SCALING * WHEEL_HI_RES_SCALING)
+        self._wheel_remainder = Remainder(1 / WHEEL_SCALING)
+        self._wheel_hi_res_remainder = Remainder(1 / WHEEL_SCALING * WHEEL_HI_RES_SCALING)
 
         self._transform = Transformation(
             max_=1,
