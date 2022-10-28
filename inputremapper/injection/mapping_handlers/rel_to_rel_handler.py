@@ -81,7 +81,7 @@ class RelToRelHandler(MappingHandler):
 
     _input_event: InputEvent  # the relative movement we map
 
-    _max_observed_input: int
+    _max_observed_input: float
 
     _transform: Transformation
 
