@@ -33,7 +33,12 @@ from evdev.ecodes import (
     REL_HWHEEL_HI_RES,
 )
 
-from inputremapper.configs.mapping import Mapping, WHEEL_SCALING, WHEEL_HI_RES_SCALING
+from inputremapper.configs.mapping import (
+    Mapping,
+    REL_XY_SCALING,
+    WHEEL_SCALING,
+    WHEEL_HI_RES_SCALING, DEFAULT_REL_RATE,
+)
 from inputremapper.event_combination import EventCombination
 from inputremapper.injection.global_uinputs import global_uinputs
 from inputremapper.injection.mapping_handlers.axis_transform import Transformation
@@ -47,29 +52,39 @@ from inputremapper.logger import logger
 from inputremapper.utils import get_evdev_constant_name
 
 
+def calculate_output(value, weight, remainder):
+    # self._value is between 0 and 1, scale up with weight
+    scaled = value * weight + remainder
+    # float_value % 1 will result in wrong calculations for negative values
+    remainder = math.fmod(scaled, 1)
+    return int(scaled), remainder
+
+
 async def _run_normal_output(self) -> None:
     """Start injecting events."""
-    weight = self.mapping.abs_to_rel_speed
-
     self._running = True
     self._stop = False
-    # logger.debug("starting AbsToRel loop")
     remainder = 0.0
     start = time.time()
+
+    # if the rate is configured to be slower than the default, increase the value, so
+    # that the overall speed stays the same.
+    rate_compensation = DEFAULT_REL_RATE / self.mapping.rel_rate
+    weight = REL_XY_SCALING * rate_compensation
+
     while not self._stop:
-        # self._value is between 0 and 1, scale up with weight
-        scaled = self._value * weight + remainder
-        # float_value % 1 will result in wrong calculations for negative values
-        remainder = math.fmod(scaled, 1)
-        value = int(scaled)
-        remainder = scaled - value
+        value, remainder = calculate_output(
+            self._value,
+            weight,
+            remainder,
+        )
+
         self._write(EV_REL, self.mapping.output_code, value)
 
         time_taken = time.time() - start
         await asyncio.sleep(max(0.0, (1 / self.mapping.rel_rate) - time_taken))
         start = time.time()
 
-    # logger.debug("stopping AbsToRel loop")
     self._running = False
 
 
@@ -79,30 +94,26 @@ async def _run_wheel_output(self, codes: Tuple[int, int]) -> None:
     made to inject both REL_WHEEL and REL_WHEEL_HI_RES events, because otherwise
     wheel output doesn't work for some people. See issue #354
     """
-    weights = (
-        self.wheel_speed,
-        self.wheel_hi_res_speed,
-    )
+    weights = (WHEEL_SCALING, WHEEL_HI_RES_SCALING)
 
     self._running = True
     self._stop = False
-    # logger.debug("starting AbsToRel loop")
     remainder = [0.0, 0.0]
     start = time.time()
     while not self._stop:
         for i in range(len(codes)):
-            # self._value is between 0 and 1, scale up with weights
-            scaled = self._value * weights[i] + remainder[i]
-            # float_value % 1 will result in wrong calculations for negative values
-            remainder[i] = math.fmod(scaled, 1)
-            value = int(scaled)
+            value, remainder[i] = calculate_output(
+                self._value,
+                weights[i],
+                remainder[i],
+            )
+
             self._write(EV_REL, codes[i], value)
 
         time_taken = time.time() - start
         await asyncio.sleep(max(0.0, (1 / self.mapping.rel_rate) - time_taken))
         start = time.time()
 
-    # logger.debug("stopping AbsToRel loop")
     self._running = False
 
 
@@ -134,11 +145,6 @@ class AbsToRelHandler(MappingHandler):
         self._running = False
         self._stop = True
         self._transform = None
-
-        # special values for REL_WHEEL inputs and outputs. These try to provide good
-        # default values while keeping the number of configurable parameters low
-        self.wheel_speed = max((1, int(self.mapping.abs_to_rel_speed * WHEEL_SCALING)))
-        self.wheel_hi_res_speed = self.wheel_speed * WHEEL_HI_RES_SCALING
 
         # bind the correct run method
         if self.mapping.output_code in (
@@ -204,7 +210,7 @@ class AbsToRelHandler(MappingHandler):
 
         self._value = transformed
 
-        if self._value == 0:
+        if transformed == 0:
             self._stop = True
             return True
 

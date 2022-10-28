@@ -66,13 +66,14 @@ EMPTY_MAPPING_NAME: str = _("Empty Mapping")
 
 # If `1` is the default speed for EV_REL, how much does this value needs to be scaled
 # up to get reasonable speeds for various EV_REL events?
-# Mouse injection rates vary wildly, and so do the values. Those values are assuming
-# a rate of 60hz.
+# Mouse injection rates vary wildly, and so do the values.
 REL_XY_SCALING: float = 60
 WHEEL_SCALING: float = 1
 # WHEEL_HI_RES always generates events with 120 times higher values than WHEEL
 # https://www.kernel.org/doc/html/latest/input/event-codes.html?highlight=wheel_hi_res#ev-rel
 WHEEL_HI_RES_SCALING: float = 120
+# Those values are assuming a rate of 60hz
+DEFAULT_REL_RATE: float = 60
 
 
 class KnownUinput(str, enum.Enum):
@@ -139,10 +140,8 @@ class UIMapping(BaseModel):
 
     # when mapping to relative axis
     # The frequency [Hz] at which EV_REL events get generated
+    # TODO fractional rel_rate based on 60hz
     rel_rate: PositiveInt = 60
-    # the base speed of the relative axis, compounds with the gain
-    # value is observed normal output values in evtest
-    abs_to_rel_speed: PositiveInt = 30
 
     # when mapping from a relative axis:
     # the absolute value at which a EV_REL axis is considered at its maximum.

@@ -1550,7 +1550,6 @@ class TestRelToRel(EventPipelineTestBase):
         events_until_one_rel_y_written = int(
             WHEEL_HI_RES_SCALING / REL_XY_SCALING / gain
         )
-
         # due to the low gain and low input value, it needs to be sent many times
         # until one REL_Y event is written
         await self.send_events(
