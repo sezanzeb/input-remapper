@@ -140,7 +140,6 @@ class UIMapping(BaseModel):
 
     # when mapping to relative axis
     # The frequency [Hz] at which EV_REL events get generated
-    # TODO fractional rel_rate based on 60hz
     rel_rate: PositiveInt = 60
 
     # when mapping from a relative axis:
