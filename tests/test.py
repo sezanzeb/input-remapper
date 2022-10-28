@@ -933,7 +933,7 @@ class FakeDaemonProxy:
     def stop_injecting(self, group_key: str) -> None:
         self.calls["stop_injecting"].append(group_key)
 
-    def get_state(self, group_key: str) -> str:
+    def get_state(self, group_key: str) -> InjectorState:
         self.calls["get_state"].append(group_key)
         return InjectorState.STOPPED
 

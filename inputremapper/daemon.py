@@ -124,7 +124,7 @@ class DaemonProxy(Protocol):  # pragma: no cover
     def stop_injecting(self, group_key: str) -> None:
         ...
 
-    def get_state(self, group_key: str) -> str:
+    def get_state(self, group_key: str) -> InjectorState:
         ...
 
     def start_injecting(self, group_key: str, preset: str) -> bool:
@@ -318,7 +318,7 @@ class Daemon:
         self.injectors[group_key].stop_injecting()
         self.autoload_history.forget(group_key)
 
-    def get_state(self, group_key) -> str:
+    def get_state(self, group_key) -> InjectorState:
         """Get the injectors state."""
         injector = self.injectors.get(group_key)
         return injector.get_state() if injector else InjectorState.UNKNOWN

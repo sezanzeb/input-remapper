@@ -543,7 +543,7 @@ class Controller:
             )
 
         assert self.data_manager.active_preset  # make mypy happy
-        state_calls: Dict[str, Callable] = {
+        state_calls: Dict[InjectorState | InjectorMessage, Callable] = {
             InjectorState.RUNNING: running,
             InjectorState.FAILED: partial(
                 self.show_status,

@@ -22,12 +22,13 @@
 """Keeps injecting keycodes in the background based on the preset."""
 from __future__ import annotations
 import asyncio
+import enum
 import multiprocessing
 import sys
 import time
 from dataclasses import dataclass
 from multiprocessing.connection import Connection
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Union
 
 import evdev
 
@@ -50,12 +51,12 @@ GroupSources = List[evdev.InputDevice]
 DEV_NAME = "input-remapper"
 
 
-class InjectorMessage:
+class InjectorMessage(str, enum.Enum):
     CLOSE = "CLOSE"
     UPGRADE_EVDEV = "UPGRADE_EVDEV"
 
 
-class InjectorState:
+class InjectorState(str, enum.Enum):
     UNKNOWN = "UNKNOWN"
     STARTING = "STARTING"
     FAILED = "FAILED"
@@ -87,7 +88,7 @@ def get_udev_name(name: str, suffix: str) -> str:
 @dataclass(frozen=True)
 class InjectorStateMessage:
     message_type = MessageType.injector_state
-    state: str
+    state: Union[InjectorState, InjectorMessage]
 
     def active(self) -> bool:
         return self.state in [InjectorState.RUNNING, InjectorState.STARTING]
@@ -107,7 +108,7 @@ class Injector(multiprocessing.Process):
     group: _Group
     preset: Preset
     context: Optional[Context]
-    _state: str
+    _state: InjectorState
     _msg_pipe: Tuple[Connection, Connection]
     _consumer_controls: List[EventReader]
     _stop_event: asyncio.Event
@@ -139,7 +140,7 @@ class Injector(multiprocessing.Process):
 
     """Functions to interact with the running process"""
 
-    def get_state(self) -> str:
+    def get_state(self) -> InjectorState:
         """Get the state of the injection.
 
         Can be safely called from the main process.

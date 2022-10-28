@@ -550,7 +550,7 @@ class DataManager:
             return True
         return False
 
-    def get_state(self) -> str:
+    def get_state(self) -> InjectorState:
         """the state of the injector"""
         if not self.active_group:
             raise DataManagementError("cannot read state: group is not set")
@@ -560,7 +560,7 @@ class DataManager:
         """tell the service to refresh its config path"""
         self._daemon.set_config_dir(self._config.get_dir())
 
-    def do_when_injector_state(self, states: Set[str], callback):
+    def do_when_injector_state(self, states: Set[InjectorState], callback):
         """run callback once the injector state is one of states"""
         start = time.time()
 
