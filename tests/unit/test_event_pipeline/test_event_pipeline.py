@@ -1046,8 +1046,7 @@ class TestRelToAbs(EventPipelineTestBase):
         # left mouse x to x
         mapping_config = {
             "event_combination": (
-                f"{EV_REL},{REL_X},{USE_AS_ANALOG_VALUE}+"
-                f"{EV_REL},{REL_Y},10"
+                f"{EV_REL},{REL_X},{USE_AS_ANALOG_VALUE}+{EV_REL},{REL_Y},10"
             ),
             "target_uinput": "gamepad",
             "output_type": EV_ABS,
