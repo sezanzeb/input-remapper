@@ -86,12 +86,25 @@ def remove(path):
         os.remove(path)
 
 
+def sanitize_path_component(group_name: str) -> str:
+    """replace characters listed in
+    https://en.wikipedia.org/wiki/Filename#Reserved_characters_and_words
+    with an underscore
+    """
+    for c in '/\\?%*:|"<>':
+        if c in group_name:
+            group_name = group_name.replace(c, "_")
+    return group_name
+
+
 def get_preset_path(group_name=None, preset=None):
     """Get a path to the stored preset, or to store a preset to."""
     presets_base = os.path.join(CONFIG_PATH, "presets")
 
     if group_name is None:
         return presets_base
+
+    group_name = sanitize_path_component(group_name)
 
     if preset is not None:
         # the extension of the preset should not be shown in the ui.

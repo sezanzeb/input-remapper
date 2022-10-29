@@ -247,6 +247,12 @@ fixtures = {
         "info": evdev.device.DeviceInfo(6, 1, 6, 1),
         "name": "YuBiCofooYuBiKeYbar",
     },
+    "/dev/input/event52": {
+        "capabilities": {evdev.ecodes.EV_KEY: keyboard_keys},
+        "phys": "usb-0000:03:00.0-3/input1",
+        "info": evdev.device.DeviceInfo(2, 1, 2, 1),
+        "name": "Qux/Device?",
+    },
 }
 
 
