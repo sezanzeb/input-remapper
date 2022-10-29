@@ -40,7 +40,7 @@ from evdev.ecodes import (
     REL_WHEEL,
 )
 
-from inputremapper.configs.mapping import Mapping
+from inputremapper.configs.mapping import Mapping, DEFAULT_REL_RATE
 from inputremapper.event_combination import EventCombination
 from inputremapper.injection.global_uinputs import global_uinputs
 from inputremapper.injection.mapping_handlers.abs_to_abs_handler import AbsToAbsHandler
@@ -131,7 +131,7 @@ class TestAbsToAbsHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
         history = global_uinputs.get_uinput("gamepad").write_history
         self.assertEqual(
             history,
-            [InputEvent.from_tuple((3, 0, 32768)), InputEvent.from_tuple((3, 0, 0))],
+            [InputEvent.from_tuple((3, 0, MAX_ABS)), InputEvent.from_tuple((3, 0, 0))],
         )
 
 
@@ -149,16 +149,57 @@ class TestRelToAbsHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
 
     async def test_reset(self):
         self.handler.notify(
-            InputEvent(0, 0, EV_REL, REL_X, 100),
+            InputEvent(0, 0, EV_REL, REL_X, 123),
             source=InputDevice("/dev/input/event15"),
             forward=evdev.UInput(),
         )
         self.handler.reset()
         history = global_uinputs.get_uinput("gamepad").write_history
-        self.assertEqual(
-            history,
-            [InputEvent.from_tuple((3, 0, 32768)), InputEvent.from_tuple((3, 0, 0))],
+        self.assertEqual(len(history), 2)
+
+        # something large, doesn't matter
+        self.assertGreater(history[0].value, MAX_ABS / 10)
+
+        # 0, because of the reset
+        self.assertEqual(history[1].value, 0)
+
+    async def test_rate_changes(self):
+        expected_rate = 100
+
+        # delta in usec
+        delta = 1000000 / expected_rate
+
+        self.handler.notify(
+            InputEvent(0, delta, EV_REL, REL_X, 100),
+            source=InputDevice("/dev/input/event15"),
+            forward=evdev.UInput(),
         )
+
+        self.handler.notify(
+            InputEvent(0, delta * 2, EV_REL, REL_X, 100),
+            source=InputDevice("/dev/input/event15"),
+            forward=evdev.UInput(),
+        )
+
+        self.assertEqual(self.handler._observed_rate, expected_rate)
+
+    async def test_rate_stays(self):
+        # if two timestamps are equal, the rate stays at its previous value,
+        # in this case the default
+
+        self.handler.notify(
+            InputEvent(0, 50, EV_REL, REL_X, 100),
+            source=InputDevice("/dev/input/event15"),
+            forward=evdev.UInput(),
+        )
+
+        self.handler.notify(
+            InputEvent(0, 50, EV_REL, REL_X, 100),
+            source=InputDevice("/dev/input/event15"),
+            forward=evdev.UInput(),
+        )
+
+        self.assertEqual(self.handler._observed_rate, DEFAULT_REL_RATE)
 
 
 class TestAbsToRelHandler(BaseTests, unittest.IsolatedAsyncioTestCase):

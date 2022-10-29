@@ -1354,7 +1354,7 @@ class TestRelativeInputCutoffInput(ComponentBaseTest):
             MappingData(
                 target_uinput="mouse",
                 event_combination="2,0,0",
-                rel_to_abs_input_cutoff=50,
+                rel_to_abs_input_cutoff=1,
                 output_type=3,
                 output_code=0,
             )
@@ -1373,7 +1373,7 @@ class TestRelativeInputCutoffInput(ComponentBaseTest):
             MappingData(
                 target_uinput="mouse",
                 event_combination="2,0,0",
-                rel_to_abs_input_cutoff=200,
+                rel_to_abs_input_cutoff=3,
                 output_type=3,
                 output_code=0,
             )
@@ -1385,7 +1385,7 @@ class TestRelativeInputCutoffInput(ComponentBaseTest):
             MappingData(
                 target_uinput="mouse",
                 event_combination="2,0,0",
-                rel_to_abs_input_cutoff=200,
+                rel_to_abs_input_cutoff=3,
                 output_type=3,
                 output_code=0,
             )
@@ -1414,7 +1414,7 @@ class TestRelativeInputCutoffInput(ComponentBaseTest):
             MappingData(
                 target_uinput="mouse",
                 event_combination="2,0,0",
-                rel_to_abs_input_cutoff=200,
+                rel_to_abs_input_cutoff=3,
                 output_type=2,
                 output_code=0,
             )
@@ -1435,7 +1435,7 @@ class TestRelativeInputCutoffInput(ComponentBaseTest):
             MappingData(
                 target_uinput="mouse",
                 event_combination="2,0,0",
-                rel_to_abs_input_cutoff=50,
+                rel_to_abs_input_cutoff=1,
                 output_type=3,
                 output_code=0,
             )

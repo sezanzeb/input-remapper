@@ -356,7 +356,7 @@ class TestMapping(unittest.IsolatedAsyncioTestCase):
         test(**cfg, rel_to_abs_input_cutoff=-1)
         test(**cfg, rel_to_abs_input_cutoff=0)
         Mapping(**cfg, rel_to_abs_input_cutoff=1)
-        Mapping(**cfg, rel_to_abs_input_cutoff=200)
+        Mapping(**cfg, rel_to_abs_input_cutoff=3)
 
         # negative release timeout
         test(**cfg, release_timeout=-0.1)

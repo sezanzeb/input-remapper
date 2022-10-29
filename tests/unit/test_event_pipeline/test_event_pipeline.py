@@ -50,6 +50,7 @@ from inputremapper.configs.mapping import (
     REL_XY_SCALING,
     WHEEL_SCALING,
     WHEEL_HI_RES_SCALING,
+    DEFAULT_REL_RATE,
 )
 from inputremapper.configs.preset import Preset
 from inputremapper.configs.system_mapping import system_mapping
@@ -901,8 +902,8 @@ class TestAbsToAbs(EventPipelineTestBase):
         self.assertEqual(
             history,
             [
-                InputEvent.from_tuple((3, 0, -16384)),
-                InputEvent.from_tuple((3, 1, 16384)),
+                InputEvent.from_tuple((3, 0, MIN_ABS / 2)),
+                InputEvent.from_tuple((3, 1, MAX_ABS / 2)),
             ],
         )
 
@@ -949,8 +950,8 @@ class TestAbsToAbs(EventPipelineTestBase):
         self.assertEqual(
             history,
             [
-                InputEvent.from_tuple((3, 0, -16384)),
-                InputEvent.from_tuple((3, 0, 16384)),
+                InputEvent.from_tuple((3, 0, MIN_ABS / 2)),
+                InputEvent.from_tuple((3, 0, MAX_ABS / 2)),
                 InputEvent.from_tuple((3, 0, 0)),
             ],
         )
@@ -958,15 +959,23 @@ class TestAbsToAbs(EventPipelineTestBase):
 
 class TestRelToAbs(EventPipelineTestBase):
     async def test_rel_to_abs(self):
+        timestamp = 0
+
+        def next_usec_time():
+            nonlocal timestamp
+            timestamp += 1000000 / DEFAULT_REL_RATE
+            return timestamp
+
         gain = 0.5
         # left mouse x to abs x
+        cutoff = 2
         mapping_config = {
             "event_combination": f"{EV_REL},{REL_X},{USE_AS_ANALOG_VALUE}",
             "target_uinput": "gamepad",
             "output_type": EV_ABS,
             "output_code": ABS_X,
             "gain": gain,
-            "rel_to_abs_input_cutoff": 100,
+            "rel_to_abs_input_cutoff": cutoff,
             "release_timeout": 0.5,
             "deadzone": 0,
         }
@@ -980,10 +989,11 @@ class TestRelToAbs(EventPipelineTestBase):
 
         event_reader = self.get_event_reader(preset, fixtures.gamepad)
 
+        next_time = next_usec_time()
         await self.send_events(
             [
-                InputEvent.from_tuple((EV_REL, REL_X, -100)),
-                InputEvent.from_tuple((EV_REL, REL_Y, 100)),
+                InputEvent(0, next_time, EV_REL, REL_X, -int(REL_XY_SCALING * cutoff)),
+                InputEvent(0, next_time, EV_REL, REL_Y, int(REL_XY_SCALING * cutoff)),
             ],
             event_reader,
         )
@@ -996,16 +1006,17 @@ class TestRelToAbs(EventPipelineTestBase):
         self.assertEqual(
             history,
             [
-                InputEvent.from_tuple((3, 0, -16384)),
-                InputEvent.from_tuple((3, 1, 16384)),
+                InputEvent.from_tuple((3, 0, MIN_ABS / 2)),
+                InputEvent.from_tuple((3, 1, MAX_ABS / 2)),
             ],
         )
 
         # send more events, then wait until the release timeout
+        next_time = next_usec_time()
         await self.send_events(
             [
-                InputEvent.from_tuple((EV_REL, REL_X, -50)),
-                InputEvent.from_tuple((EV_REL, REL_Y, 50)),
+                InputEvent(0, next_time, EV_REL, REL_X, -int(REL_XY_SCALING)),
+                InputEvent(0, next_time, EV_REL, REL_Y, int(REL_XY_SCALING)),
             ],
             event_reader,
         )
@@ -1016,24 +1027,33 @@ class TestRelToAbs(EventPipelineTestBase):
         self.assertEqual(
             history,
             [
-                InputEvent.from_tuple((3, 0, -16384)),
-                InputEvent.from_tuple((3, 1, 16384)),
-                InputEvent.from_tuple((3, 0, -8192)),
-                InputEvent.from_tuple((3, 1, 8192)),
+                InputEvent.from_tuple((3, 0, MIN_ABS / 2)),
+                InputEvent.from_tuple((3, 1, MAX_ABS / 2)),
+                InputEvent.from_tuple((3, 0, MIN_ABS / 4)),
+                InputEvent.from_tuple((3, 1, MAX_ABS / 4)),
                 InputEvent.from_tuple((3, 0, 0)),
                 InputEvent.from_tuple((3, 1, 0)),
             ],
         )
 
     async def test_rel_to_abs_with_input_switch(self):
+        # use 0 everywhere, because that will cause the handler to not update the rate,
+        # and we are able to test things without worrying about that at all
+        timestamp = 0
+
         gain = 0.5
+        cutoff = 1
         # left mouse x to x
         mapping_config = {
-            "event_combination": f"{EV_REL},{REL_X},{USE_AS_ANALOG_VALUE}+{EV_REL},{REL_Y},10",
+            "event_combination": (
+                f"{EV_REL},{REL_X},{USE_AS_ANALOG_VALUE}+"
+                f"{EV_REL},{REL_Y},10"
+            ),
             "target_uinput": "gamepad",
             "output_type": EV_ABS,
             "output_code": ABS_X,
             "gain": gain,
+            "rel_to_abs_input_cutoff": cutoff,
             "deadzone": 0,
         }
         mapping_1 = Mapping(**mapping_config)
@@ -1044,11 +1064,16 @@ class TestRelToAbs(EventPipelineTestBase):
 
         await self.send_events(
             [
-                InputEvent.from_tuple((EV_REL, REL_X, -25)),  # will not map
-                InputEvent.from_tuple((EV_REL, REL_Y, 20)),  # switch axis on
-                InputEvent.from_tuple((EV_REL, REL_X, 100)),  # normally mapped
-                InputEvent.from_tuple((EV_REL, REL_Y, 5)),  # off, re-centers axis
-                InputEvent.from_tuple((EV_REL, REL_X, 50)),  # will not map
+                # will not map
+                InputEvent(0, timestamp, EV_REL, REL_X, -REL_XY_SCALING / 4 * cutoff),
+                # switch axis on
+                InputEvent(0, timestamp, EV_REL, REL_Y, REL_XY_SCALING / 5 * cutoff),
+                # normally mapped
+                InputEvent(0, timestamp, EV_REL, REL_X, REL_XY_SCALING * cutoff),
+                # off, re-centers axis
+                InputEvent(0, timestamp, EV_REL, REL_Y, REL_XY_SCALING / 20 * cutoff),
+                # will not map
+                InputEvent(0, timestamp, EV_REL, REL_X, REL_XY_SCALING / 2 * cutoff),
             ],
             event_reader,
         )
@@ -1061,7 +1086,7 @@ class TestRelToAbs(EventPipelineTestBase):
         self.assertEqual(
             history,
             [
-                InputEvent.from_tuple((3, 0, 16384)),
+                InputEvent.from_tuple((3, 0, MAX_ABS / 2)),
                 InputEvent.from_tuple((3, 0, 0)),
             ],
         )

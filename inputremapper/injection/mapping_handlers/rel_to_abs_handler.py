@@ -127,10 +127,15 @@ class RelToAbsHandler(MappingHandler):
         """Watch incoming events and remember how many events appear per second."""
         if self._previous_event is not None:
             delta_time = event.timestamp() - self._previous_event.timestamp()
+            if delta_time == 0:
+                logger.error("Observed two events with the same timestamp")
+                return
+
             rate = 1 / delta_time
             # mice seem to have a constant rate. wheel events are jaggy and the
             # rate depends on how fast it is turned.
             if rate > self._observed_rate:
+                logger.debug("Updating rate to %s", rate)
                 self._observed_rate = rate
                 self._calculate_cutoff()
 
