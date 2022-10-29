@@ -85,7 +85,11 @@ class AxisSwitchHandler(MappingHandler):
         return self._sub_handler
 
     def _handle_key_input(self, event):
-        """If a key is pressed, allow mapping analog events in subhandlers."""
+        """If a key is pressed, allow mapping analog events in subhandlers.
+
+        Analog events (e.g. ABS_X, REL_Y) that have gone through Handlers that
+        transform them to buttons also count as keys.
+        """
         key_is_pressed = bool(event.value)
         if self._active == key_is_pressed:
             # nothing changed
