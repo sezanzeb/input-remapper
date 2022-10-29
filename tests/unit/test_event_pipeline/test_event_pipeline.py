@@ -777,41 +777,39 @@ class TestIdk(EventPipelineTestBase):
     async def test_switch_axis(self):
         """Test a mapping for an axis that can be switched on or off."""
 
-        rel_rate = 60  # rate [Hz] at which events are produced
+        rate = 60  # rate [Hz] at which events are produced
         gain = 0.5  # halve the speed of the rel axis
         speed = 1
+        preset = Preset()
+        mouse = global_uinputs.get_uinput("mouse")
+        forward_history = self.forward_uinput.write_history
+        mouse_history = mouse.write_history
 
-        # left x to mouse x if left y is above 10%
+        # ABS_X to REL_Y if ABS_Y is above 10%
         combination = EventCombination(((EV_ABS, ABS_X, 0), (EV_ABS, ABS_Y, 10)))
-        mapping_config = {
+        cfg = {
             "event_combination": combination.json_key(),
             "target_uinput": "mouse",
             "output_type": EV_REL,
             "output_code": REL_X,
-            "rel_rate": rel_rate,
+            "rate": rate,
             "gain": gain,
             "deadzone": 0,
+            "rel_speed": speed,
         }
-        mapping_1 = Mapping(**mapping_config)
-
-        preset = Preset()
-        preset.add(mapping_1)
+        m1 = Mapping(**cfg)
+        preset.add(m1)
 
         # set input x-axis to 100%
         x = MAX_ABS
+
         event_reader = self.get_event_reader(preset, fixtures.gamepad)
 
         await event_reader.handle(InputEvent.from_tuple((EV_ABS, ABS_X, x)))
         await asyncio.sleep(0.2)  # wait a bit more for nothing to sum up
-        m_history = convert_to_internal_events(
-            global_uinputs.get_uinput("mouse").write_history
-        )
-        forwarded_history = convert_to_internal_events(
-            self.forward_uinput.write_history
-        )
-        self.assertEqual(len(m_history), 0)
-        self.assertEqual(len(forwarded_history), 1)
-        self.assertEqual(forwarded_history[0], (EV_ABS, ABS_X, x))
+        self.assertEqual(len(mouse_history), 0)
+        self.assertEqual(len(forward_history), 1)
+        self.assertEqual(InputEvent.from_event(forward_history[0]), (EV_ABS, ABS_X, x))
 
         # move the y-Axis above 10%
         await self.send_events(
@@ -822,9 +820,15 @@ class TestIdk(EventPipelineTestBase):
             ),
             event_reader,
         )
+
         # wait a bit more for it to sum up
         sleep = 0.5
         await asyncio.sleep(sleep)
+
+        # TODO magic number, sorry
+        self.assertAlmostEqual(len(mouse_history), 14, delta=1)
+        self.assertEqual(len(forward_history), 1)
+
         # send some more x events
         await self.send_events(
             (
@@ -833,26 +837,25 @@ class TestIdk(EventPipelineTestBase):
             ),
             event_reader,
         )
+
         # stop it
         await event_reader.handle(
             InputEvent.from_tuple((EV_ABS, ABS_Y, MAX_ABS * 0.05))
         )
 
         await asyncio.sleep(0.2)  # wait a bit more for nothing to sum up
-        history = convert_to_internal_events(
-            global_uinputs.get_uinput("mouse").write_history
-        )
-        if history[0].type == EV_ABS:
-            # possibly in addition to writing mouse events
-            raise AssertionError("The injector probably just forwarded them unchanged")
+        if mouse_history[0].type == EV_ABS:
+            raise AssertionError(
+                "The injector probably just forwarded them unchanged"
+                # possibly in addition to writing mouse events
+            )
 
         # each axis writes speed*gain*rate*sleep=1*0.5*60 events
-        self.assertGreater(len(history), speed * gain * rel_rate * sleep * 0.9)
-        self.assertLess(len(history), speed * gain * rel_rate * sleep * 1.1)
+        self.assertAlmostEqual(len(mouse_history), speed * gain * rate * sleep, delta=1)
 
         # does not contain anything else
-        count_x = history.count((EV_REL, REL_X, 1))
-        self.assertEqual(len(history), count_x)
+        count_x = convert_to_internal_events(mouse_history).count((EV_REL, REL_X, 1))
+        self.assertEqual(len(mouse_history), count_x)
 
 
 class TestAbsToAbs(EventPipelineTestBase):

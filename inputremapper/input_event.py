@@ -44,7 +44,7 @@ USE_AS_ANALOG_VALUE = 0
 
 
 class EventActions(enum.Enum):
-    """Additional information a InputEvent can send through the event pipeline"""
+    """Additional information an InputEvent can send through the event pipeline"""
 
     as_key = enum.auto()  # treat this event as a key event
     recenter = enum.auto()  # recenter the axis when receiving this

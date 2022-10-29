@@ -675,6 +675,8 @@ class UInput:
         pass
 
 
+# TODO inherit from input-remappers InputEvent?
+#  makes convert_to_internal_events obsolete
 class InputEvent(evdev.InputEvent):
     def __init__(self, sec, usec, type, code, value):
         self.t = (type, code, value)
