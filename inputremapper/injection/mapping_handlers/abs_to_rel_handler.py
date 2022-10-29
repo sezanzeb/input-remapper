@@ -62,6 +62,7 @@ def calculate_output(value, weight, remainder):
     return int(scaled), remainder
 
 
+# TODO move into class?
 async def _run_normal_output(self) -> None:
     """Start injecting events."""
     self._running = True
@@ -74,8 +75,6 @@ async def _run_normal_output(self) -> None:
     rate_compensation = DEFAULT_REL_RATE / self.mapping.rel_rate
     weight = REL_XY_SCALING * rate_compensation
 
-    iterations = 0
-    total_sleep = 0
     while not self._stop:
         value, remainder = calculate_output(
             self._value,
@@ -89,15 +88,11 @@ async def _run_normal_output(self) -> None:
         sleep = max(0.0, (1 / self.mapping.rel_rate) - time_taken)
         await asyncio.sleep(sleep)
         start = time.time()
-        iterations += 1
-        total_sleep += sleep
-
-    print(iterations)
-    print(total_sleep)
 
     self._running = False
 
 
+# TODO move into class?
 async def _run_wheel_output(self, codes: Tuple[int, int]) -> None:
     """Start injecting wheel events.
 

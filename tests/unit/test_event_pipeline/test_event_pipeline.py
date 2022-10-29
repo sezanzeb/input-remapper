@@ -774,12 +774,11 @@ class TestIdk(EventPipelineTestBase):
         self.assertIn((EV_KEY, KEY_A, 1), keyboard_history)
         self.assertIn((EV_KEY, KEY_A, 0), keyboard_history)
 
-    async def test_switch_axis(self):
+    async def test_axis_switch(self):
         """Test a mapping for an axis that can be switched on or off."""
 
         rel_rate = 60  # rate [Hz] at which events are produced
         gain = 0.5  # halve the speed of the rel axis
-        speed = 1
         preset = Preset()
         mouse = global_uinputs.get_uinput("mouse")
         forward_history = self.forward_uinput.write_history
@@ -795,7 +794,6 @@ class TestIdk(EventPipelineTestBase):
             "rel_rate": rel_rate,
             "gain": gain,
             "deadzone": 0,
-            "rel_speed": speed,
         }
         m1 = Mapping(**cfg)
         preset.add(m1)
@@ -828,15 +826,14 @@ class TestIdk(EventPipelineTestBase):
         sleep = 0.5
         await asyncio.sleep(sleep)
 
-        # TODO magic number, sorry
-        self.assertAlmostEqual(len(mouse_history), 14, delta=1)
+        self.assertAlmostEqual(len(mouse_history), rel_rate * sleep, delta=3)
         self.assertEqual(len(forward_history), 1)
 
         # send some more x events
         await self.send_events(
             (
-                InputEvent.from_tuple((EV_ABS, ABS_X, x)),
-                InputEvent.from_tuple((EV_ABS, ABS_X, x * 0.9)),
+                InputEvent.from_tuple((EV_ABS, ABS_X, MAX_ABS)),
+                InputEvent.from_tuple((EV_ABS, ABS_X, MAX_ABS * 0.9)),
             ),
             event_reader,
         )
@@ -853,13 +850,11 @@ class TestIdk(EventPipelineTestBase):
                 # possibly in addition to writing mouse events
             )
 
-        # each axis writes speed*gain*rate*sleep=1*0.5*60 events
-        self.assertAlmostEqual(
-            len(mouse_history), speed * gain * rel_rate * sleep, delta=1
-        )
+        self.assertAlmostEqual(len(mouse_history), rel_rate * sleep, delta=3)
 
         # does not contain anything else
-        count_x = convert_to_internal_events(mouse_history).count((EV_REL, REL_X, 1))
+        expected_rel_event = (EV_REL, REL_X, int(gain * REL_XY_SCALING))
+        count_x = convert_to_internal_events(mouse_history).count(expected_rel_event)
         self.assertEqual(len(mouse_history), count_x)
 
 
