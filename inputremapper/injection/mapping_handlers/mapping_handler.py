@@ -162,9 +162,9 @@ class MappingHandler:
 
         Parameters
         ----------
-        combination : EventCombination
+        combination
             the combination from sub_handler.wrap_with()
-        mapping :  Mapping
+        mapping
         """
         new_combination = []
         for event in combination:
@@ -183,7 +183,18 @@ class MappingHandler:
         forward: evdev.UInput,
         suppress: bool = False,
     ) -> bool:
-        """notify this handler about an incoming event"""
+        """Notify this handler about an incoming event.
+
+        Parameters
+        ----------
+        event
+            The newest event that came from `source`, and that should be mapped to
+            something else
+        source
+            Where `event` comes from
+        forward
+            Where to write keycodes to that were not mapped to anything
+        """
         raise NotImplementedError
 
     def reset(self) -> None:

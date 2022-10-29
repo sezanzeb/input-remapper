@@ -791,7 +791,6 @@ class TestIdk(EventPipelineTestBase):
             "rel_rate": rel_rate,
             "gain": gain,
             "deadzone": 0,
-            "abs_to_rel_speed": speed,
         }
         mapping_1 = Mapping(**mapping_config)
 
@@ -1081,7 +1080,6 @@ class TestAbsToRel(EventPipelineTestBase):
             "rel_rate": rel_rate,
             "gain": gain,
             "deadzone": 0,
-            "abs_to_rel_speed": speed,
         }
         mapping_1 = Mapping(**mapping_config)
         preset = Preset()
@@ -1149,7 +1147,6 @@ class TestAbsToRel(EventPipelineTestBase):
         """
         rel_rate = 60  # rate [Hz] at which events are produced
         gain = 1
-        speed = 30
         # left x to mouse x
         mapping_config = {
             "event_combination": ",".join((str(EV_ABS), str(ABS_X), "0")),
@@ -1159,7 +1156,6 @@ class TestAbsToRel(EventPipelineTestBase):
             "rel_rate": rel_rate,
             "gain": gain,
             "deadzone": 0,
-            "abs_to_rel_speed": speed,
         }
         mapping_1 = Mapping(**mapping_config)
 

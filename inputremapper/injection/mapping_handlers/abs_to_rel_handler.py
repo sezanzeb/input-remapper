@@ -17,6 +17,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
+
 import asyncio
 import math
 import time
@@ -186,7 +187,6 @@ class AbsToRelHandler(MappingHandler):
         forward: evdev.UInput = None,
         suppress: bool = False,
     ) -> bool:
-
         if event.type_and_code != self._map_axis:
             return False
 

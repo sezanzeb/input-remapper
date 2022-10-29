@@ -63,9 +63,9 @@ class EventReader:
 
         Parameters
         ----------
-        source : evdev.InputDevice
+        source
             where to read keycodes from
-        forward_to : evdev.UInput
+        forward_to
             where to write keycodes to that were not mapped to anything.
             Should be an UInput with capabilities that work for all forwarded
             events, so ideally they should be copied from source.
@@ -105,8 +105,16 @@ class EventReader:
             return False
 
         results = set()
-        for callback in self.context.notify_callbacks.get(event.type_and_code) or ():
-            results.add(callback(event, source=self._source, forward=self._forward_to))
+        notify_callbacks = self.context.notify_callbacks.get(event.type_and_code)
+        if notify_callbacks:
+            for notify_callback in notify_callbacks:
+                results.add(
+                    notify_callback(
+                        event,
+                        source=self._source,
+                        forward=self._forward_to,
+                    )
+                )
 
         return True in results
 

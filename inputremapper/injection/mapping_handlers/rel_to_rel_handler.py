@@ -101,13 +101,13 @@ class RelToRelHandler(MappingHandler):
     ) -> None:
         super().__init__(combination, mapping)
 
-        self._max_observed_input = 0
-
         # find the input event we are supposed to map. If the input combination is
         # BTN_A + REL_X + BTN_B, then use the value of REL_X for the transformation
         input_event = mapping.find_analog_input_event(type_=EV_REL)
         assert input_event is not None
         self._input_event = input_event
+
+        self._max_observed_input = 1
 
         self._remainder = Remainder(REL_XY_SCALING)
         self._wheel_remainder = Remainder(WHEEL_SCALING)
@@ -148,7 +148,8 @@ class RelToRelHandler(MappingHandler):
         if not self._should_map(event):
             return False
         """
-        There was the idea to define speed as "movemnt per second"
+        There was the idea to define speed as "movemnt per second".
+        There are deprecated mapping variables in this explanation.
 
         rel2rel example:
         - input every 0.1s (`input_rate` of 10 events/s), value of 200
@@ -216,10 +217,11 @@ class RelToRelHandler(MappingHandler):
         if abs(input_value) > self._max_observed_input:
             self._max_observed_input = abs(input_value)
 
-        transformed = (
-            self._transform(input_value / self._max_observed_input)
-            * self._max_observed_input
-        )
+        # If _max_observed_input is wrong when the injection starts and the correct
+        # value learned during runtime, results can be weird at the beginning.
+        # If expo and deadzone are not set, then it is linear and doesn't matter.
+        transformed = self._transform(input_value / self._max_observed_input)
+        transformed *= self._max_observed_input
 
         is_wheel_output = self.mapping.is_wheel_output()
         is_hi_res_wheel_output = self.mapping.is_high_res_wheel_output()

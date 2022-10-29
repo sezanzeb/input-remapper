@@ -314,21 +314,27 @@ class TestRelToRelHanlder(BaseTests, unittest.IsolatedAsyncioTestCase):
         )
 
     def test_should_map(self):
-        input_ = InputEvent(0, 0, EV_REL, REL_X, USE_AS_ANALOG_VALUE)
-        self.handler = RelToRelHandler(
-            EventCombination(input_),
-            Mapping(
-                event_combination=EventCombination(input_),
-                output_type=EV_REL,
-                output_code=REL_Y,
-                output_value=20,
-                target_uinput="mouse",
-            ),
+        self.assertTrue(
+            self.handler._should_map(
+                InputEvent(
+                    0,
+                    0,
+                    EV_REL,
+                    REL_X,
+                    USE_AS_ANALOG_VALUE,
+                )
+            )
         )
-
-        self.assertTrue(self.handler._should_map(input_))
         self.assertFalse(
-            self.handler._should_map(InputEvent(0, 0, EV_REL, REL_WHEEL, 1))
+            self.handler._should_map(
+                InputEvent(
+                    0,
+                    0,
+                    EV_REL,
+                    REL_WHEEL,
+                    1,
+                )
+            )
         )
 
     def test_reset(self):
