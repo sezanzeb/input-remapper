@@ -800,23 +800,26 @@ class TestIdk(EventPipelineTestBase):
         m1 = Mapping(**cfg)
         preset.add(m1)
 
-        # set input x-axis to 100%
-        x = MAX_ABS
-
         event_reader = self.get_event_reader(preset, fixtures.gamepad)
 
-        await event_reader.handle(InputEvent.from_tuple((EV_ABS, ABS_X, x)))
-        await asyncio.sleep(0.2)  # wait a bit more for nothing to sum up
+        # set ABS_X input to 100%
+        await event_reader.handle(InputEvent.from_tuple((EV_ABS, ABS_X, MAX_ABS)))
+
+        # wait a bit more for nothing to sum up, because ABS_Y is still 0
+        await asyncio.sleep(0.2)
         self.assertEqual(len(mouse_history), 0)
         self.assertEqual(len(forward_history), 1)
-        self.assertEqual(InputEvent.from_event(forward_history[0]), (EV_ABS, ABS_X, x))
+        self.assertEqual(
+            InputEvent.from_event(forward_history[0]),
+            (EV_ABS, ABS_X, MAX_ABS),
+        )
 
-        # move the y-Axis above 10%
+        # move ABS_Y above 10%
         await self.send_events(
             (
-                InputEvent.from_tuple((EV_ABS, ABS_Y, x * 0.05)),
-                InputEvent.from_tuple((EV_ABS, ABS_Y, x * 0.11)),
-                InputEvent.from_tuple((EV_ABS, ABS_Y, x * 0.5)),
+                InputEvent.from_tuple((EV_ABS, ABS_Y, MAX_ABS * 0.05)),
+                InputEvent.from_tuple((EV_ABS, ABS_Y, MAX_ABS * 0.11)),
+                InputEvent.from_tuple((EV_ABS, ABS_Y, MAX_ABS * 0.5)),
             ),
             event_reader,
         )
@@ -851,7 +854,9 @@ class TestIdk(EventPipelineTestBase):
             )
 
         # each axis writes speed*gain*rate*sleep=1*0.5*60 events
-        self.assertAlmostEqual(len(mouse_history), speed * gain * rel_rate * sleep, delta=1)
+        self.assertAlmostEqual(
+            len(mouse_history), speed * gain * rel_rate * sleep, delta=1
+        )
 
         # does not contain anything else
         count_x = convert_to_internal_events(mouse_history).count((EV_REL, REL_X, 1))

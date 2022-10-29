@@ -74,6 +74,7 @@ async def _run_normal_output(self) -> None:
     rate_compensation = DEFAULT_REL_RATE / self.mapping.rel_rate
     weight = REL_XY_SCALING * rate_compensation
 
+    iterations = 0
     while not self._stop:
         value, remainder = calculate_output(
             self._value,
@@ -84,9 +85,11 @@ async def _run_normal_output(self) -> None:
         self._write(EV_REL, self.mapping.output_code, value)
 
         time_taken = time.time() - start
-        print("rel_rate", self.mapping.rel_rate)
         await asyncio.sleep(max(0.0, (1 / self.mapping.rel_rate) - time_taken))
         start = time.time()
+        iterations += 1
+
+    print(iterations)
 
     self._running = False
 
