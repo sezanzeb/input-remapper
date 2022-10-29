@@ -1098,7 +1098,6 @@ class TestAbsToRel(EventPipelineTestBase):
 
         rel_rate = 60  # rate [Hz] at which events are produced
         gain = 0.5  # halve the speed of the rel axis
-        speed = 1
         # left x to mouse x
         mapping_config = {
             "event_combination": ",".join((str(EV_ABS), str(ABS_X), "0")),
@@ -1119,7 +1118,7 @@ class TestAbsToRel(EventPipelineTestBase):
         preset.add(mapping_2)
 
         # set input axis to 100% in order to move
-        # speed*gain*rate=1*0.5*60 pixel per second
+        # (gain * REL_XY_SCALING) pixel per event
         x = MAX_ABS
         y = MAX_ABS
 
@@ -1147,27 +1146,26 @@ class TestAbsToRel(EventPipelineTestBase):
         )
 
         # convert the write-history to some easier to manage list
-        history = convert_to_internal_events(
+        mouse_history = convert_to_internal_events(
             global_uinputs.get_uinput("mouse").write_history
         )
 
-        if history[0].type == EV_ABS:
+        if mouse_history[0].type == EV_ABS:
             raise AssertionError(
                 "The injector probably just forwarded them unchanged"
                 # possibly in addition to writing mouse events
             )
 
-        # each axis writes speed*gain*rate*sleep=1*0.5*60 events
-        self.assertGreater(len(history), speed * gain * rel_rate * sleep * 0.8 * 2)
-        self.assertLess(len(history), speed * gain * rel_rate * sleep * 1.2 * 2)
+        self.assertAlmostEqual(len(mouse_history), rel_rate * sleep * 2, delta=5)
 
         # those may be in arbitrary order
-        count_x = history.count((EV_REL, REL_X, -1))
-        count_y = history.count((EV_REL, REL_Y, -1))
+        expected_value = -gain * REL_XY_SCALING * (rel_rate / DEFAULT_REL_RATE)
+        count_x = mouse_history.count((EV_REL, REL_X, expected_value))
+        count_y = mouse_history.count((EV_REL, REL_Y, expected_value))
         self.assertGreater(count_x, 1)
         self.assertGreater(count_y, 1)
         # only those two types of events were written
-        self.assertEqual(len(history), count_x + count_y)
+        self.assertEqual(len(mouse_history), count_x + count_y)
 
     async def test_abs_to_wheel_hi_res_quirk(self):
         """When mapping to wheel events we always expect to see both,
