@@ -777,7 +777,7 @@ class TestIdk(EventPipelineTestBase):
     async def test_switch_axis(self):
         """Test a mapping for an axis that can be switched on or off."""
 
-        rate = 60  # rate [Hz] at which events are produced
+        rel_rate = 60  # rate [Hz] at which events are produced
         gain = 0.5  # halve the speed of the rel axis
         speed = 1
         preset = Preset()
@@ -792,7 +792,7 @@ class TestIdk(EventPipelineTestBase):
             "target_uinput": "mouse",
             "output_type": EV_REL,
             "output_code": REL_X,
-            "rate": rate,
+            "rel_rate": rel_rate,
             "gain": gain,
             "deadzone": 0,
             "rel_speed": speed,
@@ -851,7 +851,7 @@ class TestIdk(EventPipelineTestBase):
             )
 
         # each axis writes speed*gain*rate*sleep=1*0.5*60 events
-        self.assertAlmostEqual(len(mouse_history), speed * gain * rate * sleep, delta=1)
+        self.assertAlmostEqual(len(mouse_history), speed * gain * rel_rate * sleep, delta=1)
 
         # does not contain anything else
         count_x = convert_to_internal_events(mouse_history).count((EV_REL, REL_X, 1))
