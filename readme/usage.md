@@ -40,7 +40,7 @@ No injection should be running anymore.
 ## Combinations
 
 You can use combinations of different inputs to trigger a mapping: While you record
-the input (`Record Input` - Button) press multiple keys and/or move axis at once.
+the input (`Record` - Button) press multiple keys and/or move axis at once.
 The mapping will be triggered as soon as all the recorded inputs are pressed.
 
 If you use an axis an input you can modify the threshold at which the mapping is 
