@@ -706,7 +706,7 @@ class TestGui(GuiTestBase):
             EventCombination.empty_combination(),
         )
 
-        # try to recorde the same combination
+        # try to record the same combination
         self.controller.start_key_recording()
         push_events(
             fixtures.foo_device_2_keyboard,
@@ -719,7 +719,7 @@ class TestGui(GuiTestBase):
             EventCombination.empty_combination(),
         )
 
-        # try to recorde a different combination
+        # try to record a different combination
         self.controller.start_key_recording()
         push_events(fixtures.foo_device_2_keyboard, [InputEvent.from_string("1,30,1")])
         self.throttle(20)
@@ -788,7 +788,7 @@ class TestGui(GuiTestBase):
         self.assertEqual(len(self.selection_label_listbox.get_children()), 2)
         self.assertEqual(len(self.data_manager.active_preset), 2)
 
-        # 2. recorde a combination for that mapping
+        # 2. record a combination for that mapping
         self.recording_toggle.set_active(True)
         gtk_iteration()
         push_events(fixtures.foo_device_2_keyboard, [InputEvent.from_string("1,30,1")])

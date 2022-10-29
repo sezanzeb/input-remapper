@@ -39,8 +39,8 @@ No injection should be running anymore.
 
 ## Combinations
 
-You can use combinations of different inputs to trigger a mapping: While you recorde
-the input (`Recorde Input` - Button) press multiple keys and/or move axis at once.
+You can use combinations of different inputs to trigger a mapping: While you record
+the input (`Record Input` - Button) press multiple keys and/or move axis at once.
 The mapping will be triggered as soon as all the recorded inputs are pressed.
 
 If you use an axis an input you can modify the threshold at which the mapping is 
@@ -110,7 +110,7 @@ ultimately decide which character to write.
 ## Analog Axis
 
 It is possible to map analog inputs to analog outputs. E.g. use a gamepad as a mouse.
-For this you need to create a mapping and recorde the input axis. Then click on 
+For this you need to create a mapping and record the input axis. Then click on 
 `Advanced` and select `Use as Analog`. Make sure to select a target 
 which supports analog axis and switch to the `Analog Axis` tab. 
 There you can select an output axis and use the different sliders to configure the 
