@@ -1061,6 +1061,7 @@ class TestRelToAbs(EventPipelineTestBase):
 
         event_reader = self.get_event_reader(preset, fixtures.gamepad)
 
+        # if the cutoff is higher, the test sends higher values to overcome the cutoff
         await self.send_events(
             [
                 # will not map
