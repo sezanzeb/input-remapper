@@ -347,6 +347,31 @@ class TestDataManager(unittest.TestCase):
         self.assertNotIn("preset2", presets_in_group)
         self.assertEqual(len(listener.calls), 1)
 
+    def test_delete_preset_sanitized(self):
+        """should be able to delete the current preset"""
+        # TODO use preset name that requires sanitation
+        Preset(get_preset_path("Qux/Device?", "bla")).save()
+        Preset(get_preset_path("Qux/Device?", "foo")).save()
+        self.assertTrue(os.path.exists(get_preset_path("Qux/Device?", "bla")))
+
+        self.data_manager.load_group(group_key="Qux/Device?")
+        self.data_manager.load_preset(name="bla")
+        listener = Listener()
+        self.message_broker.subscribe(MessageType.group, listener)
+        self.message_broker.subscribe(MessageType.preset, listener)
+        self.message_broker.subscribe(MessageType.mapping, listener)
+
+        # should emit only group_changed
+        self.data_manager.delete_preset()
+
+        presets_in_group = [preset for preset in listener.calls[0].presets]
+        self.assertEqual(len(presets_in_group), 1)
+        self.assertNotIn("bla", presets_in_group)
+        self.assertIn("foo", presets_in_group)
+        self.assertEqual(len(listener.calls), 1)
+
+        self.assertFalse(os.path.exists(get_preset_path("Qux/Device?", "bla")))
+
     def test_load_mapping(self):
         """should be able to load a mapping"""
         preset, _, _ = prepare_presets()
@@ -803,6 +828,21 @@ class TestDataManager(unittest.TestCase):
             DataManagementError, self.data_manager.get_available_preset_name
         )
 
+    def test_available_preset_name_sanitized(self):
+        # TODO use preset name that requires sanitation
+        self.data_manager.load_group("Qux/Device?")
+        self.assertEqual(
+            self.data_manager.get_available_preset_name(), DEFAULT_PRESET_NAME
+        )
+
+        Preset(get_preset_path("Qux/Device?", DEFAULT_PRESET_NAME)).save()
+        self.assertEqual(
+            self.data_manager.get_available_preset_name(), f"{DEFAULT_PRESET_NAME} 2"
+        )
+
+        Preset(get_preset_path("Qux/Device?", "foo")).save()
+        self.assertEqual(self.data_manager.get_available_preset_name("foo"), "foo 2")
+
     def test_available_preset_name_increments_default(self):
         Preset(get_preset_path("Foo Device", DEFAULT_PRESET_NAME)).save()
         Preset(get_preset_path("Foo Device", f"{DEFAULT_PRESET_NAME} 2")).save()
@@ -834,6 +874,7 @@ class TestDataManager(unittest.TestCase):
                 "Foo Device 2": ["gamepad", "keyboard", "mouse"],
                 "Bar Device": ["keyboard"],
                 "gamepad": ["gamepad"],
+                "Qux/Device?": ["keyboard"],
             },
         )
 
