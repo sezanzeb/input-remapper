@@ -45,7 +45,7 @@ from inputremapper.configs.preset import Preset
 from inputremapper.configs.global_config import global_config
 from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.groups import groups
-from inputremapper.configs.paths import get_config_path, USER
+from inputremapper.configs.paths import get_config_path, sanitize_path_component, USER
 from inputremapper.injection.macros.macro import macro_variables
 from inputremapper.injection.global_uinputs import global_uinputs
 
@@ -468,7 +468,7 @@ class Daemon:
         preset_path = PurePath(
             self.config_dir,
             "presets",
-            group.name,
+            sanitize_path_component(group.name),
             f"{preset}.json",
         )
 

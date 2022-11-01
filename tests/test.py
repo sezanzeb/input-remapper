@@ -333,6 +333,14 @@ class _Fixtures:
         name="YuBiCofooYuBiKeYbar",
         path="/dev/input/event51",
     )
+    # name requires sanitation
+    dev_input_event52 = Fixture(
+        capabilities={evdev.ecodes.EV_KEY: keyboard_keys},
+        phys="usb-0000:03:00.0-3/input1",
+        info=evdev.device.DeviceInfo(2, 1, 2, 1),
+        name="Qux/Device?",
+        path="/dev/input/event52",
+    )
 
     def __init__(self):
         self._iter = [
@@ -347,6 +355,7 @@ class _Fixtures:
             self.dev_input_event31,
             self.dev_input_event40,
             self.dev_input_event51,
+            self.dev_input_event52,
         ]
         self._dynamic_fixtures = {}
 
@@ -430,6 +439,10 @@ class _Fixtures:
     @property
     def YuBiCofooYuBiKeYbar(self):
         return self["/dev/input/event51"]
+
+    @property
+    def QuxSlashDeviceQuestionmark(self):
+        return self["/dev/input/event52"]
 
 
 fixtures = _Fixtures()
