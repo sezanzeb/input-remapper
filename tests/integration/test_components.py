@@ -1354,7 +1354,7 @@ class TestRelativeInputCutoffInput(ComponentBaseTest):
             MappingData(
                 target_uinput="mouse",
                 event_combination="2,0,0",
-                rel_input_cutoff=50,
+                rel_to_abs_input_cutoff=1,
                 output_type=3,
                 output_code=0,
             )
@@ -1373,7 +1373,7 @@ class TestRelativeInputCutoffInput(ComponentBaseTest):
             MappingData(
                 target_uinput="mouse",
                 event_combination="2,0,0",
-                rel_input_cutoff=200,
+                rel_to_abs_input_cutoff=3,
                 output_type=3,
                 output_code=0,
             )
@@ -1385,7 +1385,7 @@ class TestRelativeInputCutoffInput(ComponentBaseTest):
             MappingData(
                 target_uinput="mouse",
                 event_combination="2,0,0",
-                rel_input_cutoff=200,
+                rel_to_abs_input_cutoff=3,
                 output_type=3,
                 output_code=0,
             )
@@ -1394,9 +1394,7 @@ class TestRelativeInputCutoffInput(ComponentBaseTest):
 
     def test_updates_mapping(self):
         self.gui.set_value(300)
-        self.controller_mock.update_mapping.assert_called_once_with(
-            rel_input_cutoff=300
-        )
+        self.controller_mock.update_mapping.assert_called_once_with(rel_xy_cutoff=300)
 
     def test_disables_input_when_no_rel_axis_input(self):
         self.assert_active()
@@ -1416,7 +1414,7 @@ class TestRelativeInputCutoffInput(ComponentBaseTest):
             MappingData(
                 target_uinput="mouse",
                 event_combination="2,0,0",
-                rel_input_cutoff=200,
+                rel_to_abs_input_cutoff=3,
                 output_type=2,
                 output_code=0,
             )
@@ -1437,7 +1435,7 @@ class TestRelativeInputCutoffInput(ComponentBaseTest):
             MappingData(
                 target_uinput="mouse",
                 event_combination="2,0,0",
-                rel_input_cutoff=50,
+                rel_to_abs_input_cutoff=1,
                 output_type=3,
                 output_code=0,
             )

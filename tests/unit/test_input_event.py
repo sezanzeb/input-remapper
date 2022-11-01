@@ -121,3 +121,34 @@ class TestInputEvent(unittest.TestCase):
         self.assertEqual(e3.type, 0)
         self.assertEqual(e3.code, 0)
         self.assertEqual(e3.value, 0)
+
+    def test_is_wheel_event(self):
+        input_event_x = InputEvent(
+            0,
+            0,
+            evdev.ecodes.EV_REL,
+            evdev.ecodes.REL_X,
+            1,
+        )
+        self.assertFalse(input_event_x.is_wheel_event)
+        self.assertFalse(input_event_x.is_wheel_hi_res_event)
+
+        input_event_wheel = InputEvent(
+            0,
+            0,
+            evdev.ecodes.EV_REL,
+            evdev.ecodes.REL_WHEEL,
+            1,
+        )
+        self.assertTrue(input_event_wheel.is_wheel_event)
+        self.assertFalse(input_event_wheel.is_wheel_hi_res_event)
+
+        input_event_wheel_hi_res = InputEvent(
+            0,
+            0,
+            evdev.ecodes.EV_REL,
+            evdev.ecodes.REL_WHEEL_HI_RES,
+            1,
+        )
+        self.assertFalse(input_event_wheel_hi_res.is_wheel_event)
+        self.assertTrue(input_event_wheel_hi_res.is_wheel_hi_res_event)

@@ -25,8 +25,8 @@ import inputremapper.exceptions
 import inputremapper.utils
 from inputremapper.logger import logger
 
-MIN_ABS = -(2**15)
-MAX_ABS = 2**15
+MIN_ABS = -(2**15)  # -32768
+MAX_ABS = 2**15  # 32768
 DEV_NAME = "input-remapper"
 DEFAULT_UINPUTS = {
     # for event codes see linux/input-event-codes.h

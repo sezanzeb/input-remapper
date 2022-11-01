@@ -46,7 +46,7 @@ from inputremapper.groups import groups
 from inputremapper.configs.paths import get_config_path, mkdir, get_preset_path
 from inputremapper.event_combination import EventCombination
 from inputremapper.configs.preset import Preset
-from inputremapper.injection.injector import STARTING, RUNNING, STOPPED, UNKNOWN
+from inputremapper.injection.injector import InjectorState
 from inputremapper.daemon import Daemon
 from inputremapper.injection.global_uinputs import global_uinputs
 
@@ -150,18 +150,18 @@ class TestDaemon(unittest.TestCase):
         self.assertIn("keyboard", global_uinputs.devices)
         self.assertNotIn("gamepad", global_uinputs.devices)
 
-        self.assertEqual(self.daemon.get_state(group.key), STARTING)
-        self.assertEqual(self.daemon.get_state(group2.key), UNKNOWN)
+        self.assertEqual(self.daemon.get_state(group.key), InjectorState.STARTING)
+        self.assertEqual(self.daemon.get_state(group2.key), InjectorState.UNKNOWN)
 
         event = uinput_write_history_pipe[0].recv()
-        self.assertEqual(self.daemon.get_state(group.key), RUNNING)
+        self.assertEqual(self.daemon.get_state(group.key), InjectorState.RUNNING)
         self.assertEqual(event.type, EV_KEY)
         self.assertEqual(event.code, BTN_B)
         self.assertEqual(event.value, 1)
 
         self.daemon.stop_injecting(group.key)
         time.sleep(0.2)
-        self.assertEqual(self.daemon.get_state(group.key), STOPPED)
+        self.assertEqual(self.daemon.get_state(group.key), InjectorState.STOPPED)
 
         try:
             self.assertFalse(uinput_write_history_pipe[0].poll())
@@ -255,7 +255,7 @@ class TestDaemon(unittest.TestCase):
 
         self.daemon.stop_injecting(group_key)
         time.sleep(0.2)
-        self.assertEqual(self.daemon.get_state(group_key), STOPPED)
+        self.assertEqual(self.daemon.get_state(group_key), InjectorState.STOPPED)
 
     def test_refresh_for_unknown_key(self):
         device = "9876 name"
@@ -349,28 +349,34 @@ class TestDaemon(unittest.TestCase):
 
         # start again
         previous_injector = daemon.injectors[group.key]
-        self.assertNotEqual(previous_injector.get_state(), STOPPED)
+        self.assertNotEqual(previous_injector.get_state(), InjectorState.STOPPED)
         daemon.start_injecting(group.key, preset_name)
         self.assertNotIn(group.key, daemon.autoload_history._autoload_history)
         self.assertTrue(daemon.autoload_history.may_autoload(group.key, preset_name))
         self.assertIn(group.key, daemon.injectors)
         time.sleep(0.2)
-        self.assertEqual(previous_injector.get_state(), STOPPED)
+        self.assertEqual(previous_injector.get_state(), InjectorState.STOPPED)
         # a different injetor is now running
         self.assertNotEqual(previous_injector, daemon.injectors[group.key])
-        self.assertNotEqual(daemon.injectors[group.key].get_state(), STOPPED)
+        self.assertNotEqual(
+            daemon.injectors[group.key].get_state(), InjectorState.STOPPED
+        )
 
         # trying to inject a non existing preset keeps the previous inejction
         # alive
         injector = daemon.injectors[group.key]
         daemon.start_injecting(group.key, "qux")
         self.assertEqual(injector, daemon.injectors[group.key])
-        self.assertNotEqual(daemon.injectors[group.key].get_state(), STOPPED)
+        self.assertNotEqual(
+            daemon.injectors[group.key].get_state(), InjectorState.STOPPED
+        )
 
         # trying to start injecting for an unknown device also just does
         # nothing
         daemon.start_injecting("quux", "qux")
-        self.assertNotEqual(daemon.injectors[group.key].get_state(), STOPPED)
+        self.assertNotEqual(
+            daemon.injectors[group.key].get_state(), InjectorState.STOPPED
+        )
 
         # after all that stuff autoload_history is still unharmed
         self.assertNotIn(group.key, daemon.autoload_history._autoload_history)
@@ -380,7 +386,7 @@ class TestDaemon(unittest.TestCase):
         daemon.stop_injecting(group.key)
         time.sleep(0.2)
         self.assertNotIn(group.key, daemon.autoload_history._autoload_history)
-        self.assertEqual(daemon.injectors[group.key].get_state(), STOPPED)
+        self.assertEqual(daemon.injectors[group.key].get_state(), InjectorState.STOPPED)
         self.assertTrue(daemon.autoload_history.may_autoload(group.key, preset_name))
 
     def test_autoload(self):
@@ -474,7 +480,7 @@ class TestDaemon(unittest.TestCase):
         # group_keys are unknown at the moment
         history = self.daemon.autoload_history._autoload_history
         self.assertEqual(history[group.key][1], preset_name)
-        self.assertEqual(self.daemon.get_state(group.key), STARTING)
+        self.assertEqual(self.daemon.get_state(group.key), InjectorState.STARTING)
         self.assertIsNotNone(groups.find(key="Foo Device 2"))
 
 

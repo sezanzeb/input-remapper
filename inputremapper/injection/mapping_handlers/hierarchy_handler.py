@@ -63,7 +63,7 @@ class HierarchyHandler(MappingHandler):
         event: InputEvent,
         source: evdev.InputDevice = None,
         forward: evdev.UInput = None,
-        supress: bool = False,
+        suppress: bool = False,
     ) -> bool:
         if event.type_and_code != self._input_event.type_and_code:
             return False
@@ -73,7 +73,7 @@ class HierarchyHandler(MappingHandler):
             if not success:
                 success = handler.notify(event, source, forward)
             else:
-                handler.notify(event, source, forward, supress=True)
+                handler.notify(event, source, forward, suppress=True)
         return success
 
     def reset(self) -> None:

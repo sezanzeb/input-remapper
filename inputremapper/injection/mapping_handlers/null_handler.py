@@ -51,7 +51,7 @@ class NullHandler(MappingHandler):
         event: InputEvent,
         source: evdev.InputDevice,
         forward: evdev.UInput,
-        supress: bool = False,
+        suppress: bool = False,
     ) -> bool:
         return True
 
