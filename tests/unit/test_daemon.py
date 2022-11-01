@@ -337,7 +337,9 @@ class TestDaemon(unittest.TestCase):
         self.daemon = daemon
 
         pereset = Preset(group.get_preset_path(preset_name))
-        pereset.add(get_key_mapping(EventCombination([1, 2, 3]), "keyboard", "a"))
+        pereset.add(
+            get_key_mapping(EventCombination((EV_KEY, KEY_A, 1)), "keyboard", "a")
+        )
         pereset.save()
 
         # start
@@ -399,7 +401,9 @@ class TestDaemon(unittest.TestCase):
         self.daemon = daemon
 
         preset = Preset(group.get_preset_path(preset_name))
-        preset.add(get_key_mapping(EventCombination([1, 2, 3]), "keyboard", "a"))
+        preset.add(
+            get_key_mapping(EventCombination((EV_KEY, KEY_A, 1)), "keyboard", "a")
+        )
         preset.save()
 
         # no autoloading is configured yet
