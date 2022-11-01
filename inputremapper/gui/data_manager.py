@@ -531,7 +531,9 @@ class DataManager:
         if not self.active_group:
             raise DataManagementError("cannot stop injection: group is not set")
         self._daemon.stop_injecting(self.active_group.key)
-        self.do_when_injector_state({InjectorState.STOPPED}, self.publish_injector_state)
+        self.do_when_injector_state(
+            {InjectorState.STOPPED}, self.publish_injector_state
+        )
 
     def start_injecting(self) -> bool:
         """start injecting the active preset for the active group.
