@@ -103,6 +103,9 @@ class ReaderService:
     # Polkit won't ask for another password if the pid stays the same or something, and
     # if the previous request was no more than 5 minutes ago. see
     # https://unix.stackexchange.com/a/458260.
+    # If the user does something after 6 minutes they will get a prompt already if the
+    # reader timed out already, which sounds annoying. Instead, I'd rather have the
+    # password prompt appear at most every 15 minutes.
     _maximum_lifetime: int = 60 * 15
     _timeout_tolerance: int = 60
 
