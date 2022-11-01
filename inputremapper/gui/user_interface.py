@@ -60,7 +60,7 @@ from inputremapper.gui.messages.message_data import UserConfirmRequest
 from inputremapper.gui.utils import (
     gtk_iteration,
 )
-from inputremapper.injection.injector import InjectorState
+from inputremapper.injection.injector import InjectorStateMessage
 from inputremapper.logger import logger, COMMIT_HASH, VERSION, EVDEV_VERSION
 from inputremapper.gui.gettext import _
 
@@ -326,7 +326,7 @@ class UserInterface:
 
         message_dialog.hide()
 
-    def on_injector_state_msg(self, msg: InjectorState):
+    def on_injector_state_msg(self, msg: InjectorStateMessage):
         """update the ui to reflect the status of the injector"""
         stop_injection_preset_page: Gtk.Button = self.get("stop_injection_preset_page")
         stop_injection_editor_page: Gtk.Button = self.get("stop_injection_editor_page")

@@ -52,13 +52,8 @@ from evdev.ecodes import (
 from inputremapper.injection.injector import (
     Injector,
     is_in_capabilities,
-    STARTING,
-    RUNNING,
-    STOPPED,
-    NO_GRAB,
-    UNKNOWN,
+    InjectorState,
     get_udev_name,
-    FAILED,
 )
 from inputremapper.injection.numlock import is_numlock_on
 from inputremapper.configs.system_mapping import (
@@ -104,7 +99,10 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         if self.injector is not None and self.injector.is_alive():
             self.injector.stop_injecting()
             time.sleep(0.2)
-            self.assertIn(self.injector.get_state(), (STOPPED, FAILED, NO_GRAB))
+            self.assertIn(
+                self.injector.get_state(),
+                (InjectorState.STOPPED, InjectorState.FAILED, InjectorState.NO_GRAB),
+            )
             self.injector = None
         evdev.InputDevice.grab = self.grab
 
@@ -139,14 +137,14 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         self.assertIsNone(device)
         self.assertGreaterEqual(self.failed, 1)
 
-        self.assertEqual(self.injector.get_state(), UNKNOWN)
+        self.assertEqual(self.injector.get_state(), InjectorState.UNKNOWN)
         self.injector.start()
-        self.assertEqual(self.injector.get_state(), STARTING)
+        self.assertEqual(self.injector.get_state(), InjectorState.STARTING)
         # since none can be grabbed, the process will terminate. But that
         # actually takes quite some time.
         time.sleep(self.injector.regrab_timeout * 12)
         self.assertFalse(self.injector.is_alive())
-        self.assertEqual(self.injector.get_state(), NO_GRAB)
+        self.assertEqual(self.injector.get_state(), InjectorState.NO_GRAB)
 
     def test_grab_device_1(self):
         preset = Preset()
@@ -332,12 +330,12 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         )
 
         self.injector = Injector(groups.find(name="gamepad"), preset)
-        self.assertEqual(self.injector.get_state(), UNKNOWN)
+        self.assertEqual(self.injector.get_state(), InjectorState.UNKNOWN)
         self.injector.start()
-        self.assertEqual(self.injector.get_state(), STARTING)
+        self.assertEqual(self.injector.get_state(), InjectorState.STARTING)
 
         uinput_write_history_pipe[0].poll(timeout=1)
-        self.assertEqual(self.injector.get_state(), RUNNING)
+        self.assertEqual(self.injector.get_state(), InjectorState.RUNNING)
         time.sleep(EVENT_READ_TIMEOUT * 10)
 
         # sending anything arbitrary does not stop the process
@@ -400,7 +398,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
 
         numlock_after = is_numlock_on()
         self.assertEqual(numlock_before, numlock_after)
-        self.assertEqual(self.injector.get_state(), RUNNING)
+        self.assertEqual(self.injector.get_state(), InjectorState.RUNNING)
 
     def test_is_in_capabilities(self):
         key = EventCombination((1, 2, 1))

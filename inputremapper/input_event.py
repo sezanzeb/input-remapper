@@ -17,6 +17,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
+
 from __future__ import annotations
 
 import enum
@@ -38,8 +39,12 @@ InputEventValidationType = Union[
 ]
 
 
+# if "Use as analog" is set in the advanced mapping editor, the value will be set to 0
+USE_AS_ANALOG_VALUE = 0
+
+
 class EventActions(enum.Enum):
-    """Additional information a InputEvent can send through the event pipeline"""
+    """Additional information an InputEvent can send through the event pipeline"""
 
     as_key = enum.auto()  # treat this event as a key event
     recenter = enum.auto()  # recenter the axis when receiving this
@@ -170,6 +175,22 @@ class InputEvent:
     def is_key_event(self) -> bool:
         """Whether this is interpreted as a key event."""
         return self.type == evdev.ecodes.EV_KEY or EventActions.as_key in self.actions
+
+    @property
+    def is_wheel_event(self) -> bool:
+        """Whether this is interpreted as a key event."""
+        return self.type == evdev.ecodes.EV_REL and self.code in [
+            ecodes.REL_WHEEL,
+            ecodes.REL_HWHEEL,
+        ]
+
+    @property
+    def is_wheel_hi_res_event(self) -> bool:
+        """Whether this is interpreted as a key event."""
+        return self.type == evdev.ecodes.EV_REL and self.code in [
+            ecodes.REL_WHEEL_HI_RES,
+            ecodes.REL_HWHEEL_HI_RES,
+        ]
 
     def __str__(self):
         return f"InputEvent{self.event_tuple}"
