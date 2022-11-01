@@ -85,10 +85,6 @@ class RelToRelHandler(MappingHandler):
 
     _transform: Transformation
 
-    # infinite loop which centers the output when input stops
-    _recenter_loop: Optional[asyncio.Task]
-    _moving: asyncio.Event  # event to notify the _recenter_loop
-
     _remainder: Remainder
     _wheel_remainder: Remainder
     _wheel_hi_res_remainder: Remainder
