@@ -329,105 +329,111 @@ class TestDaemon(unittest.TestCase):
         self.assertEqual(event.value, 1)
 
     def test_start_stop(self):
-        group = groups.find(key="Foo Device 2")
+        group_key = "Qux/Device?"
+        group = groups.find(key=group_key)
         preset_name = "preset8"
 
         daemon = Daemon()
         self.daemon = daemon
 
         pereset = Preset(group.get_preset_path(preset_name))
-        pereset.add(get_key_mapping(EventCombination([3, 2, 1]), "keyboard", "a"))
+        pereset.add(
+            get_key_mapping(EventCombination((EV_KEY, KEY_A, 1)), "keyboard", "a")
+        )
         pereset.save()
 
         # start
-        daemon.start_injecting(group.key, preset_name)
+        daemon.start_injecting(group_key, preset_name)
         # explicit start, not autoload, so the history stays empty
-        self.assertNotIn(group.key, daemon.autoload_history._autoload_history)
-        self.assertTrue(daemon.autoload_history.may_autoload(group.key, preset_name))
+        self.assertNotIn(group_key, daemon.autoload_history._autoload_history)
+        self.assertTrue(daemon.autoload_history.may_autoload(group_key, preset_name))
         # path got translated to the device name
-        self.assertIn(group.key, daemon.injectors)
+        self.assertIn(group_key, daemon.injectors)
 
         # start again
-        previous_injector = daemon.injectors[group.key]
+        previous_injector = daemon.injectors[group_key]
         self.assertNotEqual(previous_injector.get_state(), InjectorState.STOPPED)
-        daemon.start_injecting(group.key, preset_name)
-        self.assertNotIn(group.key, daemon.autoload_history._autoload_history)
-        self.assertTrue(daemon.autoload_history.may_autoload(group.key, preset_name))
-        self.assertIn(group.key, daemon.injectors)
+        daemon.start_injecting(group_key, preset_name)
+        self.assertNotIn(group_key, daemon.autoload_history._autoload_history)
+        self.assertTrue(daemon.autoload_history.may_autoload(group_key, preset_name))
+        self.assertIn(group_key, daemon.injectors)
         time.sleep(0.2)
         self.assertEqual(previous_injector.get_state(), InjectorState.STOPPED)
         # a different injetor is now running
-        self.assertNotEqual(previous_injector, daemon.injectors[group.key])
+        self.assertNotEqual(previous_injector, daemon.injectors[group_key])
         self.assertNotEqual(
-            daemon.injectors[group.key].get_state(), InjectorState.STOPPED
+            daemon.injectors[group_key].get_state(), InjectorState.STOPPED
         )
 
         # trying to inject a non existing preset keeps the previous inejction
         # alive
-        injector = daemon.injectors[group.key]
-        daemon.start_injecting(group.key, "qux")
-        self.assertEqual(injector, daemon.injectors[group.key])
+        injector = daemon.injectors[group_key]
+        daemon.start_injecting(group_key, "qux")
+        self.assertEqual(injector, daemon.injectors[group_key])
         self.assertNotEqual(
-            daemon.injectors[group.key].get_state(), InjectorState.STOPPED
+            daemon.injectors[group_key].get_state(), InjectorState.STOPPED
         )
 
         # trying to start injecting for an unknown device also just does
         # nothing
         daemon.start_injecting("quux", "qux")
         self.assertNotEqual(
-            daemon.injectors[group.key].get_state(), InjectorState.STOPPED
+            daemon.injectors[group_key].get_state(), InjectorState.STOPPED
         )
 
         # after all that stuff autoload_history is still unharmed
-        self.assertNotIn(group.key, daemon.autoload_history._autoload_history)
-        self.assertTrue(daemon.autoload_history.may_autoload(group.key, preset_name))
+        self.assertNotIn(group_key, daemon.autoload_history._autoload_history)
+        self.assertTrue(daemon.autoload_history.may_autoload(group_key, preset_name))
 
         # stop
-        daemon.stop_injecting(group.key)
+        daemon.stop_injecting(group_key)
         time.sleep(0.2)
-        self.assertNotIn(group.key, daemon.autoload_history._autoload_history)
-        self.assertEqual(daemon.injectors[group.key].get_state(), InjectorState.STOPPED)
-        self.assertTrue(daemon.autoload_history.may_autoload(group.key, preset_name))
+        self.assertNotIn(group_key, daemon.autoload_history._autoload_history)
+        self.assertEqual(daemon.injectors[group_key].get_state(), InjectorState.STOPPED)
+        self.assertTrue(daemon.autoload_history.may_autoload(group_key, preset_name))
 
     def test_autoload(self):
         preset_name = "preset7"
-        group = groups.find(key="Foo Device 2")
+        group_key = "Qux/Device?"
+        group = groups.find(key=group_key)
 
         daemon = Daemon()
         self.daemon = daemon
 
         preset = Preset(group.get_preset_path(preset_name))
-        preset.add(get_key_mapping(EventCombination([3, 2, 1]), "keyboard", "a"))
+        preset.add(
+            get_key_mapping(EventCombination((EV_KEY, KEY_A, 1)), "keyboard", "a")
+        )
         preset.save()
 
         # no autoloading is configured yet
-        self.daemon._autoload(group.key)
-        self.assertNotIn(group.key, daemon.autoload_history._autoload_history)
-        self.assertTrue(daemon.autoload_history.may_autoload(group.key, preset_name))
+        self.daemon._autoload(group_key)
+        self.assertNotIn(group_key, daemon.autoload_history._autoload_history)
+        self.assertTrue(daemon.autoload_history.may_autoload(group_key, preset_name))
 
-        global_config.set_autoload_preset(group.key, preset_name)
+        global_config.set_autoload_preset(group_key, preset_name)
         len_before = len(self.daemon.autoload_history._autoload_history)
         # now autoloading is configured, so it will autoload
-        self.daemon._autoload(group.key)
+        self.daemon._autoload(group_key)
         len_after = len(self.daemon.autoload_history._autoload_history)
         self.assertEqual(
-            daemon.autoload_history._autoload_history[group.key][1], preset_name
+            daemon.autoload_history._autoload_history[group_key][1], preset_name
         )
-        self.assertFalse(daemon.autoload_history.may_autoload(group.key, preset_name))
-        injector = daemon.injectors[group.key]
+        self.assertFalse(daemon.autoload_history.may_autoload(group_key, preset_name))
+        injector = daemon.injectors[group_key]
         self.assertEqual(len_before + 1, len_after)
 
         # calling duplicate get_autoload does nothing
-        self.daemon._autoload(group.key)
+        self.daemon._autoload(group_key)
         self.assertEqual(
-            daemon.autoload_history._autoload_history[group.key][1], preset_name
+            daemon.autoload_history._autoload_history[group_key][1], preset_name
         )
-        self.assertEqual(injector, daemon.injectors[group.key])
-        self.assertFalse(daemon.autoload_history.may_autoload(group.key, preset_name))
+        self.assertEqual(injector, daemon.injectors[group_key])
+        self.assertFalse(daemon.autoload_history.may_autoload(group_key, preset_name))
 
         # explicit start_injecting clears the autoload history
-        self.daemon.start_injecting(group.key, preset_name)
-        self.assertTrue(daemon.autoload_history.may_autoload(group.key, preset_name))
+        self.daemon.start_injecting(group_key, preset_name)
+        self.assertTrue(daemon.autoload_history.may_autoload(group_key, preset_name))
 
         # calling autoload for (yet) unknown devices does nothing
         len_before = len(self.daemon.autoload_history._autoload_history)
