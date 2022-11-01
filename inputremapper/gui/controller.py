@@ -36,6 +36,7 @@ from evdev.ecodes import EV_KEY, EV_REL, EV_ABS
 from gi.repository import Gtk
 
 from inputremapper.configs.mapping import MappingData, UIMapping
+from inputremapper.configs.paths import sanitize_path_component
 from inputremapper.input_event import USE_AS_ANALOG_VALUE
 from inputremapper.event_combination import EventCombination
 from inputremapper.exceptions import DataManagementError
@@ -378,8 +379,10 @@ class Controller:
             or new_name == self.data_manager.active_preset.name
         ):
             return
-        name = self.data_manager.get_available_preset_name(new_name)
-        self.data_manager.rename_preset(name)
+
+        new_name = sanitize_path_component(new_name)
+        new_name = self.data_manager.get_available_preset_name(new_name)
+        self.data_manager.rename_preset(new_name)
 
     def add_preset(self, name: str = DEFAULT_PRESET_NAME):
         """create a new preset, add it to the active_group and name it `new preset n`"""

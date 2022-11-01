@@ -329,7 +329,6 @@ class TestDaemon(unittest.TestCase):
         self.assertEqual(event.value, 1)
 
     def test_start_stop(self):
-        # TODO use preset name that requires sanitation
         group_key = "Qux/Device?"
         group = groups.find(key=group_key)
         preset_name = "preset8"
@@ -392,7 +391,6 @@ class TestDaemon(unittest.TestCase):
         self.assertTrue(daemon.autoload_history.may_autoload(group_key, preset_name))
 
     def test_autoload(self):
-        # TODO use preset name that requires sanitation
         preset_name = "preset7"
         group_key = "Qux/Device?"
         group = groups.find(key=group_key)
