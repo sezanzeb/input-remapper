@@ -59,7 +59,7 @@ def is_high_res_wheel(event) -> bool:
 
 
 class Remainder:
-    _scale: int
+    _scale: float
     _remainder: float
 
     def __init__(self, scale: float):
