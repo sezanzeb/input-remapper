@@ -177,7 +177,7 @@
                     <property name="halign">center</property>
                     <property name="margin-start">18</property>
                     <property name="margin-end">18</property>
-                    <property name="margin-bottom">36</property>
+                    <property name="margin-bottom">27</property>
                     <property name="spacing">6</property>
                     <property name="homogeneous">True</property>
                     <child>
@@ -303,7 +303,7 @@ Shortcut: ctrl + del</property>
                     <property name="halign">center</property>
                     <property name="margin-right">106</property>
                     <property name="margin-end">112</property>
-                    <property name="margin-bottom">36</property>
+                    <property name="margin-bottom">27</property>
                     <property name="row-spacing">6</property>
                     <property name="column-spacing">12</property>
                     <child>
@@ -840,8 +840,6 @@ Shortcut: ctrl + del</property>
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
                             <property name="margin-top">6</property>
-                            <property name="hexpand">True</property>
-                            <property name="vexpand">True</property>
                             <child>
                               <object class="GtkScrolledWindow" id="code_editor_container">
                                 <property name="visible">True</property>
@@ -1153,7 +1151,7 @@ Only relevant when mapping relative inputs (e.g. mouse) to absolute outputs (e.g
                           </object>
                           <packing>
                             <property name="expand">False</property>
-                            <property name="fill">True</property>
+                            <property name="fill">False</property>
                             <property name="position">3</property>
                           </packing>
                         </child>
@@ -1200,15 +1198,12 @@ Only relevant when mapping relative inputs (e.g. mouse) to absolute outputs (e.g
           <object class="GtkBox" id="warnings">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
-            <property name="margin-left">18</property>
-            <property name="margin-right">18</property>
-            <property name="margin-start">18</property>
             <property name="margin-end">18</property>
             <child>
               <object class="GtkImage" id="warning_status_icon">
                 <property name="can-focus">False</property>
                 <property name="margin-left">6</property>
-                <property name="margin-start">6</property>
+                <property name="margin-start">9</property>
                 <property name="icon-name">dialog-warning</property>
               </object>
               <packing>
@@ -1221,7 +1216,7 @@ Only relevant when mapping relative inputs (e.g. mouse) to absolute outputs (e.g
               <object class="GtkImage" id="error_status_icon">
                 <property name="can-focus">False</property>
                 <property name="margin-left">6</property>
-                <property name="margin-start">6</property>
+                <property name="margin-start">9</property>
                 <property name="icon-name">dialog-error</property>
               </object>
               <packing>
@@ -1234,6 +1229,7 @@ Only relevant when mapping relative inputs (e.g. mouse) to absolute outputs (e.g
               <object class="GtkStatusbar" id="status_bar">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
+                <property name="opacity">0.5</property>
                 <property name="margin-left">7</property>
                 <property name="margin-right">7</property>
                 <property name="margin-start">7</property>
@@ -1758,7 +1754,6 @@ Macros allow multiple characters to be written with a single key-press. Informat
                 <property name="receives-default">True</property>
                 <property name="halign">start</property>
                 <property name="image">image4</property>
-                <property name="relief">none</property>
               </object>
               <packing>
                 <property name="left-attach">1</property>

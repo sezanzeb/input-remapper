@@ -95,10 +95,10 @@ class ReaderService:
     # the speed threshold at which relative axis are considered moving
     # and will be sent as "pressed" to the frontend.
     # We want to allow some mouse movement before we record it as an input
-    rel_speed = defaultdict(lambda: 3)
+    rel_xy_speed = defaultdict(lambda: 3)
     # wheel events usually don't produce values higher than 1
-    rel_speed[REL_WHEEL] = 1
-    rel_speed[REL_HWHEEL] = 1
+    rel_xy_speed[REL_WHEEL] = 1
+    rel_xy_speed[REL_HWHEEL] = 1
 
     # Polkit won't ask for another password if the pid stays the same or something, and
     # if the previous request was no more than 5 minutes ago. see
@@ -298,14 +298,14 @@ class ReaderService:
                 # positive direction
                 mapping = UIMapping(
                     event_combination=EventCombination(
-                        (EV_REL, ev_code, self.rel_speed[ev_code])
+                        (EV_REL, ev_code, self.rel_xy_speed[ev_code])
                     ),
                     target_uinput="keyboard",
                     release_timeout=0.3,
                     force_release_timeout=True,
                 )
                 handler = RelToBtnHandler(
-                    EventCombination((EV_REL, ev_code, self.rel_speed[ev_code])),
+                    EventCombination((EV_REL, ev_code, self.rel_xy_speed[ev_code])),
                     mapping,
                 )
                 handler.set_sub_handler(ForwardToUIHandler(self._results_pipe))
@@ -314,14 +314,14 @@ class ReaderService:
                 # negative direction
                 mapping = UIMapping(
                     event_combination=EventCombination(
-                        (EV_REL, ev_code, -self.rel_speed[ev_code])
+                        (EV_REL, ev_code, -self.rel_xy_speed[ev_code])
                     ),
                     target_uinput="keyboard",
                     release_timeout=0.3,
                     force_release_timeout=True,
                 )
                 handler = RelToBtnHandler(
-                    EventCombination((EV_REL, ev_code, -self.rel_speed[ev_code])),
+                    EventCombination((EV_REL, ev_code, -self.rel_xy_speed[ev_code])),
                     mapping,
                 )
                 handler.set_sub_handler(ForwardToUIHandler(self._results_pipe))
@@ -357,7 +357,7 @@ class ForwardToUIHandler:
         event: InputEvent,
         source: evdev.InputDevice,
         forward: evdev.UInput,
-        supress: bool = False,
+        suppress: bool = False,
     ) -> bool:
         """filter duplicates and send into the pipe"""
         if event != self._last_event:

@@ -33,14 +33,22 @@ from inputremapper.logger import logger
 
 
 class AxisSwitchHandler(MappingHandler):
-    """Enables or disables an axis."""
+    """Enables or disables an axis.
+
+    Generally, if multiple events are mapped to something in a combination, all of
+    them need to be triggered in order to map to the output.
+
+    If an analog input is combined with a key input, then the same thing should happen.
+    The key needs to be pressed and the joystick needs to be moved in order to generate
+    output.
+    """
 
     _map_axis: Tuple[int, int]  # the axis we switch on or off (type and code)
     _trigger_key: Tuple[Tuple[int, int]]  # all events that can switch the axis
     _active: bool  # whether the axis is on or off
     _last_value: int  # the value of the last axis event that arrived
-    _axis_source: evdev.InputDevice  # the cashed source of the axis
-    _forward_device: evdev.UInput  # the cashed forward uinput
+    _axis_source: evdev.InputDevice  # the cached source of the axis input events
+    _forward_device: evdev.UInput  # the cached forward uinput
     _sub_handler: InputEventHandler
 
     def __init__(
@@ -76,46 +84,69 @@ class AxisSwitchHandler(MappingHandler):
     def child(self):
         return self._sub_handler
 
+    def _handle_key_input(self, event):
+        """If a key is pressed, allow mapping analog events in subhandlers.
+
+        Analog events (e.g. ABS_X, REL_Y) that have gone through Handlers that
+        transform them to buttons also count as keys.
+        """
+        key_is_pressed = bool(event.value)
+        if self._active == key_is_pressed:
+            # nothing changed
+            return False
+
+        self._active = key_is_pressed
+
+        if self._axis_source is None:
+            return True
+
+        if not key_is_pressed:
+            # recenter the axis
+            logger.debug_key(self.mapping.event_combination, "stopping axis")
+            event = InputEvent(
+                0,
+                0,
+                *self._map_axis,
+                0,
+                actions=(EventActions.recenter,),
+            )
+            self._sub_handler.notify(event, self._axis_source, self._forward_device)
+            return True
+
+        if self._map_axis[0] == evdev.ecodes.EV_ABS:
+            # send the last cached value so that the abs axis
+            # is at the correct position
+            logger.debug_key(self.mapping.event_combination, "starting axis")
+            event = InputEvent(
+                0,
+                0,
+                *self._map_axis,
+                self._last_value,
+            )
+            self._sub_handler.notify(event, self._axis_source, self._forward_device)
+            return True
+
+        return True
+
+    def _should_map(self, event):
+        return (
+            event.type_and_code in self._trigger_keys
+            or event.type_and_code == self._map_axis
+        )
+
     def notify(
         self,
         event: InputEvent,
         source: evdev.InputDevice,
         forward: evdev.UInput,
-        supress: bool = False,
+        suppress: bool = False,
     ) -> bool:
 
-        if (
-            event.type_and_code not in self._trigger_keys
-            and event.type_and_code != self._map_axis
-        ):
+        if not self._should_map(event):
             return False
 
         if event.is_key_event:
-            if self._active == bool(event.value):
-                # nothing changed
-                return False
-
-            self._active = bool(event.value)
-            if not self._active and self._axis_source:
-                # recenter the axis
-                logger.debug_key(self.mapping.event_combination, "stopping axis")
-                event = InputEvent(
-                    0,
-                    0,
-                    *self._map_axis,
-                    0,
-                    actions=(EventActions.recenter,),
-                )
-                self._sub_handler.notify(event, self._axis_source, self._forward_device)
-            elif self._map_axis[0] == evdev.ecodes.EV_ABS and self._axis_source:
-                # send the last cached value so that the abs axis
-                # is at the correct position
-                logger.debug_key(self.mapping.event_combination, "starting axis")
-                event = InputEvent(0, 0, *self._map_axis, self._last_value)
-                self._sub_handler.notify(event, self._axis_source, self._forward_device)
-            else:
-                logger.debug_key(self.mapping.event_combination, "starting axis")
-            return True
+            return self._handle_key_input(event)
 
         # do some caching so that we can generate the
         # recenter event and an initial abs event
@@ -127,7 +158,7 @@ class AxisSwitchHandler(MappingHandler):
         self._last_value = event.value
 
         if self._active:
-            return self._sub_handler.notify(event, source, forward, supress)
+            return self._sub_handler.notify(event, source, forward, suppress)
 
         return False
 

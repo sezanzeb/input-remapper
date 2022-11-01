@@ -777,7 +777,7 @@ class ReleaseTimeoutInput:
 
 
 class RelativeInputCutoffInput:
-    """the number selector to set active_mapping.rel_input_cutoff"""
+    """the number selector to set active_mapping.rel_to_abs_input_cutoff"""
 
     def __init__(
         self,
@@ -806,10 +806,10 @@ class RelativeInputCutoffInput:
             self._gui.set_opacity(0.5)
 
         with HandlerDisabled(self._gui, self._on_gtk_changed):
-            self._gui.set_value(mapping.rel_input_cutoff)
+            self._gui.set_value(mapping.rel_to_abs_input_cutoff)
 
     def _on_gtk_changed(self, *_):
-        self._controller.update_mapping(rel_input_cutoff=self._gui.get_value())
+        self._controller.update_mapping(rel_xy_cutoff=self._gui.get_value())
 
 
 class OutputAxisSelector:

@@ -41,12 +41,12 @@ gi.require_version("GLib", "2.0")
 from gi.repository import GLib
 
 from inputremapper.logger import logger, is_debug
-from inputremapper.injection.injector import Injector, UNKNOWN
+from inputremapper.injection.injector import Injector, InjectorState
 from inputremapper.configs.preset import Preset
 from inputremapper.configs.global_config import global_config
 from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.groups import groups
-from inputremapper.configs.paths import get_config_path, USER
+from inputremapper.configs.paths import get_config_path, sanitize_path_component, USER
 from inputremapper.injection.macros.macro import macro_variables
 from inputremapper.injection.global_uinputs import global_uinputs
 
@@ -125,7 +125,7 @@ class DaemonProxy(Protocol):  # pragma: no cover
     def stop_injecting(self, group_key: str) -> None:
         ...
 
-    def get_state(self, group_key: str) -> int:
+    def get_state(self, group_key: str) -> InjectorState:
         ...
 
     def start_injecting(self, group_key: str, preset: str) -> bool:
@@ -167,7 +167,7 @@ class Daemon:
                 </method>
                 <method name='get_state'>
                     <arg type='s' name='group_key' direction='in'/>
-                    <arg type='i' name='response' direction='out'/>
+                    <arg type='s' name='response' direction='out'/>
                 </method>
                 <method name='start_injecting'>
                     <arg type='s' name='group_key' direction='in'/>
@@ -318,10 +318,10 @@ class Daemon:
         self.injectors[group_key].stop_injecting()
         self.autoload_history.forget(group_key)
 
-    def get_state(self, group_key):
+    def get_state(self, group_key) -> InjectorState:
         """Get the injectors state."""
         injector = self.injectors.get(group_key)
-        return injector.get_state() if injector else UNKNOWN
+        return injector.get_state() if injector else InjectorState.UNKNOWN
 
     @remove_timeout
     def set_config_dir(self, config_dir):
@@ -468,7 +468,7 @@ class Daemon:
         preset_path = PurePath(
             self.config_dir,
             "presets",
-            group.name,
+            sanitize_path_component(group.name),
             f"{preset}.json",
         )
 

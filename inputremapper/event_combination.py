@@ -21,11 +21,15 @@
 from __future__ import annotations
 
 import itertools
-from typing import Tuple, Iterable, Union, Callable, Sequence
+from typing import Tuple, Iterable, Union, Callable, Sequence, Optional
 
 from evdev import ecodes
 
-from inputremapper.input_event import InputEvent, InputEventValidationType
+from inputremapper.input_event import (
+    InputEvent,
+    InputEventValidationType,
+    USE_AS_ANALOG_VALUE,
+)
 
 # having shift in combinations modifies the configured output,
 # ctrl might not work at all
@@ -128,6 +132,7 @@ class EventCombination(Tuple[InputEvent]):
         return False
 
     def has_input_axis(self) -> bool:
+        """Check if there is any analog event in self."""
         return False in (event.is_key_event for event in self)
 
     def get_permutations(self):

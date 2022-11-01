@@ -579,6 +579,14 @@ class TestReader(unittest.TestCase):
                             "key": "input-remapper Bar Device",
                         }
                     ),
+                    json.dumps(
+                        {
+                            "paths": ["/dev/input/event52"],
+                            "names": ["Qux/Device?"],
+                            "types": [DeviceType.KEYBOARD],
+                            "key": "Qux/Device?",
+                        }
+                    ),
                 ]
             ),
         )

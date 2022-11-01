@@ -46,19 +46,6 @@ from inputremapper.input_event import InputEvent
 from inputremapper.event_combination import EventCombination
 
 
-def common_data(list1: Iterable, list2: Iterable) -> List:
-    """Return common members of two iterables as list."""
-    # traverse in the 1st list
-    common = []
-    for x in list1:
-        # traverse in the 2nd list
-        for y in list2:
-            # if one common
-            if x == y:
-                common.append(x)
-    return common
-
-
 MappingModel = TypeVar("MappingModel", bound=UIMapping)
 
 
@@ -166,6 +153,20 @@ class Preset(Generic[MappingModel]):
             # the _combination_changed_callback is attached
             self.add(mapping.copy())
 
+    def _is_mapped_multiple_times(self, event_combination: EventCombination) -> bool:
+        """Check if the event combination maps to multiple mappings."""
+        all_input_combinations = {mapping.event_combination for mapping in self}
+        permutations = set(event_combination.get_permutations())
+        union = permutations & all_input_combinations
+        # if there are more than one matches, then there is a duplicate
+        return len(union) > 1
+
+    def _has_valid_event_combination(self, mapping) -> bool:
+        """Check if the mapping has a valid input event combination."""
+        is_a_combination = isinstance(mapping.event_combination, EventCombination)
+        is_empty = mapping.event_combination == EventCombination.empty_combination()
+        return is_a_combination and not is_empty
+
     def save(self) -> None:
         """Dump as JSON to self.path."""
 
@@ -180,42 +181,35 @@ class Preset(Generic[MappingModel]):
 
         logger.info("Saving preset to %s", self.path)
 
-        json_ready = {}
+        preset_dict = {}
         saved_mappings = {}
         for mapping in self:
             if not mapping.is_valid():
-                if (
-                    not isinstance(mapping.event_combination, EventCombination)
-                    or mapping.event_combination == EventCombination.empty_combination()
-                ):
-                    # we save invalid mapping except for those with
-                    # invalid event_combination
+                if not self._has_valid_event_combination(mapping):
+                    # we save invalid mappings except for those with an invalid
+                    # event_combination
                     logger.debug("skipping invalid mapping %s", mapping)
                     continue
-                combinations = [m.event_combination for m in self]
-                common = common_data(
-                    mapping.event_combination.get_permutations(), combinations
-                )
-                if len(common) > 1:
+
+                if self._is_mapped_multiple_times(mapping.event_combination):
                     logger.debug(
-                        "skipping mapping with duplicate event combination %s", mapping
+                        "skipping mapping with duplicate event combination %s",
+                        mapping,
                     )
                     continue
 
-            d = mapping.dict(exclude_defaults=True)
-            d["target_uinput"] = mapping.target_uinput
+            mapping_dict = mapping.dict(exclude_defaults=True)
             combination = mapping.event_combination
-            try:
-                del d["event_combination"]
-            except KeyError:
-                pass
-            json_ready[combination.json_key()] = d
+            if "event_combination" in mapping_dict:
+                # used as key, don't store it redundantly
+                del mapping_dict["event_combination"]
+            preset_dict[combination.json_key()] = mapping_dict
 
             saved_mappings[combination] = mapping.copy()
             saved_mappings[combination].remove_combination_changed_callback()
 
         with open(self.path, "w") as file:
-            json.dump(json_ready, file, indent=4)
+            json.dump(preset_dict, file, indent=4)
             file.write("\n")
 
         self._saved_mappings = saved_mappings
@@ -259,7 +253,7 @@ class Preset(Generic[MappingModel]):
                 continue
             values.append(mapping.output_symbol.lower())
             values.append(mapping.get_output_type_code())
-        print(values)
+
         return (
             "btn_left" not in values
             or InputEvent.btn_left().type_and_code not in values

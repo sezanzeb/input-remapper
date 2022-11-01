@@ -25,13 +25,7 @@ from unittest.mock import patch, MagicMock, call
 import gi
 
 from inputremapper.configs.system_mapping import system_mapping
-from inputremapper.injection.injector import (
-    RUNNING,
-    FAILED,
-    NO_GRAB,
-    UPGRADE_EVDEV,
-    STOPPED,
-)
+from inputremapper.injection.injector import InjectorState
 from inputremapper.input_event import InputEvent
 
 gi.require_version("Gtk", "3.0")
@@ -67,7 +61,7 @@ from tests.test import (
 from inputremapper.configs.global_config import GlobalConfig
 from inputremapper.gui.controller import Controller, MAPPING_DEFAULTS
 from inputremapper.gui.data_manager import DataManager, DEFAULT_PRESET_NAME
-from inputremapper.configs.paths import get_preset_path
+from inputremapper.configs.paths import get_preset_path, CONFIG_PATH
 from inputremapper.configs.preset import Preset
 
 
@@ -146,7 +140,7 @@ class TestController(unittest.TestCase):
         self.message_broker.subscribe(MessageType.groups, f)
         self.message_broker.signal(MessageType.init)
         self.assertEqual(
-            ["Foo Device", "Foo Device 2", "Bar Device", "gamepad"],
+            ["Foo Device", "Foo Device 2", "Bar Device", "gamepad", "Qux/Device?"],
             list(calls[-1].groups.keys()),
         )
 
@@ -363,6 +357,26 @@ class TestController(unittest.TestCase):
 
         self.assertFalse(os.path.exists(get_preset_path("Foo Device", "preset2")))
         self.assertTrue(os.path.exists(get_preset_path("Foo Device", "foo")))
+
+    def test_rename_preset_sanitized(self):
+        # TODO use preset name that requires sanitation
+        Preset(get_preset_path("Qux/Device?", "bla")).save()
+
+        self.assertTrue(os.path.isfile(get_preset_path("Qux/Device?", "bla")))
+        self.assertFalse(os.path.exists(get_preset_path("Qux/Device?", "blubb")))
+
+        self.data_manager.load_group("Qux/Device?")
+        self.data_manager.load_preset("bla")
+        self.controller.rename_preset(new_name="blubb")
+
+        # all functions expect the true name, which is also shown to the user, but on
+        # the file system it always uses sanitized names.
+        self.assertTrue(os.path.exists(get_preset_path("Qux/Device?", "blubb")))
+        path = os.path.join(CONFIG_PATH, "presets", "Qux_Device_", "blubb.json")
+        self.assertTrue(os.path.exists(path))
+
+        # using the sanitized name works as well
+        self.assertTrue(os.path.isfile(get_preset_path("Qux_Device_", "blubb")))
 
     def test_rename_preset_should_pick_available_name(self):
         prepare_presets()
@@ -724,7 +738,7 @@ class TestController(unittest.TestCase):
         self.controller.start_injecting()
 
         self.assertEqual(
-            calls[-1], StatusData(CTX_ERROR, _("You need to add keys and save first"))
+            calls[-1], StatusData(CTX_ERROR, _("You need to add mappings first"))
         )
 
     def test_start_injecting_warns_about_btn_left(self):
@@ -854,22 +868,20 @@ class TestController(unittest.TestCase):
             calls.append(data)
 
         self.message_broker.subscribe(MessageType.status_msg, f)
-        mock = MagicMock(return_value=STOPPED)
+        mock = MagicMock(return_value=InjectorState.STOPPED)
         self.data_manager.get_state = mock
         self.controller.stop_injecting()
         gtk_iteration(50)
 
         mock.assert_called()
-        self.assertEqual(
-            calls[-1], StatusData(CTX_APPLY, _("Applied the system default"))
-        )
+        self.assertEqual(calls[-1], StatusData(CTX_APPLY, _("Stopped the injection")))
 
     def test_show_injection_result(self):
         prepare_presets()
         self.data_manager.load_group("Foo Device 2")
         self.data_manager.load_preset("preset2")
 
-        mock = MagicMock(return_value=RUNNING)
+        mock = MagicMock(return_value=InjectorState.RUNNING)
         self.data_manager.get_state = mock
         calls: List[StatusData] = []
 
@@ -882,17 +894,17 @@ class TestController(unittest.TestCase):
         gtk_iteration(50)
         self.assertEqual(calls[-1].msg, _("Applied preset %s") % "preset2")
 
-        mock.return_value = FAILED
+        mock.return_value = InjectorState.FAILED
         self.controller.start_injecting()
         gtk_iteration(50)
         self.assertEqual(calls[-1].msg, _("Failed to apply preset %s") % "preset2")
 
-        mock.return_value = NO_GRAB
+        mock.return_value = InjectorState.NO_GRAB
         self.controller.start_injecting()
         gtk_iteration(50)
         self.assertEqual(calls[-1].msg, "The device was not grabbed")
 
-        mock.return_value = UPGRADE_EVDEV
+        mock.return_value = InjectorState.UPGRADE_EVDEV
         self.controller.start_injecting()
         gtk_iteration(50)
         self.assertEqual(calls[-1].msg, "Upgrade python-evdev")
@@ -1076,6 +1088,22 @@ class TestController(unittest.TestCase):
         ]
         self.controller.remove_event()
         mock.assert_has_calls(calls, any_order=False)
+
+    def test_set_event_as_analog_saves(self):
+        prepare_presets()
+        self.data_manager.load_group("Foo Device 2")
+        self.data_manager.load_preset("preset2")
+        self.data_manager.update_mapping(event_combination="3,0,10")
+        self.data_manager.load_mapping(EventCombination("3,0,10"))
+        self.data_manager.load_event(InputEvent.from_string("3,0,10"))
+
+        with patch.object(self.data_manager, "save") as mock:
+            self.controller.set_event_as_analog(False)
+            mock.assert_called_once()
+
+        with patch.object(self.data_manager, "save") as mock:
+            self.controller.set_event_as_analog(True)
+            mock.assert_called_once()
 
     def test_set_event_as_analog_sets_input_to_analog(self):
         prepare_presets()

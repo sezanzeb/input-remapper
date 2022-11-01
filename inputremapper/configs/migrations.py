@@ -302,6 +302,7 @@ def _convert_to_individual_mappings():
             joystick_dict = old_preset["gamepad"]["joystick"]
             left_purpose = joystick_dict.get("left_purpose")
             right_purpose = joystick_dict.get("right_purpose")
+            # TODO if pointer_speed is migrated, why is it in my config?
             pointer_speed = joystick_dict.get("pointer_speed")
             if pointer_speed:
                 pointer_speed /= 100

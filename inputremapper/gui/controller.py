@@ -40,6 +40,7 @@ gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 
 from inputremapper.configs.mapping import MappingData, UIMapping
+from inputremapper.input_event import USE_AS_ANALOG_VALUE
 from inputremapper.event_combination import EventCombination
 from inputremapper.exceptions import DataManagementError
 from inputremapper.gui.data_manager import DataManager, DEFAULT_PRESET_NAME
@@ -57,13 +58,9 @@ from inputremapper.gui.messages.message_data import (
 )
 from inputremapper.gui.utils import CTX_APPLY, CTX_ERROR, CTX_WARNING, CTX_MAPPING
 from inputremapper.injection.injector import (
-    RUNNING,
-    FAILED,
-    NO_GRAB,
-    UPGRADE_EVDEV,
-    STARTING,
-    STOPPED,
     InjectorState,
+    InjectorCommand,
+    InjectorStateMessage,
 )
 from inputremapper.input_event import InputEvent
 from inputremapper.logger import logger
@@ -344,23 +341,26 @@ class Controller:
         """use the active event as an analog input"""
         assert self.data_manager.active_event is not None
         event = self.data_manager.active_event
-        if event.type == EV_KEY:
-            pass
 
-        elif analog:
-            try:
-                self.data_manager.update_event(event.modify(value=0))
-                return
-            except KeyError:
-                pass
-        else:
-            try_values = {EV_REL: [1, -1], EV_ABS: [10, -10]}
-            for value in try_values[event.type]:
+        if event.type != EV_KEY:
+            if analog:
                 try:
-                    self.data_manager.update_event(event.modify(value=value))
+                    self.data_manager.update_event(
+                        event.modify(value=USE_AS_ANALOG_VALUE)
+                    )
+                    self.save()
                     return
                 except KeyError:
                     pass
+            else:
+                try_values = {EV_REL: [1, -1], EV_ABS: [10, -10]}
+                for value in try_values[event.type]:
+                    try:
+                        self.data_manager.update_event(event.modify(value=value))
+                        self.save()
+                        return
+                    except KeyError:
+                        pass
 
         # didn't update successfully
         # we need to synchronize the gui
@@ -478,7 +478,7 @@ class Controller:
         Updates the active_mapping.event_combination with the recorded events.
         """
         state = self.data_manager.get_state()
-        if state == RUNNING or state == STARTING:
+        if state == InjectorState.RUNNING or state == InjectorState.STARTING:
             self.data_manager.stop_combination_recording()
             self.message_broker.signal(MessageType.recording_finished)
             self.show_status(CTX_ERROR, _('Use "Stop" to stop before editing'))
@@ -511,7 +511,7 @@ class Controller:
         if len(self.data_manager.active_preset) == 0:
             logger.error(_("Cannot apply empty preset file"))
             # also helpful for first time use
-            self.show_status(CTX_ERROR, _("You need to add keys and save first"))
+            self.show_status(CTX_ERROR, _("You need to add mappings first"))
             return
 
         if not self.button_left_warn:
@@ -528,7 +528,8 @@ class Controller:
         # todo: warn about unreleased keys
         self.button_left_warn = False
         self.message_broker.subscribe(
-            MessageType.injector_state, self.show_injector_result
+            MessageType.injector_state,
+            self.show_injector_result,
         )
         self.show_status(CTX_APPLY, _("Starting injection..."))
         if not self.data_manager.start_injecting():
@@ -538,7 +539,7 @@ class Controller:
                 _("Failed to apply preset %s") % self.data_manager.active_preset.name,
             )
 
-    def show_injector_result(self, msg: InjectorState):
+    def show_injector_result(self, msg: InjectorStateMessage):
         """Show if the injection was successfully started."""
         self.message_broker.unsubscribe(self.show_injector_result)
         state = msg.state
@@ -555,14 +556,14 @@ class Controller:
             )
 
         assert self.data_manager.active_preset  # make mypy happy
-        state_calls: Dict[int, Callable] = {
-            RUNNING: running,
-            FAILED: partial(
+        state_calls: Dict[InjectorState, Callable] = {
+            InjectorState.RUNNING: running,
+            InjectorState.FAILED: partial(
                 self.show_status,
                 CTX_ERROR,
                 _("Failed to apply preset %s") % self.data_manager.active_preset.name,
             ),
-            NO_GRAB: partial(
+            InjectorState.NO_GRAB: partial(
                 self.show_status,
                 CTX_ERROR,
                 "The device was not grabbed",
@@ -570,22 +571,34 @@ class Controller:
                 "your preset doesn't contain anything that is sent by the "
                 "device.",
             ),
-            UPGRADE_EVDEV: partial(
+            InjectorState.UPGRADE_EVDEV: partial(
                 self.show_status,
                 CTX_ERROR,
                 "Upgrade python-evdev",
                 "Your python-evdev version is too old.",
             ),
         }
-        state_calls[state]()
+
+        if state in state_calls:
+            state_calls[state]()
 
     def stop_injecting(self):
         """stop injecting any preset for the active_group"""
 
-        def show_result(msg: InjectorState):
+        def show_result(msg: InjectorStateMessage):
             self.message_broker.unsubscribe(show_result)
-            assert msg.state == STOPPED
-            self.show_status(CTX_APPLY, _("Applied the system default"))
+
+            if not msg.inactive():
+                # some speculation: there might be unexpected additional status messages
+                # with a different state, or the status is wrong because something in
+                # the long pipeline of status messages is broken.
+                logger.error(
+                    f"Expected the injection to eventually stop, but got state "
+                    f"{msg.state}"
+                )
+                return
+
+            self.show_status(CTX_APPLY, _("Stopped the injection"))
 
         try:
             self.message_broker.subscribe(MessageType.injector_state, show_result)

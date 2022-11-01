@@ -77,26 +77,6 @@ https://miro.com/app/board/uXjVPLa8ilM=/?share_link_id=272180986764
 
 ![architecture.png](./architecture.png)
 
-## Permissions
-
-**gui**
-
-The gui process starts without root rights. It makes sure the daemon and
-helper are running via pkexec.
-
-**daemon**
-
-The daemon exists to keep injections alive beyond the lifetime of the
-user interface. Runs via root. Communicates via dbus. Either started
-via systemd or pkexec.
-
-**helper**
-
-The helper provides information to the user interface like events and
-devices. Communicates via pipes. It should not exceed the lifetime of
-the user interface because it exposes all the input events. Starts via
-pkexec.
-
 ## Resources
 
 - [Guidelines for device capabilities](https://www.kernel.org/doc/Documentation/input/event-codes.txt)
