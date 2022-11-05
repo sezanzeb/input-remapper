@@ -17,8 +17,10 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
+
 import json
 import os
+import subprocess
 import unittest
 from unittest.mock import patch
 
@@ -59,6 +61,38 @@ class TestSystemMapping(unittest.TestCase):
             self.assertNotIn("key_a", content)
             self.assertNotIn("KEY_A", content)
             self.assertNotIn("disable", content)
+
+    def test_empty_xmodmap(self):
+        # if xmodmap returns nothing, don't write the file
+        empty_xmodmap = ""
+
+        class SubprocessMock:
+            def decode(self):
+                return empty_xmodmap
+
+        def check_output(*args, **kwargs):
+            return SubprocessMock()
+
+        with patch.object(subprocess, "check_output", check_output):
+            system_mapping = SystemMapping()
+            path = os.path.join(CONFIG_PATH, XMODMAP_FILENAME)
+            os.remove(path)
+
+            system_mapping.populate()
+            self.assertFalse(os.path.exists(path))
+
+    def test_xmodmap_command_missing(self):
+        # if xmodmap is not installed, don't write the file
+        def check_output(*args, **kwargs):
+            raise FileNotFoundError
+
+        with patch.object(subprocess, "check_output", check_output):
+            system_mapping = SystemMapping()
+            path = os.path.join(CONFIG_PATH, XMODMAP_FILENAME)
+            os.remove(path)
+
+            system_mapping.populate()
+            self.assertFalse(os.path.exists(path))
 
     def test_correct_case(self):
         system_mapping = SystemMapping()
