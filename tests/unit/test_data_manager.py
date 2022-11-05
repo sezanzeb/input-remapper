@@ -349,7 +349,6 @@ class TestDataManager(unittest.TestCase):
 
     def test_delete_preset_sanitized(self):
         """should be able to delete the current preset"""
-        # TODO use preset name that requires sanitation
         Preset(get_preset_path("Qux/Device?", "bla")).save()
         Preset(get_preset_path("Qux/Device?", "foo")).save()
         self.assertTrue(os.path.exists(get_preset_path("Qux/Device?", "bla")))
@@ -829,7 +828,6 @@ class TestDataManager(unittest.TestCase):
         )
 
     def test_available_preset_name_sanitized(self):
-        # TODO use preset name that requires sanitation
         self.data_manager.load_group("Qux/Device?")
         self.assertEqual(
             self.data_manager.get_available_preset_name(), DEFAULT_PRESET_NAME
