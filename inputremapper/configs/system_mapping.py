@@ -93,9 +93,7 @@ class SystemMapping:
                 stderr=subprocess.STDOUT,
             ).decode()
         except FileNotFoundError:
-            logger.info(
-                "Optional `xmodmap` command not found. This is not critical."
-            )
+            logger.info("Optional `xmodmap` command not found. This is not critical.")
             return
         except subprocess.CalledProcessError as e:
             logger.error('Call to `xmodmap -pke` failed with "%s"', e)
