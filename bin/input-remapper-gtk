@@ -43,11 +43,11 @@ from inputremapper.logger import logger, update_verbosity, log_info
 def start_processes() -> DaemonProxy:
     """Start reader-service and daemon via pkexec to run in the background."""
     # this function is overwritten in tests
-    try:
+    """try:
         ReaderService.pkexec_reader_service()
     except Exception as e:
         logger.error(e)
-        sys.exit(11)
+        sys.exit(11)"""
 
     return Daemon.connect()
 
