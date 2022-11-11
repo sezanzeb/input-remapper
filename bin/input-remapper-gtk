@@ -21,13 +21,9 @@
 """Starts the user interface."""
 from __future__ import annotations
 
-import os
 import sys
 import atexit
-import logging
 from argparse import ArgumentParser
-
-from inputremapper.gui.gettext import _, LOCALE_DIR
 
 import gi
 gi.require_version('Gtk', '3.0')
@@ -35,29 +31,25 @@ gi.require_version('GLib', '2.0')
 gi.require_version('GtkSource', '4')
 from gi.repository import Gtk
 
-
 # https://github.com/Nuitka/Nuitka/issues/607#issuecomment-650217096
 Gtk.init()
 
+from inputremapper.gui.gettext import _, LOCALE_DIR
+from inputremapper.gui.reader_service import ReaderService
+from inputremapper.daemon import DaemonProxy
 from inputremapper.logger import logger, update_verbosity, log_info
 
 
 def start_processes() -> DaemonProxy:
-    """Start helper and daemon via pkexec to run in the background."""
+    """Start reader-service and daemon via pkexec to run in the background."""
     # this function is overwritten in tests
-    daemon = Daemon.connect()
-
-    debug = " -d" if logger.level <= logging.DEBUG else ""
-    cmd = f"pkexec input-remapper-control --command helper {debug}"
-
-    logger.debug("Running `%s`", cmd)
-    exit_code = os.system(cmd)
-
-    if exit_code != 0:
-        logger.error("Failed to pkexec the helper, code %d", exit_code)
+    try:
+        ReaderService.pkexec_reader_service()
+    except Exception as e:
+        logger.error(e)
         sys.exit(11)
 
-    return daemon
+    return Daemon.connect()
 
 
 if __name__ == '__main__':
@@ -81,8 +73,8 @@ if __name__ == '__main__':
     from inputremapper.gui.controller import Controller
     from inputremapper.injection.global_uinputs import GlobalUInputs
     from inputremapper.groups import _Groups
-    from inputremapper.gui.reader import Reader
-    from inputremapper.daemon import Daemon, DaemonProxy
+    from inputremapper.gui.reader_client import ReaderClient
+    from inputremapper.daemon import Daemon
     from inputremapper.configs.global_config import GlobalConfig
     from inputremapper.configs.migrations import migrate
 
@@ -90,13 +82,13 @@ if __name__ == '__main__':
 
     message_broker = MessageBroker()
 
-    # create the reader before we start the helper (start_processes) otherwise it
-    # can come to race conditions with the creation of pipes
-    reader = Reader(message_broker, _Groups())
+    # create the reader before we start the reader-service (start_processes) otherwise
+    # it can come to race conditions with the creation of pipes
+    reader_client = ReaderClient(message_broker, _Groups())
     daemon = start_processes()
 
     data_manager = DataManager(
-        message_broker, GlobalConfig(), reader, daemon, GlobalUInputs(), system_mapping
+        message_broker, GlobalConfig(), reader_client, daemon, GlobalUInputs(), system_mapping
     )
     controller = Controller(message_broker, data_manager)
     user_interface = UserInterface(message_broker, controller)

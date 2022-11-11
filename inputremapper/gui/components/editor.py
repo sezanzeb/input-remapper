@@ -29,6 +29,12 @@ from typing import List, Optional, Dict, Union, Callable, Literal
 
 import cairo
 from evdev.ecodes import EV_KEY, EV_ABS, EV_REL, bytype
+
+import gi
+
+gi.require_version("Gdk", "3.0")
+gi.require_version("Gtk", "3.0")
+gi.require_version("GtkSource", "4")
 from gi.repository import Gtk, GtkSource, Gdk
 
 from inputremapper.configs.mapping import MappingData

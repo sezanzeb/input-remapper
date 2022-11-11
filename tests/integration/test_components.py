@@ -25,6 +25,7 @@ import time
 
 import evdev
 from evdev.ecodes import KEY_A, KEY_B, KEY_C
+
 import gi
 
 gi.require_version("Gdk", "3.0")
@@ -172,7 +173,7 @@ class TestDeviceGroupSelection(ComponentBaseTest):
             self.controller_mock,
             self.gui,
         )
-        self.message_broker.send(
+        self.message_broker.publish(
             GroupsData(
                 {
                     "foo": [DeviceType.GAMEPAD, DeviceType.KEYBOARD],
@@ -199,7 +200,7 @@ class TestDeviceGroupSelection(ComponentBaseTest):
         self.assertEqual(group_keys, ["foo", "bar", "baz"])
         self.assertEqual(icons, ["input-gaming", None, "input-tablet"])
 
-        self.message_broker.send(
+        self.message_broker.publish(
             GroupsData(
                 {
                     "kuu": [DeviceType.KEYBOARD],
@@ -213,9 +214,9 @@ class TestDeviceGroupSelection(ComponentBaseTest):
         self.assertEqual(icons, ["input-keyboard", "input-gaming"])
 
     def test_selects_correct_device(self):
-        self.message_broker.send(GroupData("bar", ()))
+        self.message_broker.publish(GroupData("bar", ()))
         self.assertEqual(FlowBoxTestUtils.get_active_entry(self.gui).group_key, "bar")
-        self.message_broker.send(GroupData("baz", ()))
+        self.message_broker.publish(GroupData("baz", ()))
         self.assertEqual(FlowBoxTestUtils.get_active_entry(self.gui).group_key, "baz")
 
     def test_loads_group(self):
@@ -223,7 +224,7 @@ class TestDeviceGroupSelection(ComponentBaseTest):
         self.controller_mock.load_group.assert_called_once_with("bar")
 
     def test_avoids_infinite_recursion(self):
-        self.message_broker.send(GroupData("bar", ()))
+        self.message_broker.publish(GroupData("bar", ()))
         self.controller_mock.load_group.assert_not_called()
 
 
@@ -234,7 +235,7 @@ class TestTargetSelection(ComponentBaseTest):
         self.selection = TargetSelection(
             self.message_broker, self.controller_mock, self.gui
         )
-        self.message_broker.send(
+        self.message_broker.publish(
             UInputsData(
                 {
                     "foo": {},
@@ -248,7 +249,7 @@ class TestTargetSelection(ComponentBaseTest):
         names = [row[0] for row in self.gui.get_model()]
         self.assertEqual(names, ["foo", "bar", "baz"])
 
-        self.message_broker.send(
+        self.message_broker.publish(
             UInputsData(
                 {
                     "kuu": {},
@@ -264,13 +265,13 @@ class TestTargetSelection(ComponentBaseTest):
         self.controller_mock.update_mapping.called_once_with(target_uinput="baz")
 
     def test_selects_correct_target(self):
-        self.message_broker.send(MappingData(target_uinput="baz"))
+        self.message_broker.publish(MappingData(target_uinput="baz"))
         self.assertEqual(self.gui.get_active_id(), "baz")
-        self.message_broker.send(MappingData(target_uinput="bar"))
+        self.message_broker.publish(MappingData(target_uinput="bar"))
         self.assertEqual(self.gui.get_active_id(), "bar")
 
     def test_avoids_infinite_recursion(self):
-        self.message_broker.send(MappingData(target_uinput="baz"))
+        self.message_broker.publish(MappingData(target_uinput="baz"))
         self.controller_mock.update_mapping.assert_not_called()
 
 
@@ -281,18 +282,18 @@ class TestPresetSelection(ComponentBaseTest):
         self.selection = PresetSelection(
             self.message_broker, self.controller_mock, self.gui
         )
-        self.message_broker.send(GroupData("foo", ("preset1", "preset2")))
+        self.message_broker.publish(GroupData("foo", ("preset1", "preset2")))
 
     def test_populates_presets(self):
         names = FlowBoxTestUtils.get_child_names(self.gui)
         self.assertEqual(names, ["preset1", "preset2"])
 
-        self.message_broker.send(GroupData("foo", ("preset3", "preset4")))
+        self.message_broker.publish(GroupData("foo", ("preset3", "preset4")))
         names = FlowBoxTestUtils.get_child_names(self.gui)
         self.assertEqual(names, ["preset3", "preset4"])
 
     def test_selects_preset(self):
-        self.message_broker.send(
+        self.message_broker.publish(
             PresetData(
                 "preset2",
                 (
@@ -304,7 +305,7 @@ class TestPresetSelection(ComponentBaseTest):
         )
         self.assertEqual(FlowBoxTestUtils.get_active_entry(self.gui).name, "preset2")
 
-        self.message_broker.send(
+        self.message_broker.publish(
             PresetData(
                 "preset1",
                 (
@@ -317,7 +318,7 @@ class TestPresetSelection(ComponentBaseTest):
         self.assertEqual(FlowBoxTestUtils.get_active_entry(self.gui).name, "preset1")
 
     def test_avoids_infinite_recursion(self):
-        self.message_broker.send(
+        self.message_broker.publish(
             PresetData(
                 "preset2",
                 (
@@ -342,7 +343,7 @@ class TestMappingListbox(ComponentBaseTest):
             self.message_broker, self.controller_mock, self.gui
         )
 
-        self.message_broker.send(
+        self.message_broker.publish(
             PresetData(
                 "preset1",
                 (
@@ -392,7 +393,7 @@ class TestMappingListbox(ComponentBaseTest):
         self.assertEqual(labels, ["a + b", "mapping1", "mapping2"])
 
     def test_activates_correct_row(self):
-        self.message_broker.send(
+        self.message_broker.publish(
             MappingData(
                 name="mapping1", event_combination=EventCombination((1, KEY_C, 1))
             )
@@ -408,7 +409,7 @@ class TestMappingListbox(ComponentBaseTest):
         )
 
     def test_avoids_infinite_recursion(self):
-        self.message_broker.send(
+        self.message_broker.publish(
             MappingData(
                 name="mapping1", event_combination=EventCombination((1, KEY_C, 1))
             )
@@ -416,7 +417,7 @@ class TestMappingListbox(ComponentBaseTest):
         self.controller_mock.load_mapping.assert_not_called()
 
     def test_sorts_empty_mapping_to_bottom(self):
-        self.message_broker.send(
+        self.message_broker.publish(
             PresetData(
                 "preset1",
                 (
@@ -437,7 +438,7 @@ class TestMappingListbox(ComponentBaseTest):
         )
         bottom_row: MappingSelectionLabel = self.gui.get_row_at_index(2)
         self.assertEqual(bottom_row.combination, EventCombination.empty_combination())
-        self.message_broker.send(
+        self.message_broker.publish(
             PresetData(
                 "preset1",
                 (
@@ -498,7 +499,7 @@ class TestMappingSelectionLabel(ComponentBaseTest):
             self.mapping_selection_label.combination,
             EventCombination([(1, KEY_A, 1), (1, KEY_B, 1)]),
         )
-        self.message_broker.send(
+        self.message_broker.publish(
             CombinationUpdate(
                 EventCombination([(1, KEY_A, 1), (1, KEY_B, 1)]),
                 EventCombination((1, KEY_A, 1)),
@@ -513,7 +514,7 @@ class TestMappingSelectionLabel(ComponentBaseTest):
             self.mapping_selection_label.combination,
             EventCombination([(1, KEY_A, 1), (1, KEY_B, 1)]),
         )
-        self.message_broker.send(
+        self.message_broker.publish(
             CombinationUpdate(
                 EventCombination([(1, KEY_A, 1), (1, KEY_B, 1)]),
                 EventCombination((1, KEY_A, 1)),
@@ -525,7 +526,7 @@ class TestMappingSelectionLabel(ComponentBaseTest):
         )
 
     def test_updates_name_when_mapping_changed_and_combination_matches(self):
-        self.message_broker.send(
+        self.message_broker.publish(
             MappingData(
                 event_combination=EventCombination([(1, KEY_A, 1), (1, KEY_B, 1)]),
                 name="foo",
@@ -534,7 +535,7 @@ class TestMappingSelectionLabel(ComponentBaseTest):
         self.assertEqual(self.mapping_selection_label.label.get_label(), "foo")
 
     def test_ignores_mapping_when_combination_does_not_match(self):
-        self.message_broker.send(
+        self.message_broker.publish(
             MappingData(
                 event_combination=EventCombination([(1, KEY_A, 1), (1, KEY_C, 1)]),
                 name="foo",
@@ -547,7 +548,7 @@ class TestMappingSelectionLabel(ComponentBaseTest):
         self.assertFalse(self.mapping_selection_label.edit_btn.get_visible())
 
         # load the mapping associated with the ListBoxRow
-        self.message_broker.send(
+        self.message_broker.publish(
             MappingData(
                 event_combination=EventCombination([(1, KEY_A, 1), (1, KEY_B, 1)]),
             )
@@ -555,7 +556,7 @@ class TestMappingSelectionLabel(ComponentBaseTest):
         self.assertTrue(self.mapping_selection_label.edit_btn.get_visible())
 
         # load a different row
-        self.message_broker.send(
+        self.message_broker.publish(
             MappingData(
                 event_combination=EventCombination([(1, KEY_A, 1), (1, KEY_C, 1)]),
             )
@@ -563,7 +564,7 @@ class TestMappingSelectionLabel(ComponentBaseTest):
         self.assertFalse(self.mapping_selection_label.edit_btn.get_visible())
 
     def test_enter_edit_mode_focuses_name_input(self):
-        self.message_broker.send(
+        self.message_broker.publish(
             MappingData(
                 event_combination=EventCombination([(1, KEY_A, 1), (1, KEY_B, 1)]),
             )
@@ -574,7 +575,7 @@ class TestMappingSelectionLabel(ComponentBaseTest):
         )
 
     def test_enter_edit_mode_updates_visibility(self):
-        self.message_broker.send(
+        self.message_broker.publish(
             MappingData(
                 event_combination=EventCombination([(1, KEY_A, 1), (1, KEY_B, 1)]),
             )
@@ -586,7 +587,7 @@ class TestMappingSelectionLabel(ComponentBaseTest):
         self.assert_selected()
 
     def test_leaves_edit_mode_on_esc(self):
-        self.message_broker.send(
+        self.message_broker.publish(
             MappingData(
                 event_combination=EventCombination([(1, KEY_A, 1), (1, KEY_B, 1)]),
             )
@@ -605,7 +606,7 @@ class TestMappingSelectionLabel(ComponentBaseTest):
         self.controller_mock.update_mapping.assert_not_called()
 
     def test_update_name(self):
-        self.message_broker.send(
+        self.message_broker.publish(
             MappingData(
                 event_combination=EventCombination([(1, KEY_A, 1), (1, KEY_B, 1)]),
             )
@@ -617,7 +618,7 @@ class TestMappingSelectionLabel(ComponentBaseTest):
         self.controller_mock.update_mapping.assert_called_once_with(name="foo")
 
     def test_name_input_contains_combination_when_name_not_set(self):
-        self.message_broker.send(
+        self.message_broker.publish(
             MappingData(
                 event_combination=EventCombination([(1, KEY_A, 1), (1, KEY_B, 1)]),
             )
@@ -626,7 +627,7 @@ class TestMappingSelectionLabel(ComponentBaseTest):
         self.assertEqual(self.mapping_selection_label.name_input.get_text(), "a + b")
 
     def test_name_input_contains_name(self):
-        self.message_broker.send(
+        self.message_broker.publish(
             MappingData(
                 event_combination=EventCombination([(1, KEY_A, 1), (1, KEY_B, 1)]),
                 name="foo",
@@ -636,7 +637,7 @@ class TestMappingSelectionLabel(ComponentBaseTest):
         self.assertEqual(self.mapping_selection_label.name_input.get_text(), "foo")
 
     def test_removes_name_when_name_matches_combination(self):
-        self.message_broker.send(
+        self.message_broker.publish(
             MappingData(
                 event_combination=EventCombination([(1, KEY_A, 1), (1, KEY_B, 1)]),
                 name="foo",
@@ -660,47 +661,47 @@ class TestCodeEditor(ComponentBaseTest):
         return buffer.get_text(buffer.get_start_iter(), buffer.get_end_iter(), True)
 
     def test_shows_output_symbol(self):
-        self.message_broker.send(MappingData(output_symbol="foo"))
+        self.message_broker.publish(MappingData(output_symbol="foo"))
         self.assertEqual(self.get_text(), "foo")
 
     def test_shows_record_input_first_message_when_mapping_is_empty(self):
         self.controller_mock.is_empty_mapping.return_value = True
-        self.message_broker.send(MappingData(output_symbol="foo"))
+        self.message_broker.publish(MappingData(output_symbol="foo"))
         self.assertEqual(self.get_text(), "Record the input first")
 
     def test_active_when_mapping_is_not_empty(self):
-        self.message_broker.send(MappingData(output_symbol="foo"))
+        self.message_broker.publish(MappingData(output_symbol="foo"))
         self.assertTrue(self.gui.get_sensitive())
         self.assertEqual(self.gui.get_opacity(), 1)
 
     def test_expands_to_multiline(self):
-        self.message_broker.send(MappingData(output_symbol="foo\nbar"))
+        self.message_broker.publish(MappingData(output_symbol="foo\nbar"))
         self.assertIn("multiline", self.gui.get_style_context().list_classes())
 
     def test_shows_line_numbers_when_multiline(self):
-        self.message_broker.send(MappingData(output_symbol="foo\nbar"))
+        self.message_broker.publish(MappingData(output_symbol="foo\nbar"))
         self.assertTrue(self.gui.get_show_line_numbers())
 
     def test_no_multiline_when_macro_not_multiline(self):
-        self.message_broker.send(MappingData(output_symbol="foo"))
+        self.message_broker.publish(MappingData(output_symbol="foo"))
         self.assertNotIn("multiline", self.gui.get_style_context().list_classes())
 
     def test_no_line_numbers_macro_not_multiline(self):
-        self.message_broker.send(MappingData(output_symbol="foo"))
+        self.message_broker.publish(MappingData(output_symbol="foo"))
         self.assertFalse(self.gui.get_show_line_numbers())
 
     def test_is_empty_when_mapping_has_no_output_symbol(self):
-        self.message_broker.send(MappingData())
+        self.message_broker.publish(MappingData())
         self.assertEqual(self.get_text(), "")
 
     def test_updates_mapping(self):
-        self.message_broker.send(MappingData())
+        self.message_broker.publish(MappingData())
         buffer = self.gui.get_buffer()
         buffer.set_text("foo")
         self.controller_mock.update_mapping.assert_called_once_with(output_symbol="foo")
 
     def test_avoids_infinite_recursion_when_loading_mapping(self):
-        self.message_broker.send(MappingData(output_symbol="foo"))
+        self.message_broker.publish(MappingData(output_symbol="foo"))
         self.controller_mock.update_mapping.assert_not_called()
 
     def test_gets_focus_when_input_recording_finises(self):
@@ -793,47 +794,47 @@ class TestStatusBar(ComponentBaseTest):
         self.assert_empty()
 
     def test_shows_error_status(self):
-        self.message_broker.send(StatusData(CTX_ERROR, "msg", "tooltip"))
+        self.message_broker.publish(StatusData(CTX_ERROR, "msg", "tooltip"))
         self.assertEqual(self.get_text(), "msg")
         self.assertEqual(self.get_tooltip(), "tooltip")
         self.assert_error_status()
 
     def test_shows_warning_status(self):
-        self.message_broker.send(StatusData(CTX_WARNING, "msg", "tooltip"))
+        self.message_broker.publish(StatusData(CTX_WARNING, "msg", "tooltip"))
         self.assertEqual(self.get_text(), "msg")
         self.assertEqual(self.get_tooltip(), "tooltip")
         self.assert_warning_status()
 
     def test_shows_newest_message(self):
-        self.message_broker.send(StatusData(CTX_ERROR, "msg", "tooltip"))
-        self.message_broker.send(StatusData(CTX_WARNING, "msg2", "tooltip2"))
+        self.message_broker.publish(StatusData(CTX_ERROR, "msg", "tooltip"))
+        self.message_broker.publish(StatusData(CTX_WARNING, "msg2", "tooltip2"))
         self.assertEqual(self.get_text(), "msg2")
         self.assertEqual(self.get_tooltip(), "tooltip2")
         self.assert_warning_status()
 
     def test_data_without_message_removes_messages(self):
-        self.message_broker.send(StatusData(CTX_WARNING, "msg", "tooltip"))
-        self.message_broker.send(StatusData(CTX_WARNING, "msg2", "tooltip2"))
-        self.message_broker.send(StatusData(CTX_WARNING))
+        self.message_broker.publish(StatusData(CTX_WARNING, "msg", "tooltip"))
+        self.message_broker.publish(StatusData(CTX_WARNING, "msg2", "tooltip2"))
+        self.message_broker.publish(StatusData(CTX_WARNING))
         self.assert_empty()
 
     def test_restores_message_from_not_removed_ctx_id(self):
-        self.message_broker.send(StatusData(CTX_ERROR, "msg", "tooltip"))
-        self.message_broker.send(StatusData(CTX_WARNING, "msg2", "tooltip2"))
-        self.message_broker.send(StatusData(CTX_WARNING))
+        self.message_broker.publish(StatusData(CTX_ERROR, "msg", "tooltip"))
+        self.message_broker.publish(StatusData(CTX_WARNING, "msg2", "tooltip2"))
+        self.message_broker.publish(StatusData(CTX_WARNING))
         self.assertEqual(self.get_text(), "msg")
         self.assert_error_status()
 
         # works also the other way round
-        self.message_broker.send(StatusData(CTX_ERROR))
-        self.message_broker.send(StatusData(CTX_WARNING, "msg", "tooltip"))
-        self.message_broker.send(StatusData(CTX_ERROR, "msg2", "tooltip2"))
-        self.message_broker.send(StatusData(CTX_ERROR))
+        self.message_broker.publish(StatusData(CTX_ERROR))
+        self.message_broker.publish(StatusData(CTX_WARNING, "msg", "tooltip"))
+        self.message_broker.publish(StatusData(CTX_ERROR, "msg2", "tooltip2"))
+        self.message_broker.publish(StatusData(CTX_ERROR))
         self.assertEqual(self.get_text(), "msg")
         self.assert_warning_status()
 
     def test_sets_msg_as_tooltip_if_tooltip_is_none(self):
-        self.message_broker.send(StatusData(CTX_ERROR, "msg"))
+        self.message_broker.publish(StatusData(CTX_ERROR, "msg"))
         self.assertEqual(self.get_tooltip(), "msg")
 
 
@@ -853,14 +854,14 @@ class TestAutoloadSwitch(ComponentBaseTest):
         self.controller_mock.set_autoload.assert_called_once_with(False)
 
     def test_updates_state(self):
-        self.message_broker.send(PresetData(None, None, autoload=True))
+        self.message_broker.publish(PresetData(None, None, autoload=True))
         self.assertTrue(self.gui.get_active())
-        self.message_broker.send(PresetData(None, None, autoload=False))
+        self.message_broker.publish(PresetData(None, None, autoload=False))
         self.assertFalse(self.gui.get_active())
 
     def test_avoids_infinite_recursion(self):
-        self.message_broker.send(PresetData(None, None, autoload=True))
-        self.message_broker.send(PresetData(None, None, autoload=False))
+        self.message_broker.publish(PresetData(None, None, autoload=True))
+        self.message_broker.publish(PresetData(None, None, autoload=False))
         self.controller_mock.set_autoload.assert_not_called()
 
 
@@ -884,14 +885,14 @@ class TestReleaseCombinationSwitch(ComponentBaseTest):
         )
 
     def test_updates_state(self):
-        self.message_broker.send(MappingData(release_combination_keys=True))
+        self.message_broker.publish(MappingData(release_combination_keys=True))
         self.assertTrue(self.gui.get_active())
-        self.message_broker.send(MappingData(release_combination_keys=False))
+        self.message_broker.publish(MappingData(release_combination_keys=False))
         self.assertFalse(self.gui.get_active())
 
     def test_avoids_infinite_recursion(self):
-        self.message_broker.send(MappingData(release_combination_keys=True))
-        self.message_broker.send(MappingData(release_combination_keys=False))
+        self.message_broker.publish(MappingData(release_combination_keys=True))
+        self.message_broker.publish(MappingData(release_combination_keys=False))
         self.controller_mock.update_mapping.assert_not_called()
 
 
@@ -921,7 +922,7 @@ class TestCombinationListbox(ComponentBaseTest):
             self.message_broker, self.controller_mock, self.gui
         )
         self.controller_mock.is_empty_mapping.return_value = False
-        self.message_broker.send(
+        self.message_broker.publish(
             MappingData(event_combination="1,1,1+3,0,1+1,2,1", target_uinput="keyboard")
         )
 
@@ -952,17 +953,17 @@ class TestCombinationListbox(ComponentBaseTest):
 
     def test_does_not_create_rows_when_mapping_is_empty(self):
         self.controller_mock.is_empty_mapping.return_value = True
-        self.message_broker.send(MappingData(event_combination="1,1,1+3,0,1"))
+        self.message_broker.publish(MappingData(event_combination="1,1,1+3,0,1"))
         self.assertEqual(len(self.gui.get_children()), 0)
 
     def test_selects_row_when_selected_event_message_arrives(self):
-        self.message_broker.send(InputEvent.from_string("3,0,1"))
+        self.message_broker.publish(InputEvent.from_string("3,0,1"))
         self.assertEqual(
             self.get_selected_row().input_event, InputEvent.from_string("3,0,1")
         )
 
     def test_avoids_infinite_recursion(self):
-        self.message_broker.send(InputEvent.from_string("3,0,1"))
+        self.message_broker.publish(InputEvent.from_string("3,0,1"))
         self.controller_mock.load_event.assert_not_called()
 
 
@@ -982,29 +983,29 @@ class TestAnalogInputSwitch(ComponentBaseTest):
         self.controller_mock.set_event_as_analog.assert_called_once_with(False)
 
     def test_updates_state(self):
-        self.message_broker.send(InputEvent.from_string("3,0,0"))
+        self.message_broker.publish(InputEvent.from_string("3,0,0"))
         self.assertTrue(self.gui.get_active())
-        self.message_broker.send(InputEvent.from_string("3,0,10"))
+        self.message_broker.publish(InputEvent.from_string("3,0,10"))
         self.assertFalse(self.gui.get_active())
 
     def test_avoids_infinite_recursion(self):
-        self.message_broker.send(InputEvent.from_string("3,0,0"))
-        self.message_broker.send(InputEvent.from_string("3,0,-10"))
+        self.message_broker.publish(InputEvent.from_string("3,0,0"))
+        self.message_broker.publish(InputEvent.from_string("3,0,-10"))
         self.controller_mock.set_event_as_analog.assert_not_called()
 
     def test_disables_switch_when_key_event(self):
-        self.message_broker.send(InputEvent.from_string("1,1,1"))
+        self.message_broker.publish(InputEvent.from_string("1,1,1"))
         self.assertLess(self.gui.get_opacity(), 0.6)
         self.assertFalse(self.gui.get_sensitive())
 
     def test_enables_switch_when_axis_event(self):
-        self.message_broker.send(InputEvent.from_string("1,1,1"))
-        self.message_broker.send(InputEvent.from_string("3,0,10"))
+        self.message_broker.publish(InputEvent.from_string("1,1,1"))
+        self.message_broker.publish(InputEvent.from_string("3,0,10"))
         self.assertEqual(self.gui.get_opacity(), 1)
         self.assertTrue(self.gui.get_sensitive())
 
-        self.message_broker.send(InputEvent.from_string("1,1,1"))
-        self.message_broker.send(InputEvent.from_string("2,0,10"))
+        self.message_broker.publish(InputEvent.from_string("1,1,1"))
+        self.message_broker.publish(InputEvent.from_string("2,0,10"))
         self.assertEqual(self.gui.get_opacity(), 1)
         self.assertTrue(self.gui.get_sensitive())
 
@@ -1016,7 +1017,7 @@ class TestTriggerThresholdInput(ComponentBaseTest):
         self.input = TriggerThresholdInput(
             self.message_broker, self.controller_mock, self.gui
         )
-        self.message_broker.send(InputEvent.from_string("3,0,-10"))
+        self.message_broker.publish(InputEvent.from_string("3,0,-10"))
 
     def assert_abs_event_config(self):
         self.assertEqual(self.gui.get_range(), (-99, 99))
@@ -1039,18 +1040,18 @@ class TestTriggerThresholdInput(ComponentBaseTest):
         )
 
     def test_sets_value_on_selected_event_message(self):
-        self.message_broker.send(InputEvent.from_string("3,0,10"))
+        self.message_broker.publish(InputEvent.from_string("3,0,10"))
         self.assertEqual(self.gui.get_value(), 10)
 
     def test_avoids_infinite_recursion(self):
-        self.message_broker.send(InputEvent.from_string("3,0,10"))
+        self.message_broker.publish(InputEvent.from_string("3,0,10"))
         self.controller_mock.update_event.assert_not_called()
 
     def test_updates_configuration_according_to_selected_event(self):
         self.assert_abs_event_config()
-        self.message_broker.send(InputEvent.from_string("2,0,-10"))
+        self.message_broker.publish(InputEvent.from_string("2,0,-10"))
         self.assert_rel_event_config()
-        self.message_broker.send(InputEvent.from_string("1,1,1"))
+        self.message_broker.publish(InputEvent.from_string("1,1,1"))
         self.assert_key_event_config()
 
 
@@ -1061,14 +1062,14 @@ class TestReleaseTimeoutInput(ComponentBaseTest):
         self.input = ReleaseTimeoutInput(
             self.message_broker, self.controller_mock, self.gui
         )
-        self.message_broker.send(
+        self.message_broker.publish(
             MappingData(
                 event_combination=EventCombination("2,0,1"), target_uinput="keyboard"
             )
         )
 
     def test_updates_timeout_on_mapping_message(self):
-        self.message_broker.send(
+        self.message_broker.publish(
             MappingData(event_combination=EventCombination("2,0,1"), release_timeout=1)
         )
         self.assertEqual(self.gui.get_value(), 1)
@@ -1078,28 +1079,28 @@ class TestReleaseTimeoutInput(ComponentBaseTest):
         self.controller_mock.update_mapping.assert_called_once_with(release_timeout=0.5)
 
     def test_avoids_infinite_recursion(self):
-        self.message_broker.send(
+        self.message_broker.publish(
             MappingData(event_combination=EventCombination("2,0,1"), release_timeout=1)
         )
         self.controller_mock.update_mapping.assert_not_called()
 
     def test_disables_input_based_on_input_combination(self):
-        self.message_broker.send(
+        self.message_broker.publish(
             MappingData(event_combination=EventCombination.from_string("2,0,1+1,1,1"))
         )
         self.assertTrue(self.gui.get_sensitive())
         self.assertEqual(self.gui.get_opacity(), 1)
 
-        self.message_broker.send(
+        self.message_broker.publish(
             MappingData(event_combination=EventCombination.from_string("1,1,1+1,2,1"))
         )
         self.assertFalse(self.gui.get_sensitive())
         self.assertLess(self.gui.get_opacity(), 0.6)
 
-        self.message_broker.send(
+        self.message_broker.publish(
             MappingData(event_combination=EventCombination.from_string("2,0,1+1,1,1"))
         )
-        self.message_broker.send(
+        self.message_broker.publish(
             MappingData(event_combination=EventCombination.from_string("3,0,1+1,2,1"))
         )
         self.assertFalse(self.gui.get_sensitive())
@@ -1114,7 +1115,7 @@ class TestOutputAxisSelector(ComponentBaseTest):
             self.message_broker, self.controller_mock, self.gui
         )
         absinfo = evdev.AbsInfo(0, -10, 10, 0, 0, 0)
-        self.message_broker.send(
+        self.message_broker.publish(
             UInputsData(
                 {
                     "mouse": {1: [1, 2, 3, 4], 2: [0, 1, 2, 3]},
@@ -1126,7 +1127,7 @@ class TestOutputAxisSelector(ComponentBaseTest):
                 }
             )
         )
-        self.message_broker.send(
+        self.message_broker.publish(
             MappingData(target_uinput="mouse", event_combination="1,1,1")
         )
 
@@ -1152,22 +1153,22 @@ class TestOutputAxisSelector(ComponentBaseTest):
 
     def test_selects_correct_entry(self):
         self.assertEqual(self.gui.get_active_id(), "None, None")
-        self.message_broker.send(
+        self.message_broker.publish(
             MappingData(target_uinput="mouse", output_type=2, output_code=3)
         )
         self.assertEqual(self.get_active_selection(), (2, 3))
 
     def test_avoids_infinite_recursion(self):
-        self.message_broker.send(
+        self.message_broker.publish(
             MappingData(target_uinput="mouse", output_type=2, output_code=3)
         )
         self.controller_mock.update_mapping.assert_not_called()
 
     def test_updates_dropdown_model(self):
         self.assertEqual(len(self.gui.get_model()), 5)
-        self.message_broker.send(MappingData(target_uinput="keyboard"))
+        self.message_broker.publish(MappingData(target_uinput="keyboard"))
         self.assertEqual(len(self.gui.get_model()), 1)
-        self.message_broker.send(MappingData(target_uinput="gamepad"))
+        self.message_broker.publish(MappingData(target_uinput="gamepad"))
         self.assertEqual(len(self.gui.get_model()), 9)
 
 
@@ -1207,12 +1208,12 @@ class TestKeyAxisStackSwitcher(ComponentBaseTest):
         self.assertTrue(self.analog_toggle.get_active())
 
     def test_switches_to_axis(self):
-        self.message_broker.send(MappingData(mapping_type="analog"))
+        self.message_broker.publish(MappingData(mapping_type="analog"))
         self.assert_analog_active()
 
     def test_switches_to_key_macro(self):
-        self.message_broker.send(MappingData(mapping_type="analog"))
-        self.message_broker.send(MappingData(mapping_type="key_macro"))
+        self.message_broker.publish(MappingData(mapping_type="analog"))
+        self.message_broker.publish(MappingData(mapping_type="key_macro"))
         self.assert_key_macro_active()
 
     def test_updates_mapping_type(self):
@@ -1228,8 +1229,8 @@ class TestKeyAxisStackSwitcher(ComponentBaseTest):
         )
 
     def test_avoids_infinite_recursion(self):
-        self.message_broker.send(MappingData(mapping_type="analog"))
-        self.message_broker.send(MappingData(mapping_type="key_macro"))
+        self.message_broker.publish(MappingData(mapping_type="analog"))
+        self.message_broker.publish(MappingData(mapping_type="key_macro"))
         self.controller_mock.update_mapping.assert_not_called()
 
 
@@ -1257,7 +1258,7 @@ class TestTransformationDrawArea(ComponentBaseTest):
 
     def test_updates_transform_when_mapping_updates(self):
         old_tf = self.transform_draw_area._transformation
-        self.message_broker.send(MappingData(gain=2))
+        self.message_broker.publish(MappingData(gain=2))
         self.assertIsNot(old_tf, self.transform_draw_area._transformation)
 
     def test_redraws_when_mapping_updates(self):
@@ -1265,7 +1266,7 @@ class TestTransformationDrawArea(ComponentBaseTest):
         gtk_iteration(20)
         mock = MagicMock()
         self.draw_area.connect("draw", mock)
-        self.message_broker.send(MappingData(gain=2))
+        self.message_broker.publish(MappingData(gain=2))
         gtk_iteration(20)
         mock.assert_called()
 
@@ -1290,7 +1291,7 @@ class TestSliders(ComponentBaseTest):
             self.deadzone,
             self.expo,
         )
-        self.message_broker.send(
+        self.message_broker.publish(
             MappingData(event_combination="3,0,0", target_uinput="mouse")
         )
 
@@ -1311,7 +1312,7 @@ class TestSliders(ComponentBaseTest):
         self.assertEqual(self.get_range(self.expo), (-1, 1))
 
     def test_updates_value(self):
-        self.message_broker.send(
+        self.message_broker.publish(
             MappingData(
                 gain=0.5,
                 deadzone=0.6,
@@ -1335,11 +1336,11 @@ class TestSliders(ComponentBaseTest):
         self.controller_mock.update_mapping.assert_called_once_with(deadzone=0.5)
 
     def test_avoids_recursion(self):
-        self.message_broker.send(MappingData(gain=0.5))
+        self.message_broker.publish(MappingData(gain=0.5))
         self.controller_mock.update_mapping.assert_not_called()
-        self.message_broker.send(MappingData(expo=0.5))
+        self.message_broker.publish(MappingData(expo=0.5))
         self.controller_mock.update_mapping.assert_not_called()
-        self.message_broker.send(MappingData(deadzone=0.5))
+        self.message_broker.publish(MappingData(deadzone=0.5))
         self.controller_mock.update_mapping.assert_not_called()
 
 
@@ -1350,7 +1351,7 @@ class TestRelativeInputCutoffInput(ComponentBaseTest):
         self.input = RelativeInputCutoffInput(
             self.message_broker, self.controller_mock, self.gui
         )
-        self.message_broker.send(
+        self.message_broker.publish(
             MappingData(
                 target_uinput="mouse",
                 event_combination="2,0,0",
@@ -1369,7 +1370,7 @@ class TestRelativeInputCutoffInput(ComponentBaseTest):
         self.assertLess(self.gui.get_opacity(), 0.6)
 
     def test_avoids_infinite_recursion(self):
-        self.message_broker.send(
+        self.message_broker.publish(
             MappingData(
                 target_uinput="mouse",
                 event_combination="2,0,0",
@@ -1381,7 +1382,7 @@ class TestRelativeInputCutoffInput(ComponentBaseTest):
         self.controller_mock.update_mapping.assert_not_called()
 
     def test_updates_value(self):
-        self.message_broker.send(
+        self.message_broker.publish(
             MappingData(
                 target_uinput="mouse",
                 event_combination="2,0,0",
@@ -1398,7 +1399,7 @@ class TestRelativeInputCutoffInput(ComponentBaseTest):
 
     def test_disables_input_when_no_rel_axis_input(self):
         self.assert_active()
-        self.message_broker.send(
+        self.message_broker.publish(
             MappingData(
                 target_uinput="mouse",
                 event_combination="3,0,0",
@@ -1410,7 +1411,7 @@ class TestRelativeInputCutoffInput(ComponentBaseTest):
 
     def test_disables_input_when_no_abs_axis_output(self):
         self.assert_active()
-        self.message_broker.send(
+        self.message_broker.publish(
             MappingData(
                 target_uinput="mouse",
                 event_combination="2,0,0",
@@ -1422,7 +1423,7 @@ class TestRelativeInputCutoffInput(ComponentBaseTest):
         self.assert_inactive()
 
     def test_enables_input(self):
-        self.message_broker.send(
+        self.message_broker.publish(
             MappingData(
                 target_uinput="mouse",
                 event_combination="3,0,0",
@@ -1431,7 +1432,7 @@ class TestRelativeInputCutoffInput(ComponentBaseTest):
             )
         )
         self.assert_inactive()
-        self.message_broker.send(
+        self.message_broker.publish(
             MappingData(
                 target_uinput="mouse",
                 event_combination="2,0,0",
@@ -1453,21 +1454,21 @@ class TestRequireActiveMapping(ComponentBaseTest):
         )
         combination = EventCombination([(1, KEY_A, 1)])
 
-        self.message_broker.send(MappingData())
+        self.message_broker.publish(MappingData())
         self.assert_inactive(self.box)
 
-        self.message_broker.send(PresetData(name="preset", mappings=()))
+        self.message_broker.publish(PresetData(name="preset", mappings=()))
         self.assert_inactive(self.box)
 
         # a mapping is available, that is all the widget needs to be activated. one
         # mapping is always selected, so there is no need to check the mapping message
-        self.message_broker.send(PresetData(name="preset", mappings=(combination,)))
+        self.message_broker.publish(PresetData(name="preset", mappings=(combination,)))
         self.assert_active(self.box)
 
-        self.message_broker.send(MappingData(event_combination=combination))
+        self.message_broker.publish(MappingData(event_combination=combination))
         self.assert_active(self.box)
 
-        self.message_broker.send(MappingData())
+        self.message_broker.publish(MappingData())
         self.assert_active(self.box)
 
     def test_recorded_input_required(self):
@@ -1479,21 +1480,21 @@ class TestRequireActiveMapping(ComponentBaseTest):
         )
         combination = EventCombination([(1, KEY_A, 1)])
 
-        self.message_broker.send(MappingData())
+        self.message_broker.publish(MappingData())
         self.assert_inactive(self.box)
 
-        self.message_broker.send(PresetData(name="preset", mappings=()))
+        self.message_broker.publish(PresetData(name="preset", mappings=()))
         self.assert_inactive(self.box)
 
-        self.message_broker.send(PresetData(name="preset", mappings=(combination,)))
+        self.message_broker.publish(PresetData(name="preset", mappings=(combination,)))
         self.assert_inactive(self.box)
 
         # the widget will be enabled once a mapping with recorded input is selected
-        self.message_broker.send(MappingData(event_combination=combination))
+        self.message_broker.publish(MappingData(event_combination=combination))
         self.assert_active(self.box)
 
         # this mapping doesn't have input recorded, so the box is disabled
-        self.message_broker.send(MappingData())
+        self.message_broker.publish(MappingData())
         self.assert_inactive(self.box)
 
     def assert_inactive(self, widget: Gtk.Widget):
@@ -1515,13 +1516,13 @@ class TestStack(ComponentBaseTest):
         self.stack.show_all()
         stack_wrapper = Stack(self.message_broker, self.controller_mock, self.stack)
 
-        self.message_broker.send(DoStackSwitch(Stack.devices_page))
+        self.message_broker.publish(DoStackSwitch(Stack.devices_page))
         self.assertEqual(self.stack.get_visible_child_name(), "Devices")
 
-        self.message_broker.send(DoStackSwitch(Stack.presets_page))
+        self.message_broker.publish(DoStackSwitch(Stack.presets_page))
         self.assertEqual(self.stack.get_visible_child_name(), "Presets")
 
-        self.message_broker.send(DoStackSwitch(Stack.editor_page))
+        self.message_broker.publish(DoStackSwitch(Stack.editor_page))
         self.assertEqual(self.stack.get_visible_child_name(), "Editor")
 
 
@@ -1575,7 +1576,7 @@ class TestBreadcrumbs(ComponentBaseTest):
         self.assertEqual(self.label_4.get_text(), "?  /  ?  /  ?")
         self.assertEqual(self.label_5.get_text(), "?")
 
-        self.message_broker.send(PresetData("preset", None))
+        self.message_broker.publish(PresetData("preset", None))
 
         self.assertEqual(self.label_1.get_text(), "")
         self.assertEqual(self.label_2.get_text(), "?")
@@ -1583,7 +1584,7 @@ class TestBreadcrumbs(ComponentBaseTest):
         self.assertEqual(self.label_4.get_text(), "?  /  preset  /  ?")
         self.assertEqual(self.label_5.get_text(), "?")
 
-        self.message_broker.send(GroupData("group", ()))
+        self.message_broker.publish(GroupData("group", ()))
 
         self.assertEqual(self.label_1.get_text(), "")
         self.assertEqual(self.label_2.get_text(), "group")
@@ -1591,7 +1592,7 @@ class TestBreadcrumbs(ComponentBaseTest):
         self.assertEqual(self.label_4.get_text(), "group  /  preset  /  ?")
         self.assertEqual(self.label_5.get_text(), "?")
 
-        self.message_broker.send(MappingData())
+        self.message_broker.publish(MappingData())
 
         self.assertEqual(self.label_1.get_text(), "")
         self.assertEqual(self.label_2.get_text(), "group")
@@ -1599,16 +1600,18 @@ class TestBreadcrumbs(ComponentBaseTest):
         self.assertEqual(self.label_4.get_text(), "group  /  preset  /  Empty Mapping")
         self.assertEqual(self.label_5.get_text(), "Empty Mapping")
 
-        self.message_broker.send(MappingData(name="mapping"))
+        self.message_broker.publish(MappingData(name="mapping"))
         self.assertEqual(self.label_4.get_text(), "group  /  preset  /  mapping")
         self.assertEqual(self.label_5.get_text(), "mapping")
 
         combination = EventCombination([(1, KEY_A, 1), (1, KEY_B, 1)])
-        self.message_broker.send(MappingData(event_combination=combination))
+        self.message_broker.publish(MappingData(event_combination=combination))
         self.assertEqual(self.label_4.get_text(), "group  /  preset  /  a + b")
         self.assertEqual(self.label_5.get_text(), "a + b")
 
         combination = EventCombination([(1, KEY_A, 1)])
-        self.message_broker.send(MappingData(name="qux", event_combination=combination))
+        self.message_broker.publish(
+            MappingData(name="qux", event_combination=combination)
+        )
         self.assertEqual(self.label_4.get_text(), "group  /  preset  /  qux")
         self.assertEqual(self.label_5.get_text(), "qux")

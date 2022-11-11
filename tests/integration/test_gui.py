@@ -58,13 +58,14 @@ from unittest.mock import patch, MagicMock, call
 from importlib.util import spec_from_loader, module_from_spec
 from importlib.machinery import SourceFileLoader
 
-import gi
 from inputremapper.input_event import InputEvent
+
+import gi
 
 gi.require_version("Gdk", "3.0")
 gi.require_version("Gtk", "3.0")
-gi.require_version("GLib", "2.0")
 gi.require_version("GtkSource", "4")
+gi.require_version("GLib", "2.0")
 from gi.repository import Gtk, GLib, Gdk, GtkSource
 
 from inputremapper.configs.system_mapping import system_mapping
@@ -81,7 +82,7 @@ from inputremapper.gui.messages.message_data import StatusData, CombinationRecor
 from inputremapper.gui.components.editor import MappingSelectionLabel, SET_KEY_FIRST
 from inputremapper.gui.components.device_groups import DeviceGroupEntry
 from inputremapper.gui.controller import Controller
-from inputremapper.gui.helper import RootHelper
+from inputremapper.gui.reader_service import ReaderService
 from inputremapper.gui.utils import gtk_iteration, Colors
 from inputremapper.gui.user_interface import UserInterface
 from inputremapper.injection.injector import InjectorState
@@ -131,16 +132,16 @@ def launch(
 @contextmanager
 def patch_launch():
     """patch the launch function such that we don't connect to
-    the dbus and don't use pkexec to start the helper"""
+    the dbus and don't use pkexec to start the reader-service"""
     original_connect = Daemon.connect
     original_os_system = os.system
     Daemon.connect = Daemon
 
     def os_system(cmd):
         # instead of running pkexec, fork instead. This will make
-        # the helper aware of all the test patches
-        if "pkexec input-remapper-control --command helper" in cmd:
-            multiprocessing.Process(target=RootHelper(_Groups()).run).start()
+        # the reader-service aware of all the test patches
+        if "pkexec input-remapper-control --command start-reader-service" in cmd:
+            multiprocessing.Process(target=ReaderService(_Groups()).run).start()
             return 0
 
         return original_os_system(cmd)
@@ -173,7 +174,7 @@ class GtkKeyEvent:
         return True, self.keyval
 
 
-class TestGroupsFromHelper(unittest.TestCase):
+class TestGroupsFromReaderService(unittest.TestCase):
     def setUp(self):
         # don't try to connect, return an object instance of it instead
         self.original_connect = Daemon.connect
@@ -183,13 +184,13 @@ class TestGroupsFromHelper(unittest.TestCase):
         # because we want to discover the groups as early a possible, to reduce startup
         # time for the application
         self.original_os_system = os.system
-        self.helper_started = MagicMock()
+        self.reader_service_started = MagicMock()
 
         def os_system(cmd):
             # instead of running pkexec, fork instead. This will make
-            # the helper aware of all the test patches
-            if "pkexec input-remapper-control --command helper" in cmd:
-                self.helper_started()  # don't start the helper just log that it was.
+            # the reader-service aware of all the test patches
+            if "pkexec input-remapper-control --command start-reader-service" in cmd:
+                self.reader_service_started()  # don't start the reader-service just log that it was.
                 return 0
 
             return self.original_os_system(cmd)
@@ -210,14 +211,14 @@ class TestGroupsFromHelper(unittest.TestCase):
 
     def test_knows_devices(self):
         # verify that it is working as expected. The gui doesn't have knowledge
-        # of groups until the root-helper provides them
-        self.data_manager._reader.groups.set_groups([])
+        # of groups until the root-reader-service provides them
+        self.data_manager._reader_client.groups.set_groups([])
         gtk_iteration()
-        self.helper_started.assert_called()
+        self.reader_service_started.assert_called()
         self.assertEqual(len(self.data_manager.get_group_keys()), 0)
 
-        # start the helper delayed
-        multiprocessing.Process(target=RootHelper(_Groups()).run).start()
+        # start the reader-service delayed
+        multiprocessing.Process(target=ReaderService(_Groups()).run).start()
         # perform some iterations so that the reader ends up reading from the pipes
         # which will make it receive devices.
         for _ in range(10):
@@ -276,6 +277,8 @@ class GuiTestBase(unittest.TestCase):
                 self.daemon,
             ) = launch()
 
+        self._test_initial_state()
+
         get = self.user_interface.get
         self.device_selection: Gtk.FlowBox = get("device_selection")
         self.preset_selection: Gtk.ComboBoxText = get("preset_selection")
@@ -316,7 +319,24 @@ class GuiTestBase(unittest.TestCase):
     def tearDown(self):
         clean_up_integration(self)
 
+        # this is important, otherwise it keeps breaking things in the background
+        self.assertIsNone(self.data_manager._reader_client._read_timeout)
+
         self.throttle()
+
+    def _test_initial_state(self):
+        # make sure each test deals with the same initial state
+        self.assertEqual(self.controller.data_manager, self.data_manager)
+        self.assertEqual(self.data_manager.active_group.key, "Foo Device")
+        # if the modification-date from `prepare_presets` is not destroyed, preset3
+        # should be selected as the newest one
+        self.assertEqual(self.data_manager.active_preset.name, "preset3")
+        self.assertEqual(self.data_manager.active_mapping.target_uinput, "keyboard")
+        self.assertEqual(
+            self.data_manager.active_mapping.event_combination,
+            EventCombination((1, 5, 1)),
+        )
+        self.assertEqual(self.data_manager.active_event, InputEvent(0, 0, 1, 5, 1))
 
     def _callTestMethod(self, method):
         """Retry all tests if they fail.
@@ -616,7 +636,7 @@ class TestGui(GuiTestBase):
         self.assertFalse(self.recording_status.get_visible())
         self.assertFalse(self.recording_toggle.get_active())
 
-    def test_events_from_helper_arrive(self):
+    def test_events_from_reader_service_arrive(self):
         # load a device with more capabilities
         self.controller.load_group("Foo Device 2")
         gtk_iteration()
@@ -686,7 +706,7 @@ class TestGui(GuiTestBase):
             EventCombination.empty_combination(),
         )
 
-        # try to recorde the same combination
+        # try to record the same combination
         self.controller.start_key_recording()
         push_events(
             fixtures.foo_device_2_keyboard,
@@ -699,7 +719,7 @@ class TestGui(GuiTestBase):
             EventCombination.empty_combination(),
         )
 
-        # try to recorde a different combination
+        # try to record a different combination
         self.controller.start_key_recording()
         push_events(fixtures.foo_device_2_keyboard, [InputEvent.from_string("1,30,1")])
         self.throttle(20)
@@ -736,7 +756,7 @@ class TestGui(GuiTestBase):
         self.throttle(20)
 
         # sending a combination update now should not do anything
-        self.message_broker.send(
+        self.message_broker.publish(
             CombinationRecorded(EventCombination.from_string("1,35,1"))
         )
         gtk_iteration()
@@ -768,7 +788,7 @@ class TestGui(GuiTestBase):
         self.assertEqual(len(self.selection_label_listbox.get_children()), 2)
         self.assertEqual(len(self.data_manager.active_preset), 2)
 
-        # 2. recorde a combination for that mapping
+        # 2. record a combination for that mapping
         self.recording_toggle.set_active(True)
         gtk_iteration()
         push_events(fixtures.foo_device_2_keyboard, [InputEvent.from_string("1,30,1")])
@@ -828,12 +848,12 @@ class TestGui(GuiTestBase):
         )
 
     def test_show_status(self):
-        self.message_broker.send(StatusData(0, "a" * 500))
+        self.message_broker.publish(StatusData(0, "a" * 500))
         gtk_iteration()
         text = self.get_status_text()
         self.assertIn("...", text)
 
-        self.message_broker.send(StatusData(0, "b"))
+        self.message_broker.publish(StatusData(0, "b"))
         gtk_iteration()
         text = self.get_status_text()
         self.assertNotIn("...", text)
@@ -894,7 +914,7 @@ class TestGui(GuiTestBase):
         self.controller.load_group("Foo Device 2")
         gtk_iteration()
 
-        # it should be possible to write a combination combination
+        # it should be possible to write a combination
         ev_1 = InputEvent.from_tuple((EV_KEY, evdev.ecodes.KEY_A, 1))
         ev_2 = InputEvent.from_tuple((EV_ABS, evdev.ecodes.ABS_HAT0X, 1))
         ev_3 = InputEvent.from_tuple((EV_KEY, evdev.ecodes.KEY_C, 1))
@@ -1078,7 +1098,7 @@ class TestGui(GuiTestBase):
 
         self.recording_toggle.set_active(True)
         gtk_iteration()
-        self.message_broker.send(
+        self.message_broker.publish(
             CombinationRecorded(EventCombination((EV_KEY, KEY_Q, 1)))
         )
         gtk_iteration()
@@ -1098,7 +1118,7 @@ class TestGui(GuiTestBase):
         gtk_iteration()
         self.recording_toggle.set_active(True)
         gtk_iteration()
-        self.message_broker.send(
+        self.message_broker.publish(
             CombinationRecorded(EventCombination((EV_KEY, KEY_Q, 1)))
         )
         gtk_iteration()
@@ -1577,9 +1597,9 @@ class TestGui(GuiTestBase):
         self.assertEqual(self.data_manager.get_state(), InjectorState.RUNNING)
 
         # this is a stupid workaround for the bad test fixtures
-        # by switching the group we make sure that the helper no longer listens for
-        # events on "Foo Device 2" otherwise we would have two processes
-        # (helper and injector) reading the same pipe which can block this test
+        # by switching the group we make sure that the reader-service no longer
+        # listens for events on "Foo Device 2" otherwise we would have two processes
+        # (reader-service and injector) reading the same pipe which can block this test
         # indefinitely
         self.controller.load_group("Foo Device")
         gtk_iteration()
@@ -1703,9 +1723,11 @@ class TestGui(GuiTestBase):
         self.controller.refresh_groups()
         gtk_iteration()
         self.throttle(100)
-        # the newest preset should be selected
+        # the gui should not jump to a different preset suddenly
+        self.assertEqual(self.data_manager.active_preset.name, "preset1")
+
+        # just to verify that the mtime still tells us that preset3 is the newest one
         self.assertEqual(self.controller.get_a_preset(), "preset3")
-        self.assertEqual(self.data_manager.active_preset.name, "preset3")
 
         # the list contains correct entries
         # and the non-existing entry should be removed
@@ -1725,8 +1747,8 @@ class TestGui(GuiTestBase):
 
         # it won't crash due to "list index out of range"
         # when `types` is an empty list. Won't show an icon
-        self.data_manager._reader.groups.find(key="Foo Device 2").types = []
-        self.data_manager._reader.send_groups()
+        self.data_manager._reader_client.groups.find(key="Foo Device 2").types = []
+        self.data_manager._reader_client.publish_groups()
         gtk_iteration()
         self.assertIn(
             "Foo Device 2",

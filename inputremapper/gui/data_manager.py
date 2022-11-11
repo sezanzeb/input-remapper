@@ -23,6 +23,9 @@ import re
 import time
 from typing import Optional, List, Tuple, Set
 
+import gi
+
+gi.require_version("GLib", "2.0")
 from gi.repository import GLib
 
 from inputremapper.configs.global_config import GlobalConfig
@@ -43,7 +46,7 @@ from inputremapper.gui.messages.message_data import (
     PresetData,
     CombinationUpdate,
 )
-from inputremapper.gui.reader import Reader
+from inputremapper.gui.reader_client import ReaderClient
 from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.injection.injector import (
     InjectorState,
@@ -71,13 +74,13 @@ class DataManager:
         self,
         message_broker: MessageBroker,
         config: GlobalConfig,
-        reader: Reader,
+        reader_client: ReaderClient,
         daemon: DaemonProxy,
         uinputs: GlobalUInputs,
         system_mapping: SystemMapping,
     ):
         self.message_broker = message_broker
-        self._reader = reader
+        self._reader_client = reader_client
         self._daemon = daemon
         self._uinputs = uinputs
         self._system_mapping = system_mapping
@@ -90,38 +93,38 @@ class DataManager:
         self._active_mapping: Optional[UIMapping] = None
         self._active_event: Optional[InputEvent] = None
 
-    def send_group(self):
+    def publish_group(self):
         """send active group to the MessageBroker.
 
         This is internally called whenever the group changes.
         It is usually not necessary to call this explicitly from
         outside DataManager"""
-        self.message_broker.send(
+        self.message_broker.publish(
             GroupData(self.active_group.key, self.get_preset_names())
         )
 
-    def send_preset(self):
+    def publish_preset(self):
         """send active preset to the MessageBroker.
 
         This is internally called whenever the preset changes.
         It is usually not necessary to call this explicitly from
         outside DataManager"""
-        self.message_broker.send(
+        self.message_broker.publish(
             PresetData(
                 self.active_preset.name, self.get_mappings(), self.get_autoload()
             )
         )
 
-    def send_mapping(self):
+    def publish_mapping(self):
         """send active mapping to the MessageBroker
 
         This is internally called whenever the mapping changes.
         It is usually not necessary to call this explicitly from
         outside DataManager"""
         if self.active_mapping:
-            self.message_broker.send(self.active_mapping.get_bus_message())
+            self.message_broker.publish(self.active_mapping.get_bus_message())
 
-    def send_event(self):
+    def publish_event(self):
         """send active event to the MessageBroker.
 
         This is internally called whenever the event changes.
@@ -129,11 +132,11 @@ class DataManager:
         outside DataManager"""
         if self.active_event:
             assert self.active_event in self.active_mapping.event_combination
-            self.message_broker.send(self.active_event)
+            self.message_broker.publish(self.active_event)
 
-    def send_uinputs(self):
+    def publish_uinputs(self):
         """send the "uinputs" message on the MessageBroker"""
-        self.message_broker.send(
+        self.message_broker.publish(
             UInputsData(
                 {
                     name: uinput.capabilities()
@@ -142,21 +145,21 @@ class DataManager:
             )
         )
 
-    def send_groups(self):
+    def publish_groups(self):
         """send the "groups" message on the MessageBroker"""
-        self._reader.send_groups()
+        self._reader_client.publish_groups()
 
-    def send_injector_state(self):
+    def publish_injector_state(self):
         """send the "injector_state" message with the state of the injector
         for the active_group"""
         if not self.active_group:
             return
-        self.message_broker.send(InjectorStateMessage(self.get_state()))
+        self.message_broker.publish(InjectorStateMessage(self.get_state()))
 
     @property
     def active_group(self) -> Optional[_Group]:
         """the currently loaded group"""
-        return self._reader.group
+        return self._reader_client.group
 
     @property
     def active_preset(self) -> Optional[Preset[UIMapping]]:
@@ -175,7 +178,7 @@ class DataManager:
 
     def get_group_keys(self) -> Tuple[GroupKey, ...]:
         """Get all group keys (plugged devices)"""
-        return tuple(group.key for group in self._reader.groups.filter())
+        return tuple(group.key for group in self._reader_client.groups.filter())
 
     def get_preset_names(self) -> Tuple[Name, ...]:
         """Get all preset names for active_group and current user,
@@ -223,13 +226,13 @@ class DataManager:
         elif self.get_autoload:
             self._config.set_autoload_preset(self.active_group.key, None)
 
-        self.send_preset()
+        self.publish_preset()
 
     def get_newest_group_key(self) -> GroupKey:
         """group_key of the group with the most recently modified preset"""
         paths = []
         for path in glob.glob(os.path.join(get_preset_path(), "*/*.json")):
-            if self._reader.groups.find(key=split_all(path)[-2]):
+            if self._reader_client.groups.find(key=split_all(path)[-2]):
                 paths.append((path, os.path.getmtime(path)))
 
         if not paths:
@@ -291,13 +294,15 @@ class DataManager:
         if group_key not in self.get_group_keys():
             raise DataManagementError("Unable to load non existing group")
 
+        logger.info('Loading group "%s"', group_key)
+
         self._active_event = None
         self._active_mapping = None
         self._active_preset = None
-        group = self._reader.groups.find(key=group_key)
-        self._reader.set_group(group)
-        self.send_group()
-        self.send_injector_state()
+        group = self._reader_client.groups.find(key=group_key)
+        self._reader_client.set_group(group)
+        self.publish_group()
+        self.publish_injector_state()
 
     def load_preset(self, name: str):
         """Load a preset. Will send "preset" message on the MessageBroker
@@ -307,13 +312,15 @@ class DataManager:
         if not self.active_group:
             raise DataManagementError("Unable to load preset. Group is not set")
 
+        logger.info('Loading preset "%s"', name)
+
         preset_path = get_preset_path(self.active_group.name, name)
         preset = Preset(preset_path, mapping_factory=UIMapping)
         preset.load()
         self._active_event = None
         self._active_mapping = None
         self._active_preset = preset
-        self.send_preset()
+        self.publish_preset()
 
     def load_mapping(self, combination: EventCombination):
         """Load a mapping. Will send "mapping" message on the MessageBroker"""
@@ -328,7 +335,7 @@ class DataManager:
             )
         self._active_event = None
         self._active_mapping = mapping
-        self.send_mapping()
+        self.publish_mapping()
 
     def load_event(self, event: InputEvent):
         """Load a InputEvent from the combination in the active mapping.
@@ -342,7 +349,7 @@ class DataManager:
                 f"{self.active_mapping.event_combination}"
             )
         self._active_event = event
-        self.send_event()
+        self.publish_event()
 
     def rename_preset(self, new_name: str):
         """rename the current preset and move the correct file
@@ -373,8 +380,8 @@ class DataManager:
             self._config.set_autoload_preset(self.active_group.key, new_name)
 
         self.active_preset.path = get_preset_path(self.active_group.name, new_name)
-        self.send_group()
-        self.send_preset()
+        self.publish_group()
+        self.publish_preset()
 
     def copy_preset(self, name: str):
         """copy the current preset to the given name.
@@ -394,8 +401,8 @@ class DataManager:
         logger.info('Copy "%s" to "%s"', self.active_preset.path, new_path)
         self.active_preset.path = new_path
         self.save()
-        self.send_group()
-        self.send_preset()
+        self.publish_group()
+        self.publish_preset()
 
     def create_preset(self, name: str):
         """create empty preset in the active_group.
@@ -409,7 +416,7 @@ class DataManager:
             raise DataManagementError("Unable to add preset. Preset exists")
 
         Preset(path).save()
-        self.send_group()
+        self.publish_group()
 
     def delete_preset(self):
         """delete the active preset
@@ -421,7 +428,7 @@ class DataManager:
         os.remove(preset_path)
         self._active_mapping = None
         self._active_preset = None
-        self.send_group()
+        self.publish_group()
 
     def update_mapping(self, **kwargs):
         """update the active mapping with the given keywords and values.
@@ -444,14 +451,14 @@ class DataManager:
             and combination != self.active_mapping.event_combination
         ):
             self._active_event = None
-            self.message_broker.send(
+            self.message_broker.publish(
                 CombinationUpdate(combination, self._active_mapping.event_combination)
             )
         if "mapping_type" in kwargs:
             # mapping_type must be the last update because it is automatically updated
             # by a validation function
             self._active_mapping.mapping_type = kwargs["mapping_type"]
-        self.send_mapping()
+        self.publish_mapping()
 
     def update_event(self, new_event: InputEvent):
         """update the active event.
@@ -466,7 +473,7 @@ class DataManager:
         combination[combination.index(self.active_event)] = new_event
         self.update_mapping(event_combination=EventCombination(combination))
         self._active_event = new_event
-        self.send_event()
+        self.publish_event()
 
     def create_mapping(self):
         """create empty mapping in the active preset.
@@ -475,7 +482,7 @@ class DataManager:
         if not self._active_preset:
             raise DataManagementError("cannot create mapping: preset is not set")
         self._active_preset.add(UIMapping())
-        self.send_preset()
+        self.publish_preset()
 
     def delete_mapping(self):
         """delete the active mapping
@@ -488,7 +495,7 @@ class DataManager:
 
         self._active_preset.remove(self._active_mapping.event_combination)
         self._active_mapping = None
-        self.send_preset()
+        self.publish_preset()
 
     def save(self):
         """save the active preset"""
@@ -500,7 +507,7 @@ class DataManager:
         Should send "groups" message to MessageBroker this will not happen immediately
         because the system might take a bit until the groups are available
         """
-        self._reader.refresh_groups()
+        self._reader_client.refresh_groups()
 
     def start_combination_recording(self):
         """Record user input.
@@ -508,14 +515,14 @@ class DataManager:
         Will send "combination_recorded" messages as new input arrives.
         Will eventually send a "recording_finished" message.
         """
-        self._reader.start_recorder()
+        self._reader_client.start_recorder()
 
     def stop_combination_recording(self):
         """Stop recording user input.
 
         Will send RecordingFinished message if a recording is running.
         """
-        self._reader.stop_recorder()
+        self._reader_client.stop_recorder()
 
     def stop_injecting(self) -> None:
         """stop injecting for the active group
@@ -524,7 +531,9 @@ class DataManager:
         if not self.active_group:
             raise DataManagementError("cannot stop injection: group is not set")
         self._daemon.stop_injecting(self.active_group.key)
-        self.do_when_injector_state({InjectorState.STOPPED}, self.send_injector_state)
+        self.do_when_injector_state(
+            {InjectorState.STOPPED}, self.publish_injector_state
+        )
 
     def start_injecting(self) -> bool:
         """start injecting the active preset for the active group.
@@ -545,7 +554,7 @@ class DataManager:
                     InjectorState.NO_GRAB,
                     InjectorState.UPGRADE_EVDEV,
                 },
-                self.send_injector_state,
+                self.publish_injector_state,
             )
             return True
         return False

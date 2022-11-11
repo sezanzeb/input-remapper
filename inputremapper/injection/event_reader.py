@@ -20,7 +20,9 @@
 
 
 """Because multiple calls to async_read_loop won't work."""
+
 import asyncio
+import os
 from typing import AsyncIterator, Protocol, Set, Dict, Tuple, List
 
 import evdev
@@ -44,9 +46,9 @@ class Context(Protocol):
 class EventReader:
     """Reads input events from a single device and distributes them.
 
-    There is one EventReader object for each source, which tells multiple mapping_handlers
-    that a new event is ready so that they can inject all sorts of funny
-    things.
+    There is one EventReader object for each source, which tells multiple
+    mapping_handlers that a new event is ready so that they can inject all sorts of
+    funny things.
 
     Other devnodes may be present for the hardware device, in which case this
     needs to be created multiple times.
@@ -75,17 +77,30 @@ class EventReader:
         self.context = context
         self.stop_event = stop_event
 
+    def stop(self):
+        """Stop the reader."""
+        self.stop_event.set()
+
     async def read_loop(self) -> AsyncIterator[evdev.InputEvent]:
         stop_task = asyncio.Task(self.stop_event.wait())
         loop = asyncio.get_running_loop()
         events_ready = asyncio.Event()
         loop.add_reader(self._source.fileno(), events_ready.set)
+
         while True:
             _, pending = await asyncio.wait(
                 {stop_task, events_ready.wait()},
                 return_when=asyncio.FIRST_COMPLETED,
             )
-            if stop_task.done():
+
+            fd_broken = os.stat(self._source.fileno()).st_nlink == 0
+            if fd_broken:
+                # happens when the device is unplugged while reading, causing 100% cpu
+                # usage because events_ready.set is called repeatedly forever,
+                # while read_loop will hang at self._source.read_one().
+                logger.error("fd broke, was the device unplugged?")
+
+            if stop_task.done() or fd_broken:
                 for task in pending:
                     task.cancel()
                 loop.remove_reader(self._source.fileno())
@@ -176,7 +191,6 @@ class EventReader:
             self._source.path,
             self._source.fd,
         )
-
         async for event in self.read_loop():
             await self.handle(InputEvent.from_event(event))
 

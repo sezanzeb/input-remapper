@@ -27,6 +27,7 @@ from tests.test import (
     push_events,
     EVENT_READ_TIMEOUT,
     START_READING_DELAY,
+    logger,
 )
 
 import os
@@ -38,8 +39,8 @@ import evdev
 from evdev.ecodes import EV_ABS, EV_KEY
 
 from inputremapper.groups import groups, _Groups
-from inputremapper.gui.reader import Reader
-from inputremapper.gui.helper import RootHelper
+from inputremapper.gui.reader_client import ReaderClient
+from inputremapper.gui.reader_service import ReaderService
 
 
 class TestTest(unittest.TestCase):
@@ -82,53 +83,56 @@ class TestTest(unittest.TestCase):
         self.assertNotIn("foo", environ)
 
     def test_push_events(self):
-        """Test that push_event works properly between helper and reader.
+        """Test that push_event works properly between reader service and client.
 
-        Using push_events after the helper is already forked should work,
+        Using push_events after the reader-service is already started should work,
         as well as using push_event twice
         """
-        reader = Reader(MessageBroker(), groups)
+        reader_client = ReaderClient(MessageBroker(), groups)
 
-        def create_helper():
-            # this will cause pending events to be copied over to the helper
+        def create_reader_service():
+            # this will cause pending events to be copied over to the reader-service
             # process
-            def start_helper():
+            def start_reader_service():
                 # there is no point in using the global groups object
-                # because the helper runs in a different process
-                helper = RootHelper(_Groups())
-                helper.run()
+                # because the reader-service runs in a different process
+                reader_service = ReaderService(_Groups())
+                reader_service.run()
 
-            self.helper = multiprocessing.Process(target=start_helper)
-            self.helper.start()
+            self.reader_service = multiprocessing.Process(target=start_reader_service)
+            self.reader_service.start()
             time.sleep(0.1)
 
         def wait_for_results():
-            # wait for the helper to send stuff
+            # wait for the reader-service to send stuff
             for _ in range(10):
                 time.sleep(EVENT_READ_TIMEOUT)
-                if reader._results.poll():
+                if reader_client._results_pipe.poll():
                     break
 
-        create_helper()
-        reader.set_group(groups.find(key="Foo Device 2"))
+        create_reader_service()
+        reader_client.set_group(groups.find(key="Foo Device 2"))
+        reader_client.start_recorder()
         time.sleep(START_READING_DELAY)
 
         event = new_event(EV_KEY, 102, 1)
         push_events(fixtures.foo_device_2_keyboard, [event])
         wait_for_results()
-        self.assertTrue(reader._results.poll())
+        self.assertTrue(reader_client._results_pipe.poll())
 
-        reader._read()
-        self.assertFalse(reader._results.poll())
+        reader_client._read()
+        self.assertFalse(reader_client._results_pipe.poll())
 
-        # can push more events to the helper that is inside a separate
+        # can push more events to the reader-service that is inside a separate
         # process, which end up being sent to the reader
         event = new_event(EV_KEY, 102, 0)
+        logger.info("push_events")
         push_events(fixtures.foo_device_2_keyboard, [event])
         wait_for_results()
-        self.assertTrue(reader._results.poll())
+        logger.info("assert")
+        self.assertTrue(reader_client._results_pipe.poll())
 
-        reader.terminate()
+        reader_client.terminate()
 
 
 if __name__ == "__main__":

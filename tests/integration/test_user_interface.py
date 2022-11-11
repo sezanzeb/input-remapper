@@ -90,7 +90,7 @@ class TestUserInterface(unittest.TestCase):
         mock.assert_called_once()
 
     def test_combination_label_shows_combination(self):
-        self.message_broker.send(
+        self.message_broker.publish(
             MappingData(
                 event_combination=EventCombination((EV_KEY, KEY_A, 1)), name="foo"
             )
@@ -101,7 +101,7 @@ class TestUserInterface(unittest.TestCase):
         self.assertEqual(label.get_opacity(), 1)
 
     def test_combination_label_shows_text_when_empty_mapping(self):
-        self.message_broker.send(MappingData())
+        self.message_broker.publish(MappingData())
         gtk_iteration()
         label: Gtk.Label = self.user_interface.get("combination-label")
         self.assertEqual(label.get_text(), "no input configured")

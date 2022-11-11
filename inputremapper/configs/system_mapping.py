@@ -122,8 +122,6 @@ class SystemMapping:
             if name.startswith("KEY") or name.startswith("BTN"):
                 self._set(name, ecode)
 
-        self._set(DISABLE_NAME, DISABLE_CODE)
-
     def populate(self):
         """Get a mapping of all available names to their keycodes."""
         logger.debug("Gathering available keycodes")
@@ -135,6 +133,8 @@ class SystemMapping:
             self._use_xmodmap_symbols()
 
         self._use_linux_evdev_symbols()
+
+        self._set(DISABLE_NAME, DISABLE_CODE)
 
     def update(self, mapping: dict):
         """Update this with new keys.

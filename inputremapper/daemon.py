@@ -33,8 +33,9 @@ import time
 from pathlib import PurePath
 from typing import Protocol, Dict
 
-import gi
 from pydbus import SystemBus
+
+import gi
 
 gi.require_version("GLib", "2.0")
 from gi.repository import GLib
@@ -214,14 +215,13 @@ class Daemon:
         macro_variables.start()
 
     @classmethod
-    def connect(cls, fallback=True) -> DaemonProxy:
+    def connect(cls, fallback: bool = True) -> DaemonProxy:
         """Get an interface to start and stop injecting keystrokes.
 
         Parameters
         ----------
-        fallback : bool
-            If true, returns an instance of the daemon instead if it cannot
-            connect
+        fallback
+            If true, starts the daemon via pkexec if it cannot connect.
         """
         bus = SystemBus()
         try:

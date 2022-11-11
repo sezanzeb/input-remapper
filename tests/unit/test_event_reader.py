@@ -18,11 +18,8 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-from inputremapper.configs.mapping import Mapping
-from tests.test import new_event, quick_cleanup, get_key_mapping
-
-import unittest
 import asyncio
+import unittest
 
 import evdev
 from evdev.ecodes import (
@@ -39,14 +36,14 @@ from evdev.ecodes import (
     REL_WHEEL_HI_RES,
 )
 
-from inputremapper.configs.global_config import BUTTONS, MOUSE, WHEEL
-
-from inputremapper.injection.context import Context
+from inputremapper.configs.mapping import Mapping
 from inputremapper.configs.preset import Preset
-from inputremapper.event_combination import EventCombination
-from inputremapper.injection.event_reader import EventReader
 from inputremapper.configs.system_mapping import system_mapping
+from inputremapper.event_combination import EventCombination
+from inputremapper.injection.context import Context
+from inputremapper.injection.event_reader import EventReader
 from inputremapper.injection.global_uinputs import global_uinputs
+from tests.test import new_event, quick_cleanup, get_key_mapping
 
 
 class TestEventReader(unittest.IsolatedAsyncioTestCase):

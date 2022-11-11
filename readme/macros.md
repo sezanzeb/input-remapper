@@ -7,6 +7,8 @@ Syntax errors are shown in the UI on save. Each `key` function adds a short dela
 between key-down, key-up and at the end. See [usage.md](usage.md#configuration-files)
 for more info.
 
+Macros are written into the same text field, that would usually contain the output symbol.
+
 Bear in mind that anti-cheat software might detect macros in games.
 
 ### key

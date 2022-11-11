@@ -43,7 +43,7 @@ HELLO = 'hello'
 
 # internal stuff that the gui uses
 START_DAEMON = 'start-daemon'
-HELPER = 'helper'
+START_READER_SERVICE = 'start-reader-service'
 
 
 def run(cmd):
@@ -56,7 +56,7 @@ def run(cmd):
 
 COMMANDS = [AUTOLOAD, START, STOP, HELLO, STOP_ALL]
 
-INTERNALS = [START_DAEMON, HELPER]
+INTERNALS = [START_DAEMON, START_READER_SERVICE]
 
 
 def utils(options):
@@ -166,8 +166,8 @@ def internals(options):
     """
     debug = ' -d' if options.debug else ''
 
-    if options.command == HELPER:
-        cmd = f'input-remapper-helper{debug}'
+    if options.command == START_READER_SERVICE:
+        cmd = f'input-remapper-reader-service{debug}'
     elif options.command == START_DAEMON:
         cmd = f'input-remapper-service --hide-info{debug}'
     else:
@@ -202,14 +202,16 @@ def _systemd_finished():
 
 def boot_finished():
     """Check if booting is completed."""
-    # Get as much information as needed to really safely determine if booting up is complete.
+    # Get as much information as needed to really safely determine if booting up is
+    # complete.
     # - `who` returns an empty list on some system for security purposes
     # - something might be broken and might make systemd_analyze fail:
-    #       Bootup is not yet finished (org.freedesktop.systemd1.Manager.FinishTimestampMonotonic=0).
+    #       Bootup is not yet finished
+    #       (org.freedesktop.systemd1.Manager.FinishTimestampMonotonic=0).
     #       Please try again later.
     #       Hint: Use 'systemctl list-jobs' to see active jobs
     if _systemd_finished():
-        logger.debug('Booting finished')
+        logger.debug('System is booted')
         return True
 
     if _num_logged_in_users() > 0:

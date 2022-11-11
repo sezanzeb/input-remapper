@@ -28,13 +28,9 @@ from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.injection.injector import InjectorState
 from inputremapper.input_event import InputEvent
 
-gi.require_version("Gdk", "3.0")
 gi.require_version("Gtk", "3.0")
-gi.require_version("GLib", "2.0")
-gi.require_version("GtkSource", "4")
 from gi.repository import Gtk
 
-# from inputremapper.gui.helper import is_helper_running
 from inputremapper.event_combination import EventCombination
 from inputremapper.groups import _Groups
 from inputremapper.gui.messages.message_broker import (
@@ -50,7 +46,7 @@ from inputremapper.gui.messages.message_data import (
     CombinationUpdate,
     UserConfirmRequest,
 )
-from inputremapper.gui.reader import Reader
+from inputremapper.gui.reader_client import ReaderClient
 from inputremapper.gui.utils import CTX_ERROR, CTX_APPLY, gtk_iteration
 from inputremapper.gui.gettext import _
 from inputremapper.injection.global_uinputs import GlobalUInputs
@@ -78,7 +74,7 @@ class TestController(unittest.TestCase):
         self.data_manager = DataManager(
             self.message_broker,
             GlobalConfig(),
-            Reader(self.message_broker, _Groups()),
+            ReaderClient(self.message_broker, _Groups()),
             FakeDaemonProxy(),
             uinputs,
             system_mapping,
@@ -191,29 +187,6 @@ class TestController(unittest.TestCase):
         self.message_broker.signal(MessageType.init)
         for m in calls:
             self.assertEqual(m, UIMapping(**MAPPING_DEFAULTS))
-
-    def test_on_init_should_provide_status_if_helper_is_not_running(self):
-        calls: List[StatusData] = []
-
-        def f(data):
-            calls.append(data)
-
-        self.message_broker.subscribe(MessageType.status_msg, f)
-        with patch("inputremapper.gui.controller.is_helper_running", lambda: False):
-            self.message_broker.signal(MessageType.init)
-        self.assertIn(StatusData(CTX_ERROR, _("The helper did not start")), calls)
-
-    def test_on_init_should_not_provide_status_if_helper_is_running(self):
-        calls: List[StatusData] = []
-
-        def f(data):
-            calls.append(data)
-
-        self.message_broker.subscribe(MessageType.status_msg, f)
-        with patch("inputremapper.gui.controller.is_helper_running", lambda: True):
-            self.message_broker.signal(MessageType.init)
-
-        self.assertNotIn(StatusData(CTX_ERROR, _("The helper did not start")), calls)
 
     def test_on_load_group_should_provide_preset(self):
         with patch.object(self.data_manager, "load_preset") as mock:
@@ -663,7 +636,7 @@ class TestController(unittest.TestCase):
         self.message_broker.subscribe(MessageType.combination_update, f)
 
         self.controller.start_key_recording()
-        self.message_broker.send(
+        self.message_broker.publish(
             CombinationRecorded(EventCombination.from_string("1,10,1"))
         )
         self.assertEqual(
@@ -673,7 +646,7 @@ class TestController(unittest.TestCase):
                 EventCombination.from_string("1,10,1"),
             ),
         )
-        self.message_broker.send(
+        self.message_broker.publish(
             CombinationRecorded(EventCombination.from_string("1,10,1+1,3,1"))
         )
         self.assertEqual(
@@ -697,7 +670,7 @@ class TestController(unittest.TestCase):
 
         self.message_broker.subscribe(MessageType.combination_update, f)
 
-        self.message_broker.send(
+        self.message_broker.publish(
             CombinationRecorded(EventCombination.from_string("1,10,1"))
         )
         self.assertEqual(len(calls), 0)
@@ -716,11 +689,11 @@ class TestController(unittest.TestCase):
         self.message_broker.subscribe(MessageType.combination_update, f)
 
         self.controller.start_key_recording()
-        self.message_broker.send(
+        self.message_broker.publish(
             CombinationRecorded(EventCombination.from_string("1,10,1"))
         )
         self.message_broker.signal(MessageType.recording_finished)
-        self.message_broker.send(
+        self.message_broker.publish(
             CombinationRecorded(EventCombination.from_string("1,10,1+1,3,1"))
         )
 
@@ -740,11 +713,11 @@ class TestController(unittest.TestCase):
         self.message_broker.subscribe(MessageType.combination_update, f)
 
         self.controller.start_key_recording()
-        self.message_broker.send(
+        self.message_broker.publish(
             CombinationRecorded(EventCombination.from_string("1,10,1"))
         )
         self.controller.stop_key_recording()
-        self.message_broker.send(
+        self.message_broker.publish(
             CombinationRecorded(EventCombination.from_string("1,10,1+1,3,1"))
         )
 

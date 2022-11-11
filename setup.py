@@ -125,7 +125,7 @@ setup(
         ("/usr/bin/", ["bin/input-remapper-gtk"]),
         ("/usr/bin/", ["bin/input-remapper-service"]),
         ("/usr/bin/", ["bin/input-remapper-control"]),
-        ("/usr/bin/", ["bin/input-remapper-helper"]),
+        ("/usr/bin/", ["bin/input-remapper-reader-service"]),
         # those will be deleted at some point:
         ("/usr/bin/", ["bin/key-mapper-gtk"]),
         ("/usr/bin/", ["bin/key-mapper-service"]),
