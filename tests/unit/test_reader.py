@@ -23,7 +23,7 @@ import json
 import multiprocessing
 import time
 import unittest
-from typing import List
+from typing import List, Optional
 from unittest.mock import patch, MagicMock
 
 from evdev.ecodes import (
@@ -103,7 +103,7 @@ class TestReader(unittest.TestCase):
         if self.reader_service is not None:
             self.reader_service.join()
 
-    def create_reader_service(self, groups: _Groups = None):
+    def create_reader_service(self, groups: Optional[_Groups] = None):
         # this will cause pending events to be copied over to the reader-service
         # process
         if not groups:
