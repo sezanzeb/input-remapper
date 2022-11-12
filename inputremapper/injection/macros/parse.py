@@ -340,8 +340,8 @@ def _parse_recurse(
 
         try:
             task_factory(macro_instance, *positional_args, **keyword_args)
-        except TypeError as err:
-            raise MacroParsingError(msg=str(err))
+        except TypeError as exception:
+            raise MacroParsingError(msg=str(exception)) from exception
 
         # is after this another call? Chain it to the macro_instance
         more_code_exists = len(code) > closing_bracket_position + 1

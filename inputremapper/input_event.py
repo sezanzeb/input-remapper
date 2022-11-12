@@ -116,10 +116,10 @@ class InputEvent:
         """Create a InputEvent from another InputEvent or evdev.InputEvent."""
         try:
             return cls(event.sec, event.usec, event.type, event.code, event.value)
-        except AttributeError:
+        except AttributeError as exception:
             raise InputEventCreationError(
                 f"Failed to create InputEvent from {event = }"
-            )
+            ) from exception
 
     @classmethod
     def from_string(cls, string: str) -> InputEvent:
@@ -148,14 +148,14 @@ class InputEvent:
                 int(event_tuple[1]),
                 int(event_tuple[2]),
             )
-        except ValueError:
+        except ValueError as exception:
             raise InputEventCreationError(
                 f"Failed to create InputEvent from {event_tuple = }"
-            )
-        except TypeError:
+            ) from exception
+        except TypeError as exception:
             raise InputEventCreationError(
                 f"Failed to create InputEvent from {type(event_tuple) = }"
-            )
+            ) from exception
 
     @classmethod
     def btn_left(cls):
