@@ -502,9 +502,9 @@ class _Groups:
 
     def find(
         self,
-        name: str = None,
-        key: str = None,
-        path: str = None,
+        name: Optional[str] = None,
+        key: Optional[str] = None,
+        path: Optional[str] = None,
         include_inputremapper: bool = False,
     ) -> Optional[_Group]:
         """Find a group that matches the provided parameters.

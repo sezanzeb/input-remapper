@@ -209,11 +209,11 @@ class InputEvent:
 
     def modify(
         self,
-        sec: int = None,
-        usec: int = None,
-        type_: int = None,
-        code: int = None,
-        value: int = None,
+        sec: Optional[int] = None,
+        usec: Optional[int] = None,
+        type_: Optional[int] = None,
+        code: Optional[int] = None,
+        value: Optional[int] = None,
         actions: Tuple[EventActions, ...] = None,
     ) -> InputEvent:
         """Return a new modified event."""

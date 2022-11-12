@@ -160,7 +160,7 @@ class UIMapping(BaseModel):
 
     # callback which gets called if the event_combination is updated
     if not needs_workaround:
-        _combination_changed: CombinationChangedCallback = None
+        _combination_changed: Optional[CombinationChangedCallback] = None
 
     # use type: ignore, looks like a mypy bug related to:
     # https://github.com/samuelcolvin/pydantic/issues/2949
