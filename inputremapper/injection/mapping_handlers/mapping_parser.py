@@ -23,7 +23,6 @@
 from collections import defaultdict
 from typing import Dict, List, Type, Optional, Set, Iterable, Sized, Tuple, Sequence
 
-import evdev
 from evdev.ecodes import EV_KEY, EV_ABS, EV_REL
 
 from inputremapper.configs.mapping import Mapping

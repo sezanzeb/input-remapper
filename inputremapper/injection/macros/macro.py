@@ -41,7 +41,7 @@ import asyncio
 import copy
 import math
 import re
-from typing import List, Callable, Awaitable, Tuple, Optional, Union
+from typing import List, Callable, Awaitable, Tuple, Optional, Union, Any
 
 from evdev.ecodes import (
     ecodes,
@@ -86,7 +86,7 @@ class Variable:
         return f'<Variable "{self.name}">'
 
 
-def _type_check(value, allowed_types, display_name=None, position=None):
+def _type_check(value: Any, allowed_types, display_name=None, position=None) -> Any:
     """Validate a parameter used in a macro.
 
     If the value is a Variable, it will be returned and should be resolved
@@ -126,7 +126,7 @@ def _type_check(value, allowed_types, display_name=None, position=None):
     )
 
 
-def _type_check_symbol(keyname: Union[str, Variable]):
+def _type_check_symbol(keyname: Union[str, Variable]) -> int:
     """Same as _type_check, but checks if the key-name is valid."""
     if isinstance(keyname, Variable):
         # it is a variable and will be read at runtime
@@ -275,7 +275,7 @@ class Macro:
                 coroutine = task(handler)
                 if asyncio.iscoroutine(coroutine):
                     await coroutine
-        except Exception as e:
+        except Exception:
             raise
         finally:
             # done

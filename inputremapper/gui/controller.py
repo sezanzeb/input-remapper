@@ -60,7 +60,6 @@ from inputremapper.gui.messages.message_data import (
 from inputremapper.gui.utils import CTX_APPLY, CTX_ERROR, CTX_WARNING, CTX_MAPPING
 from inputremapper.injection.injector import (
     InjectorState,
-    InjectorCommand,
     InjectorStateMessage,
 )
 from inputremapper.input_event import InputEvent
