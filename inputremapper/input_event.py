@@ -44,7 +44,7 @@ USE_AS_ANALOG_VALUE = 0
 
 
 class EventActions(enum.Enum):
-    """Additional information an InputEvent can send through the event pipeline"""
+    """Additional information an InputEvent can send through the event pipeline."""
 
     as_key = enum.auto()  # treat this event as a key event
     recenter = enum.auto()  # recenter the axis when receiving this
@@ -196,7 +196,7 @@ class InputEvent:
         return f"InputEvent{self.event_tuple}"
 
     def description(self, exclude_threshold=False, exclude_direction=False) -> str:
-        """get a human-readable description of the event"""
+        """Get a human-readable description of the event."""
         return (
             f"{self.get_name()} "
             f"{self.get_direction() if not exclude_direction else ''} "
@@ -230,7 +230,7 @@ class InputEvent:
         return ",".join([str(self.type), str(self.code), str(self.value)])
 
     def get_name(self) -> Optional[str]:
-        """human-readable name"""
+        """Human-readable name."""
         if self.type not in ecodes.bytype:
             logger.warning("Unknown type for %s", self)
             return f"unknown {self.type, self.code}"

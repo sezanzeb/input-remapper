@@ -139,7 +139,7 @@ class Injector(multiprocessing.Process):
 
         super().__init__(name=group.key)
 
-    """Functions to interact with the running process"""
+    """Functions to interact with the running process."""
 
     def get_state(self) -> InjectorState:
         """Get the state of the injection.
@@ -186,7 +186,7 @@ class Injector(multiprocessing.Process):
         logger.info('Stopping injecting keycodes for group "%s"', self.group.key)
         self._msg_pipe[1].send(InjectorCommand.CLOSE)
 
-    """Process internal stuff"""
+    """Process internal stuff."""
 
     def _grab_devices(self) -> GroupSources:
         ranking = [

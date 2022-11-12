@@ -113,8 +113,10 @@ class EventCombination(Tuple[InputEvent]):
 
     @classmethod
     def empty_combination(cls) -> EventCombination:
-        """a combination that has default invalid (to evdev) values useful for the
-        UI to indicate that this combination is not set"""
+        """A combination that has default invalid (to evdev) values.
+
+        Useful for the UI to indicate that this combination is not set
+        """
         return cls("99,99,99")
 
     def is_problematic(self) -> bool:

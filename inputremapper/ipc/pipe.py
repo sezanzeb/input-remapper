@@ -179,6 +179,6 @@ class Pipe:
         return self._get_msg(await self._async_iterator.__anext__())
 
     async def recv_async(self):
-        """read the next line with async. Do not use this when using
+        """Read the next line with async. Do not use this when using
         the async for loop."""
         return await self.__aiter__().__anext__()

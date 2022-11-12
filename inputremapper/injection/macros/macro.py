@@ -312,7 +312,7 @@ class Macro:
     def __repr__(self):
         return f'<Macro "{self.code}">'
 
-    """Functions that prepare the macro"""
+    """Functions that prepare the macro."""
 
     def add_key(self, symbol: str):
         """Write the symbol."""

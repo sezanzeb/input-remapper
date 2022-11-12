@@ -372,7 +372,7 @@ def _parse_recurse(
 
 
 def handle_plus_syntax(macro):
-    """transform a + b + c to hold_keys(a,b,c)"""
+    """Transform a + b + c to hold_keys(a,b,c)."""
     if "+" not in macro:
         return macro
 

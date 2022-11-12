@@ -216,7 +216,8 @@ class MappingHandler:
         """A dict of EventCombination -> HandlerEnums.
 
         for each EventCombination this handler should be wrapped
-        with the given MappingHandler"""
+        with the given MappingHandler.
+        """
         return {}
 
     def set_sub_handler(self, handler: InputEventHandler) -> None:

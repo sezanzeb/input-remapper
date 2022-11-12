@@ -39,7 +39,7 @@ from inputremapper.utils import get_evdev_constant_name
 
 
 class AbsToAbsHandler(MappingHandler):
-    """Handler which transforms EV_ABS to EV_ABS events"""
+    """Handler which transforms EV_ABS to EV_ABS events."""
 
     _map_axis: Tuple[int, int]  # the (type, code) of the axis we map
     _output_axis: Tuple[int, int]  # the (type, code) of the output axis
@@ -126,7 +126,7 @@ class AbsToAbsHandler(MappingHandler):
         self._write(self._scale_to_target(0))
 
     def _scale_to_target(self, x: float) -> int:
-        """scales a x value between -1 and 1 to an integer between
+        """Scales a x value between -1 and 1 to an integer between
         target_absinfo.min and target_absinfo.max
 
         input values above 1 or below -1 are clamped to the extreme values

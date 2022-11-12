@@ -19,7 +19,7 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
-"""Exceptions specific to inputremapper"""
+"""Exceptions specific to inputremapper."""
 
 from typing import Optional
 

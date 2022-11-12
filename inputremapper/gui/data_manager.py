@@ -94,21 +94,23 @@ class DataManager:
         self._active_event: Optional[InputEvent] = None
 
     def publish_group(self):
-        """send active group to the MessageBroker.
+        """Send active group to the MessageBroker.
 
         This is internally called whenever the group changes.
         It is usually not necessary to call this explicitly from
-        outside DataManager"""
+        outside DataManager.
+        """
         self.message_broker.publish(
             GroupData(self.active_group.key, self.get_preset_names())
         )
 
     def publish_preset(self):
-        """send active preset to the MessageBroker.
+        """Send active preset to the MessageBroker.
 
         This is internally called whenever the preset changes.
         It is usually not necessary to call this explicitly from
-        outside DataManager"""
+        outside DataManager.
+        """
         self.message_broker.publish(
             PresetData(
                 self.active_preset.name, self.get_mappings(), self.get_autoload()
@@ -116,26 +118,28 @@ class DataManager:
         )
 
     def publish_mapping(self):
-        """send active mapping to the MessageBroker
+        """Send active mapping to the MessageBroker
 
         This is internally called whenever the mapping changes.
         It is usually not necessary to call this explicitly from
-        outside DataManager"""
+        outside DataManager.
+        """
         if self.active_mapping:
             self.message_broker.publish(self.active_mapping.get_bus_message())
 
     def publish_event(self):
-        """send active event to the MessageBroker.
+        """Send active event to the MessageBroker.
 
         This is internally called whenever the event changes.
         It is usually not necessary to call this explicitly from
-        outside DataManager"""
+        outside DataManager
+        """
         if self.active_event:
             assert self.active_event in self.active_mapping.event_combination
             self.message_broker.publish(self.active_event)
 
     def publish_uinputs(self):
-        """send the "uinputs" message on the MessageBroker"""
+        """Send the "uinputs" message on the MessageBroker."""
         self.message_broker.publish(
             UInputsData(
                 {
@@ -150,7 +154,7 @@ class DataManager:
         self._reader_client.publish_groups()
 
     def publish_injector_state(self):
-        """Publish the "injector_state" message for the active_group"""
+        """Publish the "injector_state" message for the active_group."""
         if not self.active_group:
             return
 
@@ -204,7 +208,7 @@ class DataManager:
         return [mapping.get_bus_message() for mapping in self._active_preset]
 
     def get_autoload(self) -> bool:
-        """the autoload status of the active_preset"""
+        """The autoload status of the active_preset."""
         if not self.active_preset or not self.active_group:
             return False
         return self._config.is_autoloaded(
@@ -533,7 +537,7 @@ class DataManager:
     def stop_injecting(self) -> None:
         """Stop injecting for the active group.
 
-        Will send "injector_state" message once the injector has stopped"""
+        Will send "injector_state" message once the injector has stopped."""
         if not self.active_group:
             raise DataManagementError("Cannot stop injection: Group is not set")
         self._daemon.stop_injecting(self.active_group.key)

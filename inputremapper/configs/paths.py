@@ -112,9 +112,9 @@ def remove(path):
 
 
 def sanitize_path_component(group_name: str) -> str:
-    """replace characters listed in
+    """Replace characters listed in
     https://en.wikipedia.org/wiki/Filename#Reserved_characters_and_words
-    with an underscore
+    with an underscore.
     """
     for character in '/\\?%*:|"<>':
         if character in group_name:

@@ -47,7 +47,7 @@ class GlobalConfig(ConfigBase):
         super().__init__()
 
     def get_dir(self) -> str:
-        """the folder containing this config"""
+        """The folder containing this config."""
         return os.path.split(self.path)[0]
 
     def set_autoload_preset(self, group_key: str, preset: Optional[str]):

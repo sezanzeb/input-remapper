@@ -354,7 +354,7 @@ class CodeEditor:
         )
 
     def _toggle_line_numbers(self):
-        """Show line numbers if multiline, otherwise remove them"""
+        """Show line numbers if multiline, otherwise remove them."""
         if "\n" in self.code:
             self.gui.set_show_line_numbers(True)
             # adds a bit of space between numbers and text:
@@ -509,8 +509,7 @@ class RecordingStatus:
 
 
 class AutoloadSwitch:
-    """the switch used to toggle the autoload state of the active_preset for
-    the acive_group"""
+    """The switch used to toggle the autoload state of the active_preset."""
 
     def __init__(
         self, message_broker: MessageBroker, controller: Controller, switch: Gtk.Switch
@@ -531,7 +530,7 @@ class AutoloadSwitch:
 
 
 class ReleaseCombinationSwitch:
-    """the switch used to set the active_mapping.release_combination_keys parameter"""
+    """The switch used to set the active_mapping.release_combination_keys parameter."""
 
     def __init__(
         self, message_broker: MessageBroker, controller: Controller, switch: Gtk.Switch
@@ -667,8 +666,7 @@ class CombinationListbox:
 
 
 class AnalogInputSwitch:
-    """the switch used to modify the active_event in order to be
-    marked as an analog input"""
+    """The switch that marks the active_event as analog input."""
 
     def __init__(
         self,
@@ -701,8 +699,8 @@ class AnalogInputSwitch:
 
 
 class TriggerThresholdInput:
-    """the number selection used to set the speed or position threshold of the
-    active_event when it is an ABS or REL event used as a key"""
+    """The number selection used to set the speed or position threshold of the
+    active_event when it is an ABS or REL event used as a key."""
 
     def __init__(
         self,
@@ -743,7 +741,7 @@ class TriggerThresholdInput:
 
 
 class ReleaseTimeoutInput:
-    """the number selector used to set the active_mapping.release_timeout parameter"""
+    """The number selector used to set the active_mapping.release_timeout parameter."""
 
     def __init__(
         self,
@@ -776,7 +774,7 @@ class ReleaseTimeoutInput:
 
 
 class RelativeInputCutoffInput:
-    """the number selector to set active_mapping.rel_to_abs_input_cutoff"""
+    """The number selector to set active_mapping.rel_to_abs_input_cutoff."""
 
     def __init__(
         self,
@@ -812,7 +810,7 @@ class RelativeInputCutoffInput:
 
 
 class OutputAxisSelector:
-    """the dropdown menu used to select the output axis if the active_mapping is a
+    """The dropdown menu used to select the output axis if the active_mapping is a
     mapping targeting an analog axis
 
     modifies the active_mapping.output_code and active_mapping.output_type parameters
@@ -881,8 +879,8 @@ class OutputAxisSelector:
 
 
 class KeyAxisStackSwitcher:
-    """the controls used to switch between the gui to modify a key-mapping or
-    an analog-axis mapping"""
+    """The controls used to switch between the gui to modify a key-mapping or
+    an analog-axis mapping."""
 
     def __init__(
         self,
@@ -942,7 +940,7 @@ class KeyAxisStackSwitcher:
 
 
 class TransformationDrawArea:
-    """the graph which shows the relation between input- and output-axis"""
+    """The graph which shows the relation between input- and output-axis."""
 
     def __init__(
         self,
@@ -1020,8 +1018,8 @@ class TransformationDrawArea:
 
 
 class Sliders:
-    """the different sliders to modify the gain, deadzone and expo parameters of the
-    active_mapping"""
+    """The different sliders to modify the gain, deadzone and expo parameters of the
+    active_mapping."""
 
     def __init__(
         self,

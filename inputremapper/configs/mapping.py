@@ -228,7 +228,7 @@ class UIMapping(BaseModel):
         return self.event_combination != EventCombination.empty_combination()
 
     def is_axis_mapping(self) -> bool:
-        """whether this mapping specifies an output axis"""
+        """Whether this mapping specifies an output axis."""
         return self.output_type in [EV_ABS, EV_REL]
 
     def find_analog_input_event(
@@ -292,12 +292,12 @@ class UIMapping(BaseModel):
         return None
 
     def get_bus_message(self) -> MappingData:
-        """return an immutable copy for use in the message broker"""
+        """Return an immutable copy for use in the message broker."""
         return MappingData(**self.dict())
 
     @root_validator
     def validate_mapping_type(cls, values):
-        """overrides the mapping type if the output mapping type is obvious"""
+        """Overrides the mapping type if the output mapping type is obvious."""
         output_type = values.get("output_type")
         output_code = values.get("output_code")
         output_symbol = values.get("output_symbol")
@@ -429,7 +429,7 @@ class Mapping(UIMapping):
     @root_validator
     def output_matches_input(cls, values):
         """Validate that an output type is an axis if we have an input axis.
-        And vice versa"""
+        And vice versa."""
         combination: EventCombination = values.get("event_combination")
         event_values = [event.value for event in combination]
 
@@ -469,7 +469,7 @@ class MappingData(UIMapping):
         return str(self.dict(exclude_defaults=True))
 
     def dict(self, *args, **kwargs):
-        """will not include the message_type"""
+        """Will not include the message_type."""
         dict_ = super().dict(*args, **kwargs)
         if "message_type" in dict_:
             del dict_["message_type"]

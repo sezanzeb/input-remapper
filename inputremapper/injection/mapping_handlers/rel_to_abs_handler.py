@@ -196,14 +196,15 @@ class RelToAbsHandler(MappingHandler):
         self._recenter()
 
     def _recenter(self) -> None:
-        """recenter the output"""
+        """Recenter the output."""
         self._write(self._scale_to_target(0))
 
     async def _create_recenter_loop(self) -> None:
-        """coroutine which waits for the input to start moving,
+        """Coroutine which waits for the input to start moving,
         then waits until the input stops moving, centers the output and repeat.
 
-        runs forever"""
+        Runs forever.
+        """
         while True:
             await self._moving.wait()  # input moving started
             while (
@@ -215,7 +216,7 @@ class RelToAbsHandler(MappingHandler):
             self._recenter()  # input moving stopped
 
     def _scale_to_target(self, x: float) -> int:
-        """scales a x value between -1 and 1 to an integer between
+        """Scales a x value between -1 and 1 to an integer between
         target_absinfo.min and target_absinfo.max
 
         input values above 1 or below -1 are clamped to the extreme values
