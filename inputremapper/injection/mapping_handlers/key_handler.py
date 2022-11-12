@@ -20,8 +20,6 @@
 
 from typing import Tuple, Dict
 
-import evdev
-
 from inputremapper import exceptions
 from inputremapper.configs.mapping import Mapping
 from inputremapper.event_combination import EventCombination
@@ -52,7 +50,7 @@ class KeyHandler(MappingHandler):
         maps_to = mapping.get_output_type_code()
         if not maps_to:
             raise MappingParsingError(
-                "unable to create key handler from mapping", mapping=mapping
+                "Unable to create key handler from mapping", mapping=mapping
             )
 
         self._maps_to = maps_to

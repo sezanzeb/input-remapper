@@ -23,7 +23,8 @@
 
 Handling an InputEvent is done in 3 steps:
  1. Input Event Handling
-    A MappingHandler that does Input event handling receives Input Events directly from the EventReader.
+    A MappingHandler that does Input event handling receives Input Events directly
+    from the EventReader.
     To do so it must implement the InputEventHandler protocol.
     An InputEventHandler may handle multiple events (InputEvent.type_and_code)
 
@@ -211,13 +212,13 @@ class MappingHandler:
 
     def rank_by(self) -> Optional[EventCombination]:
         """The combination for which this handler needs ranking."""
-        pass
 
     def wrap_with(self) -> Dict[EventCombination, HandlerEnums]:
         """A dict of EventCombination -> HandlerEnums.
 
         for each EventCombination this handler should be wrapped
-        with the given MappingHandler"""
+        with the given MappingHandler.
+        """
         return {}
 
     def set_sub_handler(self, handler: InputEventHandler) -> None:
@@ -229,8 +230,9 @@ class MappingHandler:
         if not self.input_events:
             logger.debug_mapping_handler(self)
             raise MappingParsingError(
-                "cannot remove a non existing event", mapping_handler=self
+                "Cannot remove a non existing event", mapping_handler=self
             )
+
         # should be called for each event a wrapping-handler
         # has in its input_events EventCombination
         self.input_events.remove(event)

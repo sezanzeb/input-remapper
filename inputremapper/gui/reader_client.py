@@ -117,7 +117,7 @@ class ReaderClient:
             logger.error(msg)
             self.message_broker.publish(StatusData(CTX_ERROR, _(msg)))
 
-    def _send_command(self, command):
+    def _send_command(self, command: str):
         """Send a command to the ReaderService."""
         if command not in [CMD_TERMINATE, CMD_STOP_READING]:
             self.ensure_reader_service_running()
@@ -242,7 +242,7 @@ class ReaderClient:
                     CombinationRecorded(EventCombination(accumulator))
                 )
 
-    def set_group(self, group):
+    def set_group(self, group: _Group):
         """Set the group for which input events should be read later."""
         # TODO load the active_group from the controller instead?
         self.group = group
@@ -272,7 +272,7 @@ class ReaderClient:
         }
         self.message_broker.publish(GroupsData(groups))
 
-    def _update_groups(self, dump):
+    def _update_groups(self, dump: str):
         if dump != self.groups.dumps():
             self.groups.loads(dump)
             logger.debug("Received %d devices", len(self.groups))

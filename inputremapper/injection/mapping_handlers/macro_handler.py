@@ -17,8 +17,9 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
+
 import asyncio
-from typing import Dict
+from typing import Dict, Callable
 
 from inputremapper.configs.mapping import Mapping
 from inputremapper.event_combination import EventCombination
@@ -62,12 +63,12 @@ class MacroHandler(MappingHandler):
     def child(self):  # used for logging
         return f"maps to {self._macro} on {self.mapping.target_uinput}"
 
-    async def run_macro(self, f):
-        """run the macro with the provided function"""
+    async def run_macro(self, handler: Callable):
+        """Run the macro with the provided function."""
         try:
-            await self._macro.run(f)
-        except Exception as e:
-            logger.error(f'Macro "%s" failed: %s', self._macro.code, e)
+            await self._macro.run(handler)
+        except Exception as exception:
+            logger.error('Macro "%s" failed: %s', self._macro.code, exception)
 
     def notify(self, event: InputEvent, *_, **__) -> bool:
 
@@ -77,16 +78,16 @@ class MacroHandler(MappingHandler):
             if self._macro.running:
                 return True
 
-            def f(ev_type, code, value) -> None:
+            def handler(type_, code, value) -> None:
                 """Handler for macros."""
                 logger.debug_key(
-                    (ev_type, code, value),
+                    (type_, code, value),
                     "sending from macro to %s",
                     self.mapping.target_uinput,
                 )
-                global_uinputs.write((ev_type, code, value), self.mapping.target_uinput)
+                global_uinputs.write((type_, code, value), self.mapping.target_uinput)
 
-            asyncio.ensure_future(self.run_macro(f))
+            asyncio.ensure_future(self.run_macro(handler))
             return True
         else:
             self._active = False

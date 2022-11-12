@@ -18,7 +18,6 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-
 """Migration functions.
 
 Only write changes to disk, if there actually are changes. Otherwise file-modification
@@ -174,7 +173,7 @@ def _rename_config(new_path=CONFIG_PATH):
 
 
 def _find_target(symbol):
-    """try to find a uinput with the required capabilities for the symbol."""
+    """Try to find a uinput with the required capabilities for the symbol."""
     capabilities = {EV_KEY: set(), EV_REL: set()}
 
     if is_this_a_macro(symbol):
@@ -196,7 +195,7 @@ def _find_target(symbol):
 
 
 def _add_target():
-    """add the target field to each preset mapping"""
+    """Add the target field to each preset mapping."""
     for preset, preset_dict in all_presets():
         if "mapping" not in preset_dict.keys():
             continue
@@ -209,7 +208,11 @@ def _add_target():
             target = _find_target(symbol)
             if target is None:
                 target = "keyboard"
-                symbol = f"{symbol}\n# Broken mapping:\n# No target can handle all specified keycodes"
+                symbol = (
+                    f"{symbol}\n"
+                    "# Broken mapping:\n"
+                    "# No target can handle all specified keycodes"
+                )
 
             logger.info(
                 'Changing target of mapping for "%s" in preset "%s" to "%s"',
@@ -278,13 +281,16 @@ def _convert_to_individual_mappings():
         if "mapping" in old_preset.keys():
             for combination, symbol_target in old_preset["mapping"].items():
                 logger.info(
-                    f'migrating from "{combination}: {symbol_target}" to mapping dict'
+                    'migrating from "%s: %s" to mapping dict',
+                    combination,
+                    symbol_target,
                 )
                 try:
                     combination = EventCombination.from_string(combination)
                 except ValueError:
                     logger.error(
-                        f"unable to migrate mapping with invalid {combination = }"
+                        "unable to migrate mapping with invalid combination %s",
+                        combination,
                     )
                     continue
 
@@ -401,7 +407,7 @@ def _copy_to_beta():
     # does not move everythig to the beta folder
     _rename_config(regular_path)
     if os.path.exists(regular_path):
-        logger.debug(f"copying all from {regular_path} to {CONFIG_PATH}")
+        logger.debug("copying all from %s to %s", regular_path, CONFIG_PATH)
         shutil.copytree(regular_path, CONFIG_PATH)
 
 

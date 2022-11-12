@@ -1,7 +1,27 @@
+#!/usr/bin/python3
+# -*- coding: utf-8 -*-
+# input-remapper - GUI for device specific keyboard mappings
+# Copyright (C) 2022 sezanzeb <proxima@sezanzeb.de>
+#
+# This file is part of input-remapper.
+#
+# input-remapper is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# input-remapper is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
+
 import unittest
 from dataclasses import dataclass
 
-from inputremapper.gui.messages.message_broker import MessageBroker, MessageType
+from inputremapper.gui.messages.message_broker import MessageBroker, MessageType, Signal
 
 
 class Listener:
@@ -77,3 +97,10 @@ class TestMessageBroker(unittest.TestCase):
         first.sort()
         self.assertEqual([1, 2, 3], first)
         self.assertEqual([4, 4, 4], calls[3:])
+
+
+class TestSignal(unittest.TestCase):
+    def test_eq(self):
+        self.assertEqual(Signal(MessageType.uinputs), Signal(MessageType.uinputs))
+        self.assertNotEqual(Signal(MessageType.uinputs), Signal(MessageType.groups))
+        self.assertNotEqual(Signal(MessageType.uinputs), "Signal: MessageType.uinputs")

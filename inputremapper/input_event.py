@@ -22,7 +22,7 @@ from __future__ import annotations
 
 import enum
 from dataclasses import dataclass
-from typing import Tuple, Union, Sequence, Callable, Optional
+from typing import Tuple, Union, Sequence, Callable, Optional, Any
 
 import evdev
 from evdev import ecodes
@@ -44,7 +44,7 @@ USE_AS_ANALOG_VALUE = 0
 
 
 class EventActions(enum.Enum):
-    """Additional information an InputEvent can send through the event pipeline"""
+    """Additional information an InputEvent can send through the event pipeline."""
 
     as_key = enum.auto()  # treat this event as a key event
     recenter = enum.auto()  # recenter the axis when receiving this
@@ -75,7 +75,7 @@ class InputEvent:
     def __hash__(self):
         return hash((self.type, self.code, self.value))
 
-    def __eq__(self, other):
+    def __eq__(self, other: Any):
         if isinstance(other, InputEvent) or isinstance(other, evdev.InputEvent):
             return self.event_tuple == (other.type, other.code, other.value)
         if isinstance(other, tuple):
@@ -116,10 +116,10 @@ class InputEvent:
         """Create a InputEvent from another InputEvent or evdev.InputEvent."""
         try:
             return cls(event.sec, event.usec, event.type, event.code, event.value)
-        except AttributeError:
+        except AttributeError as exception:
             raise InputEventCreationError(
-                f"failed to create InputEvent from {event = }"
-            )
+                f"Failed to create InputEvent from {event = }"
+            ) from exception
 
     @classmethod
     def from_string(cls, string: str) -> InputEvent:
@@ -129,7 +129,7 @@ class InputEvent:
             return cls(0, 0, int(t), int(c), int(v))
         except (ValueError, AttributeError):
             raise InputEventCreationError(
-                f"failed to create InputEvent from {string = !r}"
+                f"Failed to create InputEvent from {string = !r}"
             )
 
     @classmethod
@@ -148,14 +148,14 @@ class InputEvent:
                 int(event_tuple[1]),
                 int(event_tuple[2]),
             )
-        except ValueError:
+        except ValueError as exception:
             raise InputEventCreationError(
-                f"failed to create InputEvent from {event_tuple = }"
-            )
-        except TypeError:
+                f"Failed to create InputEvent from {event_tuple = }"
+            ) from exception
+        except TypeError as exception:
             raise InputEventCreationError(
-                f"failed to create InputEvent from {type(event_tuple) = }"
-            )
+                f"Failed to create InputEvent from {type(event_tuple) = }"
+            ) from exception
 
     @classmethod
     def btn_left(cls):
@@ -196,7 +196,7 @@ class InputEvent:
         return f"InputEvent{self.event_tuple}"
 
     def description(self, exclude_threshold=False, exclude_direction=False) -> str:
-        """get a human-readable description of the event"""
+        """Get a human-readable description of the event."""
         return (
             f"{self.get_name()} "
             f"{self.get_direction() if not exclude_direction else ''} "
@@ -209,18 +209,18 @@ class InputEvent:
 
     def modify(
         self,
-        sec: int = None,
-        usec: int = None,
-        type: int = None,
-        code: int = None,
-        value: int = None,
+        sec: Optional[int] = None,
+        usec: Optional[int] = None,
+        type_: Optional[int] = None,
+        code: Optional[int] = None,
+        value: Optional[int] = None,
         actions: Tuple[EventActions, ...] = None,
     ) -> InputEvent:
         """Return a new modified event."""
         return InputEvent(
             sec if sec is not None else self.sec,
             usec if usec is not None else self.usec,
-            type if type is not None else self.type,
+            type_ if type_ is not None else self.type,
             code if code is not None else self.code,
             value if value is not None else self.value,
             actions if actions is not None else self.actions,
@@ -230,7 +230,7 @@ class InputEvent:
         return ",".join([str(self.type), str(self.code), str(self.value)])
 
     def get_name(self) -> Optional[str]:
-        """human-readable name"""
+        """Human-readable name."""
         if self.type not in ecodes.bytype:
             logger.warning("Unknown type for %s", self)
             return f"unknown {self.type, self.code}"

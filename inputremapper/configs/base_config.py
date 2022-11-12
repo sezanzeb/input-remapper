@@ -18,7 +18,10 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
+from __future__ import annotations
+
 import copy
+from typing import Union, List, Optional, Callable, Any
 
 from inputremapper.logger import logger, VERSION
 
@@ -37,27 +40,32 @@ class ConfigBase:
     this base.
     """
 
-    def __init__(self, fallback=None):
+    def __init__(self, fallback: Optional[ConfigBase] = None):
         """Set up the needed members to turn your object into a config.
 
         Parameters
         ----------
-        fallback : ConfigBase
+        fallback: ConfigBase
             a configuration that contains fallback default configs, if your
             object doesn't configure a certain key.
         """
         self._config = {}
         self.fallback = fallback
 
-    def _resolve(self, path, func, config=None):
+    def _resolve(
+        self,
+        path: Union[str, List[str]],
+        func: Callable,
+        config: Optional[dict] = None,
+    ):
         """Call func for the given config value.
 
         Parameters
         ----------
-        path : string or string[]
+        path
             For example 'macros.keystroke_sleep_ms'
             or ['macros', 'keystroke_sleep_ms']
-        config : dict
+        config
             The dictionary to search. Defaults to self._config.
         """
         chunks = path.copy() if isinstance(path, list) else path.split(".")
@@ -80,12 +88,12 @@ class ConfigBase:
                 parent[chunk] = {}
                 child = parent[chunk]
 
-    def remove(self, path):
+    def remove(self, path: Union[str, List[str]]):
         """Remove a config key.
 
         Parameters
         ----------
-        path : string or string[]
+        path
             For example 'macros.keystroke_sleep_ms'
             or ['macros', 'keystroke_sleep_ms']
         """
@@ -96,15 +104,14 @@ class ConfigBase:
 
         self._resolve(path, callback)
 
-    def set(self, path, value):
+    def set(self, path: Union[str, List[str]], value: Any):
         """Set a config key.
 
         Parameters
         ----------
-        path : string or string[]
+        path
             For example 'macros.keystroke_sleep_ms'
             or ['macros', 'keystroke_sleep_ms']
-        value : any
         """
         logger.info('Changing "%s" to "%s" in %s', path, value, self.__class__.__name__)
 
@@ -113,14 +120,14 @@ class ConfigBase:
 
         self._resolve(path, callback)
 
-    def get(self, path, log_unknown=True):
+    def get(self, path: Union[str, List[str]], log_unknown: bool = True):
         """Get a config value. If not set, return the default
 
         Parameters
         ----------
-        path : string or string[]
+        path
             For example 'macros.keystroke_sleep_ms'
-        log_unknown : bool
+        log_unknown
             If True, write an error if `path` does not exist in the config
         """
 

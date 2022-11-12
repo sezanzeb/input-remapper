@@ -17,6 +17,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
+
 from typing import Tuple, Optional, Dict
 
 import evdev
@@ -38,7 +39,7 @@ from inputremapper.utils import get_evdev_constant_name
 
 
 class AbsToAbsHandler(MappingHandler):
-    """Handler which transforms EV_ABS to EV_ABS events"""
+    """Handler which transforms EV_ABS to EV_ABS events."""
 
     _map_axis: Tuple[int, int]  # the (type, code) of the axis we map
     _output_axis: Tuple[int, int]  # the (type, code) of the output axis
@@ -51,7 +52,7 @@ class AbsToAbsHandler(MappingHandler):
         mapping: Mapping,
         **_,
     ) -> None:
-        super(AbsToAbsHandler, self).__init__(combination, mapping)
+        super().__init__(combination, mapping)
 
         # find the input event we are supposed to map. If the input combination is
         # BTN_A + ABS_X + BTN_B, then use the value of ABS_X for the transformation
@@ -65,12 +66,10 @@ class AbsToAbsHandler(MappingHandler):
         assert mapping.output_type == EV_ABS
         self._output_axis = (mapping.output_type, mapping.output_code)
 
-        self._target_absinfo = {
-            code: absinfo
-            for code, absinfo in global_uinputs.get_uinput(
-                mapping.target_uinput
-            ).capabilities(absinfo=True)[EV_ABS]
-        }[mapping.output_code]
+        target_uinput = global_uinputs.get_uinput(mapping.target_uinput)
+        abs_capabilities = target_uinput.capabilities(absinfo=True)[EV_ABS]
+        self._target_absinfo = dict(abs_capabilities)[mapping.output_code]
+
         self._transform = None
 
     def __str__(self):
@@ -104,9 +103,7 @@ class AbsToAbsHandler(MappingHandler):
             return True
 
         if not self._transform:
-            absinfo = {
-                code: info for code, info in source.capabilities(absinfo=True)[EV_ABS]
-            }[event.code]
+            absinfo = dict(source.capabilities(absinfo=True)[EV_ABS])[event.code]
             self._transform = Transformation(
                 max_=absinfo.max,
                 min_=absinfo.min,
@@ -125,7 +122,7 @@ class AbsToAbsHandler(MappingHandler):
         self._write(self._scale_to_target(0))
 
     def _scale_to_target(self, x: float) -> int:
-        """scales a x value between -1 and 1 to an integer between
+        """Scales a x value between -1 and 1 to an integer between
         target_absinfo.min and target_absinfo.max
 
         input values above 1 or below -1 are clamped to the extreme values

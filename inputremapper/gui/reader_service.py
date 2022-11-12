@@ -18,7 +18,6 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-
 """Process that sends stuff to the GUI.
 
 It should be started via input-remapper-control and pkexec.
@@ -37,6 +36,7 @@ the ui closes.
 This uses the backend injection.event_reader and mapping_handlers to process all the
 different input-events into simple on/off events and sends them to the gui.
 """
+
 from __future__ import annotations
 
 import time
@@ -228,8 +228,8 @@ class ReaderService:
         return len(self._tasks) > 0
 
     def _start_reading(self, group: _Group):
-        """find all devices of that group, filter interesting ones and send the events
-        to the gui"""
+        """Find all devices of that group, filter interesting ones and send the events
+        to the gui."""
         sources = []
         for path in group.paths:
             try:
@@ -253,7 +253,7 @@ class ReaderService:
             self._tasks.add(asyncio.create_task(reader.run()))
 
     async def _stop_reading(self):
-        """stop the running event_reader"""
+        """Stop the running event_reader."""
         self._stop_event.set()
         if self._tasks:
             await asyncio.gather(*self._tasks)
@@ -261,9 +261,10 @@ class ReaderService:
         self._stop_event.clear()
 
     def _create_event_pipeline(self, sources: List[evdev.InputDevice]) -> ContextDummy:
-        """create a custom event pipeline for each event code in the
+        """Create a custom event pipeline for each event code in the
         device capabilities.
-        Instead of sending the events to a uinput they will be sent to the frontend"""
+        Instead of sending the events to a uinput they will be sent to the frontend.
+        """
         context = ContextDummy()
         # create a context for each source
         for device in sources:
@@ -349,7 +350,7 @@ class ForwardDummy:
 
 
 class ForwardToUIHandler:
-    """implements the InputEventHandler protocol. Sends all events into the pipe"""
+    """Implements the InputEventHandler protocol. Sends all events into the pipe."""
 
     def __init__(self, pipe: Pipe):
         self.pipe = pipe
@@ -362,13 +363,13 @@ class ForwardToUIHandler:
         forward: evdev.UInput,
         suppress: bool = False,
     ) -> bool:
-        """filter duplicates and send into the pipe"""
+        """Filter duplicates and send into the pipe."""
         if event != self._last_event:
             self._last_event = event
             if EventActions.negative_trigger in event.actions:
                 event = event.modify(value=-1)
 
-            logger.debug_key(event, f"to frontend:")
+            logger.debug_key(event.event_tuple, "to frontend:")
             self.pipe.send(
                 {
                     "type": MSG_EVENT,

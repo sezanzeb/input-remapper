@@ -24,13 +24,14 @@
 
 import inspect
 import re
+from typing import Optional, Any
 
 from inputremapper.exceptions import MacroParsingError
 from inputremapper.injection.macros.macro import Macro, Variable
 from inputremapper.logger import logger
 
 
-def is_this_a_macro(output):
+def is_this_a_macro(output: Any):
     """Figure out if this is a macro."""
     if not isinstance(output, str):
         return False
@@ -123,14 +124,14 @@ def get_num_parameters(function):
     return min_num_args, max_num_args
 
 
-def _extract_args(inner):
+def _extract_args(inner: str):
     """Extract parameters from the inner contents of a call.
 
     This does not parse them.
 
     Parameters
     ----------
-    inner : string
+    inner
         for example '1, r, r(2, k(a))' should result in ['1', 'r', 'r(2, k(a))']
     """
     inner = inner.strip()
@@ -210,22 +211,30 @@ def _is_number(value):
         return False
 
 
-def _parse_recurse(code, context, mapping, verbose, macro_instance=None, depth=0):
+def _parse_recurse(
+    code: str,
+    context,
+    mapping,
+    verbose: bool,
+    macro_instance: Optional[Macro] = None,
+    depth: int = 0,
+):
     """Handle a subset of the macro, e.g. one parameter or function call.
 
     Not using eval for security reasons.
 
     Parameters
     ----------
-    code : string
+    code
         Just like parse. A single parameter or the complete macro as string.
         Comments and redundant whitespace characters are expected to be removed already.
-        TODO add some examples. Are all of "foo(1);bar(2)" "foo(1)" and "1" valid inputs?
+        TODO add some examples.
+          Are all of "foo(1);bar(2)" "foo(1)" and "1" valid inputs?
     context : Context
-    macro_instance : Macro or None
+    macro_instance
         A macro instance to add tasks to. This is the output of the parser, and is
         organized like a tree.
-    depth : int
+    depth
         For logging porposes
     """
     assert isinstance(code, str)
@@ -332,8 +341,8 @@ def _parse_recurse(code, context, mapping, verbose, macro_instance=None, depth=0
 
         try:
             task_factory(macro_instance, *positional_args, **keyword_args)
-        except TypeError as err:
-            raise MacroParsingError(msg=str(err))
+        except TypeError as exception:
+            raise MacroParsingError(msg=str(exception)) from exception
 
         # is after this another call? Chain it to the macro_instance
         more_code_exists = len(code) > closing_bracket_position + 1
@@ -364,7 +373,7 @@ def _parse_recurse(code, context, mapping, verbose, macro_instance=None, depth=0
 
 
 def handle_plus_syntax(macro):
-    """transform a + b + c to hold_keys(a,b,c)"""
+    """Transform a + b + c to hold_keys(a,b,c)."""
     if "+" not in macro:
         return macro
 
@@ -429,18 +438,20 @@ def clean(code):
     return remove_whitespaces(remove_comments(code), '"')
 
 
-def parse(macro, context=None, mapping=None, verbose=True):
+def parse(macro: str, context=None, mapping=None, verbose: bool = True):
     """Parse and generate a Macro that can be run as often as you want.
 
     Parameters
     ----------
-    macro : string
+    macro
         "repeat(3, key(a).wait(10))"
         "repeat(2, key(a).key(KEY_A)).key(b)"
         "wait(1000).modify(Shift_L, repeat(2, k(a))).wait(10, 20).key(b)"
     context : Context, or None for use in Frontend
-    mapping : the mapping for the macro, or None for use in Frontend
-    verbose : log the parsing True by default
+    mapping
+        the mapping for the macro, or None for use in Frontend
+    verbose
+        log the parsing True by default
     """
     logger.debug("parsing macro %s", macro)
     macro = clean(macro)

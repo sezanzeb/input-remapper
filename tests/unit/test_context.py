@@ -89,9 +89,8 @@ class TestContext(unittest.TestCase):
         for key, val in callbacks.items():
             self.assertEqual(val, len(context.notify_callbacks[key]))
 
-        self.assertEqual(
-            7, len(context._handlers)
-        )  # 7 unique input events in the preset
+        # 7 unique input events in the preset
+        self.assertEqual(7, len(context._handlers))
 
 
 if __name__ == "__main__":

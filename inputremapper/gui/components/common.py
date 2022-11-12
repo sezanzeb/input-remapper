@@ -32,10 +32,8 @@ from gi.repository import Gtk
 from typing import Optional
 
 from inputremapper.configs.mapping import MappingData
-from inputremapper.event_combination import EventCombination
 
 from inputremapper.gui.controller import Controller
-from inputremapper.gui.gettext import _
 from inputremapper.gui.messages.message_broker import (
     MessageBroker,
     MessageType,

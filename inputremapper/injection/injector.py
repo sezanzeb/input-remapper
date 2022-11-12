@@ -122,9 +122,8 @@ class Injector(multiprocessing.Process):
 
         Parameters
         ----------
-        group : _Group
+        group
             the device group
-        preset : Preset
         """
         self.group = group
         self._state = InjectorState.UNKNOWN
@@ -140,7 +139,7 @@ class Injector(multiprocessing.Process):
 
         super().__init__(name=group.key)
 
-    """Functions to interact with the running process"""
+    """Functions to interact with the running process."""
 
     def get_state(self) -> InjectorState:
         """Get the state of the injection.
@@ -187,7 +186,7 @@ class Injector(multiprocessing.Process):
         logger.info('Stopping injecting keycodes for group "%s"', self.group.key)
         self._msg_pipe[1].send(InjectorCommand.CLOSE)
 
-    """Process internal stuff"""
+    """Process internal stuff."""
 
     def _grab_devices(self) -> GroupSources:
         ranking = [
@@ -210,9 +209,8 @@ class Injector(multiprocessing.Process):
                 continue
 
         # find all devices which have an associated mapping
-        needed_devices = (
-            {}
-        )  # use a dict because the InputDevice is not directly hashable
+        # use a dict because the InputDevice is not directly hashable
+        needed_devices = {}
 
         for mapping in self.preset:
             for event in mapping.event_combination:
@@ -231,7 +229,7 @@ class Injector(multiprocessing.Process):
                 elif len(candidates) == 1:
                     device = candidates.pop()
                 else:
-                    logger.error(f"Could not find input for {event} in {mapping}")
+                    logger.error("Could not find input for %s in %s", event, mapping)
                     continue
                 needed_devices[device.path] = device
 

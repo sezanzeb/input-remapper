@@ -121,7 +121,7 @@ class TargetSelection:
 
 
 class MappingListBox:
-    """the listbox showing all available mapping in the active_preset"""
+    """The listbox showing all available mapping in the active_preset."""
 
     def __init__(
         self,
@@ -140,7 +140,7 @@ class MappingListBox:
 
     @staticmethod
     def _sort_func(row1: MappingSelectionLabel, row2: MappingSelectionLabel) -> int:
-        """sort alphanumerical by name"""
+        """Sort alphanumerical by name."""
         if row1.combination == EventCombination.empty_combination():
             return 1
         if row2.combination == EventCombination.empty_combination():
@@ -180,7 +180,7 @@ class MappingListBox:
 
 
 class MappingSelectionLabel(Gtk.ListBoxRow):
-    """the ListBoxRow representing a mapping inside the MappingListBox"""
+    """The ListBoxRow representing a mapping inside the MappingListBox."""
 
     __gtype_name__ = "MappingSelectionLabel"
 
@@ -294,13 +294,13 @@ class MappingSelectionLabel(Gtk.ListBoxRow):
             self._set_selected()
 
     def cleanup(self) -> None:
-        """clean up message listeners. Execute before removing from gui!"""
+        """Clean up message listeners. Execute before removing from gui!"""
         self._message_broker.unsubscribe(self._on_mapping_changed)
         self._message_broker.unsubscribe(self._on_combination_update)
 
 
 class CodeEditor:
-    """the editor used to edit the output_symbol of the active_mapping"""
+    """The editor used to edit the output_symbol of the active_mapping."""
 
     def __init__(
         self,
@@ -336,6 +336,7 @@ class CodeEditor:
 
     @property
     def code(self) -> str:
+        """Get the user-defined macro code string."""
         buffer = self.gui.get_buffer()
         return buffer.get_text(buffer.get_start_iter(), buffer.get_end_iter(), True)
 
@@ -353,7 +354,7 @@ class CodeEditor:
         )
 
     def _toggle_line_numbers(self):
-        """Show line numbers if multiline, otherwise remove them"""
+        """Show line numbers if multiline, otherwise remove them."""
         if "\n" in self.code:
             self.gui.set_show_line_numbers(True)
             # adds a bit of space between numbers and text:
@@ -441,8 +442,7 @@ class RequireActiveMapping:
 
 
 class RecordingToggle:
-    """the toggle used to record the input form the active_group in order to update the
-    event_combination of the active_mapping"""
+    """The toggle that starts input recording for the active_mapping."""
 
     def __init__(
         self,
@@ -509,8 +509,7 @@ class RecordingStatus:
 
 
 class AutoloadSwitch:
-    """the switch used to toggle the autoload state of the active_preset for
-    the acive_group"""
+    """The switch used to toggle the autoload state of the active_preset."""
 
     def __init__(
         self, message_broker: MessageBroker, controller: Controller, switch: Gtk.Switch
@@ -531,7 +530,7 @@ class AutoloadSwitch:
 
 
 class ReleaseCombinationSwitch:
-    """the switch used to set the active_mapping.release_combination_keys parameter"""
+    """The switch used to set the active_mapping.release_combination_keys parameter."""
 
     def __init__(
         self, message_broker: MessageBroker, controller: Controller, switch: Gtk.Switch
@@ -609,7 +608,6 @@ class EventEntry(Gtk.ListBoxRow):
 
     def cleanup(self):
         """Remove any message listeners we are about to get destroyed."""
-        pass
 
 
 class CombinationListbox:
@@ -638,9 +636,9 @@ class CombinationListbox:
         self._gui.connect("row-selected", self._on_gtk_row_selected)
 
     def _select_row(self, event: InputEvent):
-        def select(r: EventEntry):
-            if r.input_event == event:
-                self._gui.select_row(r)
+        def select(row: EventEntry):
+            if row.input_event == event:
+                self._gui.select_row(row)
 
         self._gui.foreach(select)
 
@@ -668,8 +666,7 @@ class CombinationListbox:
 
 
 class AnalogInputSwitch:
-    """the switch used to modify the active_event in order to be
-    marked as an analog input"""
+    """The switch that marks the active_event as analog input."""
 
     def __init__(
         self,
@@ -702,8 +699,8 @@ class AnalogInputSwitch:
 
 
 class TriggerThresholdInput:
-    """the number selection used to set the speed or position threshold of the
-    active_event when it is an ABS or REL event used as a key"""
+    """The number selection used to set the speed or position threshold of the
+    active_event when it is an ABS or REL event used as a key."""
 
     def __init__(
         self,
@@ -744,7 +741,7 @@ class TriggerThresholdInput:
 
 
 class ReleaseTimeoutInput:
-    """the number selector used to set the active_mapping.release_timeout parameter"""
+    """The number selector used to set the active_mapping.release_timeout parameter."""
 
     def __init__(
         self,
@@ -777,7 +774,7 @@ class ReleaseTimeoutInput:
 
 
 class RelativeInputCutoffInput:
-    """the number selector to set active_mapping.rel_to_abs_input_cutoff"""
+    """The number selector to set active_mapping.rel_to_abs_input_cutoff."""
 
     def __init__(
         self,
@@ -813,7 +810,7 @@ class RelativeInputCutoffInput:
 
 
 class OutputAxisSelector:
-    """the dropdown menu used to select the output axis if the active_mapping is a
+    """The dropdown menu used to select the output axis if the active_mapping is a
     mapping targeting an analog axis
 
     modifies the active_mapping.output_code and active_mapping.output_type parameters
@@ -853,13 +850,13 @@ class OutputAxisSelector:
         ]
         types_codes.extend((EV_REL, code) for code in capabilities.get(EV_REL) or ())
         self.model.clear()
-        self.model.append([f"None, None", _("No Axis")])
-        for type, code in types_codes:
+        self.model.append(["None, None", _("No Axis")])
+        for type_, code in types_codes:
 
-            key_name = bytype[type][code]
+            key_name = bytype[type_][code]
             if isinstance(key_name, list):
                 key_name = key_name[0]
-            self.model.append([f"{type}, {code}", key_name])
+            self.model.append([f"{type_}, {code}", key_name])
 
         self._current_target = target
 
@@ -872,7 +869,7 @@ class OutputAxisSelector:
         self._uinputs = uinputs.uinputs
 
     def _on_gtk_select_axis(self, *_):
-        if self._gui.get_active_id() == f"None, None":
+        if self._gui.get_active_id() == "None, None":
             type_code = (None, None)
         else:
             type_code = tuple(int(i) for i in self._gui.get_active_id().split(","))
@@ -882,8 +879,8 @@ class OutputAxisSelector:
 
 
 class KeyAxisStackSwitcher:
-    """the controls used to switch between the gui to modify a key-mapping or
-    an analog-axis mapping"""
+    """The controls used to switch between the gui to modify a key-mapping or
+    an analog-axis mapping."""
 
     def __init__(
         self,
@@ -943,7 +940,7 @@ class KeyAxisStackSwitcher:
 
 
 class TransformationDrawArea:
-    """the graph which shows the relation between input- and output-axis"""
+    """The graph which shows the relation between input- and output-axis."""
 
     def __init__(
         self,
@@ -972,9 +969,9 @@ class TransformationDrawArea:
             # leave some space left and right for the lineCap to be visible
             for x in range(-97, 97)
         ]
-        w = self._gui.get_allocated_width()
-        h = self._gui.get_allocated_height()
-        b = min((w, h))
+        width = self._gui.get_allocated_width()
+        height = self._gui.get_allocated_height()
+        b = min((width, height))
         scaled_points = [(x * b, y * b) for x, y in points]
 
         # x arrow
@@ -1003,9 +1000,9 @@ class TransformationDrawArea:
 
         # graph
         context.move_to(*scaled_points[0])
-        for p in scaled_points[1:]:
+        for scaled_point in scaled_points[1:]:
             # Ploting point
-            context.line_to(*p)
+            context.line_to(*scaled_point)
 
         line_color = Colors.get_accent_color()
         context.set_line_width(3)
@@ -1021,8 +1018,8 @@ class TransformationDrawArea:
 
 
 class Sliders:
-    """the different sliders to modify the gain, deadzone and expo parameters of the
-    active_mapping"""
+    """The different sliders to modify the gain, deadzone and expo parameters of the
+    active_mapping."""
 
     def __init__(
         self,

@@ -19,6 +19,7 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 """Starts the user interface."""
+
 from __future__ import annotations
 
 import sys

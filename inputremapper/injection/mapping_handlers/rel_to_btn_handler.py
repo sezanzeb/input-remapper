@@ -74,7 +74,12 @@ class RelToBtnHandler(MappingHandler):
     def child(self):  # used for logging
         return self._sub_handler
 
-    async def _stage_release(self, source, forward, suppress):
+    async def _stage_release(
+        self,
+        source: InputEvent,
+        forward: evdev.InputDevice,
+        suppress: bool,
+    ):
         while time.time() < self._last_activation + self.mapping.release_timeout:
             await asyncio.sleep(1 / self.mapping.rel_rate)
 

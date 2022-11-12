@@ -18,9 +18,8 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-import asyncio
 import math
-from typing import Dict, Optional
+from typing import Dict
 
 import evdev
 from evdev.ecodes import (
@@ -127,7 +126,7 @@ class RelToRelHandler(MappingHandler):
     def child(self):  # used for logging
         return f"maps to: {self.mapping.output_code} at {self.mapping.target_uinput}"
 
-    def _should_map(self, event):
+    def _should_map(self, event: InputEvent):
         """Check if this input event is relevant for this handler."""
         if event.type_and_code == (self._input_event.type, self._input_event.code):
             return True
@@ -256,7 +255,7 @@ class RelToRelHandler(MappingHandler):
     def reset(self) -> None:
         pass
 
-    def _write(self, code, value):
+    def _write(self, code: int, value: int):
         if value == 0:
             return
 

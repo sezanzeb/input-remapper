@@ -25,7 +25,7 @@
 
 import os
 import shutil
-from typing import List, Union
+from typing import List, Union, Optional
 
 from inputremapper.logger import logger, VERSION, IS_BETA
 from inputremapper.user import USER, HOME
@@ -83,6 +83,7 @@ def mkdir(path, log=True):
 
 
 def split_all(path: Union[os.PathLike, str]) -> List[str]:
+    """Split the path into its segments."""
     parts = []
     while True:
         path, tail = os.path.split(path)
@@ -111,17 +112,17 @@ def remove(path):
 
 
 def sanitize_path_component(group_name: str) -> str:
-    """replace characters listed in
+    """Replace characters listed in
     https://en.wikipedia.org/wiki/Filename#Reserved_characters_and_words
-    with an underscore
+    with an underscore.
     """
-    for c in '/\\?%*:|"<>':
-        if c in group_name:
-            group_name = group_name.replace(c, "_")
+    for character in '/\\?%*:|"<>':
+        if character in group_name:
+            group_name = group_name.replace(character, "_")
     return group_name
 
 
-def get_preset_path(group_name=None, preset=None):
+def get_preset_path(group_name: Optional[str] = None, preset: Optional[str] = None):
     """Get a path to the stored preset, or to store a preset to."""
     presets_base = os.path.join(CONFIG_PATH, "presets")
 

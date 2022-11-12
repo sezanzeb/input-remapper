@@ -67,7 +67,7 @@ from inputremapper.configs.preset import Preset
 
 class TestController(unittest.TestCase):
     def setUp(self) -> None:
-        super(TestController, self).setUp()
+        super().setUp()
         self.message_broker = MessageBroker()
         uinputs = GlobalUInputs()
         uinputs.prepare_all()
@@ -87,14 +87,14 @@ class TestController(unittest.TestCase):
         quick_cleanup()
 
     def test_should_get_newest_group(self):
-        """get_a_group should the newest group"""
+        """get_a_group should the newest group."""
         with patch.object(
             self.data_manager, "get_newest_group_key", MagicMock(return_value="foo")
         ):
             self.assertEqual(self.controller.get_a_group(), "foo")
 
     def test_should_get_any_group(self):
-        """get_a_group should return a valid group"""
+        """get_a_group should return a valid group."""
         with patch.object(
             self.data_manager,
             "get_newest_group_key",
@@ -104,7 +104,7 @@ class TestController(unittest.TestCase):
             self.assertIn(self.controller.get_a_group(), fixture_keys)
 
     def test_should_get_newest_preset(self):
-        """get_a_group should the newest group"""
+        """get_a_group should the newest group."""
         with patch.object(
             self.data_manager, "get_newest_preset_name", MagicMock(return_value="bar")
         ):
@@ -112,11 +112,10 @@ class TestController(unittest.TestCase):
             self.assertEqual(self.controller.get_a_preset(), "bar")
 
     def test_should_get_any_preset(self):
-        """get_a_preset should return a new preset if none exist"""
+        """get_a_preset should return a new preset if none exist."""
         self.data_manager.load_group("Foo Device")
-        self.assertEqual(
-            self.controller.get_a_preset(), "new preset"
-        )  # the default name
+        # the default name
+        self.assertEqual(self.controller.get_a_preset(), "new preset")
 
     def test_on_init_should_provide_uinputs(self):
         calls = []
@@ -165,7 +164,7 @@ class TestController(unittest.TestCase):
         self.assertGreaterEqual(len(calls), 1)
 
     def test_on_init_should_provide_a_mapping(self):
-        """only if there is one"""
+        """Only if there is one."""
         prepare_presets()
         calls: List[MappingData] = []
 
@@ -177,7 +176,7 @@ class TestController(unittest.TestCase):
         self.assertTrue(calls[-1].is_valid())
 
     def test_on_init_should_provide_a_default_mapping(self):
-        """if there is no real preset available"""
+        """If there is no real preset available"""
         calls: List[MappingData] = []
 
         def f(data):
@@ -194,7 +193,7 @@ class TestController(unittest.TestCase):
             mock.assert_called_once()
 
     def test_on_load_group_should_provide_mapping(self):
-        """if there is one"""
+        """If there is one"""
         prepare_presets()
         calls: List[MappingData] = []
 
@@ -206,7 +205,7 @@ class TestController(unittest.TestCase):
         self.assertTrue(calls[-1].is_valid())
 
     def test_on_load_group_should_provide_default_mapping(self):
-        """if there is none"""
+        """If there is none."""
         calls: List[MappingData] = []
 
         def f(data):
@@ -219,7 +218,7 @@ class TestController(unittest.TestCase):
             self.assertEqual(m, UIMapping(**MAPPING_DEFAULTS))
 
     def test_on_load_preset_should_provide_mapping(self):
-        """if there is one"""
+        """If there is one."""
         prepare_presets()
         self.data_manager.load_group("Foo Device 2")
         calls: List[MappingData] = []
@@ -232,7 +231,7 @@ class TestController(unittest.TestCase):
         self.assertTrue(calls[-1].is_valid())
 
     def test_on_load_preset_should_provide_default_mapping(self):
-        """if there is none"""
+        """If there is none."""
         Preset(get_preset_path("Foo Device", "bar")).save()
         self.data_manager.load_group("Foo Device 2")
         calls: List[MappingData] = []
@@ -406,7 +405,7 @@ class TestController(unittest.TestCase):
         self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset2")))
 
     def test_rename_preset_should_not_update_same_name(self):
-        """when the new name is the same as the current name"""
+        """When the new name is the same as the current name."""
         prepare_presets()
         self.assertTrue(os.path.exists(get_preset_path("Foo Device", "preset2")))
 
@@ -454,8 +453,9 @@ class TestController(unittest.TestCase):
         self.assertIn("Permission denied", msg.msg)
 
     def test_on_update_mapping(self):
-        """update_mapping should call data_manager.update_mapping
-        this ensures mapping_changed is emitted
+        """Update_mapping should call data_manager.update_mapping.
+
+        This ensures mapping_changed is emitted.
         """
         prepare_presets()
         self.data_manager.load_group("Foo Device 2")
@@ -546,7 +546,7 @@ class TestController(unittest.TestCase):
         self.assertIsNotNone(preset.get_mapping(EventCombination("1,3,1")))
 
     def test_should_update_combination(self):
-        """when combination is free"""
+        """When combination is free."""
         prepare_presets()
         self.data_manager.load_group("Foo Device 2")
         self.data_manager.load_preset("preset2")
@@ -568,7 +568,7 @@ class TestController(unittest.TestCase):
         )
 
     def test_should_not_update_combination(self):
-        """when combination is already used"""
+        """When combination is already used."""
         prepare_presets()
         self.data_manager.load_group("Foo Device 2")
         self.data_manager.load_preset("preset2")

@@ -64,7 +64,7 @@ class Stack:
 
 
 class StatusBar:
-    """the status bar on the bottom of the main window"""
+    """The status bar on the bottom of the main window."""
 
     def __init__(
         self,
