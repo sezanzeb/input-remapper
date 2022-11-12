@@ -542,6 +542,9 @@ class TestMacros(MacroTestBase):
         self.assertRaises(MacroParsingError, parse, "key(a)key(b)", self.context)
         self.assertRaises(MacroParsingError, parse, "hold(key(a)key(b))", self.context)
 
+        parse("add(a, 1)", self.context)  # no error
+        self.assertRaises(MacroParsingError, parse, "add(a, b)", self.context)
+
     async def test_key(self):
         code_a = system_mapping.get("a")
         code_b = system_mapping.get("b")

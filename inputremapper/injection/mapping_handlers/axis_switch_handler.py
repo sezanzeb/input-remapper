@@ -84,7 +84,7 @@ class AxisSwitchHandler(MappingHandler):
     def child(self):
         return self._sub_handler
 
-    def _handle_key_input(self, event):
+    def _handle_key_input(self, event: InputEvent):
         """If a key is pressed, allow mapping analog events in subhandlers.
 
         Analog events (e.g. ABS_X, REL_Y) that have gone through Handlers that
@@ -128,7 +128,7 @@ class AxisSwitchHandler(MappingHandler):
 
         return True
 
-    def _should_map(self, event):
+    def _should_map(self, event: InputEvent):
         return (
             event.type_and_code in self._trigger_keys
             or event.type_and_code == self._map_axis

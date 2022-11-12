@@ -1381,16 +1381,17 @@ class TestRelativeInputCutoffInput(ComponentBaseTest):
         self.controller_mock.update_mapping.assert_not_called()
 
     def test_updates_value(self):
+        rel_to_abs_input_cutoff = 3
         self.message_broker.publish(
             MappingData(
                 target_uinput="mouse",
                 event_combination="2,0,0",
-                rel_to_abs_input_cutoff=3,
+                rel_to_abs_input_cutoff=rel_to_abs_input_cutoff,
                 output_type=3,
                 output_code=0,
             )
         )
-        self.assertEqual(self.gui.get_value(), 200)
+        self.assertEqual(self.gui.get_value(), rel_to_abs_input_cutoff)
 
     def test_updates_mapping(self):
         self.gui.set_value(300)

@@ -17,8 +17,9 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
+
 import asyncio
-from typing import Dict
+from typing import Dict, Callable
 
 from inputremapper.configs.mapping import Mapping
 from inputremapper.event_combination import EventCombination
@@ -62,8 +63,8 @@ class MacroHandler(MappingHandler):
     def child(self):  # used for logging
         return f"maps to {self._macro} on {self.mapping.target_uinput}"
 
-    async def run_macro(self, handler):
-        """run the macro with the provided function"""
+    async def run_macro(self, handler: Callable):
+        """Run the macro with the provided function."""
         try:
             await self._macro.run(handler)
         except Exception as e:

@@ -56,6 +56,7 @@ import os
 import select
 import socket
 import time
+from typing import Union
 
 from inputremapper.configs.paths import mkdir, chown
 from inputremapper.logger import logger
@@ -165,8 +166,8 @@ class Base:
         self._receive_new_messages()
         return len(self._unread) > 0
 
-    def send(self, message):
-        """Send jsonable messages, like numbers, strings or objects."""
+    def send(self, message: Union[str, int, float, dict, list, tuple]):
+        """Send json-serializable messages."""
         dump = bytes(json.dumps((time.time(), message)), ENCODING)
         self.unsent.append(dump)
 

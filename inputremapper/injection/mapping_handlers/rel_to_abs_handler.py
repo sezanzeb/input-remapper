@@ -124,7 +124,7 @@ class RelToAbsHandler(MappingHandler):
             f"{self.mapping.target_uinput}"
         )
 
-    def _observe_rate(self, event):
+    def _observe_rate(self, event: InputEvent):
         """Watch incoming events and remember how many events appear per second."""
         if self._previous_event is not None:
             delta_time = event.timestamp() - self._previous_event.timestamp()

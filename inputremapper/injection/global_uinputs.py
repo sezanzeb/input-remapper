@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-from typing import Dict, Union
+from typing import Dict, Union, Tuple
 
 import evdev
 
@@ -66,7 +66,7 @@ class UInput(evdev.UInput):
         logger.debug(f'creating UInput device: "{name}"')
         super().__init__(*args, **kwargs)
 
-    def can_emit(self, event):
+    def can_emit(self, event: Tuple[int, int, int]):
         """Check if an event can be emitted by the UIinput.
 
         Wrong events might be injected if the group mappings are wrong,
@@ -142,7 +142,7 @@ class GlobalUInputs:
             events=DEFAULT_UINPUTS[name],
         )
 
-    def write(self, event, target_uinput):
+    def write(self, event: Tuple[int, int, int], target_uinput):
         """Write event to target uinput."""
         uinput = self.get_uinput(target_uinput)
         if not uinput:
