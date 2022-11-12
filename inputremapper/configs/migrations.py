@@ -208,7 +208,11 @@ def _add_target():
             target = _find_target(symbol)
             if target is None:
                 target = "keyboard"
-                symbol = f"{symbol}\n# Broken mapping:\n# No target can handle all specified keycodes"
+                symbol = (
+                    f"{symbol}\n"
+                    "# Broken mapping:\n"
+                    "# No target can handle all specified keycodes"
+                )
 
             logger.info(
                 'Changing target of mapping for "%s" in preset "%s" to "%s"',

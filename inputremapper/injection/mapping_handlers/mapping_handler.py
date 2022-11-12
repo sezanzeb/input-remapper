@@ -23,7 +23,8 @@
 
 Handling an InputEvent is done in 3 steps:
  1. Input Event Handling
-    A MappingHandler that does Input event handling receives Input Events directly from the EventReader.
+    A MappingHandler that does Input event handling receives Input Events directly
+    from the EventReader.
     To do so it must implement the InputEventHandler protocol.
     An InputEventHandler may handle multiple events (InputEvent.type_and_code)
 

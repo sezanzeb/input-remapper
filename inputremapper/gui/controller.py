@@ -399,7 +399,7 @@ class Controller:
         self.data_manager.rename_preset(new_name)
 
     def add_preset(self, name: str = DEFAULT_PRESET_NAME):
-        """Create a new preset, add it to the active_group and name it `new preset n`."""
+        """Create a new preset called `new preset n`, add it to the active_group."""
         name = self.data_manager.get_available_preset_name(name)
         try:
             self.data_manager.create_preset(name)

@@ -228,7 +228,8 @@ def _parse_recurse(
     code
         Just like parse. A single parameter or the complete macro as string.
         Comments and redundant whitespace characters are expected to be removed already.
-        TODO add some examples. Are all of "foo(1);bar(2)" "foo(1)" and "1" valid inputs?
+        TODO add some examples.
+          Are all of "foo(1);bar(2)" "foo(1)" and "1" valid inputs?
     context : Context
     macro_instance
         A macro instance to add tasks to. This is the output of the parser, and is

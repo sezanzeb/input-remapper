@@ -78,7 +78,7 @@ class FrontendUInput:
     """Uinput which can not actually send events, for use in the frontend."""
 
     def __init__(self, *args, events=None, name="py-evdev-uinput", **kwargs):
-        # see https://python-evdev.readthedocs.io/en/latest/apidoc.html#module-evdev.uinput
+        # see https://python-evdev.readthedocs.io/en/latest/apidoc.html#module-evdev.uinput  # noqa pylint: disable=line-too-long
         self.events = events
         self.name = name
 

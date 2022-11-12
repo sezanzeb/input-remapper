@@ -434,8 +434,8 @@ class _Groups:
     def __getattribute__(self, key: str):
         """To lazy load group info only when needed.
 
-        For example, this helps to keep logs of input-remapper-control clear when it doesnt
-        need it the information.
+        For example, this helps to keep logs of input-remapper-control clear when it
+        doesn't need it the information.
         """
         if key == "_groups" and object.__getattribute__(self, "_groups") is None:
             object.__setattr__(self, "_groups", [])

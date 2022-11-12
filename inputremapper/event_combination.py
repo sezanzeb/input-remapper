@@ -21,14 +21,13 @@
 from __future__ import annotations
 
 import itertools
-from typing import Tuple, Iterable, Union, Callable, Sequence, Optional
+from typing import Tuple, Iterable, Union, Callable, Sequence, List
 
 from evdev import ecodes
 
 from inputremapper.input_event import (
     InputEvent,
     InputEventValidationType,
-    USE_AS_ANALOG_VALUE,
 )
 
 # having shift in combinations modifies the configured output,
@@ -52,7 +51,7 @@ EventCombinationValidatorType = Union[EventCombinationInitType, str]
 
 
 class EventCombination(Tuple[InputEvent]):
-    """One or multiple InputEvent objects for use as an unique identifier for mappings."""
+    """One or more InputEvents for use as a unique identifier for mappings."""
 
     # tuple is immutable, therefore we need to override __new__()
     # https://jfine-python-classes.readthedocs.io/en/latest/subclass-tuple.html
@@ -139,8 +138,8 @@ class EventCombination(Tuple[InputEvent]):
         """Check if there is any analog event in self."""
         return False in (event.is_key_event for event in self)
 
-    def get_permutations(self):
-        """Get a list of EventCombination objects representing all possible permutations.
+    def get_permutations(self) -> List[EventCombination]:
+        """Get a list of EventCombinations representing all possible permutations.
 
         combining a + b + c should have the same result as b + a + c.
         Only the last combination remains the same in the returned result.
