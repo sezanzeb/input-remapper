@@ -21,11 +21,8 @@
 from collections import defaultdict
 from typing import Dict, List, Type, Optional, Set, Iterable, Sized, Tuple, Sequence
 
-from evdev.ecodes import (
-    EV_KEY,
-    EV_ABS,
-    EV_REL,
-)
+import evdev
+from evdev.ecodes import EV_KEY, EV_ABS, EV_REL
 
 from inputremapper.configs.mapping import Mapping
 from inputremapper.configs.preset import Preset
@@ -36,6 +33,7 @@ from inputremapper.injection.macros.parse import is_this_a_macro
 from inputremapper.injection.mapping_handlers.abs_to_abs_handler import AbsToAbsHandler
 from inputremapper.injection.mapping_handlers.abs_to_btn_handler import AbsToBtnHandler
 from inputremapper.injection.mapping_handlers.abs_to_rel_handler import AbsToRelHandler
+from inputremapper.injection.mapping_handlers.rel_to_rel_handler import RelToRelHandler
 from inputremapper.injection.mapping_handlers.axis_switch_handler import (
     AxisSwitchHandler,
 )
@@ -54,8 +52,9 @@ from inputremapper.injection.mapping_handlers.mapping_handler import (
 from inputremapper.injection.mapping_handlers.null_handler import NullHandler
 from inputremapper.injection.mapping_handlers.rel_to_abs_handler import RelToAbsHandler
 from inputremapper.injection.mapping_handlers.rel_to_btn_handler import RelToBtnHandler
-from inputremapper.input_event import InputEvent
+from inputremapper.input_event import InputEvent, USE_AS_ANALOG_VALUE
 from inputremapper.logger import logger
+from inputremapper.utils import get_evdev_constant_name
 
 EventPipelines = Dict[InputEvent, Set[InputEventHandler]]
 
@@ -66,7 +65,7 @@ mapping_handler_classes: Dict[HandlerEnums, Optional[Type[MappingHandler]]] = {
     HandlerEnums.macro: MacroHandler,
     HandlerEnums.key: KeyHandler,
     HandlerEnums.btn2rel: None,  # can be a macro
-    HandlerEnums.rel2rel: None,
+    HandlerEnums.rel2rel: RelToRelHandler,
     HandlerEnums.abs2rel: AbsToRelHandler,
     HandlerEnums.btn2abs: None,  # can be a macro
     HandlerEnums.rel2abs: RelToAbsHandler,
@@ -119,7 +118,7 @@ def parse_mappings(preset: Preset, context: ContextProtocol) -> EventPipelines:
             need_ranking[combination].add(handler)
             handlers.remove(handler)
 
-    # the HierarchyHandler's might not be the starting point of the event pipeline
+    # the HierarchyHandler's might not be the starting point of the event pipeline,
     # layer other handlers on top again.
     ranked_handlers = _create_hierarchy_handlers(need_ranking)
     for handler in ranked_handlers:
@@ -131,7 +130,11 @@ def parse_mappings(preset: Preset, context: ContextProtocol) -> EventPipelines:
     for handler in handlers:
         assert handler.input_events
         for event in handler.input_events:
-            logger.debug("event-pipeline with entry point: %s", event.type_and_code)
+            logger.debug(
+                "event-pipeline with entry point: %s %s",
+                get_evdev_constant_name(*event.type_and_code),
+                event.type_and_code,
+            )
             logger.debug_mapping_handler(handler)
             event_pipelines[event].add(handler)
 
@@ -219,7 +222,7 @@ def _maps_axis(combination: EventCombination) -> Optional[InputEvent]:
     an axis and not a binary (key or button) event.
     """
     for event in combination:
-        if event.value == 0:
+        if event.value == USE_AS_ANALOG_VALUE:
             return event
     return None
 

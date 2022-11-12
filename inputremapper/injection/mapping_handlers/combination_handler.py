@@ -61,7 +61,9 @@ class CombinationHandler(MappingHandler):
         assert len(self._pressed_keys) > 0  # no combination handler without a key
 
     def __str__(self):
-        return f"CombinationHandler for {self.mapping.event_combination} <{id(self)}>:"
+        return (
+            f'CombinationHandler for "{self.mapping.event_combination}" <{id(self)}>:'
+        )
 
     def __repr__(self):
         return self.__str__()
@@ -75,7 +77,7 @@ class CombinationHandler(MappingHandler):
         event: InputEvent,
         source: evdev.InputDevice,
         forward: evdev.UInput,
-        supress: bool = False,
+        suppress: bool = False,
     ) -> bool:
         type_code = event.type_and_code
         if type_code not in self._pressed_keys.keys():
@@ -99,23 +101,23 @@ class CombinationHandler(MappingHandler):
             event = event.modify(value=1)
         else:
             if self._output_state or self.mapping.is_axis_mapping():
-                # we ignore the supress argument for release events
+                # we ignore the suppress argument for release events
                 # otherwise we might end up with stuck keys
                 # (test_event_pipeline.test_combination)
 
                 # we also ignore it if the mapping specifies an output axis
                 # this will enable us to activate multiple axis with the same button
-                supress = False
+                suppress = False
             event = event.modify(value=0)
 
-        if supress:
+        if suppress:
             return False
 
         logger.debug_key(
             self.mapping.event_combination, "triggered: sending to sub-handler"
         )
         self._output_state = bool(event.value)
-        return self._sub_handler.notify(event, source, forward, supress)
+        return self._sub_handler.notify(event, source, forward, suppress)
 
     def reset(self) -> None:
         self._sub_handler.reset()

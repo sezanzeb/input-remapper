@@ -56,35 +56,35 @@ class MessageBroker:
     def __init__(self):
         self._listeners: Dict[MessageType, Set[MessageListener]] = defaultdict(set)
         self._messages: Deque[Tuple[Message, str, int]] = deque()
-        self._sending = False
+        self._publishing = False
 
-    def send(self, data: Message):
+    def publish(self, data: Message):
         """schedule a massage to be sent.
         The message will be sent after all currently pending messages are sent"""
         self._messages.append((data, *self.get_caller()))
-        self._send_all()
+        self._publish_all()
 
     def signal(self, signal: MessageType):
         """send a signal without any data payload"""
-        self.send(Signal(signal))
+        self.publish(Signal(signal))
 
-    def _send(self, data: Message, file: str, line: int):
+    def _publish(self, data: Message, file: str, line: int):
         logger.debug(f"from {file}:{line}: Signal={data.message_type.name}: {data}")
         for listener in self._listeners[data.message_type].copy():
             listener(data)
 
-    def _send_all(self):
+    def _publish_all(self):
         """send all scheduled messages in order"""
-        if self._sending:
+        if self._publishing:
             # don't run this twice, so we not mess up the order
             return
 
-        self._sending = True
+        self._publishing = True
         try:
             while self._messages:
-                self._send(*self._messages.popleft())
+                self._publish(*self._messages.popleft())
         finally:
-            self._sending = False
+            self._publishing = False
 
     def subscribe(self, massage_type: MessageType, listener: MessageListener):
         """attach a listener to an event"""

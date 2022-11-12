@@ -29,6 +29,12 @@ from typing import List, Optional, Dict, Union, Callable, Literal
 
 import cairo
 from evdev.ecodes import EV_KEY, EV_ABS, EV_REL, bytype
+
+import gi
+
+gi.require_version("Gdk", "3.0")
+gi.require_version("Gtk", "3.0")
+gi.require_version("GtkSource", "4")
 from gi.repository import Gtk, GtkSource, Gdk
 
 from inputremapper.configs.mapping import MappingData
@@ -284,7 +290,6 @@ class MappingSelectionLabel(Gtk.ListBoxRow):
         self._controller.update_mapping(name=name)
 
     def _on_gtk_rename_abort(self, _, key_event: Gdk.EventKey):
-        logger.error("called")
         if key_event.keyval == Gdk.KEY_Escape:
             self._set_selected()
 
@@ -772,7 +777,7 @@ class ReleaseTimeoutInput:
 
 
 class RelativeInputCutoffInput:
-    """the number selector to set active_mapping.rel_input_cutoff"""
+    """the number selector to set active_mapping.rel_to_abs_input_cutoff"""
 
     def __init__(
         self,
@@ -801,10 +806,10 @@ class RelativeInputCutoffInput:
             self._gui.set_opacity(0.5)
 
         with HandlerDisabled(self._gui, self._on_gtk_changed):
-            self._gui.set_value(mapping.rel_input_cutoff)
+            self._gui.set_value(mapping.rel_to_abs_input_cutoff)
 
     def _on_gtk_changed(self, *_):
-        self._controller.update_mapping(rel_input_cutoff=self._gui.get_value())
+        self._controller.update_mapping(rel_xy_cutoff=self._gui.get_value())
 
 
 class OutputAxisSelector:

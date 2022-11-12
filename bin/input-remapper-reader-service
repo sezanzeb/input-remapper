@@ -19,7 +19,7 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
-"""Starts the root helper."""
+"""Starts the root reader-service."""
 
 
 import os
@@ -44,7 +44,7 @@ if __name__ == '__main__':
     update_verbosity(options.debug)
 
     # import input-remapper stuff after setting the log verbosity
-    from inputremapper.gui.helper import RootHelper
+    from inputremapper.gui.reader_service import ReaderService
 
     def on_exit():
         """Don't remain idle and alive when the GUI exits via ctrl+c."""
@@ -54,6 +54,7 @@ if __name__ == '__main__':
         os.kill(os.getpid(), signal.SIGKILL)
 
     atexit.register(on_exit)
+    # TODO import `groups` instead?
     groups = _Groups()
-    helper = RootHelper(groups)
-    helper.run()
+    reader_service = ReaderService(groups)
+    reader_service.run()

@@ -69,81 +69,13 @@ sudo pip install .
 New badges, if needed, will be created in `readme/` and they
 just need to be commited.
 
-## Files
+## Architecture
 
-**gui**
+There is a miro board describing input-remappers architecture:
 
-- `bin/input-remapper-gtk` the executable that starts the gui. It also sends
-  messages to the service via dbus if certain buttons are clicked.
-- `bin/input-remapper-helper` provides information to the gui that requires
-  root rights. Is stopped when the gui closes.
-- `data/input-remapper.policy` configures pkexec. By using auth_admin_keep
-  the user is not asked multiple times for each task that needs elevated
-  rights. This is done instead of granting the whole application root rights
-  because it is [considered problematic](https://wiki.archlinux.org/index.php/Running_GUI_applications_as_root).
-- `data/input-remapper.desktop` is the entry in the start menu
+https://miro.com/app/board/uXjVPLa8ilM=/?share_link_id=272180986764
 
-**cli**
-
-- `bin/input-remapper-control` is an executable to send messages to the service
-  via dbus. It can be used to start and stop injection without a GUI.
-  The gui also uses it to run the service (if not already running) and
-  helper, because by using one single command for both the polkit rules file
-  remembers not to ask for a password again.
-
-**service**
-
-- `bin/input-remapper-service` executable that starts listening for
-  commands via dbus and runs the injector when needed. It shouldn't matter how
-  it is started as long as it manages to start without throwing errors. It
-  usually needs root rights.
-- `data/input-remapper.service` starts input-remapper-service automatically on boot
-  on distros using systemd.
-- `data/inputremapper.Control.conf` is needed to connect to dbus services started
-  by systemd from other applications.
-
-**autoload**
-
-- `data/input-remapper-autoload.desktop` executes on login and tells the systemd
-  service to stop injecting (possibly the presets of another user) and to
-  inject the users autoloaded presets instead (if any are configured)
-- `data/input-remapper.rules` udev rule that sends a message to the service to
-  start injecting for new devices when they are seen for the first time.
-
-**Example system startup**
-
-1. systemd loads `input-remapper.service` on boot
-2. on login, `input-remapper-autoload.desktop` is executed, which has knowledge 
-   of the current user und doesn't run as root  
-   2.1 it sends the users config directory to the service  
-   2.2 it makes the service stop all ongoing injectings  
-   2.3 it tells the service to start loading all of the configured presets
-3. a bluetooth device gets connected, so udev runs `input-remapper.rules` which
-   tells the service to start injecting for that device if it has a preset
-   assigned. Works because step 2 told the service about the current users
-   config.
-
-Communication to the service always happens via `input-remapper-control`
-
-## Permissions
-
-**gui**
-
-The gui process starts without root rights. It makes sure the daemon and
-helper are running via pkexec.
-
-**daemon**
-
-The daemon exists to keep injections alive beyond the lifetime of the
-user interface. Runs via root. Communicates via dbus. Either started
-via systemd or pkexec.
-
-**helper**
-
-The helper provides information to the user interface like events and
-devices. Communicates via pipes. It should not exceed the lifetime of
-the user interface because it exposes all the input events. Starts via
-pkexec.
+![architecture.png](./architecture.png)
 
 ## Resources
 

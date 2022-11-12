@@ -19,7 +19,11 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
-"""Migration functions"""
+"""Migration functions.
+
+Only write changes to disk, if there actually are changes. Otherwise file-modification
+dates are destroyed.
+"""
 
 import copy
 import json
@@ -106,7 +110,7 @@ def _config_suffix():
 def _preset_path():
     """Migrate the folder structure from < 0.4.0.
 
-    Move existing presets into the new subfolder "presets"
+    Move existing presets into the new subfolder 'presets'
     """
     new_preset_folder = os.path.join(CONFIG_PATH, "presets")
     if os.path.exists(get_preset_path()) or not os.path.exists(CONFIG_PATH):
@@ -128,18 +132,22 @@ def _preset_path():
 def _mapping_keys():
     """Update all preset mappings.
 
-    Update all keys in preset to include value e.g.: "1,5"->"1,5,1"
+    Update all keys in preset to include value e.g.: '1,5'->'1,5,1'
     """
     for preset, preset_dict in all_presets():
+        changes = 0
         if "mapping" in preset_dict.keys():
             mapping = copy.deepcopy(preset_dict["mapping"])
             for key in mapping.keys():
                 if key.count(",") == 1:
                     preset_dict["mapping"][f"{key},1"] = preset_dict["mapping"].pop(key)
+                    changes += 1
 
-        with open(preset, "w") as file:
-            json.dump(preset_dict, file, indent=4)
-            file.write("\n")
+        if changes:
+            with open(preset, "w") as file:
+                logger.info('Updating mapping keys of "%s"', preset)
+                json.dump(preset_dict, file, indent=4)
+                file.write("\n")
 
 
 def _update_version():
@@ -148,12 +156,12 @@ def _update_version():
     if not os.path.exists(config_file):
         return
 
-    logger.info("Updating version in config to %s", VERSION)
     with open(config_file, "r") as file:
         config = json.load(file)
 
     config["version"] = VERSION
     with open(config_file, "w") as file:
+        logger.info('Updating version in config to "%s"', VERSION)
         json.dump(config, file, indent=4)
 
 
@@ -183,7 +191,7 @@ def _find_target(symbol):
         if capabilities[EV_KEY].issubset(uinput.capabilities()[EV_KEY]):
             return name
 
-    logger.info("could not find a suitable target UInput for '%s'", symbol)
+    logger.info('could not find a suitable target UInput for "%s"', symbol)
     return None
 
 
@@ -217,6 +225,7 @@ def _add_target():
             continue
 
         with open(preset, "w") as file:
+            logger.info('Adding targets for "%s"', preset)
             json.dump(preset_dict, file, indent=4)
             file.write("\n")
 
@@ -253,6 +262,7 @@ def _otherwise_to_else():
             continue
 
         with open(preset, "w") as file:
+            logger.info('Changing otherwise to else for "%s"', preset)
             json.dump(preset_dict, file, indent=4)
             file.write("\n")
 
@@ -292,6 +302,7 @@ def _convert_to_individual_mappings():
             joystick_dict = old_preset["gamepad"]["joystick"]
             left_purpose = joystick_dict.get("left_purpose")
             right_purpose = joystick_dict.get("right_purpose")
+            # TODO if pointer_speed is migrated, why is it in my config?
             pointer_speed = joystick_dict.get("pointer_speed")
             if pointer_speed:
                 pointer_speed /= 100

@@ -16,6 +16,8 @@ as shown in the screenshots.
 
 In the text input field, type the key to which you would like to map this key.
 More information about the possible mappings can be found in [examples.md](./examples.md) and [below](#key-names).
+You can also write your macro into the text input field. If you hit enter, it will switch to a multiline-editor with
+line-numbers.
 
 Changes are saved automatically. 
 Press the "Apply" button to activate (inject) the mapping you created.
@@ -37,8 +39,8 @@ No injection should be running anymore.
 
 ## Combinations
 
-You can use combinations of different inputs to trigger a mapping: While you recorde
-the input (`Recorde Input` - Button) press multiple keys and/or move axis at once.
+You can use combinations of different inputs to trigger a mapping: While you record
+the input (`Record` - Button) press multiple keys and/or move axis at once.
 The mapping will be triggered as soon as all the recorded inputs are pressed.
 
 If you use an axis an input you can modify the threshold at which the mapping is 
@@ -108,7 +110,7 @@ ultimately decide which character to write.
 ## Analog Axis
 
 It is possible to map analog inputs to analog outputs. E.g. use a gamepad as a mouse.
-For this you need to create a mapping and recorde the input axis. Then click on 
+For this you need to create a mapping and record the input axis. Then click on 
 `Advanced` and select `Use as Analog`. Make sure to select a target 
 which supports analog axis and switch to the `Analog Axis` tab. 
 There you can select an output axis and use the different sliders to configure the 
@@ -213,25 +215,24 @@ the axis is higher than described by the value.
 
 The following table contains all possible parameters and their default values:
 
-| Parameter                 | Default | Type            | Description                                                                                            |
-|---------------------------|---------|-----------------|--------------------------------------------------------------------------------------------------------|
-| target_uinput             |         | string          | The UInput to which the mapped event will be sent                                                      |
-| output_symbol             |         | string          | The symbol or macro string if applicable                                                               |
-| output_type               |         | int             | The event type of the mapped event                                                                     |
-| output_code               |         | int             | The event code of the mapped event                                                                     |
-| release_combination_keys  | true    | bool            | If release events will be sent to the forwarded device as soon as a combination triggers see also #229 |
-| **Macro settings**        |
-| macro_key_sleep_ms        | 20      | positive int    |                                                                                                        |
-| **Axis settings**         |                         
-| deadzone                  | 0.1     | float ∈ (0, 1)  | The deadzone of the input axis                                                                         |
-| gain                      | 1.0     | float           | Scale factor when mapping an axis to an axis                                                           |
-| expo                      | 0       | float ∈ (-1, 1) | Non liniarity factor see also [GeoGebra](https://www.geogebra.org/calculator/mkdqueky)                 |
-| **EV_REL output**         |            
-| rate                      | 60      | positive int    | The frequency `[Hz]` at which `EV_REL` events get generated (also effects mouse and wheel macro)       |
-| rel_speed                 | 100     | positive int    | The base speed of the relative axis, compounds with the gain (also effects mouse and wheel macro)      |
-| **EV_REL as input**       |         
-| rel_input_cutoff          | 100     | positive int    | The absolute value at which a `EV_REL` axis is considered at its maximum                               |
-| release_timeout           | 0.05    | positive float  | The time `[s]` until a relative axis is considered stationary if no new events arrive                  |
+| Parameter                  | Default | Type            | Description                                                                                                                     |
+|----------------------------|---------|-----------------|---------------------------------------------------------------------------------------------------------------------------------|
+| target_uinput              |         | string          | The UInput to which the mapped event will be sent                                                                               |
+| output_symbol              |         | string          | The symbol or macro string if applicable                                                                                        |
+| output_type                |         | int             | The event type of the mapped event                                                                                              |
+| output_code                |         | int             | The event code of the mapped event                                                                                              |
+| release_combination_keys   | true    | bool            | If release events will be sent to the forwarded device as soon as a combination triggers see also #229                          |
+| **Macro settings**         |
+| macro_key_sleep_ms         | 0       | positive int    |                                                                                                                                 |
+| **Axis settings**          |                         
+| deadzone                   | 0.1     | float ∈ (0, 1)  | The deadzone of the input axis                                                                                                  |
+| gain                       | 1.0     | float           | Scale factor when mapping an axis to an axis                                                                                    |
+| expo                       | 0       | float ∈ (-1, 1) | Non liniarity factor see also [GeoGebra](https://www.geogebra.org/calculator/mkdqueky)                                          |
+| **EV_REL output**          |            
+| rel_rate                   | 60      | positive int    | The frequency `[Hz]` at which `EV_REL` events get generated (also effects mouse macro)                                          |
+| **EV_REL as input**        |         
+| rel_to_abs_input_cutoff    | 2       | positive float  | The value relative to a predefined base-speed, at which `EV_REL` input (cursor and wheel) is considered at its maximum.         |
+| release_timeout            | 0.05    | positive float  | The time `[s]` until a relative axis is considered stationary if no new events arrive                                           |
 
 
 ## CLI

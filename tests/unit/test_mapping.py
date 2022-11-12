@@ -21,14 +21,25 @@
 import unittest
 from functools import partial
 
-from evdev.ecodes import EV_KEY
+from evdev.ecodes import (
+    EV_ABS,
+    EV_REL,
+    REL_X,
+    BTN_MIDDLE,
+    EV_KEY,
+    KEY_A,
+    ABS_X,
+    REL_Y,
+    REL_WHEEL,
+    REL_WHEEL_HI_RES,
+)
 from pydantic import ValidationError
 
 from inputremapper.configs.mapping import Mapping, UIMapping
 from inputremapper.configs.system_mapping import system_mapping, DISABLE_NAME
-from inputremapper.gui.messages.message_broker import MessageType
-from inputremapper.input_event import EventActions
 from inputremapper.event_combination import EventCombination
+from inputremapper.gui.messages.message_broker import MessageType
+from inputremapper.input_event import EventActions, InputEvent, USE_AS_ANALOG_VALUE
 
 
 class TestMapping(unittest.IsolatedAsyncioTestCase):
@@ -51,10 +62,77 @@ class TestMapping(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(m.deadzone, 0.1)
         self.assertEqual(m.gain, 1)
         self.assertEqual(m.expo, 0)
-        self.assertEqual(m.rate, 60)
-        self.assertEqual(m.rel_speed, 100)
-        self.assertEqual(m.rel_input_cutoff, 100)
+        self.assertEqual(m.rel_rate, 60)
+        self.assertEqual(m.rel_to_abs_input_cutoff, 2)
         self.assertEqual(m.release_timeout, 0.05)
+
+    def test_is_wheel_output(self):
+        mapping = Mapping(
+            event_combination=EventCombination(
+                events=(InputEvent(0, 0, EV_REL, REL_X, USE_AS_ANALOG_VALUE),)
+            ),
+            target_uinput="keyboard",
+            output_type=EV_REL,
+            output_code=REL_Y,
+        )
+        self.assertFalse(mapping.is_wheel_output())
+        self.assertFalse(mapping.is_high_res_wheel_output())
+
+        mapping = Mapping(
+            event_combination=EventCombination(
+                events=(InputEvent(0, 0, EV_REL, REL_X, USE_AS_ANALOG_VALUE),)
+            ),
+            target_uinput="keyboard",
+            output_type=EV_REL,
+            output_code=REL_WHEEL,
+        )
+        self.assertTrue(mapping.is_wheel_output())
+        self.assertFalse(mapping.is_high_res_wheel_output())
+
+        mapping = Mapping(
+            event_combination=EventCombination(
+                events=(InputEvent(0, 0, EV_REL, REL_X, USE_AS_ANALOG_VALUE),)
+            ),
+            target_uinput="keyboard",
+            output_type=EV_REL,
+            output_code=REL_WHEEL_HI_RES,
+        )
+        self.assertFalse(mapping.is_wheel_output())
+        self.assertTrue(mapping.is_high_res_wheel_output())
+
+    def test_find_analog_input_event(self):
+        analog_input = InputEvent(0, 0, EV_REL, REL_X, USE_AS_ANALOG_VALUE)
+
+        mapping = Mapping(
+            event_combination=EventCombination(
+                events=(
+                    InputEvent(0, 0, EV_KEY, BTN_MIDDLE, 1),
+                    InputEvent(0, 0, EV_REL, REL_Y, 1),
+                    analog_input,
+                )
+            ),
+            target_uinput="keyboard",
+            output_type=EV_ABS,
+            output_code=ABS_X,
+        )
+        self.assertIsNone(mapping.find_analog_input_event(type_=EV_ABS))
+        self.assertEqual(mapping.find_analog_input_event(type_=EV_REL), analog_input)
+        self.assertEqual(mapping.find_analog_input_event(), analog_input)
+
+        mapping = Mapping(
+            event_combination=EventCombination(
+                events=(
+                    InputEvent(0, 0, EV_REL, REL_X, 1),
+                    InputEvent(0, 0, EV_KEY, BTN_MIDDLE, 1),
+                )
+            ),
+            target_uinput="keyboard",
+            output_type=EV_KEY,
+            output_code=KEY_A,
+        )
+        self.assertIsNone(mapping.find_analog_input_event(type_=EV_ABS))
+        self.assertIsNone(mapping.find_analog_input_event(type_=EV_REL))
+        self.assertIsNone(mapping.find_analog_input_event())
 
     def test_get_output_type_code(self):
         cfg = {
@@ -268,22 +346,17 @@ class TestMapping(unittest.IsolatedAsyncioTestCase):
         Mapping(**cfg, expo=-1)
 
         # negative rate
-        test(**cfg, rate=-1)
-        test(**cfg, rate=0)
-        Mapping(**cfg, rate=1)
-        Mapping(**cfg, rate=200)
+        test(**cfg, rel_rate=-1)
+        test(**cfg, rel_rate=0)
 
-        # negative rel_speed
-        test(**cfg, rel_speed=-1)
-        test(**cfg, rel_speed=0)
-        Mapping(**cfg, rel_speed=1)
-        Mapping(**cfg, rel_speed=200)
+        Mapping(**cfg, rel_rate=1)
+        Mapping(**cfg, rel_rate=200)
 
-        # negative rel_input_cutoff
-        test(**cfg, rel_input_cutoff=-1)
-        test(**cfg, rel_input_cutoff=0)
-        Mapping(**cfg, rel_input_cutoff=1)
-        Mapping(**cfg, rel_input_cutoff=200)
+        # negative rel_to_abs_input_cutoff
+        test(**cfg, rel_to_abs_input_cutoff=-1)
+        test(**cfg, rel_to_abs_input_cutoff=0)
+        Mapping(**cfg, rel_to_abs_input_cutoff=1)
+        Mapping(**cfg, rel_to_abs_input_cutoff=3)
 
         # negative release timeout
         test(**cfg, release_timeout=-0.1)

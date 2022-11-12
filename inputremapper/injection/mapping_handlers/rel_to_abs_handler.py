@@ -21,10 +21,23 @@ import asyncio
 from typing import Tuple, Dict, Optional
 
 import evdev
-from evdev.ecodes import EV_ABS, EV_REL
+from evdev.ecodes import (
+    EV_ABS,
+    EV_REL,
+    REL_WHEEL,
+    REL_HWHEEL,
+    REL_HWHEEL_HI_RES,
+    REL_WHEEL_HI_RES,
+)
 
 from inputremapper import exceptions
-from inputremapper.configs.mapping import Mapping
+from inputremapper.configs.mapping import (
+    Mapping,
+    WHEEL_SCALING,
+    WHEEL_HI_RES_SCALING,
+    REL_XY_SCALING,
+    DEFAULT_REL_RATE,
+)
 from inputremapper.event_combination import EventCombination
 from inputremapper.injection.global_uinputs import global_uinputs
 from inputremapper.injection.mapping_handlers.axis_transform import Transformation
@@ -38,9 +51,14 @@ from inputremapper.logger import logger
 
 
 class RelToAbsHandler(MappingHandler):
-    """Handler which transforms EV_REL to EV_ABS events"""
+    """Handler which transforms EV_REL to EV_ABS events.
 
-    _map_axis: Tuple[int, int]  # the (type, code) of the axis we map
+    High EV_REL input results in high EV_ABS output.
+    If no new EV_REL events are seen, the EV_ABS output is set to 0 after
+    release_timeout.
+    """
+
+    _input_movement: Tuple[int, int]  # (type, code) of the relative movement we map
     _output_axis: Tuple[int, int]  # the (type, code) of the output axis
     _transform: Transformation
     _target_absinfo: evdev.AbsInfo
@@ -48,6 +66,9 @@ class RelToAbsHandler(MappingHandler):
     # infinite loop which centers the output when input stops
     _recenter_loop: Optional[asyncio.Task]
     _moving: asyncio.Event  # event to notify the _recenter_loop
+
+    _previous_event: Optional[InputEvent]
+    _observed_rate: float  # input events per second
 
     def __init__(
         self,
@@ -58,12 +79,10 @@ class RelToAbsHandler(MappingHandler):
         super().__init__(combination, mapping)
 
         # find the input event we are supposed to map. If the input combination is
-        # BTN_A + REL_X + BTN_B, then use the value of ABS_X for the transformation
-        for event in combination:
-            if event.value == 0:
-                assert event.type == EV_REL
-                self._map_axis = event.type_and_code
-                break
+        # BTN_A + REL_X + BTN_B, then use the value of REL_X for the transformation
+        analog_input = mapping.find_analog_input_event(type_=EV_REL)
+        assert analog_input is not None
+        self._input_movement = analog_input.type_and_code
 
         assert mapping.output_code is not None
         assert mapping.output_type == EV_ABS
@@ -75,9 +94,11 @@ class RelToAbsHandler(MappingHandler):
                 mapping.target_uinput
             ).capabilities(absinfo=True)[EV_ABS]
         }[mapping.output_code]
+
+        max_ = self._get_default_cutoff()
         self._transform = Transformation(
-            max_=mapping.rel_input_cutoff,
-            min_=-mapping.rel_input_cutoff,
+            min_=-max(1, int(max_)),
+            max_=max(1, int(max_)),
             deadzone=mapping.deadzone,
             gain=mapping.gain,
             expo=mapping.expo,
@@ -85,25 +106,71 @@ class RelToAbsHandler(MappingHandler):
         self._moving = asyncio.Event()
         self._recenter_loop = None
 
+        self._previous_event = None
+        self._observed_rate = DEFAULT_REL_RATE
+
     def __str__(self):
-        return f"RelToAbsHandler for {self._map_axis} <{id(self)}>:"
+        return f"RelToAbsHandler for {self._input_movement} <{id(self)}>:"
 
     def __repr__(self):
         return self.__str__()
 
     @property
     def child(self):  # used for logging
-        return f"maps to: {self.mapping.output_code} at {self.mapping.target_uinput}"
+        return (
+            f"maps to: {self.mapping.get_output_name_constant()} "
+            f"{self.mapping.get_output_type_code()} at "
+            f"{self.mapping.target_uinput}"
+        )
+
+    def _observe_rate(self, event):
+        """Watch incoming events and remember how many events appear per second."""
+        if self._previous_event is not None:
+            delta_time = event.timestamp() - self._previous_event.timestamp()
+            if delta_time == 0:
+                logger.error("Observed two events with the same timestamp")
+                return
+
+            rate = 1 / delta_time
+            # mice seem to have a constant rate. wheel events are jaggy and the
+            # rate depends on how fast it is turned.
+            if rate > self._observed_rate:
+                logger.debug("Updating rate to %s", rate)
+                self._observed_rate = rate
+                self._calculate_cutoff()
+
+        self._previous_event = event
+
+    def _get_default_cutoff(self):
+        """Get the cutoff value assuming the default input rate."""
+        if self._input_movement[1] in [REL_WHEEL, REL_HWHEEL]:
+            return self.mapping.rel_to_abs_input_cutoff * WHEEL_SCALING
+
+        if self._input_movement[1] in [REL_WHEEL_HI_RES, REL_HWHEEL_HI_RES]:
+            return self.mapping.rel_to_abs_input_cutoff * WHEEL_HI_RES_SCALING
+
+        return self.mapping.rel_to_abs_input_cutoff * REL_XY_SCALING
+
+    def _calculate_cutoff(self):
+        """Correct the default cutoff with the observed input rate, and set it."""
+        # Mice that have very high input rates report low values at the same time.
+        # If the rate is high, use a lower cutoff-value. If the rate is low, use a
+        # higher cutoff-value.
+        cutoff = self._get_default_cutoff()
+        cutoff *= DEFAULT_REL_RATE / self._observed_rate
+
+        self._transform.set_range(-max(1, int(cutoff)), max(1, int(cutoff)))
 
     def notify(
         self,
         event: InputEvent,
         source: evdev.InputDevice,
         forward: evdev.UInput = None,
-        supress: bool = False,
+        suppress: bool = False,
     ) -> bool:
+        self._observe_rate(event)
 
-        if event.type_and_code != self._map_axis:
+        if event.type_and_code != self._input_movement:
             return False
 
         if EventActions.recenter in event.actions:

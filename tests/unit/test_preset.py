@@ -17,21 +17,23 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
-from inputremapper.configs.mapping import UIMapping
-from tests.test import tmp, quick_cleanup, get_key_mapping
 
-import os
-import unittest
 import json
+import os
+import subprocess
+import unittest
 from unittest.mock import patch
 
 from evdev.ecodes import EV_KEY, EV_ABS, KEY_A
-from inputremapper.input_event import InputEvent
 
+from inputremapper.configs.mapping import UIMapping
+from inputremapper.configs.paths import get_preset_path, get_config_path, CONFIG_PATH
 from inputremapper.configs.preset import Preset
 from inputremapper.configs.system_mapping import SystemMapping, XMODMAP_FILENAME
-from inputremapper.configs.paths import get_preset_path, get_config_path, CONFIG_PATH
+from inputremapper.configs.mapping import Mapping
 from inputremapper.event_combination import EventCombination
+from inputremapper.input_event import InputEvent
+from tests.test import quick_cleanup, get_key_mapping
 
 
 class TestSystemMapping(unittest.TestCase):
@@ -59,6 +61,38 @@ class TestSystemMapping(unittest.TestCase):
             self.assertNotIn("key_a", content)
             self.assertNotIn("KEY_A", content)
             self.assertNotIn("disable", content)
+
+    def test_empty_xmodmap(self):
+        # if xmodmap returns nothing, don't write the file
+        empty_xmodmap = ""
+
+        class SubprocessMock:
+            def decode(self):
+                return empty_xmodmap
+
+        def check_output(*args, **kwargs):
+            return SubprocessMock()
+
+        with patch.object(subprocess, "check_output", check_output):
+            system_mapping = SystemMapping()
+            path = os.path.join(CONFIG_PATH, XMODMAP_FILENAME)
+            os.remove(path)
+
+            system_mapping.populate()
+            self.assertFalse(os.path.exists(path))
+
+    def test_xmodmap_command_missing(self):
+        # if xmodmap is not installed, don't write the file
+        def check_output(*args, **kwargs):
+            raise FileNotFoundError
+
+        with patch.object(subprocess, "check_output", check_output):
+            system_mapping = SystemMapping()
+            path = os.path.join(CONFIG_PATH, XMODMAP_FILENAME)
+            os.remove(path)
+
+            system_mapping.populate()
+            self.assertFalse(os.path.exists(path))
 
     def test_correct_case(self):
         system_mapping = SystemMapping()
@@ -126,6 +160,25 @@ class TestPreset(unittest.TestCase):
 
     def tearDown(self):
         quick_cleanup()
+
+    def test_is_mapped_multiple_times(self):
+        combination = EventCombination.from_string("1,1,1+2,2,2+3,3,3+4,4,4")
+        permutations = combination.get_permutations()
+        self.assertEqual(len(permutations), 6)
+
+        self.preset._mappings[permutations[0]] = Mapping(
+            event_combination=permutations[0],
+            target_uinput="keyboard",
+            output_symbol="a",
+        )
+        self.assertFalse(self.preset._is_mapped_multiple_times(permutations[2]))
+
+        self.preset._mappings[permutations[1]] = Mapping(
+            event_combination=permutations[1],
+            target_uinput="keyboard",
+            output_symbol="a",
+        )
+        self.assertTrue(self.preset._is_mapped_multiple_times(permutations[2]))
 
     def test_has_unsaved_changes(self):
         self.preset.path = get_preset_path("foo", "bar2")

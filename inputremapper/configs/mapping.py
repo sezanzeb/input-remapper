@@ -22,8 +22,17 @@ from __future__ import annotations
 import enum
 from typing import Optional, Callable, Tuple, TypeVar, Literal, Union
 
+import evdev
 import pkg_resources
-from evdev.ecodes import EV_KEY, EV_ABS, EV_REL
+from evdev.ecodes import (
+    EV_KEY,
+    EV_ABS,
+    EV_REL,
+    REL_WHEEL,
+    REL_HWHEEL,
+    REL_HWHEEL_HI_RES,
+    REL_WHEEL_HI_RES,
+)
 from pydantic import (
     BaseModel,
     PositiveInt,
@@ -40,10 +49,10 @@ from pydantic import (
 from inputremapper.configs.system_mapping import system_mapping, DISABLE_NAME
 from inputremapper.event_combination import EventCombination
 from inputremapper.exceptions import MacroParsingError
-from inputremapper.gui.messages.message_types import MessageType
 from inputremapper.gui.gettext import _
+from inputremapper.gui.messages.message_types import MessageType
 from inputremapper.injection.macros.parse import is_this_a_macro, parse
-from inputremapper.input_event import EventActions
+from inputremapper.input_event import InputEvent, EventActions, USE_AS_ANALOG_VALUE
 
 # TODO: remove pydantic VERSION check as soon as we no longer support
 #  Ubuntu 20.04 and with it the ancient pydantic 1.2
@@ -53,7 +62,18 @@ needs_workaround = pkg_resources.parse_version(
 ) < pkg_resources.parse_version("1.7.1")
 
 
-EMPTY_MAPPING_NAME = _("Empty Mapping")
+EMPTY_MAPPING_NAME: str = _("Empty Mapping")
+
+# If `1` is the default speed for EV_REL, how much does this value needs to be scaled
+# up to get reasonable speeds for various EV_REL events?
+# Mouse injection rates vary wildly, and so do the values.
+REL_XY_SCALING: float = 60
+WHEEL_SCALING: float = 1
+# WHEEL_HI_RES always generates events with 120 times higher values than WHEEL
+# https://www.kernel.org/doc/html/latest/input/event-codes.html?highlight=wheel_hi_res#ev-rel
+WHEEL_HI_RES_SCALING: float = 120
+# Those values are assuming a rate of 60hz
+DEFAULT_REL_RATE: float = 60
 
 
 class KnownUinput(str, enum.Enum):
@@ -119,13 +139,14 @@ class UIMapping(BaseModel):
     expo: confloat(ge=-1, le=1) = 0  # type: ignore
 
     # when mapping to relative axis
-    rate: PositiveInt = 60  # The frequency [Hz] at which EV_REL events get generated
-    # the base speed of the relative axis, compounds with the gain
-    rel_speed: PositiveInt = 100
+    # The frequency [Hz] at which EV_REL events get generated
+    rel_rate: PositiveInt = 60
 
-    # when mapping from relative axis:
-    # the absolute value at which a EV_REL axis is considered at its maximum
-    rel_input_cutoff: PositiveInt = 100
+    # when mapping from a relative axis:
+    # the relative value at which a EV_REL axis is considered at its maximum. Moving
+    # a mouse at 2x the regular speed would be considered max by default.
+    rel_to_abs_input_cutoff: PositiveInt = 2
+
     # the time until a relative axis is considered stationary if no new events arrive
     release_timeout: PositiveFloat = 0.05
     # don't release immediately when a relative axis drops below the speed threshold
@@ -205,6 +226,31 @@ class UIMapping(BaseModel):
         """whether this mapping specifies an output axis"""
         return self.output_type == EV_ABS or self.output_type == EV_REL
 
+    def find_analog_input_event(
+        self, type_: Optional[int] = None
+    ) -> Optional[InputEvent]:
+        """Return the first event that is configured with "Use as analog"."""
+        for event in self.event_combination:
+            if event.value == USE_AS_ANALOG_VALUE:
+                if type_ is not None and event.type != type_:
+                    continue
+
+                return event
+
+        return None
+
+    def is_wheel_output(self) -> bool:
+        return self.output_code in (
+            REL_WHEEL,
+            REL_HWHEEL,
+        )
+
+    def is_high_res_wheel_output(self) -> bool:
+        return self.output_code in (
+            REL_WHEEL_HI_RES,
+            REL_HWHEEL_HI_RES,
+        )
+
     def set_combination_changed_callback(self, callback: CombinationChangedCallback):
         self._combination_changed = callback
 
@@ -221,6 +267,10 @@ class UIMapping(BaseModel):
         if not is_this_a_macro(self.output_symbol):
             return EV_KEY, system_mapping.get(self.output_symbol)
         return None
+
+    def get_output_name_constant(self) -> bool:
+        """Get the evdev name costant for the output."""
+        return evdev.ecodes.bytype[self.output_type][self.output_code]
 
     def is_valid(self) -> bool:
         """If the mapping is valid."""
@@ -313,7 +363,7 @@ class Mapping(UIMapping):
         for event in combination:
             if event.type == EV_ABS and abs(event.value) >= 100:
                 raise ValueError(
-                    f"{event = } maps a absolute axis to a button, but the trigger "
+                    f"{event = } maps an absolute axis to a button, but the trigger "
                     f"point (event.value) is not between -100[%] and 100[%]"
                 )
         return combination
@@ -371,25 +421,28 @@ class Mapping(UIMapping):
         """Validate that an output type is an axis if we have an input axis.
         And vice versa"""
         combination: EventCombination = values.get("event_combination")
-        output_type = values.get("output_type")
         event_values = [event.value for event in combination]
+
+        output_type = values.get("output_type")
         output_symbol = values.get("output_symbol")
 
-        if 0 not in event_values and not output_symbol and output_type != EV_KEY:
+        use_as_analog = USE_AS_ANALOG_VALUE in event_values
+
+        if not use_as_analog and not output_symbol and output_type != EV_KEY:
             raise ValueError(
                 f"missing macro or key: "
-                f"the {combination = } specifies a key input, "
+                f'"{str(combination)}" is not used as analog input, '
                 f"but no output macro or key is programmed"
             )
 
         if (
-            0 in event_values
+            use_as_analog
             and output_type not in (EV_ABS, EV_REL)
             and output_symbol != DISABLE_NAME
         ):
             raise ValueError(
                 f"missing output axis: "
-                f"the {combination = } specifies a input axis, "
+                f'"{str(combination)}" is used as analog input, '
                 f"but the {output_type = } is not an axis "
             )
 

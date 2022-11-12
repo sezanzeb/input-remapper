@@ -145,7 +145,7 @@ if is_service_running():
 EVENT_READ_TIMEOUT = 0.01
 
 # based on experience how much time passes at most until
-# the helper starts receiving previously pushed events after a
+# the reader-service starts receiving previously pushed events after a
 # call to start_reading
 START_READING_DELAY = 0.05
 
@@ -333,6 +333,14 @@ class _Fixtures:
         name="YuBiCofooYuBiKeYbar",
         path="/dev/input/event51",
     )
+    # name requires sanitation
+    dev_input_event52 = Fixture(
+        capabilities={evdev.ecodes.EV_KEY: keyboard_keys},
+        phys="usb-0000:03:00.0-3/input1",
+        info=evdev.device.DeviceInfo(2, 1, 2, 1),
+        name="Qux/Device?",
+        path="/dev/input/event52",
+    )
 
     def __init__(self):
         self._iter = [
@@ -347,6 +355,7 @@ class _Fixtures:
             self.dev_input_event31,
             self.dev_input_event40,
             self.dev_input_event51,
+            self.dev_input_event52,
         ]
         self._dynamic_fixtures = {}
 
@@ -431,19 +440,23 @@ class _Fixtures:
     def YuBiCofooYuBiKeYbar(self):
         return self["/dev/input/event51"]
 
+    @property
+    def QuxSlashDeviceQuestionmark(self):
+        return self["/dev/input/event52"]
+
 
 fixtures = _Fixtures()
 
 
 def setup_pipe(fixture: Fixture):
-    """Create a pipe that can be used to send events to the helper,
-    which in turn will be sent to the reader
+    """Create a pipe that can be used to send events to the reader-service,
+    which in turn will be sent to the reader-client
     """
     if pending_events.get(fixture) is None:
         pending_events[fixture] = multiprocessing.Pipe()
 
 
-# make sure those pipes exist before any process (the helper) gets forked,
+# make sure those pipes exist before any process (the reader-service) gets forked,
 # so that events can be pushed after the fork.
 for _fixture in fixtures:
     setup_pipe(_fixture)
@@ -675,6 +688,8 @@ class UInput:
         pass
 
 
+# TODO inherit from input-remappers InputEvent?
+#  makes convert_to_internal_events obsolete
 class InputEvent(evdev.InputEvent):
     def __init__(self, sec, usec, type, code, value):
         self.t = (type, code, value)
@@ -768,7 +783,7 @@ update_verbosity(True)
 
 from inputremapper.daemon import DaemonProxy
 from inputremapper.input_event import InputEvent as InternalInputEvent
-from inputremapper.injection.injector import Injector, RUNNING, STOPPED
+from inputremapper.injection.injector import Injector, InjectorState
 from inputremapper.injection.macros.macro import macro_variables
 from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.configs.global_config import global_config
@@ -776,7 +791,8 @@ from inputremapper.configs.mapping import Mapping, UIMapping
 from inputremapper.groups import groups, _Groups
 from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.gui.messages.message_broker import MessageBroker
-from inputremapper.gui.reader import Reader
+from inputremapper.gui.reader_client import ReaderClient
+from inputremapper.gui.reader_service import ReaderService
 from inputremapper.configs.paths import get_config_path, get_preset_path
 from inputremapper.configs.preset import Preset
 
@@ -789,8 +805,16 @@ Injector.regrab_timeout = 0.05
 environ_copy = copy.deepcopy(os.environ)
 
 
+def is_running_patch():
+    logger.info("is_running is patched to always return True")
+    return True
+
+
+setattr(ReaderService, "is_running", is_running_patch)
+
+
 def convert_to_internal_events(events):
-    """Convert a iterable of InputEvent to a list of inputremapper.InputEvent."""
+    """Convert an iterable of InputEvent to a list of inputremapper.InputEvent."""
     return [InternalInputEvent.from_event(event) for event in events]
 
 
@@ -933,9 +957,9 @@ class FakeDaemonProxy:
     def stop_injecting(self, group_key: str) -> None:
         self.calls["stop_injecting"].append(group_key)
 
-    def get_state(self, group_key: str) -> int:
+    def get_state(self, group_key: str) -> InjectorState:
         self.calls["get_state"].append(group_key)
-        return STOPPED
+        return InjectorState.STOPPED
 
     def start_injecting(self, group_key: str, preset: str) -> bool:
         self.calls["start_injecting"].append((group_key, preset))

@@ -494,7 +494,7 @@ class Macro:
             resolved_speed = value * _resolve(speed, [int])
             while self.is_holding():
                 handler(EV_REL, code, resolved_speed)
-                await asyncio.sleep(1 / self.mapping.rate)
+                await asyncio.sleep(1 / self.mapping.rel_rate)
 
         self.tasks.append(task)
 
@@ -519,7 +519,7 @@ class Macro:
                     remainder[i] = math.fmod(float_value, 1)
                     if abs(float_value) >= 1:
                         handler(EV_REL, code[i], int(float_value))
-                await asyncio.sleep(1 / self.mapping.rate)
+                await asyncio.sleep(1 / self.mapping.rel_rate)
 
         self.tasks.append(task)
 
@@ -541,6 +541,35 @@ class Macro:
             resolved_value = _resolve(value)
             logger.debug('"%s" set to "%s"', variable, resolved_value)
             macro_variables[variable] = value
+
+        self.tasks.append(task)
+
+    def add_add(self, variable, value):
+        """Add a number to a variable."""
+        _type_check_variablename(variable)
+
+        async def task(_):
+            current = macro_variables[variable]
+            if current is None:
+                logger.debug('"%s" initialized with 0', variable)
+                macro_variables[variable] = 0
+                current = 0
+
+            resolved_value = _resolve(value)
+            if not isinstance(resolved_value, (int, float)):
+                logger.error('Expected delta "%s" to be a number', resolved_value)
+                return
+
+            if not isinstance(current, (int, float)):
+                logger.error(
+                    'Expected variable "%s" to contain a number, but got "%s"',
+                    variable,
+                    current,
+                )
+                return
+
+            logger.debug('"%s" += "%s"', variable, resolved_value)
+            macro_variables[variable] += value
 
         self.tasks.append(task)
 

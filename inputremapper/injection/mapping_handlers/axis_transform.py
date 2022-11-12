@@ -26,8 +26,9 @@ class Transformation:
 
     def __init__(
         self,
-        max_: int,
-        min_: int,
+        # if input values are > max_, the return value will be > 1
+        max_: Union[int, float],
+        min_: Union[int, float],
         deadzone: float,
         gain: float = 1,
         expo: float = 0,
@@ -48,6 +49,14 @@ class Transformation:
             self._cache[x] = y
 
         return self._cache[x]
+
+    def set_range(self, min_, max_):
+        # TODO docstring
+        if min_ != self._min or max_ != self._max:
+            self._cache = {}
+
+        self._min = min_
+        self._max = max_
 
     def _normalize(self, x: Union[int, float]) -> float:
         """Move and scale x to be between -1 and 1

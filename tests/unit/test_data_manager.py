@@ -40,7 +40,7 @@ from inputremapper.gui.messages.message_data import (
     PresetData,
     CombinationUpdate,
 )
-from inputremapper.gui.reader import Reader
+from inputremapper.gui.reader_client import ReaderClient
 from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.input_event import InputEvent
 from tests.test import get_key_mapping, quick_cleanup, FakeDaemonProxy, prepare_presets
@@ -61,7 +61,7 @@ class Listener:
 class TestDataManager(unittest.TestCase):
     def setUp(self) -> None:
         self.message_broker = MessageBroker()
-        self.reader = Reader(self.message_broker, _Groups())
+        self.reader = ReaderClient(self.message_broker, _Groups())
         self.uinputs = GlobalUInputs()
         self.uinputs.prepare_all()
         self.data_manager = DataManager(
@@ -346,6 +346,30 @@ class TestDataManager(unittest.TestCase):
         self.assertEqual(len(presets_in_group), 2)
         self.assertNotIn("preset2", presets_in_group)
         self.assertEqual(len(listener.calls), 1)
+
+    def test_delete_preset_sanitized(self):
+        """should be able to delete the current preset"""
+        Preset(get_preset_path("Qux/Device?", "bla")).save()
+        Preset(get_preset_path("Qux/Device?", "foo")).save()
+        self.assertTrue(os.path.exists(get_preset_path("Qux/Device?", "bla")))
+
+        self.data_manager.load_group(group_key="Qux/Device?")
+        self.data_manager.load_preset(name="bla")
+        listener = Listener()
+        self.message_broker.subscribe(MessageType.group, listener)
+        self.message_broker.subscribe(MessageType.preset, listener)
+        self.message_broker.subscribe(MessageType.mapping, listener)
+
+        # should emit only group_changed
+        self.data_manager.delete_preset()
+
+        presets_in_group = [preset for preset in listener.calls[0].presets]
+        self.assertEqual(len(presets_in_group), 1)
+        self.assertNotIn("bla", presets_in_group)
+        self.assertIn("foo", presets_in_group)
+        self.assertEqual(len(listener.calls), 1)
+
+        self.assertFalse(os.path.exists(get_preset_path("Qux/Device?", "bla")))
 
     def test_load_mapping(self):
         """should be able to load a mapping"""
@@ -762,7 +786,7 @@ class TestDataManager(unittest.TestCase):
         self.assertRaises(FileNotFoundError, self.data_manager.get_newest_preset_name)
 
     def test_newest_preset_raises_data_management_error(self):
-        """should raise data management error without a active group"""
+        """should raise data management error without an active group"""
         self.assertRaises(DataManagementError, self.data_manager.get_newest_preset_name)
 
     def test_newest_preset_only_searches_active_group(self):
@@ -803,6 +827,20 @@ class TestDataManager(unittest.TestCase):
             DataManagementError, self.data_manager.get_available_preset_name
         )
 
+    def test_available_preset_name_sanitized(self):
+        self.data_manager.load_group("Qux/Device?")
+        self.assertEqual(
+            self.data_manager.get_available_preset_name(), DEFAULT_PRESET_NAME
+        )
+
+        Preset(get_preset_path("Qux/Device?", DEFAULT_PRESET_NAME)).save()
+        self.assertEqual(
+            self.data_manager.get_available_preset_name(), f"{DEFAULT_PRESET_NAME} 2"
+        )
+
+        Preset(get_preset_path("Qux/Device?", "foo")).save()
+        self.assertEqual(self.data_manager.get_available_preset_name("foo"), "foo 2")
+
     def test_available_preset_name_increments_default(self):
         Preset(get_preset_path("Foo Device", DEFAULT_PRESET_NAME)).save()
         Preset(get_preset_path("Foo Device", f"{DEFAULT_PRESET_NAME} 2")).save()
@@ -819,11 +857,11 @@ class TestDataManager(unittest.TestCase):
         self.data_manager.load_group("Foo Device")
         self.assertEqual(self.data_manager.get_available_preset_name("foo 1"), "foo 3")
 
-    def test_should_send_groups(self):
+    def test_should_publish_groups(self):
         listener = Listener()
         self.message_broker.subscribe(MessageType.groups, listener)
 
-        self.data_manager.send_groups()
+        self.data_manager.publish_groups()
         data = listener.calls[0]
 
         # we expect a list of tuples with the group key and their device types
@@ -834,6 +872,7 @@ class TestDataManager(unittest.TestCase):
                 "Foo Device 2": ["gamepad", "keyboard", "mouse"],
                 "Bar Device": ["keyboard"],
                 "gamepad": ["gamepad"],
+                "Qux/Device?": ["keyboard"],
             },
         )
 
@@ -862,7 +901,7 @@ class TestDataManager(unittest.TestCase):
         listener = Listener()
         self.message_broker.subscribe(MessageType.uinputs, listener)
 
-        self.data_manager.send_uinputs()
+        self.data_manager.publish_uinputs()
         data = listener.calls[0]
 
         # we expect a list of tuples with the group key and their device types

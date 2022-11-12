@@ -35,6 +35,7 @@
 Beware that pipes read any available messages,
 even those written by themselves.
 """
+
 import asyncio
 import json
 import os
@@ -46,7 +47,12 @@ from inputremapper.logger import logger
 
 
 class Pipe:
-    """Pipe object."""
+    """Pipe object.
+
+    This is not for secure communication. If pipes already exist, they will be used,
+    but existing pipes might have open permissions! Only use this for stuff that
+    non-privileged users would be allowed to read.
+    """
 
     def __init__(self, path):
         """Create a pipe, or open it if it already exists."""
@@ -91,7 +97,7 @@ class Pipe:
         self._handles = (open(self._fds[0], "r"), open(self._fds[1], "w"))
 
         # clear the pipe of any contents, to avoid leftover messages from breaking
-        # the helper
+        # the reader-client or reader-service
         while self.poll():
             leftover = self.recv()
             logger.debug('Cleared leftover message "%s"', leftover)
@@ -107,7 +113,7 @@ class Pipe:
         """Read an object from the pipe or None if nothing available.
 
         Doesn't transmit pickles, to avoid injection attacks on the
-        privileged helper. Only messages that can be converted to json
+        privileged reader-service. Only messages that can be converted to json
         are allowed.
         """
         if len(self._unread) > 0:
@@ -124,7 +130,7 @@ class Pipe:
         if parsed[0] < self._created_at and os.environ.get("UNITTEST"):
             # important to avoid race conditions between multiple unittests,
             # for example old terminate messages reaching a new instance of
-            # the helper.
+            # the reader-service.
             logger.debug("Ignoring old message %s", parsed)
             return None
 

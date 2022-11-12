@@ -116,7 +116,7 @@ class MacroTestBase(unittest.IsolatedAsyncioTestCase):
 
 class DummyMapping:
     macro_key_sleep_ms = 10
-    rate = 60
+    rel_rate = 60
 
 
 class TestMacros(MacroTestBase):
@@ -127,7 +127,9 @@ class TestMacros(MacroTestBase):
             result.append((a, b, c, d))
 
         functions = {"key": patch}
-        with mock.patch("inputremapper.injection.macros.parse.FUNCTIONS", functions):
+        with mock.patch(
+            "inputremapper.injection.macros.parse.TASK_FACTORIES", functions
+        ):
             await parse("key(1, d=4, b=2, c=3)", self.context, DummyMapping).run(
                 self.handler
             )
@@ -460,7 +462,6 @@ class TestMacros(MacroTestBase):
         self.assertEqual(len(macro.child_macros), 0)
 
     async def test_raises_error(self):
-
         # passing a string parameter. This is not a macro, even though
         # it might look like it without the string quotes.
         self.assertRaises(MacroParsingError, parse, '"modify(a, b)"', self.context)
@@ -539,6 +540,9 @@ class TestMacros(MacroTestBase):
         self.assertRaises(MacroParsingError, parse, "set('b,c', 2)", self.context)
         self.assertRaises(MacroParsingError, parse, 'set("b,c", 2)', self.context)
         parse("set(A, 2)", self.context)  # no error
+
+        self.assertRaises(MacroParsingError, parse, "key(a)key(b)", self.context)
+        self.assertRaises(MacroParsingError, parse, "hold(key(a)key(b))", self.context)
 
     async def test_key(self):
         code_a = system_mapping.get("a")
@@ -969,7 +973,7 @@ class TestMacros(MacroTestBase):
         macro_2.release_trigger()
 
         self.assertIn((EV_REL, REL_Y, -4), self.result)
-        expected_wheel_hi_res_event_count = sleep * DummyMapping.rate
+        expected_wheel_hi_res_event_count = sleep * DummyMapping.rel_rate
         expected_wheel_event_count = int(
             expected_wheel_hi_res_event_count / 120 * wheel_speed
         )
@@ -1043,6 +1047,43 @@ class TestMacros(MacroTestBase):
 
         await parse("set(a, )", self.context, DummyMapping).run(self.handler)
         self.assertEqual(macro_variables.get("a"), None)
+
+    async def test_add(self):
+        await parse("set(a, 1).add(a, 1)", self.context, DummyMapping).run(self.handler)
+        self.assertEqual(macro_variables.get("a"), 2)
+
+        await parse("set(b, 1).add(b, -1)", self.context, DummyMapping).run(
+            self.handler
+        )
+        self.assertEqual(macro_variables.get("b"), 0)
+
+        await parse("set(c, -1).add(c, 500)", self.context, DummyMapping).run(
+            self.handler
+        )
+        self.assertEqual(macro_variables.get("c"), 499)
+
+        await parse("add(d, 500)", self.context, DummyMapping).run(self.handler)
+        self.assertEqual(macro_variables.get("d"), 500)
+
+        # for invalid input it should do nothing (except to log to the console)
+
+        await parse('set(e, "foo").add(e, 1)', self.context, DummyMapping).run(
+            self.handler
+        )
+        self.assertEqual(macro_variables.get("e"), "foo")
+
+        await parse('set(e, "2").add(e, 3)', self.context, DummyMapping).run(
+            self.handler
+        )
+        self.assertEqual(macro_variables.get("e"), "2")
+
+        await parse('set(e, 2).add(e, "3")', self.context, DummyMapping).run(
+            self.handler
+        )
+        self.assertEqual(macro_variables.get("e"), 2)
+
+        await parse('add(f, "3")', self.context, DummyMapping).run(self.handler)
+        self.assertEqual(macro_variables.get("f"), 0)
 
     async def test_multiline_macro_and_comments(self):
         # the parser is not confused by the code in the comments and can use hashtags

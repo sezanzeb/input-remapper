@@ -17,44 +17,27 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
-import builtins
-import json
 import os.path
-import time
 import unittest
-from dataclasses import dataclass
+from typing import List
 from unittest.mock import patch, MagicMock, call
-from typing import Tuple, List, Any
 
 import gi
 
 from inputremapper.configs.system_mapping import system_mapping
-from inputremapper.injection.injector import (
-    RUNNING,
-    FAILED,
-    NO_GRAB,
-    UPGRADE_EVDEV,
-    UNKNOWN,
-    STOPPED,
-)
+from inputremapper.injection.injector import InjectorState
 from inputremapper.input_event import InputEvent
 
-gi.require_version("Gdk", "3.0")
 gi.require_version("Gtk", "3.0")
-gi.require_version("GLib", "2.0")
-gi.require_version("GtkSource", "4")
 from gi.repository import Gtk
 
-# from inputremapper.gui.helper import is_helper_running
 from inputremapper.event_combination import EventCombination
 from inputremapper.groups import _Groups
 from inputremapper.gui.messages.message_broker import (
     MessageBroker,
     MessageType,
-    Signal,
 )
 from inputremapper.gui.messages.message_data import (
-    UInputsData,
     GroupsData,
     GroupData,
     PresetData,
@@ -63,23 +46,22 @@ from inputremapper.gui.messages.message_data import (
     CombinationUpdate,
     UserConfirmRequest,
 )
-from inputremapper.gui.reader import Reader
+from inputremapper.gui.reader_client import ReaderClient
 from inputremapper.gui.utils import CTX_ERROR, CTX_APPLY, gtk_iteration
 from inputremapper.gui.gettext import _
 from inputremapper.injection.global_uinputs import GlobalUInputs
-from inputremapper.configs.mapping import Mapping, UIMapping, MappingData
+from inputremapper.configs.mapping import UIMapping, MappingData
 from tests.test import (
     quick_cleanup,
-    get_key_mapping,
     FakeDaemonProxy,
     fixtures,
     prepare_presets,
     spy,
 )
-from inputremapper.configs.global_config import global_config, GlobalConfig
+from inputremapper.configs.global_config import GlobalConfig
 from inputremapper.gui.controller import Controller, MAPPING_DEFAULTS
 from inputremapper.gui.data_manager import DataManager, DEFAULT_PRESET_NAME
-from inputremapper.configs.paths import get_preset_path, get_config_path
+from inputremapper.configs.paths import get_preset_path, CONFIG_PATH
 from inputremapper.configs.preset import Preset
 
 
@@ -92,7 +74,7 @@ class TestController(unittest.TestCase):
         self.data_manager = DataManager(
             self.message_broker,
             GlobalConfig(),
-            Reader(self.message_broker, _Groups()),
+            ReaderClient(self.message_broker, _Groups()),
             FakeDaemonProxy(),
             uinputs,
             system_mapping,
@@ -158,7 +140,7 @@ class TestController(unittest.TestCase):
         self.message_broker.subscribe(MessageType.groups, f)
         self.message_broker.signal(MessageType.init)
         self.assertEqual(
-            ["Foo Device", "Foo Device 2", "Bar Device", "gamepad"],
+            ["Foo Device", "Foo Device 2", "Bar Device", "gamepad", "Qux/Device?"],
             list(calls[-1].groups.keys()),
         )
 
@@ -205,29 +187,6 @@ class TestController(unittest.TestCase):
         self.message_broker.signal(MessageType.init)
         for m in calls:
             self.assertEqual(m, UIMapping(**MAPPING_DEFAULTS))
-
-    def test_on_init_should_provide_status_if_helper_is_not_running(self):
-        calls: List[StatusData] = []
-
-        def f(data):
-            calls.append(data)
-
-        self.message_broker.subscribe(MessageType.status_msg, f)
-        with patch("inputremapper.gui.controller.is_helper_running", lambda: False):
-            self.message_broker.signal(MessageType.init)
-        self.assertIn(StatusData(CTX_ERROR, _("The helper did not start")), calls)
-
-    def test_on_init_should_not_provide_status_if_helper_is_running(self):
-        calls: List[StatusData] = []
-
-        def f(data):
-            calls.append(data)
-
-        self.message_broker.subscribe(MessageType.status_msg, f)
-        with patch("inputremapper.gui.controller.is_helper_running", lambda: True):
-            self.message_broker.signal(MessageType.init)
-
-        self.assertNotIn(StatusData(CTX_ERROR, _("The helper did not start")), calls)
 
     def test_on_load_group_should_provide_preset(self):
         with patch.object(self.data_manager, "load_preset") as mock:
@@ -398,6 +357,29 @@ class TestController(unittest.TestCase):
 
         self.assertFalse(os.path.exists(get_preset_path("Foo Device", "preset2")))
         self.assertTrue(os.path.exists(get_preset_path("Foo Device", "foo")))
+
+    def test_rename_preset_sanitized(self):
+        Preset(get_preset_path("Qux/Device?", "bla")).save()
+
+        self.assertTrue(os.path.isfile(get_preset_path("Qux/Device?", "bla")))
+        self.assertFalse(os.path.exists(get_preset_path("Qux/Device?", "blubb")))
+
+        self.data_manager.load_group("Qux/Device?")
+        self.data_manager.load_preset("bla")
+        self.controller.rename_preset(new_name="foo:/bar")
+
+        # all functions expect the true name, which is also shown to the user, but on
+        # the file system it always uses sanitized names.
+        self.assertTrue(os.path.exists(get_preset_path("Qux/Device?", "foo__bar")))
+
+        # since the name is never stored in an un-sanitized way, this can't work
+        self.assertFalse(os.path.exists(get_preset_path("Qux/Device?", "foo:/bar")))
+
+        path = os.path.join(CONFIG_PATH, "presets", "Qux_Device_", "foo__bar.json")
+        self.assertTrue(os.path.exists(path))
+
+        # using the sanitized name in function calls works as well
+        self.assertTrue(os.path.isfile(get_preset_path("Qux_Device_", "foo__bar")))
 
     def test_rename_preset_should_pick_available_name(self):
         prepare_presets()
@@ -654,7 +636,7 @@ class TestController(unittest.TestCase):
         self.message_broker.subscribe(MessageType.combination_update, f)
 
         self.controller.start_key_recording()
-        self.message_broker.send(
+        self.message_broker.publish(
             CombinationRecorded(EventCombination.from_string("1,10,1"))
         )
         self.assertEqual(
@@ -664,7 +646,7 @@ class TestController(unittest.TestCase):
                 EventCombination.from_string("1,10,1"),
             ),
         )
-        self.message_broker.send(
+        self.message_broker.publish(
             CombinationRecorded(EventCombination.from_string("1,10,1+1,3,1"))
         )
         self.assertEqual(
@@ -688,7 +670,7 @@ class TestController(unittest.TestCase):
 
         self.message_broker.subscribe(MessageType.combination_update, f)
 
-        self.message_broker.send(
+        self.message_broker.publish(
             CombinationRecorded(EventCombination.from_string("1,10,1"))
         )
         self.assertEqual(len(calls), 0)
@@ -707,11 +689,11 @@ class TestController(unittest.TestCase):
         self.message_broker.subscribe(MessageType.combination_update, f)
 
         self.controller.start_key_recording()
-        self.message_broker.send(
+        self.message_broker.publish(
             CombinationRecorded(EventCombination.from_string("1,10,1"))
         )
         self.message_broker.signal(MessageType.recording_finished)
-        self.message_broker.send(
+        self.message_broker.publish(
             CombinationRecorded(EventCombination.from_string("1,10,1+1,3,1"))
         )
 
@@ -731,11 +713,11 @@ class TestController(unittest.TestCase):
         self.message_broker.subscribe(MessageType.combination_update, f)
 
         self.controller.start_key_recording()
-        self.message_broker.send(
+        self.message_broker.publish(
             CombinationRecorded(EventCombination.from_string("1,10,1"))
         )
         self.controller.stop_key_recording()
-        self.message_broker.send(
+        self.message_broker.publish(
             CombinationRecorded(EventCombination.from_string("1,10,1+1,3,1"))
         )
 
@@ -759,7 +741,7 @@ class TestController(unittest.TestCase):
         self.controller.start_injecting()
 
         self.assertEqual(
-            calls[-1], StatusData(CTX_ERROR, _("You need to add keys and save first"))
+            calls[-1], StatusData(CTX_ERROR, _("You need to add mappings first"))
         )
 
     def test_start_injecting_warns_about_btn_left(self):
@@ -889,22 +871,20 @@ class TestController(unittest.TestCase):
             calls.append(data)
 
         self.message_broker.subscribe(MessageType.status_msg, f)
-        mock = MagicMock(return_value=STOPPED)
+        mock = MagicMock(return_value=InjectorState.STOPPED)
         self.data_manager.get_state = mock
         self.controller.stop_injecting()
         gtk_iteration(50)
 
         mock.assert_called()
-        self.assertEqual(
-            calls[-1], StatusData(CTX_APPLY, _("Applied the system default"))
-        )
+        self.assertEqual(calls[-1], StatusData(CTX_APPLY, _("Stopped the injection")))
 
     def test_show_injection_result(self):
         prepare_presets()
         self.data_manager.load_group("Foo Device 2")
         self.data_manager.load_preset("preset2")
 
-        mock = MagicMock(return_value=RUNNING)
+        mock = MagicMock(return_value=InjectorState.RUNNING)
         self.data_manager.get_state = mock
         calls: List[StatusData] = []
 
@@ -917,17 +897,17 @@ class TestController(unittest.TestCase):
         gtk_iteration(50)
         self.assertEqual(calls[-1].msg, _("Applied preset %s") % "preset2")
 
-        mock.return_value = FAILED
+        mock.return_value = InjectorState.FAILED
         self.controller.start_injecting()
         gtk_iteration(50)
         self.assertEqual(calls[-1].msg, _("Failed to apply preset %s") % "preset2")
 
-        mock.return_value = NO_GRAB
+        mock.return_value = InjectorState.NO_GRAB
         self.controller.start_injecting()
         gtk_iteration(50)
         self.assertEqual(calls[-1].msg, "The device was not grabbed")
 
-        mock.return_value = UPGRADE_EVDEV
+        mock.return_value = InjectorState.UPGRADE_EVDEV
         self.controller.start_injecting()
         gtk_iteration(50)
         self.assertEqual(calls[-1].msg, "Upgrade python-evdev")
@@ -1111,6 +1091,22 @@ class TestController(unittest.TestCase):
         ]
         self.controller.remove_event()
         mock.assert_has_calls(calls, any_order=False)
+
+    def test_set_event_as_analog_saves(self):
+        prepare_presets()
+        self.data_manager.load_group("Foo Device 2")
+        self.data_manager.load_preset("preset2")
+        self.data_manager.update_mapping(event_combination="3,0,10")
+        self.data_manager.load_mapping(EventCombination("3,0,10"))
+        self.data_manager.load_event(InputEvent.from_string("3,0,10"))
+
+        with patch.object(self.data_manager, "save") as mock:
+            self.controller.set_event_as_analog(False)
+            mock.assert_called_once()
+
+        with patch.object(self.data_manager, "save") as mock:
+            self.controller.set_event_as_analog(True)
+            mock.assert_called_once()
 
     def test_set_event_as_analog_sets_input_to_analog(self):
         prepare_presets()
