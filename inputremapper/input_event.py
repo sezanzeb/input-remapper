@@ -118,7 +118,7 @@ class InputEvent:
             return cls(event.sec, event.usec, event.type, event.code, event.value)
         except AttributeError:
             raise InputEventCreationError(
-                f"failed to create InputEvent from {event = }"
+                f"Failed to create InputEvent from {event = }"
             )
 
     @classmethod
@@ -129,7 +129,7 @@ class InputEvent:
             return cls(0, 0, int(t), int(c), int(v))
         except (ValueError, AttributeError):
             raise InputEventCreationError(
-                f"failed to create InputEvent from {string = !r}"
+                f"Failed to create InputEvent from {string = !r}"
             )
 
     @classmethod
@@ -150,11 +150,11 @@ class InputEvent:
             )
         except ValueError:
             raise InputEventCreationError(
-                f"failed to create InputEvent from {event_tuple = }"
+                f"Failed to create InputEvent from {event_tuple = }"
             )
         except TypeError:
             raise InputEventCreationError(
-                f"failed to create InputEvent from {type(event_tuple) = }"
+                f"Failed to create InputEvent from {type(event_tuple) = }"
             )
 
     @classmethod

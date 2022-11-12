@@ -17,7 +17,9 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
-"""Functions to assemble the mapping handlers"""
+
+"""Functions to assemble the mapping handler tree."""
+
 from collections import defaultdict
 from typing import Dict, List, Type, Optional, Set, Iterable, Sized, Tuple, Sequence
 
@@ -115,6 +117,7 @@ def parse_mappings(preset: Preset, context: ContextProtocol) -> EventPipelines:
                     f"return a combination to rank by",
                     mapping_handler=handler,
                 )
+
             need_ranking[combination].add(handler)
             handlers.remove(handler)
 
@@ -145,7 +148,7 @@ def _create_event_pipeline(
     handler: MappingHandler, context: ContextProtocol, ignore_ranking=False
 ) -> List[MappingHandler]:
     """Recursively wrap a handler with other handlers until the
-    outer handler needs ranking or is finished wrapping
+    outer handler needs ranking or is finished wrapping.
     """
     if not handler.needs_wrapping() or (handler.needs_ranking() and not ignore_ranking):
         return [handler]
@@ -176,7 +179,8 @@ def _create_event_pipeline(
 
 
 def _get_output_handler(mapping: Mapping) -> HandlerEnums:
-    """Determine the correct output handler
+    """Determine the correct output handler.
+
     this is used as a starting point for the mapping parser
     """
     if mapping.output_code == DISABLE_CODE or mapping.output_symbol == DISABLE_NAME:
@@ -194,7 +198,7 @@ def _get_output_handler(mapping: Mapping) -> HandlerEnums:
     input_event = _maps_axis(mapping.event_combination)
     if not input_event:
         raise MappingParsingError(
-            f"this {mapping = } does not map to an axis, key or macro",
+            f"This {mapping = } does not map to an axis, key or macro",
             mapping=Mapping,
         )
 
@@ -271,7 +275,7 @@ def _create_hierarchy_handlers(
 def _order_combinations(
     combinations: List[EventCombination], common_event: InputEvent
 ) -> List[EventCombination]:
-    """Reorder the keys according to some rules
+    """Reorder the keys according to some rules.
 
     such that a combination a+b+c is in front of a+b which is in front of b
     for a+b+c vs. b+d+e: a+b+c would be in front of b+d+e, because the common key b

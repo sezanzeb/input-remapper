@@ -22,6 +22,7 @@
 import copy
 import json
 import os
+from typing import Optional
 
 from inputremapper.configs.base_config import ConfigBase, INITIAL_CONFIG
 from inputremapper.configs.paths import CONFIG_PATH, USER, touch
@@ -49,15 +50,15 @@ class GlobalConfig(ConfigBase):
         """the folder containing this config"""
         return os.path.split(self.path)[0]
 
-    def set_autoload_preset(self, group_key, preset):
+    def set_autoload_preset(self, group_key: str, preset: Optional[str]):
         """Set a preset to be automatically applied on start.
         Parameters
         ----------
-        group_key : string
+        group_key
             the unique identifier of the group. This is used instead of the
             name to enable autoloading two different presets when two similar
             devices are connected.
-        preset : string or None
+        preset
             if None, don't autoload something for this device.
         """
         if preset is not None:
@@ -72,18 +73,18 @@ class GlobalConfig(ConfigBase):
         """Get tuples of (device, preset)."""
         return self._config.get("autoload", {}).items()
 
-    def is_autoloaded(self, group_key, preset):
+    def is_autoloaded(self, group_key: Optional[str], preset: Optional[str]):
         """Should this preset be loaded automatically?"""
         if group_key is None or preset is None:
             raise ValueError("Expected group_key and preset to not be None")
 
         return self.get(["autoload", group_key], log_unknown=False) == preset
 
-    def load_config(self, path=None):
+    def load_config(self, path: Optional[str] = None):
         """Load the config from the file system.
         Parameters
         ----------
-        path : string or None
+        path
             If set, will change the path to load from and save to.
         """
         if path is not None:

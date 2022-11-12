@@ -35,11 +35,13 @@ w(1000).m(Shift_L, r(2, k(a))).w(10).k(b): <1s> A A <10ms> b
 """
 
 
+from __future__ import annotations
+
 import asyncio
 import copy
 import math
 import re
-from typing import List, Callable, Awaitable, Tuple
+from typing import List, Callable, Awaitable, Tuple, Optional, Union
 
 from evdev.ecodes import (
     ecodes,
@@ -196,14 +198,20 @@ class Macro:
     4. `Macro.run` will run all tasks in self.tasks
     """
 
-    def __init__(self, code: str, context=None, mapping=None):
+    def __init__(
+        self,
+        code: Optional[str],
+        context: Optional = None,
+        mapping: Optional = None,
+    ):
         """Create a macro instance that can be populated with tasks.
 
         Parameters
         ----------
-        code : string or None
+        code
             The original parsed code, for logging purposes.
-        context : Context, or None for use in frontend
+        context : Context
+        mapping : UIMapping
         """
         self.code = code
         self.context = context
@@ -390,13 +398,13 @@ class Macro:
             self.tasks.append(task)
             self.child_macros.append(macro)
 
-    def add_modify(self, modifier, macro):
+    def add_modify(self, modifier: str, macro: Macro):
         """Do stuff while a modifier is activated.
 
         Parameters
         ----------
-        modifier : str
-        macro : Macro
+        modifier
+        macro
         """
         _type_check(macro, [Macro], "modify", 2)
         _type_check_symbol(modifier)
@@ -455,16 +463,16 @@ class Macro:
         self.tasks.append(task)
         self.child_macros.append(macro)
 
-    def add_event(self, type_, code, value):
+    def add_event(self, type_: Union[str, int], code: Union[str, int], value: int):
         """Write any event.
 
         Parameters
         ----------
-        type_: str or int
+        type_
             examples: 2, 'EV_KEY'
-        code : str or int
+        code
             examples: 52, 'KEY_A'
-        value : int
+        value
         """
         type_ = _type_check(type_, [int, str], "event", 1)
         code = _type_check(code, [int, str], "event", 2)

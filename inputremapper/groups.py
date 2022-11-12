@@ -266,13 +266,13 @@ class _Group:
 
         Parameters
         ----------
-        paths : str[]
+        paths
             Paths in /dev/input of the grouped devices
-        names : str[]
+        names
             Names of the grouped devices
-        types : list[DeviceType]
+        types
             Types of the grouped devices
-        key : str
+        key
             Unique identifier of the group.
 
             It should be human readable and if possible equal to group.name.
@@ -513,12 +513,12 @@ class _Groups:
 
         Parameters
         ----------
-        name : str
+        name
             "USB Keyboard"
             Not unique, will return the first group that matches.
-        key : str
+        key
             "USB Keyboard", "USB Keyboard 2", ...
-        path : str
+        path
             "/dev/input/event3"
         """
         for group in self._groups:

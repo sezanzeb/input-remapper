@@ -228,8 +228,9 @@ class MappingHandler:
         if not self.input_events:
             logger.debug_mapping_handler(self)
             raise MappingParsingError(
-                "cannot remove a non existing event", mapping_handler=self
+                "Cannot remove a non existing event", mapping_handler=self
             )
+
         # should be called for each event a wrapping-handler
         # has in its input_events EventCombination
         self.input_events.remove(event)

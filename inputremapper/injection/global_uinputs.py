@@ -17,6 +17,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
+
 from typing import Dict, Union
 
 import evdev
@@ -66,9 +67,9 @@ class UInput(evdev.UInput):
         super().__init__(*args, **kwargs)
 
     def can_emit(self, event):
-        """Check if an event can be emitted by the uinput
+        """Check if an event can be emitted by the UIinput.
 
-        Wrong events might be injected if the group mappings are wrong
+        Wrong events might be injected if the group mappings are wrong,
         """
         return event[1] in self.capabilities(absinfo=False).get(event[0], [])
 
@@ -88,7 +89,7 @@ class FrontendUInput:
 
 
 class GlobalUInputs:
-    """Manages all uinputs that are shared between all injection processes."""
+    """Manages all UInputs that are shared between all injection processes."""
 
     def __init__(self):
         self.devices: Dict[str, Union[UInput, FrontendUInput]] = {}
@@ -108,7 +109,7 @@ class GlobalUInputs:
             self._uinput_factory = FrontendUInput
 
     def prepare_all(self):
-        """Generate uinputs."""
+        """Generate UInputs."""
         self.ensure_uinput_factory_set()
 
         for name, events in DEFAULT_UINPUTS.items():

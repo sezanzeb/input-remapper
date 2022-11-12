@@ -24,6 +24,7 @@
 
 import inspect
 import re
+from typing import Optional
 
 from inputremapper.exceptions import MacroParsingError
 from inputremapper.injection.macros.macro import Macro, Variable
@@ -123,14 +124,14 @@ def get_num_parameters(function):
     return min_num_args, max_num_args
 
 
-def _extract_args(inner):
+def _extract_args(inner: str):
     """Extract parameters from the inner contents of a call.
 
     This does not parse them.
 
     Parameters
     ----------
-    inner : string
+    inner
         for example '1, r, r(2, k(a))' should result in ['1', 'r', 'r(2, k(a))']
     """
     inner = inner.strip()
@@ -210,22 +211,29 @@ def _is_number(value):
         return False
 
 
-def _parse_recurse(code, context, mapping, verbose, macro_instance=None, depth=0):
+def _parse_recurse(
+    code: str,
+    context,
+    mapping,
+    verbose: bool,
+    macro_instance: Optional[Macro] = None,
+    depth: int = 0,
+):
     """Handle a subset of the macro, e.g. one parameter or function call.
 
     Not using eval for security reasons.
 
     Parameters
     ----------
-    code : string
+    code
         Just like parse. A single parameter or the complete macro as string.
         Comments and redundant whitespace characters are expected to be removed already.
         TODO add some examples. Are all of "foo(1);bar(2)" "foo(1)" and "1" valid inputs?
     context : Context
-    macro_instance : Macro or None
+    macro_instance
         A macro instance to add tasks to. This is the output of the parser, and is
         organized like a tree.
-    depth : int
+    depth
         For logging porposes
     """
     assert isinstance(code, str)

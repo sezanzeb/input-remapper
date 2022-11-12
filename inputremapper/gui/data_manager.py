@@ -17,6 +17,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
+
 import glob
 import os
 import re
@@ -50,7 +51,6 @@ from inputremapper.gui.reader_client import ReaderClient
 from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.injection.injector import (
     InjectorState,
-    InjectorCommand,
     InjectorStateMessage,
 )
 from inputremapper.input_event import InputEvent
@@ -183,7 +183,7 @@ class DataManager:
     def get_preset_names(self) -> Tuple[Name, ...]:
         """Get all preset names for active_group and current user sorted by age."""
         if not self.active_group:
-            raise DataManagementError("cannot find presets: Group is not set")
+            raise DataManagementError("Cannot find presets: Group is not set")
         device_folder = get_preset_path(self.active_group.name)
         mkdir(device_folder)
 
@@ -217,7 +217,7 @@ class DataManager:
         Will send "preset" message on the MessageBroker.
         """
         if not self.active_preset or not self.active_group:
-            raise DataManagementError("cannot set autoload status: Preset is not set")
+            raise DataManagementError("Cannot set autoload status: Preset is not set")
 
         if status:
             self._config.set_autoload_preset(
@@ -244,7 +244,7 @@ class DataManager:
     def get_newest_preset_name(self) -> Name:
         """Preset name of the most recently modified preset in the active group."""
         if not self.active_group:
-            raise DataManagementError("cannot find newest preset: Group is not set")
+            raise DataManagementError("Cannot find newest preset: Group is not set")
 
         paths = [
             (path, os.path.getmtime(path))
@@ -261,7 +261,7 @@ class DataManager:
     def get_available_preset_name(self, name=DEFAULT_PRESET_NAME) -> Name:
         """The first available preset in the active group."""
         if not self.active_group:
-            raise DataManagementError("unable find preset name. Group is not set")
+            raise DataManagementError("Unable find preset name. Group is not set")
 
         name = name.strip()
 
@@ -339,9 +339,10 @@ class DataManager:
     def load_event(self, event: InputEvent):
         """Load a InputEvent from the combination in the active mapping.
 
-        Will send "event" message on the MessageBroker"""
+        Will send "event" message on the MessageBroker,
+        """
         if not self.active_mapping:
-            raise DataManagementError("Unable to load event. mapping is not set")
+            raise DataManagementError("Unable to load event. Mapping is not set")
         if event not in self.active_mapping.event_combination:
             raise ValueError(
                 f"{event} is not member of active_mapping.event_combination: "
@@ -384,6 +385,7 @@ class DataManager:
 
     def copy_preset(self, name: str):
         """Copy the current preset to the given name.
+
         Will send "group" and "preset" message to the MessageBroker and load the copy
         """
         # todo: Do we want to load the copy here? or is this up to the controller?
@@ -404,7 +406,8 @@ class DataManager:
         self.publish_preset()
 
     def create_preset(self, name: str):
-        """create empty preset in the active_group.
+        """Create empty preset in the active_group.
+
         Will send "group" message to the MessageBroker
         """
         if not self.active_group:
@@ -437,7 +440,7 @@ class DataManager:
         event_combination. This will first send a "combination_update" message.
         """
         if not self._active_mapping:
-            raise DataManagementError("Cannot modify Mapping: mapping is not set")
+            raise DataManagementError("Cannot modify Mapping: Mapping is not set")
 
         if symbol := kwargs.get("output_symbol"):
             kwargs["output_symbol"] = self._system_mapping.correct_case(symbol)
@@ -467,7 +470,7 @@ class DataManager:
         MessageBroker (in that order)
         """
         if not self.active_mapping or not self.active_event:
-            raise DataManagementError("Cannot modify event: event is not set")
+            raise DataManagementError("Cannot modify event: Event is not set")
 
         combination = list(self.active_mapping.event_combination)
         combination[combination.index(self.active_event)] = new_event
@@ -481,7 +484,7 @@ class DataManager:
         Will send "preset" message to the MessageBroker
         """
         if not self._active_preset:
-            raise DataManagementError("cannot create mapping: preset is not set")
+            raise DataManagementError("Cannot create mapping: Preset is not set")
         self._active_preset.add(UIMapping())
         self.publish_preset()
 
@@ -532,7 +535,7 @@ class DataManager:
 
         Will send "injector_state" message once the injector has stopped"""
         if not self.active_group:
-            raise DataManagementError("cannot stop injection: group is not set")
+            raise DataManagementError("Cannot stop injection: Group is not set")
         self._daemon.stop_injecting(self.active_group.key)
         self.do_when_injector_state(
             {InjectorState.STOPPED}, self.publish_injector_state
@@ -545,7 +548,7 @@ class DataManager:
         Will send "injector_state" message once the startup is complete.
         """
         if not self.active_preset or not self.active_group:
-            raise DataManagementError("cannot start injection: preset is not set")
+            raise DataManagementError("Cannot start injection: Preset is not set")
 
         self._daemon.set_config_dir(self._config.get_dir())
         assert self.active_preset.name is not None
@@ -565,7 +568,7 @@ class DataManager:
     def get_state(self) -> InjectorState:
         """The state of the injector."""
         if not self.active_group:
-            raise DataManagementError("cannot read state: group is not set")
+            raise DataManagementError("Cannot read state: Group is not set")
         return self._daemon.get_state(self.active_group.key)
 
     def refresh_service_config_path(self):

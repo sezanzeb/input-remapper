@@ -31,11 +31,10 @@ import os
 import sys
 import time
 from pathlib import PurePath
-from typing import Protocol, Dict
-
-from pydbus import SystemBus
+from typing import Protocol, Dict, Optional
 
 import gi
+from pydbus import SystemBus
 
 gi.require_version("GLib", "2.0")
 from gi.repository import GLib
@@ -65,7 +64,7 @@ class AutoloadHistory:
         # preset of device -> (timestamp, preset)
         self._autoload_history = {}
 
-    def remember(self, group_key, preset):
+    def remember(self, group_key: str, preset: str):
         """Remember when this preset was autoloaded for the device."""
         self._autoload_history[group_key] = (time.time(), preset)
 
@@ -74,7 +73,7 @@ class AutoloadHistory:
         if group_key in self._autoload_history:
             del self._autoload_history[group_key]
 
-    def may_autoload(self, group_key, preset):
+    def may_autoload(self, group_key: str, preset: str):
         """Check if this autoload would be redundant.
 
         This is needed because udev triggers multiple times per hardware
@@ -282,12 +281,12 @@ class Daemon:
         logger.debug("Running daemon")
         loop.run()
 
-    def refresh(self, group_key=None):
+    def refresh(self, group_key: Optional[str] = None):
         """Refresh groups if the specified group is unknown.
 
         Parameters
         ----------
-        group_key : str
+        group_key
             unique identifier used by the groups object
         """
         now = time.time()
@@ -324,7 +323,7 @@ class Daemon:
         return injector.get_state() if injector else InjectorState.UNKNOWN
 
     @remove_timeout
-    def set_config_dir(self, config_dir):
+    def set_config_dir(self, config_dir: str):
         """All future operations will use this config dir.
 
         Existing injections (possibly of the previous user) will be kept
@@ -332,7 +331,7 @@ class Daemon:
 
         Parameters
         ----------
-        config_dir : string
+        config_dir
             This path contains config.json, xmodmap.json and the
             presets directory
         """
@@ -344,12 +343,12 @@ class Daemon:
         self.config_dir = config_dir
         global_config.load_config(config_path)
 
-    def _autoload(self, group_key):
+    def _autoload(self, group_key: str):
         """Check if autoloading is a good idea, and if so do it.
 
         Parameters
         ----------
-        group_key : str
+        group_key
             unique identifier used by the groups object
         """
         self.refresh(group_key)
@@ -385,14 +384,14 @@ class Daemon:
         self.autoload_history.remember(group.key, preset)
 
     @remove_timeout
-    def autoload_single(self, group_key):
+    def autoload_single(self, group_key: str):
         """Inject the configured autoload preset for the device.
 
         If the preset is already being injected, it won't autoload it again.
 
         Parameters
         ----------
-        group_key : str
+        group_key
             unique identifier used by the groups object
         """
         # avoid some confusing logs and filter obviously invalid requests
@@ -435,7 +434,7 @@ class Daemon:
         for group_key, _ in autoload_presets:
             self._autoload(group_key)
 
-    def start_injecting(self, group_key, preset) -> bool:
+    def start_injecting(self, group_key: str, preset: str) -> bool:
         """Start injecting the preset for the device.
 
         Returns True on success. If an injection is already ongoing for
@@ -443,9 +442,9 @@ class Daemon:
 
         Parameters
         ----------
-        group_key : string
+        group_key
             The unique key of the group
-        preset : string
+        preset
             The name of the preset
         """
         logger.info('Request to start injecting for "%s"', group_key)
