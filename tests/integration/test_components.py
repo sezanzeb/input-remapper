@@ -598,9 +598,8 @@ class TestMappingSelectionLabel(ComponentBaseTest):
 
         event = Gdk.Event()
         event.key.keyval = Gdk.KEY_Escape
-        self.mapping_selection_label._on_gtk_rename_abort(
-            None, event.key
-        )  # send the "key-press-event"
+        # send the "key-press-event"
+        self.mapping_selection_label._on_gtk_rename_abort(None, event.key)
         self.assert_selected()
         self.assertEqual(self.mapping_selection_label.label.get_text(), "a + b")
         self.controller_mock.update_mapping.assert_not_called()

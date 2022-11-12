@@ -189,9 +189,8 @@ class TestPreset(unittest.TestCase):
 
         self.preset.empty()
         self.assertEqual(len(self.preset), 0)
-        self.assertTrue(
-            self.preset.has_unsaved_changes()
-        )  # empty preset but non-empty file
+        # empty preset but non-empty file
+        self.assertTrue(self.preset.has_unsaved_changes())
 
         # load again from the disc
         self.preset.load()
@@ -203,15 +202,13 @@ class TestPreset(unittest.TestCase):
 
         # change the path to a non exiting file
         self.preset.path = get_preset_path("bar", "foo")
-        self.assertTrue(
-            self.preset.has_unsaved_changes()
-        )  # the preset has a mapping, the file has not
+        # the preset has a mapping, the file has not
+        self.assertTrue(self.preset.has_unsaved_changes())
 
         # change back to the original path
         self.preset.path = get_preset_path("foo", "bar2")
-        self.assertFalse(
-            self.preset.has_unsaved_changes()
-        )  # no difference between file and memory
+        # no difference between file and memory
+        self.assertFalse(self.preset.has_unsaved_changes())
 
         # modify the mapping
         mapping = self.preset.get_mapping(EventCombination([99, 99, 99]))
@@ -221,14 +218,12 @@ class TestPreset(unittest.TestCase):
 
         self.preset.path = get_preset_path("bar", "foo")
         self.preset.remove(get_key_mapping().event_combination)
-        self.assertFalse(
-            self.preset.has_unsaved_changes()
-        )  # empty preset and empty file
+        # empty preset and empty file
+        self.assertFalse(self.preset.has_unsaved_changes())
 
         self.preset.path = get_preset_path("foo", "bar2")
-        self.assertTrue(
-            self.preset.has_unsaved_changes()
-        )  # empty preset, but non-empty file
+        # empty preset, but non-empty file
+        self.assertTrue(self.preset.has_unsaved_changes())
         self.preset.load()
         self.assertEqual(len(self.preset), 1)
         self.assertFalse(self.preset.has_unsaved_changes())

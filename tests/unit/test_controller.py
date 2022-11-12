@@ -114,9 +114,8 @@ class TestController(unittest.TestCase):
     def test_should_get_any_preset(self):
         """get_a_preset should return a new preset if none exist."""
         self.data_manager.load_group("Foo Device")
-        self.assertEqual(
-            self.controller.get_a_preset(), "new preset"
-        )  # the default name
+        # the default name
+        self.assertEqual(self.controller.get_a_preset(), "new preset")
 
     def test_on_init_should_provide_uinputs(self):
         calls = []

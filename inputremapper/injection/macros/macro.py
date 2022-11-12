@@ -243,11 +243,11 @@ class Macro:
 
         for macro in self.child_macros:
             macro_capabilities = macro.get_capabilities()
-            for ev_type in macro_capabilities:
-                if ev_type not in capabilities:
-                    capabilities[ev_type] = set()
+            for type_ in macro_capabilities:
+                if type_ not in capabilities:
+                    capabilities[type_] = set()
 
-                capabilities[ev_type].update(macro_capabilities[ev_type])
+                capabilities[type_].update(macro_capabilities[type_])
 
         return capabilities
 
@@ -391,9 +391,8 @@ class Macro:
                     # run the child macro completely to avoid
                     # not-releasing any key
                     await macro.run(handler)
-                    await asyncio.sleep(
-                        1 / 1000
-                    )  # give some other code a chance to run
+                    # give some other code a chance to run
+                    await asyncio.sleep(1 / 1000)
 
             self.tasks.append(task)
             self.child_macros.append(macro)

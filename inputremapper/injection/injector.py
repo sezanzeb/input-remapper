@@ -209,9 +209,8 @@ class Injector(multiprocessing.Process):
                 continue
 
         # find all devices which have an associated mapping
-        needed_devices = (
-            {}
-        )  # use a dict because the InputDevice is not directly hashable
+        # use a dict because the InputDevice is not directly hashable
+        needed_devices = {}
 
         for mapping in self.preset:
             for event in mapping.event_combination:

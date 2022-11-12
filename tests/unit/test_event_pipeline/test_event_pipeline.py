@@ -114,11 +114,8 @@ class TestIdk(EventPipelineTestBase):
         """As long as there is an event handler and a mapping we should be able
         to map anything to a button"""
 
-        w_down = (
-            EV_ABS,
-            ABS_Y,
-            -12345,
-        )  # value needs to be higher than 10% below center of axis (absinfo)
+        # value needs to be higher than 10% below center of axis (absinfo)
+        w_down = (EV_ABS, ABS_Y, -12345)
         w_up = (EV_ABS, ABS_Y, 0)
 
         s_down = (EV_ABS, ABS_Y, 12345)
@@ -183,9 +180,8 @@ class TestIdk(EventPipelineTestBase):
             )
         )
 
-        event_reader = self.get_event_reader(
-            preset, fixtures.gamepad
-        )  # gamepad fixture
+        # gamepad fixture
+        event_reader = self.get_event_reader(preset, fixtures.gamepad)
 
         await self.send_events(
             [
@@ -204,9 +200,8 @@ class TestIdk(EventPipelineTestBase):
             ],
             event_reader,
         )
-        await asyncio.sleep(
-            0.1
-        )  # wait a bit for the rel_to_btn handler to send the key up
+        # wait a bit for the rel_to_btn handler to send the key up
+        await asyncio.sleep(0.1)
 
         history = convert_to_internal_events(
             global_uinputs.get_uinput("keyboard").write_history
@@ -286,9 +281,7 @@ class TestIdk(EventPipelineTestBase):
         # BTN_A -> 77
         system_mapping._set("b", 77)
         preset.add(get_key_mapping(EventCombination([1, BTN_A, 1]), "keyboard", "b"))
-        event_reader = self.get_event_reader(
-            preset, fixtures.gamepad
-        )  # gamepad Fixture
+        event_reader = self.get_event_reader(preset, fixtures.gamepad)
 
         # should forward them unmodified
         await self.send_events(
@@ -323,9 +316,7 @@ class TestIdk(EventPipelineTestBase):
         # BTN_A -> 77
         system_mapping._set("b", 77)
         preset.add(get_key_mapping(EventCombination([1, BTN_LEFT, 1]), "keyboard", "b"))
-        event_reader = self.get_event_reader(
-            preset, fixtures.gamepad
-        )  # gamepad Fixture
+        event_reader = self.get_event_reader(preset, fixtures.gamepad)
 
         # should forward them unmodified
         await self.send_events(
@@ -409,10 +400,11 @@ class TestIdk(EventPipelineTestBase):
         self.assertNotIn((EV_ABS, ABS_X, 1234), forwarded_history)
         self.assertNotIn((EV_KEY, BTN_B, 1), forwarded_history)
 
+        # release b and c)
         await self.send_events(
             [InputEvent.from_tuple((EV_ABS, ABS_X, 0))],
             event_reader,
-        )  # release b and c)
+        )
         keyboard_history = convert_to_internal_events(
             global_uinputs.get_uinput("keyboard").write_history
         )
@@ -882,9 +874,7 @@ class TestAbsToAbs(EventPipelineTestBase):
         x = MAX_ABS
         y = MAX_ABS
 
-        event_reader = self.get_event_reader(
-            preset, fixtures.gamepad
-        )  # gamepad Fixture
+        event_reader = self.get_event_reader(preset, fixtures.gamepad)
 
         await self.send_events(
             [
@@ -925,9 +915,7 @@ class TestAbsToAbs(EventPipelineTestBase):
         x = MAX_ABS
         y = MAX_ABS
 
-        event_reader = self.get_event_reader(
-            preset, fixtures.gamepad
-        )  # gamepad Fixture
+        event_reader = self.get_event_reader(preset, fixtures.gamepad)
 
         await self.send_events(
             [
@@ -1122,9 +1110,7 @@ class TestAbsToRel(EventPipelineTestBase):
         x = MAX_ABS
         y = MAX_ABS
 
-        event_reader = self.get_event_reader(
-            preset, fixtures.gamepad
-        )  # gamepad Fixture
+        event_reader = self.get_event_reader(preset, fixtures.gamepad)
 
         await self.send_events(
             [
@@ -1198,9 +1184,7 @@ class TestAbsToRel(EventPipelineTestBase):
         x = MAX_ABS
         y = MAX_ABS
 
-        event_reader = self.get_event_reader(
-            preset, fixtures.gamepad
-        )  # gamepad Fixture
+        event_reader = self.get_event_reader(preset, fixtures.gamepad)
 
         await self.send_events(
             [
@@ -1294,9 +1278,8 @@ class TestRelToBtn(EventPipelineTestBase):
         self.assertEqual(keyboard_history.count((EV_KEY, code_c, 1)), 1)
         self.assertEqual(keyboard_history.count((EV_KEY, code_b, 0)), 1)
         self.assertEqual(keyboard_history.count((EV_KEY, code_c, 0)), 1)
-        self.assertEqual(
-            forwarded_history.count(hw_left), 2
-        )  # the unmapped wheel direction
+        # the unmapped wheel direction
+        self.assertEqual(forwarded_history.count(hw_left), 2)
 
         # the unmapped wheel won't get a debounced release command, it's
         # forwarded as is
@@ -1305,14 +1288,16 @@ class TestRelToBtn(EventPipelineTestBase):
     async def test_rel_trigger_threshold(self):
         """Test that different activation points for rel_to_btn work correctly."""
 
+        # at 30% map to a
         mapping_1 = get_key_mapping(
             EventCombination((EV_REL, REL_X, 5)),
             output_symbol="a",
-        )  # at 30% map to a
+        )
+        # at 70% map to b
         mapping_2 = get_key_mapping(
             EventCombination((EV_REL, REL_X, 15)),
             output_symbol="b",
-        )  # at 70% map to b
+        )
         release_timeout = 0.2  # give some time to do assertions before the release
         mapping_1.release_timeout = release_timeout
         mapping_2.release_timeout = release_timeout
@@ -1377,14 +1362,16 @@ class TestAbsToBtn(EventPipelineTestBase):
     async def test_abs_trigger_threshold(self):
         """Test that different activation points for abs_to_btn work correctly."""
 
+        # at 30% map to a
         mapping_1 = get_key_mapping(
             EventCombination((EV_ABS, ABS_X, 30)),
             output_symbol="a",
-        )  # at 30% map to a
+        )
+        # at 70% map to b
         mapping_2 = get_key_mapping(
             EventCombination((EV_ABS, ABS_X, 70)),
             output_symbol="b",
-        )  # at 70% map to b
+        )
         preset = Preset()
         preset.add(mapping_1)
         preset.add(mapping_2)

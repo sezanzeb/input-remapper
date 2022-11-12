@@ -77,14 +77,14 @@ class MacroHandler(MappingHandler):
             if self._macro.running:
                 return True
 
-            def handler(ev_type, code, value) -> None:
+            def handler(type_, code, value) -> None:
                 """Handler for macros."""
                 logger.debug_key(
-                    (ev_type, code, value),
+                    (type_, code, value),
                     "sending from macro to %s",
                     self.mapping.target_uinput,
                 )
-                global_uinputs.write((ev_type, code, value), self.mapping.target_uinput)
+                global_uinputs.write((type_, code, value), self.mapping.target_uinput)
 
             asyncio.ensure_future(self.run_macro(handler))
             return True
