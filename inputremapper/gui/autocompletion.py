@@ -378,8 +378,7 @@ class Autocompletion(Gtk.Popover):
 
         text_iter = self._get_text_iter_at_cursor()
         # get a list of (evdev/xmodmap symbol-name, display-name)
-        suggested_names: List[Tuple[str, str]] = []
-        suggested_names += propose_function_names(text_iter)
+        suggested_names = propose_function_names(text_iter)
         suggested_names += propose_symbols(text_iter, self._target_key_capabilities)
 
         if len(suggested_names) == 0:
