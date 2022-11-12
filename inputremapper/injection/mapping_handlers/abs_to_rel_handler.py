@@ -225,7 +225,7 @@ class AbsToRelHandler(MappingHandler):
     def reset(self) -> None:
         self._stop = True
 
-    def _write(self, ev_type, keycode, value):
+    def _write(self, type_, keycode, value):
         """Inject."""
         # if the mouse won't move even though correct stuff is written here,
         # the capabilities are probably wrong
@@ -233,10 +233,10 @@ class AbsToRelHandler(MappingHandler):
             return  # rel 0 does not make sense
 
         try:
-            global_uinputs.write((ev_type, keycode, value), self.mapping.target_uinput)
+            global_uinputs.write((type_, keycode, value), self.mapping.target_uinput)
         except OverflowError:
             # screwed up the calculation of mouse movements
-            logger.error("OverflowError (%s, %s, %s)", ev_type, keycode, value)
+            logger.error("OverflowError (%s, %s, %s)", type_, keycode, value)
 
     def needs_wrapping(self) -> bool:
         return len(self.input_events) > 1

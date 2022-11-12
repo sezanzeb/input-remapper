@@ -17,9 +17,10 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
-from __future__ import annotations
 
 """Contains and manages mappings."""
+
+from __future__ import annotations
 
 import os
 import json
@@ -31,7 +32,6 @@ from typing import (
     Optional,
     Iterator,
     Type,
-    Iterable,
     TypeVar,
     Generic,
     overload,
@@ -110,7 +110,10 @@ class Preset(Generic[MappingModel]):
             mapping = self._mappings.pop(combination)
             mapping.remove_combination_changed_callback()
         except KeyError:
-            logger.debug(f"unable to remove non-existing mapping with {combination = }")
+            logger.debug(
+                "unable to remove non-existing mapping with combination = %s",
+                combination,
+            )
             pass
 
     def add(self, mapping: MappingModel) -> None:
@@ -118,8 +121,8 @@ class Preset(Generic[MappingModel]):
         for permutation in mapping.event_combination.get_permutations():
             if permutation in self._mappings:
                 raise KeyError(
-                    "a mapping with this event_combination: %s already exists",
-                    permutation,
+                    "A mapping with this event_combination: "
+                    f"{permutation} already exists",
                 )
 
         mapping.set_combination_changed_callback(self._combination_changed_callback)
@@ -161,7 +164,7 @@ class Preset(Generic[MappingModel]):
         # if there are more than one matches, then there is a duplicate
         return len(union) > 1
 
-    def _has_valid_event_combination(self, mapping) -> bool:
+    def _has_valid_event_combination(self, mapping: UIMapping) -> bool:
         """Check if the mapping has a valid input event combination."""
         is_a_combination = isinstance(mapping.event_combination, EventCombination)
         is_empty = mapping.event_combination == EventCombination.empty_combination()
@@ -220,11 +223,7 @@ class Preset(Generic[MappingModel]):
     def get_mapping(
         self, combination: Optional[EventCombination]
     ) -> Optional[MappingModel]:
-        """Return the Mapping that is mapped to this EventCombination.
-        Parameters
-        ----------
-        combination : EventCombination
-        """
+        """Return the Mapping that is mapped to this EventCombination."""
         if not combination:
             return None
 
@@ -321,6 +320,7 @@ class Preset(Generic[MappingModel]):
 
     @property
     def name(self) -> Optional[str]:
+        """The name of the preset."""
         if self.path:
             return os.path.basename(self.path).split(".")[0]
         return None

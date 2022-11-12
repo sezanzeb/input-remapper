@@ -22,7 +22,7 @@
 import json
 import re
 import subprocess
-from typing import Optional, List, Iterable
+from typing import Optional, List, Iterable, Tuple
 
 import evdev
 
@@ -39,28 +39,30 @@ XKB_KEYCODE_OFFSET = 8
 
 XMODMAP_FILENAME = "xmodmap.json"
 
+LAZY_LOAD = None
+
 
 class SystemMapping:
     """Stores information about all available keycodes."""
 
-    def __init__(self):
-        """Construct the system_mapping."""
-        self._mapping = None
-        self._xmodmap = None
-        self._case_insensitive_mapping = None
+    _mapping: Optional[dict] = LAZY_LOAD
+    _xmodmap: Optional[List[Tuple[str, str]]] = LAZY_LOAD
+    _case_insensitive_mapping: Optional[dict] = LAZY_LOAD
 
     def __getattribute__(self, wanted: str):
         """To lazy load system_mapping info only when needed.
 
         For example, this helps to keep logs of input-remapper-control clear when it
-        doesnt need it the information.
+        doesn't need it the information.
         """
         lazy_loaded_attributes = ["_mapping", "_xmodmap", "_case_insensitive_mapping"]
         for lazy_loaded_attribute in lazy_loaded_attributes:
             if wanted != lazy_loaded_attribute:
                 continue
 
-            if object.__getattribute__(self, lazy_loaded_attribute) is None:
+            if object.__getattribute__(self, lazy_loaded_attribute) is LAZY_LOAD:
+                # initialize _mapping and such with an empty dict, for populate
+                # to write into
                 object.__setattr__(self, lazy_loaded_attribute, {})
                 object.__getattribute__(self, "populate")()
 

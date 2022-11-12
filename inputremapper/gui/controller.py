@@ -60,7 +60,6 @@ from inputremapper.gui.messages.message_data import (
 from inputremapper.gui.utils import CTX_APPLY, CTX_ERROR, CTX_WARNING, CTX_MAPPING
 from inputremapper.injection.injector import (
     InjectorState,
-    InjectorCommand,
     InjectorStateMessage,
 )
 from inputremapper.input_event import InputEvent
@@ -75,7 +74,7 @@ MAPPING_DEFAULTS = {"target_uinput": "keyboard"}
 
 
 class Controller:
-    """implements the behaviour of the gui"""
+    """Implements the behaviour of the gui."""
 
     def __init__(self, message_broker: MessageBroker, data_manager: DataManager):
         self.message_broker = message_broker
@@ -86,6 +85,7 @@ class Controller:
         self._attach_to_events()
 
     def set_gui(self, gui: UserInterface):
+        """Let the Controller know about the user interface singleton.."""
         self.gui = gui
 
     def _attach_to_events(self) -> None:
@@ -100,7 +100,7 @@ class Controller:
         )
 
     def _on_init(self, __):
-        """initialize the gui and the data_manager"""
+        """Initialize the gui and the data_manager."""
         # make sure we get a groups_changed event when everything is ready
         # this might not be necessary if the reader-service takes longer to provide the
         # initial groups
@@ -108,8 +108,8 @@ class Controller:
         self.data_manager.publish_uinputs()
 
     def _on_groups_changed(self, _):
-        """load the newest group as soon as everyone got notified
-        about the updated groups"""
+        """Load the newest group as soon as everyone got notified
+        about the updated groups."""
 
         if self.data_manager.active_group is not None:
             # don't jump to a different group and preset suddenly, if the user
@@ -125,7 +125,7 @@ class Controller:
         self.load_group(group_key)
 
     def _on_preset_changed(self, data: PresetData):
-        """load a mapping as soon as everyone got notified about the new preset"""
+        """Load a mapping as soon as everyone got notified about the new preset."""
         if data.mappings:
             mappings = list(data.mappings)
             mappings.sort(
@@ -144,7 +144,7 @@ class Controller:
         self.update_combination(data.combination)
 
     def _publish_mapping_errors_as_status_msg(self, *__):
-        """send mapping ValidationErrors to the MessageBroker."""
+        """Send mapping ValidationErrors to the MessageBroker."""
         if not self.data_manager.active_preset:
             return
         if self.data_manager.active_preset.is_valid():
@@ -161,7 +161,7 @@ class Controller:
 
     @staticmethod
     def _get_ui_error_string(mapping: UIMapping) -> str:
-        """get a human readable error message from a mapping error"""
+        """Get a human readable error message from a mapping error."""
         error_string = str(mapping.get_error())
 
         # check all the different error messages which are not useful for the user
@@ -173,7 +173,8 @@ class Controller:
                 "Remove the macro or key from the macro input field "
                 "when specifying an analog output"
             )
-        elif (
+
+        if (
             "output_symbol is a macro:" in error_string
             or "output_symbol and output_code mismatch:" in error_string
         ) and not mapping.event_combination.has_input_axis():
@@ -181,6 +182,7 @@ class Controller:
                 "Remove the Analog Output Axis "
                 "when specifying an macro or key output"
             )
+
         if "missing output axis:" in error_string:
             message = _(
                 "The input specifies an analog axis, but no output axis is selected."
@@ -212,8 +214,8 @@ class Controller:
         return error_string
 
     def get_a_preset(self) -> str:
-        """attempts to get the newest preset in the current group
-        creates a new preset if that fails"""
+        """Attempts to get the newest preset in the current group
+        creates a new preset if that fails."""
         try:
             return self.data_manager.get_newest_preset_name()
         except FileNotFoundError:
@@ -222,8 +224,8 @@ class Controller:
         return self.data_manager.get_newest_preset_name()
 
     def get_a_group(self) -> Optional[str]:
-        """attempts to get the group with the newest preset
-        returns any if that fails"""
+        """Attempts to get the group with the newest preset
+        returns any if that fails."""
         try:
             return self.data_manager.get_newest_group_key()
         except FileNotFoundError:
@@ -233,7 +235,7 @@ class Controller:
         return keys[0] if keys else None
 
     def copy_preset(self):
-        """create a copy of the active preset and name it `preset_name copy`"""
+        """Create a copy of the active preset and name it `preset_name copy`."""
         name = self.data_manager.active_preset.name
         match = re.search(" copy *\d*$", name)
         if match:
@@ -245,7 +247,7 @@ class Controller:
         self.message_broker.publish(DoStackSwitch(1))
 
     def update_combination(self, combination: EventCombination):
-        """update the event_combination of the active mapping"""
+        """Update the event_combination of the active mapping."""
         try:
             self.data_manager.update_mapping(event_combination=combination)
             self.save()
@@ -268,8 +270,8 @@ class Controller:
     def move_event_in_combination(
         self, event: InputEvent, direction: Union[Literal["up"], Literal["down"]]
     ):
-        """move the active_event up or down in the event_combination of the
-        active_mapping"""
+        """Move the active_event up or down in the event_combination of the
+        active_mapping."""
         if (
             not self.data_manager.active_mapping
             or len(self.data_manager.active_mapping.event_combination) == 1
@@ -308,11 +310,11 @@ class Controller:
         self.load_event(event)
 
     def load_event(self, event: InputEvent):
-        """load an InputEvent form the active mapping event combination"""
+        """Load an InputEvent form the active mapping event combination."""
         self.data_manager.load_event(event)
 
     def update_event(self, new_event: InputEvent):
-        """modify the active event"""
+        """Modify the active event."""
         try:
             self.data_manager.update_event(new_event)
         except KeyError:
@@ -321,7 +323,7 @@ class Controller:
             self.data_manager.publish_event()
 
     def remove_event(self):
-        """remove the active InputEvent from the active mapping event combination"""
+        """Remove the active InputEvent from the active mapping event combination."""
         if not self.data_manager.active_mapping or not self.data_manager.active_event:
             return
 
@@ -339,7 +341,7 @@ class Controller:
             self.data_manager.publish_event()
 
     def set_event_as_analog(self, analog: bool):
-        """use the active event as an analog input"""
+        """Use the active event as an analog input."""
         assert self.data_manager.active_event is not None
         event = self.data_manager.active_event
 
@@ -369,21 +371,21 @@ class Controller:
         self.data_manager.publish_event()
 
     def load_groups(self):
-        """refresh the groups"""
+        """Refresh the groups."""
         self.data_manager.refresh_groups()
 
     def load_group(self, group_key: str):
-        """load the group and then a preset of that group"""
+        """Load the group and then a preset of that group."""
         self.data_manager.load_group(group_key)
         self.load_preset(self.get_a_preset())
 
     def load_preset(self, name: str):
-        """load the preset"""
+        """Load the preset."""
         self.data_manager.load_preset(name)
         # self.load_mapping(...) # not needed because we have on_preset_changed()
 
     def rename_preset(self, new_name: str):
-        """rename the active_preset"""
+        """Rename the active_preset."""
         if (
             not self.data_manager.active_preset
             or not new_name
@@ -396,7 +398,7 @@ class Controller:
         self.data_manager.rename_preset(new_name)
 
     def add_preset(self, name: str = DEFAULT_PRESET_NAME):
-        """create a new preset, add it to the active_group and name it `new preset n`"""
+        """Create a new preset called `new preset n`, add it to the active_group."""
         name = self.data_manager.get_available_preset_name(name)
         try:
             self.data_manager.create_preset(name)
@@ -405,7 +407,7 @@ class Controller:
             self.show_status(CTX_ERROR, _("Permission denied!"), str(e))
 
     def delete_preset(self):
-        """delete the active_preset from the disc"""
+        """Delete the active_preset from the disc."""
 
         def f(answer: bool):
             if answer:
@@ -422,12 +424,12 @@ class Controller:
         self.message_broker.publish(UserConfirmRequest(msg, f))
 
     def load_mapping(self, event_combination: EventCombination):
-        """load the mapping with the given event_combination form the active_preset"""
+        """Load the mapping with the given event_combination form the active_preset."""
         self.data_manager.load_mapping(event_combination)
         self.load_event(event_combination[0])
 
     def update_mapping(self, **kwargs):
-        """update the active_mapping with the given keywords and values"""
+        """Update the active_mapping with the given keywords and values."""
         if "mapping_type" in kwargs.keys():
             if not (kwargs := self._change_mapping_type(kwargs)):
                 # we need to synchronize the gui
@@ -439,7 +441,7 @@ class Controller:
         self.save()
 
     def create_mapping(self):
-        """create a new empty mapping in the active_preset"""
+        """Create a new empty mapping in the active_preset."""
         try:
             self.data_manager.create_mapping()
         except KeyError:
@@ -450,9 +452,9 @@ class Controller:
         self.data_manager.update_mapping(**MAPPING_DEFAULTS)
 
     def delete_mapping(self):
-        """remove the active_mapping form the active_preset"""
+        """Remove the active_mapping form the active_preset."""
 
-        def f(answer: bool):
+        def get_answer(answer: bool):
             if answer:
                 self.data_manager.delete_mapping()
                 self.save()
@@ -460,16 +462,19 @@ class Controller:
         if not self.data_manager.active_mapping:
             return
         self.message_broker.publish(
-            UserConfirmRequest(_("Are you sure you want to delete this mapping?"), f)
+            UserConfirmRequest(
+                _("Are you sure you want to delete this mapping?"),
+                get_answer,
+            )
         )
 
     def set_autoload(self, autoload: bool):
-        """set the autoload state for the active_preset and active_group"""
+        """Set the autoload state for the active_preset and active_group."""
         self.data_manager.set_autoload(autoload)
         self.data_manager.refresh_service_config_path()
 
     def save(self):
-        """save all data to the disc"""
+        """Save all data to the disc."""
         try:
             self.data_manager.save()
         except PermissionError as e:
@@ -505,12 +510,12 @@ class Controller:
         self.data_manager.start_combination_recording()
 
     def stop_key_recording(self):
-        """stop recording the input"""
+        """Stop recording the input."""
         logger.debug("Stopping Recording Keys")
         self.data_manager.stop_combination_recording()
 
     def start_injecting(self):
-        """inject the active_preset for the active_group"""
+        """Inject the active_preset for the active_group."""
         if len(self.data_manager.active_preset) == 0:
             logger.error(_("Cannot apply empty preset file"))
             # also helpful for first time use
@@ -586,7 +591,7 @@ class Controller:
             state_calls[state]()
 
     def stop_injecting(self):
-        """stop injecting any preset for the active_group"""
+        """Stop injecting any preset for the active_group."""
 
         def show_result(msg: InjectorStateMessage):
             self.message_broker.unsubscribe(show_result)
@@ -596,8 +601,8 @@ class Controller:
                 # with a different state, or the status is wrong because something in
                 # the long pipeline of status messages is broken.
                 logger.error(
-                    f"Expected the injection to eventually stop, but got state "
-                    f"{msg.state}"
+                    "Expected the injection to eventually stop, but got state %s",
+                    msg.state,
                 )
                 return
 
@@ -612,24 +617,25 @@ class Controller:
     def show_status(
         self, ctx_id: int, msg: Optional[str] = None, tooltip: Optional[str] = None
     ):
-        """send a status message to the ui to show it in the status-bar"""
+        """Send a status message to the ui to show it in the status-bar."""
         self.message_broker.publish(StatusData(ctx_id, msg, tooltip))
 
     def is_empty_mapping(self) -> bool:
-        """check if the active_mapping is empty"""
+        """Check if the active_mapping is empty."""
         return (
             self.data_manager.active_mapping == UIMapping(**MAPPING_DEFAULTS)
             or self.data_manager.active_mapping is None
         )
 
     def refresh_groups(self):
-        """reload the connected devices and send them as a groups message
+        """Reload the connected devices and send them as a groups message.
 
-        runs asynchronously"""
+        Runs asynchronously.
+        """
         self.data_manager.refresh_groups()
 
     def close(self):
-        """safely close the application"""
+        """Safely close the application."""
         logger.debug("Closing Application")
         self.save()
         self.message_broker.signal(MessageType.terminate)
@@ -637,11 +643,11 @@ class Controller:
         Gtk.main_quit()
 
     def set_focus(self, component):
-        """focus the given component"""
+        """Focus the given component."""
         self.gui.window.set_focus(component)
 
     def _change_mapping_type(self, kwargs):
-        """query the user to update the mapping in order to change the mapping type"""
+        """Query the user to update the mapping in order to change the mapping type."""
         mapping = self.data_manager.active_mapping
 
         if mapping is None:
@@ -651,14 +657,14 @@ class Controller:
             return kwargs
 
         if kwargs["mapping_type"] == "analog":
-            msg = f"You are about to change the mapping to analog."
+            msg = "You are about to change the mapping to analog."
             if mapping.output_symbol:
                 msg += (
                     f'\nThis will remove "{mapping.output_symbol}" '
                     f"from the text input!"
                 )
 
-            if not [e for e in mapping.event_combination if e.value == 0]:
+            if not [event for event in mapping.event_combination if event.value == 0]:
                 # there is no analog input configured, let's try to autoconfigure it
                 events: List[InputEvent] = list(mapping.event_combination)
                 for i, e in enumerate(events):
@@ -679,11 +685,11 @@ class Controller:
 
             answer = None
 
-            def f(a: bool):
+            def get_answer(answer_: bool):
                 nonlocal answer
-                answer = a
+                answer = answer_
 
-            self.message_broker.publish(UserConfirmRequest(msg, f))
+            self.message_broker.publish(UserConfirmRequest(msg, get_answer))
             if answer:
                 kwargs["output_symbol"] = None
                 return kwargs
@@ -700,16 +706,16 @@ class Controller:
 
             answer = None
 
-            def f(a: bool):
+            def get_answer(answer_: bool):
                 nonlocal answer
-                answer = a
+                answer = answer_
 
             self.message_broker.publish(
                 UserConfirmRequest(
                     f"You are about to change the mapping to a Key or Macro mapping!\n"
                     f"Go to the advanced input configuration and set a "
                     f'"Trigger Threshold" for "{analog_input.description()}".',
-                    f,
+                    get_answer,
                 )
             )
             if answer:

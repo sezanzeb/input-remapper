@@ -17,10 +17,11 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
+
 from __future__ import annotations
 
 import time
-from typing import List
+from typing import List, Callable
 
 import gi
 
@@ -78,7 +79,7 @@ class HandlerDisabled:
     Use in a `with` statement.
     """
 
-    def __init__(self, widget, handler):
+    def __init__(self, widget: Gtk.Widget, handler: Callable):
         self.widget = widget
         self.handler = handler
 

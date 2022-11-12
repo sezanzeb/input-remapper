@@ -41,7 +41,7 @@ if TYPE_CHECKING:
 
 
 class Message(Protocol):
-    """the protocol any message must follow to be sent with the MessageBroker"""
+    """The protocol any message must follow to be sent with the MessageBroker."""
 
     message_type: MessageType
 
@@ -59,22 +59,24 @@ class MessageBroker:
         self._publishing = False
 
     def publish(self, data: Message):
-        """schedule a massage to be sent.
-        The message will be sent after all currently pending messages are sent"""
+        """Schedule a massage to be sent.
+        The message will be sent after all currently pending messages are sent."""
         self._messages.append((data, *self.get_caller()))
         self._publish_all()
 
     def signal(self, signal: MessageType):
-        """send a signal without any data payload"""
+        """Send a signal without any data payload."""
         self.publish(Signal(signal))
 
     def _publish(self, data: Message, file: str, line: int):
-        logger.debug(f"from {file}:{line}: Signal={data.message_type.name}: {data}")
+        logger.debug(
+            "from %s:%d: Signal=%s: %s", file, line, data.message_type.name, data
+        )
         for listener in self._listeners[data.message_type].copy():
             listener(data)
 
     def _publish_all(self):
-        """send all scheduled messages in order"""
+        """Send all scheduled messages in order."""
         if self._publishing:
             # don't run this twice, so we not mess up the order
             return
@@ -87,14 +89,14 @@ class MessageBroker:
             self._publishing = False
 
     def subscribe(self, massage_type: MessageType, listener: MessageListener):
-        """attach a listener to an event"""
+        """Attach a listener to an event."""
         logger.debug("adding new Listener for %s: %s", massage_type, listener)
         self._listeners[massage_type].add(listener)
         return self
 
     @staticmethod
     def get_caller(position: int = 3) -> Tuple[str, int]:
-        """extract a file and line from current stack and format for logging"""
+        """Extract a file and line from current stack and format for logging."""
         tb = traceback.extract_stack(limit=position)[0]
         return os.path.basename(tb.filename), tb.lineno or 0
 
@@ -107,7 +109,7 @@ class MessageBroker:
 
 
 class Signal(Message):
-    """Send a Message without any associated data over the MassageBus"""
+    """Send a Message without any associated data over the MassageBus."""
 
     def __init__(self, message_type: MessageType):
         self.message_type: MessageType = message_type
@@ -115,5 +117,5 @@ class Signal(Message):
     def __str__(self):
         return f"Signal: {self.message_type}"
 
-    def __eq__(self, other):
-        return str(self) == str(other)
+    def __eq__(self, other: Any):
+        return type(self) == type(other) and self.message_type == other.message_type

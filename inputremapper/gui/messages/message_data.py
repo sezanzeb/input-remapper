@@ -1,3 +1,23 @@
+#!/usr/bin/python3
+# -*- coding: utf-8 -*-
+# input-remapper - GUI for device specific keyboard mappings
+# Copyright (C) 2022 sezanzeb <proxima@sezanzeb.de>
+#
+# This file is part of input-remapper.
+#
+# input-remapper is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# input-remapper is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
+
 import re
 from dataclasses import dataclass
 from typing import Dict, Tuple, Optional, Callable
@@ -23,7 +43,7 @@ class UInputsData:
 
         # find all sequences of comma+space separated numbers, and shorten them
         # to the first and last number
-        all_matches = [m for m in re.finditer("(\d+, )+", string)]
+        all_matches = list(re.finditer("(\d+, )+", string))
         all_matches.reverse()
         for match in all_matches:
             start = match.start()
@@ -38,7 +58,7 @@ class UInputsData:
 
 @dataclass(frozen=True)
 class GroupsData:
-    """Message containing all available groups and their device types"""
+    """Message containing all available groups and their device types."""
 
     message_type = MessageType.groups
     groups: Dict[Key, DeviceTypes]
@@ -46,7 +66,7 @@ class GroupsData:
 
 @dataclass(frozen=True)
 class GroupData:
-    """Message with the active group and available presets for the group"""
+    """Message with the active group and available presets for the group."""
 
     message_type = MessageType.group
     group_key: str
@@ -55,7 +75,7 @@ class GroupData:
 
 @dataclass(frozen=True)
 class PresetData:
-    """Message with the active preset name and mapping names/combinations"""
+    """Message with the active preset name and mapping names/combinations."""
 
     message_type = MessageType.preset
     name: Optional[Name]
@@ -65,7 +85,7 @@ class PresetData:
 
 @dataclass(frozen=True)
 class StatusData:
-    """Message with the strings and id for the status bar"""
+    """Message with the strings and id for the status bar."""
 
     message_type = MessageType.status_msg
     ctx_id: int
@@ -75,7 +95,7 @@ class StatusData:
 
 @dataclass(frozen=True)
 class CombinationRecorded:
-    """Message with the latest recoded combination"""
+    """Message with the latest recoded combination."""
 
     message_type = MessageType.combination_recorded
     combination: "EventCombination"
@@ -83,7 +103,7 @@ class CombinationRecorded:
 
 @dataclass(frozen=True)
 class CombinationUpdate:
-    """Message with the old and new combination (hash for a mapping) when it changed"""
+    """Message with the old and new combination (hash for a mapping) when it changed."""
 
     message_type = MessageType.combination_update
     old_combination: "EventCombination"
@@ -92,7 +112,7 @@ class CombinationUpdate:
 
 @dataclass(frozen=True)
 class UserConfirmRequest:
-    """Message for requesting a user response (confirm/cancel) from the gui"""
+    """Message for requesting a user response (confirm/cancel) from the gui."""
 
     message_type = MessageType.user_confirm_request
     msg: str

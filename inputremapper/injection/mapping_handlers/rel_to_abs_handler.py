@@ -17,6 +17,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
+
 import asyncio
 from typing import Tuple, Dict, Optional
 
@@ -88,12 +89,9 @@ class RelToAbsHandler(MappingHandler):
         assert mapping.output_type == EV_ABS
         self._output_axis = (mapping.output_type, mapping.output_code)
 
-        self._target_absinfo = {
-            code: absinfo
-            for code, absinfo in global_uinputs.get_uinput(
-                mapping.target_uinput
-            ).capabilities(absinfo=True)[EV_ABS]
-        }[mapping.output_code]
+        target_uinput = global_uinputs.get_uinput(mapping.target_uinput)
+        abs_capabilities = target_uinput.capabilities(absinfo=True)[EV_ABS]
+        self._target_absinfo = dict(abs_capabilities)[mapping.output_code]
 
         max_ = self._get_default_cutoff()
         self._transform = Transformation(
@@ -123,7 +121,7 @@ class RelToAbsHandler(MappingHandler):
             f"{self.mapping.target_uinput}"
         )
 
-    def _observe_rate(self, event):
+    def _observe_rate(self, event: InputEvent):
         """Watch incoming events and remember how many events appear per second."""
         if self._previous_event is not None:
             delta_time = event.timestamp() - self._previous_event.timestamp()
@@ -195,14 +193,15 @@ class RelToAbsHandler(MappingHandler):
         self._recenter()
 
     def _recenter(self) -> None:
-        """recenter the output"""
+        """Recenter the output."""
         self._write(self._scale_to_target(0))
 
     async def _create_recenter_loop(self) -> None:
-        """coroutine which waits for the input to start moving,
+        """Coroutine which waits for the input to start moving,
         then waits until the input stops moving, centers the output and repeat.
 
-        runs forever"""
+        Runs forever.
+        """
         while True:
             await self._moving.wait()  # input moving started
             while (
@@ -214,7 +213,7 @@ class RelToAbsHandler(MappingHandler):
             self._recenter()  # input moving stopped
 
     def _scale_to_target(self, x: float) -> int:
-        """scales a x value between -1 and 1 to an integer between
+        """Scales a x value between -1 and 1 to an integer between
         target_absinfo.min and target_absinfo.max
 
         input values above 1 or below -1 are clamped to the extreme values

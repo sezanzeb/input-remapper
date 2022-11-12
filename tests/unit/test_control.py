@@ -89,7 +89,7 @@ class TestControl(unittest.TestCase):
                 nonlocal stop_counter
                 stop_counter += 1
 
-        def start_injecting(device, preset):
+        def start_injecting(device: str, preset: str):
             print(f'\033[90mstart_injecting "{device}" "{preset}"\033[0m')
             start_history.append((device, preset))
             daemon.injectors[device] = Injector()

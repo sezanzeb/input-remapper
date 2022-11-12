@@ -25,7 +25,13 @@ import os
 import unittest
 import tempfile
 
-from inputremapper.configs.paths import touch, mkdir, get_preset_path, get_config_path
+from inputremapper.configs.paths import (
+    touch,
+    mkdir,
+    get_preset_path,
+    get_config_path,
+    split_all,
+)
 
 
 def _raise(error):
@@ -64,3 +70,6 @@ class TestPaths(unittest.TestCase):
         # might end with /beta_XXX
         self.assertTrue(get_config_path().startswith(f"{tmp}/.config/input-remapper"))
         self.assertTrue(get_config_path("a", "b").endswith("a/b"))
+
+    def test_split_all(self):
+        self.assertListEqual(split_all("a/b/c/d"), ["a", "b", "c", "d"])

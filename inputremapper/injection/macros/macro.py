@@ -35,11 +35,13 @@ w(1000).m(Shift_L, r(2, k(a))).w(10).k(b): <1s> A A <10ms> b
 """
 
 
+from __future__ import annotations
+
 import asyncio
 import copy
 import math
 import re
-from typing import List, Callable, Awaitable, Tuple
+from typing import List, Callable, Awaitable, Tuple, Optional, Union, Any
 
 from evdev.ecodes import (
     ecodes,
@@ -73,7 +75,7 @@ class Variable:
     during runtime.
     """
 
-    def __init__(self, name):
+    def __init__(self, name: str):
         self.name = name
 
     def resolve(self):
@@ -84,7 +86,7 @@ class Variable:
         return f'<Variable "{self.name}">'
 
 
-def _type_check(value, allowed_types, display_name=None, position=None):
+def _type_check(value: Any, allowed_types, display_name=None, position=None) -> Any:
     """Validate a parameter used in a macro.
 
     If the value is a Variable, it will be returned and should be resolved
@@ -124,7 +126,7 @@ def _type_check(value, allowed_types, display_name=None, position=None):
     )
 
 
-def _type_check_symbol(keyname):
+def _type_check_symbol(keyname: Union[str, Variable]) -> int:
     """Same as _type_check, but checks if the key-name is valid."""
     if isinstance(keyname, Variable):
         # it is a variable and will be read at runtime
@@ -139,7 +141,7 @@ def _type_check_symbol(keyname):
     return code
 
 
-def _type_check_variablename(name):
+def _type_check_variablename(name: str):
     """Check if this is a legit variable name.
 
     Because they could clash with language features. If the macro is able to be
@@ -196,14 +198,20 @@ class Macro:
     4. `Macro.run` will run all tasks in self.tasks
     """
 
-    def __init__(self, code: str, context=None, mapping=None):
+    def __init__(
+        self,
+        code: Optional[str],
+        context=None,
+        mapping=None,
+    ):
         """Create a macro instance that can be populated with tasks.
 
         Parameters
         ----------
-        code : string or None
+        code
             The original parsed code, for logging purposes.
-        context : Context, or None for use in frontend
+        context : Context
+        mapping : UIMapping
         """
         self.code = code
         self.context = context
@@ -235,20 +243,20 @@ class Macro:
 
         for macro in self.child_macros:
             macro_capabilities = macro.get_capabilities()
-            for ev_type in macro_capabilities:
-                if ev_type not in capabilities:
-                    capabilities[ev_type] = set()
+            for type_ in macro_capabilities:
+                if type_ not in capabilities:
+                    capabilities[type_] = set()
 
-                capabilities[ev_type].update(macro_capabilities[ev_type])
+                capabilities[type_].update(macro_capabilities[type_])
 
         return capabilities
 
-    async def run(self, handler):
+    async def run(self, handler: Callable):
         """Run the macro.
 
         Parameters
         ----------
-        handler : function
+        handler
             Will receive int type, code and value for an event to write
         """
         if not callable(handler):
@@ -267,7 +275,7 @@ class Macro:
                 coroutine = task(handler)
                 if asyncio.iscoroutine(coroutine):
                     await coroutine
-        except Exception as e:
+        except Exception:
             raise
         finally:
             # done
@@ -304,15 +312,15 @@ class Macro:
     def __repr__(self):
         return f'<Macro "{self.code}">'
 
-    """Functions that prepare the macro"""
+    """Functions that prepare the macro."""
 
-    def add_key(self, symbol):
+    def add_key(self, symbol: str):
         """Write the symbol."""
         # This is done to figure out if the macro is broken at compile time, because
         # if KEY_A was unknown we can show this in the gui before the injection starts.
         _type_check_symbol(symbol)
 
-        async def task(handler):
+        async def task(handler: Callable):
             # if the code is $foo, figure out the correct code now.
             resolved_symbol = _resolve(symbol, [str])
             code = _type_check_symbol(resolved_symbol)
@@ -325,11 +333,11 @@ class Macro:
 
         self.tasks.append(task)
 
-    def add_key_down(self, symbol):
+    def add_key_down(self, symbol: str):
         """Press the symbol."""
         _type_check_symbol(symbol)
 
-        async def task(handler):
+        async def task(handler: Callable):
             resolved_symbol = _resolve(symbol, [str])
             code = _type_check_symbol(resolved_symbol)
 
@@ -338,11 +346,11 @@ class Macro:
 
         self.tasks.append(task)
 
-    def add_key_up(self, symbol):
+    def add_key_up(self, symbol: str):
         """Release the symbol."""
         _type_check_symbol(symbol)
 
-        async def task(handler):
+        async def task(handler: Callable):
             resolved_symbol = _resolve(symbol, [str])
             code = _type_check_symbol(resolved_symbol)
 
@@ -365,7 +373,7 @@ class Macro:
             symbol = macro
             _type_check_symbol(symbol)
 
-            async def task(handler):
+            async def task(handler: Callable):
                 resolved_symbol = _resolve(symbol, [str])
                 code = _type_check_symbol(resolved_symbol)
 
@@ -378,32 +386,31 @@ class Macro:
 
         if isinstance(macro, Macro):
             # repeat the macro forever while the key is held down
-            async def task(handler):
+            async def task(handler: Callable):
                 while self.is_holding():
                     # run the child macro completely to avoid
                     # not-releasing any key
                     await macro.run(handler)
-                    await asyncio.sleep(
-                        1 / 1000
-                    )  # give some other code a chance to run
+                    # give some other code a chance to run
+                    await asyncio.sleep(1 / 1000)
 
             self.tasks.append(task)
             self.child_macros.append(macro)
 
-    def add_modify(self, modifier, macro):
+    def add_modify(self, modifier: str, macro: Macro):
         """Do stuff while a modifier is activated.
 
         Parameters
         ----------
-        modifier : str
-        macro : Macro
+        modifier
+        macro
         """
         _type_check(macro, [Macro], "modify", 2)
         _type_check_symbol(modifier)
 
         self.child_macros.append(macro)
 
-        async def task(handler):
+        async def task(handler: Callable):
             # TODO test var
             resolved_modifier = _resolve(modifier, [str])
             code = _type_check_symbol(resolved_modifier)
@@ -421,7 +428,7 @@ class Macro:
         for symbol in symbols:
             _type_check_symbol(symbol)
 
-        async def task(handler):
+        async def task(handler: Callable):
             resolved_symbols = [_resolve(symbol, [str]) for symbol in symbols]
             codes = [_type_check_symbol(symbol) for symbol in resolved_symbols]
 
@@ -437,34 +444,28 @@ class Macro:
 
         self.tasks.append(task)
 
-    def add_repeat(self, repeats, macro):
-        """Repeat actions.
-
-        Parameters
-        ----------
-        repeats : int or Macro
-        macro : Macro
-        """
+    def add_repeat(self, repeats: Union[str, int], macro: Macro):
+        """Repeat actions."""
         repeats = _type_check(repeats, [int], "repeat", 1)
         _type_check(macro, [Macro], "repeat", 2)
 
-        async def task(handler):
+        async def task(handler: Callable):
             for _ in range(_resolve(repeats, [int])):
                 await macro.run(handler)
 
         self.tasks.append(task)
         self.child_macros.append(macro)
 
-    def add_event(self, type_, code, value):
+    def add_event(self, type_: Union[str, int], code: Union[str, int], value: int):
         """Write any event.
 
         Parameters
         ----------
-        type_: str or int
+        type_
             examples: 2, 'EV_KEY'
-        code : str or int
+        code
             examples: 52, 'KEY_A'
-        value : int
+        value
         """
         type_ = _type_check(type_, [int, str], "event", 1)
         code = _type_check(code, [int, str], "event", 2)
@@ -478,7 +479,7 @@ class Macro:
         self.tasks.append(lambda handler: handler(type_, code, value))
         self.tasks.append(self._keycode_pause)
 
-    def add_mouse(self, direction, speed):
+    def add_mouse(self, direction: str, speed: int):
         """Move the mouse cursor."""
         _type_check(direction, [str], "mouse", 1)
         speed = _type_check(speed, [int], "mouse", 2)
@@ -490,7 +491,7 @@ class Macro:
             "right": (REL_X, 1),
         }[direction.lower()]
 
-        async def task(handler):
+        async def task(handler: Callable):
             resolved_speed = value * _resolve(speed, [int])
             while self.is_holding():
                 handler(EV_REL, code, resolved_speed)
@@ -498,7 +499,7 @@ class Macro:
 
         self.tasks.append(task)
 
-    def add_wheel(self, direction, speed):
+    def add_wheel(self, direction: str, speed: int):
         """Move the scroll wheel."""
         _type_check(direction, [str], "wheel", 1)
         speed = _type_check(speed, [int], "wheel", 2)
@@ -510,7 +511,7 @@ class Macro:
             "right": ([REL_HWHEEL, REL_HWHEEL_HI_RES], [-1 / 120, -1]),
         }[direction.lower()]
 
-        async def task(handler):
+        async def task(handler: Callable):
             resolved_speed = _resolve(speed, [int])
             remainder = [0.0, 0.0]
             while self.is_holding():
@@ -523,7 +524,7 @@ class Macro:
 
         self.tasks.append(task)
 
-    def add_wait(self, time):
+    def add_wait(self, time: Union[int, float]):
         """Wait time in milliseconds."""
         time = _type_check(time, [int, float], "wait", 1)
 
@@ -532,7 +533,7 @@ class Macro:
 
         self.tasks.append(task)
 
-    def add_set(self, variable, value):
+    def add_set(self, variable: str, value):
         """Set a variable to a certain value."""
         _type_check_variablename(variable)
 
@@ -544,9 +545,10 @@ class Macro:
 
         self.tasks.append(task)
 
-    def add_add(self, variable, value):
+    def add_add(self, variable: str, value: Union[int, float]):
         """Add a number to a variable."""
         _type_check_variablename(variable)
+        _type_check(value, [int, float], "value", 1)
 
         async def task(_):
             current = macro_variables[variable]
@@ -583,7 +585,7 @@ class Macro:
         _type_check(then, [Macro, None], "ifeq", 3)
         _type_check(else_, [Macro, None], "ifeq", 4)
 
-        async def task(handler):
+        async def task(handler: Callable):
             set_value = macro_variables.get(variable)
             logger.debug('"%s" is "%s"', variable, set_value)
             if set_value == value:
@@ -604,7 +606,7 @@ class Macro:
         _type_check(then, [Macro, None], "if_eq", 3)
         _type_check(else_, [Macro, None], "if_eq", 4)
 
-        async def task(handler):
+        async def task(handler: Callable):
             resolved_value_1 = _resolve(value_1)
             resolved_value_2 = _resolve(value_2)
             if resolved_value_1 == resolved_value_2:
@@ -645,7 +647,7 @@ class Macro:
                 await self._trigger_press_event.wait()
                 await self._trigger_release_event.wait()
 
-        async def task(handler):
+        async def task(handler: Callable):
             resolved_timeout = _resolve(timeout, [int, float]) / 1000
             try:
                 await asyncio.wait_for(wait(), resolved_timeout)
@@ -667,7 +669,7 @@ class Macro:
         if isinstance(else_, Macro):
             self.child_macros.append(else_)
 
-        async def task(handler):
+        async def task(handler: Callable):
             listener_done = asyncio.Event()
 
             async def listener(event):

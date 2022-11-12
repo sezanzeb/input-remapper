@@ -86,29 +86,27 @@ class MacroTestBase(unittest.IsolatedAsyncioTestCase):
         self.result = []
         quick_cleanup()
 
-    def handler(self, ev_type, code, value):
+    def handler(self, type_: int, code: int, value: int):
         """Where macros should write codes to."""
-        logger.info(f"macro wrote{(ev_type, code, value)}")
-        self.result.append((ev_type, code, value))
+        logger.info(f"macro wrote{(type_, code, value)}")
+        self.result.append((type_, code, value))
 
     async def trigger_sequence(self, macro: Macro, event):
         for listener in self.context.listeners:
             asyncio.ensure_future(listener(event))
-            await asyncio.sleep(
-                0
-            )  # this still might cause race conditions and the test to fail
+            # this still might cause race conditions and the test to fail
+            await asyncio.sleep(0)
 
         macro.press_trigger()
         if macro.running:
             return
         asyncio.ensure_future(macro.run(self.handler))
 
-    async def release_sequence(self, macro, event):
+    async def release_sequence(self, macro: Macro, event):
         for listener in self.context.listeners:
             asyncio.ensure_future(listener(event))
-            await asyncio.sleep(
-                0
-            )  # this still might cause race conditions and the test to fail
+            # this still might cause race conditions and the test to fail
+            await asyncio.sleep(0)
 
         if macro.is_holding:
             macro.release_trigger()
@@ -543,6 +541,9 @@ class TestMacros(MacroTestBase):
 
         self.assertRaises(MacroParsingError, parse, "key(a)key(b)", self.context)
         self.assertRaises(MacroParsingError, parse, "hold(key(a)key(b))", self.context)
+
+        parse("add(a, 1)", self.context)  # no error
+        self.assertRaises(MacroParsingError, parse, "add(a, b)", self.context)
 
     async def test_key(self):
         code_a = system_mapping.get("a")

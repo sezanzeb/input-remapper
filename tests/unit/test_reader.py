@@ -512,7 +512,7 @@ class TestReader(unittest.TestCase):
         l1 = Listener()
         self.message_broker.subscribe(MessageType.groups, l1)
         self.create_reader_service()
-        self.reader_client.groups.set_groups({})
+        self.reader_client.groups.set_groups([])
 
         time.sleep(0.1)  # let the reader-service send the groups
         # read stuff from the reader-service, which includes the devices

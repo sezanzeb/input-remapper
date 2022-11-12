@@ -127,7 +127,7 @@ class UserInterface:
         self.get("vertical-wrapper").set_opacity(1)
 
     def _build_ui(self):
-        """build the window from stylesheet and gladefile"""
+        """Build the window from stylesheet and gladefile."""
         css_provider = Gtk.CssProvider()
 
         with open(get_data_path("style.css"), "r") as file:
@@ -144,7 +144,7 @@ class UserInterface:
         self.builder.connect_signals(self)
 
     def _create_components(self):
-        """setup all objects which manage individual components of the ui"""
+        """Setup all objects which manage individual components of the ui."""
         message_broker = self.message_broker
         controller = self.controller
         DeviceGroupSelection(message_broker, controller, self.get("device_selection"))
@@ -231,7 +231,7 @@ class UserInterface:
         self.autocompletion = autocompletion  # only for testing
 
     def _create_dialogs(self):
-        """setup different dialogs, such as the about page"""
+        """Setup different dialogs, such as the about page."""
         self.about.connect("delete-event", on_close_about)
         # set_position needs to be done once initially, otherwise the
         # dialog is not centered when it is opened for the first time
@@ -332,7 +332,7 @@ class UserInterface:
         message_dialog.hide()
 
     def on_injector_state_msg(self, msg: InjectorStateMessage):
-        """update the ui to reflect the status of the injector"""
+        """Update the ui to reflect the status of the injector."""
         stop_injection_preset_page: Gtk.Button = self.get("stop_injection_preset_page")
         stop_injection_editor_page: Gtk.Button = self.get("stop_injection_editor_page")
         recording_toggle: Gtk.ToggleButton = self.get("key_recording_toggle")
@@ -367,17 +367,17 @@ class UserInterface:
                 "key-press-event", self.on_gtk_shortcut
             )
 
-    def get(self, name):
-        """Get a widget from the window"""
+    def get(self, name: str):
+        """Get a widget from the window."""
         return self.builder.get_object(name)
 
     def close(self):
-        """Close the window"""
+        """Close the window."""
         logger.debug("Closing window")
         self.window.hide()
 
     def update_combination_label(self, mapping: MappingData):
-        """listens for mapping and updates the combination label"""
+        """Listens for mapping and updates the combination label."""
         label: Gtk.Label = self.get("combination-label")
         if mapping.event_combination.beautify() == label.get_label():
             return
@@ -390,7 +390,7 @@ class UserInterface:
         label.set_label(mapping.event_combination.beautify())
 
     def on_gtk_shortcut(self, _, event: Gdk.EventKey):
-        """execute shortcuts"""
+        """Execute shortcuts."""
         if event.state & Gdk.ModifierType.CONTROL_MASK:
             try:
                 self.shortcuts[event.keyval]()

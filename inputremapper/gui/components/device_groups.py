@@ -102,7 +102,7 @@ class DeviceGroupSelection(FlowBoxWrapper):
             else:
                 icon_name = None
 
-            logger.debug(f"adding {group_key} to device selection")
+            logger.debug("adding %s to device selection", group_key)
             device_group_entry = DeviceGroupEntry(
                 self._message_broker,
                 self._controller,

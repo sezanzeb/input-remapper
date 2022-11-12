@@ -18,7 +18,6 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-
 """Find, classify and group devices.
 
 Because usually connected devices pop up multiple times in /dev/input,
@@ -29,7 +28,9 @@ Those groups are what is being displayed in the device dropdown, and
 events are being read from all of the paths of an individual group in the gui
 and the injector.
 """
+
 from __future__ import annotations
+
 import asyncio
 import enum
 import json
@@ -40,6 +41,7 @@ import threading
 from typing import List, Optional
 
 import evdev
+from evdev import InputDevice
 from evdev.ecodes import (
     EV_KEY,
     EV_ABS,
@@ -194,12 +196,12 @@ def classify(device) -> DeviceType:
 DENYLIST = [".*Yubico.*YubiKey.*", "Eee PC WMI hotkeys"]
 
 
-def is_denylisted(device):
+def is_denylisted(device: InputDevice):
     """Check if a device should not be used in input-remapper.
 
     Parameters
     ----------
-    device : InputDevice
+    device
     """
     for name in DENYLIST:
         if re.match(name, str(device.name), re.IGNORECASE):
@@ -208,15 +210,11 @@ def is_denylisted(device):
     return False
 
 
-def get_unique_key(device):
+def get_unique_key(device: InputDevice):
     """Find a string key that is unique for a single hardware device.
 
     All InputDevices in /dev/input that originate from the same physical
     hardware device should return the same key via this function.
-
-    Parameters
-    ----------
-    device : InputDevice
     """
     # Keys that should not be used:
     # - device.phys is empty sometimes and varies across virtual
@@ -266,13 +264,13 @@ class _Group:
 
         Parameters
         ----------
-        paths : str[]
+        paths
             Paths in /dev/input of the grouped devices
-        names : str[]
+        names
             Names of the grouped devices
-        types : list[DeviceType]
+        types
             Types of the grouped devices
-        key : str
+        key
             Unique identifier of the group.
 
             It should be human readable and if possible equal to group.name.
@@ -293,7 +291,7 @@ class _Group:
         self.names = names
         self.types = [DeviceType(type_) for type_ in types]
 
-    def get_preset_path(self, preset=None):
+    def get_preset_path(self, preset: Optional[str] = None):
         """Get a path to the stored preset, or to store a preset to.
 
         This path is unique per device-model, not per group. Groups
@@ -308,7 +306,7 @@ class _Group:
         )
 
     @classmethod
-    def loads(cls, serialized):
+    def loads(cls, serialized: str):
         """Load a serialized representation."""
         group = cls(**json.loads(serialized))
         return group
@@ -325,12 +323,12 @@ class _FindGroups(threading.Thread):
     slowing down the initialization.
     """
 
-    def __init__(self, pipe):
+    def __init__(self, pipe: multiprocessing.Pipe):
         """Construct the process.
 
         Parameters
         ----------
-        pipe : multiprocessing.Pipe
+        pipe
             used to communicate the result
         """
         self.pipe = pipe
@@ -433,11 +431,11 @@ class _Groups:
     def __init__(self):
         self._groups: List[_Group] = None
 
-    def __getattribute__(self, key):
+    def __getattribute__(self, key: str):
         """To lazy load group info only when needed.
 
-        For example, this helps to keep logs of input-remapper-control clear when it doesnt
-        need it the information.
+        For example, this helps to keep logs of input-remapper-control clear when it
+        doesn't need it the information.
         """
         if key == "_groups" and object.__getattribute__(self, "_groups") is None:
             object.__setattr__(self, "_groups", [])
@@ -463,7 +461,7 @@ class _Groups:
             keys = [f'"{group.key}"' for group in self._groups]
             logger.info("Found %s", ", ".join(keys))
 
-    def filter(self, include_inputremapper=False) -> List[_Group]:
+    def filter(self, include_inputremapper: bool = False) -> List[_Group]:
         """Filter groups."""
         result = []
         for group in self._groups:
@@ -475,7 +473,7 @@ class _Groups:
 
         return result
 
-    def set_groups(self, new_groups):
+    def set_groups(self, new_groups: List[_Group]):
         """Overwrite all groups."""
         logger.debug("overwriting groups with %s", new_groups)
         self._groups = new_groups
@@ -498,27 +496,27 @@ class _Groups:
         """Create a deserializable string representation."""
         return json.dumps([group.dumps() for group in self._groups])
 
-    def loads(self, dump):
+    def loads(self, dump: str):
         """Load a serialized representation created via dumps."""
         self._groups = [_Group.loads(group) for group in json.loads(dump)]
 
     def find(
         self,
-        name: str = None,
-        key: str = None,
-        path: str = None,
+        name: Optional[str] = None,
+        key: Optional[str] = None,
+        path: Optional[str] = None,
         include_inputremapper: bool = False,
     ) -> Optional[_Group]:
         """Find a group that matches the provided parameters.
 
         Parameters
         ----------
-        name : str
+        name
             "USB Keyboard"
             Not unique, will return the first group that matches.
-        key : str
+        key
             "USB Keyboard", "USB Keyboard 2", ...
-        path : str
+        path
             "/dev/input/event3"
         """
         for group in self._groups:

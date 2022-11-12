@@ -17,7 +17,8 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
-from typing import Dict, Union
+
+from typing import Dict, Union, Tuple
 
 import evdev
 
@@ -62,13 +63,13 @@ DEFAULT_UINPUTS["keyboard + mouse"] = {
 class UInput(evdev.UInput):
     def __init__(self, *args, **kwargs):
         name = kwargs["name"]
-        logger.debug(f'creating UInput device: "{name}"')
+        logger.debug('creating UInput device: "%s"', name)
         super().__init__(*args, **kwargs)
 
-    def can_emit(self, event):
-        """Check if an event can be emitted by the uinput
+    def can_emit(self, event: Tuple[int, int, int]):
+        """Check if an event can be emitted by the UIinput.
 
-        Wrong events might be injected if the group mappings are wrong
+        Wrong events might be injected if the group mappings are wrong,
         """
         return event[1] in self.capabilities(absinfo=False).get(event[0], [])
 
@@ -77,18 +78,18 @@ class FrontendUInput:
     """Uinput which can not actually send events, for use in the frontend."""
 
     def __init__(self, *args, events=None, name="py-evdev-uinput", **kwargs):
-        # see https://python-evdev.readthedocs.io/en/latest/apidoc.html#module-evdev.uinput
+        # see https://python-evdev.readthedocs.io/en/latest/apidoc.html#module-evdev.uinput  # noqa pylint: disable=line-too-long
         self.events = events
         self.name = name
 
-        logger.debug(f'creating fake UInput device: "{self.name}"')
+        logger.debug('creating fake UInput device: "%s"', self.name)
 
     def capabilities(self):
         return self.events
 
 
 class GlobalUInputs:
-    """Manages all uinputs that are shared between all injection processes."""
+    """Manages all UInputs that are shared between all injection processes."""
 
     def __init__(self):
         self.devices: Dict[str, Union[UInput, FrontendUInput]] = {}
@@ -108,7 +109,7 @@ class GlobalUInputs:
             self._uinput_factory = FrontendUInput
 
     def prepare_all(self):
-        """Generate uinputs."""
+        """Generate UInputs."""
         self.ensure_uinput_factory_set()
 
         for name, events in DEFAULT_UINPUTS.items():
@@ -141,7 +142,7 @@ class GlobalUInputs:
             events=DEFAULT_UINPUTS[name],
         )
 
-    def write(self, event, target_uinput):
+    def write(self, event: Tuple[int, int, int], target_uinput):
         """Write event to target uinput."""
         uinput = self.get_uinput(target_uinput)
         if not uinput:
@@ -160,7 +161,8 @@ class GlobalUInputs:
 
         Parameters
         ----------
-        name : uniqe name of the uinput device
+        name
+            uniqe name of the uinput device
         """
         if name in self.devices.keys():
             return self.devices[name]

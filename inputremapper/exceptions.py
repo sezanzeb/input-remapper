@@ -19,46 +19,58 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
-"""Exceptions specific to inputremapper"""
+"""Exceptions specific to inputremapper."""
+
+from typing import Optional
 
 
 class Error(Exception):
-    """Base class for exceptions in inputremapper
+    """Base class for exceptions in inputremapper.
 
-    we can catch all inputremapper exceptions with this
+    We can catch all inputremapper exceptions with this.
     """
-
-    pass
 
 
 class UinputNotAvailable(Error):
-    def __init__(self, name):
+    """If an expected UInput is not found (anymore)."""
+
+    def __init__(self, name: str):
         super().__init__(f"{name} is not defined or unplugged")
 
 
 class EventNotHandled(Error):
+    """For example mapping to BTN_LEFT on a keyboard target."""
+
     def __init__(self, event):
         super().__init__(f"Event {event} can not be handled by the configured target")
 
 
 class MacroParsingError(Error):
-    def __init__(self, symbol=None, msg="Error while parsing a macro"):
+    """Macro syntax errors."""
+
+    def __init__(self, symbol: Optional[str] = None, msg="Error while parsing a macro"):
         self.symbol = symbol
         super().__init__(msg)
 
 
 class MappingParsingError(Error):
-    def __init__(self, msg, *, mapping=None, mapping_handler=None):
+    """Anything that goes wrong during the creation of handlers from the mapping."""
+
+    def __init__(self, msg: str, *, mapping=None, mapping_handler=None):
         self.mapping_handler = mapping_handler
         self.mapping = mapping
         super().__init__(msg)
 
 
 class InputEventCreationError(Error):
-    def __init__(self, msg):
+    """An input-event failed to be created due to broken factory/constructor calls."""
+
+    def __init__(self, msg: str):
         super().__init__(msg)
 
 
 class DataManagementError(Error):
-    def __init__(self, msg):
+    """Any error that happens in the DataManager."""
+
+    def __init__(self, msg: str):
         super().__init__(msg)

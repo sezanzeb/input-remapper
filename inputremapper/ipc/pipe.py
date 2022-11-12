@@ -40,7 +40,7 @@ import asyncio
 import json
 import os
 import time
-from typing import Optional, AsyncIterator
+from typing import Optional, AsyncIterator, Union
 
 from inputremapper.configs.paths import mkdir, chown
 from inputremapper.logger import logger
@@ -125,7 +125,7 @@ class Pipe:
 
         return self._get_msg(line)
 
-    def _get_msg(self, line):
+    def _get_msg(self, line: str):
         parsed = json.loads(line)
         if parsed[0] < self._created_at and os.environ.get("UNITTEST"):
             # important to avoid race conditions between multiple unittests,
@@ -136,8 +136,8 @@ class Pipe:
 
         return parsed[1]
 
-    def send(self, message):
-        """Write an object to the pipe."""
+    def send(self, message: Union[str, int, float, dict, list, tuple]):
+        """Write a serializable object to the pipe."""
         dump = json.dumps((time.time(), message))
         # there aren't any newlines supposed to be,
         # but if there are it breaks readline().
@@ -179,6 +179,6 @@ class Pipe:
         return self._get_msg(await self._async_iterator.__anext__())
 
     async def recv_async(self):
-        """read the next line with async. Do not use this when using
+        """Read the next line with async. Do not use this when using
         the async for loop."""
         return await self.__aiter__().__anext__()

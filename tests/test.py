@@ -43,9 +43,9 @@ tracemalloc.start()
 if module := sys.modules.get("inputremapper"):
     imported = [m for m in module.__dict__ if not m.startswith("__")]
     raise AssertionError(
-        f"the modules {imported} from inputremapper where already imported, this can "
+        f"The modules {imported} from inputremapper where already imported, this can "
         f"cause issues with the tests. Make sure to always import tests.test before any"
-        f" inputremapper module"
+        f" inputremapper module."
     )
 try:
     sys.modules.get("tests.test").main
@@ -467,7 +467,7 @@ def get_events():
     return uinput_write_history
 
 
-def push_event(fixture: Fixture, event, force=False):
+def push_event(fixture: Fixture, event: InputEvent, force: bool = False):
     """Make a device act like it is reading events from evdev.
 
     push_event is like hitting a key on a keyboard for stuff that reads from
@@ -475,10 +475,11 @@ def push_event(fixture: Fixture, event, force=False):
 
     Parameters
     ----------
-    fixture : Fixture
+    fixture
         For example 'Foo Device'
-    event : InputEvent
-    force : bool don't check if the event is in fixture.capabilities
+    event
+    force
+        don't check if the event is in fixture.capabilities
     """
     setup_pipe(fixture)
     if not force and (

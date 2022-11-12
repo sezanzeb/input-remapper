@@ -100,7 +100,7 @@ class TestDataManager(unittest.TestCase):
         self.assertEqual(response[0].group_key, "Foo Device 2")
 
     def test_load_group_without_presets_provides_none(self):
-        """we should get no presets when loading a group without presets"""
+        """We should get no presets when loading a group without presets."""
         response: List[GroupData] = []
 
         def listener(data: GroupData):
@@ -117,8 +117,7 @@ class TestDataManager(unittest.TestCase):
             self.data_manager.load_group(group_key="Some Unknown Device")
 
     def test_cannot_load_preset_without_group(self):
-        """loading a preset without a loaded group should
-        raise a DataManagementError"""
+        """Loading a preset without a loaded group raises a DataManagementError."""
         prepare_presets()
         self.assertRaises(
             DataManagementError,
@@ -146,7 +145,7 @@ class TestDataManager(unittest.TestCase):
             self.assertIn(mapping, mappings)
 
     def test_cannot_load_non_existing_preset(self):
-        """loading a non-existing preset should raise an KeyError"""
+        """Loading a non-existing preset should raise an KeyError."""
         prepare_presets()
 
         self.data_manager.load_group(group_key="Foo Device")
@@ -157,7 +156,7 @@ class TestDataManager(unittest.TestCase):
         )
 
     def test_save_preset(self):
-        """modified preses should be saved to the disc"""
+        """Modified preses should be saved to the disc."""
         prepare_presets()
         # make sure the correct preset is loaded
         self.data_manager.load_group(group_key="Foo Device")
