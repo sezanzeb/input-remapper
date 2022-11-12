@@ -68,7 +68,7 @@ class AutoloadHistory:
         """Remember when this preset was autoloaded for the device."""
         self._autoload_history[group_key] = (time.time(), preset)
 
-    def forget(self, group_key):
+    def forget(self, group_key: str):
         """The injection was stopped or started by hand."""
         if group_key in self._autoload_history:
             del self._autoload_history[group_key]

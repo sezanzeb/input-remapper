@@ -21,7 +21,7 @@
 from __future__ import annotations
 
 import enum
-from typing import Optional, Callable, Tuple, TypeVar, Literal, Union
+from typing import Optional, Callable, Tuple, TypeVar, Literal, Union, Any
 
 import evdev
 import pkg_resources
@@ -106,6 +106,8 @@ class ImmutableCfg(Cfg):
 class UIMapping(BaseModel):
     """Holds all the data for mapping an input action to an output action.
 
+    The Preset contains multiple UIMappings.
+
     This mapping does not validate the structure of the mapping or macros, only basic
     values. It is meant to be used in the GUI where invalid mappings are expected.
     """
@@ -167,7 +169,7 @@ class UIMapping(BaseModel):
         if needs_workaround:
             object.__setattr__(self, "_combination_changed", None)
 
-    def __setattr__(self, key, value):
+    def __setattr__(self, key: str, value: Any):
         """Call the combination changed callback
         if we are about to update the event_combination
         """

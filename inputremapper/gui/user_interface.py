@@ -367,7 +367,7 @@ class UserInterface:
                 "key-press-event", self.on_gtk_shortcut
             )
 
-    def get(self, name):
+    def get(self, name: str):
         """Get a widget from the window"""
         return self.builder.get_object(name)
 

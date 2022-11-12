@@ -86,7 +86,7 @@ class MacroTestBase(unittest.IsolatedAsyncioTestCase):
         self.result = []
         quick_cleanup()
 
-    def handler(self, ev_type, code, value):
+    def handler(self, ev_type: int, code: int, value: int):
         """Where macros should write codes to."""
         logger.info(f"macro wrote{(ev_type, code, value)}")
         self.result.append((ev_type, code, value))

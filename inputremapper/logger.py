@@ -70,7 +70,7 @@ def parse_mapping_handler(mapping_handler):
 
 class Logger(logging.Logger):
     def debug_mapping_handler(self, mapping_handler):
-        """Parse the structure of a mapping_handler an log it"""
+        """Parse the structure of a mapping_handler and log it."""
         if not self.isEnabledFor(logging.DEBUG):
             return
 
@@ -167,16 +167,16 @@ class ColorfulFormatter(logging.Formatter):
             logging.FATAL: 9,
         }
 
-    def _get_ansi_code(self, r, g, b):
+    def _get_ansi_code(self, r: int, g: int, b: int):
         return 16 + b + (6 * g) + (36 * r)
 
-    def _word_to_color(self, word):
+    def _word_to_color(self, word: str):
         """Convert a word to a 8bit ansi color code."""
         digit_sum = sum([ord(char) for char in word])
         index = digit_sum % len(self.allowed_colors)
         return self.allowed_colors[index]
 
-    def _allocate_debug_log_color(self, record):
+    def _allocate_debug_log_color(self, record: logging.LogRecord):
         """Get the color that represents the source file of the log."""
         if self.file_color_mapping.get(record.filename) is not None:
             return self.file_color_mapping[record.filename]
@@ -202,7 +202,7 @@ class ColorfulFormatter(logging.Formatter):
 
         return process_name
 
-    def _get_format(self, record):
+    def _get_format(self, record: logging.LogRecord):
         """Generate a message format string."""
         debug_mode = is_debug()
 
@@ -236,7 +236,7 @@ class ColorfulFormatter(logging.Formatter):
             "\033[0m"  # end style
         ).replace("  ", " ")
 
-    def format(self, record):
+    def format(self, record: logging.LogRecord):
         """Overwritten format function."""
         # pylint: disable=protected-access
         self._style._fmt = self._get_format(record)

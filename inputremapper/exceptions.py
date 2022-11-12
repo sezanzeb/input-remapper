@@ -21,6 +21,8 @@
 
 """Exceptions specific to inputremapper"""
 
+from typing import Optional
+
 
 class Error(Exception):
     """Base class for exceptions in inputremapper.
@@ -32,7 +34,7 @@ class Error(Exception):
 class UinputNotAvailable(Error):
     """If an expected UInput is not found (anymore)."""
 
-    def __init__(self, name):
+    def __init__(self, name: str):
         super().__init__(f"{name} is not defined or unplugged")
 
 
@@ -46,7 +48,7 @@ class EventNotHandled(Error):
 class MacroParsingError(Error):
     """Macro syntax errors."""
 
-    def __init__(self, symbol=None, msg="Error while parsing a macro"):
+    def __init__(self, symbol: Optional[str] = None, msg="Error while parsing a macro"):
         self.symbol = symbol
         super().__init__(msg)
 

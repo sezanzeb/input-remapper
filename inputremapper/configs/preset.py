@@ -160,7 +160,7 @@ class Preset(Generic[MappingModel]):
         # if there are more than one matches, then there is a duplicate
         return len(union) > 1
 
-    def _has_valid_event_combination(self, mapping) -> bool:
+    def _has_valid_event_combination(self, mapping: UIMapping) -> bool:
         """Check if the mapping has a valid input event combination."""
         is_a_combination = isinstance(mapping.event_combination, EventCombination)
         is_empty = mapping.event_combination == EventCombination.empty_combination()

@@ -22,7 +22,7 @@ from __future__ import annotations
 
 import enum
 from dataclasses import dataclass
-from typing import Tuple, Union, Sequence, Callable, Optional
+from typing import Tuple, Union, Sequence, Callable, Optional, Any
 
 import evdev
 from evdev import ecodes
@@ -75,7 +75,7 @@ class InputEvent:
     def __hash__(self):
         return hash((self.type, self.code, self.value))
 
-    def __eq__(self, other):
+    def __eq__(self, other: Any):
         if isinstance(other, InputEvent) or isinstance(other, evdev.InputEvent):
             return self.event_tuple == (other.type, other.code, other.value)
         if isinstance(other, tuple):

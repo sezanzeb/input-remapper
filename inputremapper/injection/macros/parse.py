@@ -24,14 +24,14 @@
 
 import inspect
 import re
-from typing import Optional
+from typing import Optional, Any
 
 from inputremapper.exceptions import MacroParsingError
 from inputremapper.injection.macros.macro import Macro, Variable
 from inputremapper.logger import logger
 
 
-def is_this_a_macro(output):
+def is_this_a_macro(output: Any):
     """Figure out if this is a macro."""
     if not isinstance(output, str):
         return False
