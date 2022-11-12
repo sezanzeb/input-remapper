@@ -18,7 +18,6 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-
 """Find, classify and group devices.
 
 Because usually connected devices pop up multiple times in /dev/input,
@@ -29,6 +28,7 @@ Those groups are what is being displayed in the device dropdown, and
 events are being read from all of the paths of an individual group in the gui
 and the injector.
 """
+
 from __future__ import annotations
 
 import asyncio

@@ -18,7 +18,6 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-
 """Process that sends stuff to the GUI.
 
 It should be started via input-remapper-control and pkexec.
@@ -37,6 +36,7 @@ the ui closes.
 This uses the backend injection.event_reader and mapping_handlers to process all the
 different input-events into simple on/off events and sends them to the gui.
 """
+
 from __future__ import annotations
 
 import time
