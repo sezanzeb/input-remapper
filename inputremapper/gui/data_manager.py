@@ -146,43 +146,42 @@ class DataManager:
         )
 
     def publish_groups(self):
-        """send the "groups" message on the MessageBroker"""
+        """Publish the "groups" message on the MessageBroker."""
         self._reader_client.publish_groups()
 
     def publish_injector_state(self):
-        """send the "injector_state" message with the state of the injector
-        for the active_group"""
+        """Publish the "injector_state" message for the active_group"""
         if not self.active_group:
             return
+
         self.message_broker.publish(InjectorStateMessage(self.get_state()))
 
     @property
     def active_group(self) -> Optional[_Group]:
-        """the currently loaded group"""
+        """The currently loaded group."""
         return self._reader_client.group
 
     @property
     def active_preset(self) -> Optional[Preset[UIMapping]]:
-        """the currently loaded preset"""
+        """The currently loaded preset."""
         return self._active_preset
 
     @property
     def active_mapping(self) -> Optional[UIMapping]:
-        """the currently loaded mapping"""
+        """The currently loaded mapping."""
         return self._active_mapping
 
     @property
     def active_event(self) -> Optional[InputEvent]:
-        """the currently loaded event"""
+        """The currently loaded event."""
         return self._active_event
 
     def get_group_keys(self) -> Tuple[GroupKey, ...]:
-        """Get all group keys (plugged devices)"""
+        """Get all group keys (plugged devices)."""
         return tuple(group.key for group in self._reader_client.groups.filter())
 
     def get_preset_names(self) -> Tuple[Name, ...]:
-        """Get all preset names for active_group and current user,
-        starting with the newest."""
+        """Get all preset names for active_group and current user sorted by age."""
         if not self.active_group:
             raise DataManagementError("cannot find presets: Group is not set")
         device_folder = get_preset_path(self.active_group.name)
@@ -198,7 +197,7 @@ class DataManager:
         return tuple(presets)
 
     def get_mappings(self) -> Optional[List[MappingData]]:
-        """all mappings from the active_preset"""
+        """All mappings from the active_preset."""
         if not self._active_preset:
             return None
 
@@ -213,8 +212,9 @@ class DataManager:
         )
 
     def set_autoload(self, status: bool):
-        """set the autoload status of the active_preset.
-        Will send "preset" message on the MessageBroker
+        """Set the autoload status of the active_preset.
+
+        Will send "preset" message on the MessageBroker.
         """
         if not self.active_preset or not self.active_group:
             raise DataManagementError("cannot set autoload status: Preset is not set")
@@ -229,7 +229,7 @@ class DataManager:
         self.publish_preset()
 
     def get_newest_group_key(self) -> GroupKey:
-        """group_key of the group with the most recently modified preset"""
+        """group_key of the group with the most recently modified preset."""
         paths = []
         for path in glob.glob(os.path.join(get_preset_path(), "*/*.json")):
             if self._reader_client.groups.find(key=split_all(path)[-2]):
@@ -242,7 +242,7 @@ class DataManager:
         return split_all(path)[-2]
 
     def get_newest_preset_name(self) -> Name:
-        """preset name of the most recently modified preset in the active group"""
+        """Preset name of the most recently modified preset in the active group."""
         if not self.active_group:
             raise DataManagementError("cannot find newest preset: Group is not set")
 
@@ -259,7 +259,7 @@ class DataManager:
         return os.path.split(path)[-1].split(".")[0]
 
     def get_available_preset_name(self, name=DEFAULT_PRESET_NAME) -> Name:
-        """the first available preset in the active group"""
+        """The first available preset in the active group."""
         if not self.active_group:
             raise DataManagementError("unable find preset name. Group is not set")
 
@@ -286,10 +286,9 @@ class DataManager:
         return name
 
     def load_group(self, group_key: str):
-        """Load a group. will send "groups" and "injector_state"
-        messages on the MessageBroker.
+        """Load a group. will publish "groups" and "injector_state" messages.
 
-        this will render the active_mapping and active_preset invalid
+        This will render the active_mapping and active_preset invalid.
         """
         if group_key not in self.get_group_keys():
             raise DataManagementError("Unable to load non existing group")
@@ -305,9 +304,9 @@ class DataManager:
         self.publish_injector_state()
 
     def load_preset(self, name: str):
-        """Load a preset. Will send "preset" message on the MessageBroker
+        """Load a preset. Will send "preset" message on the MessageBroker.
 
-        this will render the active_mapping invalid
+        This will render the active_mapping invalid.
         """
         if not self.active_group:
             raise DataManagementError("Unable to load preset. Group is not set")
@@ -323,7 +322,7 @@ class DataManager:
         self.publish_preset()
 
     def load_mapping(self, combination: EventCombination):
-        """Load a mapping. Will send "mapping" message on the MessageBroker"""
+        """Load a mapping. Will send "mapping" message on the MessageBroker."""
         if not self._active_preset:
             raise DataManagementError("Unable to load mapping. Preset is not set")
 
@@ -352,7 +351,7 @@ class DataManager:
         self.publish_event()
 
     def rename_preset(self, new_name: str):
-        """rename the current preset and move the correct file
+        """Rename the current preset and move the correct file.
 
         Will send "group" and then "preset" message on the MessageBroker
         """
@@ -384,7 +383,7 @@ class DataManager:
         self.publish_preset()
 
     def copy_preset(self, name: str):
-        """copy the current preset to the given name.
+        """Copy the current preset to the given name.
         Will send "group" and "preset" message to the MessageBroker and load the copy
         """
         # todo: Do we want to load the copy here? or is this up to the controller?
@@ -419,7 +418,8 @@ class DataManager:
         self.publish_group()
 
     def delete_preset(self):
-        """delete the active preset
+        """Delete the active preset.
+
         Will send "group" message to the MessageBroker
         this will invalidate the active mapping,
         """
@@ -431,10 +431,10 @@ class DataManager:
         self.publish_group()
 
     def update_mapping(self, **kwargs):
-        """update the active mapping with the given keywords and values.
+        """Update the active mapping with the given keywords and values.
 
-        Will send "mapping" message to the MessageBroker. In case of a new event_combination
-        this will first send a "combination_update" message
+        Will send "mapping" message to the MessageBroker. In case of a new
+        event_combination. This will first send a "combination_update" message.
         """
         if not self._active_mapping:
             raise DataManagementError("Cannot modify Mapping: mapping is not set")
@@ -461,7 +461,7 @@ class DataManager:
         self.publish_mapping()
 
     def update_event(self, new_event: InputEvent):
-        """update the active event.
+        """Update the active event.
 
         Will send "combination_update", "mapping" and "event" messages to the
         MessageBroker (in that order)
@@ -476,7 +476,8 @@ class DataManager:
         self.publish_event()
 
     def create_mapping(self):
-        """create empty mapping in the active preset.
+        """Create empty mapping in the active preset.
+
         Will send "preset" message to the MessageBroker
         """
         if not self._active_preset:
@@ -485,7 +486,8 @@ class DataManager:
         self.publish_preset()
 
     def delete_mapping(self):
-        """delete the active mapping
+        """Delete the active mapping.
+
         Will send "preset" message to the MessageBroker
         """
         if not self._active_mapping:
@@ -498,12 +500,13 @@ class DataManager:
         self.publish_preset()
 
     def save(self):
-        """save the active preset"""
+        """Save the active preset."""
         if self._active_preset:
             self._active_preset.save()
 
     def refresh_groups(self):
-        """refresh the groups (plugged devices)
+        """Refresh the groups (plugged devices).
+
         Should send "groups" message to MessageBroker this will not happen immediately
         because the system might take a bit until the groups are available
         """
@@ -525,7 +528,7 @@ class DataManager:
         self._reader_client.stop_recorder()
 
     def stop_injecting(self) -> None:
-        """stop injecting for the active group
+        """Stop injecting for the active group.
 
         Will send "injector_state" message once the injector has stopped"""
         if not self.active_group:
@@ -536,7 +539,7 @@ class DataManager:
         )
 
     def start_injecting(self) -> bool:
-        """start injecting the active preset for the active group.
+        """Start injecting the active preset for the active group.
 
         returns if the startup was successfully initialized.
         Will send "injector_state" message once the startup is complete.
@@ -560,17 +563,17 @@ class DataManager:
         return False
 
     def get_state(self) -> InjectorState:
-        """the state of the injector"""
+        """The state of the injector."""
         if not self.active_group:
             raise DataManagementError("cannot read state: group is not set")
         return self._daemon.get_state(self.active_group.key)
 
     def refresh_service_config_path(self):
-        """tell the service to refresh its config path"""
+        """Tell the service to refresh its config path."""
         self._daemon.set_config_dir(self._config.get_dir())
 
     def do_when_injector_state(self, states: Set[InjectorState], callback):
-        """run callback once the injector state is one of states"""
+        """Run callback once the injector state is one of states."""
         start = time.time()
 
         def do():

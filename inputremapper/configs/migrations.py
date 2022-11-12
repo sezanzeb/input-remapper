@@ -278,13 +278,16 @@ def _convert_to_individual_mappings():
         if "mapping" in old_preset.keys():
             for combination, symbol_target in old_preset["mapping"].items():
                 logger.info(
-                    f'migrating from "{combination}: {symbol_target}" to mapping dict'
+                    'migrating from "%s: %s" to mapping dict',
+                    combination,
+                    symbol_target,
                 )
                 try:
                     combination = EventCombination.from_string(combination)
                 except ValueError:
                     logger.error(
-                        f"unable to migrate mapping with invalid {combination = }"
+                        f"unable to migrate mapping with invalid combination %s",
+                        combination,
                     )
                     continue
 

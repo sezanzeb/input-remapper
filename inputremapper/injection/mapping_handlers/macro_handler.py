@@ -62,10 +62,10 @@ class MacroHandler(MappingHandler):
     def child(self):  # used for logging
         return f"maps to {self._macro} on {self.mapping.target_uinput}"
 
-    async def run_macro(self, f):
+    async def run_macro(self, handler):
         """run the macro with the provided function"""
         try:
-            await self._macro.run(f)
+            await self._macro.run(handler)
         except Exception as e:
             logger.error(f'Macro "%s" failed: %s', self._macro.code, e)
 
@@ -77,7 +77,7 @@ class MacroHandler(MappingHandler):
             if self._macro.running:
                 return True
 
-            def f(ev_type, code, value) -> None:
+            def handler(ev_type, code, value) -> None:
                 """Handler for macros."""
                 logger.debug_key(
                     (ev_type, code, value),
@@ -86,7 +86,7 @@ class MacroHandler(MappingHandler):
                 )
                 global_uinputs.write((ev_type, code, value), self.mapping.target_uinput)
 
-            asyncio.ensure_future(self.run_macro(f))
+            asyncio.ensure_future(self.run_macro(handler))
             return True
         else:
             self._active = False

@@ -41,8 +41,6 @@ XMODMAP_FILENAME = "xmodmap.json"
 
 LAZY_LOAD = None
 
-_LAZY_LOADED_ATTRIBUTES = ["_mapping", "_xmodmap", "_case_insensitive_mapping"]
-
 
 class SystemMapping:
     """Stores information about all available keycodes."""

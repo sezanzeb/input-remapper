@@ -121,7 +121,7 @@ class TargetSelection:
 
 
 class MappingListBox:
-    """the listbox showing all available mapping in the active_preset"""
+    """The listbox showing all available mapping in the active_preset."""
 
     def __init__(
         self,
@@ -140,7 +140,7 @@ class MappingListBox:
 
     @staticmethod
     def _sort_func(row1: MappingSelectionLabel, row2: MappingSelectionLabel) -> int:
-        """sort alphanumerical by name"""
+        """Sort alphanumerical by name."""
         if row1.combination == EventCombination.empty_combination():
             return 1
         if row2.combination == EventCombination.empty_combination():
@@ -180,7 +180,7 @@ class MappingListBox:
 
 
 class MappingSelectionLabel(Gtk.ListBoxRow):
-    """the ListBoxRow representing a mapping inside the MappingListBox"""
+    """The ListBoxRow representing a mapping inside the MappingListBox."""
 
     __gtype_name__ = "MappingSelectionLabel"
 
@@ -294,13 +294,13 @@ class MappingSelectionLabel(Gtk.ListBoxRow):
             self._set_selected()
 
     def cleanup(self) -> None:
-        """clean up message listeners. Execute before removing from gui!"""
+        """Clean up message listeners. Execute before removing from gui!"""
         self._message_broker.unsubscribe(self._on_mapping_changed)
         self._message_broker.unsubscribe(self._on_combination_update)
 
 
 class CodeEditor:
-    """the editor used to edit the output_symbol of the active_mapping"""
+    """The editor used to edit the output_symbol of the active_mapping."""
 
     def __init__(
         self,
@@ -336,6 +336,7 @@ class CodeEditor:
 
     @property
     def code(self) -> str:
+        """Get the user-defined macro code string."""
         buffer = self.gui.get_buffer()
         return buffer.get_text(buffer.get_start_iter(), buffer.get_end_iter(), True)
 
@@ -441,8 +442,7 @@ class RequireActiveMapping:
 
 
 class RecordingToggle:
-    """the toggle used to record the input form the active_group in order to update the
-    event_combination of the active_mapping"""
+    """The toggle that starts input recording for the active_mapping."""
 
     def __init__(
         self,
@@ -609,7 +609,6 @@ class EventEntry(Gtk.ListBoxRow):
 
     def cleanup(self):
         """Remove any message listeners we are about to get destroyed."""
-        pass
 
 
 class CombinationListbox:
@@ -638,9 +637,9 @@ class CombinationListbox:
         self._gui.connect("row-selected", self._on_gtk_row_selected)
 
     def _select_row(self, event: InputEvent):
-        def select(r: EventEntry):
-            if r.input_event == event:
-                self._gui.select_row(r)
+        def select(row: EventEntry):
+            if row.input_event == event:
+                self._gui.select_row(row)
 
         self._gui.foreach(select)
 
@@ -853,13 +852,13 @@ class OutputAxisSelector:
         ]
         types_codes.extend((EV_REL, code) for code in capabilities.get(EV_REL) or ())
         self.model.clear()
-        self.model.append([f"None, None", _("No Axis")])
-        for type, code in types_codes:
+        self.model.append(["None, None", _("No Axis")])
+        for type_, code in types_codes:
 
-            key_name = bytype[type][code]
+            key_name = bytype[type_][code]
             if isinstance(key_name, list):
                 key_name = key_name[0]
-            self.model.append([f"{type}, {code}", key_name])
+            self.model.append([f"{type_}, {code}", key_name])
 
         self._current_target = target
 
@@ -872,7 +871,7 @@ class OutputAxisSelector:
         self._uinputs = uinputs.uinputs
 
     def _on_gtk_select_axis(self, *_):
-        if self._gui.get_active_id() == f"None, None":
+        if self._gui.get_active_id() == "None, None":
             type_code = (None, None)
         else:
             type_code = tuple(int(i) for i in self._gui.get_active_id().split(","))
@@ -972,9 +971,9 @@ class TransformationDrawArea:
             # leave some space left and right for the lineCap to be visible
             for x in range(-97, 97)
         ]
-        w = self._gui.get_allocated_width()
-        h = self._gui.get_allocated_height()
-        b = min((w, h))
+        width = self._gui.get_allocated_width()
+        height = self._gui.get_allocated_height()
+        b = min((width, height))
         scaled_points = [(x * b, y * b) for x, y in points]
 
         # x arrow
@@ -1003,9 +1002,9 @@ class TransformationDrawArea:
 
         # graph
         context.move_to(*scaled_points[0])
-        for p in scaled_points[1:]:
+        for scaled_point in scaled_points[1:]:
             # Ploting point
-            context.line_to(*p)
+            context.line_to(*scaled_point)
 
         line_color = Colors.get_accent_color()
         context.set_line_width(3)

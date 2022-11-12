@@ -17,4 +17,4 @@ disable=
     C0330, C0326
 
     # pydantic uses cls as first argument
-    # no-self-argument
+    no-self-argument

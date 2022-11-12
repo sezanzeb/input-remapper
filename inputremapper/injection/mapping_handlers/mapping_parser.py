@@ -319,6 +319,6 @@ def ranges_with_constant_length(x: Sequence[Sized]) -> Iterable[Tuple[int, int]]
 
         if len(y) < last_len:
             raise MappingParsingError(
-                "ranges_with_constant_length " "was called with an unordered list"
+                "ranges_with_constant_length was called with an unordered list"
             )
         last_len = len(y)

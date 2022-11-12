@@ -94,7 +94,7 @@ class SharedDict:
 
         If it doesn't exist, returns None.
         """
-        return self.__getitem__(key)
+        return self[key]
 
     def is_alive(self, timeout=None):
         """Check if the manager process is running."""

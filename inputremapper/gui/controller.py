@@ -86,6 +86,7 @@ class Controller:
         self._attach_to_events()
 
     def set_gui(self, gui: UserInterface):
+        """Let the Controller know about the user interface singleton.."""
         self.gui = gui
 
     def _attach_to_events(self) -> None:
@@ -173,7 +174,8 @@ class Controller:
                 "Remove the macro or key from the macro input field "
                 "when specifying an analog output"
             )
-        elif (
+
+        if (
             "output_symbol is a macro:" in error_string
             or "output_symbol and output_code mismatch:" in error_string
         ) and not mapping.event_combination.has_input_axis():
@@ -181,6 +183,7 @@ class Controller:
                 "Remove the Analog Output Axis "
                 "when specifying an macro or key output"
             )
+
         if "missing output axis:" in error_string:
             message = _(
                 "The input specifies an analog axis, but no output axis is selected."
@@ -452,7 +455,7 @@ class Controller:
     def delete_mapping(self):
         """remove the active_mapping form the active_preset"""
 
-        def f(answer: bool):
+        def get_answer(answer: bool):
             if answer:
                 self.data_manager.delete_mapping()
                 self.save()
@@ -460,7 +463,10 @@ class Controller:
         if not self.data_manager.active_mapping:
             return
         self.message_broker.publish(
-            UserConfirmRequest(_("Are you sure you want to delete this mapping?"), f)
+            UserConfirmRequest(
+                _("Are you sure you want to delete this mapping?"),
+                get_answer,
+            )
         )
 
     def set_autoload(self, autoload: bool):
@@ -658,7 +664,7 @@ class Controller:
                     f"from the text input!"
                 )
 
-            if not [e for e in mapping.event_combination if e.value == 0]:
+            if not [event for event in mapping.event_combination if event.value == 0]:
                 # there is no analog input configured, let's try to autoconfigure it
                 events: List[InputEvent] = list(mapping.event_combination)
                 for i, e in enumerate(events):
@@ -679,11 +685,11 @@ class Controller:
 
             answer = None
 
-            def f(a: bool):
+            def get_answer(answer_: bool):
                 nonlocal answer
-                answer = a
+                answer = answer_
 
-            self.message_broker.publish(UserConfirmRequest(msg, f))
+            self.message_broker.publish(UserConfirmRequest(msg, get_answer))
             if answer:
                 kwargs["output_symbol"] = None
                 return kwargs
@@ -700,16 +706,16 @@ class Controller:
 
             answer = None
 
-            def f(a: bool):
+            def get_answer(answer_: bool):
                 nonlocal answer
-                answer = a
+                answer = answer_
 
             self.message_broker.publish(
                 UserConfirmRequest(
                     f"You are about to change the mapping to a Key or Macro mapping!\n"
                     f"Go to the advanced input configuration and set a "
                     f'"Trigger Threshold" for "{analog_input.description()}".',
-                    f,
+                    get_answer,
                 )
             )
             if answer:

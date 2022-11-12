@@ -211,7 +211,6 @@ class MappingHandler:
 
     def rank_by(self) -> Optional[EventCombination]:
         """The combination for which this handler needs ranking."""
-        pass
 
     def wrap_with(self) -> Dict[EventCombination, HandlerEnums]:
         """A dict of EventCombination -> HandlerEnums.

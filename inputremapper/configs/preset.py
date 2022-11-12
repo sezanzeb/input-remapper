@@ -31,7 +31,6 @@ from typing import (
     Optional,
     Iterator,
     Type,
-    Iterable,
     TypeVar,
     Generic,
     overload,
@@ -118,8 +117,8 @@ class Preset(Generic[MappingModel]):
         for permutation in mapping.event_combination.get_permutations():
             if permutation in self._mappings:
                 raise KeyError(
-                    "a mapping with this event_combination: %s already exists",
-                    permutation,
+                    "A mapping with this event_combination: "
+                    f"{permutation} already exists",
                 )
 
         mapping.set_combination_changed_callback(self._combination_changed_callback)
@@ -321,6 +320,7 @@ class Preset(Generic[MappingModel]):
 
     @property
     def name(self) -> Optional[str]:
+        """The name of the preset."""
         if self.path:
             return os.path.basename(self.path).split(".")[0]
         return None

@@ -90,7 +90,7 @@ class PresetSelection(FlowBoxWrapper):
         self._message_broker.subscribe(MessageType.preset, self._on_preset_changed)
 
     def _on_group_changed(self, data: GroupData):
-        self._gui.foreach(lambda preset: self._gui.remove(preset))
+        self._gui.foreach(self._gui.remove)
         for preset_name in data.presets:
             preset_entry = PresetEntry(
                 self._message_broker,

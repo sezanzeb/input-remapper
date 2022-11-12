@@ -78,6 +78,7 @@ DEFAULT_REL_RATE: float = 60
 
 
 class KnownUinput(str, enum.Enum):
+    """The default targets."""
     KEYBOARD = "keyboard"
     MOUSE = "mouse"
     GAMEPAD = "gamepad"
