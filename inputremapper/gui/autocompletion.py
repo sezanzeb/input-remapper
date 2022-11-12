@@ -144,7 +144,7 @@ class SuggestionLabel(Gtk.Label):
 
     __gtype_name__ = "SuggestionLabel"
 
-    def __init__(self, display_name, suggestion):
+    def __init__(self, display_name: str, suggestion: str):
         super().__init__(label=display_name)
         self.suggestion = suggestion
 
@@ -231,7 +231,7 @@ class Autocompletion(Gtk.Popover):
         # it must return FALSE so the text view gets the event as well"
         return False
 
-    def navigate(self, _, event):
+    def navigate(self, _, event: Gdk.EventKey):
         """Using the keyboard to select an autocompletion suggestion."""
         if not self.visible:
             return
@@ -292,7 +292,7 @@ class Autocompletion(Gtk.Popover):
         # don't change editor contents
         return Gdk.EVENT_STOP
 
-    def _scroll_to_row(self, row):
+    def _scroll_to_row(self, row: Gtk.ListBoxRow):
         """Scroll up or down so that the row is visible."""
         # unfortunately, it seems that without focusing the row it won't happen
         # automatically (or whatever the reason for this is, just a wild guess)
@@ -377,7 +377,9 @@ class Autocompletion(Gtk.Popover):
         self.set_pointing_to(cursor)
 
         text_iter = self._get_text_iter_at_cursor()
-        suggested_names = propose_function_names(text_iter)
+        # get a list of (evdev/xmodmap symbol-name, display-name)
+        suggested_names: List[Tuple[str, str]] = []
+        suggested_names += propose_function_names(text_iter)
         suggested_names += propose_symbols(text_iter, self._target_key_capabilities)
 
         if len(suggested_names) == 0:

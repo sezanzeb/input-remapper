@@ -102,7 +102,7 @@ class MacroTestBase(unittest.IsolatedAsyncioTestCase):
             return
         asyncio.ensure_future(macro.run(self.handler))
 
-    async def release_sequence(self, macro, event):
+    async def release_sequence(self, macro: Macro, event):
         for listener in self.context.listeners:
             asyncio.ensure_future(listener(event))
             # this still might cause race conditions and the test to fail

@@ -56,7 +56,7 @@ class MacroParsingError(Error):
 class MappingParsingError(Error):
     """Anything that goes wrong during the creation of handlers from the mapping."""
 
-    def __init__(self, msg, *, mapping=None, mapping_handler=None):
+    def __init__(self, msg: str, *, mapping=None, mapping_handler=None):
         self.mapping_handler = mapping_handler
         self.mapping = mapping
         super().__init__(msg)
@@ -65,12 +65,12 @@ class MappingParsingError(Error):
 class InputEventCreationError(Error):
     """An input-event failed to be created due to broken factory/constructor calls."""
 
-    def __init__(self, msg):
+    def __init__(self, msg: str):
         super().__init__(msg)
 
 
 class DataManagementError(Error):
     """Any error that happens in the DataManager."""
 
-    def __init__(self, msg):
+    def __init__(self, msg: str):
         super().__init__(msg)

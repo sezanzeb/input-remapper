@@ -43,9 +43,9 @@ tracemalloc.start()
 if module := sys.modules.get("inputremapper"):
     imported = [m for m in module.__dict__ if not m.startswith("__")]
     raise AssertionError(
-        f"the modules {imported} from inputremapper where already imported, this can "
+        f"The modules {imported} from inputremapper where already imported, this can "
         f"cause issues with the tests. Make sure to always import tests.test before any"
-        f" inputremapper module"
+        f" inputremapper module."
     )
 try:
     sys.modules.get("tests.test").main

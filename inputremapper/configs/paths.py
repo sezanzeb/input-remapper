@@ -25,7 +25,7 @@
 
 import os
 import shutil
-from typing import List, Union
+from typing import List, Union, Optional
 
 from inputremapper.logger import logger, VERSION, IS_BETA
 from inputremapper.user import USER, HOME
@@ -122,7 +122,7 @@ def sanitize_path_component(group_name: str) -> str:
     return group_name
 
 
-def get_preset_path(group_name=None, preset=None):
+def get_preset_path(group_name: Optional[str] = None, preset: Optional[str] = None):
     """Get a path to the stored preset, or to store a preset to."""
     presets_base = os.path.join(CONFIG_PATH, "presets")
 

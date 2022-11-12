@@ -305,7 +305,7 @@ class Daemon:
             groups.refresh()
             self.refreshed_devices_at = now
 
-    def stop_injecting(self, group_key):
+    def stop_injecting(self, group_key: str):
         """Stop injecting the preset mappings for a single device."""
         if self.injectors.get(group_key) is None:
             logger.debug(
@@ -317,7 +317,7 @@ class Daemon:
         self.injectors[group_key].stop_injecting()
         self.autoload_history.forget(group_key)
 
-    def get_state(self, group_key) -> InjectorState:
+    def get_state(self, group_key: str) -> InjectorState:
         """Get the injectors state."""
         injector = self.injectors.get(group_key)
         return injector.get_state() if injector else InjectorState.UNKNOWN
@@ -530,7 +530,7 @@ class Daemon:
         for group_key in list(self.injectors.keys()):
             self.stop_injecting(group_key)
 
-    def hello(self, out):
+    def hello(self, out: str):
         """Used for tests."""
         logger.info('Received "%s" from client', out)
         return out

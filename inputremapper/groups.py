@@ -291,7 +291,7 @@ class _Group:
         self.names = names
         self.types = [DeviceType(type_) for type_ in types]
 
-    def get_preset_path(self, preset=None):
+    def get_preset_path(self, preset: Optional[str] = None):
         """Get a path to the stored preset, or to store a preset to.
 
         This path is unique per device-model, not per group. Groups
@@ -306,7 +306,7 @@ class _Group:
         )
 
     @classmethod
-    def loads(cls, serialized):
+    def loads(cls, serialized: str):
         """Load a serialized representation."""
         group = cls(**json.loads(serialized))
         return group
@@ -431,7 +431,7 @@ class _Groups:
     def __init__(self):
         self._groups: List[_Group] = None
 
-    def __getattribute__(self, key):
+    def __getattribute__(self, key: str):
         """To lazy load group info only when needed.
 
         For example, this helps to keep logs of input-remapper-control clear when it doesnt
@@ -461,7 +461,7 @@ class _Groups:
             keys = [f'"{group.key}"' for group in self._groups]
             logger.info("Found %s", ", ".join(keys))
 
-    def filter(self, include_inputremapper=False) -> List[_Group]:
+    def filter(self, include_inputremapper: bool = False) -> List[_Group]:
         """Filter groups."""
         result = []
         for group in self._groups:
@@ -473,7 +473,7 @@ class _Groups:
 
         return result
 
-    def set_groups(self, new_groups):
+    def set_groups(self, new_groups: List[_Group]):
         """Overwrite all groups."""
         logger.debug("overwriting groups with %s", new_groups)
         self._groups = new_groups
@@ -496,7 +496,7 @@ class _Groups:
         """Create a deserializable string representation."""
         return json.dumps([group.dumps() for group in self._groups])
 
-    def loads(self, dump):
+    def loads(self, dump: str):
         """Load a serialized representation created via dumps."""
         self._groups = [_Group.loads(group) for group in json.loads(dump)]
 

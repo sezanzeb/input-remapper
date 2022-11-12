@@ -482,7 +482,7 @@ class TestGui(GuiTestBase):
     by going through the windows children. (See click_on_group for inspiration)
     """
 
-    def click_on_group(self, group_key):
+    def click_on_group(self, group_key: str):
         for child in self.device_selection.get_children():
             device_group_entry = child.get_children()[0]
 
