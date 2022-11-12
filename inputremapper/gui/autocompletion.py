@@ -99,7 +99,7 @@ def get_incomplete_parameter(iter_: Gtk.TextIter) -> Optional[str]:
     #  foo
     #  bar + foo
     match = re.match(rf"(?:{PARAMETER}|^)(\w+)$", left_text)
-    logger.debug(f"get_incomplete_parameter text: %s match: %s", left_text, match)
+    logger.debug("get_incomplete_parameter text: %s match: %s", left_text, match)
 
     if match is None:
         return None

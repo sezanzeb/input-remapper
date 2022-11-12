@@ -588,7 +588,7 @@ class DataManager:
                 # something went wrong, there should have been a state long ago.
                 # the timeout prevents tons of GLib.timeouts to run forever, especially
                 # after spamming the "Stop" button.
-                logger.error(f"Timed out while waiting for injector state {states}")
+                logger.error("Timed out while waiting for injector state %s", states)
                 return False
 
             if self.get_state() in states:

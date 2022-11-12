@@ -189,8 +189,8 @@ def _get_output_handler(mapping: Mapping) -> HandlerEnums:
     if mapping.output_symbol:
         if is_this_a_macro(mapping.output_symbol):
             return HandlerEnums.macro
-        else:
-            return HandlerEnums.key
+
+        return HandlerEnums.key
 
     if mapping.output_type == EV_KEY:
         return HandlerEnums.key

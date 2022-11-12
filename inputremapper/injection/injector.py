@@ -229,7 +229,7 @@ class Injector(multiprocessing.Process):
                 elif len(candidates) == 1:
                     device = candidates.pop()
                 else:
-                    logger.error(f"Could not find input for {event} in {mapping}")
+                    logger.error("Could not find input for %s in %s", event, mapping)
                     continue
                 needed_devices[device.path] = device
 

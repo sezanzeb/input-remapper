@@ -67,8 +67,8 @@ class MacroHandler(MappingHandler):
         """Run the macro with the provided function."""
         try:
             await self._macro.run(handler)
-        except Exception as e:
-            logger.error(f'Macro "%s" failed: %s', self._macro.code, e)
+        except Exception as exception:
+            logger.error('Macro "%s" failed: %s', self._macro.code, exception)
 
     def notify(self, event: InputEvent, *_, **__) -> bool:
 

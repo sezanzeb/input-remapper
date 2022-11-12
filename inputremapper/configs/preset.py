@@ -110,7 +110,10 @@ class Preset(Generic[MappingModel]):
             mapping = self._mappings.pop(combination)
             mapping.remove_combination_changed_callback()
         except KeyError:
-            logger.debug(f"unable to remove non-existing mapping with {combination = }")
+            logger.debug(
+                "unable to remove non-existing mapping with combination = %s",
+                combination,
+            )
             pass
 
     def add(self, mapping: MappingModel) -> None:

@@ -211,7 +211,7 @@ class InputEvent:
         self,
         sec: int = None,
         usec: int = None,
-        type: int = None,
+        type_: int = None,
         code: int = None,
         value: int = None,
         actions: Tuple[EventActions, ...] = None,
@@ -220,7 +220,7 @@ class InputEvent:
         return InputEvent(
             sec if sec is not None else self.sec,
             usec if usec is not None else self.usec,
-            type if type is not None else self.type,
+            type_ if type_ is not None else self.type,
             code if code is not None else self.code,
             value if value is not None else self.value,
             actions if actions is not None else self.actions,

@@ -602,8 +602,8 @@ class Controller:
                 # with a different state, or the status is wrong because something in
                 # the long pipeline of status messages is broken.
                 logger.error(
-                    f"Expected the injection to eventually stop, but got state "
-                    f"{msg.state}"
+                    "Expected the injection to eventually stop, but got state %s",
+                    msg.state,
                 )
                 return
 
@@ -658,7 +658,7 @@ class Controller:
             return kwargs
 
         if kwargs["mapping_type"] == "analog":
-            msg = f"You are about to change the mapping to analog."
+            msg = "You are about to change the mapping to analog."
             if mapping.output_symbol:
                 msg += (
                     f'\nThis will remove "{mapping.output_symbol}" '

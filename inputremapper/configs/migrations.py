@@ -286,7 +286,7 @@ def _convert_to_individual_mappings():
                     combination = EventCombination.from_string(combination)
                 except ValueError:
                     logger.error(
-                        f"unable to migrate mapping with invalid combination %s",
+                        "unable to migrate mapping with invalid combination %s",
                         combination,
                     )
                     continue
@@ -404,7 +404,7 @@ def _copy_to_beta():
     # does not move everythig to the beta folder
     _rename_config(regular_path)
     if os.path.exists(regular_path):
-        logger.debug(f"copying all from {regular_path} to {CONFIG_PATH}")
+        logger.debug("copying all from %s to %s", regular_path, CONFIG_PATH)
         shutil.copytree(regular_path, CONFIG_PATH)
 
 

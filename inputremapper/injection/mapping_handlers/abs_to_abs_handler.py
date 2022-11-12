@@ -66,12 +66,10 @@ class AbsToAbsHandler(MappingHandler):
         assert mapping.output_type == EV_ABS
         self._output_axis = (mapping.output_type, mapping.output_code)
 
-        self._target_absinfo = {
-            code: absinfo
-            for code, absinfo in global_uinputs.get_uinput(
-                mapping.target_uinput
-            ).capabilities(absinfo=True)[EV_ABS]
-        }[mapping.output_code]
+        target_uinput = global_uinputs.get_uinput(mapping.target_uinput)
+        abs_capabilities = target_uinput.capabilities(absinfo=True)[EV_ABS]
+        self._target_absinfo = dict(abs_capabilities)[mapping.output_code]
+
         self._transform = None
 
     def __str__(self):
@@ -105,9 +103,7 @@ class AbsToAbsHandler(MappingHandler):
             return True
 
         if not self._transform:
-            absinfo = {
-                code: info for code, info in source.capabilities(absinfo=True)[EV_ABS]
-            }[event.code]
+            absinfo = dict(source.capabilities(absinfo=True)[EV_ABS])
             self._transform = Transformation(
                 max_=absinfo.max,
                 min_=absinfo.min,

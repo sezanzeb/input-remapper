@@ -58,7 +58,7 @@ def parse_mapping_handler(mapping_handler):
                 lines_and_indent.extend(sub_list)
             break
 
-        lines_and_indent.append([mapping_handler.__str__(), indent])
+        lines_and_indent.append([str(mapping_handler), indent])
         try:
             mapping_handler = mapping_handler.child
         except AttributeError:
@@ -337,5 +337,5 @@ def trim_logfile(log_path):
     except PermissionError:
         # let the outermost PermissionError handler handle it
         raise
-    except Exception as e:
-        logger.error('Failed to trim logfile: "%s"', str(e))
+    except Exception as exception:
+        logger.error('Failed to trim logfile: "%s"', str(exception))

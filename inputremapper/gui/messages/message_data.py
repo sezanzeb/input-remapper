@@ -23,7 +23,7 @@ class UInputsData:
 
         # find all sequences of comma+space separated numbers, and shorten them
         # to the first and last number
-        all_matches = [m for m in re.finditer("(\d+, )+", string)]
+        all_matches = list(re.finditer("(\d+, )+", string))
         all_matches.reverse()
         for match in all_matches:
             start = match.start()

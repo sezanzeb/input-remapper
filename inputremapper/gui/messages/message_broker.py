@@ -69,7 +69,9 @@ class MessageBroker:
         self.publish(Signal(signal))
 
     def _publish(self, data: Message, file: str, line: int):
-        logger.debug(f"from {file}:{line}: Signal={data.message_type.name}: {data}")
+        logger.debug(
+            "from %s:%d: Signal=%s: %s", file, line, data.message_type.name, data
+        )
         for listener in self._listeners[data.message_type].copy():
             listener(data)
 
