@@ -437,18 +437,20 @@ def clean(code):
     return remove_whitespaces(remove_comments(code), '"')
 
 
-def parse(macro, context=None, mapping=None, verbose=True):
+def parse(macro: str, context=None, mapping=None, verbose: bool = True):
     """Parse and generate a Macro that can be run as often as you want.
 
     Parameters
     ----------
-    macro : string
+    macro
         "repeat(3, key(a).wait(10))"
         "repeat(2, key(a).key(KEY_A)).key(b)"
         "wait(1000).modify(Shift_L, repeat(2, k(a))).wait(10, 20).key(b)"
     context : Context, or None for use in Frontend
-    mapping : the mapping for the macro, or None for use in Frontend
-    verbose : log the parsing True by default
+    mapping
+        the mapping for the macro, or None for use in Frontend
+    verbose
+        log the parsing True by default
     """
     logger.debug("parsing macro %s", macro)
     macro = clean(macro)

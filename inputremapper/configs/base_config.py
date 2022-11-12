@@ -18,6 +18,8 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
+from __future__ import annotations
+
 import copy
 from typing import Union, List, Optional, Callable, Any
 
@@ -38,12 +40,12 @@ class ConfigBase:
     this base.
     """
 
-    def __init__(self, fallback: Optional = None):
+    def __init__(self, fallback: Optional[ConfigBase] = None):
         """Set up the needed members to turn your object into a config.
 
         Parameters
         ----------
-        fallback : ConfigBase
+        fallback: ConfigBase
             a configuration that contains fallback default configs, if your
             object doesn't configure a certain key.
         """

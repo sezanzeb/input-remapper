@@ -219,11 +219,7 @@ class Preset(Generic[MappingModel]):
     def get_mapping(
         self, combination: Optional[EventCombination]
     ) -> Optional[MappingModel]:
-        """Return the Mapping that is mapped to this EventCombination.
-        Parameters
-        ----------
-        combination : EventCombination
-        """
+        """Return the Mapping that is mapped to this EventCombination."""
         if not combination:
             return None
 

@@ -285,9 +285,9 @@ def _order_combinations(
 
     Parameters
     ----------
-    combinations : List[Key]
+    combinations
         the list which needs ordering
-    common_event : InputEvent
+    common_event
         the Key all members of Keys have in common
     """
     combinations.sort(key=len)

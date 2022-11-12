@@ -122,9 +122,8 @@ class Injector(multiprocessing.Process):
 
         Parameters
         ----------
-        group : _Group
+        group
             the device group
-        preset : Preset
         """
         self.group = group
         self._state = InjectorState.UNKNOWN

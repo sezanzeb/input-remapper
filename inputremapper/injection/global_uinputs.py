@@ -161,7 +161,8 @@ class GlobalUInputs:
 
         Parameters
         ----------
-        name : uniqe name of the uinput device
+        name
+            uniqe name of the uinput device
         """
         if name in self.devices.keys():
             return self.devices[name]

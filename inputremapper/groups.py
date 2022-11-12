@@ -30,6 +30,7 @@ events are being read from all of the paths of an individual group in the gui
 and the injector.
 """
 from __future__ import annotations
+
 import asyncio
 import enum
 import json
@@ -40,6 +41,7 @@ import threading
 from typing import List, Optional
 
 import evdev
+from evdev import InputDevice
 from evdev.ecodes import (
     EV_KEY,
     EV_ABS,
@@ -194,12 +196,12 @@ def classify(device) -> DeviceType:
 DENYLIST = [".*Yubico.*YubiKey.*", "Eee PC WMI hotkeys"]
 
 
-def is_denylisted(device):
+def is_denylisted(device: InputDevice):
     """Check if a device should not be used in input-remapper.
 
     Parameters
     ----------
-    device : InputDevice
+    device
     """
     for name in DENYLIST:
         if re.match(name, str(device.name), re.IGNORECASE):
@@ -208,15 +210,11 @@ def is_denylisted(device):
     return False
 
 
-def get_unique_key(device):
+def get_unique_key(device: InputDevice):
     """Find a string key that is unique for a single hardware device.
 
     All InputDevices in /dev/input that originate from the same physical
     hardware device should return the same key via this function.
-
-    Parameters
-    ----------
-    device : InputDevice
     """
     # Keys that should not be used:
     # - device.phys is empty sometimes and varies across virtual
@@ -325,12 +323,12 @@ class _FindGroups(threading.Thread):
     slowing down the initialization.
     """
 
-    def __init__(self, pipe):
+    def __init__(self, pipe: multiprocessing.Pipe):
         """Construct the process.
 
         Parameters
         ----------
-        pipe : multiprocessing.Pipe
+        pipe
             used to communicate the result
         """
         self.pipe = pipe

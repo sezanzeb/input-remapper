@@ -164,7 +164,7 @@ class Autocompletion(Gtk.Popover):
 
         Parameters
         ----------
-        text_input : Gtk.SourceView | Gtk.TextView
+        code_editor
             The widget that contains the text that should be autocompleted
         """
         super().__init__(

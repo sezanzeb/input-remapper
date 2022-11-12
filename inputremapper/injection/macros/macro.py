@@ -251,12 +251,12 @@ class Macro:
 
         return capabilities
 
-    async def run(self, handler):
+    async def run(self, handler: Callable):
         """Run the macro.
 
         Parameters
         ----------
-        handler : function
+        handler
             Will receive int type, code and value for an event to write
         """
         if not callable(handler):
@@ -445,14 +445,8 @@ class Macro:
 
         self.tasks.append(task)
 
-    def add_repeat(self, repeats, macro):
-        """Repeat actions.
-
-        Parameters
-        ----------
-        repeats : int or Macro
-        macro : Macro
-        """
+    def add_repeat(self, repeats: Union[str, int], macro: Macro):
+        """Repeat actions."""
         repeats = _type_check(repeats, [int], "repeat", 1)
         _type_check(macro, [Macro], "repeat", 2)
 
