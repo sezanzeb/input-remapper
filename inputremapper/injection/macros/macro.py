@@ -201,8 +201,8 @@ class Macro:
     def __init__(
         self,
         code: Optional[str],
-        context: Optional = None,
-        mapping: Optional = None,
+        context=None,
+        mapping=None,
     ):
         """Create a macro instance that can be populated with tasks.
 
