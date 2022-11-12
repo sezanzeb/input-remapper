@@ -103,7 +103,7 @@ class AbsToAbsHandler(MappingHandler):
             return True
 
         if not self._transform:
-            absinfo = dict(source.capabilities(absinfo=True)[EV_ABS])
+            absinfo = dict(source.capabilities(absinfo=True)[EV_ABS])[event.code]
             self._transform = Transformation(
                 max_=absinfo.max,
                 min_=absinfo.min,

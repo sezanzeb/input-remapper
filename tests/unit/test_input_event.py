@@ -108,7 +108,7 @@ class TestInputEvent(unittest.TestCase):
     def test_modify(self):
         e1 = InputEvent(1, 2, 3, 4, 5)
         e2 = e1.modify(value=6)
-        e3 = e1.modify(sec=0, usec=0, type=0, code=0, value=0)
+        e3 = e1.modify(sec=0, usec=0, type_=0, code=0, value=0)
 
         self.assertNotEqual(e1, e2)
         self.assertEqual(e1.sec, e2.sec)
