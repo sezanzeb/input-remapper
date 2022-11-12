@@ -17,6 +17,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
+
 from __future__ import annotations
 
 import enum
@@ -77,10 +78,10 @@ DEFAULT_REL_RATE: float = 60
 
 
 class KnownUinput(str, enum.Enum):
-    keyboard = "keyboard"
-    mouse = "mouse"
-    gamepad = "gamepad"
-    keyboard_mouse = "keyboard + mouse"
+    KEYBOARD = "keyboard"
+    MOUSE = "mouse"
+    GAMEPAD = "gamepad"
+    KEYBOARD_MOUSE = "keyboard + mouse"
 
 
 CombinationChangedCallback = Optional[
@@ -172,23 +173,23 @@ class UIMapping(BaseModel):
             if key == "_combination_changed" and needs_workaround:
                 object.__setattr__(self, "_combination_changed", value)
                 return
-            super(UIMapping, self).__setattr__(key, value)
+            super().__setattr__(key, value)
             return
 
         # the new combination is not yet validated
         try:
             new_combi = EventCombination.validate(value)
-        except ValueError:
+        except ValueError as exception:
             raise ValidationError(
                 f"failed to Validate {value} as EventCombination", UIMapping
-            )
+            ) from exception
 
         if new_combi == self.event_combination:
             return
 
         # raises a keyError if the combination or a permutation is already mapped
         self._combination_changed(new_combi, self.event_combination)
-        super(UIMapping, self).__setattr__(key, value)
+        super().__setattr__(key, value)
 
     def __str__(self):
         return str(
@@ -201,7 +202,7 @@ class UIMapping(BaseModel):
         # https://github.com/samuelcolvin/pydantic/issues/1383
         def copy(self: MappingModel, *args, **kwargs) -> MappingModel:
             kwargs["deep"] = True
-            copy = super(UIMapping, self).copy(*args, **kwargs)
+            copy = super().copy(*args, **kwargs)
             object.__setattr__(copy, "_combination_changed", self._combination_changed)
             return copy
 
@@ -224,7 +225,7 @@ class UIMapping(BaseModel):
 
     def is_axis_mapping(self) -> bool:
         """whether this mapping specifies an output axis"""
-        return self.output_type == EV_ABS or self.output_type == EV_REL
+        return self.output_type in [EV_ABS, EV_REL]
 
     def find_analog_input_event(
         self, type_: Optional[int] = None
@@ -240,12 +241,14 @@ class UIMapping(BaseModel):
         return None
 
     def is_wheel_output(self) -> bool:
+        """Check if this maps to wheel output."""
         return self.output_code in (
             REL_WHEEL,
             REL_HWHEEL,
         )
 
     def is_high_res_wheel_output(self) -> bool:
+        """Check if this maps to high-res wheel output."""
         return self.output_code in (
             REL_WHEEL_HI_RES,
             REL_HWHEEL_HI_RES,
@@ -280,8 +283,8 @@ class UIMapping(BaseModel):
         """The validation error or None."""
         try:
             Mapping(**self.dict())
-        except ValidationError as e:
-            return e
+        except ValidationError as exception:
+            return exception
         return None
 
     def get_bus_message(self) -> MappingData:
@@ -322,6 +325,7 @@ class Mapping(UIMapping):
 
     @validator("output_symbol", pre=True)
     def validate_symbol(cls, symbol):
+        """Parse a macro to check for syntax errors."""
         if not symbol:
             return None
 
@@ -329,15 +333,15 @@ class Mapping(UIMapping):
             try:
                 parse(symbol, verbose=False)  # raises MacroParsingError
                 return symbol
-            except MacroParsingError as e:
-                raise ValueError(
-                    e
-                )  # pydantic only catches ValueError, TypeError, and AssertionError
+            except MacroParsingError as exception:
+                # pydantic only catches ValueError, TypeError, and AssertionError
+                raise ValueError(exception) from exception
 
         if system_mapping.get(symbol) is not None:
             return symbol
+
         raise ValueError(
-            f'the output_symbol "{symbol}" is not a macro and not a valid keycode-name'
+            f'The output_symbol "{symbol}" is not a macro and not a valid keycode-name'
         )
 
     @validator("event_combination")
@@ -351,8 +355,8 @@ class Mapping(UIMapping):
         analog_events = [event for event in combination if event.value == 0]
         if len(analog_events) > 1:
             raise ValueError(
-                f"cannot map a combination of multiple analog inputs: {analog_events}"
-                f"add trigger points (event.value != 0) to map as a button"
+                f"Cannot map a combination of multiple analog inputs: {analog_events}"
+                "add trigger points (event.value != 0) to map as a button"
             )
 
         return combination
@@ -364,7 +368,7 @@ class Mapping(UIMapping):
             if event.type == EV_ABS and abs(event.value) >= 100:
                 raise ValueError(
                     f"{event = } maps an absolute axis to a button, but the trigger "
-                    f"point (event.value) is not between -100[%] and 100[%]"
+                    "point (event.value) is not between -100[%] and 100[%]"
                 )
         return combination
 
@@ -379,19 +383,21 @@ class Mapping(UIMapping):
         return EventCombination(new_combination)
 
     @root_validator
-    def contains_output(cls, values):
+    def validate_output_symbol_variant(cls, values):
+        """Validate that either type and code or symbol are set for key output."""
         o_symbol = values.get("output_symbol")
         o_type = values.get("output_type")
         o_code = values.get("output_code")
         if o_symbol is None and (o_type is None or o_code is None):
             raise ValueError(
-                "missing Argument: Mapping must either contain "
+                "Missing Argument: Mapping must either contain "
                 "`output_symbol` or `output_type` and `output_code`"
             )
         return values
 
     @root_validator
     def validate_output_integrity(cls, values):
+        """Validate the output key configuration."""
         symbol = values.get("output_symbol")
         type_ = values.get("output_type")
         code = values.get("output_code")
@@ -404,13 +410,13 @@ class Mapping(UIMapping):
         if is_this_a_macro(symbol):  # disallow output type and code for macros
             if type_ is not None or code is not None:
                 raise ValueError(
-                    f"output_symbol is a macro: output_type "
-                    f"and output_code must be None"
+                    "output_symbol is a macro: output_type "
+                    "and output_code must be None"
                 )
 
         if code is not None and code != system_mapping.get(symbol) or type_ != EV_KEY:
             raise ValueError(
-                f"output_symbol and output_code mismatch: "
+                "output_symbol and output_code mismatch: "
                 f"output macro is {symbol} --> {system_mapping.get(symbol)} "
                 f"but output_code is {code} --> {system_mapping.get_name(code)} "
             )
@@ -430,7 +436,7 @@ class Mapping(UIMapping):
 
         if not use_as_analog and not output_symbol and output_type != EV_KEY:
             raise ValueError(
-                f"missing macro or key: "
+                "missing macro or key: "
                 f'"{str(combination)}" is not used as analog input, '
                 f"but no output macro or key is programmed"
             )
@@ -441,7 +447,7 @@ class Mapping(UIMapping):
             and output_symbol != DISABLE_NAME
         ):
             raise ValueError(
-                f"missing output axis: "
+                "Missing output axis: "
                 f'"{str(combination)}" is used as analog input, '
                 f"but the {output_type = } is not an axis "
             )
@@ -450,6 +456,8 @@ class Mapping(UIMapping):
 
 
 class MappingData(UIMapping):
+    """Like UIMapping, but can be sent over the message broker."""
+
     Config = ImmutableCfg
     message_type = MessageType.mapping  # allow this to be sent over the MessageBroker
 
@@ -458,7 +466,7 @@ class MappingData(UIMapping):
 
     def dict(self, *args, **kwargs):
         """will not include the message_type"""
-        dict_ = super(MappingData, self).dict(*args, **kwargs)
+        dict_ = super().dict(*args, **kwargs)
         if "message_type" in dict_:
             del dict_["message_type"]
         return dict_

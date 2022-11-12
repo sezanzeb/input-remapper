@@ -51,7 +51,7 @@ class AbsToAbsHandler(MappingHandler):
         mapping: Mapping,
         **_,
     ) -> None:
-        super(AbsToAbsHandler, self).__init__(combination, mapping)
+        super().__init__(combination, mapping)
 
         # find the input event we are supposed to map. If the input combination is
         # BTN_A + ABS_X + BTN_B, then use the value of ABS_X for the transformation

@@ -67,7 +67,7 @@ from inputremapper.configs.preset import Preset
 
 class TestController(unittest.TestCase):
     def setUp(self) -> None:
-        super(TestController, self).setUp()
+        super().setUp()
         self.message_broker = MessageBroker()
         uinputs = GlobalUInputs()
         uinputs.prepare_all()

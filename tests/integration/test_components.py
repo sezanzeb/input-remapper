@@ -166,7 +166,7 @@ class FlowBoxTestUtils:
 
 class TestDeviceGroupSelection(ComponentBaseTest):
     def setUp(self) -> None:
-        super(TestDeviceGroupSelection, self).setUp()
+        super().setUp()
         self.gui = Gtk.FlowBox()
         self.selection = DeviceGroupSelection(
             self.message_broker,
@@ -230,7 +230,7 @@ class TestDeviceGroupSelection(ComponentBaseTest):
 
 class TestTargetSelection(ComponentBaseTest):
     def setUp(self) -> None:
-        super(TestTargetSelection, self).setUp()
+        super().setUp()
         self.gui = Gtk.ComboBox()
         self.selection = TargetSelection(
             self.message_broker, self.controller_mock, self.gui
@@ -651,7 +651,7 @@ class TestMappingSelectionLabel(ComponentBaseTest):
 
 class TestCodeEditor(ComponentBaseTest):
     def setUp(self) -> None:
-        super(TestCodeEditor, self).setUp()
+        super().setUp()
         self.gui = GtkSource.View()
         self.editor = CodeEditor(self.message_broker, self.controller_mock, self.gui)
         self.controller_mock.is_empty_mapping.return_value = False
@@ -711,7 +711,7 @@ class TestCodeEditor(ComponentBaseTest):
 
 class TestRecordingToggle(ComponentBaseTest):
     def setUp(self) -> None:
-        super(TestRecordingToggle, self).setUp()
+        super().setUp()
 
         self.toggle_button = Gtk.ToggleButton()
         self.recording_toggle = RecordingToggle(
@@ -757,7 +757,7 @@ class TestRecordingToggle(ComponentBaseTest):
 
 class TestStatusBar(ComponentBaseTest):
     def setUp(self) -> None:
-        super(TestStatusBar, self).setUp()
+        super().setUp()
         self.gui = Gtk.Statusbar()
         self.err_icon = Gtk.Image()
         self.warn_icon = Gtk.Image()
@@ -840,7 +840,7 @@ class TestStatusBar(ComponentBaseTest):
 
 class TestAutoloadSwitch(ComponentBaseTest):
     def setUp(self) -> None:
-        super(TestAutoloadSwitch, self).setUp()
+        super().setUp()
         self.gui = Gtk.Switch()
         self.switch = AutoloadSwitch(
             self.message_broker, self.controller_mock, self.gui
@@ -867,7 +867,7 @@ class TestAutoloadSwitch(ComponentBaseTest):
 
 class TestReleaseCombinationSwitch(ComponentBaseTest):
     def setUp(self) -> None:
-        super(TestReleaseCombinationSwitch, self).setUp()
+        super().setUp()
         self.gui = Gtk.Switch()
         self.switch = ReleaseCombinationSwitch(
             self.message_broker, self.controller_mock, self.gui
@@ -898,7 +898,7 @@ class TestReleaseCombinationSwitch(ComponentBaseTest):
 
 class TestEventEntry(ComponentBaseTest):
     def setUp(self) -> None:
-        super(TestEventEntry, self).setUp()
+        super().setUp()
         self.gui = EventEntry(InputEvent.from_string("3,0,1"), self.controller_mock)
 
     def test_move_event(self):
@@ -916,7 +916,7 @@ class TestEventEntry(ComponentBaseTest):
 
 class TestCombinationListbox(ComponentBaseTest):
     def setUp(self) -> None:
-        super(TestCombinationListbox, self).setUp()
+        super().setUp()
         self.gui = Gtk.ListBox()
         self.listbox = CombinationListbox(
             self.message_broker, self.controller_mock, self.gui
@@ -969,7 +969,7 @@ class TestCombinationListbox(ComponentBaseTest):
 
 class TestAnalogInputSwitch(ComponentBaseTest):
     def setUp(self) -> None:
-        super(TestAnalogInputSwitch, self).setUp()
+        super().setUp()
         self.gui = Gtk.Switch()
         self.switch = AnalogInputSwitch(
             self.message_broker, self.controller_mock, self.gui
@@ -1012,7 +1012,7 @@ class TestAnalogInputSwitch(ComponentBaseTest):
 
 class TestTriggerThresholdInput(ComponentBaseTest):
     def setUp(self) -> None:
-        super(TestTriggerThresholdInput, self).setUp()
+        super().setUp()
         self.gui = Gtk.SpinButton()
         self.input = TriggerThresholdInput(
             self.message_broker, self.controller_mock, self.gui
@@ -1057,7 +1057,7 @@ class TestTriggerThresholdInput(ComponentBaseTest):
 
 class TestReleaseTimeoutInput(ComponentBaseTest):
     def setUp(self) -> None:
-        super(TestReleaseTimeoutInput, self).setUp()
+        super().setUp()
         self.gui = Gtk.SpinButton()
         self.input = ReleaseTimeoutInput(
             self.message_broker, self.controller_mock, self.gui
@@ -1109,7 +1109,7 @@ class TestReleaseTimeoutInput(ComponentBaseTest):
 
 class TestOutputAxisSelector(ComponentBaseTest):
     def setUp(self) -> None:
-        super(TestOutputAxisSelector, self).setUp()
+        super().setUp()
         self.gui = Gtk.ComboBox()
         self.selection = OutputAxisSelector(
             self.message_broker, self.controller_mock, self.gui
@@ -1174,7 +1174,7 @@ class TestOutputAxisSelector(ComponentBaseTest):
 
 class TestKeyAxisStackSwitcher(ComponentBaseTest):
     def setUp(self) -> None:
-        super(TestKeyAxisStackSwitcher, self).setUp()
+        super().setUp()
         self.gui = Gtk.Box()
         self.gtk_stack = Gtk.Stack()
         self.analog_toggle = Gtk.ToggleButton()
@@ -1236,7 +1236,7 @@ class TestKeyAxisStackSwitcher(ComponentBaseTest):
 
 class TestTransformationDrawArea(ComponentBaseTest):
     def setUp(self) -> None:
-        super(TestTransformationDrawArea, self).setUp()
+        super().setUp()
         self.gui = Gtk.Window()
         self.draw_area = Gtk.DrawingArea()
         self.gui.add(self.draw_area)
@@ -1273,7 +1273,7 @@ class TestTransformationDrawArea(ComponentBaseTest):
 
 class TestSliders(ComponentBaseTest):
     def setUp(self) -> None:
-        super(TestSliders, self).setUp()
+        super().setUp()
         self.gui = Gtk.Box()
         self.gain = Gtk.Scale()
         self.deadzone = Gtk.Scale()
@@ -1346,7 +1346,7 @@ class TestSliders(ComponentBaseTest):
 
 class TestRelativeInputCutoffInput(ComponentBaseTest):
     def setUp(self) -> None:
-        super(TestRelativeInputCutoffInput, self).setUp()
+        super().setUp()
         self.gui = Gtk.SpinButton()
         self.input = RelativeInputCutoffInput(
             self.message_broker, self.controller_mock, self.gui

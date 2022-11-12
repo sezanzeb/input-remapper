@@ -83,6 +83,7 @@ def mkdir(path, log=True):
 
 
 def split_all(path: Union[os.PathLike, str]) -> List[str]:
+    """Split the path into its segments."""
     parts = []
     while True:
         path, tail = os.path.split(path)
@@ -115,9 +116,9 @@ def sanitize_path_component(group_name: str) -> str:
     https://en.wikipedia.org/wiki/Filename#Reserved_characters_and_words
     with an underscore
     """
-    for c in '/\\?%*:|"<>':
-        if c in group_name:
-            group_name = group_name.replace(c, "_")
+    for character in '/\\?%*:|"<>':
+        if character in group_name:
+            group_name = group_name.replace(character, "_")
     return group_name
 
 

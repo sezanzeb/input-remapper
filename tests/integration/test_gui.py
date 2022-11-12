@@ -21,7 +21,7 @@
 
 # the tests file needs to be imported first to make sure patches are loaded
 from contextlib import contextmanager
-from typing import Tuple, List
+from typing import Tuple, List, Optional
 
 from tests.test import (
     get_project_root,
@@ -38,7 +38,6 @@ from tests.test import (
 )
 from tests.integration.test_components import FlowBoxTestUtils
 
-import random
 import sys
 import time
 import atexit
@@ -407,7 +406,7 @@ class GuiTestBase(unittest.TestCase):
         gtk_iteration()
         return selection_label
 
-    def add_mapping(self, mapping: Mapping = None):
+    def add_mapping(self, mapping: Optional[Mapping] = None):
         self.controller.create_mapping()
         self.controller.load_mapping(EventCombination.empty_combination())
         gtk_iteration()
