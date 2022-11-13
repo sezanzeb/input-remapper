@@ -3,7 +3,7 @@ inputremapper/commit_hash.py
 *.glade~
 *.glade#
 .idea
-*.png~
+*.png~*
 *.orig
 
 # Byte-compiled / optimized / DLL files

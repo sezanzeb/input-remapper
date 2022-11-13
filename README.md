@@ -3,21 +3,28 @@
 <h1 align="center">Input Remapper (Beta)</h1>
 
 <p align="center">
-  An easy to use tool to change the mapping of your input device buttons.<br/>
-  Supports mice, keyboards, gamepads, X11, Wayland, combined buttons and programmable macros.<br/>
-  Maps any input to any other input. This includes joysticks, wheels, triggers, keys and mouse-movements.
+  An easy to use tool to change the behaviour of your input devices.<br/>
+  Supports X11, Wayland, combinations, programmable macros, joysticks, wheels,<br/>
+  triggers, keys, mouse-movements and more. Maps any input to any other input.
 </p>
 
-<p align="center"><a href="readme/usage.md">Usage</a> - <a href="readme/macros.md">Macros</a> - <a href="#installation">Installation</a> - <a href="readme/development.md">Development</a> - <a href="#screenshots">Screenshots</a> - <a href="readme/examples.md">Examples</a></p>
+<p align="center"><a href="readme/usage.md">Usage</a> - <a href="readme/macros.md">Macros</a> - <a href="#installation">Installation</a> - <a href="readme/development.md">Development</a> - <a href="readme/examples.md">Examples</a></p>
 
 <p align="center"><img src="readme/pylint.svg"/> <img src="readme/coverage.svg"/></p>
+
+
+<p align="center">
+  <img src="readme/screenshot.png" width="49%"/>
+
+  <img src="readme/screenshot_2.png" width="49%"/>
+</p>
 
 ## Installation
 
 ##### Manjaro/Arch
 
 ```bash
-pacaur -S input-remapper-git
+yay -S input-remapper-git
 ```
 
 ##### Ubuntu/Debian
@@ -32,8 +39,8 @@ cd input-remapper && ./scripts/build.sh
 sudo apt install ./dist/input-remapper-1.6.0-beta.deb
 ```
 
-input-remapper is now part of [Debian Unstable](https://packages.debian.org/sid/input-remapper)
-and of [Ubuntu](https://packages.ubuntu.com/jammy/input-remapper)
+input-remapper is available in [Debian](https://tracker.debian.org/pkg/input-remapper)
+and [Ubuntu](https://packages.ubuntu.com/jammy/input-remapper)
 
 ##### Manual
 
@@ -57,12 +64,3 @@ The `beta` branch contains features that still require work, but that are ready 
 config path, so your presets won't break. `input-remapper-beta-git` can be installed from the AUR. If you are
 facing problems, please open up an [issue](https://github.com/sezanzeb/input-remapper/issues).
 
-## Screenshots
-
-<p align="center">
-  <img src="readme/screenshot.png"/>
-</p>
-
-<p align="center">
-  <img src="readme/screenshot_2.png"/>
-</p>
