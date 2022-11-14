@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2022-10-21 23:00+0200\n"
-"PO-Revision-Date: 2022-10-22 00:35+0300\n"
+"POT-Creation-Date: 2022-11-14 10:29+0200\n"
+"PO-Revision-Date: 2022-11-14 10:56+0200\n"
 "Last-Translator: coffebar, 2022\n"
 "Language-Team: \n"
 "Language: uk_UA\n"
@@ -17,154 +17,165 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
 "n%10<=4 && (n%100<12 || n%100>14) ? 1 : 2);\n"
-"X-Generator: Poedit 3.1.1\n"
+"X-Generator: Poedit 3.2.1\n"
 
-#: inputremapper/gui/editor/editor.py:608
-#, python-format
-msgid "\"%s\" already mapped to \"%s\""
-msgstr "\"%s\" вже призначено до \"%s\""
+#: data/input-remapper.glade:543
+msgid " (recording ...)"
+msgstr " (записуємо...)"
 
-#: inputremapper/gui/user_interface.py:609
-msgid ", CTRL + DEL to stop"
-msgstr ", CTRL + DEL щоб зупинити"
-
-#: data/input-remapper.glade:1070
+#: data/input-remapper.glade:1388
 msgid "About"
 msgstr "Про програму"
 
-#: inputremapper/gui/user_interface.py:606
-#, python-format
-msgid "Applied preset %s"
-msgstr "Застосовано пресет %s"
+#: data/input-remapper.glade:574
+msgid "Add"
+msgstr "Додати"
 
-#: inputremapper/gui/user_interface.py:427
-msgid "Applied the system default"
-msgstr "Застосовано за замовченням"
+#: data/input-remapper.glade:605 data/input-remapper.glade:1585
+msgid "Advanced"
+msgstr "Розширені"
 
-#: data/input-remapper.glade:307
+#: data/input-remapper.glade:772 data/input-remapper.glade:1147
+msgid "Analog Axis"
+msgstr "Аналоговий"
+
+#: data/input-remapper.glade:318
 msgid "Apply"
 msgstr "Застосувати"
 
-#: inputremapper/gui/user_interface.py:251
-#, python-format
-msgid "Are you sure to delete preset %s?"
-msgstr "Ви впевнені що хочете видалити пресет %s?"
-
-#: inputremapper/gui/editor/editor.py:545
-msgid "Are you sure to delete this mapping?"
-msgstr "Ви впевнені, що хочете видалити цей мапінг?"
-
-#: data/input-remapper.glade:504
+#: data/input-remapper.glade:410
 msgid "Autoload"
 msgstr "Автозавантаження"
 
-#: data/input-remapper.glade:583 data/input-remapper.glade:627
-msgid "Buttons"
-msgstr "Кнопки"
+#: data/input-remapper.glade:889
+msgid "Available output axes are affected by the Target setting."
+msgstr "Доступні вихідні осі залежать від параметра Ціль."
 
-#: data/input-remapper.glade:65
-msgid "Cancel"
-msgstr "Скасувати"
-
-#: inputremapper/gui/user_interface.py:524
-msgid "Cannot apply empty preset file"
-msgstr "Неможливо застосувати порожній файл попереднього налаштування"
-
-#: data/input-remapper.glade:860 inputremapper/gui/editor/editor.py:253
-msgid "Change Key"
-msgstr "Змінити клавішу"
-
-#: data/input-remapper.glade:326
+#: data/input-remapper.glade:352
 msgid "Copy"
 msgstr "Копіювати"
 
-#: data/input-remapper.glade:350
+#: data/input-remapper.glade:189
 msgid "Create a new preset"
 msgstr "Стваорити новий пресет"
 
-#: data/input-remapper.glade:365 data/input-remapper.glade:889
+#: data/input-remapper.glade:954
+msgid "Deadzone"
+msgstr "Мертва зона"
+
+#: data/input-remapper.glade:368 data/input-remapper.glade:619
 msgid "Delete"
 msgstr "Видалити"
 
-#: data/input-remapper.glade:894
+#: data/input-remapper.glade:623
 msgid "Delete this entry"
 msgstr "Видалити запис"
 
-#: data/input-remapper.glade:370
+#: data/input-remapper.glade:372
 msgid "Delete this preset"
 msgstr "Видалити пресет"
 
-#: data/input-remapper.glade:193
-msgid "Device"
-msgstr "Пристрій"
+#: data/input-remapper.glade:162
+msgid "Device Name"
+msgstr "Назва пристрою"
 
-#: data/input-remapper.glade:331
+#: data/input-remapper.glade:148
+msgid "Devices"
+msgstr "Пристрої"
+
+#: data/input-remapper.glade:356
 msgid "Duplicate this preset"
 msgstr "Копіювати пресет"
 
-#: inputremapper/gui/user_interface.py:618
-#, python-format
-msgid "Failed to apply preset %s"
-msgstr "Не вдалося застосувати пресет %s"
+#: data/input-remapper.glade:1175
+msgid "Editor"
+msgstr "Редактор"
 
-#: data/input-remapper.glade:239
+#: data/input-remapper.glade:1728
+msgid "Event Specific"
+msgstr "Залежно від події"
+
+#: data/input-remapper.glade:1038
+msgid "Expo"
+msgstr "Експо"
+
+#: data/input-remapper.glade:996
+msgid "Gain"
+msgstr "Посилення"
+
+#: data/input-remapper.glade:1702
+msgid "General"
+msgstr "Загалні"
+
+#: data/input-remapper.glade:1279
 msgid "Help"
 msgstr "Допомога"
 
-#: data/input-remapper.glade:149
+#: data/input-remapper.glade:509
+msgid "Input"
+msgstr "Ввод"
+
+#: data/input-remapper.glade:1263
 msgid "Input Remapper"
 msgstr "Input Remapper"
 
-#: data/input-remapper.glade:584 data/input-remapper.glade:628
-msgid "Joystick"
-msgstr "Джойстик"
+#: data/input-remapper.glade:1116
+msgid "Input cutoff"
+msgstr "Відсічення вводу"
 
-#: data/input-remapper.glade:566
-msgid "Left joystick"
-msgstr "Лівий джойстик"
+#: data/input-remapper.glade:759 data/input-remapper.glade:870
+msgid "Key or Macro"
+msgstr "Клавіша або макрос"
 
-#: data/input-remapper.glade:581 data/input-remapper.glade:625
-msgid "Mouse"
-msgstr "Миша"
-
-#: data/input-remapper.glade:654
-msgid "Mouse speed"
-msgstr "Швидкість миши"
-
-#: data/input-remapper.glade:345
+#: data/input-remapper.glade:185
 msgid "New"
 msgstr "Новий"
 
-#: inputremapper/gui/user_interface.py:689
-#: inputremapper/gui/user_interface.py:761
-msgid "Permission denied!"
-msgstr "Доступ відсутній!"
+#: data/input-remapper.glade:720
+msgid "Output"
+msgstr "Вивод"
 
-#: data/input-remapper.glade:399
-msgid "Preset"
-msgstr "Пресет"
+#: data/input-remapper.glade:891
+msgid "Output axis"
+msgstr "Вихідна вісь"
 
-#: inputremapper/gui/editor/editor.py:249
-msgid "Press Key"
-msgstr "Натисніть клавішу"
+#: data/input-remapper.glade:287
+msgid "Preset Name"
+msgstr "Назва пресету"
 
-#: data/input-remapper.glade:864
+#: data/input-remapper.glade:272
+msgid "Presets"
+msgstr "Пресети"
+
+#: data/input-remapper.glade:589
+msgid "Record"
+msgstr "Запис"
+
+#: data/input-remapper.glade:593
 msgid "Record a button of your device that should be remapped"
 msgstr "Записати клавішу яку потрібно перепризначити"
 
-#: data/input-remapper.glade:438
+#: data/input-remapper.glade:1677
+msgid "Release input"
+msgstr "Звільнити ввод"
+
+#: data/input-remapper.glade:1650
+msgid "Release timeout"
+msgstr "Таймаут звільнення"
+
+#: data/input-remapper.glade:1742
+msgid "Remove this input"
+msgstr "Видалити цей ввод"
+
+#: data/input-remapper.glade:394
 msgid "Rename"
 msgstr "Перейменувати"
 
-#: data/input-remapper.glade:610
-msgid "Right joystick"
-msgstr "Правий джойстик"
-
-#: data/input-remapper.glade:469
+#: data/input-remapper.glade:451
 msgid "Save the entered name"
 msgstr "Зберігти вказану назву"
 
-#: data/input-remapper.glade:1098
+#: data/input-remapper.glade:1416
 msgid ""
 "See <a href=\"https://github.com/sezanzeb/input-remapper/blob/HEAD/readme/"
 "usage.md\">usage.md</a> online on github for comprehensive information.\n"
@@ -195,23 +206,11 @@ msgstr ""
 "md\">macros.md</a> та <a href=\"https://github.com/sezanzeb/input-remapper/"
 "blob/HEAD/readme/examples.md\">examples.md</a>"
 
-#: inputremapper/gui/editor/editor.py:108
-msgid "Set the key first"
-msgstr "Спочатку задайте клавішу"
-
-#: data/input-remapper.glade:221
-msgid ""
-"Shortcut: ctrl + del\n"
-"Gives your keys back their original function"
-msgstr ""
-"Комбінація: ctrl + del\n"
-"Повертає вашим клавішам їх початкову функцію"
-
-#: data/input-remapper.glade:1239
+#: data/input-remapper.glade:1557
 msgid "Shortcuts"
 msgstr "Комбінації"
 
-#: data/input-remapper.glade:1141
+#: data/input-remapper.glade:1459
 msgid ""
 "Shortcuts only work while keys are not being recorded and the gui is in "
 "focus."
@@ -219,60 +218,68 @@ msgstr ""
 "Комбінації працюють лише тоді, коли клавіші не записуються, а графічний "
 "інтерфейс у фокусі."
 
-#: data/input-remapper.glade:312
+#: data/input-remapper.glade:322
 msgid "Start injecting. Don't hold down any keys while the injection starts"
 msgstr ""
 "Запуск перехоплення. Не нажимайте нічого поки перехоплення запускається"
 
-#: inputremapper/gui/user_interface.py:567
-msgid "Starting injection..."
-msgstr "Запуск перехоплення..."
+#: data/input-remapper.glade:201 data/input-remapper.glade:334
+msgid "Stop"
+msgstr "Зупинити"
 
-#: data/input-remapper.glade:217
-msgid "Stop Injection"
-msgstr "Зупинити перехоплення"
+#: data/input-remapper.glade:205 data/input-remapper.glade:338
+msgid ""
+"Stops the Injection for the selected device,\n"
+"gives your keys their original function back\n"
+"Shortcut: ctrl + del"
+msgstr ""
+"Зупиняє ін’єкцію для вибраного пристрою,\n"
+"повертає вашим клавішам їх початкову функцію\n"
+"Комбінація клавіш: ctrl + del"
 
-#: inputremapper/gui/user_interface.py:481
-#, python-format
-msgid "Syntax error at %s, hover for info"
-msgstr "Синтаксична помилка в %s, наведіть курсор для подробиць"
+#: data/input-remapper.glade:811
+msgid "Target"
+msgstr "Ціль"
 
-#: inputremapper/gui/user_interface.py:226
-msgid "The helper did not start"
-msgstr "Помічник не запущено"
+#: data/input-remapper.glade:1107
+msgid ""
+"The Speed at wich the Input is considered at maximum.\n"
+"Only relevant when mapping relative inputs (e.g. mouse) to absolute outputs "
+"(e.g. gamepad)"
+msgstr ""
+"Швидкість, з якою ввод вважається максимальним.\n"
+"Доречно лише під час зіставлення відносних входів (наприклад, миші) з "
+"абсолютними виходами (наприклад, геймпад)"
 
-#: data/input-remapper.glade:879
+#: data/input-remapper.glade:802
 msgid "The type of device this mapping is emulating."
 msgstr "Тип пристрою, який емулює цей мапінг."
 
-#: data/input-remapper.glade:499
-msgid "To automatically apply the preset after your login or when it connects."
-msgstr ""
-"Для автоматичного застосування попереднього налаштування після вашого входу "
-"або під час підключення."
+#: data/input-remapper.glade:1796
+msgid "Trigger threshold"
+msgstr "Поріг спрацьовування"
 
-#: inputremapper/gui/user_interface.py:779
-#, python-format
-msgid "Unknown mapping %s"
-msgstr "Невідомий мапінг %s"
+#: data/input-remapper.glade:742
+msgid "Type"
+msgstr "Тип"
 
-#: data/input-remapper.glade:1122
+#: data/input-remapper.glade:1440
 msgid "Usage"
 msgstr "Використання"
 
-#: inputremapper/gui/editor/editor.py:519
-msgid "Use \"Stop Injection\" to stop before editing"
-msgstr "Натисніть \"Зупинити ввод\" перед початком редагування"
+#: data/input-remapper.glade:1770
+msgid "Use as analog"
+msgstr "Використовувати як аналоговий"
 
-#: data/input-remapper.glade:1015
+#: data/input-remapper.glade:1333
 msgid "Version unknown"
 msgstr "Невідома версія"
 
-#: data/input-remapper.glade:582 data/input-remapper.glade:626
-msgid "Wheel"
-msgstr "Колесо"
+#: data/input-remapper.glade:851
+msgid "What should be written. For example KEY_A"
+msgstr "Що треба написати. Наприклад KEY_A"
 
-#: data/input-remapper.glade:1032
+#: data/input-remapper.glade:1350
 msgid ""
 "You can find more information and report bugs at\n"
 "<a href=\"https://github.com/sezanzeb/input-remapper\">https://github.com/"
@@ -282,55 +289,35 @@ msgstr ""
 "<a href=\"https://github.com/sezanzeb/input-remapper\">https://github.com/"
 "sezanzeb/input-remapper</a>"
 
-#: inputremapper/gui/user_interface.py:526
-msgid "You need to add keys and save first"
-msgstr "Вам потрібно спочатку додати клавіші та зберегти"
-
-#: inputremapper/gui/editor/editor.py:620
-msgid "Your system might reinterpret combinations "
-msgstr "Ваша система може повторно інтерпретувати комбінації"
-
-#: inputremapper/gui/editor/editor.py:622
-msgid "break them."
-msgstr "порушуючи їх."
-
-#: data/input-remapper.glade:1173
+#: data/input-remapper.glade:1491
 msgid "closes the application"
 msgstr "закриває програму"
 
-#: data/input-remapper.glade:1161
+#: data/input-remapper.glade:1479
 msgid "ctrl + del"
 msgstr ""
 
-#: data/input-remapper.glade:1185
+#: data/input-remapper.glade:1503
 msgid "ctrl + q"
 msgstr ""
 
-#: data/input-remapper.glade:1197
+#: data/input-remapper.glade:1515
 msgid "ctrl + r"
 msgstr ""
 
-#: inputremapper/gui/editor/editor.py:619
-msgid "ctrl, alt and shift may not combine properly"
-msgstr "ctrl, alt и shift можуть не поєднуватися належним чином"
+#: data/input-remapper.glade:530
+msgid "no input configured"
+msgstr "ввод не налаштовано"
 
-#: inputremapper/gui/editor/editor.py:78 inputremapper/gui/editor/editor.py:394
-msgid "new entry"
-msgstr "новий запис"
-
-#: data/input-remapper.glade:1209
+#: data/input-remapper.glade:1527
 msgid "refreshes the device list"
 msgstr "оновлює список пристроїв"
 
-#: data/input-remapper.glade:1221
+#: data/input-remapper.glade:1539
 msgid "stops the injection"
 msgstr "зупиняє перехоплення"
 
-#: inputremapper/gui/editor/editor.py:621
-msgid "with those after they are injected, and by doing so "
-msgstr "з ними після мапінгу, таким чином"
-
-#: data/input-remapper.glade:1052
+#: data/input-remapper.glade:1370
 msgid ""
 "© 2021 Sezanzeb proxima@sezanzeb.de\n"
 "This program comes with absolutely no warranty.\n"
@@ -341,3 +328,118 @@ msgstr ""
 "Ця програма постачається без жодних гарантій.\n"
 "Дивіться <a href=\"https://www.gnu.org/licenses/gpl-3.0.html\">GNU General "
 "Public License, версії 3 або новіше</a> щоб дізнатись більше."
+
+#, python-format
+#~ msgid "\"%s\" already mapped to \"%s\""
+#~ msgstr "\"%s\" вже призначено до \"%s\""
+
+#~ msgid ", CTRL + DEL to stop"
+#~ msgstr ", CTRL + DEL щоб зупинити"
+
+#, python-format
+#~ msgid "Applied preset %s"
+#~ msgstr "Застосовано пресет %s"
+
+#~ msgid "Applied the system default"
+#~ msgstr "Застосовано за замовченням"
+
+#, python-format
+#~ msgid "Are you sure to delete preset %s?"
+#~ msgstr "Ви впевнені що хочете видалити пресет %s?"
+
+#~ msgid "Are you sure to delete this mapping?"
+#~ msgstr "Ви впевнені, що хочете видалити цей мапінг?"
+
+#~ msgid "Buttons"
+#~ msgstr "Кнопки"
+
+#~ msgid "Cancel"
+#~ msgstr "Скасувати"
+
+#~ msgid "Cannot apply empty preset file"
+#~ msgstr "Неможливо застосувати порожній файл попереднього налаштування"
+
+#~ msgid "Change Key"
+#~ msgstr "Змінити клавішу"
+
+#, python-format
+#~ msgid "Failed to apply preset %s"
+#~ msgstr "Не вдалося застосувати пресет %s"
+
+#~ msgid "Joystick"
+#~ msgstr "Джойстик"
+
+#~ msgid "Left joystick"
+#~ msgstr "Лівий джойстик"
+
+#~ msgid "Mouse"
+#~ msgstr "Миша"
+
+#~ msgid "Mouse speed"
+#~ msgstr "Швидкість миши"
+
+#~ msgid "Permission denied!"
+#~ msgstr "Доступ відсутній!"
+
+#~ msgid "Press Key"
+#~ msgstr "Натисніть клавішу"
+
+#~ msgid "Right joystick"
+#~ msgstr "Правий джойстик"
+
+#~ msgid "Set the key first"
+#~ msgstr "Спочатку задайте клавішу"
+
+#~ msgid ""
+#~ "Shortcut: ctrl + del\n"
+#~ "Gives your keys back their original function"
+#~ msgstr ""
+#~ "Комбінація: ctrl + del\n"
+#~ "Повертає вашим клавішам їх початкову функцію"
+
+#~ msgid "Starting injection..."
+#~ msgstr "Запуск перехоплення..."
+
+#, python-format
+#~ msgid "Syntax error at %s, hover for info"
+#~ msgstr "Синтаксична помилка в %s, наведіть курсор для подробиць"
+
+#~ msgid "The helper did not start"
+#~ msgstr "Помічник не запущено"
+
+#~ msgid ""
+#~ "To automatically apply the preset after your login or when it connects."
+#~ msgstr ""
+#~ "Для автоматичного застосування попереднього налаштування після вашого "
+#~ "входу або під час підключення."
+
+#, python-format
+#~ msgid "Unknown mapping %s"
+#~ msgstr "Невідомий мапінг %s"
+
+#~ msgid "Use \"Stop\" to stop before editing"
+#~ msgstr "Натисніть \"Зупинити\" перед початком редагування"
+
+#~ msgid "Wheel"
+#~ msgstr "Колесо"
+
+#~ msgid "You need to add keys and save first"
+#~ msgstr "Вам потрібно спочатку додати клавіші та зберегти"
+
+#~ msgid "Your system might reinterpret combinations "
+#~ msgstr "Ваша система може повторно інтерпретувати комбінації "
+
+#~ msgid "break them."
+#~ msgstr "порушуючи їх."
+
+#~ msgid "ctrl, alt and shift may not combine properly"
+#~ msgstr "ctrl, alt и shift можуть не поєднуватися належним чином"
+
+#~ msgid "new entry"
+#~ msgstr "новий запис"
+
+#~ msgid "with those after they are injected, and by doing so "
+#~ msgstr "з ними після мапінгу, таким чином "
+
+#~ msgid "Stop Injection"
+#~ msgstr "Зупинити перехоплення"
