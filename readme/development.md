@@ -12,7 +12,8 @@ be mostly compliant with pylint.
 ## Tests
 
 ```bash
-pip install coverage --user
+pip install coverage --user  # https://github.com/nedbat/coveragepy
+pip install pylint-pydantic --user  # https://github.com/fcfangcc/pylint-pydantic
 pylint inputremapper --extension-pkg-whitelist=evdev
 sudo pkill -f input-remapper
 sudo pip install . && coverage run tests/test.py
