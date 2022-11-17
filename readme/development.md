@@ -44,7 +44,7 @@ There is also a "run configuration" for PyCharm called "All Tests" included.
 To read events for manual testing, `evtest` is very helpful. Add `-d` to
 `input-remapper-gtk` to get debug output.
 
-## Writing Tests
+## Writing tests
 
 Tests are in https://github.com/sezanzeb/input-remapper/tree/main/tests
 
