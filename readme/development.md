@@ -9,12 +9,22 @@ All pull requests will at some point require unittests (see below for more
 info), the code coverage may only be improved, not decreased. It also has to
 be mostly compliant with pylint.
 
-## Tests
+## Linting
+
+```bash
+mypy inputremapper
+black .  # modifies code in-place
+pip install pylint-pydantic --user  # https://github.com/fcfangcc/pylint-pydantic
+pylint inputremapper
+```
+
+Pylint gives lots of great advice on how to write better python code and even
+detects errors. Mypy checks for typing errors. Use black to format it.
+
+## Test
 
 ```bash
 pip install coverage --user  # https://github.com/nedbat/coveragepy
-pip install pylint-pydantic --user  # https://github.com/fcfangcc/pylint-pydantic
-pylint inputremapper
 sudo pkill -f input-remapper
 sudo pip install . && coverage run tests/test.py
 coverage combine && coverage report -m
