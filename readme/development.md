@@ -42,7 +42,7 @@ python3 tests/test.py test_paths.TestPaths.test_mkdir
 Don't use your computer during integration tests to avoid interacting
 with the gui, which might make tests fail.
 
-There is also a run configuration for PyCharm called "All Tests" included.
+There is also a "run configuration" for PyCharm called "All Tests" included.
 
 ## Writing Tests
 
