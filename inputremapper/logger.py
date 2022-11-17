@@ -82,7 +82,7 @@ class Logger(logging.Logger):
         """Log a key-event message.
 
         Example:
-        ... DEBUG event_reader.py:143: forwarding ···················· (1, 71, 1)
+        ... DEBUG event_reader.py:143: (1, 71, 1): forwarding
 
         Parameters
         ----------
@@ -99,10 +99,7 @@ class Logger(logging.Logger):
         msg = msg % args
         str_key = str(key)
         str_key = str_key.replace(",)", ")")
-        spacing = " " + "·" * max(0, 30 - len(msg))
-        if len(spacing) == 1:
-            spacing = ""
-        msg = f"{msg}{spacing} {str_key}"
+        msg = f"{str_key}: {msg}"
 
         if msg == previous_key_debug_log:
             # avoid some super spam from EV_ABS events

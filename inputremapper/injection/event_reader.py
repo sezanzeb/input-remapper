@@ -174,6 +174,8 @@ class EventReader:
             # won't appear, no need to forward or map them.
             return
 
+        logger.debug_key(event.event_tuple, "from %s", self._source.name)
+
         await self.send_to_listeners(event)
 
         if not self.send_to_handlers(event):
