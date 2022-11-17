@@ -21,7 +21,7 @@ pylint inputremapper
 Pylint gives lots of great advice on how to write better python code and even
 detects errors. Mypy checks for typing errors. Use black to format it.
 
-## Test
+## Automated tests
 
 ```bash
 pip install coverage --user  # https://github.com/nedbat/coveragepy
@@ -29,9 +29,6 @@ sudo pkill -f input-remapper
 sudo pip install . && coverage run tests/test.py
 coverage combine && coverage report -m
 ```
-
-To read events, `evtest` is very helpful. Add `-d` to `input-remapper-gtk`
-to get debug output.
 
 Single tests can be executed via
 
@@ -43,6 +40,9 @@ Don't use your computer during integration tests to avoid interacting
 with the gui, which might make tests fail.
 
 There is also a "run configuration" for PyCharm called "All Tests" included.
+
+To read events for manual testing, `evtest` is very helpful. Add `-d` to
+`input-remapper-gtk` to get debug output.
 
 ## Writing Tests
 
