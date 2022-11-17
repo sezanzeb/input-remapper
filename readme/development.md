@@ -69,6 +69,20 @@ sudo pip install .
 New badges, if needed, will be created in `readme/` and they
 just need to be commited.
 
+## Translations
+
+To regenerate the `po/input-remapper.pot` file, run
+
+```bash
+xgettext -k --keyword=translatable --sort-output -o po/input-remapper.pot data/input-remapper.glade
+xgettext --keyword=_ -L Python --sort-output -jo po/input-remapper.pot inputremapper/configs/mapping.py inputremapper/gui/*.py inputremapper/gui/components/*.py
+```
+
+This is the template file that you can copy to fill in the translations.
+See https://github.com/sezanzeb/input-remapper/tree/main/po for examples.
+Also create the symlink, like `ln -s it_IT.po it.po`, because some environments
+expect different names apparently.
+
 ## Architecture
 
 There is a miro board describing input-remappers architecture:
