@@ -223,13 +223,16 @@ class Injector(multiprocessing.Process):
                 if len(candidates) > 1:
                     # there is more than on input device which can be used for this
                     # event we choose only one determined by the ranking
+                    ranked_devices = [
+                        (device.name, classify(device)) for device in candidates
+                    ]
                     device = sorted(
-                        candidates, key=lambda d: ranking.index(classify(d))
+                        ranked_devices,
+                        key=lambda ranked_device: ranking.index(ranked_device[1])
                     )[0]
                     logger.warning(
-                        'Only "%s" will be grabbed out of %d possible devices',
-                        device.name,
-                        len(candidates)
+                        'Only the first device out of %s will be grabbed',
+                        ranked_devices
                     )
                 elif len(candidates) == 1:
                     device = candidates.pop()
