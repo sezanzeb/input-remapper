@@ -226,6 +226,11 @@ class Injector(multiprocessing.Process):
                     device = sorted(
                         candidates, key=lambda d: ranking.index(classify(d))
                     )[0]
+                    logger.warning(
+                        'Only "%s" will be grabbed out of %d possible devices',
+                        device.name,
+                        len(candidates)
+                    )
                 elif len(candidates) == 1:
                     device = candidates.pop()
                 else:
