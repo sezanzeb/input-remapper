@@ -54,16 +54,19 @@ def debounce(timeout):
         ...
     """
 
-    def decorator(func):
+    def decorator(function):
+        # TODO test that this works with two functions of the same name now
+        function_id = id(function)
+
         def clear_debounce(self, *args):
-            debounces[func.__name__] = None
-            return func(self, *args)
+            debounces[function_id] = None
+            return function(self, *args)
 
         def wrapped(self, *args):
-            if debounces.get(func.__name__) is not None:
-                GLib.source_remove(debounces[func.__name__])
+            if debounces.get(function_id) is not None:
+                GLib.source_remove(debounces[function_id])
 
-            debounces[func.__name__] = GLib.timeout_add(
+            debounces[function_id] = GLib.timeout_add(
                 timeout, lambda: clear_debounce(self, *args)
             )
 
