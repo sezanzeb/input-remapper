@@ -432,5 +432,9 @@ class Autocompletion(Gtk.Popover):
 
 
 GObject.signal_new(
-    "suggestion-inserted", Autocompletion, GObject.SignalFlags.RUN_FIRST, None, []
+    "suggestion-inserted",
+    Autocompletion,
+    GObject.SignalFlags.RUN_FIRST,
+    None,
+    [],
 )

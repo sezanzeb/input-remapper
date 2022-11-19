@@ -24,17 +24,27 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import List, Optional, Dict, Union, Callable, Literal
+from typing import List, Optional, Dict, Union, Callable, Literal, Set
 
 import cairo
-from evdev.ecodes import EV_KEY, EV_ABS, EV_REL, bytype
+from evdev.ecodes import (
+    EV_KEY,
+    EV_ABS,
+    EV_REL,
+    bytype,
+    BTN_LEFT,
+    BTN_MIDDLE,
+    BTN_RIGHT,
+    BTN_EXTRA,
+    BTN_SIDE,
+)
 
 import gi
 
 gi.require_version("Gdk", "3.0")
 gi.require_version("Gtk", "3.0")
 gi.require_version("GtkSource", "4")
-from gi.repository import Gtk, GtkSource, Gdk
+from gi.repository import Gtk, GtkSource, Gdk, GObject
 
 from inputremapper.configs.mapping import MappingData
 from inputremapper.event_combination import EventCombination
@@ -54,6 +64,7 @@ from inputremapper.gui.utils import HandlerDisabled, Colors
 from inputremapper.injection.mapping_handlers.axis_transform import Transformation
 from inputremapper.input_event import InputEvent
 from inputremapper.logger import logger
+from inputremapper.configs.system_mapping import system_mapping, XKB_KEYCODE_OFFSET
 
 Capabilities = Dict[int, List]
 
@@ -249,7 +260,7 @@ class MappingSelectionLabel(Gtk.ListBoxRow):
         self.name_input.hide()
 
     def __repr__(self):
-        return f"MappingSelectionLabel for {self.combination} as {self.name}"
+        return f"MappingSelectionLabel for {self._combination} as {self.name}"
 
     def _set_not_selected(self):
         self.edit_btn.hide()
@@ -296,6 +307,93 @@ class MappingSelectionLabel(Gtk.ListBoxRow):
         """Clean up message listeners. Execute before removing from gui!"""
         self._message_broker.unsubscribe(self._on_mapping_changed)
         self._message_broker.unsubscribe(self._on_combination_update)
+
+
+class GdkEventRecorder:
+    """Records events delivered by GDK, similar to the ReaderService/ReaderClient."""
+
+    _combination: List[int]
+    _pressed: Set[int]
+
+    __gtype_name__ = "GdkEventRecorder"
+
+    def __init__(self, window: Gtk.Window, gui: Gtk.Label):
+        super().__init__()
+        self._combination = []
+        self._pressed = set()
+        self._gui = gui
+        window.connect("event", self._on_gtk_event)
+
+    def _get_button_code(self, event):
+        return {
+            Gdk.BUTTON_MIDDLE: BTN_MIDDLE,
+            Gdk.BUTTON_PRIMARY: BTN_LEFT,
+            Gdk.BUTTON_SECONDARY: BTN_RIGHT,
+            9: BTN_EXTRA,
+            8: BTN_SIDE,
+        }.get(event.get_button().button)
+
+    def _reset(self, event: Gdk.Event):
+        """If a new combination is being typed, start from scratch."""
+        gdk_event_type: int = event.type
+
+        is_press = gdk_event_type in [
+            Gdk.EventType.KEY_PRESS,
+            Gdk.EventType.BUTTON_PRESS,
+        ]
+
+        if len(self._pressed) == 0 and is_press:
+            self._combination = []
+
+    def _press(self, event: Gdk.Event):
+        """Remember pressed keys, write down combinations."""
+        gdk_event_type: int = event.type
+
+        if gdk_event_type == Gdk.EventType.KEY_PRESS:
+            code = event.get_scancode() - XKB_KEYCODE_OFFSET
+            if code not in self._combination:
+                self._combination.append(code)
+
+            self._pressed.add(code)
+
+        if gdk_event_type == Gdk.EventType.BUTTON_PRESS:
+            code = self._get_button_code(event)
+            if code not in self._combination:
+                self._combination.append(code)
+
+            self._pressed.add(code)
+
+    def _release(self, event: Gdk.Event):
+        """Remove from pressed keys if this is a release event."""
+        gdk_event_type: int = event.type
+
+        if gdk_event_type == Gdk.EventType.KEY_RELEASE:
+            code = event.get_scancode() - XKB_KEYCODE_OFFSET
+            if code in self._pressed:
+                self._pressed.remove(code)
+
+        if gdk_event_type == Gdk.EventType.BUTTON_RELEASE:
+            button_code: int = self._get_button_code(event)
+            if button_code in self._pressed:
+                self._pressed.remove(button_code)
+
+    def _on_gtk_event(self, _, event: Gdk.Event):
+        self._reset(event)
+        self._release(event)
+        self._press(event)
+
+        is_press = event.type in [
+            Gdk.EventType.KEY_PRESS,
+            Gdk.EventType.BUTTON_PRESS,
+        ]
+
+        if is_press and len(self._combination) > 0:
+            names = [
+                system_mapping.get_name(code)
+                for code in self._combination
+                if code is not None and system_mapping.get_name(code) is not None
+            ]
+            self._gui.set_text(' + '.join(names))
 
 
 class CodeEditor:
