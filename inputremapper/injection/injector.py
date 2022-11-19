@@ -111,7 +111,7 @@ class Injector(multiprocessing.Process):
     context: Optional[Context]
     _state: InjectorState
     _msg_pipe: Tuple[Connection, Connection]
-    _consumer_controls: List[EventReader]
+    _event_readers: List[EventReader]
     _stop_event: asyncio.Event
 
     regrab_timeout = 0.2
@@ -134,7 +134,7 @@ class Injector(multiprocessing.Process):
         self.preset = preset
         self.context = None  # only needed inside the injection process
 
-        self._consumer_controls = []
+        self._event_readers = []
 
         super().__init__(name=group.key)
 
@@ -378,7 +378,7 @@ class Injector(multiprocessing.Process):
                 self._stop_event,
             )
             coroutines.append(event_reader.run())
-            self._consumer_controls.append(event_reader)
+            self._event_readers.append(event_reader)
 
         coroutines.append(self._msg_listener())
 
