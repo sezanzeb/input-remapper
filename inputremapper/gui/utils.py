@@ -41,8 +41,6 @@ CTX_ERROR = 3
 CTX_WARNING = 4
 CTX_MAPPING = 5
 
-debounces = {}
-
 
 def debounce(timeout):
     """Debounce a function call to improve performance.
@@ -53,21 +51,24 @@ def debounce(timeout):
     def foo():
         ...
     """
+    glib_timeout = None
 
     def decorator(function):
         # TODO test that this works with two functions of the same name now
-        function_id = id(function)
-
         def clear_debounce(self, *args):
-            debounces[function_id] = None
+            nonlocal glib_timeout
+            glib_timeout = None
             return function(self, *args)
 
         def wrapped(self, *args):
-            if debounces.get(function_id) is not None:
-                GLib.source_remove(debounces[function_id])
+            nonlocal glib_timeout
 
-            debounces[function_id] = GLib.timeout_add(
-                timeout, lambda: clear_debounce(self, *args)
+            if glib_timeout is not None:
+                GLib.source_remove(glib_timeout)
+
+            glib_timeout = GLib.timeout_add(
+                timeout,
+                lambda: clear_debounce(self, *args),
             )
 
         return wrapped
