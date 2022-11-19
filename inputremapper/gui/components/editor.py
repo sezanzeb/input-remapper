@@ -259,6 +259,7 @@ class MappingSelectionLabel(Gtk.ListBoxRow):
         self.name_input.hide()
 
     def __repr__(self):
+        # TODO test
         return f"MappingSelectionLabel for {self.combination} as {self.name}"
 
     def _set_not_selected(self):
@@ -364,18 +365,9 @@ class GdkEventRecorder:
             self._pressed.add(code)
 
     def _release(self, event: Gdk.Event):
-        """Remove from pressed keys if this is a release event."""
-        gdk_event_type: int = event.type
-
-        if gdk_event_type == Gdk.EventType.KEY_RELEASE:
-            code = event.get_scancode() - XKB_KEYCODE_OFFSET
-            if code in self._pressed:
-                self._pressed.remove(code)
-
-        if gdk_event_type == Gdk.EventType.BUTTON_RELEASE:
-            button_code: int = self._get_button_code(event)
-            if button_code in self._pressed:
-                self._pressed.remove(button_code)
+        """Clear pressed keys if this is a release event."""
+        if event.type in [Gdk.EventType.KEY_RELEASE, Gdk.EventType.BUTTON_RELEASE]:
+            self._pressed = set()
 
     def _display(self, event):
         """Show the recorded combination in the gui."""
