@@ -452,7 +452,7 @@ def parse(macro: str, context=None, mapping=None, verbose: bool = True):
     verbose
         log the parsing True by default
     """
-    logger.debug("parsing macro %s", macro)
+    logger.debug("parsing macro %s", macro.replace("\n", ""))
     macro = clean(macro)
     macro = handle_plus_syntax(macro)
 

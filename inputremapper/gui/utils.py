@@ -47,7 +47,7 @@ debounces = {}
 def debounce(timeout):
     """Debounce a function call to improve performance.
 
-    Calling this creates the decorator, so use something like
+    Calling this with a millisecond value creates the decorator, so use something like
 
     @debounce(50)
     def foo():
