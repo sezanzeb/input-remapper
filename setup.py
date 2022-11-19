@@ -24,7 +24,7 @@ import os
 import re
 import subprocess
 from os.path import basename, splitext, join
-from setuptools import setup
+from setuptools import setup, find_packages
 from setuptools.command.install import install
 
 
@@ -58,24 +58,7 @@ def get_packages(base="inputremapper"):
 
     For example 'inputremapper.gui' or 'inputremapper.injection.mapping_handlers'
     """
-    # TODO I think there is a built-in tool that does the same,
-    #  forgot where I saw it
-    if not os.path.exists(os.path.join(base, "__init__.py")):
-        # only python modules
-        return []
-
-    result = [base.replace("/", ".")]
-    for name in os.listdir(base):
-        if not os.path.isdir(os.path.join(base, name)):
-            continue
-
-        if name == "__pycache__":
-            continue
-
-        # find more python submodules in that directory
-        result += get_packages(os.path.join(base, name))
-
-    return result
+    return [f'{base}.{path}' for path in find_packages(base)]
 
 
 def make_lang():
