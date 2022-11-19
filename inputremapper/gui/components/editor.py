@@ -63,7 +63,6 @@ from inputremapper.gui.messages.message_data import (
 from inputremapper.gui.utils import HandlerDisabled, Colors
 from inputremapper.injection.mapping_handlers.axis_transform import Transformation
 from inputremapper.input_event import InputEvent
-from inputremapper.logger import logger
 from inputremapper.configs.system_mapping import system_mapping, XKB_KEYCODE_OFFSET
 
 Capabilities = Dict[int, List]
@@ -260,7 +259,7 @@ class MappingSelectionLabel(Gtk.ListBoxRow):
         self.name_input.hide()
 
     def __repr__(self):
-        return f"MappingSelectionLabel for {self._combination} as {self.name}"
+        return f"MappingSelectionLabel for {self.combination} as {self.name}"
 
     def _set_not_selected(self):
         self.edit_btn.hide()
