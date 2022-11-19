@@ -18,25 +18,10 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
-"""Utility functions."""
-
-import sys
-from typing import Optional
-
-import evdev
+"""One preset object for the GUI application."""
 
 
-def is_service() -> bool:
-    return sys.argv[0].endswith("input-remapper-service")
+from inputremapper.configs.preset import Preset
 
 
-def get_evdev_constant_name(type_: int, code: int, *_) -> Optional[str]:
-    """Handy function to get the evdev constant name."""
-    # this is more readable than
-    #   type_, code = event.type_and_code
-    #   name = evdev.ecodes.bytype[type_][code]
-    name = evdev.ecodes.bytype.get(type_, {}).get(code)
-    if isinstance(name, list):
-        return name[0]
-
-    return name
+active_preset = Preset()
