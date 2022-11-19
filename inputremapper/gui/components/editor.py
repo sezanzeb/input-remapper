@@ -60,7 +60,7 @@ from inputremapper.gui.messages.message_data import (
     PresetData,
     CombinationUpdate,
 )
-from inputremapper.gui.utils import HandlerDisabled, Colors
+from inputremapper.gui.utils import HandlerDisabled, Colors, gtk_iteration
 from inputremapper.injection.mapping_handlers.axis_transform import Transformation
 from inputremapper.input_event import InputEvent
 from inputremapper.configs.system_mapping import system_mapping, XKB_KEYCODE_OFFSET
@@ -104,10 +104,17 @@ class TargetSelection:
         self._message_broker = message_broker
         self._controller = controller
         self._gui = combobox
+        self._mapping = None
 
         self._message_broker.subscribe(MessageType.uinputs, self._on_uinputs_changed)
         self._message_broker.subscribe(MessageType.mapping, self._on_mapping_loaded)
         self._gui.connect("changed", self._on_gtk_target_selected)
+
+    def _select_current_target(self):
+        """Select the currently configured target."""
+        if self._mapping is not None:
+            with HandlerDisabled(self._gui, self._on_gtk_target_selected):
+                self._gui.set_active_id(self._mapping.target_uinput)
 
     def _on_uinputs_changed(self, data: UInputsData):
         target_store = Gtk.ListStore(str)
@@ -120,9 +127,12 @@ class TargetSelection:
         self._gui.add_attribute(renderer_text, "text", 0)
         self._gui.set_id_column(0)
 
+        # TODO test
+        self._select_current_target()
+
     def _on_mapping_loaded(self, mapping: MappingData):
-        with HandlerDisabled(self._gui, self._on_gtk_target_selected):
-            self._gui.set_active_id(mapping.target_uinput)
+        self._mapping = mapping
+        self._select_current_target()
 
     def _on_gtk_target_selected(self, *_):
         target = self._gui.get_active_id()
