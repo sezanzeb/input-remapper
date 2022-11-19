@@ -50,7 +50,7 @@ from inputremapper.gui.components.editor import (
     RelativeInputCutoffInput,
     KeyAxisStackSwitcher,
     RequireActiveMapping,
-    GdkEventRecorder
+    GdkEventRecorder,
 )
 from inputremapper.gui.components.presets import PresetSelection
 from inputremapper.gui.components.main import Stack, StatusBar
@@ -208,10 +208,7 @@ class UserInterface:
             self.get("expo-scale"),
         )
 
-        GdkEventRecorder(
-            self.window,
-            self.get("gdk-event-recorder-label")
-        )
+        GdkEventRecorder(self.window, self.get("gdk-event-recorder-label"))
 
         RequireActiveMapping(
             message_broker,

@@ -391,7 +391,7 @@ class GdkEventRecorder:
                 for code in self._combination
                 if code is not None and system_mapping.get_name(code) is not None
             ]
-            self._gui.set_text(' + '.join(names))
+            self._gui.set_text(" + ".join(names))
 
     def _on_gtk_event(self, _, event: Gdk.Event):
         """For all sorts of input events that gtk cares about."""
