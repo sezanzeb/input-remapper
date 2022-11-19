@@ -325,6 +325,7 @@ class GdkEventRecorder:
         window.connect("event", self._on_gtk_event)
 
     def _get_button_code(self, event):
+        """Get the evdev code for the given event."""
         return {
             Gdk.BUTTON_MIDDLE: BTN_MIDDLE,
             Gdk.BUTTON_PRIMARY: BTN_LEFT,
@@ -377,11 +378,8 @@ class GdkEventRecorder:
             if button_code in self._pressed:
                 self._pressed.remove(button_code)
 
-    def _on_gtk_event(self, _, event: Gdk.Event):
-        self._reset(event)
-        self._release(event)
-        self._press(event)
-
+    def _display(self, event):
+        """Show the recorded combination in the gui."""
         is_press = event.type in [
             Gdk.EventType.KEY_PRESS,
             Gdk.EventType.BUTTON_PRESS,
@@ -394,6 +392,13 @@ class GdkEventRecorder:
                 if code is not None and system_mapping.get_name(code) is not None
             ]
             self._gui.set_text(' + '.join(names))
+
+    def _on_gtk_event(self, _, event: Gdk.Event):
+        """For all sorts of input events that gtk cares about."""
+        self._reset(event)
+        self._release(event)
+        self._press(event)
+        self._display(event)
 
 
 class CodeEditor:

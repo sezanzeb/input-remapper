@@ -33,7 +33,7 @@
 
 .multiline > *:first-child {
     /* source view suddenly started showing a white background behind line-numbers */
-	background: @theme_bg_color;
+    background: @theme_bg_color;
 }
 
 /*

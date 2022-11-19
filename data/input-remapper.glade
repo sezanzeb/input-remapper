@@ -1157,6 +1157,7 @@ Only relevant when mapping relative inputs (e.g. mouse) to absolute outputs (e.g
                                   <object class="GtkLabel" id="gdk-event-recorder-label">
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
+                                    <property name="tooltip-text" translatable="yes">You can copy this text into the output</property>
                                     <property name="opacity">0.5</property>
                                     <property name="margin-top">12</property>
                                     <property name="selectable">True</property>
