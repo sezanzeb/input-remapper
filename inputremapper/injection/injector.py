@@ -351,7 +351,7 @@ class Injector(multiprocessing.Process):
                     name=get_udev_name(source.name, "forwarded"),
                     events=self._copy_capabilities(source),
                     # phys=source.phys,  # this leads to confusion. the appearance of
-                    # an uinput with this "phys" property causes the udev rule to
+                    # a uinput with this "phys" property causes the udev rule to
                     # autoload for the original device, overwriting our previous
                     # attempts at starting an injection.
                     vendor=source.info.vendor,

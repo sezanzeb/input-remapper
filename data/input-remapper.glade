@@ -1104,7 +1104,7 @@ Shortcut: ctrl + del</property>
                                   <object class="GtkBox">
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
-                                    <property name="tooltip-text" translatable="yes">The Speed at wich the Input is considered at maximum.
+                                    <property name="tooltip-text" translatable="yes">The Speed at which the Input is considered at maximum.
 Only relevant when mapping relative inputs (e.g. mouse) to absolute outputs (e.g. gamepad)</property>
                                     <property name="spacing">12</property>
                                     <child>

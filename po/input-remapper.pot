@@ -221,7 +221,7 @@ msgstr ""
 
 #: data/input-remapper.glade:1107
 msgid ""
-"The Speed at wich the Input is considered at maximum.\n"
+"The Speed at which the Input is considered at maximum.\n"
 "Only relevant when mapping relative inputs (e.g. mouse) to absolute outputs "
 "(e.g. gamepad)"
 msgstr ""

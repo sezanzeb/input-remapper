@@ -364,7 +364,7 @@ class TestPreset(unittest.TestCase):
             self.preset.get_mapping(combi_2),
             get_key_mapping(combi_1, "keyboard", "a"),
         )
-        # since combi_1 and combi_2 are equivalent, this raises an KeyError
+        # since combi_1 and combi_2 are equivalent, this raises a KeyError
         self.assertRaises(
             KeyError,
             self.preset.add,
