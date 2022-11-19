@@ -36,6 +36,7 @@ from inputremapper.configs.system_mapping import SystemMapping
 from inputremapper.daemon import DaemonProxy
 from inputremapper.event_combination import EventCombination
 from inputremapper.exceptions import DataManagementError
+from inputremapper.gui.gettext import _
 from inputremapper.groups import _Group
 from inputremapper.gui.messages.message_broker import (
     MessageBroker,
@@ -55,7 +56,7 @@ from inputremapper.injection.injector import (
 from inputremapper.input_event import InputEvent
 from inputremapper.logger import logger
 
-DEFAULT_PRESET_NAME = "new preset"
+DEFAULT_PRESET_NAME = _("new preset")
 
 # useful type aliases
 Name = str

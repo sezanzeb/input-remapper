@@ -656,11 +656,10 @@ class Controller:
             return kwargs
 
         if kwargs["mapping_type"] == "analog":
-            msg = "You are about to change the mapping to analog."
+            msg = _("You are about to change the mapping to analog.")
             if mapping.output_symbol:
-                msg += (
-                    f'\nThis will remove "{mapping.output_symbol}" '
-                    f"from the text input!"
+                msg += _('\nThis will remove "{}" ' "from the text input!").format(
+                    mapping.output_symbol
                 )
 
             if not [event for event in mapping.event_combination if event.value == 0]:
@@ -670,14 +669,13 @@ class Controller:
                     if e.type in [EV_ABS, EV_REL]:
                         events[i] = e.modify(value=0)
                         kwargs["event_combination"] = EventCombination(events)
-                        msg += (
-                            f'\nThe input "{e.description()}" '
-                            f"will be used as analog input."
-                        )
+                        msg += _(
+                            '\nThe input "{}" will be used as analog input.'
+                        ).format(e.description())
                         break
                 else:
                     # not possible to autoconfigure inform the user
-                    msg += "\nYou need to record an analog input."
+                    msg += _("\nYou need to record an analog input.")
 
             elif not mapping.output_symbol:
                 return kwargs
