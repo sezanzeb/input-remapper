@@ -1160,6 +1160,7 @@ Only relevant when mapping relative inputs (e.g. mouse) to absolute outputs (e.g
                                     <property name="opacity">0.5</property>
                                     <property name="margin-top">12</property>
                                     <property name="selectable">True</property>
+                                    <property name="ellipsize">end</property>
                                   </object>
                                   <packing>
                                     <property name="expand">False</property>
