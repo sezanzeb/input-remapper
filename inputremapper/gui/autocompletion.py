@@ -404,14 +404,12 @@ class Autocompletion(Gtk.Popover):
             label.show_all()
 
     def _update_capabilities(self):
-        active_mapping = self.controller.data_manager.active_mapping
-        if active_mapping is not None:
-            target = active_mapping.target_uinput or KnownUinput.KEYBOARD
-            self._target_key_capabilities = self._uinputs[target][EV_KEY]
+        if self._target_uinput and self._uinputs:
+            self._target_key_capabilities = self._uinputs[self._target_uinput][EV_KEY]
 
-    def _on_mapping_changed(self, _):
-        if self._uinputs:
-            self._update_capabilities()
+    def _on_mapping_changed(self, mapping: MappingData):
+        self._target_uinput = mapping.target_uinput
+        self._update_capabilities()
 
     def _on_uinputs_changed(self, data: UInputsData):
         self._uinputs = data.uinputs
