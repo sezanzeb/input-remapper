@@ -782,6 +782,7 @@ class TestCodeEditor(ComponentBaseTest):
         buffer = self.gui.get_buffer()
         buffer.set_text("foo")
 
+        # the editor should not update the mapping after it changed
         self.message_broker.publish(MappingData())
 
         # the debounced call will not fire anymore
