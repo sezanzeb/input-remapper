@@ -823,7 +823,6 @@ class TestGui(GuiTestBase):
 
         # 3. set the output symbol
         self.code_editor.get_buffer().set_text("Shift_L")
-        debounce_manager.run_all_now()
         gtk_iteration()
 
         # the mapping and preset should be valid by now
@@ -891,7 +890,6 @@ class TestGui(GuiTestBase):
             self.throttle(40)
             gtk_iteration()
             self.code_editor.get_buffer().set_text(symbol)
-            debounce_manager.run_all_now()
             gtk_iteration()
 
         add_mapping(ev_1, "a")
@@ -974,7 +972,6 @@ class TestGui(GuiTestBase):
             self.throttle(40)
             gtk_iteration()
             self.code_editor.get_buffer().set_text(symbol)
-            debounce_manager.run_all_now()
             gtk_iteration()
 
         add_mapping(combination_1, "a")
@@ -1251,7 +1248,6 @@ class TestGui(GuiTestBase):
             self.throttle(40)
             gtk_iteration()
             self.code_editor.get_buffer().set_text(symbol)
-            debounce_manager.run_all_now()
             gtk_iteration()
 
         combination = EventCombination(((EV_KEY, KEY_LEFTSHIFT, 1), (EV_KEY, 82, 1)))
@@ -1281,7 +1277,6 @@ class TestGui(GuiTestBase):
 
         with patch.object(self.data_manager.active_preset, "save", save):
             self.code_editor.get_buffer().set_text("f")
-            debounce_manager.run_all_now()
             gtk_iteration()
         status = self.get_status_text()
         self.assertIn("Permission denied", status)
@@ -1340,14 +1335,12 @@ class TestGui(GuiTestBase):
         warning_icon = self.user_interface.get("warning_status_icon")
 
         self.code_editor.get_buffer().set_text("k(1))")
-        debounce_manager.run_all_now()
         tooltip = status.get_tooltip_text().lower()
         self.assertIn("brackets", tooltip)
         self.assertTrue(error_icon.get_visible())
         self.assertFalse(warning_icon.get_visible())
 
         self.code_editor.get_buffer().set_text("k(1)")
-        debounce_manager.run_all_now()
         tooltip = (status.get_tooltip_text() or "").lower()
         self.assertNotIn("brackets", tooltip)
         self.assertFalse(error_icon.get_visible())
@@ -1370,7 +1363,6 @@ class TestGui(GuiTestBase):
         # now change the mapping by typing into the field
         buffer = self.code_editor.get_buffer()
         buffer.set_text("sdfgkj()")
-        debounce_manager.run_all_now()
         gtk_iteration()
 
         # the mapping is validated
