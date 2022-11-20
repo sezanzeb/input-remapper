@@ -156,6 +156,7 @@ class Autocompletion(Gtk.Popover):
     """
 
     __gtype_name__ = "Autocompletion"
+    _target_uinput: Optional[str] = None
 
     def __init__(
         self,
