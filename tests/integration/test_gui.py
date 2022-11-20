@@ -2121,7 +2121,6 @@ class TestDebounce(unittest.TestCase):
         gtk_iteration()
         self.assertEqual(calls, 0)
 
-        print("fuck")
         debounce_manager.stop(a, a.foo)
 
         # waiting for some time will not call it
