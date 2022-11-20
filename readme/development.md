@@ -9,18 +9,26 @@ All pull requests will at some point require unittests (see below for more
 info), the code coverage may only be improved, not decreased. It also has to
 be mostly compliant with pylint.
 
-## Tests
+## Linting
 
 ```bash
-pip install coverage --user
-pylint inputremapper --extension-pkg-whitelist=evdev
+mypy inputremapper
+black .  # modifies code in-place
+pip install pylint-pydantic --user  # https://github.com/fcfangcc/pylint-pydantic
+pylint inputremapper
+```
+
+Pylint gives lots of great advice on how to write better python code and even
+detects errors. Mypy checks for typing errors. Use black to format it.
+
+## Automated tests
+
+```bash
+pip install coverage --user  # https://github.com/nedbat/coveragepy
 sudo pkill -f input-remapper
 sudo pip install . && coverage run tests/test.py
 coverage combine && coverage report -m
 ```
-
-To read events, `evtest` is very helpful. Add `-d` to `input-remapper-gtk`
-to get debug output.
 
 Single tests can be executed via
 
@@ -31,9 +39,12 @@ python3 tests/test.py test_paths.TestPaths.test_mkdir
 Don't use your computer during integration tests to avoid interacting
 with the gui, which might make tests fail.
 
-There is also a run configuration for PyCharm called "All Tests" included.
+There is also a "run configuration" for PyCharm called "All Tests" included.
 
-## Writing Tests
+To read events for manual testing, `evtest` is very helpful. Add `-d` to
+`input-remapper-gtk` to get debug output.
+
+## Writing tests
 
 Tests are in https://github.com/sezanzeb/input-remapper/tree/main/tests
 
@@ -68,6 +79,20 @@ sudo pip install .
 
 New badges, if needed, will be created in `readme/` and they
 just need to be commited.
+
+## Translations
+
+To regenerate the `po/input-remapper.pot` file, run
+
+```bash
+xgettext -k --keyword=translatable --sort-output -o po/input-remapper.pot data/input-remapper.glade
+xgettext --keyword=_ -L Python --sort-output -jo po/input-remapper.pot inputremapper/configs/mapping.py inputremapper/gui/*.py inputremapper/gui/components/*.py
+```
+
+This is the template file that you can copy to fill in the translations.
+See https://github.com/sezanzeb/input-remapper/tree/main/po for examples.
+Also create the symlink, like `ln -s it_IT.po it.po`, because some environments
+expect different names apparently.
 
 ## Architecture
 
