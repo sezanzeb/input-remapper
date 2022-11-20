@@ -104,7 +104,7 @@ class DebounceManager:
             lambda: run(),
         )
 
-    def stop(self, other: object, function: Callable = None):
+    def stop(self, other: object, function: Callable):
         """Stop the current debounce timeout of this function and don't call it.
 
         New calls to that function will be debounced again.
