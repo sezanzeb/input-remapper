@@ -757,7 +757,7 @@ class TestCodeEditor(ComponentBaseTest):
 
         # the call is debounced by quite a lot
         self.controller_mock.update_mapping.assert_not_called()
-        time.sleep(0.51)
+        time.sleep(0.76)
         gtk_iteration()
 
         self.controller_mock.update_mapping.assert_called_once_with(output_symbol="foo")
@@ -773,7 +773,7 @@ class TestCodeEditor(ComponentBaseTest):
         self.gui.emit("focus-out-event", None)
 
         # the debounced call will not fire anymore
-        time.sleep(0.51)
+        time.sleep(0.76)
         gtk_iteration()
         self.controller_mock.update_mapping.assert_called_once_with(output_symbol="foo")
 
@@ -786,7 +786,7 @@ class TestCodeEditor(ComponentBaseTest):
         self.message_broker.publish(MappingData())
 
         # the debounced call will not fire anymore
-        time.sleep(0.51)
+        time.sleep(0.76)
         gtk_iteration()
         self.controller_mock.update_mapping.assert_not_called()
 

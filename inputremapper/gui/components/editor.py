@@ -481,7 +481,7 @@ class CodeEditor:
         self._controller.update_mapping(output_symbol=self.code)
         debounce_manager.stop(self, self._on_gtk_changed)
 
-    @debounce(500)
+    @debounce(750)
     def _on_gtk_changed(self, *_):
         # This triggers for each typed character, will cause disk-writes and writes
         # tons of logs, so this is debounced a bit
