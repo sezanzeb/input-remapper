@@ -24,9 +24,11 @@ from unittest.mock import MagicMock
 import time
 
 import evdev
-from evdev.ecodes import KEY_A, KEY_B, KEY_C
+from evdev.ecodes import BTN_LEFT, KEY_A, KEY_B, KEY_C
 
 import gi
+
+from inputremapper.configs.system_mapping import XKB_KEYCODE_OFFSET
 
 gi.require_version("Gdk", "3.0")
 gi.require_version("Gtk", "3.0")
@@ -71,6 +73,7 @@ from inputremapper.gui.components.editor import (
     RelativeInputCutoffInput,
     RecordingStatus,
     RequireActiveMapping,
+    GdkEventRecorder,
 )
 from inputremapper.gui.components.main import Stack, StatusBar
 from inputremapper.gui.components.common import FlowBoxEntry, Breadcrumbs
@@ -655,11 +658,62 @@ class TestMappingSelectionLabel(ComponentBaseTest):
         self.controller_mock.update_mapping.assert_called_once_with(name="")
 
 
+class TestGdkEventRecorder(ComponentBaseTest):
+    def _emit_key(self, window, code, type_):
+        event = Gdk.Event()
+        event.type = type_
+        event.hardware_keycode = code + XKB_KEYCODE_OFFSET
+        window.emit("event", event)
+        gtk_iteration()
+
+    def _emit_button(self, window, button, type_):
+        event = Gdk.Event()
+        event.type = type_
+        event.button = button
+        window.emit("event", event)
+        gtk_iteration()
+
+    def test_records_combinations(self):
+        label = Gtk.Label()
+        window = Gtk.Window()
+        GdkEventRecorder(window, label)
+
+        self._emit_key(window, KEY_A, Gdk.EventType.KEY_PRESS)
+        self._emit_key(window, KEY_B, Gdk.EventType.KEY_PRESS)
+        self.assertEqual(label.get_text(), "a + b")
+
+        self._emit_key(window, KEY_A, Gdk.EventType.KEY_RELEASE)
+        self._emit_key(window, KEY_B, Gdk.EventType.KEY_RELEASE)
+        self.assertEqual(label.get_text(), "a + b")
+
+        self._emit_key(window, KEY_C, Gdk.EventType.KEY_PRESS)
+        self.assertEqual(label.get_text(), "c")
+
+        # buttons
+        self._emit_button(window, Gdk.BUTTON_PRIMARY, Gdk.EventType.BUTTON_PRESS)
+        self._emit_button(window, Gdk.BUTTON_SECONDARY, Gdk.EventType.BUTTON_PRESS)
+        self._emit_button(window, Gdk.BUTTON_MIDDLE, Gdk.EventType.BUTTON_PRESS)
+        # no constants seem to exist, but this is the value that was observed during
+        # usage:
+        self._emit_button(window, 8, Gdk.EventType.BUTTON_PRESS)
+        self._emit_button(window, 9, Gdk.EventType.BUTTON_PRESS)
+        self.assertEqual(
+            label.get_text(),
+            "c + BTN_LEFT + BTN_RIGHT + BTN_MIDDLE + BTN_SIDE + BTN_EXTRA",
+        )
+
+        # releasing anything resets the combination
+        self._emit_button(window, 9, Gdk.EventType.BUTTON_RELEASE)
+        self._emit_key(window, KEY_A, Gdk.EventType.KEY_PRESS)
+        self.assertEqual(label.get_text(), "a")
+
+
 class TestCodeEditor(ComponentBaseTest):
     def setUp(self) -> None:
         super().setUp()
         self.gui = GtkSource.View()
         self.editor = CodeEditor(self.message_broker, self.controller_mock, self.gui)
+        # TODO why is mocking this to False needed?
         self.controller_mock.is_empty_mapping.return_value = False
 
     def get_text(self) -> str:

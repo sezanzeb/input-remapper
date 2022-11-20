@@ -95,6 +95,8 @@ class TargetSelection:
     For example "keyboard" or "gamepad".
     """
 
+    _mapping: Optional[MappingData] = None
+
     def __init__(
         self,
         message_broker: MessageBroker,
@@ -104,7 +106,6 @@ class TargetSelection:
         self._message_broker = message_broker
         self._controller = controller
         self._gui = combobox
-        self._mapping = None
 
         self._message_broker.subscribe(MessageType.uinputs, self._on_uinputs_changed)
         self._message_broker.subscribe(MessageType.mapping, self._on_mapping_loaded)
@@ -336,7 +337,7 @@ class GdkEventRecorder:
         self._gui = gui
         window.connect("event", self._on_gtk_event)
 
-    def _get_button_code(self, event):
+    def _get_button_code(self, event: Gdk.Event):
         """Get the evdev code for the given event."""
         return {
             Gdk.BUTTON_MIDDLE: BTN_MIDDLE,
@@ -363,7 +364,7 @@ class GdkEventRecorder:
         gdk_event_type: int = event.type
 
         if gdk_event_type == Gdk.EventType.KEY_PRESS:
-            code = event.get_scancode() - XKB_KEYCODE_OFFSET
+            code = event.hardware_keycode - XKB_KEYCODE_OFFSET
             if code not in self._combination:
                 self._combination.append(code)
 
@@ -394,6 +395,7 @@ class GdkEventRecorder:
                 for code in self._combination
                 if code is not None and system_mapping.get_name(code) is not None
             ]
+            print("set etxt", names, self._combination)
             self._gui.set_text(" + ".join(names))
 
     def _on_gtk_event(self, _, event: Gdk.Event):
