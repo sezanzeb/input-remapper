@@ -190,11 +190,9 @@ class MappingListBox:
         with HandlerDisabled(self._gui, self._on_gtk_mapping_selected):
             combination = mapping.event_combination
 
-            def set_active(row: MappingSelectionLabel):
+            for row in self._gui.get_children():
                 if row.combination == combination:
                     self._gui.select_row(row)
-
-            self._gui.foreach(set_active)
 
     def _on_gtk_mapping_selected(self, _, row: Optional[MappingSelectionLabel]):
         if not row:
@@ -749,11 +747,9 @@ class CombinationListbox:
         self._gui.connect("row-selected", self._on_gtk_row_selected)
 
     def _select_row(self, event: InputEvent):
-        def select(row: EventEntry):
+        for row in self._gui.get_children():
             if row.input_event == event:
                 self._gui.select_row(row)
-
-        self._gui.foreach(select)
 
     def _on_mapping_changed(self, mapping: MappingData):
         if self._combination == mapping.event_combination:

@@ -369,23 +369,19 @@ class TestMappingListbox(ComponentBaseTest):
         )
 
     def get_selected_row(self) -> MappingSelectionLabel:
-        row = None
+        for label in self.gui.get_children():
+            if label.is_selected():
+                return label
 
-        def find_row(r: MappingSelectionLabel):
-            nonlocal row
-            if r.is_selected():
-                row = r
-
-        self.gui.foreach(find_row)
-        assert row is not None
-        return row
+        raise Exception('Expected one MappingSelectionLabel to be selected')
 
     def select_row(self, combination: EventCombination):
-        def select(row: MappingSelectionLabel):
-            if row.combination == combination:
-                self.gui.select_row(row)
+        def select(label_: MappingSelectionLabel):
+            if label_.combination == combination:
+                self.gui.select_row(label_)
 
-        self.gui.foreach(select)
+        for label in self.gui.get_children():
+            select(label)
 
     def test_populates_listbox(self):
         labels = {row.name for row in self.gui.get_children()}
@@ -1005,23 +1001,16 @@ class TestCombinationListbox(ComponentBaseTest):
         )
 
     def get_selected_row(self) -> EventEntry:
-        row = None
+        for entry in self.gui.get_children():
+            if entry.is_selected():
+                return entry
 
-        def find_row(r: EventEntry):
-            nonlocal row
-            if r.is_selected():
-                row = r
-
-        self.gui.foreach(find_row)
-        assert row is not None
-        return row
+        raise Exception('Expected one EventEntry to be selected')
 
     def select_row(self, event: InputEvent):
-        def select(row: EventEntry):
-            if row.input_event == event:
-                self.gui.select_row(row)
-
-        self.gui.foreach(select)
+        for entry in self.gui.get_children():
+            if entry.input_event == event:
+                self.gui.select_row(entry)
 
     def test_loads_selected_row(self):
         self.select_row(InputEvent.from_string("1,2,1"))
