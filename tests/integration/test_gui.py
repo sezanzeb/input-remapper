@@ -2081,7 +2081,7 @@ class TestDebounce(unittest.TestCase):
         debounce_manager.run_all_now()
         self.assertEqual(calls, 1)
 
-        # waiting for some time will not call it
+        # waiting for some time will not call it again
         time.sleep(0.021)
         gtk_iteration()
         self.assertEqual(calls, 1)
@@ -2101,6 +2101,28 @@ class TestDebounce(unittest.TestCase):
         self.assertEqual(calls, 0)
 
         debounce_manager.stop_all()
+
+        # waiting for some time will not call it
+        time.sleep(0.021)
+        gtk_iteration()
+        self.assertEqual(calls, 0)
+
+    def test_stop(self):
+        calls = 0
+
+        class A:
+            @debounce(20)
+            def foo(self):
+                nonlocal calls
+                calls += 1
+
+        a = A()
+        a.foo()
+        gtk_iteration()
+        self.assertEqual(calls, 0)
+
+        print("fuck")
+        debounce_manager.stop(a, a.foo)
 
         # waiting for some time will not call it
         time.sleep(0.021)

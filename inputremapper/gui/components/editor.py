@@ -60,7 +60,7 @@ from inputremapper.gui.messages.message_data import (
     PresetData,
     CombinationUpdate,
 )
-from inputremapper.gui.utils import HandlerDisabled, Colors, debounce
+from inputremapper.gui.utils import HandlerDisabled, Colors, debounce, debounce_manager
 from inputremapper.injection.mapping_handlers.axis_transform import Transformation
 from inputremapper.input_event import InputEvent
 from inputremapper.configs.system_mapping import system_mapping, XKB_KEYCODE_OFFSET
@@ -480,14 +480,17 @@ class CodeEditor:
         # This helps to keep the gui data up-to-date when changed-events are
         # debounced
         self._controller.update_mapping(output_symbol=self.code)
+        debounce_manager.stop(self, self._on_gtk_changed)
 
-    @debounce(1000)
+    @debounce(500)
     def _on_gtk_changed(self, *_):
         # This triggers for each typed character, will cause disk-writes and writes
         # tons of logs, so this is debounced a bit
         self._controller.update_mapping(output_symbol=self.code)
 
     def _on_mapping_loaded(self, mapping: MappingData):
+        debounce_manager.stop(self, self._on_gtk_changed)
+
         code = SET_KEY_FIRST
         if not self._controller.is_empty_mapping():
             code = mapping.output_symbol or ""
@@ -498,6 +501,7 @@ class CodeEditor:
         self._toggle_line_numbers()
 
     def _on_recording_finished(self, _):
+        debounce_manager.stop(self, self._on_gtk_changed)
         self._controller.set_focus(self.gui)
 
 

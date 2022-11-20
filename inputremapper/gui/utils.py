@@ -46,8 +46,9 @@ CTX_MAPPING = 5
 @dataclass()
 class DebounceInfo:
     # constant after register:
-    timeout_ms: int
     function: Optional[Callable]
+    other: object
+    key: int
 
     # can change when called again:
     args: list
@@ -60,26 +61,32 @@ class DebounceManager:
 
     debounce_infos: Dict[int, DebounceInfo] = {}
 
-    def register(self, function, timeout_ms):
-        """Remember the timeout. `function` should be decorated with `@debounce`.
-
-        This is needed for `call` to work.
-        """
-        self.debounce_infos[id(function)] = DebounceInfo(
-            timeout_ms=timeout_ms,
+    def _register(self, other, function):
+        debounce_info = DebounceInfo(
             function=function,
             glib_timeout=None,
+            other=other,
             args=[],
             kwargs={},
+            key=self._get_key(other, function),
         )
+        key = self._get_key(other, function)
+        self.debounce_infos[key] = debounce_info
+        return debounce_info
 
-    def debounce(self, function, *args, **kwargs):
+    def get(self, other: object, function: Callable = None) -> Optional[DebounceInfo]:
+        """Find the debounce_info that matches the given callable."""
+        key = self._get_key(other, function)
+        return self.debounce_infos.get(key)
+
+    def _get_key(self, other, function):
+        return f"{id(other)},{function.__name__}"
+
+    def debounce(self, other, function, timeout_ms, *args, **kwargs):
         """Call this function with the given args later."""
-        debounce_info = self.debounce_infos.get(id(function))
+        debounce_info = self.get(other, function)
         if debounce_info is None:
-            raise Exception(
-                f"Function {function.__name__} has not been set up for debouncing"
-            )
+            debounce_info = self._register(other, function)
 
         debounce_info.args = args
         debounce_info.kwargs = kwargs
@@ -89,20 +96,24 @@ class DebounceManager:
             GLib.source_remove(glib_timeout)
 
         def run():
-            self.stop(function)
-            return function(*args, **kwargs)
+            self.stop(other, function)
+            return function(other, *args, **kwargs)
 
         debounce_info.glib_timeout = GLib.timeout_add(
-            debounce_info.timeout_ms,
+            timeout_ms,
             lambda: run(),
         )
 
-    def stop(self, function):
+    def stop(self, other: object, function: Callable = None):
         """Stop the current debounce timeout of this function and don't call it.
 
         New calls to that function will be debounced again.
         """
-        debounce_info = self.debounce_infos[id(function)]
+        debounce_info = self.get(other, function)
+        if debounce_info is None:
+            logger.debug("Tried to stop function that is not currently scheduled")
+            return
+
         if debounce_info.glib_timeout is not None:
             GLib.source_remove(debounce_info.glib_timeout)
             debounce_info.glib_timeout = None
@@ -113,7 +124,7 @@ class DebounceManager:
         New calls to that function will be debounced again.
         """
         for debounce_info in self.debounce_infos.values():
-            self.stop(debounce_info.function)
+            self.stop(debounce_info.other, debounce_info.function)
 
     def run_all_now(self):
         """Don't wait any longer."""
@@ -122,13 +133,17 @@ class DebounceManager:
                 # nothing is currently waiting for this function to be called
                 continue
 
-            self.stop(debounce_info.function)
+            self.stop(debounce_info.other, debounce_info.function)
             try:
                 logger.warning(
                     'Running "%s" now without waiting',
                     debounce_info.function.__name__,
                 )
-                debounce_info.function(*debounce_info.args, **debounce_info.kwargs)
+                debounce_info.function(
+                    debounce_info.other,
+                    *debounce_info.args,
+                    **debounce_info.kwargs,
+                )
             except Exception as exception:
                 # if individual functions fails, continue calling the others.
                 # also, don't raise this because there is nowhere this exception
@@ -140,7 +155,7 @@ debounce_manager = DebounceManager()
 
 
 def debounce(timeout):
-    """Debounce a function call to improve performance.
+    """Debounce a method call to improve performance.
 
     Calling this with a millisecond value creates the decorator, so use something like
 
@@ -157,11 +172,11 @@ def debounce(timeout):
         # @decorator
         # def foo():
         #   ...
-        debounce_manager.register(function, timeout)
-
-        def wrapped(*args, **kwargs):
+        def wrapped(self, *args, **kwargs):
             # this is the function that will actually be called
-            debounce_manager.debounce(function, *args, **kwargs)
+            debounce_manager.debounce(self, function, timeout, *args, **kwargs)
+
+        wrapped.__name__ = function.__name__
 
         return wrapped
 
