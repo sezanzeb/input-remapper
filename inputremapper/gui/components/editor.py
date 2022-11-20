@@ -27,6 +27,7 @@ from collections import defaultdict
 from typing import List, Optional, Dict, Union, Callable, Literal, Set
 
 import cairo
+import gi
 from evdev.ecodes import (
     EV_KEY,
     EV_ABS,
@@ -39,12 +40,10 @@ from evdev.ecodes import (
     BTN_SIDE,
 )
 
-import gi
-
 gi.require_version("Gdk", "3.0")
 gi.require_version("Gtk", "3.0")
 gi.require_version("GtkSource", "4")
-from gi.repository import Gtk, GtkSource, Gdk, GObject
+from gi.repository import Gtk, GtkSource, Gdk
 
 from inputremapper.configs.mapping import MappingData
 from inputremapper.event_combination import EventCombination
@@ -60,7 +59,7 @@ from inputremapper.gui.messages.message_data import (
     PresetData,
     CombinationUpdate,
 )
-from inputremapper.gui.utils import HandlerDisabled, Colors, debounce, debounce_manager
+from inputremapper.gui.utils import HandlerDisabled, Colors
 from inputremapper.injection.mapping_handlers.axis_transform import Transformation
 from inputremapper.input_event import InputEvent
 from inputremapper.configs.system_mapping import system_mapping, XKB_KEYCODE_OFFSET
@@ -434,7 +433,6 @@ class CodeEditor:
 
         # todo: setup autocompletion here
 
-        self.gui.connect("focus-out-event", self._on_gtk_focus_out)
         self.gui.get_buffer().connect("changed", self._on_gtk_changed)
         self._connect_message_listener()
 
@@ -475,21 +473,10 @@ class CodeEditor:
             self.gui.set_monospace(False)
             self.gui.get_style_context().remove_class("multiline")
 
-    def _on_gtk_focus_out(self, *_):
-        # This helps to keep the gui data up-to-date when changed-events are
-        # debounced
-        self._controller.update_mapping(output_symbol=self.code)
-        debounce_manager.stop(self, self._on_gtk_changed)
-
-    @debounce(750)
     def _on_gtk_changed(self, *_):
-        # This triggers for each typed character, will cause disk-writes and writes
-        # tons of logs, so this is debounced a bit
         self._controller.update_mapping(output_symbol=self.code)
 
     def _on_mapping_loaded(self, mapping: MappingData):
-        debounce_manager.stop(self, self._on_gtk_changed)
-
         code = SET_KEY_FIRST
         if not self._controller.is_empty_mapping():
             code = mapping.output_symbol or ""
@@ -500,7 +487,6 @@ class CodeEditor:
         self._toggle_line_numbers()
 
     def _on_recording_finished(self, _):
-        debounce_manager.stop(self, self._on_gtk_changed)
         self._controller.set_focus(self.gui)
 
 

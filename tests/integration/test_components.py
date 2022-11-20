@@ -750,45 +750,11 @@ class TestCodeEditor(ComponentBaseTest):
         self.message_broker.publish(MappingData())
         self.assertEqual(self.get_text(), "")
 
-    def test_updates_mapping_debounced(self):
+    def test_updates_mapping(self):
         self.message_broker.publish(MappingData())
         buffer = self.gui.get_buffer()
         buffer.set_text("foo")
-
-        # the call is debounced by quite a lot
-        self.controller_mock.update_mapping.assert_not_called()
-        time.sleep(0.76)
-        gtk_iteration()
-
         self.controller_mock.update_mapping.assert_called_once_with(output_symbol="foo")
-
-    def test_updates_mapping_on_unfocus(self):
-        self.message_broker.publish(MappingData())
-        buffer = self.gui.get_buffer()
-        buffer.set_text("foo")
-
-        # not called due to the debouncing
-        self.controller_mock.update_mapping.assert_not_called()
-
-        self.gui.emit("focus-out-event", None)
-
-        # the debounced call will not fire anymore
-        time.sleep(0.76)
-        gtk_iteration()
-        self.controller_mock.update_mapping.assert_called_once_with(output_symbol="foo")
-
-    def test_wont_update_mapping_after_change(self):
-        self.message_broker.publish(MappingData())
-        buffer = self.gui.get_buffer()
-        buffer.set_text("foo")
-
-        # the editor should not update the mapping after it changed
-        self.message_broker.publish(MappingData())
-
-        # the debounced call will not fire anymore
-        time.sleep(0.76)
-        gtk_iteration()
-        self.controller_mock.update_mapping.assert_not_called()
 
     def test_avoids_infinite_recursion_when_loading_mapping(self):
         self.message_broker.publish(MappingData(output_symbol="foo"))
