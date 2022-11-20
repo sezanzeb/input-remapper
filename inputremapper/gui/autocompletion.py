@@ -27,13 +27,14 @@ from typing import Dict, Optional, List, Tuple
 from evdev.ecodes import EV_KEY
 
 import gi
+from inputremapper.gui.controller import Controller
 
 gi.require_version("Gdk", "3.0")
 gi.require_version("Gtk", "3.0")
 gi.require_version("GLib", "2.0")
 from gi.repository import Gdk, Gtk, GLib, GObject
 
-from inputremapper.configs.mapping import MappingData
+from inputremapper.configs.mapping import MappingData, KnownUinput
 from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.gui.components.editor import CodeEditor
 from inputremapper.gui.messages.message_broker import MessageBroker, MessageType
@@ -155,8 +156,14 @@ class Autocompletion(Gtk.Popover):
     """
 
     __gtype_name__ = "Autocompletion"
+    _target_uinput: Optional[str] = None
 
-    def __init__(self, message_broker: MessageBroker, code_editor: CodeEditor):
+    def __init__(
+        self,
+        message_broker: MessageBroker,
+        controller: Controller,
+        code_editor: CodeEditor,
+    ):
         """Create an autocompletion popover.
 
         It will remain hidden until there is something to autocomplete.
@@ -175,6 +182,7 @@ class Autocompletion(Gtk.Popover):
         )
 
         self.code_editor = code_editor
+        self.controller = controller
         self.message_broker = message_broker
         self._uinputs: Optional[Dict[str, Capabilities]] = None
         self._target_key_capabilities: List[int] = []
@@ -219,7 +227,7 @@ class Autocompletion(Gtk.Popover):
         self.popdown()  # hidden by default. this needs to happen after show_all!
 
     def attach_to_events(self):
-        self.message_broker.subscribe(MessageType.mapping, self._on_mapping_loaded)
+        self.message_broker.subscribe(MessageType.mapping, self._on_mapping_changed)
         self.message_broker.subscribe(MessageType.uinputs, self._on_uinputs_changed)
 
     def on_gtk_text_input_unfocus(self, *_):
@@ -353,6 +361,10 @@ class Autocompletion(Gtk.Popover):
     @debounce(100)
     def update(self, *_):
         """Find new autocompletion suggestions and display them. Hide if none."""
+        if len(self._target_key_capabilities) == 0:
+            logger.error("No target capabilities available")
+            return
+
         if not self.code_editor.gui.is_focus():
             self.popdown()
             return
@@ -392,13 +404,17 @@ class Autocompletion(Gtk.Popover):
             self.list_box.insert(label, -1)
             label.show_all()
 
-    def _on_mapping_loaded(self, mapping: MappingData):
-        if mapping and self._uinputs:
-            target = mapping.target_uinput or "keyboard"
-            self._target_key_capabilities = self._uinputs[target][EV_KEY]
+    def _update_capabilities(self):
+        if self._target_uinput and self._uinputs:
+            self._target_key_capabilities = self._uinputs[self._target_uinput][EV_KEY]
+
+    def _on_mapping_changed(self, mapping: MappingData):
+        self._target_uinput = mapping.target_uinput
+        self._update_capabilities()
 
     def _on_uinputs_changed(self, data: UInputsData):
         self._uinputs = data.uinputs
+        self._update_capabilities()
 
     def _on_suggestion_clicked(self, _, selected_row):
         """An autocompletion suggestion was selected and should be inserted."""
@@ -432,5 +448,9 @@ class Autocompletion(Gtk.Popover):
 
 
 GObject.signal_new(
-    "suggestion-inserted", Autocompletion, GObject.SignalFlags.RUN_FIRST, None, []
+    "suggestion-inserted",
+    Autocompletion,
+    GObject.SignalFlags.RUN_FIRST,
+    None,
+    [],
 )

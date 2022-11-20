@@ -41,8 +41,11 @@ from inputremapper.groups import groups
 
 def import_control():
     """Import the core function of the input-remapper-control command."""
-
-    bin_path = os.path.join(os.getcwd(), "bin", "input-remapper-control")
+    bin_path = os.path.join(
+        os.getcwd().replace("/tests/integration", ""),
+        "bin",
+        "input-remapper-control",
+    )
 
     loader = SourceFileLoader("__not_main_idk__", bin_path)
     spec = spec_from_loader("__not_main_idk__", loader)

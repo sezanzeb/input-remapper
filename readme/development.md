@@ -44,7 +44,7 @@ There is also a "run configuration" for PyCharm called "All Tests" included.
 To read events for manual testing, `evtest` is very helpful. Add `-d` to
 `input-remapper-gtk` to get debug output.
 
-## Writing tests
+## Writing Tests
 
 Tests are in https://github.com/sezanzeb/input-remapper/tree/main/tests
 
@@ -56,6 +56,13 @@ Test files are usually named after the module they are in.
 
 In the tearDown functions, usually one of `quick_cleanup` or `cleanup` should be called. This avoids making a test
 fail that comes after your new test, because some state variables might still be modified by yours.
+
+## Advices
+
+Do not use GTKs `foreach` methods, because when the function fails it just freezes up completely.
+Use `get_children()` and iterate over it with regular python `for` loops.
+
+use `gtk_iteration` in tests when interacting with GTK methods to trigger events to be emitted.
 
 ## Releasing
 

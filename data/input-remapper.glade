@@ -841,36 +841,6 @@ Shortcut: ctrl + del</property>
                             <property name="can-focus">False</property>
                             <property name="margin-top">6</property>
                             <child>
-                              <object class="GtkScrolledWindow" id="code_editor_container">
-                                <property name="visible">True</property>
-                                <property name="can-focus">True</property>
-                                <child>
-                                  <object class="GtkSourceView" id="code_editor">
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">True</property>
-                                    <property name="tooltip-text" translatable="yes">What should be written. For example KEY_A</property>
-                                    <property name="valign">start</property>
-                                    <property name="resize-mode">immediate</property>
-                                    <property name="wrap-mode">word</property>
-                                    <property name="left-margin">10</property>
-                                    <property name="right-margin">10</property>
-                                    <property name="top-margin">10</property>
-                                    <property name="bottom-margin">10</property>
-                                    <property name="monospace">True</property>
-                                    <property name="tab-width">2</property>
-                                    <property name="auto-indent">True</property>
-                                    <style>
-                                      <class name="code-editor-text-view"/>
-                                    </style>
-                                  </object>
-                                </child>
-                              </object>
-                              <packing>
-                                <property name="name">Key or Macro</property>
-                                <property name="title" translatable="yes">Key or Macro</property>
-                              </packing>
-                            </child>
-                            <child>
                               <object class="GtkBox">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
@@ -1145,6 +1115,68 @@ Only relevant when mapping relative inputs (e.g. mouse) to absolute outputs (e.g
                               <packing>
                                 <property name="name">Analog Axis</property>
                                 <property name="title" translatable="yes">Analog Axis</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkBox">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="orientation">vertical</property>
+                                <child>
+                                  <object class="GtkScrolledWindow" id="code_editor_container">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">True</property>
+                                    <child>
+                                      <object class="GtkSourceView" id="code_editor">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">True</property>
+                                        <property name="tooltip-text" translatable="yes">What should be written. For example KEY_A</property>
+                                        <property name="valign">start</property>
+                                        <property name="resize-mode">immediate</property>
+                                        <property name="wrap-mode">word</property>
+                                        <property name="left-margin">10</property>
+                                        <property name="right-margin">10</property>
+                                        <property name="top-margin">10</property>
+                                        <property name="bottom-margin">10</property>
+                                        <property name="monospace">True</property>
+                                        <property name="tab-width">2</property>
+                                        <property name="auto-indent">True</property>
+                                        <style>
+                                          <class name="code-editor-text-view"/>
+                                        </style>
+                                      </object>
+                                    </child>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">True</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">0</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel" id="gdk-event-recorder-label">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="tooltip-text" translatable="yes">You can copy this text into the output</property>
+                                    <property name="opacity">0.5</property>
+                                    <property name="margin-top">12</property>
+                                    <property name="selectable">True</property>
+                                    <property name="ellipsize">end</property>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="pack-type">end</property>
+                                    <property name="position">1</property>
+                                  </packing>
+                                </child>
+                                <style>
+                                  <class name="key-or-macro-box"/>
+                                </style>
+                              </object>
+                              <packing>
+                                <property name="name">Key or Macro</property>
+                                <property name="title" translatable="yes">Key or Macro</property>
                                 <property name="position">1</property>
                               </packing>
                             </child>
@@ -1672,6 +1704,7 @@ Macros allow multiple characters to be written with a single key-press. Informat
               <object class="GtkLabel">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
+                <property name="tooltip-text" translatable="yes">Release all inputs which are part of the combination before the mapping is injected</property>
                 <property name="opacity">0.5</property>
                 <property name="margin-start">18</property>
                 <property name="label" translatable="yes">Release input</property>
@@ -1764,6 +1797,7 @@ Macros allow multiple characters to be written with a single key-press. Informat
               <object class="GtkLabel">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
+                <property name="tooltip-text" translatable="yes">Map this input to an Analog Axis</property>
                 <property name="opacity">0.5</property>
                 <property name="margin-start">18</property>
                 <property name="hexpand">True</property>

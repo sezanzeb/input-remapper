@@ -92,7 +92,7 @@ class DeviceGroupSelection(FlowBoxWrapper):
         self._message_broker.subscribe(MessageType.group, self._on_group_changed)
 
     def _on_groups_changed(self, data: GroupsData):
-        self._gui.foreach(lambda group: self._gui.remove(group))
+        self._gui.foreach(self._gui.remove)
 
         for group_key, types in data.groups.items():
             if len(types) > 0:

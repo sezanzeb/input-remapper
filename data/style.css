@@ -31,6 +31,12 @@
     background: @theme_base_color;
 }
 
+.multiline > *:first-child {
+    /* source view suddenly started showing a white background behind line-numbers */
+    /* solution found by furiously trying css rules out in the gtk inspector */
+    background: @theme_bg_color;
+}
+
 /*
 @theme_bg_color
 @theme_selected_bg_color

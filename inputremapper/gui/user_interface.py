@@ -50,6 +50,7 @@ from inputremapper.gui.components.editor import (
     RelativeInputCutoffInput,
     KeyAxisStackSwitcher,
     RequireActiveMapping,
+    GdkEventRecorder,
 )
 from inputremapper.gui.components.presets import PresetSelection
 from inputremapper.gui.components.main import Stack, StatusBar
@@ -207,6 +208,8 @@ class UserInterface:
             self.get("expo-scale"),
         )
 
+        GdkEventRecorder(self.window, self.get("gdk-event-recorder-label"))
+
         RequireActiveMapping(
             message_broker,
             self.get("edit-combination-btn"),
@@ -225,7 +228,7 @@ class UserInterface:
 
         # code editor and autocompletion
         code_editor = CodeEditor(message_broker, controller, self.get("code_editor"))
-        autocompletion = Autocompletion(message_broker, code_editor)
+        autocompletion = Autocompletion(message_broker, controller, code_editor)
         autocompletion.set_relative_to(self.get("code_editor_container"))
         self.autocompletion = autocompletion  # only for testing
 

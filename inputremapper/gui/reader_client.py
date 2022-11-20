@@ -178,7 +178,7 @@ class ReaderClient:
         self._recording_generator = self._recorder()
         next(self._recording_generator)
 
-        self.message_broker.signal(MessageType.recording_started)  # TODO test
+        self.message_broker.signal(MessageType.recording_started)
 
     def stop_recorder(self) -> None:
         """Stop recording the input.
