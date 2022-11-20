@@ -22,7 +22,7 @@ from __future__ import annotations
 
 import enum
 from dataclasses import dataclass
-from typing import Tuple, Union, Sequence, Callable, Optional, Any
+from typing import Tuple, Union, Sequence, Callable, Optional, Any, Dict
 
 import evdev
 from evdev import ecodes
@@ -71,16 +71,28 @@ class InputEvent:
     code: int
     value: int
     actions: Tuple[EventActions, ...] = ()
+    origin: Optional[int] = None
+    analog_threshold: Optional[int] = None
+
+    def to_config(self) -> Dict[str, int]:
+        d = {"type": self.type, "code": self.code}
+        if self.origin:
+            d["origin"] = self.origin
+        if self.analog_threshold:
+            d["analog_threshold"] = self.analog_threshold
+        return d
+
+    @classmethod
+    def from_config(cls, type: int, code: int, origin: int, analog_threshold: int):
+        return cls(
+            0, 0, type, code, 0, origin=origin, analog_threshold=analog_threshold
+        )
 
     def __hash__(self):
-        return hash((self.type, self.code, self.value))
+        return hash((self.type, self.code, self.origin, self.analog_threshold))
 
     def __eq__(self, other: Any):
-        if isinstance(other, InputEvent) or isinstance(other, evdev.InputEvent):
-            return self.event_tuple == (other.type, other.code, other.value)
-        if isinstance(other, tuple):
-            return self.event_tuple == other
-        return False
+        return hash(self) == hash(other)
 
     @classmethod
     def __get_validators__(cls):
@@ -224,6 +236,8 @@ class InputEvent:
             code if code is not None else self.code,
             value if value is not None else self.value,
             actions if actions is not None else self.actions,
+            origin=self.origin,
+            analog_threshold=self.analog_threshold,
         )
 
     def json_key(self) -> str:

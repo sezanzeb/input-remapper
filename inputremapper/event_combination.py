@@ -21,7 +21,7 @@
 from __future__ import annotations
 
 import itertools
-from typing import Tuple, Iterable, Union, Callable, Sequence, List
+from typing import Tuple, Iterable, Union, Callable, Sequence, List, Dict
 
 from evdev import ecodes
 
@@ -84,22 +84,15 @@ class EventCombination(Tuple[InputEvent]):
 
     @classmethod
     def validate(cls, init_arg: EventCombinationValidatorType) -> EventCombination:
-        """Try all the different methods, and raise an error if none succeed."""
+        """The only valid option is from_config"""
         if isinstance(init_arg, EventCombination):
             return init_arg
+        return cls.from_config(init_arg)
 
-        combi = None
-        validators: Sequence[Callable[..., EventCombination]] = (cls.from_string, cls)
-        for validator in validators:
-            try:
-                combi = validator(init_arg)
-                break
-            except ValueError:
-                pass
-
-        if combi:
-            return combi
-        raise ValueError(f"failed to create EventCombination with {init_arg = }")
+    @classmethod
+    def from_config(cls, init_dicts: Iterable[Dict[str, int]]) -> EventCombination:
+        """Create a InputCombination from dicts"""
+        return cls((InputEvent.from_config(**d) for d in init_dicts))
 
     @classmethod
     def from_string(cls, init_string: str) -> EventCombination:
