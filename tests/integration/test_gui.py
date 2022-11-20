@@ -692,6 +692,8 @@ class TestGui(GuiTestBase):
         )
         self.throttle(20)
 
+        # if this fails with <EventCombination (1, 5, 1)>: this is the initial
+        # mapping or something, so it was never overwritten.
         self.assertEqual(
             self.data_manager.active_mapping.event_combination,
             EventCombination.from_string("1,30,1"),
