@@ -168,7 +168,11 @@ class MappingListBox:
         return 0 if row1.name < row2.name else 1
 
     def _on_preset_changed(self, data: PresetData):
-        self._gui.foreach(lambda label: (label.cleanup(), self._gui.remove(label)))
+        selection_labels = self._gui.get_children()
+        for selection_label in selection_labels:
+            selection_label.cleanup()
+            self._gui.remove(selection_label)
+
         if not data.mappings:
             return
 
@@ -751,7 +755,10 @@ class CombinationListbox:
         if self._combination == mapping.event_combination:
             return
 
-        self._gui.foreach(lambda label: (label.cleanup(), self._gui.remove(label)))
+        event_entries = self._gui.get_children()
+        for event_entry in event_entries:
+            self._gui.remove(event_entry)
+
         if self._controller.is_empty_mapping():
             self._combination = None
         else:

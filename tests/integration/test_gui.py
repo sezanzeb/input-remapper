@@ -911,6 +911,9 @@ class TestGui(GuiTestBase):
         )
 
     def test_combination(self):
+        # if this test freezes, try waiting a few minutes and then look for
+        # stack traces in the console
+
         # load a device with more capabilities
         self.controller.load_group("Foo Device 2")
         gtk_iteration()

@@ -33,6 +33,13 @@ with the gui, which might make tests fail.
 
 There is also a run configuration for PyCharm called "All Tests" included.
 
+## Advices
+
+Do not use GTKs `foreach` methods, because when the function fails it just freezes up completely.
+Use `get_children()` and iterate over it with regular python `for` loops.
+
+use `gtk_iteration` in tests when interacting with GTK methods to trigger events to be emitted.
+
 ## Writing Tests
 
 Tests are in https://github.com/sezanzeb/input-remapper/tree/main/tests

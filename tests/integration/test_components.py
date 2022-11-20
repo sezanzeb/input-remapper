@@ -700,7 +700,7 @@ class TestCodeEditor(ComponentBaseTest):
 
         # the call is debounced by quite a lot
         self.controller_mock.update_mapping.assert_not_called()
-        time.sleep(0.51)
+        time.sleep(1.1)
         gtk_iteration()
 
         self.controller_mock.update_mapping.assert_called_once_with(output_symbol="foo")
