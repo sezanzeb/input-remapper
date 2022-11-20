@@ -180,7 +180,6 @@ class SystemMapping:
             if int(entry[0]) - XKB_KEYCODE_OFFSET == code:
                 return entry[1].split()[0]
 
-        # TODO test
         # Fall back to the linux constants
         # This is especially important for BTN_LEFT and such
         btn_name = evdev.ecodes.BTN.get(code, None)

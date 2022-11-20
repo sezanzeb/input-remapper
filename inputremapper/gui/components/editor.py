@@ -479,7 +479,6 @@ class CodeEditor:
     def _on_gtk_changed(self, *_):
         # This triggers for each typed character, will cause disk-writes and writes
         # tons of logs, so this is debounced a bit
-        # TODO test debounce
         self._controller.update_mapping(output_symbol=self.code)
 
     def _on_mapping_loaded(self, mapping: MappingData):
@@ -714,9 +713,6 @@ class EventEntry(Gtk.ListBoxRow):
         # only used in testing
         self._up_btn = up_btn
         self._down_btn = down_btn
-
-    def cleanup(self):
-        """Remove any message listeners we are about to get destroyed."""
 
 
 class CombinationListbox:

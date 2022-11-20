@@ -82,7 +82,7 @@ from inputremapper.gui.components.editor import MappingSelectionLabel, SET_KEY_F
 from inputremapper.gui.components.device_groups import DeviceGroupEntry
 from inputremapper.gui.controller import Controller
 from inputremapper.gui.reader_service import ReaderService
-from inputremapper.gui.utils import gtk_iteration, Colors
+from inputremapper.gui.utils import gtk_iteration, Colors, debounce, debounce_manager
 from inputremapper.gui.user_interface import UserInterface
 from inputremapper.injection.injector import InjectorState
 from inputremapper.event_combination import EventCombination
@@ -358,13 +358,13 @@ class GuiTestBase(unittest.TestCase):
             self.tearDown()
             self.setUp()
 
-    def throttle(self, iterations=10):
-        """Give GTK some time to process everything."""
+    def throttle(self, time_=10):
+        """Give GTK some time in ms to process everything."""
         # tests suddenly started to freeze my computer up completely and tests started
         # to fail. By using this (and by optimizing some redundant calls in the gui) it
         # worked again. EDIT: Might have been caused by my broken/bloated ssd. I'll
         # keep it in some places, since it did make the tests more reliable after all.
-        for _ in range(iterations):
+        for _ in range(time_ // 2):
             gtk_iteration()
             time.sleep(0.002)
 
@@ -809,6 +809,7 @@ class TestGui(GuiTestBase):
 
         # 3. set the output symbol
         self.code_editor.get_buffer().set_text("Shift_L")
+        debounce_manager.run_all_now()
         gtk_iteration()
 
         # the mapping and preset should be valid by now
@@ -876,6 +877,7 @@ class TestGui(GuiTestBase):
             self.throttle(20)
             gtk_iteration()
             self.code_editor.get_buffer().set_text(symbol)
+            debounce_manager.run_all_now()
             gtk_iteration()
 
         add_mapping(ev_1, "a")
@@ -955,6 +957,7 @@ class TestGui(GuiTestBase):
             self.throttle(20)
             gtk_iteration()
             self.code_editor.get_buffer().set_text(symbol)
+            debounce_manager.run_all_now()
             gtk_iteration()
 
         add_mapping(combination_1, "a")
@@ -1231,6 +1234,7 @@ class TestGui(GuiTestBase):
             self.throttle(20)
             gtk_iteration()
             self.code_editor.get_buffer().set_text(symbol)
+            debounce_manager.run_all_now()
             gtk_iteration()
 
         combination = EventCombination(((EV_KEY, KEY_LEFTSHIFT, 1), (EV_KEY, 82, 1)))
@@ -1260,6 +1264,7 @@ class TestGui(GuiTestBase):
 
         with patch.object(self.data_manager.active_preset, "save", save):
             self.code_editor.get_buffer().set_text("f")
+            debounce_manager.run_all_now()
             gtk_iteration()
         status = self.get_status_text()
         self.assertIn("Permission denied", status)
@@ -1318,14 +1323,14 @@ class TestGui(GuiTestBase):
         warning_icon = self.user_interface.get("warning_status_icon")
 
         self.code_editor.get_buffer().set_text("k(1))")
-        gtk_iteration()
+        debounce_manager.run_all_now()
         tooltip = status.get_tooltip_text().lower()
         self.assertIn("brackets", tooltip)
         self.assertTrue(error_icon.get_visible())
         self.assertFalse(warning_icon.get_visible())
 
         self.code_editor.get_buffer().set_text("k(1)")
-        gtk_iteration()
+        debounce_manager.run_all_now()
         tooltip = (status.get_tooltip_text() or "").lower()
         self.assertNotIn("brackets", tooltip)
         self.assertFalse(error_icon.get_visible())
@@ -1348,6 +1353,7 @@ class TestGui(GuiTestBase):
         # now change the mapping by typing into the field
         buffer = self.code_editor.get_buffer()
         buffer.set_text("sdfgkj()")
+        debounce_manager.run_all_now()
         gtk_iteration()
 
         # the mapping is immediately validated
@@ -1991,6 +1997,95 @@ class TestAutocompletion(GuiTestBase):
         self.assertEqual(
             autocompletion.scrolled_window.get_vadjustment().get_value(), 0
         )
+
+
+class TestDebounce(unittest.TestCase):
+    def test_debounce(self):
+        calls = 0
+
+        class A:
+            @debounce(20)
+            def foo(self):
+                nonlocal calls
+                calls += 1
+
+        # two methods with the same name don't confuse debounce
+        class B:
+            @debounce(20)
+            def foo(self):
+                nonlocal calls
+                calls += 1
+
+        a = A()
+        b = B()
+
+        self.assertEqual(calls, 0)
+
+        a.foo()
+        gtk_iteration()
+        self.assertEqual(calls, 0)
+
+        b.foo()
+        gtk_iteration()
+        self.assertEqual(calls, 0)
+
+        time.sleep(0.021)
+        gtk_iteration()
+        self.assertEqual(calls, 2)
+
+        a.foo()
+        b.foo()
+        a.foo()
+        b.foo()
+        gtk_iteration()
+        self.assertEqual(calls, 2)
+
+        time.sleep(0.021)
+        gtk_iteration()
+        self.assertEqual(calls, 4)
+
+    def test_run_all_now(self):
+        calls = 0
+
+        class A:
+            @debounce(20)
+            def foo(self):
+                nonlocal calls
+                calls += 1
+
+        a = A()
+        a.foo()
+        gtk_iteration()
+        self.assertEqual(calls, 0)
+
+        debounce_manager.run_all_now()
+        self.assertEqual(calls, 1)
+
+        # waiting for some time will not call it
+        time.sleep(0.021)
+        gtk_iteration()
+        self.assertEqual(calls, 1)
+
+    def test_stop_all(self):
+        calls = 0
+
+        class A:
+            @debounce(20)
+            def foo(self):
+                nonlocal calls
+                calls += 1
+
+        a = A()
+        a.foo()
+        gtk_iteration()
+        self.assertEqual(calls, 0)
+
+        debounce_manager.stop_all()
+
+        # waiting for some time will not call it
+        time.sleep(0.021)
+        gtk_iteration()
+        self.assertEqual(calls, 0)
 
 
 if __name__ == "__main__":

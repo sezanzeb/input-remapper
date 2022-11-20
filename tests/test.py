@@ -19,10 +19,11 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
-"""Sets up inputremapper for the tests and runs them.
+"""Sets up input-remapper for the tests and runs them.
 
 This module needs to be imported first in test files.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -782,18 +783,15 @@ from inputremapper.logger import update_verbosity
 
 update_verbosity(True)
 
-from inputremapper.daemon import DaemonProxy
 from inputremapper.input_event import InputEvent as InternalInputEvent
 from inputremapper.injection.injector import Injector, InjectorState
 from inputremapper.injection.macros.macro import macro_variables
-from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.configs.global_config import global_config
 from inputremapper.configs.mapping import Mapping, UIMapping
-from inputremapper.groups import groups, _Groups
+from inputremapper.groups import groups
 from inputremapper.configs.system_mapping import system_mapping
-from inputremapper.gui.messages.message_broker import MessageBroker
-from inputremapper.gui.reader_client import ReaderClient
 from inputremapper.gui.reader_service import ReaderService
+from inputremapper.gui.utils import debounce_manager
 from inputremapper.configs.paths import get_config_path, get_preset_path
 from inputremapper.configs.preset import Preset
 
@@ -845,6 +843,8 @@ def quick_cleanup(log=True):
     """Reset the applications state."""
     if log:
         print("Quick cleanup...")
+
+    debounce_manager.stop_all()
 
     for device in list(pending_events.keys()):
         try:

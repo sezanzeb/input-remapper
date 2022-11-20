@@ -20,7 +20,8 @@
 from __future__ import annotations
 
 import time
-from typing import List, Callable
+from dataclasses import dataclass
+from typing import List, Callable, Dict, Optional
 
 import gi
 
@@ -42,34 +43,124 @@ CTX_WARNING = 4
 CTX_MAPPING = 5
 
 
+@dataclass()
+class DebounceInfo:
+    # constant after register:
+    timeout_ms: int
+    function: Optional[Callable]
+
+    # changes on each call:
+    args: list
+    kwargs: dict
+    glib_timeout: Optional[int]
+
+
+class DebounceManager:
+    """Stops all debounced functions if needed."""
+
+    debounce_infos: Dict[int, DebounceInfo] = {}
+
+    def register(self, function, timeout_ms):
+        """Remember the timeout. `function` should be decorated with `@debounce`.
+
+        This is needed for `call` to work.
+        """
+        self.debounce_infos[id(function)] = DebounceInfo(
+            timeout_ms=timeout_ms,
+            function=function,
+            glib_timeout=None,
+            args=[],
+            kwargs={},
+        )
+
+    def debounce(self, function, *args, **kwargs):
+        """Call this function with the given args later."""
+        debounce_info = self.debounce_infos.get(id(function))
+        if debounce_info is None:
+            raise Exception(
+                f"Function {function.__name__} has not been set up for debouncing"
+            )
+
+        debounce_info.args = args
+        debounce_info.kwargs = kwargs
+
+        glib_timeout = debounce_info.glib_timeout
+        if glib_timeout is not None:
+            GLib.source_remove(glib_timeout)
+
+        def run():
+            self.stop(function)
+            return function(*args, **kwargs)
+
+        debounce_info.glib_timeout = GLib.timeout_add(
+            debounce_info.timeout_ms,
+            lambda: run(),
+        )
+
+    def stop(self, function):
+        """Stop the current debounce timeout of this function and don't call it.
+
+        New calls to that function will be debounced again.
+        """
+        debounce_info = self.debounce_infos[id(function)]
+        if debounce_info.glib_timeout is not None:
+            GLib.source_remove(debounce_info.glib_timeout)
+            debounce_info.glib_timeout = None
+
+    def stop_all(self):
+        """No debounced function should be called anymore after this.
+
+        New calls to that function will be debounced again.
+        """
+        for debounce_info in self.debounce_infos.values():
+            self.stop(debounce_info.function)
+
+    def run_all_now(self):
+        """Don't wait any longer."""
+        for debounce_info in self.debounce_infos.values():
+            if debounce_info.glib_timeout is None:
+                # nothing is currently waiting for this function to be called
+                continue
+
+            self.stop(debounce_info.function)
+            try:
+                debounce_info.function(
+                    *debounce_info.args,
+                    **debounce_info.kwargs
+                )
+            except Exception as exception:
+                # if individual functions fails, continue calling the others.
+                # also, don't raise this because there is nowhere this exception
+                # could be caught in a useful way
+                logger.error(exception)
+
+
+debounce_manager = DebounceManager()
+
+
 def debounce(timeout):
     """Debounce a function call to improve performance.
 
     Calling this with a millisecond value creates the decorator, so use something like
 
     @debounce(50)
-    def foo():
+    def function(self):
         ...
+
+    In tests, run_all_now can be used to avoid waiting to speed them up.
     """
-    glib_timeout = None
+    # the outside `debounce` function is needed to obtain the millisecond value
 
     def decorator(function):
-        # TODO test that this works with two functions of the same name now
-        def clear_debounce(self, *args):
-            nonlocal glib_timeout
-            glib_timeout = None
-            return function(self, *args)
+        # the regular decorator.
+        # @decorator
+        # def foo():
+        #   ...
+        debounce_manager.register(function, timeout)
 
-        def wrapped(self, *args):
-            nonlocal glib_timeout
-
-            if glib_timeout is not None:
-                GLib.source_remove(glib_timeout)
-
-            glib_timeout = GLib.timeout_add(
-                timeout,
-                lambda: clear_debounce(self, *args),
-            )
+        def wrapped(*args, **kwargs):
+            # this is the function that will actually be called
+            debounce_manager.debounce(function, *args, **kwargs)
 
         return wrapped
 
