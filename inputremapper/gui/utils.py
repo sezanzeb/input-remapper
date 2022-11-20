@@ -74,7 +74,7 @@ class DebounceManager:
         self.debounce_infos[key] = debounce_info
         return debounce_info
 
-    def get(self, other: object, function: Callable = None) -> Optional[DebounceInfo]:
+    def get(self, other: object, function: Callable) -> Optional[DebounceInfo]:
         """Find the debounce_info that matches the given callable."""
         key = self._get_key(other, function)
         return self.debounce_infos.get(key)
