@@ -127,7 +127,6 @@ class TargetSelection:
         self._gui.add_attribute(renderer_text, "text", 0)
         self._gui.set_id_column(0)
 
-        # TODO test
         self._select_current_target()
 
     def _on_mapping_loaded(self, mapping: MappingData):
@@ -273,7 +272,6 @@ class MappingSelectionLabel(Gtk.ListBoxRow):
         self.name_input.hide()
 
     def __repr__(self):
-        # TODO test
         return f"MappingSelectionLabel for {self.combination} as {self.name}"
 
     def _set_not_selected(self):
@@ -455,9 +453,13 @@ class CodeEditor:
             self.gui.do_move_cursor(self.gui, Gtk.MovementStep.BUFFER_ENDS, -1, False)
 
     def _connect_message_listener(self):
-        self._message_broker.subscribe(MessageType.mapping, self._on_mapping_loaded)
         self._message_broker.subscribe(
-            MessageType.recording_finished, self._on_recording_finished
+            MessageType.mapping,
+            self._on_mapping_loaded,
+        )
+        self._message_broker.subscribe(
+            MessageType.recording_finished,
+            self._on_recording_finished,
         )
 
     def _toggle_line_numbers(self):
@@ -477,7 +479,7 @@ class CodeEditor:
     def _on_gtk_focus_out(self, *_):
         # This helps to keep the gui data up-to-date when changed-events are
         # debounced
-        self._controller.update_mapping(output_symbol=self.code)  # TODO test
+        self._controller.update_mapping(output_symbol=self.code)
 
     @debounce(1000)
     def _on_gtk_changed(self, *_):

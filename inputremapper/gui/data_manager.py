@@ -461,10 +461,12 @@ class DataManager:
             self.message_broker.publish(
                 CombinationUpdate(combination, self._active_mapping.event_combination)
             )
+
         if "mapping_type" in kwargs:
             # mapping_type must be the last update because it is automatically updated
             # by a validation function
             self._active_mapping.mapping_type = kwargs["mapping_type"]
+
         self.publish_mapping()
 
     def update_event(self, new_event: InputEvent):

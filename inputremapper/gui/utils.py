@@ -124,10 +124,11 @@ class DebounceManager:
 
             self.stop(debounce_info.function)
             try:
-                debounce_info.function(
-                    *debounce_info.args,
-                    **debounce_info.kwargs
+                logger.warning(
+                    'Running "%s" now without waiting',
+                    debounce_info.function.__name__,
                 )
+                debounce_info.function(*debounce_info.args, **debounce_info.kwargs)
             except Exception as exception:
                 # if individual functions fails, continue calling the others.
                 # also, don't raise this because there is nowhere this exception

@@ -481,6 +481,13 @@ class TestMappingSelectionLabel(ComponentBaseTest):
         self.assertTrue(self.mapping_selection_label.label.get_visible())
         self.assertFalse(self.mapping_selection_label.name_input.get_visible())
 
+    def test_repr(self):
+        self.mapping_selection_label.name = "name"
+        self.assertEqual(
+            repr(self.mapping_selection_label),
+            "MappingSelectionLabel for a + b as name",
+        )
+
     def test_shows_combination_without_name(self):
         self.assertEqual(self.mapping_selection_label.label.get_label(), "a + b")
 

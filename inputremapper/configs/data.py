@@ -56,7 +56,7 @@ def _try_python_package_location():
         source = pkg_resources.require("input-remapper")[0].location
         # failed in some ubuntu installations
     except pkg_resources.DistributionNotFound:
-        logger.debug('DistributionNotFound')
+        logger.debug("DistributionNotFound")
         pass
 
     data = None
