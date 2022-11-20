@@ -83,7 +83,13 @@ class InputEvent:
         return d
 
     @classmethod
-    def from_config(cls, type: int, code: int, origin: int, analog_threshold: int):
+    def from_config(
+        cls,
+        type: int,
+        code: int,
+        origin: Optional[int] = None,
+        analog_threshold: Optional[int] = None,
+    ):
         return cls(
             0, 0, type, code, 0, origin=origin, analog_threshold=analog_threshold
         )

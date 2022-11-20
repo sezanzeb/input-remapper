@@ -38,6 +38,8 @@ from typing import (
 )
 
 from pydantic import ValidationError
+from evdev.ecodes import EV_KEY
+
 from inputremapper.logger import logger
 from inputremapper.configs.mapping import Mapping, UIMapping
 from inputremapper.configs.paths import touch
@@ -184,7 +186,7 @@ class Preset(Generic[MappingModel]):
 
         logger.info("Saving preset to %s", self.path)
 
-        preset_dict = {}
+        preset_list = []
         saved_mappings = {}
         for mapping in self:
             if not mapping.is_valid():
@@ -195,6 +197,8 @@ class Preset(Generic[MappingModel]):
                     continue
 
                 if self._is_mapped_multiple_times(mapping.event_combination):
+                    # todo: is this ever executed? it should not be possible to
+                    #  reach this
                     logger.debug(
                         "skipping mapping with duplicate event combination %s",
                         mapping,
@@ -202,17 +206,15 @@ class Preset(Generic[MappingModel]):
                     continue
 
             mapping_dict = mapping.dict(exclude_defaults=True)
+            mapping_dict["event_combination"] = mapping.event_combination.to_config()
             combination = mapping.event_combination
-            if "event_combination" in mapping_dict:
-                # used as key, don't store it redundantly
-                del mapping_dict["event_combination"]
-            preset_dict[combination.json_key()] = mapping_dict
+            preset_list.append(mapping_dict)
 
             saved_mappings[combination] = mapping.copy()
             saved_mappings[combination].remove_combination_changed_callback()
 
         with open(self.path, "w") as file:
-            json.dump(preset_dict, file, indent=4)
+            json.dump(preset_list, file, indent=4)
             file.write("\n")
 
         self._saved_mappings = saved_mappings
@@ -287,20 +289,39 @@ class Preset(Generic[MappingModel]):
 
         with open(self.path, "r") as file:
             try:
-                preset_dict = json.load(file)
+                preset_list = json.load(file)
             except json.JSONDecodeError:
                 logger.error("unable to decode json file: %s", self.path)
                 return mappings
 
-        for combination, mapping_dict in preset_dict.items():
+        if isinstance(preset_list, dict):
+            # todo: remove this before merge into main
+            #  adds compatibility with older beta versions
+            for c, d in preset_list.items():
+                tmp = EventCombination.from_string(c)
+                tmp2 = []
+                for event in tmp:
+                    tmp2.append(
+                        InputEvent.from_config(
+                            event.type,
+                            event.code,
+                            origin=None,
+                            analog_threshold=event.value
+                            if event.type != EV_KEY
+                            else None,
+                        ).to_config()
+                    )
+
+                d["event_combination"] = tmp2
+            preset_list = list(preset_list.values())
+
+        for mapping_dict in preset_list:
             try:
-                mapping = self._mapping_factory(
-                    event_combination=combination, **mapping_dict
-                )
+                mapping = self._mapping_factory(**mapping_dict)
             except ValidationError as error:
                 logger.error(
                     "failed to Validate mapping for %s: %s",
-                    combination,
+                    mapping_dict["event_combination"],
                     error,
                 )
                 continue

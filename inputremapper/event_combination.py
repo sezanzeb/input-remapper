@@ -94,6 +94,9 @@ class EventCombination(Tuple[InputEvent]):
         """Create a InputCombination from dicts"""
         return cls((InputEvent.from_config(**d) for d in init_dicts))
 
+    def to_config(self) -> Tuple[Dict[str, int], ...]:
+        return tuple(event.to_config() for event in self)
+
     @classmethod
     def from_string(cls, init_string: str) -> EventCombination:
         """Create a EventCombination form a string like '1,2,3+4,5,6'."""
