@@ -49,7 +49,7 @@ class DebounceInfo:
     timeout_ms: int
     function: Optional[Callable]
 
-    # changes on each call:
+    # can change when called again:
     args: list
     kwargs: dict
     glib_timeout: Optional[int]
