@@ -1,4 +1,3 @@
-#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2022 sezanzeb <proxima@sezanzeb.de>
@@ -33,25 +32,32 @@ from inputremapper.logger import logger
 logged = False
 
 
-def get_data_path(filename=""):
-    """Depending on the installation prefix, return the data dir.
+def _try_standard_locations():
+    """Look for the data dir where it typically can be found."""
+    candidates = [
+        "/usr/share/input-remapper",
+        "/usr/local/share/input-remapper",
+        os.path.join(site.USER_BASE, "share/input-remapper"),
+    ]
 
-    Since it is a nightmare to get stuff installed with pip across
-    distros this is somewhat complicated. Ubuntu uses /usr/local/share
-    for data_files (setup.py) and manjaro uses /usr/share.
-    """
-    global logged
+    # try any of the options
+    for candidate in candidates:
+        if os.path.exists(candidate):
+            data = candidate
+            break
 
+    return data
+
+
+def _try_python_package_location():
+    """Look for the data dir at the packages installation location."""
     source = None
     try:
         source = pkg_resources.require("input-remapper")[0].location
         # failed in some ubuntu installations
     except pkg_resources.DistributionNotFound:
+        logger.debug("DistributionNotFound")
         pass
-
-    # depending on where this file is installed to, make sure to use the proper
-    # prefix path for data
-    # https://docs.python.org/3/distutils/setupscript.html?highlight=package_data#installing-additional-files # noqa pylint: disable=line-too-long
 
     data = None
     # python3.8/dist-packages python3.7/site-packages, /usr/share,
@@ -64,22 +70,27 @@ def get_data_path(filename=""):
                 logger.debug('-e, but data missing at "%s"', data)
             data = None
 
-    candidates = [
-        "/usr/share/input-remapper",
-        "/usr/local/share/input-remapper",
-        os.path.join(site.USER_BASE, "share/input-remapper"),
-    ]
+    return data
+
+
+def get_data_path(filename=""):
+    """Depending on the installation prefix, return the data dir.
+
+    Since it is a nightmare to get stuff installed with pip across
+    distros this is somewhat complicated. Ubuntu uses /usr/local/share
+    for data_files (setup.py) and manjaro uses /usr/share.
+    """
+    global logged
+
+    # depending on where this file is installed to, make sure to use the proper
+    # prefix path for data
+    # https://docs.python.org/3/distutils/setupscript.html?highlight=package_data#installing-additional-files # noqa pylint: disable=line-too-long
+
+    data = _try_python_package_location() or _try_standard_locations()
 
     if data is None:
-        # try any of the options
-        for candidate in candidates:
-            if os.path.exists(candidate):
-                data = candidate
-                break
-
-        if data is None:
-            logger.error("Could not find the application data")
-            sys.exit(10)
+        logger.error("Could not find the application data")
+        sys.exit(10)
 
     if not logged:
         logger.debug('Found data at "%s"', data)

@@ -145,7 +145,7 @@ class TestDataManager(unittest.TestCase):
             self.assertIn(mapping, mappings)
 
     def test_cannot_load_non_existing_preset(self):
-        """Loading a non-existing preset should raise an KeyError."""
+        """Loading a non-existing preset should raise a KeyError."""
         prepare_presets()
 
         self.data_manager.load_group(group_key="Foo Device")

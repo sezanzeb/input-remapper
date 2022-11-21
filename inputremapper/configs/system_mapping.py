@@ -1,4 +1,3 @@
-#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2022 sezanzeb <proxima@sezanzeb.de>
@@ -180,6 +179,22 @@ class SystemMapping:
         for entry in self._xmodmap:
             if int(entry[0]) - XKB_KEYCODE_OFFSET == code:
                 return entry[1].split()[0]
+
+        # Fall back to the linux constants
+        # This is especially important for BTN_LEFT and such
+        btn_name = evdev.ecodes.BTN.get(code, None)
+        if btn_name is not None:
+            if type(btn_name) == list:
+                return btn_name[0]
+            else:
+                return btn_name
+
+        key_name = evdev.ecodes.KEY.get(code, None)
+        if key_name is not None:
+            if type(key_name) == list:
+                return key_name[0]
+            else:
+                return key_name
 
         return None
 

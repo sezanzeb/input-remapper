@@ -18,139 +18,19 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-import json
 import os
-import subprocess
 import unittest
 from unittest.mock import patch
 
-from evdev.ecodes import EV_KEY, EV_ABS, KEY_A
+from evdev.ecodes import EV_KEY, EV_ABS
 
+from inputremapper.configs.mapping import Mapping
 from inputremapper.configs.mapping import UIMapping
 from inputremapper.configs.paths import get_preset_path, get_config_path, CONFIG_PATH
 from inputremapper.configs.preset import Preset
-from inputremapper.configs.system_mapping import SystemMapping, XMODMAP_FILENAME
-from inputremapper.configs.mapping import Mapping
 from inputremapper.event_combination import EventCombination
 from inputremapper.input_event import InputEvent
 from tests.test import quick_cleanup, get_key_mapping
-
-
-class TestSystemMapping(unittest.TestCase):
-    def tearDown(self):
-        quick_cleanup()
-
-    def test_update(self):
-        system_mapping = SystemMapping()
-        system_mapping.update({"foo1": 101, "bar1": 102})
-        system_mapping.update({"foo2": 201, "bar2": 202})
-        self.assertEqual(system_mapping.get("foo1"), 101)
-        self.assertEqual(system_mapping.get("bar2"), 202)
-
-    def test_xmodmap_file(self):
-        system_mapping = SystemMapping()
-        path = os.path.join(CONFIG_PATH, XMODMAP_FILENAME)
-        os.remove(path)
-
-        system_mapping.populate()
-        self.assertTrue(os.path.exists(path))
-        with open(path, "r") as file:
-            content = json.load(file)
-            self.assertEqual(content["a"], KEY_A)
-            # only xmodmap stuff should be present
-            self.assertNotIn("key_a", content)
-            self.assertNotIn("KEY_A", content)
-            self.assertNotIn("disable", content)
-
-    def test_empty_xmodmap(self):
-        # if xmodmap returns nothing, don't write the file
-        empty_xmodmap = ""
-
-        class SubprocessMock:
-            def decode(self):
-                return empty_xmodmap
-
-        def check_output(*args, **kwargs):
-            return SubprocessMock()
-
-        with patch.object(subprocess, "check_output", check_output):
-            system_mapping = SystemMapping()
-            path = os.path.join(CONFIG_PATH, XMODMAP_FILENAME)
-            os.remove(path)
-
-            system_mapping.populate()
-            self.assertFalse(os.path.exists(path))
-
-    def test_xmodmap_command_missing(self):
-        # if xmodmap is not installed, don't write the file
-        def check_output(*args, **kwargs):
-            raise FileNotFoundError
-
-        with patch.object(subprocess, "check_output", check_output):
-            system_mapping = SystemMapping()
-            path = os.path.join(CONFIG_PATH, XMODMAP_FILENAME)
-            os.remove(path)
-
-            system_mapping.populate()
-            self.assertFalse(os.path.exists(path))
-
-    def test_correct_case(self):
-        system_mapping = SystemMapping()
-        system_mapping.clear()
-        system_mapping._set("A", 31)
-        system_mapping._set("a", 32)
-        system_mapping._set("abcd_B", 33)
-
-        self.assertEqual(system_mapping.correct_case("a"), "a")
-        self.assertEqual(system_mapping.correct_case("A"), "A")
-        self.assertEqual(system_mapping.correct_case("ABCD_b"), "abcd_B")
-        # unknown stuff is returned as is
-        self.assertEqual(system_mapping.correct_case("FOo"), "FOo")
-
-        self.assertEqual(system_mapping.get("A"), 31)
-        self.assertEqual(system_mapping.get("a"), 32)
-        self.assertEqual(system_mapping.get("ABCD_b"), 33)
-        self.assertEqual(system_mapping.get("abcd_B"), 33)
-
-    def test_system_mapping(self):
-        system_mapping = SystemMapping()
-        system_mapping.populate()
-        self.assertGreater(len(system_mapping._mapping), 100)
-
-        # this is case-insensitive
-        self.assertEqual(system_mapping.get("1"), 2)
-        self.assertEqual(system_mapping.get("KeY_1"), 2)
-
-        self.assertEqual(system_mapping.get("AlT_L"), 56)
-        self.assertEqual(system_mapping.get("KEy_LEFtALT"), 56)
-
-        self.assertEqual(system_mapping.get("kEY_LeFTSHIFT"), 42)
-        self.assertEqual(system_mapping.get("ShiFt_L"), 42)
-
-        self.assertEqual(system_mapping.get("BTN_left"), 272)
-
-        self.assertIsNotNone(system_mapping.get("KEY_KP4"))
-        self.assertEqual(system_mapping.get("KP_Left"), system_mapping.get("KEY_KP4"))
-
-        # this only lists the correct casing,
-        # includes linux constants and xmodmap symbols
-        names = system_mapping.list_names()
-        self.assertIn("2", names)
-        self.assertIn("c", names)
-        self.assertIn("KEY_3", names)
-        self.assertNotIn("key_3", names)
-        self.assertIn("KP_Down", names)
-        self.assertNotIn("kp_down", names)
-        names = system_mapping._mapping.keys()
-        self.assertIn("F4", names)
-        self.assertNotIn("f4", names)
-        self.assertIn("BTN_RIGHT", names)
-        self.assertNotIn("btn_right", names)
-        self.assertIn("KEY_KP7", names)
-        self.assertIn("KP_Home", names)
-        self.assertNotIn("kp_home", names)
-
-        self.assertEqual(system_mapping.get("disable"), -1)
 
 
 class TestPreset(unittest.TestCase):
@@ -364,7 +244,7 @@ class TestPreset(unittest.TestCase):
             self.preset.get_mapping(combi_2),
             get_key_mapping(combi_1, "keyboard", "a"),
         )
-        # since combi_1 and combi_2 are equivalent, this raises an KeyError
+        # since combi_1 and combi_2 are equivalent, this raises a KeyError
         self.assertRaises(
             KeyError,
             self.preset.add,

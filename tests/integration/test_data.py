@@ -35,7 +35,7 @@ class TestData(unittest.TestCase):
         pkg_resources.require("input-remapper")[0].location = self.original_location
 
     def test_data_editable(self):
-        path = os.getcwd()
+        path = os.getcwd().replace("/tests/integration", "")
         pkg_resources.require("input-remapper")[0].location = path
         self.assertEqual(get_data_path(), path + "/data/")
         self.assertEqual(get_data_path("a"), path + "/data/a")

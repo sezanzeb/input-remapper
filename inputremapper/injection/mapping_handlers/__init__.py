@@ -1,4 +1,3 @@
-#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2022 sezanzeb <proxima@sezanzeb.de>
@@ -17,8 +16,3 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
-
-"""Consumers
-
-Each consumer can listen for events and then inject something mapped.
-"""

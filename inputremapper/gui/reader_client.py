@@ -1,4 +1,3 @@
-#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2022 sezanzeb <proxima@sezanzeb.de>
@@ -179,7 +178,7 @@ class ReaderClient:
         self._recording_generator = self._recorder()
         next(self._recording_generator)
 
-        self.message_broker.signal(MessageType.recording_started)  # TODO test
+        self.message_broker.signal(MessageType.recording_started)
 
     def stop_recorder(self) -> None:
         """Stop recording the input.

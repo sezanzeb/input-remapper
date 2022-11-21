@@ -1,4 +1,3 @@
-#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2022 sezanzeb <proxima@sezanzeb.de>
@@ -453,7 +452,7 @@ def parse(macro: str, context=None, mapping=None, verbose: bool = True):
     verbose
         log the parsing True by default
     """
-    logger.debug("parsing macro %s", macro)
+    logger.debug("parsing macro %s", macro.replace("\n", ""))
     macro = clean(macro)
     macro = handle_plus_syntax(macro)
 

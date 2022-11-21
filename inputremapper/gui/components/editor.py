@@ -1,4 +1,3 @@
-#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2022 sezanzeb <proxima@sezanzeb.de>
@@ -25,12 +24,21 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import List, Optional, Dict, Union, Callable, Literal
+from typing import List, Optional, Dict, Union, Callable, Literal, Set
 
 import cairo
-from evdev.ecodes import EV_KEY, EV_ABS, EV_REL, bytype
-
 import gi
+from evdev.ecodes import (
+    EV_KEY,
+    EV_ABS,
+    EV_REL,
+    bytype,
+    BTN_LEFT,
+    BTN_MIDDLE,
+    BTN_RIGHT,
+    BTN_EXTRA,
+    BTN_SIDE,
+)
 
 gi.require_version("Gdk", "3.0")
 gi.require_version("Gtk", "3.0")
@@ -54,7 +62,7 @@ from inputremapper.gui.messages.message_data import (
 from inputremapper.gui.utils import HandlerDisabled, Colors
 from inputremapper.injection.mapping_handlers.axis_transform import Transformation
 from inputremapper.input_event import InputEvent
-from inputremapper.logger import logger
+from inputremapper.configs.system_mapping import system_mapping, XKB_KEYCODE_OFFSET
 
 Capabilities = Dict[int, List]
 
@@ -86,6 +94,8 @@ class TargetSelection:
     For example "keyboard" or "gamepad".
     """
 
+    _mapping: Optional[MappingData] = None
+
     def __init__(
         self,
         message_broker: MessageBroker,
@@ -100,6 +110,12 @@ class TargetSelection:
         self._message_broker.subscribe(MessageType.mapping, self._on_mapping_loaded)
         self._gui.connect("changed", self._on_gtk_target_selected)
 
+    def _select_current_target(self):
+        """Select the currently configured target."""
+        if self._mapping is not None:
+            with HandlerDisabled(self._gui, self._on_gtk_target_selected):
+                self._gui.set_active_id(self._mapping.target_uinput)
+
     def _on_uinputs_changed(self, data: UInputsData):
         target_store = Gtk.ListStore(str)
         for uinput in data.uinputs.keys():
@@ -111,9 +127,11 @@ class TargetSelection:
         self._gui.add_attribute(renderer_text, "text", 0)
         self._gui.set_id_column(0)
 
+        self._select_current_target()
+
     def _on_mapping_loaded(self, mapping: MappingData):
-        with HandlerDisabled(self._gui, self._on_gtk_target_selected):
-            self._gui.set_active_id(mapping.target_uinput)
+        self._mapping = mapping
+        self._select_current_target()
 
     def _on_gtk_target_selected(self, *_):
         target = self._gui.get_active_id()
@@ -149,7 +167,11 @@ class MappingListBox:
         return 0 if row1.name < row2.name else 1
 
     def _on_preset_changed(self, data: PresetData):
-        self._gui.foreach(lambda label: (label.cleanup(), self._gui.remove(label)))
+        selection_labels = self._gui.get_children()
+        for selection_label in selection_labels:
+            selection_label.cleanup()
+            self._gui.remove(selection_label)
+
         if not data.mappings:
             return
 
@@ -167,11 +189,9 @@ class MappingListBox:
         with HandlerDisabled(self._gui, self._on_gtk_mapping_selected):
             combination = mapping.event_combination
 
-            def set_active(row: MappingSelectionLabel):
+            for row in self._gui.get_children():
                 if row.combination == combination:
                     self._gui.select_row(row)
-
-            self._gui.foreach(set_active)
 
     def _on_gtk_mapping_selected(self, _, row: Optional[MappingSelectionLabel]):
         if not row:
@@ -299,6 +319,89 @@ class MappingSelectionLabel(Gtk.ListBoxRow):
         self._message_broker.unsubscribe(self._on_combination_update)
 
 
+class GdkEventRecorder:
+    """Records events delivered by GDK, similar to the ReaderService/ReaderClient."""
+
+    _combination: List[int]
+    _pressed: Set[int]
+
+    __gtype_name__ = "GdkEventRecorder"
+
+    def __init__(self, window: Gtk.Window, gui: Gtk.Label):
+        super().__init__()
+        self._combination = []
+        self._pressed = set()
+        self._gui = gui
+        window.connect("event", self._on_gtk_event)
+
+    def _get_button_code(self, event: Gdk.Event):
+        """Get the evdev code for the given event."""
+        return {
+            Gdk.BUTTON_MIDDLE: BTN_MIDDLE,
+            Gdk.BUTTON_PRIMARY: BTN_LEFT,
+            Gdk.BUTTON_SECONDARY: BTN_RIGHT,
+            9: BTN_EXTRA,
+            8: BTN_SIDE,
+        }.get(event.get_button().button)
+
+    def _reset(self, event: Gdk.Event):
+        """If a new combination is being typed, start from scratch."""
+        gdk_event_type: int = event.type
+
+        is_press = gdk_event_type in [
+            Gdk.EventType.KEY_PRESS,
+            Gdk.EventType.BUTTON_PRESS,
+        ]
+
+        if len(self._pressed) == 0 and is_press:
+            self._combination = []
+
+    def _press(self, event: Gdk.Event):
+        """Remember pressed keys, write down combinations."""
+        gdk_event_type: int = event.type
+
+        if gdk_event_type == Gdk.EventType.KEY_PRESS:
+            code = event.hardware_keycode - XKB_KEYCODE_OFFSET
+            if code not in self._combination:
+                self._combination.append(code)
+
+            self._pressed.add(code)
+
+        if gdk_event_type == Gdk.EventType.BUTTON_PRESS:
+            code = self._get_button_code(event)
+            if code not in self._combination:
+                self._combination.append(code)
+
+            self._pressed.add(code)
+
+    def _release(self, event: Gdk.Event):
+        """Clear pressed keys if this is a release event."""
+        if event.type in [Gdk.EventType.KEY_RELEASE, Gdk.EventType.BUTTON_RELEASE]:
+            self._pressed = set()
+
+    def _display(self, event):
+        """Show the recorded combination in the gui."""
+        is_press = event.type in [
+            Gdk.EventType.KEY_PRESS,
+            Gdk.EventType.BUTTON_PRESS,
+        ]
+
+        if is_press and len(self._combination) > 0:
+            names = [
+                system_mapping.get_name(code)
+                for code in self._combination
+                if code is not None and system_mapping.get_name(code) is not None
+            ]
+            self._gui.set_text(" + ".join(names))
+
+    def _on_gtk_event(self, _, event: Gdk.Event):
+        """For all sorts of input events that gtk cares about."""
+        self._reset(event)
+        self._release(event)
+        self._press(event)
+        self._display(event)
+
+
 class CodeEditor:
     """The editor used to edit the output_symbol of the active_mapping."""
 
@@ -330,7 +433,6 @@ class CodeEditor:
 
         # todo: setup autocompletion here
 
-        self.gui.connect("focus-out-event", self._on_gtk_focus_out)
         self.gui.get_buffer().connect("changed", self._on_gtk_changed)
         self._connect_message_listener()
 
@@ -348,9 +450,13 @@ class CodeEditor:
             self.gui.do_move_cursor(self.gui, Gtk.MovementStep.BUFFER_ENDS, -1, False)
 
     def _connect_message_listener(self):
-        self._message_broker.subscribe(MessageType.mapping, self._on_mapping_loaded)
         self._message_broker.subscribe(
-            MessageType.recording_finished, self._on_recording_finished
+            MessageType.mapping,
+            self._on_mapping_loaded,
+        )
+        self._message_broker.subscribe(
+            MessageType.recording_finished,
+            self._on_recording_finished,
         )
 
     def _toggle_line_numbers(self):
@@ -366,9 +472,6 @@ class CodeEditor:
             self.gui.set_show_line_marks(False)
             self.gui.set_monospace(False)
             self.gui.get_style_context().remove_class("multiline")
-
-    def _on_gtk_focus_out(self, *_):
-        self._controller.save()
 
     def _on_gtk_changed(self, *_):
         self._controller.update_mapping(output_symbol=self.code)
@@ -606,9 +709,6 @@ class EventEntry(Gtk.ListBoxRow):
         self._up_btn = up_btn
         self._down_btn = down_btn
 
-    def cleanup(self):
-        """Remove any message listeners we are about to get destroyed."""
-
 
 class CombinationListbox:
     """The ListBox with all the events inside active_mapping.event_combination."""
@@ -636,17 +736,18 @@ class CombinationListbox:
         self._gui.connect("row-selected", self._on_gtk_row_selected)
 
     def _select_row(self, event: InputEvent):
-        def select(row: EventEntry):
+        for row in self._gui.get_children():
             if row.input_event == event:
                 self._gui.select_row(row)
-
-        self._gui.foreach(select)
 
     def _on_mapping_changed(self, mapping: MappingData):
         if self._combination == mapping.event_combination:
             return
 
-        self._gui.foreach(lambda label: (label.cleanup(), self._gui.remove(label)))
+        event_entries = self._gui.get_children()
+        for event_entry in event_entries:
+            self._gui.remove(event_entry)
+
         if self._controller.is_empty_mapping():
             self._combination = None
         else:

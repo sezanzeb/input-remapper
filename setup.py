@@ -58,8 +58,6 @@ def get_packages(base="inputremapper"):
 
     For example 'inputremapper.gui' or 'inputremapper.injection.mapping_handlers'
     """
-    # TODO I think there is a built-in tool that does the same,
-    #  forgot where I saw it
     if not os.path.exists(os.path.join(base, "__init__.py")):
         # only python modules
         return []

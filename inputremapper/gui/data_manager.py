@@ -1,4 +1,3 @@
-#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # input-remapper - GUI for device specific keyboard mappings
 # Copyright (C) 2022 sezanzeb <proxima@sezanzeb.de>
@@ -37,6 +36,7 @@ from inputremapper.configs.system_mapping import SystemMapping
 from inputremapper.daemon import DaemonProxy
 from inputremapper.event_combination import EventCombination
 from inputremapper.exceptions import DataManagementError
+from inputremapper.gui.gettext import _
 from inputremapper.groups import _Group
 from inputremapper.gui.messages.message_broker import (
     MessageBroker,
@@ -56,7 +56,7 @@ from inputremapper.injection.injector import (
 from inputremapper.input_event import InputEvent
 from inputremapper.logger import logger
 
-DEFAULT_PRESET_NAME = "new preset"
+DEFAULT_PRESET_NAME = _("new preset")
 
 # useful type aliases
 Name = str
@@ -461,10 +461,12 @@ class DataManager:
             self.message_broker.publish(
                 CombinationUpdate(combination, self._active_mapping.event_combination)
             )
+
         if "mapping_type" in kwargs:
             # mapping_type must be the last update because it is automatically updated
             # by a validation function
             self._active_mapping.mapping_type = kwargs["mapping_type"]
+
         self.publish_mapping()
 
     def update_event(self, new_event: InputEvent):

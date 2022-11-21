@@ -24,9 +24,11 @@ from unittest.mock import MagicMock
 import time
 
 import evdev
-from evdev.ecodes import KEY_A, KEY_B, KEY_C
+from evdev.ecodes import BTN_LEFT, KEY_A, KEY_B, KEY_C
 
 import gi
+
+from inputremapper.configs.system_mapping import XKB_KEYCODE_OFFSET
 
 gi.require_version("Gdk", "3.0")
 gi.require_version("Gtk", "3.0")
@@ -71,6 +73,7 @@ from inputremapper.gui.components.editor import (
     RelativeInputCutoffInput,
     RecordingStatus,
     RequireActiveMapping,
+    GdkEventRecorder,
 )
 from inputremapper.gui.components.main import Stack, StatusBar
 from inputremapper.gui.components.common import FlowBoxEntry, Breadcrumbs
@@ -366,23 +369,19 @@ class TestMappingListbox(ComponentBaseTest):
         )
 
     def get_selected_row(self) -> MappingSelectionLabel:
-        row = None
+        for label in self.gui.get_children():
+            if label.is_selected():
+                return label
 
-        def find_row(r: MappingSelectionLabel):
-            nonlocal row
-            if r.is_selected():
-                row = r
-
-        self.gui.foreach(find_row)
-        assert row is not None
-        return row
+        raise Exception("Expected one MappingSelectionLabel to be selected")
 
     def select_row(self, combination: EventCombination):
-        def select(row: MappingSelectionLabel):
-            if row.combination == combination:
-                self.gui.select_row(row)
+        def select(label_: MappingSelectionLabel):
+            if label_.combination == combination:
+                self.gui.select_row(label_)
 
-        self.gui.foreach(select)
+        for label in self.gui.get_children():
+            select(label)
 
     def test_populates_listbox(self):
         labels = {row.name for row in self.gui.get_children()}
@@ -480,6 +479,13 @@ class TestMappingSelectionLabel(ComponentBaseTest):
     def assert_selected(self):
         self.assertTrue(self.mapping_selection_label.label.get_visible())
         self.assertFalse(self.mapping_selection_label.name_input.get_visible())
+
+    def test_repr(self):
+        self.mapping_selection_label.name = "name"
+        self.assertEqual(
+            repr(self.mapping_selection_label),
+            "MappingSelectionLabel for a + b as name",
+        )
 
     def test_shows_combination_without_name(self):
         self.assertEqual(self.mapping_selection_label.label.get_label(), "a + b")
@@ -648,11 +654,62 @@ class TestMappingSelectionLabel(ComponentBaseTest):
         self.controller_mock.update_mapping.assert_called_once_with(name="")
 
 
+class TestGdkEventRecorder(ComponentBaseTest):
+    def _emit_key(self, window, code, type_):
+        event = Gdk.Event()
+        event.type = type_
+        event.hardware_keycode = code + XKB_KEYCODE_OFFSET
+        window.emit("event", event)
+        gtk_iteration()
+
+    def _emit_button(self, window, button, type_):
+        event = Gdk.Event()
+        event.type = type_
+        event.button = button
+        window.emit("event", event)
+        gtk_iteration()
+
+    def test_records_combinations(self):
+        label = Gtk.Label()
+        window = Gtk.Window()
+        GdkEventRecorder(window, label)
+
+        self._emit_key(window, KEY_A, Gdk.EventType.KEY_PRESS)
+        self._emit_key(window, KEY_B, Gdk.EventType.KEY_PRESS)
+        self.assertEqual(label.get_text(), "a + b")
+
+        self._emit_key(window, KEY_A, Gdk.EventType.KEY_RELEASE)
+        self._emit_key(window, KEY_B, Gdk.EventType.KEY_RELEASE)
+        self.assertEqual(label.get_text(), "a + b")
+
+        self._emit_key(window, KEY_C, Gdk.EventType.KEY_PRESS)
+        self.assertEqual(label.get_text(), "c")
+
+        # buttons
+        self._emit_button(window, Gdk.BUTTON_PRIMARY, Gdk.EventType.BUTTON_PRESS)
+        self._emit_button(window, Gdk.BUTTON_SECONDARY, Gdk.EventType.BUTTON_PRESS)
+        self._emit_button(window, Gdk.BUTTON_MIDDLE, Gdk.EventType.BUTTON_PRESS)
+        # no constants seem to exist, but this is the value that was observed during
+        # usage:
+        self._emit_button(window, 8, Gdk.EventType.BUTTON_PRESS)
+        self._emit_button(window, 9, Gdk.EventType.BUTTON_PRESS)
+        self.assertEqual(
+            label.get_text(),
+            "c + BTN_LEFT + BTN_RIGHT + BTN_MIDDLE + BTN_SIDE + BTN_EXTRA",
+        )
+
+        # releasing anything resets the combination
+        self._emit_button(window, 9, Gdk.EventType.BUTTON_RELEASE)
+        self._emit_key(window, KEY_A, Gdk.EventType.KEY_PRESS)
+        self.assertEqual(label.get_text(), "a")
+
+
 class TestCodeEditor(ComponentBaseTest):
     def setUp(self) -> None:
         super().setUp()
         self.gui = GtkSource.View()
         self.editor = CodeEditor(self.message_broker, self.controller_mock, self.gui)
+        # TODO why is mocking this to False needed?
         self.controller_mock.is_empty_mapping.return_value = False
 
     def get_text(self) -> str:
@@ -926,23 +983,16 @@ class TestCombinationListbox(ComponentBaseTest):
         )
 
     def get_selected_row(self) -> EventEntry:
-        row = None
+        for entry in self.gui.get_children():
+            if entry.is_selected():
+                return entry
 
-        def find_row(r: EventEntry):
-            nonlocal row
-            if r.is_selected():
-                row = r
-
-        self.gui.foreach(find_row)
-        assert row is not None
-        return row
+        raise Exception("Expected one EventEntry to be selected")
 
     def select_row(self, event: InputEvent):
-        def select(row: EventEntry):
-            if row.input_event == event:
-                self.gui.select_row(row)
-
-        self.gui.foreach(select)
+        for entry in self.gui.get_children():
+            if entry.input_event == event:
+                self.gui.select_row(entry)
 
     def test_loads_selected_row(self):
         self.select_row(InputEvent.from_string("1,2,1"))
