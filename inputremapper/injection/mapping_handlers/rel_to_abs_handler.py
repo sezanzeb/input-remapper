@@ -80,9 +80,8 @@ class RelToAbsHandler(MappingHandler):
 
         # find the input event we are supposed to map. If the input combination is
         # BTN_A + REL_X + BTN_B, then use the value of REL_X for the transformation
-        analog_input = mapping.find_analog_input_event(type_=EV_REL)
-        assert analog_input is not None
-        self._input_movement = analog_input.type_and_code
+        assert (map_axis := mapping.find_analog_input_event(type_=EV_REL))
+        self._map_axis = map_axis.type_and_code
 
         assert mapping.output_code is not None
         assert mapping.output_type == EV_ABS

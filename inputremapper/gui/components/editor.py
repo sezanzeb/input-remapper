@@ -832,12 +832,12 @@ class TriggerThresholdInput:
             self._gui.set_range(-999, 999)
 
         with HandlerDisabled(self._gui, self._on_gtk_changed):
-            self._gui.set_value(event.value)
+            self._gui.set_value(event.analog_threshold or 0)
             self._event = event
 
     def _on_gtk_changed(self, *_):
         self._controller.update_event(
-            self._event.modify(value=int(self._gui.get_value()))
+            self._event.modify(analog_threshold=int(self._gui.get_value()))
         )
 
 

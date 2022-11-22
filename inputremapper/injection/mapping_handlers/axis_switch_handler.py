@@ -19,6 +19,7 @@
 from typing import Dict, Tuple
 
 import evdev
+from evdev.ecodes import EV_KEY
 
 from inputremapper.configs.mapping import Mapping
 from inputremapper.event_combination import EventCombination
@@ -57,15 +58,14 @@ class AxisSwitchHandler(MappingHandler):
         **_,
     ):
         super().__init__(combination, mapping)
-        map_axis = [
-            event.type_and_code for event in combination if not event.is_key_event
-        ]
         trigger_keys = [
-            event.type_and_code for event in combination if event.is_key_event
+            event.type_and_code
+            for event in combination
+            if not event.defines_analog_input
         ]
-        assert len(map_axis) != 0
         assert len(trigger_keys) >= 1
-        self._map_axis = map_axis[0]
+        assert (map_axis := mapping.find_analog_input_event())
+        self._map_axis = map_axis.type_and_code
         self._trigger_keys = tuple(trigger_keys)
         self._active = False
 

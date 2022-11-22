@@ -144,7 +144,7 @@ class CombinationHandler(MappingHandler):
 
     def rank_by(self) -> EventCombination:
         return EventCombination(
-            event for event in self.input_events if event.value != 0
+            event for event in self.input_events if not event.defines_analog_input
         )
 
     def wrap_with(self) -> Dict[EventCombination, HandlerEnums]:

@@ -49,7 +49,7 @@ class AbsToBtnHandler(MappingHandler):
 
         self._active = False
         self._input_event = combination[0]
-        assert self._input_event.value != 0
+        assert self._input_event.analog_threshold
         assert len(combination) == 1
 
     def __str__(self):
@@ -72,13 +72,14 @@ class AbsToBtnHandler(MappingHandler):
             # this is a hat switch
             # return +-1
             return (
-                self._input_event.value // abs(self._input_event.value),
+                self._input_event.analog_threshold
+                // abs(self._input_event.analog_threshold),
                 0,
             )
 
         half_range = (abs_max - abs_min) / 2
         middle = half_range + abs_min
-        trigger_offset = half_range * self._input_event.value / 100
+        trigger_offset = half_range * self._input_event.analog_threshold / 100
 
         # threshold, middle
         return middle + trigger_offset, middle

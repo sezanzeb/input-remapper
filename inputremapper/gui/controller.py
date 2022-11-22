@@ -40,7 +40,6 @@ from gi.repository import Gtk
 
 from inputremapper.configs.mapping import MappingData, UIMapping
 from inputremapper.configs.paths import sanitize_path_component
-from inputremapper.input_event import USE_AS_ANALOG_VALUE
 from inputremapper.event_combination import EventCombination
 from inputremapper.exceptions import DataManagementError
 from inputremapper.gui.data_manager import DataManager, DEFAULT_PRESET_NAME
@@ -346,9 +345,7 @@ class Controller:
         if event.type != EV_KEY:
             if analog:
                 try:
-                    self.data_manager.update_event(
-                        event.modify(value=USE_AS_ANALOG_VALUE)
-                    )
+                    self.data_manager.update_event(event.modify(analog_threshold=0))
                     self.save()
                     return
                 except KeyError:
@@ -357,7 +354,9 @@ class Controller:
                 try_values = {EV_REL: [1, -1], EV_ABS: [10, -10]}
                 for value in try_values[event.type]:
                     try:
-                        self.data_manager.update_event(event.modify(value=value))
+                        self.data_manager.update_event(
+                            event.modify(analog_threshold=value)
+                        )
                         self.save()
                         return
                     except KeyError:

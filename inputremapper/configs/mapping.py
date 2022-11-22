@@ -52,7 +52,7 @@ from inputremapper.exceptions import MacroParsingError
 from inputremapper.gui.gettext import _
 from inputremapper.gui.messages.message_types import MessageType
 from inputremapper.injection.macros.parse import is_this_a_macro, parse
-from inputremapper.input_event import InputEvent, EventActions, USE_AS_ANALOG_VALUE
+from inputremapper.input_event import InputEvent, EventActions
 
 # TODO: remove pydantic VERSION check as soon as we no longer support
 #  Ubuntu 20.04 and with it the ancient pydantic 1.2
@@ -233,14 +233,10 @@ class UIMapping(BaseModel):
     def find_analog_input_event(
         self, type_: Optional[int] = None
     ) -> Optional[InputEvent]:
-        """Return the first event that is configured with "Use as analog"."""
+        """Return the first event that defines an analog input"""
         for event in self.event_combination:
-            if event.value == USE_AS_ANALOG_VALUE:
-                if type_ is not None and event.type != type_:
-                    continue
-
+            if event.defines_analog_input and (type_ is None or event.type == type_):
                 return event
-
         return None
 
     def is_wheel_output(self) -> bool:
@@ -353,9 +349,10 @@ class Mapping(UIMapping):
         analog to analog mapping
         """
 
-        # any event with a value of 0  is considered an analog input (even key events)
+        # any event with an analog_threshold of 0 or None is considered an
+        # analog input (even key events)
         # any event with a non-zero value is considered a binary input
-        analog_events = [event for event in combination if event.value == 0]
+        analog_events = [event for event in combination if event.defines_analog_input]
         if len(analog_events) > 1:
             raise ValueError(
                 f"Cannot map a combination of multiple analog inputs: {analog_events}"
@@ -380,7 +377,7 @@ class Mapping(UIMapping):
         """Sets the correct actions for each event."""
         new_combination = []
         for event in combination:
-            if event.value != 0:
+            if not event.defines_analog_input:
                 event = event.modify(actions=(EventActions.as_key,))
             new_combination.append(event)
         return EventCombination(new_combination)
@@ -430,12 +427,10 @@ class Mapping(UIMapping):
         """Validate that an output type is an axis if we have an input axis.
         And vice versa."""
         combination: EventCombination = values.get("event_combination")
-        event_values = [event.value for event in combination]
+        use_as_analog = True in [event.defines_analog_input for event in combination]
 
         output_type = values.get("output_type")
         output_symbol = values.get("output_symbol")
-
-        use_as_analog = USE_AS_ANALOG_VALUE in event_values
 
         if not use_as_analog and not output_symbol and output_type != EV_KEY:
             raise ValueError(

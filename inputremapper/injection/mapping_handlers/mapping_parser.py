@@ -52,7 +52,7 @@ from inputremapper.injection.mapping_handlers.mapping_handler import (
 from inputremapper.injection.mapping_handlers.null_handler import NullHandler
 from inputremapper.injection.mapping_handlers.rel_to_abs_handler import RelToAbsHandler
 from inputremapper.injection.mapping_handlers.rel_to_btn_handler import RelToBtnHandler
-from inputremapper.input_event import InputEvent, USE_AS_ANALOG_VALUE
+from inputremapper.input_event import InputEvent
 from inputremapper.logger import logger
 from inputremapper.utils import get_evdev_constant_name
 
@@ -224,7 +224,7 @@ def _maps_axis(combination: EventCombination) -> Optional[InputEvent]:
     an axis and not a binary (key or button) event.
     """
     for event in combination:
-        if event.value == USE_AS_ANALOG_VALUE:
+        if event.defines_analog_input:
             return event
     return None
 

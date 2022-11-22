@@ -57,7 +57,7 @@ class RelToBtnHandler(MappingHandler):
         self._input_event = combination[0]
         self._last_activation = time.time()
         self._abort_release = False
-        assert self._input_event.value != 0
+        assert self._input_event.analog_threshold != 0
         assert len(combination) == 1
 
     def __str__(self):
@@ -103,7 +103,7 @@ class RelToBtnHandler(MappingHandler):
         if event.type_and_code != self._input_event.type_and_code:
             return False
 
-        threshold = self._input_event.value
+        threshold = self._input_event.analog_threshold
         value = event.value
         if (value < threshold > 0) or (value > threshold < 0):
             if self._active:

@@ -38,10 +38,6 @@ InputEventValidationType = Union[
 ]
 
 
-# if "Use as analog" is set in the advanced mapping editor, the value will be set to 0
-USE_AS_ANALOG_VALUE = 0
-
-
 class EventActions(enum.Enum):
     """Additional information an InputEvent can send through the event pipeline."""
 
@@ -189,6 +185,13 @@ class InputEvent:
         return self.type, self.code, self.value
 
     @property
+    def defines_analog_input(self) -> bool:
+        """Whether this defines an analog input"""
+        # todo give it a better name once InputEvent and
+        #  InputConfiguration are seperated
+        return not self.analog_threshold and self.type != ecodes.EV_KEY
+
+    @property
     def is_key_event(self) -> bool:
         """Whether this is interpreted as a key event."""
         return self.type == evdev.ecodes.EV_KEY or EventActions.as_key in self.actions
@@ -232,6 +235,8 @@ class InputEvent:
         code: Optional[int] = None,
         value: Optional[int] = None,
         actions: Tuple[EventActions, ...] = None,
+        origin: Optional[int] = None,
+        analog_threshold: Optional[int] = None,
     ) -> InputEvent:
         """Return a new modified event."""
         return InputEvent(
@@ -241,8 +246,10 @@ class InputEvent:
             code if code is not None else self.code,
             value if value is not None else self.value,
             actions if actions is not None else self.actions,
-            origin=self.origin,
-            analog_threshold=self.analog_threshold,
+            origin=origin if origin is not None else self.origin,
+            analog_threshold=analog_threshold
+            if analog_threshold is not None
+            else self.analog_threshold,
         )
 
     def json_key(self) -> str:
