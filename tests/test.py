@@ -147,21 +147,6 @@ MAX_ABS = 2**15
 
 from tests.tmp import tmp
 
-uinput_write_history = []
-# for tests that makes the injector create its processes
-uinput_write_history_pipe = multiprocessing.Pipe()
-pending_events: Dict[Fixture, Tuple[Connection, Connection]] = {}
-
-
-def read_write_history_pipe():
-    """Convert the write history from the pipe to some easier to manage list."""
-    history = []
-    while uinput_write_history_pipe[0].poll():
-        event = uinput_write_history_pipe[0].recv()
-        history.append((event.type, event.code, event.value))
-    return history
-
-
 # input-remapper is only interested in devices that have EV_KEY, add some
 # random other stuff to test that they are ignored.
 phys_foo = "usb-0000:03:00.0-1/input2"
@@ -171,14 +156,12 @@ keyboard_keys = sorted(evdev.ecodes.keys.keys())[:255]
 
 
 from tests.fixtures import Fixture, fixtures
-
-
-def setup_pipe(fixture: Fixture):
-    """Create a pipe that can be used to send events to the reader-service,
-    which in turn will be sent to the reader-client
-    """
-    if pending_events.get(fixture) is None:
-        pending_events[fixture] = multiprocessing.Pipe()
+from tests.pipes import (
+    setup_pipe,
+    pending_events,
+    uinput_write_history,
+    uinput_write_history_pipe,
+)
 
 
 # make sure those pipes exist before any process (the reader-service) gets forked,
@@ -476,6 +459,7 @@ def patch_check_output():
 def patch_regrab_timeout():
     # no need for a high number in tests
     from inputremapper.injection.injector import Injector
+
     Injector.regrab_timeout = 0.05
 
 
@@ -486,6 +470,7 @@ def is_running_patch():
 
 def patch_is_running():
     from inputremapper.gui.reader_service import ReaderService
+
     setattr(ReaderService, "is_running", is_running_patch)
 
 

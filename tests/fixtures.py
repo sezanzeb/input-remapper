@@ -337,6 +337,7 @@ def get_key_mapping(
 def new_event(type, code, value, timestamp=None, offset=0):
     """Create a new input_event."""
     from tests.patches import InputEvent
+
     if timestamp is None:
         timestamp = time.time() + offset
 

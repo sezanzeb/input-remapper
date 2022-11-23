@@ -26,9 +26,9 @@ from tests.test import (
     EVENT_READ_TIMEOUT,
     uinput_write_history_pipe,
     quick_cleanup,
-    read_write_history_pipe,
     uinputs,
 )
+from tests.pipes import read_write_history_pipe
 from tests.fixtures import (
     keyboard_keys,
     get_key_mapping,

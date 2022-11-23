@@ -42,6 +42,8 @@ import evdev
 
 from tests.xmodmap import xmodmap
 from tests.fixtures import Fixture, fixtures, new_event
+from tests.constants import EVENT_READ_TIMEOUT
+from tests.pipes import setup_pipe, push_events
 
 
 uinput_write_history = []
@@ -297,6 +299,7 @@ from tests.logger import logger
 def patch_regrab_timeout():
     # no need for a high number in tests
     from inputremapper.injection.injector import Injector
+
     Injector.regrab_timeout = 0.05
 
 
@@ -307,13 +310,8 @@ def is_running_patch():
 
 def patch_is_running():
     from inputremapper.gui.reader_service import ReaderService
+
     setattr(ReaderService, "is_running", is_running_patch)
-
-
-def convert_to_internal_events(events):
-    """Convert an iterable of InputEvent to a list of inputremapper.InputEvent."""
-    from inputremapper.input_event import InputEvent as InternalInputEvent
-    return [InternalInputEvent.from_event(event) for event in events]
 
 
 class FakeDaemonProxy:
@@ -334,6 +332,7 @@ class FakeDaemonProxy:
 
     def get_state(self, group_key: str):
         from inputremapper.injection.injector import InjectorState
+
         self.calls["get_state"].append(group_key)
         return InjectorState.STOPPED
 
