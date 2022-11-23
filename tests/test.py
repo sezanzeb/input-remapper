@@ -18,12 +18,6 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-
-"""Sets up input-remapper for the tests and runs them.
-
-This module needs to be imported first in test files.
-"""
-
 from __future__ import annotations
 
 import argparse
