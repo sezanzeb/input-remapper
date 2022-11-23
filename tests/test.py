@@ -87,20 +87,17 @@ import psutil
 from pickle import UnpicklingError
 from unittest.mock import patch
 
-import evdev
-
 os.environ["UNITTEST"] = "1"
 
 from tests.logger import logger
-from tests.constants import EVENT_READ_TIMEOUT, MAX_ABS, MIN_ABS
+from tests.constants import EVENT_READ_TIMEOUT
 from tests.tmp import tmp
-from tests.fixtures import Fixture, fixtures
+from tests.fixtures import fixtures
 from tests.pipes import (
     setup_pipe,
     pending_events,
     uinput_write_history,
     uinput_write_history_pipe,
-    push_events,
 )
 from tests.patches import (
     patch_paths,
@@ -109,7 +106,7 @@ from tests.patches import (
     patch_check_output,
     patch_regrab_timeout,
     patch_is_running,
-    UInput,
+    patch_evdev,
     uinputs,
     InputEvent,
 )
@@ -164,156 +161,6 @@ def new_event(type, code, value, timestamp=None, offset=0):
     return event
 
 
-class InputDevice:
-    # expose as existing attribute, otherwise the patch for
-    # evdev < 1.0.0 will crash the test
-    path = None
-
-    def __init__(self, path):
-        if path != "justdoit" and not fixtures.get(path):
-            raise FileNotFoundError()
-        if path == "justdoit":
-            self._fixture = Fixture()
-        else:
-            self._fixture = fixtures[path]
-
-        self.path = path
-        self.phys = self._fixture.phys
-        self.info = self._fixture.info
-        self.name = self._fixture.name
-
-        # this property exists only for test purposes and is not part of
-        # the original evdev.InputDevice class
-        self.group_key = self._fixture.group_key or self._fixture.name
-
-        # ensure a pipe exists to make this object act like
-        # it is reading events from a device
-        setup_pipe(self._fixture)
-
-        self.fd = pending_events[self._fixture][1].fileno()
-
-    def push_events(self, events):
-        push_events(self._fixture, events)
-
-    def fileno(self):
-        """Compatibility to select.select."""
-        return self.fd
-
-    def log(self, key, msg):
-        logger.info(f'%s "%s" "%s" %s', msg, self.name, self.path, key)
-
-    def absinfo(self, *args):
-        raise Exception("Ubuntus version of evdev doesn't support .absinfo")
-
-    def grab(self):
-        logger.info("grab %s %s", self.name, self.path)
-
-    def ungrab(self):
-        logger.info("ungrab %s %s", self.name, self.path)
-
-    async def async_read_loop(self):
-        logger.info("starting read loop for %s", self.path)
-        new_frame = asyncio.Event()
-        asyncio.get_running_loop().add_reader(self.fd, new_frame.set)
-        while True:
-            await new_frame.wait()
-            new_frame.clear()
-            if not pending_events[self._fixture][1].poll():
-                # todo: why? why do we need this?
-                # sometimes this happens, as if a other process calls recv on
-                # the pipe
-                continue
-
-            event = pending_events[self._fixture][1].recv()
-            logger.info("got %s at %s", event, self.path)
-            yield event
-
-    def read(self):
-        # the patched fake InputDevice objects read anything pending from
-        # that group.
-        # To be realistic it would have to check if the provided
-        # element is in its capabilities.
-        if self.group_key not in pending_events:
-            self.log("no events to read", self.group_key)
-            return
-
-        # consume all of them
-        while pending_events[self._fixture][1].poll():
-            event = pending_events[self._fixture][1].recv()
-            self.log(event, "read")
-            yield event
-            time.sleep(EVENT_READ_TIMEOUT)
-
-    def read_loop(self):
-        """Endless loop that yields events."""
-        while True:
-            event = pending_events[self._fixture][1].recv()
-            if event is not None:
-                self.log(event, "read_loop")
-                yield event
-            time.sleep(EVENT_READ_TIMEOUT)
-
-    def read_one(self):
-        """Read one event or none if nothing available."""
-        if not pending_events.get(self._fixture):
-            return None
-
-        if not pending_events[self._fixture][1].poll():
-            return None
-
-        try:
-            event = pending_events[self._fixture][1].recv()
-        except (UnpicklingError, EOFError):
-            # failed in tests sometimes
-            return None
-
-        self.log(event, "read_one")
-        return event
-
-    def capabilities(self, absinfo=True, verbose=False):
-        result = copy.deepcopy(self._fixture.capabilities)
-
-        if absinfo and evdev.ecodes.EV_ABS in result:
-            absinfo_obj = evdev.AbsInfo(
-                value=None,
-                min=MIN_ABS,
-                fuzz=None,
-                flat=None,
-                resolution=None,
-                max=MAX_ABS,
-            )
-
-            ev_abs = []
-            for ev_code in result[evdev.ecodes.EV_ABS]:
-                if ev_code in range(0x10, 0x18):  # ABS_HAT0X - ABS_HAT3Y
-                    absinfo_obj = evdev.AbsInfo(
-                        value=None,
-                        min=-1,
-                        fuzz=None,
-                        flat=None,
-                        resolution=None,
-                        max=1,
-                    )
-                ev_abs.append((ev_code, absinfo_obj))
-
-            result[evdev.ecodes.EV_ABS] = ev_abs
-
-        return result
-
-    def input_props(self):
-        return []
-
-
-def patch_evdev():
-    def list_devices():
-        return [fixture_.path for fixture_ in fixtures]
-
-    evdev.list_devices = list_devices
-    evdev.InputDevice = InputDevice
-    evdev.UInput = UInput
-    evdev.InputEvent = InputEvent
-
-
 def clear_write_history():
     """Empty the history in preparation for the next test."""
     while len(uinput_write_history) > 0:
@@ -322,8 +169,11 @@ def clear_write_history():
         uinput_write_history_pipe[0].recv()
 
 
-# quickly fake some stuff before any other file gets a chance to import
-# the original versions
+# applying patches before importing input-remappers modules is important, otherwise
+# input-remapper might use un-patched modules. Importing modules from inputremapper
+# just-in-time in the test-setup functions instead of globally helps. This way,
+# it is ensured that the patches on evdev and such are already applied, without having
+# to take care about ordering the files in a special way.
 patch_paths()
 patch_evdev()
 patch_events()
