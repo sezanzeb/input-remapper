@@ -50,7 +50,7 @@ from inputremapper.gui.messages.message_data import CombinationRecorded
 from inputremapper.gui.messages.message_types import MessageType
 from inputremapper.gui.reader_client import ReaderClient
 from inputremapper.gui.reader_service import ReaderService
-from tests.test import new_event
+from tests.fixtures import new_event
 from tests.cleanup import quick_cleanup
 from tests.constants import (
     EVENT_READ_TIMEOUT,

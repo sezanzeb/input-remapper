@@ -21,9 +21,9 @@
 
 from tests.test import (
     cleanup,
-    new_event,
     is_service_running,
 )
+from tests.fixtures import new_event
 from tests.pipes import push_events, uinput_write_history_pipe
 from tests.tmp import tmp
 from tests.fixtures import fixtures, get_key_mapping

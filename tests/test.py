@@ -143,17 +143,6 @@ for _fixture in fixtures:
     setup_pipe(_fixture)
 
 
-def new_event(type, code, value, timestamp=None, offset=0):
-    """Create a new input_event."""
-    if timestamp is None:
-        timestamp = time.time() + offset
-
-    sec = int(timestamp)
-    usec = timestamp % 1 * 1000000
-    event = InputEvent(sec, usec, type, code, value)
-    return event
-
-
 def clear_write_history():
     """Empty the history in preparation for the next test."""
     while len(uinput_write_history) > 0:

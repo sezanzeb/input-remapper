@@ -19,7 +19,7 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 from inputremapper.gui.messages.message_broker import MessageBroker
-from tests.test import new_event
+from tests.fixtures import new_event
 from tests.cleanup import cleanup, quick_cleanup
 from tests.constants import EVENT_READ_TIMEOUT, START_READING_DELAY
 from tests.logger import logger
