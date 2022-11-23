@@ -143,8 +143,10 @@ class TestMapping(unittest.IsolatedAsyncioTestCase):
         m = Mapping(**cfg)
         a = system_mapping.get("a")
         self.assertEqual(m.get_output_type_code(), (EV_KEY, a))
+
         m.output_symbol = "key(a)"
         self.assertIsNone(m.get_output_type_code())
+
         cfg = {
             "event_combination": "1,2,1+3,1,0",
             "target_uinput": "keyboard",
@@ -153,6 +155,16 @@ class TestMapping(unittest.IsolatedAsyncioTestCase):
         }
         m = Mapping(**cfg)
         self.assertEqual(m.get_output_type_code(), (2, 3))
+
+    def test_strips_output_symbol(self):
+        cfg = {
+            "event_combination": "1,2,1",
+            "target_uinput": "keyboard",
+            "output_symbol": "\t a \n",
+        }
+        m = Mapping(**cfg)
+        a = system_mapping.get("a")
+        self.assertEqual(m.get_output_type_code(), (EV_KEY, a))
 
     def test_init_sets_event_actions(self):
         """Test that InputEvent.actions are set properly."""

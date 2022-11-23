@@ -332,6 +332,8 @@ class Mapping(UIMapping):
         if not symbol:
             return None
 
+        symbol = symbol.strip()
+
         if is_this_a_macro(symbol):
             try:
                 parse(symbol, verbose=False)  # raises MacroParsingError
