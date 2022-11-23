@@ -92,6 +92,7 @@ from tests.lib.patches import (
     patch_evdev,
 )
 from tests.lib.cleanup import cleanup
+from tests.lib.logger import update_inputremapper_verbosity
 
 
 def is_service_running():
@@ -148,6 +149,8 @@ patch_is_running()
 
 
 def main():
+    update_inputremapper_verbosity()
+
     cleanup()
     # https://docs.python.org/3/library/argparse.html
     parser = argparse.ArgumentParser(description=__doc__)

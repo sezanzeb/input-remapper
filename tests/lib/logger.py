@@ -24,20 +24,21 @@ import sys
 import traceback
 import tracemalloc
 import warnings
-
-tracemalloc.start()
-
 import logging
 
-from inputremapper.logger import update_verbosity
 
-update_verbosity(True)
+tracemalloc.start()
 
 logger = logging.getLogger("input-remapper-test")
 handler = logging.StreamHandler()
 handler.setFormatter(logging.Formatter("\033[90mTest: %(message)s\033[0m"))
 logger.addHandler(handler)
 logger.setLevel(logging.INFO)
+
+
+def update_inputremapper_verbosity():
+    from inputremapper.logger import update_verbosity
+    update_verbosity(True)
 
 
 def warn_with_traceback(message, category, filename, lineno, file=None, line=None):
