@@ -19,9 +19,7 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 from pydantic import ValidationError
 
-from tests.test import (
-    new_event
-)
+from tests.test import new_event
 from tests.patches import uinputs
 from tests.cleanup import quick_cleanup
 from tests.constants import EVENT_READ_TIMEOUT

@@ -23,10 +23,7 @@
 from contextlib import contextmanager
 from typing import Tuple, List, Optional
 
-from tests.test import (
-    get_project_root,
-    new_event
-)
+from tests.test import get_project_root, new_event
 from tests.cleanup import cleanup
 from tests.stuff import spy
 from tests.constants import EVENT_READ_TIMEOUT
