@@ -25,17 +25,15 @@ from typing import Tuple, List, Optional
 
 from tests.test import (
     get_project_root,
-    logger,
-    push_events,
     new_event,
     spy,
     cleanup,
-    uinput_write_history_pipe,
     EVENT_READ_TIMEOUT,
-    prepare_presets,
-    fixtures,
-    push_event,
+    prepare_presets
 )
+from tests.logger import logger
+from tests.fixtures import fixtures
+from tests.pipes import push_event, push_events, uinput_write_history_pipe
 from tests.integration.test_components import FlowBoxTestUtils
 
 import sys

@@ -161,6 +161,7 @@ from tests.pipes import (
     pending_events,
     uinput_write_history,
     uinput_write_history_pipe,
+    push_events
 )
 
 
@@ -168,41 +169,6 @@ from tests.pipes import (
 # so that events can be pushed after the fork.
 for _fixture in fixtures:
     setup_pipe(_fixture)
-
-
-def get_events():
-    """Get all events written by the injector."""
-    return uinput_write_history
-
-
-def push_event(fixture: Fixture, event: InputEvent, force: bool = False):
-    """Make a device act like it is reading events from evdev.
-
-    push_event is like hitting a key on a keyboard for stuff that reads from
-    evdev.InputDevice (which is patched in test.py to work that way)
-
-    Parameters
-    ----------
-    fixture
-        For example 'Foo Device'
-    event
-    force
-        don't check if the event is in fixture.capabilities
-    """
-    setup_pipe(fixture)
-    if not force and (
-        not fixture.capabilities.get(event.type)
-        or event.code not in fixture.capabilities[event.type]
-    ):
-        raise AssertionError(f"Fixture {fixture.path} cannot send {event}")
-    logger.info("Simulating %s for %s", event, fixture.path)
-    pending_events[fixture][0].send(event)
-
-
-def push_events(fixture: Fixture, events, force=False):
-    """Push multiple events."""
-    for event in events:
-        push_event(fixture, event, force)
 
 
 def new_event(type, code, value, timestamp=None, offset=0):

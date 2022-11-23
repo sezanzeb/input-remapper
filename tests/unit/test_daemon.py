@@ -21,12 +21,11 @@
 
 from tests.test import (
     cleanup,
-    uinput_write_history_pipe,
     new_event,
-    push_events,
     is_service_running,
-    tmp,
 )
+from tests.pipes import push_events, uinput_write_history_pipe
+from tests.tmp import tmp
 from tests.fixtures import fixtures, get_key_mapping
 
 import os

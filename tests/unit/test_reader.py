@@ -52,15 +52,14 @@ from inputremapper.gui.reader_client import ReaderClient
 from inputremapper.gui.reader_service import ReaderService
 from tests.test import (
     new_event,
-    push_events,
     EVENT_READ_TIMEOUT,
     START_READING_DELAY,
     quick_cleanup,
     MAX_ABS,
-    MIN_ABS,
-    fixtures,
-    push_event,
+    MIN_ABS
 )
+from tests.pipes import push_event, push_events
+from tests.fixtures import fixtures
 
 CODE_1 = 100
 CODE_2 = 101

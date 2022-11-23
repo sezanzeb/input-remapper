@@ -22,13 +22,13 @@ from tests.test import (
     InputDevice,
     quick_cleanup,
     cleanup,
-    fixtures,
     new_event,
-    push_events,
     EVENT_READ_TIMEOUT,
     START_READING_DELAY,
     logger,
 )
+from tests.fixtures import fixtures
+from tests.pipes import push_events
 
 import os
 import unittest
