@@ -20,13 +20,13 @@
 from pydantic import ValidationError
 
 from tests.test import (
-    new_event,
-    fixtures,
-    EVENT_READ_TIMEOUT,
-    uinput_write_history_pipe,
-    quick_cleanup,
-    uinputs,
+    new_event
 )
+from tests.patches import uinputs
+from tests.cleanup import quick_cleanup
+from tests.constants import EVENT_READ_TIMEOUT
+from tests.fixtures import fixtures
+from tests.pipes import uinput_write_history_pipe
 from tests.pipes import read_write_history_pipe, push_events
 from tests.fixtures import (
     keyboard_keys,

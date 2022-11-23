@@ -18,9 +18,20 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-from inputremapper.input_event import InputEvent as InternalInputEvent
+import os
+import copy
+from unittest.mock import patch
 
 
 def convert_to_internal_events(events):
     """Convert an iterable of InputEvent to a list of inputremapper.InputEvent."""
+    from inputremapper.input_event import InputEvent as InternalInputEvent
     return [InternalInputEvent.from_event(event) for event in events]
+
+
+def spy(obj, name):
+    """Convenient wrapper for patch.object(..., ..., wraps=...)."""
+    return patch.object(obj, name, wraps=obj.__getattribute__(name))
+
+
+environ_copy = copy.deepcopy(os.environ)

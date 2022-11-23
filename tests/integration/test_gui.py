@@ -25,10 +25,10 @@ from typing import Tuple, List, Optional
 
 from tests.test import (
     get_project_root,
-    new_event,
-    spy,
-    cleanup,
+    new_event
 )
+from tests.cleanup import cleanup
+from tests.stuff import spy
 from tests.constants import EVENT_READ_TIMEOUT
 from tests.fixtures import prepare_presets
 from tests.logger import logger

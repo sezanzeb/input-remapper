@@ -42,7 +42,7 @@ from inputremapper.gui.messages.message_data import (
 from inputremapper.gui.reader_client import ReaderClient
 from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.input_event import InputEvent
-from tests.test import quick_cleanup
+from tests.cleanup import quick_cleanup
 from tests.patches import FakeDaemonProxy
 from tests.fixtures import prepare_presets
 

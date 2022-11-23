@@ -65,7 +65,9 @@ from inputremapper.injection.macros.parse import (
     get_macro_argument_names,
     get_num_parameters,
 )
-from tests.test import logger, quick_cleanup, new_event
+from tests.test import new_event
+from tests.logger import logger
+from tests.cleanup import quick_cleanup
 
 
 class MacroTestBase(unittest.IsolatedAsyncioTestCase):

@@ -45,16 +45,8 @@ from tests.pipes import (
 from tests.constants import EVENT_READ_TIMEOUT
 from tests.tmp import tmp
 from tests.fixtures import fixtures
-from tests.test import environ_copy
+from tests.stuff import environ_copy
 from tests.patches import uinputs
-
-from inputremapper.injection.macros.macro import macro_variables
-from inputremapper.configs.global_config import global_config
-from inputremapper.groups import groups
-from inputremapper.configs.system_mapping import system_mapping
-from inputremapper.gui.utils import debounce_manager
-from inputremapper.configs.paths import get_config_path
-from inputremapper.injection.global_uinputs import global_uinputs
 
 
 def join_children():
@@ -85,6 +77,13 @@ def clear_write_history():
 
 def quick_cleanup(log=True):
     """Reset the applications state."""
+    from inputremapper.injection.macros.macro import macro_variables
+    from inputremapper.configs.global_config import global_config
+    from inputremapper.configs.system_mapping import system_mapping
+    from inputremapper.gui.utils import debounce_manager
+    from inputremapper.configs.paths import get_config_path
+    from inputremapper.injection.global_uinputs import global_uinputs
+
     if log:
         print("Quick cleanup...")
 
@@ -167,6 +166,9 @@ def cleanup():
 
     Using this is slower, usually quick_cleanup() is sufficient.
     """
+    from inputremapper.groups import groups
+    from inputremapper.injection.global_uinputs import global_uinputs
+
     print("Cleanup...")
 
     os.system("pkill -f input-remapper-service")

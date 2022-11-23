@@ -22,7 +22,8 @@
 """Testing the input-remapper-control command"""
 
 
-from tests.test import quick_cleanup, tmp
+from tests.cleanup import quick_cleanup
+from tests.tmp import tmp
 
 import os
 import time

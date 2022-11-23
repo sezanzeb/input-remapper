@@ -11,7 +11,7 @@ gi.require_version("GtkSource", "4")
 from gi.repository import Gtk, Gdk, GLib
 
 from inputremapper.gui.utils import gtk_iteration
-from tests.test import quick_cleanup
+from tests.cleanup import quick_cleanup
 from inputremapper.gui.messages.message_broker import MessageBroker, MessageType
 from inputremapper.gui.user_interface import UserInterface
 from inputremapper.configs.mapping import MappingData

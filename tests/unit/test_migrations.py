@@ -11,8 +11,10 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
+
 from inputremapper.configs.mapping import UIMapping
-from tests.test import quick_cleanup, tmp
+from tests.cleanup import quick_cleanup
+from tests.tmp import tmp
 
 import os
 import unittest

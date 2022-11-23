@@ -20,7 +20,8 @@
 import asyncio
 import multiprocessing
 
-from tests.test import quick_cleanup, tmp
+from tests.cleanup import quick_cleanup
+from tests.tmp import tmp
 
 import unittest
 import select
