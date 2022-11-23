@@ -56,12 +56,10 @@ from inputremapper.injection.mapping_handlers.macro_handler import MacroHandler
 from inputremapper.injection.mapping_handlers.mapping_handler import MappingHandler
 from inputremapper.injection.mapping_handlers.rel_to_abs_handler import RelToAbsHandler
 from inputremapper.input_event import InputEvent, EventActions, USE_AS_ANALOG_VALUE
-from tests.test import (
-    InputDevice,
-    cleanup,
-    convert_to_internal_events,
-    MAX_ABS,
-)
+from tests.lib.cleanup import cleanup
+from tests.lib.patches import InputDevice
+from tests.lib.constants import MAX_ABS
+from tests.lib.stuff import convert_to_internal_events
 
 
 class BaseTests:

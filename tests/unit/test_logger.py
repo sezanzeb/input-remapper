@@ -19,7 +19,7 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from tests.test import tmp
+from tests.lib.tmp import tmp
 
 import os
 import shutil

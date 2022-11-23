@@ -17,18 +17,15 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
+
 from inputremapper.gui.messages.message_broker import MessageBroker
-from tests.test import (
-    InputDevice,
-    quick_cleanup,
-    cleanup,
-    fixtures,
-    new_event,
-    push_events,
-    EVENT_READ_TIMEOUT,
-    START_READING_DELAY,
-    logger,
-)
+from tests.lib.fixtures import new_event
+from tests.lib.cleanup import cleanup, quick_cleanup
+from tests.lib.constants import EVENT_READ_TIMEOUT, START_READING_DELAY
+from tests.lib.logger import logger
+from tests.lib.fixtures import fixtures
+from tests.lib.pipes import push_events
+from tests.lib.patches import InputDevice
 
 import os
 import unittest

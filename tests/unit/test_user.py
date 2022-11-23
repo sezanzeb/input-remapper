@@ -19,7 +19,7 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from tests.test import quick_cleanup
+from tests.lib.cleanup import quick_cleanup
 
 import os
 import unittest
