@@ -37,16 +37,16 @@ from inputremapper.gui.messages.message_broker import (
 )
 from inputremapper.gui.messages.message_data import (
     GroupData,
-    PresetData,
     CombinationUpdate,
 )
 from inputremapper.gui.reader_client import ReaderClient
 from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.input_event import InputEvent
-from tests.test import quick_cleanup, FakeDaemonProxy
+from tests.test import quick_cleanup
+from tests.patches import FakeDaemonProxy
 from tests.fixtures import prepare_presets
 
-from inputremapper.configs.paths import get_preset_path, get_config_path
+from inputremapper.configs.paths import get_preset_path
 from inputremapper.configs.preset import Preset
 from inputremapper.gui.data_manager import DataManager, DEFAULT_PRESET_NAME
 

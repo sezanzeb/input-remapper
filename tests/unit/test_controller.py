@@ -53,9 +53,9 @@ from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.configs.mapping import UIMapping, MappingData
 from tests.test import (
     quick_cleanup,
-    FakeDaemonProxy,
     spy,
 )
+from tests.patches import FakeDaemonProxy
 from tests.fixtures import fixtures, prepare_presets
 from inputremapper.configs.global_config import GlobalConfig
 from inputremapper.gui.controller import Controller, MAPPING_DEFAULTS

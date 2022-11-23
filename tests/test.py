@@ -322,50 +322,7 @@ class InputDevice:
         return []
 
 
-uinputs = {}
-
-
-class UInput:
-    def __init__(self, events=None, name="unnamed", *args, **kwargs):
-        self.fd = 0
-        self.write_count = 0
-        self.device = InputDevice("justdoit")
-        self.name = name
-        self.events = events
-        self.write_history = []
-
-        global uinputs
-        uinputs[name] = self
-
-    def capabilities(self, verbose=False, absinfo=True):
-        if absinfo or 3 not in self.events:
-            return self.events
-        else:
-            events = self.events.copy()
-            events[3] = [code for code, _ in self.events[3]]
-            return events
-
-    def write(self, type, code, value):
-        self.write_count += 1
-        event = new_event(type, code, value)
-        uinput_write_history.append(event)
-        uinput_write_history_pipe[1].send(event)
-        self.write_history.append(event)
-        logger.info("%s written", (type, code, value))
-
-    def syn(self):
-        pass
-
-
-# TODO inherit from input-remappers InputEvent?
-#  makes convert_to_internal_events obsolete
-class InputEvent(evdev.InputEvent):
-    def __init__(self, sec, usec, type, code, value):
-        self.t = (type, code, value)
-        super().__init__(sec, usec, type, code, value)
-
-    def copy(self):
-        return InputEvent(self.sec, self.usec, self.type, self.code, self.value)
+from tests.patches import UInput, uinputs, InputEvent
 
 
 def patch_evdev():
@@ -536,47 +493,6 @@ def cleanup():
 def spy(obj, name):
     """Convenient wrapper for patch.object(..., ..., wraps=...)."""
     return patch.object(obj, name, wraps=obj.__getattribute__(name))
-
-
-class FakeDaemonProxy:
-    def __init__(self):
-        self.calls = {
-            "stop_injecting": [],
-            "get_state": [],
-            "start_injecting": [],
-            "stop_all": 0,
-            "set_config_dir": [],
-            "autoload": 0,
-            "autoload_single": [],
-            "hello": [],
-        }
-
-    def stop_injecting(self, group_key: str) -> None:
-        self.calls["stop_injecting"].append(group_key)
-
-    def get_state(self, group_key: str) -> InjectorState:
-        self.calls["get_state"].append(group_key)
-        return InjectorState.STOPPED
-
-    def start_injecting(self, group_key: str, preset: str) -> bool:
-        self.calls["start_injecting"].append((group_key, preset))
-        return True
-
-    def stop_all(self) -> None:
-        self.calls["stop_all"] += 1
-
-    def set_config_dir(self, config_dir: str) -> None:
-        self.calls["set_config_dir"].append(config_dir)
-
-    def autoload(self) -> None:
-        self.calls["autoload"] += 1
-
-    def autoload_single(self, group_key: str) -> None:
-        self.calls["autoload_single"].append(group_key)
-
-    def hello(self, out: str) -> str:
-        self.calls["hello"].append(out)
-        return out
 
 
 def prepare_presets():
