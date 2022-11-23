@@ -154,10 +154,7 @@ START_READING_DELAY = 0.05
 MIN_ABS = -(2**15)
 MAX_ABS = 2**15
 
-# When it gets garbage collected it cleans up the temporary directory so it needs to
-# stay reachable while the tests are ran.
-temporary_directory = tempfile.TemporaryDirectory(prefix="input-remapper-test")
-tmp = temporary_directory.name
+from tests.tmp import tmp
 
 uinput_write_history = []
 # for tests that makes the injector create its processes
