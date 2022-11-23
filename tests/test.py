@@ -32,6 +32,8 @@ import json
 import os
 import sys
 import tempfile
+import traceback
+import warnings
 from multiprocessing.connection import Connection
 from typing import Dict, Tuple, Optional
 import tracemalloc
@@ -90,15 +92,21 @@ import subprocess
 import multiprocessing
 import asyncio
 import psutil
+import logging
 from pickle import UnpicklingError
 from unittest.mock import patch
 
 import evdev
 
 from tests.xmodmap import xmodmap
-from tests.logger import logger
 
 os.environ["UNITTEST"] = "1"
+
+logger = logging.getLogger("input-remapper-test")
+handler = logging.StreamHandler()
+handler.setFormatter(logging.Formatter("\033[90mTest: %(message)s\033[0m"))
+logger.addHandler(handler)
+logger.setLevel(logging.INFO)
 
 
 def is_service_running():
@@ -166,7 +174,15 @@ def read_write_history_pipe():
     return history
 
 
-from tests.fixtures import fixtures, Fixture
+# input-remapper is only interested in devices that have EV_KEY, add some
+# random other stuff to test that they are ignored.
+phys_foo = "usb-0000:03:00.0-1/input2"
+info_foo = evdev.device.DeviceInfo(1, 1, 1, 1)
+
+keyboard_keys = sorted(evdev.ecodes.keys.keys())[:255]
+
+
+from tests.fixtures import Fixture, fixtures
 
 
 def setup_pipe(fixture: Fixture):
@@ -477,6 +493,19 @@ def clear_write_history():
         uinput_write_history_pipe[0].recv()
 
 
+def warn_with_traceback(message, category, filename, lineno, file=None, line=None):
+
+    log = file if hasattr(file, "write") else sys.stderr
+    traceback.print_stack(file=log)
+    log.write(warnings.formatwarning(message, category, filename, lineno, line))
+
+
+def patch_warnings():
+    # show traceback
+    warnings.showwarning = warn_with_traceback
+    warnings.simplefilter("always")
+
+
 # quickly fake some stuff before any other file gets a chance to import
 # the original versions
 patch_paths()
@@ -484,12 +513,16 @@ patch_evdev()
 patch_events()
 patch_os_system()
 patch_check_output()
+# patch_warnings()
+
+from inputremapper.logger import update_verbosity
+
+update_verbosity(True)
 
 from inputremapper.input_event import InputEvent as InternalInputEvent
 from inputremapper.injection.injector import Injector, InjectorState
 from inputremapper.injection.macros.macro import macro_variables
 from inputremapper.configs.global_config import global_config
-from inputremapper.configs.mapping import Mapping, UIMapping
 from inputremapper.groups import groups
 from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.gui.reader_service import ReaderService
@@ -661,6 +694,38 @@ class FakeDaemonProxy:
     def hello(self, out: str) -> str:
         self.calls["hello"].append(out)
         return out
+
+
+def prepare_presets():
+    """prepare a few presets for use in tests
+    "Foo Device 2/preset3" is the newest and "Foo Device 2/preset2" is set to autoload
+    """
+    from tests.fixtures import get_key_mapping
+
+    preset1 = Preset(get_preset_path("Foo Device", "preset1"))
+    preset1.add(get_key_mapping(combination="1,1,1", output_symbol="b"))
+    preset1.add(get_key_mapping(combination="1,2,1"))
+    preset1.save()
+
+    time.sleep(0.1)
+    preset2 = Preset(get_preset_path("Foo Device", "preset2"))
+    preset2.add(get_key_mapping(combination="1,3,1"))
+    preset2.add(get_key_mapping(combination="1,4,1"))
+    preset2.save()
+
+    # make sure the timestamp of preset 3 is the newest,
+    # so that it will be automatically loaded by the GUI
+    time.sleep(0.1)
+    preset3 = Preset(get_preset_path("Foo Device", "preset3"))
+    preset3.add(get_key_mapping(combination="1,5,1"))
+    preset3.save()
+
+    with open(get_config_path("config.json"), "w") as file:
+        json.dump({"autoload": {"Foo Device 2": "preset2"}}, file, indent=4)
+
+    global_config.load_config()
+
+    return preset1, preset2, preset3
 
 
 cleanup()

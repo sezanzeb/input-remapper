@@ -28,10 +28,7 @@ from __future__ import annotations
 
 import dataclasses
 import json
-import tracemalloc
 from typing import Dict, Optional
-
-tracemalloc.start()
 
 import time
 
@@ -312,16 +309,11 @@ class _Fixtures:
 
 fixtures = _Fixtures()
 
-from inputremapper.configs.global_config import global_config
-from inputremapper.configs.mapping import Mapping, UIMapping
-from inputremapper.configs.paths import get_config_path, get_preset_path
-from inputremapper.configs.preset import Preset
 
-
-def get_ui_mapping(
-    combination="99,99,99", target_uinput="keyboard", output_symbol="a"
-) -> UIMapping:
+def get_ui_mapping(combination="99,99,99", target_uinput="keyboard", output_symbol="a"):
     """Convenient function to get a valid mapping."""
+    from inputremapper.configs.mapping import UIMapping
+
     return UIMapping(
         event_combination=combination,
         target_uinput=target_uinput,
@@ -331,8 +323,10 @@ def get_ui_mapping(
 
 def get_key_mapping(
     combination="99,99,99", target_uinput="keyboard", output_symbol="a"
-) -> Mapping:
+):
     """Convenient function to get a valid mapping."""
+    from inputremapper.configs.mapping import Mapping
+
     return Mapping(
         event_combination=combination,
         target_uinput=target_uinput,
@@ -344,6 +338,10 @@ def prepare_presets():
     """prepare a few presets for use in tests
     "Foo Device 2/preset3" is the newest and "Foo Device 2/preset2" is set to autoload
     """
+    from inputremapper.configs.preset import Preset
+    from inputremapper.configs.paths import get_config_path, get_preset_path
+    from inputremapper.configs.global_config import global_config
+
     preset1 = Preset(get_preset_path("Foo Device", "preset1"))
     preset1.add(get_key_mapping(combination="1,1,1", output_symbol="b"))
     preset1.add(get_key_mapping(combination="1,2,1"))
