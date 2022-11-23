@@ -92,7 +92,6 @@ import subprocess
 import multiprocessing
 import asyncio
 import psutil
-import logging
 from pickle import UnpicklingError
 from unittest.mock import patch
 
@@ -102,11 +101,7 @@ from tests.xmodmap import xmodmap
 
 os.environ["UNITTEST"] = "1"
 
-logger = logging.getLogger("input-remapper-test")
-handler = logging.StreamHandler()
-handler.setFormatter(logging.Formatter("\033[90mTest: %(message)s\033[0m"))
-logger.addHandler(handler)
-logger.setLevel(logging.INFO)
+from tests.logger import logger
 
 
 def is_service_running():
@@ -488,19 +483,6 @@ def clear_write_history():
         uinput_write_history.pop()
     while uinput_write_history_pipe[0].poll():
         uinput_write_history_pipe[0].recv()
-
-
-def warn_with_traceback(message, category, filename, lineno, file=None, line=None):
-
-    log = file if hasattr(file, "write") else sys.stderr
-    traceback.print_stack(file=log)
-    log.write(warnings.formatwarning(message, category, filename, lineno, line))
-
-
-def patch_warnings():
-    # show traceback
-    warnings.showwarning = warn_with_traceback
-    warnings.simplefilter("always")
 
 
 # quickly fake some stuff before any other file gets a chance to import
