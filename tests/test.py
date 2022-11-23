@@ -338,30 +338,19 @@ patch_regrab_timeout()
 patch_is_running()
 # patch_warnings()
 
-from inputremapper.logger import update_verbosity
-
-update_verbosity(True)
-
-from inputremapper.injection.injector import Injector
-from inputremapper.injection.macros.macro import macro_variables
-from inputremapper.configs.global_config import global_config
-from inputremapper.groups import groups
-from inputremapper.configs.system_mapping import system_mapping
-from inputremapper.gui.utils import debounce_manager
-from inputremapper.configs.paths import get_config_path, get_preset_path
-from inputremapper.configs.preset import Preset
-
-from inputremapper.injection.global_uinputs import global_uinputs
-
-# no need for a high number in tests
-Injector.regrab_timeout = 0.05
-
 
 environ_copy = copy.deepcopy(os.environ)
 
 
 def quick_cleanup(log=True):
     """Reset the applications state."""
+    from inputremapper.gui.utils import debounce_manager
+    from inputremapper.configs.global_config import global_config
+    from inputremapper.injection.macros.macro import macro_variables
+    from inputremapper.configs.system_mapping import system_mapping
+    from inputremapper.configs.paths import get_config_path
+    from inputremapper.injection.global_uinputs import global_uinputs
+
     if log:
         print("Quick cleanup...")
 
@@ -444,6 +433,9 @@ def cleanup():
 
     Using this is slower, usually quick_cleanup() is sufficient.
     """
+    from inputremapper.groups import groups
+    from inputremapper.injection.global_uinputs import global_uinputs
+
     print("Cleanup...")
 
     os.system("pkill -f input-remapper-service")
@@ -461,38 +453,6 @@ def cleanup():
 def spy(obj, name):
     """Convenient wrapper for patch.object(..., ..., wraps=...)."""
     return patch.object(obj, name, wraps=obj.__getattribute__(name))
-
-
-def prepare_presets():
-    """prepare a few presets for use in tests
-    "Foo Device 2/preset3" is the newest and "Foo Device 2/preset2" is set to autoload
-    """
-    from tests.fixtures import get_key_mapping
-
-    preset1 = Preset(get_preset_path("Foo Device", "preset1"))
-    preset1.add(get_key_mapping(combination="1,1,1", output_symbol="b"))
-    preset1.add(get_key_mapping(combination="1,2,1"))
-    preset1.save()
-
-    time.sleep(0.1)
-    preset2 = Preset(get_preset_path("Foo Device", "preset2"))
-    preset2.add(get_key_mapping(combination="1,3,1"))
-    preset2.add(get_key_mapping(combination="1,4,1"))
-    preset2.save()
-
-    # make sure the timestamp of preset 3 is the newest,
-    # so that it will be automatically loaded by the GUI
-    time.sleep(0.1)
-    preset3 = Preset(get_preset_path("Foo Device", "preset3"))
-    preset3.add(get_key_mapping(combination="1,5,1"))
-    preset3.save()
-
-    with open(get_config_path("config.json"), "w") as file:
-        json.dump({"autoload": {"Foo Device 2": "preset2"}}, file, indent=4)
-
-    global_config.load_config()
-
-    return preset1, preset2, preset3
 
 
 cleanup()

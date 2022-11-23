@@ -28,9 +28,10 @@ from tests.test import (
     new_event,
     spy,
     cleanup,
-    EVENT_READ_TIMEOUT,
-    prepare_presets,
 )
+from tests.constants import EVENT_READ_TIMEOUT
+from tests.fixtures import prepare_presets
+
 from tests.logger import logger
 from tests.fixtures import fixtures
 from tests.pipes import push_event, push_events, uinput_write_history_pipe
