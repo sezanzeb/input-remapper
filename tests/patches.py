@@ -35,7 +35,7 @@ from pickle import UnpicklingError
 
 import evdev
 
-from tests.constants import EVENT_READ_TIMEOUT
+from tests.constants import EVENT_READ_TIMEOUT, MIN_ABS, MAX_ABS
 from tests.fixtures import Fixture, fixtures, new_event
 from tests.pipes import (
     setup_pipe,
