@@ -30,8 +30,6 @@ import argparse
 import json
 import os
 import sys
-from multiprocessing.connection import Connection
-from typing import Dict, Tuple
 import tracemalloc
 
 tracemalloc.start()
@@ -85,15 +83,12 @@ import time
 import copy
 import unittest
 import subprocess
-import multiprocessing
 import asyncio
 import psutil
 from pickle import UnpicklingError
 from unittest.mock import patch
 
 import evdev
-
-from tests.xmodmap import xmodmap
 
 os.environ["UNITTEST"] = "1"
 
@@ -132,19 +127,7 @@ if is_service_running():
     raise Exception("Expected the service not to be running already.")
 
 
-# give tests some time to test stuff while the process
-# is still running
-EVENT_READ_TIMEOUT = 0.01
-
-# based on experience how much time passes at most until
-# the reader-service starts receiving previously pushed events after a
-# call to start_reading
-START_READING_DELAY = 0.05
-
-# for joysticks
-MIN_ABS = -(2**15)
-MAX_ABS = 2**15
-
+from tests.constants import EVENT_READ_TIMEOUT, MAX_ABS, MIN_ABS
 from tests.tmp import tmp
 
 # input-remapper is only interested in devices that have EV_KEY, add some
