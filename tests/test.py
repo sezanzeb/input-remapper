@@ -71,15 +71,11 @@ if __name__ == "__main__":
 
     tests.test.main()
 
-import time
 import unittest
 import subprocess
-import psutil
 
 os.environ["UNITTEST"] = "1"
 
-from tests.lib.logger import logger
-from tests.lib.constants import EVENT_READ_TIMEOUT
 from tests.lib.fixtures import fixtures
 from tests.lib.pipes import setup_pipe
 from tests.lib.patches import (
@@ -102,24 +98,6 @@ def is_service_running():
         return True
     except subprocess.CalledProcessError:
         return False
-
-
-def join_children():
-    """Wait for child processes to exit. Stop them if it takes too long."""
-    this = psutil.Process(os.getpid())
-
-    i = 0
-    time.sleep(EVENT_READ_TIMEOUT)
-    children = this.children(recursive=True)
-    while len([c for c in children if c.status() != "zombie"]) > 0:
-        for child in children:
-            if i > 10:
-                child.kill()
-                logger.info("Killed pid %s because it didn't finish in time", child.pid)
-
-        children = this.children(recursive=True)
-        time.sleep(EVENT_READ_TIMEOUT)
-        i += 1
 
 
 if is_service_running():
