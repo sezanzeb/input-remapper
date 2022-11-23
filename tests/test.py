@@ -27,7 +27,6 @@ This module needs to be imported first in test files.
 from __future__ import annotations
 
 import argparse
-import json
 import os
 import sys
 import tracemalloc
@@ -93,6 +92,27 @@ import evdev
 os.environ["UNITTEST"] = "1"
 
 from tests.logger import logger
+from tests.constants import EVENT_READ_TIMEOUT, MAX_ABS, MIN_ABS
+from tests.tmp import tmp
+from tests.fixtures import Fixture, fixtures
+from tests.pipes import (
+    setup_pipe,
+    pending_events,
+    uinput_write_history,
+    uinput_write_history_pipe,
+    push_events,
+)
+from tests.patches import (
+    patch_paths,
+    patch_events,
+    patch_os_system,
+    patch_check_output,
+    patch_regrab_timeout,
+    patch_is_running,
+    UInput,
+    uinputs,
+    InputEvent,
+)
 
 
 def is_service_running():
@@ -125,18 +145,6 @@ def join_children():
 if is_service_running():
     # let tests control daemon existance
     raise Exception("Expected the service not to be running already.")
-
-
-from tests.constants import EVENT_READ_TIMEOUT, MAX_ABS, MIN_ABS
-from tests.tmp import tmp
-from tests.fixtures import Fixture, fixtures
-from tests.pipes import (
-    setup_pipe,
-    pending_events,
-    uinput_write_history,
-    uinput_write_history_pipe,
-    push_events,
-)
 
 
 # make sure those pipes exist before any process (the reader-service) gets forked,
@@ -296,9 +304,6 @@ class InputDevice:
         return []
 
 
-from tests.patches import UInput, uinputs, InputEvent
-
-
 def patch_evdev():
     def list_devices():
         return [fixture_.path for fixture_ in fixtures]
@@ -315,16 +320,6 @@ def clear_write_history():
         uinput_write_history.pop()
     while uinput_write_history_pipe[0].poll():
         uinput_write_history_pipe[0].recv()
-
-
-from tests.patches import (
-    patch_paths,
-    patch_events,
-    patch_os_system,
-    patch_check_output,
-    patch_regrab_timeout,
-    patch_is_running,
-)
 
 
 # quickly fake some stuff before any other file gets a chance to import

@@ -26,23 +26,17 @@ This module needs to be imported first in test files.
 
 from __future__ import annotations
 
-import os
-from multiprocessing.connection import Connection
-from typing import Dict, Tuple
-
-
-import time
-import copy
-import subprocess
-import multiprocessing
 import asyncio
+import copy
+import os
+import subprocess
+import time
 from pickle import UnpicklingError
 
 import evdev
 
-from tests.xmodmap import xmodmap
-from tests.fixtures import Fixture, fixtures, new_event
 from tests.constants import EVENT_READ_TIMEOUT
+from tests.fixtures import Fixture, fixtures, new_event
 from tests.pipes import (
     setup_pipe,
     push_events,
@@ -50,6 +44,9 @@ from tests.pipes import (
     uinput_write_history_pipe,
     pending_events,
 )
+from tests.xmodmap import xmodmap
+from tests.tmp import tmp
+from tests.logger import logger
 
 
 def patch_paths():
@@ -290,10 +287,6 @@ def patch_check_output():
         return original_check_output(command, *args, **kwargs)
 
     subprocess.check_output = check_output
-
-
-from tests.tmp import tmp
-from tests.logger import logger
 
 
 def patch_regrab_timeout():
