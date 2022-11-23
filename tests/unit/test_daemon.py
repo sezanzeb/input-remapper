@@ -19,10 +19,8 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from tests.test import (
-    cleanup,
-    is_service_running,
-)
+from tests.test import is_service_running
+from tests.cleanup import cleanup
 from tests.fixtures import new_event
 from tests.pipes import push_events, uinput_write_history_pipe
 from tests.tmp import tmp

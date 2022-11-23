@@ -87,11 +87,7 @@ os.environ["UNITTEST"] = "1"
 from tests.logger import logger
 from tests.constants import EVENT_READ_TIMEOUT
 from tests.fixtures import fixtures
-from tests.pipes import (
-    setup_pipe,
-    uinput_write_history,
-    uinput_write_history_pipe,
-)
+from tests.pipes import setup_pipe
 from tests.patches import (
     patch_paths,
     patch_events,
@@ -100,7 +96,6 @@ from tests.patches import (
     patch_regrab_timeout,
     patch_is_running,
     patch_evdev,
-    InputEvent,
 )
 from tests.cleanup import cleanup
 
@@ -143,16 +138,8 @@ for _fixture in fixtures:
     setup_pipe(_fixture)
 
 
-def clear_write_history():
-    """Empty the history in preparation for the next test."""
-    while len(uinput_write_history) > 0:
-        uinput_write_history.pop()
-    while uinput_write_history_pipe[0].poll():
-        uinput_write_history_pipe[0].recv()
-
-
 # applying patches before importing input-remappers modules is important, otherwise
-# input-remapper might use un-patched modules. Importing modules from inputremapper
+# input-remapper might use non-patched modules. Importing modules from inputremapper
 # just-in-time in the test-setup functions instead of globally helps. This way,
 # it is ensured that the patches on evdev and such are already applied, without having
 # to take care about ordering the files in a special way.
