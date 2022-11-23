@@ -31,7 +31,6 @@ from tests.test import (
 )
 from tests.constants import EVENT_READ_TIMEOUT
 from tests.fixtures import prepare_presets
-
 from tests.logger import logger
 from tests.fixtures import fixtures
 from tests.pipes import push_event, push_events, uinput_write_history_pipe

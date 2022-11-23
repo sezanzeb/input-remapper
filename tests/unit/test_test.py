@@ -19,11 +19,12 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 from inputremapper.gui.messages.message_broker import MessageBroker
-from tests.test import InputDevice, quick_cleanup, cleanup, new_event
+from tests.test import quick_cleanup, cleanup, new_event
 from tests.constants import EVENT_READ_TIMEOUT, START_READING_DELAY
 from tests.logger import logger
 from tests.fixtures import fixtures
 from tests.pipes import push_events
+from tests.patches import InputDevice
 
 import os
 import unittest

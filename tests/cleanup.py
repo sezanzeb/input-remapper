@@ -26,32 +26,35 @@ This module needs to be imported first in test files.
 
 from __future__ import annotations
 
-import argparse
-import dataclasses
-import json
 import os
 import sys
-import tempfile
-from multiprocessing.connection import Connection
-from typing import Dict, Tuple, Optional
-import tracemalloc
-
-
 import shutil
 import time
-import copy
-import unittest
-import subprocess
-import multiprocessing
 import asyncio
 import psutil
 from pickle import UnpicklingError
 from unittest.mock import patch
 
-import evdev
-
-from tests.xmodmap import xmodmap
 from tests.logger import logger
+from tests.pipes import (
+    uinput_write_history_pipe,
+    uinput_write_history,
+    pending_events,
+    setup_pipe,
+)
+from tests.constants import EVENT_READ_TIMEOUT
+from tests.tmp import tmp
+from tests.fixtures import fixtures
+from tests.test import environ_copy
+from tests.patches import uinputs
+
+from inputremapper.injection.macros.macro import macro_variables
+from inputremapper.configs.global_config import global_config
+from inputremapper.groups import groups
+from inputremapper.configs.system_mapping import system_mapping
+from inputremapper.gui.utils import debounce_manager
+from inputremapper.configs.paths import get_config_path
+from inputremapper.injection.global_uinputs import global_uinputs
 
 
 def join_children():
@@ -78,23 +81,6 @@ def clear_write_history():
         uinput_write_history.pop()
     while uinput_write_history_pipe[0].poll():
         uinput_write_history_pipe[0].recv()
-
-
-from inputremapper.input_event import InputEvent as InternalInputEvent
-from inputremapper.injection.injector import Injector, InjectorState
-from inputremapper.injection.macros.macro import macro_variables
-from inputremapper.configs.global_config import global_config
-from inputremapper.configs.mapping import Mapping, UIMapping
-from inputremapper.groups import groups
-from inputremapper.configs.system_mapping import system_mapping
-from inputremapper.gui.reader_service import ReaderService
-from inputremapper.gui.utils import debounce_manager
-from inputremapper.configs.paths import get_config_path, get_preset_path
-from inputremapper.configs.preset import Preset
-
-from inputremapper.injection.global_uinputs import global_uinputs
-
-from tests.tmp import tmp
 
 
 def quick_cleanup(log=True):
