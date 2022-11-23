@@ -27,15 +27,11 @@ This module needs to be imported first in test files.
 from __future__ import annotations
 
 import argparse
-import dataclasses
 import json
 import os
 import sys
-import tempfile
-import traceback
-import warnings
 from multiprocessing.connection import Connection
-from typing import Dict, Tuple, Optional
+from typing import Dict, Tuple
 import tracemalloc
 
 tracemalloc.start()

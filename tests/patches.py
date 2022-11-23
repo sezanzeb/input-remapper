@@ -26,79 +26,28 @@ This module needs to be imported first in test files.
 
 from __future__ import annotations
 
-import argparse
-import dataclasses
-import json
 import os
-import sys
-import tempfile
-import traceback
-import warnings
 from multiprocessing.connection import Connection
-from typing import Dict, Tuple, Optional
-import tracemalloc
-
-tracemalloc.start()
-
-# ensure nothing has loaded
-if module := sys.modules.get("inputremapper"):
-    imported = [m for m in module.__dict__ if not m.startswith("__")]
-    raise AssertionError(
-        f"The modules {imported} from inputremapper where already imported, this can "
-        f"cause issues with the tests. Make sure to always import tests.test before any"
-        f" inputremapper module."
-    )
-try:
-    sys.modules.get("tests.test").main
-    raise AssertionError(
-        "test.py was already imported. "
-        "Always use 'from tests.test import ...' "
-        "not 'from test import ...' to import this"
-    )
-    # have fun debugging infinitely blocking tests without this
-except AttributeError:
-    pass
+from typing import Dict, Tuple
 
 
-def get_project_root():
-    """Find the projects root, i.e. the uppermost directory of the repo."""
-    # when tests are started in pycharm via the green arrow, the working directory
-    # is not the project root. Go up until it is found.
-    root = os.getcwd()
-    for _ in range(10):
-        if "setup.py" in os.listdir(root):
-            return root
-
-        root = os.path.dirname(root)
-
-    raise Exception("Could not find project root")
-
-
-# make sure the "tests" module visible
-sys.path.append(get_project_root())
-if __name__ == "__main__":
-    # import this file to itself to make sure is not run twice and all global
-    # variables end up in sys.modules
-    # https://stackoverflow.com/questions/13181559/importing-modules-main-vs-import-as-module
-    import tests.test
-
-    tests.test.main()
-
-import shutil
 import time
 import copy
-import unittest
 import subprocess
 import multiprocessing
 import asyncio
-import psutil
-import logging
 from pickle import UnpicklingError
-from unittest.mock import patch
 
 import evdev
 
 from tests.xmodmap import xmodmap
+from tests.fixtures import Fixture, fixtures, new_event
+
+
+uinput_write_history = []
+# for tests that makes the injector create its processes
+uinput_write_history_pipe = multiprocessing.Pipe()
+pending_events: Dict[Fixture, Tuple[Connection, Connection]] = {}
 
 
 def patch_paths():
@@ -340,60 +289,21 @@ def patch_check_output():
 
     subprocess.check_output = check_output
 
-
-def clear_write_history():
-    """Empty the history in preparation for the next test."""
-    while len(uinput_write_history) > 0:
-        uinput_write_history.pop()
-    while uinput_write_history_pipe[0].poll():
-        uinput_write_history_pipe[0].recv()
-
-
-def warn_with_traceback(message, category, filename, lineno, file=None, line=None):
-    log = file if hasattr(file, "write") else sys.stderr
-    traceback.print_stack(file=log)
-    log.write(warnings.formatwarning(message, category, filename, lineno, line))
-
-
-def patch_warnings():
-    # show traceback
-    warnings.showwarning = warn_with_traceback
-    warnings.simplefilter("always")
-
-
-# quickly fake some stuff before any other file gets a chance to import
-# the original versions
-patch_paths()
-patch_evdev()
-patch_events()
-patch_os_system()
-patch_check_output()
-# patch_warnings()
-
 from inputremapper.logger import update_verbosity
 
 update_verbosity(True)
 
 from inputremapper.input_event import InputEvent as InternalInputEvent
 from inputremapper.injection.injector import Injector, InjectorState
-from inputremapper.injection.macros.macro import macro_variables
-from inputremapper.configs.global_config import global_config
-from inputremapper.configs.mapping import Mapping, UIMapping
-from inputremapper.groups import groups
-from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.gui.reader_service import ReaderService
-from inputremapper.gui.utils import debounce_manager
-from inputremapper.configs.paths import get_config_path, get_preset_path
-from inputremapper.configs.preset import Preset
 
-from inputremapper.injection.global_uinputs import global_uinputs
+from tests.tmp import tmp
+from tests.logger import logger
 
 # no need for a high number in tests
 Injector.regrab_timeout = 0.05
 
-
 environ_copy = copy.deepcopy(os.environ)
-
 
 def is_running_patch():
     logger.info("is_running is patched to always return True")
@@ -406,131 +316,6 @@ setattr(ReaderService, "is_running", is_running_patch)
 def convert_to_internal_events(events):
     """Convert an iterable of InputEvent to a list of inputremapper.InputEvent."""
     return [InternalInputEvent.from_event(event) for event in events]
-
-
-def get_key_mapping(
-    combination="99,99,99", target_uinput="keyboard", output_symbol="a"
-) -> Mapping:
-    """Convenient function to get a valid mapping."""
-    return Mapping(
-        event_combination=combination,
-        target_uinput=target_uinput,
-        output_symbol=output_symbol,
-    )
-
-
-def get_ui_mapping(
-    combination="99,99,99", target_uinput="keyboard", output_symbol="a"
-) -> UIMapping:
-    """Convenient function to get a valid mapping."""
-    return UIMapping(
-        event_combination=combination,
-        target_uinput=target_uinput,
-        output_symbol=output_symbol,
-    )
-
-
-def quick_cleanup(log=True):
-    """Reset the applications state."""
-    if log:
-        print("Quick cleanup...")
-
-    debounce_manager.stop_all()
-
-    for device in list(pending_events.keys()):
-        try:
-            while pending_events[device][1].poll():
-                pending_events[device][1].recv()
-        except (UnpicklingError, EOFError):
-            pass
-
-        # setup new pipes for the next test
-        pending_events[device][1].close()
-        pending_events[device][0].close()
-        del pending_events[device]
-        setup_pipe(device)
-
-    try:
-        if asyncio.get_event_loop().is_running():
-            for task in asyncio.all_tasks():
-                task.cancel()
-    except RuntimeError:
-        # happens when the event loop disappears for magical reasons
-        # create a fresh event loop
-        asyncio.set_event_loop(asyncio.new_event_loop())
-
-    if macro_variables.process is not None and not macro_variables.process.is_alive():
-        # nothing should stop the process during runtime, if it has been started by
-        # the injector once
-        raise AssertionError("the SharedDict manager is not running anymore")
-
-    if macro_variables.process is not None:
-        macro_variables._stop()
-
-    join_children()
-
-    macro_variables.start()
-
-    if os.path.exists(tmp):
-        shutil.rmtree(tmp)
-
-    global_config.path = os.path.join(get_config_path(), "config.json")
-    global_config.clear_config()
-    global_config._save_config()
-
-    system_mapping.populate()
-
-    clear_write_history()
-
-    for name in list(uinputs.keys()):
-        del uinputs[name]
-
-    # for device in list(active_macros.keys()):
-    #    del active_macros[device]
-    # for device in list(unreleased.keys()):
-    #    del unreleased[device]
-    fixtures.reset()
-    os.environ.update(environ_copy)
-    for device in list(os.environ.keys()):
-        if device not in environ_copy:
-            del os.environ[device]
-
-    for _, pipe in pending_events.values():
-        assert not pipe.poll()
-
-    assert macro_variables.is_alive(1)
-    for uinput in global_uinputs.devices.values():
-        uinput.write_count = 0
-        uinput.write_history = []
-
-    global_uinputs.is_service = True
-
-    if log:
-        print("Quick cleanup done")
-
-
-def cleanup():
-    """Reset the applications state.
-
-    Using this is slower, usually quick_cleanup() is sufficient.
-    """
-    print("Cleanup...")
-
-    os.system("pkill -f input-remapper-service")
-    os.system("pkill -f input-remapper-control")
-    time.sleep(0.05)
-
-    quick_cleanup(log=False)
-    groups.refresh()
-    with patch.object(sys, "argv", ["input-remapper-service"]):
-        global_uinputs.prepare_all()
-
-    print("Cleanup done")
-
-
-def spy(obj, name):
-    """Convenient wrapper for patch.object(..., ..., wraps=...)."""
-    return patch.object(obj, name, wraps=obj.__getattribute__(name))
 
 
 class FakeDaemonProxy:
@@ -572,73 +357,3 @@ class FakeDaemonProxy:
     def hello(self, out: str) -> str:
         self.calls["hello"].append(out)
         return out
-
-
-def prepare_presets():
-    """prepare a few presets for use in tests
-    "Foo Device 2/preset3" is the newest and "Foo Device 2/preset2" is set to autoload
-    """
-    preset1 = Preset(get_preset_path("Foo Device", "preset1"))
-    preset1.add(get_key_mapping(combination="1,1,1", output_symbol="b"))
-    preset1.add(get_key_mapping(combination="1,2,1"))
-    preset1.save()
-
-    time.sleep(0.1)
-    preset2 = Preset(get_preset_path("Foo Device", "preset2"))
-    preset2.add(get_key_mapping(combination="1,3,1"))
-    preset2.add(get_key_mapping(combination="1,4,1"))
-    preset2.save()
-
-    # make sure the timestamp of preset 3 is the newest,
-    # so that it will be automatically loaded by the GUI
-    time.sleep(0.1)
-    preset3 = Preset(get_preset_path("Foo Device", "preset3"))
-    preset3.add(get_key_mapping(combination="1,5,1"))
-    preset3.save()
-
-    with open(get_config_path("config.json"), "w") as file:
-        json.dump({"autoload": {"Foo Device 2": "preset2"}}, file, indent=4)
-
-    global_config.load_config()
-
-    return preset1, preset2, preset3
-
-
-cleanup()
-
-
-def main():
-    # https://docs.python.org/3/library/argparse.html
-    parser = argparse.ArgumentParser(description=__doc__)
-    # repeated argument 0 or more times with modules
-    parser.add_argument("modules", type=str, nargs="*")
-    # start-dir value if not using modules, allows eg python tests/test.py --start-dir unit
-    parser.add_argument("--start-dir", type=str, default=".")
-    parsed_args = parser.parse_args()  # takes from sys.argv by default
-    modules = parsed_args.modules
-
-    # discoverer is really convenient, but it can't find a specific test
-    # in all of the available tests like unittest.main() does...,
-    # so provide both options.
-    if len(modules) > 0:
-        # for example
-        # `tests/test.py integration.test_gui.TestGui.test_can_start`
-        # or `tests/test.py integration.test_gui integration.test_daemon`
-        testsuite = unittest.defaultTestLoader.loadTestsFromNames(modules)
-    else:
-        # run all tests by default
-        testsuite = unittest.defaultTestLoader.discover(
-            parsed_args.start_dir, pattern="test_*.py"
-        )
-
-    # add a newline to each "qux (foo.bar)..." output before each test,
-    # because the first log will be on the same line otherwise
-    original_start_test = unittest.TextTestResult.startTest
-
-    def start_test(self, test):
-        original_start_test(self, test)
-        print()
-
-    unittest.TextTestResult.startTest = start_test
-    result = unittest.TextTestRunner(verbosity=2).run(testsuite)
-    sys.exit(not result.wasSuccessful())

@@ -334,6 +334,18 @@ def get_key_mapping(
     )
 
 
+def new_event(type, code, value, timestamp=None, offset=0):
+    """Create a new input_event."""
+    from tests.patches import InputEvent
+    if timestamp is None:
+        timestamp = time.time() + offset
+
+    sec = int(timestamp)
+    usec = timestamp % 1 * 1000000
+    event = InputEvent(sec, usec, type, code, value)
+    return event
+
+
 def prepare_presets():
     """prepare a few presets for use in tests
     "Foo Device 2/preset3" is the newest and "Foo Device 2/preset2" is set to autoload
