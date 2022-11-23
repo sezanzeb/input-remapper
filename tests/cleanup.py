@@ -166,7 +166,28 @@ def read_write_history_pipe():
     return history
 
 
-from tests.fixtures import fixtures, Fixture
+# input-remapper is only interested in devices that have EV_KEY, add some
+# random other stuff to test that they are ignored.
+phys_foo = "usb-0000:03:00.0-1/input2"
+info_foo = evdev.device.DeviceInfo(1, 1, 1, 1)
+
+keyboard_keys = sorted(evdev.ecodes.keys.keys())[:255]
+
+
+@dataclasses.dataclass(frozen=True)
+class Fixture:
+    capabilities: Dict = dataclasses.field(default_factory=dict)
+    path: str = ""
+    name: str = "unset"
+    info: evdev.device.DeviceInfo = evdev.device.DeviceInfo(None, None, None, None)
+    phys: str = "unset"
+    group_key: Optional[str] = None
+
+    def __hash__(self):
+        return hash(self.path)
+
+
+from tests.fixtures import fixtures
 
 
 def setup_pipe(fixture: Fixture):
@@ -517,6 +538,28 @@ setattr(ReaderService, "is_running", is_running_patch)
 def convert_to_internal_events(events):
     """Convert an iterable of InputEvent to a list of inputremapper.InputEvent."""
     return [InternalInputEvent.from_event(event) for event in events]
+
+
+def get_key_mapping(
+    combination="99,99,99", target_uinput="keyboard", output_symbol="a"
+) -> Mapping:
+    """Convenient function to get a valid mapping."""
+    return Mapping(
+        event_combination=combination,
+        target_uinput=target_uinput,
+        output_symbol=output_symbol,
+    )
+
+
+def get_ui_mapping(
+    combination="99,99,99", target_uinput="keyboard", output_symbol="a"
+) -> UIMapping:
+    """Convenient function to get a valid mapping."""
+    return UIMapping(
+        event_combination=combination,
+        target_uinput=target_uinput,
+        output_symbol=output_symbol,
+    )
 
 
 def quick_cleanup(log=True):

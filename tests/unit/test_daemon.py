@@ -25,10 +25,9 @@ from tests.test import (
     new_event,
     push_events,
     is_service_running,
-    fixtures,
     tmp,
-    get_key_mapping,
 )
+from tests.fixtures import fixtures, get_key_mapping
 
 import os
 import unittest

@@ -43,7 +43,8 @@ from inputremapper.event_combination import EventCombination
 from inputremapper.injection.context import Context
 from inputremapper.injection.event_reader import EventReader
 from inputremapper.injection.global_uinputs import global_uinputs
-from tests.test import new_event, quick_cleanup, get_key_mapping
+from tests.test import new_event, quick_cleanup
+from tests.fixtures import get_key_mapping
 
 
 class TestEventReader(unittest.IsolatedAsyncioTestCase):

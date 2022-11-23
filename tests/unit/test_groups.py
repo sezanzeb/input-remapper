@@ -19,7 +19,8 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from tests.test import quick_cleanup, fixtures, keyboard_keys
+from tests.test import quick_cleanup
+from tests.fixtures import fixtures, keyboard_keys
 
 import os
 import unittest

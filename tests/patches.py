@@ -32,6 +32,8 @@ import json
 import os
 import sys
 import tempfile
+import traceback
+import warnings
 from multiprocessing.connection import Connection
 from typing import Dict, Tuple, Optional
 import tracemalloc
@@ -90,143 +92,13 @@ import subprocess
 import multiprocessing
 import asyncio
 import psutil
+import logging
 from pickle import UnpicklingError
 from unittest.mock import patch
 
 import evdev
 
 from tests.xmodmap import xmodmap
-from tests.logger import logger
-
-os.environ["UNITTEST"] = "1"
-
-
-def is_service_running():
-    """Check if the daemon is running."""
-    try:
-        subprocess.check_output(["pgrep", "-f", "input-remapper-service"])
-        return True
-    except subprocess.CalledProcessError:
-        return False
-
-
-def join_children():
-    """Wait for child processes to exit. Stop them if it takes too long."""
-    this = psutil.Process(os.getpid())
-
-    i = 0
-    time.sleep(EVENT_READ_TIMEOUT)
-    children = this.children(recursive=True)
-    while len([c for c in children if c.status() != "zombie"]) > 0:
-        for child in children:
-            if i > 10:
-                child.kill()
-                logger.info("Killed pid %s because it didn't finish in time", child.pid)
-
-        children = this.children(recursive=True)
-        time.sleep(EVENT_READ_TIMEOUT)
-        i += 1
-
-
-if is_service_running():
-    # let tests control daemon existance
-    raise Exception("Expected the service not to be running already.")
-
-
-# give tests some time to test stuff while the process
-# is still running
-EVENT_READ_TIMEOUT = 0.01
-
-# based on experience how much time passes at most until
-# the reader-service starts receiving previously pushed events after a
-# call to start_reading
-START_READING_DELAY = 0.05
-
-# for joysticks
-MIN_ABS = -(2**15)
-MAX_ABS = 2**15
-
-# When it gets garbage collected it cleans up the temporary directory so it needs to
-# stay reachable while the tests are ran.
-temporary_directory = tempfile.TemporaryDirectory(prefix="input-remapper-test")
-tmp = temporary_directory.name
-
-uinput_write_history = []
-# for tests that makes the injector create its processes
-uinput_write_history_pipe = multiprocessing.Pipe()
-pending_events: Dict[Fixture, Tuple[Connection, Connection]] = {}
-
-
-def read_write_history_pipe():
-    """Convert the write history from the pipe to some easier to manage list."""
-    history = []
-    while uinput_write_history_pipe[0].poll():
-        event = uinput_write_history_pipe[0].recv()
-        history.append((event.type, event.code, event.value))
-    return history
-
-
-from tests.fixtures import fixtures, Fixture
-
-
-def setup_pipe(fixture: Fixture):
-    """Create a pipe that can be used to send events to the reader-service,
-    which in turn will be sent to the reader-client
-    """
-    if pending_events.get(fixture) is None:
-        pending_events[fixture] = multiprocessing.Pipe()
-
-
-# make sure those pipes exist before any process (the reader-service) gets forked,
-# so that events can be pushed after the fork.
-for _fixture in fixtures:
-    setup_pipe(_fixture)
-
-
-def get_events():
-    """Get all events written by the injector."""
-    return uinput_write_history
-
-
-def push_event(fixture: Fixture, event: InputEvent, force: bool = False):
-    """Make a device act like it is reading events from evdev.
-
-    push_event is like hitting a key on a keyboard for stuff that reads from
-    evdev.InputDevice (which is patched in test.py to work that way)
-
-    Parameters
-    ----------
-    fixture
-        For example 'Foo Device'
-    event
-    force
-        don't check if the event is in fixture.capabilities
-    """
-    setup_pipe(fixture)
-    if not force and (
-        not fixture.capabilities.get(event.type)
-        or event.code not in fixture.capabilities[event.type]
-    ):
-        raise AssertionError(f"Fixture {fixture.path} cannot send {event}")
-    logger.info("Simulating %s for %s", event, fixture.path)
-    pending_events[fixture][0].send(event)
-
-
-def push_events(fixture: Fixture, events, force=False):
-    """Push multiple events."""
-    for event in events:
-        push_event(fixture, event, force)
-
-
-def new_event(type, code, value, timestamp=None, offset=0):
-    """Create a new input_event."""
-    if timestamp is None:
-        timestamp = time.time() + offset
-
-    sec = int(timestamp)
-    usec = timestamp % 1 * 1000000
-    event = InputEvent(sec, usec, type, code, value)
-    return event
 
 
 def patch_paths():
@@ -477,6 +349,18 @@ def clear_write_history():
         uinput_write_history_pipe[0].recv()
 
 
+def warn_with_traceback(message, category, filename, lineno, file=None, line=None):
+    log = file if hasattr(file, "write") else sys.stderr
+    traceback.print_stack(file=log)
+    log.write(warnings.formatwarning(message, category, filename, lineno, line))
+
+
+def patch_warnings():
+    # show traceback
+    warnings.showwarning = warn_with_traceback
+    warnings.simplefilter("always")
+
+
 # quickly fake some stuff before any other file gets a chance to import
 # the original versions
 patch_paths()
@@ -484,6 +368,11 @@ patch_evdev()
 patch_events()
 patch_os_system()
 patch_check_output()
+# patch_warnings()
+
+from inputremapper.logger import update_verbosity
+
+update_verbosity(True)
 
 from inputremapper.input_event import InputEvent as InternalInputEvent
 from inputremapper.injection.injector import Injector, InjectorState
@@ -517,6 +406,28 @@ setattr(ReaderService, "is_running", is_running_patch)
 def convert_to_internal_events(events):
     """Convert an iterable of InputEvent to a list of inputremapper.InputEvent."""
     return [InternalInputEvent.from_event(event) for event in events]
+
+
+def get_key_mapping(
+    combination="99,99,99", target_uinput="keyboard", output_symbol="a"
+) -> Mapping:
+    """Convenient function to get a valid mapping."""
+    return Mapping(
+        event_combination=combination,
+        target_uinput=target_uinput,
+        output_symbol=output_symbol,
+    )
+
+
+def get_ui_mapping(
+    combination="99,99,99", target_uinput="keyboard", output_symbol="a"
+) -> UIMapping:
+    """Convenient function to get a valid mapping."""
+    return UIMapping(
+        event_combination=combination,
+        target_uinput=target_uinput,
+        output_symbol=output_symbol,
+    )
 
 
 def quick_cleanup(log=True):
@@ -661,6 +572,36 @@ class FakeDaemonProxy:
     def hello(self, out: str) -> str:
         self.calls["hello"].append(out)
         return out
+
+
+def prepare_presets():
+    """prepare a few presets for use in tests
+    "Foo Device 2/preset3" is the newest and "Foo Device 2/preset2" is set to autoload
+    """
+    preset1 = Preset(get_preset_path("Foo Device", "preset1"))
+    preset1.add(get_key_mapping(combination="1,1,1", output_symbol="b"))
+    preset1.add(get_key_mapping(combination="1,2,1"))
+    preset1.save()
+
+    time.sleep(0.1)
+    preset2 = Preset(get_preset_path("Foo Device", "preset2"))
+    preset2.add(get_key_mapping(combination="1,3,1"))
+    preset2.add(get_key_mapping(combination="1,4,1"))
+    preset2.save()
+
+    # make sure the timestamp of preset 3 is the newest,
+    # so that it will be automatically loaded by the GUI
+    time.sleep(0.1)
+    preset3 = Preset(get_preset_path("Foo Device", "preset3"))
+    preset3.add(get_key_mapping(combination="1,5,1"))
+    preset3.save()
+
+    with open(get_config_path("config.json"), "w") as file:
+        json.dump({"autoload": {"Foo Device 2": "preset2"}}, file, indent=4)
+
+    global_config.load_config()
+
+    return preset1, preset2, preset3
 
 
 cleanup()

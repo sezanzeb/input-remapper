@@ -60,14 +60,16 @@ from inputremapper.injection.event_reader import EventReader
 from inputremapper.injection.global_uinputs import global_uinputs
 from inputremapper.input_event import InputEvent, USE_AS_ANALOG_VALUE
 from tests.test import (
-    get_key_mapping,
     cleanup,
     convert_to_internal_events,
     MAX_ABS,
     MIN_ABS,
+    logger,
+)
+from tests.fixtures import (
     Fixture,
     fixtures,
-    logger,
+    get_key_mapping,
 )
 
 

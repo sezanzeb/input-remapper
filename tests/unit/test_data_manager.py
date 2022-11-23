@@ -43,7 +43,8 @@ from inputremapper.gui.messages.message_data import (
 from inputremapper.gui.reader_client import ReaderClient
 from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.input_event import InputEvent
-from tests.test import get_key_mapping, quick_cleanup, FakeDaemonProxy, prepare_presets
+from tests.test import quick_cleanup, FakeDaemonProxy
+from tests.fixtures import prepare_presets
 
 from inputremapper.configs.paths import get_preset_path, get_config_path
 from inputremapper.configs.preset import Preset

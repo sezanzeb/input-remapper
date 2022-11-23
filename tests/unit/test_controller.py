@@ -54,10 +54,9 @@ from inputremapper.configs.mapping import UIMapping, MappingData
 from tests.test import (
     quick_cleanup,
     FakeDaemonProxy,
-    fixtures,
-    prepare_presets,
     spy,
 )
+from tests.fixtures import fixtures, prepare_presets
 from inputremapper.configs.global_config import GlobalConfig
 from inputremapper.gui.controller import Controller, MAPPING_DEFAULTS
 from inputremapper.gui.data_manager import DataManager, DEFAULT_PRESET_NAME

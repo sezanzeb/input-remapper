@@ -28,6 +28,8 @@ from tests.test import (
     quick_cleanup,
     read_write_history_pipe,
     uinputs,
+)
+from tests.fixtures import (
     keyboard_keys,
     get_key_mapping,
 )

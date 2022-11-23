@@ -18,7 +18,8 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 from inputremapper.injection.mapping_handlers.hierarchy_handler import HierarchyHandler
-from tests.test import quick_cleanup, get_key_mapping
+from tests.test import quick_cleanup
+from tests.fixtures import get_key_mapping
 from evdev.ecodes import (
     EV_REL,
     EV_ABS,
