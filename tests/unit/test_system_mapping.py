@@ -28,7 +28,7 @@ from evdev.ecodes import BTN_LEFT, KEY_A
 
 from inputremapper.configs.paths import CONFIG_PATH
 from inputremapper.configs.system_mapping import SystemMapping, XMODMAP_FILENAME
-from tests.cleanup import quick_cleanup
+from tests.lib.cleanup import quick_cleanup
 
 
 class TestSystemMapping(unittest.TestCase):

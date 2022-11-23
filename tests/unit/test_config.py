@@ -19,8 +19,8 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from tests.cleanup import quick_cleanup
-from tests.tmp import tmp
+from tests.lib.cleanup import quick_cleanup
+from tests.lib.tmp import tmp
 
 import os
 import unittest

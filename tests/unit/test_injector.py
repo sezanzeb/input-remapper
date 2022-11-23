@@ -19,14 +19,14 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 from pydantic import ValidationError
 
-from tests.fixtures import new_event
-from tests.patches import uinputs
-from tests.cleanup import quick_cleanup
-from tests.constants import EVENT_READ_TIMEOUT
-from tests.fixtures import fixtures
-from tests.pipes import uinput_write_history_pipe
-from tests.pipes import read_write_history_pipe, push_events
-from tests.fixtures import (
+from tests.lib.fixtures import new_event
+from tests.lib.patches import uinputs
+from tests.lib.cleanup import quick_cleanup
+from tests.lib.constants import EVENT_READ_TIMEOUT
+from tests.lib.fixtures import fixtures
+from tests.lib.pipes import uinput_write_history_pipe
+from tests.lib.pipes import read_write_history_pipe, push_events
+from tests.lib.fixtures import (
     keyboard_keys,
     get_key_mapping,
 )

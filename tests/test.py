@@ -84,11 +84,11 @@ import psutil
 
 os.environ["UNITTEST"] = "1"
 
-from tests.logger import logger
-from tests.constants import EVENT_READ_TIMEOUT
-from tests.fixtures import fixtures
-from tests.pipes import setup_pipe
-from tests.patches import (
+from tests.lib.logger import logger
+from tests.lib.constants import EVENT_READ_TIMEOUT
+from tests.lib.fixtures import fixtures
+from tests.lib.pipes import setup_pipe
+from tests.lib.patches import (
     patch_paths,
     patch_events,
     patch_os_system,
@@ -97,7 +97,7 @@ from tests.patches import (
     patch_is_running,
     patch_evdev,
 )
-from tests.cleanup import cleanup
+from tests.lib.cleanup import cleanup
 
 
 def is_service_running():

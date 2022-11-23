@@ -20,11 +20,11 @@
 
 
 from tests.test import is_service_running
-from tests.cleanup import cleanup
-from tests.fixtures import new_event
-from tests.pipes import push_events, uinput_write_history_pipe
-from tests.tmp import tmp
-from tests.fixtures import fixtures, get_key_mapping
+from tests.lib.cleanup import cleanup
+from tests.lib.fixtures import new_event
+from tests.lib.pipes import push_events, uinput_write_history_pipe
+from tests.lib.tmp import tmp
+from tests.lib.fixtures import fixtures, get_key_mapping
 
 import os
 import unittest

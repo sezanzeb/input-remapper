@@ -30,8 +30,8 @@ from inputremapper.configs.paths import get_preset_path, get_config_path, CONFIG
 from inputremapper.configs.preset import Preset
 from inputremapper.event_combination import EventCombination
 from inputremapper.input_event import InputEvent
-from tests.cleanup import quick_cleanup
-from tests.fixtures import get_key_mapping
+from tests.lib.cleanup import quick_cleanup
+from tests.lib.fixtures import get_key_mapping
 
 
 class TestPreset(unittest.TestCase):

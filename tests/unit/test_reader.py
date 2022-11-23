@@ -50,16 +50,16 @@ from inputremapper.gui.messages.message_data import CombinationRecorded
 from inputremapper.gui.messages.message_types import MessageType
 from inputremapper.gui.reader_client import ReaderClient
 from inputremapper.gui.reader_service import ReaderService
-from tests.fixtures import new_event
-from tests.cleanup import quick_cleanup
-from tests.constants import (
+from tests.lib.fixtures import new_event
+from tests.lib.cleanup import quick_cleanup
+from tests.lib.constants import (
     EVENT_READ_TIMEOUT,
     START_READING_DELAY,
     MAX_ABS,
     MIN_ABS,
 )
-from tests.pipes import push_event, push_events
-from tests.fixtures import fixtures
+from tests.lib.pipes import push_event, push_events
+from tests.lib.fixtures import fixtures
 
 CODE_1 = 100
 CODE_2 = 101

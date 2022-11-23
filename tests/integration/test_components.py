@@ -24,7 +24,7 @@ from unittest.mock import MagicMock
 import time
 
 import evdev
-from evdev.ecodes import BTN_LEFT, KEY_A, KEY_B, KEY_C
+from evdev.ecodes import KEY_A, KEY_B, KEY_C
 
 import gi
 
@@ -36,9 +36,9 @@ gi.require_version("GLib", "2.0")
 gi.require_version("GtkSource", "4")
 from gi.repository import Gtk, GLib, GtkSource, Gdk
 
-from tests.cleanup import quick_cleanup
-from tests.stuff import spy
-from tests.logger import logger
+from tests.lib.cleanup import quick_cleanup
+from tests.lib.stuff import spy
+from tests.lib.logger import logger
 
 from inputremapper.input_event import InputEvent
 from inputremapper.gui.utils import CTX_ERROR, CTX_WARNING, gtk_iteration

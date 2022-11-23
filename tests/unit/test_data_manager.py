@@ -17,12 +17,11 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
-import json
 import os
 import time
 import unittest
 from itertools import permutations
-from typing import List, Dict, Any
+from typing import List
 from unittest.mock import MagicMock, call
 
 from inputremapper.configs.global_config import global_config
@@ -42,9 +41,9 @@ from inputremapper.gui.messages.message_data import (
 from inputremapper.gui.reader_client import ReaderClient
 from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.input_event import InputEvent
-from tests.cleanup import quick_cleanup
-from tests.patches import FakeDaemonProxy
-from tests.fixtures import prepare_presets
+from tests.lib.cleanup import quick_cleanup
+from tests.lib.patches import FakeDaemonProxy
+from tests.lib.fixtures import prepare_presets
 
 from inputremapper.configs.paths import get_preset_path
 from inputremapper.configs.preset import Preset

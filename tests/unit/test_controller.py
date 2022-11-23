@@ -51,10 +51,10 @@ from inputremapper.gui.utils import CTX_ERROR, CTX_APPLY, gtk_iteration
 from inputremapper.gui.gettext import _
 from inputremapper.injection.global_uinputs import GlobalUInputs
 from inputremapper.configs.mapping import UIMapping, MappingData
-from tests.cleanup import quick_cleanup
-from tests.stuff import spy
-from tests.patches import FakeDaemonProxy
-from tests.fixtures import fixtures, prepare_presets
+from tests.lib.cleanup import quick_cleanup
+from tests.lib.stuff import spy
+from tests.lib.patches import FakeDaemonProxy
+from tests.lib.fixtures import fixtures, prepare_presets
 from inputremapper.configs.global_config import GlobalConfig
 from inputremapper.gui.controller import Controller, MAPPING_DEFAULTS
 from inputremapper.gui.data_manager import DataManager, DEFAULT_PRESET_NAME
