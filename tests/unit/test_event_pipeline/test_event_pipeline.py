@@ -59,13 +59,10 @@ from inputremapper.injection.context import Context
 from inputremapper.injection.event_reader import EventReader
 from inputremapper.injection.global_uinputs import global_uinputs
 from inputremapper.input_event import InputEvent, USE_AS_ANALOG_VALUE
-from tests.test import (
-    cleanup,
-    convert_to_internal_events,
-    MAX_ABS,
-    MIN_ABS,
-    logger,
-)
+from tests.test import cleanup
+from tests.logger import logger
+from tests.constants import MAX_ABS, MIN_ABS
+from tests.stuff import convert_to_internal_events
 from tests.fixtures import (
     Fixture,
     fixtures,

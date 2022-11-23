@@ -129,15 +129,6 @@ if is_service_running():
 
 from tests.constants import EVENT_READ_TIMEOUT, MAX_ABS, MIN_ABS
 from tests.tmp import tmp
-
-# input-remapper is only interested in devices that have EV_KEY, add some
-# random other stuff to test that they are ignored.
-phys_foo = "usb-0000:03:00.0-1/input2"
-info_foo = evdev.device.DeviceInfo(1, 1, 1, 1)
-
-keyboard_keys = sorted(evdev.ecodes.keys.keys())[:255]
-
-
 from tests.fixtures import Fixture, fixtures
 from tests.pipes import (
     setup_pipe,
@@ -351,8 +342,7 @@ from inputremapper.logger import update_verbosity
 
 update_verbosity(True)
 
-from inputremapper.input_event import InputEvent as InternalInputEvent
-from inputremapper.injection.injector import Injector, InjectorState
+from inputremapper.injection.injector import Injector
 from inputremapper.injection.macros.macro import macro_variables
 from inputremapper.configs.global_config import global_config
 from inputremapper.groups import groups
@@ -368,11 +358,6 @@ Injector.regrab_timeout = 0.05
 
 
 environ_copy = copy.deepcopy(os.environ)
-
-
-def convert_to_internal_events(events):
-    """Convert an iterable of InputEvent to a list of inputremapper.InputEvent."""
-    return [InternalInputEvent.from_event(event) for event in events]
 
 
 def quick_cleanup(log=True):

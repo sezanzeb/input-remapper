@@ -18,15 +18,9 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-# give tests some time to test stuff while the process
-# is still running
-EVENT_READ_TIMEOUT = 0.01
+from inputremapper.input_event import InputEvent as InternalInputEvent
 
-# based on experience how much time passes at most until
-# the reader-service starts receiving previously pushed events after a
-# call to start_reading
-START_READING_DELAY = 0.05
 
-# for joysticks
-MIN_ABS = -(2**15)
-MAX_ABS = 2**15
+def convert_to_internal_events(events):
+    """Convert an iterable of InputEvent to a list of inputremapper.InputEvent."""
+    return [InternalInputEvent.from_event(event) for event in events]

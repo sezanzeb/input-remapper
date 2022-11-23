@@ -59,9 +59,9 @@ from inputremapper.input_event import InputEvent, EventActions, USE_AS_ANALOG_VA
 from tests.test import (
     InputDevice,
     cleanup,
-    convert_to_internal_events,
-    MAX_ABS,
 )
+from tests.constants import MAX_ABS
+from tests.stuff import convert_to_internal_events
 
 
 class BaseTests:
