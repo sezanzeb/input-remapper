@@ -43,13 +43,13 @@ import evdev
 from tests.xmodmap import xmodmap
 from tests.fixtures import Fixture, fixtures, new_event
 from tests.constants import EVENT_READ_TIMEOUT
-from tests.pipes import setup_pipe, push_events
-
-
-uinput_write_history = []
-# for tests that makes the injector create its processes
-uinput_write_history_pipe = multiprocessing.Pipe()
-pending_events: Dict[Fixture, Tuple[Connection, Connection]] = {}
+from tests.pipes import (
+    setup_pipe,
+    push_events,
+    uinput_write_history,
+    uinput_write_history_pipe,
+    pending_events,
+)
 
 
 def patch_paths():

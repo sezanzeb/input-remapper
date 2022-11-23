@@ -56,7 +56,7 @@ from tests.test import (
     START_READING_DELAY,
     quick_cleanup,
     MAX_ABS,
-    MIN_ABS
+    MIN_ABS,
 )
 from tests.pipes import push_event, push_events
 from tests.fixtures import fixtures

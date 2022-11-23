@@ -29,7 +29,7 @@ from tests.test import (
     spy,
     cleanup,
     EVENT_READ_TIMEOUT,
-    prepare_presets
+    prepare_presets,
 )
 from tests.logger import logger
 from tests.fixtures import fixtures
