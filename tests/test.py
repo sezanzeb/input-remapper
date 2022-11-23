@@ -473,6 +473,22 @@ def patch_check_output():
     subprocess.check_output = check_output
 
 
+def patch_regrab_timeout():
+    # no need for a high number in tests
+    from inputremapper.injection.injector import Injector
+    Injector.regrab_timeout = 0.05
+
+
+def is_running_patch():
+    logger.info("is_running is patched to always return True")
+    return True
+
+
+def patch_is_running():
+    from inputremapper.gui.reader_service import ReaderService
+    setattr(ReaderService, "is_running", is_running_patch)
+
+
 def clear_write_history():
     """Empty the history in preparation for the next test."""
     while len(uinput_write_history) > 0:
@@ -488,6 +504,8 @@ patch_evdev()
 patch_events()
 patch_os_system()
 patch_check_output()
+patch_regrab_timeout()
+patch_is_running()
 # patch_warnings()
 
 from inputremapper.logger import update_verbosity
@@ -512,14 +530,6 @@ Injector.regrab_timeout = 0.05
 
 
 environ_copy = copy.deepcopy(os.environ)
-
-
-def is_running_patch():
-    logger.info("is_running is patched to always return True")
-    return True
-
-
-setattr(ReaderService, "is_running", is_running_patch)
 
 
 def convert_to_internal_events(events):

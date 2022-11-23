@@ -289,32 +289,30 @@ def patch_check_output():
 
     subprocess.check_output = check_output
 
-from inputremapper.logger import update_verbosity
-
-update_verbosity(True)
-
-from inputremapper.input_event import InputEvent as InternalInputEvent
-from inputremapper.injection.injector import Injector, InjectorState
-from inputremapper.gui.reader_service import ReaderService
 
 from tests.tmp import tmp
 from tests.logger import logger
 
-# no need for a high number in tests
-Injector.regrab_timeout = 0.05
 
-environ_copy = copy.deepcopy(os.environ)
+def patch_regrab_timeout():
+    # no need for a high number in tests
+    from inputremapper.injection.injector import Injector
+    Injector.regrab_timeout = 0.05
+
 
 def is_running_patch():
     logger.info("is_running is patched to always return True")
     return True
 
 
-setattr(ReaderService, "is_running", is_running_patch)
+def patch_is_running():
+    from inputremapper.gui.reader_service import ReaderService
+    setattr(ReaderService, "is_running", is_running_patch)
 
 
 def convert_to_internal_events(events):
     """Convert an iterable of InputEvent to a list of inputremapper.InputEvent."""
+    from inputremapper.input_event import InputEvent as InternalInputEvent
     return [InternalInputEvent.from_event(event) for event in events]
 
 
@@ -334,7 +332,8 @@ class FakeDaemonProxy:
     def stop_injecting(self, group_key: str) -> None:
         self.calls["stop_injecting"].append(group_key)
 
-    def get_state(self, group_key: str) -> InjectorState:
+    def get_state(self, group_key: str):
+        from inputremapper.injection.injector import InjectorState
         self.calls["get_state"].append(group_key)
         return InjectorState.STOPPED
 
