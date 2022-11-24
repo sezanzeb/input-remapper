@@ -21,7 +21,7 @@ from typing import Dict
 
 import evdev
 
-from inputremapper.event_combination import EventCombination
+from inputremapper.input_configuration import InputCombination
 from inputremapper.injection.mapping_handlers.mapping_handler import (
     MappingHandler,
     HandlerEnums,
@@ -40,10 +40,10 @@ class NullHandler(MappingHandler):
         return "Voids all events"
 
     def needs_wrapping(self) -> bool:
-        return True in [event.value != 0 for event in self.input_events]
+        return False in [input_.defines_analog_input for input_ in self.input_configs]
 
-    def wrap_with(self) -> Dict[EventCombination, HandlerEnums]:
-        return {EventCombination(self.input_events): HandlerEnums.combination}
+    def wrap_with(self) -> Dict[InputCombination, HandlerEnums]:
+        return {InputCombination(self.input_configs): HandlerEnums.combination}
 
     def notify(
         self,

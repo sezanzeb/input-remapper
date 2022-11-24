@@ -22,7 +22,7 @@ import evdev
 from evdev.ecodes import EV_KEY
 
 from inputremapper.configs.mapping import Mapping
-from inputremapper.event_combination import EventCombination
+from inputremapper.input_configuration import InputCombination
 from inputremapper.injection.mapping_handlers.mapping_handler import (
     MappingHandler,
     HandlerEnums,
@@ -53,7 +53,7 @@ class AxisSwitchHandler(MappingHandler):
 
     def __init__(
         self,
-        combination: EventCombination,
+        combination: InputCombination,
         mapping: Mapping,
         **_,
     ):
@@ -169,6 +169,8 @@ class AxisSwitchHandler(MappingHandler):
     def needs_wrapping(self) -> bool:
         return True
 
-    def wrap_with(self) -> Dict[EventCombination, HandlerEnums]:
-        combination = [event for event in self.input_events if event.is_key_event]
-        return {EventCombination(combination): HandlerEnums.combination}
+    def wrap_with(self) -> Dict[InputCombination, HandlerEnums]:
+        combination = [
+            config for config in self.input_configs if not config.defines_analog_input
+        ]
+        return {InputCombination(combination): HandlerEnums.combination}

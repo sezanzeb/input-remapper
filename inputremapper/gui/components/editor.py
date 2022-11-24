@@ -46,7 +46,7 @@ gi.require_version("GtkSource", "4")
 from gi.repository import Gtk, GtkSource, Gdk
 
 from inputremapper.configs.mapping import MappingData
-from inputremapper.event_combination import EventCombination
+from inputremapper.input_configuration import InputCombination, InputConfiguration
 from inputremapper.groups import DeviceType
 from inputremapper.gui.controller import Controller
 from inputremapper.gui.gettext import _
@@ -159,9 +159,9 @@ class MappingListBox:
     @staticmethod
     def _sort_func(row1: MappingSelectionLabel, row2: MappingSelectionLabel) -> int:
         """Sort alphanumerical by name."""
-        if row1.combination == EventCombination.empty_combination():
+        if row1.combination == InputCombination.empty_combination():
             return 1
-        if row2.combination == EventCombination.empty_combination():
+        if row2.combination == InputCombination.empty_combination():
             return 0
 
         return 0 if row1.name < row2.name else 1
@@ -209,7 +209,7 @@ class MappingSelectionLabel(Gtk.ListBoxRow):
         message_broker: MessageBroker,
         controller: Controller,
         name: Optional[str],
-        combination: EventCombination,
+        combination: InputCombination,
     ):
         super().__init__()
         self._message_broker = message_broker
@@ -692,13 +692,13 @@ class EventEntry(Gtk.ListBoxRow):
 
         up_btn.connect(
             "clicked",
-            lambda *_: self._controller.move_event_in_combination(
+            lambda *_: self._controller.move_input_config_in_combination(
                 self.input_event, "up"
             ),
         )
         down_btn.connect(
             "clicked",
-            lambda *_: self._controller.move_event_in_combination(
+            lambda *_: self._controller.move_input_config_in_combination(
                 self.input_event, "down"
             ),
         )
@@ -722,7 +722,7 @@ class CombinationListbox:
         self._message_broker = message_broker
         self._controller = controller
         self._gui = listbox
-        self._combination: Optional[EventCombination] = None
+        self._combination: Optional[InputCombination] = None
 
         self._message_broker.subscribe(
             MessageType.mapping,
@@ -762,7 +762,7 @@ class CombinationListbox:
     def _on_gtk_row_selected(self, *_):
         for row in self._gui.get_children():
             if row.is_selected():
-                self._controller.load_event(row.input_event)
+                self._controller.load_input_config(row.input_event)
                 break
 
 
@@ -783,12 +783,12 @@ class AnalogInputSwitch:
         self._gui.connect("state-set", self._on_gtk_toggle)
         self._message_broker.subscribe(MessageType.selected_event, self._on_event)
 
-    def _on_event(self, event: InputEvent):
+    def _on_event(self, input_cfg: InputConfiguration):
         with HandlerDisabled(self._gui, self._on_gtk_toggle):
-            self._gui.set_active(event.value == 0)
-            self._event = event
+            self._gui.set_active(input_cfg.analog_threshold == 0)
+            self._event = input_cfg
 
-        if event.type == EV_KEY:
+        if input_cfg.type == EV_KEY:
             self._gui.set_sensitive(False)
             self._gui.set_opacity(0.5)
         else:
@@ -836,7 +836,7 @@ class TriggerThresholdInput:
             self._event = event
 
     def _on_gtk_changed(self, *_):
-        self._controller.update_event(
+        self._controller.update_input_config(
             self._event.modify(analog_threshold=int(self._gui.get_value()))
         )
 

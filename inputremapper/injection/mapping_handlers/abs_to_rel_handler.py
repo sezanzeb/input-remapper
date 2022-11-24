@@ -40,7 +40,7 @@ from inputremapper.configs.mapping import (
     WHEEL_HI_RES_SCALING,
     DEFAULT_REL_RATE,
 )
-from inputremapper.event_combination import EventCombination
+from inputremapper.input_configuration import InputCombination
 from inputremapper.injection.global_uinputs import global_uinputs
 from inputremapper.injection.mapping_handlers.axis_transform import Transformation
 from inputremapper.injection.mapping_handlers.mapping_handler import (
@@ -132,7 +132,7 @@ class AbsToRelHandler(MappingHandler):
 
     def __init__(
         self,
-        combination: EventCombination,
+        combination: InputCombination,
         mapping: Mapping,
         **_,
     ) -> None:
@@ -235,12 +235,12 @@ class AbsToRelHandler(MappingHandler):
             logger.error("OverflowError (%s, %s, %s)", type_, keycode, value)
 
     def needs_wrapping(self) -> bool:
-        return len(self.input_events) > 1
+        return len(self.input_configs) > 1
 
     def set_sub_handler(self, handler: InputEventHandler) -> None:
         assert False  # cannot have a sub-handler
 
-    def wrap_with(self) -> Dict[EventCombination, HandlerEnums]:
+    def wrap_with(self) -> Dict[InputCombination, HandlerEnums]:
         if self.needs_wrapping():
-            return {EventCombination(self.input_events): HandlerEnums.axisswitch}
+            return {InputCombination(self.input_configs): HandlerEnums.axisswitch}
         return {}

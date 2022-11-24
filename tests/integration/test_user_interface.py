@@ -15,7 +15,7 @@ from tests.lib.cleanup import quick_cleanup
 from inputremapper.gui.messages.message_broker import MessageBroker, MessageType
 from inputremapper.gui.user_interface import UserInterface
 from inputremapper.configs.mapping import MappingData
-from inputremapper.event_combination import EventCombination
+from inputremapper.input_configuration import InputCombination
 
 
 class TestUserInterface(unittest.TestCase):
@@ -92,7 +92,7 @@ class TestUserInterface(unittest.TestCase):
     def test_combination_label_shows_combination(self):
         self.message_broker.publish(
             MappingData(
-                event_combination=EventCombination((EV_KEY, KEY_A, 1)), name="foo"
+                event_combination=InputCombination((EV_KEY, KEY_A, 1)), name="foo"
             )
         )
         gtk_iteration()

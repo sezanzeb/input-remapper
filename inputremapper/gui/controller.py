@@ -40,7 +40,7 @@ from gi.repository import Gtk
 
 from inputremapper.configs.mapping import MappingData, UIMapping
 from inputremapper.configs.paths import sanitize_path_component
-from inputremapper.event_combination import EventCombination
+from inputremapper.input_configuration import InputCombination, InputConfiguration
 from inputremapper.exceptions import DataManagementError
 from inputremapper.gui.data_manager import DataManager, DEFAULT_PRESET_NAME
 from inputremapper.gui.gettext import _
@@ -133,7 +133,7 @@ class Controller:
             )
             combination = mappings[0].event_combination
             self.load_mapping(combination)
-            self.load_event(combination[0])
+            self.load_input_config(combination[0])
         else:
             # send an empty mapping to make sure the ui is reset to default values
             self.message_broker.publish(MappingData(**MAPPING_DEFAULTS))
@@ -166,7 +166,7 @@ class Controller:
         if (
             "output_symbol is a macro:" in error_string
             or "output_symbol and output_code mismatch:" in error_string
-        ) and mapping.event_combination.has_input_axis():
+        ) and mapping.event_combination.defines_analog_input:
             return _(
                 "Remove the macro or key from the macro input field "
                 "when specifying an analog output"
@@ -175,7 +175,7 @@ class Controller:
         if (
             "output_symbol is a macro:" in error_string
             or "output_symbol and output_code mismatch:" in error_string
-        ) and not mapping.event_combination.has_input_axis():
+        ) and not mapping.event_combination.defines_analog_input:
             return _(
                 "Remove the Analog Output Axis when specifying a macro or key output"
             )
@@ -243,7 +243,7 @@ class Controller:
         )
         self.message_broker.publish(DoStackSwitch(1))
 
-    def update_combination(self, combination: EventCombination):
+    def update_combination(self, combination: InputCombination):
         """Update the event_combination of the active mapping."""
         try:
             self.data_manager.update_mapping(event_combination=combination)
@@ -264,8 +264,10 @@ class Controller:
                 + _("break them."),
             )
 
-    def move_event_in_combination(
-        self, event: InputEvent, direction: Union[Literal["up"], Literal["down"]]
+    def move_input_config_in_combination(
+        self,
+        input_config: InputConfiguration,
+        direction: Union[Literal["up"], Literal["down"]],
     ):
         """Move the active_event up or down in the event_combination of the
         active_mapping."""
@@ -275,10 +277,10 @@ class Controller:
         ):
             return
         combination: Sequence[
-            InputEvent
+            InputConfiguration
         ] = self.data_manager.active_mapping.event_combination
 
-        i = combination.index(event)
+        i = combination.index(input_config)
         if (
             i + 1 == len(combination)
             and direction == "down"
@@ -290,7 +292,7 @@ class Controller:
         if direction == "up":
             combination = (
                 list(combination[: i - 1])
-                + [event]
+                + [input_config]
                 + [combination[i - 1]]
                 + list(combination[i + 1 :])
             )
@@ -298,22 +300,22 @@ class Controller:
             combination = (
                 list(combination[:i])
                 + [combination[i + 1]]
-                + [event]
+                + [input_config]
                 + list(combination[i + 2 :])
             )
         else:
             raise ValueError(f"unknown direction: {direction}")
-        self.update_combination(EventCombination(combination))
-        self.load_event(event)
+        self.update_combination(InputCombination(combination))
+        self.load_input_config(input_config)
 
-    def load_event(self, event: InputEvent):
-        """Load an InputEvent form the active mapping event combination."""
-        self.data_manager.load_event(event)
+    def load_input_config(self, input_config: InputConfiguration):
+        """Load an InputConfiguration form the active mapping input combination."""
+        self.data_manager.load_input_config(input_config)
 
-    def update_event(self, new_event: InputEvent):
-        """Modify the active event."""
+    def update_input_config(self, new_input_config: InputConfiguration):
+        """Modify the active input configuration."""
         try:
-            self.data_manager.update_event(new_event)
+            self.data_manager.update_input_config(new_input_config)
         except KeyError:
             # we need to synchronize the gui
             self.data_manager.publish_mapping()
@@ -328,9 +330,9 @@ class Controller:
         combination.remove(self.data_manager.active_event)
         try:
             self.data_manager.update_mapping(
-                event_combination=EventCombination(combination)
+                event_combination=InputCombination(combination)
             )
-            self.load_event(combination[0])
+            self.load_input_config(combination[0])
             self.save()
         except (KeyError, ValueError):
             # we need to synchronize the gui
@@ -345,7 +347,9 @@ class Controller:
         if event.type != EV_KEY:
             if analog:
                 try:
-                    self.data_manager.update_event(event.modify(analog_threshold=0))
+                    self.data_manager.update_input_config(
+                        event.modify(analog_threshold=0)
+                    )
                     self.save()
                     return
                 except KeyError:
@@ -354,7 +358,7 @@ class Controller:
                 try_values = {EV_REL: [1, -1], EV_ABS: [10, -10]}
                 for value in try_values[event.type]:
                     try:
-                        self.data_manager.update_event(
+                        self.data_manager.update_input_config(
                             event.modify(analog_threshold=value)
                         )
                         self.save()
@@ -420,10 +424,10 @@ class Controller:
         )
         self.message_broker.publish(UserConfirmRequest(msg, f))
 
-    def load_mapping(self, event_combination: EventCombination):
+    def load_mapping(self, event_combination: InputCombination):
         """Load the mapping with the given event_combination form the active_preset."""
         self.data_manager.load_mapping(event_combination)
-        self.load_event(event_combination[0])
+        self.load_input_config(event_combination[0])
 
     def update_mapping(self, **kwargs):
         """Update the active_mapping with the given keywords and values."""
@@ -445,7 +449,7 @@ class Controller:
             # there is already an empty mapping
             return
 
-        self.data_manager.load_mapping(combination=EventCombination.empty_combination())
+        self.data_manager.load_mapping(combination=InputCombination.empty_combination())
         self.data_manager.update_mapping(**MAPPING_DEFAULTS)
 
     def delete_mapping(self):
@@ -552,7 +556,7 @@ class Controller:
         def running():
             msg = _("Applied preset %s") % self.data_manager.active_preset.name
             if self.data_manager.active_preset.get_mapping(
-                EventCombination(InputEvent.btn_left())
+                InputCombination(InputConfiguration.btn_left())
             ):
                 msg += _(", CTRL + DEL to stop")
             self.show_status(CTX_APPLY, msg)
@@ -660,13 +664,17 @@ class Controller:
                     mapping.output_symbol
                 )
 
-            if not [event for event in mapping.event_combination if event.value == 0]:
+            if not [
+                input_config
+                for input_config in mapping.event_combination
+                if input_config.defines_analog_input
+            ]:
                 # there is no analog input configured, let's try to autoconfigure it
-                events: List[InputEvent] = list(mapping.event_combination)
-                for i, e in enumerate(events):
+                inputs: List[InputConfiguration] = list(mapping.event_combination)
+                for i, e in enumerate(inputs):
                     if e.type in [EV_ABS, EV_REL]:
-                        events[i] = e.modify(value=0)
-                        kwargs["event_combination"] = EventCombination(events)
+                        inputs[i] = e.modify(analog_threshold=0)
+                        kwargs["event_combination"] = InputCombination(inputs)
                         msg += _(
                             '\nThe input "{}" will be used as analog input.'
                         ).format(e.description())
@@ -693,7 +701,10 @@ class Controller:
 
         if kwargs["mapping_type"] == "key_macro":
             try:
-                analog_input = [e for e in mapping.event_combination if e.value == 0][0]
+                analog_input = tuple(
+                    filter(lambda i: i.defines_analog_input, mapping.event_combination)
+                )
+                analog_input = analog_input[0]
             except IndexError:
                 kwargs["output_type"] = None
                 kwargs["output_code"] = None

@@ -32,7 +32,7 @@ from typing import Dict, List, Optional, Tuple, Union
 import evdev
 
 from inputremapper.configs.preset import Preset
-from inputremapper.event_combination import EventCombination
+from inputremapper.input_configuration import InputCombination
 from inputremapper.groups import (
     _Group,
     classify,
@@ -67,7 +67,7 @@ class InjectorState(str, enum.Enum):
 
 
 def is_in_capabilities(
-    combination: EventCombination, capabilities: CapabilitiesDict
+    combination: InputCombination, capabilities: CapabilitiesDict
 ) -> bool:
     """Are this combination or one of its sub keys in the capabilities?"""
     for event in combination:

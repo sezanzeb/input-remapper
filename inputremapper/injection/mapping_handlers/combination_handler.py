@@ -23,7 +23,7 @@ import evdev
 from evdev.ecodes import EV_ABS, EV_REL
 
 from inputremapper.configs.mapping import Mapping
-from inputremapper.event_combination import EventCombination
+from inputremapper.input_configuration import InputCombination
 from inputremapper.injection.mapping_handlers.mapping_handler import (
     MappingHandler,
     InputEventHandler,
@@ -43,7 +43,7 @@ class CombinationHandler(MappingHandler):
 
     def __init__(
         self,
-        combination: EventCombination,
+        combination: InputCombination,
         mapping: Mapping,
         **_,
     ) -> None:
@@ -53,15 +53,16 @@ class CombinationHandler(MappingHandler):
         self._output_state = False
 
         # prepare a key map for all events with non-zero value
-        for event in combination:
-            assert event.is_key_event
-            self._pressed_keys[event.type_and_code] = False
+        for input_config in combination:
+            assert not input_config.defines_analog_input
+            self._pressed_keys[input_config.type_and_code] = False
 
         assert len(self._pressed_keys) > 0  # no combination handler without a key
 
     def __str__(self):
         return (
-            f'CombinationHandler for "{self.mapping.event_combination}" <{id(self)}>:'
+            f'CombinationHandler for "{self.mapping.event_combination}" '
+            f"{tuple(t for t in self._pressed_keys.keys())} <{id(self)}>:"
         )
 
     def __repr__(self):
@@ -140,20 +141,20 @@ class CombinationHandler(MappingHandler):
         forward.syn()
 
     def needs_ranking(self) -> bool:
-        return bool(self.input_events)
+        return bool(self.input_configs)
 
-    def rank_by(self) -> EventCombination:
-        return EventCombination(
-            event for event in self.input_events if not event.defines_analog_input
+    def rank_by(self) -> InputCombination:
+        return InputCombination(
+            event for event in self.input_configs if not event.defines_analog_input
         )
 
-    def wrap_with(self) -> Dict[EventCombination, HandlerEnums]:
+    def wrap_with(self) -> Dict[InputCombination, HandlerEnums]:
         return_dict = {}
-        for event in self.input_events:
-            if event.type == EV_ABS and event.value != 0:
-                return_dict[EventCombination(event)] = HandlerEnums.abs2btn
+        for config in self.input_configs:
+            if config.type == EV_ABS and not config.defines_analog_input:
+                return_dict[InputCombination(config)] = HandlerEnums.abs2btn
 
-            if event.type == EV_REL and event.value != 0:
-                return_dict[EventCombination(event)] = HandlerEnums.rel2btn
+            if config.type == EV_REL and not config.defines_analog_input:
+                return_dict[InputCombination(config)] = HandlerEnums.rel2btn
 
         return return_dict

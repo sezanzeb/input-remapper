@@ -22,12 +22,11 @@ from __future__ import annotations
 
 import dataclasses
 import json
-from typing import Dict, Optional
+from typing import Dict, Optional, Tuple
 
 import time
 
 import evdev
-
 
 # input-remapper is only interested in devices that have EV_KEY, add some
 # random other stuff to test that they are ignored.
@@ -304,9 +303,24 @@ class _Fixtures:
 fixtures = _Fixtures()
 
 
-def get_ui_mapping(combination="99,99,99", target_uinput="keyboard", output_symbol="a"):
+def get_combination_config(*event_tuples: Tuple[int, int] | Tuple[int, int, int]):
+    """convenient function to get a iterable of dicts, InputEvent.event_tuple's"""
+
+    for event in event_tuples:
+        if len(event) == 3:
+            yield {k: v for k, v in zip(("type", "code", "analog_threshold"), event)}
+        elif len(event) == 2:
+            yield {k: v for k, v in zip(("type", "code"), event)}
+        else:
+            raise TypeError
+
+
+def get_ui_mapping(combination=None, target_uinput="keyboard", output_symbol="a"):
     """Convenient function to get a valid mapping."""
     from inputremapper.configs.mapping import UIMapping
+
+    if not combination:
+        combination = get_combination_config((99, 99))
 
     return UIMapping(
         event_combination=combination,
@@ -315,11 +329,12 @@ def get_ui_mapping(combination="99,99,99", target_uinput="keyboard", output_symb
     )
 
 
-def get_key_mapping(
-    combination="99,99,99", target_uinput="keyboard", output_symbol="a"
-):
+def get_key_mapping(combination=None, target_uinput="keyboard", output_symbol="a"):
     """Convenient function to get a valid mapping."""
     from inputremapper.configs.mapping import Mapping
+
+    if not combination:
+        combination = [{"type": 99, "code": 99, "analog_threshold": 99}]
 
     return Mapping(
         event_combination=combination,
@@ -350,21 +365,23 @@ def prepare_presets():
     from inputremapper.configs.global_config import global_config
 
     preset1 = Preset(get_preset_path("Foo Device", "preset1"))
-    preset1.add(get_key_mapping(combination="1,1,1", output_symbol="b"))
-    preset1.add(get_key_mapping(combination="1,2,1"))
+    preset1.add(
+        get_key_mapping(combination=get_combination_config((1, 1)), output_symbol="b")
+    )
+    preset1.add(get_key_mapping(combination=get_combination_config((1, 2))))
     preset1.save()
 
     time.sleep(0.1)
     preset2 = Preset(get_preset_path("Foo Device", "preset2"))
-    preset2.add(get_key_mapping(combination="1,3,1"))
-    preset2.add(get_key_mapping(combination="1,4,1"))
+    preset2.add(get_key_mapping(combination=get_combination_config((1, 3))))
+    preset2.add(get_key_mapping(combination=get_combination_config((1, 4))))
     preset2.save()
 
     # make sure the timestamp of preset 3 is the newest,
     # so that it will be automatically loaded by the GUI
     time.sleep(0.1)
     preset3 = Preset(get_preset_path("Foo Device", "preset3"))
-    preset3.add(get_key_mapping(combination="1,5,1"))
+    preset3.add(get_key_mapping(combination=get_combination_config((1, 5))))
     preset3.save()
 
     with open(get_config_path("config.json"), "w") as file:

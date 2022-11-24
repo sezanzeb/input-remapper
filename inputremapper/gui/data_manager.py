@@ -34,7 +34,7 @@ from inputremapper.configs.paths import get_preset_path, mkdir, split_all
 from inputremapper.configs.preset import Preset
 from inputremapper.configs.system_mapping import SystemMapping
 from inputremapper.daemon import DaemonProxy
-from inputremapper.event_combination import EventCombination
+from inputremapper.input_configuration import InputCombination, InputConfiguration
 from inputremapper.exceptions import DataManagementError
 from inputremapper.gui.gettext import _
 from inputremapper.groups import _Group
@@ -325,7 +325,7 @@ class DataManager:
         self._active_preset = preset
         self.publish_preset()
 
-    def load_mapping(self, combination: EventCombination):
+    def load_mapping(self, combination: InputCombination):
         """Load a mapping. Will send "mapping" message on the MessageBroker."""
         if not self._active_preset:
             raise DataManagementError("Unable to load mapping. Preset is not set")
@@ -340,19 +340,19 @@ class DataManager:
         self._active_mapping = mapping
         self.publish_mapping()
 
-    def load_event(self, event: InputEvent):
-        """Load a InputEvent from the combination in the active mapping.
+    def load_input_config(self, input_config: InputConfiguration):
+        """Load a InputConfiguration from the combination in the active mapping.
 
         Will send "event" message on the MessageBroker,
         """
         if not self.active_mapping:
             raise DataManagementError("Unable to load event. Mapping is not set")
-        if event not in self.active_mapping.event_combination:
+        if input_config not in self.active_mapping.event_combination:
             raise ValueError(
-                f"{event} is not member of active_mapping.event_combination: "
+                f"{input_config} is not member of active_mapping.event_combination: "
                 f"{self.active_mapping.event_combination}"
             )
-        self._active_event = event
+        self._active_event = input_config
         self.publish_event()
 
     def rename_preset(self, new_name: str):
@@ -469,8 +469,8 @@ class DataManager:
 
         self.publish_mapping()
 
-    def update_event(self, new_event: InputEvent):
-        """Update the active event.
+    def update_input_config(self, new_input_config: InputConfiguration):
+        """Update the active input configuration.
 
         Will send "combination_update", "mapping" and "event" messages to the
         MessageBroker (in that order)
@@ -479,9 +479,9 @@ class DataManager:
             raise DataManagementError("Cannot modify event: Event is not set")
 
         combination = list(self.active_mapping.event_combination)
-        combination[combination.index(self.active_event)] = new_event
-        self.update_mapping(event_combination=EventCombination(combination))
-        self._active_event = new_event
+        combination[combination.index(self.active_event)] = new_input_config
+        self.update_mapping(event_combination=InputCombination(combination))
+        self._active_event = new_input_config
         self.publish_event()
 
     def create_mapping(self):

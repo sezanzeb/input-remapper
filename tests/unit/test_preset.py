@@ -28,10 +28,10 @@ from inputremapper.configs.mapping import Mapping
 from inputremapper.configs.mapping import UIMapping
 from inputremapper.configs.paths import get_preset_path, get_config_path, CONFIG_PATH
 from inputremapper.configs.preset import Preset
-from inputremapper.event_combination import EventCombination
+from inputremapper.input_configuration import InputCombination, InputConfiguration
 from inputremapper.input_event import InputEvent
 from tests.lib.cleanup import quick_cleanup
-from tests.lib.fixtures import get_key_mapping
+from tests.lib.fixtures import get_key_mapping, get_combination_config
 
 
 class TestPreset(unittest.TestCase):
@@ -43,7 +43,9 @@ class TestPreset(unittest.TestCase):
         quick_cleanup()
 
     def test_is_mapped_multiple_times(self):
-        combination = EventCombination.from_string("1,1,1+2,2,2+3,3,3+4,4,4")
+        combination = InputCombination(
+            get_combination_config((1, 1, 1), (2, 2, 2), (3, 3, 3), (4, 4, 4))
+        )
         permutations = combination.get_permutations()
         self.assertEqual(len(permutations), 6)
 
@@ -76,7 +78,7 @@ class TestPreset(unittest.TestCase):
         # load again from the disc
         self.preset.load()
         self.assertEqual(
-            self.preset.get_mapping(EventCombination([99, 99, 99])),
+            self.preset.get_mapping(InputCombination.empty_combination()),
             get_key_mapping(),
         )
         self.assertFalse(self.preset.has_unsaved_changes())
@@ -92,7 +94,7 @@ class TestPreset(unittest.TestCase):
         self.assertFalse(self.preset.has_unsaved_changes())
 
         # modify the mapping
-        mapping = self.preset.get_mapping(EventCombination([99, 99, 99]))
+        mapping = self.preset.get_mapping(InputCombination.empty_combination())
         mapping.gain = 0.5
         self.assertTrue(self.preset.has_unsaved_changes())
         self.preset.load()
@@ -117,14 +119,14 @@ class TestPreset(unittest.TestCase):
         self.assertEqual(len(self.preset), 0)
 
     def test_save_load(self):
-        one = InputEvent.from_tuple((EV_KEY, 10, 1))
-        two = InputEvent.from_tuple((EV_KEY, 11, 1))
-        three = InputEvent.from_tuple((EV_KEY, 12, 1))
+        one = InputConfiguration(type=EV_KEY, code=10)
+        two = InputConfiguration(type=EV_KEY, code=11)
+        three = InputConfiguration(type=EV_KEY, code=12)
 
-        self.preset.add(get_key_mapping(EventCombination(one), "keyboard", "1"))
-        self.preset.add(get_key_mapping(EventCombination(two), "keyboard", "2"))
+        self.preset.add(get_key_mapping(InputCombination(one), "keyboard", "1"))
+        self.preset.add(get_key_mapping(InputCombination(two), "keyboard", "2"))
         self.preset.add(
-            get_key_mapping(EventCombination((two, three)), "keyboard", "3"),
+            get_key_mapping(InputCombination((two, three)), "keyboard", "3"),
         )
         self.preset.path = get_preset_path("Foo Device", "test")
         self.preset.save()
@@ -139,16 +141,16 @@ class TestPreset(unittest.TestCase):
         self.assertEqual(len(loaded), 3)
         self.assertRaises(TypeError, loaded.get_mapping, one)
         self.assertEqual(
-            loaded.get_mapping(EventCombination(one)),
-            get_key_mapping(EventCombination(one), "keyboard", "1"),
+            loaded.get_mapping(InputCombination(one)),
+            get_key_mapping(InputCombination(one), "keyboard", "1"),
         )
         self.assertEqual(
-            loaded.get_mapping(EventCombination(two)),
-            get_key_mapping(EventCombination(two), "keyboard", "2"),
+            loaded.get_mapping(InputCombination(two)),
+            get_key_mapping(InputCombination(two), "keyboard", "2"),
         )
         self.assertEqual(
-            loaded.get_mapping(EventCombination((two, three))),
-            get_key_mapping(EventCombination((two, three)), "keyboard", "3"),
+            loaded.get_mapping(InputCombination((two, three))),
+            get_key_mapping(InputCombination((two, three)), "keyboard", "3"),
         )
 
         # load missing file
@@ -156,13 +158,12 @@ class TestPreset(unittest.TestCase):
         self.assertRaises(FileNotFoundError, preset.load)
 
     def test_modify_mapping(self):
-        # the reader would not report values like 111 or 222, only 1 or -1.
-        # the preset just does what it is told, so it accepts them.
-        ev_1 = EventCombination((EV_KEY, 1, 111))
-        ev_2 = EventCombination((EV_KEY, 1, 222))
-        ev_3 = EventCombination((EV_KEY, 2, 111))
+        ev_1 = InputCombination(InputConfiguration(type=EV_KEY, code=1))
+        ev_3 = InputCombination(InputConfiguration(type=EV_KEY, code=2))
         # only values between -99 and 99 are allowed as mapping for EV_ABS or EV_REL
-        ev_4 = EventCombination((EV_ABS, 1, 99))
+        ev_4 = InputCombination(
+            InputConfiguration(type=EV_ABS, code=1, analog_threshold=99)
+        )
 
         # add the first mapping
         self.preset.add(get_key_mapping(ev_1, "keyboard", "a"))
@@ -228,13 +229,13 @@ class TestPreset(unittest.TestCase):
         self.assertFalse(content)
 
     def test_combinations(self):
-        ev_1 = InputEvent.from_tuple((EV_KEY, 1, 111))
-        ev_2 = InputEvent.from_tuple((EV_KEY, 1, 222))
-        ev_3 = InputEvent.from_tuple((EV_KEY, 2, 111))
-        ev_4 = InputEvent.from_tuple((EV_ABS, 1, 99))
-        combi_1 = EventCombination((ev_1, ev_2, ev_3))
-        combi_2 = EventCombination((ev_2, ev_1, ev_3))
-        combi_3 = EventCombination((ev_1, ev_2, ev_4))
+        ev_1 = InputConfiguration(type=EV_KEY, code=1, analog_threshold=111)
+        ev_2 = InputConfiguration(type=EV_KEY, code=1, analog_threshold=222)
+        ev_3 = InputConfiguration(type=EV_KEY, code=2, analog_threshold=111)
+        ev_4 = InputConfiguration(type=EV_ABS, code=1, analog_threshold=99)
+        combi_1 = InputCombination((ev_1, ev_2, ev_3))
+        combi_2 = InputCombination((ev_2, ev_1, ev_3))
+        combi_3 = InputCombination((ev_1, ev_2, ev_4))
 
         self.preset.add(get_key_mapping(combi_1, "keyboard", "a"))
         self.assertEqual(
@@ -294,10 +295,10 @@ class TestPreset(unittest.TestCase):
 
     def test_remove(self):
         # does nothing
-        ev_1 = EventCombination((EV_KEY, 40, 1))
-        ev_2 = EventCombination((EV_KEY, 30, 1))
-        ev_3 = EventCombination((EV_KEY, 20, 1))
-        ev_4 = EventCombination((EV_KEY, 10, 1))
+        ev_1 = InputCombination(InputConfiguration(type=EV_KEY, code=40))
+        ev_2 = InputCombination(InputConfiguration(type=EV_KEY, code=30))
+        ev_3 = InputCombination(InputConfiguration(type=EV_KEY, code=20))
+        ev_4 = InputCombination(InputConfiguration(type=EV_KEY, code=10))
 
         self.assertRaises(TypeError, self.preset.remove, (EV_KEY, 10, 1))
         self.preset.remove(ev_1)
@@ -328,13 +329,25 @@ class TestPreset(unittest.TestCase):
 
     def test_empty(self):
         self.preset.add(
-            get_key_mapping(EventCombination([EV_KEY, 10, 1]), "keyboard", "1"),
+            get_key_mapping(
+                InputCombination(InputConfiguration(type=EV_KEY, code=10)),
+                "keyboard",
+                "1",
+            ),
         )
         self.preset.add(
-            get_key_mapping(EventCombination([EV_KEY, 11, 1]), "keyboard", "2"),
+            get_key_mapping(
+                InputCombination(InputConfiguration(type=EV_KEY, code=11)),
+                "keyboard",
+                "2",
+            ),
         )
         self.preset.add(
-            get_key_mapping(EventCombination([EV_KEY, 12, 1]), "keyboard", "3"),
+            get_key_mapping(
+                InputCombination(InputConfiguration(type=EV_KEY, code=12)),
+                "keyboard",
+                "3",
+            ),
         )
         self.assertEqual(len(self.preset), 3)
         self.preset.path = get_config_path("test.json")
@@ -348,13 +361,25 @@ class TestPreset(unittest.TestCase):
 
     def test_clear(self):
         self.preset.add(
-            get_key_mapping(EventCombination([EV_KEY, 10, 1]), "keyboard", "1"),
+            get_key_mapping(
+                InputCombination(InputConfiguration(type=EV_KEY, code=10)),
+                "keyboard",
+                "1",
+            ),
         )
         self.preset.add(
-            get_key_mapping(EventCombination([EV_KEY, 11, 1]), "keyboard", "2"),
+            get_key_mapping(
+                InputCombination(InputConfiguration(type=EV_KEY, code=11)),
+                "keyboard",
+                "2",
+            ),
         )
         self.preset.add(
-            get_key_mapping(EventCombination([EV_KEY, 12, 1]), "keyboard", "3"),
+            get_key_mapping(
+                InputCombination(InputConfiguration(type=EV_KEY, code=12)),
+                "keyboard",
+                "3",
+            ),
         )
         self.assertEqual(len(self.preset), 3)
         self.preset.path = get_config_path("test.json")
@@ -370,7 +395,7 @@ class TestPreset(unittest.TestCase):
         # btn left is mapped
         self.preset.add(
             get_key_mapping(
-                EventCombination(InputEvent.btn_left()),
+                InputCombination(InputConfiguration.btn_left()),
                 "keyboard",
                 "1",
             )
@@ -378,7 +403,7 @@ class TestPreset(unittest.TestCase):
         self.assertTrue(self.preset.dangerously_mapped_btn_left())
         self.preset.add(
             get_key_mapping(
-                EventCombination([EV_KEY, 41, 1]),
+                InputCombination(InputConfiguration(type=EV_KEY, code=41)),
                 "keyboard",
                 "2",
             )
@@ -388,14 +413,16 @@ class TestPreset(unittest.TestCase):
         # another mapping maps to btn_left
         self.preset.add(
             get_key_mapping(
-                EventCombination([EV_KEY, 42, 1]),
+                InputCombination(InputConfiguration(type=EV_KEY, code=42)),
                 "mouse",
                 "btn_left",
             )
         )
         self.assertFalse(self.preset.dangerously_mapped_btn_left())
 
-        mapping = self.preset.get_mapping(EventCombination([EV_KEY, 42, 1]))
+        mapping = self.preset.get_mapping(
+            InputCombination(InputConfiguration(type=EV_KEY, code=42))
+        )
         mapping.output_symbol = "BTN_Left"
         self.assertFalse(self.preset.dangerously_mapped_btn_left())
 
@@ -404,7 +431,7 @@ class TestPreset(unittest.TestCase):
         self.assertTrue(self.preset.dangerously_mapped_btn_left())
 
         # btn_left is not mapped
-        self.preset.remove(EventCombination(InputEvent.btn_left()))
+        self.preset.remove(InputCombination(InputConfiguration.btn_left()))
         self.assertFalse(self.preset.dangerously_mapped_btn_left())
 
     def test_save_load_with_invalid_mappings(self):
@@ -414,12 +441,14 @@ class TestPreset(unittest.TestCase):
         self.assertFalse(ui_preset.is_valid())
 
         # make the mapping valid
-        m = ui_preset.get_mapping(EventCombination.empty_combination())
+        m = ui_preset.get_mapping(InputCombination.empty_combination())
         m.output_symbol = "a"
         m.target_uinput = "keyboard"
         self.assertTrue(ui_preset.is_valid())
 
-        m2 = UIMapping(event_combination="1,2,1")
+        m2 = UIMapping(
+            event_combination=InputCombination(InputConfiguration(type=1, code=2))
+        )
         ui_preset.add(m2)
         self.assertFalse(ui_preset.is_valid())
         ui_preset.save()

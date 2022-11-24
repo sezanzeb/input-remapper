@@ -21,7 +21,7 @@ from typing import List, Dict
 import evdev
 from evdev.ecodes import EV_ABS, EV_REL
 
-from inputremapper.event_combination import EventCombination
+from inputremapper.input_configuration import InputCombination, InputConfiguration
 from inputremapper.injection.mapping_handlers.mapping_handler import (
     MappingHandler,
     InputEventHandler,
@@ -37,18 +37,20 @@ class HierarchyHandler(MappingHandler):
     all other handlers will be notified, but suppressed
     """
 
-    _input_event: InputEvent
+    _input_config: InputConfiguration
 
-    def __init__(self, handlers: List[MappingHandler], event: InputEvent) -> None:
+    def __init__(
+        self, handlers: List[MappingHandler], input_config: InputConfiguration
+    ) -> None:
         self.handlers = handlers
-        self._input_event = event
-        combination = EventCombination(event)
+        self._input_config = input_config
+        combination = InputCombination(input_config)
         # use the mapping from the first child TODO: find a better solution
         mapping = handlers[0].mapping
         super().__init__(combination, mapping)
 
     def __str__(self):
-        return f"HierarchyHandler for {self._input_event} <{id(self)}>:"
+        return f"HierarchyHandler for {self._input_config} <{id(self)}>:"
 
     def __repr__(self):
         return self.__str__()
@@ -64,7 +66,7 @@ class HierarchyHandler(MappingHandler):
         forward: evdev.UInput = None,
         suppress: bool = False,
     ) -> bool:
-        if event.type_and_code != self._input_event.type_and_code:
+        if event.type_and_code != self._input_config.type_and_code:
             return False
 
         success = False
@@ -79,11 +81,17 @@ class HierarchyHandler(MappingHandler):
         for sub_handler in self.handlers:
             sub_handler.reset()
 
-    def wrap_with(self) -> Dict[EventCombination, HandlerEnums]:
-        if self._input_event.type == EV_ABS and self._input_event.value != 0:
-            return {EventCombination(self._input_event): HandlerEnums.abs2btn}
-        if self._input_event.type == EV_REL and self._input_event.value != 0:
-            return {EventCombination(self._input_event): HandlerEnums.rel2btn}
+    def wrap_with(self) -> Dict[InputCombination, HandlerEnums]:
+        if (
+            self._input_config.type == EV_ABS
+            and not self._input_config.defines_analog_input
+        ):
+            return {InputCombination(self._input_config): HandlerEnums.abs2btn}
+        if (
+            self._input_config.type == EV_REL
+            and not self._input_config.defines_analog_input
+        ):
+            return {InputCombination(self._input_config): HandlerEnums.rel2btn}
         return {}
 
     def set_sub_handler(self, handler: InputEventHandler) -> None:

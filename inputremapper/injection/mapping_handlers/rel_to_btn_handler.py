@@ -24,7 +24,7 @@ import evdev
 from evdev.ecodes import EV_REL
 
 from inputremapper.configs.mapping import Mapping
-from inputremapper.event_combination import EventCombination
+from inputremapper.input_configuration import InputCombination, InputConfiguration
 from inputremapper.injection.mapping_handlers.mapping_handler import (
     MappingHandler,
     InputEventHandler,
@@ -41,30 +41,27 @@ class RelToBtnHandler(MappingHandler):
     """
 
     _active: bool
-    _input_event: InputEvent
+    _input_config: InputConfiguration
     _last_activation: float
     _sub_handler: InputEventHandler
 
     def __init__(
         self,
-        combination: EventCombination,
+        combination: InputCombination,
         mapping: Mapping,
         **_,
     ) -> None:
         super().__init__(combination, mapping)
 
         self._active = False
-        self._input_event = combination[0]
+        self._input_config = combination[0]
         self._last_activation = time.time()
         self._abort_release = False
-        assert self._input_event.analog_threshold != 0
+        assert self._input_config.analog_threshold != 0
         assert len(combination) == 1
 
     def __str__(self):
-        return (
-            f'RelToBtnHandler for "{self._input_event.get_name()}" '
-            f"{self._input_event.event_tuple} <{id(self)}>:"
-        )
+        return f'RelToBtnHandler for "{self._input_config.get_name()}" <{id(self)}>:'
 
     def __repr__(self):
         return self.__str__()
@@ -86,7 +83,13 @@ class RelToBtnHandler(MappingHandler):
             self._abort_release = False
             return
 
-        event = self._input_event.modify(value=0, actions=(EventActions.as_key,))
+        event = InputEvent(
+            0,
+            0,
+            *self._input_config.type_and_code,
+            value=0,
+            actions=(EventActions.as_key,),
+        )
         logger.debug_key(event.event_tuple, "sending to sub_handler")
         self._sub_handler.notify(event, source, forward, suppress)
         self._active = False
@@ -100,10 +103,10 @@ class RelToBtnHandler(MappingHandler):
     ) -> bool:
 
         assert event.type == EV_REL
-        if event.type_and_code != self._input_event.type_and_code:
+        if event.type_and_code != self._input_config.type_and_code:
             return False
 
-        threshold = self._input_event.analog_threshold
+        threshold = self._input_config.analog_threshold
         value = event.value
         if (value < threshold > 0) or (value > threshold < 0):
             if self._active:

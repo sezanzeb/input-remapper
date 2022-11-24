@@ -33,7 +33,7 @@ import gi
 gi.require_version("GLib", "2.0")
 from gi.repository import GLib
 
-from inputremapper.event_combination import EventCombination
+from inputremapper.input_configuration import InputCombination
 from inputremapper.groups import _Groups, _Group
 from inputremapper.gui.reader_service import (
     MSG_EVENT,
@@ -198,6 +198,10 @@ class ReaderClient:
 
         self.message_broker.signal(MessageType.recording_finished)
 
+    @staticmethod
+    def _input_event_to_config(event: InputEvent):
+        return {"type": event.type, "code": event.code, "analog_threshold": event.value}
+
     def _recorder(self) -> RecordingGenerator:
         """Generator which receives InputEvents.
 
@@ -232,13 +236,17 @@ class ReaderClient:
                 i = accu_type_code.index(event.type_and_code)
                 accumulator[i] = event
                 self.message_broker.publish(
-                    CombinationRecorded(EventCombination(accumulator))
+                    CombinationRecorded(
+                        InputCombination(map(self._input_event_to_config, accumulator))
+                    )
                 )
 
             if event not in accumulator:
                 accumulator.append(event)
                 self.message_broker.publish(
-                    CombinationRecorded(EventCombination(accumulator))
+                    CombinationRecorded(
+                        InputCombination(map(self._input_event_to_config, accumulator))
+                    )
                 )
 
     def set_group(self, group: _Group):

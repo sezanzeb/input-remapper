@@ -58,8 +58,6 @@ class InputEvent:
     as a drop in replacement for evdev.InputEvent
     """
 
-    message_type = MessageType.selected_event
-
     sec: int
     usec: int
     type: int
@@ -67,37 +65,18 @@ class InputEvent:
     value: int
     actions: Tuple[EventActions, ...] = ()
     origin: Optional[int] = None
-    analog_threshold: Optional[int] = None
 
-    def to_config(self) -> Dict[str, int]:
-        d = {"type": self.type, "code": self.code}
-        if self.origin:
-            d["origin"] = self.origin
-        if self.analog_threshold:
-            d["analog_threshold"] = self.analog_threshold
-        return d
-
-    @classmethod
-    def from_config(
-        cls,
-        type: int,
-        code: int,
-        origin: Optional[int] = None,
-        analog_threshold: Optional[int] = None,
-    ):
-        return cls(
-            0, 0, type, code, 0, origin=origin, analog_threshold=analog_threshold
-        )
-
-    def __hash__(self):
-        return hash((self.type, self.code, self.origin, self.analog_threshold))
-
-    def __eq__(self, other: Any):
-        return hash(self) == hash(other)
+    def __eq__(self, other: InputEvent | evdev.InputEvent | Tuple[int, int, int]):
+        # useful in tests
+        if isinstance(other, InputEvent) or isinstance(other, evdev.InputEvent):
+            return self.event_tuple == (other.type, other.code, other.value)
+        if isinstance(other, tuple):
+            return self.event_tuple == other
+        raise TypeError(f"cannot compare {type(other)} with InputEvent")
 
     @classmethod
     def __get_validators__(cls):
-        """Used by pydantic and EventCombination to create InputEvent objects."""
+        """Used by pydantic and InputCombination to create InputEvent objects."""
         yield cls.validate
 
     @classmethod
@@ -170,10 +149,6 @@ class InputEvent:
                 f"Failed to create InputEvent from {type(event_tuple) = }"
             ) from exception
 
-    @classmethod
-    def btn_left(cls):
-        return cls(0, 0, evdev.ecodes.EV_KEY, evdev.ecodes.BTN_LEFT, 1)
-
     @property
     def type_and_code(self) -> Tuple[int, int]:
         """Event type, code."""
@@ -183,13 +158,6 @@ class InputEvent:
     def event_tuple(self) -> Tuple[int, int, int]:
         """Event type, code, value."""
         return self.type, self.code, self.value
-
-    @property
-    def defines_analog_input(self) -> bool:
-        """Whether this defines an analog input"""
-        # todo give it a better name once InputEvent and
-        #  InputConfiguration are seperated
-        return not self.analog_threshold and self.type != ecodes.EV_KEY
 
     @property
     def is_key_event(self) -> bool:
@@ -215,14 +183,6 @@ class InputEvent:
     def __str__(self):
         return f"InputEvent{self.event_tuple}"
 
-    def description(self, exclude_threshold=False, exclude_direction=False) -> str:
-        """Get a human-readable description of the event."""
-        return (
-            f"{self.get_name()} "
-            f"{self.get_direction() if not exclude_direction else ''} "
-            f"{self.get_threshold() if not exclude_threshold else ''}".strip()
-        )
-
     def timestamp(self):
         """Return the unix timestamp of when the event was seen."""
         return self.sec + self.usec / 1000000
@@ -236,7 +196,6 @@ class InputEvent:
         value: Optional[int] = None,
         actions: Tuple[EventActions, ...] = None,
         origin: Optional[int] = None,
-        analog_threshold: Optional[int] = None,
     ) -> InputEvent:
         """Return a new modified event."""
         return InputEvent(
@@ -247,108 +206,4 @@ class InputEvent:
             value if value is not None else self.value,
             actions if actions is not None else self.actions,
             origin=origin if origin is not None else self.origin,
-            analog_threshold=analog_threshold
-            if analog_threshold is not None
-            else self.analog_threshold,
         )
-
-    def json_key(self) -> str:
-        return ",".join([str(self.type), str(self.code), str(self.value)])
-
-    def get_name(self) -> Optional[str]:
-        """Human-readable name."""
-        if self.type not in ecodes.bytype:
-            logger.warning("Unknown type for %s", self)
-            return f"unknown {self.type, self.code}"
-
-        if self.code not in ecodes.bytype[self.type]:
-            logger.warning("Unknown code for %s", self)
-            return f"unknown {self.type, self.code}"
-
-        key_name = None
-
-        # first try to find the name in xmodmap to not display wrong
-        # names due to the keyboard layout
-        if self.type == ecodes.EV_KEY:
-            key_name = system_mapping.get_name(self.code)
-
-        if key_name is None:
-            # if no result, look in the linux combination constants. On a german
-            # keyboard for example z and y are switched, which will therefore
-            # cause the wrong letter to be displayed.
-            key_name = ecodes.bytype[self.type][self.code]
-            if isinstance(key_name, list):
-                key_name = key_name[0]
-
-        key_name = key_name.replace("ABS_Z", "Trigger Left")
-        key_name = key_name.replace("ABS_RZ", "Trigger Right")
-
-        key_name = key_name.replace("ABS_HAT0X", "DPad-X")
-        key_name = key_name.replace("ABS_HAT0Y", "DPad-Y")
-        key_name = key_name.replace("ABS_HAT1X", "DPad-2-X")
-        key_name = key_name.replace("ABS_HAT1Y", "DPad-2-Y")
-        key_name = key_name.replace("ABS_HAT2X", "DPad-3-X")
-        key_name = key_name.replace("ABS_HAT2Y", "DPad-3-Y")
-
-        key_name = key_name.replace("ABS_X", "Joystick-X")
-        key_name = key_name.replace("ABS_Y", "Joystick-Y")
-        key_name = key_name.replace("ABS_RX", "Joystick-RX")
-        key_name = key_name.replace("ABS_RY", "Joystick-RY")
-
-        key_name = key_name.replace("BTN_", "Button ")
-        key_name = key_name.replace("KEY_", "")
-
-        key_name = key_name.replace("REL_", "")
-        key_name = key_name.replace("HWHEEL", "Wheel")
-        key_name = key_name.replace("WHEEL", "Wheel")
-
-        key_name = key_name.replace("_", " ")
-        key_name = key_name.replace("  ", " ")
-        return key_name
-
-    def get_direction(self) -> str:
-        if self.type == ecodes.EV_KEY:
-            return ""
-
-        try:
-            event = self.modify(value=self.value // abs(self.value))
-        except ZeroDivisionError:
-            return ""
-
-        return {
-            # D-Pad
-            (ecodes.ABS_HAT0X, -1): "Left",
-            (ecodes.ABS_HAT0X, 1): "Right",
-            (ecodes.ABS_HAT0Y, -1): "Up",
-            (ecodes.ABS_HAT0Y, 1): "Down",
-            (ecodes.ABS_HAT1X, -1): "Left",
-            (ecodes.ABS_HAT1X, 1): "Right",
-            (ecodes.ABS_HAT1Y, -1): "Up",
-            (ecodes.ABS_HAT1Y, 1): "Down",
-            (ecodes.ABS_HAT2X, -1): "Left",
-            (ecodes.ABS_HAT2X, 1): "Right",
-            (ecodes.ABS_HAT2Y, -1): "Up",
-            (ecodes.ABS_HAT2Y, 1): "Down",
-            # joystick
-            (ecodes.ABS_X, 1): "Right",
-            (ecodes.ABS_X, -1): "Left",
-            (ecodes.ABS_Y, 1): "Down",
-            (ecodes.ABS_Y, -1): "Up",
-            (ecodes.ABS_RX, 1): "Right",
-            (ecodes.ABS_RX, -1): "Left",
-            (ecodes.ABS_RY, 1): "Down",
-            (ecodes.ABS_RY, -1): "Up",
-            # wheel
-            (ecodes.REL_WHEEL, -1): "Down",
-            (ecodes.REL_WHEEL, 1): "Up",
-            (ecodes.REL_HWHEEL, -1): "Left",
-            (ecodes.REL_HWHEEL, 1): "Right",
-        }.get((event.code, event.value)) or ("+" if event.value > 0 else "-")
-
-    def get_threshold(self) -> str:
-        if self.value == 0:
-            return ""
-        return {
-            ecodes.EV_REL: f"{abs(self.value)}",
-            ecodes.EV_ABS: f"{abs(self.value)}%",
-        }.get(self.type) or ""

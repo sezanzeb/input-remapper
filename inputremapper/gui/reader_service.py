@@ -52,7 +52,7 @@ import evdev
 from evdev.ecodes import EV_KEY, EV_ABS, EV_REL, REL_HWHEEL, REL_WHEEL
 
 from inputremapper.configs.mapping import UIMapping
-from inputremapper.event_combination import EventCombination
+from inputremapper.input_configuration import InputCombination, InputConfiguration
 from inputremapper.groups import _Groups, _Group
 from inputremapper.injection.event_reader import EventReader
 from inputremapper.injection.mapping_handlers.abs_to_btn_handler import AbsToBtnHandler
@@ -277,22 +277,40 @@ class ReaderService:
             for ev_code in capabilities.get(EV_ABS) or ():
                 # positive direction
                 mapping = UIMapping(
-                    event_combination=EventCombination((EV_ABS, ev_code, 30)),
+                    event_combination=InputCombination(
+                        InputConfiguration(
+                            type=EV_ABS, code=ev_code, analog_threshold=30
+                        )
+                    ),
                     target_uinput="keyboard",
                 )
                 handler: MappingHandler = AbsToBtnHandler(
-                    EventCombination((EV_ABS, ev_code, 30)), mapping
+                    InputCombination(
+                        InputConfiguration(
+                            type=EV_ABS, code=ev_code, analog_threshold=30
+                        )
+                    ),
+                    mapping,
                 )
                 handler.set_sub_handler(ForwardToUIHandler(self._results_pipe))
                 context.notify_callbacks[(EV_ABS, ev_code)].append(handler.notify)
 
                 # negative direction
                 mapping = UIMapping(
-                    event_combination=EventCombination((EV_ABS, ev_code, -30)),
+                    event_combination=InputCombination(
+                        InputConfiguration(
+                            type=EV_ABS, code=ev_code, analog_threshold=-30
+                        )
+                    ),
                     target_uinput="keyboard",
                 )
                 handler = AbsToBtnHandler(
-                    EventCombination((EV_ABS, ev_code, -30)), mapping
+                    InputCombination(
+                        InputConfiguration(
+                            type=EV_ABS, code=ev_code, analog_threshold=-30
+                        )
+                    ),
+                    mapping,
                 )
                 handler.set_sub_handler(ForwardToUIHandler(self._results_pipe))
                 context.notify_callbacks[(EV_ABS, ev_code)].append(handler.notify)
@@ -300,15 +318,25 @@ class ReaderService:
             for ev_code in capabilities.get(EV_REL) or ():
                 # positive direction
                 mapping = UIMapping(
-                    event_combination=EventCombination(
-                        (EV_REL, ev_code, self.rel_xy_speed[ev_code])
+                    event_combination=InputCombination(
+                        InputConfiguration(
+                            type=EV_REL,
+                            code=ev_code,
+                            analog_threshold=self.rel_xy_speed[ev_code],
+                        )
                     ),
                     target_uinput="keyboard",
                     release_timeout=0.3,
                     force_release_timeout=True,
                 )
                 handler = RelToBtnHandler(
-                    EventCombination((EV_REL, ev_code, self.rel_xy_speed[ev_code])),
+                    InputCombination(
+                        InputConfiguration(
+                            type=EV_REL,
+                            code=ev_code,
+                            analog_threshold=self.rel_xy_speed[ev_code],
+                        )
+                    ),
                     mapping,
                 )
                 handler.set_sub_handler(ForwardToUIHandler(self._results_pipe))
@@ -316,15 +344,25 @@ class ReaderService:
 
                 # negative direction
                 mapping = UIMapping(
-                    event_combination=EventCombination(
-                        (EV_REL, ev_code, -self.rel_xy_speed[ev_code])
+                    event_combination=InputCombination(
+                        InputConfiguration(
+                            type=EV_REL,
+                            code=ev_code,
+                            analog_threshold=-self.rel_xy_speed[ev_code],
+                        )
                     ),
                     target_uinput="keyboard",
                     release_timeout=0.3,
                     force_release_timeout=True,
                 )
                 handler = RelToBtnHandler(
-                    EventCombination((EV_REL, ev_code, -self.rel_xy_speed[ev_code])),
+                    InputCombination(
+                        InputConfiguration(
+                            type=EV_REL,
+                            code=ev_code,
+                            analog_threshold=-self.rel_xy_speed[ev_code],
+                        )
+                    ),
                     mapping,
                 )
                 handler.set_sub_handler(ForwardToUIHandler(self._results_pipe))

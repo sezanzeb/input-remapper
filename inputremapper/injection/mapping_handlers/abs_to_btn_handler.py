@@ -24,38 +24,40 @@ import evdev
 from evdev.ecodes import EV_ABS
 
 from inputremapper.configs.mapping import Mapping
-from inputremapper.event_combination import EventCombination
+from inputremapper.input_configuration import InputCombination, InputConfiguration
 from inputremapper.injection.mapping_handlers.mapping_handler import (
     MappingHandler,
     InputEventHandler,
 )
 from inputremapper.input_event import InputEvent, EventActions
+from inputremapper.utils import get_evdev_constant_name
 
 
 class AbsToBtnHandler(MappingHandler):
     """Handler which transforms an EV_ABS to a button event."""
 
-    _input_event: InputEvent
+    _input_config: InputConfiguration
     _active: bool
     _sub_handler: InputEventHandler
 
     def __init__(
         self,
-        combination: EventCombination,
+        combination: InputCombination,
         mapping: Mapping,
         **_,
     ):
         super().__init__(combination, mapping)
 
         self._active = False
-        self._input_event = combination[0]
-        assert self._input_event.analog_threshold
+        self._input_config = combination[0]
+        assert self._input_config.analog_threshold
         assert len(combination) == 1
 
     def __str__(self):
+        name = get_evdev_constant_name(*self._input_config.type_and_code)
         return (
-            f'AbsToBtnHandler for "{self._input_event.get_name()}" '
-            f"{self._input_event.event_tuple} <{id(self)}>:"
+            f'AbsToBtnHandler for "{name}" '
+            f"{self._input_config.type_and_code} <{id(self)}>:"
         )
 
     def __repr__(self):
@@ -72,14 +74,14 @@ class AbsToBtnHandler(MappingHandler):
             # this is a hat switch
             # return +-1
             return (
-                self._input_event.analog_threshold
-                // abs(self._input_event.analog_threshold),
+                self._input_config.analog_threshold
+                // abs(self._input_config.analog_threshold),
                 0,
             )
 
         half_range = (abs_max - abs_min) / 2
         middle = half_range + abs_min
-        trigger_offset = half_range * self._input_event.analog_threshold / 100
+        trigger_offset = half_range * self._input_config.analog_threshold / 100
 
         # threshold, middle
         return middle + trigger_offset, middle
@@ -91,7 +93,7 @@ class AbsToBtnHandler(MappingHandler):
         forward: evdev.UInput,
         suppress: bool = False,
     ) -> bool:
-        if event.type_and_code != self._input_event.type_and_code:
+        if event.type_and_code != self._input_config.type_and_code:
             return False
 
         absinfo = {

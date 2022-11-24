@@ -19,7 +19,7 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 from tests.lib.cleanup import quick_cleanup
-from tests.lib.fixtures import get_key_mapping
+from tests.lib.fixtures import get_key_mapping, get_combination_config
 from evdev.ecodes import (
     EV_REL,
     EV_ABS,
@@ -32,7 +32,6 @@ import unittest
 
 from inputremapper.injection.context import Context
 from inputremapper.configs.preset import Preset
-from inputremapper.event_combination import EventCombination
 from inputremapper.configs.mapping import Mapping
 
 
@@ -44,23 +43,23 @@ class TestContext(unittest.TestCase):
     def test_callbacks(self):
         preset = Preset()
         cfg = {
-            "event_combination": ",".join((str(EV_ABS), str(ABS_X), "0")),
+            "event_combination": get_combination_config((EV_ABS, ABS_X)),
             "target_uinput": "mouse",
             "output_type": EV_REL,
             "output_code": REL_HWHEEL_HI_RES,
         }
         preset.add(Mapping(**cfg))  # abs x -> wheel
-        cfg["event_combination"] = ",".join((str(EV_ABS), str(ABS_Y), "0"))
+        cfg["event_combination"] = get_combination_config((EV_ABS, ABS_Y))
         cfg["output_code"] = REL_WHEEL_HI_RES
         preset.add(Mapping(**cfg))  # abs y -> wheel
 
-        preset.add(get_key_mapping(EventCombination((1, 31, 1)), "keyboard", "k(a)"))
-        preset.add(get_key_mapping(EventCombination((1, 32, 1)), "keyboard", "b"))
+        preset.add(get_key_mapping(get_combination_config((1, 31)), "keyboard", "k(a)"))
+        preset.add(get_key_mapping(get_combination_config((1, 32)), "keyboard", "b"))
 
         # overlapping combination for (1, 32, 1)
         preset.add(
             get_key_mapping(
-                EventCombination(((1, 32, 1), (1, 33, 1), (1, 34, 1))),
+                get_combination_config((1, 32), (1, 33), (1, 34)),
                 "keyboard",
                 "c",
             )
@@ -68,7 +67,11 @@ class TestContext(unittest.TestCase):
 
         # map abs x to key "b"
         preset.add(
-            get_key_mapping(EventCombination([EV_ABS, ABS_X, 20]), "keyboard", "d"),
+            get_key_mapping(
+                get_combination_config((EV_ABS, ABS_X, 20)),
+                "keyboard",
+                "d",
+            ),
         )
         context = Context(preset)
 

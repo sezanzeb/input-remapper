@@ -40,7 +40,7 @@ from evdev.ecodes import (
     REL_HWHEEL,
 )
 
-from inputremapper.event_combination import EventCombination
+from inputremapper.input_configuration import InputCombination, InputConfiguration
 from inputremapper.groups import _Groups, DeviceType
 from inputremapper.gui.messages.message_broker import (
     MessageBroker,
@@ -59,7 +59,7 @@ from tests.lib.constants import (
     MIN_ABS,
 )
 from tests.lib.pipes import push_event, push_events
-from tests.lib.fixtures import fixtures
+from tests.lib.fixtures import fixtures, get_combination_config
 
 CODE_1 = 100
 CODE_2 = 101
@@ -138,8 +138,14 @@ class TestReader(unittest.TestCase):
         self.reader_client._read()
         self.assertEqual(
             [
-                CombinationRecorded(EventCombination.from_string("3,16,1")),
-                CombinationRecorded(EventCombination.from_string("3,16,1+2,0,1")),
+                CombinationRecorded(
+                    InputCombination(
+                        InputConfiguration(type=3, code=16, analog_threshold=1)
+                    )
+                ),
+                CombinationRecorded(
+                    InputCombination(get_combination_config((3, 16, 1), (2, 0, 1)))
+                ),
             ],
             l1.calls,
         )
@@ -166,7 +172,13 @@ class TestReader(unittest.TestCase):
         self.reader_client._read()
 
         self.assertEqual(
-            [CombinationRecorded(EventCombination.from_string("2,0,-1"))],
+            [
+                CombinationRecorded(
+                    InputCombination(
+                        InputConfiguration(type=2, code=0, analog_threshold=-1)
+                    )
+                )
+            ],
             l1.calls,
         )
         self.assertEqual([], l2.calls)  # no stop recording yet
@@ -203,8 +215,14 @@ class TestReader(unittest.TestCase):
 
         self.assertEqual(
             [
-                CombinationRecorded(EventCombination.from_string("2,8,-1")),
-                CombinationRecorded(EventCombination.from_string("2,8,-1+2,6,1")),
+                CombinationRecorded(
+                    InputCombination(
+                        InputConfiguration(type=2, code=8, analog_threshold=-1)
+                    )
+                ),
+                CombinationRecorded(
+                    InputCombination(get_combination_config((2, 8, -1), (2, 6, 1)))
+                ),
             ],
             l1.calls,
         )
@@ -225,7 +243,13 @@ class TestReader(unittest.TestCase):
         self.reader_client._read()
 
         self.assertEqual(
-            [CombinationRecorded(EventCombination.from_string("1,30,1"))],
+            [
+                CombinationRecorded(
+                    InputCombination(
+                        InputConfiguration(type=1, code=30, analog_threshold=1)
+                    )
+                )
+            ],
             l1.calls,
         )
 
@@ -246,7 +270,13 @@ class TestReader(unittest.TestCase):
         time.sleep(0.1)
         self.reader_client._read()
         self.assertEqual(
-            [CombinationRecorded(EventCombination.from_string("3,0,1"))],
+            [
+                CombinationRecorded(
+                    InputCombination(
+                        InputConfiguration(type=3, code=0, analog_threshold=1)
+                    )
+                )
+            ],
             l1.calls,
         )
         self.assertEqual([], l2.calls)  # no stop recording yet
@@ -259,7 +289,13 @@ class TestReader(unittest.TestCase):
         time.sleep(0.1)
         self.reader_client._read()
         self.assertEqual(
-            [CombinationRecorded(EventCombination.from_string("3,0,1"))],
+            [
+                CombinationRecorded(
+                    InputCombination(
+                        InputConfiguration(type=3, code=0, analog_threshold=1)
+                    )
+                )
+            ],
             l1.calls,
         )
         self.assertEqual([Signal(MessageType.recording_finished)], l2.calls)
@@ -290,13 +326,19 @@ class TestReader(unittest.TestCase):
         self.reader_client._read()
         self.assertEqual(
             [
-                CombinationRecorded(EventCombination.from_string("1,30,1")),
-                CombinationRecorded(EventCombination.from_string("1,30,1+3,0,1")),
+                CombinationRecorded(InputCombination(get_combination_config((1, 30)))),
                 CombinationRecorded(
-                    EventCombination.from_string("1,30,1+3,0,1+1,51,1")
+                    InputCombination(get_combination_config((1, 30), (3, 0, 1)))
                 ),
                 CombinationRecorded(
-                    EventCombination.from_string("1,30,1+3,0,-1+1,51,1")
+                    InputCombination(
+                        get_combination_config((1, 30), (3, 0, 1), (1, 51))
+                    )
+                ),
+                CombinationRecorded(
+                    InputCombination(
+                        get_combination_config((1, 30), (3, 0, -1), (1, 51))
+                    )
                 ),
             ],
             l1.calls,
@@ -328,7 +370,10 @@ class TestReader(unittest.TestCase):
         self.reader_client.start_recorder()
         time.sleep(0.1)
         self.reader_client._read()
-        self.assertEqual(l1.calls[0].combination, EventCombination((EV_KEY, 1, 1)))
+        self.assertEqual(
+            l1.calls[0].combination,
+            InputCombination(InputConfiguration(type=EV_KEY, code=1)),
+        )
 
         self.reader_client.set_group(self.groups.find(name="Bar Device"))
         time.sleep(0.1)
@@ -342,7 +387,10 @@ class TestReader(unittest.TestCase):
         push_events(fixtures.bar_device, [new_event(EV_KEY, 2, 1)])
         time.sleep(0.1)
         self.reader_client._read()
-        self.assertEqual(l1.calls[1].combination, EventCombination((EV_KEY, 2, 1)))
+        self.assertEqual(
+            l1.calls[1].combination,
+            InputCombination(InputConfiguration(type=EV_KEY, code=2)),
+        )
 
     def test_reading_2(self):
         l1 = Listener()
@@ -386,7 +434,13 @@ class TestReader(unittest.TestCase):
         self.reader_client._read()
         self.assertEqual(
             l1.calls[-1].combination,
-            ((EV_KEY, CODE_1, 1), (EV_KEY, CODE_3, 1), (EV_ABS, ABS_HAT0X, -1)),
+            InputCombination(
+                get_combination_config(
+                    (EV_KEY, CODE_1),
+                    (EV_KEY, CODE_3),
+                    (EV_ABS, ABS_HAT0X, -1),
+                )
+            ),
         )
 
     def test_blacklisted_events(self):
@@ -408,7 +462,8 @@ class TestReader(unittest.TestCase):
         time.sleep(0.1)
         self.reader_client._read()
         self.assertEqual(
-            l1.calls[-1].combination, EventCombination((EV_KEY, CODE_2, 1))
+            l1.calls[-1].combination,
+            InputCombination(InputConfiguration(type=EV_KEY, code=CODE_2)),
         )
 
     def test_ignore_value_2(self):
@@ -426,7 +481,10 @@ class TestReader(unittest.TestCase):
         time.sleep(0.2)
         self.reader_client._read()
         self.assertEqual(
-            l1.calls[-1].combination, EventCombination((EV_ABS, ABS_HAT0X, 1))
+            l1.calls[-1].combination,
+            InputCombination(
+                InputConfiguration(type=EV_ABS, code=ABS_HAT0X, analog_threshold=1)
+            ),
         )
 
     def test_reading_ignore_up(self):
@@ -446,7 +504,8 @@ class TestReader(unittest.TestCase):
         time.sleep(0.1)
         self.reader_client._read()
         self.assertEqual(
-            l1.calls[-1].combination, EventCombination((EV_KEY, CODE_2, 1))
+            l1.calls[-1].combination,
+            InputCombination(InputConfiguration(type=EV_KEY, code=CODE_2)),
         )
 
     def test_wrong_device(self):

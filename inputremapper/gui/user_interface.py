@@ -30,7 +30,7 @@ from gi.repository import Gtk, GtkSource, Gdk, GObject
 
 from inputremapper.configs.data import get_data_path
 from inputremapper.configs.mapping import MappingData
-from inputremapper.event_combination import EventCombination
+from inputremapper.input_configuration import InputCombination
 from inputremapper.gui.autocompletion import Autocompletion
 from inputremapper.gui.components.editor import (
     MappingListBox,
@@ -383,7 +383,7 @@ class UserInterface:
         label: Gtk.Label = self.get("combination-label")
         if mapping.event_combination.beautify() == label.get_label():
             return
-        if mapping.event_combination == EventCombination.empty_combination():
+        if mapping.event_combination == InputCombination.empty_combination():
             label.set_opacity(0.5)
             label.set_label(_("no input configured"))
             return

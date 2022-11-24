@@ -37,21 +37,23 @@ from pydantic import ValidationError
 
 from inputremapper.configs.mapping import Mapping, UIMapping
 from inputremapper.configs.system_mapping import system_mapping, DISABLE_NAME
-from inputremapper.event_combination import EventCombination
+from inputremapper.input_configuration import InputCombination, InputConfiguration
 from inputremapper.gui.messages.message_broker import MessageType
-from inputremapper.input_event import EventActions, InputEvent, USE_AS_ANALOG_VALUE
+from inputremapper.input_event import EventActions, InputEvent
 
 
 class TestMapping(unittest.IsolatedAsyncioTestCase):
     def test_init(self):
         """Test init and that defaults are set."""
         cfg = {
-            "event_combination": "1,2,1",
+            "event_combination": [{"type": 1, "code": 2}],
             "target_uinput": "keyboard",
             "output_symbol": "a",
         }
         m = Mapping(**cfg)
-        self.assertEqual(m.event_combination, EventCombination.validate("1,2,1"))
+        self.assertEqual(
+            m.event_combination, InputCombination(InputConfiguration(type=1, code=2))
+        )
         self.assertEqual(m.target_uinput, "keyboard")
         self.assertEqual(m.output_symbol, "a")
 
@@ -68,8 +70,8 @@ class TestMapping(unittest.IsolatedAsyncioTestCase):
 
     def test_is_wheel_output(self):
         mapping = Mapping(
-            event_combination=EventCombination(
-                events=(InputEvent(0, 0, EV_REL, REL_X, USE_AS_ANALOG_VALUE),)
+            event_combination=InputCombination(
+                InputConfiguration(type=EV_REL, code=REL_X)
             ),
             target_uinput="keyboard",
             output_type=EV_REL,
@@ -79,8 +81,8 @@ class TestMapping(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(mapping.is_high_res_wheel_output())
 
         mapping = Mapping(
-            event_combination=EventCombination(
-                events=(InputEvent(0, 0, EV_REL, REL_X, USE_AS_ANALOG_VALUE),)
+            event_combination=InputCombination(
+                InputConfiguration(type=EV_REL, code=REL_X)
             ),
             target_uinput="keyboard",
             output_type=EV_REL,
@@ -90,8 +92,8 @@ class TestMapping(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(mapping.is_high_res_wheel_output())
 
         mapping = Mapping(
-            event_combination=EventCombination(
-                events=(InputEvent(0, 0, EV_REL, REL_X, USE_AS_ANALOG_VALUE),)
+            event_combination=InputCombination(
+                InputConfiguration(type=EV_REL, code=REL_X)
             ),
             target_uinput="keyboard",
             output_type=EV_REL,
@@ -101,13 +103,13 @@ class TestMapping(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(mapping.is_high_res_wheel_output())
 
     def test_find_analog_input_event(self):
-        analog_input = InputEvent(0, 0, EV_REL, REL_X, USE_AS_ANALOG_VALUE)
+        analog_input = InputConfiguration(type=EV_REL, code=REL_X)
 
         mapping = Mapping(
-            event_combination=EventCombination(
-                events=(
-                    InputEvent(0, 0, EV_KEY, BTN_MIDDLE, 1),
-                    InputEvent(0, 0, EV_REL, REL_Y, 1),
+            event_combination=InputCombination(
+                (
+                    InputConfiguration(type=EV_KEY, code=BTN_MIDDLE),
+                    InputConfiguration(type=EV_REL, code=REL_Y, analog_threshold=1),
                     analog_input,
                 )
             ),
@@ -120,10 +122,10 @@ class TestMapping(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(mapping.find_analog_input_event(), analog_input)
 
         mapping = Mapping(
-            event_combination=EventCombination(
-                events=(
-                    InputEvent(0, 0, EV_REL, REL_X, 1),
-                    InputEvent(0, 0, EV_KEY, BTN_MIDDLE, 1),
+            event_combination=InputCombination(
+                (
+                    InputConfiguration(type=EV_REL, code=REL_X, analog_threshold=1),
+                    InputConfiguration(type=EV_KEY, code=BTN_MIDDLE),
                 )
             ),
             target_uinput="keyboard",
@@ -136,7 +138,7 @@ class TestMapping(unittest.IsolatedAsyncioTestCase):
 
     def test_get_output_type_code(self):
         cfg = {
-            "event_combination": "1,2,1",
+            "event_combination": [{"type": 1, "code": 2}],
             "target_uinput": "keyboard",
             "output_symbol": "a",
         }
@@ -148,7 +150,7 @@ class TestMapping(unittest.IsolatedAsyncioTestCase):
         self.assertIsNone(m.get_output_type_code())
 
         cfg = {
-            "event_combination": "1,2,1+3,1,0",
+            "event_combination": [{"type": 1, "code": 2}, {"type": 3, "code": 1}],
             "target_uinput": "keyboard",
             "output_type": 2,
             "output_code": 3,
@@ -158,7 +160,7 @@ class TestMapping(unittest.IsolatedAsyncioTestCase):
 
     def test_strips_output_symbol(self):
         cfg = {
-            "event_combination": "1,2,1",
+            "event_combination": [{"type": 1, "code": 2}],
             "target_uinput": "keyboard",
             "output_symbol": "\t a \n",
         }
@@ -166,34 +168,9 @@ class TestMapping(unittest.IsolatedAsyncioTestCase):
         a = system_mapping.get("a")
         self.assertEqual(m.get_output_type_code(), (EV_KEY, a))
 
-    def test_init_sets_event_actions(self):
-        """Test that InputEvent.actions are set properly."""
-        cfg = {
-            "event_combination": "1,2,1+2,1,1+3,1,0",
-            "target_uinput": "keyboard",
-            "output_type": 2,
-            "output_code": 3,
-        }
-        m = Mapping(**cfg)
-        expected_actions = [(EventActions.as_key,), (EventActions.as_key,), ()]
-        actions = [event.actions for event in m.event_combination]
-        self.assertEqual(expected_actions, actions)
-
-        # copy keeps the event actions
-        m2 = m.copy()
-        actions = [event.actions for event in m2.event_combination]
-        self.assertEqual(expected_actions, actions)
-
-        # changing the combination sets the actions
-        m3 = m.copy()
-        m3.event_combination = "1,2,1+2,1,0+3,1,10"
-        expected_actions = [(EventActions.as_key,), (), (EventActions.as_key,)]
-        actions = [event.actions for event in m3.event_combination]
-        self.assertEqual(expected_actions, actions)
-
     def test_combination_changed_callback(self):
         cfg = {
-            "event_combination": "1,1,1",
+            "event_combination": [{"type": 1, "code": 1}],
             "target_uinput": "keyboard",
             "output_symbol": "a",
         }
@@ -204,30 +181,30 @@ class TestMapping(unittest.IsolatedAsyncioTestCase):
             arguments.append(tuple(args))
 
         m.set_combination_changed_callback(callback)
-        m.event_combination = "1,1,2"
-        m.event_combination = "1,1,3"
+        m.event_combination = [{"type": 1, "code": 2}]
+        m.event_combination = [{"type": 1, "code": 3}]
 
         # make sure a copy works as expected and keeps the callback
         m2 = m.copy()
-        m2.event_combination = "1,1,4"
+        m2.event_combination = [{"type": 1, "code": 4}]
         m2.remove_combination_changed_callback()
         m.remove_combination_changed_callback()
-        m.event_combination = "1,1,5"
-        m2.event_combination = "1,1,6"
+        m.event_combination = [{"type": 1, "code": 5}]
+        m2.event_combination = [{"type": 1, "code": 6}]
         self.assertEqual(
             arguments,
             [
                 (
-                    EventCombination.from_string("1,1,2"),
-                    EventCombination.from_string("1,1,1"),
+                    InputCombination([{"type": 1, "code": 2}]),
+                    InputCombination([{"type": 1, "code": 1}]),
                 ),
                 (
-                    EventCombination.from_string("1,1,3"),
-                    EventCombination.from_string("1,1,2"),
+                    InputCombination([{"type": 1, "code": 3}]),
+                    InputCombination([{"type": 1, "code": 2}]),
                 ),
                 (
-                    EventCombination.from_string("1,1,4"),
-                    EventCombination.from_string("1,1,3"),
+                    InputCombination([{"type": 1, "code": 4}]),
+                    InputCombination([{"type": 1, "code": 3}]),
                 ),
             ],
         )
@@ -237,7 +214,7 @@ class TestMapping(unittest.IsolatedAsyncioTestCase):
         """Test that the init fails with invalid data."""
         test = partial(self.assertRaises, ValidationError, Mapping)
         cfg = {
-            "event_combination": "1,2,3",
+            "event_combination": [{"type": 1, "code": 2}],
             "target_uinput": "keyboard",
             "output_symbol": "a",
         }
@@ -289,7 +266,7 @@ class TestMapping(unittest.IsolatedAsyncioTestCase):
         # missing event_combination
         del cfg["event_combination"]
         test(**cfg)
-        cfg["event_combination"] = "1,2,3"
+        cfg["event_combination"] = [{"type": 1, "code": 2}]
         Mapping(**cfg)
 
         # no macro and not a known symbol
@@ -305,7 +282,7 @@ class TestMapping(unittest.IsolatedAsyncioTestCase):
         Mapping(**cfg)
 
         # map axis but no output type and code given
-        cfg["event_combination"] = "3,0,0"
+        cfg["event_combination"] = [{"type": 3, "code": 0}]
         test(**cfg)
         # output symbol=disable is allowed
         cfg["output_symbol"] = DISABLE_NAME
@@ -321,28 +298,28 @@ class TestMapping(unittest.IsolatedAsyncioTestCase):
         del cfg["output_symbol"]
 
         # multiple axis as axis in event combination
-        cfg["event_combination"] = "3,0,0+3,1,0"
+        cfg["event_combination"] = [{"type": 3, "code": 0}, {"type": 3, "code": 1}]
         test(**cfg)
-        cfg["event_combination"] = "3,0,0"
+        cfg["event_combination"] = [{"type": 3, "code": 0}]
         Mapping(**cfg)
 
         del cfg["output_type"]
         del cfg["output_code"]
-        cfg["event_combination"] = "1,2,3"
+        cfg["event_combination"] = [{"type": 1, "code": 2}]
         cfg["output_symbol"] = "a"
         Mapping(**cfg)
 
         # map EV_ABS as key with trigger point out of range
-        cfg["event_combination"] = "3,0,100"
+        cfg["event_combination"] = [{"type": 3, "code": 0, "analog_threshold": 100}]
         test(**cfg)
-        cfg["event_combination"] = "3,0,99"
+        cfg["event_combination"] = [{"type": 3, "code": 0, "analog_threshold": 99}]
         Mapping(**cfg)
-        cfg["event_combination"] = "3,0,-100"
+        cfg["event_combination"] = [{"type": 3, "code": 0, "analog_threshold": -100}]
         test(**cfg)
-        cfg["event_combination"] = "3,0,-99"
+        cfg["event_combination"] = [{"type": 3, "code": 0, "analog_threshold": -99}]
         Mapping(**cfg)
 
-        cfg["event_combination"] = "1,2,3"
+        cfg["event_combination"] = [{"type": 1, "code": 2}]
         Mapping(**cfg)
 
         # deadzone out of range
@@ -378,22 +355,22 @@ class TestMapping(unittest.IsolatedAsyncioTestCase):
 
         # analog output but no analog input
         cfg = {
-            "event_combination": "3,1,-1",
+            "event_combination": [{"type": 3, "code": 1, "analog_threshold": -1}],
             "target_uinput": "gamepad",
             "output_type": 3,
             "output_code": 1,
         }
         test(**cfg)
-        cfg["event_combination"] = "2,1,-1"
+        cfg["event_combination"] = [{"type": 2, "code": 1, "analog_threshold": -1}]
         test(**cfg)
         cfg["output_type"] = 2
         test(**cfg)
-        cfg["event_combination"] = "3,1,-1"
+        cfg["event_combination"] = [{"type": 3, "code": 1, "analog_threshold": -1}]
         test(**cfg)
 
     def test_revalidate_at_assignment(self):
         cfg = {
-            "event_combination": "1,1,1",
+            "event_combination": [{"type": 1, "code": 1}],
             "target_uinput": "keyboard",
             "output_symbol": "a",
         }
@@ -415,19 +392,19 @@ class TestMapping(unittest.IsolatedAsyncioTestCase):
 
     def test_set_invalid_combination_with_callback(self):
         cfg = {
-            "event_combination": "1,1,1",
+            "event_combination": [{"type": 1, "code": 1}],
             "target_uinput": "keyboard",
             "output_symbol": "a",
         }
         m = Mapping(**cfg)
         m.set_combination_changed_callback(lambda *args: None)
         self.assertRaises(ValidationError, m.__setattr__, "event_combination", "1,2")
-        m.event_combination = "1,2,3"
-        m.event_combination = "1,2,3"
+        m.event_combination = [{"type": 1, "code": 2}]
+        m.event_combination = [{"type": 1, "code": 2}]
 
     def test_is_valid(self):
         cfg = {
-            "event_combination": "1,1,1",
+            "event_combination": [{"type": 1, "code": 1}],
             "target_uinput": "keyboard",
             "output_symbol": "a",
         }
@@ -446,7 +423,7 @@ class TestUIMapping(unittest.IsolatedAsyncioTestCase):
         m = UIMapping()
         self.assertFalse(m.is_valid())
 
-        m.event_combination = "1,2,3"
+        m.event_combination = [{"type": 1, "code": 2}]
         m.output_symbol = "a"
         self.assertFalse(m.is_valid())
         m.target_uinput = "keyboard"
@@ -455,7 +432,7 @@ class TestUIMapping(unittest.IsolatedAsyncioTestCase):
     def test_updates_validation_error(self):
         m = UIMapping()
         self.assertGreaterEqual(len(m.get_error().errors()), 2)
-        m.event_combination = "1,2,3"
+        m.event_combination = [{"type": 1, "code": 2}]
         m.output_symbol = "a"
         self.assertIn(
             "1 validation error for Mapping\ntarget_uinput", str(m.get_error())
@@ -469,7 +446,7 @@ class TestUIMapping(unittest.IsolatedAsyncioTestCase):
         m = UIMapping()
         m2 = m.copy()
         self.assertIsInstance(m2, UIMapping)
-        self.assertEqual(m2.event_combination, EventCombination.empty_combination())
+        self.assertEqual(m2.event_combination, InputCombination.empty_combination())
         self.assertIsNone(m2.output_symbol)
 
     def test_get_bus_massage(self):
@@ -489,7 +466,7 @@ class TestUIMapping(unittest.IsolatedAsyncioTestCase):
     def test_has_input_defined(self):
         m = UIMapping()
         self.assertFalse(m.has_input_defined())
-        m.event_combination = EventCombination((EV_KEY, 1, 1))
+        m.event_combination = InputCombination(InputConfiguration(type=EV_KEY, code=1))
         self.assertTrue(m.has_input_defined())
 
 

@@ -27,7 +27,7 @@ from evdev.ecodes import EV_KEY, EV_ABS, EV_REL
 from inputremapper.configs.mapping import Mapping
 from inputremapper.configs.preset import Preset
 from inputremapper.configs.system_mapping import DISABLE_CODE, DISABLE_NAME
-from inputremapper.event_combination import EventCombination
+from inputremapper.input_configuration import InputCombination
 from inputremapper.exceptions import MappingParsingError
 from inputremapper.injection.macros.parse import is_this_a_macro
 from inputremapper.injection.mapping_handlers.abs_to_abs_handler import AbsToAbsHandler
@@ -129,8 +129,8 @@ def parse_mappings(preset: Preset, context: ContextProtocol) -> EventPipelines:
     # up in multiple groups if it takes care of multiple InputEvents
     event_pipelines: EventPipelines = defaultdict(set)
     for handler in handlers:
-        assert handler.input_events
-        for event in handler.input_events:
+        assert handler.input_configs
+        for event in handler.input_configs:
             logger.debug(
                 "event-pipeline with entry point: %s %s",
                 get_evdev_constant_name(*event.type_and_code),
@@ -168,7 +168,7 @@ def _create_event_pipeline(
 
         handlers.extend(_create_event_pipeline(super_handler, context))
 
-    if handler.input_events:
+    if handler.input_configs:
         # the handler was only partially wrapped,
         # we need to return it as a toplevel handler
         handlers.append(handler)
@@ -219,8 +219,8 @@ def _get_output_handler(mapping: Mapping) -> HandlerEnums:
     raise MappingParsingError(f"the output of {mapping = } is unknown", mapping=Mapping)
 
 
-def _maps_axis(combination: EventCombination) -> Optional[InputEvent]:
-    """Whether this EventCombination contains an InputEvent that is treated as
+def _maps_axis(combination: InputCombination) -> Optional[InputEvent]:
+    """Whether this InputCombination contains an InputEvent that is treated as
     an axis and not a binary (key or button) event.
     """
     for event in combination:
@@ -230,7 +230,7 @@ def _maps_axis(combination: EventCombination) -> Optional[InputEvent]:
 
 
 def _create_hierarchy_handlers(
-    handlers: Dict[EventCombination, Set[MappingHandler]]
+    handlers: Dict[InputCombination, Set[MappingHandler]]
 ) -> Set[MappingHandler]:
     """Sort handlers by input events and create Hierarchy handlers."""
     sorted_handlers = set()
@@ -271,8 +271,8 @@ def _create_hierarchy_handlers(
 
 
 def _order_combinations(
-    combinations: List[EventCombination], common_event: InputEvent
-) -> List[EventCombination]:
+    combinations: List[InputCombination], common_event: InputEvent
+) -> List[InputCombination]:
     """Reorder the keys according to some rules.
 
     such that a combination a+b+c is in front of a+b which is in front of b

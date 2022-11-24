@@ -85,7 +85,7 @@ class TestInputEvent(unittest.TestCase):
         self.assertRaises(InputEventCreationError, InputEvent.from_string, t4)
 
     def test_properties(self):
-        e1 = InputEvent.btn_left()
+        e1 = InputEvent.from_tuple((evdev.ecodes.EV_KEY, evdev.ecodes.BTN_LEFT, 1))
         self.assertEqual(
             e1.event_tuple,
             (evdev.ecodes.EV_KEY, evdev.ecodes.BTN_LEFT, 1),

@@ -21,7 +21,7 @@ from typing import Tuple, Dict
 
 from inputremapper import exceptions
 from inputremapper.configs.mapping import Mapping
-from inputremapper.event_combination import EventCombination
+from inputremapper.input_configuration import InputCombination
 from inputremapper.exceptions import MappingParsingError
 from inputremapper.injection.global_uinputs import global_uinputs
 from inputremapper.injection.mapping_handlers.mapping_handler import (
@@ -41,7 +41,7 @@ class KeyHandler(MappingHandler):
 
     def __init__(
         self,
-        combination: EventCombination,
+        combination: InputCombination,
         mapping: Mapping,
         **_,
     ):
@@ -88,5 +88,5 @@ class KeyHandler(MappingHandler):
     def needs_wrapping(self) -> bool:
         return True
 
-    def wrap_with(self) -> Dict[EventCombination, HandlerEnums]:
-        return {EventCombination(self.input_events): HandlerEnums.combination}
+    def wrap_with(self) -> Dict[InputCombination, HandlerEnums]:
+        return {InputCombination(self.input_configs): HandlerEnums.combination}
