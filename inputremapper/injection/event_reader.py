@@ -88,7 +88,7 @@ class EventReader:
 
         while True:
             _, pending = await asyncio.wait(
-                {stop_task, events_ready.wait()},
+                {stop_task, asyncio.Task(events_ready.wait())},
                 return_when=asyncio.FIRST_COMPLETED,
             )
 

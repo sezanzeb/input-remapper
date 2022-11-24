@@ -19,7 +19,7 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from tests.test import cleanup
+from tests.lib.cleanup import cleanup
 
 import sys
 import unittest

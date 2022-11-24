@@ -19,16 +19,12 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from tests.test import (
-    cleanup,
-    uinput_write_history_pipe,
-    new_event,
-    push_events,
-    is_service_running,
-    fixtures,
-    tmp,
-    get_key_mapping,
-)
+from tests.test import is_service_running
+from tests.lib.cleanup import cleanup
+from tests.lib.fixtures import new_event
+from tests.lib.pipes import push_events, uinput_write_history_pipe
+from tests.lib.tmp import tmp
+from tests.lib.fixtures import fixtures, get_key_mapping
 
 import os
 import unittest

@@ -23,19 +23,15 @@
 from contextlib import contextmanager
 from typing import Tuple, List, Optional
 
-from tests.test import (
-    get_project_root,
-    logger,
-    push_events,
-    new_event,
-    spy,
-    cleanup,
-    uinput_write_history_pipe,
-    EVENT_READ_TIMEOUT,
-    prepare_presets,
-    fixtures,
-    push_event,
-)
+from tests.test import get_project_root
+from tests.lib.fixtures import new_event
+from tests.lib.cleanup import cleanup
+from tests.lib.stuff import spy
+from tests.lib.constants import EVENT_READ_TIMEOUT
+from tests.lib.fixtures import prepare_presets
+from tests.lib.logger import logger
+from tests.lib.fixtures import fixtures
+from tests.lib.pipes import push_event, push_events, uinput_write_history_pipe
 from tests.integration.test_components import FlowBoxTestUtils
 
 import sys
