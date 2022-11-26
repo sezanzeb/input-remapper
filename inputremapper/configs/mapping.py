@@ -52,7 +52,6 @@ from inputremapper.exceptions import MacroParsingError
 from inputremapper.gui.gettext import _
 from inputremapper.gui.messages.message_types import MessageType
 from inputremapper.injection.macros.parse import is_this_a_macro, parse
-from inputremapper.input_event import InputEvent, EventActions
 
 # TODO: remove pydantic VERSION check as soon as we no longer support
 #  Ubuntu 20.04 and with it the ancient pydantic 1.2
@@ -229,17 +228,6 @@ class UIMapping(BaseModel):
     def is_axis_mapping(self) -> bool:
         """Whether this mapping specifies an output axis."""
         return self.output_type in [EV_ABS, EV_REL]
-
-    def find_analog_input_event(
-        self, type_: Optional[int] = None
-    ) -> Optional[InputConfiguration]:
-        """Return the first event that defines an analog input"""
-        for input_config in self.event_combination:
-            if input_config.defines_analog_input and (
-                type_ is None or input_config.type == type_
-            ):
-                return input_config
-        return None
 
     def is_wheel_output(self) -> bool:
         """Check if this maps to wheel output."""

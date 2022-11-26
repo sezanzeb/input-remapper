@@ -186,7 +186,9 @@ class Controller:
             )
             if mapping.output_symbol is not None:
                 event = [
-                    event for event in mapping.event_combination if event.value == 0
+                    event
+                    for event in mapping.event_combination
+                    if event.defines_analog_input
                 ][0]
                 message += _(
                     "\nIf you mean to create a key or macro mapping "

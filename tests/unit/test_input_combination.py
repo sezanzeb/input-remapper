@@ -28,6 +28,9 @@ from evdev.ecodes import (
     BTN_C,
     BTN_B,
     BTN_A,
+    BTN_MIDDLE,
+    REL_X,
+    REL_Y,
     REL_WHEEL,
     REL_HWHEEL,
     ABS_RY,
@@ -41,8 +44,6 @@ from evdev.ecodes import (
 )
 
 from inputremapper.input_configuration import InputCombination, InputConfiguration
-from inputremapper.input_event import InputEvent
-
 from tests.lib.fixtures import get_combination_config
 
 
@@ -204,6 +205,32 @@ class TestInputCombination(unittest.TestCase):
             ).beautify(),
             "Button A + Button B + Button C",
         )
+
+    def test_find_analog_input_config(self):
+        analog_input = InputConfiguration(type=EV_REL, code=REL_X)
+
+        combination = InputCombination(
+            (
+                InputConfiguration(type=EV_KEY, code=BTN_MIDDLE),
+                InputConfiguration(type=EV_REL, code=REL_Y, analog_threshold=1),
+                analog_input,
+            )
+        )
+        self.assertIsNone(combination.find_analog_input_config(type_=EV_ABS))
+        self.assertEqual(
+            combination.find_analog_input_config(type_=EV_REL), analog_input
+        )
+        self.assertEqual(combination.find_analog_input_config(), analog_input)
+
+        combination = InputCombination(
+            (
+                InputConfiguration(type=EV_REL, code=REL_X, analog_threshold=1),
+                InputConfiguration(type=EV_KEY, code=BTN_MIDDLE),
+            )
+        )
+        self.assertIsNone(combination.find_analog_input_config(type_=EV_ABS))
+        self.assertIsNone(combination.find_analog_input_config(type_=EV_REL))
+        self.assertIsNone(combination.find_analog_input_config())
 
 
 if __name__ == "__main__":

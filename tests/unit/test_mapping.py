@@ -39,7 +39,6 @@ from inputremapper.configs.mapping import Mapping, UIMapping
 from inputremapper.configs.system_mapping import system_mapping, DISABLE_NAME
 from inputremapper.input_configuration import InputCombination, InputConfiguration
 from inputremapper.gui.messages.message_broker import MessageType
-from inputremapper.input_event import EventActions, InputEvent
 
 
 class TestMapping(unittest.IsolatedAsyncioTestCase):
@@ -101,40 +100,6 @@ class TestMapping(unittest.IsolatedAsyncioTestCase):
         )
         self.assertFalse(mapping.is_wheel_output())
         self.assertTrue(mapping.is_high_res_wheel_output())
-
-    def test_find_analog_input_event(self):
-        analog_input = InputConfiguration(type=EV_REL, code=REL_X)
-
-        mapping = Mapping(
-            event_combination=InputCombination(
-                (
-                    InputConfiguration(type=EV_KEY, code=BTN_MIDDLE),
-                    InputConfiguration(type=EV_REL, code=REL_Y, analog_threshold=1),
-                    analog_input,
-                )
-            ),
-            target_uinput="keyboard",
-            output_type=EV_ABS,
-            output_code=ABS_X,
-        )
-        self.assertIsNone(mapping.find_analog_input_event(type_=EV_ABS))
-        self.assertEqual(mapping.find_analog_input_event(type_=EV_REL), analog_input)
-        self.assertEqual(mapping.find_analog_input_event(), analog_input)
-
-        mapping = Mapping(
-            event_combination=InputCombination(
-                (
-                    InputConfiguration(type=EV_REL, code=REL_X, analog_threshold=1),
-                    InputConfiguration(type=EV_KEY, code=BTN_MIDDLE),
-                )
-            ),
-            target_uinput="keyboard",
-            output_type=EV_KEY,
-            output_code=KEY_A,
-        )
-        self.assertIsNone(mapping.find_analog_input_event(type_=EV_ABS))
-        self.assertIsNone(mapping.find_analog_input_event(type_=EV_REL))
-        self.assertIsNone(mapping.find_analog_input_event())
 
     def test_get_output_type_code(self):
         cfg = {

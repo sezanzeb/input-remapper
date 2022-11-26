@@ -290,6 +290,17 @@ class InputCombination(Tuple[InputConfiguration]):
         """Check if there is any analog input in self."""
         return True in filter(lambda i: i.defines_analog_input, self)
 
+    def find_analog_input_config(
+        self, type_: Optional[int] = None
+    ) -> Optional[InputConfiguration]:
+        """Return the first event that defines an analog input"""
+        for input_config in self:
+            if input_config.defines_analog_input and (
+                type_ is None or input_config.type == type_
+            ):
+                return input_config
+        return None
+
     def get_permutations(self) -> List[InputCombination]:
         """Get a list of EventCombinations representing all possible permutations.
 

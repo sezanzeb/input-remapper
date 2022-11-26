@@ -497,7 +497,7 @@ class RequireActiveMapping:
         self,
         message_broker: MessageBroker,
         widget: Gtk.ToggleButton,
-        require_recorded_input: False,
+        require_recorded_input: bool,
     ):
         self._widget = widget
         self._default_tooltip = self._widget.get_tooltip_text()
@@ -778,7 +778,7 @@ class AnalogInputSwitch:
         self._message_broker = message_broker
         self._controller = controller
         self._gui = gui
-        self._event: Optional[InputEvent] = None
+        self._input_config: Optional[InputConfiguration] = None
 
         self._gui.connect("state-set", self._on_gtk_toggle)
         self._message_broker.subscribe(MessageType.selected_event, self._on_event)
@@ -786,7 +786,7 @@ class AnalogInputSwitch:
     def _on_event(self, input_cfg: InputConfiguration):
         with HandlerDisabled(self._gui, self._on_gtk_toggle):
             self._gui.set_active(input_cfg.defines_analog_input)
-            self._event = input_cfg
+            self._input_config = input_cfg
 
         if input_cfg.type == EV_KEY:
             self._gui.set_sensitive(False)
@@ -812,17 +812,17 @@ class TriggerThresholdInput:
         self._message_broker = message_broker
         self._controller = controller
         self._gui = gui
-        self._event: Optional[InputEvent] = None
+        self._input_config: Optional[InputConfiguration] = None
 
         self._gui.set_increments(1, 1)
         self._gui.connect("value-changed", self._on_gtk_changed)
         self._message_broker.subscribe(MessageType.selected_event, self._on_event)
 
-    def _on_event(self, event: InputEvent):
-        if event.type == EV_KEY:
+    def _on_event(self, input_config: InputConfiguration):
+        if input_config.type == EV_KEY:
             self._gui.set_sensitive(False)
             self._gui.set_opacity(0.5)
-        elif event.type == EV_ABS:
+        elif input_config.type == EV_ABS:
             self._gui.set_sensitive(True)
             self._gui.set_opacity(1)
             self._gui.set_range(-99, 99)
@@ -832,12 +832,12 @@ class TriggerThresholdInput:
             self._gui.set_range(-999, 999)
 
         with HandlerDisabled(self._gui, self._on_gtk_changed):
-            self._gui.set_value(event.analog_threshold or 0)
-            self._event = event
+            self._gui.set_value(input_config.analog_threshold or 0)
+            self._input_config = input_config
 
     def _on_gtk_changed(self, *_):
         self._controller.update_input_config(
-            self._event.modify(analog_threshold=int(self._gui.get_value()))
+            self._input_config.modify(analog_threshold=int(self._gui.get_value()))
         )
 
 

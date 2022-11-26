@@ -97,7 +97,7 @@ class RelToRelHandler(MappingHandler):
 
         # find the input event we are supposed to map. If the input combination is
         # BTN_A + REL_X + BTN_B, then use the value of REL_X for the transformation
-        input_event = mapping.find_analog_input_event(type_=EV_REL)
+        input_event = combination.find_analog_input_config(type_=EV_REL)
         assert input_event is not None
         self._input_config = input_event
 

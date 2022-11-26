@@ -64,7 +64,7 @@ class AxisSwitchHandler(MappingHandler):
             if not event.defines_analog_input
         ]
         assert len(trigger_keys) >= 1
-        assert (map_axis := mapping.find_analog_input_event())
+        assert (map_axis := combination.find_analog_input_config())
         self._map_axis = map_axis.type_and_code
         self._trigger_keys = tuple(trigger_keys)
         self._active = False
