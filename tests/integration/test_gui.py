@@ -81,7 +81,7 @@ from inputremapper.gui.reader_service import ReaderService
 from inputremapper.gui.utils import gtk_iteration, Colors, debounce, debounce_manager
 from inputremapper.gui.user_interface import UserInterface
 from inputremapper.injection.injector import InjectorState
-from inputremapper.input_configuration import InputCombination, InputConfiguration
+from inputremapper.input_configuration import InputCombination, InputConfig
 from inputremapper.daemon import Daemon, DaemonProxy
 
 
@@ -338,10 +338,10 @@ class GuiTestBase(unittest.TestCase):
         self.assertEqual(self.target_selection.get_active_id(), "keyboard")
         self.assertEqual(
             self.data_manager.active_mapping.event_combination,
-            InputCombination(InputConfiguration(type=1, code=5)),
+            InputCombination(InputConfig(type=1, code=5)),
         )
         self.assertEqual(
-            self.data_manager.active_input_config, InputConfiguration(type=1, code=5)
+            self.data_manager.active_input_config, InputConfig(type=1, code=5)
         )
         self.assertGreater(
             len(self.user_interface.autocompletion._target_key_capabilities), 0
@@ -526,12 +526,12 @@ class TestGui(GuiTestBase):
         self.assertFalse(self.autoload_toggle.get_active())
         self.assertEqual(
             self.selection_label_listbox.get_selected_row().combination,
-            InputCombination(InputConfiguration(type=1, code=5)),
+            InputCombination(InputConfig(type=1, code=5)),
         )
         self.assertEqual(
             self.data_manager.active_mapping.event_combination,
             InputCombination(
-                InputConfiguration(type=1, code=5),
+                InputConfig(type=1, code=5),
             ),
         )
         self.assertEqual(self.selection_label_listbox.get_selected_row().name, "4")
@@ -671,16 +671,14 @@ class TestGui(GuiTestBase):
         mock1.assert_has_calls(
             (
                 call(
-                    CombinationRecorded(
-                        InputCombination(InputConfiguration(type=1, code=30))
-                    )
+                    CombinationRecorded(InputCombination(InputConfig(type=1, code=30)))
                 ),
                 call(
                     CombinationRecorded(
                         InputCombination(
                             (
-                                InputConfiguration(type=1, code=30),
-                                InputConfiguration(type=1, code=31),
+                                InputConfig(type=1, code=30),
+                                InputConfig(type=1, code=31),
                             )
                         )
                     )
@@ -721,7 +719,7 @@ class TestGui(GuiTestBase):
         # mapping or something, so it was never overwritten.
         self.assertEqual(
             self.data_manager.active_mapping.event_combination,
-            InputCombination(InputConfiguration(type=1, code=30)),
+            InputCombination(InputConfig(type=1, code=30)),
         )
 
         # create a new mapping
@@ -761,8 +759,8 @@ class TestGui(GuiTestBase):
             self.data_manager.active_mapping.event_combination,
             InputCombination(
                 (
-                    InputConfiguration(type=1, code=30),
-                    InputConfiguration(type=1, code=31),
+                    InputConfig(type=1, code=30),
+                    InputConfig(type=1, code=31),
                 )
             ),
         )
@@ -774,9 +772,9 @@ class TestGui(GuiTestBase):
             self.data_manager.active_mapping.event_combination,
             InputCombination(
                 (
-                    InputConfiguration(type=1, code=30),
-                    InputConfiguration(type=1, code=31),
-                    InputConfiguration(type=1, code=32),
+                    InputConfig(type=1, code=30),
+                    InputConfig(type=1, code=31),
+                    InputConfig(type=1, code=32),
                 )
             ),
         )
@@ -794,16 +792,16 @@ class TestGui(GuiTestBase):
 
         # sending a combination update now should not do anything
         self.message_broker.publish(
-            CombinationRecorded(InputCombination(InputConfiguration(type=1, code=35)))
+            CombinationRecorded(InputCombination(InputConfig(type=1, code=35)))
         )
         gtk_iteration()
         self.assertEqual(
             self.data_manager.active_mapping.event_combination,
             InputCombination(
                 (
-                    InputConfiguration(type=1, code=30),
-                    InputConfiguration(type=1, code=31),
-                    InputConfiguration(type=1, code=32),
+                    InputConfig(type=1, code=30),
+                    InputConfig(type=1, code=31),
+                    InputConfig(type=1, code=32),
                 )
             ),
         )
@@ -842,11 +840,11 @@ class TestGui(GuiTestBase):
         # check the event_combination
         self.assertEqual(
             self.selection_label_listbox.get_selected_row().combination,
-            InputCombination(InputConfiguration(type=1, code=30)),
+            InputCombination(InputConfig(type=1, code=30)),
         )
         self.assertEqual(
             self.data_manager.active_mapping.event_combination,
-            InputCombination(InputConfiguration(type=1, code=30)),
+            InputCombination(InputConfig(type=1, code=30)),
         )
         self.assertEqual(self.selection_label_listbox.get_selected_row().name, "a")
         self.assertIsNone(self.data_manager.active_mapping.name)
@@ -862,7 +860,7 @@ class TestGui(GuiTestBase):
         self.assertEqual(
             self.data_manager.active_mapping,
             Mapping(
-                event_combination=InputCombination(InputConfiguration(type=1, code=30)),
+                event_combination=InputCombination(InputConfig(type=1, code=30)),
                 output_symbol="Shift_L",
                 target_uinput="keyboard",
             ),
@@ -875,7 +873,7 @@ class TestGui(GuiTestBase):
         )
         self.assertEqual(
             self.selection_label_listbox.get_selected_row().combination,
-            InputCombination(InputConfiguration(type=1, code=30)),
+            InputCombination(InputConfig(type=1, code=30)),
         )
 
         # 4. update target to mouse
@@ -884,7 +882,7 @@ class TestGui(GuiTestBase):
         self.assertEqual(
             self.data_manager.active_mapping,
             Mapping(
-                event_combination=InputCombination(InputConfiguration(type=1, code=30)),
+                event_combination=InputCombination(InputConfig(type=1, code=30)),
                 output_symbol="Shift_L",
                 target_uinput="mouse",
             ),
@@ -1199,7 +1197,7 @@ class TestGui(GuiTestBase):
     def test_only_one_empty_mapping_possible(self):
         self.assertEqual(
             self.selection_label_listbox.get_selected_row().combination,
-            InputCombination(InputConfiguration(type=1, code=5)),
+            InputCombination(InputConfig(type=1, code=5)),
         )
         self.assertEqual(len(self.selection_label_listbox.get_children()), 1)
         self.assertEqual(len(self.data_manager.active_preset), 1)
@@ -1232,9 +1230,7 @@ class TestGui(GuiTestBase):
         self.recording_toggle.set_active(True)
         gtk_iteration()
         self.message_broker.publish(
-            CombinationRecorded(
-                InputCombination(InputConfiguration(type=EV_KEY, code=KEY_Q))
-            )
+            CombinationRecorded(InputCombination(InputConfig(type=EV_KEY, code=KEY_Q)))
         )
         gtk_iteration()
         self.message_broker.signal(MessageType.recording_finished)
@@ -1254,9 +1250,7 @@ class TestGui(GuiTestBase):
         self.recording_toggle.set_active(True)
         gtk_iteration()
         self.message_broker.publish(
-            CombinationRecorded(
-                InputCombination(InputConfiguration(type=EV_KEY, code=KEY_Q))
-            )
+            CombinationRecorded(InputCombination(InputConfig(type=EV_KEY, code=KEY_Q)))
         )
         gtk_iteration()
         self.message_broker.signal(MessageType.recording_finished)
@@ -1416,15 +1410,11 @@ class TestGui(GuiTestBase):
 
         self.controller.load_preset("preset1")
         self.throttle(20)
-        self.controller.load_mapping(
-            InputCombination(InputConfiguration(type=1, code=1))
-        )
+        self.controller.load_mapping(InputCombination(InputConfig(type=1, code=1)))
         gtk_iteration()
         self.controller.update_mapping(output_symbol="foo")
         gtk_iteration()
-        self.controller.load_mapping(
-            InputCombination(InputConfiguration(type=1, code=2))
-        )
+        self.controller.load_mapping(InputCombination(InputConfig(type=1, code=2)))
         gtk_iteration()
         self.controller.update_mapping(output_symbol="qux")
         gtk_iteration()
@@ -1447,9 +1437,7 @@ class TestGui(GuiTestBase):
         self.assertTrue(error_icon.get_visible())
         self.assertFalse(warning_icon.get_visible())
 
-        self.controller.load_mapping(
-            InputCombination(InputConfiguration(type=1, code=1))
-        )
+        self.controller.load_mapping(InputCombination(InputConfig(type=1, code=1)))
         gtk_iteration()
         self.controller.update_mapping(output_symbol="b")
         gtk_iteration()
@@ -1543,8 +1531,8 @@ class TestGui(GuiTestBase):
         self.assertEqual(
             mappings,
             {
-                InputCombination(InputConfiguration(type=1, code=1)),
-                InputCombination(InputConfiguration(type=1, code=2)),
+                InputCombination(InputConfig(type=1, code=1)),
+                InputCombination(InputConfig(type=1, code=2)),
             },
         )
         self.assertFalse(self.autoload_toggle.get_active())
@@ -1558,8 +1546,8 @@ class TestGui(GuiTestBase):
         self.assertEqual(
             mappings,
             {
-                InputCombination(InputConfiguration(type=1, code=3)),
-                InputCombination(InputConfiguration(type=1, code=4)),
+                InputCombination(InputConfig(type=1, code=3)),
+                InputCombination(InputConfig(type=1, code=4)),
             },
         )
         self.assertTrue(self.autoload_toggle.get_active())
@@ -1658,7 +1646,7 @@ class TestGui(GuiTestBase):
         self.controller.create_mapping()
         gtk_iteration()
         self.controller.update_mapping(
-            event_combination=InputCombination(InputConfiguration.btn_left()),
+            event_combination=InputCombination(InputConfig.btn_left()),
             output_symbol="a",
         )
         gtk_iteration()

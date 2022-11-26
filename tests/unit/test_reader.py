@@ -40,7 +40,7 @@ from evdev.ecodes import (
     REL_HWHEEL,
 )
 
-from inputremapper.input_configuration import InputCombination, InputConfiguration
+from inputremapper.input_configuration import InputCombination, InputConfig
 from inputremapper.groups import _Groups, DeviceType
 from inputremapper.gui.messages.message_broker import (
     MessageBroker,
@@ -139,9 +139,7 @@ class TestReader(unittest.TestCase):
         self.assertEqual(
             [
                 CombinationRecorded(
-                    InputCombination(
-                        InputConfiguration(type=3, code=16, analog_threshold=1)
-                    )
+                    InputCombination(InputConfig(type=3, code=16, analog_threshold=1))
                 ),
                 CombinationRecorded(
                     InputCombination(get_combination_config((3, 16, 1), (2, 0, 1)))
@@ -174,9 +172,7 @@ class TestReader(unittest.TestCase):
         self.assertEqual(
             [
                 CombinationRecorded(
-                    InputCombination(
-                        InputConfiguration(type=2, code=0, analog_threshold=-1)
-                    )
+                    InputCombination(InputConfig(type=2, code=0, analog_threshold=-1))
                 )
             ],
             l1.calls,
@@ -216,9 +212,7 @@ class TestReader(unittest.TestCase):
         self.assertEqual(
             [
                 CombinationRecorded(
-                    InputCombination(
-                        InputConfiguration(type=2, code=8, analog_threshold=-1)
-                    )
+                    InputCombination(InputConfig(type=2, code=8, analog_threshold=-1))
                 ),
                 CombinationRecorded(
                     InputCombination(get_combination_config((2, 8, -1), (2, 6, 1)))
@@ -245,9 +239,7 @@ class TestReader(unittest.TestCase):
         self.assertEqual(
             [
                 CombinationRecorded(
-                    InputCombination(
-                        InputConfiguration(type=1, code=30, analog_threshold=1)
-                    )
+                    InputCombination(InputConfig(type=1, code=30, analog_threshold=1))
                 )
             ],
             l1.calls,
@@ -272,9 +264,7 @@ class TestReader(unittest.TestCase):
         self.assertEqual(
             [
                 CombinationRecorded(
-                    InputCombination(
-                        InputConfiguration(type=3, code=0, analog_threshold=1)
-                    )
+                    InputCombination(InputConfig(type=3, code=0, analog_threshold=1))
                 )
             ],
             l1.calls,
@@ -291,9 +281,7 @@ class TestReader(unittest.TestCase):
         self.assertEqual(
             [
                 CombinationRecorded(
-                    InputCombination(
-                        InputConfiguration(type=3, code=0, analog_threshold=1)
-                    )
+                    InputCombination(InputConfig(type=3, code=0, analog_threshold=1))
                 )
             ],
             l1.calls,
@@ -372,7 +360,7 @@ class TestReader(unittest.TestCase):
         self.reader_client._read()
         self.assertEqual(
             l1.calls[0].combination,
-            InputCombination(InputConfiguration(type=EV_KEY, code=1)),
+            InputCombination(InputConfig(type=EV_KEY, code=1)),
         )
 
         self.reader_client.set_group(self.groups.find(name="Bar Device"))
@@ -389,7 +377,7 @@ class TestReader(unittest.TestCase):
         self.reader_client._read()
         self.assertEqual(
             l1.calls[1].combination,
-            InputCombination(InputConfiguration(type=EV_KEY, code=2)),
+            InputCombination(InputConfig(type=EV_KEY, code=2)),
         )
 
     def test_reading_2(self):
@@ -463,7 +451,7 @@ class TestReader(unittest.TestCase):
         self.reader_client._read()
         self.assertEqual(
             l1.calls[-1].combination,
-            InputCombination(InputConfiguration(type=EV_KEY, code=CODE_2)),
+            InputCombination(InputConfig(type=EV_KEY, code=CODE_2)),
         )
 
     def test_ignore_value_2(self):
@@ -483,7 +471,7 @@ class TestReader(unittest.TestCase):
         self.assertEqual(
             l1.calls[-1].combination,
             InputCombination(
-                InputConfiguration(type=EV_ABS, code=ABS_HAT0X, analog_threshold=1)
+                InputConfig(type=EV_ABS, code=ABS_HAT0X, analog_threshold=1)
             ),
         )
 
@@ -505,7 +493,7 @@ class TestReader(unittest.TestCase):
         self.reader_client._read()
         self.assertEqual(
             l1.calls[-1].combination,
-            InputCombination(InputConfiguration(type=EV_KEY, code=CODE_2)),
+            InputCombination(InputConfig(type=EV_KEY, code=CODE_2)),
         )
 
     def test_wrong_device(self):

@@ -51,7 +51,7 @@ from inputremapper.configs.mapping import Mapping, UIMapping
 from inputremapper.configs.paths import get_preset_path, mkdir, CONFIG_PATH, remove
 from inputremapper.configs.preset import Preset
 from inputremapper.configs.system_mapping import system_mapping
-from inputremapper.input_configuration import InputCombination, InputConfiguration
+from inputremapper.input_configuration import InputCombination, InputConfig
 from inputremapper.injection.global_uinputs import global_uinputs
 from inputremapper.injection.macros.parse import is_this_a_macro
 from inputremapper.logger import logger, VERSION, IS_BETA
@@ -355,10 +355,10 @@ def _convert_to_individual_mappings():
                 x_config = cfg.copy()
                 y_config = cfg.copy()
                 x_config["event_combination"] = InputCombination(
-                    InputConfiguration(type=EV_ABS, code=ABS_X)
+                    InputConfig(type=EV_ABS, code=ABS_X)
                 )
                 y_config["event_combination"] = InputCombination(
-                    InputConfiguration(type=EV_ABS, code=ABS_Y)
+                    InputConfig(type=EV_ABS, code=ABS_Y)
                 )
                 x_config["output_code"] = REL_X
                 y_config["output_code"] = REL_Y
@@ -374,10 +374,10 @@ def _convert_to_individual_mappings():
                 x_config = cfg.copy()
                 y_config = cfg.copy()
                 x_config["event_combination"] = InputCombination(
-                    InputConfiguration(type=EV_ABS, code=ABS_RX)
+                    InputConfig(type=EV_ABS, code=ABS_RX)
                 )
                 y_config["event_combination"] = InputCombination(
-                    InputConfiguration(type=EV_ABS, code=ABS_RY)
+                    InputConfig(type=EV_ABS, code=ABS_RY)
                 )
                 x_config["output_code"] = REL_X
                 y_config["output_code"] = REL_Y
@@ -393,10 +393,10 @@ def _convert_to_individual_mappings():
                 x_config = cfg.copy()
                 y_config = cfg.copy()
                 x_config["event_combination"] = InputCombination(
-                    InputConfiguration(type=EV_ABS, code=ABS_X)
+                    InputConfig(type=EV_ABS, code=ABS_X)
                 )
                 y_config["event_combination"] = InputCombination(
-                    InputConfiguration(type=EV_ABS, code=ABS_Y)
+                    InputConfig(type=EV_ABS, code=ABS_Y)
                 )
                 x_config["output_code"] = REL_HWHEEL_HI_RES
                 y_config["output_code"] = REL_WHEEL_HI_RES
@@ -413,10 +413,10 @@ def _convert_to_individual_mappings():
                 x_config = cfg.copy()
                 y_config = cfg.copy()
                 x_config["event_combination"] = InputCombination(
-                    InputConfiguration(type=EV_ABS, code=ABS_RX)
+                    InputConfig(type=EV_ABS, code=ABS_RX)
                 )
                 y_config["event_combination"] = InputCombination(
-                    InputConfiguration(type=EV_ABS, code=ABS_RY)
+                    InputConfig(type=EV_ABS, code=ABS_RY)
                 )
                 x_config["output_code"] = REL_HWHEEL_HI_RES
                 y_config["output_code"] = REL_WHEEL_HI_RES

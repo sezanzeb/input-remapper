@@ -52,7 +52,7 @@ import evdev
 from evdev.ecodes import EV_KEY, EV_ABS, EV_REL, REL_HWHEEL, REL_WHEEL
 
 from inputremapper.configs.mapping import UIMapping
-from inputremapper.input_configuration import InputCombination, InputConfiguration
+from inputremapper.input_configuration import InputCombination, InputConfig
 from inputremapper.groups import _Groups, _Group
 from inputremapper.injection.event_reader import EventReader
 from inputremapper.injection.mapping_handlers.abs_to_btn_handler import AbsToBtnHandler
@@ -278,17 +278,13 @@ class ReaderService:
                 # positive direction
                 mapping = UIMapping(
                     event_combination=InputCombination(
-                        InputConfiguration(
-                            type=EV_ABS, code=ev_code, analog_threshold=30
-                        )
+                        InputConfig(type=EV_ABS, code=ev_code, analog_threshold=30)
                     ),
                     target_uinput="keyboard",
                 )
                 handler: MappingHandler = AbsToBtnHandler(
                     InputCombination(
-                        InputConfiguration(
-                            type=EV_ABS, code=ev_code, analog_threshold=30
-                        )
+                        InputConfig(type=EV_ABS, code=ev_code, analog_threshold=30)
                     ),
                     mapping,
                 )
@@ -298,17 +294,13 @@ class ReaderService:
                 # negative direction
                 mapping = UIMapping(
                     event_combination=InputCombination(
-                        InputConfiguration(
-                            type=EV_ABS, code=ev_code, analog_threshold=-30
-                        )
+                        InputConfig(type=EV_ABS, code=ev_code, analog_threshold=-30)
                     ),
                     target_uinput="keyboard",
                 )
                 handler = AbsToBtnHandler(
                     InputCombination(
-                        InputConfiguration(
-                            type=EV_ABS, code=ev_code, analog_threshold=-30
-                        )
+                        InputConfig(type=EV_ABS, code=ev_code, analog_threshold=-30)
                     ),
                     mapping,
                 )
@@ -319,7 +311,7 @@ class ReaderService:
                 # positive direction
                 mapping = UIMapping(
                     event_combination=InputCombination(
-                        InputConfiguration(
+                        InputConfig(
                             type=EV_REL,
                             code=ev_code,
                             analog_threshold=self.rel_xy_speed[ev_code],
@@ -331,7 +323,7 @@ class ReaderService:
                 )
                 handler = RelToBtnHandler(
                     InputCombination(
-                        InputConfiguration(
+                        InputConfig(
                             type=EV_REL,
                             code=ev_code,
                             analog_threshold=self.rel_xy_speed[ev_code],
@@ -345,7 +337,7 @@ class ReaderService:
                 # negative direction
                 mapping = UIMapping(
                     event_combination=InputCombination(
-                        InputConfiguration(
+                        InputConfig(
                             type=EV_REL,
                             code=ev_code,
                             analog_threshold=-self.rel_xy_speed[ev_code],
@@ -357,7 +349,7 @@ class ReaderService:
                 )
                 handler = RelToBtnHandler(
                     InputCombination(
-                        InputConfiguration(
+                        InputConfig(
                             type=EV_REL,
                             code=ev_code,
                             analog_threshold=-self.rel_xy_speed[ev_code],

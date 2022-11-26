@@ -24,7 +24,7 @@ import evdev
 from evdev.ecodes import EV_ABS
 
 from inputremapper.configs.mapping import Mapping
-from inputremapper.input_configuration import InputCombination, InputConfiguration
+from inputremapper.input_configuration import InputCombination, InputConfig
 from inputremapper.injection.mapping_handlers.mapping_handler import (
     MappingHandler,
     InputEventHandler,
@@ -36,7 +36,7 @@ from inputremapper.utils import get_evdev_constant_name
 class AbsToBtnHandler(MappingHandler):
     """Handler which transforms an EV_ABS to a button event."""
 
-    _input_config: InputConfiguration
+    _input_config: InputConfig
     _active: bool
     _sub_handler: InputEventHandler
 

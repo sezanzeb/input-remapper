@@ -40,7 +40,7 @@ from gi.repository import Gtk
 
 from inputremapper.configs.mapping import MappingData, UIMapping
 from inputremapper.configs.paths import sanitize_path_component
-from inputremapper.input_configuration import InputCombination, InputConfiguration
+from inputremapper.input_configuration import InputCombination, InputConfig
 from inputremapper.exceptions import DataManagementError
 from inputremapper.gui.data_manager import DataManager, DEFAULT_PRESET_NAME
 from inputremapper.gui.gettext import _
@@ -268,7 +268,7 @@ class Controller:
 
     def move_input_config_in_combination(
         self,
-        input_config: InputConfiguration,
+        input_config: InputConfig,
         direction: Union[Literal["up"], Literal["down"]],
     ):
         """Move the active_input_config up or down in the event_combination of the
@@ -279,7 +279,7 @@ class Controller:
         ):
             return
         combination: Sequence[
-            InputConfiguration
+            InputConfig
         ] = self.data_manager.active_mapping.event_combination
 
         i = combination.index(input_config)
@@ -310,11 +310,11 @@ class Controller:
         self.update_combination(InputCombination(combination))
         self.load_input_config(input_config)
 
-    def load_input_config(self, input_config: InputConfiguration):
-        """Load an InputConfiguration form the active mapping input combination."""
+    def load_input_config(self, input_config: InputConfig):
+        """Load an InputConfig form the active mapping input combination."""
         self.data_manager.load_input_config(input_config)
 
-    def update_input_config(self, new_input_config: InputConfiguration):
+    def update_input_config(self, new_input_config: InputConfig):
         """Modify the active input configuration."""
         try:
             self.data_manager.update_input_config(new_input_config)
@@ -561,7 +561,7 @@ class Controller:
         def running():
             msg = _("Applied preset %s") % self.data_manager.active_preset.name
             if self.data_manager.active_preset.get_mapping(
-                InputCombination(InputConfiguration.btn_left())
+                InputCombination(InputConfig.btn_left())
             ):
                 msg += _(", CTRL + DEL to stop")
             self.show_status(CTX_APPLY, msg)
@@ -675,7 +675,7 @@ class Controller:
                 if input_config.defines_analog_input
             ]:
                 # there is no analog input configured, let's try to autoconfigure it
-                inputs: List[InputConfiguration] = list(mapping.event_combination)
+                inputs: List[InputConfig] = list(mapping.event_combination)
                 for i, e in enumerate(inputs):
                     if e.type in [EV_ABS, EV_REL]:
                         inputs[i] = e.modify(analog_threshold=0)

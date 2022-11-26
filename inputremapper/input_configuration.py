@@ -41,7 +41,7 @@ DIFFICULT_COMBINATIONS = [
 ]
 
 
-class InputConfiguration(BaseModel):
+class InputConfig(BaseModel):
     """The configuration of a single input to a mapping"""
 
     message_type = MessageType.selected_event
@@ -55,7 +55,7 @@ class InputConfiguration(BaseModel):
     def defines_analog_input(self) -> bool:
         """Whether this defines an analog input"""
         # todo give it a better name once InputEvent and
-        #  InputConfiguration are seperated
+        #  InputConfig are seperated
         return not self.analog_threshold and self.type != ecodes.EV_KEY
 
     @property
@@ -130,6 +130,7 @@ class InputConfiguration(BaseModel):
         if self.type == ecodes.EV_KEY or self.defines_analog_input:
             return ""
 
+        assert self.analog_threshold
         return {
             # D-Pad
             (ecodes.ABS_HAT0X, -1): "Left",
@@ -176,9 +177,9 @@ class InputConfiguration(BaseModel):
         code: Optional[int] = None,
         origin: Optional[int] = None,
         analog_threshold: Optional[int] = None,
-    ) -> InputConfiguration:
+    ) -> InputConfig:
         """Return a new modified event."""
-        return InputConfiguration(
+        return InputConfig(
             type=type_ if type_ is not None else self.type,
             code=code if code is not None else self.code,
             origin=origin if origin is not None else self.origin,
@@ -211,29 +212,29 @@ class InputConfiguration(BaseModel):
 
 
 InputCombinationInit = Union[
-    InputConfiguration,
+    InputConfig,
     Iterable[Dict[str, Union[int, None]]],
-    Iterable[InputConfiguration],
+    Iterable[InputConfig],
 ]
 
 
-class InputCombination(Tuple[InputConfiguration]):
-    """One or more InputConfiguration's used to trigger a mapping"""
+class InputCombination(Tuple[InputConfig]):
+    """One or more InputConfig's used to trigger a mapping"""
 
     # tuple is immutable, therefore we need to override __new__()
     # https://jfine-python-classes.readthedocs.io/en/latest/subclass-tuple.html
     def __new__(cls, configs: InputCombinationInit) -> InputCombination:
         if isinstance(configs, InputCombination):
             validated_configs = configs
-        elif isinstance(configs, InputConfiguration):
+        elif isinstance(configs, InputConfig):
             validated_configs = [configs]
         else:
             validated_configs = []
             for cfg in configs:
-                if isinstance(cfg, InputConfiguration):
+                if isinstance(cfg, InputConfig):
                     validated_configs.append(cfg)
                 else:
-                    validated_configs.append(InputConfiguration(**cfg))
+                    validated_configs.append(InputConfig(**cfg))
 
         if len(validated_configs) == 0:
             raise ValueError(f"failed to create InputCombination with {configs = }")
@@ -292,7 +293,7 @@ class InputCombination(Tuple[InputConfiguration]):
 
     def find_analog_input_config(
         self, type_: Optional[int] = None
-    ) -> Optional[InputConfiguration]:
+    ) -> Optional[InputConfig]:
         """Return the first event that defines an analog input"""
         for input_config in self:
             if input_config.defines_analog_input and (

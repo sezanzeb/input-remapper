@@ -21,7 +21,7 @@ from typing import List, Dict
 import evdev
 from evdev.ecodes import EV_ABS, EV_REL
 
-from inputremapper.input_configuration import InputCombination, InputConfiguration
+from inputremapper.input_configuration import InputCombination, InputConfig
 from inputremapper.injection.mapping_handlers.mapping_handler import (
     MappingHandler,
     InputEventHandler,
@@ -37,10 +37,10 @@ class HierarchyHandler(MappingHandler):
     all other handlers will be notified, but suppressed
     """
 
-    _input_config: InputConfiguration
+    _input_config: InputConfig
 
     def __init__(
-        self, handlers: List[MappingHandler], input_config: InputConfiguration
+        self, handlers: List[MappingHandler], input_config: InputConfig
     ) -> None:
         self.handlers = handlers
         self._input_config = input_config

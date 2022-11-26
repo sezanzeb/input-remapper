@@ -43,7 +43,7 @@ from evdev.ecodes import (
     KEY_LEFTCTRL,
 )
 
-from inputremapper.input_configuration import InputCombination, InputConfiguration
+from inputremapper.input_configuration import InputCombination, InputConfig
 from tests.lib.fixtures import get_combination_config
 
 
@@ -109,21 +109,21 @@ class TestInputCombination(unittest.TestCase):
         InputCombination(({"type": 1, "code": 2}, {"type": 1, "code": 1}))
         InputCombination(({"type": 1, "code": 2},))
         InputCombination(({"type": "1", "code": "2"},))
-        InputCombination(InputConfiguration(type=1, code=2, analog_threshold=3))
+        InputCombination(InputConfig(type=1, code=2, analog_threshold=3))
         InputCombination(
             (
                 {"type": 1, "code": 2},
                 {"type": "1", "code": "2"},
-                InputConfiguration(type=1, code=2),
+                InputConfig(type=1, code=2),
             )
         )
 
     def test_to_config(self):
-        c1 = InputCombination(InputConfiguration(type=1, code=2, analog_threshold=3))
+        c1 = InputCombination(InputConfig(type=1, code=2, analog_threshold=3))
         c2 = InputCombination(
             (
-                InputConfiguration(type=1, code=2, analog_threshold=3),
-                InputConfiguration(type=4, code=5, analog_threshold=6),
+                InputConfig(type=1, code=2, analog_threshold=3),
+                InputConfig(type=4, code=5, analog_threshold=6),
             )
         )
         # analog_threshold is removed for key events
@@ -207,12 +207,12 @@ class TestInputCombination(unittest.TestCase):
         )
 
     def test_find_analog_input_config(self):
-        analog_input = InputConfiguration(type=EV_REL, code=REL_X)
+        analog_input = InputConfig(type=EV_REL, code=REL_X)
 
         combination = InputCombination(
             (
-                InputConfiguration(type=EV_KEY, code=BTN_MIDDLE),
-                InputConfiguration(type=EV_REL, code=REL_Y, analog_threshold=1),
+                InputConfig(type=EV_KEY, code=BTN_MIDDLE),
+                InputConfig(type=EV_REL, code=REL_Y, analog_threshold=1),
                 analog_input,
             )
         )
@@ -224,8 +224,8 @@ class TestInputCombination(unittest.TestCase):
 
         combination = InputCombination(
             (
-                InputConfiguration(type=EV_REL, code=REL_X, analog_threshold=1),
-                InputConfiguration(type=EV_KEY, code=BTN_MIDDLE),
+                InputConfig(type=EV_REL, code=REL_X, analog_threshold=1),
+                InputConfig(type=EV_KEY, code=BTN_MIDDLE),
             )
         )
         self.assertIsNone(combination.find_analog_input_config(type_=EV_ABS))

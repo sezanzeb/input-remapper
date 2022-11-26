@@ -61,7 +61,7 @@ from inputremapper.configs.system_mapping import (
     DISABLE_NAME,
 )
 from inputremapper.configs.preset import Preset
-from inputremapper.input_configuration import InputCombination, InputConfiguration
+from inputremapper.input_configuration import InputCombination, InputConfig
 from inputremapper.injection.macros.parse import parse
 from inputremapper.injection.context import Context
 from inputremapper.groups import groups, classify, DeviceType
@@ -113,7 +113,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         preset = Preset()
         preset.add(
             get_key_mapping(
-                InputCombination(InputConfiguration(type=EV_KEY, code=10)),
+                InputCombination(InputConfig(type=EV_KEY, code=10)),
                 "keyboard",
                 "a",
             )
@@ -135,7 +135,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         preset = Preset()
         preset.add(
             get_key_mapping(
-                InputCombination(InputConfiguration(type=EV_KEY, code=10)),
+                InputCombination(InputConfig(type=EV_KEY, code=10)),
                 "keyboard",
                 "a",
             )
@@ -162,7 +162,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         preset.add(
             get_key_mapping(
                 InputCombination(
-                    InputConfiguration(type=EV_ABS, code=ABS_HAT0X, analog_threshold=1)
+                    InputConfig(type=EV_ABS, code=ABS_HAT0X, analog_threshold=1)
                 ),
                 "keyboard",
                 "a",
@@ -192,7 +192,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
 
         preset.add(
             get_key_mapping(
-                InputCombination(InputConfiguration(type=EV_KEY, code=BTN_A)),
+                InputCombination(InputConfig(type=EV_KEY, code=BTN_A)),
                 "keyboard",
                 "a",
             ),
@@ -208,7 +208,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         preset = Preset()
         preset.add(
             get_key_mapping(
-                InputCombination(InputConfiguration(type=EV_KEY, code=10)),
+                InputCombination(InputConfig(type=EV_KEY, code=10)),
                 "keyboard",
                 "a",
             )
@@ -225,7 +225,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         preset = Preset()
         preset.add(
             get_key_mapping(
-                InputCombination(InputConfiguration(type=EV_KEY, code=10)),
+                InputCombination(InputConfig(type=EV_KEY, code=10)),
                 "keyboard",
                 "a",
             )
@@ -261,13 +261,13 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
     def test_capabilities_and_uinput_presence(self, ungrab_patch):
         preset = Preset()
         m1 = get_key_mapping(
-            InputCombination(InputConfiguration(type=EV_KEY, code=KEY_A)),
+            InputCombination(InputConfig(type=EV_KEY, code=KEY_A)),
             "keyboard",
             "c",
         )
         m2 = get_key_mapping(
             InputCombination(
-                InputConfiguration(type=EV_REL, code=REL_HWHEEL, analog_threshold=1)
+                InputConfig(type=EV_REL, code=REL_HWHEEL, analog_threshold=1)
             ),
             "keyboard",
             "key(b)",
@@ -280,14 +280,14 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(
             self.injector.preset.get_mapping(
-                InputCombination(InputConfiguration(type=EV_KEY, code=KEY_A))
+                InputCombination(InputConfig(type=EV_KEY, code=KEY_A))
             ),
             m1,
         )
         self.assertEqual(
             self.injector.preset.get_mapping(
                 InputCombination(
-                    InputConfiguration(type=EV_REL, code=REL_HWHEEL, analog_threshold=1)
+                    InputConfig(type=EV_REL, code=REL_HWHEEL, analog_threshold=1)
                 )
             ),
             m2,
@@ -342,7 +342,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         preset.add(
             get_key_mapping(
                 InputCombination(
-                    InputConfiguration(type=EV_ABS, code=ABS_HAT0X, analog_threshold=-1)
+                    InputConfig(type=EV_ABS, code=ABS_HAT0X, analog_threshold=-1)
                 ),
                 "keyboard",
                 "a",
@@ -353,7 +353,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(ValidationError):
             preset.add(
                 get_key_mapping(
-                    InputCombination(InputConfiguration(type=EV_KEY, code=input_b)),
+                    InputCombination(InputConfig(type=EV_KEY, code=input_b)),
                     "keyboard",
                     "b",
                 )
@@ -511,14 +511,14 @@ class TestModifyCapabilities(unittest.TestCase):
         preset = Preset()
         preset.add(
             get_key_mapping(
-                InputCombination(InputConfiguration(type=EV_KEY, code=80)),
+                InputCombination(InputConfig(type=EV_KEY, code=80)),
                 "keyboard",
                 "a",
             )
         )
         preset.add(
             get_key_mapping(
-                InputCombination(InputConfiguration(type=EV_KEY, code=81)),
+                InputCombination(InputConfig(type=EV_KEY, code=81)),
                 "keyboard",
                 DISABLE_NAME,
             ),
@@ -529,7 +529,7 @@ class TestModifyCapabilities(unittest.TestCase):
 
         preset.add(
             get_key_mapping(
-                InputCombination(InputConfiguration(type=EV_KEY, code=60)),
+                InputCombination(InputConfig(type=EV_KEY, code=60)),
                 "keyboard",
                 macro_code,
             ),
@@ -540,7 +540,7 @@ class TestModifyCapabilities(unittest.TestCase):
         preset.add(
             get_key_mapping(
                 InputCombination(
-                    InputConfiguration(type=EV_REL, code=1234, analog_threshold=3)
+                    InputConfig(type=EV_REL, code=1234, analog_threshold=3)
                 ),
                 "keyboard",
                 "b",

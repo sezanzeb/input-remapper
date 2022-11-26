@@ -41,7 +41,7 @@ from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.configs.global_config import global_config
 from inputremapper.groups import groups
 from inputremapper.configs.paths import get_config_path, mkdir, get_preset_path
-from inputremapper.input_configuration import InputCombination, InputConfiguration
+from inputremapper.input_configuration import InputCombination, InputConfig
 from inputremapper.configs.preset import Preset
 from inputremapper.injection.injector import InjectorState
 from inputremapper.daemon import Daemon
@@ -125,7 +125,7 @@ class TestDaemon(unittest.TestCase):
         preset = Preset(group.get_preset_path(preset_name))
         preset.add(
             get_key_mapping(
-                InputCombination(InputConfiguration(type=EV_KEY, code=BTN_A)),
+                InputCombination(InputConfig(type=EV_KEY, code=BTN_A)),
                 "keyboard",
                 "a",
             )
@@ -356,7 +356,7 @@ class TestDaemon(unittest.TestCase):
         pereset = Preset(group.get_preset_path(preset_name))
         pereset.add(
             get_key_mapping(
-                InputCombination(InputConfiguration(type=EV_KEY, code=KEY_A)),
+                InputCombination(InputConfig(type=EV_KEY, code=KEY_A)),
                 "keyboard",
                 "a",
             )
@@ -424,7 +424,7 @@ class TestDaemon(unittest.TestCase):
         preset = Preset(group.get_preset_path(preset_name))
         preset.add(
             get_key_mapping(
-                InputCombination(InputConfiguration(type=EV_KEY, code=KEY_A)),
+                InputCombination(InputConfig(type=EV_KEY, code=KEY_A)),
                 "keyboard",
                 "a",
             )
@@ -482,9 +482,7 @@ class TestDaemon(unittest.TestCase):
         preset = Preset(group.get_preset_path(preset_name))
         preset.add(
             get_key_mapping(
-                InputCombination(
-                    InputConfiguration(type=3, code=2, analog_threshold=1)
-                ),
+                InputCombination(InputConfig(type=3, code=2, analog_threshold=1)),
                 "keyboard",
                 "a",
             )
@@ -507,9 +505,7 @@ class TestDaemon(unittest.TestCase):
         preset = Preset(group.get_preset_path(preset_name))
         preset.add(
             get_key_mapping(
-                InputCombination(
-                    InputConfiguration(type=3, code=2, analog_threshold=1)
-                ),
+                InputCombination(InputConfig(type=3, code=2, analog_threshold=1)),
                 "keyboard",
                 "a",
             )

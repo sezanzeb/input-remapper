@@ -45,7 +45,7 @@ from inputremapper.configs.mapping import Mapping, UIMapping
 from inputremapper.configs.paths import touch
 
 from inputremapper.input_event import InputEvent
-from inputremapper.input_configuration import InputCombination, InputConfiguration
+from inputremapper.input_configuration import InputCombination, InputConfig
 
 MappingModel = TypeVar("MappingModel", bound=UIMapping)
 
@@ -242,7 +242,7 @@ class Preset(Generic[MappingModel]):
 
     def dangerously_mapped_btn_left(self) -> bool:
         """Return True if this mapping disables BTN_Left."""
-        if InputCombination(InputConfiguration.btn_left()) not in [
+        if InputCombination(InputConfig.btn_left()) not in [
             m.event_combination for m in self
         ]:
             return False
@@ -256,7 +256,7 @@ class Preset(Generic[MappingModel]):
 
         return (
             "btn_left" not in values
-            or InputConfiguration.btn_left().type_and_code not in values
+            or InputConfig.btn_left().type_and_code not in values
         )
 
     def _combination_changed_callback(

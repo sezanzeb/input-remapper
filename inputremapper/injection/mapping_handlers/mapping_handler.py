@@ -66,7 +66,7 @@ from typing import Dict, Protocol, Set, Optional, List
 import evdev
 
 from inputremapper.configs.mapping import Mapping
-from inputremapper.input_configuration import InputCombination, InputConfiguration
+from inputremapper.input_configuration import InputCombination, InputConfig
 from inputremapper.exceptions import MappingParsingError
 from inputremapper.input_event import InputEvent, EventActions
 from inputremapper.logger import logger
@@ -148,7 +148,7 @@ class MappingHandler:
     mapping: Mapping
     # all input events this handler cares about
     # should always be a subset of mapping.event_combination
-    input_configs: List[InputConfiguration]
+    input_configs: List[InputConfig]
     _sub_handler: Optional[InputEventHandler]
 
     # https://bugs.python.org/issue44807
@@ -218,7 +218,7 @@ class MappingHandler:
         """Give this handler a sub_handler."""
         self._sub_handler = handler
 
-    def occlude_input_event(self, input_config: InputConfiguration) -> None:
+    def occlude_input_event(self, input_config: InputConfig) -> None:
         """Remove the config from self.input_configs."""
         if not self.input_configs:
             logger.debug_mapping_handler(self)

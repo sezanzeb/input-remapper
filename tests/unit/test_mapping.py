@@ -37,7 +37,7 @@ from pydantic import ValidationError
 
 from inputremapper.configs.mapping import Mapping, UIMapping
 from inputremapper.configs.system_mapping import system_mapping, DISABLE_NAME
-from inputremapper.input_configuration import InputCombination, InputConfiguration
+from inputremapper.input_configuration import InputCombination, InputConfig
 from inputremapper.gui.messages.message_broker import MessageType
 
 
@@ -51,7 +51,7 @@ class TestMapping(unittest.IsolatedAsyncioTestCase):
         }
         m = Mapping(**cfg)
         self.assertEqual(
-            m.event_combination, InputCombination(InputConfiguration(type=1, code=2))
+            m.event_combination, InputCombination(InputConfig(type=1, code=2))
         )
         self.assertEqual(m.target_uinput, "keyboard")
         self.assertEqual(m.output_symbol, "a")
@@ -69,9 +69,7 @@ class TestMapping(unittest.IsolatedAsyncioTestCase):
 
     def test_is_wheel_output(self):
         mapping = Mapping(
-            event_combination=InputCombination(
-                InputConfiguration(type=EV_REL, code=REL_X)
-            ),
+            event_combination=InputCombination(InputConfig(type=EV_REL, code=REL_X)),
             target_uinput="keyboard",
             output_type=EV_REL,
             output_code=REL_Y,
@@ -80,9 +78,7 @@ class TestMapping(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(mapping.is_high_res_wheel_output())
 
         mapping = Mapping(
-            event_combination=InputCombination(
-                InputConfiguration(type=EV_REL, code=REL_X)
-            ),
+            event_combination=InputCombination(InputConfig(type=EV_REL, code=REL_X)),
             target_uinput="keyboard",
             output_type=EV_REL,
             output_code=REL_WHEEL,
@@ -91,9 +87,7 @@ class TestMapping(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(mapping.is_high_res_wheel_output())
 
         mapping = Mapping(
-            event_combination=InputCombination(
-                InputConfiguration(type=EV_REL, code=REL_X)
-            ),
+            event_combination=InputCombination(InputConfig(type=EV_REL, code=REL_X)),
             target_uinput="keyboard",
             output_type=EV_REL,
             output_code=REL_WHEEL_HI_RES,
@@ -431,7 +425,7 @@ class TestUIMapping(unittest.IsolatedAsyncioTestCase):
     def test_has_input_defined(self):
         m = UIMapping()
         self.assertFalse(m.has_input_defined())
-        m.event_combination = InputCombination(InputConfiguration(type=EV_KEY, code=1))
+        m.event_combination = InputCombination(InputConfig(type=EV_KEY, code=1))
         self.assertTrue(m.has_input_defined())
 
 

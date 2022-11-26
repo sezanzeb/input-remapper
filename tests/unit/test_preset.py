@@ -28,7 +28,7 @@ from inputremapper.configs.mapping import Mapping
 from inputremapper.configs.mapping import UIMapping
 from inputremapper.configs.paths import get_preset_path, get_config_path, CONFIG_PATH
 from inputremapper.configs.preset import Preset
-from inputremapper.input_configuration import InputCombination, InputConfiguration
+from inputremapper.input_configuration import InputCombination, InputConfig
 from inputremapper.input_event import InputEvent
 from tests.lib.cleanup import quick_cleanup
 from tests.lib.fixtures import get_key_mapping, get_combination_config
@@ -119,9 +119,9 @@ class TestPreset(unittest.TestCase):
         self.assertEqual(len(self.preset), 0)
 
     def test_save_load(self):
-        one = InputConfiguration(type=EV_KEY, code=10)
-        two = InputConfiguration(type=EV_KEY, code=11)
-        three = InputConfiguration(type=EV_KEY, code=12)
+        one = InputConfig(type=EV_KEY, code=10)
+        two = InputConfig(type=EV_KEY, code=11)
+        three = InputConfig(type=EV_KEY, code=12)
 
         self.preset.add(get_key_mapping(InputCombination(one), "keyboard", "1"))
         self.preset.add(get_key_mapping(InputCombination(two), "keyboard", "2"))
@@ -158,12 +158,10 @@ class TestPreset(unittest.TestCase):
         self.assertRaises(FileNotFoundError, preset.load)
 
     def test_modify_mapping(self):
-        ev_1 = InputCombination(InputConfiguration(type=EV_KEY, code=1))
-        ev_3 = InputCombination(InputConfiguration(type=EV_KEY, code=2))
+        ev_1 = InputCombination(InputConfig(type=EV_KEY, code=1))
+        ev_3 = InputCombination(InputConfig(type=EV_KEY, code=2))
         # only values between -99 and 99 are allowed as mapping for EV_ABS or EV_REL
-        ev_4 = InputCombination(
-            InputConfiguration(type=EV_ABS, code=1, analog_threshold=99)
-        )
+        ev_4 = InputCombination(InputConfig(type=EV_ABS, code=1, analog_threshold=99))
 
         # add the first mapping
         self.preset.add(get_key_mapping(ev_1, "keyboard", "a"))
@@ -229,10 +227,10 @@ class TestPreset(unittest.TestCase):
         self.assertFalse(content)
 
     def test_combinations(self):
-        ev_1 = InputConfiguration(type=EV_KEY, code=1, analog_threshold=111)
-        ev_2 = InputConfiguration(type=EV_KEY, code=1, analog_threshold=222)
-        ev_3 = InputConfiguration(type=EV_KEY, code=2, analog_threshold=111)
-        ev_4 = InputConfiguration(type=EV_ABS, code=1, analog_threshold=99)
+        ev_1 = InputConfig(type=EV_KEY, code=1, analog_threshold=111)
+        ev_2 = InputConfig(type=EV_KEY, code=1, analog_threshold=222)
+        ev_3 = InputConfig(type=EV_KEY, code=2, analog_threshold=111)
+        ev_4 = InputConfig(type=EV_ABS, code=1, analog_threshold=99)
         combi_1 = InputCombination((ev_1, ev_2, ev_3))
         combi_2 = InputCombination((ev_2, ev_1, ev_3))
         combi_3 = InputCombination((ev_1, ev_2, ev_4))
@@ -295,10 +293,10 @@ class TestPreset(unittest.TestCase):
 
     def test_remove(self):
         # does nothing
-        ev_1 = InputCombination(InputConfiguration(type=EV_KEY, code=40))
-        ev_2 = InputCombination(InputConfiguration(type=EV_KEY, code=30))
-        ev_3 = InputCombination(InputConfiguration(type=EV_KEY, code=20))
-        ev_4 = InputCombination(InputConfiguration(type=EV_KEY, code=10))
+        ev_1 = InputCombination(InputConfig(type=EV_KEY, code=40))
+        ev_2 = InputCombination(InputConfig(type=EV_KEY, code=30))
+        ev_3 = InputCombination(InputConfig(type=EV_KEY, code=20))
+        ev_4 = InputCombination(InputConfig(type=EV_KEY, code=10))
 
         self.assertRaises(TypeError, self.preset.remove, (EV_KEY, 10, 1))
         self.preset.remove(ev_1)
@@ -330,21 +328,21 @@ class TestPreset(unittest.TestCase):
     def test_empty(self):
         self.preset.add(
             get_key_mapping(
-                InputCombination(InputConfiguration(type=EV_KEY, code=10)),
+                InputCombination(InputConfig(type=EV_KEY, code=10)),
                 "keyboard",
                 "1",
             ),
         )
         self.preset.add(
             get_key_mapping(
-                InputCombination(InputConfiguration(type=EV_KEY, code=11)),
+                InputCombination(InputConfig(type=EV_KEY, code=11)),
                 "keyboard",
                 "2",
             ),
         )
         self.preset.add(
             get_key_mapping(
-                InputCombination(InputConfiguration(type=EV_KEY, code=12)),
+                InputCombination(InputConfig(type=EV_KEY, code=12)),
                 "keyboard",
                 "3",
             ),
@@ -362,21 +360,21 @@ class TestPreset(unittest.TestCase):
     def test_clear(self):
         self.preset.add(
             get_key_mapping(
-                InputCombination(InputConfiguration(type=EV_KEY, code=10)),
+                InputCombination(InputConfig(type=EV_KEY, code=10)),
                 "keyboard",
                 "1",
             ),
         )
         self.preset.add(
             get_key_mapping(
-                InputCombination(InputConfiguration(type=EV_KEY, code=11)),
+                InputCombination(InputConfig(type=EV_KEY, code=11)),
                 "keyboard",
                 "2",
             ),
         )
         self.preset.add(
             get_key_mapping(
-                InputCombination(InputConfiguration(type=EV_KEY, code=12)),
+                InputCombination(InputConfig(type=EV_KEY, code=12)),
                 "keyboard",
                 "3",
             ),
@@ -395,7 +393,7 @@ class TestPreset(unittest.TestCase):
         # btn left is mapped
         self.preset.add(
             get_key_mapping(
-                InputCombination(InputConfiguration.btn_left()),
+                InputCombination(InputConfig.btn_left()),
                 "keyboard",
                 "1",
             )
@@ -403,7 +401,7 @@ class TestPreset(unittest.TestCase):
         self.assertTrue(self.preset.dangerously_mapped_btn_left())
         self.preset.add(
             get_key_mapping(
-                InputCombination(InputConfiguration(type=EV_KEY, code=41)),
+                InputCombination(InputConfig(type=EV_KEY, code=41)),
                 "keyboard",
                 "2",
             )
@@ -413,7 +411,7 @@ class TestPreset(unittest.TestCase):
         # another mapping maps to btn_left
         self.preset.add(
             get_key_mapping(
-                InputCombination(InputConfiguration(type=EV_KEY, code=42)),
+                InputCombination(InputConfig(type=EV_KEY, code=42)),
                 "mouse",
                 "btn_left",
             )
@@ -421,7 +419,7 @@ class TestPreset(unittest.TestCase):
         self.assertFalse(self.preset.dangerously_mapped_btn_left())
 
         mapping = self.preset.get_mapping(
-            InputCombination(InputConfiguration(type=EV_KEY, code=42))
+            InputCombination(InputConfig(type=EV_KEY, code=42))
         )
         mapping.output_symbol = "BTN_Left"
         self.assertFalse(self.preset.dangerously_mapped_btn_left())
@@ -431,7 +429,7 @@ class TestPreset(unittest.TestCase):
         self.assertTrue(self.preset.dangerously_mapped_btn_left())
 
         # btn_left is not mapped
-        self.preset.remove(InputCombination(InputConfiguration.btn_left()))
+        self.preset.remove(InputCombination(InputConfig.btn_left()))
         self.assertFalse(self.preset.dangerously_mapped_btn_left())
 
     def test_save_load_with_invalid_mappings(self):
@@ -446,9 +444,7 @@ class TestPreset(unittest.TestCase):
         m.target_uinput = "keyboard"
         self.assertTrue(ui_preset.is_valid())
 
-        m2 = UIMapping(
-            event_combination=InputCombination(InputConfiguration(type=1, code=2))
-        )
+        m2 = UIMapping(event_combination=InputCombination(InputConfig(type=1, code=2)))
         ui_preset.add(m2)
         self.assertFalse(ui_preset.is_valid())
         ui_preset.save()

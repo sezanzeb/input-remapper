@@ -39,7 +39,7 @@ from evdev.ecodes import (
 from inputremapper.configs.mapping import Mapping
 from inputremapper.configs.preset import Preset
 from inputremapper.configs.system_mapping import system_mapping
-from inputremapper.input_configuration import InputCombination, InputConfiguration
+from inputremapper.input_configuration import InputCombination, InputConfig
 from inputremapper.injection.context import Context
 from inputremapper.injection.event_reader import EventReader
 from inputremapper.injection.global_uinputs import global_uinputs
@@ -77,7 +77,7 @@ class TestEventReader(unittest.IsolatedAsyncioTestCase):
 
         self.preset.add(
             get_key_mapping(
-                InputCombination(InputConfiguration(type=EV_KEY, code=trigger)),
+                InputCombination(InputConfig(type=EV_KEY, code=trigger)),
                 "keyboard",
                 "if_single(key(a), key(KEY_LEFTSHIFT))",
             )
@@ -85,7 +85,7 @@ class TestEventReader(unittest.IsolatedAsyncioTestCase):
         self.preset.add(
             get_key_mapping(
                 InputCombination(
-                    InputConfiguration(type=EV_ABS, code=ABS_Y, analog_threshold=1)
+                    InputConfig(type=EV_ABS, code=ABS_Y, analog_threshold=1)
                 ),
                 "keyboard",
                 "b",
@@ -145,7 +145,7 @@ class TestEventReader(unittest.IsolatedAsyncioTestCase):
         trigger = evdev.ecodes.BTN_A
         self.preset.add(
             get_key_mapping(
-                InputCombination(InputConfiguration(type=EV_KEY, code=trigger)),
+                InputCombination(InputConfig(type=EV_KEY, code=trigger)),
                 "keyboard",
                 "if_single(k(a), k(KEY_LEFTSHIFT))",
             )
@@ -153,7 +153,7 @@ class TestEventReader(unittest.IsolatedAsyncioTestCase):
         self.preset.add(
             get_key_mapping(
                 InputCombination(
-                    InputConfiguration(type=EV_ABS, code=ABS_Y, analog_threshold=1)
+                    InputConfig(type=EV_ABS, code=ABS_Y, analog_threshold=1)
                 ),
                 "keyboard",
                 "b",

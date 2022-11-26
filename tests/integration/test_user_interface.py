@@ -15,7 +15,7 @@ from inputremapper.gui.utils import gtk_iteration
 from inputremapper.gui.messages.message_broker import MessageBroker, MessageType
 from inputremapper.gui.user_interface import UserInterface
 from inputremapper.configs.mapping import MappingData
-from inputremapper.input_configuration import InputCombination, InputConfiguration
+from inputremapper.input_configuration import InputCombination, InputConfig
 
 
 class TestUserInterface(unittest.TestCase):
@@ -93,7 +93,7 @@ class TestUserInterface(unittest.TestCase):
         self.message_broker.publish(
             MappingData(
                 event_combination=InputCombination(
-                    InputConfiguration(type=EV_KEY, code=KEY_A)
+                    InputConfig(type=EV_KEY, code=KEY_A)
                 ),
                 name="foo",
             )

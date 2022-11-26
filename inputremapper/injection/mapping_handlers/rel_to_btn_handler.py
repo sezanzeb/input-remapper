@@ -24,7 +24,7 @@ import evdev
 from evdev.ecodes import EV_REL
 
 from inputremapper.configs.mapping import Mapping
-from inputremapper.input_configuration import InputCombination, InputConfiguration
+from inputremapper.input_configuration import InputCombination, InputConfig
 from inputremapper.injection.mapping_handlers.mapping_handler import (
     MappingHandler,
     InputEventHandler,
@@ -41,7 +41,7 @@ class RelToBtnHandler(MappingHandler):
     """
 
     _active: bool
-    _input_config: InputConfiguration
+    _input_config: InputConfig
     _last_activation: float
     _sub_handler: InputEventHandler
 

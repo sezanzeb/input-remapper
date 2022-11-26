@@ -46,7 +46,7 @@ from inputremapper.injection.mapping_handlers.combination_handler import (
 from inputremapper.injection.mapping_handlers.rel_to_btn_handler import RelToBtnHandler
 
 from inputremapper.configs.mapping import Mapping, DEFAULT_REL_RATE
-from inputremapper.input_configuration import InputCombination, InputConfiguration
+from inputremapper.input_configuration import InputCombination, InputConfig
 from inputremapper.injection.global_uinputs import global_uinputs
 from inputremapper.injection.mapping_handlers.abs_to_abs_handler import AbsToAbsHandler
 from inputremapper.injection.mapping_handlers.abs_to_btn_handler import AbsToBtnHandler
@@ -91,8 +91,8 @@ class TestAxisSwitchHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         input_combination = InputCombination(
             (
-                InputConfiguration(type=2, code=5),
-                InputConfiguration(type=1, code=3),
+                InputConfig(type=2, code=5),
+                InputConfig(type=1, code=3),
             )
         )
         self.handler = AxisSwitchHandler(
@@ -109,7 +109,7 @@ class TestAxisSwitchHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
 class TestAbsToBtnHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         input_combination = InputCombination(
-            InputConfiguration(type=3, code=5, analog_threshold=10)
+            InputConfig(type=3, code=5, analog_threshold=10)
         )
         self.handler = AbsToBtnHandler(
             input_combination,
@@ -123,9 +123,7 @@ class TestAbsToBtnHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
 
 class TestAbsToAbsHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
     def setUp(self):
-        input_combination = InputCombination(
-            InputConfiguration(type=EV_ABS, code=ABS_X)
-        )
+        input_combination = InputCombination(InputConfig(type=EV_ABS, code=ABS_X))
         self.handler = AbsToAbsHandler(
             input_combination,
             Mapping(
@@ -152,9 +150,7 @@ class TestAbsToAbsHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
 
 class TestRelToAbsHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
     def setUp(self):
-        input_combination = InputCombination(
-            InputConfiguration(type=EV_REL, code=REL_X)
-        )
+        input_combination = InputCombination(InputConfig(type=EV_REL, code=REL_X))
         self.handler = RelToAbsHandler(
             input_combination,
             Mapping(
@@ -222,9 +218,7 @@ class TestRelToAbsHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
 
 class TestAbsToRelHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
     def setUp(self):
-        input_combination = InputCombination(
-            InputConfiguration(type=EV_ABS, code=ABS_X)
-        )
+        input_combination = InputCombination(InputConfig(type=EV_ABS, code=ABS_X))
         self.handler = AbsToRelHandler(
             input_combination,
             Mapping(
@@ -257,8 +251,8 @@ class TestCombinationHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         input_combination = InputCombination(
             (
-                InputConfiguration(type=2, code=0, analog_threshold=10),
-                InputConfiguration(type=1, code=3),
+                InputConfig(type=2, code=0, analog_threshold=10),
+                InputConfig(type=1, code=3),
             )
         )
         self.handler = CombinationHandler(
@@ -278,7 +272,7 @@ class TestHierarchyHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
         self.mock3 = MagicMock()
         self.handler = HierarchyHandler(
             [self.mock1, self.mock2, self.mock3],
-            InputConfiguration(type=EV_KEY, code=KEY_A),
+            InputConfig(type=EV_KEY, code=KEY_A),
         )
 
     def test_reset(self):
@@ -292,8 +286,8 @@ class TestKeyHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         input_combination = InputCombination(
             (
-                InputConfiguration(type=2, code=0, analog_threshold=10),
-                InputConfiguration(type=1, code=3),
+                InputConfig(type=2, code=0, analog_threshold=10),
+                InputConfig(type=1, code=3),
             )
         )
         self.handler = KeyHandler(
@@ -329,8 +323,8 @@ class TestMacroHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         input_combination = InputCombination(
             (
-                InputConfiguration(type=2, code=0, analog_threshold=10),
-                InputConfiguration(type=1, code=3),
+                InputConfig(type=2, code=0, analog_threshold=10),
+                InputConfig(type=1, code=3),
             )
         )
         self.context_mock = MagicMock()
@@ -372,7 +366,7 @@ class TestMacroHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
 class TestRelToBtnHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         input_combination = InputCombination(
-            InputConfiguration(type=2, code=0, analog_threshold=10)
+            InputConfig(type=2, code=0, analog_threshold=10)
         )
         self.handler = RelToBtnHandler(
             input_combination,
@@ -388,9 +382,7 @@ class TestRelToRelHanlder(BaseTests, unittest.IsolatedAsyncioTestCase):
     handler: RelToRelHandler
 
     def setUp(self):
-        input_combination = InputCombination(
-            InputConfiguration(type=EV_REL, code=REL_X)
-        )
+        input_combination = InputCombination(InputConfig(type=EV_REL, code=REL_X))
         self.handler = RelToRelHandler(
             input_combination,
             Mapping(

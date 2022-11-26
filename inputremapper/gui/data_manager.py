@@ -34,7 +34,7 @@ from inputremapper.configs.paths import get_preset_path, mkdir, split_all
 from inputremapper.configs.preset import Preset
 from inputremapper.configs.system_mapping import SystemMapping
 from inputremapper.daemon import DaemonProxy
-from inputremapper.input_configuration import InputCombination, InputConfiguration
+from inputremapper.input_configuration import InputCombination, InputConfig
 from inputremapper.exceptions import DataManagementError
 from inputremapper.gui.gettext import _
 from inputremapper.groups import _Group
@@ -91,7 +91,7 @@ class DataManager:
 
         self._active_preset: Optional[Preset[UIMapping]] = None
         self._active_mapping: Optional[UIMapping] = None
-        self._active_input_config: Optional[InputConfiguration] = None
+        self._active_input_config: Optional[InputConfig] = None
 
     def publish_group(self):
         """Send active group to the MessageBroker.
@@ -176,7 +176,7 @@ class DataManager:
         return self._active_mapping
 
     @property
-    def active_input_config(self) -> Optional[InputConfiguration]:
+    def active_input_config(self) -> Optional[InputConfig]:
         """The currently loaded event."""
         return self._active_input_config
 
@@ -340,8 +340,8 @@ class DataManager:
         self._active_mapping = mapping
         self.publish_mapping()
 
-    def load_input_config(self, input_config: InputConfiguration):
-        """Load a InputConfiguration from the combination in the active mapping.
+    def load_input_config(self, input_config: InputConfig):
+        """Load a InputConfig from the combination in the active mapping.
 
         Will send "event" message on the MessageBroker,
         """
@@ -469,7 +469,7 @@ class DataManager:
 
         self.publish_mapping()
 
-    def update_input_config(self, new_input_config: InputConfiguration):
+    def update_input_config(self, new_input_config: InputConfig):
         """Update the active input configuration.
 
         Will send "combination_update", "mapping" and "event" messages to the

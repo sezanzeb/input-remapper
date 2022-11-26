@@ -54,7 +54,7 @@ from inputremapper.configs.mapping import (
 )
 from inputremapper.configs.preset import Preset
 from inputremapper.configs.system_mapping import system_mapping
-from inputremapper.input_configuration import InputCombination, InputConfiguration
+from inputremapper.input_configuration import InputCombination, InputConfig
 from inputremapper.injection.context import Context
 from inputremapper.injection.event_reader import EventReader
 from inputremapper.injection.global_uinputs import global_uinputs
@@ -231,13 +231,13 @@ class TestIdk(EventPipelineTestBase):
     async def test_reset_releases_keys(self):
         """Make sure that macros and keys are releases when the stop event is set."""
         preset = Preset()
-        input_cfg = InputCombination(InputConfiguration(type=1, code=1)).to_config()
+        input_cfg = InputCombination(InputConfig(type=1, code=1)).to_config()
         preset.add(get_key_mapping(combination=input_cfg, output_symbol="hold(a)"))
 
-        input_cfg = InputCombination(InputConfiguration(type=1, code=2)).to_config()
+        input_cfg = InputCombination(InputConfig(type=1, code=2)).to_config()
         preset.add(get_key_mapping(combination=input_cfg, output_symbol="b"))
 
-        input_cfg = InputCombination(InputConfiguration(type=1, code=3)).to_config()
+        input_cfg = InputCombination(InputConfig(type=1, code=3)).to_config()
         preset.add(
             get_key_mapping(combination=input_cfg, output_symbol="modify(c,hold(d))"),
         )
@@ -295,7 +295,7 @@ class TestIdk(EventPipelineTestBase):
         system_mapping._set("b", 77)
         preset.add(
             get_key_mapping(
-                InputCombination(InputConfiguration(type=1, code=BTN_A)),
+                InputCombination(InputConfig(type=1, code=BTN_A)),
                 "keyboard",
                 "b",
             )
@@ -336,7 +336,7 @@ class TestIdk(EventPipelineTestBase):
         system_mapping._set("b", 77)
         preset.add(
             get_key_mapping(
-                InputCombination(InputConfiguration(type=1, code=BTN_LEFT)),
+                InputCombination(InputConfig(type=1, code=BTN_LEFT)),
                 "keyboard",
                 "b",
             )
@@ -379,9 +379,7 @@ class TestIdk(EventPipelineTestBase):
         c = system_mapping.get("c")
 
         mapping_1 = get_key_mapping(
-            InputCombination(
-                InputConfiguration(type=EV_ABS, code=ABS_X, analog_threshold=1)
-            ),
+            InputCombination(InputConfig(type=EV_ABS, code=ABS_X, analog_threshold=1)),
             output_symbol="a",
         )
         mapping_2 = get_key_mapping(
@@ -917,7 +915,7 @@ class TestAbsToAbs(EventPipelineTestBase):
     async def test_abs_to_abs(self):
         gain = 0.5
         # left x to mouse x
-        input_config = InputConfiguration(type=EV_ABS, code=ABS_X)
+        input_config = InputConfig(type=EV_ABS, code=ABS_X)
         mapping_config = {
             "event_combination": InputCombination(input_config).to_config(),
             "target_uinput": "gamepad",
@@ -929,7 +927,7 @@ class TestAbsToAbs(EventPipelineTestBase):
         mapping_1 = Mapping(**mapping_config)
         preset = Preset()
         preset.add(mapping_1)
-        input_config = InputConfiguration(type=EV_ABS, code=ABS_Y)
+        input_config = InputConfig(type=EV_ABS, code=ABS_Y)
         mapping_config["event_combination"] = InputCombination(input_config).to_config()
         mapping_config["output_code"] = ABS_Y
         mapping_2 = Mapping(**mapping_config)
@@ -965,8 +963,8 @@ class TestAbsToAbs(EventPipelineTestBase):
         gain = 0.5
         input_combination = InputCombination(
             (
-                InputConfiguration(type=EV_ABS, code=0),
-                InputConfiguration(type=EV_ABS, code=1, analog_threshold=10),
+                InputConfig(type=EV_ABS, code=0),
+                InputConfig(type=EV_ABS, code=1, analog_threshold=10),
             )
         )
         # left x to mouse x
@@ -1027,9 +1025,7 @@ class TestRelToAbs(EventPipelineTestBase):
         gain = 0.5
         # left mouse x to abs x
         cutoff = 2
-        input_combination = InputCombination(
-            InputConfiguration(type=EV_REL, code=REL_X)
-        )
+        input_combination = InputCombination(InputConfig(type=EV_REL, code=REL_X))
         mapping_config = {
             "event_combination": input_combination.to_config(),
             "target_uinput": "gamepad",
@@ -1043,9 +1039,7 @@ class TestRelToAbs(EventPipelineTestBase):
         mapping_1 = Mapping(**mapping_config)
         preset = Preset()
         preset.add(mapping_1)
-        input_combination = InputCombination(
-            InputConfiguration(type=EV_REL, code=REL_Y)
-        )
+        input_combination = InputCombination(InputConfig(type=EV_REL, code=REL_Y))
         mapping_config["event_combination"] = input_combination.to_config()
         mapping_config["output_code"] = ABS_Y
         mapping_2 = Mapping(**mapping_config)
@@ -1109,8 +1103,8 @@ class TestRelToAbs(EventPipelineTestBase):
         cutoff = 1
         input_combination = InputCombination(
             (
-                InputConfiguration(type=EV_REL, code=REL_X),
-                InputConfiguration(type=EV_REL, code=REL_Y, analog_threshold=10),
+                InputConfig(type=EV_REL, code=REL_X),
+                InputConfig(type=EV_REL, code=REL_Y, analog_threshold=10),
             )
         )
         # left mouse x to x
@@ -1167,7 +1161,7 @@ class TestAbsToRel(EventPipelineTestBase):
         rel_rate = 60  # rate [Hz] at which events are produced
         gain = 0.5  # halve the speed of the rel axis
         # left x to mouse x
-        input_config = InputConfiguration(type=EV_ABS, code=ABS_X)
+        input_config = InputConfig(type=EV_ABS, code=ABS_X)
         mapping_config = {
             "event_combination": InputCombination(input_config).to_config(),
             "target_uinput": "mouse",
@@ -1181,7 +1175,7 @@ class TestAbsToRel(EventPipelineTestBase):
         preset = Preset()
         preset.add(mapping_1)
         # left y to mouse y
-        input_config = InputConfiguration(type=EV_ABS, code=ABS_Y)
+        input_config = InputConfig(type=EV_ABS, code=ABS_Y)
         mapping_config["event_combination"] = InputCombination(input_config).to_config()
         mapping_config["output_code"] = REL_Y
         mapping_2 = Mapping(**mapping_config)
@@ -1242,7 +1236,7 @@ class TestAbsToRel(EventPipelineTestBase):
         rel_rate = 60  # rate [Hz] at which events are produced
         gain = 1
         # left x to mouse x
-        input_config = InputConfiguration(type=EV_ABS, code=ABS_X)
+        input_config = InputConfig(type=EV_ABS, code=ABS_X)
         mapping_config = {
             "event_combination": InputCombination(input_config).to_config(),
             "target_uinput": "mouse",
@@ -1257,7 +1251,7 @@ class TestAbsToRel(EventPipelineTestBase):
         preset = Preset()
         preset.add(mapping_1)
         # left y to mouse y
-        input_config = InputConfiguration(type=EV_ABS, code=ABS_Y)
+        input_config = InputConfig(type=EV_ABS, code=ABS_Y)
         mapping_config["event_combination"] = InputCombination(input_config).to_config()
         mapping_config["output_code"] = REL_HWHEEL_HI_RES
         mapping_2 = Mapping(**mapping_config)
@@ -1378,16 +1372,12 @@ class TestRelToBtn(EventPipelineTestBase):
 
         # at 5 map to a
         mapping_1 = get_key_mapping(
-            InputCombination(
-                InputConfiguration(type=EV_REL, code=REL_X, analog_threshold=5)
-            ),
+            InputCombination(InputConfig(type=EV_REL, code=REL_X, analog_threshold=5)),
             output_symbol="a",
         )
         # at 15 map to b
         mapping_2 = get_key_mapping(
-            InputCombination(
-                InputConfiguration(type=EV_REL, code=REL_X, analog_threshold=15)
-            ),
+            InputCombination(InputConfig(type=EV_REL, code=REL_X, analog_threshold=15)),
             output_symbol="b",
         )
         release_timeout = 0.2  # give some time to do assertions before the release
@@ -1457,16 +1447,12 @@ class TestAbsToBtn(EventPipelineTestBase):
 
         # at 30% map to a
         mapping_1 = get_key_mapping(
-            InputCombination(
-                InputConfiguration(type=EV_ABS, code=ABS_X, analog_threshold=30)
-            ),
+            InputCombination(InputConfig(type=EV_ABS, code=ABS_X, analog_threshold=30)),
             output_symbol="a",
         )
         # at 70% map to b
         mapping_2 = get_key_mapping(
-            InputCombination(
-                InputConfiguration(type=EV_ABS, code=ABS_X, analog_threshold=70)
-            ),
+            InputCombination(InputConfig(type=EV_ABS, code=ABS_X, analog_threshold=70)),
             output_symbol="b",
         )
         preset = Preset()
@@ -1531,7 +1517,7 @@ class TestRelToRel(EventPipelineTestBase):
     async def _test(self, input_code, input_value, output_code, output_value, gain=1):
         preset = Preset()
 
-        input_config = InputConfiguration(type=EV_REL, code=input_code)
+        input_config = InputConfig(type=EV_REL, code=input_code)
         mapping = Mapping(
             event_combination=InputCombination(input_config).to_config(),
             target_uinput="mouse",
@@ -1591,7 +1577,7 @@ class TestRelToRel(EventPipelineTestBase):
 
         preset = Preset()
 
-        input_config = InputConfiguration(type=EV_REL, code=input_code)
+        input_config = InputConfig(type=EV_REL, code=input_code)
         mapping = Mapping(
             event_combination=InputCombination(input_config).to_config(),
             target_uinput="mouse",
@@ -1639,7 +1625,7 @@ class TestRelToRel(EventPipelineTestBase):
         history = global_uinputs.get_uinput("mouse").write_history
 
         # REL_WHEEL_HI_RES to REL_Y
-        input_config = InputConfiguration(type=EV_REL, code=REL_WHEEL_HI_RES)
+        input_config = InputConfig(type=EV_REL, code=REL_WHEEL_HI_RES)
         gain = 0.01
         mapping = Mapping(
             event_combination=InputCombination(input_config).to_config(),

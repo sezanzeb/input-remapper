@@ -46,7 +46,7 @@ gi.require_version("GtkSource", "4")
 from gi.repository import Gtk, GtkSource, Gdk
 
 from inputremapper.configs.mapping import MappingData
-from inputremapper.input_configuration import InputCombination, InputConfiguration
+from inputremapper.input_configuration import InputCombination, InputConfig
 from inputremapper.groups import DeviceType
 from inputremapper.gui.controller import Controller
 from inputremapper.gui.gettext import _
@@ -658,7 +658,7 @@ class InputConfigEntry(Gtk.ListBoxRow):
 
     __gtype_name__ = "InputConfigEntry"
 
-    def __init__(self, event: InputConfiguration, controller: Controller):
+    def __init__(self, event: InputConfig, controller: Controller):
         super().__init__()
 
         self.input_event = event
@@ -778,12 +778,12 @@ class AnalogInputSwitch:
         self._message_broker = message_broker
         self._controller = controller
         self._gui = gui
-        self._input_config: Optional[InputConfiguration] = None
+        self._input_config: Optional[InputConfig] = None
 
         self._gui.connect("state-set", self._on_gtk_toggle)
         self._message_broker.subscribe(MessageType.selected_event, self._on_event)
 
-    def _on_event(self, input_cfg: InputConfiguration):
+    def _on_event(self, input_cfg: InputConfig):
         with HandlerDisabled(self._gui, self._on_gtk_toggle):
             self._gui.set_active(input_cfg.defines_analog_input)
             self._input_config = input_cfg
@@ -812,13 +812,13 @@ class TriggerThresholdInput:
         self._message_broker = message_broker
         self._controller = controller
         self._gui = gui
-        self._input_config: Optional[InputConfiguration] = None
+        self._input_config: Optional[InputConfig] = None
 
         self._gui.set_increments(1, 1)
         self._gui.connect("value-changed", self._on_gtk_changed)
         self._message_broker.subscribe(MessageType.selected_event, self._on_event)
 
-    def _on_event(self, input_config: InputConfiguration):
+    def _on_event(self, input_config: InputConfig):
         if input_config.type == EV_KEY:
             self._gui.set_sensitive(False)
             self._gui.set_opacity(0.5)
