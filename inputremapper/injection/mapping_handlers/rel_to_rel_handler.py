@@ -29,6 +29,7 @@ from evdev.ecodes import (
     REL_HWHEEL_HI_RES,
 )
 
+from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper import exceptions
 from inputremapper.configs.mapping import (
     Mapping,
@@ -36,7 +37,6 @@ from inputremapper.configs.mapping import (
     WHEEL_SCALING,
     WHEEL_HI_RES_SCALING,
 )
-from configs.input_config import InputCombination, InputConfig
 from inputremapper.injection.global_uinputs import global_uinputs
 from inputremapper.injection.mapping_handlers.axis_transform import Transformation
 from inputremapper.injection.mapping_handlers.mapping_handler import (

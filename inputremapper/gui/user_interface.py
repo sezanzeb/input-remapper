@@ -23,14 +23,11 @@ from typing import Dict, Callable
 
 import gi
 
-gi.require_version("Gdk", "3.0")
-gi.require_version("Gtk", "3.0")
-gi.require_version("GtkSource", "4")
 from gi.repository import Gtk, GtkSource, Gdk, GObject
 
 from inputremapper.configs.data import get_data_path
 from inputremapper.configs.mapping import MappingData
-from configs.input_config import InputCombination
+from inputremapper.configs.input_config import InputCombination
 from inputremapper.gui.autocompletion import Autocompletion
 from inputremapper.gui.components.editor import (
     MappingListBox,

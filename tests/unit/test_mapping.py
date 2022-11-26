@@ -33,7 +33,7 @@ from pydantic import ValidationError
 
 from inputremapper.configs.mapping import Mapping, UIMapping
 from inputremapper.configs.system_mapping import system_mapping, DISABLE_NAME
-from configs.input_config import InputCombination, InputConfig
+from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.gui.messages.message_broker import MessageType
 
 

@@ -18,11 +18,9 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
+
 from typing import Optional
 
-import gi
-
-gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 
 from inputremapper.gui.components.common import FlowBoxEntry, FlowBoxWrapper

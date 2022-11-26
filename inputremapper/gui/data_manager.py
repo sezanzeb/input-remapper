@@ -24,8 +24,6 @@ import time
 from typing import Optional, List, Tuple, Set
 
 import gi
-
-gi.require_version("GLib", "2.0")
 from gi.repository import GLib
 
 from inputremapper.configs.global_config import GlobalConfig
@@ -34,7 +32,7 @@ from inputremapper.configs.paths import get_preset_path, mkdir, split_all
 from inputremapper.configs.preset import Preset
 from inputremapper.configs.system_mapping import SystemMapping
 from inputremapper.daemon import DaemonProxy
-from configs.input_config import InputCombination, InputConfig
+from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.exceptions import DataManagementError
 from inputremapper.gui.gettext import _
 from inputremapper.groups import _Group

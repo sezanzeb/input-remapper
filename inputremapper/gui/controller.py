@@ -31,16 +31,14 @@ from typing import (
     List,
 )
 
+import gi
 from evdev.ecodes import EV_KEY, EV_REL, EV_ABS
 
-import gi
-
-gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 
 from inputremapper.configs.mapping import MappingData, UIMapping
 from inputremapper.configs.paths import sanitize_path_component
-from configs.input_config import InputCombination, InputConfig
+from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.exceptions import DataManagementError
 from inputremapper.gui.data_manager import DataManager, DEFAULT_PRESET_NAME
 from inputremapper.gui.gettext import _

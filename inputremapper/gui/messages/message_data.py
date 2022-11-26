@@ -21,8 +21,8 @@ import re
 from dataclasses import dataclass
 from typing import Dict, Tuple, Optional, Callable
 
+from inputremapper.configs.input_config import InputCombination
 from inputremapper.configs.mapping import MappingData
-from configs.input_config import InputCombination
 from inputremapper.gui.messages.message_types import (
     MessageType,
     Name,

@@ -23,10 +23,10 @@ import itertools
 from typing import Tuple, Iterable, Union, List, Dict, Optional
 
 from evdev import ecodes
-from inputremapper.gui.messages.message_types import MessageType
 from pydantic import BaseModel, root_validator, validator
 
 from inputremapper.configs.system_mapping import system_mapping
+from inputremapper.gui.messages.message_types import MessageType
 from inputremapper.logger import logger
 
 # having shift in combinations modifies the configured output,

@@ -23,8 +23,8 @@ import time
 import evdev
 from evdev.ecodes import EV_REL
 
+from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.mapping import Mapping
-from configs.input_config import InputCombination, InputConfig
 from inputremapper.injection.mapping_handlers.mapping_handler import (
     MappingHandler,
     InputEventHandler,

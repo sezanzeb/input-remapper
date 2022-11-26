@@ -21,9 +21,8 @@
 
 from __future__ import annotations
 
-import os
 import json
-
+import os
 from typing import (
     Tuple,
     Dict,
@@ -38,11 +37,10 @@ from typing import (
 
 from pydantic import ValidationError
 
-from inputremapper.logger import logger
+from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.mapping import Mapping, UIMapping
 from inputremapper.configs.paths import touch
-
-from configs.input_config import InputCombination, InputConfig
+from inputremapper.logger import logger
 
 MappingModel = TypeVar("MappingModel", bound=UIMapping)
 

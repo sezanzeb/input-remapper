@@ -38,21 +38,21 @@ different input-events into simple on/off events and sends them to the gui.
 
 from __future__ import annotations
 
-import time
-import logging
-import os
 import asyncio
+import logging
 import multiprocessing
+import os
 import subprocess
 import sys
+import time
 from collections import defaultdict
 from typing import Set, List
 
 import evdev
 from evdev.ecodes import EV_KEY, EV_ABS, EV_REL, REL_HWHEEL, REL_WHEEL
 
+from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.mapping import UIMapping
-from configs.input_config import InputCombination, InputConfig
 from inputremapper.groups import _Groups, _Group
 from inputremapper.injection.event_reader import EventReader
 from inputremapper.injection.mapping_handlers.abs_to_btn_handler import AbsToBtnHandler

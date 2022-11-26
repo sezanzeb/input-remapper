@@ -22,8 +22,8 @@ from typing import Dict, Tuple
 import evdev
 from evdev.ecodes import EV_ABS, EV_REL
 
+from inputremapper.configs.input_config import InputCombination
 from inputremapper.configs.mapping import Mapping
-from configs.input_config import InputCombination
 from inputremapper.injection.mapping_handlers.mapping_handler import (
     MappingHandler,
     InputEventHandler,

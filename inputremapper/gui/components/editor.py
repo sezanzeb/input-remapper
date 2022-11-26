@@ -40,13 +40,10 @@ from evdev.ecodes import (
     BTN_SIDE,
 )
 
-gi.require_version("Gdk", "3.0")
-gi.require_version("Gtk", "3.0")
-gi.require_version("GtkSource", "4")
 from gi.repository import Gtk, GtkSource, Gdk
 
 from inputremapper.configs.mapping import MappingData
-from configs.input_config import InputCombination, InputConfig
+from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.groups import DeviceType
 from inputremapper.gui.controller import Controller
 from inputremapper.gui.gettext import _

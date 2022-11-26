@@ -44,7 +44,7 @@ from inputremapper.configs.preset import Preset
 from inputremapper.configs.global_config import global_config
 from inputremapper.configs.paths import touch, CONFIG_PATH, mkdir, get_preset_path
 from inputremapper.logger import IS_BETA
-from configs.input_config import InputCombination, InputConfig
+from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.user import HOME
 
 from inputremapper.logger import VERSION

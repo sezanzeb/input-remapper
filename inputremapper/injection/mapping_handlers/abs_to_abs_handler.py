@@ -22,9 +22,9 @@ from typing import Tuple, Optional, Dict
 import evdev
 from evdev.ecodes import EV_ABS
 
+from inputremapper.configs.input_config import InputCombination
 from inputremapper import exceptions
 from inputremapper.configs.mapping import Mapping
-from configs.input_config import InputCombination
 from inputremapper.injection.global_uinputs import global_uinputs
 from inputremapper.injection.mapping_handlers.axis_transform import Transformation
 from inputremapper.injection.mapping_handlers.mapping_handler import (

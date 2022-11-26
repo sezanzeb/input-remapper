@@ -25,16 +25,10 @@ import re
 from typing import Dict, Optional, List, Tuple
 
 from evdev.ecodes import EV_KEY
-
-import gi
-from inputremapper.gui.controller import Controller
-
-gi.require_version("Gdk", "3.0")
-gi.require_version("Gtk", "3.0")
-gi.require_version("GLib", "2.0")
 from gi.repository import Gdk, Gtk, GLib, GObject
 
-from inputremapper.configs.mapping import MappingData, KnownUinput
+from inputremapper.gui.controller import Controller
+from inputremapper.configs.mapping import MappingData
 from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.gui.components.editor import CodeEditor
 from inputremapper.gui.messages.message_broker import MessageBroker, MessageType

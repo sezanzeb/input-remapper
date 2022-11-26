@@ -30,7 +30,7 @@ from inputremapper.injection.injector import InjectorState
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 
-from configs.input_config import InputCombination, InputConfig
+from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.groups import _Groups
 from inputremapper.gui.messages.message_broker import (
     MessageBroker,

@@ -21,7 +21,7 @@ from typing import Dict
 
 import evdev
 
-from configs.input_config import InputCombination
+from inputremapper.configs.input_config import InputCombination
 from inputremapper.injection.mapping_handlers.mapping_handler import (
     MappingHandler,
     HandlerEnums,

@@ -24,16 +24,15 @@ from typing import Dict, List, Type, Optional, Set, Iterable, Sized, Tuple, Sequ
 
 from evdev.ecodes import EV_KEY, EV_ABS, EV_REL
 
+from inputremapper.configs.input_config import InputCombination
 from inputremapper.configs.mapping import Mapping
 from inputremapper.configs.preset import Preset
 from inputremapper.configs.system_mapping import DISABLE_CODE, DISABLE_NAME
-from configs.input_config import InputCombination
 from inputremapper.exceptions import MappingParsingError
 from inputremapper.injection.macros.parse import is_this_a_macro
 from inputremapper.injection.mapping_handlers.abs_to_abs_handler import AbsToAbsHandler
 from inputremapper.injection.mapping_handlers.abs_to_btn_handler import AbsToBtnHandler
 from inputremapper.injection.mapping_handlers.abs_to_rel_handler import AbsToRelHandler
-from inputremapper.injection.mapping_handlers.rel_to_rel_handler import RelToRelHandler
 from inputremapper.injection.mapping_handlers.axis_switch_handler import (
     AxisSwitchHandler,
 )
@@ -52,6 +51,7 @@ from inputremapper.injection.mapping_handlers.mapping_handler import (
 from inputremapper.injection.mapping_handlers.null_handler import NullHandler
 from inputremapper.injection.mapping_handlers.rel_to_abs_handler import RelToAbsHandler
 from inputremapper.injection.mapping_handlers.rel_to_btn_handler import RelToBtnHandler
+from inputremapper.injection.mapping_handlers.rel_to_rel_handler import RelToRelHandler
 from inputremapper.input_event import InputEvent
 from inputremapper.logger import logger
 from inputremapper.utils import get_evdev_constant_name

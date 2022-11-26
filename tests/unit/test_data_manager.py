@@ -27,7 +27,7 @@ from unittest.mock import MagicMock, call
 from inputremapper.configs.global_config import global_config
 from inputremapper.configs.mapping import UIMapping, MappingData
 from inputremapper.configs.system_mapping import system_mapping
-from configs.input_config import InputCombination, InputConfig
+from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.exceptions import DataManagementError
 from inputremapper.groups import _Groups
 from inputremapper.gui.messages.message_broker import (

@@ -40,7 +40,7 @@ from evdev.ecodes import (
     REL_HWHEEL,
 )
 
-from configs.input_config import InputCombination, InputConfig
+from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.groups import _Groups, DeviceType
 from inputremapper.gui.messages.message_broker import (
     MessageBroker,

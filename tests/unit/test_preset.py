@@ -28,7 +28,7 @@ from inputremapper.configs.mapping import Mapping
 from inputremapper.configs.mapping import UIMapping
 from inputremapper.configs.paths import get_preset_path, get_config_path, CONFIG_PATH
 from inputremapper.configs.preset import Preset
-from configs.input_config import InputCombination, InputConfig
+from inputremapper.configs.input_config import InputCombination, InputConfig
 from tests.lib.cleanup import quick_cleanup
 from tests.lib.fixtures import get_key_mapping, get_combination_config
 

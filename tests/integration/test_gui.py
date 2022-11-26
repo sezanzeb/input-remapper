@@ -81,7 +81,7 @@ from inputremapper.gui.reader_service import ReaderService
 from inputremapper.gui.utils import gtk_iteration, Colors, debounce, debounce_manager
 from inputremapper.gui.user_interface import UserInterface
 from inputremapper.injection.injector import InjectorState
-from configs.input_config import InputCombination, InputConfig
+from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.daemon import Daemon, DaemonProxy
 
 

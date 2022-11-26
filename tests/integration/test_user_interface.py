@@ -15,7 +15,7 @@ from inputremapper.gui.utils import gtk_iteration
 from inputremapper.gui.messages.message_broker import MessageBroker, MessageType
 from inputremapper.gui.user_interface import UserInterface
 from inputremapper.configs.mapping import MappingData
-from configs.input_config import InputCombination, InputConfig
+from inputremapper.configs.input_config import InputCombination, InputConfig
 
 
 class TestUserInterface(unittest.TestCase):

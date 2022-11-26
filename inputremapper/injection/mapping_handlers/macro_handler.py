@@ -20,8 +20,8 @@
 import asyncio
 from typing import Dict, Callable
 
+from inputremapper.configs.input_config import InputCombination
 from inputremapper.configs.mapping import Mapping
-from configs.input_config import InputCombination
 from inputremapper.injection.global_uinputs import global_uinputs
 from inputremapper.injection.macros.macro import Macro
 from inputremapper.injection.macros.parse import parse

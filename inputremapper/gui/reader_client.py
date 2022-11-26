@@ -23,17 +23,15 @@
 see gui.reader_service.ReaderService
 """
 
-from typing import Optional, List, Generator, Dict, Tuple, Set
 import time
+from typing import Optional, List, Generator, Dict, Tuple, Set
 
 import evdev
-
 import gi
 
-gi.require_version("GLib", "2.0")
 from gi.repository import GLib
 
-from configs.input_config import InputCombination
+from inputremapper.configs.input_config import InputCombination
 from inputremapper.groups import _Groups, _Group
 from inputremapper.gui.reader_service import (
     MSG_EVENT,

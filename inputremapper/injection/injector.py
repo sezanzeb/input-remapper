@@ -20,6 +20,7 @@
 
 """Keeps injecting keycodes in the background based on the preset."""
 from __future__ import annotations
+
 import asyncio
 import enum
 import multiprocessing
@@ -31,8 +32,8 @@ from typing import Dict, List, Optional, Tuple, Union
 
 import evdev
 
+from inputremapper.configs.input_config import InputCombination
 from inputremapper.configs.preset import Preset
-from configs.input_config import InputCombination
 from inputremapper.groups import (
     _Group,
     classify,
