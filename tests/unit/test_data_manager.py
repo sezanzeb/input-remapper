@@ -435,7 +435,7 @@ class TestDataManager(unittest.TestCase):
         self.data_manager.load_input_config(InputConfiguration(type=1, code=1))
         mock.assert_called_once_with(InputConfiguration(type=1, code=1))
         self.assertEqual(
-            self.data_manager.active_event, InputConfiguration(type=1, code=1)
+            self.data_manager.active_input_config, InputConfiguration(type=1, code=1)
         )
 
     def test_cannot_load_event_when_mapping_not_set(self):
@@ -465,7 +465,7 @@ class TestDataManager(unittest.TestCase):
         self.data_manager.load_input_config(InputConfiguration(type=1, code=1))
         self.data_manager.update_input_config(InputConfiguration(type=1, code=5))
         self.assertEqual(
-            self.data_manager.active_event, InputConfiguration(type=1, code=5)
+            self.data_manager.active_input_config, InputConfiguration(type=1, code=5)
         )
 
     def test_update_event_sends_messages(self):

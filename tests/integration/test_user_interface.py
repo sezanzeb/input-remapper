@@ -10,12 +10,12 @@ gi.require_version("GLib", "2.0")
 gi.require_version("GtkSource", "4")
 from gi.repository import Gtk, Gdk, GLib
 
-from inputremapper.gui.utils import gtk_iteration
 from tests.lib.cleanup import quick_cleanup
+from inputremapper.gui.utils import gtk_iteration
 from inputremapper.gui.messages.message_broker import MessageBroker, MessageType
 from inputremapper.gui.user_interface import UserInterface
 from inputremapper.configs.mapping import MappingData
-from inputremapper.input_configuration import InputCombination
+from inputremapper.input_configuration import InputCombination, InputConfiguration
 
 
 class TestUserInterface(unittest.TestCase):
@@ -92,7 +92,10 @@ class TestUserInterface(unittest.TestCase):
     def test_combination_label_shows_combination(self):
         self.message_broker.publish(
             MappingData(
-                event_combination=InputCombination((EV_KEY, KEY_A, 1)), name="foo"
+                event_combination=InputCombination(
+                    InputConfiguration(type=EV_KEY, code=KEY_A)
+                ),
+                name="foo",
             )
         )
         gtk_iteration()

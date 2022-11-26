@@ -653,12 +653,12 @@ class ReleaseCombinationSwitch:
         self._controller.update_mapping(release_combination_keys=self._gui.get_active())
 
 
-class EventEntry(Gtk.ListBoxRow):
-    """The ListBoxRow representing a single event inside the CombinationListBox."""
+class InputConfigEntry(Gtk.ListBoxRow):
+    """The ListBoxRow representing a single input config inside the CombinationListBox."""
 
-    __gtype_name__ = "EventEntry"
+    __gtype_name__ = "InputConfigEntry"
 
-    def __init__(self, event: InputEvent, controller: Controller):
+    def __init__(self, event: InputConfiguration, controller: Controller):
         super().__init__()
 
         self.input_event = event
@@ -753,7 +753,7 @@ class CombinationListbox:
         else:
             self._combination = mapping.event_combination
             for event in self._combination:
-                self._gui.insert(EventEntry(event, self._controller), -1)
+                self._gui.insert(InputConfigEntry(event, self._controller), -1)
 
     def _on_event_changed(self, event: InputEvent):
         with HandlerDisabled(self._gui, self._on_gtk_row_selected):
@@ -767,7 +767,7 @@ class CombinationListbox:
 
 
 class AnalogInputSwitch:
-    """The switch that marks the active_event as analog input."""
+    """The switch that marks the active_input_config as analog input."""
 
     def __init__(
         self,
@@ -785,7 +785,7 @@ class AnalogInputSwitch:
 
     def _on_event(self, input_cfg: InputConfiguration):
         with HandlerDisabled(self._gui, self._on_gtk_toggle):
-            self._gui.set_active(input_cfg.analog_threshold == 0)
+            self._gui.set_active(input_cfg.defines_analog_input)
             self._event = input_cfg
 
         if input_cfg.type == EV_KEY:
@@ -801,7 +801,7 @@ class AnalogInputSwitch:
 
 class TriggerThresholdInput:
     """The number selection used to set the speed or position threshold of the
-    active_event when it is an ABS or REL event used as a key."""
+    active_input_config when it is an ABS or REL event used as a key."""
 
     def __init__(
         self,

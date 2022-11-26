@@ -75,35 +75,6 @@ class InputEvent:
         raise TypeError(f"cannot compare {type(other)} with InputEvent")
 
     @classmethod
-    def __get_validators__(cls):
-        """Used by pydantic and InputCombination to create InputEvent objects."""
-        yield cls.validate
-
-    @classmethod
-    def validate(cls, init_arg: InputEventValidationType) -> InputEvent:
-        """Try all the different methods, and raise an error if none succeed."""
-        if isinstance(init_arg, InputEvent):
-            return init_arg
-
-        event = None
-        validators: Sequence[Callable[..., InputEvent]] = (
-            cls.from_event,
-            cls.from_string,
-            cls.from_tuple,
-        )
-        for validator in validators:
-            try:
-                event = validator(init_arg)
-                break
-            except InputEventCreationError:
-                pass
-
-        if event:
-            return event
-
-        raise ValueError(f"failed to create InputEvent with {init_arg = }")
-
-    @classmethod
     def from_event(cls, event: evdev.InputEvent) -> InputEvent:
         """Create a InputEvent from another InputEvent or evdev.InputEvent."""
         try:

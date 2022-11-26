@@ -269,7 +269,7 @@ class Controller:
         input_config: InputConfiguration,
         direction: Union[Literal["up"], Literal["down"]],
     ):
-        """Move the active_event up or down in the event_combination of the
+        """Move the active_input_config up or down in the event_combination of the
         active_mapping."""
         if (
             not self.data_manager.active_mapping
@@ -323,11 +323,14 @@ class Controller:
 
     def remove_event(self):
         """Remove the active InputEvent from the active mapping event combination."""
-        if not self.data_manager.active_mapping or not self.data_manager.active_event:
+        if (
+            not self.data_manager.active_mapping
+            or not self.data_manager.active_input_config
+        ):
             return
 
         combination = list(self.data_manager.active_mapping.event_combination)
-        combination.remove(self.data_manager.active_event)
+        combination.remove(self.data_manager.active_input_config)
         try:
             self.data_manager.update_mapping(
                 event_combination=InputCombination(combination)
@@ -341,8 +344,8 @@ class Controller:
 
     def set_event_as_analog(self, analog: bool):
         """Use the active event as an analog input."""
-        assert self.data_manager.active_event is not None
-        event = self.data_manager.active_event
+        assert self.data_manager.active_input_config is not None
+        event = self.data_manager.active_input_config
 
         if event.type != EV_KEY:
             if analog:

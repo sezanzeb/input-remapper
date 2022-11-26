@@ -91,7 +91,7 @@ class DataManager:
 
         self._active_preset: Optional[Preset[UIMapping]] = None
         self._active_mapping: Optional[UIMapping] = None
-        self._active_event: Optional[InputEvent] = None
+        self._active_input_config: Optional[InputConfiguration] = None
 
     def publish_group(self):
         """Send active group to the MessageBroker.
@@ -134,9 +134,9 @@ class DataManager:
         It is usually not necessary to call this explicitly from
         outside DataManager
         """
-        if self.active_event:
-            assert self.active_event in self.active_mapping.event_combination
-            self.message_broker.publish(self.active_event)
+        if self.active_input_config:
+            assert self.active_input_config in self.active_mapping.event_combination
+            self.message_broker.publish(self.active_input_config)
 
     def publish_uinputs(self):
         """Send the "uinputs" message on the MessageBroker."""
@@ -176,9 +176,9 @@ class DataManager:
         return self._active_mapping
 
     @property
-    def active_event(self) -> Optional[InputEvent]:
+    def active_input_config(self) -> Optional[InputConfiguration]:
         """The currently loaded event."""
-        return self._active_event
+        return self._active_input_config
 
     def get_group_keys(self) -> Tuple[GroupKey, ...]:
         """Get all group keys (plugged devices)."""
@@ -299,7 +299,7 @@ class DataManager:
 
         logger.info('Loading group "%s"', group_key)
 
-        self._active_event = None
+        self._active_input_config = None
         self._active_mapping = None
         self._active_preset = None
         group = self._reader_client.groups.find(key=group_key)
@@ -320,7 +320,7 @@ class DataManager:
         preset_path = get_preset_path(self.active_group.name, name)
         preset = Preset(preset_path, mapping_factory=UIMapping)
         preset.load()
-        self._active_event = None
+        self._active_input_config = None
         self._active_mapping = None
         self._active_preset = preset
         self.publish_preset()
@@ -336,7 +336,7 @@ class DataManager:
                 f"the mapping with {combination = } does not "
                 f"exist in the {self._active_preset.path}"
             )
-        self._active_event = None
+        self._active_input_config = None
         self._active_mapping = mapping
         self.publish_mapping()
 
@@ -352,7 +352,7 @@ class DataManager:
                 f"{input_config} is not member of active_mapping.event_combination: "
                 f"{self.active_mapping.event_combination}"
             )
-        self._active_event = input_config
+        self._active_input_config = input_config
         self.publish_event()
 
     def rename_preset(self, new_name: str):
@@ -457,7 +457,7 @@ class DataManager:
             "event_combination" in kwargs
             and combination != self.active_mapping.event_combination
         ):
-            self._active_event = None
+            self._active_input_config = None
             self.message_broker.publish(
                 CombinationUpdate(combination, self._active_mapping.event_combination)
             )
@@ -475,13 +475,13 @@ class DataManager:
         Will send "combination_update", "mapping" and "event" messages to the
         MessageBroker (in that order)
         """
-        if not self.active_mapping or not self.active_event:
+        if not self.active_mapping or not self.active_input_config:
             raise DataManagementError("Cannot modify event: Event is not set")
 
         combination = list(self.active_mapping.event_combination)
-        combination[combination.index(self.active_event)] = new_input_config
+        combination[combination.index(self.active_input_config)] = new_input_config
         self.update_mapping(event_combination=InputCombination(combination))
-        self._active_event = new_input_config
+        self._active_input_config = new_input_config
         self.publish_event()
 
     def create_mapping(self):

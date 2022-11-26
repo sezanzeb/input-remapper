@@ -22,6 +22,7 @@
 Only write changes to disk, if there actually are changes. Otherwise file-modification
 dates are destroyed.
 """
+from __future__ import annotations
 
 import copy
 import json
@@ -29,7 +30,7 @@ import os
 import re
 import shutil
 from pathlib import Path
-from typing import Iterator, Tuple, Dict
+from typing import Iterator, Tuple, Dict, List
 
 import pkg_resources
 from evdev.ecodes import (
@@ -57,7 +58,7 @@ from inputremapper.logger import logger, VERSION, IS_BETA
 from inputremapper.user import HOME
 
 
-def all_presets() -> Iterator[Tuple[os.PathLike, Dict]]:
+def all_presets() -> Iterator[Tuple[os.PathLike, Dict | List]]:
     """Get all presets for all groups as list."""
     if not os.path.exists(get_preset_path()):
         return
@@ -73,8 +74,8 @@ def all_presets() -> Iterator[Tuple[os.PathLike, Dict]]:
 
             try:
                 with open(preset, "r") as f:
-                    preset_dict = json.load(f)
-                    yield preset, preset_dict
+                    preset_structure = json.load(f)
+                    yield preset, preset_structure
             except json.decoder.JSONDecodeError:
                 logger.warning('Invalid json format in preset "%s"', preset)
                 continue
@@ -132,19 +133,24 @@ def _mapping_keys():
 
     Update all keys in preset to include value e.g.: '1,5'->'1,5,1'
     """
-    for preset, preset_dict in all_presets():
+    for preset, preset_structure in all_presets():
+        if isinstance(preset_structure, list):
+            continue  # the preset must be at least 1.6-beta version
+
         changes = 0
-        if "mapping" in preset_dict.keys():
-            mapping = copy.deepcopy(preset_dict["mapping"])
+        if "mapping" in preset_structure.keys():
+            mapping = copy.deepcopy(preset_structure["mapping"])
             for key in mapping.keys():
                 if key.count(",") == 1:
-                    preset_dict["mapping"][f"{key},1"] = preset_dict["mapping"].pop(key)
+                    preset_structure["mapping"][f"{key},1"] = preset_structure[
+                        "mapping"
+                    ].pop(key)
                     changes += 1
 
         if changes:
             with open(preset, "w") as file:
                 logger.info('Updating mapping keys of "%s"', preset)
-                json.dump(preset_dict, file, indent=4)
+                json.dump(preset_structure, file, indent=4)
                 file.write("\n")
 
 
@@ -195,12 +201,15 @@ def _find_target(symbol):
 
 def _add_target():
     """Add the target field to each preset mapping."""
-    for preset, preset_dict in all_presets():
-        if "mapping" not in preset_dict.keys():
+    for preset, preset_structure in all_presets():
+        if isinstance(preset_structure, list):
+            continue
+
+        if "mapping" not in preset_structure.keys():
             continue
 
         changed = False
-        for key, symbol in preset_dict["mapping"].copy().items():
+        for key, symbol in preset_structure["mapping"].copy().items():
             if isinstance(symbol, list):
                 continue
 
@@ -220,7 +229,7 @@ def _add_target():
                 target,
             )
             symbol = [symbol, target]
-            preset_dict["mapping"][key] = symbol
+            preset_structure["mapping"][key] = symbol
             changed = True
 
         if not changed:
@@ -228,18 +237,21 @@ def _add_target():
 
         with open(preset, "w") as file:
             logger.info('Adding targets for "%s"', preset)
-            json.dump(preset_dict, file, indent=4)
+            json.dump(preset_structure, file, indent=4)
             file.write("\n")
 
 
 def _otherwise_to_else():
     """Conditional macros should use an "else" parameter instead of "otherwise"."""
-    for preset, preset_dict in all_presets():
-        if "mapping" not in preset_dict.keys():
+    for preset, preset_structure in all_presets():
+        if isinstance(preset_structure, list):
+            continue
+
+        if "mapping" not in preset_structure.keys():
             continue
 
         changed = False
-        for key, symbol in preset_dict["mapping"].copy().items():
+        for key, symbol in preset_structure["mapping"].copy().items():
             if not is_this_a_macro(symbol[0]):
                 continue
 
@@ -258,14 +270,14 @@ def _otherwise_to_else():
                 symbol[0],
             )
 
-            preset_dict["mapping"][key] = symbol
+            preset_structure["mapping"][key] = symbol
 
         if not changed:
             continue
 
         with open(preset, "w") as file:
             logger.info('Changing otherwise to else for "%s"', preset)
-            json.dump(preset_dict, file, indent=4)
+            json.dump(preset_structure, file, indent=4)
             file.write("\n")
 
 
@@ -290,6 +302,9 @@ def _convert_to_individual_mappings():
     """
 
     for preset_path, old_preset in all_presets():
+        if isinstance(old_preset, list):
+            continue
+
         preset = Preset(preset_path, UIMapping)
         if "mapping" in old_preset.keys():
             for combination, symbol_target in old_preset["mapping"].items():
