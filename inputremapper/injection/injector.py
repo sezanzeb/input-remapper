@@ -32,7 +32,7 @@ from typing import Dict, List, Optional, Tuple, Union
 import evdev
 
 from inputremapper.configs.preset import Preset
-from inputremapper.input_configuration import InputCombination
+from configs.input_config import InputCombination
 from inputremapper.groups import (
     _Group,
     classify,

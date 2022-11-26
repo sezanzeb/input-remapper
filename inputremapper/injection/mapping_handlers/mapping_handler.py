@@ -66,9 +66,9 @@ from typing import Dict, Protocol, Set, Optional, List
 import evdev
 
 from inputremapper.configs.mapping import Mapping
-from inputremapper.input_configuration import InputCombination, InputConfig
+from configs.input_config import InputCombination, InputConfig
 from inputremapper.exceptions import MappingParsingError
-from inputremapper.input_event import InputEvent, EventActions
+from inputremapper.input_event import InputEvent
 from inputremapper.logger import logger
 
 

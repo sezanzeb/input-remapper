@@ -54,7 +54,7 @@ from inputremapper.configs.mapping import (
 )
 from inputremapper.configs.preset import Preset
 from inputremapper.configs.system_mapping import system_mapping
-from inputremapper.input_configuration import InputCombination, InputConfig
+from configs.input_config import InputCombination, InputConfig
 from inputremapper.injection.context import Context
 from inputremapper.injection.event_reader import EventReader
 from inputremapper.injection.global_uinputs import global_uinputs

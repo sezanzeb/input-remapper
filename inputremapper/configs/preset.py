@@ -23,7 +23,6 @@ from __future__ import annotations
 
 import os
 import json
-import traceback
 
 from typing import (
     Tuple,
@@ -38,14 +37,12 @@ from typing import (
 )
 
 from pydantic import ValidationError
-from evdev.ecodes import EV_KEY
 
 from inputremapper.logger import logger
 from inputremapper.configs.mapping import Mapping, UIMapping
 from inputremapper.configs.paths import touch
 
-from inputremapper.input_event import InputEvent
-from inputremapper.input_configuration import InputCombination, InputConfig
+from configs.input_config import InputCombination, InputConfig
 
 MappingModel = TypeVar("MappingModel", bound=UIMapping)
 

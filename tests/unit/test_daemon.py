@@ -41,7 +41,7 @@ from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.configs.global_config import global_config
 from inputremapper.groups import groups
 from inputremapper.configs.paths import get_config_path, mkdir, get_preset_path
-from inputremapper.input_configuration import InputCombination, InputConfig
+from configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.preset import Preset
 from inputremapper.injection.injector import InjectorState
 from inputremapper.daemon import Daemon

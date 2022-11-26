@@ -30,7 +30,7 @@ from gi.repository import Gtk, GtkSource, Gdk, GObject
 
 from inputremapper.configs.data import get_data_path
 from inputremapper.configs.mapping import MappingData
-from inputremapper.input_configuration import InputCombination
+from configs.input_config import InputCombination
 from inputremapper.gui.autocompletion import Autocompletion
 from inputremapper.gui.components.editor import (
     MappingListBox,

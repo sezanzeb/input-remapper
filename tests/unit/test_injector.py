@@ -61,7 +61,7 @@ from inputremapper.configs.system_mapping import (
     DISABLE_NAME,
 )
 from inputremapper.configs.preset import Preset
-from inputremapper.input_configuration import InputCombination, InputConfig
+from configs.input_config import InputCombination, InputConfig
 from inputremapper.injection.macros.parse import parse
 from inputremapper.injection.context import Context
 from inputremapper.groups import groups, classify, DeviceType

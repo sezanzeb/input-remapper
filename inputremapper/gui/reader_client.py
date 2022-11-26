@@ -33,7 +33,7 @@ import gi
 gi.require_version("GLib", "2.0")
 from gi.repository import GLib
 
-from inputremapper.input_configuration import InputCombination
+from configs.input_config import InputCombination
 from inputremapper.groups import _Groups, _Group
 from inputremapper.gui.reader_service import (
     MSG_EVENT,

@@ -22,7 +22,7 @@ from dataclasses import dataclass
 from typing import Dict, Tuple, Optional, Callable
 
 from inputremapper.configs.mapping import MappingData
-from inputremapper.input_configuration import InputCombination
+from configs.input_config import InputCombination
 from inputremapper.gui.messages.message_types import (
     MessageType,
     Name,

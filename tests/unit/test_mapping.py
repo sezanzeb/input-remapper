@@ -22,13 +22,9 @@ import unittest
 from functools import partial
 
 from evdev.ecodes import (
-    EV_ABS,
     EV_REL,
     REL_X,
-    BTN_MIDDLE,
     EV_KEY,
-    KEY_A,
-    ABS_X,
     REL_Y,
     REL_WHEEL,
     REL_WHEEL_HI_RES,
@@ -37,7 +33,7 @@ from pydantic import ValidationError
 
 from inputremapper.configs.mapping import Mapping, UIMapping
 from inputremapper.configs.system_mapping import system_mapping, DISABLE_NAME
-from inputremapper.input_configuration import InputCombination, InputConfig
+from configs.input_config import InputCombination, InputConfig
 from inputremapper.gui.messages.message_broker import MessageType
 
 

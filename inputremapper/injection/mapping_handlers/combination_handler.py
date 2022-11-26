@@ -23,7 +23,7 @@ import evdev
 from evdev.ecodes import EV_ABS, EV_REL
 
 from inputremapper.configs.mapping import Mapping
-from inputremapper.input_configuration import InputCombination
+from configs.input_config import InputCombination
 from inputremapper.injection.mapping_handlers.mapping_handler import (
     MappingHandler,
     InputEventHandler,

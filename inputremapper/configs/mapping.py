@@ -47,7 +47,7 @@ from pydantic import (
 )
 
 from inputremapper.configs.system_mapping import system_mapping, DISABLE_NAME
-from inputremapper.input_configuration import InputCombination, InputConfig
+from configs.input_config import InputCombination
 from inputremapper.exceptions import MacroParsingError
 from inputremapper.gui.gettext import _
 from inputremapper.gui.messages.message_types import MessageType

@@ -46,7 +46,7 @@ from inputremapper.injection.mapping_handlers.combination_handler import (
 from inputremapper.injection.mapping_handlers.rel_to_btn_handler import RelToBtnHandler
 
 from inputremapper.configs.mapping import Mapping, DEFAULT_REL_RATE
-from inputremapper.input_configuration import InputCombination, InputConfig
+from configs.input_config import InputCombination, InputConfig
 from inputremapper.injection.global_uinputs import global_uinputs
 from inputremapper.injection.mapping_handlers.abs_to_abs_handler import AbsToAbsHandler
 from inputremapper.injection.mapping_handlers.abs_to_btn_handler import AbsToBtnHandler

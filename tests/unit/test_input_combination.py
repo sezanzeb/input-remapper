@@ -43,7 +43,7 @@ from evdev.ecodes import (
     KEY_LEFTCTRL,
 )
 
-from inputremapper.input_configuration import InputCombination, InputConfig
+from configs.input_config import InputCombination, InputConfig
 from tests.lib.fixtures import get_combination_config
 
 

@@ -27,7 +27,7 @@ from unittest.mock import MagicMock, call
 from inputremapper.configs.global_config import global_config
 from inputremapper.configs.mapping import UIMapping, MappingData
 from inputremapper.configs.system_mapping import system_mapping
-from inputremapper.input_configuration import InputCombination, InputConfig
+from configs.input_config import InputCombination, InputConfig
 from inputremapper.exceptions import DataManagementError
 from inputremapper.groups import _Groups
 from inputremapper.gui.messages.message_broker import (
@@ -40,7 +40,6 @@ from inputremapper.gui.messages.message_data import (
 )
 from inputremapper.gui.reader_client import ReaderClient
 from inputremapper.injection.global_uinputs import GlobalUInputs
-from inputremapper.input_event import InputEvent
 from tests.lib.cleanup import quick_cleanup
 from tests.lib.patches import FakeDaemonProxy
 from tests.lib.fixtures import prepare_presets, get_combination_config

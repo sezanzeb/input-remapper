@@ -36,7 +36,7 @@ from inputremapper.configs.mapping import (
     WHEEL_SCALING,
     WHEEL_HI_RES_SCALING,
 )
-from inputremapper.input_configuration import InputCombination, InputConfig
+from configs.input_config import InputCombination, InputConfig
 from inputremapper.injection.global_uinputs import global_uinputs
 from inputremapper.injection.mapping_handlers.axis_transform import Transformation
 from inputremapper.injection.mapping_handlers.mapping_handler import (

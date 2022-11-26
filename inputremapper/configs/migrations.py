@@ -51,7 +51,7 @@ from inputremapper.configs.mapping import Mapping, UIMapping
 from inputremapper.configs.paths import get_preset_path, mkdir, CONFIG_PATH, remove
 from inputremapper.configs.preset import Preset
 from inputremapper.configs.system_mapping import system_mapping
-from inputremapper.input_configuration import InputCombination, InputConfig
+from configs.input_config import InputCombination, InputConfig
 from inputremapper.injection.global_uinputs import global_uinputs
 from inputremapper.injection.macros.parse import is_this_a_macro
 from inputremapper.logger import logger, VERSION, IS_BETA

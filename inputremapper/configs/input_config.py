@@ -20,7 +20,7 @@
 from __future__ import annotations
 
 import itertools
-from typing import Tuple, Iterable, Union, Callable, Sequence, List, Dict, Optional
+from typing import Tuple, Iterable, Union, List, Dict, Optional
 
 from evdev import ecodes
 from inputremapper.gui.messages.message_types import MessageType
@@ -54,8 +54,6 @@ class InputConfig(BaseModel):
     @property
     def defines_analog_input(self) -> bool:
         """Whether this defines an analog input"""
-        # todo give it a better name once InputEvent and
-        #  InputConfig are seperated
         return not self.analog_threshold and self.type != ecodes.EV_KEY
 
     @property

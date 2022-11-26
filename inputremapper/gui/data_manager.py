@@ -34,7 +34,7 @@ from inputremapper.configs.paths import get_preset_path, mkdir, split_all
 from inputremapper.configs.preset import Preset
 from inputremapper.configs.system_mapping import SystemMapping
 from inputremapper.daemon import DaemonProxy
-from inputremapper.input_configuration import InputCombination, InputConfig
+from configs.input_config import InputCombination, InputConfig
 from inputremapper.exceptions import DataManagementError
 from inputremapper.gui.gettext import _
 from inputremapper.groups import _Group
@@ -53,7 +53,6 @@ from inputremapper.injection.injector import (
     InjectorState,
     InjectorStateMessage,
 )
-from inputremapper.input_event import InputEvent
 from inputremapper.logger import logger
 
 DEFAULT_PRESET_NAME = _("new preset")

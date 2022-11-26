@@ -26,12 +26,11 @@ import gi
 
 from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.injection.injector import InjectorState
-from inputremapper.input_event import InputEvent
 
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 
-from inputremapper.input_configuration import InputCombination, InputConfig
+from configs.input_config import InputCombination, InputConfig
 from inputremapper.groups import _Groups
 from inputremapper.gui.messages.message_broker import (
     MessageBroker,
