@@ -21,21 +21,10 @@ from __future__ import annotations
 
 import enum
 from dataclasses import dataclass
-from typing import Tuple, Union, Sequence, Callable, Optional, Any, Dict
+from typing import Tuple, Optional
 
 import evdev
 from evdev import ecodes
-
-from inputremapper.configs.system_mapping import system_mapping
-from inputremapper.exceptions import InputEventCreationError
-from inputremapper.gui.messages.message_broker import MessageType
-from inputremapper.logger import logger
-
-InputEventValidationType = Union[
-    str,
-    Tuple[int, int, int],
-    evdev.InputEvent,
-]
 
 
 class EventActions(enum.Enum):
@@ -80,45 +69,18 @@ class InputEvent:
         try:
             return cls(event.sec, event.usec, event.type, event.code, event.value)
         except AttributeError as exception:
-            raise InputEventCreationError(
+            raise TypeError(
                 f"Failed to create InputEvent from {event = }"
             ) from exception
 
     @classmethod
-    def from_string(cls, string: str) -> InputEvent:
-        """Create a InputEvent from a string like 'type, code, value'."""
-        try:
-            t, c, v = string.split(",")
-            return cls(0, 0, int(t), int(c), int(v))
-        except (ValueError, AttributeError):
-            raise InputEventCreationError(
-                f"Failed to create InputEvent from {string = !r}"
-            )
-
-    @classmethod
     def from_tuple(cls, event_tuple: Tuple[int, int, int]) -> InputEvent:
         """Create a InputEvent from a (type, code, value) tuple."""
-        try:
-            if len(event_tuple) != 3:
-                raise InputEventCreationError(
-                    f"failed to create InputEvent {event_tuple = }"
-                    f" must have length 3"
-                )
-            return cls(
-                0,
-                0,
-                int(event_tuple[0]),
-                int(event_tuple[1]),
-                int(event_tuple[2]),
+        if len(event_tuple) != 3:
+            raise TypeError(
+                f"failed to create InputEvent {event_tuple = }" f" must have length 3"
             )
-        except ValueError as exception:
-            raise InputEventCreationError(
-                f"Failed to create InputEvent from {event_tuple = }"
-            ) from exception
-        except TypeError as exception:
-            raise InputEventCreationError(
-                f"Failed to create InputEvent from {type(event_tuple) = }"
-            ) from exception
+        return cls(0, 0, *map(int, event_tuple))
 
     @property
     def type_and_code(self) -> Tuple[int, int]:

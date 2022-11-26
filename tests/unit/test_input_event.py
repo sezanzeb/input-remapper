@@ -23,7 +23,6 @@ import unittest
 import evdev
 from dataclasses import FrozenInstanceError
 from inputremapper.input_event import InputEvent
-from inputremapper.exceptions import InputEventCreationError
 
 
 class TestInputEvent(unittest.TestCase):
@@ -44,27 +43,7 @@ class TestInputEvent(unittest.TestCase):
         self.assertEqual(e1.code, e2.code)
         self.assertEqual(e1.value, e2.value)
 
-        self.assertRaises(InputEventCreationError, InputEvent.from_event, "1,2,3")
-
-    def test_from_string(self):
-        s1 = "1,2,3"
-        s2 = "1 ,2, 3 "
-        s3 = (1, 2, 3)
-        s4 = "1,2,3,4"
-        s5 = "1,2,_3"
-
-        e1 = InputEvent.from_string(s1)
-        e2 = InputEvent.from_string(s2)
-        self.assertEqual(e1, e2)
-        self.assertEqual(e1.sec, 0)
-        self.assertEqual(e1.usec, 0)
-        self.assertEqual(e1.type, 1)
-        self.assertEqual(e1.code, 2)
-        self.assertEqual(e1.value, 3)
-
-        self.assertRaises(InputEventCreationError, InputEvent.from_string, s3)
-        self.assertRaises(InputEventCreationError, InputEvent.from_string, s4)
-        self.assertRaises(InputEventCreationError, InputEvent.from_string, s5)
+        self.assertRaises(TypeError, InputEvent.from_event, "1,2,3")
 
     def test_from_event_tuple(self):
         t1 = (1, 2, 3)
@@ -80,9 +59,6 @@ class TestInputEvent(unittest.TestCase):
         self.assertEqual(e1.type, 1)
         self.assertEqual(e1.code, 2)
         self.assertEqual(e1.value, 3)
-
-        self.assertRaises(InputEventCreationError, InputEvent.from_string, t3)
-        self.assertRaises(InputEventCreationError, InputEvent.from_string, t4)
 
     def test_properties(self):
         e1 = InputEvent.from_tuple((evdev.ecodes.EV_KEY, evdev.ecodes.BTN_LEFT, 1))

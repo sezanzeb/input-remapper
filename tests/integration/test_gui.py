@@ -981,7 +981,7 @@ class TestGui(GuiTestBase):
             self.controller.create_mapping()
             gtk_iteration()
             self.controller.start_key_recording()
-            previous_event = InputEvent.from_string("1,1,1")
+            previous_event = InputEvent(0, 0, 1, 1, 1)
             for event_tuple in combi:
                 event = InputEvent.from_tuple(event_tuple)
                 if event.type != previous_event.type:
