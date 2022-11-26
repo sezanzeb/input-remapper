@@ -49,14 +49,14 @@ class TestPreset(unittest.TestCase):
         self.assertEqual(len(permutations), 6)
 
         self.preset._mappings[permutations[0]] = Mapping(
-            event_combination=permutations[0],
+            input_combination=permutations[0],
             target_uinput="keyboard",
             output_symbol="a",
         )
         self.assertFalse(self.preset._is_mapped_multiple_times(permutations[2]))
 
         self.preset._mappings[permutations[1]] = Mapping(
-            event_combination=permutations[1],
+            input_combination=permutations[1],
             target_uinput="keyboard",
             output_symbol="a",
         )
@@ -99,7 +99,7 @@ class TestPreset(unittest.TestCase):
         self.preset.load()
 
         self.preset.path = get_preset_path("bar", "foo")
-        self.preset.remove(get_key_mapping().event_combination)
+        self.preset.remove(get_key_mapping().input_combination)
         # empty preset and empty file
         self.assertFalse(self.preset.has_unsaved_changes())
 
@@ -169,7 +169,7 @@ class TestPreset(unittest.TestCase):
 
         # change ev_1 to ev_3 and change a to b
         mapping = self.preset.get_mapping(ev_1)
-        mapping.event_combination = ev_3
+        mapping.input_combination = ev_3
         mapping.output_symbol = "b"
         self.assertIsNone(self.preset.get_mapping(ev_1))
         self.assertEqual(
@@ -202,7 +202,7 @@ class TestPreset(unittest.TestCase):
         # try to change combination of 4 to 3
         mapping = self.preset.get_mapping(ev_4)
         with self.assertRaises(KeyError):
-            mapping.event_combination = ev_3
+            mapping.input_combination = ev_3
 
         self.assertEqual(
             self.preset.get_mapping(ev_3),
@@ -275,7 +275,7 @@ class TestPreset(unittest.TestCase):
         mapping = self.preset.get_mapping(combi_1)
         mapping.output_symbol = "c"
         with self.assertRaises(KeyError):
-            mapping.event_combination = combi_3
+            mapping.input_combination = combi_3
 
         self.assertEqual(
             self.preset.get_mapping(combi_1),
@@ -443,7 +443,7 @@ class TestPreset(unittest.TestCase):
         m.target_uinput = "keyboard"
         self.assertTrue(ui_preset.is_valid())
 
-        m2 = UIMapping(event_combination=InputCombination(InputConfig(type=1, code=2)))
+        m2 = UIMapping(input_combination=InputCombination(InputConfig(type=1, code=2)))
         ui_preset.add(m2)
         self.assertFalse(ui_preset.is_valid())
         ui_preset.save()
@@ -453,12 +453,12 @@ class TestPreset(unittest.TestCase):
         preset.load()
         self.assertEqual(len(preset), 1)
 
-        a = preset.get_mapping(m.event_combination).dict()
+        a = preset.get_mapping(m.input_combination).dict()
         b = m.dict()
         a.pop("mapping_type")
         b.pop("mapping_type")
         self.assertEqual(a, b)
-        # self.assertEqual(preset.get_mapping(m.event_combination), m)
+        # self.assertEqual(preset.get_mapping(m.input_combination), m)
 
         # both presets load
         ui_preset.clear()
@@ -466,13 +466,13 @@ class TestPreset(unittest.TestCase):
         ui_preset.load()
         self.assertEqual(len(ui_preset), 2)
 
-        a = ui_preset.get_mapping(m.event_combination).dict()
+        a = ui_preset.get_mapping(m.input_combination).dict()
         b = m.dict()
         a.pop("mapping_type")
         b.pop("mapping_type")
         self.assertEqual(a, b)
-        # self.assertEqual(ui_preset.get_mapping(m.event_combination), m)
-        self.assertEqual(ui_preset.get_mapping(m2.event_combination), m2)
+        # self.assertEqual(ui_preset.get_mapping(m.input_combination), m)
+        self.assertEqual(ui_preset.get_mapping(m2.input_combination), m2)
 
 
 if __name__ == "__main__":

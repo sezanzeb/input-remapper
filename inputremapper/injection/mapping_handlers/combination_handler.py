@@ -61,7 +61,7 @@ class CombinationHandler(MappingHandler):
 
     def __str__(self):
         return (
-            f'CombinationHandler for "{self.mapping.event_combination}" '
+            f'CombinationHandler for "{self.mapping.input_combination}" '
             f"{tuple(t for t in self._pressed_keys.keys())} <{id(self)}>:"
         )
 
@@ -114,7 +114,7 @@ class CombinationHandler(MappingHandler):
             return False
 
         logger.debug_key(
-            self.mapping.event_combination, "triggered: sending to sub-handler"
+            self.mapping.input_combination, "triggered: sending to sub-handler"
         )
         self._output_state = bool(event.value)
         return self._sub_handler.notify(event, source, forward, suppress)

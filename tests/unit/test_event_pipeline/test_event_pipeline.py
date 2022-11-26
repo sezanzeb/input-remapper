@@ -776,13 +776,13 @@ class TestIdk(EventPipelineTestBase):
         ev_6 = (EV_KEY, KEY_C, 0)
 
         mapping_1 = Mapping(
-            event_combination=InputCombination(get_combination_config(ev_2)),
+            input_combination=InputCombination(get_combination_config(ev_2)),
             target_uinput="keyboard",
             output_type=EV_KEY,
             output_code=BTN_TL,
         )
         mapping_2 = Mapping(
-            event_combination=InputCombination(get_combination_config(ev_3)),
+            input_combination=InputCombination(get_combination_config(ev_3)),
             target_uinput="keyboard",
             output_type=EV_KEY,
             output_code=KEY_A,
@@ -840,7 +840,7 @@ class TestIdk(EventPipelineTestBase):
             get_combination_config((EV_ABS, ABS_X, 0), (EV_ABS, ABS_Y, 10))
         )
         cfg = {
-            "event_combination": combination.to_config(),
+            "input_combination": combination.to_config(),
             "target_uinput": "mouse",
             "output_type": EV_REL,
             "output_code": REL_X,
@@ -917,7 +917,7 @@ class TestAbsToAbs(EventPipelineTestBase):
         # left x to mouse x
         input_config = InputConfig(type=EV_ABS, code=ABS_X)
         mapping_config = {
-            "event_combination": InputCombination(input_config).to_config(),
+            "input_combination": InputCombination(input_config).to_config(),
             "target_uinput": "gamepad",
             "output_type": EV_ABS,
             "output_code": ABS_X,
@@ -928,7 +928,7 @@ class TestAbsToAbs(EventPipelineTestBase):
         preset = Preset()
         preset.add(mapping_1)
         input_config = InputConfig(type=EV_ABS, code=ABS_Y)
-        mapping_config["event_combination"] = InputCombination(input_config).to_config()
+        mapping_config["input_combination"] = InputCombination(input_config).to_config()
         mapping_config["output_code"] = ABS_Y
         mapping_2 = Mapping(**mapping_config)
         preset.add(mapping_2)
@@ -969,7 +969,7 @@ class TestAbsToAbs(EventPipelineTestBase):
         )
         # left x to mouse x
         mapping_config = {
-            "event_combination": input_combination.to_config(),
+            "input_combination": input_combination.to_config(),
             "target_uinput": "gamepad",
             "output_type": EV_ABS,
             "output_code": ABS_X,
@@ -1027,7 +1027,7 @@ class TestRelToAbs(EventPipelineTestBase):
         cutoff = 2
         input_combination = InputCombination(InputConfig(type=EV_REL, code=REL_X))
         mapping_config = {
-            "event_combination": input_combination.to_config(),
+            "input_combination": input_combination.to_config(),
             "target_uinput": "gamepad",
             "output_type": EV_ABS,
             "output_code": ABS_X,
@@ -1040,7 +1040,7 @@ class TestRelToAbs(EventPipelineTestBase):
         preset = Preset()
         preset.add(mapping_1)
         input_combination = InputCombination(InputConfig(type=EV_REL, code=REL_Y))
-        mapping_config["event_combination"] = input_combination.to_config()
+        mapping_config["input_combination"] = input_combination.to_config()
         mapping_config["output_code"] = ABS_Y
         mapping_2 = Mapping(**mapping_config)
         preset.add(mapping_2)
@@ -1109,7 +1109,7 @@ class TestRelToAbs(EventPipelineTestBase):
         )
         # left mouse x to x
         mapping_config = {
-            "event_combination": input_combination.to_config(),
+            "input_combination": input_combination.to_config(),
             "target_uinput": "gamepad",
             "output_type": EV_ABS,
             "output_code": ABS_X,
@@ -1163,7 +1163,7 @@ class TestAbsToRel(EventPipelineTestBase):
         # left x to mouse x
         input_config = InputConfig(type=EV_ABS, code=ABS_X)
         mapping_config = {
-            "event_combination": InputCombination(input_config).to_config(),
+            "input_combination": InputCombination(input_config).to_config(),
             "target_uinput": "mouse",
             "output_type": EV_REL,
             "output_code": REL_X,
@@ -1176,7 +1176,7 @@ class TestAbsToRel(EventPipelineTestBase):
         preset.add(mapping_1)
         # left y to mouse y
         input_config = InputConfig(type=EV_ABS, code=ABS_Y)
-        mapping_config["event_combination"] = InputCombination(input_config).to_config()
+        mapping_config["input_combination"] = InputCombination(input_config).to_config()
         mapping_config["output_code"] = REL_Y
         mapping_2 = Mapping(**mapping_config)
         preset.add(mapping_2)
@@ -1238,7 +1238,7 @@ class TestAbsToRel(EventPipelineTestBase):
         # left x to mouse x
         input_config = InputConfig(type=EV_ABS, code=ABS_X)
         mapping_config = {
-            "event_combination": InputCombination(input_config).to_config(),
+            "input_combination": InputCombination(input_config).to_config(),
             "target_uinput": "mouse",
             "output_type": EV_REL,
             "output_code": REL_WHEEL,
@@ -1252,7 +1252,7 @@ class TestAbsToRel(EventPipelineTestBase):
         preset.add(mapping_1)
         # left y to mouse y
         input_config = InputConfig(type=EV_ABS, code=ABS_Y)
-        mapping_config["event_combination"] = InputCombination(input_config).to_config()
+        mapping_config["input_combination"] = InputCombination(input_config).to_config()
         mapping_config["output_code"] = REL_HWHEEL_HI_RES
         mapping_2 = Mapping(**mapping_config)
         preset.add(mapping_2)
@@ -1519,7 +1519,7 @@ class TestRelToRel(EventPipelineTestBase):
 
         input_config = InputConfig(type=EV_REL, code=input_code)
         mapping = Mapping(
-            event_combination=InputCombination(input_config).to_config(),
+            input_combination=InputCombination(input_config).to_config(),
             target_uinput="mouse",
             output_type=EV_REL,
             output_code=output_code,
@@ -1579,7 +1579,7 @@ class TestRelToRel(EventPipelineTestBase):
 
         input_config = InputConfig(type=EV_REL, code=input_code)
         mapping = Mapping(
-            event_combination=InputCombination(input_config).to_config(),
+            input_combination=InputCombination(input_config).to_config(),
             target_uinput="mouse",
             output_type=EV_REL,
             output_code=output_code,
@@ -1628,7 +1628,7 @@ class TestRelToRel(EventPipelineTestBase):
         input_config = InputConfig(type=EV_REL, code=REL_WHEEL_HI_RES)
         gain = 0.01
         mapping = Mapping(
-            event_combination=InputCombination(input_config).to_config(),
+            input_combination=InputCombination(input_config).to_config(),
             target_uinput="mouse",
             output_type=EV_REL,
             output_code=REL_Y,

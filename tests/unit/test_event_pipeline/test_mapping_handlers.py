@@ -98,7 +98,7 @@ class TestAxisSwitchHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
         self.handler = AxisSwitchHandler(
             input_combination,
             Mapping(
-                event_combination=input_combination.to_config(),
+                input_combination=input_combination.to_config(),
                 target_uinput="mouse",
                 output_type=2,
                 output_code=1,
@@ -114,7 +114,7 @@ class TestAbsToBtnHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
         self.handler = AbsToBtnHandler(
             input_combination,
             Mapping(
-                event_combination=input_combination.to_config(),
+                input_combination=input_combination.to_config(),
                 target_uinput="mouse",
                 output_symbol="BTN_LEFT",
             ),
@@ -127,7 +127,7 @@ class TestAbsToAbsHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
         self.handler = AbsToAbsHandler(
             input_combination,
             Mapping(
-                event_combination=input_combination.to_config(),
+                input_combination=input_combination.to_config(),
                 target_uinput="gamepad",
                 output_type=EV_ABS,
                 output_code=ABS_X,
@@ -154,7 +154,7 @@ class TestRelToAbsHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
         self.handler = RelToAbsHandler(
             input_combination,
             Mapping(
-                event_combination=input_combination.to_config(),
+                input_combination=input_combination.to_config(),
                 target_uinput="gamepad",
                 output_type=EV_ABS,
                 output_code=ABS_X,
@@ -222,7 +222,7 @@ class TestAbsToRelHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
         self.handler = AbsToRelHandler(
             input_combination,
             Mapping(
-                event_combination=input_combination.to_config(),
+                input_combination=input_combination.to_config(),
                 target_uinput="mouse",
                 output_type=EV_REL,
                 output_code=REL_X,
@@ -258,7 +258,7 @@ class TestCombinationHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
         self.handler = CombinationHandler(
             input_combination,
             Mapping(
-                event_combination=input_combination.to_config(),
+                input_combination=input_combination.to_config(),
                 target_uinput="mouse",
                 output_symbol="BTN_LEFT",
             ),
@@ -293,7 +293,7 @@ class TestKeyHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
         self.handler = KeyHandler(
             input_combination,
             Mapping(
-                event_combination=input_combination.to_config(),
+                input_combination=input_combination.to_config(),
                 target_uinput="mouse",
                 output_symbol="BTN_LEFT",
             ),
@@ -331,7 +331,7 @@ class TestMacroHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
         self.handler = MacroHandler(
             input_combination,
             Mapping(
-                event_combination=input_combination.to_config(),
+                input_combination=input_combination.to_config(),
                 target_uinput="mouse",
                 output_symbol="hold_keys(BTN_LEFT, BTN_RIGHT)",
             ),
@@ -371,7 +371,7 @@ class TestRelToBtnHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
         self.handler = RelToBtnHandler(
             input_combination,
             Mapping(
-                event_combination=input_combination.to_config(),
+                input_combination=input_combination.to_config(),
                 target_uinput="mouse",
                 output_symbol="BTN_LEFT",
             ),
@@ -386,7 +386,7 @@ class TestRelToRelHanlder(BaseTests, unittest.IsolatedAsyncioTestCase):
         self.handler = RelToRelHandler(
             input_combination,
             Mapping(
-                event_combination=input_combination.to_config(),
+                input_combination=input_combination.to_config(),
                 output_type=EV_REL,
                 output_code=REL_Y,
                 output_value=20,

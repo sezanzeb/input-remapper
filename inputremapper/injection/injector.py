@@ -213,7 +213,7 @@ class Injector(multiprocessing.Process):
         needed_devices = {}
 
         for mapping in self.preset:
-            for event in mapping.event_combination:
+            for event in mapping.input_combination:
                 candidates: List[evdev.InputDevice] = [
                     device
                     for device in devices

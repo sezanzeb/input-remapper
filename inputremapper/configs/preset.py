@@ -114,15 +114,15 @@ class Preset(Generic[MappingModel]):
 
     def add(self, mapping: MappingModel) -> None:
         """Add a mapping to the preset."""
-        for permutation in mapping.event_combination.get_permutations():
+        for permutation in mapping.input_combination.get_permutations():
             if permutation in self._mappings:
                 raise KeyError(
-                    "A mapping with this event_combination: "
+                    "A mapping with this input_combination: "
                     f"{permutation} already exists",
                 )
 
         mapping.set_combination_changed_callback(self._combination_changed_callback)
-        self._mappings[mapping.event_combination] = mapping
+        self._mappings[mapping.input_combination] = mapping
 
     def empty(self) -> None:
         """Remove all mappings and custom configs without saving.
@@ -152,18 +152,18 @@ class Preset(Generic[MappingModel]):
             # the _combination_changed_callback is attached
             self.add(mapping.copy())
 
-    def _is_mapped_multiple_times(self, event_combination: InputCombination) -> bool:
+    def _is_mapped_multiple_times(self, input_combination: InputCombination) -> bool:
         """Check if the event combination maps to multiple mappings."""
-        all_input_combinations = {mapping.event_combination for mapping in self}
-        permutations = set(event_combination.get_permutations())
+        all_input_combinations = {mapping.input_combination for mapping in self}
+        permutations = set(input_combination.get_permutations())
         union = permutations & all_input_combinations
         # if there are more than one matches, then there is a duplicate
         return len(union) > 1
 
-    def _has_valid_event_combination(self, mapping: UIMapping) -> bool:
+    def _has_valid_input_combination(self, mapping: UIMapping) -> bool:
         """Check if the mapping has a valid input event combination."""
-        is_a_combination = isinstance(mapping.event_combination, InputCombination)
-        is_empty = mapping.event_combination == InputCombination.empty_combination()
+        is_a_combination = isinstance(mapping.input_combination, InputCombination)
+        is_empty = mapping.input_combination == InputCombination.empty_combination()
         return is_a_combination and not is_empty
 
     def save(self) -> None:
@@ -184,13 +184,13 @@ class Preset(Generic[MappingModel]):
         saved_mappings = {}
         for mapping in self:
             if not mapping.is_valid():
-                if not self._has_valid_event_combination(mapping):
+                if not self._has_valid_input_combination(mapping):
                     # we save invalid mappings except for those with an invalid
-                    # event_combination
+                    # input_combination
                     logger.debug("skipping invalid mapping %s", mapping)
                     continue
 
-                if self._is_mapped_multiple_times(mapping.event_combination):
+                if self._is_mapped_multiple_times(mapping.input_combination):
                     # todo: is this ever executed? it should not be possible to
                     #  reach this
                     logger.debug(
@@ -200,8 +200,8 @@ class Preset(Generic[MappingModel]):
                     continue
 
             mapping_dict = mapping.dict(exclude_defaults=True)
-            mapping_dict["event_combination"] = mapping.event_combination.to_config()
-            combination = mapping.event_combination
+            mapping_dict["input_combination"] = mapping.input_combination.to_config()
+            combination = mapping.input_combination
             preset_list.append(mapping_dict)
 
             saved_mappings[combination] = mapping.copy()
@@ -238,7 +238,7 @@ class Preset(Generic[MappingModel]):
     def dangerously_mapped_btn_left(self) -> bool:
         """Return True if this mapping disables BTN_Left."""
         if InputCombination(InputConfig.btn_left()) not in [
-            m.event_combination for m in self
+            m.input_combination for m in self
         ]:
             return False
 
@@ -305,7 +305,7 @@ class Preset(Generic[MappingModel]):
                 return config
 
             for c, d in preset_list.items():
-                d["event_combination"] = str_to_cfg(c)
+                d["input_combination"] = str_to_cfg(c)
             preset_list = list(preset_list.values())
 
         for mapping_dict in preset_list:
@@ -315,12 +315,12 @@ class Preset(Generic[MappingModel]):
                 print(mapping_dict)
                 logger.error(
                     "failed to Validate mapping for %s: %s",
-                    mapping_dict["event_combination"],
+                    mapping_dict["input_combination"],
                     error,
                 )
                 continue
 
-            mappings[mapping.event_combination] = mapping
+            mappings[mapping.input_combination] = mapping
         return mappings
 
     @property

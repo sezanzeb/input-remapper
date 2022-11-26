@@ -581,7 +581,7 @@ class TestDataManager(unittest.TestCase):
 
         # we expect a message for combination update first, and then for mapping
         self.data_manager.update_mapping(
-            event_combination=InputCombination(get_combination_config((1, 5), (1, 6)))
+            input_combination=InputCombination(get_combination_config((1, 5), (1, 6)))
         )
         self.assertEqual(listener.calls[0].message_type, MessageType.combination_update)
         self.assertEqual(
@@ -594,7 +594,7 @@ class TestDataManager(unittest.TestCase):
         )
         self.assertEqual(listener.calls[1].message_type, MessageType.mapping)
         self.assertEqual(
-            listener.calls[1].event_combination,
+            listener.calls[1].input_combination,
             InputCombination(get_combination_config((1, 5), (1, 6))),
         )
 
@@ -611,7 +611,7 @@ class TestDataManager(unittest.TestCase):
         self.assertRaises(
             KeyError,
             self.data_manager.update_mapping,
-            event_combination=InputCombination(InputConfig(type=1, code=3)),
+            input_combination=InputCombination(InputConfig(type=1, code=3)),
         )
 
     def test_cannot_update_mapping(self):

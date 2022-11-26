@@ -95,7 +95,7 @@ def parse_mappings(preset: Preset, context: ContextProtocol) -> EventPipelines:
             continue
 
         output_handler = constructor(
-            mapping.event_combination,
+            mapping.input_combination,
             mapping,
             context=context,
         )
@@ -193,7 +193,7 @@ def _get_output_handler(mapping: Mapping) -> HandlerEnums:
     if mapping.output_type == EV_KEY:
         return HandlerEnums.key
 
-    input_event = _maps_axis(mapping.event_combination)
+    input_event = _maps_axis(mapping.input_combination)
     if not input_event:
         raise MappingParsingError(
             f"This {mapping = } does not map to an axis, key or macro",

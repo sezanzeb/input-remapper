@@ -94,7 +94,7 @@ class TestEventReader(unittest.IsolatedAsyncioTestCase):
 
         # left x to mouse x
         cfg = {
-            "event_combination": get_combination_config((EV_ABS, ABS_X, 0)),
+            "input_combination": get_combination_config((EV_ABS, ABS_X, 0)),
             "target_uinput": "mouse",
             "output_type": EV_REL,
             "output_code": REL_X,
@@ -102,17 +102,17 @@ class TestEventReader(unittest.IsolatedAsyncioTestCase):
         self.preset.add(Mapping(**cfg))
 
         # left y to mouse y
-        cfg["event_combination"] = get_combination_config((EV_ABS, ABS_Y, 0))
+        cfg["input_combination"] = get_combination_config((EV_ABS, ABS_Y, 0))
         cfg["output_code"] = REL_Y
         self.preset.add(Mapping(**cfg))
 
         # right x to wheel x
-        cfg["event_combination"] = get_combination_config((EV_ABS, ABS_RX, 0))
+        cfg["input_combination"] = get_combination_config((EV_ABS, ABS_RX, 0))
         cfg["output_code"] = REL_HWHEEL_HI_RES
         self.preset.add(Mapping(**cfg))
 
         # right y to wheel y
-        cfg["event_combination"] = get_combination_config((EV_ABS, ABS_RY, 0))
+        cfg["input_combination"] = get_combination_config((EV_ABS, ABS_RY, 0))
         cfg["output_code"] = REL_WHEEL_HI_RES
         self.preset.add(Mapping(**cfg))
 

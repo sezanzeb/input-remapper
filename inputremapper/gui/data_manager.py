@@ -132,7 +132,7 @@ class DataManager:
         outside DataManager
         """
         if self.active_input_config:
-            assert self.active_input_config in self.active_mapping.event_combination
+            assert self.active_input_config in self.active_mapping.input_combination
             self.message_broker.publish(self.active_input_config)
 
     def publish_uinputs(self):
@@ -344,10 +344,10 @@ class DataManager:
         """
         if not self.active_mapping:
             raise DataManagementError("Unable to load event. Mapping is not set")
-        if input_config not in self.active_mapping.event_combination:
+        if input_config not in self.active_mapping.input_combination:
             raise ValueError(
-                f"{input_config} is not member of active_mapping.event_combination: "
-                f"{self.active_mapping.event_combination}"
+                f"{input_config} is not member of active_mapping.input_combination: "
+                f"{self.active_mapping.input_combination}"
             )
         self._active_input_config = input_config
         self.publish_event()
@@ -438,7 +438,7 @@ class DataManager:
         """Update the active mapping with the given keywords and values.
 
         Will send "mapping" message to the MessageBroker. In case of a new
-        event_combination. This will first send a "combination_update" message.
+        input_combination. This will first send a "combination_update" message.
         """
         if not self._active_mapping:
             raise DataManagementError("Cannot modify Mapping: Mapping is not set")
@@ -446,17 +446,17 @@ class DataManager:
         if symbol := kwargs.get("output_symbol"):
             kwargs["output_symbol"] = self._system_mapping.correct_case(symbol)
 
-        combination = self.active_mapping.event_combination
+        combination = self.active_mapping.input_combination
         for key, value in kwargs.items():
             setattr(self._active_mapping, key, value)
 
         if (
-            "event_combination" in kwargs
-            and combination != self.active_mapping.event_combination
+            "input_combination" in kwargs
+            and combination != self.active_mapping.input_combination
         ):
             self._active_input_config = None
             self.message_broker.publish(
-                CombinationUpdate(combination, self._active_mapping.event_combination)
+                CombinationUpdate(combination, self._active_mapping.input_combination)
             )
 
         if "mapping_type" in kwargs:
@@ -475,9 +475,9 @@ class DataManager:
         if not self.active_mapping or not self.active_input_config:
             raise DataManagementError("Cannot modify event: Event is not set")
 
-        combination = list(self.active_mapping.event_combination)
+        combination = list(self.active_mapping.input_combination)
         combination[combination.index(self.active_input_config)] = new_input_config
-        self.update_mapping(event_combination=InputCombination(combination))
+        self.update_mapping(input_combination=InputCombination(combination))
         self._active_input_config = new_input_config
         self.publish_event()
 
@@ -501,7 +501,7 @@ class DataManager:
                 "cannot delete active mapping: active mapping is not set"
             )
 
-        self._active_preset.remove(self._active_mapping.event_combination)
+        self._active_preset.remove(self._active_mapping.input_combination)
         self._active_mapping = None
         self.publish_preset()
 

@@ -43,13 +43,13 @@ class TestContext(unittest.TestCase):
     def test_callbacks(self):
         preset = Preset()
         cfg = {
-            "event_combination": get_combination_config((EV_ABS, ABS_X)),
+            "input_combination": get_combination_config((EV_ABS, ABS_X)),
             "target_uinput": "mouse",
             "output_type": EV_REL,
             "output_code": REL_HWHEEL_HI_RES,
         }
         preset.add(Mapping(**cfg))  # abs x -> wheel
-        cfg["event_combination"] = get_combination_config((EV_ABS, ABS_Y))
+        cfg["input_combination"] = get_combination_config((EV_ABS, ABS_Y))
         cfg["output_code"] = REL_WHEEL_HI_RES
         preset.add(Mapping(**cfg))  # abs y -> wheel
 

@@ -378,15 +378,15 @@ class UserInterface:
     def update_combination_label(self, mapping: MappingData):
         """Listens for mapping and updates the combination label."""
         label: Gtk.Label = self.get("combination-label")
-        if mapping.event_combination.beautify() == label.get_label():
+        if mapping.input_combination.beautify() == label.get_label():
             return
-        if mapping.event_combination == InputCombination.empty_combination():
+        if mapping.input_combination == InputCombination.empty_combination():
             label.set_opacity(0.5)
             label.set_label(_("no input configured"))
             return
 
         label.set_opacity(1)
-        label.set_label(mapping.event_combination.beautify())
+        label.set_label(mapping.input_combination.beautify())
 
     def on_gtk_shortcut(self, _, event: Gdk.EventKey):
         """Execute shortcuts."""

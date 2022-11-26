@@ -277,7 +277,7 @@ class ReaderService:
             for ev_code in capabilities.get(EV_ABS) or ():
                 # positive direction
                 mapping = UIMapping(
-                    event_combination=InputCombination(
+                    input_combination=InputCombination(
                         InputConfig(type=EV_ABS, code=ev_code, analog_threshold=30)
                     ),
                     target_uinput="keyboard",
@@ -293,7 +293,7 @@ class ReaderService:
 
                 # negative direction
                 mapping = UIMapping(
-                    event_combination=InputCombination(
+                    input_combination=InputCombination(
                         InputConfig(type=EV_ABS, code=ev_code, analog_threshold=-30)
                     ),
                     target_uinput="keyboard",
@@ -310,7 +310,7 @@ class ReaderService:
             for ev_code in capabilities.get(EV_REL) or ():
                 # positive direction
                 mapping = UIMapping(
-                    event_combination=InputCombination(
+                    input_combination=InputCombination(
                         InputConfig(
                             type=EV_REL,
                             code=ev_code,
@@ -336,7 +336,7 @@ class ReaderService:
 
                 # negative direction
                 mapping = UIMapping(
-                    event_combination=InputCombination(
+                    input_combination=InputCombination(
                         InputConfig(
                             type=EV_REL,
                             code=ev_code,

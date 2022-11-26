@@ -33,7 +33,7 @@ class NullHandler(MappingHandler):
     """Handler which consumes the event and does nothing."""
 
     def __str__(self):
-        return f"NullHandler for {self.mapping.event_combination}<{id(self)}>"
+        return f"NullHandler for {self.mapping.input_combination}<{id(self)}>"
 
     @property
     def child(self):

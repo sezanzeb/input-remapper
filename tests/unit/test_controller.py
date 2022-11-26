@@ -762,7 +762,7 @@ class TestController(unittest.TestCase):
         self.data_manager.load_preset("foo")
         self.data_manager.create_mapping()
         self.data_manager.update_mapping(
-            event_combination=InputCombination(InputConfig.btn_left()),
+            input_combination=InputCombination(InputConfig.btn_left()),
             target_uinput="keyboard",
             output_symbol="a",
         )
@@ -788,7 +788,7 @@ class TestController(unittest.TestCase):
         self.data_manager.load_preset("foo")
         self.data_manager.create_mapping()
         self.data_manager.update_mapping(
-            event_combination=InputCombination(InputConfig.btn_left()),
+            input_combination=InputCombination(InputConfig.btn_left()),
             target_uinput="keyboard",
             output_symbol="a",
         )
@@ -805,14 +805,14 @@ class TestController(unittest.TestCase):
         self.data_manager.load_preset("foo")
         self.data_manager.create_mapping()
         self.data_manager.update_mapping(
-            event_combination=InputCombination(InputConfig.btn_left()),
+            input_combination=InputCombination(InputConfig.btn_left()),
             target_uinput="keyboard",
             output_symbol="a",
         )
         self.data_manager.create_mapping()
         self.data_manager.load_mapping(InputCombination.empty_combination())
         self.data_manager.update_mapping(
-            event_combination=InputCombination(InputConfig(type=1, code=5)),
+            input_combination=InputCombination(InputConfig(type=1, code=5)),
             target_uinput="mouse",
             output_symbol="BTN_LEFT",
         )
@@ -949,7 +949,7 @@ class TestController(unittest.TestCase):
         self.data_manager.load_preset("preset2")
         self.data_manager.load_mapping(InputCombination(get_combination_config((1, 3))))
         self.data_manager.update_mapping(
-            event_combination=InputCombination(
+            input_combination=InputCombination(
                 get_combination_config((1, 1), (1, 2), (1, 3))
             )
         )
@@ -958,7 +958,7 @@ class TestController(unittest.TestCase):
             InputConfig(type=1, code=2), "up"
         )
         self.assertEqual(
-            self.data_manager.active_mapping.event_combination,
+            self.data_manager.active_mapping.input_combination,
             InputCombination(get_combination_config((1, 2), (1, 1), (1, 3))),
         )
         # now nothing changes
@@ -966,7 +966,7 @@ class TestController(unittest.TestCase):
             InputConfig(type=1, code=2), "up"
         )
         self.assertEqual(
-            self.data_manager.active_mapping.event_combination,
+            self.data_manager.active_mapping.input_combination,
             InputCombination(get_combination_config((1, 2), (1, 1), (1, 3))),
         )
 
@@ -976,7 +976,7 @@ class TestController(unittest.TestCase):
         self.data_manager.load_preset("preset2")
         self.data_manager.load_mapping(InputCombination(get_combination_config((1, 3))))
         self.data_manager.update_mapping(
-            event_combination=InputCombination(
+            input_combination=InputCombination(
                 get_combination_config((1, 1), (1, 2), (1, 3))
             )
         )
@@ -985,7 +985,7 @@ class TestController(unittest.TestCase):
             InputConfig(type=1, code=2), "down"
         )
         self.assertEqual(
-            self.data_manager.active_mapping.event_combination,
+            self.data_manager.active_mapping.input_combination,
             InputCombination(get_combination_config((1, 1), (1, 3), (1, 2))),
         )
         # now nothing changes
@@ -993,7 +993,7 @@ class TestController(unittest.TestCase):
             InputConfig(type=1, code=2), "down"
         )
         self.assertEqual(
-            self.data_manager.active_mapping.event_combination,
+            self.data_manager.active_mapping.input_combination,
             InputCombination(get_combination_config((1, 1), (1, 3), (1, 2))),
         )
 
@@ -1006,7 +1006,7 @@ class TestController(unittest.TestCase):
             InputConfig(type=1, code=3), "down"
         )
         self.assertEqual(
-            self.data_manager.active_mapping.event_combination,
+            self.data_manager.active_mapping.input_combination,
             InputCombination(get_combination_config((1, 3))),
         )
 
@@ -1016,7 +1016,7 @@ class TestController(unittest.TestCase):
         self.data_manager.load_preset("preset2")
         self.data_manager.load_mapping(InputCombination(get_combination_config((1, 3))))
         self.data_manager.update_mapping(
-            event_combination=InputCombination(
+            input_combination=InputCombination(
                 get_combination_config((1, 1), (1, 2), (1, 3))
             )
         )
@@ -1067,17 +1067,17 @@ class TestController(unittest.TestCase):
         self.data_manager.load_preset("preset2")
         self.data_manager.load_mapping(InputCombination(get_combination_config((1, 3))))
         self.data_manager.update_mapping(
-            event_combination=get_combination_config((1, 3), (1, 4))
+            input_combination=get_combination_config((1, 3), (1, 4))
         )
         self.assertEqual(
-            self.data_manager.active_mapping.event_combination,
+            self.data_manager.active_mapping.input_combination,
             InputCombination(get_combination_config((1, 3), (1, 4))),
         )
         self.data_manager.load_input_config(InputConfig(type=1, code=4))
 
         self.controller.remove_event()
         self.assertEqual(
-            self.data_manager.active_mapping.event_combination,
+            self.data_manager.active_mapping.input_combination,
             InputCombination(get_combination_config((1, 3))),
         )
 
@@ -1087,10 +1087,10 @@ class TestController(unittest.TestCase):
         self.data_manager.load_preset("preset2")
         self.data_manager.load_mapping(InputCombination(get_combination_config((1, 3))))
         self.data_manager.update_mapping(
-            event_combination=get_combination_config((1, 3), (1, 4))
+            input_combination=get_combination_config((1, 3), (1, 4))
         )
         self.assertEqual(
-            self.data_manager.active_mapping.event_combination,
+            self.data_manager.active_mapping.input_combination,
             InputCombination(get_combination_config((1, 3), (1, 4))),
         )
         self.data_manager.load_input_config(InputConfig(type=1, code=4))
@@ -1106,7 +1106,7 @@ class TestController(unittest.TestCase):
         self.data_manager.load_preset("preset2")
         self.data_manager.load_mapping(InputCombination(get_combination_config((1, 3))))
         self.data_manager.update_mapping(
-            event_combination=get_combination_config((1, 3), (1, 4))
+            input_combination=get_combination_config((1, 3), (1, 4))
         )
         self.data_manager.load_input_config(InputConfig(type=1, code=3))
 
@@ -1127,7 +1127,7 @@ class TestController(unittest.TestCase):
         self.data_manager.load_group("Foo Device 2")
         self.data_manager.load_preset("preset2")
         self.data_manager.update_mapping(
-            event_combination=get_combination_config((3, 0, 10))
+            input_combination=get_combination_config((3, 0, 10))
         )
         self.data_manager.load_mapping(
             InputCombination(get_combination_config((3, 0, 10)))
@@ -1150,7 +1150,7 @@ class TestController(unittest.TestCase):
         self.data_manager.load_preset("preset2")
         self.data_manager.load_mapping(InputCombination(get_combination_config((1, 3))))
         self.data_manager.update_mapping(
-            event_combination=get_combination_config((3, 0, 10))
+            input_combination=get_combination_config((3, 0, 10))
         )
         self.data_manager.load_input_config(
             InputConfig(type=3, code=0, analog_threshold=10)
@@ -1158,7 +1158,7 @@ class TestController(unittest.TestCase):
 
         self.controller.set_event_as_analog(True)
         self.assertEqual(
-            self.data_manager.active_mapping.event_combination,
+            self.data_manager.active_mapping.input_combination,
             InputCombination(get_combination_config((3, 0))),
         )
 
@@ -1168,7 +1168,7 @@ class TestController(unittest.TestCase):
         self.data_manager.load_preset("preset2")
         self.data_manager.load_mapping(InputCombination(get_combination_config((1, 3))))
         self.data_manager.update_mapping(
-            event_combination=get_combination_config((2, 0))
+            input_combination=get_combination_config((2, 0))
         )
         self.data_manager.load_input_config(InputConfig(type=2, code=0))
 
@@ -1177,7 +1177,7 @@ class TestController(unittest.TestCase):
             InputCombination(get_combination_config((2, 0, 1))),
             InputCombination(get_combination_config((2, 0, -1))),
         ]
-        self.assertIn(self.data_manager.active_mapping.event_combination, combinations)
+        self.assertIn(self.data_manager.active_mapping.input_combination, combinations)
 
     def test_set_event_as_analog_adds_abs_threshold(self):
         prepare_presets()
@@ -1185,7 +1185,7 @@ class TestController(unittest.TestCase):
         self.data_manager.load_preset("preset2")
         self.data_manager.load_mapping(InputCombination(get_combination_config((1, 3))))
         self.data_manager.update_mapping(
-            event_combination=get_combination_config((3, 0))
+            input_combination=get_combination_config((3, 0))
         )
         self.data_manager.load_input_config(InputConfig(type=3, code=0))
 
@@ -1194,7 +1194,7 @@ class TestController(unittest.TestCase):
             InputCombination(get_combination_config((3, 0, 10))),
             InputCombination(get_combination_config((3, 0, -10))),
         ]
-        self.assertIn(self.data_manager.active_mapping.event_combination, combinations)
+        self.assertIn(self.data_manager.active_mapping.input_combination, combinations)
 
     def test_set_event_as_analog_reloads_mapping_and_event_when_key_event(self):
         prepare_presets()
@@ -1219,7 +1219,7 @@ class TestController(unittest.TestCase):
         self.data_manager.load_preset("preset2")
         self.data_manager.load_mapping(InputCombination(get_combination_config((1, 3))))
         self.data_manager.update_mapping(
-            event_combination=get_combination_config((3, 0, 10))
+            input_combination=get_combination_config((3, 0, 10))
         )
         self.data_manager.load_input_config(
             InputConfig(type=3, code=0, analog_threshold=10)
@@ -1242,7 +1242,7 @@ class TestController(unittest.TestCase):
         self.data_manager.load_preset("preset2")
         self.data_manager.load_mapping(InputCombination(get_combination_config((1, 3))))
         self.data_manager.update_mapping(
-            event_combination=get_combination_config((3, 0))
+            input_combination=get_combination_config((3, 0))
         )
         self.data_manager.load_input_config(InputConfig(type=3, code=0))
 
@@ -1294,7 +1294,7 @@ class TestController(unittest.TestCase):
         self.data_manager.load_preset("preset2")
         self.data_manager.load_mapping(InputCombination(get_combination_config((1, 3))))
         self.data_manager.update_mapping(
-            event_combination=get_combination_config((1, 3), (2, 1, 1)),
+            input_combination=get_combination_config((1, 3), (2, 1, 1)),
             output_symbol=None,
         )
         request: UserConfirmRequest = None
@@ -1313,7 +1313,7 @@ class TestController(unittest.TestCase):
         self.data_manager.load_preset("preset2")
         self.data_manager.load_mapping(InputCombination(get_combination_config((1, 3))))
         self.data_manager.update_mapping(
-            event_combination=get_combination_config((1, 3), (2, 1, 1)),
+            input_combination=get_combination_config((1, 3), (2, 1, 1)),
             output_symbol=None,
         )
 
@@ -1325,7 +1325,7 @@ class TestController(unittest.TestCase):
             mock.assert_called_once_with(
                 mapping_type="analog",
                 output_symbol=None,
-                event_combination=InputCombination(
+                input_combination=InputCombination(
                     get_combination_config((1, 3), (2, 1))
                 ),
             )
@@ -1344,7 +1344,7 @@ class TestController(unittest.TestCase):
             mock.assert_not_called()
 
         self.data_manager.update_mapping(
-            event_combination=get_combination_config((1, 3), (2, 1)),
+            input_combination=get_combination_config((1, 3), (2, 1)),
             output_symbol=None,
             mapping_type="analog",
         )
@@ -1371,7 +1371,7 @@ class TestController(unittest.TestCase):
         self.data_manager.load_preset("preset2")
         self.data_manager.load_mapping(InputCombination(get_combination_config((1, 3))))
         self.data_manager.update_mapping(
-            event_combination=get_combination_config((1, 3), (2, 1)),
+            input_combination=get_combination_config((1, 3), (2, 1)),
             output_symbol=None,
             mapping_type="analog",
         )
@@ -1391,7 +1391,7 @@ class TestController(unittest.TestCase):
         self.data_manager.load_preset("preset2")
         self.data_manager.load_mapping(InputCombination(get_combination_config((1, 3))))
         self.data_manager.update_mapping(
-            event_combination=get_combination_config((1, 3), (2, 1)),
+            input_combination=get_combination_config((1, 3), (2, 1)),
             output_symbol=None,
         )
         mock = MagicMock()
@@ -1405,7 +1405,7 @@ class TestController(unittest.TestCase):
         self.data_manager.load_preset("preset2")
         self.data_manager.load_mapping(InputCombination(get_combination_config((1, 3))))
         self.data_manager.update_mapping(
-            event_combination=get_combination_config((1, 3), (2, 1, 1)),
+            input_combination=get_combination_config((1, 3), (2, 1, 1)),
             mapping_type="analog",
             output_symbol=None,
         )
@@ -1420,7 +1420,7 @@ class TestController(unittest.TestCase):
         self.data_manager.load_preset("preset2")
         self.data_manager.load_mapping(InputCombination(get_combination_config((1, 3))))
         self.data_manager.update_mapping(
-            event_combination=get_combination_config((1, 3), (2, 1)),
+            input_combination=get_combination_config((1, 3), (2, 1)),
             output_symbol=None,
             mapping_type="analog",
         )

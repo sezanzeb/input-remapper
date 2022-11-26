@@ -298,7 +298,7 @@ def _input_combination_from_string(combination_string: str) -> InputCombination:
 def _convert_to_individual_mappings():
     """Convert preset.json
     from {key: [symbol, target]}
-    to [{event_combination: ..., output_symbol: symbol, ...}]
+    to [{input_combination: ..., output_symbol: symbol, ...}]
     """
 
     for preset_path, old_preset in all_presets():
@@ -323,7 +323,7 @@ def _convert_to_individual_mappings():
                     continue
 
                 mapping = UIMapping(
-                    event_combination=combination,
+                    input_combination=combination,
                     target_uinput=symbol_target[1],
                     output_symbol=symbol_target[0],
                 )
@@ -345,7 +345,7 @@ def _convert_to_individual_mappings():
             y_scroll_speed = joystick_dict.get("y_scroll_speed")
 
             cfg = {
-                "event_combination": None,
+                "input_combination": None,
                 "target_uinput": "mouse",
                 "output_type": EV_REL,
                 "output_code": None,
@@ -354,10 +354,10 @@ def _convert_to_individual_mappings():
             if left_purpose == "mouse":
                 x_config = cfg.copy()
                 y_config = cfg.copy()
-                x_config["event_combination"] = InputCombination(
+                x_config["input_combination"] = InputCombination(
                     InputConfig(type=EV_ABS, code=ABS_X)
                 )
-                y_config["event_combination"] = InputCombination(
+                y_config["input_combination"] = InputCombination(
                     InputConfig(type=EV_ABS, code=ABS_Y)
                 )
                 x_config["output_code"] = REL_X
@@ -373,10 +373,10 @@ def _convert_to_individual_mappings():
             if right_purpose == "mouse":
                 x_config = cfg.copy()
                 y_config = cfg.copy()
-                x_config["event_combination"] = InputCombination(
+                x_config["input_combination"] = InputCombination(
                     InputConfig(type=EV_ABS, code=ABS_RX)
                 )
-                y_config["event_combination"] = InputCombination(
+                y_config["input_combination"] = InputCombination(
                     InputConfig(type=EV_ABS, code=ABS_RY)
                 )
                 x_config["output_code"] = REL_X
@@ -392,10 +392,10 @@ def _convert_to_individual_mappings():
             if left_purpose == "wheel":
                 x_config = cfg.copy()
                 y_config = cfg.copy()
-                x_config["event_combination"] = InputCombination(
+                x_config["input_combination"] = InputCombination(
                     InputConfig(type=EV_ABS, code=ABS_X)
                 )
-                y_config["event_combination"] = InputCombination(
+                y_config["input_combination"] = InputCombination(
                     InputConfig(type=EV_ABS, code=ABS_Y)
                 )
                 x_config["output_code"] = REL_HWHEEL_HI_RES
@@ -412,10 +412,10 @@ def _convert_to_individual_mappings():
             if right_purpose == "wheel":
                 x_config = cfg.copy()
                 y_config = cfg.copy()
-                x_config["event_combination"] = InputCombination(
+                x_config["input_combination"] = InputCombination(
                     InputConfig(type=EV_ABS, code=ABS_RX)
                 )
-                y_config["event_combination"] = InputCombination(
+                y_config["input_combination"] = InputCombination(
                     InputConfig(type=EV_ABS, code=ABS_RY)
                 )
                 x_config["output_code"] = REL_HWHEEL_HI_RES

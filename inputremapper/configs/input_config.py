@@ -70,7 +70,7 @@ class InputConfig(BaseModel):
         return (
             f"{self.get_name()} "
             f"{self.get_direction() if not exclude_direction else ''} "
-            f"{self.get_threshold() if not exclude_threshold else ''}".strip()
+            f"{self._get_threshold_str() if not exclude_threshold else ''}".strip()
         )
 
     def get_name(self) -> Optional[str]:
@@ -161,7 +161,7 @@ class InputConfig(BaseModel):
             "+" if self.analog_threshold > 0 else "-"
         )
 
-    def get_threshold(self) -> str:
+    def _get_threshold_str(self) -> str:
         if self.analog_threshold is None:
             return ""
         return {

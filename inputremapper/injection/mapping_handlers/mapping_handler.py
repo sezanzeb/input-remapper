@@ -147,7 +147,7 @@ class MappingHandler:
 
     mapping: Mapping
     # all input events this handler cares about
-    # should always be a subset of mapping.event_combination
+    # should always be a subset of mapping.input_combination
     input_configs: List[InputConfig]
     _sub_handler: Optional[InputEventHandler]
 

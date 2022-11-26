@@ -92,7 +92,7 @@ class TestUserInterface(unittest.TestCase):
     def test_combination_label_shows_combination(self):
         self.message_broker.publish(
             MappingData(
-                event_combination=InputCombination(
+                input_combination=InputCombination(
                     InputConfig(type=EV_KEY, code=KEY_A)
                 ),
                 name="foo",

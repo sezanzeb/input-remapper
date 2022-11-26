@@ -323,7 +323,7 @@ def get_ui_mapping(combination=None, target_uinput="keyboard", output_symbol="a"
         combination = get_combination_config((99, 99))
 
     return UIMapping(
-        event_combination=combination,
+        input_combination=combination,
         target_uinput=target_uinput,
         output_symbol=output_symbol,
     )
@@ -337,7 +337,7 @@ def get_key_mapping(combination=None, target_uinput="keyboard", output_symbol="a
         combination = [{"type": 99, "code": 99, "analog_threshold": 99}]
 
     return Mapping(
-        event_combination=combination,
+        input_combination=combination,
         target_uinput=target_uinput,
         output_symbol=output_symbol,
     )

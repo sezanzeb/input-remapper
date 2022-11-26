@@ -177,14 +177,14 @@ class MappingListBox:
                 self._message_broker,
                 self._controller,
                 mapping.format_name(),
-                mapping.event_combination,
+                mapping.input_combination,
             )
             self._gui.insert(selection_label, -1)
         self._gui.invalidate_sort()
 
     def _on_mapping_changed(self, mapping: MappingData):
         with HandlerDisabled(self._gui, self._on_gtk_mapping_selected):
-            combination = mapping.event_combination
+            combination = mapping.input_combination
 
             for row in self._gui.get_children():
                 if row.combination == combination:
@@ -287,7 +287,7 @@ class MappingSelectionLabel(Gtk.ListBoxRow):
         self._controller.set_focus(self.name_input)
 
     def _on_mapping_changed(self, mapping: MappingData):
-        if mapping.event_combination != self.combination:
+        if mapping.input_combination != self.combination:
             self._set_not_selected()
             return
         self.name = mapping.format_name()
@@ -708,7 +708,7 @@ class InputConfigEntry(Gtk.ListBoxRow):
 
 
 class CombinationListbox:
-    """The ListBox with all the events inside active_mapping.event_combination."""
+    """The ListBox with all the events inside active_mapping.input_combination."""
 
     def __init__(
         self,
@@ -738,7 +738,7 @@ class CombinationListbox:
                 self._gui.select_row(row)
 
     def _on_mapping_changed(self, mapping: MappingData):
-        if self._combination == mapping.event_combination:
+        if self._combination == mapping.input_combination:
             return
 
         event_entries = self._gui.get_children()
@@ -748,7 +748,7 @@ class CombinationListbox:
         if self._controller.is_empty_mapping():
             self._combination = None
         else:
-            self._combination = mapping.event_combination
+            self._combination = mapping.input_combination
             for event in self._combination:
                 self._gui.insert(InputConfigEntry(event, self._controller), -1)
 
@@ -857,7 +857,7 @@ class ReleaseTimeoutInput:
         self._message_broker.subscribe(MessageType.mapping, self._on_mapping_message)
 
     def _on_mapping_message(self, mapping: MappingData):
-        if EV_REL in [event.type for event in mapping.event_combination]:
+        if EV_REL in [event.type for event in mapping.input_combination]:
             self._gui.set_sensitive(True)
             self._gui.set_opacity(1)
         else:
@@ -891,7 +891,7 @@ class RelativeInputCutoffInput:
 
     def _on_mapping_message(self, mapping: MappingData):
         if (
-            EV_REL in [event.type for event in mapping.event_combination]
+            EV_REL in [event.type for event in mapping.input_combination]
             and mapping.output_type == EV_ABS
         ):
             self._gui.set_sensitive(True)
