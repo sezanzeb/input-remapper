@@ -211,28 +211,28 @@ class InputConfig(BaseModel):
 
 InputCombinationInit = Union[
     InputConfig,
-    Iterable[Dict[str, Union[int, None]]],
+    Iterable[Dict[str, int]],
     Iterable[InputConfig],
 ]
 
 
-class InputCombination(Tuple[InputConfig]):
+class InputCombination(Tuple[InputConfig, ...]):
     """One or more InputConfig's used to trigger a mapping"""
 
     # tuple is immutable, therefore we need to override __new__()
     # https://jfine-python-classes.readthedocs.io/en/latest/subclass-tuple.html
     def __new__(cls, configs: InputCombinationInit) -> InputCombination:
         if isinstance(configs, InputCombination):
-            validated_configs = configs
-        elif isinstance(configs, InputConfig):
-            validated_configs = [configs]
-        else:
-            validated_configs = []
-            for cfg in configs:
-                if isinstance(cfg, InputConfig):
-                    validated_configs.append(cfg)
-                else:
-                    validated_configs.append(InputConfig(**cfg))
+            return super().__new__(cls, configs)  # type: ignore
+        if isinstance(configs, InputConfig):
+            return super().__new__(cls, [configs])  # type: ignore
+
+        validated_configs = []
+        for cfg in configs:
+            if isinstance(cfg, InputConfig):
+                validated_configs.append(cfg)
+            else:
+                validated_configs.append(InputConfig(**cfg))
 
         if len(validated_configs) == 0:
             raise ValueError(f"failed to create InputCombination with {configs = }")
@@ -287,7 +287,7 @@ class InputCombination(Tuple[InputConfig]):
     @property
     def defines_analog_input(self) -> bool:
         """Check if there is any analog input in self."""
-        return True in filter(lambda i: i.defines_analog_input, self)
+        return True in tuple(i.defines_analog_input for i in self)
 
     def find_analog_input_config(
         self, type_: Optional[int] = None
