@@ -193,7 +193,8 @@ class Injector(multiprocessing.Process):
     def _find_input_device(
         devices: List[evdev.InputDevice], input_config: InputConfig
     ) -> Optional[evdev.InputDevice]:
-        devices_by_hash = {get_device_hash: device for device in devices}
+        devices_by_hash = {get_device_hash(device): device for device in devices}
+        logger.debug(f"possible devices: {devices_by_hash}")
 
         def has_type_and_code(device, type, code) -> bool:
             return code in device.capabilities(absinfo=False).get(type, [])

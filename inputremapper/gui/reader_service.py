@@ -50,6 +50,7 @@ from typing import Set, List
 
 import evdev
 from evdev.ecodes import EV_KEY, EV_ABS, EV_REL, REL_HWHEEL, REL_WHEEL
+from inputremapper.utils import get_device_hash
 
 from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.mapping import UIMapping
@@ -267,98 +268,81 @@ class ReaderService:
         context = ContextDummy()
         # create a context for each source
         for device in sources:
+            device_hash = get_device_hash(device)
             capabilities = device.capabilities(absinfo=False)
 
             for ev_code in capabilities.get(EV_KEY) or ():
-                context.notify_callbacks[(EV_KEY, ev_code)].append(
+                input_config = InputConfig(
+                    type=EV_KEY, code=ev_code, origin=device_hash
+                )
+                context.notify_callbacks[input_config.input_match_hash].append(
                     ForwardToUIHandler(self._results_pipe).notify
                 )
 
             for ev_code in capabilities.get(EV_ABS) or ():
                 # positive direction
+                input_config = InputConfig(
+                    type=EV_ABS, code=ev_code, analog_threshold=30, origin=device_hash
+                )
                 mapping = UIMapping(
-                    input_combination=InputCombination(
-                        InputConfig(type=EV_ABS, code=ev_code, analog_threshold=30)
-                    ),
+                    input_combination=InputCombination(input_config),
                     target_uinput="keyboard",
                 )
                 handler: MappingHandler = AbsToBtnHandler(
-                    InputCombination(
-                        InputConfig(type=EV_ABS, code=ev_code, analog_threshold=30)
-                    ),
-                    mapping,
+                    InputCombination(input_config), mapping
                 )
                 handler.set_sub_handler(ForwardToUIHandler(self._results_pipe))
-                context.notify_callbacks[(EV_ABS, ev_code)].append(handler.notify)
+                context.notify_callbacks[input_config.input_match_hash].append(
+                    handler.notify
+                )
 
                 # negative direction
+                input_config = input_config.modify(analog_threshold=-30)
                 mapping = UIMapping(
-                    input_combination=InputCombination(
-                        InputConfig(type=EV_ABS, code=ev_code, analog_threshold=-30)
-                    ),
+                    input_combination=InputCombination(input_config),
                     target_uinput="keyboard",
                 )
-                handler = AbsToBtnHandler(
-                    InputCombination(
-                        InputConfig(type=EV_ABS, code=ev_code, analog_threshold=-30)
-                    ),
-                    mapping,
-                )
+                handler = AbsToBtnHandler(InputCombination(input_config), mapping)
                 handler.set_sub_handler(ForwardToUIHandler(self._results_pipe))
-                context.notify_callbacks[(EV_ABS, ev_code)].append(handler.notify)
+                context.notify_callbacks[input_config.input_match_hash].append(
+                    handler.notify
+                )
 
             for ev_code in capabilities.get(EV_REL) or ():
                 # positive direction
+                input_config = InputConfig(
+                    type=EV_REL,
+                    code=ev_code,
+                    analog_threshold=self.rel_xy_speed[ev_code],
+                    origin=device_hash,
+                )
                 mapping = UIMapping(
-                    input_combination=InputCombination(
-                        InputConfig(
-                            type=EV_REL,
-                            code=ev_code,
-                            analog_threshold=self.rel_xy_speed[ev_code],
-                        )
-                    ),
+                    input_combination=InputCombination(input_config),
                     target_uinput="keyboard",
                     release_timeout=0.3,
                     force_release_timeout=True,
                 )
-                handler = RelToBtnHandler(
-                    InputCombination(
-                        InputConfig(
-                            type=EV_REL,
-                            code=ev_code,
-                            analog_threshold=self.rel_xy_speed[ev_code],
-                        )
-                    ),
-                    mapping,
-                )
+                handler = RelToBtnHandler(InputCombination(input_config), mapping)
                 handler.set_sub_handler(ForwardToUIHandler(self._results_pipe))
-                context.notify_callbacks[(EV_REL, ev_code)].append(handler.notify)
+                context.notify_callbacks[input_config.input_match_hash].append(
+                    handler.notify
+                )
 
                 # negative direction
+                input_config = input_config.modify(
+                    analog_threshold=-self.rel_xy_speed[ev_code]
+                )
                 mapping = UIMapping(
-                    input_combination=InputCombination(
-                        InputConfig(
-                            type=EV_REL,
-                            code=ev_code,
-                            analog_threshold=-self.rel_xy_speed[ev_code],
-                        )
-                    ),
+                    input_combination=InputCombination(input_config),
                     target_uinput="keyboard",
                     release_timeout=0.3,
                     force_release_timeout=True,
                 )
-                handler = RelToBtnHandler(
-                    InputCombination(
-                        InputConfig(
-                            type=EV_REL,
-                            code=ev_code,
-                            analog_threshold=-self.rel_xy_speed[ev_code],
-                        )
-                    ),
-                    mapping,
-                )
+                handler = RelToBtnHandler(InputCombination(input_config), mapping)
                 handler.set_sub_handler(ForwardToUIHandler(self._results_pipe))
-                context.notify_callbacks[(EV_REL, ev_code)].append(handler.notify)
+                context.notify_callbacks[input_config.input_match_hash].append(
+                    handler.notify
+                )
 
         return context
 
@@ -402,13 +386,14 @@ class ForwardToUIHandler:
             self.pipe.send(
                 {
                     "type": MSG_EVENT,
-                    "message": (
-                        event.sec,
-                        event.usec,
-                        event.type,
-                        event.code,
-                        event.value,
-                    ),
+                    "message": {
+                        "sec": event.sec,
+                        "usec": event.usec,
+                        "type": event.type,
+                        "code": event.code,
+                        "value": event.value,
+                        "origin": event.origin,
+                    },
                 }
             )
         return True

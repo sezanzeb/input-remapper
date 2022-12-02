@@ -21,7 +21,8 @@
 """Utility functions."""
 
 import sys
-from typing import Optional, Hashable
+from hashlib import md5
+from typing import Optional
 
 import evdev
 
@@ -30,8 +31,13 @@ def is_service() -> bool:
     return sys.argv[0].endswith("input-remapper-service")
 
 
-def get_device_hash(device: evdev.InputDevice) -> int:
-    return hash(str(device.capabilities(absinfo=False)) + device.name)
+def get_device_hash(device: evdev.InputDevice) -> str:
+    """get a unique hash for the given device"""
+    # the builtin hash() function can not be used because it is randomly
+    # seeded at python startup.
+    # a non-cryptographic hash would be faster but there is none in the standard lib
+    s = str(device.capabilities(absinfo=False)) + device.name
+    return md5(s.encode()).hexdigest()
 
 
 def get_evdev_constant_name(type_: int, code: int, *_) -> Optional[str]:

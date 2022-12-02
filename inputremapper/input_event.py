@@ -53,7 +53,7 @@ class InputEvent:
     code: int
     value: int
     actions: Tuple[EventActions, ...] = ()
-    origin: Optional[int] = None
+    origin: Optional[str] = None
 
     def __eq__(self, other: InputEvent | evdev.InputEvent | Tuple[int, int, int]):
         # useful in tests

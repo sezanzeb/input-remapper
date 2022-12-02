@@ -48,7 +48,7 @@ class InputConfig(BaseModel):
 
     type: int
     code: int
-    origin: Optional[int] = None
+    origin: Optional[str] = None
     analog_threshold: Optional[int] = None
 
     @property
