@@ -93,7 +93,7 @@ class AbsToBtnHandler(MappingHandler):
         forward: evdev.UInput,
         suppress: bool = False,
     ) -> bool:
-        if event.type_and_code != self._input_config.type_and_code:
+        if event.input_match_hash != self._input_config.input_match_hash:
             return False
 
         absinfo = {

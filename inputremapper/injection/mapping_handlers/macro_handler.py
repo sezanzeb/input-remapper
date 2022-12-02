@@ -70,7 +70,6 @@ class MacroHandler(MappingHandler):
             logger.error('Macro "%s" failed: %s', self._macro.code, exception)
 
     def notify(self, event: InputEvent, *_, **__) -> bool:
-
         if event.value == 1:
             self._active = True
             self._macro.press_trigger()

@@ -89,6 +89,7 @@ class RelToBtnHandler(MappingHandler):
             *self._input_config.type_and_code,
             value=0,
             actions=(EventActions.as_key,),
+            origin=self._input_config.origin,
         )
         logger.debug_key(event.event_tuple, "sending to sub_handler")
         self._sub_handler.notify(event, source, forward, suppress)
@@ -103,7 +104,7 @@ class RelToBtnHandler(MappingHandler):
     ) -> bool:
 
         assert event.type == EV_REL
-        if event.type_and_code != self._input_config.type_and_code:
+        if event.input_match_hash != self._input_config.input_match_hash:
             return False
 
         threshold = self._input_config.analog_threshold

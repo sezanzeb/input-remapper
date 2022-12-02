@@ -17,7 +17,7 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-from typing import Dict, Tuple
+from typing import Dict, Tuple, Hashable
 
 import evdev
 from evdev.ecodes import EV_ABS, EV_REL
@@ -36,8 +36,8 @@ from inputremapper.logger import logger
 class CombinationHandler(MappingHandler):
     """Keeps track of a combination and notifies a sub handler."""
 
-    # map of (event.type, event.code) -> bool , keep track of the combination state
-    _pressed_keys: Dict[Tuple[int, int], bool]
+    # map of InputEvent.input_match_hash -> bool , keep track of the combination state
+    _pressed_keys: Dict[Hashable, bool]
     _output_state: bool  # the last update we sent to a sub-handler
     _sub_handler: InputEventHandler
 
@@ -55,7 +55,7 @@ class CombinationHandler(MappingHandler):
         # prepare a key map for all events with non-zero value
         for input_config in combination:
             assert not input_config.defines_analog_input
-            self._pressed_keys[input_config.type_and_code] = False
+            self._pressed_keys[input_config.input_match_hash] = False
 
         assert len(self._pressed_keys) > 0  # no combination handler without a key
 
@@ -79,12 +79,11 @@ class CombinationHandler(MappingHandler):
         forward: evdev.UInput,
         suppress: bool = False,
     ) -> bool:
-        type_code = event.type_and_code
-        if type_code not in self._pressed_keys.keys():
+        if event.input_match_hash not in self._pressed_keys.keys():
             return False  # we are not responsible for the event
 
         last_state = self.get_active()
-        self._pressed_keys[type_code] = event.value == 1
+        self._pressed_keys[event.input_match_hash] = event.value == 1
 
         if self.get_active() == last_state or self.get_active() == self._output_state:
             # nothing changed
@@ -136,8 +135,13 @@ class CombinationHandler(MappingHandler):
         """
         if len(self._pressed_keys) == 1 or not self.mapping.release_combination_keys:
             return
-        for type_and_code in self._pressed_keys:
-            forward.write(*type_and_code, 0)
+
+        keys_to_release = filter(
+            lambda cfg: self._pressed_keys.get(cfg.input_match_hash),
+            self.mapping.input_combination,
+        )
+        for input_config in keys_to_release:
+            forward.write(*input_config.type_and_code, 0)
         forward.syn()
 
     def needs_ranking(self) -> bool:

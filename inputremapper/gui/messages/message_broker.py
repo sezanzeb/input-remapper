@@ -65,7 +65,10 @@ class MessageBroker:
 
     def signal(self, signal: MessageType):
         """Send a signal without any data payload."""
-        self.publish(Signal(signal))
+        # This is different from calling self.publish because self.get_caller()
+        # looks back at the current stack 3 frames
+        self._messages.append((Signal(signal), *self.get_caller()))
+        self._publish_all()
 
     def _publish(self, data: Message, file: str, line: int):
         logger.debug(

@@ -33,7 +33,7 @@ from evdev.ecodes import (
     REL_HWHEEL_HI_RES,
 )
 
-from inputremapper.configs.input_config import InputCombination
+from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.mapping import (
     Mapping,
     REL_XY_SCALING,
@@ -124,7 +124,7 @@ async def _run_wheel_output(self, codes: Tuple[int, int]) -> None:
 class AbsToRelHandler(MappingHandler):
     """Handler which transforms an EV_ABS to EV_REL events."""
 
-    _map_axis: Tuple[int, int]  # the input (type, code) of the axis we map
+    _map_axis: InputConfig  # the InputConfig for the axis we map
     _value: float  # the current output value
     _running: bool  # if the run method is active
     _stop: bool  # if the run loop should return
@@ -140,7 +140,7 @@ class AbsToRelHandler(MappingHandler):
 
         # find the input event we are supposed to map
         assert (map_axis := combination.find_analog_input_config(type_=EV_ABS))
-        self._map_axis = map_axis.type_and_code
+        self._map_axis = map_axis
 
         self._value = 0
         self._running = False
@@ -165,7 +165,7 @@ class AbsToRelHandler(MappingHandler):
             self._run = partial(_run_normal_output, self)
 
     def __str__(self):
-        name = get_evdev_constant_name(*self._map_axis)
+        name = get_evdev_constant_name(*self._map_axis.type_and_code)
         return f'AbsToRelHandler for "{name}" {self._map_axis} <{id(self)}>:'
 
     def __repr__(self):
@@ -186,7 +186,7 @@ class AbsToRelHandler(MappingHandler):
         forward: evdev.UInput = None,
         suppress: bool = False,
     ) -> bool:
-        if event.type_and_code != self._map_axis:
+        if event.input_match_hash != self._map_axis.input_match_hash:
             return False
 
         if EventActions.recenter in event.actions:

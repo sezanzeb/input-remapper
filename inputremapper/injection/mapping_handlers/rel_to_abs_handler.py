@@ -30,7 +30,7 @@ from evdev.ecodes import (
     REL_WHEEL_HI_RES,
 )
 
-from inputremapper.configs.input_config import InputCombination
+from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper import exceptions
 from inputremapper.configs.mapping import (
     Mapping,
@@ -58,7 +58,7 @@ class RelToAbsHandler(MappingHandler):
     release_timeout.
     """
 
-    _map_axis: Tuple[int, int]  # (type, code) of the relative movement we map
+    _map_axis: InputConfig  # InputConfig for the relative movement we map
     _output_axis: Tuple[int, int]  # the (type, code) of the output axis
     _transform: Transformation
     _target_absinfo: evdev.AbsInfo
@@ -81,7 +81,7 @@ class RelToAbsHandler(MappingHandler):
         # find the input event we are supposed to map. If the input combination is
         # BTN_A + REL_X + BTN_B, then use the value of REL_X for the transformation
         assert (map_axis := combination.find_analog_input_config(type_=EV_REL))
-        self._map_axis = map_axis.type_and_code
+        self._map_axis = map_axis
 
         assert mapping.output_code is not None
         assert mapping.output_type == EV_ABS
@@ -139,10 +139,10 @@ class RelToAbsHandler(MappingHandler):
 
     def _get_default_cutoff(self):
         """Get the cutoff value assuming the default input rate."""
-        if self._map_axis[1] in [REL_WHEEL, REL_HWHEEL]:
+        if self._map_axis.code in [REL_WHEEL, REL_HWHEEL]:
             return self.mapping.rel_to_abs_input_cutoff * WHEEL_SCALING
 
-        if self._map_axis[1] in [REL_WHEEL_HI_RES, REL_HWHEEL_HI_RES]:
+        if self._map_axis.code in [REL_WHEEL_HI_RES, REL_HWHEEL_HI_RES]:
             return self.mapping.rel_to_abs_input_cutoff * WHEEL_HI_RES_SCALING
 
         return self.mapping.rel_to_abs_input_cutoff * REL_XY_SCALING
@@ -166,7 +166,7 @@ class RelToAbsHandler(MappingHandler):
     ) -> bool:
         self._observe_rate(event)
 
-        if event.type_and_code != self._map_axis:
+        if event.input_match_hash != self._map_axis.input_match_hash:
             return False
 
         if EventActions.recenter in event.actions:

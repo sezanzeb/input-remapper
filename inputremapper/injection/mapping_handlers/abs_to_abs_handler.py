@@ -22,7 +22,7 @@ from typing import Tuple, Optional, Dict
 import evdev
 from evdev.ecodes import EV_ABS
 
-from inputremapper.configs.input_config import InputCombination
+from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper import exceptions
 from inputremapper.configs.mapping import Mapping
 from inputremapper.injection.global_uinputs import global_uinputs
@@ -40,7 +40,7 @@ from inputremapper.utils import get_evdev_constant_name
 class AbsToAbsHandler(MappingHandler):
     """Handler which transforms EV_ABS to EV_ABS events."""
 
-    _map_axis: Tuple[int, int]  # the (type, code) of the axis we map
+    _map_axis: InputConfig  # the InputConfig for the axis we map
     _output_axis: Tuple[int, int]  # the (type, code) of the output axis
     _transform: Optional[Transformation]
     _target_absinfo: evdev.AbsInfo
@@ -56,7 +56,7 @@ class AbsToAbsHandler(MappingHandler):
         # find the input event we are supposed to map. If the input combination is
         # BTN_A + ABS_X + BTN_B, then use the value of ABS_X for the transformation
         assert (map_axis := combination.find_analog_input_config(type_=EV_ABS))
-        self._map_axis = map_axis.type_and_code
+        self._map_axis = map_axis
 
         assert mapping.output_code is not None
         assert mapping.output_type == EV_ABS
@@ -69,7 +69,7 @@ class AbsToAbsHandler(MappingHandler):
         self._transform = None
 
     def __str__(self):
-        name = get_evdev_constant_name(*self._map_axis)
+        name = get_evdev_constant_name(*self._map_axis.type_and_code)
         return f'AbsToAbsHandler for "{name}" {self._map_axis} <{id(self)}>:'
 
     def __repr__(self):
@@ -91,7 +91,7 @@ class AbsToAbsHandler(MappingHandler):
         suppress: bool = False,
     ) -> bool:
 
-        if event.type_and_code != self._map_axis:
+        if event.input_match_hash != self._map_axis.input_match_hash:
             return False
 
         if EventActions.recenter in event.actions:

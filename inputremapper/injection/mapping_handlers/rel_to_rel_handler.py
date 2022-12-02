@@ -97,9 +97,9 @@ class RelToRelHandler(MappingHandler):
 
         # find the input event we are supposed to map. If the input combination is
         # BTN_A + REL_X + BTN_B, then use the value of REL_X for the transformation
-        input_event = combination.find_analog_input_config(type_=EV_REL)
-        assert input_event is not None
-        self._input_config = input_event
+        input_config = combination.find_analog_input_config(type_=EV_REL)
+        assert input_config is not None
+        self._input_config = input_config
 
         self._max_observed_input = 1
 
@@ -127,7 +127,7 @@ class RelToRelHandler(MappingHandler):
 
     def _should_map(self, event: InputEvent):
         """Check if this input event is relevant for this handler."""
-        return event.type_and_code == self._input_config.type_and_code
+        return event.input_match_hash == self._input_config.input_match_hash
 
     def notify(
         self,

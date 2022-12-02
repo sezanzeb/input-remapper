@@ -63,7 +63,7 @@ class KeyHandler(MappingHandler):
 
     @property
     def child(self):  # used for logging
-        name = get_evdev_constant_name(*self._map_axis)
+        name = get_evdev_constant_name(*self._maps_to)
         return f"maps to: {name} {self._maps_to} on {self.mapping.target_uinput}"
 
     def notify(self, event: InputEvent, *_, **__) -> bool:
