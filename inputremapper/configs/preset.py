@@ -76,7 +76,7 @@ class Preset(Generic[MappingModel]):
 
     def __iter__(self) -> Iterator[MappingModel]:
         """Iterate over Mapping objects."""
-        return iter(self._mappings.values())
+        return iter(self._mappings.copy().values())
 
     def __len__(self) -> int:
         return len(self._mappings)

@@ -20,7 +20,7 @@
 from __future__ import annotations
 
 import itertools
-from typing import Tuple, Iterable, Union, List, Dict, Optional
+from typing import Tuple, Iterable, Union, List, Dict, Optional, Hashable
 
 from evdev import ecodes
 from pydantic import BaseModel, root_validator, validator
@@ -50,6 +50,16 @@ class InputConfig(BaseModel):
     code: int
     origin: Optional[int] = None
     analog_threshold: Optional[int] = None
+
+    @property
+    def input_match_hash(self) -> Hashable:
+        """a Hashable object which is intended to match the InputConfig with a
+        InputEvent.
+
+        InputConfig itself is hashable, but can not be used to match InputEvent's
+        because its hash includes the analog_threshold
+        """
+        return self.type, self.code, self.origin
 
     @property
     def defines_analog_input(self) -> bool:

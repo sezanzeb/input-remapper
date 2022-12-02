@@ -32,7 +32,7 @@ from typing import Dict, List, Optional, Tuple, Union
 
 import evdev
 
-from inputremapper.configs.input_config import InputCombination
+from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.preset import Preset
 from inputremapper.groups import (
     _Group,
@@ -44,6 +44,7 @@ from inputremapper.injection.context import Context
 from inputremapper.injection.event_reader import EventReader
 from inputremapper.injection.numlock import set_numlock, is_numlock_on, ensure_numlock
 from inputremapper.logger import logger
+from inputremapper.utils import get_device_hash
 
 CapabilitiesDict = Dict[int, List[int]]
 GroupSources = List[evdev.InputDevice]
@@ -188,7 +189,23 @@ class Injector(multiprocessing.Process):
 
     """Process internal stuff."""
 
-    def _grab_devices(self) -> GroupSources:
+    @staticmethod
+    def _find_input_device(
+        devices: List[evdev.InputDevice], input_config: InputConfig
+    ) -> Optional[evdev.InputDevice]:
+        devices_by_hash = {get_device_hash: device for device in devices}
+
+        def has_type_and_code(device, type, code) -> bool:
+            return code in device.capabilities(absinfo=False).get(type, [])
+
+        if device := devices_by_hash.get(input_config.origin):
+            if has_type_and_code(device, *input_config.type_and_code):
+                return device
+
+        """Fallback logic"""
+        logger.warning(
+            f"Can not find correct device for {input_config.origin} " f"trying fallback"
+        )
         ranking = [
             DeviceType.KEYBOARD,
             DeviceType.GAMEPAD,
@@ -198,6 +215,23 @@ class Injector(multiprocessing.Process):
             DeviceType.CAMERA,
             DeviceType.UNKNOWN,
         ]
+        candidates: List[evdev.InputDevice] = [
+            device
+            for device in devices
+            if input_config.code
+            in device.capabilities(absinfo=False).get(input_config.type, [])
+        ]
+        if len(candidates) > 1:
+            # there is more than on input device which can be used for this
+            # event we choose only one determined by the ranking
+            return sorted(candidates, key=lambda d: ranking.index(classify(d)))[0]
+        elif len(candidates) == 1:
+            return candidates.pop()
+
+        logger.error(f"Could not find input for {input_config}")
+        return None
+
+    def _grab_devices(self) -> GroupSources:
 
         # all devices in this group
         devices: List[evdev.InputDevice] = []
@@ -213,25 +247,20 @@ class Injector(multiprocessing.Process):
         needed_devices = {}
 
         for mapping in self.preset:
-            for event in mapping.input_combination:
-                candidates: List[evdev.InputDevice] = [
-                    device
-                    for device in devices
-                    if event.code
-                    in device.capabilities(absinfo=False).get(event.type, [])
-                ]
-                if len(candidates) > 1:
-                    # there is more than on input device which can be used for this
-                    # event we choose only one determined by the ranking
-                    device = sorted(
-                        candidates, key=lambda d: ranking.index(classify(d))
-                    )[0]
-                elif len(candidates) == 1:
-                    device = candidates.pop()
-                else:
-                    logger.error("Could not find input for %s in %s", event, mapping)
-                    continue
-                needed_devices[device.path] = device
+            update_configs = {}
+            for input_config in mapping.input_combination:
+                if device := self._find_input_device(devices, input_config):
+                    needed_devices[device.path] = device
+                    if input_config.origin is None:
+                        update_configs[input_config] = input_config.modify(
+                            origin=get_device_hash(device)
+                        )
+
+            if update_configs:
+                combination = list(mapping.input_combination)
+                for old, new in update_configs.items():
+                    combination[combination.index(old)] = new
+                mapping.input_combination = combination
 
         grabbed_devices = []
         for device in needed_devices.values():
@@ -324,15 +353,15 @@ class Injector(multiprocessing.Process):
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
 
+        # grab devices as early as possible. If events appear that won't get
+        # released anymore before the grab they appear to be held down forever
+        # This also updates the mappings with origin information for each input_config
+        sources = self._grab_devices()
+
         # create this within the process after the event loop creation,
         # so that the macros use the correct loop
         self.context = Context(self.preset)
         self._stop_event = asyncio.Event()
-
-        # grab devices as early as possible. If events appear that won't get
-        # released anymore before the grab they appear to be held down
-        # forever
-        sources = self._grab_devices()
 
         if len(sources) == 0:
             # maybe the preset was empty or something

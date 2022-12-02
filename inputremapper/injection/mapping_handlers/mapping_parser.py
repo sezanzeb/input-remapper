@@ -24,7 +24,7 @@ from typing import Dict, List, Type, Optional, Set, Iterable, Sized, Tuple, Sequ
 
 from evdev.ecodes import EV_KEY, EV_ABS, EV_REL
 
-from inputremapper.configs.input_config import InputCombination
+from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.mapping import Mapping
 from inputremapper.configs.preset import Preset
 from inputremapper.configs.system_mapping import DISABLE_CODE, DISABLE_NAME
@@ -56,7 +56,7 @@ from inputremapper.input_event import InputEvent
 from inputremapper.logger import logger
 from inputremapper.utils import get_evdev_constant_name
 
-EventPipelines = Dict[InputEvent, Set[InputEventHandler]]
+EventPipelines = Dict[InputConfig, Set[InputEventHandler]]
 
 mapping_handler_classes: Dict[HandlerEnums, Optional[Type[MappingHandler]]] = {
     # all available mapping_handlers
@@ -130,14 +130,14 @@ def parse_mappings(preset: Preset, context: ContextProtocol) -> EventPipelines:
     event_pipelines: EventPipelines = defaultdict(set)
     for handler in handlers:
         assert handler.input_configs
-        for event in handler.input_configs:
+        for input_config in handler.input_configs:
             logger.debug(
                 "event-pipeline with entry point: %s %s",
-                get_evdev_constant_name(*event.type_and_code),
-                event.type_and_code,
+                get_evdev_constant_name(*input_config.type_and_code),
+                input_config.input_match_hash,
             )
             logger.debug_mapping_handler(handler)
-            event_pipelines[event].add(handler)
+            event_pipelines[input_config].add(handler)
 
     return event_pipelines
 

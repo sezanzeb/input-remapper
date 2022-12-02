@@ -21,7 +21,7 @@ from __future__ import annotations
 
 import enum
 from dataclasses import dataclass
-from typing import Tuple, Optional
+from typing import Tuple, Optional, Hashable
 
 import evdev
 from evdev import ecodes
@@ -63,11 +63,27 @@ class InputEvent:
             return self.event_tuple == other
         raise TypeError(f"cannot compare {type(other)} with InputEvent")
 
+    @property
+    def input_match_hash(self) -> Hashable:
+        """a Hashable object which is intended to match the InputEvent with a
+        InputConfig.
+        """
+        return self.type, self.code, self.origin
+
     @classmethod
-    def from_event(cls, event: evdev.InputEvent) -> InputEvent:
+    def from_event(
+        cls, event: evdev.InputEvent, origin: Optional[int] = None
+    ) -> InputEvent:
         """Create a InputEvent from another InputEvent or evdev.InputEvent."""
         try:
-            return cls(event.sec, event.usec, event.type, event.code, event.value)
+            return cls(
+                event.sec,
+                event.usec,
+                event.type,
+                event.code,
+                event.value,
+                origin=origin,
+            )
         except AttributeError as exception:
             raise TypeError(
                 f"Failed to create InputEvent from {event = }"
