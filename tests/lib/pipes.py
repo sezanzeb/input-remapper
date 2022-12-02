@@ -66,8 +66,6 @@ def push_event(fixture: Fixture, event, force: bool = False):
     fixture
         For example 'Foo Device'
     event
-    force
-        don't check if the event is in fixture.capabilities
     """
     setup_pipe(fixture)
     if not force and (

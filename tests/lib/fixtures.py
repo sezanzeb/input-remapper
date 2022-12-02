@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import dataclasses
 import json
+from hashlib import md5
 from typing import Dict, Optional, Tuple
 
 import time
@@ -47,6 +48,10 @@ class Fixture:
 
     def __hash__(self):
         return hash(self.path)
+
+    def get_device_hash(self):
+        s = str(self.capabilities) + self.name
+        return md5(s.encode()).hexdigest()
 
 
 class _Fixtures:

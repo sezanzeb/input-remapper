@@ -17,6 +17,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
+from inputremapper.configs.input_config import InputConfig
 
 from tests.lib.cleanup import quick_cleanup
 from tests.lib.fixtures import get_key_mapping, get_combination_config
@@ -77,17 +78,15 @@ class TestContext(unittest.TestCase):
 
         # expected callbacks and their lengths:
         callbacks = {
-            (
-                EV_ABS,
-                ABS_X,
-            ): 2,  # ABS_X -> "d" and ABS_X -> wheel have the same type and code
-            (EV_ABS, ABS_Y): 1,
-            (1, 31): 1,
+            # ABS_X -> "d" and ABS_X -> wheel have the same type and code
+            InputConfig(type=EV_ABS, code=ABS_X).input_match_hash: 2,
+            InputConfig(type=EV_ABS, code=ABS_Y).input_match_hash: 1,
+            InputConfig(type=1, code=31).input_match_hash: 1,
             # even though we have 2 mappings with this type and code, we only expect one callback
             # because they both map to keys. We don't want to trigger two mappings with the same key press
-            (1, 32): 1,
-            (1, 33): 1,
-            (1, 34): 1,
+            InputConfig(type=1, code=32).input_match_hash: 1,
+            InputConfig(type=1, code=33).input_match_hash: 1,
+            InputConfig(type=1, code=34).input_match_hash: 1,
         }
         self.assertEqual(set(callbacks.keys()), set(context.notify_callbacks.keys()))
         for key, val in callbacks.items():

@@ -38,6 +38,7 @@ from evdev.ecodes import (
     REL_X,
     ABS_X,
     REL_HWHEEL,
+    BTN_LEFT,
 )
 
 from inputremapper.configs.input_config import InputCombination, InputConfig
@@ -139,10 +140,32 @@ class TestReader(unittest.TestCase):
         self.assertEqual(
             [
                 CombinationRecorded(
-                    InputCombination(InputConfig(type=3, code=16, analog_threshold=1))
+                    InputCombination(
+                        InputConfig(
+                            type=3,
+                            code=16,
+                            analog_threshold=1,
+                            origin=fixtures.foo_device_2_gamepad.get_device_hash(),
+                        )
+                    )
                 ),
                 CombinationRecorded(
-                    InputCombination(get_combination_config((3, 16, 1), (2, 0, 1)))
+                    InputCombination(
+                        (
+                            InputConfig(
+                                type=3,
+                                code=16,
+                                analog_threshold=1,
+                                origin=fixtures.foo_device_2_gamepad.get_device_hash(),
+                            ),
+                            InputConfig(
+                                type=2,
+                                code=0,
+                                analog_threshold=1,
+                                origin=fixtures.foo_device_2_mouse.get_device_hash(),
+                            ),
+                        )
+                    )
                 ),
             ],
             l1.calls,
@@ -172,7 +195,14 @@ class TestReader(unittest.TestCase):
         self.assertEqual(
             [
                 CombinationRecorded(
-                    InputCombination(InputConfig(type=2, code=0, analog_threshold=-1))
+                    InputCombination(
+                        InputConfig(
+                            type=2,
+                            code=0,
+                            analog_threshold=-1,
+                            origin=fixtures.foo_device_2_mouse.get_device_hash(),
+                        )
+                    )
                 )
             ],
             l1.calls,
@@ -212,10 +242,32 @@ class TestReader(unittest.TestCase):
         self.assertEqual(
             [
                 CombinationRecorded(
-                    InputCombination(InputConfig(type=2, code=8, analog_threshold=-1))
+                    InputCombination(
+                        InputConfig(
+                            type=2,
+                            code=8,
+                            analog_threshold=-1,
+                            origin=fixtures.foo_device_2_mouse.get_device_hash(),
+                        )
+                    )
                 ),
                 CombinationRecorded(
-                    InputCombination(get_combination_config((2, 8, -1), (2, 6, 1)))
+                    InputCombination(
+                        (
+                            InputConfig(
+                                type=2,
+                                code=8,
+                                analog_threshold=-1,
+                                origin=fixtures.foo_device_2_mouse.get_device_hash(),
+                            ),
+                            InputConfig(
+                                type=2,
+                                code=6,
+                                analog_threshold=1,
+                                origin=fixtures.foo_device_2_mouse.get_device_hash(),
+                            ),
+                        )
+                    )
                 ),
             ],
             l1.calls,
@@ -239,7 +291,14 @@ class TestReader(unittest.TestCase):
         self.assertEqual(
             [
                 CombinationRecorded(
-                    InputCombination(InputConfig(type=1, code=30, analog_threshold=1))
+                    InputCombination(
+                        InputConfig(
+                            type=1,
+                            code=30,
+                            analog_threshold=1,
+                            origin=fixtures.foo_device_2_keyboard.get_device_hash(),
+                        )
+                    )
                 )
             ],
             l1.calls,
@@ -264,7 +323,14 @@ class TestReader(unittest.TestCase):
         self.assertEqual(
             [
                 CombinationRecorded(
-                    InputCombination(InputConfig(type=3, code=0, analog_threshold=1))
+                    InputCombination(
+                        InputConfig(
+                            type=3,
+                            code=0,
+                            analog_threshold=1,
+                            origin=fixtures.foo_device_2_gamepad.get_device_hash(),
+                        )
+                    )
                 )
             ],
             l1.calls,
@@ -281,7 +347,14 @@ class TestReader(unittest.TestCase):
         self.assertEqual(
             [
                 CombinationRecorded(
-                    InputCombination(InputConfig(type=3, code=0, analog_threshold=1))
+                    InputCombination(
+                        InputConfig(
+                            type=3,
+                            code=0,
+                            analog_threshold=1,
+                            origin=fixtures.foo_device_2_gamepad.get_device_hash(),
+                        )
+                    )
                 )
             ],
             l1.calls,
@@ -314,18 +387,74 @@ class TestReader(unittest.TestCase):
         self.reader_client._read()
         self.assertEqual(
             [
-                CombinationRecorded(InputCombination(get_combination_config((1, 30)))),
-                CombinationRecorded(
-                    InputCombination(get_combination_config((1, 30), (3, 0, 1)))
-                ),
                 CombinationRecorded(
                     InputCombination(
-                        get_combination_config((1, 30), (3, 0, 1), (1, 51))
+                        InputConfig(
+                            type=EV_KEY,
+                            code=KEY_A,
+                            origin=fixtures.foo_device_2_keyboard.get_device_hash(),
+                        )
                     )
                 ),
                 CombinationRecorded(
                     InputCombination(
-                        get_combination_config((1, 30), (3, 0, -1), (1, 51))
+                        (
+                            InputConfig(
+                                type=EV_KEY,
+                                code=KEY_A,
+                                origin=fixtures.foo_device_2_keyboard.get_device_hash(),
+                            ),
+                            InputConfig(
+                                type=EV_ABS,
+                                code=ABS_X,
+                                analog_threshold=1,
+                                origin=fixtures.foo_device_2_gamepad.get_device_hash(),
+                            ),
+                        )
+                    )
+                ),
+                CombinationRecorded(
+                    InputCombination(
+                        (
+                            InputConfig(
+                                type=EV_KEY,
+                                code=KEY_A,
+                                origin=fixtures.foo_device_2_keyboard.get_device_hash(),
+                            ),
+                            InputConfig(
+                                type=EV_ABS,
+                                code=ABS_X,
+                                analog_threshold=1,
+                                origin=fixtures.foo_device_2_gamepad.get_device_hash(),
+                            ),
+                            InputConfig(
+                                type=EV_KEY,
+                                code=KEY_COMMA,
+                                origin=fixtures.foo_device_2_keyboard.get_device_hash(),
+                            ),
+                        )
+                    )
+                ),
+                CombinationRecorded(
+                    InputCombination(
+                        (
+                            InputConfig(
+                                type=EV_KEY,
+                                code=KEY_A,
+                                origin=fixtures.foo_device_2_keyboard.get_device_hash(),
+                            ),
+                            InputConfig(
+                                type=EV_ABS,
+                                code=ABS_X,
+                                analog_threshold=-1,
+                                origin=fixtures.foo_device_2_gamepad.get_device_hash(),
+                            ),
+                            InputConfig(
+                                type=EV_KEY,
+                                code=KEY_COMMA,
+                                origin=fixtures.foo_device_2_keyboard.get_device_hash(),
+                            ),
+                        )
                     )
                 ),
             ],
@@ -360,7 +489,13 @@ class TestReader(unittest.TestCase):
         self.reader_client._read()
         self.assertEqual(
             l1.calls[0].combination,
-            InputCombination(InputConfig(type=EV_KEY, code=1)),
+            InputCombination(
+                InputConfig(
+                    type=EV_KEY,
+                    code=1,
+                    origin=fixtures.foo_device_2_keyboard.get_device_hash(),
+                )
+            ),
         )
 
         self.reader_client.set_group(self.groups.find(name="Bar Device"))
@@ -377,7 +512,11 @@ class TestReader(unittest.TestCase):
         self.reader_client._read()
         self.assertEqual(
             l1.calls[1].combination,
-            InputCombination(InputConfig(type=EV_KEY, code=2)),
+            InputCombination(
+                InputConfig(
+                    type=EV_KEY, code=2, origin=fixtures.bar_device.get_device_hash()
+                )
+            ),
         )
 
     def test_reading_2(self):
@@ -423,10 +562,23 @@ class TestReader(unittest.TestCase):
         self.assertEqual(
             l1.calls[-1].combination,
             InputCombination(
-                get_combination_config(
-                    (EV_KEY, CODE_1),
-                    (EV_KEY, CODE_3),
-                    (EV_ABS, ABS_HAT0X, -1),
+                (
+                    InputConfig(
+                        type=EV_KEY,
+                        code=CODE_1,
+                        origin=fixtures.foo_device_2_keyboard.get_device_hash(),
+                    ),
+                    InputConfig(
+                        type=EV_KEY,
+                        code=CODE_3,
+                        origin=fixtures.foo_device_2_keyboard.get_device_hash(),
+                    ),
+                    InputConfig(
+                        type=EV_ABS,
+                        code=ABS_HAT0X,
+                        analog_threshold=-1,
+                        origin=fixtures.foo_device_2_gamepad.get_device_hash(),
+                    ),
                 )
             ),
         )
@@ -439,7 +591,7 @@ class TestReader(unittest.TestCase):
             fixtures.foo_device_2_mouse,
             [
                 new_event(EV_KEY, BTN_TOOL_DOUBLETAP, 1),
-                new_event(EV_KEY, CODE_2, 1),
+                new_event(EV_KEY, BTN_LEFT, 1),
                 new_event(EV_KEY, BTN_TOOL_DOUBLETAP, 1),
             ],
             force=True,
@@ -451,7 +603,13 @@ class TestReader(unittest.TestCase):
         self.reader_client._read()
         self.assertEqual(
             l1.calls[-1].combination,
-            InputCombination(InputConfig(type=EV_KEY, code=CODE_2)),
+            InputCombination(
+                InputConfig(
+                    type=EV_KEY,
+                    code=BTN_LEFT,
+                    origin=fixtures.foo_device_2_mouse.get_device_hash(),
+                )
+            ),
         )
 
     def test_ignore_value_2(self):
@@ -471,7 +629,12 @@ class TestReader(unittest.TestCase):
         self.assertEqual(
             l1.calls[-1].combination,
             InputCombination(
-                InputConfig(type=EV_ABS, code=ABS_HAT0X, analog_threshold=1)
+                InputConfig(
+                    type=EV_ABS,
+                    code=ABS_HAT0X,
+                    analog_threshold=1,
+                    origin=fixtures.foo_device_2_gamepad.get_device_hash(),
+                )
             ),
         )
 
@@ -493,7 +656,13 @@ class TestReader(unittest.TestCase):
         self.reader_client._read()
         self.assertEqual(
             l1.calls[-1].combination,
-            InputCombination(InputConfig(type=EV_KEY, code=CODE_2)),
+            InputCombination(
+                InputConfig(
+                    type=EV_KEY,
+                    code=CODE_2,
+                    origin=fixtures.foo_device_2_keyboard.get_device_hash(),
+                )
+            ),
         )
 
     def test_wrong_device(self):

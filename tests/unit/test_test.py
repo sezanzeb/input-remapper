@@ -17,6 +17,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
+from inputremapper.utils import get_device_hash
 
 from inputremapper.gui.messages.message_broker import MessageBroker
 from tests.lib.fixtures import new_event
@@ -130,6 +131,12 @@ class TestTest(unittest.TestCase):
         self.assertTrue(reader_client._results_pipe.poll())
 
         reader_client.terminate()
+
+    def test_device_hash_from_fixture_is_correct(self):
+        for fixture in fixtures:
+            self.assertEqual(
+                fixture.get_device_hash(), get_device_hash(InputDevice(fixture.path))
+            )
 
 
 if __name__ == "__main__":
