@@ -403,6 +403,15 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
                 )
             )
 
+        self.injector = Injector(groups.find(key="Foo Device 2"), preset)
+        self.assertEqual(self.injector.get_state(), InjectorState.UNKNOWN)
+        self.injector.start()
+        self.assertEqual(self.injector.get_state(), InjectorState.STARTING)
+
+        uinput_write_history_pipe[0].poll(timeout=1)
+        self.assertEqual(self.injector.get_state(), InjectorState.RUNNING)
+        time.sleep(EVENT_READ_TIMEOUT * 10)
+
         push_events(
             fixtures.foo_device_2_keyboard,
             [
@@ -413,6 +422,8 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
                 new_event(EV_KEY, 9, 0),  # forwarded
             ],
         )
+
+        time.sleep(0.1)  # give a chance that everything arrives in order
         push_events(
             fixtures.foo_device_2_gamepad,
             [
@@ -421,6 +432,8 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
                 new_event(EV_ABS, ABS_HAT0X, 0),
             ],
         )
+
+        time.sleep(0.1)
         push_events(
             fixtures.foo_device_2_keyboard,
             [
@@ -432,14 +445,8 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
             force=True,
         )
 
-        self.injector = Injector(groups.find(name="gamepad"), preset)
-        self.assertEqual(self.injector.get_state(), InjectorState.UNKNOWN)
-        self.injector.start()
-        self.assertEqual(self.injector.get_state(), InjectorState.STARTING)
-
-        uinput_write_history_pipe[0].poll(timeout=1)
-        self.assertEqual(self.injector.get_state(), InjectorState.RUNNING)
-        time.sleep(EVENT_READ_TIMEOUT * 10)
+        # the injector needs time to process this
+        time.sleep(0.1)
 
         # sending anything arbitrary does not stop the process
         # (is_alive checked later after some time)
