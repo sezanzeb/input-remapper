@@ -8,7 +8,7 @@ sudo apt-get install -y gettext python3-evdev python3-pydbus python3-pydantic py
 
 # ensure pip and setuptools/wheel up to date so can install all pip modules
 python -m pip install --upgrade pip
-pip install wheel setuptools
+python -m pip install --upgrade --force-reinstall wheel setuptools
 
 # install test deps which aren't in setup.py
-pip install psutil pylint-pydantic
+python -m pip install psutil pylint-pydantic
