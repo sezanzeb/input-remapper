@@ -20,7 +20,7 @@
 from __future__ import annotations
 
 import enum
-from typing import Optional, Callable, Tuple, TypeVar, Literal, Union, Any
+from typing import Optional, Callable, Tuple, TypeVar, Literal, Union, Any, Dict
 
 import evdev
 import pkg_resources
@@ -87,7 +87,7 @@ class KnownUinput(str, enum.Enum):
 CombinationChangedCallback = Optional[
     Callable[[InputCombination, InputCombination], None]
 ]
-MappingModel = TypeVar("MappingModel", bound="Mapping")
+MappingModel = TypeVar("MappingModel", bound="UIMapping")
 
 
 class Cfg(BaseConfig):
@@ -256,7 +256,7 @@ class UIMapping(BaseModel):
         """
         if self.output_code and self.output_type:
             return self.output_type, self.output_code
-        if not is_this_a_macro(self.output_symbol):
+        if self.output_symbol and not is_this_a_macro(self.output_symbol):
             return EV_KEY, system_mapping.get(self.output_symbol)
         return None
 
@@ -405,10 +405,11 @@ class Mapping(UIMapping):
         return values
 
     @root_validator
-    def output_matches_input(cls, values):
+    def output_matches_input(cls, values: Dict[str, Any]) -> Dict[str, Any]:
         """Validate that an output type is an axis if we have an input axis.
         And vice versa."""
-        combination: InputCombination = values.get("input_combination")
+        assert isinstance(values.get("input_combination"), InputCombination)
+        combination: InputCombination = values["input_combination"]
         use_as_analog = True in [event.defines_analog_input for event in combination]
 
         output_type = values.get("output_type")

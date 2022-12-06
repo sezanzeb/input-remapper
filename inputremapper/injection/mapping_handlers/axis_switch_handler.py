@@ -44,7 +44,7 @@ class AxisSwitchHandler(MappingHandler):
     """
 
     _map_axis: InputConfig  # the InputConfig for the axis we switch on or off
-    _trigger_keys: Tuple[Hashable]  # all events that can switch the axis
+    _trigger_keys: Tuple[Hashable, ...]  # all events that can switch the axis
     _active: bool  # whether the axis is on or off
     _last_value: int  # the value of the last axis event that arrived
     _axis_source: evdev.InputDevice  # the cached source of the axis input events
@@ -58,15 +58,15 @@ class AxisSwitchHandler(MappingHandler):
         **_,
     ):
         super().__init__(combination, mapping)
-        trigger_keys = [
+        trigger_keys = tuple(
             event.input_match_hash
             for event in combination
             if not event.defines_analog_input
-        ]
+        )
         assert len(trigger_keys) >= 1
         assert (map_axis := combination.find_analog_input_config())
         self._map_axis = map_axis
-        self._trigger_keys = tuple(trigger_keys)
+        self._trigger_keys = trigger_keys
         self._active = False
 
         self._last_value = 0

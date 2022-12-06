@@ -72,7 +72,7 @@ class InputEvent:
 
     @classmethod
     def from_event(
-        cls, event: evdev.InputEvent, origin: Optional[int] = None
+        cls, event: evdev.InputEvent, origin: Optional[str] = None
     ) -> InputEvent:
         """Create a InputEvent from another InputEvent or evdev.InputEvent."""
         try:
@@ -96,7 +96,13 @@ class InputEvent:
             raise TypeError(
                 f"failed to create InputEvent {event_tuple = }" f" must have length 3"
             )
-        return cls(0, 0, *map(int, event_tuple))
+        return cls(
+            0,
+            0,
+            int(event_tuple[0]),
+            int(event_tuple[1]),
+            int(event_tuple[2]),
+        )
 
     @property
     def type_and_code(self) -> Tuple[int, int]:
@@ -144,7 +150,7 @@ class InputEvent:
         code: Optional[int] = None,
         value: Optional[int] = None,
         actions: Tuple[EventActions, ...] = None,
-        origin: Optional[int] = None,
+        origin: Optional[str] = None,
     ) -> InputEvent:
         """Return a new modified event."""
         return InputEvent(

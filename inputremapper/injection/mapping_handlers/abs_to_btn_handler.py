@@ -18,7 +18,7 @@
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from typing import Tuple
+from typing import Tuple, Optional
 
 import evdev
 from evdev.ecodes import EV_ABS
@@ -70,6 +70,7 @@ class AbsToBtnHandler(MappingHandler):
     def _trigger_point(self, abs_min: int, abs_max: int) -> Tuple[float, float]:
         """Calculate the axis mid and trigger point."""
         #  TODO: potentially cache this function
+        assert self._input_config.analog_threshold
         if abs_min == -1 and abs_max == 1:
             # this is a hat switch
             # return +-1

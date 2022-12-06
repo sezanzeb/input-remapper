@@ -107,7 +107,7 @@ class RelToBtnHandler(MappingHandler):
         if event.input_match_hash != self._input_config.input_match_hash:
             return False
 
-        threshold = self._input_config.analog_threshold
+        assert (threshold := self._input_config.analog_threshold)
         value = event.value
         if (value < threshold > 0) or (value > threshold < 0):
             if self._active:
