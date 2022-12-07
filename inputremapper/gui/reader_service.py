@@ -53,7 +53,7 @@ from evdev.ecodes import EV_KEY, EV_ABS, EV_REL, REL_HWHEEL, REL_WHEEL
 from inputremapper.utils import get_device_hash
 
 from inputremapper.configs.input_config import InputCombination, InputConfig
-from inputremapper.configs.mapping import UIMapping
+from inputremapper.configs.mapping import UIMapping, Mapping
 from inputremapper.groups import _Groups, _Group
 from inputremapper.injection.event_reader import EventReader
 from inputremapper.injection.mapping_handlers.abs_to_btn_handler import AbsToBtnHandler
@@ -284,9 +284,10 @@ class ReaderService:
                 input_config = InputConfig(
                     type=EV_ABS, code=ev_code, analog_threshold=30, origin=device_hash
                 )
-                mapping = UIMapping(
+                mapping = Mapping(
                     input_combination=InputCombination(input_config),
                     target_uinput="keyboard",
+                    output_symbol="KEY_A",
                 )
                 handler: MappingHandler = AbsToBtnHandler(
                     InputCombination(input_config), mapping
@@ -298,9 +299,10 @@ class ReaderService:
 
                 # negative direction
                 input_config = input_config.modify(analog_threshold=-30)
-                mapping = UIMapping(
+                mapping = Mapping(
                     input_combination=InputCombination(input_config),
                     target_uinput="keyboard",
+                    output_symbol="KEY_A",
                 )
                 handler = AbsToBtnHandler(InputCombination(input_config), mapping)
                 handler.set_sub_handler(ForwardToUIHandler(self._results_pipe))
@@ -316,9 +318,10 @@ class ReaderService:
                     analog_threshold=self.rel_xy_speed[ev_code],
                     origin=device_hash,
                 )
-                mapping = UIMapping(
+                mapping = Mapping(
                     input_combination=InputCombination(input_config),
                     target_uinput="keyboard",
+                    output_symbol="KEY_A",
                     release_timeout=0.3,
                     force_release_timeout=True,
                 )
@@ -332,9 +335,10 @@ class ReaderService:
                 input_config = input_config.modify(
                     analog_threshold=-self.rel_xy_speed[ev_code]
                 )
-                mapping = UIMapping(
+                mapping = Mapping(
                     input_combination=InputCombination(input_config),
                     target_uinput="keyboard",
+                    output_symbol="KEY_A",
                     release_timeout=0.3,
                     force_release_timeout=True,
                 )

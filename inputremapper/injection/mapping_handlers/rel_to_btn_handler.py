@@ -61,7 +61,7 @@ class RelToBtnHandler(MappingHandler):
         assert len(combination) == 1
 
     def __str__(self):
-        return f'RelToBtnHandler for "{self._input_config.get_name()}" <{id(self)}>:'
+        return f'RelToBtnHandler for "{self._input_config}" <{id(self)}>:'
 
     def __repr__(self):
         return self.__str__()

@@ -219,7 +219,7 @@ def _get_output_handler(mapping: Mapping) -> HandlerEnums:
     raise MappingParsingError(f"the output of {mapping = } is unknown", mapping=Mapping)
 
 
-def _maps_axis(combination: InputCombination) -> Optional[InputEvent]:
+def _maps_axis(combination: InputCombination) -> Optional[InputConfig]:
     """Whether this InputCombination contains an InputEvent that is treated as
     an axis and not a binary (key or button) event.
     """
@@ -271,7 +271,7 @@ def _create_hierarchy_handlers(
 
 
 def _order_combinations(
-    combinations: List[InputCombination], common_event: InputEvent
+    combinations: List[InputCombination], common_config: InputConfig
 ) -> List[InputCombination]:
     """Reorder the keys according to some rules.
 
@@ -285,21 +285,21 @@ def _order_combinations(
     ----------
     combinations
         the list which needs ordering
-    common_event
-        the Key all members of Keys have in common
+    common_config
+        the InputConfig all InputCombination's in combinations have in common
     """
     combinations.sort(key=len)
 
-    for start, end in ranges_with_constant_length(combinations.copy()):
+    for start, end in _ranges_with_constant_length(combinations.copy()):
         sub_list = combinations[start:end]
-        sub_list.sort(key=lambda x: x.index(common_event))
+        sub_list.sort(key=lambda x: x.index(common_config))
         combinations[start:end] = sub_list
 
     combinations.reverse()
     return combinations
 
 
-def ranges_with_constant_length(x: Sequence[Sized]) -> Iterable[Tuple[int, int]]:
+def _ranges_with_constant_length(x: Sequence[Sized]) -> Iterable[Tuple[int, int]]:
     """Get all ranges of x for which the elements have constant length
 
     Parameters

@@ -23,6 +23,7 @@ import itertools
 from typing import Tuple, Iterable, Union, List, Dict, Optional, Hashable
 
 from evdev import ecodes
+from inputremapper.input_event import InputEvent
 from pydantic import BaseModel, root_validator, validator
 
 from inputremapper.configs.system_mapping import system_mapping
@@ -75,16 +76,27 @@ class InputConfig(BaseModel):
     def btn_left(cls):
         return cls(type=ecodes.EV_KEY, code=ecodes.BTN_LEFT)
 
+    @classmethod
+    def from_input_event(cls, event: InputEvent) -> InputConfig:
+        """create an input confing from the given InputEvent, uses the value as
+        analog threshold"""
+        return cls(
+            type=event.type,
+            code=event.code,
+            origin=event.origin,
+            analog_threshold=event.value,
+        )
+
     def description(self, exclude_threshold=False, exclude_direction=False) -> str:
         """Get a human-readable description of the event."""
         return (
-            f"{self.get_name()} "
-            f"{self.get_direction() if not exclude_direction else ''} "
-            f"{self._get_threshold_str() if not exclude_threshold else ''}".strip()
+            f"{self._get_name()} "
+            f"{self._get_direction() if not exclude_direction else ''} "
+            f"{self._get_threshold_value() if not exclude_threshold else ''}".strip()
         )
 
-    def get_name(self) -> Optional[str]:
-        """Human-readable name."""
+    def _get_name(self) -> Optional[str]:
+        """Human-readable name (e.g. KEY_A) of the specified input event."""
         if self.type not in ecodes.bytype:
             logger.warning("Unknown type for %s", self)
             return f"unknown {self.type, self.code}"
@@ -134,7 +146,8 @@ class InputConfig(BaseModel):
         key_name = key_name.replace("  ", " ")
         return key_name
 
-    def get_direction(self) -> str:
+    def _get_direction(self) -> str:
+        """human-readable direction description for the analog_threshold"""
         if self.type == ecodes.EV_KEY or self.defines_analog_input:
             return ""
 
@@ -171,7 +184,8 @@ class InputConfig(BaseModel):
             "+" if self.analog_threshold > 0 else "-"
         )
 
-    def _get_threshold_str(self) -> str:
+    def _get_threshold_value(self) -> str:
+        """human-readable value of the analog_threshold e.g. '20%'"""
         if self.analog_threshold is None:
             return ""
         return {

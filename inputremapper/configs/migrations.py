@@ -286,7 +286,7 @@ def _input_combination_from_string(combination_string: str) -> InputCombination:
     for event_str in combination_string.split("+"):
         cfg.append(
             {
-                k: v
+                k: int(v)
                 for k, v in zip(
                     ("type", "code", "analog_threshold"), event_str.split(",")
                 )

@@ -23,7 +23,7 @@ from __future__ import annotations
 import dataclasses
 import json
 from hashlib import md5
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional, Tuple, Iterable
 
 import time
 
@@ -308,7 +308,9 @@ class _Fixtures:
 fixtures = _Fixtures()
 
 
-def get_combination_config(*event_tuples: Tuple[int, int] | Tuple[int, int, int]):
+def get_combination_config(
+    *event_tuples: Tuple[int, int] | Tuple[int, int, int]
+) -> Iterable[Dict[str, int]]:
     """convenient function to get a iterable of dicts, InputEvent.event_tuple's"""
 
     for event in event_tuples:

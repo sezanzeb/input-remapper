@@ -668,17 +668,20 @@ class TestGui(GuiTestBase):
             [InputEvent(0, 0, 1, 30, 1), InputEvent(0, 0, 1, 31, 1)],
         )
         self.throttle(40)
+        origin = fixtures.foo_device_2_keyboard.get_device_hash()
         mock1.assert_has_calls(
             (
                 call(
-                    CombinationRecorded(InputCombination(InputConfig(type=1, code=30)))
+                    CombinationRecorded(
+                        InputCombination(InputConfig(type=1, code=30, origin=origin))
+                    )
                 ),
                 call(
                     CombinationRecorded(
                         InputCombination(
                             (
-                                InputConfig(type=1, code=30),
-                                InputConfig(type=1, code=31),
+                                InputConfig(type=1, code=30, origin=origin),
+                                InputConfig(type=1, code=31, origin=origin),
                             )
                         )
                     )
@@ -717,9 +720,10 @@ class TestGui(GuiTestBase):
 
         # if this fails with <InputCombination (1, 5, 1)>: this is the initial
         # mapping or something, so it was never overwritten.
+        origin = fixtures.foo_device_2_keyboard.get_device_hash()
         self.assertEqual(
             self.data_manager.active_mapping.input_combination,
-            InputCombination(InputConfig(type=1, code=30)),
+            InputCombination(InputConfig(type=1, code=30, origin=origin)),
         )
 
         # create a new mapping
@@ -759,8 +763,8 @@ class TestGui(GuiTestBase):
             self.data_manager.active_mapping.input_combination,
             InputCombination(
                 (
-                    InputConfig(type=1, code=30),
-                    InputConfig(type=1, code=31),
+                    InputConfig(type=1, code=30, origin=origin),
+                    InputConfig(type=1, code=31, origin=origin),
                 )
             ),
         )
@@ -772,9 +776,9 @@ class TestGui(GuiTestBase):
             self.data_manager.active_mapping.input_combination,
             InputCombination(
                 (
-                    InputConfig(type=1, code=30),
-                    InputConfig(type=1, code=31),
-                    InputConfig(type=1, code=32),
+                    InputConfig(type=1, code=30, origin=origin),
+                    InputConfig(type=1, code=31, origin=origin),
+                    InputConfig(type=1, code=32, origin=origin),
                 )
             ),
         )
@@ -799,9 +803,9 @@ class TestGui(GuiTestBase):
             self.data_manager.active_mapping.input_combination,
             InputCombination(
                 (
-                    InputConfig(type=1, code=30),
-                    InputConfig(type=1, code=31),
-                    InputConfig(type=1, code=32),
+                    InputConfig(type=1, code=30, origin=origin),
+                    InputConfig(type=1, code=31, origin=origin),
+                    InputConfig(type=1, code=32, origin=origin),
                 )
             ),
         )
@@ -838,13 +842,14 @@ class TestGui(GuiTestBase):
         self.throttle(40)
 
         # check the input_combination
+        origin = fixtures.foo_device_2_keyboard.get_device_hash()
         self.assertEqual(
             self.selection_label_listbox.get_selected_row().combination,
-            InputCombination(InputConfig(type=1, code=30)),
+            InputCombination(InputConfig(type=1, code=30, origin=origin)),
         )
         self.assertEqual(
             self.data_manager.active_mapping.input_combination,
-            InputCombination(InputConfig(type=1, code=30)),
+            InputCombination(InputConfig(type=1, code=30, origin=origin)),
         )
         self.assertEqual(self.selection_label_listbox.get_selected_row().name, "a")
         self.assertIsNone(self.data_manager.active_mapping.name)
@@ -860,7 +865,9 @@ class TestGui(GuiTestBase):
         self.assertEqual(
             self.data_manager.active_mapping,
             Mapping(
-                input_combination=InputCombination(InputConfig(type=1, code=30)),
+                input_combination=InputCombination(
+                    InputConfig(type=1, code=30, origin=origin)
+                ),
                 output_symbol="Shift_L",
                 target_uinput="keyboard",
             ),
@@ -873,7 +880,7 @@ class TestGui(GuiTestBase):
         )
         self.assertEqual(
             self.selection_label_listbox.get_selected_row().combination,
-            InputCombination(InputConfig(type=1, code=30)),
+            InputCombination(InputConfig(type=1, code=30, origin=origin)),
         )
 
         # 4. update target to mouse
@@ -882,7 +889,9 @@ class TestGui(GuiTestBase):
         self.assertEqual(
             self.data_manager.active_mapping,
             Mapping(
-                input_combination=InputCombination(InputConfig(type=1, code=30)),
+                input_combination=InputCombination(
+                    InputConfig(type=1, code=30, origin=origin)
+                ),
                 output_symbol="Shift_L",
                 target_uinput="mouse",
             ),
@@ -910,7 +919,8 @@ class TestGui(GuiTestBase):
         ev_3 = (EV_ABS, evdev.ecodes.ABS_HAT0Y, -1)
         ev_4 = (EV_ABS, evdev.ecodes.ABS_HAT0Y, 1)
 
-        def add_mapping(event_tuple, symbol):
+        def add_mapping(event_tuple, symbol) -> InputCombination:
+            """adds mapping and returns the expected input combination"""
             event = InputEvent.from_tuple(event_tuple)
             self.controller.create_mapping()
             gtk_iteration()
@@ -920,33 +930,38 @@ class TestGui(GuiTestBase):
             gtk_iteration()
             self.code_editor.get_buffer().set_text(symbol)
             gtk_iteration()
+            return InputCombination(
+                InputConfig.from_input_event(event).modify(
+                    origin=fixtures.foo_device_2_gamepad.get_device_hash()
+                )
+            )
 
-        add_mapping(ev_1, "a")
-        add_mapping(ev_2, "b")
-        add_mapping(ev_3, "c")
-        add_mapping(ev_4, "d")
+        config_1 = add_mapping(ev_1, "a")
+        config_2 = add_mapping(ev_2, "b")
+        config_3 = add_mapping(ev_3, "c")
+        config_4 = add_mapping(ev_4, "d")
 
         self.assertEqual(
             self.data_manager.active_preset.get_mapping(
-                InputCombination(get_combination_config(ev_1))
+                InputCombination(config_1)
             ).output_symbol,
             "a",
         )
         self.assertEqual(
             self.data_manager.active_preset.get_mapping(
-                InputCombination(get_combination_config(ev_2))
+                InputCombination(config_2)
             ).output_symbol,
             "b",
         )
         self.assertEqual(
             self.data_manager.active_preset.get_mapping(
-                InputCombination(get_combination_config(ev_3))
+                InputCombination(config_3)
             ).output_symbol,
             "c",
         )
         self.assertEqual(
             self.data_manager.active_preset.get_mapping(
-                InputCombination(get_combination_config(ev_4))
+                InputCombination(config_4)
             ).output_symbol,
             "d",
         )
@@ -974,6 +989,25 @@ class TestGui(GuiTestBase):
         # same as 1, but the last combination is different
         combination_5 = (ev_1, ev_3, ev_2)
         combination_6 = (ev_3, ev_1, ev_2)
+
+        def get_combination(combi: Iterable[Tuple[int, int, int]]) -> InputCombination:
+            configs = []
+            for t in combi:
+                config = InputConfig.from_input_event(InputEvent.from_tuple(t))
+                if config.type == EV_KEY:
+                    config = config.modify(
+                        origin=fixtures.foo_device_2_keyboard.get_device_hash()
+                    )
+                if config.type == EV_ABS:
+                    config = config.modify(
+                        origin=fixtures.foo_device_2_gamepad.get_device_hash()
+                    )
+                if config.type == EV_REL:
+                    config = config.modify(
+                        origin=fixtures.foo_device_2_mouse.get_device_hash()
+                    )
+                configs.append(config)
+            return InputCombination(configs)
 
         def add_mapping(combi: Iterable[Tuple[int, int, int]], symbol):
             self.controller.create_mapping()
@@ -1008,35 +1042,27 @@ class TestGui(GuiTestBase):
         add_mapping(combination_1, "a")
         self.assertEqual(
             self.data_manager.active_preset.get_mapping(
-                InputCombination(get_combination_config(*combination_1))
+                get_combination(combination_1)
             ).output_symbol,
             "a",
         )
         self.assertEqual(
             self.data_manager.active_preset.get_mapping(
-                InputCombination(get_combination_config(*combination_2))
+                get_combination(combination_2)
             ).output_symbol,
             "a",
         )
         self.assertIsNone(
-            self.data_manager.active_preset.get_mapping(
-                InputCombination(get_combination_config(*combination_3))
-            )
+            self.data_manager.active_preset.get_mapping(get_combination(combination_3))
         )
         self.assertIsNone(
-            self.data_manager.active_preset.get_mapping(
-                InputCombination(get_combination_config(*combination_4))
-            )
+            self.data_manager.active_preset.get_mapping(get_combination(combination_4))
         )
         self.assertIsNone(
-            self.data_manager.active_preset.get_mapping(
-                InputCombination(get_combination_config(*combination_5))
-            )
+            self.data_manager.active_preset.get_mapping(get_combination(combination_5))
         )
         self.assertIsNone(
-            self.data_manager.active_preset.get_mapping(
-                InputCombination(get_combination_config(*combination_6))
-            )
+            self.data_manager.active_preset.get_mapping(get_combination(combination_6))
         )
 
         # it won't write the same combination again, even if the
@@ -1044,71 +1070,59 @@ class TestGui(GuiTestBase):
         add_mapping(combination_2, "b")
         self.assertEqual(
             self.data_manager.active_preset.get_mapping(
-                InputCombination(get_combination_config(*combination_1))
+                get_combination(combination_1)
             ).output_symbol,
             "a",
         )
         self.assertEqual(
             self.data_manager.active_preset.get_mapping(
-                InputCombination(get_combination_config(*combination_2))
+                get_combination(combination_2)
             ).output_symbol,
             "a",
         )
         self.assertIsNone(
-            self.data_manager.active_preset.get_mapping(
-                InputCombination(get_combination_config(*combination_3))
-            )
+            self.data_manager.active_preset.get_mapping(get_combination(combination_3))
         )
         self.assertIsNone(
-            self.data_manager.active_preset.get_mapping(
-                InputCombination(get_combination_config(*combination_4))
-            )
+            self.data_manager.active_preset.get_mapping(get_combination(combination_4))
         )
         self.assertIsNone(
-            self.data_manager.active_preset.get_mapping(
-                InputCombination(get_combination_config(*combination_5))
-            )
+            self.data_manager.active_preset.get_mapping(get_combination(combination_5))
         )
         self.assertIsNone(
-            self.data_manager.active_preset.get_mapping(
-                InputCombination(get_combination_config(*combination_6))
-            )
+            self.data_manager.active_preset.get_mapping(get_combination(combination_6))
         )
 
         add_mapping(combination_3, "c")
         self.assertEqual(
             self.data_manager.active_preset.get_mapping(
-                InputCombination(get_combination_config(*combination_1))
+                get_combination(combination_1)
             ).output_symbol,
             "a",
         )
         self.assertEqual(
             self.data_manager.active_preset.get_mapping(
-                InputCombination(get_combination_config(*combination_2))
+                get_combination(combination_2)
             ).output_symbol,
             "a",
         )
         self.assertEqual(
             self.data_manager.active_preset.get_mapping(
-                InputCombination(get_combination_config(*combination_3))
+                get_combination(combination_3)
             ).output_symbol,
             "c",
         )
         self.assertEqual(
             self.data_manager.active_preset.get_mapping(
-                InputCombination(get_combination_config(*combination_4))
+                get_combination(combination_4)
             ).output_symbol,
             "c",
         )
         self.assertIsNone(
-            self.data_manager.active_preset.get_mapping(
-                InputCombination(get_combination_config(*combination_5))
-            )
+            self.data_manager.active_preset.get_mapping(get_combination(combination_5))
         )
         self.assertIsNone(
-            self.data_manager.active_preset.get_mapping(
-                InputCombination(get_combination_config(*combination_6))
-            )
+            self.data_manager.active_preset.get_mapping(get_combination(combination_6))
         )
 
         # same as with combination_2, the existing combination_3 blocks
@@ -1117,73 +1131,69 @@ class TestGui(GuiTestBase):
         add_mapping(combination_4, "d")
         self.assertEqual(
             self.data_manager.active_preset.get_mapping(
-                InputCombination(get_combination_config(*combination_1))
+                get_combination(combination_1)
             ).output_symbol,
             "a",
         )
         self.assertEqual(
             self.data_manager.active_preset.get_mapping(
-                InputCombination(get_combination_config(*combination_2))
+                get_combination(combination_2)
             ).output_symbol,
             "a",
         )
         self.assertEqual(
             self.data_manager.active_preset.get_mapping(
-                InputCombination(get_combination_config(*combination_3))
+                get_combination(combination_3)
             ).output_symbol,
             "c",
         )
         self.assertEqual(
             self.data_manager.active_preset.get_mapping(
-                InputCombination(get_combination_config(*combination_4))
+                get_combination(combination_4)
             ).output_symbol,
             "c",
         )
         self.assertIsNone(
-            self.data_manager.active_preset.get_mapping(
-                InputCombination(get_combination_config(*combination_5))
-            )
+            self.data_manager.active_preset.get_mapping(get_combination(combination_5))
         )
         self.assertIsNone(
-            self.data_manager.active_preset.get_mapping(
-                InputCombination(get_combination_config(*combination_6))
-            )
+            self.data_manager.active_preset.get_mapping(get_combination(combination_6))
         )
 
         add_mapping(combination_5, "e")
         self.assertEqual(
             self.data_manager.active_preset.get_mapping(
-                InputCombination(get_combination_config(*combination_1))
+                get_combination(combination_1)
             ).output_symbol,
             "a",
         )
         self.assertEqual(
             self.data_manager.active_preset.get_mapping(
-                InputCombination(get_combination_config(*combination_2))
+                get_combination(combination_2)
             ).output_symbol,
             "a",
         )
         self.assertEqual(
             self.data_manager.active_preset.get_mapping(
-                InputCombination(get_combination_config(*combination_3))
+                get_combination(combination_3)
             ).output_symbol,
             "c",
         )
         self.assertEqual(
             self.data_manager.active_preset.get_mapping(
-                InputCombination(get_combination_config(*combination_4))
+                get_combination(combination_4)
             ).output_symbol,
             "c",
         )
         self.assertEqual(
             self.data_manager.active_preset.get_mapping(
-                InputCombination(get_combination_config(*combination_5))
+                get_combination(combination_5)
             ).output_symbol,
             "e",
         )
         self.assertEqual(
             self.data_manager.active_preset.get_mapping(
-                InputCombination(get_combination_config(*combination_6))
+                get_combination(combination_6)
             ).output_symbol,
             "e",
         )
