@@ -152,6 +152,7 @@ class InputConfig(BaseModel):
             return ""
 
         assert self.analog_threshold
+        threshold_direction = self.analog_threshold // abs(self.analog_threshold)
         return {
             # D-Pad
             (ecodes.ABS_HAT0X, -1): "Left",
@@ -180,8 +181,8 @@ class InputConfig(BaseModel):
             (ecodes.REL_WHEEL, 1): "Up",
             (ecodes.REL_HWHEEL, -1): "Left",
             (ecodes.REL_HWHEEL, 1): "Right",
-        }.get((self.code, self.analog_threshold)) or (
-            "+" if self.analog_threshold > 0 else "-"
+        }.get((self.code, threshold_direction)) or (
+            "+" if threshold_direction > 0 else "-"
         )
 
     def _get_threshold_value(self) -> str:
