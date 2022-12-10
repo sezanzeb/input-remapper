@@ -1,26 +1,26 @@
 # Usage
 
-To open the UI to modify the mappings, look into your applications menu
-and search for 'Input Remapper'. You should be prompted for your sudo password
-as special permissions are needed to read events from `/dev/input/` files.
-You can also start it via `input-remapper-gtk`.
+Look into your applications menu and search for **Input Remapper** to open the UI. 
+You should be prompted for your sudo password as special permissions are needed to read 
+events from `/dev/input/` files. You can also start it via `input-remapper-gtk`.
+
+First, select your device (like your keyboard) on the first page, then create a new
+preset on the second page, and add a mapping. Then you can already edit your inputs,
+as shown in the screenshots below.
 
 <p align="center">
   <img src="usage_1.png"/>
   <img src="usage_2.png"/>
 </p>
 
-First, select your device (like your keyboard) on the first page, then create a new
-preset on the second page, and add a mapping. Then you can already edit your inputs,
-as shown in the screenshots.
-
-In the text input field, type the key to which you would like to map this key.
-More information about the possible mappings can be found in [examples.md](./examples.md) and [below](#key-names).
-You can also write your macro into the text input field. If you hit enter, it will switch to a multiline-editor with
+In the text input field, type the key to which you would like to map this input.
+More information about the possible mappings can be found in 
+[examples.md](./examples.md) and [below](#key-names). You can also write your macro 
+into the text input field. If you hit enter, it will switch to a multiline-editor with
 line-numbers.
 
-Changes are saved automatically. 
-Press the "Apply" button to activate (inject) the mapping you created.
+Changes are saved automatically. Press the "Apply" button to activate (inject) the 
+mapping you created.
 
 If you later want to modify the Input of your mapping you need to use the 
 "Stop" button, so that the application can read your original input. 
@@ -44,8 +44,8 @@ the input (`Record` - Button) press multiple keys and/or move axis at once.
 The mapping will be triggered as soon as all the recorded inputs are pressed.
 
 If you use an axis an input you can modify the threshold at which the mapping is 
-activated in the advanced input configuration, which can be opened by clicking on the
-`Advanced` button.
+activated in the advanced input configuration, which can be opened by clicking
+on the `Advanced` button.
 
 A mapping with an input combination is only injected once all combination keys 
 are pressed. This means all the input keys you press before the combination is complete 
@@ -154,85 +154,123 @@ looks like, with  an example autoload entry:
 `preset name` refers to `~/.config/input-remapper/presets/device name/preset name.json`.
 The device name can be found with `sudo input-remapper-control --list-devices`.
 
-#### Preset
+### Preset
 
 The preset files are a collection of mappings.
 Here is an example configuration for preset "a" for the "gamepad" device:
 `~/.config/input-remapper/presets/gamepad/a.json`
 
 ```json
-{
-    "1,307,1": {
+[	
+	{
+		"input_combination": [
+			{"type": 1, "code": 307}
+		],
         "target_uinput": "keyboard",
         "output_symbol": "k(2).k(3)",
         "macro_key_sleep_ms": 100
     },
-    "1,315,1+1,16,1": {
+    {
+		"input_combination": [
+			{"type": 1, "code": 315, "origin": "07f543a6d19f00769e7300c2b1033b7a"},
+			{"type": 3, "code": 1, "analog_threshold": 10}
+        ],
         "target_uinput": "keyboard",
         "output_symbol": "1"
     },
-    "3,1,0": {
+	{
+		"input_combination": [
+			{"type": 3, "code": 1}
+		],
         "target_uinput": "mouse",
         "output_type": 2,
         "output_code": 1,
         "gain": 0.5
     }
-}
+]
 ```
 This preset consists of three mappings.
 
  * The first maps the key event with code 307 to a macro and sets the time between 
    injected events of macros to 100 ms. The macro injects its events to the virtual keyboard.
- * The second mapping is a key combination, chained using `+`.
- * The third maps the y-Axis to the y-Axis on the virtual mouse.
+ * The second mapping is a combination of a key event with the code 315 and a 
+   analog input of the axis 1 (y-Axis).
+ * The third maps the y-Axis of a joystick to the y-Axis on the virtual mouse.
 
-#### Mapping
+### Mapping
 
-As shown above, the mapping is part of the preset. It consists of the input-combination 
-and the mapping parameters.
+As shown above, the mapping is part of the preset. It consists of the input-combination,
+which is a list of input-configurations and the mapping parameters.
 
 ```
-<input-combination>: {
+{
+	"input_combination": [
+		<InputConfig 1>,
+		<InputConfig 2>
+	]
     <parameter 1>: <value1>,
     <parameter 2>: <value2>
 }
 ```
-The input-combination is a string like `"EV_TYPE, EV_CODE, EV_VALUE + ..."`.
-`EV_TYPE` and `EV_CODE` describe the input event. Use the program `evtest` to find 
+
+#### Input Combination and Configuration
+The input-combination is a list of one or more input configurations. To trigger a 
+mapping, all input configurations must trigger.
+
+A input configuration is a dictionary with some or all of the following parameters:
+
+| Parameter        | Default | Type                   | Description                                                          |
+|------------------|---------|------------------------|----------------------------------------------------------------------|
+| type             | -       | int                    | Input Event Type                                                     |
+| code             | -       | int                    | Input Evnet Code                                                     |
+| origin           | None    | hex (string formatted) | A unique identifier for the device which emites the described event. |
+| analog_threshold | None    | int                    | The threshold above which a input axis triggers the mapping.         |
+
+##### type, code
+The `type` and `code` parameters are always needed. Use the program `evtest` to find 
 Available types and codes. See also the [evdev documentation](https://www.kernel.org/doc/html/latest/input/event-codes.html#input-event-codes)
+##### origin
+The origin is an internally computed hash. It is used associate the input with a 
+specific `/dev/input/eventXX` device. This is useful when a single pyhsical device 
+creates multiple `/dev/input/eventXX` devices wihth similar capabilities.
+See also: [Issue#435](https://github.com/sezanzeb/input-remapper/issues/435)
 
-The `EV_VALUE` describes the intention of the input. 
-A value of `0` means that the event will be mapped to an axis. A non-zero value means 
-that the event will be treated as a key input. 
+##### analog_threshold
+Setting the `analog_threshold` to zero or omitting it means that the input will be 
+mapped to an axis. There can only be one axis input with a threshold of 0 in a mapping. 
+If the `type` is 1 (EV_KEY) the `analog_threshold` has no effect. 
 
-If the event type is `3 (EV_ABS)` (as in: map a joystick axis to a key or macro) the 
-value can be between `-100 [%]` and `100 [%]`. The mapping will be triggered once the joystick 
-reaches the position described by the value. 
+The `analog_threshold` is needend when the input is a analog axis which should be 
+treated as a key input. If the event type is `3 (EV_ABS)` (as in: map a joystick axis to
+a key or macro) the threshold can be between `-100 [%]` and `100 [%]`. The mapping will 
+be triggered once the joystick reaches the position described by the value. 
 
-If the event type is `2 (EV_REL)` (as in: map a relative axis (e.g. mouse wheel) to a key or macro)
-the value can be anything. The mapping will be triggered once the speed and direction of 
-the axis is higher than described by the value.
+If the event type is `2 (EV_REL)` (as in: map a relative axis (e.g. mouse wheel) to a 
+key or macro) the threshold can be anything. The mapping will be triggered once the 
+speed and direction of the axis is higher than described by the threshold.
 
+#### Mapping Parameters
 The following table contains all possible parameters and their default values:
 
-| Parameter                  | Default | Type            | Description                                                                                                                     |
-|----------------------------|---------|-----------------|---------------------------------------------------------------------------------------------------------------------------------|
-| target_uinput              |         | string          | The UInput to which the mapped event will be sent                                                                               |
-| output_symbol              |         | string          | The symbol or macro string if applicable                                                                                        |
-| output_type                |         | int             | The event type of the mapped event                                                                                              |
-| output_code                |         | int             | The event code of the mapped event                                                                                              |
-| release_combination_keys   | true    | bool            | If release events will be sent to the forwarded device as soon as a combination triggers see also #229                          |
-| **Macro settings**         |
-| macro_key_sleep_ms         | 0       | positive int    |                                                                                                                                 |
-| **Axis settings**          |                         
-| deadzone                   | 0.1     | float ∈ (0, 1)  | The deadzone of the input axis                                                                                                  |
-| gain                       | 1.0     | float           | Scale factor when mapping an axis to an axis                                                                                    |
-| expo                       | 0       | float ∈ (-1, 1) | Non liniarity factor see also [GeoGebra](https://www.geogebra.org/calculator/mkdqueky)                                          |
-| **EV_REL output**          |            
-| rel_rate                   | 60      | positive int    | The frequency `[Hz]` at which `EV_REL` events get generated (also effects mouse macro)                                          |
-| **EV_REL as input**        |         
-| rel_to_abs_input_cutoff    | 2       | positive float  | The value relative to a predefined base-speed, at which `EV_REL` input (cursor and wheel) is considered at its maximum.         |
-| release_timeout            | 0.05    | positive float  | The time `[s]` until a relative axis is considered stationary if no new events arrive                                           |
+| Parameter                | Default | Type            | Description                                                                                                             |
+|--------------------------|---------|-----------------|-------------------------------------------------------------------------------------------------------------------------|
+| input_combination        |         | list            | see [above](#input-combination-and-configuration)                                                                       |
+| target_uinput            |         | string          | The UInput to which the mapped event will be sent                                                                       |
+| output_symbol            |         | string          | The symbol or macro string if applicable                                                                                |
+| output_type              |         | int             | The event type of the mapped event                                                                                      |
+| output_code              |         | int             | The event code of the mapped event                                                                                      |
+| release_combination_keys | true    | bool            | If release events will be sent to the forwarded device as soon as a combination triggers see also #229                  |
+| **Macro settings**       |         |                 |                                                                                                                         |
+| macro_key_sleep_ms       | 0       | positive int    |                                                                                                                         |
+| **Axis settings**        |         |                 |                                                                                                                         |
+| deadzone                 | 0.1     | float ∈ (0, 1)  | The deadzone of the input axis                                                                                          |
+| gain                     | 1.0     | float           | Scale factor when mapping an axis to an axis                                                                            |
+| expo                     | 0       | float ∈ (-1, 1) | Non liniarity factor see also [GeoGebra](https://www.geogebra.org/calculator/mkdqueky)                                  |
+| **EV_REL output**        |         |                 |                                                                                                                         |
+| rel_rate                 | 60      | positive int    | The frequency `[Hz]` at which `EV_REL` events get generated (also effects mouse macro)                                  |
+| **EV_REL as input**      |         |                 |                                                                                                                         |
+| rel_to_abs_input_cutoff  | 2       | positive float  | The value relative to a predefined base-speed, at which `EV_REL` input (cursor and wheel) is considered at its maximum. |
+| release_timeout          | 0.05    | positive float  | The time `[s]` until a relative axis is considered stationary if no new events arrive                                   |
 
 
 ## CLI
