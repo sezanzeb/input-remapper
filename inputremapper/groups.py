@@ -298,6 +298,16 @@ class _Group:
         """
         return get_preset_path(self.name, preset)
 
+    def get_devices(self) -> List[evdev.InputDevice]:
+        devices: List[evdev.InputDevice] = []
+        for path in self.paths:
+            try:
+                devices.append(evdev.InputDevice(path))
+            except (FileNotFoundError, OSError):
+                logger.error('Could not find "%s"', path)
+                continue
+        return devices
+
     def dumps(self):
         """Return a string representing this object."""
         return json.dumps(

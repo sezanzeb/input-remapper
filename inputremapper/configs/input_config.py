@@ -198,7 +198,7 @@ class InputConfig(BaseModel):
         self,
         type_: Optional[int] = None,
         code: Optional[int] = None,
-        origin: Optional[int] = None,
+        origin: Optional[str] = None,
         analog_threshold: Optional[int] = None,
     ) -> InputConfig:
         """Return a new modified event."""

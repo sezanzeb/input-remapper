@@ -42,9 +42,9 @@ class EventActions(enum.Enum):
 # Todo: add slots=True as soon as python 3.10 is in common distros
 @dataclass(frozen=True)
 class InputEvent:
-    """The evnet used by inputremapper
+    """Events that are generated during runtime.
 
-    as a drop in replacement for evdev.InputEvent
+    Is a drop-in replacement for evdev.InputEvent
     """
 
     sec: int

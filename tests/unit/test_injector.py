@@ -107,6 +107,11 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
 
         quick_cleanup()
 
+    def initialize_injector(self, group, preset: Preset):
+        self.injector = Injector(group, preset)
+        self.injector._devices = self.injector.group.get_devices()
+        self.injector._update_preset()
+
     def test_grab(self):
         # path is from the fixtures
         path = "/dev/input/event10"
@@ -168,7 +173,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
                 "a",
             ),
         )
-        self.injector = Injector(groups.find(name="gamepad"), preset)
+        self.initialize_injector(groups.find(name="gamepad"), preset)
         self.injector.context = Context(preset)
         self.injector.group.paths = [
             "/dev/input/event10",
@@ -183,13 +188,6 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
     def test_forward_gamepad_events(self):
         # forward abs joystick events
         preset = Preset()
-        self.injector = Injector(groups.find(name="gamepad"), preset)
-        self.injector.context = Context(preset)
-
-        path = "/dev/input/event30"
-        device = self.injector._grab_devices()
-        self.assertEqual(device, [])  # no capability is used, so it won't grab
-
         preset.add(
             get_key_mapping(
                 InputCombination(InputConfig(type=EV_KEY, code=BTN_A)),
@@ -197,6 +195,11 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
                 "a",
             ),
         )
+
+        self.initialize_injector(groups.find(name="gamepad"), preset)
+        self.injector.context = Context(preset)
+
+        path = "/dev/input/event30"
         devices = self.injector._grab_devices()
         self.assertEqual(len(devices), 1)
         self.assertEqual(devices[0].path, path)
@@ -213,30 +216,27 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
                 "a",
             )
         )
-        self.injector = Injector(groups.find(key="Foo Device 2"), preset)
+        self.initialize_injector(groups.find(key="Foo Device 2"), preset)
         self.injector.context = Context(preset)
-        path = "/dev/input/event11"
-        self.injector.group.paths = [path]
+
+        # grabs only one device even though the group has 4 devices
         devices = self.injector._grab_devices()
-        self.assertEqual(devices, [])
-        self.assertEqual(self.failed, 0)
+        self.assertEqual(len(devices), 1)
+        self.assertEqual(self.failed, 2)
 
     def test_skip_unknown_device(self):
         preset = Preset()
         preset.add(
             get_key_mapping(
-                InputCombination(InputConfig(type=EV_KEY, code=10)),
+                InputCombination(InputConfig(type=EV_KEY, code=1234)),
                 "keyboard",
                 "a",
             )
         )
 
         # skips a device because its capabilities are not used in the preset
-        self.injector = Injector(groups.find(key="Foo Device 2"), preset)
+        self.initialize_injector(groups.find(key="Foo Device 2"), preset)
         self.injector.context = Context(preset)
-
-        path = "/dev/input/event11"
-        self.injector.group.paths = [path]
         devices = self.injector._grab_devices()
 
         # skips the device alltogether, so no grab attempts fail
