@@ -293,19 +293,19 @@ class Preset(Generic[MappingModel]):
             #  adds compatibility with older beta versions
             def str_to_cfg(string):
                 config = []
-                for s in string.split("+"):
-                    cfg = {
-                        k: int(v)
-                        for k, v in zip(
-                            ("type", "code", "analog_threshold"), s.split(",")
-                        )
-                    }
-                    assert len(cfg) == 3
-                    config.append(cfg)
+                for event_str in string.split("+"):
+                    type_, code, analog_threshold = event_str.split(",")
+                    config.append(
+                        {
+                            "type": type_,
+                            "code": code,
+                            "analog_threshold": analog_threshold,
+                        }
+                    )
                 return config
 
-            for c, d in preset_list.items():
-                d["input_combination"] = str_to_cfg(c)
+            for combination_string, mapping_dict in preset_list.items():
+                mapping_dict["input_combination"] = str_to_cfg(combination_string)
             preset_list = list(preset_list.values())
 
         for mapping_dict in preset_list:
