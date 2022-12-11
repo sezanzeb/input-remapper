@@ -282,17 +282,16 @@ def _otherwise_to_else():
 
 
 def _input_combination_from_string(combination_string: str) -> InputCombination:
-    cfg = []
+    configs = []
     for event_str in combination_string.split("+"):
-        cfg.append(
-            {
-                k: int(v)
-                for k, v in zip(
-                    ("type", "code", "analog_threshold"), event_str.split(",")
-                )
-            }
-        )
-    return InputCombination(cfg)
+        type, code, analog_threshold = event_str.split(",")
+        configs.append({
+            type: type,
+            code: code,
+            analog_threshold: analog_threshold
+        })
+        
+    return InputCombination(configs)
 
 
 def _convert_to_individual_mappings():
