@@ -197,7 +197,7 @@ class TestMigrations(unittest.TestCase):
                         f"{EV_KEY}, 5, 1": ("e", "foo"),  # unknown target
                         f"{EV_KEY}, 6, 1": ("key(a, b)", "keyboard"),  # broken macro
                         # ignored because broken
-                        f"3,1,1,2": "e",  # actually not ignored. last number gets ignored
+                        f"3,1,1,2": "e",
                         f"3": "e",
                         f",,+3,1,2": "g",
                         f"": "h",
@@ -291,7 +291,7 @@ class TestMigrations(unittest.TestCase):
             ),
         )
 
-        self.assertEqual(9, len(preset))
+        self.assertEqual(8, len(preset))
 
     def test_migrate_otherwise(self):
         path = os.path.join(CONFIG_PATH, "presets", "Foo Device", "test.json")

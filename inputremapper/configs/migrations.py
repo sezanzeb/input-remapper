@@ -284,13 +284,11 @@ def _otherwise_to_else():
 def _input_combination_from_string(combination_string: str) -> InputCombination:
     configs = []
     for event_str in combination_string.split("+"):
-        type, code, analog_threshold = event_str.split(",")
-        configs.append({
-            type: type,
-            code: code,
-            analog_threshold: analog_threshold
-        })
-        
+        type_, code, analog_threshold = event_str.split(",")
+        configs.append(
+            {"type": type_, "code": code, "analog_threshold": analog_threshold}
+        )
+
     return InputCombination(configs)
 
 
