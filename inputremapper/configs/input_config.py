@@ -43,7 +43,7 @@ DIFFICULT_COMBINATIONS = [
 
 
 class InputConfig(BaseModel):
-    """The configuration of a single input to a mapping"""
+    """Describes a single input within a combination, to configure mappings."""
 
     message_type = MessageType.selected_event
 
