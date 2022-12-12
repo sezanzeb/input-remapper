@@ -22,7 +22,7 @@
 
 import asyncio
 import os
-from typing import AsyncIterator, Protocol, Set, Dict, List, Hashable
+from typing import AsyncIterator, Protocol, Set, List
 
 import evdev
 
@@ -37,9 +37,11 @@ from inputremapper.logger import logger
 
 class Context(Protocol):
     listeners: Set[EventListener]
-    notify_callbacks: Dict[Hashable, List[NotifyCallback]]
 
     def reset(self):
+        ...
+
+    def get_entry_points(self, input_event: InputEvent) -> List[NotifyCallback]:
         ...
 
 
@@ -121,7 +123,7 @@ class EventReader:
             return False
 
         results = set()
-        notify_callbacks = self.context.notify_callbacks.get(event.input_match_hash)
+        notify_callbacks = self.context.get_entry_points(event)
         if notify_callbacks:
             for notify_callback in notify_callbacks:
                 results.add(

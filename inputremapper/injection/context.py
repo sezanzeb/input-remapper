@@ -22,9 +22,10 @@
 from collections import defaultdict
 from typing import List, Dict, Tuple, Set, Hashable
 
+from inputremapper.input_event import InputEvent
+
 from inputremapper.configs.preset import Preset
 from inputremapper.injection.mapping_handlers.mapping_handler import (
-    InputEventHandler,
     EventListener,
     NotifyCallback,
 )
@@ -32,7 +33,6 @@ from inputremapper.injection.mapping_handlers.mapping_parser import (
     parse_mappings,
     EventPipelines,
 )
-from inputremapper.input_event import InputEvent
 
 
 class Context:
@@ -64,12 +64,12 @@ class Context:
     """
 
     listeners: Set[EventListener]
-    notify_callbacks: Dict[Hashable, List[NotifyCallback]]
+    _notify_callbacks: Dict[Hashable, List[NotifyCallback]]
     _handlers: EventPipelines
 
     def __init__(self, preset: Preset):
         self.listeners = set()
-        self.notify_callbacks = defaultdict(list)
+        self._notify_callbacks = defaultdict(list)
         self._handlers = parse_mappings(preset, self)
 
         self._create_callbacks()
@@ -83,6 +83,9 @@ class Context:
     def _create_callbacks(self) -> None:
         """Add the notify method from all _handlers to self.callbacks."""
         for input_config, handler_list in self._handlers.items():
-            self.notify_callbacks[input_config.input_match_hash].extend(
+            self._notify_callbacks[input_config.input_match_hash].extend(
                 handler.notify for handler in handler_list
             )
+
+    def get_entry_points(self, input_event: InputEvent) -> List[NotifyCallback]:
+        return self._notify_callbacks[input_event.input_match_hash]

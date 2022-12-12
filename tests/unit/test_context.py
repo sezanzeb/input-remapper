@@ -88,9 +88,9 @@ class TestContext(unittest.TestCase):
             InputConfig(type=1, code=33).input_match_hash: 1,
             InputConfig(type=1, code=34).input_match_hash: 1,
         }
-        self.assertEqual(set(callbacks.keys()), set(context.notify_callbacks.keys()))
+        self.assertEqual(set(callbacks.keys()), set(context._notify_callbacks.keys()))
         for key, val in callbacks.items():
-            self.assertEqual(val, len(context.notify_callbacks[key]))
+            self.assertEqual(val, len(context._notify_callbacks[key]))
 
         # 7 unique input events in the preset
         self.assertEqual(7, len(context._handlers))

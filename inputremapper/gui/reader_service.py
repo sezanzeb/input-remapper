@@ -53,11 +53,15 @@ from evdev.ecodes import EV_KEY, EV_ABS, EV_REL, REL_HWHEEL, REL_WHEEL
 from inputremapper.utils import get_device_hash
 
 from inputremapper.configs.input_config import InputCombination, InputConfig
-from inputremapper.configs.mapping import UIMapping, Mapping
+from inputremapper.configs.mapping import Mapping
 from inputremapper.groups import _Groups, _Group
 from inputremapper.injection.event_reader import EventReader
 from inputremapper.injection.mapping_handlers.abs_to_btn_handler import AbsToBtnHandler
-from inputremapper.injection.mapping_handlers.mapping_handler import MappingHandler
+from inputremapper.injection.mapping_handlers.mapping_handler import (
+    NotifyCallback,
+    InputEventHandler,
+    MappingHandler,
+)
 from inputremapper.injection.mapping_handlers.rel_to_btn_handler import RelToBtnHandler
 from inputremapper.input_event import InputEvent, EventActions
 from inputremapper.ipc.pipe import Pipe
@@ -275,8 +279,8 @@ class ReaderService:
                 input_config = InputConfig(
                     type=EV_KEY, code=ev_code, origin=device_hash
                 )
-                context.notify_callbacks[input_config.input_match_hash].append(
-                    ForwardToUIHandler(self._results_pipe).notify
+                context.add_handler(
+                    input_config, ForwardToUIHandler(self._results_pipe)
                 )
 
             for ev_code in capabilities.get(EV_ABS) or ():
@@ -293,9 +297,7 @@ class ReaderService:
                     InputCombination(input_config), mapping
                 )
                 handler.set_sub_handler(ForwardToUIHandler(self._results_pipe))
-                context.notify_callbacks[input_config.input_match_hash].append(
-                    handler.notify
-                )
+                context.add_handler(input_config, handler)
 
                 # negative direction
                 input_config = input_config.modify(analog_threshold=-30)
@@ -306,9 +308,7 @@ class ReaderService:
                 )
                 handler = AbsToBtnHandler(InputCombination(input_config), mapping)
                 handler.set_sub_handler(ForwardToUIHandler(self._results_pipe))
-                context.notify_callbacks[input_config.input_match_hash].append(
-                    handler.notify
-                )
+                context.add_handler(input_config, handler)
 
             for ev_code in capabilities.get(EV_REL) or ():
                 # positive direction
@@ -327,9 +327,7 @@ class ReaderService:
                 )
                 handler = RelToBtnHandler(InputCombination(input_config), mapping)
                 handler.set_sub_handler(ForwardToUIHandler(self._results_pipe))
-                context.notify_callbacks[input_config.input_match_hash].append(
-                    handler.notify
-                )
+                context.add_handler(input_config, handler)
 
                 # negative direction
                 input_config = input_config.modify(
@@ -344,9 +342,7 @@ class ReaderService:
                 )
                 handler = RelToBtnHandler(InputCombination(input_config), mapping)
                 handler.set_sub_handler(ForwardToUIHandler(self._results_pipe))
-                context.notify_callbacks[input_config.input_match_hash].append(
-                    handler.notify
-                )
+                context.add_handler(input_config, handler)
 
         return context
 
@@ -354,7 +350,13 @@ class ReaderService:
 class ContextDummy:
     def __init__(self):
         self.listeners = set()
-        self.notify_callbacks = defaultdict(list)
+        self._notify_callbacks = defaultdict(list)
+
+    def add_handler(self, input_config: InputConfig, handler: InputEventHandler):
+        self._notify_callbacks[input_config.input_match_hash].append(handler.notify)
+
+    def get_entry_points(self, input_event: InputEvent) -> List[NotifyCallback]:
+        return self._notify_callbacks[input_event.input_match_hash]
 
     def reset(self):
         pass
