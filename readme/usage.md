@@ -144,10 +144,10 @@ looks like, with  an example autoload entry:
 
 ```json
 {
-  "autoload": {
-      "Logitech USB Keyboard": "preset name"
-    },
-  "version": "1.6"
+    "autoload": {
+        "Logitech USB Keyboard": "preset name"
+    }, 
+    "version": "1.6"
 }
 ```
 
@@ -161,30 +161,30 @@ Here is an example configuration for preset "a" for the "gamepad" device:
 `~/.config/input-remapper/presets/gamepad/a.json`
 
 ```json
-[	
-	{
-		"input_combination": [
-			{"type": 1, "code": 307}
-		],
-        "target_uinput": "keyboard",
-        "output_symbol": "k(2).k(3)",
-        "macro_key_sleep_ms": 100
-    },
+[
     {
-		"input_combination": [
-			{"type": 1, "code": 315, "origin": "07f543a6d19f00769e7300c2b1033b7a"},
-			{"type": 3, "code": 1, "analog_threshold": 10}
-        ],
-        "target_uinput": "keyboard",
+        "input_combination": [
+            {"type": 1, "code": 307}
+        ], 
+        "target_uinput": "keyboard", 
+        "output_symbol": "k(2).k(3)", 
+        "macro_key_sleep_ms": 100
+    }, 
+    {
+        "input_combination": [
+            {"type": 1, "code": 315, "origin": "07f543a6d19f00769e7300c2b1033b7a"}, 
+            {"type": 3, "code": 1, "analog_threshold": 10}
+        ], 
+        "target_uinput": "keyboard", 
         "output_symbol": "1"
-    },
-	{
-		"input_combination": [
-			{"type": 3, "code": 1}
-		],
-        "target_uinput": "mouse",
-        "output_type": 2,
-        "output_code": 1,
+    }, 
+    {
+        "input_combination": [
+            {"type": 3, "code": 1}
+        ], 
+        "target_uinput": "mouse", 
+        "output_type": 2, 
+        "output_code": 1, 
         "gain": 0.5
     }
 ]
@@ -204,10 +204,10 @@ which is a list of input-configurations and the mapping parameters.
 
 ```
 {
-	"input_combination": [
-		<InputConfig 1>,
-		<InputConfig 2>
-	]
+    "input_combination": [
+	    <InputConfig 1>,
+	    <InputConfig 2>
+    ]
     <parameter 1>: <value1>,
     <parameter 2>: <value2>
 }
