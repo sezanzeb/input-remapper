@@ -24,7 +24,7 @@ from typing import Tuple, Iterable, Union, List, Dict, Optional, Hashable
 
 from evdev import ecodes
 from inputremapper.input_event import InputEvent
-from pydantic import BaseModel, root_validator, validator
+from pydantic import BaseModel, root_validator, validator, constr
 
 from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.gui.messages.message_types import MessageType
@@ -41,6 +41,8 @@ DIFFICULT_COMBINATIONS = [
     ecodes.KEY_RIGHTALT,
 ]
 
+DeviceHash = constr(to_lower=True)
+
 
 class InputConfig(BaseModel):
     """Describes a single input within a combination, to configure mappings."""
@@ -49,7 +51,11 @@ class InputConfig(BaseModel):
 
     type: int
     code: int
-    origin: Optional[str] = None
+
+    # origin is a hash to identify a specific /dev/input/eventXX device. This solves
+    # a number of bugs when multiple devices have overlapping capabilities.
+    # see utils.get_device_hash for the exact hashing function
+    origin: Optional[DeviceHash] = None
     analog_threshold: Optional[int] = None
 
     @property
