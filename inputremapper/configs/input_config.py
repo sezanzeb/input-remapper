@@ -55,7 +55,7 @@ class InputConfig(BaseModel):
     # origin is a hash to identify a specific /dev/input/eventXX device. This solves
     # a number of bugs when multiple devices have overlapping capabilities.
     # see utils.get_device_hash for the exact hashing function
-    origin: Optional[DeviceHash] = None
+    origin: Optional[DeviceHash] = None  # type: ignore
     analog_threshold: Optional[int] = None
 
     @property
