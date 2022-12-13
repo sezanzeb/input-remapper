@@ -112,7 +112,7 @@ class MessageBroker:
                 pass
 
 
-class Signal(Message):
+class Signal:
     """Send a Message without any associated data over the MassageBus."""
 
     def __init__(self, message_type: MessageType):
