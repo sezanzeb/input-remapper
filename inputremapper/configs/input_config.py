@@ -242,7 +242,7 @@ class InputConfig(BaseModel):
 
 InputCombinationInit = Union[
     InputConfig,
-    Iterable[Dict[str, int]],
+    Iterable[Dict[str, Union[str, int]]],
     Iterable[InputConfig],
 ]
 

@@ -29,6 +29,7 @@ from typing import (
     Dict,
     Callable,
     List,
+    Any,
 )
 
 import gi
@@ -649,7 +650,7 @@ class Controller:
         """Focus the given component."""
         self.gui.window.set_focus(component)
 
-    def _change_mapping_type(self, kwargs):
+    def _change_mapping_type(self, kwargs: Dict[str, Any]):
         """Query the user to update the mapping in order to change the mapping type."""
         mapping = self.data_manager.active_mapping
 

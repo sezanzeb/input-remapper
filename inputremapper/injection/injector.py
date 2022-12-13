@@ -199,11 +199,13 @@ class Injector(multiprocessing.Process):
         ensures the devices supports the type and code specified by the InputConfig"""
         devices_by_hash = {get_device_hash(device): device for device in self._devices}
 
-        if device := devices_by_hash.get(input_config.origin):
+        # mypy thinks None is the wrong type for dict.get()
+        if device := devices_by_hash.get(input_config.origin):  # type: ignore
             if input_config.code in device.capabilities(absinfo=False).get(
                 input_config.type, []
             ):
                 return device
+        return None
 
     def _find_input_device_fallback(
         self, input_config: InputConfig
