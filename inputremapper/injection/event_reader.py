@@ -195,7 +195,9 @@ class EventReader:
             self._source.fd,
         )
         async for event in self.read_loop():
-            await self.handle(InputEvent.from_event(event, origin=self._device_hash))
+            await self.handle(
+                InputEvent.from_event(event, origin_hash=self._device_hash)
+            )
 
         self.context.reset()
         logger.info("read loop for %s stopped", self._source.path)

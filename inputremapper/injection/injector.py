@@ -200,7 +200,7 @@ class Injector(multiprocessing.Process):
         devices_by_hash = {get_device_hash(device): device for device in self._devices}
 
         # mypy thinks None is the wrong type for dict.get()
-        if device := devices_by_hash.get(input_config.origin):  # type: ignore
+        if device := devices_by_hash.get(input_config.origin_hash):  # type: ignore
             if input_config.code in device.capabilities(absinfo=False).get(
                 input_config.type, []
             ):
@@ -263,7 +263,7 @@ class Injector(multiprocessing.Process):
         return grabbed_devices
 
     def _update_preset(self):
-        """Update all InputConfigs in the preset to include correct origin
+        """Update all InputConfigs in the preset to include correct origin_hash
         information."""
         mappings_by_input = defaultdict(list)
         for mapping in self.preset:
@@ -279,10 +279,10 @@ class Injector(multiprocessing.Process):
                 continue
 
             for mapping in mappings_by_input[input_config]:
-                combination = list(mapping.input_combination)
+                combination: List[InputConfig] = list(mapping.input_combination)
                 device_hash = get_device_hash(device)
                 idx = combination.index(input_config)
-                combination[idx] = combination[idx].modify(origin=device_hash)
+                combination[idx] = combination[idx].modify(origin_hash=device_hash)
                 mapping.input_combination = combination
 
     def _grab_device(self, device: evdev.InputDevice) -> Optional[evdev.InputDevice]:
@@ -402,8 +402,8 @@ class Injector(multiprocessing.Process):
 
         self._devices = self.group.get_devices()
 
-        # InputConfigs may not contain the origin information, this will try to make a
-        # good guess if the origin information is missing or invalid.
+        # InputConfigs may not contain the origin_hash information, this will try to make a
+        # good guess if the origin_hash information is missing or invalid.
         self._update_preset()
 
         # grab devices as early as possible. If events appear that won't get

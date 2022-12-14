@@ -202,7 +202,7 @@ class ReaderClient:
             "type": event.type,
             "code": event.code,
             "analog_threshold": event.value,
-            "origin": event.origin,
+            "origin_hash": event.origin_hash,
         }
 
     def _recorder(self) -> RecordingGenerator:

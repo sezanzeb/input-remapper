@@ -85,7 +85,7 @@ class TestEventReader(unittest.IsolatedAsyncioTestCase):
                     InputConfig(
                         type=EV_KEY,
                         code=trigger,
-                        origin=fixtures.gamepad.get_device_hash(),
+                        origin_hash=fixtures.gamepad.get_device_hash(),
                     )
                 ),
                 "keyboard",
@@ -99,7 +99,7 @@ class TestEventReader(unittest.IsolatedAsyncioTestCase):
                         type=EV_ABS,
                         code=ABS_Y,
                         analog_threshold=1,
-                        origin=fixtures.gamepad.get_device_hash(),
+                        origin_hash=fixtures.gamepad.get_device_hash(),
                     )
                 ),
                 "keyboard",
@@ -110,7 +110,7 @@ class TestEventReader(unittest.IsolatedAsyncioTestCase):
         # left x to mouse x
         cfg = {
             "input_combination": InputConfig(
-                type=EV_ABS, code=ABS_X, origin=fixtures.gamepad.get_device_hash()
+                type=EV_ABS, code=ABS_X, origin_hash=fixtures.gamepad.get_device_hash()
             ),
             "target_uinput": "mouse",
             "output_type": EV_REL,
@@ -120,21 +120,21 @@ class TestEventReader(unittest.IsolatedAsyncioTestCase):
 
         # left y to mouse y
         cfg["input_combination"] = InputConfig(
-            type=EV_ABS, code=ABS_Y, origin=fixtures.gamepad.get_device_hash()
+            type=EV_ABS, code=ABS_Y, origin_hash=fixtures.gamepad.get_device_hash()
         )
         cfg["output_code"] = REL_Y
         self.preset.add(Mapping(**cfg))
 
         # right x to wheel x
         cfg["input_combination"] = InputConfig(
-            type=EV_ABS, code=ABS_RX, origin=fixtures.gamepad.get_device_hash()
+            type=EV_ABS, code=ABS_RX, origin_hash=fixtures.gamepad.get_device_hash()
         )
         cfg["output_code"] = REL_HWHEEL_HI_RES
         self.preset.add(Mapping(**cfg))
 
         # right y to wheel y
         cfg["input_combination"] = InputConfig(
-            type=EV_ABS, code=ABS_RY, origin=fixtures.gamepad.get_device_hash()
+            type=EV_ABS, code=ABS_RY, origin_hash=fixtures.gamepad.get_device_hash()
         )
         cfg["output_code"] = REL_WHEEL_HI_RES
         self.preset.add(Mapping(**cfg))
@@ -172,7 +172,7 @@ class TestEventReader(unittest.IsolatedAsyncioTestCase):
                     InputConfig(
                         type=EV_KEY,
                         code=trigger,
-                        origin=fixtures.gamepad.get_device_hash(),
+                        origin_hash=fixtures.gamepad.get_device_hash(),
                     )
                 ),
                 "keyboard",
@@ -186,7 +186,7 @@ class TestEventReader(unittest.IsolatedAsyncioTestCase):
                         type=EV_ABS,
                         code=ABS_Y,
                         analog_threshold=1,
-                        origin=fixtures.gamepad.get_device_hash(),
+                        origin_hash=fixtures.gamepad.get_device_hash(),
                     )
                 ),
                 "keyboard",

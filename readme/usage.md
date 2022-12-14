@@ -172,7 +172,7 @@ Here is an example configuration for preset "a" for the "gamepad" device:
     }, 
     {
         "input_combination": [
-            {"type": 1, "code": 315, "origin": "07f543a6d19f00769e7300c2b1033b7a"}, 
+            {"type": 1, "code": 315, "origin_hash": "07f543a6d19f00769e7300c2b1033b7a"}, 
             {"type": 3, "code": 1, "analog_threshold": 10}
         ], 
         "target_uinput": "keyboard", 
@@ -219,18 +219,18 @@ mapping, all input configurations must trigger.
 
 A input configuration is a dictionary with some or all of the following parameters:
 
-| Parameter        | Default | Type                   | Description                                                          |
-|------------------|---------|------------------------|----------------------------------------------------------------------|
-| type             | -       | int                    | Input Event Type                                                     |
-| code             | -       | int                    | Input Evnet Code                                                     |
-| origin           | None    | hex (string formatted) | A unique identifier for the device which emites the described event. |
-| analog_threshold | None    | int                    | The threshold above which a input axis triggers the mapping.         |
+| Parameter        | Default | Type                   | Description                                                         |
+|------------------|---------|------------------------|---------------------------------------------------------------------|
+| type             | -       | int                    | Input Event Type                                                    |
+| code             | -       | int                    | Input Evnet Code                                                    |
+| origin_hash      | None    | hex (string formatted) | A unique identifier for the device which emits the described event. |
+| analog_threshold | None    | int                    | The threshold above which a input axis triggers the mapping.        |
 
 ##### type, code
 The `type` and `code` parameters are always needed. Use the program `evtest` to find 
 Available types and codes. See also the [evdev documentation](https://www.kernel.org/doc/html/latest/input/event-codes.html#input-event-codes)
-##### origin
-The origin is an internally computed hash. It is used associate the input with a 
+##### origin_hash
+The origin_hash is an internally computed hash. It is used associate the input with a 
 specific `/dev/input/eventXX` device. This is useful when a single pyhsical device 
 creates multiple `/dev/input/eventXX` devices wihth similar capabilities.
 See also: [Issue#435](https://github.com/sezanzeb/input-remapper/issues/435)

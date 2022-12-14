@@ -55,12 +55,12 @@ class TestInputConfig(unittest.TestCase):
                 "input": {
                     "type": EV_KEY,
                     "code": KEY_A,
-                    "origin": "foo",
+                    "origin_hash": "foo",
                 },
                 "properties": {
                     "type": EV_KEY,
                     "code": KEY_A,
-                    "origin": "foo",
+                    "origin_hash": "foo",
                     "input_match_hash": (EV_KEY, KEY_A, "foo"),
                     "defines_analog_input": False,
                     "type_and_code": (EV_KEY, KEY_A),
@@ -85,13 +85,13 @@ class TestInputConfig(unittest.TestCase):
                 "input": {
                     "type": EV_KEY,
                     "code": KEY_A,
-                    "origin": "foo",
+                    "origin_hash": "foo",
                     "analog_threshold": 10,
                 },
                 "properties": {
                     "type": EV_KEY,
                     "code": KEY_A,
-                    "origin": "foo",
+                    "origin_hash": "foo",
                     "analog_threshold": None,
                     "input_match_hash": (EV_KEY, KEY_A, "foo"),
                     "defines_analog_input": False,
@@ -117,13 +117,13 @@ class TestInputConfig(unittest.TestCase):
                 "input": {
                     "type": EV_ABS,
                     "code": ABS_X,
-                    "origin": "foo",
+                    "origin_hash": "foo",
                     "analog_threshold": 10,
                 },
                 "properties": {
                     "type": EV_ABS,
                     "code": ABS_X,
-                    "origin": "foo",
+                    "origin_hash": "foo",
                     "analog_threshold": 10,
                     "input_match_hash": (EV_ABS, ABS_X, "foo"),
                     "defines_analog_input": False,
@@ -164,13 +164,13 @@ class TestInputConfig(unittest.TestCase):
                 "input": {
                     "type": EV_ABS,
                     "code": ABS_HAT0Y,
-                    "origin": "foo",
+                    "origin_hash": "foo",
                     "analog_threshold": 10,
                 },
                 "properties": {
                     "type": EV_ABS,
                     "code": ABS_HAT0Y,
-                    "origin": "foo",
+                    "origin_hash": "foo",
                     "analog_threshold": 10,
                     "input_match_hash": (EV_ABS, ABS_HAT0Y, "foo"),
                     "defines_analog_input": False,
@@ -196,13 +196,13 @@ class TestInputConfig(unittest.TestCase):
                 "input": {
                     "type": EV_REL,
                     "code": REL_Y,
-                    "origin": "foo",
+                    "origin_hash": "foo",
                     "analog_threshold": 10,
                 },
                 "properties": {
                     "type": EV_REL,
                     "code": REL_Y,
-                    "origin": "foo",
+                    "origin_hash": "foo",
                     "analog_threshold": 10,
                     "input_match_hash": (EV_REL, REL_Y, "foo"),
                     "defines_analog_input": False,
@@ -228,13 +228,13 @@ class TestInputConfig(unittest.TestCase):
                 "input": {
                     "type": EV_ABS,
                     "code": ABS_X,
-                    "origin": "foo",
+                    "origin_hash": "foo",
                     "analog_threshold": 0,
                 },
                 "properties": {
                     "type": EV_ABS,
                     "code": ABS_X,
-                    "origin": "foo",
+                    "origin_hash": "foo",
                     "analog_threshold": None,
                     "input_match_hash": (EV_ABS, ABS_X, "foo"),
                     "defines_analog_input": True,
@@ -269,12 +269,12 @@ class TestInputConfig(unittest.TestCase):
                 "input": {
                     "type": EV_REL,
                     "code": REL_WHEEL,
-                    "origin": "foo",
+                    "origin_hash": "foo",
                 },
                 "properties": {
                     "type": EV_REL,
                     "code": REL_WHEEL,
-                    "origin": "foo",
+                    "origin_hash": "foo",
                     "analog_threshold": None,
                     "input_match_hash": (EV_REL, REL_WHEEL, "foo"),
                     "defines_analog_input": True,
@@ -318,7 +318,7 @@ class TestInputConfig(unittest.TestCase):
     def test_is_immutable(self):
         input_config = InputConfig(type=1, code=2)
         with self.assertRaises(TypeError):
-            input_config.origin = "foo"
+            input_config.origin_hash = "foo"
 
 
 class TestInputCombination(unittest.TestCase):

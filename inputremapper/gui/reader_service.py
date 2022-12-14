@@ -277,7 +277,7 @@ class ReaderService:
 
             for ev_code in capabilities.get(EV_KEY) or ():
                 input_config = InputConfig(
-                    type=EV_KEY, code=ev_code, origin=device_hash
+                    type=EV_KEY, code=ev_code, origin_hash=device_hash
                 )
                 context.add_handler(
                     input_config, ForwardToUIHandler(self._results_pipe)
@@ -286,7 +286,10 @@ class ReaderService:
             for ev_code in capabilities.get(EV_ABS) or ():
                 # positive direction
                 input_config = InputConfig(
-                    type=EV_ABS, code=ev_code, analog_threshold=30, origin=device_hash
+                    type=EV_ABS,
+                    code=ev_code,
+                    analog_threshold=30,
+                    origin_hash=device_hash,
                 )
                 mapping = Mapping(
                     input_combination=InputCombination(input_config),
@@ -316,7 +319,7 @@ class ReaderService:
                     type=EV_REL,
                     code=ev_code,
                     analog_threshold=self.rel_xy_speed[ev_code],
-                    origin=device_hash,
+                    origin_hash=device_hash,
                 )
                 mapping = Mapping(
                     input_combination=InputCombination(input_config),
@@ -398,7 +401,7 @@ class ForwardToUIHandler:
                         "type": event.type,
                         "code": event.code,
                         "value": event.value,
-                        "origin": event.origin,
+                        "origin_hash": event.origin_hash,
                     },
                 }
             )

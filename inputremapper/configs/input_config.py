@@ -52,10 +52,10 @@ class InputConfig(BaseModel):
     type: int
     code: int
 
-    # origin is a hash to identify a specific /dev/input/eventXX device. This solves
-    # a number of bugs when multiple devices have overlapping capabilities.
+    # origin_hash is a hash to identify a specific /dev/input/eventXX device.
+    # This solves a number of bugs when multiple devices have overlapping capabilities.
     # see utils.get_device_hash for the exact hashing function
-    origin: Optional[DeviceHash] = None  # type: ignore
+    origin_hash: Optional[DeviceHash] = None  # type: ignore
     analog_threshold: Optional[int] = None
 
     @property
@@ -66,7 +66,7 @@ class InputConfig(BaseModel):
         InputConfig itself is hashable, but can not be used to match InputEvent's
         because its hash includes the analog_threshold
         """
-        return self.type, self.code, self.origin
+        return self.type, self.code, self.origin_hash
 
     @property
     def defines_analog_input(self) -> bool:
@@ -89,7 +89,7 @@ class InputConfig(BaseModel):
         return cls(
             type=event.type,
             code=event.code,
-            origin=event.origin,
+            origin_hash=event.origin_hash,
             analog_threshold=event.value,
         )
 
@@ -204,21 +204,21 @@ class InputConfig(BaseModel):
         self,
         type_: Optional[int] = None,
         code: Optional[int] = None,
-        origin: Optional[str] = None,
+        origin_hash: Optional[str] = None,
         analog_threshold: Optional[int] = None,
     ) -> InputConfig:
         """Return a new modified event."""
         return InputConfig(
             type=type_ if type_ is not None else self.type,
             code=code if code is not None else self.code,
-            origin=origin if origin is not None else self.origin,
+            origin_hash=origin_hash if origin_hash is not None else self.origin_hash,
             analog_threshold=analog_threshold
             if analog_threshold is not None
             else self.analog_threshold,
         )
 
     def __hash__(self):
-        return hash((self.type, self.code, self.origin, self.analog_threshold))
+        return hash((self.type, self.code, self.origin_hash, self.analog_threshold))
 
     @validator("analog_threshold")
     def _ensure_analog_threshold_is_none(cls, analog_threshold):

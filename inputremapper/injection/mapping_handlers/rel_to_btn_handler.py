@@ -89,7 +89,7 @@ class RelToBtnHandler(MappingHandler):
             *self._input_config.type_and_code,
             value=0,
             actions=(EventActions.as_key,),
-            origin=self._input_config.origin,
+            origin_hash=self._input_config.origin_hash,
         )
         logger.debug_key(event.event_tuple, "sending to sub_handler")
         self._sub_handler.notify(event, source, forward, suppress)

@@ -108,7 +108,7 @@ class AxisSwitchHandler(MappingHandler):
                 *self._map_axis.type_and_code,
                 0,
                 actions=(EventActions.recenter,),
-                origin=self._map_axis.origin,
+                origin_hash=self._map_axis.origin_hash,
             )
             self._sub_handler.notify(event, self._axis_source, self._forward_device)
             return True
@@ -122,7 +122,7 @@ class AxisSwitchHandler(MappingHandler):
                 0,
                 *self._map_axis.type_and_code,
                 self._last_value,
-                origin=self._map_axis.origin,
+                origin_hash=self._map_axis.origin_hash,
             )
             self._sub_handler.notify(event, self._axis_source, self._forward_device)
             return True

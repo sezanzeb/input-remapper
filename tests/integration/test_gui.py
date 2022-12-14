@@ -673,15 +673,17 @@ class TestGui(GuiTestBase):
             (
                 call(
                     CombinationRecorded(
-                        InputCombination(InputConfig(type=1, code=30, origin=origin))
+                        InputCombination(
+                            InputConfig(type=1, code=30, origin_hash=origin)
+                        )
                     )
                 ),
                 call(
                     CombinationRecorded(
                         InputCombination(
                             (
-                                InputConfig(type=1, code=30, origin=origin),
-                                InputConfig(type=1, code=31, origin=origin),
+                                InputConfig(type=1, code=30, origin_hash=origin),
+                                InputConfig(type=1, code=31, origin_hash=origin),
                             )
                         )
                     )
@@ -723,7 +725,7 @@ class TestGui(GuiTestBase):
         origin = fixtures.foo_device_2_keyboard.get_device_hash()
         self.assertEqual(
             self.data_manager.active_mapping.input_combination,
-            InputCombination(InputConfig(type=1, code=30, origin=origin)),
+            InputCombination(InputConfig(type=1, code=30, origin_hash=origin)),
         )
 
         # create a new mapping
@@ -763,8 +765,8 @@ class TestGui(GuiTestBase):
             self.data_manager.active_mapping.input_combination,
             InputCombination(
                 (
-                    InputConfig(type=1, code=30, origin=origin),
-                    InputConfig(type=1, code=31, origin=origin),
+                    InputConfig(type=1, code=30, origin_hash=origin),
+                    InputConfig(type=1, code=31, origin_hash=origin),
                 )
             ),
         )
@@ -776,9 +778,9 @@ class TestGui(GuiTestBase):
             self.data_manager.active_mapping.input_combination,
             InputCombination(
                 (
-                    InputConfig(type=1, code=30, origin=origin),
-                    InputConfig(type=1, code=31, origin=origin),
-                    InputConfig(type=1, code=32, origin=origin),
+                    InputConfig(type=1, code=30, origin_hash=origin),
+                    InputConfig(type=1, code=31, origin_hash=origin),
+                    InputConfig(type=1, code=32, origin_hash=origin),
                 )
             ),
         )
@@ -803,9 +805,9 @@ class TestGui(GuiTestBase):
             self.data_manager.active_mapping.input_combination,
             InputCombination(
                 (
-                    InputConfig(type=1, code=30, origin=origin),
-                    InputConfig(type=1, code=31, origin=origin),
-                    InputConfig(type=1, code=32, origin=origin),
+                    InputConfig(type=1, code=30, origin_hash=origin),
+                    InputConfig(type=1, code=31, origin_hash=origin),
+                    InputConfig(type=1, code=32, origin_hash=origin),
                 )
             ),
         )
@@ -845,11 +847,11 @@ class TestGui(GuiTestBase):
         origin = fixtures.foo_device_2_keyboard.get_device_hash()
         self.assertEqual(
             self.selection_label_listbox.get_selected_row().combination,
-            InputCombination(InputConfig(type=1, code=30, origin=origin)),
+            InputCombination(InputConfig(type=1, code=30, origin_hash=origin)),
         )
         self.assertEqual(
             self.data_manager.active_mapping.input_combination,
-            InputCombination(InputConfig(type=1, code=30, origin=origin)),
+            InputCombination(InputConfig(type=1, code=30, origin_hash=origin)),
         )
         self.assertEqual(self.selection_label_listbox.get_selected_row().name, "a")
         self.assertIsNone(self.data_manager.active_mapping.name)
@@ -866,7 +868,7 @@ class TestGui(GuiTestBase):
             self.data_manager.active_mapping,
             Mapping(
                 input_combination=InputCombination(
-                    InputConfig(type=1, code=30, origin=origin)
+                    InputConfig(type=1, code=30, origin_hash=origin)
                 ),
                 output_symbol="Shift_L",
                 target_uinput="keyboard",
@@ -880,7 +882,7 @@ class TestGui(GuiTestBase):
         )
         self.assertEqual(
             self.selection_label_listbox.get_selected_row().combination,
-            InputCombination(InputConfig(type=1, code=30, origin=origin)),
+            InputCombination(InputConfig(type=1, code=30, origin_hash=origin)),
         )
 
         # 4. update target to mouse
@@ -890,7 +892,7 @@ class TestGui(GuiTestBase):
             self.data_manager.active_mapping,
             Mapping(
                 input_combination=InputCombination(
-                    InputConfig(type=1, code=30, origin=origin)
+                    InputConfig(type=1, code=30, origin_hash=origin)
                 ),
                 output_symbol="Shift_L",
                 target_uinput="mouse",
@@ -932,7 +934,7 @@ class TestGui(GuiTestBase):
             gtk_iteration()
             return InputCombination(
                 InputConfig.from_input_event(event).modify(
-                    origin=fixtures.foo_device_2_gamepad.get_device_hash()
+                    origin_hash=fixtures.foo_device_2_gamepad.get_device_hash()
                 )
             )
 
@@ -996,15 +998,15 @@ class TestGui(GuiTestBase):
                 config = InputConfig.from_input_event(InputEvent.from_tuple(t))
                 if config.type == EV_KEY:
                     config = config.modify(
-                        origin=fixtures.foo_device_2_keyboard.get_device_hash()
+                        origin_hash=fixtures.foo_device_2_keyboard.get_device_hash()
                     )
                 if config.type == EV_ABS:
                     config = config.modify(
-                        origin=fixtures.foo_device_2_gamepad.get_device_hash()
+                        origin_hash=fixtures.foo_device_2_gamepad.get_device_hash()
                     )
                 if config.type == EV_REL:
                     config = config.modify(
-                        origin=fixtures.foo_device_2_mouse.get_device_hash()
+                        origin_hash=fixtures.foo_device_2_mouse.get_device_hash()
                     )
                 configs.append(config)
             return InputCombination(configs)

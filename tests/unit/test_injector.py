@@ -265,7 +265,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
                 InputConfig(
                     type=EV_KEY,
                     code=KEY_A,
-                    origin=fixtures.foo_device_2_keyboard.get_device_hash(),
+                    origin_hash=fixtures.foo_device_2_keyboard.get_device_hash(),
                 )
             ),
             "keyboard",
@@ -277,7 +277,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
                     type=EV_REL,
                     code=REL_HWHEEL,
                     analog_threshold=1,
-                    origin=fixtures.foo_device_2_mouse.get_device_hash(),
+                    origin_hash=fixtures.foo_device_2_mouse.get_device_hash(),
                 )
             ),
             "keyboard",
@@ -295,7 +295,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
                     InputConfig(
                         type=EV_KEY,
                         code=KEY_A,
-                        origin=fixtures.foo_device_2_keyboard.get_device_hash(),
+                        origin_hash=fixtures.foo_device_2_keyboard.get_device_hash(),
                     )
                 )
             ),
@@ -308,7 +308,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
                         type=EV_REL,
                         code=REL_HWHEEL,
                         analog_threshold=1,
-                        origin=fixtures.foo_device_2_mouse.get_device_hash(),
+                        origin_hash=fixtures.foo_device_2_mouse.get_device_hash(),
                     )
                 )
             ),
@@ -359,12 +359,12 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
                         InputConfig(
                             type=EV_KEY,
                             code=8,
-                            origin=fixtures.foo_device_2_keyboard.get_device_hash(),
+                            origin_hash=fixtures.foo_device_2_keyboard.get_device_hash(),
                         ),
                         InputConfig(
                             type=EV_KEY,
                             code=9,
-                            origin=fixtures.foo_device_2_keyboard.get_device_hash(),
+                            origin_hash=fixtures.foo_device_2_keyboard.get_device_hash(),
                         ),
                     )
                 ),
@@ -379,7 +379,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
                         type=EV_ABS,
                         code=ABS_HAT0X,
                         analog_threshold=-1,
-                        origin=fixtures.foo_device_2_gamepad.get_device_hash(),
+                        origin_hash=fixtures.foo_device_2_gamepad.get_device_hash(),
                     )
                 ),
                 "keyboard",
@@ -395,7 +395,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
                         InputConfig(
                             type=EV_KEY,
                             code=input_b,
-                            origin=fixtures.foo_device_2_keyboard.get_device_hash(),
+                            origin_hash=fixtures.foo_device_2_keyboard.get_device_hash(),
                         )
                     ),
                     "keyboard",

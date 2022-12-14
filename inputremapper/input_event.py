@@ -53,7 +53,7 @@ class InputEvent:
     code: int
     value: int
     actions: Tuple[EventActions, ...] = ()
-    origin: Optional[str] = None
+    origin_hash: Optional[str] = None
 
     def __eq__(self, other: InputEvent | evdev.InputEvent | Tuple[int, int, int]):
         # useful in tests
@@ -68,11 +68,11 @@ class InputEvent:
         """a Hashable object which is intended to match the InputEvent with a
         InputConfig.
         """
-        return self.type, self.code, self.origin
+        return self.type, self.code, self.origin_hash
 
     @classmethod
     def from_event(
-        cls, event: evdev.InputEvent, origin: Optional[str] = None
+        cls, event: evdev.InputEvent, origin_hash: Optional[str] = None
     ) -> InputEvent:
         """Create a InputEvent from another InputEvent or evdev.InputEvent."""
         try:
@@ -82,7 +82,7 @@ class InputEvent:
                 event.type,
                 event.code,
                 event.value,
-                origin=origin,
+                origin_hash=origin_hash,
             )
         except AttributeError as exception:
             raise TypeError(
@@ -150,7 +150,7 @@ class InputEvent:
         code: Optional[int] = None,
         value: Optional[int] = None,
         actions: Tuple[EventActions, ...] = None,
-        origin: Optional[str] = None,
+        origin_hash: Optional[str] = None,
     ) -> InputEvent:
         """Return a new modified event."""
         return InputEvent(
@@ -160,5 +160,5 @@ class InputEvent:
             code if code is not None else self.code,
             value if value is not None else self.value,
             actions if actions is not None else self.actions,
-            origin=origin if origin is not None else self.origin,
+            origin_hash=origin_hash if origin_hash is not None else self.origin_hash,
         )
