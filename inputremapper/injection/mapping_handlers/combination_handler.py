@@ -17,7 +17,8 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-from typing import Dict, Tuple, Hashable
+from __future__ import annotations  # needed for the TYPE_CHECKING import
+from typing import TYPE_CHECKING, Dict, Hashable
 
 import evdev
 from evdev.ecodes import EV_ABS, EV_REL
@@ -32,6 +33,9 @@ from inputremapper.injection.mapping_handlers.mapping_handler import (
 from inputremapper.input_event import InputEvent
 from inputremapper.logger import logger
 
+if TYPE_CHECKING:
+    from inputremapper.injection.context import Context
+
 
 class CombinationHandler(MappingHandler):
     """Keeps track of a combination and notifies a sub handler."""
@@ -45,12 +49,14 @@ class CombinationHandler(MappingHandler):
         self,
         combination: InputCombination,
         mapping: Mapping,
+        context: Context,
         **_,
     ) -> None:
         logger.debug(mapping)
         super().__init__(combination, mapping)
         self._pressed_keys = {}
         self._output_state = False
+        self._context = context
 
         # prepare a key map for all events with non-zero value
         for input_config in combination:
@@ -76,7 +82,7 @@ class CombinationHandler(MappingHandler):
         self,
         event: InputEvent,
         source: evdev.InputDevice,
-                suppress: bool = False,
+        suppress: bool = False,
     ) -> bool:
         if event.input_match_hash not in self._pressed_keys.keys():
             return False  # we are not responsible for the event
@@ -116,7 +122,7 @@ class CombinationHandler(MappingHandler):
             "triggered: sending to sub-handler",
         )
         self._output_state = bool(event.value)
-        return self._sub_handler.notify(event, source, forward_to, suppress)
+        return self._sub_handler.notify(event, source, suppress)
 
     def reset(self) -> None:
         self._sub_handler.reset()
@@ -142,6 +148,8 @@ class CombinationHandler(MappingHandler):
         )
 
         for input_config in keys_to_release:
+            logger.debug_key(input_config.type_and_code, "forwarding")
+            forward_to = self._context.get_forward_uinput(input_config.origin_hash)
             forward_to.write(*input_config.type_and_code, 0)
 
         forward_to.syn()

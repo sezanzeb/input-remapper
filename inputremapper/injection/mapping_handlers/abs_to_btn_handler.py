@@ -91,7 +91,7 @@ class AbsToBtnHandler(MappingHandler):
         self,
         event: InputEvent,
         source: evdev.InputDevice,
-                suppress: bool = False,
+        suppress: bool = False,
     ) -> bool:
         if event.input_match_hash != self._input_config.input_match_hash:
             return False
@@ -122,7 +122,6 @@ class AbsToBtnHandler(MappingHandler):
         return self._sub_handler.notify(
             event,
             source=source,
-            forward_to=forward_to,
             suppress=suppress,
         )
 

@@ -48,7 +48,6 @@ class AxisSwitchHandler(MappingHandler):
     _active: bool  # whether the axis is on or off
     _last_value: int  # the value of the last axis event that arrived
     _axis_source: evdev.InputDevice  # the cached source of the axis input events
-    _forward_device: evdev.UInput  # the cached forward uinput
     _sub_handler: InputEventHandler
 
     def __init__(
@@ -71,7 +70,6 @@ class AxisSwitchHandler(MappingHandler):
 
         self._last_value = 0
         self._axis_source = None
-        self._forward_device = None
 
     def __str__(self):
         return f"AxisSwitchHandler for {self._map_axis.type_and_code} <{id(self)}>"
@@ -110,7 +108,7 @@ class AxisSwitchHandler(MappingHandler):
                 actions=(EventActions.recenter,),
                 origin_hash=self._map_axis.origin_hash,
             )
-            self._sub_handler.notify(event, self._axis_source, self._forward_device)
+            self._sub_handler.notify(event, self._axis_source)
             return True
 
         if self._map_axis.type == evdev.ecodes.EV_ABS:
@@ -124,7 +122,7 @@ class AxisSwitchHandler(MappingHandler):
                 self._last_value,
                 origin_hash=self._map_axis.origin_hash,
             )
-            self._sub_handler.notify(event, self._axis_source, self._forward_device)
+            self._sub_handler.notify(event, self._axis_source)
             return True
 
         return True
@@ -139,7 +137,7 @@ class AxisSwitchHandler(MappingHandler):
         self,
         event: InputEvent,
         source: evdev.InputDevice,
-                suppress: bool = False,
+        suppress: bool = False,
     ) -> bool:
 
         if not self._should_map(event):
@@ -151,14 +149,13 @@ class AxisSwitchHandler(MappingHandler):
         # do some caching so that we can generate the
         # recenter event and an initial abs event
         if not self._forward_device:
-            self._forward_device = forward_to
             self._axis_source = source
 
         # always cache the value
         self._last_value = event.value
 
         if self._active:
-            return self._sub_handler.notify(event, source, forward_to, suppress)
+            return self._sub_handler.notify(event, source, suppress)
 
         return False
 

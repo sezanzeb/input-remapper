@@ -76,7 +76,7 @@ class EventReader:
         """
         self._device_hash = get_device_hash(source)
         self._source = source
-        self._forward_to = forward_to
+        self._forward_to = forward_to  # TODO I think this can go as well
         self.context = context
         self.stop_event = stop_event
 
@@ -126,13 +126,7 @@ class EventReader:
         notify_callbacks = self.context.get_entry_points(event)
         if notify_callbacks:
             for notify_callback in notify_callbacks:
-                results.add(
-                    notify_callback(
-                        event,
-                        source=self._source,
-                        forward_to=self._forward_to,
-                    )
-                )
+                results.add(notify_callback(event, source=self._source))
 
         return True in results
 
@@ -165,6 +159,7 @@ class EventReader:
 
     def forward(self, event: InputEvent) -> None:
         """Forward an event, which injects it unmodified."""
+        # TODO What about this?
         if event.type == evdev.ecodes.EV_KEY:
             logger.debug_key(event.event_tuple, "forwarding")
 
@@ -196,11 +191,7 @@ class EventReader:
         )
         async for event in self.read_loop():
             await self.handle(
-                InputEvent.from_event(
-                    event,
-                    origin_hash=self._device_hash,
-                    forward_to=self._forward_to,
-                )
+                InputEvent.from_event(event, origin_hash=self._device_hash)
             )
 
         self.context.reset()

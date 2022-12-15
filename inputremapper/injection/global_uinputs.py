@@ -17,7 +17,7 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-from typing import Dict, Union, Tuple
+from typing import Dict, Union, Tuple, Optional
 
 import evdev
 
@@ -153,7 +153,7 @@ class GlobalUInputs:
         uinput.write(*event)
         uinput.syn()
 
-    def get_uinput(self, name: str):
+    def get_uinput(self, name: str) -> Optional[evdev.UInput]:
         """UInput with name
 
         Or None if there is no uinput with this name.
@@ -163,8 +163,7 @@ class GlobalUInputs:
         name
             uniqe name of the uinput device
         """
-        if name in self.devices.keys():
-            return self.devices[name]
+        return self.devices.get(name)
 
 
 global_uinputs = GlobalUInputs()

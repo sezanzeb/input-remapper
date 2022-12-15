@@ -49,7 +49,7 @@ class NullHandler(MappingHandler):
         self,
         event: InputEvent,
         source: evdev.InputDevice,
-                suppress: bool = False,
+        suppress: bool = False,
     ) -> bool:
         return True
 

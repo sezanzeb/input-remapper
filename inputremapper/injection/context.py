@@ -106,10 +106,9 @@ class Context:
     def get_entry_points(self, input_event: InputEvent) -> List[NotifyCallback]:
         return self._notify_callbacks[input_event.input_match_hash]
 
-    def get_uinput(self, key: DeviceHash | KnownUinput) -> evdev.UInput:
-        if device := global_uinputs.get_uinput(key):
-            return device
-        return self._forward_devices[key]
+    def get_forward_uinput(self, origin_hash):
+        """Get the "forward" uinput events from the given origin should go into."""
+        return self._forward_devices[origin_hash]
 
     def get_source(self, key: DeviceHash) -> evdev.InputDevice:
         return self._source_devices[key]
