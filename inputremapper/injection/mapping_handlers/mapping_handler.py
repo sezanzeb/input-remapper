@@ -93,8 +93,7 @@ class NotifyCallback(Protocol):
         self,
         event: InputEvent,
         source: evdev.InputDevice,
-        forward_to: evdev.UInput,
-        suppress: bool = False,
+                suppress: bool = False,
     ) -> bool:
         ...
 
@@ -106,8 +105,7 @@ class InputEventHandler(Protocol):
         self,
         event: InputEvent,
         source: evdev.InputDevice,
-        forward_to: evdev.UInput,
-        suppress: bool = False,
+                suppress: bool = False,
     ) -> bool:
         ...
 
@@ -174,8 +172,7 @@ class MappingHandler:
         self,
         event: InputEvent,
         source: evdev.InputDevice,
-        forward_to: evdev.UInput,
-        suppress: bool = False,
+                suppress: bool = False,
     ) -> bool:
         """Notify this handler about an incoming event.
 

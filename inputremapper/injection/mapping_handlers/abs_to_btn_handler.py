@@ -91,8 +91,7 @@ class AbsToBtnHandler(MappingHandler):
         self,
         event: InputEvent,
         source: evdev.InputDevice,
-        forward_to: evdev.UInput,
-        suppress: bool = False,
+                suppress: bool = False,
     ) -> bool:
         if event.input_match_hash != self._input_config.input_match_hash:
             return False

@@ -139,8 +139,7 @@ class AxisSwitchHandler(MappingHandler):
         self,
         event: InputEvent,
         source: evdev.InputDevice,
-        forward_to: evdev.UInput,
-        suppress: bool = False,
+                suppress: bool = False,
     ) -> bool:
 
         if not self._should_map(event):

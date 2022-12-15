@@ -60,7 +60,7 @@ class EventReader:
         self,
         context: Context,
         source: evdev.InputDevice,
-        forward_to: evdev.UInput,
+        forward_to: evdev.UInput,  # TODO I think this can go as well
         stop_event: asyncio.Event,
     ) -> None:
         """Initialize all mapping_handlers
@@ -196,7 +196,11 @@ class EventReader:
         )
         async for event in self.read_loop():
             await self.handle(
-                InputEvent.from_event(event, origin_hash=self._device_hash)
+                InputEvent.from_event(
+                    event,
+                    origin_hash=self._device_hash,
+                    forward_to=self._forward_to,
+                )
             )
 
         self.context.reset()

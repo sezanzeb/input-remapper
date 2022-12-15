@@ -76,8 +76,7 @@ class CombinationHandler(MappingHandler):
         self,
         event: InputEvent,
         source: evdev.InputDevice,
-        forward_to: evdev.UInput,
-        suppress: bool = False,
+                suppress: bool = False,
     ) -> bool:
         if event.input_match_hash not in self._pressed_keys.keys():
             return False  # we are not responsible for the event
@@ -96,7 +95,7 @@ class CombinationHandler(MappingHandler):
 
         if self.get_active():
             # send key up events to the forwarded uinput
-            self.forward_release(forward_to)
+            self.forward_release()
             event = event.modify(value=1)
         else:
             if self._output_state or self.mapping.is_axis_mapping():
@@ -129,7 +128,7 @@ class CombinationHandler(MappingHandler):
         """Return if all keys in the keymap are set to True."""
         return False not in self._pressed_keys.values()
 
-    def forward_release(self, forward_to: evdev.UInput) -> None:
+    def forward_release(self) -> None:
         """Forward a button release for all keys if this is a combination.
 
         this might cause duplicate key-up events but those are ignored by evdev anyway

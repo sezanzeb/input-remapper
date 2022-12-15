@@ -166,7 +166,5 @@ class GlobalUInputs:
         if name in self.devices.keys():
             return self.devices[name]
 
-        return None
-
 
 global_uinputs = GlobalUInputs()
