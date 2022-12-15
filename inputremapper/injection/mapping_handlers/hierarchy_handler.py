@@ -63,7 +63,6 @@ class HierarchyHandler(MappingHandler):
         self,
         event: InputEvent,
         source: evdev.InputDevice = None,
-        forward_to: evdev.UInput = None,
         suppress: bool = False,
     ) -> bool:
         if event.input_match_hash != self._input_config.input_match_hash:
@@ -72,7 +71,7 @@ class HierarchyHandler(MappingHandler):
         success = False
         for handler in self.handlers:
             if not success:
-                success = handler.notify(event, source, forward_to)
+                success = handler.notify(event, source)
             else:
                 handler.notify(event, source, suppress=True)
         return success
