@@ -19,11 +19,16 @@
 
 
 """Stores injection-process wide information."""
+from __future__ import annotations
+
 from collections import defaultdict
-from typing import List, Dict, Tuple, Set, Hashable
+from typing import List, Dict, Set, Hashable
 
+import evdev
+
+from inputremapper.injection.global_uinputs import global_uinputs
+from inputremapper.configs.mapping import KnownUinput
 from inputremapper.input_event import InputEvent
-
 from inputremapper.configs.preset import Preset
 from inputremapper.injection.mapping_handlers.mapping_handler import (
     EventListener,
@@ -33,6 +38,8 @@ from inputremapper.injection.mapping_handlers.mapping_parser import (
     parse_mappings,
     EventPipelines,
 )
+
+DeviceHash = str
 
 
 class Context:
@@ -66,9 +73,18 @@ class Context:
     listeners: Set[EventListener]
     _notify_callbacks: Dict[Hashable, List[NotifyCallback]]
     _handlers: EventPipelines
+    _forward_devices: Dict[DeviceHash, evdev.UInput]
+    _source_devices: Dict[DeviceHash, evdev.InputDevice]
 
-    def __init__(self, preset: Preset):
+    def __init__(
+        self,
+        preset: Preset,
+        source_devices: Dict[DeviceHash, evdev.InputDevice],
+        forward_devices: Dict[DeviceHash, evdev.UInput],
+    ):
         self.listeners = set()
+        self._source_devices = source_devices
+        self._forward_devices = forward_devices
         self._notify_callbacks = defaultdict(list)
         self._handlers = parse_mappings(preset, self)
 
@@ -89,3 +105,11 @@ class Context:
 
     def get_entry_points(self, input_event: InputEvent) -> List[NotifyCallback]:
         return self._notify_callbacks[input_event.input_match_hash]
+
+    def get_uinput(self, key: DeviceHash | KnownUinput) -> evdev.UInput:
+        if device := global_uinputs.get_uinput(key):
+            return device
+        return self._forward_devices[key]
+
+    def get_source(self, key: DeviceHash) -> evdev.InputDevice:
+        return self._source_devices[key]
