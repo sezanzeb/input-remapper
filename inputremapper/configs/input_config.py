@@ -20,7 +20,7 @@
 from __future__ import annotations
 
 import itertools
-from typing import Tuple, Iterable, Union, List, Dict, Optional, Hashable
+from typing import Tuple, Iterable, Union, List, Dict, Optional, Hashable, TypeAlias
 
 from evdev import ecodes
 from inputremapper.input_event import InputEvent
@@ -41,7 +41,7 @@ DIFFICULT_COMBINATIONS = [
     ecodes.KEY_RIGHTALT,
 ]
 
-DeviceHash = constr(to_lower=True)
+DeviceHash: TypeAlias = constr(to_lower=True)
 
 
 class InputConfig(BaseModel):
@@ -55,7 +55,7 @@ class InputConfig(BaseModel):
     # origin_hash is a hash to identify a specific /dev/input/eventXX device.
     # This solves a number of bugs when multiple devices have overlapping capabilities.
     # see utils.get_device_hash for the exact hashing function
-    origin_hash: Optional[DeviceHash] = None  # type: ignore
+    origin_hash: Optional[DeviceHash] = None
     analog_threshold: Optional[int] = None
 
     @property

@@ -26,8 +26,6 @@ from typing import List, Dict, Set, Hashable
 
 import evdev
 
-from inputremapper.injection.global_uinputs import global_uinputs
-from inputremapper.configs.mapping import KnownUinput
 from inputremapper.input_event import InputEvent
 from inputremapper.configs.preset import Preset
 from inputremapper.injection.mapping_handlers.mapping_handler import (
