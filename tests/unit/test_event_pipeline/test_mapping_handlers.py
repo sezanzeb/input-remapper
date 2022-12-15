@@ -138,7 +138,6 @@ class TestAbsToAbsHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
         self.handler.notify(
             InputEvent(0, 0, EV_ABS, ABS_X, MAX_ABS),
             source=InputDevice("/dev/input/event15"),
-            forward_to=evdev.UInput(),
         )
         self.handler.reset()
         history = global_uinputs.get_uinput("gamepad").write_history
@@ -165,7 +164,6 @@ class TestRelToAbsHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
         self.handler.notify(
             InputEvent(0, 0, EV_REL, REL_X, 123),
             source=InputDevice("/dev/input/event15"),
-            forward_to=evdev.UInput(),
         )
         self.handler.reset()
         history = global_uinputs.get_uinput("gamepad").write_history
@@ -186,13 +184,11 @@ class TestRelToAbsHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
         self.handler.notify(
             InputEvent(0, delta, EV_REL, REL_X, 100),
             source=InputDevice("/dev/input/event15"),
-            forward_to=evdev.UInput(),
         )
 
         self.handler.notify(
             InputEvent(0, delta * 2, EV_REL, REL_X, 100),
             source=InputDevice("/dev/input/event15"),
-            forward_to=evdev.UInput(),
         )
 
         self.assertEqual(self.handler._observed_rate, expected_rate)
@@ -204,13 +200,11 @@ class TestRelToAbsHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
         self.handler.notify(
             InputEvent(0, 50, EV_REL, REL_X, 100),
             source=InputDevice("/dev/input/event15"),
-            forward_to=evdev.UInput(),
         )
 
         self.handler.notify(
             InputEvent(0, 50, EV_REL, REL_X, 100),
             source=InputDevice("/dev/input/event15"),
-            forward_to=evdev.UInput(),
         )
 
         self.assertEqual(self.handler._observed_rate, DEFAULT_REL_RATE)
@@ -233,7 +227,6 @@ class TestAbsToRelHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
         self.handler.notify(
             InputEvent(0, 0, EV_ABS, ABS_X, MAX_ABS),
             source=InputDevice("/dev/input/event15"),
-            forward_to=evdev.UInput(),
         )
         await asyncio.sleep(0.2)
         self.handler.reset()
@@ -303,7 +296,6 @@ class TestKeyHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
         self.handler.notify(
             InputEvent(0, 0, EV_REL, REL_X, 1, actions=(EventActions.as_key,)),
             source=InputDevice("/dev/input/event11"),
-            forward_to=evdev.UInput(),
         )
         history = convert_to_internal_events(
             global_uinputs.get_uinput("mouse").write_history
@@ -342,7 +334,6 @@ class TestMacroHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
         self.handler.notify(
             InputEvent(0, 0, EV_REL, REL_X, 1, actions=(EventActions.as_key,)),
             source=InputDevice("/dev/input/event11"),
-            forward_to=evdev.UInput(),
         )
 
         await asyncio.sleep(0.1)
