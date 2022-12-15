@@ -74,7 +74,7 @@ class HierarchyHandler(MappingHandler):
             if not success:
                 success = handler.notify(event, source, forward_to)
             else:
-                handler.notify(event, source, forward_to, suppress=True)
+                handler.notify(event, source, suppress=True)
         return success
 
     def reset(self) -> None:

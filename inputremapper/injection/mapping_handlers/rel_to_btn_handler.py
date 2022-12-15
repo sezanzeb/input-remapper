@@ -92,7 +92,7 @@ class RelToBtnHandler(MappingHandler):
             origin_hash=self._input_config.origin_hash,
         )
         logger.debug_key(event.event_tuple, "sending to sub_handler")
-        self._sub_handler.notify(event, source, forward_to, suppress)
+        self._sub_handler.notify(event, source, suppress)
         self._active = False
 
     def notify(
@@ -124,7 +124,7 @@ class RelToBtnHandler(MappingHandler):
         else:
             # the axis is above the threshold
             if not self._active:
-                asyncio.ensure_future(self._stage_release(source, forward_to, suppress))
+                asyncio.ensure_future(self._stage_release(source, suppress))
             if value >= threshold > 0:
                 direction = EventActions.positive_trigger
             else:
@@ -134,9 +134,7 @@ class RelToBtnHandler(MappingHandler):
 
         self._active = bool(event.value)
         # logger.debug_key(event.event_tuple, "sending to sub_handler")
-        return self._sub_handler.notify(
-            event, source=source, forward_to=forward_to, suppress=suppress
-        )
+        return self._sub_handler.notify(event, source=source, suppress=suppress)
 
     def reset(self) -> None:
         if self._active:
