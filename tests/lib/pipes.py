@@ -66,6 +66,7 @@ def push_event(fixture: Fixture, event, force: bool = False):
     fixture
         For example 'Foo Device'
     event
+        The InputEvent to send
     force
         don't check if the event is in fixture.capabilities
     """

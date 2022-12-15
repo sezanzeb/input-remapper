@@ -99,7 +99,7 @@ class TestAxisTransformation(unittest.TestCase):
                 self.assertAlmostEqual(x, y2, msg=f"test expo symmetry for {init_args}")
 
     def test_origin_symmetry(self):
-        """Test that the transformation is symmetric to the origin
+        """Test that the transformation is symmetric to the origin_hash
         f(x) = - f(-x)
         within the constraints: min = -max
         """
@@ -111,7 +111,7 @@ class TestAxisTransformation(unittest.TestCase):
                 self.assertAlmostEqual(
                     f(x),
                     -f(-x),
-                    msg=f"test origin symmetry at {x=} for {init_args}",
+                    msg=f"test origin_hash symmetry at {x=} for {init_args}",
                 )
 
     def test_gain(self):

@@ -43,7 +43,7 @@ from inputremapper.groups import groups
 def import_control():
     """Import the core function of the input-remapper-control command."""
     bin_path = os.path.join(
-        os.getcwd().replace("/tests/integration", ""),
+        os.getcwd().replace("/tests", ""),
         "bin",
         "input-remapper-control",
     )

@@ -20,8 +20,9 @@
 
 
 from tests.test import is_service_running
+from tests.lib.logger import logger
 from tests.lib.cleanup import cleanup
-from tests.lib.fixtures import new_event
+from tests.lib.fixtures import new_event, get_combination_config
 from tests.lib.pipes import push_events, uinput_write_history_pipe
 from tests.lib.tmp import tmp
 from tests.lib.fixtures import fixtures, get_key_mapping
@@ -40,7 +41,7 @@ from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.configs.global_config import global_config
 from inputremapper.groups import groups
 from inputremapper.configs.paths import get_config_path, mkdir, get_preset_path
-from inputremapper.event_combination import EventCombination
+from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.preset import Preset
 from inputremapper.injection.injector import InjectorState
 from inputremapper.daemon import Daemon
@@ -114,8 +115,7 @@ class TestDaemon(unittest.TestCase):
 
         preset_name = "foo"
 
-        ev_1 = (EV_KEY, BTN_A)
-        ev_2 = (EV_ABS, ABS_X)
+        ev = (EV_ABS, ABS_X)
 
         group = groups.find(name="gamepad")
 
@@ -123,8 +123,18 @@ class TestDaemon(unittest.TestCase):
         group2 = groups.find(name="Bar Device")
 
         preset = Preset(group.get_preset_path(preset_name))
-        preset.add(get_key_mapping(EventCombination([*ev_1, 1]), "keyboard", "a"))
-        preset.add(get_key_mapping(EventCombination([*ev_2, -1]), "keyboard", "b"))
+        preset.add(
+            get_key_mapping(
+                InputCombination(InputConfig(type=EV_KEY, code=BTN_A)),
+                "keyboard",
+                "a",
+            )
+        )
+        preset.add(
+            get_key_mapping(
+                InputCombination(get_combination_config((*ev, -1))), "keyboard", "b"
+            )
+        )
         preset.save()
         global_config.set_autoload_preset(group.key, preset_name)
 
@@ -140,6 +150,7 @@ class TestDaemon(unittest.TestCase):
         # has been cleanedUp in setUp
         self.assertNotIn("keyboard", global_uinputs.devices)
 
+        logger.info(f"start injector for {group.key}")
         self.daemon.start_injecting(group.key, preset_name)
 
         # created on demand
@@ -155,6 +166,7 @@ class TestDaemon(unittest.TestCase):
         self.assertEqual(event.code, BTN_B)
         self.assertEqual(event.value, 1)
 
+        logger.info(f"stopping injector for {group.key}")
         self.daemon.stop_injecting(group.key)
         time.sleep(0.2)
         self.assertEqual(self.daemon.get_state(group.key), InjectorState.STOPPED)
@@ -167,11 +179,12 @@ class TestDaemon(unittest.TestCase):
             raise
 
         """Injection 2"""
+        logger.info(f"start injector for {group.key}")
         self.daemon.start_injecting(group.key, preset_name)
 
         time.sleep(0.1)
         # -1234 will be classified as -1 by the injector
-        push_events(fixtures.gamepad, [new_event(*ev_2, -1234)])
+        push_events(fixtures.gamepad, [new_event(*ev, -1234)])
         time.sleep(0.1)
 
         self.assertTrue(uinput_write_history_pipe[0].poll())
@@ -214,7 +227,11 @@ class TestDaemon(unittest.TestCase):
         system_mapping._set("a", KEY_A)
 
         preset = Preset(get_preset_path(group_name, preset_name))
-        preset.add(get_key_mapping(EventCombination([*ev, 1]), "keyboard", "a"))
+        preset.add(
+            get_key_mapping(
+                InputCombination(get_combination_config(ev)), "keyboard", "a"
+            )
+        )
 
         # make the daemon load the file instead
         with open(get_config_path("xmodmap.json"), "w") as file:
@@ -294,7 +311,11 @@ class TestDaemon(unittest.TestCase):
         path = os.path.join(config_dir, "presets", name, f"{preset_name}.json")
 
         preset = Preset(path)
-        preset.add(get_key_mapping(EventCombination(event), target, to_name))
+        preset.add(
+            get_key_mapping(
+                InputCombination(get_combination_config(event)), target, to_name
+            )
+        )
         preset.save()
 
         system_mapping.clear()
@@ -334,7 +355,11 @@ class TestDaemon(unittest.TestCase):
 
         pereset = Preset(group.get_preset_path(preset_name))
         pereset.add(
-            get_key_mapping(EventCombination((EV_KEY, KEY_A, 1)), "keyboard", "a")
+            get_key_mapping(
+                InputCombination(InputConfig(type=EV_KEY, code=KEY_A)),
+                "keyboard",
+                "a",
+            )
         )
         pereset.save()
 
@@ -398,7 +423,11 @@ class TestDaemon(unittest.TestCase):
 
         preset = Preset(group.get_preset_path(preset_name))
         preset.add(
-            get_key_mapping(EventCombination((EV_KEY, KEY_A, 1)), "keyboard", "a")
+            get_key_mapping(
+                InputCombination(InputConfig(type=EV_KEY, code=KEY_A)),
+                "keyboard",
+                "a",
+            )
         )
         preset.save()
 
@@ -451,7 +480,13 @@ class TestDaemon(unittest.TestCase):
         preset_name = "preset7"
         group = groups.find(key="Foo Device 2")
         preset = Preset(group.get_preset_path(preset_name))
-        preset.add(get_key_mapping(EventCombination([3, 2, 1]), "keyboard", "a"))
+        preset.add(
+            get_key_mapping(
+                InputCombination(InputConfig(type=3, code=2, analog_threshold=1)),
+                "keyboard",
+                "a",
+            )
+        )
         preset.save()
         global_config.set_autoload_preset(group.key, preset_name)
 
@@ -468,7 +503,13 @@ class TestDaemon(unittest.TestCase):
         group = groups.find(key="Foo Device 2")
 
         preset = Preset(group.get_preset_path(preset_name))
-        preset.add(get_key_mapping(EventCombination([3, 2, 1]), "keyboard", "a"))
+        preset.add(
+            get_key_mapping(
+                InputCombination(InputConfig(type=3, code=2, analog_threshold=1)),
+                "keyboard",
+                "a",
+            )
+        )
         preset.save()
 
         global_config.set_autoload_preset(group.key, preset_name)

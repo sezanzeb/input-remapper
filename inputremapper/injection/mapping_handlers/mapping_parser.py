@@ -24,16 +24,15 @@ from typing import Dict, List, Type, Optional, Set, Iterable, Sized, Tuple, Sequ
 
 from evdev.ecodes import EV_KEY, EV_ABS, EV_REL
 
+from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.mapping import Mapping
 from inputremapper.configs.preset import Preset
 from inputremapper.configs.system_mapping import DISABLE_CODE, DISABLE_NAME
-from inputremapper.event_combination import EventCombination
 from inputremapper.exceptions import MappingParsingError
 from inputremapper.injection.macros.parse import is_this_a_macro
 from inputremapper.injection.mapping_handlers.abs_to_abs_handler import AbsToAbsHandler
 from inputremapper.injection.mapping_handlers.abs_to_btn_handler import AbsToBtnHandler
 from inputremapper.injection.mapping_handlers.abs_to_rel_handler import AbsToRelHandler
-from inputremapper.injection.mapping_handlers.rel_to_rel_handler import RelToRelHandler
 from inputremapper.injection.mapping_handlers.axis_switch_handler import (
     AxisSwitchHandler,
 )
@@ -52,11 +51,11 @@ from inputremapper.injection.mapping_handlers.mapping_handler import (
 from inputremapper.injection.mapping_handlers.null_handler import NullHandler
 from inputremapper.injection.mapping_handlers.rel_to_abs_handler import RelToAbsHandler
 from inputremapper.injection.mapping_handlers.rel_to_btn_handler import RelToBtnHandler
-from inputremapper.input_event import InputEvent, USE_AS_ANALOG_VALUE
+from inputremapper.injection.mapping_handlers.rel_to_rel_handler import RelToRelHandler
 from inputremapper.logger import logger
 from inputremapper.utils import get_evdev_constant_name
 
-EventPipelines = Dict[InputEvent, Set[InputEventHandler]]
+EventPipelines = Dict[InputConfig, Set[InputEventHandler]]
 
 mapping_handler_classes: Dict[HandlerEnums, Optional[Type[MappingHandler]]] = {
     # all available mapping_handlers
@@ -95,7 +94,7 @@ def parse_mappings(preset: Preset, context: ContextProtocol) -> EventPipelines:
             continue
 
         output_handler = constructor(
-            mapping.event_combination,
+            mapping.input_combination,
             mapping,
             context=context,
         )
@@ -129,15 +128,15 @@ def parse_mappings(preset: Preset, context: ContextProtocol) -> EventPipelines:
     # up in multiple groups if it takes care of multiple InputEvents
     event_pipelines: EventPipelines = defaultdict(set)
     for handler in handlers:
-        assert handler.input_events
-        for event in handler.input_events:
+        assert handler.input_configs
+        for input_config in handler.input_configs:
             logger.debug(
                 "event-pipeline with entry point: %s %s",
-                get_evdev_constant_name(*event.type_and_code),
-                event.type_and_code,
+                get_evdev_constant_name(*input_config.type_and_code),
+                input_config.input_match_hash,
             )
             logger.debug_mapping_handler(handler)
-            event_pipelines[event].add(handler)
+            event_pipelines[input_config].add(handler)
 
     return event_pipelines
 
@@ -168,7 +167,7 @@ def _create_event_pipeline(
 
         handlers.extend(_create_event_pipeline(super_handler, context))
 
-    if handler.input_events:
+    if handler.input_configs:
         # the handler was only partially wrapped,
         # we need to return it as a toplevel handler
         handlers.append(handler)
@@ -193,7 +192,7 @@ def _get_output_handler(mapping: Mapping) -> HandlerEnums:
     if mapping.output_type == EV_KEY:
         return HandlerEnums.key
 
-    input_event = _maps_axis(mapping.event_combination)
+    input_event = _maps_axis(mapping.input_combination)
     if not input_event:
         raise MappingParsingError(
             f"This {mapping = } does not map to an axis, key or macro",
@@ -219,18 +218,18 @@ def _get_output_handler(mapping: Mapping) -> HandlerEnums:
     raise MappingParsingError(f"the output of {mapping = } is unknown", mapping=Mapping)
 
 
-def _maps_axis(combination: EventCombination) -> Optional[InputEvent]:
-    """Whether this EventCombination contains an InputEvent that is treated as
+def _maps_axis(combination: InputCombination) -> Optional[InputConfig]:
+    """Whether this InputCombination contains an InputEvent that is treated as
     an axis and not a binary (key or button) event.
     """
     for event in combination:
-        if event.value == USE_AS_ANALOG_VALUE:
+        if event.defines_analog_input:
             return event
     return None
 
 
 def _create_hierarchy_handlers(
-    handlers: Dict[EventCombination, Set[MappingHandler]]
+    handlers: Dict[InputCombination, Set[MappingHandler]]
 ) -> Set[MappingHandler]:
     """Sort handlers by input events and create Hierarchy handlers."""
     sorted_handlers = set()
@@ -271,8 +270,8 @@ def _create_hierarchy_handlers(
 
 
 def _order_combinations(
-    combinations: List[EventCombination], common_event: InputEvent
-) -> List[EventCombination]:
+    combinations: List[InputCombination], common_config: InputConfig
+) -> List[InputCombination]:
     """Reorder the keys according to some rules.
 
     such that a combination a+b+c is in front of a+b which is in front of b
@@ -285,21 +284,21 @@ def _order_combinations(
     ----------
     combinations
         the list which needs ordering
-    common_event
-        the Key all members of Keys have in common
+    common_config
+        the InputConfig all InputCombination's in combinations have in common
     """
     combinations.sort(key=len)
 
-    for start, end in ranges_with_constant_length(combinations.copy()):
+    for start, end in _ranges_with_constant_length(combinations.copy()):
         sub_list = combinations[start:end]
-        sub_list.sort(key=lambda x: x.index(common_event))
+        sub_list.sort(key=lambda x: x.index(common_config))
         combinations[start:end] = sub_list
 
     combinations.reverse()
     return combinations
 
 
-def ranges_with_constant_length(x: Sequence[Sized]) -> Iterable[Tuple[int, int]]:
+def _ranges_with_constant_length(x: Sequence[Sized]) -> Iterable[Tuple[int, int]]:
     """Get all ranges of x for which the elements have constant length
 
     Parameters

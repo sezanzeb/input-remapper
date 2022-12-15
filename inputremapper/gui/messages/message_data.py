@@ -21,8 +21,8 @@ import re
 from dataclasses import dataclass
 from typing import Dict, Tuple, Optional, Callable
 
+from inputremapper.configs.input_config import InputCombination
 from inputremapper.configs.mapping import MappingData
-from inputremapper.event_combination import EventCombination
 from inputremapper.gui.messages.message_types import (
     MessageType,
     Name,
@@ -97,7 +97,7 @@ class CombinationRecorded:
     """Message with the latest recoded combination."""
 
     message_type = MessageType.combination_recorded
-    combination: "EventCombination"
+    combination: "InputCombination"
 
 
 @dataclass(frozen=True)
@@ -105,8 +105,8 @@ class CombinationUpdate:
     """Message with the old and new combination (hash for a mapping) when it changed."""
 
     message_type = MessageType.combination_update
-    old_combination: "EventCombination"
-    new_combination: "EventCombination"
+    old_combination: "InputCombination"
+    new_combination: "InputCombination"
 
 
 @dataclass(frozen=True)

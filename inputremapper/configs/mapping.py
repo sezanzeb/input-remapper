@@ -20,7 +20,7 @@
 from __future__ import annotations
 
 import enum
-from typing import Optional, Callable, Tuple, TypeVar, Literal, Union, Any
+from typing import Optional, Callable, Tuple, TypeVar, Literal, Union, Any, Dict
 
 import evdev
 import pkg_resources
@@ -46,13 +46,12 @@ from pydantic import (
     BaseConfig,
 )
 
+from inputremapper.configs.input_config import InputCombination
 from inputremapper.configs.system_mapping import system_mapping, DISABLE_NAME
-from inputremapper.event_combination import EventCombination
 from inputremapper.exceptions import MacroParsingError
 from inputremapper.gui.gettext import _
 from inputremapper.gui.messages.message_types import MessageType
 from inputremapper.injection.macros.parse import is_this_a_macro, parse
-from inputremapper.input_event import InputEvent, EventActions, USE_AS_ANALOG_VALUE
 
 # TODO: remove pydantic VERSION check as soon as we no longer support
 #  Ubuntu 20.04 and with it the ancient pydantic 1.2
@@ -86,16 +85,16 @@ class KnownUinput(str, enum.Enum):
 
 
 CombinationChangedCallback = Optional[
-    Callable[[EventCombination, EventCombination], None]
+    Callable[[InputCombination, InputCombination], None]
 ]
-MappingModel = TypeVar("MappingModel", bound="Mapping")
+MappingModel = TypeVar("MappingModel", bound="UIMapping")
 
 
 class Cfg(BaseConfig):
     validate_assignment = True
     use_enum_values = True
     underscore_attrs_are_private = True
-    json_encoders = {EventCombination: lambda v: v.json_key()}
+    json_encoders = {InputCombination: lambda v: v.json_key()}
 
 
 class ImmutableCfg(Cfg):
@@ -116,7 +115,7 @@ class UIMapping(BaseModel):
 
     # Required attributes
     # The InputEvent or InputEvent combination which is mapped
-    event_combination: EventCombination = EventCombination.empty_combination()
+    input_combination: InputCombination = InputCombination.empty_combination()
     # The UInput to which the mapped event will be sent
     target_uinput: Optional[Union[str, KnownUinput]] = None
 
@@ -157,7 +156,7 @@ class UIMapping(BaseModel):
     # instead wait until it dropped for loger than release_timeout below the threshold
     force_release_timeout: bool = False
 
-    # callback which gets called if the event_combination is updated
+    # callback which gets called if the input_combination is updated
     if not needs_workaround:
         _combination_changed: Optional[CombinationChangedCallback] = None
 
@@ -170,9 +169,9 @@ class UIMapping(BaseModel):
 
     def __setattr__(self, key: str, value: Any):
         """Call the combination changed callback
-        if we are about to update the event_combination
+        if we are about to update the input_combination
         """
-        if key != "event_combination" or self._combination_changed is None:
+        if key != "input_combination" or self._combination_changed is None:
             if key == "_combination_changed" and needs_workaround:
                 object.__setattr__(self, "_combination_changed", value)
                 return
@@ -181,23 +180,23 @@ class UIMapping(BaseModel):
 
         # the new combination is not yet validated
         try:
-            new_combi = EventCombination.validate(value)
-        except ValueError as exception:
+            new_combi = InputCombination.validate(value)
+        except (ValueError, TypeError) as exception:
             raise ValidationError(
-                f"failed to Validate {value} as EventCombination", UIMapping
+                f"failed to Validate {value} as InputCombination", UIMapping
             ) from exception
 
-        if new_combi == self.event_combination:
+        if new_combi == self.input_combination:
             return
 
         # raises a keyError if the combination or a permutation is already mapped
-        self._combination_changed(new_combi, self.event_combination)
-        super().__setattr__(key, value)
+        self._combination_changed(new_combi, self.input_combination)
+        super().__setattr__("input_combination", new_combi)
 
     def __str__(self):
         return str(
             self.dict(
-                exclude_defaults=True, include={"event_combination", "target_uinput"}
+                exclude_defaults=True, include={"input_combination", "target_uinput"}
             )
         )
 
@@ -215,33 +214,20 @@ class UIMapping(BaseModel):
             return self.name
 
         if (
-            self.event_combination == EventCombination.empty_combination()
-            or self.event_combination is None
+            self.input_combination == InputCombination.empty_combination()
+            or self.input_combination is None
         ):
             return EMPTY_MAPPING_NAME
 
-        return self.event_combination.beautify()
+        return self.input_combination.beautify()
 
     def has_input_defined(self) -> bool:
         """Whether this mapping defines an event-input."""
-        return self.event_combination != EventCombination.empty_combination()
+        return self.input_combination != InputCombination.empty_combination()
 
     def is_axis_mapping(self) -> bool:
         """Whether this mapping specifies an output axis."""
         return self.output_type in [EV_ABS, EV_REL]
-
-    def find_analog_input_event(
-        self, type_: Optional[int] = None
-    ) -> Optional[InputEvent]:
-        """Return the first event that is configured with "Use as analog"."""
-        for event in self.event_combination:
-            if event.value == USE_AS_ANALOG_VALUE:
-                if type_ is not None and event.type != type_:
-                    continue
-
-                return event
-
-        return None
 
     def is_wheel_output(self) -> bool:
         """Check if this maps to wheel output."""
@@ -270,7 +256,7 @@ class UIMapping(BaseModel):
         """
         if self.output_code and self.output_type:
             return self.output_type, self.output_code
-        if not is_this_a_macro(self.output_symbol):
+        if self.output_symbol and not is_this_a_macro(self.output_symbol):
             return EV_KEY, system_mapping.get(self.output_symbol)
         return None
 
@@ -319,7 +305,7 @@ class Mapping(UIMapping):
     """
 
     # Override Required attributes to enforce they are set
-    event_combination: EventCombination
+    input_combination: InputCombination
     target_uinput: KnownUinput
 
     def is_valid(self) -> bool:
@@ -349,15 +335,12 @@ class Mapping(UIMapping):
             f'The output_symbol "{symbol}" is not a macro and not a valid keycode-name'
         )
 
-    @validator("event_combination")
-    def only_one_analog_input(cls, combination) -> EventCombination:
-        """Check that the event_combination specifies a maximum of one
+    @validator("input_combination")
+    def only_one_analog_input(cls, combination) -> InputCombination:
+        """Check that the input_combination specifies a maximum of one
         analog to analog mapping
         """
-
-        # any event with a value of 0  is considered an analog input (even key events)
-        # any event with a non-zero value is considered a binary input
-        analog_events = [event for event in combination if event.value == 0]
+        analog_events = [event for event in combination if event.defines_analog_input]
         if len(analog_events) > 1:
             raise ValueError(
                 f"Cannot map a combination of multiple analog inputs: {analog_events}"
@@ -366,26 +349,20 @@ class Mapping(UIMapping):
 
         return combination
 
-    @validator("event_combination")
-    def trigger_point_in_range(cls, combination) -> EventCombination:
+    @validator("input_combination")
+    def trigger_point_in_range(cls, combination: InputCombination) -> InputCombination:
         """Check if the trigger point for mapping analog axis to buttons is valid."""
-        for event in combination:
-            if event.type == EV_ABS and abs(event.value) >= 100:
+        for input_config in combination:
+            if (
+                input_config.type == EV_ABS
+                and input_config.analog_threshold
+                and abs(input_config.analog_threshold) >= 100
+            ):
                 raise ValueError(
-                    f"{event = } maps an absolute axis to a button, but the trigger "
-                    "point (event.value) is not between -100[%] and 100[%]"
+                    f"{input_config = } maps an absolute axis to a button, but the trigger "
+                    "point (event.analog_threshold) is not between -100[%] and 100[%]"
                 )
         return combination
-
-    @validator("event_combination")
-    def set_event_actions(cls, combination):
-        """Sets the correct actions for each event."""
-        new_combination = []
-        for event in combination:
-            if event.value != 0:
-                event = event.modify(actions=(EventActions.as_key,))
-            new_combination.append(event)
-        return EventCombination(new_combination)
 
     @root_validator
     def validate_output_symbol_variant(cls, values):
@@ -428,16 +405,15 @@ class Mapping(UIMapping):
         return values
 
     @root_validator
-    def output_matches_input(cls, values):
+    def output_matches_input(cls, values: Dict[str, Any]) -> Dict[str, Any]:
         """Validate that an output type is an axis if we have an input axis.
         And vice versa."""
-        combination: EventCombination = values.get("event_combination")
-        event_values = [event.value for event in combination]
+        assert isinstance(values.get("input_combination"), InputCombination)
+        combination: InputCombination = values["input_combination"]
+        use_as_analog = True in [event.defines_analog_input for event in combination]
 
         output_type = values.get("output_type")
         output_symbol = values.get("output_symbol")
-
-        use_as_analog = USE_AS_ANALOG_VALUE in event_values
 
         if not use_as_analog and not output_symbol and output_type != EV_KEY:
             raise ValueError(

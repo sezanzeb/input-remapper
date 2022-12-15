@@ -24,7 +24,7 @@ import os
 import sys
 import time
 from datetime import datetime
-from typing import cast, Tuple
+from typing import cast
 
 import pkg_resources
 
@@ -77,7 +77,7 @@ class Logger(logging.Logger):
             msg = indent * line[1] + line[0]
             self._log(logging.DEBUG, msg, args=None)
 
-    def debug_key(self, key: Tuple[int, int, int], msg, *args):
+    def debug_key(self, key, msg, *args):
         """Log a key-event message.
 
         Example:

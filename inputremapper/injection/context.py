@@ -20,16 +20,19 @@
 
 """Stores injection-process wide information."""
 from collections import defaultdict
-from typing import List, Dict, Tuple, Set
+from typing import List, Dict, Tuple, Set, Hashable
+
+from inputremapper.input_event import InputEvent
 
 from inputremapper.configs.preset import Preset
 from inputremapper.injection.mapping_handlers.mapping_handler import (
-    InputEventHandler,
     EventListener,
     NotifyCallback,
 )
-from inputremapper.injection.mapping_handlers.mapping_parser import parse_mappings
-from inputremapper.input_event import InputEvent
+from inputremapper.injection.mapping_handlers.mapping_parser import (
+    parse_mappings,
+    EventPipelines,
+)
 
 
 class Context:
@@ -61,12 +64,12 @@ class Context:
     """
 
     listeners: Set[EventListener]
-    notify_callbacks: Dict[Tuple[int, int], List[NotifyCallback]]
-    _handlers: Dict[InputEvent, Set[InputEventHandler]]
+    _notify_callbacks: Dict[Hashable, List[NotifyCallback]]
+    _handlers: EventPipelines
 
     def __init__(self, preset: Preset):
         self.listeners = set()
-        self.notify_callbacks = defaultdict(list)
+        self._notify_callbacks = defaultdict(list)
         self._handlers = parse_mappings(preset, self)
 
         self._create_callbacks()
@@ -79,7 +82,10 @@ class Context:
 
     def _create_callbacks(self) -> None:
         """Add the notify method from all _handlers to self.callbacks."""
-        for event, handler_list in self._handlers.items():
-            self.notify_callbacks[event.type_and_code].extend(
+        for input_config, handler_list in self._handlers.items():
+            self._notify_callbacks[input_config.input_match_hash].extend(
                 handler.notify for handler in handler_list
             )
+
+    def get_entry_points(self, input_event: InputEvent) -> List[NotifyCallback]:
+        return self._notify_callbacks[input_event.input_match_hash]

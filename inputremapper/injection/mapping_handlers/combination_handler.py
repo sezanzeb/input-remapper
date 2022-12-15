@@ -17,13 +17,13 @@
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
 
-from typing import Dict, Tuple
+from typing import Dict, Tuple, Hashable
 
 import evdev
 from evdev.ecodes import EV_ABS, EV_REL
 
+from inputremapper.configs.input_config import InputCombination
 from inputremapper.configs.mapping import Mapping
-from inputremapper.event_combination import EventCombination
 from inputremapper.injection.mapping_handlers.mapping_handler import (
     MappingHandler,
     InputEventHandler,
@@ -36,14 +36,14 @@ from inputremapper.logger import logger
 class CombinationHandler(MappingHandler):
     """Keeps track of a combination and notifies a sub handler."""
 
-    # map of (event.type, event.code) -> bool , keep track of the combination state
-    _pressed_keys: Dict[Tuple[int, int], bool]
+    # map of InputEvent.input_match_hash -> bool , keep track of the combination state
+    _pressed_keys: Dict[Hashable, bool]
     _output_state: bool  # the last update we sent to a sub-handler
     _sub_handler: InputEventHandler
 
     def __init__(
         self,
-        combination: EventCombination,
+        combination: InputCombination,
         mapping: Mapping,
         **_,
     ) -> None:
@@ -53,15 +53,16 @@ class CombinationHandler(MappingHandler):
         self._output_state = False
 
         # prepare a key map for all events with non-zero value
-        for event in combination:
-            assert event.is_key_event
-            self._pressed_keys[event.type_and_code] = False
+        for input_config in combination:
+            assert not input_config.defines_analog_input
+            self._pressed_keys[input_config.input_match_hash] = False
 
         assert len(self._pressed_keys) > 0  # no combination handler without a key
 
     def __str__(self):
         return (
-            f'CombinationHandler for "{self.mapping.event_combination}" <{id(self)}>:'
+            f'CombinationHandler for "{self.mapping.input_combination}" '
+            f"{tuple(t for t in self._pressed_keys.keys())} <{id(self)}>:"
         )
 
     def __repr__(self):
@@ -78,12 +79,11 @@ class CombinationHandler(MappingHandler):
         forward: evdev.UInput,
         suppress: bool = False,
     ) -> bool:
-        type_code = event.type_and_code
-        if type_code not in self._pressed_keys.keys():
+        if event.input_match_hash not in self._pressed_keys.keys():
             return False  # we are not responsible for the event
 
         last_state = self.get_active()
-        self._pressed_keys[type_code] = event.value == 1
+        self._pressed_keys[event.input_match_hash] = event.value == 1
 
         if self.get_active() == last_state or self.get_active() == self._output_state:
             # nothing changed
@@ -113,7 +113,7 @@ class CombinationHandler(MappingHandler):
             return False
 
         logger.debug_key(
-            self.mapping.event_combination, "triggered: sending to sub-handler"
+            self.mapping.input_combination, "triggered: sending to sub-handler"
         )
         self._output_state = bool(event.value)
         return self._sub_handler.notify(event, source, forward, suppress)
@@ -135,25 +135,30 @@ class CombinationHandler(MappingHandler):
         """
         if len(self._pressed_keys) == 1 or not self.mapping.release_combination_keys:
             return
-        for type_and_code in self._pressed_keys:
-            forward.write(*type_and_code, 0)
+
+        keys_to_release = filter(
+            lambda cfg: self._pressed_keys.get(cfg.input_match_hash),
+            self.mapping.input_combination,
+        )
+        for input_config in keys_to_release:
+            forward.write(*input_config.type_and_code, 0)
         forward.syn()
 
     def needs_ranking(self) -> bool:
-        return bool(self.input_events)
+        return bool(self.input_configs)
 
-    def rank_by(self) -> EventCombination:
-        return EventCombination(
-            event for event in self.input_events if event.value != 0
+    def rank_by(self) -> InputCombination:
+        return InputCombination(
+            event for event in self.input_configs if not event.defines_analog_input
         )
 
-    def wrap_with(self) -> Dict[EventCombination, HandlerEnums]:
+    def wrap_with(self) -> Dict[InputCombination, HandlerEnums]:
         return_dict = {}
-        for event in self.input_events:
-            if event.type == EV_ABS and event.value != 0:
-                return_dict[EventCombination(event)] = HandlerEnums.abs2btn
+        for config in self.input_configs:
+            if config.type == EV_ABS and not config.defines_analog_input:
+                return_dict[InputCombination(config)] = HandlerEnums.abs2btn
 
-            if event.type == EV_REL and event.value != 0:
-                return_dict[EventCombination(event)] = HandlerEnums.rel2btn
+            if config.type == EV_REL and not config.defines_analog_input:
+                return_dict[InputCombination(config)] = HandlerEnums.rel2btn
 
         return return_dict

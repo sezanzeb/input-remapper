@@ -16,12 +16,13 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
-from typing import Dict, Tuple
+from typing import Dict, Tuple, Hashable
 
 import evdev
+from inputremapper.configs.input_config import InputConfig
 
+from inputremapper.configs.input_config import InputCombination
 from inputremapper.configs.mapping import Mapping
-from inputremapper.event_combination import EventCombination
 from inputremapper.injection.mapping_handlers.mapping_handler import (
     MappingHandler,
     HandlerEnums,
@@ -42,8 +43,8 @@ class AxisSwitchHandler(MappingHandler):
     output.
     """
 
-    _map_axis: Tuple[int, int]  # the axis we switch on or off (type and code)
-    _trigger_key: Tuple[Tuple[int, int]]  # all events that can switch the axis
+    _map_axis: InputConfig  # the InputConfig for the axis we switch on or off
+    _trigger_keys: Tuple[Hashable, ...]  # all events that can switch the axis
     _active: bool  # whether the axis is on or off
     _last_value: int  # the value of the last axis event that arrived
     _axis_source: evdev.InputDevice  # the cached source of the axis input events
@@ -52,21 +53,20 @@ class AxisSwitchHandler(MappingHandler):
 
     def __init__(
         self,
-        combination: EventCombination,
+        combination: InputCombination,
         mapping: Mapping,
         **_,
     ):
         super().__init__(combination, mapping)
-        map_axis = [
-            event.type_and_code for event in combination if not event.is_key_event
-        ]
-        trigger_keys = [
-            event.type_and_code for event in combination if event.is_key_event
-        ]
-        assert len(map_axis) != 0
+        trigger_keys = tuple(
+            event.input_match_hash
+            for event in combination
+            if not event.defines_analog_input
+        )
         assert len(trigger_keys) >= 1
-        self._map_axis = map_axis[0]
-        self._trigger_keys = tuple(trigger_keys)
+        assert (map_axis := combination.find_analog_input_config())
+        self._map_axis = map_axis
+        self._trigger_keys = trigger_keys
         self._active = False
 
         self._last_value = 0
@@ -74,7 +74,7 @@ class AxisSwitchHandler(MappingHandler):
         self._forward_device = None
 
     def __str__(self):
-        return f"AxisSwitchHandler for {self._map_axis} <{id(self)}>"
+        return f"AxisSwitchHandler for {self._map_axis.type_and_code} <{id(self)}>"
 
     def __repr__(self):
         return self.__str__()
@@ -101,26 +101,28 @@ class AxisSwitchHandler(MappingHandler):
 
         if not key_is_pressed:
             # recenter the axis
-            logger.debug_key(self.mapping.event_combination, "stopping axis")
+            logger.debug_key(self.mapping.input_combination, "stopping axis")
             event = InputEvent(
                 0,
                 0,
-                *self._map_axis,
+                *self._map_axis.type_and_code,
                 0,
                 actions=(EventActions.recenter,),
+                origin_hash=self._map_axis.origin_hash,
             )
             self._sub_handler.notify(event, self._axis_source, self._forward_device)
             return True
 
-        if self._map_axis[0] == evdev.ecodes.EV_ABS:
+        if self._map_axis.type == evdev.ecodes.EV_ABS:
             # send the last cached value so that the abs axis
             # is at the correct position
-            logger.debug_key(self.mapping.event_combination, "starting axis")
+            logger.debug_key(self.mapping.input_combination, "starting axis")
             event = InputEvent(
                 0,
                 0,
-                *self._map_axis,
+                *self._map_axis.type_and_code,
                 self._last_value,
+                origin_hash=self._map_axis.origin_hash,
             )
             self._sub_handler.notify(event, self._axis_source, self._forward_device)
             return True
@@ -129,8 +131,8 @@ class AxisSwitchHandler(MappingHandler):
 
     def _should_map(self, event: InputEvent):
         return (
-            event.type_and_code in self._trigger_keys
-            or event.type_and_code == self._map_axis
+            event.input_match_hash in self._trigger_keys
+            or event.input_match_hash == self._map_axis.input_match_hash
         )
 
     def notify(
@@ -169,6 +171,8 @@ class AxisSwitchHandler(MappingHandler):
     def needs_wrapping(self) -> bool:
         return True
 
-    def wrap_with(self) -> Dict[EventCombination, HandlerEnums]:
-        combination = [event for event in self.input_events if event.is_key_event]
-        return {EventCombination(combination): HandlerEnums.combination}
+    def wrap_with(self) -> Dict[InputCombination, HandlerEnums]:
+        combination = [
+            config for config in self.input_configs if not config.defines_analog_input
+        ]
+        return {InputCombination(combination): HandlerEnums.combination}

@@ -20,19 +20,21 @@
 
 """Keeps injecting keycodes in the background based on the preset."""
 from __future__ import annotations
+
 import asyncio
 import enum
 import multiprocessing
 import sys
 import time
+from collections import defaultdict
 from dataclasses import dataclass
 from multiprocessing.connection import Connection
 from typing import Dict, List, Optional, Tuple, Union
 
 import evdev
 
+from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.preset import Preset
-from inputremapper.event_combination import EventCombination
 from inputremapper.groups import (
     _Group,
     classify,
@@ -43,6 +45,7 @@ from inputremapper.injection.context import Context
 from inputremapper.injection.event_reader import EventReader
 from inputremapper.injection.numlock import set_numlock, is_numlock_on, ensure_numlock
 from inputremapper.logger import logger
+from inputremapper.utils import get_device_hash
 
 CapabilitiesDict = Dict[int, List[int]]
 GroupSources = List[evdev.InputDevice]
@@ -67,7 +70,7 @@ class InjectorState(str, enum.Enum):
 
 
 def is_in_capabilities(
-    combination: EventCombination, capabilities: CapabilitiesDict
+    combination: InputCombination, capabilities: CapabilitiesDict
 ) -> bool:
     """Are this combination or one of its sub keys in the capabilities?"""
     for event in combination:
@@ -109,6 +112,7 @@ class Injector(multiprocessing.Process):
     group: _Group
     preset: Preset
     context: Optional[Context]
+    _devices: List[evdev.InputDevice]
     _state: InjectorState
     _msg_pipe: Tuple[Connection, Connection]
     _event_readers: List[EventReader]
@@ -187,7 +191,26 @@ class Injector(multiprocessing.Process):
 
     """Process internal stuff."""
 
-    def _grab_devices(self) -> GroupSources:
+    def _find_input_device(
+        self, input_config: InputConfig
+    ) -> Optional[evdev.InputDevice]:
+        """find the InputDevice specified by the InputConfig
+
+        ensures the devices supports the type and code specified by the InputConfig"""
+        devices_by_hash = {get_device_hash(device): device for device in self._devices}
+
+        # mypy thinks None is the wrong type for dict.get()
+        if device := devices_by_hash.get(input_config.origin_hash):  # type: ignore
+            if input_config.code in device.capabilities(absinfo=False).get(
+                input_config.type, []
+            ):
+                return device
+        return None
+
+    def _find_input_device_fallback(
+        self, input_config: InputConfig
+    ) -> Optional[evdev.InputDevice]:
+        """find the InputDevice specified by the InputConfig fallback logic"""
         ranking = [
             DeviceType.KEYBOARD,
             DeviceType.GAMEPAD,
@@ -197,46 +220,70 @@ class Injector(multiprocessing.Process):
             DeviceType.CAMERA,
             DeviceType.UNKNOWN,
         ]
+        candidates: List[evdev.InputDevice] = [
+            device
+            for device in self._devices
+            if input_config.code
+            in device.capabilities(absinfo=False).get(input_config.type, [])
+        ]
 
-        # all devices in this group
-        devices: List[evdev.InputDevice] = []
-        for path in self.group.paths:
-            try:
-                devices.append(evdev.InputDevice(path))
-            except (FileNotFoundError, OSError):
-                logger.error('Could not find "%s"', path)
-                continue
+        if len(candidates) > 1:
+            # there is more than on input device which can be used for this
+            # event we choose only one determined by the ranking
+            return sorted(candidates, key=lambda d: ranking.index(classify(d)))[0]
+        if len(candidates) == 1:
+            return candidates.pop()
 
+        logger.error(f"Could not find input for {input_config}")
+        return None
+
+    def _grab_devices(self) -> GroupSources:
         # find all devices which have an associated mapping
         # use a dict because the InputDevice is not directly hashable
         needed_devices = {}
+        input_configs = set()
 
+        # find all unique input_config's
         for mapping in self.preset:
-            for event in mapping.event_combination:
-                candidates: List[evdev.InputDevice] = [
-                    device
-                    for device in devices
-                    if event.code
-                    in device.capabilities(absinfo=False).get(event.type, [])
-                ]
-                if len(candidates) > 1:
-                    # there is more than on input device which can be used for this
-                    # event we choose only one determined by the ranking
-                    device = sorted(
-                        candidates, key=lambda d: ranking.index(classify(d))
-                    )[0]
-                elif len(candidates) == 1:
-                    device = candidates.pop()
-                else:
-                    logger.error("Could not find input for %s in %s", event, mapping)
-                    continue
-                needed_devices[device.path] = device
+            for input_config in mapping.input_combination:
+                input_configs.add(input_config)
+
+        # find all unique input_device's
+        for input_config in input_configs:
+            if not (device := self._find_input_device(input_config)):
+                # there is no point in trying the fallback because
+                # self._update_preset already did that.
+                continue
+            needed_devices[device.path] = device
 
         grabbed_devices = []
         for device in needed_devices.values():
             if device := self._grab_device(device):
                 grabbed_devices.append(device)
         return grabbed_devices
+
+    def _update_preset(self):
+        """Update all InputConfigs in the preset to include correct origin_hash
+        information."""
+        mappings_by_input = defaultdict(list)
+        for mapping in self.preset:
+            for input_config in mapping.input_combination:
+                mappings_by_input[input_config].append(mapping)
+
+        for input_config in mappings_by_input:
+            if self._find_input_device(input_config):
+                continue
+
+            if not (device := self._find_input_device_fallback(input_config)):
+                # fallback failed, this mapping will be ignored
+                continue
+
+            for mapping in mappings_by_input[input_config]:
+                combination: List[InputConfig] = list(mapping.input_combination)
+                device_hash = get_device_hash(device)
+                idx = combination.index(input_config)
+                combination[idx] = combination[idx].modify(origin_hash=device_hash)
+                mapping.input_combination = combination
 
     def _grab_device(self, device: evdev.InputDevice) -> Optional[evdev.InputDevice]:
         """Try to grab the device, return None if not possible.
@@ -261,7 +308,8 @@ class Injector(multiprocessing.Process):
         logger.error(str(error))
         return None
 
-    def _copy_capabilities(self, input_device: evdev.InputDevice) -> CapabilitiesDict:
+    @staticmethod
+    def _copy_capabilities(input_device: evdev.InputDevice) -> CapabilitiesDict:
         """Copy capabilities for a new device."""
         ecodes = evdev.ecodes
 
@@ -305,6 +353,35 @@ class Injector(multiprocessing.Process):
                 self._msg_pipe[0].send(InjectorState.STOPPED)
                 return
 
+    def _create_forwarding_device(self, source: evdev.InputDevice) -> evdev.UInput:
+        # copy as much information as possible, because libinput uses the extra
+        # information to enable certain features like "Disable touchpad while
+        # typing"
+        try:
+            forward_to = evdev.UInput(
+                name=get_udev_name(source.name, "forwarded"),
+                events=self._copy_capabilities(source),
+                # phys=source.phys,  # this leads to confusion. the appearance of
+                # a uinput with this "phys" property causes the udev rule to
+                # autoload for the original device, overwriting our previous
+                # attempts at starting an injection.
+                vendor=source.info.vendor,
+                product=source.info.product,
+                version=source.info.version,
+                bustype=source.info.bustype,
+                input_props=source.input_props(),
+            )
+        except TypeError as e:
+            if "input_props" in str(e):
+                # UInput constructor doesn't support input_props and
+                # source.input_props doesn't exist with old python-evdev versions.
+                logger.error("Please upgrade your python-evdev version. Exiting")
+                self._msg_pipe[0].send(InjectorState.UPGRADE_EVDEV)
+                sys.exit(12)
+
+            raise e
+        return forward_to
+
     def run(self) -> None:
         """The injection worker that keeps injecting until terminated.
 
@@ -323,15 +400,20 @@ class Injector(multiprocessing.Process):
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
 
+        self._devices = self.group.get_devices()
+
+        # InputConfigs may not contain the origin_hash information, this will try to make a
+        # good guess if the origin_hash information is missing or invalid.
+        self._update_preset()
+
+        # grab devices as early as possible. If events appear that won't get
+        # released anymore before the grab they appear to be held down forever
+        sources = self._grab_devices()
+
         # create this within the process after the event loop creation,
         # so that the macros use the correct loop
         self.context = Context(self.preset)
         self._stop_event = asyncio.Event()
-
-        # grab devices as early as possible. If events appear that won't get
-        # released anymore before the grab they appear to be held down
-        # forever
-        sources = self._grab_devices()
 
         if len(sources) == 0:
             # maybe the preset was empty or something
@@ -343,33 +425,7 @@ class Injector(multiprocessing.Process):
         coroutines = []
 
         for source in sources:
-            # copy as much information as possible, because libinput uses the extra
-            # information to enable certain features like "Disable touchpad while
-            # typing"
-            try:
-                forward_to = evdev.UInput(
-                    name=get_udev_name(source.name, "forwarded"),
-                    events=self._copy_capabilities(source),
-                    # phys=source.phys,  # this leads to confusion. the appearance of
-                    # a uinput with this "phys" property causes the udev rule to
-                    # autoload for the original device, overwriting our previous
-                    # attempts at starting an injection.
-                    vendor=source.info.vendor,
-                    product=source.info.product,
-                    version=source.info.version,
-                    bustype=source.info.bustype,
-                    input_props=source.input_props(),
-                )
-            except TypeError as e:
-                if "input_props" in str(e):
-                    # UInput constructor doesn't support input_props and
-                    # source.input_props doesn't exist with old python-evdev versions.
-                    logger.error("Please upgrade your python-evdev version. Exiting")
-                    self._msg_pipe[0].send(InjectorState.UPGRADE_EVDEV)
-                    sys.exit(12)
-
-                raise e
-
+            forward_to = self._create_forwarding_device(source)
             # actually doing things
             event_reader = EventReader(
                 self.context,

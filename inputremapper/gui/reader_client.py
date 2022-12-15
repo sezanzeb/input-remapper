@@ -23,17 +23,15 @@
 see gui.reader_service.ReaderService
 """
 
-from typing import Optional, List, Generator, Dict, Tuple, Set
 import time
+from typing import Optional, List, Generator, Dict, Tuple, Set
 
 import evdev
-
 import gi
 
-gi.require_version("GLib", "2.0")
 from gi.repository import GLib
 
-from inputremapper.event_combination import EventCombination
+from inputremapper.configs.input_config import InputCombination
 from inputremapper.groups import _Groups, _Group
 from inputremapper.gui.reader_service import (
     MSG_EVENT,
@@ -153,7 +151,7 @@ class ReaderClient:
                 # update the generator
                 try:
                     if self._recording_generator is not None:
-                        self._recording_generator.send(InputEvent(*message_body))
+                        self._recording_generator.send(InputEvent(**message_body))
                     else:
                         # the ReaderService should only send events while the gui
                         # is recording, so this is unexpected.
@@ -198,13 +196,22 @@ class ReaderClient:
 
         self.message_broker.signal(MessageType.recording_finished)
 
+    @staticmethod
+    def _input_event_to_config(event: InputEvent):
+        return {
+            "type": event.type,
+            "code": event.code,
+            "analog_threshold": event.value,
+            "origin_hash": event.origin_hash,
+        }
+
     def _recorder(self) -> RecordingGenerator:
         """Generator which receives InputEvents.
 
         It accumulates them into EventCombinations and sends those on the
         message_broker. It will stop once all keys or inputs are released.
         """
-        active: Set[Tuple[int, int]] = set()
+        active: Set = set()
         accumulator: List[InputEvent] = []
         while True:
             event: InputEvent = yield
@@ -213,7 +220,7 @@ class ReaderClient:
 
             if event.value == 0:
                 try:
-                    active.remove((event.type, event.code))
+                    active.remove(event.input_match_hash)
                 except KeyError:
                     # we haven't seen this before probably a key got released which
                     # was pressed before we started recording. ignore it.
@@ -224,21 +231,25 @@ class ReaderClient:
                     return
                 continue
 
-            active.add(event.type_and_code)
-            accu_type_code = [e.type_and_code for e in accumulator]
-            if event.type_and_code in accu_type_code and event not in accumulator:
+            active.add(event.input_match_hash)
+            accu_input_hashes = [e.input_match_hash for e in accumulator]
+            if event.input_match_hash in accu_input_hashes and event not in accumulator:
                 # the value has changed but the event is already in the accumulator
                 # update the event
-                i = accu_type_code.index(event.type_and_code)
+                i = accu_input_hashes.index(event.input_match_hash)
                 accumulator[i] = event
                 self.message_broker.publish(
-                    CombinationRecorded(EventCombination(accumulator))
+                    CombinationRecorded(
+                        InputCombination(map(self._input_event_to_config, accumulator))
+                    )
                 )
 
             if event not in accumulator:
                 accumulator.append(event)
                 self.message_broker.publish(
-                    CombinationRecorded(EventCombination(accumulator))
+                    CombinationRecorded(
+                        InputCombination(map(self._input_event_to_config, accumulator))
+                    )
                 )
 
     def set_group(self, group: _Group):

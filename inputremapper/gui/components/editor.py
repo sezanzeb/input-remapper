@@ -40,13 +40,10 @@ from evdev.ecodes import (
     BTN_SIDE,
 )
 
-gi.require_version("Gdk", "3.0")
-gi.require_version("Gtk", "3.0")
-gi.require_version("GtkSource", "4")
 from gi.repository import Gtk, GtkSource, Gdk
 
 from inputremapper.configs.mapping import MappingData
-from inputremapper.event_combination import EventCombination
+from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.groups import DeviceType
 from inputremapper.gui.controller import Controller
 from inputremapper.gui.gettext import _
@@ -159,9 +156,9 @@ class MappingListBox:
     @staticmethod
     def _sort_func(row1: MappingSelectionLabel, row2: MappingSelectionLabel) -> int:
         """Sort alphanumerical by name."""
-        if row1.combination == EventCombination.empty_combination():
+        if row1.combination == InputCombination.empty_combination():
             return 1
-        if row2.combination == EventCombination.empty_combination():
+        if row2.combination == InputCombination.empty_combination():
             return 0
 
         return 0 if row1.name < row2.name else 1
@@ -180,14 +177,14 @@ class MappingListBox:
                 self._message_broker,
                 self._controller,
                 mapping.format_name(),
-                mapping.event_combination,
+                mapping.input_combination,
             )
             self._gui.insert(selection_label, -1)
         self._gui.invalidate_sort()
 
     def _on_mapping_changed(self, mapping: MappingData):
         with HandlerDisabled(self._gui, self._on_gtk_mapping_selected):
-            combination = mapping.event_combination
+            combination = mapping.input_combination
 
             for row in self._gui.get_children():
                 if row.combination == combination:
@@ -209,7 +206,7 @@ class MappingSelectionLabel(Gtk.ListBoxRow):
         message_broker: MessageBroker,
         controller: Controller,
         name: Optional[str],
-        combination: EventCombination,
+        combination: InputCombination,
     ):
         super().__init__()
         self._message_broker = message_broker
@@ -290,7 +287,7 @@ class MappingSelectionLabel(Gtk.ListBoxRow):
         self._controller.set_focus(self.name_input)
 
     def _on_mapping_changed(self, mapping: MappingData):
-        if mapping.event_combination != self.combination:
+        if mapping.input_combination != self.combination:
             self._set_not_selected()
             return
         self.name = mapping.format_name()
@@ -497,7 +494,7 @@ class RequireActiveMapping:
         self,
         message_broker: MessageBroker,
         widget: Gtk.ToggleButton,
-        require_recorded_input: False,
+        require_recorded_input: bool,
     ):
         self._widget = widget
         self._default_tooltip = self._widget.get_tooltip_text()
@@ -653,12 +650,12 @@ class ReleaseCombinationSwitch:
         self._controller.update_mapping(release_combination_keys=self._gui.get_active())
 
 
-class EventEntry(Gtk.ListBoxRow):
-    """The ListBoxRow representing a single event inside the CombinationListBox."""
+class InputConfigEntry(Gtk.ListBoxRow):
+    """The ListBoxRow representing a single input config inside the CombinationListBox."""
 
-    __gtype_name__ = "EventEntry"
+    __gtype_name__ = "InputConfigEntry"
 
-    def __init__(self, event: InputEvent, controller: Controller):
+    def __init__(self, event: InputConfig, controller: Controller):
         super().__init__()
 
         self.input_event = event
@@ -692,13 +689,13 @@ class EventEntry(Gtk.ListBoxRow):
 
         up_btn.connect(
             "clicked",
-            lambda *_: self._controller.move_event_in_combination(
+            lambda *_: self._controller.move_input_config_in_combination(
                 self.input_event, "up"
             ),
         )
         down_btn.connect(
             "clicked",
-            lambda *_: self._controller.move_event_in_combination(
+            lambda *_: self._controller.move_input_config_in_combination(
                 self.input_event, "down"
             ),
         )
@@ -711,7 +708,7 @@ class EventEntry(Gtk.ListBoxRow):
 
 
 class CombinationListbox:
-    """The ListBox with all the events inside active_mapping.event_combination."""
+    """The ListBox with all the events inside active_mapping.input_combination."""
 
     def __init__(
         self,
@@ -722,7 +719,7 @@ class CombinationListbox:
         self._message_broker = message_broker
         self._controller = controller
         self._gui = listbox
-        self._combination: Optional[EventCombination] = None
+        self._combination: Optional[InputCombination] = None
 
         self._message_broker.subscribe(
             MessageType.mapping,
@@ -741,7 +738,7 @@ class CombinationListbox:
                 self._gui.select_row(row)
 
     def _on_mapping_changed(self, mapping: MappingData):
-        if self._combination == mapping.event_combination:
+        if self._combination == mapping.input_combination:
             return
 
         event_entries = self._gui.get_children()
@@ -751,9 +748,9 @@ class CombinationListbox:
         if self._controller.is_empty_mapping():
             self._combination = None
         else:
-            self._combination = mapping.event_combination
+            self._combination = mapping.input_combination
             for event in self._combination:
-                self._gui.insert(EventEntry(event, self._controller), -1)
+                self._gui.insert(InputConfigEntry(event, self._controller), -1)
 
     def _on_event_changed(self, event: InputEvent):
         with HandlerDisabled(self._gui, self._on_gtk_row_selected):
@@ -762,12 +759,12 @@ class CombinationListbox:
     def _on_gtk_row_selected(self, *_):
         for row in self._gui.get_children():
             if row.is_selected():
-                self._controller.load_event(row.input_event)
+                self._controller.load_input_config(row.input_event)
                 break
 
 
 class AnalogInputSwitch:
-    """The switch that marks the active_event as analog input."""
+    """The switch that marks the active_input_config as analog input."""
 
     def __init__(
         self,
@@ -778,17 +775,17 @@ class AnalogInputSwitch:
         self._message_broker = message_broker
         self._controller = controller
         self._gui = gui
-        self._event: Optional[InputEvent] = None
+        self._input_config: Optional[InputConfig] = None
 
         self._gui.connect("state-set", self._on_gtk_toggle)
         self._message_broker.subscribe(MessageType.selected_event, self._on_event)
 
-    def _on_event(self, event: InputEvent):
+    def _on_event(self, input_cfg: InputConfig):
         with HandlerDisabled(self._gui, self._on_gtk_toggle):
-            self._gui.set_active(event.value == 0)
-            self._event = event
+            self._gui.set_active(input_cfg.defines_analog_input)
+            self._input_config = input_cfg
 
-        if event.type == EV_KEY:
+        if input_cfg.type == EV_KEY:
             self._gui.set_sensitive(False)
             self._gui.set_opacity(0.5)
         else:
@@ -801,7 +798,7 @@ class AnalogInputSwitch:
 
 class TriggerThresholdInput:
     """The number selection used to set the speed or position threshold of the
-    active_event when it is an ABS or REL event used as a key."""
+    active_input_config when it is an ABS or REL event used as a key."""
 
     def __init__(
         self,
@@ -812,17 +809,17 @@ class TriggerThresholdInput:
         self._message_broker = message_broker
         self._controller = controller
         self._gui = gui
-        self._event: Optional[InputEvent] = None
+        self._input_config: Optional[InputConfig] = None
 
         self._gui.set_increments(1, 1)
         self._gui.connect("value-changed", self._on_gtk_changed)
         self._message_broker.subscribe(MessageType.selected_event, self._on_event)
 
-    def _on_event(self, event: InputEvent):
-        if event.type == EV_KEY:
+    def _on_event(self, input_config: InputConfig):
+        if input_config.type == EV_KEY:
             self._gui.set_sensitive(False)
             self._gui.set_opacity(0.5)
-        elif event.type == EV_ABS:
+        elif input_config.type == EV_ABS:
             self._gui.set_sensitive(True)
             self._gui.set_opacity(1)
             self._gui.set_range(-99, 99)
@@ -832,12 +829,12 @@ class TriggerThresholdInput:
             self._gui.set_range(-999, 999)
 
         with HandlerDisabled(self._gui, self._on_gtk_changed):
-            self._gui.set_value(event.value)
-            self._event = event
+            self._gui.set_value(input_config.analog_threshold or 0)
+            self._input_config = input_config
 
     def _on_gtk_changed(self, *_):
-        self._controller.update_event(
-            self._event.modify(value=int(self._gui.get_value()))
+        self._controller.update_input_config(
+            self._input_config.modify(analog_threshold=int(self._gui.get_value()))
         )
 
 
@@ -860,7 +857,7 @@ class ReleaseTimeoutInput:
         self._message_broker.subscribe(MessageType.mapping, self._on_mapping_message)
 
     def _on_mapping_message(self, mapping: MappingData):
-        if EV_REL in [event.type for event in mapping.event_combination]:
+        if EV_REL in [event.type for event in mapping.input_combination]:
             self._gui.set_sensitive(True)
             self._gui.set_opacity(1)
         else:
@@ -894,7 +891,7 @@ class RelativeInputCutoffInput:
 
     def _on_mapping_message(self, mapping: MappingData):
         if (
-            EV_REL in [event.type for event in mapping.event_combination]
+            EV_REL in [event.type for event in mapping.input_combination]
             and mapping.output_type == EV_ABS
         ):
             self._gui.set_sensitive(True)

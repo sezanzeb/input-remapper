@@ -20,8 +20,8 @@
 import asyncio
 from typing import Dict, Callable
 
+from inputremapper.configs.input_config import InputCombination
 from inputremapper.configs.mapping import Mapping
-from inputremapper.event_combination import EventCombination
 from inputremapper.injection.global_uinputs import global_uinputs
 from inputremapper.injection.macros.macro import Macro
 from inputremapper.injection.macros.parse import parse
@@ -43,7 +43,7 @@ class MacroHandler(MappingHandler):
 
     def __init__(
         self,
-        combination: EventCombination,
+        combination: InputCombination,
         mapping: Mapping,
         *,
         context: ContextProtocol,
@@ -70,7 +70,6 @@ class MacroHandler(MappingHandler):
             logger.error('Macro "%s" failed: %s', self._macro.code, exception)
 
     def notify(self, event: InputEvent, *_, **__) -> bool:
-
         if event.value == 1:
             self._active = True
             self._macro.press_trigger()
@@ -103,5 +102,5 @@ class MacroHandler(MappingHandler):
     def needs_wrapping(self) -> bool:
         return True
 
-    def wrap_with(self) -> Dict[EventCombination, HandlerEnums]:
-        return {EventCombination(self.input_events): HandlerEnums.combination}
+    def wrap_with(self) -> Dict[InputCombination, HandlerEnums]:
+        return {InputCombination(self.input_configs): HandlerEnums.combination}

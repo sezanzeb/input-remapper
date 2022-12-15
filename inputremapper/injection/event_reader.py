@@ -22,10 +22,11 @@
 
 import asyncio
 import os
-from typing import AsyncIterator, Protocol, Set, Dict, Tuple, List
+from typing import AsyncIterator, Protocol, Set, List
 
 import evdev
 
+from inputremapper.utils import get_device_hash
 from inputremapper.injection.mapping_handlers.mapping_handler import (
     EventListener,
     NotifyCallback,
@@ -36,9 +37,11 @@ from inputremapper.logger import logger
 
 class Context(Protocol):
     listeners: Set[EventListener]
-    notify_callbacks: Dict[Tuple[int, int], List[NotifyCallback]]
 
     def reset(self):
+        ...
+
+    def get_entry_points(self, input_event: InputEvent) -> List[NotifyCallback]:
         ...
 
 
@@ -71,6 +74,7 @@ class EventReader:
             Should be an UInput with capabilities that work for all forwarded
             events, so ideally they should be copied from source.
         """
+        self._device_hash = get_device_hash(source)
         self._source = source
         self._forward_to = forward_to
         self.context = context
@@ -119,7 +123,7 @@ class EventReader:
             return False
 
         results = set()
-        notify_callbacks = self.context.notify_callbacks.get(event.type_and_code)
+        notify_callbacks = self.context.get_entry_points(event)
         if notify_callbacks:
             for notify_callback in notify_callbacks:
                 results.add(
@@ -191,7 +195,9 @@ class EventReader:
             self._source.fd,
         )
         async for event in self.read_loop():
-            await self.handle(InputEvent.from_event(event))
+            await self.handle(
+                InputEvent.from_event(event, origin_hash=self._device_hash)
+            )
 
         self.context.reset()
         logger.info("read loop for %s stopped", self._source.path)

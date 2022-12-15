@@ -28,8 +28,6 @@ from evdev.ecodes import KEY_A, KEY_B, KEY_C
 
 import gi
 
-from inputremapper.configs.system_mapping import XKB_KEYCODE_OFFSET
-
 gi.require_version("Gdk", "3.0")
 gi.require_version("Gtk", "3.0")
 gi.require_version("GLib", "2.0")
@@ -40,7 +38,8 @@ from tests.lib.cleanup import quick_cleanup
 from tests.lib.stuff import spy
 from tests.lib.logger import logger
 
-from inputremapper.input_event import InputEvent
+from inputremapper.gui.controller import Controller
+from inputremapper.configs.system_mapping import XKB_KEYCODE_OFFSET
 from inputremapper.gui.utils import CTX_ERROR, CTX_WARNING, gtk_iteration
 from inputremapper.gui.messages.message_broker import (
     MessageBroker,
@@ -65,7 +64,7 @@ from inputremapper.gui.components.editor import (
     AutoloadSwitch,
     ReleaseCombinationSwitch,
     CombinationListbox,
-    EventEntry,
+    InputConfigEntry,
     AnalogInputSwitch,
     TriggerThresholdInput,
     ReleaseTimeoutInput,
@@ -86,7 +85,7 @@ from inputremapper.gui.components.device_groups import (
     DeviceGroupSelection,
 )
 from inputremapper.configs.mapping import MappingData
-from inputremapper.event_combination import EventCombination
+from inputremapper.configs.input_config import InputCombination, InputConfig
 
 
 class ComponentBaseTest(unittest.TestCase):
@@ -94,7 +93,7 @@ class ComponentBaseTest(unittest.TestCase):
 
     def setUp(self) -> None:
         self.message_broker = MessageBroker()
-        self.controller_mock = MagicMock()
+        self.controller_mock: Controller = MagicMock()
 
     def destroy_all_member_widgets(self):
         # destroy all Gtk Widgets that are stored in self
@@ -304,7 +303,8 @@ class TestPresetSelection(ComponentBaseTest):
                 "preset2",
                 (
                     MappingData(
-                        name="m1", event_combination=EventCombination((1, 2, 3))
+                        name="m1",
+                        input_combination=InputCombination(InputConfig(type=1, code=2)),
                     ),
                 ),
             )
@@ -316,7 +316,8 @@ class TestPresetSelection(ComponentBaseTest):
                 "preset1",
                 (
                     MappingData(
-                        name="m1", event_combination=EventCombination((1, 2, 3))
+                        name="m1",
+                        input_combination=InputCombination(InputConfig(type=1, code=2)),
                     ),
                 ),
             )
@@ -329,7 +330,8 @@ class TestPresetSelection(ComponentBaseTest):
                 "preset2",
                 (
                     MappingData(
-                        name="m1", event_combination=EventCombination((1, 2, 3))
+                        name="m1",
+                        input_combination=InputCombination(InputConfig(type=1, code=2)),
                     ),
                 ),
             )
@@ -355,17 +357,24 @@ class TestMappingListbox(ComponentBaseTest):
                 (
                     MappingData(
                         name="mapping1",
-                        event_combination=EventCombination((1, KEY_C, 1)),
+                        input_combination=InputCombination(
+                            InputConfig(type=1, code=KEY_C)
+                        ),
                     ),
                     MappingData(
                         name="",
-                        event_combination=EventCombination(
-                            [(1, KEY_A, 1), (1, KEY_B, 1)]
+                        input_combination=InputCombination(
+                            (
+                                InputConfig(type=1, code=KEY_A),
+                                InputConfig(type=1, code=KEY_B),
+                            )
                         ),
                     ),
                     MappingData(
                         name="mapping2",
-                        event_combination=EventCombination((1, KEY_B, 1)),
+                        input_combination=InputCombination(
+                            InputConfig(type=1, code=KEY_B)
+                        ),
                     ),
                 ),
             )
@@ -378,7 +387,7 @@ class TestMappingListbox(ComponentBaseTest):
 
         raise Exception("Expected one MappingSelectionLabel to be selected")
 
-    def select_row(self, combination: EventCombination):
+    def select_row(self, combination: InputCombination):
         def select(label_: MappingSelectionLabel):
             if label_.combination == combination:
                 self.gui.select_row(label_)
@@ -397,23 +406,28 @@ class TestMappingListbox(ComponentBaseTest):
     def test_activates_correct_row(self):
         self.message_broker.publish(
             MappingData(
-                name="mapping1", event_combination=EventCombination((1, KEY_C, 1))
+                name="mapping1",
+                input_combination=InputCombination(InputConfig(type=1, code=KEY_C)),
             )
         )
         selected = self.get_selected_row()
         self.assertEqual(selected.name, "mapping1")
-        self.assertEqual(selected.combination, EventCombination((1, KEY_C, 1)))
+        self.assertEqual(
+            selected.combination,
+            InputCombination(InputConfig(type=1, code=KEY_C)),
+        )
 
     def test_loads_mapping(self):
-        self.select_row(EventCombination((1, KEY_B, 1)))
+        self.select_row(InputCombination(InputConfig(type=1, code=KEY_B)))
         self.controller_mock.load_mapping.assert_called_once_with(
-            EventCombination((1, KEY_B, 1))
+            InputCombination(InputConfig(type=1, code=KEY_B))
         )
 
     def test_avoids_infinite_recursion(self):
         self.message_broker.publish(
             MappingData(
-                name="mapping1", event_combination=EventCombination((1, KEY_C, 1))
+                name="mapping1",
+                input_combination=InputCombination(InputConfig(type=1, code=KEY_C)),
             )
         )
         self.controller_mock.load_mapping.assert_not_called()
@@ -425,42 +439,50 @@ class TestMappingListbox(ComponentBaseTest):
                 (
                     MappingData(
                         name="qux",
-                        event_combination=EventCombination((1, KEY_C, 1)),
+                        input_combination=InputCombination(
+                            InputConfig(type=1, code=KEY_C)
+                        ),
                     ),
                     MappingData(
                         name="foo",
-                        event_combination=EventCombination.empty_combination(),
+                        input_combination=InputCombination.empty_combination(),
                     ),
                     MappingData(
                         name="bar",
-                        event_combination=EventCombination((1, KEY_B, 1)),
+                        input_combination=InputCombination(
+                            InputConfig(type=1, code=KEY_B)
+                        ),
                     ),
                 ),
             )
         )
         bottom_row: MappingSelectionLabel = self.gui.get_row_at_index(2)
-        self.assertEqual(bottom_row.combination, EventCombination.empty_combination())
+        self.assertEqual(bottom_row.combination, InputCombination.empty_combination())
         self.message_broker.publish(
             PresetData(
                 "preset1",
                 (
                     MappingData(
                         name="foo",
-                        event_combination=EventCombination.empty_combination(),
+                        input_combination=InputCombination.empty_combination(),
                     ),
                     MappingData(
                         name="qux",
-                        event_combination=EventCombination((1, KEY_C, 1)),
+                        input_combination=InputCombination(
+                            InputConfig(type=1, code=KEY_C)
+                        ),
                     ),
                     MappingData(
                         name="bar",
-                        event_combination=EventCombination((1, KEY_B, 1)),
+                        input_combination=InputCombination(
+                            InputConfig(type=1, code=KEY_B)
+                        ),
                     ),
                 ),
             )
         )
         bottom_row: MappingSelectionLabel = self.gui.get_row_at_index(2)
-        self.assertEqual(bottom_row.combination, EventCombination.empty_combination())
+        self.assertEqual(bottom_row.combination, InputCombination.empty_combination())
 
 
 class TestMappingSelectionLabel(ComponentBaseTest):
@@ -471,7 +493,12 @@ class TestMappingSelectionLabel(ComponentBaseTest):
             self.message_broker,
             self.controller_mock,
             "",
-            EventCombination([(1, KEY_A, 1), (1, KEY_B, 1)]),
+            InputCombination(
+                [
+                    InputConfig(type=1, code=KEY_A),
+                    InputConfig(type=1, code=KEY_B),
+                ]
+            ),
         )
         self.gui.insert(self.mapping_selection_label, -1)
 
@@ -498,7 +525,12 @@ class TestMappingSelectionLabel(ComponentBaseTest):
             self.message_broker,
             self.controller_mock,
             "foo",
-            EventCombination([(1, KEY_A, 1), (1, KEY_B, 1)]),
+            InputCombination(
+                (
+                    InputConfig(type=1, code=KEY_A),
+                    InputConfig(type=1, code=KEY_B),
+                )
+            ),
         )
         self.assertEqual(self.gui.label.get_label(), "foo")
 
@@ -506,38 +538,69 @@ class TestMappingSelectionLabel(ComponentBaseTest):
         self.gui.select_row(self.mapping_selection_label)
         self.assertEqual(
             self.mapping_selection_label.combination,
-            EventCombination([(1, KEY_A, 1), (1, KEY_B, 1)]),
+            InputCombination(
+                (
+                    InputConfig(type=1, code=KEY_A),
+                    InputConfig(type=1, code=KEY_B),
+                )
+            ),
         )
         self.message_broker.publish(
             CombinationUpdate(
-                EventCombination([(1, KEY_A, 1), (1, KEY_B, 1)]),
-                EventCombination((1, KEY_A, 1)),
+                InputCombination(
+                    (
+                        InputConfig(type=1, code=KEY_A),
+                        InputConfig(type=1, code=KEY_B),
+                    )
+                ),
+                InputCombination(InputConfig(type=1, code=KEY_A)),
             )
         )
         self.assertEqual(
-            self.mapping_selection_label.combination, EventCombination((1, KEY_A, 1))
+            self.mapping_selection_label.combination,
+            InputCombination(InputConfig(type=1, code=KEY_A)),
         )
 
     def test_doesnt_update_combination_when_not_selected(self):
         self.assertEqual(
             self.mapping_selection_label.combination,
-            EventCombination([(1, KEY_A, 1), (1, KEY_B, 1)]),
+            InputCombination(
+                (
+                    InputConfig(type=1, code=KEY_A),
+                    InputConfig(type=1, code=KEY_B),
+                )
+            ),
         )
         self.message_broker.publish(
             CombinationUpdate(
-                EventCombination([(1, KEY_A, 1), (1, KEY_B, 1)]),
-                EventCombination((1, KEY_A, 1)),
+                InputCombination(
+                    (
+                        InputConfig(type=1, code=KEY_A),
+                        InputConfig(type=1, code=KEY_B),
+                    )
+                ),
+                InputCombination(InputConfig(type=1, code=KEY_A)),
             )
         )
         self.assertEqual(
             self.mapping_selection_label.combination,
-            EventCombination([(1, KEY_A, 1), (1, KEY_B, 1)]),
+            InputCombination(
+                (
+                    InputConfig(type=1, code=KEY_A),
+                    InputConfig(type=1, code=KEY_B),
+                )
+            ),
         )
 
     def test_updates_name_when_mapping_changed_and_combination_matches(self):
         self.message_broker.publish(
             MappingData(
-                event_combination=EventCombination([(1, KEY_A, 1), (1, KEY_B, 1)]),
+                input_combination=InputCombination(
+                    (
+                        InputConfig(type=1, code=KEY_A),
+                        InputConfig(type=1, code=KEY_B),
+                    )
+                ),
                 name="foo",
             )
         )
@@ -546,7 +609,12 @@ class TestMappingSelectionLabel(ComponentBaseTest):
     def test_ignores_mapping_when_combination_does_not_match(self):
         self.message_broker.publish(
             MappingData(
-                event_combination=EventCombination([(1, KEY_A, 1), (1, KEY_C, 1)]),
+                input_combination=InputCombination(
+                    (
+                        InputConfig(type=1, code=KEY_A),
+                        InputConfig(type=1, code=KEY_C),
+                    )
+                ),
                 name="foo",
             )
         )
@@ -559,7 +627,12 @@ class TestMappingSelectionLabel(ComponentBaseTest):
         # load the mapping associated with the ListBoxRow
         self.message_broker.publish(
             MappingData(
-                event_combination=EventCombination([(1, KEY_A, 1), (1, KEY_B, 1)]),
+                input_combination=InputCombination(
+                    (
+                        InputConfig(type=1, code=KEY_A),
+                        InputConfig(type=1, code=KEY_B),
+                    )
+                ),
             )
         )
         self.assertTrue(self.mapping_selection_label.edit_btn.get_visible())
@@ -567,7 +640,12 @@ class TestMappingSelectionLabel(ComponentBaseTest):
         # load a different row
         self.message_broker.publish(
             MappingData(
-                event_combination=EventCombination([(1, KEY_A, 1), (1, KEY_C, 1)]),
+                input_combination=InputCombination(
+                    (
+                        InputConfig(type=1, code=KEY_A),
+                        InputConfig(type=1, code=KEY_C),
+                    )
+                ),
             )
         )
         self.assertFalse(self.mapping_selection_label.edit_btn.get_visible())
@@ -575,7 +653,12 @@ class TestMappingSelectionLabel(ComponentBaseTest):
     def test_enter_edit_mode_focuses_name_input(self):
         self.message_broker.publish(
             MappingData(
-                event_combination=EventCombination([(1, KEY_A, 1), (1, KEY_B, 1)]),
+                input_combination=InputCombination(
+                    (
+                        InputConfig(type=1, code=KEY_A),
+                        InputConfig(type=1, code=KEY_B),
+                    )
+                ),
             )
         )
         self.mapping_selection_label.edit_btn.clicked()
@@ -586,7 +669,12 @@ class TestMappingSelectionLabel(ComponentBaseTest):
     def test_enter_edit_mode_updates_visibility(self):
         self.message_broker.publish(
             MappingData(
-                event_combination=EventCombination([(1, KEY_A, 1), (1, KEY_B, 1)]),
+                input_combination=InputCombination(
+                    (
+                        InputConfig(type=1, code=KEY_A),
+                        InputConfig(type=1, code=KEY_B),
+                    )
+                ),
             )
         )
         self.assert_selected()
@@ -598,7 +686,12 @@ class TestMappingSelectionLabel(ComponentBaseTest):
     def test_leaves_edit_mode_on_esc(self):
         self.message_broker.publish(
             MappingData(
-                event_combination=EventCombination([(1, KEY_A, 1), (1, KEY_B, 1)]),
+                input_combination=InputCombination(
+                    (
+                        InputConfig(type=1, code=KEY_A),
+                        InputConfig(type=1, code=KEY_B),
+                    )
+                ),
             )
         )
         self.mapping_selection_label.edit_btn.clicked()
@@ -616,7 +709,12 @@ class TestMappingSelectionLabel(ComponentBaseTest):
     def test_update_name(self):
         self.message_broker.publish(
             MappingData(
-                event_combination=EventCombination([(1, KEY_A, 1), (1, KEY_B, 1)]),
+                input_combination=InputCombination(
+                    (
+                        InputConfig(type=1, code=KEY_A),
+                        InputConfig(type=1, code=KEY_B),
+                    )
+                ),
             )
         )
         self.mapping_selection_label.edit_btn.clicked()
@@ -628,7 +726,12 @@ class TestMappingSelectionLabel(ComponentBaseTest):
     def test_name_input_contains_combination_when_name_not_set(self):
         self.message_broker.publish(
             MappingData(
-                event_combination=EventCombination([(1, KEY_A, 1), (1, KEY_B, 1)]),
+                input_combination=InputCombination(
+                    (
+                        InputConfig(type=1, code=KEY_A),
+                        InputConfig(type=1, code=KEY_B),
+                    )
+                ),
             )
         )
         self.mapping_selection_label.edit_btn.clicked()
@@ -637,7 +740,12 @@ class TestMappingSelectionLabel(ComponentBaseTest):
     def test_name_input_contains_name(self):
         self.message_broker.publish(
             MappingData(
-                event_combination=EventCombination([(1, KEY_A, 1), (1, KEY_B, 1)]),
+                input_combination=InputCombination(
+                    (
+                        InputConfig(type=1, code=KEY_A),
+                        InputConfig(type=1, code=KEY_B),
+                    )
+                ),
                 name="foo",
             )
         )
@@ -647,7 +755,12 @@ class TestMappingSelectionLabel(ComponentBaseTest):
     def test_removes_name_when_name_matches_combination(self):
         self.message_broker.publish(
             MappingData(
-                event_combination=EventCombination([(1, KEY_A, 1), (1, KEY_B, 1)]),
+                input_combination=InputCombination(
+                    (
+                        InputConfig(type=1, code=KEY_A),
+                        InputConfig(type=1, code=KEY_B),
+                    )
+                ),
                 name="foo",
             )
         )
@@ -958,18 +1071,20 @@ class TestReleaseCombinationSwitch(ComponentBaseTest):
 class TestEventEntry(ComponentBaseTest):
     def setUp(self) -> None:
         super().setUp()
-        self.gui = EventEntry(InputEvent.from_string("3,0,1"), self.controller_mock)
+        self.gui = InputConfigEntry(
+            InputConfig(type=3, code=0, analog_threshold=1), self.controller_mock
+        )
 
     def test_move_event(self):
         self.gui._up_btn.clicked()
-        self.controller_mock.move_event_in_combination.assert_called_once_with(
-            InputEvent.from_string("3,0,1"), "up"
+        self.controller_mock.move_input_config_in_combination.assert_called_once_with(
+            InputConfig(type=3, code=0, analog_threshold=1), "up"
         )
         self.controller_mock.reset_mock()
 
         self.gui._down_btn.clicked()
-        self.controller_mock.move_event_in_combination.assert_called_once_with(
-            InputEvent.from_string("3,0,1"), "down"
+        self.controller_mock.move_input_config_in_combination.assert_called_once_with(
+            InputConfig(type=3, code=0, analog_threshold=1), "down"
         )
 
 
@@ -981,41 +1096,57 @@ class TestCombinationListbox(ComponentBaseTest):
             self.message_broker, self.controller_mock, self.gui
         )
         self.controller_mock.is_empty_mapping.return_value = False
+        combination = InputCombination(
+            (
+                InputConfig(type=1, code=1),
+                InputConfig(type=3, code=0, analog_threshold=1),
+                InputConfig(type=1, code=2),
+            )
+        )
         self.message_broker.publish(
-            MappingData(event_combination="1,1,1+3,0,1+1,2,1", target_uinput="keyboard")
+            MappingData(
+                input_combination=combination.to_config(), target_uinput="keyboard"
+            )
         )
 
-    def get_selected_row(self) -> EventEntry:
+    def get_selected_row(self) -> InputConfigEntry:
         for entry in self.gui.get_children():
             if entry.is_selected():
                 return entry
 
-        raise Exception("Expected one EventEntry to be selected")
+        raise Exception("Expected one InputConfigEntry to be selected")
 
-    def select_row(self, event: InputEvent):
+    def select_row(self, input_cfg: InputConfig):
         for entry in self.gui.get_children():
-            if entry.input_event == event:
+            if entry.input_event == input_cfg:
                 self.gui.select_row(entry)
 
     def test_loads_selected_row(self):
-        self.select_row(InputEvent.from_string("1,2,1"))
-        self.controller_mock.load_event.assert_called_once_with(
-            InputEvent.from_string("1,2,1")
+        self.select_row(InputConfig(type=1, code=2))
+        self.controller_mock.load_input_config.assert_called_once_with(
+            InputConfig(type=1, code=2)
         )
 
     def test_does_not_create_rows_when_mapping_is_empty(self):
         self.controller_mock.is_empty_mapping.return_value = True
-        self.message_broker.publish(MappingData(event_combination="1,1,1+3,0,1"))
+        combination = InputCombination(
+            (
+                InputConfig(type=1, code=1),
+                InputConfig(type=3, code=0, analog_threshold=1),
+            )
+        )
+        self.message_broker.publish(MappingData(input_combination=combination))
         self.assertEqual(len(self.gui.get_children()), 0)
 
     def test_selects_row_when_selected_event_message_arrives(self):
-        self.message_broker.publish(InputEvent.from_string("3,0,1"))
+        self.message_broker.publish(InputConfig(type=3, code=0, analog_threshold=1))
         self.assertEqual(
-            self.get_selected_row().input_event, InputEvent.from_string("3,0,1")
+            self.get_selected_row().input_event,
+            InputConfig(type=3, code=0, analog_threshold=1),
         )
 
     def test_avoids_infinite_recursion(self):
-        self.message_broker.publish(InputEvent.from_string("3,0,1"))
+        self.message_broker.publish(InputConfig(type=3, code=0, analog_threshold=1))
         self.controller_mock.load_event.assert_not_called()
 
 
@@ -1035,29 +1166,29 @@ class TestAnalogInputSwitch(ComponentBaseTest):
         self.controller_mock.set_event_as_analog.assert_called_once_with(False)
 
     def test_updates_state(self):
-        self.message_broker.publish(InputEvent.from_string("3,0,0"))
+        self.message_broker.publish(InputConfig(type=3, code=0))
         self.assertTrue(self.gui.get_active())
-        self.message_broker.publish(InputEvent.from_string("3,0,10"))
+        self.message_broker.publish(InputConfig(type=3, code=0, analog_threshold=10))
         self.assertFalse(self.gui.get_active())
 
     def test_avoids_infinite_recursion(self):
-        self.message_broker.publish(InputEvent.from_string("3,0,0"))
-        self.message_broker.publish(InputEvent.from_string("3,0,-10"))
+        self.message_broker.publish(InputConfig(type=3, code=0))
+        self.message_broker.publish(InputConfig(type=3, code=0, analog_threshold=-10))
         self.controller_mock.set_event_as_analog.assert_not_called()
 
     def test_disables_switch_when_key_event(self):
-        self.message_broker.publish(InputEvent.from_string("1,1,1"))
+        self.message_broker.publish(InputConfig(type=1, code=1))
         self.assertLess(self.gui.get_opacity(), 0.6)
         self.assertFalse(self.gui.get_sensitive())
 
     def test_enables_switch_when_axis_event(self):
-        self.message_broker.publish(InputEvent.from_string("1,1,1"))
-        self.message_broker.publish(InputEvent.from_string("3,0,10"))
+        self.message_broker.publish(InputConfig(type=1, code=1))
+        self.message_broker.publish(InputConfig(type=3, code=0, analog_threshold=10))
         self.assertEqual(self.gui.get_opacity(), 1)
         self.assertTrue(self.gui.get_sensitive())
 
-        self.message_broker.publish(InputEvent.from_string("1,1,1"))
-        self.message_broker.publish(InputEvent.from_string("2,0,10"))
+        self.message_broker.publish(InputConfig(type=1, code=1))
+        self.message_broker.publish(InputConfig(type=2, code=0, analog_threshold=10))
         self.assertEqual(self.gui.get_opacity(), 1)
         self.assertTrue(self.gui.get_sensitive())
 
@@ -1069,7 +1200,7 @@ class TestTriggerThresholdInput(ComponentBaseTest):
         self.input = TriggerThresholdInput(
             self.message_broker, self.controller_mock, self.gui
         )
-        self.message_broker.publish(InputEvent.from_string("3,0,-10"))
+        self.message_broker.publish(InputConfig(type=3, code=0, analog_threshold=-10))
 
     def assert_abs_event_config(self):
         self.assertEqual(self.gui.get_range(), (-99, 99))
@@ -1087,23 +1218,23 @@ class TestTriggerThresholdInput(ComponentBaseTest):
 
     def test_updates_event(self):
         self.gui.set_value(15)
-        self.controller_mock.update_event.assert_called_once_with(
-            InputEvent.from_string("3,0,15")
+        self.controller_mock.update_input_config.assert_called_once_with(
+            InputConfig(type=3, code=0, analog_threshold=15)
         )
 
     def test_sets_value_on_selected_event_message(self):
-        self.message_broker.publish(InputEvent.from_string("3,0,10"))
+        self.message_broker.publish(InputConfig(type=3, code=0, analog_threshold=10))
         self.assertEqual(self.gui.get_value(), 10)
 
     def test_avoids_infinite_recursion(self):
-        self.message_broker.publish(InputEvent.from_string("3,0,10"))
-        self.controller_mock.update_event.assert_not_called()
+        self.message_broker.publish(InputConfig(type=3, code=0, analog_threshold=10))
+        self.controller_mock.update_input_config.assert_not_called()
 
     def test_updates_configuration_according_to_selected_event(self):
         self.assert_abs_event_config()
-        self.message_broker.publish(InputEvent.from_string("2,0,-10"))
+        self.message_broker.publish(InputConfig(type=2, code=0, analog_threshold=-10))
         self.assert_rel_event_config()
-        self.message_broker.publish(InputEvent.from_string("1,1,1"))
+        self.message_broker.publish(InputConfig(type=1, code=1))
         self.assert_key_event_config()
 
 
@@ -1116,13 +1247,21 @@ class TestReleaseTimeoutInput(ComponentBaseTest):
         )
         self.message_broker.publish(
             MappingData(
-                event_combination=EventCombination("2,0,1"), target_uinput="keyboard"
+                input_combination=InputCombination(
+                    InputConfig(type=2, code=0, analog_threshold=1)
+                ),
+                target_uinput="keyboard",
             )
         )
 
     def test_updates_timeout_on_mapping_message(self):
         self.message_broker.publish(
-            MappingData(event_combination=EventCombination("2,0,1"), release_timeout=1)
+            MappingData(
+                input_combination=InputCombination(
+                    InputConfig(type=2, code=0, analog_threshold=1)
+                ),
+                release_timeout=1,
+            )
         )
         self.assertEqual(self.gui.get_value(), 1)
 
@@ -1132,28 +1271,64 @@ class TestReleaseTimeoutInput(ComponentBaseTest):
 
     def test_avoids_infinite_recursion(self):
         self.message_broker.publish(
-            MappingData(event_combination=EventCombination("2,0,1"), release_timeout=1)
+            MappingData(
+                input_combination=InputCombination(
+                    InputConfig(type=2, code=0, analog_threshold=1)
+                ),
+                release_timeout=1,
+            )
         )
         self.controller_mock.update_mapping.assert_not_called()
 
     def test_disables_input_based_on_input_combination(self):
         self.message_broker.publish(
-            MappingData(event_combination=EventCombination.from_string("2,0,1+1,1,1"))
+            MappingData(
+                input_combination=InputCombination(
+                    (
+                        InputConfig(type=2, code=0, analog_threshold=1),
+                        InputConfig(type=1, code=1),
+                    )
+                )
+            )
         )
         self.assertTrue(self.gui.get_sensitive())
         self.assertEqual(self.gui.get_opacity(), 1)
 
         self.message_broker.publish(
-            MappingData(event_combination=EventCombination.from_string("1,1,1+1,2,1"))
+            MappingData(
+                input_combination=InputCombination(
+                    (
+                        InputConfig(type=1, code=1),
+                        InputConfig(type=1, code=2),
+                    )
+                )
+            )
         )
         self.assertFalse(self.gui.get_sensitive())
         self.assertLess(self.gui.get_opacity(), 0.6)
 
         self.message_broker.publish(
-            MappingData(event_combination=EventCombination.from_string("2,0,1+1,1,1"))
+            MappingData(
+                input_combination=InputCombination(
+                    (
+                        InputConfig(type=2, code=0, analog_threshold=1),
+                        InputConfig(type=1, code=1),
+                    )
+                )
+            )
         )
         self.message_broker.publish(
-            MappingData(event_combination=EventCombination.from_string("3,0,1+1,2,1"))
+            MappingData(
+                input_combination=InputCombination(
+                    (
+                        InputConfig(type=3, code=0, analog_threshold=1),
+                        InputConfig(
+                            type=1,
+                            code=2,
+                        ),
+                    )
+                )
+            )
         )
         self.assertFalse(self.gui.get_sensitive())
         self.assertLess(self.gui.get_opacity(), 0.6)
@@ -1180,7 +1355,10 @@ class TestOutputAxisSelector(ComponentBaseTest):
             )
         )
         self.message_broker.publish(
-            MappingData(target_uinput="mouse", event_combination="1,1,1")
+            MappingData(
+                target_uinput="mouse",
+                input_combination=InputCombination(InputConfig(type=1, code=1)),
+            )
         )
 
     def set_active_selection(self, selection: Tuple):
@@ -1344,7 +1522,10 @@ class TestSliders(ComponentBaseTest):
             self.expo,
         )
         self.message_broker.publish(
-            MappingData(event_combination="3,0,0", target_uinput="mouse")
+            MappingData(
+                input_combination=InputCombination(InputConfig(type=3, code=0)),
+                target_uinput="mouse",
+            )
         )
 
     @staticmethod
@@ -1406,7 +1587,7 @@ class TestRelativeInputCutoffInput(ComponentBaseTest):
         self.message_broker.publish(
             MappingData(
                 target_uinput="mouse",
-                event_combination="2,0,0",
+                input_combination=InputCombination(InputConfig(type=2, code=0)),
                 rel_to_abs_input_cutoff=1,
                 output_type=3,
                 output_code=0,
@@ -1425,7 +1606,7 @@ class TestRelativeInputCutoffInput(ComponentBaseTest):
         self.message_broker.publish(
             MappingData(
                 target_uinput="mouse",
-                event_combination="2,0,0",
+                input_combination=InputCombination(InputConfig(type=2, code=0)),
                 rel_to_abs_input_cutoff=3,
                 output_type=3,
                 output_code=0,
@@ -1438,7 +1619,7 @@ class TestRelativeInputCutoffInput(ComponentBaseTest):
         self.message_broker.publish(
             MappingData(
                 target_uinput="mouse",
-                event_combination="2,0,0",
+                input_combination=InputCombination(InputConfig(type=2, code=0)),
                 rel_to_abs_input_cutoff=rel_to_abs_input_cutoff,
                 output_type=3,
                 output_code=0,
@@ -1455,7 +1636,7 @@ class TestRelativeInputCutoffInput(ComponentBaseTest):
         self.message_broker.publish(
             MappingData(
                 target_uinput="mouse",
-                event_combination="3,0,0",
+                input_combination=InputCombination(InputConfig(type=3, code=0)),
                 output_type=3,
                 output_code=0,
             )
@@ -1467,7 +1648,7 @@ class TestRelativeInputCutoffInput(ComponentBaseTest):
         self.message_broker.publish(
             MappingData(
                 target_uinput="mouse",
-                event_combination="2,0,0",
+                input_combination=InputCombination(InputConfig(type=2, code=0)),
                 rel_to_abs_input_cutoff=3,
                 output_type=2,
                 output_code=0,
@@ -1479,7 +1660,7 @@ class TestRelativeInputCutoffInput(ComponentBaseTest):
         self.message_broker.publish(
             MappingData(
                 target_uinput="mouse",
-                event_combination="3,0,0",
+                input_combination=InputCombination(InputConfig(type=3, code=0)),
                 output_type=3,
                 output_code=0,
             )
@@ -1488,7 +1669,7 @@ class TestRelativeInputCutoffInput(ComponentBaseTest):
         self.message_broker.publish(
             MappingData(
                 target_uinput="mouse",
-                event_combination="2,0,0",
+                input_combination=InputCombination(InputConfig(type=2, code=0)),
                 rel_to_abs_input_cutoff=1,
                 output_type=3,
                 output_code=0,
@@ -1505,7 +1686,7 @@ class TestRequireActiveMapping(ComponentBaseTest):
             self.box,
             require_recorded_input=False,
         )
-        combination = EventCombination([(1, KEY_A, 1)])
+        combination = InputCombination(InputConfig(type=1, code=KEY_A))
 
         self.message_broker.publish(MappingData())
         self.assert_inactive(self.box)
@@ -1518,7 +1699,7 @@ class TestRequireActiveMapping(ComponentBaseTest):
         self.message_broker.publish(PresetData(name="preset", mappings=(combination,)))
         self.assert_active(self.box)
 
-        self.message_broker.publish(MappingData(event_combination=combination))
+        self.message_broker.publish(MappingData(input_combination=combination))
         self.assert_active(self.box)
 
         self.message_broker.publish(MappingData())
@@ -1531,7 +1712,7 @@ class TestRequireActiveMapping(ComponentBaseTest):
             self.box,
             require_recorded_input=True,
         )
-        combination = EventCombination([(1, KEY_A, 1)])
+        combination = InputCombination(InputConfig(type=1, code=KEY_A))
 
         self.message_broker.publish(MappingData())
         self.assert_inactive(self.box)
@@ -1543,7 +1724,7 @@ class TestRequireActiveMapping(ComponentBaseTest):
         self.assert_inactive(self.box)
 
         # the widget will be enabled once a mapping with recorded input is selected
-        self.message_broker.publish(MappingData(event_combination=combination))
+        self.message_broker.publish(MappingData(input_combination=combination))
         self.assert_active(self.box)
 
         # this mapping doesn't have input recorded, so the box is disabled
@@ -1657,14 +1838,19 @@ class TestBreadcrumbs(ComponentBaseTest):
         self.assertEqual(self.label_4.get_text(), "group  /  preset  /  mapping")
         self.assertEqual(self.label_5.get_text(), "mapping")
 
-        combination = EventCombination([(1, KEY_A, 1), (1, KEY_B, 1)])
-        self.message_broker.publish(MappingData(event_combination=combination))
+        combination = InputCombination(
+            (
+                InputConfig(type=1, code=KEY_A),
+                InputConfig(type=1, code=KEY_B),
+            )
+        )
+        self.message_broker.publish(MappingData(input_combination=combination))
         self.assertEqual(self.label_4.get_text(), "group  /  preset  /  a + b")
         self.assertEqual(self.label_5.get_text(), "a + b")
 
-        combination = EventCombination([(1, KEY_A, 1)])
+        combination = InputCombination(InputConfig(type=1, code=KEY_A))
         self.message_broker.publish(
-            MappingData(name="qux", event_combination=combination)
+            MappingData(name="qux", input_combination=combination)
         )
         self.assertEqual(self.label_4.get_text(), "group  /  preset  /  qux")
         self.assertEqual(self.label_5.get_text(), "qux")

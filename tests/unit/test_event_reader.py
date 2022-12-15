@@ -39,18 +39,22 @@ from evdev.ecodes import (
 from inputremapper.configs.mapping import Mapping
 from inputremapper.configs.preset import Preset
 from inputremapper.configs.system_mapping import system_mapping
-from inputremapper.event_combination import EventCombination
+from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.injection.context import Context
 from inputremapper.injection.event_reader import EventReader
 from inputremapper.injection.global_uinputs import global_uinputs
-from tests.lib.fixtures import new_event
+from tests.lib.fixtures import (
+    new_event,
+    get_combination_config,
+    get_key_mapping,
+    fixtures,
+)
 from tests.lib.cleanup import quick_cleanup
-from tests.lib.fixtures import get_key_mapping
 
 
 class TestEventReader(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
-        self.gamepad_source = evdev.InputDevice("/dev/input/event30")
+        self.gamepad_source = evdev.InputDevice(fixtures.gamepad.path)
         self.stop_event = asyncio.Event()
         self.preset = Preset()
 
@@ -77,18 +81,37 @@ class TestEventReader(unittest.IsolatedAsyncioTestCase):
 
         self.preset.add(
             get_key_mapping(
-                EventCombination([EV_KEY, trigger, 1]),
+                InputCombination(
+                    InputConfig(
+                        type=EV_KEY,
+                        code=trigger,
+                        origin_hash=fixtures.gamepad.get_device_hash(),
+                    )
+                ),
                 "keyboard",
                 "if_single(key(a), key(KEY_LEFTSHIFT))",
             )
         )
         self.preset.add(
-            get_key_mapping(EventCombination([EV_ABS, ABS_Y, 1]), "keyboard", "b"),
+            get_key_mapping(
+                InputCombination(
+                    InputConfig(
+                        type=EV_ABS,
+                        code=ABS_Y,
+                        analog_threshold=1,
+                        origin_hash=fixtures.gamepad.get_device_hash(),
+                    )
+                ),
+                "keyboard",
+                "b",
+            ),
         )
 
         # left x to mouse x
         cfg = {
-            "event_combination": ",".join((str(EV_ABS), str(ABS_X), "0")),
+            "input_combination": InputConfig(
+                type=EV_ABS, code=ABS_X, origin_hash=fixtures.gamepad.get_device_hash()
+            ),
             "target_uinput": "mouse",
             "output_type": EV_REL,
             "output_code": REL_X,
@@ -96,17 +119,23 @@ class TestEventReader(unittest.IsolatedAsyncioTestCase):
         self.preset.add(Mapping(**cfg))
 
         # left y to mouse y
-        cfg["event_combination"] = ",".join((str(EV_ABS), str(ABS_Y), "0"))
+        cfg["input_combination"] = InputConfig(
+            type=EV_ABS, code=ABS_Y, origin_hash=fixtures.gamepad.get_device_hash()
+        )
         cfg["output_code"] = REL_Y
         self.preset.add(Mapping(**cfg))
 
         # right x to wheel x
-        cfg["event_combination"] = ",".join((str(EV_ABS), str(ABS_RX), "0"))
+        cfg["input_combination"] = InputConfig(
+            type=EV_ABS, code=ABS_RX, origin_hash=fixtures.gamepad.get_device_hash()
+        )
         cfg["output_code"] = REL_HWHEEL_HI_RES
         self.preset.add(Mapping(**cfg))
 
         # right y to wheel y
-        cfg["event_combination"] = ",".join((str(EV_ABS), str(ABS_RY), "0"))
+        cfg["input_combination"] = InputConfig(
+            type=EV_ABS, code=ABS_RY, origin_hash=fixtures.gamepad.get_device_hash()
+        )
         cfg["output_code"] = REL_WHEEL_HI_RES
         self.preset.add(Mapping(**cfg))
 
@@ -139,13 +168,30 @@ class TestEventReader(unittest.IsolatedAsyncioTestCase):
         trigger = evdev.ecodes.BTN_A
         self.preset.add(
             get_key_mapping(
-                EventCombination([EV_KEY, trigger, 1]),
+                InputCombination(
+                    InputConfig(
+                        type=EV_KEY,
+                        code=trigger,
+                        origin_hash=fixtures.gamepad.get_device_hash(),
+                    )
+                ),
                 "keyboard",
                 "if_single(k(a), k(KEY_LEFTSHIFT))",
             )
         )
         self.preset.add(
-            get_key_mapping(EventCombination([EV_ABS, ABS_Y, 1]), "keyboard", "b"),
+            get_key_mapping(
+                InputCombination(
+                    InputConfig(
+                        type=EV_ABS,
+                        code=ABS_Y,
+                        analog_threshold=1,
+                        origin_hash=fixtures.gamepad.get_device_hash(),
+                    )
+                ),
+                "keyboard",
+                "b",
+            ),
         )
 
         # self.preset.set("gamepad.joystick.left_purpose", BUTTONS)

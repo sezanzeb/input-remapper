@@ -23,14 +23,11 @@ from typing import Dict, Callable
 
 import gi
 
-gi.require_version("Gdk", "3.0")
-gi.require_version("Gtk", "3.0")
-gi.require_version("GtkSource", "4")
 from gi.repository import Gtk, GtkSource, Gdk, GObject
 
 from inputremapper.configs.data import get_data_path
 from inputremapper.configs.mapping import MappingData
-from inputremapper.event_combination import EventCombination
+from inputremapper.configs.input_config import InputCombination
 from inputremapper.gui.autocompletion import Autocompletion
 from inputremapper.gui.components.editor import (
     MappingListBox,
@@ -381,15 +378,15 @@ class UserInterface:
     def update_combination_label(self, mapping: MappingData):
         """Listens for mapping and updates the combination label."""
         label: Gtk.Label = self.get("combination-label")
-        if mapping.event_combination.beautify() == label.get_label():
+        if mapping.input_combination.beautify() == label.get_label():
             return
-        if mapping.event_combination == EventCombination.empty_combination():
+        if mapping.input_combination == InputCombination.empty_combination():
             label.set_opacity(0.5)
             label.set_label(_("no input configured"))
             return
 
         label.set_opacity(1)
-        label.set_label(mapping.event_combination.beautify())
+        label.set_label(mapping.input_combination.beautify())
 
     def on_gtk_shortcut(self, _, event: Gdk.EventKey):
         """Execute shortcuts."""

@@ -30,6 +30,7 @@ from evdev.ecodes import (
     REL_WHEEL_HI_RES,
 )
 
+from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper import exceptions
 from inputremapper.configs.mapping import (
     Mapping,
@@ -38,7 +39,6 @@ from inputremapper.configs.mapping import (
     REL_XY_SCALING,
     DEFAULT_REL_RATE,
 )
-from inputremapper.event_combination import EventCombination
 from inputremapper.injection.global_uinputs import global_uinputs
 from inputremapper.injection.mapping_handlers.axis_transform import Transformation
 from inputremapper.injection.mapping_handlers.mapping_handler import (
@@ -58,7 +58,7 @@ class RelToAbsHandler(MappingHandler):
     release_timeout.
     """
 
-    _input_movement: Tuple[int, int]  # (type, code) of the relative movement we map
+    _map_axis: InputConfig  # InputConfig for the relative movement we map
     _output_axis: Tuple[int, int]  # the (type, code) of the output axis
     _transform: Transformation
     _target_absinfo: evdev.AbsInfo
@@ -72,7 +72,7 @@ class RelToAbsHandler(MappingHandler):
 
     def __init__(
         self,
-        combination: EventCombination,
+        combination: InputCombination,
         mapping: Mapping,
         **_,
     ) -> None:
@@ -80,9 +80,8 @@ class RelToAbsHandler(MappingHandler):
 
         # find the input event we are supposed to map. If the input combination is
         # BTN_A + REL_X + BTN_B, then use the value of REL_X for the transformation
-        analog_input = mapping.find_analog_input_event(type_=EV_REL)
-        assert analog_input is not None
-        self._input_movement = analog_input.type_and_code
+        assert (map_axis := combination.find_analog_input_config(type_=EV_REL))
+        self._map_axis = map_axis
 
         assert mapping.output_code is not None
         assert mapping.output_type == EV_ABS
@@ -107,7 +106,7 @@ class RelToAbsHandler(MappingHandler):
         self._observed_rate = DEFAULT_REL_RATE
 
     def __str__(self):
-        return f"RelToAbsHandler for {self._input_movement} <{id(self)}>:"
+        return f"RelToAbsHandler for {self._map_axis} <{id(self)}>:"
 
     def __repr__(self):
         return self.__str__()
@@ -140,10 +139,10 @@ class RelToAbsHandler(MappingHandler):
 
     def _get_default_cutoff(self):
         """Get the cutoff value assuming the default input rate."""
-        if self._input_movement[1] in [REL_WHEEL, REL_HWHEEL]:
+        if self._map_axis.code in [REL_WHEEL, REL_HWHEEL]:
             return self.mapping.rel_to_abs_input_cutoff * WHEEL_SCALING
 
-        if self._input_movement[1] in [REL_WHEEL_HI_RES, REL_HWHEEL_HI_RES]:
+        if self._map_axis.code in [REL_WHEEL_HI_RES, REL_HWHEEL_HI_RES]:
             return self.mapping.rel_to_abs_input_cutoff * WHEEL_HI_RES_SCALING
 
         return self.mapping.rel_to_abs_input_cutoff * REL_XY_SCALING
@@ -167,7 +166,7 @@ class RelToAbsHandler(MappingHandler):
     ) -> bool:
         self._observe_rate(event)
 
-        if event.type_and_code != self._input_movement:
+        if event.input_match_hash != self._map_axis.input_match_hash:
             return False
 
         if EventActions.recenter in event.actions:
@@ -236,12 +235,12 @@ class RelToAbsHandler(MappingHandler):
             logger.error("OverflowError (%s, %s, %s)", *self._output_axis, value)
 
     def needs_wrapping(self) -> bool:
-        return len(self.input_events) > 1
+        return len(self.input_configs) > 1
 
     def set_sub_handler(self, handler: InputEventHandler) -> None:
         assert False  # cannot have a sub-handler
 
-    def wrap_with(self) -> Dict[EventCombination, HandlerEnums]:
+    def wrap_with(self) -> Dict[InputCombination, HandlerEnums]:
         if self.needs_wrapping():
-            return {EventCombination(self.input_events): HandlerEnums.axisswitch}
+            return {InputCombination(self.input_configs): HandlerEnums.axisswitch}
         return {}

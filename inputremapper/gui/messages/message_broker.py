@@ -42,7 +42,9 @@ if TYPE_CHECKING:
 class Message(Protocol):
     """The protocol any message must follow to be sent with the MessageBroker."""
 
-    message_type: MessageType
+    @property
+    def message_type(self) -> MessageType:
+        ...
 
 
 # useful type aliases
@@ -65,7 +67,10 @@ class MessageBroker:
 
     def signal(self, signal: MessageType):
         """Send a signal without any data payload."""
-        self.publish(Signal(signal))
+        # This is different from calling self.publish because self.get_caller()
+        # looks back at the current stack 3 frames
+        self._messages.append((Signal(signal), *self.get_caller()))
+        self._publish_all()
 
     def _publish(self, data: Message, file: str, line: int):
         logger.debug(
@@ -107,7 +112,7 @@ class MessageBroker:
                 pass
 
 
-class Signal(Message):
+class Signal:
     """Send a Message without any associated data over the MassageBus."""
 
     def __init__(self, message_type: MessageType):

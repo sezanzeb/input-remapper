@@ -22,6 +22,7 @@
 Only write changes to disk, if there actually are changes. Otherwise file-modification
 dates are destroyed.
 """
+from __future__ import annotations
 
 import copy
 import json
@@ -29,7 +30,7 @@ import os
 import re
 import shutil
 from pathlib import Path
-from typing import Iterator, Tuple, Dict
+from typing import Iterator, Tuple, Dict, List
 
 import pkg_resources
 from evdev.ecodes import (
@@ -46,18 +47,18 @@ from evdev.ecodes import (
     REL_HWHEEL_HI_RES,
 )
 
+from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.mapping import Mapping, UIMapping
 from inputremapper.configs.paths import get_preset_path, mkdir, CONFIG_PATH, remove
 from inputremapper.configs.preset import Preset
 from inputremapper.configs.system_mapping import system_mapping
-from inputremapper.event_combination import EventCombination
 from inputremapper.injection.global_uinputs import global_uinputs
 from inputremapper.injection.macros.parse import is_this_a_macro
 from inputremapper.logger import logger, VERSION, IS_BETA
 from inputremapper.user import HOME
 
 
-def all_presets() -> Iterator[Tuple[os.PathLike, Dict]]:
+def all_presets() -> Iterator[Tuple[os.PathLike, Dict | List]]:
     """Get all presets for all groups as list."""
     if not os.path.exists(get_preset_path()):
         return
@@ -73,8 +74,8 @@ def all_presets() -> Iterator[Tuple[os.PathLike, Dict]]:
 
             try:
                 with open(preset, "r") as f:
-                    preset_dict = json.load(f)
-                    yield preset, preset_dict
+                    preset_structure = json.load(f)
+                    yield preset, preset_structure
             except json.decoder.JSONDecodeError:
                 logger.warning('Invalid json format in preset "%s"', preset)
                 continue
@@ -132,19 +133,24 @@ def _mapping_keys():
 
     Update all keys in preset to include value e.g.: '1,5'->'1,5,1'
     """
-    for preset, preset_dict in all_presets():
+    for preset, preset_structure in all_presets():
+        if isinstance(preset_structure, list):
+            continue  # the preset must be at least 1.6-beta version
+
         changes = 0
-        if "mapping" in preset_dict.keys():
-            mapping = copy.deepcopy(preset_dict["mapping"])
+        if "mapping" in preset_structure.keys():
+            mapping = copy.deepcopy(preset_structure["mapping"])
             for key in mapping.keys():
                 if key.count(",") == 1:
-                    preset_dict["mapping"][f"{key},1"] = preset_dict["mapping"].pop(key)
+                    preset_structure["mapping"][f"{key},1"] = preset_structure[
+                        "mapping"
+                    ].pop(key)
                     changes += 1
 
         if changes:
             with open(preset, "w") as file:
                 logger.info('Updating mapping keys of "%s"', preset)
-                json.dump(preset_dict, file, indent=4)
+                json.dump(preset_structure, file, indent=4)
                 file.write("\n")
 
 
@@ -195,12 +201,15 @@ def _find_target(symbol):
 
 def _add_target():
     """Add the target field to each preset mapping."""
-    for preset, preset_dict in all_presets():
-        if "mapping" not in preset_dict.keys():
+    for preset, preset_structure in all_presets():
+        if isinstance(preset_structure, list):
+            continue
+
+        if "mapping" not in preset_structure.keys():
             continue
 
         changed = False
-        for key, symbol in preset_dict["mapping"].copy().items():
+        for key, symbol in preset_structure["mapping"].copy().items():
             if isinstance(symbol, list):
                 continue
 
@@ -220,7 +229,7 @@ def _add_target():
                 target,
             )
             symbol = [symbol, target]
-            preset_dict["mapping"][key] = symbol
+            preset_structure["mapping"][key] = symbol
             changed = True
 
         if not changed:
@@ -228,18 +237,21 @@ def _add_target():
 
         with open(preset, "w") as file:
             logger.info('Adding targets for "%s"', preset)
-            json.dump(preset_dict, file, indent=4)
+            json.dump(preset_structure, file, indent=4)
             file.write("\n")
 
 
 def _otherwise_to_else():
     """Conditional macros should use an "else" parameter instead of "otherwise"."""
-    for preset, preset_dict in all_presets():
-        if "mapping" not in preset_dict.keys():
+    for preset, preset_structure in all_presets():
+        if isinstance(preset_structure, list):
+            continue
+
+        if "mapping" not in preset_structure.keys():
             continue
 
         changed = False
-        for key, symbol in preset_dict["mapping"].copy().items():
+        for key, symbol in preset_structure["mapping"].copy().items():
             if not is_this_a_macro(symbol[0]):
                 continue
 
@@ -258,24 +270,38 @@ def _otherwise_to_else():
                 symbol[0],
             )
 
-            preset_dict["mapping"][key] = symbol
+            preset_structure["mapping"][key] = symbol
 
         if not changed:
             continue
 
         with open(preset, "w") as file:
             logger.info('Changing otherwise to else for "%s"', preset)
-            json.dump(preset_dict, file, indent=4)
+            json.dump(preset_structure, file, indent=4)
             file.write("\n")
+
+
+def _input_combination_from_string(combination_string: str) -> InputCombination:
+    configs = []
+    for event_str in combination_string.split("+"):
+        type_, code, analog_threshold = event_str.split(",")
+        configs.append(
+            {"type": type_, "code": code, "analog_threshold": analog_threshold}
+        )
+
+    return InputCombination(configs)
 
 
 def _convert_to_individual_mappings():
     """Convert preset.json
     from {key: [symbol, target]}
-    to {key: {target: target, symbol: symbol, ...}}
+    to [{input_combination: ..., output_symbol: symbol, ...}]
     """
 
     for preset_path, old_preset in all_presets():
+        if isinstance(old_preset, list):
+            continue
+
         preset = Preset(preset_path, UIMapping)
         if "mapping" in old_preset.keys():
             for combination, symbol_target in old_preset["mapping"].items():
@@ -285,7 +311,7 @@ def _convert_to_individual_mappings():
                     symbol_target,
                 )
                 try:
-                    combination = EventCombination.from_string(combination)
+                    combination = _input_combination_from_string(combination)
                 except ValueError:
                     logger.error(
                         "unable to migrate mapping with invalid combination %s",
@@ -294,7 +320,7 @@ def _convert_to_individual_mappings():
                     continue
 
                 mapping = UIMapping(
-                    event_combination=combination,
+                    input_combination=combination,
                     target_uinput=symbol_target[1],
                     output_symbol=symbol_target[0],
                 )
@@ -316,7 +342,7 @@ def _convert_to_individual_mappings():
             y_scroll_speed = joystick_dict.get("y_scroll_speed")
 
             cfg = {
-                "event_combination": None,
+                "input_combination": None,
                 "target_uinput": "mouse",
                 "output_type": EV_REL,
                 "output_code": None,
@@ -325,8 +351,12 @@ def _convert_to_individual_mappings():
             if left_purpose == "mouse":
                 x_config = cfg.copy()
                 y_config = cfg.copy()
-                x_config["event_combination"] = ",".join((str(EV_ABS), str(ABS_X), "0"))
-                y_config["event_combination"] = ",".join((str(EV_ABS), str(ABS_Y), "0"))
+                x_config["input_combination"] = InputCombination(
+                    InputConfig(type=EV_ABS, code=ABS_X)
+                )
+                y_config["input_combination"] = InputCombination(
+                    InputConfig(type=EV_ABS, code=ABS_Y)
+                )
                 x_config["output_code"] = REL_X
                 y_config["output_code"] = REL_Y
                 mapping_x = Mapping(**x_config)
@@ -340,11 +370,11 @@ def _convert_to_individual_mappings():
             if right_purpose == "mouse":
                 x_config = cfg.copy()
                 y_config = cfg.copy()
-                x_config["event_combination"] = ",".join(
-                    (str(EV_ABS), str(ABS_RX), "0")
+                x_config["input_combination"] = InputCombination(
+                    InputConfig(type=EV_ABS, code=ABS_RX)
                 )
-                y_config["event_combination"] = ",".join(
-                    (str(EV_ABS), str(ABS_RY), "0")
+                y_config["input_combination"] = InputCombination(
+                    InputConfig(type=EV_ABS, code=ABS_RY)
                 )
                 x_config["output_code"] = REL_X
                 y_config["output_code"] = REL_Y
@@ -359,8 +389,12 @@ def _convert_to_individual_mappings():
             if left_purpose == "wheel":
                 x_config = cfg.copy()
                 y_config = cfg.copy()
-                x_config["event_combination"] = ",".join((str(EV_ABS), str(ABS_X), "0"))
-                y_config["event_combination"] = ",".join((str(EV_ABS), str(ABS_Y), "0"))
+                x_config["input_combination"] = InputCombination(
+                    InputConfig(type=EV_ABS, code=ABS_X)
+                )
+                y_config["input_combination"] = InputCombination(
+                    InputConfig(type=EV_ABS, code=ABS_Y)
+                )
                 x_config["output_code"] = REL_HWHEEL_HI_RES
                 y_config["output_code"] = REL_WHEEL_HI_RES
                 mapping_x = Mapping(**x_config)
@@ -375,11 +409,11 @@ def _convert_to_individual_mappings():
             if right_purpose == "wheel":
                 x_config = cfg.copy()
                 y_config = cfg.copy()
-                x_config["event_combination"] = ",".join(
-                    (str(EV_ABS), str(ABS_RX), "0")
+                x_config["input_combination"] = InputCombination(
+                    InputConfig(type=EV_ABS, code=ABS_RX)
                 )
-                y_config["event_combination"] = ",".join(
-                    (str(EV_ABS), str(ABS_RY), "0")
+                y_config["input_combination"] = InputCombination(
+                    InputConfig(type=EV_ABS, code=ABS_RY)
                 )
                 x_config["output_code"] = REL_HWHEEL_HI_RES
                 y_config["output_code"] = REL_WHEEL_HI_RES

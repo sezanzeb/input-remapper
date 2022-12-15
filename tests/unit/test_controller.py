@@ -26,12 +26,11 @@ import gi
 
 from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.injection.injector import InjectorState
-from inputremapper.input_event import InputEvent
 
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 
-from inputremapper.event_combination import EventCombination
+from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.groups import _Groups
 from inputremapper.gui.messages.message_broker import (
     MessageBroker,
@@ -54,7 +53,7 @@ from inputremapper.configs.mapping import UIMapping, MappingData
 from tests.lib.cleanup import quick_cleanup
 from tests.lib.stuff import spy
 from tests.lib.patches import FakeDaemonProxy
-from tests.lib.fixtures import fixtures, prepare_presets
+from tests.lib.fixtures import fixtures, prepare_presets, get_combination_config
 from inputremapper.configs.global_config import GlobalConfig
 from inputremapper.gui.controller import Controller, MAPPING_DEFAULTS
 from inputremapper.gui.data_manager import DataManager, DEFAULT_PRESET_NAME
@@ -457,7 +456,9 @@ class TestController(unittest.TestCase):
         prepare_presets()
         self.data_manager.load_group("Foo Device 2")
         self.data_manager.load_preset("preset2")
-        self.data_manager.load_mapping(combination=EventCombination("1,4,1"))
+        self.data_manager.load_mapping(
+            combination=InputCombination(InputConfig(type=1, code=4))
+        )
 
         with patch.object(self.data_manager, "update_mapping") as mock:
             self.controller.update_mapping(
@@ -513,7 +514,7 @@ class TestController(unittest.TestCase):
 
         self.data_manager.load_group("Foo Device 2")
         self.data_manager.load_preset("preset2")
-        self.data_manager.load_mapping(EventCombination("1,3,1"))
+        self.data_manager.load_mapping(InputCombination(InputConfig(type=1, code=3)))
         self.message_broker.subscribe(
             MessageType.user_confirm_request, lambda msg: msg.respond(True)
         )
@@ -522,7 +523,9 @@ class TestController(unittest.TestCase):
 
         preset = Preset(get_preset_path("Foo Device", "preset2"))
         preset.load()
-        self.assertIsNone(preset.get_mapping(EventCombination("1,3,1")))
+        self.assertIsNone(
+            preset.get_mapping(InputCombination(InputConfig(type=1, code=3)))
+        )
 
     def test_does_not_delete_mapping_when_not_confirmed(self):
         prepare_presets()
@@ -530,7 +533,7 @@ class TestController(unittest.TestCase):
 
         self.data_manager.load_group("Foo Device 2")
         self.data_manager.load_preset("preset2")
-        self.data_manager.load_mapping(EventCombination("1,3,1"))
+        self.data_manager.load_mapping(InputCombination(InputConfig(type=1, code=3)))
         self.user_interface.confirm_delete.configure_mock(
             return_value=Gtk.ResponseType.CANCEL
         )
@@ -540,14 +543,16 @@ class TestController(unittest.TestCase):
 
         preset = Preset(get_preset_path("Foo Device", "preset2"))
         preset.load()
-        self.assertIsNotNone(preset.get_mapping(EventCombination("1,3,1")))
+        self.assertIsNotNone(
+            preset.get_mapping(InputCombination(InputConfig(type=1, code=3)))
+        )
 
     def test_should_update_combination(self):
         """When combination is free."""
         prepare_presets()
         self.data_manager.load_group("Foo Device 2")
         self.data_manager.load_preset("preset2")
-        self.data_manager.load_mapping(EventCombination.from_string("1,3,1"))
+        self.data_manager.load_mapping(InputCombination(InputConfig(type=1, code=3)))
 
         calls: List[CombinationUpdate] = []
 
@@ -555,12 +560,14 @@ class TestController(unittest.TestCase):
             calls.append(data)
 
         self.message_broker.subscribe(MessageType.combination_update, f)
-        self.controller.update_combination(EventCombination.from_string("1,10,1"))
+        self.controller.update_combination(
+            InputCombination(InputConfig(type=1, code=10))
+        )
         self.assertEqual(
             calls[0],
             CombinationUpdate(
-                EventCombination.from_string("1,3,1"),
-                EventCombination.from_string("1,10,1"),
+                InputCombination(InputConfig(type=1, code=3)),
+                InputCombination(InputConfig(type=1, code=10)),
             ),
         )
 
@@ -569,7 +576,7 @@ class TestController(unittest.TestCase):
         prepare_presets()
         self.data_manager.load_group("Foo Device 2")
         self.data_manager.load_preset("preset2")
-        self.data_manager.load_mapping(EventCombination.from_string("1,3,1"))
+        self.data_manager.load_mapping(InputCombination(InputConfig(type=1, code=3)))
 
         calls: List[CombinationUpdate] = []
 
@@ -577,7 +584,9 @@ class TestController(unittest.TestCase):
             calls.append(data)
 
         self.message_broker.subscribe(MessageType.combination_update, f)
-        self.controller.update_combination(EventCombination.from_string("1,4,1"))
+        self.controller.update_combination(
+            InputCombination(InputConfig(type=1, code=4))
+        )
         self.assertEqual(len(calls), 0)
 
     def test_key_recording_disables_gui_shortcuts(self):
@@ -623,7 +632,7 @@ class TestController(unittest.TestCase):
         prepare_presets()
         self.data_manager.load_group("Foo Device 2")
         self.data_manager.load_preset("preset2")
-        self.data_manager.load_mapping(EventCombination.from_string("1,3,1"))
+        self.data_manager.load_mapping(InputCombination(InputConfig(type=1, code=3)))
 
         calls: List[CombinationUpdate] = []
 
@@ -634,23 +643,25 @@ class TestController(unittest.TestCase):
 
         self.controller.start_key_recording()
         self.message_broker.publish(
-            CombinationRecorded(EventCombination.from_string("1,10,1"))
+            CombinationRecorded(InputCombination(InputConfig(type=1, code=10)))
         )
         self.assertEqual(
             calls[0],
             CombinationUpdate(
-                EventCombination.from_string("1,3,1"),
-                EventCombination.from_string("1,10,1"),
+                InputCombination(InputConfig(type=1, code=3)),
+                InputCombination(InputConfig(type=1, code=10)),
             ),
         )
         self.message_broker.publish(
-            CombinationRecorded(EventCombination.from_string("1,10,1+1,3,1"))
+            CombinationRecorded(
+                InputCombination(get_combination_config((1, 10), (1, 3)))
+            )
         )
         self.assertEqual(
             calls[1],
             CombinationUpdate(
-                EventCombination.from_string("1,10,1"),
-                EventCombination.from_string("1,10,1+1,3,1"),
+                InputCombination(InputConfig(type=1, code=10)),
+                InputCombination(get_combination_config((1, 10), (1, 3))),
             ),
         )
 
@@ -658,7 +669,7 @@ class TestController(unittest.TestCase):
         prepare_presets()
         self.data_manager.load_group("Foo Device 2")
         self.data_manager.load_preset("preset2")
-        self.data_manager.load_mapping(EventCombination.from_string("1,3,1"))
+        self.data_manager.load_mapping(InputCombination(InputConfig(type=1, code=3)))
 
         calls: List[CombinationUpdate] = []
 
@@ -668,7 +679,7 @@ class TestController(unittest.TestCase):
         self.message_broker.subscribe(MessageType.combination_update, f)
 
         self.message_broker.publish(
-            CombinationRecorded(EventCombination.from_string("1,10,1"))
+            CombinationRecorded(InputCombination(InputConfig(type=1, code=10)))
         )
         self.assertEqual(len(calls), 0)
 
@@ -676,7 +687,7 @@ class TestController(unittest.TestCase):
         prepare_presets()
         self.data_manager.load_group("Foo Device 2")
         self.data_manager.load_preset("preset2")
-        self.data_manager.load_mapping(EventCombination.from_string("1,3,1"))
+        self.data_manager.load_mapping(InputCombination(InputConfig(type=1, code=3)))
 
         calls: List[CombinationUpdate] = []
 
@@ -687,11 +698,13 @@ class TestController(unittest.TestCase):
 
         self.controller.start_key_recording()
         self.message_broker.publish(
-            CombinationRecorded(EventCombination.from_string("1,10,1"))
+            CombinationRecorded(InputCombination(InputConfig(type=1, code=10)))
         )
         self.message_broker.signal(MessageType.recording_finished)
         self.message_broker.publish(
-            CombinationRecorded(EventCombination.from_string("1,10,1+1,3,1"))
+            CombinationRecorded(
+                InputCombination(get_combination_config((1, 10), (1, 3)))
+            )
         )
 
         self.assertEqual(len(calls), 1)  # only the first was processed
@@ -700,7 +713,7 @@ class TestController(unittest.TestCase):
         prepare_presets()
         self.data_manager.load_group("Foo Device 2")
         self.data_manager.load_preset("preset2")
-        self.data_manager.load_mapping(EventCombination.from_string("1,3,1"))
+        self.data_manager.load_mapping(InputCombination(InputConfig(type=1, code=3)))
 
         calls: List[CombinationUpdate] = []
 
@@ -711,11 +724,13 @@ class TestController(unittest.TestCase):
 
         self.controller.start_key_recording()
         self.message_broker.publish(
-            CombinationRecorded(EventCombination.from_string("1,10,1"))
+            CombinationRecorded(InputCombination(InputConfig(type=1, code=10)))
         )
         self.controller.stop_key_recording()
         self.message_broker.publish(
-            CombinationRecorded(EventCombination.from_string("1,10,1+1,3,1"))
+            CombinationRecorded(
+                InputCombination(get_combination_config((1, 10), (1, 3)))
+            )
         )
 
         self.assertEqual(len(calls), 1)  # only the first was processed
@@ -747,7 +762,7 @@ class TestController(unittest.TestCase):
         self.data_manager.load_preset("foo")
         self.data_manager.create_mapping()
         self.data_manager.update_mapping(
-            event_combination=EventCombination(InputEvent.btn_left()),
+            input_combination=InputCombination(InputConfig.btn_left()),
             target_uinput="keyboard",
             output_symbol="a",
         )
@@ -773,7 +788,7 @@ class TestController(unittest.TestCase):
         self.data_manager.load_preset("foo")
         self.data_manager.create_mapping()
         self.data_manager.update_mapping(
-            event_combination=EventCombination(InputEvent.btn_left()),
+            input_combination=InputCombination(InputConfig.btn_left()),
             target_uinput="keyboard",
             output_symbol="a",
         )
@@ -790,14 +805,14 @@ class TestController(unittest.TestCase):
         self.data_manager.load_preset("foo")
         self.data_manager.create_mapping()
         self.data_manager.update_mapping(
-            event_combination=EventCombination(InputEvent.btn_left()),
+            input_combination=InputCombination(InputConfig.btn_left()),
             target_uinput="keyboard",
             output_symbol="a",
         )
         self.data_manager.create_mapping()
-        self.data_manager.load_mapping(EventCombination.empty_combination())
+        self.data_manager.load_mapping(InputCombination.empty_combination())
         self.data_manager.update_mapping(
-            event_combination=EventCombination.from_string("1,5,1"),
+            input_combination=InputCombination(InputConfig(type=1, code=5)),
             target_uinput="mouse",
             output_symbol="BTN_LEFT",
         )
@@ -932,101 +947,113 @@ class TestController(unittest.TestCase):
         prepare_presets()
         self.data_manager.load_group("Foo Device 2")
         self.data_manager.load_preset("preset2")
-        self.data_manager.load_mapping(EventCombination("1,3,1"))
+        self.data_manager.load_mapping(InputCombination(get_combination_config((1, 3))))
         self.data_manager.update_mapping(
-            event_combination=EventCombination.from_string("1,1,1+1,2,1+1,3,1")
+            input_combination=InputCombination(
+                get_combination_config((1, 1), (1, 2), (1, 3))
+            )
         )
 
-        self.controller.move_event_in_combination(InputEvent.from_string("1,2,1"), "up")
+        self.controller.move_input_config_in_combination(
+            InputConfig(type=1, code=2), "up"
+        )
         self.assertEqual(
-            self.data_manager.active_mapping.event_combination,
-            EventCombination.from_string("1,2,1+1,1,1+1,3,1"),
+            self.data_manager.active_mapping.input_combination,
+            InputCombination(get_combination_config((1, 2), (1, 1), (1, 3))),
         )
         # now nothing changes
-        self.controller.move_event_in_combination(InputEvent.from_string("1,2,1"), "up")
+        self.controller.move_input_config_in_combination(
+            InputConfig(type=1, code=2), "up"
+        )
         self.assertEqual(
-            self.data_manager.active_mapping.event_combination,
-            EventCombination.from_string("1,2,1+1,1,1+1,3,1"),
+            self.data_manager.active_mapping.input_combination,
+            InputCombination(get_combination_config((1, 2), (1, 1), (1, 3))),
         )
 
     def test_move_event_down(self):
         prepare_presets()
         self.data_manager.load_group("Foo Device 2")
         self.data_manager.load_preset("preset2")
-        self.data_manager.load_mapping(EventCombination("1,3,1"))
+        self.data_manager.load_mapping(InputCombination(get_combination_config((1, 3))))
         self.data_manager.update_mapping(
-            event_combination=EventCombination.from_string("1,1,1+1,2,1+1,3,1")
+            input_combination=InputCombination(
+                get_combination_config((1, 1), (1, 2), (1, 3))
+            )
         )
 
-        self.controller.move_event_in_combination(
-            InputEvent.from_string("1,2,1"), "down"
+        self.controller.move_input_config_in_combination(
+            InputConfig(type=1, code=2), "down"
         )
         self.assertEqual(
-            self.data_manager.active_mapping.event_combination,
-            EventCombination.from_string("1,1,1+1,3,1+1,2,1"),
+            self.data_manager.active_mapping.input_combination,
+            InputCombination(get_combination_config((1, 1), (1, 3), (1, 2))),
         )
         # now nothing changes
-        self.controller.move_event_in_combination(
-            InputEvent.from_string("1,2,1"), "down"
+        self.controller.move_input_config_in_combination(
+            InputConfig(type=1, code=2), "down"
         )
         self.assertEqual(
-            self.data_manager.active_mapping.event_combination,
-            EventCombination.from_string("1,1,1+1,3,1+1,2,1"),
+            self.data_manager.active_mapping.input_combination,
+            InputCombination(get_combination_config((1, 1), (1, 3), (1, 2))),
         )
 
     def test_move_event_in_combination_of_len_1(self):
         prepare_presets()
         self.data_manager.load_group("Foo Device 2")
         self.data_manager.load_preset("preset2")
-        self.data_manager.load_mapping(EventCombination("1,3,1"))
-        self.controller.move_event_in_combination(
-            InputEvent.from_string("1,3,1"), "down"
+        self.data_manager.load_mapping(InputCombination(get_combination_config((1, 3))))
+        self.controller.move_input_config_in_combination(
+            InputConfig(type=1, code=3), "down"
         )
         self.assertEqual(
-            self.data_manager.active_mapping.event_combination,
-            EventCombination.from_string("1,3,1"),
+            self.data_manager.active_mapping.input_combination,
+            InputCombination(get_combination_config((1, 3))),
         )
 
     def test_move_event_loads_it_again(self):
         prepare_presets()
         self.data_manager.load_group("Foo Device 2")
         self.data_manager.load_preset("preset2")
-        self.data_manager.load_mapping(EventCombination("1,3,1"))
+        self.data_manager.load_mapping(InputCombination(get_combination_config((1, 3))))
         self.data_manager.update_mapping(
-            event_combination=EventCombination.from_string("1,1,1+1,2,1+1,3,1")
+            input_combination=InputCombination(
+                get_combination_config((1, 1), (1, 2), (1, 3))
+            )
         )
         mock = MagicMock()
         self.message_broker.subscribe(MessageType.selected_event, mock)
-        self.controller.move_event_in_combination(
-            InputEvent.from_string("1,2,1"), "down"
+        self.controller.move_input_config_in_combination(
+            InputConfig(type=1, code=2), "down"
         )
-        mock.assert_called_once_with(InputEvent.from_string("1,2,1"))
+        mock.assert_called_once_with(InputConfig(type=1, code=2))
 
     def test_update_event(self):
         prepare_presets()
         self.data_manager.load_group("Foo Device 2")
         self.data_manager.load_preset("preset2")
-        self.data_manager.load_mapping(EventCombination("1,3,1"))
-        self.data_manager.load_event(InputEvent.from_string("1,3,1"))
+        self.data_manager.load_mapping(InputCombination(get_combination_config((1, 3))))
+        self.data_manager.load_input_config(InputConfig(type=1, code=3))
         mock = MagicMock()
         self.message_broker.subscribe(MessageType.selected_event, mock)
-        self.controller.update_event(InputEvent.from_string("1,10,1"))
-        mock.assert_called_once_with(InputEvent.from_string("1,10,1"))
+        self.controller.update_input_config(InputConfig(type=1, code=10))
+        mock.assert_called_once_with(InputConfig(type=1, code=10))
 
     def test_update_event_reloads_mapping_and_event_when_update_fails(self):
         prepare_presets()
         self.data_manager.load_group("Foo Device 2")
         self.data_manager.load_preset("preset2")
-        self.data_manager.load_mapping(EventCombination("1,3,1"))
-        self.data_manager.load_event(InputEvent.from_string("1,3,1"))
+        self.data_manager.load_mapping(InputCombination(get_combination_config((1, 3))))
+        self.data_manager.load_input_config(InputConfig(type=1, code=3))
         mock = MagicMock()
         self.message_broker.subscribe(MessageType.selected_event, mock)
         self.message_broker.subscribe(MessageType.mapping, mock)
         calls = [
             call(self.data_manager.active_mapping.get_bus_message()),
-            call(InputEvent.from_string("1,3,1")),
+            call(InputConfig(type=1, code=3)),
         ]
-        self.controller.update_event(InputEvent.from_string("1,4,1"))  # already exists
+        self.controller.update_input_config(
+            InputConfig(type=1, code=4)
+        )  # already exists
         mock.assert_has_calls(calls, any_order=False)
 
     def test_remove_event_does_nothing_when_mapping_not_loaded(self):
@@ -1038,44 +1065,50 @@ class TestController(unittest.TestCase):
         prepare_presets()
         self.data_manager.load_group("Foo Device 2")
         self.data_manager.load_preset("preset2")
-        self.data_manager.load_mapping(EventCombination("1,3,1"))
-        self.data_manager.update_mapping(event_combination="1,3,1+1,4,1")
-        self.assertEqual(
-            self.data_manager.active_mapping.event_combination,
-            EventCombination.from_string("1,3,1+1,4,1"),
+        self.data_manager.load_mapping(InputCombination(get_combination_config((1, 3))))
+        self.data_manager.update_mapping(
+            input_combination=get_combination_config((1, 3), (1, 4))
         )
-        self.data_manager.load_event(InputEvent.from_string("1,4,1"))
+        self.assertEqual(
+            self.data_manager.active_mapping.input_combination,
+            InputCombination(get_combination_config((1, 3), (1, 4))),
+        )
+        self.data_manager.load_input_config(InputConfig(type=1, code=4))
 
         self.controller.remove_event()
         self.assertEqual(
-            self.data_manager.active_mapping.event_combination,
-            EventCombination.from_string("1,3,1"),
+            self.data_manager.active_mapping.input_combination,
+            InputCombination(get_combination_config((1, 3))),
         )
 
     def test_remove_event_loads_a_event(self):
         prepare_presets()
         self.data_manager.load_group("Foo Device 2")
         self.data_manager.load_preset("preset2")
-        self.data_manager.load_mapping(EventCombination("1,3,1"))
-        self.data_manager.update_mapping(event_combination="1,3,1+1,4,1")
-        self.assertEqual(
-            self.data_manager.active_mapping.event_combination,
-            EventCombination.from_string("1,3,1+1,4,1"),
+        self.data_manager.load_mapping(InputCombination(get_combination_config((1, 3))))
+        self.data_manager.update_mapping(
+            input_combination=get_combination_config((1, 3), (1, 4))
         )
-        self.data_manager.load_event(InputEvent.from_string("1,4,1"))
+        self.assertEqual(
+            self.data_manager.active_mapping.input_combination,
+            InputCombination(get_combination_config((1, 3), (1, 4))),
+        )
+        self.data_manager.load_input_config(InputConfig(type=1, code=4))
 
         mock = MagicMock()
         self.message_broker.subscribe(MessageType.selected_event, mock)
         self.controller.remove_event()
-        mock.assert_called_once_with(InputEvent.from_string("1,3,1"))
+        mock.assert_called_once_with(InputConfig(type=1, code=3))
 
     def test_remove_event_reloads_mapping_and_event_when_update_fails(self):
         prepare_presets()
         self.data_manager.load_group("Foo Device 2")
         self.data_manager.load_preset("preset2")
-        self.data_manager.load_mapping(EventCombination("1,3,1"))
-        self.data_manager.update_mapping(event_combination="1,3,1+1,4,1")
-        self.data_manager.load_event(InputEvent.from_string("1,3,1"))
+        self.data_manager.load_mapping(InputCombination(get_combination_config((1, 3))))
+        self.data_manager.update_mapping(
+            input_combination=get_combination_config((1, 3), (1, 4))
+        )
+        self.data_manager.load_input_config(InputConfig(type=1, code=3))
 
         # removing "1,3,1" will throw a key error because a mapping with combination
         # "1,4,1" already exists in preset
@@ -1084,7 +1117,7 @@ class TestController(unittest.TestCase):
         self.message_broker.subscribe(MessageType.mapping, mock)
         calls = [
             call(self.data_manager.active_mapping.get_bus_message()),
-            call(InputEvent.from_string("1,3,1")),
+            call(InputConfig(type=1, code=3)),
         ]
         self.controller.remove_event()
         mock.assert_has_calls(calls, any_order=False)
@@ -1093,9 +1126,15 @@ class TestController(unittest.TestCase):
         prepare_presets()
         self.data_manager.load_group("Foo Device 2")
         self.data_manager.load_preset("preset2")
-        self.data_manager.update_mapping(event_combination="3,0,10")
-        self.data_manager.load_mapping(EventCombination("3,0,10"))
-        self.data_manager.load_event(InputEvent.from_string("3,0,10"))
+        self.data_manager.update_mapping(
+            input_combination=get_combination_config((3, 0, 10))
+        )
+        self.data_manager.load_mapping(
+            InputCombination(get_combination_config((3, 0, 10)))
+        )
+        self.data_manager.load_input_config(
+            InputConfig(type=3, code=0, analog_threshold=10)
+        )
 
         with patch.object(self.data_manager, "save") as mock:
             self.controller.set_event_as_analog(False)
@@ -1109,53 +1148,67 @@ class TestController(unittest.TestCase):
         prepare_presets()
         self.data_manager.load_group("Foo Device 2")
         self.data_manager.load_preset("preset2")
-        self.data_manager.load_mapping(EventCombination("1,3,1"))
-        self.data_manager.update_mapping(event_combination="3,0,10")
-        self.data_manager.load_event(InputEvent.from_string("3,0,10"))
+        self.data_manager.load_mapping(InputCombination(get_combination_config((1, 3))))
+        self.data_manager.update_mapping(
+            input_combination=get_combination_config((3, 0, 10))
+        )
+        self.data_manager.load_input_config(
+            InputConfig(type=3, code=0, analog_threshold=10)
+        )
 
         self.controller.set_event_as_analog(True)
         self.assertEqual(
-            self.data_manager.active_mapping.event_combination,
-            EventCombination.from_string("3,0,0"),
+            self.data_manager.active_mapping.input_combination,
+            InputCombination(get_combination_config((3, 0))),
         )
 
     def test_set_event_as_analog_adds_rel_threshold(self):
         prepare_presets()
         self.data_manager.load_group("Foo Device 2")
         self.data_manager.load_preset("preset2")
-        self.data_manager.load_mapping(EventCombination("1,3,1"))
-        self.data_manager.update_mapping(event_combination="2,0,0")
-        self.data_manager.load_event(InputEvent.from_string("2,0,0"))
+        self.data_manager.load_mapping(InputCombination(get_combination_config((1, 3))))
+        self.data_manager.update_mapping(
+            input_combination=get_combination_config((2, 0))
+        )
+        self.data_manager.load_input_config(InputConfig(type=2, code=0))
 
         self.controller.set_event_as_analog(False)
-        combinations = [EventCombination("2,0,1"), EventCombination("2,0,-1")]
-        self.assertIn(self.data_manager.active_mapping.event_combination, combinations)
+        combinations = [
+            InputCombination(get_combination_config((2, 0, 1))),
+            InputCombination(get_combination_config((2, 0, -1))),
+        ]
+        self.assertIn(self.data_manager.active_mapping.input_combination, combinations)
 
     def test_set_event_as_analog_adds_abs_threshold(self):
         prepare_presets()
         self.data_manager.load_group("Foo Device 2")
         self.data_manager.load_preset("preset2")
-        self.data_manager.load_mapping(EventCombination("1,3,1"))
-        self.data_manager.update_mapping(event_combination="3,0,0")
-        self.data_manager.load_event(InputEvent.from_string("3,0,0"))
+        self.data_manager.load_mapping(InputCombination(get_combination_config((1, 3))))
+        self.data_manager.update_mapping(
+            input_combination=get_combination_config((3, 0))
+        )
+        self.data_manager.load_input_config(InputConfig(type=3, code=0))
 
         self.controller.set_event_as_analog(False)
-        combinations = [EventCombination("3,0,10"), EventCombination("3,0,-10")]
-        self.assertIn(self.data_manager.active_mapping.event_combination, combinations)
+        combinations = [
+            InputCombination(get_combination_config((3, 0, 10))),
+            InputCombination(get_combination_config((3, 0, -10))),
+        ]
+        self.assertIn(self.data_manager.active_mapping.input_combination, combinations)
 
     def test_set_event_as_analog_reloads_mapping_and_event_when_key_event(self):
         prepare_presets()
         self.data_manager.load_group("Foo Device 2")
         self.data_manager.load_preset("preset2")
-        self.data_manager.load_mapping(EventCombination("1,3,1"))
-        self.data_manager.load_event(InputEvent.from_string("1,3,1"))
+        self.data_manager.load_mapping(InputCombination(get_combination_config((1, 3))))
+        self.data_manager.load_input_config(InputConfig(type=1, code=3))
 
         mock = MagicMock()
         self.message_broker.subscribe(MessageType.selected_event, mock)
         self.message_broker.subscribe(MessageType.mapping, mock)
         calls = [
             call(self.data_manager.active_mapping.get_bus_message()),
-            call(InputEvent.from_string("1,3,1")),
+            call(InputConfig(type=1, code=3)),
         ]
         self.controller.set_event_as_analog(True)
         mock.assert_has_calls(calls, any_order=False)
@@ -1164,16 +1217,20 @@ class TestController(unittest.TestCase):
         prepare_presets()
         self.data_manager.load_group("Foo Device 2")
         self.data_manager.load_preset("preset2")
-        self.data_manager.load_mapping(EventCombination("1,3,1"))
-        self.data_manager.update_mapping(event_combination="3,0,10")
-        self.data_manager.load_event(InputEvent.from_string("3,0,10"))
+        self.data_manager.load_mapping(InputCombination(get_combination_config((1, 3))))
+        self.data_manager.update_mapping(
+            input_combination=get_combination_config((3, 0, 10))
+        )
+        self.data_manager.load_input_config(
+            InputConfig(type=3, code=0, analog_threshold=10)
+        )
 
         mock = MagicMock()
         self.message_broker.subscribe(MessageType.selected_event, mock)
         self.message_broker.subscribe(MessageType.mapping, mock)
         calls = [
             call(self.data_manager.active_mapping.get_bus_message()),
-            call(InputEvent.from_string("3,0,10")),
+            call(InputConfig(type=3, code=0, analog_threshold=10)),
         ]
         with patch.object(self.data_manager, "update_mapping", side_effect=KeyError):
             self.controller.set_event_as_analog(True)
@@ -1183,16 +1240,18 @@ class TestController(unittest.TestCase):
         prepare_presets()
         self.data_manager.load_group("Foo Device 2")
         self.data_manager.load_preset("preset2")
-        self.data_manager.load_mapping(EventCombination("1,3,1"))
-        self.data_manager.update_mapping(event_combination="3,0,0")
-        self.data_manager.load_event(InputEvent.from_string("3,0,0"))
+        self.data_manager.load_mapping(InputCombination(get_combination_config((1, 3))))
+        self.data_manager.update_mapping(
+            input_combination=get_combination_config((3, 0))
+        )
+        self.data_manager.load_input_config(InputConfig(type=3, code=0))
 
         mock = MagicMock()
         self.message_broker.subscribe(MessageType.selected_event, mock)
         self.message_broker.subscribe(MessageType.mapping, mock)
         calls = [
             call(self.data_manager.active_mapping.get_bus_message()),
-            call(InputEvent.from_string("3,0,0")),
+            call(InputConfig(type=3, code=0)),
         ]
         with patch.object(self.data_manager, "update_mapping", side_effect=KeyError):
             self.controller.set_event_as_analog(False)
@@ -1202,7 +1261,7 @@ class TestController(unittest.TestCase):
         prepare_presets()
         self.data_manager.load_group("Foo Device 2")
         self.data_manager.load_preset("preset2")
-        self.data_manager.load_mapping(EventCombination("1,3,1"))
+        self.data_manager.load_mapping(InputCombination(get_combination_config((1, 3))))
         request: UserConfirmRequest = None
 
         def f(r: UserConfirmRequest):
@@ -1217,7 +1276,7 @@ class TestController(unittest.TestCase):
         prepare_presets()
         self.data_manager.load_group("Foo Device 2")
         self.data_manager.load_preset("preset2")
-        self.data_manager.load_mapping(EventCombination("1,3,1"))
+        self.data_manager.load_mapping(InputCombination(get_combination_config((1, 3))))
         self.data_manager.update_mapping(output_symbol=None)
         request: UserConfirmRequest = None
 
@@ -1233,9 +1292,10 @@ class TestController(unittest.TestCase):
         prepare_presets()
         self.data_manager.load_group("Foo Device 2")
         self.data_manager.load_preset("preset2")
-        self.data_manager.load_mapping(EventCombination("1,3,1"))
+        self.data_manager.load_mapping(InputCombination(get_combination_config((1, 3))))
         self.data_manager.update_mapping(
-            event_combination="1,3,1+2,1,1", output_symbol=None
+            input_combination=get_combination_config((1, 3), (2, 1, 1)),
+            output_symbol=None,
         )
         request: UserConfirmRequest = None
 
@@ -1251,9 +1311,10 @@ class TestController(unittest.TestCase):
         prepare_presets()
         self.data_manager.load_group("Foo Device 2")
         self.data_manager.load_preset("preset2")
-        self.data_manager.load_mapping(EventCombination("1,3,1"))
+        self.data_manager.load_mapping(InputCombination(get_combination_config((1, 3))))
         self.data_manager.update_mapping(
-            event_combination="1,3,1+2,1,1", output_symbol=None
+            input_combination=get_combination_config((1, 3), (2, 1, 1)),
+            output_symbol=None,
         )
 
         self.message_broker.subscribe(
@@ -1264,14 +1325,16 @@ class TestController(unittest.TestCase):
             mock.assert_called_once_with(
                 mapping_type="analog",
                 output_symbol=None,
-                event_combination=EventCombination.from_string("1,3,1+2,1,0"),
+                input_combination=InputCombination(
+                    get_combination_config((1, 3), (2, 1))
+                ),
             )
 
     def test_update_mapping_type_will_abort_when_user_denys(self):
         prepare_presets()
         self.data_manager.load_group("Foo Device 2")
         self.data_manager.load_preset("preset2")
-        self.data_manager.load_mapping(EventCombination("1,3,1"))
+        self.data_manager.load_mapping(InputCombination(get_combination_config((1, 3))))
 
         self.message_broker.subscribe(
             MessageType.user_confirm_request, lambda r: r.respond(False)
@@ -1281,7 +1344,9 @@ class TestController(unittest.TestCase):
             mock.assert_not_called()
 
         self.data_manager.update_mapping(
-            event_combination="1,3,1+2,1,0", output_symbol=None, mapping_type="analog"
+            input_combination=get_combination_config((1, 3), (2, 1)),
+            output_symbol=None,
+            mapping_type="analog",
         )
         with patch.object(self.data_manager, "update_mapping") as mock:
             self.controller.update_mapping(mapping_type="key_macro")
@@ -1291,7 +1356,7 @@ class TestController(unittest.TestCase):
         prepare_presets()
         self.data_manager.load_group("Foo Device 2")
         self.data_manager.load_preset("preset2")
-        self.data_manager.load_mapping(EventCombination("1,3,1"))
+        self.data_manager.load_mapping(InputCombination(get_combination_config((1, 3))))
 
         self.message_broker.subscribe(
             MessageType.user_confirm_request, lambda r: r.respond(True)
@@ -1304,9 +1369,11 @@ class TestController(unittest.TestCase):
         prepare_presets()
         self.data_manager.load_group("Foo Device 2")
         self.data_manager.load_preset("preset2")
-        self.data_manager.load_mapping(EventCombination("1,3,1"))
+        self.data_manager.load_mapping(InputCombination(get_combination_config((1, 3))))
         self.data_manager.update_mapping(
-            event_combination="1,3,1+2,1,0", output_symbol=None, mapping_type="analog"
+            input_combination=get_combination_config((1, 3), (2, 1)),
+            output_symbol=None,
+            mapping_type="analog",
         )
         request: UserConfirmRequest = None
 
@@ -1322,9 +1389,9 @@ class TestController(unittest.TestCase):
         prepare_presets()
         self.data_manager.load_group("Foo Device 2")
         self.data_manager.load_preset("preset2")
-        self.data_manager.load_mapping(EventCombination("1,3,1"))
+        self.data_manager.load_mapping(InputCombination(get_combination_config((1, 3))))
         self.data_manager.update_mapping(
-            event_combination="1,3,1+2,1,0",
+            input_combination=get_combination_config((1, 3), (2, 1)),
             output_symbol=None,
         )
         mock = MagicMock()
@@ -1336,9 +1403,9 @@ class TestController(unittest.TestCase):
         prepare_presets()
         self.data_manager.load_group("Foo Device 2")
         self.data_manager.load_preset("preset2")
-        self.data_manager.load_mapping(EventCombination("1,3,1"))
+        self.data_manager.load_mapping(InputCombination(get_combination_config((1, 3))))
         self.data_manager.update_mapping(
-            event_combination="1,3,1+2,1,1",
+            input_combination=get_combination_config((1, 3), (2, 1, 1)),
             mapping_type="analog",
             output_symbol=None,
         )
@@ -1351,9 +1418,11 @@ class TestController(unittest.TestCase):
         prepare_presets()
         self.data_manager.load_group("Foo Device 2")
         self.data_manager.load_preset("preset2")
-        self.data_manager.load_mapping(EventCombination("1,3,1"))
+        self.data_manager.load_mapping(InputCombination(get_combination_config((1, 3))))
         self.data_manager.update_mapping(
-            event_combination="1,3,1+2,1,0", output_symbol=None, mapping_type="analog"
+            input_combination=get_combination_config((1, 3), (2, 1)),
+            output_symbol=None,
+            mapping_type="analog",
         )
         self.message_broker.subscribe(
             MessageType.user_confirm_request, lambda r: r.respond(True)

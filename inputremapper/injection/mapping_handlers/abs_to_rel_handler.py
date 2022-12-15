@@ -33,6 +33,7 @@ from evdev.ecodes import (
     REL_HWHEEL_HI_RES,
 )
 
+from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.mapping import (
     Mapping,
     REL_XY_SCALING,
@@ -40,7 +41,6 @@ from inputremapper.configs.mapping import (
     WHEEL_HI_RES_SCALING,
     DEFAULT_REL_RATE,
 )
-from inputremapper.event_combination import EventCombination
 from inputremapper.injection.global_uinputs import global_uinputs
 from inputremapper.injection.mapping_handlers.axis_transform import Transformation
 from inputremapper.injection.mapping_handlers.mapping_handler import (
@@ -124,7 +124,7 @@ async def _run_wheel_output(self, codes: Tuple[int, int]) -> None:
 class AbsToRelHandler(MappingHandler):
     """Handler which transforms an EV_ABS to EV_REL events."""
 
-    _map_axis: Tuple[int, int]  # the input (type, code) of the axis we map
+    _map_axis: InputConfig  # the InputConfig for the axis we map
     _value: float  # the current output value
     _running: bool  # if the run method is active
     _stop: bool  # if the run loop should return
@@ -132,18 +132,15 @@ class AbsToRelHandler(MappingHandler):
 
     def __init__(
         self,
-        combination: EventCombination,
+        combination: InputCombination,
         mapping: Mapping,
         **_,
     ) -> None:
         super().__init__(combination, mapping)
 
         # find the input event we are supposed to map
-        for event in combination:
-            if event.value == 0:
-                assert event.type == EV_ABS
-                self._map_axis = event.type_and_code
-                break
+        assert (map_axis := combination.find_analog_input_config(type_=EV_ABS))
+        self._map_axis = map_axis
 
         self._value = 0
         self._running = False
@@ -168,7 +165,7 @@ class AbsToRelHandler(MappingHandler):
             self._run = partial(_run_normal_output, self)
 
     def __str__(self):
-        name = get_evdev_constant_name(*self._map_axis)
+        name = get_evdev_constant_name(*self._map_axis.type_and_code)
         return f'AbsToRelHandler for "{name}" {self._map_axis} <{id(self)}>:'
 
     def __repr__(self):
@@ -189,7 +186,7 @@ class AbsToRelHandler(MappingHandler):
         forward: evdev.UInput = None,
         suppress: bool = False,
     ) -> bool:
-        if event.type_and_code != self._map_axis:
+        if event.input_match_hash != self._map_axis.input_match_hash:
             return False
 
         if EventActions.recenter in event.actions:
@@ -238,12 +235,12 @@ class AbsToRelHandler(MappingHandler):
             logger.error("OverflowError (%s, %s, %s)", type_, keycode, value)
 
     def needs_wrapping(self) -> bool:
-        return len(self.input_events) > 1
+        return len(self.input_configs) > 1
 
     def set_sub_handler(self, handler: InputEventHandler) -> None:
         assert False  # cannot have a sub-handler
 
-    def wrap_with(self) -> Dict[EventCombination, HandlerEnums]:
+    def wrap_with(self) -> Dict[InputCombination, HandlerEnums]:
         if self.needs_wrapping():
-            return {EventCombination(self.input_events): HandlerEnums.axisswitch}
+            return {InputCombination(self.input_configs): HandlerEnums.axisswitch}
         return {}

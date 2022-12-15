@@ -65,10 +65,10 @@ from typing import Dict, Protocol, Set, Optional, List
 
 import evdev
 
+from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.configs.mapping import Mapping
-from inputremapper.event_combination import EventCombination
 from inputremapper.exceptions import MappingParsingError
-from inputremapper.input_event import InputEvent, EventActions
+from inputremapper.input_event import InputEvent
 from inputremapper.logger import logger
 
 
@@ -147,14 +147,14 @@ class MappingHandler:
 
     mapping: Mapping
     # all input events this handler cares about
-    # should always be a subset of mapping.event_combination
-    input_events: List[InputEvent]
+    # should always be a subset of mapping.input_combination
+    input_configs: List[InputConfig]
     _sub_handler: Optional[InputEventHandler]
 
     # https://bugs.python.org/issue44807
     def __init__(
         self,
-        combination: EventCombination,
+        combination: InputCombination,
         mapping: Mapping,
         **_,
     ) -> None:
@@ -166,14 +166,8 @@ class MappingHandler:
             the combination from sub_handler.wrap_with()
         mapping
         """
-        new_combination = []
-        for event in combination:
-            if event.value != 0:
-                event = event.modify(actions=(EventActions.as_key,))
-            new_combination.append(event)
-
         self.mapping = mapping
-        self.input_events = new_combination
+        self.input_configs = list(combination)
         self._sub_handler = None
 
     def notify(
@@ -209,13 +203,13 @@ class MappingHandler:
         """If this handler needs ranking and wrapping with a HierarchyHandler."""
         return False
 
-    def rank_by(self) -> Optional[EventCombination]:
+    def rank_by(self) -> Optional[InputCombination]:
         """The combination for which this handler needs ranking."""
 
-    def wrap_with(self) -> Dict[EventCombination, HandlerEnums]:
-        """A dict of EventCombination -> HandlerEnums.
+    def wrap_with(self) -> Dict[InputCombination, HandlerEnums]:
+        """A dict of InputCombination -> HandlerEnums.
 
-        for each EventCombination this handler should be wrapped
+        for each InputCombination this handler should be wrapped
         with the given MappingHandler.
         """
         return {}
@@ -224,14 +218,14 @@ class MappingHandler:
         """Give this handler a sub_handler."""
         self._sub_handler = handler
 
-    def occlude_input_event(self, event: InputEvent) -> None:
-        """Remove the event from self.input_events."""
-        if not self.input_events:
+    def occlude_input_event(self, input_config: InputConfig) -> None:
+        """Remove the config from self.input_configs."""
+        if not self.input_configs:
             logger.debug_mapping_handler(self)
             raise MappingParsingError(
-                "Cannot remove a non existing event", mapping_handler=self
+                "Cannot remove a non existing config", mapping_handler=self
             )
 
         # should be called for each event a wrapping-handler
-        # has in its input_events EventCombination
-        self.input_events.remove(event)
+        # has in its input_configs InputCombination
+        self.input_configs.remove(input_config)

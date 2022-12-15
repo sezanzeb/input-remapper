@@ -29,6 +29,7 @@ from evdev.ecodes import (
     REL_HWHEEL_HI_RES,
 )
 
+from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper import exceptions
 from inputremapper.configs.mapping import (
     Mapping,
@@ -36,7 +37,6 @@ from inputremapper.configs.mapping import (
     WHEEL_SCALING,
     WHEEL_HI_RES_SCALING,
 )
-from inputremapper.event_combination import EventCombination
 from inputremapper.injection.global_uinputs import global_uinputs
 from inputremapper.injection.mapping_handlers.axis_transform import Transformation
 from inputremapper.injection.mapping_handlers.mapping_handler import (
@@ -77,7 +77,7 @@ class Remainder:
 class RelToRelHandler(MappingHandler):
     """Handler which transforms EV_REL to EV_REL events."""
 
-    _input_event: InputEvent  # the relative movement we map
+    _input_config: InputConfig  # the relative movement we map
 
     _max_observed_input: float
 
@@ -89,7 +89,7 @@ class RelToRelHandler(MappingHandler):
 
     def __init__(
         self,
-        combination: EventCombination,
+        combination: InputCombination,
         mapping: Mapping,
         **_,
     ) -> None:
@@ -97,9 +97,9 @@ class RelToRelHandler(MappingHandler):
 
         # find the input event we are supposed to map. If the input combination is
         # BTN_A + REL_X + BTN_B, then use the value of REL_X for the transformation
-        input_event = mapping.find_analog_input_event(type_=EV_REL)
-        assert input_event is not None
-        self._input_event = input_event
+        input_config = combination.find_analog_input_config(type_=EV_REL)
+        assert input_config is not None
+        self._input_config = input_config
 
         self._max_observed_input = 1
 
@@ -116,7 +116,7 @@ class RelToRelHandler(MappingHandler):
         )
 
     def __str__(self):
-        return f"RelToRelHandler for {self._input_event} <{id(self)}>:"
+        return f"RelToRelHandler for {self._input_config} <{id(self)}>:"
 
     def __repr__(self):
         return self.__str__()
@@ -127,10 +127,7 @@ class RelToRelHandler(MappingHandler):
 
     def _should_map(self, event: InputEvent):
         """Check if this input event is relevant for this handler."""
-        if event.type_and_code == (self._input_event.type, self._input_event.code):
-            return True
-
-        return False
+        return event.input_match_hash == self._input_config.input_match_hash
 
     def notify(
         self,
@@ -264,12 +261,12 @@ class RelToRelHandler(MappingHandler):
         )
 
     def needs_wrapping(self) -> bool:
-        return len(self.input_events) > 1
+        return len(self.input_configs) > 1
 
     def set_sub_handler(self, handler: InputEventHandler) -> None:
         assert False  # cannot have a sub-handler
 
-    def wrap_with(self) -> Dict[EventCombination, HandlerEnums]:
+    def wrap_with(self) -> Dict[InputCombination, HandlerEnums]:
         if self.needs_wrapping():
-            return {EventCombination(self.input_events): HandlerEnums.axisswitch}
+            return {InputCombination(self.input_configs): HandlerEnums.axisswitch}
         return {}

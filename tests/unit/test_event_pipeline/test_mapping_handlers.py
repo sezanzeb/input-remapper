@@ -39,9 +39,14 @@ from evdev.ecodes import (
     REL_Y,
     REL_WHEEL,
 )
+from inputremapper.injection.mapping_handlers.combination_handler import (
+    CombinationHandler,
+)
+
+from inputremapper.injection.mapping_handlers.rel_to_btn_handler import RelToBtnHandler
 
 from inputremapper.configs.mapping import Mapping, DEFAULT_REL_RATE
-from inputremapper.event_combination import EventCombination
+from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.injection.global_uinputs import global_uinputs
 from inputremapper.injection.mapping_handlers.abs_to_abs_handler import AbsToAbsHandler
 from inputremapper.injection.mapping_handlers.abs_to_btn_handler import AbsToBtnHandler
@@ -55,7 +60,7 @@ from inputremapper.injection.mapping_handlers.key_handler import KeyHandler
 from inputremapper.injection.mapping_handlers.macro_handler import MacroHandler
 from inputremapper.injection.mapping_handlers.mapping_handler import MappingHandler
 from inputremapper.injection.mapping_handlers.rel_to_abs_handler import RelToAbsHandler
-from inputremapper.input_event import InputEvent, EventActions, USE_AS_ANALOG_VALUE
+from inputremapper.input_event import InputEvent, EventActions
 from tests.lib.cleanup import cleanup
 from tests.lib.patches import InputDevice
 from tests.lib.constants import MAX_ABS
@@ -84,10 +89,16 @@ class BaseTests:
 
 class TestAxisSwitchHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
     def setUp(self):
+        input_combination = InputCombination(
+            (
+                InputConfig(type=2, code=5),
+                InputConfig(type=1, code=3),
+            )
+        )
         self.handler = AxisSwitchHandler(
-            EventCombination.from_string("2,5,0+1,3,1"),
+            input_combination,
             Mapping(
-                event_combination="2,5,0+1,3,1",
+                input_combination=input_combination.to_config(),
                 target_uinput="mouse",
                 output_type=2,
                 output_code=1,
@@ -97,10 +108,13 @@ class TestAxisSwitchHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
 
 class TestAbsToBtnHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
     def setUp(self):
+        input_combination = InputCombination(
+            InputConfig(type=3, code=5, analog_threshold=10)
+        )
         self.handler = AbsToBtnHandler(
-            EventCombination.from_string("3,5,10"),
+            input_combination,
             Mapping(
-                event_combination="3,5,10",
+                input_combination=input_combination.to_config(),
                 target_uinput="mouse",
                 output_symbol="BTN_LEFT",
             ),
@@ -109,10 +123,11 @@ class TestAbsToBtnHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
 
 class TestAbsToAbsHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
     def setUp(self):
+        input_combination = InputCombination(InputConfig(type=EV_ABS, code=ABS_X))
         self.handler = AbsToAbsHandler(
-            EventCombination((EV_ABS, ABS_X, 0)),
+            input_combination,
             Mapping(
-                event_combination=f"{EV_ABS},{ABS_X},0",
+                input_combination=input_combination.to_config(),
                 target_uinput="gamepad",
                 output_type=EV_ABS,
                 output_code=ABS_X,
@@ -135,10 +150,11 @@ class TestAbsToAbsHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
 
 class TestRelToAbsHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
     def setUp(self):
+        input_combination = InputCombination(InputConfig(type=EV_REL, code=REL_X))
         self.handler = RelToAbsHandler(
-            EventCombination((EV_REL, REL_X, 0)),
+            input_combination,
             Mapping(
-                event_combination=f"{EV_REL},{REL_X},0",
+                input_combination=input_combination.to_config(),
                 target_uinput="gamepad",
                 output_type=EV_ABS,
                 output_code=ABS_X,
@@ -202,10 +218,11 @@ class TestRelToAbsHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
 
 class TestAbsToRelHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
     def setUp(self):
+        input_combination = InputCombination(InputConfig(type=EV_ABS, code=ABS_X))
         self.handler = AbsToRelHandler(
-            EventCombination((EV_ABS, ABS_X, 0)),
+            input_combination,
             Mapping(
-                event_combination=f"{EV_ABS},{ABS_X},0",
+                input_combination=input_combination.to_config(),
                 target_uinput="mouse",
                 output_type=EV_REL,
                 output_code=REL_X,
@@ -229,11 +246,19 @@ class TestAbsToRelHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
 
 
 class TestCombinationHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
+    handler: CombinationHandler
+
     def setUp(self):
-        self.handler = AxisSwitchHandler(
-            EventCombination.from_string("2,0,10+1,3,1"),
+        input_combination = InputCombination(
+            (
+                InputConfig(type=2, code=0, analog_threshold=10),
+                InputConfig(type=1, code=3),
+            )
+        )
+        self.handler = CombinationHandler(
+            input_combination,
             Mapping(
-                event_combination="2,0,10+1,3,1",
+                input_combination=input_combination.to_config(),
                 target_uinput="mouse",
                 output_symbol="BTN_LEFT",
             ),
@@ -247,7 +272,7 @@ class TestHierarchyHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
         self.mock3 = MagicMock()
         self.handler = HierarchyHandler(
             [self.mock1, self.mock2, self.mock3],
-            InputEvent.from_tuple((EV_KEY, KEY_A, 1)),
+            InputConfig(type=EV_KEY, code=KEY_A),
         )
 
     def test_reset(self):
@@ -259,10 +284,16 @@ class TestHierarchyHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
 
 class TestKeyHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
     def setUp(self):
+        input_combination = InputCombination(
+            (
+                InputConfig(type=2, code=0, analog_threshold=10),
+                InputConfig(type=1, code=3),
+            )
+        )
         self.handler = KeyHandler(
-            EventCombination.from_string("2,0,10+1,3,1"),
+            input_combination,
             Mapping(
-                event_combination="2,0,10+1,3,1",
+                input_combination=input_combination.to_config(),
                 target_uinput="mouse",
                 output_symbol="BTN_LEFT",
             ),
@@ -290,11 +321,17 @@ class TestKeyHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
 
 class TestMacroHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
     def setUp(self):
+        input_combination = InputCombination(
+            (
+                InputConfig(type=2, code=0, analog_threshold=10),
+                InputConfig(type=1, code=3),
+            )
+        )
         self.context_mock = MagicMock()
         self.handler = MacroHandler(
-            EventCombination.from_string("2,0,10+1,3,1"),
+            input_combination,
             Mapping(
-                event_combination="2,0,10+1,3,1",
+                input_combination=input_combination.to_config(),
                 target_uinput="mouse",
                 output_symbol="hold_keys(BTN_LEFT, BTN_RIGHT)",
             ),
@@ -326,12 +363,15 @@ class TestMacroHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(history), 4)
 
 
-class TestRelToBtnHanlder(BaseTests, unittest.IsolatedAsyncioTestCase):
+class TestRelToBtnHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
     def setUp(self):
-        self.handler = AxisSwitchHandler(
-            EventCombination.from_string("2,0,10+1,3,1"),
+        input_combination = InputCombination(
+            InputConfig(type=2, code=0, analog_threshold=10)
+        )
+        self.handler = RelToBtnHandler(
+            input_combination,
             Mapping(
-                event_combination="2,0,10+1,3,1",
+                input_combination=input_combination.to_config(),
                 target_uinput="mouse",
                 output_symbol="BTN_LEFT",
             ),
@@ -339,12 +379,14 @@ class TestRelToBtnHanlder(BaseTests, unittest.IsolatedAsyncioTestCase):
 
 
 class TestRelToRelHanlder(BaseTests, unittest.IsolatedAsyncioTestCase):
+    handler: RelToRelHandler
+
     def setUp(self):
-        input_ = InputEvent(0, 0, EV_REL, REL_X, USE_AS_ANALOG_VALUE)
+        input_combination = InputCombination(InputConfig(type=EV_REL, code=REL_X))
         self.handler = RelToRelHandler(
-            EventCombination(input_),
+            input_combination,
             Mapping(
-                event_combination=EventCombination(input_),
+                input_combination=input_combination.to_config(),
                 output_type=EV_REL,
                 output_code=REL_Y,
                 output_value=20,
@@ -360,7 +402,7 @@ class TestRelToRelHanlder(BaseTests, unittest.IsolatedAsyncioTestCase):
                     0,
                     EV_REL,
                     REL_X,
-                    USE_AS_ANALOG_VALUE,
+                    0,
                 )
             )
         )
