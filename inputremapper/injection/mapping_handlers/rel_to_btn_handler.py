@@ -73,7 +73,7 @@ class RelToBtnHandler(MappingHandler):
     async def _stage_release(
         self,
         source: InputEvent,
-        forward: evdev.InputDevice,
+        forward_to: evdev.InputDevice,
         suppress: bool,
     ):
         while time.time() < self._last_activation + self.mapping.release_timeout:
@@ -92,17 +92,16 @@ class RelToBtnHandler(MappingHandler):
             origin_hash=self._input_config.origin_hash,
         )
         logger.debug_key(event.event_tuple, "sending to sub_handler")
-        self._sub_handler.notify(event, source, forward, suppress)
+        self._sub_handler.notify(event, source, forward_to, suppress)
         self._active = False
 
     def notify(
         self,
         event: InputEvent,
         source: evdev.InputDevice,
-        forward: evdev.UInput,
+        forward_to: evdev.UInput,
         suppress: bool = False,
     ) -> bool:
-
         assert event.type == EV_REL
         if event.input_match_hash != self._input_config.input_match_hash:
             return False
@@ -126,7 +125,7 @@ class RelToBtnHandler(MappingHandler):
         else:
             # the axis is above the threshold
             if not self._active:
-                asyncio.ensure_future(self._stage_release(source, forward, suppress))
+                asyncio.ensure_future(self._stage_release(source, forward_to, suppress))
             if value >= threshold > 0:
                 direction = EventActions.positive_trigger
             else:
@@ -137,7 +136,7 @@ class RelToBtnHandler(MappingHandler):
         self._active = bool(event.value)
         # logger.debug_key(event.event_tuple, "sending to sub_handler")
         return self._sub_handler.notify(
-            event, source=source, forward=forward, suppress=suppress
+            event, source=source, forward_to=forward_to, suppress=suppress
         )
 
     def reset(self) -> None:

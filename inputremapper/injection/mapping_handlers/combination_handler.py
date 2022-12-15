@@ -76,7 +76,7 @@ class CombinationHandler(MappingHandler):
         self,
         event: InputEvent,
         source: evdev.InputDevice,
-        forward: evdev.UInput,
+        forward_to: evdev.UInput,
         suppress: bool = False,
     ) -> bool:
         if event.input_match_hash not in self._pressed_keys.keys():
@@ -96,7 +96,7 @@ class CombinationHandler(MappingHandler):
 
         if self.get_active():
             # send key up events to the forwarded uinput
-            self.forward_release(forward)
+            self.forward_release(forward_to)
             event = event.modify(value=1)
         else:
             if self._output_state or self.mapping.is_axis_mapping():
@@ -113,10 +113,11 @@ class CombinationHandler(MappingHandler):
             return False
 
         logger.debug_key(
-            self.mapping.input_combination, "triggered: sending to sub-handler"
+            self.mapping.input_combination,
+            "triggered: sending to sub-handler",
         )
         self._output_state = bool(event.value)
-        return self._sub_handler.notify(event, source, forward, suppress)
+        return self._sub_handler.notify(event, source, forward_to, suppress)
 
     def reset(self) -> None:
         self._sub_handler.reset()
@@ -128,8 +129,8 @@ class CombinationHandler(MappingHandler):
         """Return if all keys in the keymap are set to True."""
         return False not in self._pressed_keys.values()
 
-    def forward_release(self, forward: evdev.UInput) -> None:
-        """Forward a button release for all keys if this is a combination
+    def forward_release(self, forward_to: evdev.UInput) -> None:
+        """Forward a button release for all keys if this is a combination.
 
         this might cause duplicate key-up events but those are ignored by evdev anyway
         """
@@ -140,9 +141,11 @@ class CombinationHandler(MappingHandler):
             lambda cfg: self._pressed_keys.get(cfg.input_match_hash),
             self.mapping.input_combination,
         )
+
         for input_config in keys_to_release:
-            forward.write(*input_config.type_and_code, 0)
-        forward.syn()
+            forward_to.write(*input_config.type_and_code, 0)
+
+        forward_to.syn()
 
     def needs_ranking(self) -> bool:
         return bool(self.input_configs)

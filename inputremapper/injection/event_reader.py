@@ -130,7 +130,7 @@ class EventReader:
                     notify_callback(
                         event,
                         source=self._source,
-                        forward=self._forward_to,
+                        forward_to=self._forward_to,
                     )
                 )
 
