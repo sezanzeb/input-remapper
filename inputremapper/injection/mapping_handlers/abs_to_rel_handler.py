@@ -183,7 +183,7 @@ class AbsToRelHandler(MappingHandler):
         self,
         event: InputEvent,
         source: evdev.InputDevice,
-        forward: evdev.UInput = None,
+        forward_to: evdev.UInput = None,
         suppress: bool = False,
     ) -> bool:
         if event.input_match_hash != self._map_axis.input_match_hash:

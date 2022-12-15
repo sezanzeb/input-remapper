@@ -139,7 +139,7 @@ class AxisSwitchHandler(MappingHandler):
         self,
         event: InputEvent,
         source: evdev.InputDevice,
-        forward: evdev.UInput,
+        forward_to: evdev.UInput,
         suppress: bool = False,
     ) -> bool:
 
@@ -152,14 +152,14 @@ class AxisSwitchHandler(MappingHandler):
         # do some caching so that we can generate the
         # recenter event and an initial abs event
         if not self._forward_device:
-            self._forward_device = forward
+            self._forward_device = forward_to
             self._axis_source = source
 
         # always cache the value
         self._last_value = event.value
 
         if self._active:
-            return self._sub_handler.notify(event, source, forward, suppress)
+            return self._sub_handler.notify(event, source, forward_to, suppress)
 
         return False
 

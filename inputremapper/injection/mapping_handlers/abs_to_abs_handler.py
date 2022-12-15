@@ -87,7 +87,7 @@ class AbsToAbsHandler(MappingHandler):
         self,
         event: InputEvent,
         source: evdev.InputDevice,
-        forward: evdev.UInput = None,
+        forward_to: evdev.UInput = None,
         suppress: bool = False,
     ) -> bool:
 
