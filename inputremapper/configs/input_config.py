@@ -41,7 +41,7 @@ DIFFICULT_COMBINATIONS = [
     ecodes.KEY_RIGHTALT,
 ]
 
-DeviceHash: TypeAlias = constr(to_lower=True)
+DeviceHash: TypeAlias = str
 
 
 class InputConfig(BaseModel):
@@ -234,6 +234,10 @@ class InputConfig(BaseModel):
         if type_ == ecodes.EV_KEY:
             values["analog_threshold"] = None
         return values
+
+    @validator("origin_hash", pre=True)
+    def validate_origin_hash(cls, origin_hash):
+        return origin_hash.lower()
 
     class Config:
         allow_mutation = False
