@@ -22,15 +22,16 @@
 
 https://github.com/LEW21/pydbus/tree/cc407c8b1d25b7e28a6d661a29f9e661b1c9b964/examples/clientserver  # noqa pylint: disable=line-too-long
 """
-
-
+import asyncio
 import atexit
+import functools
 import json
 import os
 import sys
 import time
+import typing
 from pathlib import PurePath
-from typing import Protocol, Dict, Optional
+from typing import Protocol, Dict, Optional, Callable
 
 from dbus_next.aio import MessageBus
 from dbus_next import BusType, service, RequestNameReply
@@ -151,8 +152,7 @@ class DaemonProxy(Protocol):  # pragma: no cover
         ...
 
 
-@ravel.interface(ravel.INTERFACE.SERVER, name=BUS_NAME)
-class Daemon:
+class Daemon(service.ServiceInterface):
     """Starts injecting keycodes based on the configuration.
 
     Can be talked to either over dbus or by instantiating it.
@@ -314,7 +314,7 @@ class Daemon:
             self.refreshed_devices_at = now
 
     @service.method()
-    def stop_injecting(self, group_key: 's'):
+    def stop_injecting(self, group_key: "s"):
         """Stop injecting the preset mappings for a single device."""
         if self.injectors.get(group_key) is None:
             logger.debug(
@@ -327,13 +327,13 @@ class Daemon:
         self.autoload_history.forget(group_key)
 
     @service.method()
-    def get_state(self, group_key: 's') -> 's':
+    def get_state(self, group_key: "s") -> "s":
         """Get the injectors state."""
         injector = self.injectors.get(group_key)
         return injector.get_state() if injector else InjectorState.UNKNOWN
 
     @service.method()
-    def set_config_dir(self, config_dir: 's'):
+    def set_config_dir(self, config_dir: "s"):
         """All future operations will use this config dir.
 
         Existing injections (possibly of the previous user) will be kept
@@ -394,7 +394,7 @@ class Daemon:
         self.autoload_history.remember(group.key, preset)
 
     @service.method()
-    async def autoload_single(self, group_key: 's'):
+    async def autoload_single(self, group_key: "s"):
         """Inject the configured autoload preset for the device.
 
         If the preset is already being injected, it won't autoload it again.
@@ -445,9 +445,7 @@ class Daemon:
             await self._autoload(group_key)
 
     @service.method()
-    async def start_injecting(
-        self, group_key: 's', preset: 's'
-    ) -> 'b':
+    async def start_injecting(self, group_key: "s", preset: "s") -> "b":
         """Start injecting the preset for the device.
 
         Returns True on success. If an injection is already ongoing for
@@ -545,7 +543,7 @@ class Daemon:
             self.stop_injecting(group_key)
 
     @service.method()
-    def hello(self, out: 's') -> 's':
+    def hello(self, out: "s") -> "s":
         """Used for tests."""
         logger.info('Received "%s" from client', out)
         return out

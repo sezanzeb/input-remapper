@@ -112,6 +112,7 @@ class Injector:
     group: _Group
     preset: Preset
     context: Optional[Context]
+    _alive: bool
     _devices: List[evdev.InputDevice]
     _state: InjectorState
     _msg_pipe: Tuple[Connection, Connection]
@@ -129,6 +130,7 @@ class Injector:
             the device group
         """
         self.group = group
+        self._alive = False
         self._state = InjectorState.UNKNOWN
 
         # used to interact with the parts of this class that are running within
@@ -139,8 +141,6 @@ class Injector:
         self.context = None  # only needed inside the injection process
 
         self._event_readers = []
-
-        super().__init__(name=group.key)
 
     """Functions to interact with the running process."""
 
@@ -155,7 +155,7 @@ class Injector:
             state = self._msg_pipe[1].recv()
 
         # figure out what is going on step by step
-        alive = self.is_alive()
+        alive = self._alive
 
         # if `self.start()` has been called
         started = state != InjectorState.UNKNOWN or alive
@@ -386,6 +386,7 @@ class Injector:
         Use this function as starting point in a process. It creates
         the loops needed to read and map events and keeps running them.
         """
+        self._alive = True
         logger.info('Starting injecting the preset for "%s"', self.group.key)
 
         # create a new event loop, because somehow running an infinite loop
@@ -394,8 +395,7 @@ class Injector:
         # device.
         # loop = asyncio.new_event_loop()
         # asyncio.set_event_loop(loop)
-	
-	self._devices = self.group.get_devices()
+        self._devices = self.group.get_devices()
 
         # InputConfigs may not contain the origin_hash information, this will try to make a
         # good guess if the origin_hash information is missing or invalid.
@@ -463,3 +463,6 @@ class Injector:
             except OSError as error:
                 # it might have disappeared
                 logger.debug("OSError for ungrab on %s: %s", source.path, str(error))
+
+        self._msg_pipe[0].send(InjectorState.STOPPED)
+        self._alive = False
