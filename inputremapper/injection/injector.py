@@ -377,7 +377,21 @@ class Injector:
             raise e
         return forward_to
 
+    def is_alive(self) -> bool:
+        """used in tests, can probably be removed, previously defined by the
+        multiprocessing.Process superclass"""
+        return self._alive
+
     async def run(self) -> None:
+        self._alive = True
+        try:
+            await self._run()
+        except:
+            self._alive = False
+            raise
+        self._alive = False
+
+    async def _run(self) -> None:
         """The injection worker that keeps injecting until terminated.
 
         Stuff is non-blocking by using asyncio in order to do multiple things
@@ -386,7 +400,6 @@ class Injector:
         Use this function as starting point in a process. It creates
         the loops needed to read and map events and keeps running them.
         """
-        self._alive = True
         logger.info('Starting injecting the preset for "%s"', self.group.key)
 
         # create a new event loop, because somehow running an infinite loop
@@ -414,6 +427,7 @@ class Injector:
             # maybe the preset was empty or something
             logger.error("Did not grab any device")
             self._msg_pipe[0].send(InjectorState.NO_GRAB)
+            self._alive = False
             return
 
         numlock_state = is_numlock_on()
@@ -465,4 +479,3 @@ class Injector:
                 logger.debug("OSError for ungrab on %s: %s", source.path, str(error))
 
         self._msg_pipe[0].send(InjectorState.STOPPED)
-        self._alive = False

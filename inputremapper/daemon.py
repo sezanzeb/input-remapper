@@ -25,13 +25,15 @@ https://github.com/LEW21/pydbus/tree/cc407c8b1d25b7e28a6d661a29f9e661b1c9b964/ex
 import asyncio
 import atexit
 import functools
+import inspect
 import json
 import os
 import sys
 import time
+import tracemalloc
 import typing
 from pathlib import PurePath
-from typing import Protocol, Dict, Optional, Callable
+from typing import Protocol, Dict, Optional
 
 from dbus_next.aio import MessageBus
 from dbus_next import BusType, service, RequestNameReply
@@ -52,6 +54,7 @@ from inputremapper.configs.paths import get_config_path, sanitize_path_component
 from inputremapper.injection.macros.macro import macro_variables
 from inputremapper.injection.global_uinputs import global_uinputs
 
+tracemalloc.start()
 
 BUS_NAME = "inputremapper.Control"
 PATH_NAME = "/inputremapper/Control"
@@ -152,6 +155,18 @@ class DaemonProxy(Protocol):  # pragma: no cover
         ...
 
 
+def method(name: str = None, disabled: bool = False):
+    # this is a workaround for https://github.com/altdesktop/python-dbus-next/issues/119
+    @typing.no_type_check_decorator
+    def fixed_decorator(fn):
+        # we don't actually decorate the function
+        # dbus-next only cares about the __dict__
+        fn.__dict__ = service.method(name, disabled)(fn).__dict__
+        return fn
+
+    return fixed_decorator
+
+
 class Daemon(service.ServiceInterface):
     """Starts injecting keycodes based on the configuration.
 
@@ -161,40 +176,6 @@ class Daemon(service.ServiceInterface):
     can't read any config files. It has to be told what to do and will
     continue to do so afterwards, but it can't decide to start injecting
     on its own.
-    """
-
-    # https://dbus.freedesktop.org/doc/dbus-specification.html#type-system
-    dbus = f"""
-        <node>
-            <interface name='{BUS_NAME}'>
-                <method name='stop_injecting'>
-                    <arg type='s' name='group_key' direction='in'/>
-                </method>
-                <method name='get_state'>
-                    <arg type='s' name='group_key' direction='in'/>
-                    <arg type='s' name='response' direction='out'/>
-                </method>
-                <method name='start_injecting'>
-                    <arg type='s' name='group_key' direction='in'/>
-                    <arg type='s' name='preset' direction='in'/>
-                    <arg type='b' name='response' direction='out'/>
-                </method>
-                <method name='stop_all'>
-                </method>
-                <method name='set_config_dir'>
-                    <arg type='s' name='config_dir' direction='in'/>
-                </method>
-                <method name='autoload'>
-                </method>
-                <method name='autoload_single'>
-                    <arg type='s' name='group_key' direction='in'/>
-                </method>
-                <method name='hello'>
-                    <arg type='s' name='out' direction='in'/>
-                    <arg type='s' name='response' direction='out'/>
-                </method>
-            </interface>
-        </node>
     """
 
     def __init__(self):
@@ -313,7 +294,7 @@ class Daemon(service.ServiceInterface):
             groups.refresh()
             self.refreshed_devices_at = now
 
-    @service.method()
+    @method()
     def stop_injecting(self, group_key: "s"):
         """Stop injecting the preset mappings for a single device."""
         if self.injectors.get(group_key) is None:
@@ -326,13 +307,13 @@ class Daemon(service.ServiceInterface):
         self.injectors[group_key].stop_injecting()
         self.autoload_history.forget(group_key)
 
-    @service.method()
+    @method()
     def get_state(self, group_key: "s") -> "s":
         """Get the injectors state."""
         injector = self.injectors.get(group_key)
         return injector.get_state() if injector else InjectorState.UNKNOWN
 
-    @service.method()
+    @method()
     def set_config_dir(self, config_dir: "s"):
         """All future operations will use this config dir.
 
@@ -393,7 +374,7 @@ class Daemon(service.ServiceInterface):
         await self.start_injecting(group.key, preset)
         self.autoload_history.remember(group.key, preset)
 
-    @service.method()
+    @method()
     async def autoload_single(self, group_key: "s"):
         """Inject the configured autoload preset for the device.
 
@@ -420,7 +401,7 @@ class Daemon(service.ServiceInterface):
 
         await self._autoload(group_key)
 
-    @service.method()
+    @method()
     async def autoload(self):
         """Load all autoloaded presets for the current config_dir.
 
@@ -444,7 +425,7 @@ class Daemon(service.ServiceInterface):
         for group_key, _ in autoload_presets:
             await self._autoload(group_key)
 
-    @service.method()
+    @method()
     async def start_injecting(self, group_key: "s", preset: "s") -> "b":
         """Start injecting the preset for the device.
 
@@ -535,14 +516,14 @@ class Daemon(service.ServiceInterface):
 
         return True
 
-    @service.method()
+    @method()
     def stop_all(self):
         """Stop all injections."""
         logger.info("Stopping all injections")
         for group_key in list(self.injectors.keys()):
             self.stop_injecting(group_key)
 
-    @service.method()
+    @method()
     def hello(self, out: "s") -> "s":
         """Used for tests."""
         logger.info('Received "%s" from client', out)
