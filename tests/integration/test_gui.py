@@ -17,7 +17,8 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
-
+import asyncio
+import inspect
 
 # the tests file needs to be imported first to make sure patches are loaded
 from contextlib import contextmanager
@@ -25,10 +26,11 @@ from typing import Tuple, List, Optional, Iterable
 
 from tests.test import get_project_root
 from tests.lib.fixtures import new_event
+from tests.lib.patches import SyncProxy
 from tests.lib.cleanup import cleanup
 from tests.lib.stuff import spy
 from tests.lib.constants import EVENT_READ_TIMEOUT
-from tests.lib.fixtures import prepare_presets, get_combination_config
+from tests.lib.fixtures import prepare_presets
 from tests.lib.logger import logger
 from tests.lib.fixtures import fixtures
 from tests.lib.pipes import push_event, push_events, uinput_write_history_pipe
@@ -130,7 +132,7 @@ def patch_launch():
     the dbus and don't use pkexec to start the reader-service"""
     original_connect = Daemon.connect
     original_os_system = os.system
-    Daemon.connect = Daemon
+    Daemon.connect = lambda: SyncProxy(Daemon())
 
     def os_system(cmd):
         # instead of running pkexec, fork instead. This will make
@@ -169,7 +171,7 @@ class GtkKeyEvent:
         return True, self.keyval
 
 
-class TestGroupsFromReaderService(unittest.TestCase):
+class TestGroupsFromReaderService(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         # don't try to connect, return an object instance of it instead
         self.original_connect = Daemon.connect
@@ -204,7 +206,7 @@ class TestGroupsFromReaderService(unittest.TestCase):
         os.system = self.original_os_system
         Daemon.connect = self.original_connect
 
-    def test_knows_devices(self):
+    async def test_knows_devices(self):
         # verify that it is working as expected. The gui doesn't have knowledge
         # of groups until the root-reader-service provides them
         self.data_manager._reader_client.groups.set_groups([])
@@ -217,7 +219,7 @@ class TestGroupsFromReaderService(unittest.TestCase):
         # perform some iterations so that the reader ends up reading from the pipes
         # which will make it receive devices.
         for _ in range(10):
-            time.sleep(0.02)
+            await asyncio.sleep(0.02)
             gtk_iteration()
 
         self.assertIn("Foo Device 2", self.data_manager.get_group_keys())
@@ -260,7 +262,7 @@ class PatchedConfirmDelete:
         self.patch.__exit__(*args, **kwargs)
 
 
-class GuiTestBase(unittest.TestCase):
+class GuiTestBase(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         prepare_presets()
         with patch_launch():
@@ -368,22 +370,26 @@ class GuiTestBase(unittest.TestCase):
             self.tearDown()
             self.setUp()
 
-    def throttle(self, time_=10):
+    async def throttle(self, time_=10):
         """Give GTK some time in ms to process everything."""
+        # since the injector runs a async event loop in the same thread (for tests)
+        # iterate the async and the glib evnet loop simultaneously.
+        # Hopefully this does not introduce a bunch of race conditions.
+
         # tests suddenly started to freeze my computer up completely and tests started
         # to fail. By using this (and by optimizing some redundant calls in the gui) it
         # worked again. EDIT: Might have been caused by my broken/bloated ssd. I'll
         # keep it in some places, since it did make the tests more reliable after all.
         for _ in range(time_ // 2):
             gtk_iteration()
-            time.sleep(0.002)
+            await asyncio.sleep(0.002)
 
-    def set_focus(self, widget):
+    async def set_focus(self, widget):
         logger.info("Focusing %s", widget)
 
         self.user_interface.window.set_focus(widget)
 
-        self.throttle(20)
+        await self.throttle(20)
 
     def get_selection_labels(self) -> List[MappingSelectionLabel]:
         return self.selection_label_listbox.get_children()
@@ -542,7 +548,7 @@ class TestGui(GuiTestBase):
 
     def test_set_autoload_refreshes_service_config(self):
         self.assertFalse(self.data_manager.get_autoload())
-        with spy(self.daemon, "set_config_dir") as set_config_dir:
+        with spy(self.daemon.wrapped, "set_config_dir") as set_config_dir:
             self.autoload_toggle.set_active(True)
             gtk_iteration()
             set_config_dir.assert_called_once()
@@ -649,7 +655,7 @@ class TestGui(GuiTestBase):
         self.assertFalse(self.recording_status.get_visible())
         self.assertFalse(self.recording_toggle.get_active())
 
-    def test_events_from_reader_service_arrive(self):
+    async def test_events_from_reader_service_arrive(self):
         # load a device with more capabilities
         self.controller.load_group("Foo Device 2")
         gtk_iteration()
@@ -667,7 +673,7 @@ class TestGui(GuiTestBase):
             fixtures.foo_device_2_keyboard,
             [InputEvent(0, 0, 1, 30, 1), InputEvent(0, 0, 1, 31, 1)],
         )
-        self.throttle(40)
+        await self.throttle(40)
         origin = fixtures.foo_device_2_keyboard.get_device_hash()
         mock1.assert_has_calls(
             (
@@ -695,19 +701,19 @@ class TestGui(GuiTestBase):
         mock2.assert_not_called()
 
         push_events(fixtures.foo_device_2_keyboard, [InputEvent(0, 0, 1, 31, 0)])
-        self.throttle(40)
+        await self.throttle(40)
         self.assertEqual(mock1.call_count, 2)
         mock2.assert_not_called()
 
         push_events(fixtures.foo_device_2_keyboard, [InputEvent(0, 0, 1, 30, 0)])
-        self.throttle(40)
+        await self.throttle(40)
         self.assertEqual(mock1.call_count, 2)
         mock2.assert_called_once()
 
         self.assertFalse(self.recording_toggle.get_active())
         mock3.assert_called_once()
 
-    def test_cannot_create_duplicate_input_combination(self):
+    async def test_cannot_create_duplicate_input_combination(self):
         # load a device with more capabilities
         self.controller.load_group("Foo Device 2")
         gtk_iteration()
@@ -718,7 +724,7 @@ class TestGui(GuiTestBase):
             fixtures.foo_device_2_keyboard,
             [InputEvent(0, 0, 1, 30, 1), InputEvent(0, 0, 1, 30, 0)],
         )
-        self.throttle(40)
+        await self.throttle(40)
 
         # if this fails with <InputCombination (1, 5, 1)>: this is the initial
         # mapping or something, so it was never overwritten.
@@ -742,7 +748,7 @@ class TestGui(GuiTestBase):
             fixtures.foo_device_2_keyboard,
             [InputEvent(0, 0, 1, 30, 1), InputEvent(0, 0, 1, 30, 0)],
         )
-        self.throttle(40)
+        await self.throttle(40)
         # should still be the empty mapping
         self.assertEqual(
             self.data_manager.active_mapping.input_combination,
@@ -752,14 +758,14 @@ class TestGui(GuiTestBase):
         # try to record a different combination
         self.controller.start_key_recording()
         push_events(fixtures.foo_device_2_keyboard, [InputEvent(0, 0, 1, 30, 1)])
-        self.throttle(40)
+        await self.throttle(40)
         # nothing changed yet, as we got the duplicate combination
         self.assertEqual(
             self.data_manager.active_mapping.input_combination,
             InputCombination.empty_combination(),
         )
         push_events(fixtures.foo_device_2_keyboard, [InputEvent(0, 0, 1, 31, 1)])
-        self.throttle(40)
+        await self.throttle(40)
         # now the combination is different
         self.assertEqual(
             self.data_manager.active_mapping.input_combination,
@@ -773,7 +779,7 @@ class TestGui(GuiTestBase):
 
         # let's make the combination even longer
         push_events(fixtures.foo_device_2_keyboard, [InputEvent(0, 0, 1, 32, 1)])
-        self.throttle(40)
+        await self.throttle(40)
         self.assertEqual(
             self.data_manager.active_mapping.input_combination,
             InputCombination(
@@ -794,7 +800,7 @@ class TestGui(GuiTestBase):
                 InputEvent(0, 0, 1, 32, 0),
             ],
         )
-        self.throttle(40)
+        await self.throttle(40)
 
         # sending a combination update now should not do anything
         self.message_broker.publish(
@@ -812,7 +818,7 @@ class TestGui(GuiTestBase):
             ),
         )
 
-    def test_create_simple_mapping(self):
+    async def test_create_simple_mapping(self):
         self.click_on_group("Foo Device 2")
         # 1. create a mapping
         self.create_mapping_btn.clicked()
@@ -839,9 +845,9 @@ class TestGui(GuiTestBase):
         self.recording_toggle.set_active(True)
         gtk_iteration()
         push_events(fixtures.foo_device_2_keyboard, [InputEvent(0, 0, 1, 30, 1)])
-        self.throttle(40)
+        await self.throttle(40)
         push_events(fixtures.foo_device_2_keyboard, [InputEvent(0, 0, 1, 30, 0)])
-        self.throttle(40)
+        await self.throttle(40)
 
         # check the input_combination
         origin = fixtures.foo_device_2_keyboard.get_device_hash()
@@ -910,7 +916,7 @@ class TestGui(GuiTestBase):
         text = self.get_status_text()
         self.assertNotIn("...", text)
 
-    def test_hat_switch(self):
+    async def test_hat_switch(self):
         # load a device with more capabilities
         self.controller.load_group("Foo Device 2")
         gtk_iteration()
@@ -921,14 +927,14 @@ class TestGui(GuiTestBase):
         ev_3 = (EV_ABS, evdev.ecodes.ABS_HAT0Y, -1)
         ev_4 = (EV_ABS, evdev.ecodes.ABS_HAT0Y, 1)
 
-        def add_mapping(event_tuple, symbol) -> InputCombination:
+        async def add_mapping(event_tuple, symbol) -> InputCombination:
             """adds mapping and returns the expected input combination"""
             event = InputEvent.from_tuple(event_tuple)
             self.controller.create_mapping()
             gtk_iteration()
             self.controller.start_key_recording()
             push_events(fixtures.foo_device_2_gamepad, [event, event.modify(value=0)])
-            self.throttle(40)
+            await self.throttle(40)
             gtk_iteration()
             self.code_editor.get_buffer().set_text(symbol)
             gtk_iteration()
@@ -938,10 +944,10 @@ class TestGui(GuiTestBase):
                 )
             )
 
-        config_1 = add_mapping(ev_1, "a")
-        config_2 = add_mapping(ev_2, "b")
-        config_3 = add_mapping(ev_3, "c")
-        config_4 = add_mapping(ev_4, "d")
+        config_1 = await add_mapping(ev_1, "a")
+        config_2 = await add_mapping(ev_2, "b")
+        config_3 = await add_mapping(ev_3, "c")
+        config_4 = await add_mapping(ev_4, "d")
 
         self.assertEqual(
             self.data_manager.active_preset.get_mapping(
@@ -968,7 +974,7 @@ class TestGui(GuiTestBase):
             "d",
         )
 
-    def test_combination(self):
+    async def test_combination(self):
         # if this test freezes, try waiting a few minutes and then look for
         # stack traces in the console
 
@@ -1011,7 +1017,7 @@ class TestGui(GuiTestBase):
                 configs.append(config)
             return InputCombination(configs)
 
-        def add_mapping(combi: Iterable[Tuple[int, int, int]], symbol):
+        async def add_mapping(combi: Iterable[Tuple[int, int, int]], symbol):
             self.controller.create_mapping()
             gtk_iteration()
             self.controller.start_key_recording()
@@ -1019,7 +1025,7 @@ class TestGui(GuiTestBase):
             for event_tuple in combi:
                 event = InputEvent.from_tuple(event_tuple)
                 if event.type != previous_event.type:
-                    self.throttle(20)  # avoid race condition if we switch fixture
+                    await self.throttle(20)  # avoid race condition if we switch fixture
                 if event.type == EV_KEY:
                     push_event(fixtures.foo_device_2_keyboard, event)
                 if event.type == EV_ABS:
@@ -1036,12 +1042,12 @@ class TestGui(GuiTestBase):
                 if event.type == EV_REL:
                     pass
 
-            self.throttle(40)
+            await self.throttle(40)
             gtk_iteration()
             self.code_editor.get_buffer().set_text(symbol)
             gtk_iteration()
 
-        add_mapping(combination_1, "a")
+        await add_mapping(combination_1, "a")
         self.assertEqual(
             self.data_manager.active_preset.get_mapping(
                 get_combination(combination_1)
@@ -1069,7 +1075,7 @@ class TestGui(GuiTestBase):
 
         # it won't write the same combination again, even if the
         # first two events are in a different order
-        add_mapping(combination_2, "b")
+        await add_mapping(combination_2, "b")
         self.assertEqual(
             self.data_manager.active_preset.get_mapping(
                 get_combination(combination_1)
@@ -1095,7 +1101,7 @@ class TestGui(GuiTestBase):
             self.data_manager.active_preset.get_mapping(get_combination(combination_6))
         )
 
-        add_mapping(combination_3, "c")
+        await add_mapping(combination_3, "c")
         self.assertEqual(
             self.data_manager.active_preset.get_mapping(
                 get_combination(combination_1)
@@ -1130,7 +1136,7 @@ class TestGui(GuiTestBase):
         # same as with combination_2, the existing combination_3 blocks
         # combination_4 because they have the same keys and end in the
         # same key.
-        add_mapping(combination_4, "d")
+        await add_mapping(combination_4, "d")
         self.assertEqual(
             self.data_manager.active_preset.get_mapping(
                 get_combination(combination_1)
@@ -1162,7 +1168,7 @@ class TestGui(GuiTestBase):
             self.data_manager.active_preset.get_mapping(get_combination(combination_6))
         )
 
-        add_mapping(combination_5, "e")
+        await add_mapping(combination_5, "e")
         self.assertEqual(
             self.data_manager.active_preset.get_mapping(
                 get_combination(combination_1)
@@ -1308,14 +1314,14 @@ class TestGui(GuiTestBase):
         self.assertEqual(row.label.get_text(), "Empty Mapping")
         self.assertIs(self.selection_label_listbox.get_row_at_index(2), row)
 
-    def test_fake_empty_mapping_does_not_sort_to_bottom(self):
+    async def test_fake_empty_mapping_does_not_sort_to_bottom(self):
         """If someone chooses to name a mapping "Empty Mapping"
         it is not sorted to the bottom"""
         self.controller.load_preset("preset1")
         gtk_iteration()
 
         self.controller.update_mapping(name="Empty Mapping")
-        self.throttle(20)  # sorting seems to take a bit
+        await self.throttle(20)  # sorting seems to take a bit
 
         # "Empty Mapping" < "Escape" so we still expect this to be the first row
         row = self.selection_label_listbox.get_selected_row()
@@ -1323,7 +1329,7 @@ class TestGui(GuiTestBase):
 
         # now create a real empty mapping
         self.controller.create_mapping()
-        self.throttle(20)
+        await self.throttle(20)
 
         # for some reason we no longer can use assertIs maybe a gtk bug?
         # self.assertIs(row, self.selection_label_listbox.get_row_at_index(0))
@@ -1358,12 +1364,12 @@ class TestGui(GuiTestBase):
         self.assertEqual(len(self.data_manager.active_preset), 1)
         self.assertEqual(len(self.selection_label_listbox.get_children()), 1)
 
-    def test_problematic_combination(self):
+    async def test_problematic_combination(self):
         # load a device with more capabilities
         self.controller.load_group("Foo Device 2")
         gtk_iteration()
 
-        def add_mapping(combi: Iterable[Tuple[int, int, int]], symbol):
+        async def add_mapping(combi: Iterable[Tuple[int, int, int]], symbol):
             combi = [InputEvent(0, 0, *t) for t in combi]
             self.controller.create_mapping()
             gtk_iteration()
@@ -1373,14 +1379,14 @@ class TestGui(GuiTestBase):
                 fixtures.foo_device_2_keyboard,
                 [event.modify(value=0) for event in combi],
             )
-            self.throttle(40)
+            await self.throttle(40)
             gtk_iteration()
             self.code_editor.get_buffer().set_text(symbol)
             gtk_iteration()
 
         combination = [(EV_KEY, KEY_LEFTSHIFT, 1), (EV_KEY, 82, 1)]
 
-        add_mapping(combination, "b")
+        await add_mapping(combination, "b")
         text = self.get_status_text()
         self.assertIn("shift", text)
 
@@ -1415,13 +1421,13 @@ class TestGui(GuiTestBase):
             gtk_iteration()
         self.assertFalse(os.path.exists(preset_path))
 
-    def test_check_for_unknown_symbols(self):
+    async def test_check_for_unknown_symbols(self):
         status = self.user_interface.get("status_bar")
         error_icon = self.user_interface.get("error_status_icon")
         warning_icon = self.user_interface.get("warning_status_icon")
 
         self.controller.load_preset("preset1")
-        self.throttle(20)
+        await self.throttle(20)
         self.controller.load_mapping(InputCombination(InputConfig(type=1, code=1)))
         gtk_iteration()
         self.controller.update_mapping(output_symbol="foo")
@@ -1718,7 +1724,7 @@ class TestGui(GuiTestBase):
         text = self.get_status_text()
         self.assertIn("Stop", text)
 
-    def test_start_injecting(self):
+    async def test_start_injecting(self):
         self.controller.load_group("Foo Device 2")
 
         with spy(self.daemon, "set_config_dir") as spy1:
@@ -1731,7 +1737,7 @@ class TestGui(GuiTestBase):
             spy1.assert_called_once_with(get_config_path())
 
         for _ in range(10):
-            time.sleep(0.1)
+            await asyncio.sleep(0.1)
             gtk_iteration()
             if self.data_manager.get_state() == InjectorState.RUNNING:
                 break
@@ -1772,7 +1778,7 @@ class TestGui(GuiTestBase):
             device_group_entry = child.get_children()[0]
             self.assertNotIn("input-remapper", device_group_entry.name)
 
-    def test_stop_injecting(self):
+    async def test_stop_injecting(self):
         self.controller.load_group("Foo Device 2")
         self.start_injector_btn.clicked()
         gtk_iteration()
@@ -1800,7 +1806,7 @@ class TestGui(GuiTestBase):
             ],
         )
 
-        time.sleep(0.2)
+        await asyncio.sleep(0.2)
         self.assertTrue(pipe.poll())
         while pipe.poll():
             pipe.recv()
@@ -1810,7 +1816,7 @@ class TestGui(GuiTestBase):
         gtk_iteration()
 
         for _ in range(10):
-            time.sleep(0.1)
+            await asyncio.sleep(0.1)
             gtk_iteration()
             if self.data_manager.get_state() == InjectorState.STOPPED:
                 break
@@ -1823,7 +1829,7 @@ class TestGui(GuiTestBase):
                 new_event(evdev.events.EV_KEY, 5, 0),
             ],
         )
-        time.sleep(0.2)
+        await asyncio.sleep(0.2)
         self.assertFalse(pipe.poll())
 
     def test_delete_preset(self):
@@ -1844,7 +1850,7 @@ class TestGui(GuiTestBase):
             self.assertEqual(self.data_manager.active_preset.name, "preset2")
             self.assertEqual(self.data_manager.active_group.name, "Foo Device")
 
-    def test_refresh_groups(self):
+    async def test_refresh_groups(self):
         # sanity check: preset3 should be the newest
         self.assertEqual(
             FlowBoxTestUtils.get_active_entry(self.preset_selection).name, "preset3"
@@ -1865,7 +1871,7 @@ class TestGui(GuiTestBase):
 
         self.controller.refresh_groups()
         gtk_iteration()
-        self.throttle(200)
+        await self.throttle(200)
         # the gui should not jump to a different preset suddenly
         self.assertEqual(self.data_manager.active_preset.name, "preset1")
 
@@ -1939,7 +1945,7 @@ class TestGui(GuiTestBase):
             device_path = f"{CONFIG_PATH}/presets/{self.data_manager.active_group.name}"
             self.assertTrue(os.path.exists(f"{device_path}/new preset.json"))
 
-    def test_enable_disable_output(self):
+    async def test_enable_disable_output(self):
         # load a group without any presets
         self.controller.load_group("Bar Device")
 
@@ -1965,7 +1971,7 @@ class TestGui(GuiTestBase):
                 InputEvent(0, 0, 1, 30, 0),
             ],
         )
-        self.throttle(100)  # give time for the input to arrive
+        await self.throttle(100)  # give time for the input to arrive
 
         self.assertEqual(self.get_unfiltered_symbol_input_text(), "")
         self.assertTrue(self.output_box.get_sensitive())
@@ -1985,11 +1991,11 @@ class TestAutocompletion(GuiTestBase):
         event.keyval = keyval
         self.user_interface.autocompletion.navigate(None, event)
 
-    def test_autocomplete_key(self):
+    async def test_autocomplete_key(self):
         self.controller.update_mapping(output_symbol="")
         gtk_iteration()
 
-        self.set_focus(self.code_editor)
+        await self.set_focus(self.code_editor)
 
         complete_key_name = "Test_Foo_Bar"
 
@@ -2008,7 +2014,7 @@ class TestAutocompletion(GuiTestBase):
         )
 
         Gtk.TextView.do_insert_at_cursor(self.code_editor, "foo")
-        self.throttle(200)
+        await self.throttle(200)
         gtk_iteration()
 
         autocompletion = self.user_interface.autocompletion
@@ -2016,7 +2022,7 @@ class TestAutocompletion(GuiTestBase):
 
         self.press_key(Gdk.KEY_Down)
         self.press_key(Gdk.KEY_Return)
-        self.throttle(200)
+        await self.throttle(200)
         gtk_iteration()
 
         # the first suggestion should have been selected
@@ -2028,17 +2034,17 @@ class TestAutocompletion(GuiTestBase):
         # should be shown
         Gtk.TextView.do_insert_at_cursor(self.code_editor, " + foo ")
 
-        time.sleep(0.11)
+        await asyncio.sleep(0.11)
         gtk_iteration()
 
         self.assertFalse(autocompletion.visible)
 
-    def test_autocomplete_function(self):
+    async def test_autocomplete_function(self):
         self.controller.update_mapping(output_symbol="")
         gtk_iteration()
 
         source_view = self.code_editor
-        self.set_focus(source_view)
+        await self.set_focus(source_view)
 
         incomplete = "key(KEY_A).\nepea"
         Gtk.TextView.do_insert_at_cursor(source_view, incomplete)
@@ -2056,12 +2062,12 @@ class TestAutocompletion(GuiTestBase):
         modified_symbol = self.get_code_input()
         self.assertEqual(modified_symbol, "key(KEY_A).\nrepeat")
 
-    def test_close_autocompletion(self):
+    async def test_close_autocompletion(self):
         self.controller.update_mapping(output_symbol="")
         gtk_iteration()
 
         source_view = self.code_editor
-        self.set_focus(source_view)
+        await self.set_focus(source_view)
 
         Gtk.TextView.do_insert_at_cursor(source_view, "KEY_")
 
@@ -2079,11 +2085,11 @@ class TestAutocompletion(GuiTestBase):
         symbol = self.get_code_input()
         self.assertEqual(symbol, "KEY_")
 
-    def test_writing_still_works(self):
+    async def test_writing_still_works(self):
         self.controller.update_mapping(output_symbol="")
         gtk_iteration()
         source_view = self.code_editor
-        self.set_focus(source_view)
+        await self.set_focus(source_view)
 
         Gtk.TextView.do_insert_at_cursor(source_view, "KEY_")
 
@@ -2109,11 +2115,11 @@ class TestAutocompletion(GuiTestBase):
         # no key matches this completion, so it closes again
         self.assertFalse(autocompletion.visible)
 
-    def test_cycling(self):
+    async def test_cycling(self):
         self.controller.update_mapping(output_symbol="")
         gtk_iteration()
         source_view = self.code_editor
-        self.set_focus(source_view)
+        await self.set_focus(source_view)
 
         Gtk.TextView.do_insert_at_cursor(source_view, "KEY_")
 

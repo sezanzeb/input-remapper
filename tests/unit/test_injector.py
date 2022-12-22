@@ -17,6 +17,8 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
+import asyncio
+
 from pydantic import ValidationError
 
 from tests.lib.fixtures import new_event
@@ -135,7 +137,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         # success on the third try
         self.assertEqual(device.name, fixtures[path].name)
 
-    def test_fail_grab(self):
+    async def test_fail_grab(self):
         self.make_it_fail = 999
         preset = Preset()
         preset.add(
@@ -154,11 +156,10 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         self.assertGreaterEqual(self.failed, 1)
 
         self.assertEqual(self.injector.get_state(), InjectorState.UNKNOWN)
-        self.injector.start()
-        self.assertEqual(self.injector.get_state(), InjectorState.STARTING)
+        asyncio.ensure_future(self.injector.run())
         # since none can be grabbed, the process will terminate. But that
         # actually takes quite some time.
-        time.sleep(self.injector.regrab_timeout * 12)
+        await asyncio.sleep(self.injector.regrab_timeout * 12)
         self.assertFalse(self.injector.is_alive())
         self.assertEqual(self.injector.get_state(), InjectorState.NO_GRAB)
 
@@ -339,7 +340,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(ungrab_patch.call_count, 2)
 
-    def test_injector(self):
+    async def test_injector(self):
         numlock_before = is_numlock_on()
 
         # stuff the preset outputs
@@ -405,12 +406,11 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
 
         self.injector = Injector(groups.find(key="Foo Device 2"), preset)
         self.assertEqual(self.injector.get_state(), InjectorState.UNKNOWN)
-        self.injector.start()
-        self.assertEqual(self.injector.get_state(), InjectorState.STARTING)
-
+        asyncio.ensure_future(self.injector.run())
+        await asyncio.sleep(0)
         uinput_write_history_pipe[0].poll(timeout=1)
         self.assertEqual(self.injector.get_state(), InjectorState.RUNNING)
-        time.sleep(EVENT_READ_TIMEOUT * 10)
+        await asyncio.sleep(EVENT_READ_TIMEOUT * 10)
 
         push_events(
             fixtures.foo_device_2_keyboard,
@@ -423,7 +423,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
             ],
         )
 
-        time.sleep(0.1)  # give a chance that everything arrives in order
+        await asyncio.sleep(0.1)  # give a chance that everything arrives in order
         push_events(
             fixtures.foo_device_2_gamepad,
             [
@@ -433,7 +433,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
             ],
         )
 
-        time.sleep(0.1)
+        await asyncio.sleep(0.1)
         push_events(
             fixtures.foo_device_2_keyboard,
             [
@@ -446,7 +446,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         )
 
         # the injector needs time to process this
-        time.sleep(0.1)
+        await asyncio.sleep(0.1)
 
         # sending anything arbitrary does not stop the process
         # (is_alive checked later after some time)
@@ -503,7 +503,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(history[4], (EV_KEY, input_b, 0))
         self.assertEqual(history[5], (3124, 3564, 6542))
 
-        time.sleep(0.1)
+        await asyncio.sleep(0.1)
         self.assertTrue(self.injector.is_alive())
 
         numlock_after = is_numlock_on()

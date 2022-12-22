@@ -21,7 +21,7 @@
 
 """Testing the input-remapper-control command"""
 
-
+from tests.lib.patches import SyncProxy
 from tests.lib.cleanup import quick_cleanup
 from tests.lib.tmp import tmp
 
@@ -65,7 +65,7 @@ options = collections.namedtuple(
 )
 
 
-class TestControl(unittest.TestCase):
+class TestControl(unittest.IsolatedAsyncioTestCase):
     def tearDown(self):
         quick_cleanup()
 
@@ -84,6 +84,7 @@ class TestControl(unittest.TestCase):
         Preset(paths[2]).save()
 
         daemon = Daemon()
+        sync_daemon = SyncProxy(daemon)
 
         start_history = []
         stop_counter = 0
@@ -93,7 +94,7 @@ class TestControl(unittest.TestCase):
                 nonlocal stop_counter
                 stop_counter += 1
 
-        def start_injecting(device: str, preset: str):
+        async def start_injecting(device: str, preset: str):
             print(f'\033[90mstart_injecting "{device}" "{preset}"\033[0m')
             start_history.append((device, preset))
             daemon.injectors[device] = Injector()
@@ -103,7 +104,9 @@ class TestControl(unittest.TestCase):
         global_config.set_autoload_preset(groups_[0].key, presets[0])
         global_config.set_autoload_preset(groups_[1].key, presets[1])
 
-        communicate(options("autoload", None, None, None, False, False, False), daemon)
+        communicate(
+            options("autoload", None, None, None, False, False, False), sync_daemon
+        )
         self.assertEqual(len(start_history), 2)
         self.assertEqual(start_history[0], (groups_[0].key, presets[0]))
         self.assertEqual(start_history[1], (groups_[1].key, presets[1]))
@@ -117,7 +120,9 @@ class TestControl(unittest.TestCase):
         )
 
         # calling autoload again doesn't load redundantly
-        communicate(options("autoload", None, None, None, False, False, False), daemon)
+        communicate(
+            options("autoload", None, None, None, False, False, False), sync_daemon
+        )
         self.assertEqual(len(start_history), 2)
         self.assertEqual(stop_counter, 0)
         self.assertFalse(
@@ -130,7 +135,7 @@ class TestControl(unittest.TestCase):
         # unless the injection in question ist stopped
         communicate(
             options("stop", None, None, groups_[0].key, False, False, False),
-            daemon,
+            sync_daemon,
         )
         self.assertEqual(stop_counter, 1)
         self.assertTrue(
@@ -139,7 +144,9 @@ class TestControl(unittest.TestCase):
         self.assertFalse(
             daemon.autoload_history.may_autoload(groups_[1].key, presets[1])
         )
-        communicate(options("autoload", None, None, None, False, False, False), daemon)
+        communicate(
+            options("autoload", None, None, None, False, False, False), sync_daemon
+        )
         self.assertEqual(len(start_history), 3)
         self.assertEqual(start_history[2], (groups_[0].key, presets[0]))
         self.assertFalse(
@@ -150,7 +157,9 @@ class TestControl(unittest.TestCase):
         )
 
         # if a device name is passed, will only start injecting for that one
-        communicate(options("stop-all", None, None, None, False, False, False), daemon)
+        communicate(
+            options("stop-all", None, None, None, False, False, False), sync_daemon
+        )
         self.assertTrue(
             daemon.autoload_history.may_autoload(groups_[0].key, presets[0])
         )
@@ -161,7 +170,7 @@ class TestControl(unittest.TestCase):
         global_config.set_autoload_preset(groups_[1].key, presets[2])
         communicate(
             options("autoload", None, None, groups_[1].key, False, False, False),
-            daemon,
+            sync_daemon,
         )
         self.assertEqual(len(start_history), 4)
         self.assertEqual(start_history[3], (groups_[1].key, presets[2]))
@@ -176,7 +185,7 @@ class TestControl(unittest.TestCase):
         # again
         communicate(
             options("autoload", None, None, groups_[1].key, False, False, False),
-            daemon,
+            sync_daemon,
         )
         self.assertEqual(len(start_history), 4)
         self.assertEqual(stop_counter, 3)
@@ -210,9 +219,14 @@ class TestControl(unittest.TestCase):
         Preset(paths[1]).save()
 
         daemon = Daemon()
+        sync_daemon = SyncProxy(daemon)
 
         start_history = []
-        daemon.start_injecting = lambda *args: start_history.append(args)
+
+        async def start_injecting(*args):
+            start_history.append(args)
+
+        daemon.start_injecting = start_injecting
 
         global_config.path = os.path.join(config_dir, "config.json")
         global_config.load_config()
@@ -221,7 +235,7 @@ class TestControl(unittest.TestCase):
 
         communicate(
             options("autoload", config_dir, None, None, False, False, False),
-            daemon,
+            sync_daemon,
         )
 
         self.assertEqual(len(start_history), 2)
