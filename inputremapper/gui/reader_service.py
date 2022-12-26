@@ -253,7 +253,9 @@ class ReaderService:
         context = self._create_event_pipeline(sources)
         # create the event reader and start it
         for device in sources:
-            reader = EventReader(context, device, ForwardDummy, self._stop_event)
+            # TODO this used the ForwardDummy. What now?
+            # TODO test that nothing is being forwarded by the reader_service!
+            reader = EventReader(context, device, self._stop_event)
             self._tasks.add(asyncio.create_task(reader.run()))
 
     async def _stop_reading(self):
@@ -265,11 +267,11 @@ class ReaderService:
         self._stop_event.clear()
 
     def _create_event_pipeline(self, sources: List[evdev.InputDevice]) -> ContextDummy:
-        """Create a custom event pipeline for each event code in the
-        device capabilities.
+        """Create a custom event pipeline for each event code in the capabilities.
+
         Instead of sending the events to a uinput they will be sent to the frontend.
         """
-        context = ContextDummy()
+        context_dummy = ContextDummy()
         # create a context for each source
         for device in sources:
             device_hash = get_device_hash(device)
@@ -279,7 +281,7 @@ class ReaderService:
                 input_config = InputConfig(
                     type=EV_KEY, code=ev_code, origin_hash=device_hash
                 )
-                context.add_handler(
+                context_dummy.add_handler(
                     input_config, ForwardToUIHandler(self._results_pipe)
                 )
 
@@ -300,7 +302,7 @@ class ReaderService:
                     InputCombination(input_config), mapping
                 )
                 handler.set_sub_handler(ForwardToUIHandler(self._results_pipe))
-                context.add_handler(input_config, handler)
+                context_dummy.add_handler(input_config, handler)
 
                 # negative direction
                 input_config = input_config.modify(analog_threshold=-30)
@@ -311,7 +313,7 @@ class ReaderService:
                 )
                 handler = AbsToBtnHandler(InputCombination(input_config), mapping)
                 handler.set_sub_handler(ForwardToUIHandler(self._results_pipe))
-                context.add_handler(input_config, handler)
+                context_dummy.add_handler(input_config, handler)
 
             for ev_code in capabilities.get(EV_REL) or ():
                 # positive direction
@@ -330,7 +332,7 @@ class ReaderService:
                 )
                 handler = RelToBtnHandler(InputCombination(input_config), mapping)
                 handler.set_sub_handler(ForwardToUIHandler(self._results_pipe))
-                context.add_handler(input_config, handler)
+                context_dummy.add_handler(input_config, handler)
 
                 # negative direction
                 input_config = input_config.modify(
@@ -345,15 +347,23 @@ class ReaderService:
                 )
                 handler = RelToBtnHandler(InputCombination(input_config), mapping)
                 handler.set_sub_handler(ForwardToUIHandler(self._results_pipe))
-                context.add_handler(input_config, handler)
+                context_dummy.add_handler(input_config, handler)
 
-        return context
+        return context_dummy
+
+
+class ForwardDummy:
+    @staticmethod
+    def write(*_):
+        pass
 
 
 class ContextDummy:
+    """Used for the reader so that no events are actually written to any uinput."""
     def __init__(self):
         self.listeners = set()
         self._notify_callbacks = defaultdict(list)
+        self.forward_dummy = ForwardDummy()
 
     def add_handler(self, input_config: InputConfig, handler: InputEventHandler):
         self._notify_callbacks[input_config.input_match_hash].append(handler.notify)
@@ -364,11 +374,10 @@ class ContextDummy:
     def reset(self):
         pass
 
-
-class ForwardDummy:
-    @staticmethod
-    def write(*_):
-        pass
+    def get_forward_uinput(self, origin_hash) -> evdev.UInput:
+        """Don't actually write anything."""
+        # TODO test that the reader_service actually uses this dummy
+        return self.forward_dummy
 
 
 class ForwardToUIHandler:

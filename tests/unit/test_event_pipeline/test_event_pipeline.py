@@ -102,7 +102,7 @@ class EventPipelineTestBase(unittest.IsolatedAsyncioTestCase):
         reader = EventReader(
             context,
             evdev.InputDevice(source.path),
-            self.forward_uinput,
+            # self.forward_uinput,  # TODO
             self.stop_event,
         )
         asyncio.ensure_future(reader.run())

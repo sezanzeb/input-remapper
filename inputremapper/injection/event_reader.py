@@ -26,7 +26,7 @@ from typing import AsyncIterator, Protocol, Set, List
 
 import evdev
 
-from inputremapper.utils import get_device_hash
+from inputremapper.utils import get_device_hash, DeviceHash
 from inputremapper.injection.mapping_handlers.mapping_handler import (
     EventListener,
     NotifyCallback,
@@ -42,6 +42,9 @@ class Context(Protocol):
         ...
 
     def get_entry_points(self, input_event: InputEvent) -> List[NotifyCallback]:
+        ...
+
+    def get_forward_uinput(self, origin_hash: DeviceHash) -> evdev.UInput:
         ...
 
 
@@ -60,7 +63,6 @@ class EventReader:
         self,
         context: Context,
         source: evdev.InputDevice,
-        forward_to: evdev.UInput,  # TODO I think this can go as well
         stop_event: asyncio.Event,
     ) -> None:
         """Initialize all mapping_handlers
@@ -69,14 +71,9 @@ class EventReader:
         ----------
         source
             where to read keycodes from
-        forward_to
-            where to write keycodes to that were not mapped to anything.
-            Should be an UInput with capabilities that work for all forwarded
-            events, so ideally they should be copied from source.
         """
         self._device_hash = get_device_hash(source)
         self._source = source
-        self._forward_to = forward_to  # TODO I think this can go as well
         self.context = context
         self.stop_event = stop_event
 
@@ -159,11 +156,11 @@ class EventReader:
 
     def forward(self, event: InputEvent) -> None:
         """Forward an event, which injects it unmodified."""
-        # TODO What about this?
         if event.type == evdev.ecodes.EV_KEY:
             logger.debug_key(event.event_tuple, "forwarding")
 
-        self._forward_to.write(*event.event_tuple)
+        forward_to = self.context.get_forward_uinput(self._device_hash)
+        forward_to.write(*event.event_tuple)
 
     async def handle(self, event: InputEvent) -> None:
         if event.type == evdev.ecodes.EV_KEY and event.value == 2:

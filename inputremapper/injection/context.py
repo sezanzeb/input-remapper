@@ -57,6 +57,8 @@ class Context:
     - makes the injection class shorter and more specific to a certain task,
       which is actually spinning up the injection.
 
+    Note, that for the reader_service a ContextDummy is used.
+
     Members
     -------
     preset : Preset
@@ -103,7 +105,7 @@ class Context:
     def get_entry_points(self, input_event: InputEvent) -> List[NotifyCallback]:
         return self._notify_callbacks[input_event.input_match_hash]
 
-    def get_forward_uinput(self, origin_hash):
+    def get_forward_uinput(self, origin_hash: DeviceHash) -> evdev.UInput:
         """Get the "forward" uinput events from the given origin should go into."""
         return self._forward_devices[origin_hash]
 

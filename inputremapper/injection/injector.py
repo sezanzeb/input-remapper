@@ -431,7 +431,6 @@ class Injector(multiprocessing.Process):
             event_reader = EventReader(
                 self.context,
                 sources[device_hash],
-                forward_devices[device_hash],
                 self._stop_event,
             )
             coroutines.append(event_reader.run())
@@ -461,10 +460,11 @@ class Injector(multiprocessing.Process):
             # reached otherwise.
             logger.debug("Injector coroutines ended")
 
-        for source in sources:
+        for source in sources.values():
             # ungrab at the end to make the next injection process not fail
             # its grabs
             try:
+                # TODO failed because source was a hash. Tested?
                 source.ungrab()
             except OSError as error:
                 # it might have disappeared

@@ -237,6 +237,10 @@ class InputConfig(BaseModel):
 
     @validator("origin_hash", pre=True)
     def validate_origin_hash(cls, origin_hash):
+        # TODO tested?
+        if origin_hash is None:
+            return None
+
         return origin_hash.lower()
 
     class Config:
