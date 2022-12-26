@@ -78,9 +78,12 @@ class EventListener(Protocol):
 
 
 class ContextProtocol(Protocol):
-    """The parts from context needed for macros."""
+    """The parts from context needed for handlers."""
 
     listeners: Set[EventListener]
+
+    def get_forward_uinput(self, origin_hash) -> evdev.UInput:
+        pass
 
 
 class NotifyCallback(Protocol):
