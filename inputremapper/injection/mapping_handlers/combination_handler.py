@@ -152,7 +152,9 @@ class CombinationHandler(MappingHandler):
             origin_hash = input_config.origin_hash
             if origin_hash is None:
                 # TODO test
-                logger.error(f"Expected an origin_hash to exist for {input_config}")
+                logger.error(
+                    f"Can't forward due to missing origin_hash in {repr(input_config)}"
+                )
                 continue
 
             forward_to = self._context.get_forward_uinput(origin_hash)

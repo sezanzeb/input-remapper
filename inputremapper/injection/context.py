@@ -37,6 +37,7 @@ from inputremapper.injection.mapping_handlers.mapping_parser import (
     parse_mappings,
     EventPipelines,
 )
+from inputremapper.logger import logger
 
 
 class Context:
@@ -98,13 +99,21 @@ class Context:
     def _create_callbacks(self) -> None:
         """Add the notify method from all _handlers to self.callbacks."""
         for input_config, handler_list in self._handlers.items():
-            self._notify_callbacks[input_config.input_match_hash].extend(
+            input_match_hash = input_config.input_match_hash
+            logger.info('Adding NotifyCallback for %s', input_match_hash)
+            self._notify_callbacks[input_match_hash].extend(
                 handler.notify for handler in handler_list
             )
 
     def get_entry_points(self, input_event: InputEvent) -> List[NotifyCallback]:
+        # TODO rename to get_notify_callbacks?
         # TODO test
-        return self._notify_callbacks[input_event.input_match_hash]
+        input_match_hash = input_event.input_match_hash
+        callbacks = self._notify_callbacks[input_match_hash]
+        if len(callbacks) == 0:
+            logger.warning('No NotifyCallbacks set for %s', input_match_hash)
+
+        return callbacks
 
     def get_forward_uinput(self, origin_hash: DeviceHash) -> evdev.UInput:
         """Get the "forward" uinput events from the given origin should go into."""

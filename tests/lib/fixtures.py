@@ -311,13 +311,12 @@ fixtures = _Fixtures()
 def get_combination_config(
     *event_tuples: Tuple[int, int] | Tuple[int, int, int]
 ) -> Iterable[Dict[str, int]]:
-    """convenient function to get a iterable of dicts, InputEvent.event_tuple's"""
-
+    """Convenient function to get an iterable of dicts, InputEvent.event_tuples."""
     for event in event_tuples:
         if len(event) == 3:
-            yield {k: v for k, v in zip(("type", "code", "analog_threshold"), event)}
+            yield {"type": event[0], "code": event[1], "analog_threshold": event[2]}
         elif len(event) == 2:
-            yield {k: v for k, v in zip(("type", "code"), event)}
+            yield {"type": event[0], "code": event[1]}
         else:
             raise TypeError
 

@@ -23,6 +23,8 @@ import itertools
 from typing import Tuple, Iterable, Union, List, Dict, Optional, Hashable, TypeAlias
 
 from evdev import ecodes
+from evdev._ecodes import EV_ABS, EV_KEY
+
 from inputremapper.input_event import InputEvent
 from pydantic import BaseModel, root_validator, validator
 
@@ -63,8 +65,28 @@ class InputConfig(BaseModel):
         return f"InputConfig {get_evdev_constant_name(self.type, self.code)}"
 
     def __repr__(self):
-        # TODO test?
-        return f"<InputConfig {str((self.type_and_code, self.analog_threshold))} at {hex(id(self))}>"
+        return (
+            f"<InputConfig {self.type_and_code} "
+            f"{get_evdev_constant_name(*self.type_and_code)}, "
+            f"{self.analog_threshold} at {hex(id(self))}>"
+        )
+
+    @classmethod
+    def abs(cls, code, analog_threshold, origin_hash):
+        return InputConfig(
+            type=EV_ABS,
+            code=code,
+            analog_threshold=analog_threshold,
+            origin_hash=origin_hash,
+        )
+
+    @classmethod
+    def key(cls, code, origin_hash):
+        return InputConfig(
+            type=EV_KEY,
+            code=code,
+            origin_hash=origin_hash,
+        )
 
     @property
     def input_match_hash(self) -> Hashable:

@@ -29,6 +29,7 @@ from pickle import UnpicklingError
 
 import evdev
 
+from inputremapper.utils import get_evdev_constant_name
 from tests.lib.constants import EVENT_READ_TIMEOUT, MIN_ABS, MAX_ABS
 from tests.lib.fixtures import Fixture, fixtures, new_event
 from tests.lib.pipes import (
@@ -218,7 +219,12 @@ class UInput:
         uinput_write_history.append(event)
         uinput_write_history_pipe[1].send(event)
         self.write_history.append(event)
-        logger.info("%s written", (type, code, value))
+        logger.info(
+            '%s %s written to "%s"',
+            (type, code, value),
+            get_evdev_constant_name(type, code),
+            self.name,
+        )
 
     def syn(self):
         pass

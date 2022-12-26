@@ -59,6 +59,7 @@ from inputremapper.injection.context import Context
 from inputremapper.injection.event_reader import EventReader
 from inputremapper.injection.global_uinputs import global_uinputs
 from inputremapper.input_event import InputEvent
+from inputremapper.utils import get_device_hash
 from tests.lib.cleanup import cleanup
 from tests.lib.logger import logger
 from tests.lib.constants import MAX_ABS, MIN_ABS
@@ -84,6 +85,7 @@ class EventPipelineTestBase(unittest.IsolatedAsyncioTestCase):
         cleanup()
 
     async def asyncTearDown(self) -> None:
+        logger.info('setting stop_event for the reader')
         self.stop_event.set()
         await asyncio.sleep(0.5)
 
@@ -93,11 +95,12 @@ class EventPipelineTestBase(unittest.IsolatedAsyncioTestCase):
             logger.info("sending into event_pipeline: %s", event)
             await event_reader.handle(event)
 
-    def get_event_reader(
+    def create_event_reader(
         self,
         preset: Preset,
         source: Fixture,
     ) -> EventReader:
+        """Create and start an EventReader."""
         context = Context(
             preset,
             source_devices={},
@@ -192,7 +195,7 @@ class TestIdk(EventPipelineTestBase):
         )
 
         # gamepad fixture
-        event_reader = self.get_event_reader(preset, fixtures.gamepad)
+        event_reader = self.create_event_reader(preset, fixtures.gamepad)
 
         await self.send_events(
             [
@@ -234,17 +237,17 @@ class TestIdk(EventPipelineTestBase):
     async def test_reset_releases_keys(self):
         """Make sure that macros and keys are releases when the stop event is set."""
         preset = Preset()
-        input_cfg = InputCombination(InputConfig(type=1, code=1)).to_config()
+        input_cfg = InputCombination(InputConfig(type=EV_KEY, code=1)).to_config()
         preset.add(get_key_mapping(combination=input_cfg, output_symbol="hold(a)"))
 
-        input_cfg = InputCombination(InputConfig(type=1, code=2)).to_config()
+        input_cfg = InputCombination(InputConfig(type=EV_KEY, code=2)).to_config()
         preset.add(get_key_mapping(combination=input_cfg, output_symbol="b"))
 
-        input_cfg = InputCombination(InputConfig(type=1, code=3)).to_config()
+        input_cfg = InputCombination(InputConfig(type=EV_KEY, code=3)).to_config()
         preset.add(
             get_key_mapping(combination=input_cfg, output_symbol="modify(c,hold(d))"),
         )
-        event_reader = self.get_event_reader(preset, fixtures.foo_device_2_keyboard)
+        event_reader = self.create_event_reader(preset, fixtures.foo_device_2_keyboard)
 
         a = system_mapping.get("a")
         b = system_mapping.get("b")
@@ -253,9 +256,9 @@ class TestIdk(EventPipelineTestBase):
 
         await self.send_events(
             [
-                InputEvent.from_tuple((1, 1, 1)),
-                InputEvent.from_tuple((1, 2, 1)),
-                InputEvent.from_tuple((1, 3, 1)),
+                InputEvent.from_tuple((EV_KEY, 1, 1)),
+                InputEvent.from_tuple((EV_KEY, 2, 1)),
+                InputEvent.from_tuple((EV_KEY, 3, 1)),
             ],
             event_reader,
         )
@@ -286,10 +289,10 @@ class TestIdk(EventPipelineTestBase):
         # all a, b, c, d down+up
         self.assertEqual(len(keyboard_history), 8)
         keyboard_history = keyboard_history[-4:]
-        self.assertIn((1, a, 0), keyboard_history)
-        self.assertIn((1, b, 0), keyboard_history)
-        self.assertIn((1, c, 0), keyboard_history)
-        self.assertIn((1, d, 0), keyboard_history)
+        self.assertIn((EV_KEY, a, 0), keyboard_history)
+        self.assertIn((EV_KEY, b, 0), keyboard_history)
+        self.assertIn((EV_KEY, c, 0), keyboard_history)
+        self.assertIn((EV_KEY, d, 0), keyboard_history)
 
     async def test_forward_abs(self):
         """Test if EV_ABS events are forwarded when other events of the same input are not."""
@@ -298,12 +301,12 @@ class TestIdk(EventPipelineTestBase):
         system_mapping._set("b", 77)
         preset.add(
             get_key_mapping(
-                InputCombination(InputConfig(type=1, code=BTN_A)),
+                InputCombination(InputConfig(type=EV_KEY, code=BTN_A)),
                 "keyboard",
                 "b",
             )
         )
-        event_reader = self.get_event_reader(preset, fixtures.gamepad)
+        event_reader = self.create_event_reader(preset, fixtures.gamepad)
 
         # should forward them unmodified
         await self.send_events(
@@ -339,12 +342,12 @@ class TestIdk(EventPipelineTestBase):
         system_mapping._set("b", 77)
         preset.add(
             get_key_mapping(
-                InputCombination(InputConfig(type=1, code=BTN_LEFT)),
+                InputCombination(InputConfig(type=EV_KEY, code=BTN_LEFT)),
                 "keyboard",
                 "b",
             )
         )
-        event_reader = self.get_event_reader(preset, fixtures.gamepad)
+        event_reader = self.create_event_reader(preset, fixtures.gamepad)
 
         # should forward them unmodified
         await self.send_events(
@@ -376,26 +379,35 @@ class TestIdk(EventPipelineTestBase):
 
     async def test_combination(self):
         """Test if combinations map to keys properly."""
-
         a = system_mapping.get("a")
         b = system_mapping.get("b")
         c = system_mapping.get("c")
 
+        origin = fixtures.gamepad
+        origin_hash = origin.get_device_hash()
+
         mapping_1 = get_key_mapping(
-            InputCombination(InputConfig(type=EV_ABS, code=ABS_X, analog_threshold=1)),
+            InputCombination(InputConfig.abs(ABS_X, 1, origin_hash)),
             output_symbol="a",
         )
+
         mapping_2 = get_key_mapping(
             InputCombination(
-                get_combination_config((EV_ABS, ABS_X, 1), (EV_KEY, BTN_A, 1))
+                [
+                    InputConfig.abs(ABS_X, 1, origin_hash),
+                    InputConfig.key(BTN_A, origin_hash),
+                ]
             ),
             output_symbol="b",
         )
-        m3 = get_key_mapping(
+
+        mapping_3 = get_key_mapping(
             InputCombination(
-                get_combination_config(
-                    (EV_ABS, ABS_X, 1), (EV_KEY, BTN_A, 1), (EV_KEY, BTN_B, 1)
-                ),
+                [
+                    InputConfig.abs(ABS_X, 1, origin_hash),
+                    InputConfig.key(BTN_A, origin_hash),
+                    InputConfig.key(BTN_B, origin_hash),
+                ]
             ),
             output_symbol="c",
         )
@@ -403,30 +415,38 @@ class TestIdk(EventPipelineTestBase):
         preset = Preset()
         preset.add(mapping_1)
         preset.add(mapping_2)
-        preset.add(m3)
-        event_reader = self.get_event_reader(preset, fixtures.gamepad)
+        preset.add(mapping_3)
 
+        event_reader = self.create_event_reader(preset, origin)
+
+        # send_events awaits the event_reader to do its thing
         await self.send_events(
             [
                 # forwarded
-                InputEvent.from_tuple((EV_KEY, BTN_A, 1)),
+                InputEvent.from_tuple((EV_KEY, BTN_A, 1), origin_hash),
                 # triggers b, releases BTN_A, ABS_X
-                InputEvent.from_tuple((EV_ABS, ABS_X, 1234)),
+                InputEvent.from_tuple((EV_ABS, ABS_X, 1234), origin_hash),
                 # triggers c, releases BTN_A, ABS_X, BTN_B
-                InputEvent.from_tuple((EV_KEY, BTN_B, 1)),
+                InputEvent.from_tuple((EV_KEY, BTN_B, 1), origin_hash),
             ],
             event_reader,
         )
+
         keyboard_history = convert_to_internal_events(
             global_uinputs.get_uinput("keyboard").write_history
         )
+
         forwarded_history = convert_to_internal_events(
             self.forward_uinput.write_history
         )
 
-        self.assertNotIn((1, a, 1), keyboard_history)
-        self.assertEqual(keyboard_history.count((1, c, 1)), 1)
-        self.assertEqual(keyboard_history.count((1, b, 1)), 1)
+        self.assertNotIn((EV_KEY, a, 1), keyboard_history)
+
+        # c and b should have been written, because the input from send_events
+        # should trigger the combination
+        logger.critical('## assert')
+        self.assertEqual(keyboard_history.count((EV_KEY, c, 1)), 1)
+        self.assertEqual(keyboard_history.count((EV_KEY, b, 1)), 1)
 
         self.assertEqual(forwarded_history.count((EV_KEY, BTN_A, 1)), 1)
         self.assertIn((EV_KEY, BTN_A, 0), forwarded_history)
@@ -435,16 +455,18 @@ class TestIdk(EventPipelineTestBase):
 
         # release b and c)
         await self.send_events(
-            [InputEvent.from_tuple((EV_ABS, ABS_X, 0))],
+            [InputEvent.from_tuple((EV_ABS, ABS_X, 0), origin_hash)],
             event_reader,
         )
+
         keyboard_history = convert_to_internal_events(
             global_uinputs.get_uinput("keyboard").write_history
         )
-        self.assertNotIn((1, a, 1), keyboard_history)
-        self.assertNotIn((1, a, 0), keyboard_history)
-        self.assertEqual(keyboard_history.count((1, c, 0)), 1)
-        self.assertEqual(keyboard_history.count((1, b, 0)), 1)
+
+        self.assertNotIn((EV_KEY, a, 1), keyboard_history)
+        self.assertNotIn((EV_KEY, a, 0), keyboard_history)
+        self.assertEqual(keyboard_history.count((EV_KEY, c, 0)), 1)
+        self.assertEqual(keyboard_history.count((EV_KEY, b, 0)), 1)
 
     async def test_ignore_hold(self):
         # hold as in event-value 2, not in macro-hold.
@@ -464,7 +486,7 @@ class TestIdk(EventPipelineTestBase):
         )
         a = system_mapping.get("a")
 
-        event_reader = self.get_event_reader(preset, fixtures.gamepad)
+        event_reader = self.create_event_reader(preset, fixtures.gamepad)
         await self.send_events(
             [
                 InputEvent.from_tuple(ev_1),
@@ -482,7 +504,7 @@ class TestIdk(EventPipelineTestBase):
         )
         self.assertEqual(len(keyboard_history), 2)
         self.assertEqual(len(forwarded_history), 0)
-        self.assertNotIn((1, a, 2), keyboard_history)
+        self.assertNotIn((EV_KEY, a, 2), keyboard_history)
 
     async def test_ignore_disabled(self):
         ev_1 = (EV_ABS, ABS_HAT0Y, 1)
@@ -523,7 +545,7 @@ class TestIdk(EventPipelineTestBase):
         b = system_mapping.get("b")
         c = system_mapping.get("c")
 
-        event_reader = self.get_event_reader(preset, fixtures.gamepad)
+        event_reader = self.create_event_reader(preset, fixtures.gamepad)
 
         """Single keys"""
         await self.send_events(
@@ -541,8 +563,8 @@ class TestIdk(EventPipelineTestBase):
         forwarded_history = convert_to_internal_events(
             self.forward_uinput.write_history
         )
-        self.assertIn((1, a, 1), keyboard_history)
-        self.assertIn((1, a, 0), keyboard_history)
+        self.assertIn((EV_KEY, a, 1), keyboard_history)
+        self.assertIn((EV_KEY, a, 0), keyboard_history)
         self.assertEqual(len(keyboard_history), 2)
         self.assertEqual(len(forwarded_history), 0)
 
@@ -555,7 +577,7 @@ class TestIdk(EventPipelineTestBase):
         forwarded_history = convert_to_internal_events(
             self.forward_uinput.write_history
         )
-        self.assertIn((1, b, 1), keyboard_history)
+        self.assertIn((EV_KEY, b, 1), keyboard_history)
         self.assertEqual(len(keyboard_history), 3)
         self.assertEqual(forwarded_history.count(ev_3), 0)
         self.assertEqual(forwarded_history.count(ev_5), 1)
@@ -575,7 +597,7 @@ class TestIdk(EventPipelineTestBase):
         forwarded_history = convert_to_internal_events(
             self.forward_uinput.write_history
         )
-        self.assertIn((1, b, 0), keyboard_history)
+        self.assertIn((EV_KEY, b, 0), keyboard_history)
         self.assertEqual(len(keyboard_history), 4)
         self.assertEqual(forwarded_history.count(ev_3), 0)
         self.assertTrue(forwarded_history.count((*ev_5[0:2], 0)) >= 1)
@@ -589,7 +611,7 @@ class TestIdk(EventPipelineTestBase):
         forwarded_history = convert_to_internal_events(
             self.forward_uinput.write_history
         )
-        self.assertIn((1, c, 1), keyboard_history)
+        self.assertIn((EV_KEY, c, 1), keyboard_history)
         self.assertEqual(len(keyboard_history), 5)
         self.assertEqual(forwarded_history.count(ev_3), 0)
         self.assertEqual(forwarded_history.count(ev_5), 1)
@@ -611,7 +633,7 @@ class TestIdk(EventPipelineTestBase):
         )
         for event in keyboard_history:
             print(event.event_tuple)
-        self.assertIn((1, c, 0), keyboard_history)
+        self.assertIn((EV_KEY, c, 0), keyboard_history)
         self.assertEqual(len(keyboard_history), 6)
         self.assertEqual(forwarded_history.count(ev_3), 0)
         self.assertTrue(forwarded_history.count((*ev_5[0:2], 0)) >= 1)
@@ -642,7 +664,7 @@ class TestIdk(EventPipelineTestBase):
             )
         )
 
-        event_reader = self.get_event_reader(preset, fixtures.gamepad)
+        event_reader = self.create_event_reader(preset, fixtures.gamepad)
         # macro starts
         await self.send_events([InputEvent.from_tuple(down_1)], event_reader)
         await asyncio.sleep(0.05)
@@ -654,9 +676,9 @@ class TestIdk(EventPipelineTestBase):
         )
         self.assertEqual(len(forwarded_history), 0)
         self.assertGreater(len(keyboard_history), 1)
-        self.assertNotIn((1, b, 1), keyboard_history)
-        self.assertIn((1, a, 1), keyboard_history)
-        self.assertIn((1, a, 0), keyboard_history)
+        self.assertNotIn((EV_KEY, b, 1), keyboard_history)
+        self.assertIn((EV_KEY, a, 1), keyboard_history)
+        self.assertIn((EV_KEY, a, 0), keyboard_history)
 
         # combination triggered
         await self.send_events([InputEvent.from_tuple(down_2)], event_reader)
@@ -710,8 +732,8 @@ class TestIdk(EventPipelineTestBase):
 
         scroll = InputEvent.from_tuple((2, 8, -1))
         scroll_release = InputEvent.from_tuple((2, 8, 0))
-        btn_down = InputEvent.from_tuple((1, 276, 1))
-        btn_up = InputEvent.from_tuple((1, 276, 0))
+        btn_down = InputEvent.from_tuple((EV_KEY, 276, 1))
+        btn_up = InputEvent.from_tuple((EV_KEY, 276, 0))
         combination = InputCombination(get_combination_config((1, 276, 1), (2, 8, -1)))
 
         system_mapping.clear()
@@ -724,7 +746,7 @@ class TestIdk(EventPipelineTestBase):
         preset = Preset()
         preset.add(m)
 
-        event_reader = self.get_event_reader(preset, fixtures.foo_device_2_mouse)
+        event_reader = self.create_event_reader(preset, fixtures.foo_device_2_mouse)
 
         await self.send_events([btn_down], event_reader)
         forwarded_history = convert_to_internal_events(
@@ -737,7 +759,7 @@ class TestIdk(EventPipelineTestBase):
         keyboard_history = convert_to_internal_events(
             global_uinputs.get_uinput("keyboard").write_history
         )
-        self.assertEqual(keyboard_history[0], (1, a, 1))
+        self.assertEqual(keyboard_history[0], (EV_KEY, a, 1))
 
         await self.send_events([scroll] * 5, event_reader)
 
@@ -752,7 +774,7 @@ class TestIdk(EventPipelineTestBase):
         keyboard_history = convert_to_internal_events(
             global_uinputs.get_uinput("keyboard").write_history
         )
-        self.assertEqual(keyboard_history[1], (1, a, 0))
+        self.assertEqual(keyboard_history[1], (EV_KEY, a, 0))
 
         # more scroll events
         # it should be ignored as duplicate key-down
@@ -795,7 +817,7 @@ class TestIdk(EventPipelineTestBase):
         preset.add(mapping_1)
         preset.add(mapping_2)
 
-        event_reader = self.get_event_reader(preset, fixtures.foo_device_2_mouse)
+        event_reader = self.create_event_reader(preset, fixtures.foo_device_2_mouse)
         # send key-down and up
         await self.send_events(
             [
@@ -854,7 +876,7 @@ class TestIdk(EventPipelineTestBase):
         m1 = Mapping(**cfg)
         preset.add(m1)
 
-        event_reader = self.get_event_reader(preset, fixtures.gamepad)
+        event_reader = self.create_event_reader(preset, fixtures.gamepad)
 
         # set ABS_X input to 100%
         await event_reader.handle(InputEvent.from_tuple((EV_ABS, ABS_X, MAX_ABS)))
@@ -939,7 +961,7 @@ class TestAbsToAbs(EventPipelineTestBase):
         x = MAX_ABS
         y = MAX_ABS
 
-        event_reader = self.get_event_reader(preset, fixtures.gamepad)
+        event_reader = self.create_event_reader(preset, fixtures.gamepad)
 
         await self.send_events(
             [
@@ -986,7 +1008,7 @@ class TestAbsToAbs(EventPipelineTestBase):
         x = MAX_ABS
         y = MAX_ABS
 
-        event_reader = self.get_event_reader(preset, fixtures.gamepad)
+        event_reader = self.create_event_reader(preset, fixtures.gamepad)
 
         await self.send_events(
             [
@@ -1048,7 +1070,7 @@ class TestRelToAbs(EventPipelineTestBase):
         mapping_2 = Mapping(**mapping_config)
         preset.add(mapping_2)
 
-        event_reader = self.get_event_reader(preset, fixtures.gamepad)
+        event_reader = self.create_event_reader(preset, fixtures.gamepad)
 
         next_time = next_usec_time()
         await self.send_events(
@@ -1124,7 +1146,7 @@ class TestRelToAbs(EventPipelineTestBase):
         preset = Preset()
         preset.add(mapping_1)
 
-        event_reader = self.get_event_reader(preset, fixtures.gamepad)
+        event_reader = self.create_event_reader(preset, fixtures.gamepad)
 
         # if the cutoff is higher, the test sends higher values to overcome the cutoff
         await self.send_events(
@@ -1189,7 +1211,7 @@ class TestAbsToRel(EventPipelineTestBase):
         x = MAX_ABS
         y = MAX_ABS
 
-        event_reader = self.get_event_reader(preset, fixtures.gamepad)
+        event_reader = self.create_event_reader(preset, fixtures.gamepad)
 
         await self.send_events(
             [
@@ -1265,7 +1287,7 @@ class TestAbsToRel(EventPipelineTestBase):
         x = MAX_ABS
         y = MAX_ABS
 
-        event_reader = self.get_event_reader(preset, fixtures.gamepad)
+        event_reader = self.create_event_reader(preset, fixtures.gamepad)
 
         await self.send_events(
             [
@@ -1336,7 +1358,7 @@ class TestRelToBtn(EventPipelineTestBase):
         preset.add(mapping_1)
         preset.add(mapping_2)
 
-        event_reader = self.get_event_reader(preset, fixtures.foo_device_2_mouse)
+        event_reader = self.create_event_reader(preset, fixtures.foo_device_2_mouse)
 
         await self.send_events(
             [InputEvent.from_tuple(hw_right), InputEvent.from_tuple(w_up)] * 5,
@@ -1393,7 +1415,7 @@ class TestRelToBtn(EventPipelineTestBase):
         a = system_mapping.get("a")
         b = system_mapping.get("b")
 
-        event_reader = self.get_event_reader(preset, fixtures.foo_device_2_mouse)
+        event_reader = self.create_event_reader(preset, fixtures.foo_device_2_mouse)
 
         await self.send_events(
             [
@@ -1465,7 +1487,7 @@ class TestAbsToBtn(EventPipelineTestBase):
         a = system_mapping.get("a")
         b = system_mapping.get("b")
 
-        event_reader = self.get_event_reader(preset, fixtures.gamepad)
+        event_reader = self.create_event_reader(preset, fixtures.gamepad)
 
         await self.send_events(
             [
@@ -1531,7 +1553,7 @@ class TestRelToRel(EventPipelineTestBase):
         )
         preset.add(mapping)
 
-        event_reader = self.get_event_reader(preset, fixtures.gamepad)
+        event_reader = self.create_event_reader(preset, fixtures.gamepad)
 
         await self.send_events(
             [InputEvent(0, 0, EV_REL, input_code, input_value)],
@@ -1591,7 +1613,7 @@ class TestRelToRel(EventPipelineTestBase):
         )
         preset.add(mapping)
 
-        event_reader = self.get_event_reader(preset, fixtures.gamepad)
+        event_reader = self.create_event_reader(preset, fixtures.gamepad)
 
         await self.send_events(
             [InputEvent(0, 0, EV_REL, input_code, input_value)],
@@ -1640,7 +1662,7 @@ class TestRelToRel(EventPipelineTestBase):
         )
         preset.add(mapping)
 
-        event_reader = self.get_event_reader(preset, fixtures.gamepad)
+        event_reader = self.create_event_reader(preset, fixtures.gamepad)
 
         events_until_one_rel_y_written = int(
             WHEEL_HI_RES_SCALING / REL_XY_SCALING / gain

@@ -126,8 +126,10 @@ patch_is_running()
 # patch_warnings()
 
 
+update_inputremapper_verbosity()
+
+
 def main():
-    update_inputremapper_verbosity()
 
     cleanup()
     # https://docs.python.org/3/library/argparse.html

@@ -121,6 +121,11 @@ class EventReader:
 
         results = set()
         notify_callbacks = self.context.get_entry_points(event)
+
+        if len(notify_callbacks) == 0:
+            # There definitely has to be a handler if the mapping is not empty
+            logger.error('No NotifyCallbacks set')
+
         if notify_callbacks:
             for notify_callback in notify_callbacks:
                 results.add(notify_callback(event, source=self._source))

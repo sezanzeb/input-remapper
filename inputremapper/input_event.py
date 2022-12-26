@@ -93,11 +93,11 @@ class InputEvent:
             ) from exception
 
     @classmethod
-    def from_tuple(cls, event_tuple: Tuple[int, int, int]) -> InputEvent:
+    def from_tuple(cls, event_tuple: Tuple[int, int, int], origin_hash: Optional[str] = None) -> InputEvent:
         """Create a InputEvent from a (type, code, value) tuple."""
         if len(event_tuple) != 3:
             raise TypeError(
-                f"failed to create InputEvent {event_tuple = }" f" must have length 3"
+                f"failed to create InputEvent {event_tuple = } must have length 3"
             )
         return cls(
             0,
@@ -105,6 +105,7 @@ class InputEvent:
             int(event_tuple[0]),
             int(event_tuple[1]),
             int(event_tuple[2]),
+            origin_hash=origin_hash
         )
 
     @property
