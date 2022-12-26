@@ -55,3 +55,5 @@ def get_evdev_constant_name(type_: Optional[int], code: Optional[int], *_) -> st
     if name is None:
         # TODO test
         return 'unknown'
+
+    return name
