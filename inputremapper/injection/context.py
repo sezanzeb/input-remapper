@@ -100,7 +100,7 @@ class Context:
         """Add the notify method from all _handlers to self.callbacks."""
         for input_config, handler_list in self._handlers.items():
             input_match_hash = input_config.input_match_hash
-            logger.info('Adding NotifyCallback for %s', input_match_hash)
+            logger.info("Adding NotifyCallback for %s", input_match_hash)
             self._notify_callbacks[input_match_hash].extend(
                 handler.notify for handler in handler_list
             )
@@ -111,7 +111,7 @@ class Context:
         input_match_hash = input_event.input_match_hash
         callbacks = self._notify_callbacks[input_match_hash]
         if len(callbacks) == 0:
-            logger.warning('No NotifyCallbacks set for %s', input_match_hash)
+            logger.warning("No NotifyCallbacks set for %s", input_match_hash)
 
         return callbacks
 

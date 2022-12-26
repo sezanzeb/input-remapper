@@ -124,7 +124,7 @@ class EventReader:
 
         if len(notify_callbacks) == 0:
             # There definitely has to be a handler if the mapping is not empty
-            logger.error('No NotifyCallbacks set')
+            logger.error("No NotifyCallbacks set")
 
         if notify_callbacks:
             for notify_callback in notify_callbacks:

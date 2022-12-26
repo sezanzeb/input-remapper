@@ -85,7 +85,7 @@ class EventPipelineTestBase(unittest.IsolatedAsyncioTestCase):
         cleanup()
 
     async def asyncTearDown(self) -> None:
-        logger.info('setting stop_event for the reader')
+        logger.info("setting stop_event for the reader")
         self.stop_event.set()
         await asyncio.sleep(0.5)
 
@@ -444,7 +444,6 @@ class TestIdk(EventPipelineTestBase):
 
         # c and b should have been written, because the input from send_events
         # should trigger the combination
-        logger.critical('## assert')
         self.assertEqual(keyboard_history.count((EV_KEY, c, 1)), 1)
         self.assertEqual(keyboard_history.count((EV_KEY, b, 1)), 1)
 
