@@ -105,7 +105,7 @@ class TestAxisSwitchHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
                 output_type=2,
                 output_code=1,
             ),
-            MagicMock()
+            MagicMock(),
         )
 
 
@@ -258,7 +258,7 @@ class TestCombinationHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
                 target_uinput="mouse",
                 output_symbol="BTN_LEFT",
             ),
-            MagicMock()
+            MagicMock(),
         )
 
 

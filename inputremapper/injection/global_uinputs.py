@@ -167,8 +167,8 @@ class GlobalUInputs:
         """
         if name not in self.devices:
             logger.error(
-                f'UInput "{name}" is unknown. ' +
-                f'Available: {list(self.devices.keys())}'
+                f'UInput "{name}" is unknown. '
+                + f"Available: {list(self.devices.keys())}"
             )
             return None
 
