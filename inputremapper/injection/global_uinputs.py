@@ -150,6 +150,7 @@ class GlobalUInputs:
         if not uinput.can_emit(event):
             raise inputremapper.exceptions.EventNotHandled(event)
 
+        logger.write(event, uinput)
         uinput.write(*event)
         uinput.syn()
 

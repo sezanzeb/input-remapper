@@ -52,7 +52,7 @@ class CombinationHandler(MappingHandler):
         context: Context,
         **_,
     ) -> None:
-        logger.debug(mapping)
+        logger.debug(str(mapping))
         super().__init__(combination, mapping)
         self._pressed_keys = {}
         self._output_state = False
@@ -67,12 +67,16 @@ class CombinationHandler(MappingHandler):
 
     def __str__(self):
         return (
-            f'CombinationHandler for "{self.mapping.input_combination}" '
-            f"{tuple(t for t in self._pressed_keys.keys())} <{id(self)}>:"
+            f'CombinationHandler for "{str(self.mapping.input_combination)}" '
+            f"{tuple(t for t in self._pressed_keys.keys())}"
         )
 
     def __repr__(self):
-        return self.__str__()
+        description = (
+            f'CombinationHandler for "{repr(self.mapping.input_combination)}" '
+            f"{tuple(t for t in self._pressed_keys.keys())}"
+        )
+        return f"<{description} at {id(self)}>"
 
     @property
     def child(self):  # used for logging
@@ -117,10 +121,7 @@ class CombinationHandler(MappingHandler):
         if suppress:
             return False
 
-        logger.debug_key(
-            self.mapping.input_combination,
-            "triggered: sending to sub-handler",
-        )
+        logger.debug("sending %s to sub-handler", self.mapping.input_combination)
         self._output_state = bool(event.value)
         return self._sub_handler.notify(event, source, suppress)
 
@@ -148,8 +149,14 @@ class CombinationHandler(MappingHandler):
         )
 
         for input_config in keys_to_release:
-            logger.debug_key(input_config.type_and_code, "forwarding")
-            forward_to = self._context.get_forward_uinput(input_config.origin_hash)
+            origin_hash = input_config.origin_hash
+            if origin_hash is None:
+                # TODO test
+                logger.error(f"Expected an origin_hash to exist for {input_config}")
+                continue
+
+            forward_to = self._context.get_forward_uinput(origin_hash)
+            logger.write(input_config, forward_to)
             forward_to.write(*input_config.type_and_code, 0)
 
         forward_to.syn()

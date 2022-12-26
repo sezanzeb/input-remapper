@@ -24,11 +24,12 @@ from typing import Tuple, Iterable, Union, List, Dict, Optional, Hashable, TypeA
 
 from evdev import ecodes
 from inputremapper.input_event import InputEvent
-from pydantic import BaseModel, root_validator, validator, constr
+from pydantic import BaseModel, root_validator, validator
 
 from inputremapper.configs.system_mapping import system_mapping
 from inputremapper.gui.messages.message_types import MessageType
 from inputremapper.logger import logger
+from inputremapper.utils import get_evdev_constant_name
 
 # having shift in combinations modifies the configured output,
 # ctrl might not work at all
@@ -57,6 +58,17 @@ class InputConfig(BaseModel):
     # see utils.get_device_hash for the exact hashing function
     origin_hash: Optional[DeviceHash] = None
     analog_threshold: Optional[int] = None
+
+    def __str__(self):
+        # TODO test?
+        return self.description(exclude_threshold=True)
+
+    def __str__(self):
+        return f"InputConfig {get_evdev_constant_name(self.type, self.code)}"
+
+    def __repr__(self):
+        # TODO test?
+        return f"<InputConfig {str((self.type_and_code, self.analog_threshold))} at {id(self)}>"
 
     @property
     def input_match_hash(self) -> Hashable:
@@ -122,7 +134,7 @@ class InputConfig(BaseModel):
             # if no result, look in the linux combination constants. On a german
             # keyboard for example z and y are switched, which will therefore
             # cause the wrong letter to be displayed.
-            key_name = ecodes.bytype[self.type][self.code]
+            key_name = get_evdev_constant_name(self.type, self.code)
             if isinstance(key_name, list):
                 key_name = key_name[0]
 
@@ -281,10 +293,11 @@ class InputCombination(Tuple[InputConfig, ...]):
         return super().__new__(cls, validated_configs)  # type: ignore
 
     def __str__(self):
-        return " + ".join(event.description(exclude_threshold=True) for event in self)
+        return f'Combination ({" + ".join(str(event) for event in self)})'
 
     def __repr__(self):
-        return f"<InputCombination {', '.join([str((*e.type_and_code, e.analog_threshold)) for e in self])}>"
+        combination = ", ".join(repr(event) for event in self)
+        return f"<InputCombination ({combination}) at {id(self)}>"
 
     @classmethod
     def __get_validators__(cls):

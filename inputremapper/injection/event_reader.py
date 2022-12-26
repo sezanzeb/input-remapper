@@ -156,10 +156,11 @@ class EventReader:
 
     def forward(self, event: InputEvent) -> None:
         """Forward an event, which injects it unmodified."""
-        if event.type == evdev.ecodes.EV_KEY:
-            logger.debug_key(event.event_tuple, "forwarding")
-
         forward_to = self.context.get_forward_uinput(self._device_hash)
+
+        if event.type == evdev.ecodes.EV_KEY:
+            logger.write(event, forward_to)
+
         forward_to.write(*event.event_tuple)
 
     async def handle(self, event: InputEvent) -> None:

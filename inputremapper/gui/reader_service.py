@@ -360,6 +360,7 @@ class ForwardDummy:
 
 class ContextDummy:
     """Used for the reader so that no events are actually written to any uinput."""
+
     def __init__(self):
         self.listeners = set()
         self._notify_callbacks = defaultdict(list)
@@ -399,7 +400,7 @@ class ForwardToUIHandler:
             if EventActions.negative_trigger in event.actions:
                 event = event.modify(value=-1)
 
-            logger.debug_key(event.event_tuple, "to frontend:")
+            logger.debug("sending to %s frontend", event)
             self.pipe.send(
                 {
                     "type": MSG_EVENT,

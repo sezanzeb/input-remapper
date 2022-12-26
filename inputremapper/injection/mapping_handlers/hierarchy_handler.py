@@ -50,10 +50,10 @@ class HierarchyHandler(MappingHandler):
         super().__init__(combination, mapping)
 
     def __str__(self):
-        return f"HierarchyHandler for {self._input_config} <{id(self)}>:"
+        return f"HierarchyHandler for {self._input_config}"
 
     def __repr__(self):
-        return self.__str__()
+        return f"<{str(self)} at {id(self)}>"
 
     @property
     def child(self):  # used for logging

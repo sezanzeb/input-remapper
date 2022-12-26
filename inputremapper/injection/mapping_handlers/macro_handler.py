@@ -53,10 +53,10 @@ class MacroHandler(MappingHandler):
         self._macro = parse(self.mapping.output_symbol, context, mapping)
 
     def __str__(self):
-        return f"MacroHandler <{id(self)}>:"
+        return f"MacroHandler"
 
     def __repr__(self):
-        return self.__str__()
+        return f"<{str(self)} at {id(self)}>"
 
     @property
     def child(self):  # used for logging
@@ -78,11 +78,6 @@ class MacroHandler(MappingHandler):
 
             def handler(type_, code, value) -> None:
                 """Handler for macros."""
-                logger.debug_key(
-                    (type_, code, value),
-                    "sending from macro to %s",
-                    self.mapping.target_uinput,
-                )
                 global_uinputs.write((type_, code, value), self.mapping.target_uinput)
 
             asyncio.ensure_future(self.run_macro(handler))

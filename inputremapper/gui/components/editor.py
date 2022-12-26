@@ -27,7 +27,6 @@ from collections import defaultdict
 from typing import List, Optional, Dict, Union, Callable, Literal, Set
 
 import cairo
-import gi
 from evdev.ecodes import (
     EV_KEY,
     EV_ABS,
@@ -60,6 +59,7 @@ from inputremapper.gui.utils import HandlerDisabled, Colors
 from inputremapper.injection.mapping_handlers.axis_transform import Transformation
 from inputremapper.input_event import InputEvent
 from inputremapper.configs.system_mapping import system_mapping, XKB_KEYCODE_OFFSET
+from inputremapper.utils import get_evdev_constant_name
 
 Capabilities = Dict[int, List]
 
@@ -267,7 +267,7 @@ class MappingSelectionLabel(Gtk.ListBoxRow):
         self.name_input.hide()
 
     def __repr__(self):
-        return f"MappingSelectionLabel for {self.combination} as {self.name}"
+        return f"<MappingSelectionLabel for {self.combination} as {self.name} at {id(self)}>"
 
     def _set_not_selected(self):
         self.edit_btn.hide()
@@ -951,7 +951,7 @@ class OutputAxisSelector:
         self.model.append(["None, None", _("No Axis")])
         for type_, code in types_codes:
 
-            key_name = bytype[type_][code]
+            key_name = get_evdev_constant_name(type_, code)
             if isinstance(key_name, list):
                 key_name = key_name[0]
             self.model.append([f"{type_}, {code}", key_name])

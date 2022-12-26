@@ -90,7 +90,7 @@ class EventPipelineTestBase(unittest.IsolatedAsyncioTestCase):
     @staticmethod
     async def send_events(events: Iterable[InputEvent], event_reader: EventReader):
         for event in events:
-            logger.info("sending into event_pipeline:  %s", event.event_tuple)
+            logger.info("sending into event_pipeline: %s", event)
             await event_reader.handle(event)
 
     def get_event_reader(

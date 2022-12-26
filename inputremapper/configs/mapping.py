@@ -52,6 +52,7 @@ from inputremapper.exceptions import MacroParsingError
 from inputremapper.gui.gettext import _
 from inputremapper.gui.messages.message_types import MessageType
 from inputremapper.injection.macros.parse import is_this_a_macro, parse
+from inputremapper.utils import get_evdev_constant_name
 
 # TODO: remove pydantic VERSION check as soon as we no longer support
 #  Ubuntu 20.04 and with it the ancient pydantic 1.2
@@ -262,7 +263,7 @@ class UIMapping(BaseModel):
 
     def get_output_name_constant(self) -> bool:
         """Get the evdev name costant for the output."""
-        return evdev.ecodes.bytype[self.output_type][self.output_code]
+        return get_evdev_constant_name(self.output_type, self.output_code)
 
     def is_valid(self) -> bool:
         """If the mapping is valid."""

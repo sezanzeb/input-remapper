@@ -37,6 +37,7 @@ except ImportError:
 start = time.time()
 
 previous_key_debug_log = None
+previous_write_debug_log = None
 
 
 def parse_mapping_handler(mapping_handler):
@@ -55,7 +56,7 @@ def parse_mapping_handler(mapping_handler):
                 lines_and_indent.extend(sub_list)
             break
 
-        lines_and_indent.append([str(mapping_handler), indent])
+        lines_and_indent.append([repr(mapping_handler), indent])
         try:
             mapping_handler = mapping_handler.child
         except AttributeError:
@@ -77,11 +78,8 @@ class Logger(logging.Logger):
             msg = indent * line[1] + line[0]
             self._log(logging.DEBUG, msg, args=None)
 
-    def debug_key(self, key, msg, *args):
-        """Log a key-event message.
-
-        Example:
-        ... DEBUG event_reader.py:143: forwarding ···················· (1, 71, 1)
+    def write(self, key, uinput):
+        """Log that an event is being written
 
         Parameters
         ----------
@@ -93,21 +91,18 @@ class Logger(logging.Logger):
         if not self.isEnabledFor(logging.DEBUG):
             return
 
-        global previous_key_debug_log
+        global previous_write_debug_log
 
-        msg = msg % args
-        str_key = str(key)
+        str_key = repr(key)
         str_key = str_key.replace(",)", ")")
-        spacing = " " + "·" * max(0, 30 - len(msg))
-        if len(spacing) == 1:
-            spacing = ""
-        msg = f"{msg}{spacing} {str_key}"
 
-        if msg == previous_key_debug_log:
+        msg = f'writing {str_key} to "{uinput.name}"'
+
+        if msg == previous_write_debug_log:
             # avoid some super spam from EV_ABS events
             return
 
-        previous_key_debug_log = msg
+        previous_write_debug_log = msg
 
         self._log(logging.DEBUG, msg, args=None)
 

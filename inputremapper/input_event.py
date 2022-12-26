@@ -26,6 +26,8 @@ from typing import Tuple, Optional, Hashable
 import evdev
 from evdev import ecodes
 
+from inputremapper.utils import get_evdev_constant_name
+
 
 class EventActions(enum.Enum):
     """Additional information an InputEvent can send through the event pipeline."""
@@ -137,7 +139,11 @@ class InputEvent:
         ]
 
     def __str__(self):
-        return f"InputEvent{self.event_tuple}"
+        name = get_evdev_constant_name(self.type, self.code)
+        return f"InputEvent for {self.event_tuple} {name}"
+
+    def __repr__(self):
+        return f"<{str(self)} at {id(self)}>"
 
     def timestamp(self):
         """Return the unix timestamp of when the event was seen."""

@@ -56,10 +56,10 @@ class KeyHandler(MappingHandler):
         self._active = False
 
     def __str__(self):
-        return f"KeyHandler <{id(self)}>:"
+        return f"KeyHandler to {self._maps_to}"
 
     def __repr__(self):
-        return self.__str__()
+        return f"<{str(self)} at {id(self)}>"
 
     @property
     def child(self):  # used for logging
@@ -72,7 +72,6 @@ class KeyHandler(MappingHandler):
         event_tuple = (*self._maps_to, event.value)
         try:
             global_uinputs.write(event_tuple, self.mapping.target_uinput)
-            logger.debug_key(event_tuple, "sending to %s", self.mapping.target_uinput)
             self._active = bool(event.value)
             return True
         except exceptions.Error:

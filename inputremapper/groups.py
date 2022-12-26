@@ -321,7 +321,7 @@ class _Group:
         return group
 
     def __repr__(self):
-        return f"Group({self.key})"
+        return f"<Group ({self.key}) at {id(self)}>"
 
 
 class _FindGroups(threading.Thread):

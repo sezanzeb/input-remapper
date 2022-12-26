@@ -106,10 +106,10 @@ class RelToAbsHandler(MappingHandler):
         self._observed_rate = DEFAULT_REL_RATE
 
     def __str__(self):
-        return f"RelToAbsHandler for {self._map_axis} <{id(self)}>:"
+        return f"RelToAbsHandler for {self._map_axis}"
 
     def __repr__(self):
-        return self.__str__()
+        return f"<{str(self)} at {id(self)}>"
 
     @property
     def child(self):  # used for logging

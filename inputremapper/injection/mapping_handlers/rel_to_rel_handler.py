@@ -116,10 +116,10 @@ class RelToRelHandler(MappingHandler):
         )
 
     def __str__(self):
-        return f"RelToRelHandler for {self._input_config} <{id(self)}>:"
+        return f"RelToRelHandler for {self._input_config}"
 
     def __repr__(self):
-        return self.__str__()
+        return f"<{str(self)} at {id(self)}>"
 
     @property
     def child(self):  # used for logging

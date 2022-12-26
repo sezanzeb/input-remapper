@@ -61,10 +61,10 @@ class RelToBtnHandler(MappingHandler):
         assert len(combination) == 1
 
     def __str__(self):
-        return f'RelToBtnHandler for "{self._input_config}" <{id(self)}>:'
+        return f'RelToBtnHandler for "{self._input_config}"'
 
     def __repr__(self):
-        return self.__str__()
+        return f"<{str(self)} at {id(self)}>"
 
     @property
     def child(self):  # used for logging
@@ -90,7 +90,7 @@ class RelToBtnHandler(MappingHandler):
             actions=(EventActions.as_key,),
             origin_hash=self._input_config.origin_hash,
         )
-        logger.debug_key(event.event_tuple, "sending to sub_handler")
+        logger.debug("sending %s to sub_handler", event)
         self._sub_handler.notify(event, source, suppress)
         self._active = False
 
@@ -114,7 +114,7 @@ class RelToBtnHandler(MappingHandler):
                     # consume the event
                     return True
                 event = event.modify(value=0, actions=(EventActions.as_key,))
-                logger.debug_key(event.event_tuple, "sending to sub_handler")
+                logger.debug("sending %s to sub_handler", event)
                 self._abort_release = True
             else:
                 # don't consume the event.
@@ -132,7 +132,7 @@ class RelToBtnHandler(MappingHandler):
             event = event.modify(value=1, actions=(EventActions.as_key, direction))
 
         self._active = bool(event.value)
-        # logger.debug_key(event.event_tuple, "sending to sub_handler")
+        # logger.debug("sending %s to sub_handler", event)
         return self._sub_handler.notify(event, source=source, suppress=suppress)
 
     def reset(self) -> None:

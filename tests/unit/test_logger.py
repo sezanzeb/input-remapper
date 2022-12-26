@@ -54,10 +54,11 @@ class TestLogger(unittest.TestCase):
         remove(path)
 
     def test_key_debug(self):
+        # TODO test write instead
         path = os.path.join(tmp, "logger-test")
         add_filehandler(path)
-        logger.debug_key(((1, 2, 1),), "foo %s bar", 1234)
-        logger.debug_key(((1, 200, -1), (1, 5, 1)), "foo %s", (1, 2))
+        logger.debug(((1, 2, 1),), "foo %s bar", 1234)
+        logger.debug(((1, 200, -1), (1, 5, 1)), "foo %s", (1, 2))
         with open(path, "r") as f:
             content = f.read().lower()
             self.assertIn(
