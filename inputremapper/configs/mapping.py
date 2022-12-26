@@ -261,7 +261,7 @@ class UIMapping(BaseModel):
             return EV_KEY, system_mapping.get(self.output_symbol)
         return None
 
-    def get_output_name_constant(self) -> bool:
+    def get_output_name_constant(self) -> str:
         """Get the evdev name costant for the output."""
         return get_evdev_constant_name(self.output_type, self.output_code)
 

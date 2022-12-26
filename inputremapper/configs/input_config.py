@@ -60,10 +60,6 @@ class InputConfig(BaseModel):
     analog_threshold: Optional[int] = None
 
     def __str__(self):
-        # TODO test?
-        return self.description(exclude_threshold=True)
-
-    def __str__(self):
         return f"InputConfig {get_evdev_constant_name(self.type, self.code)}"
 
     def __repr__(self):
