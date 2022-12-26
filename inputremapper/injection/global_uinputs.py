@@ -102,6 +102,7 @@ class GlobalUInputs:
         if self._uinput_factory is not None:
             return
 
+        # overwrite global_uinputs.is_service in tests to control this
         if self.is_service:
             self._uinput_factory = UInput
         else:
@@ -164,6 +165,13 @@ class GlobalUInputs:
         name
             uniqe name of the uinput device
         """
+        if name not in self.devices:
+            logger.error(
+                f'UInput "{name}" is unknown. ' +
+                f'Available: {list(self.devices.keys())}'
+            )
+            return None
+
         return self.devices.get(name)
 
 

@@ -16,7 +16,8 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
-from typing import Dict, Tuple, Hashable
+
+from typing import Dict, Tuple, Hashable, TYPE_CHECKING
 
 import evdev
 from inputremapper.configs.input_config import InputConfig
@@ -27,9 +28,11 @@ from inputremapper.injection.mapping_handlers.mapping_handler import (
     MappingHandler,
     HandlerEnums,
     InputEventHandler,
+    ContextProtocol,
 )
 from inputremapper.input_event import InputEvent, EventActions
 from inputremapper.logger import logger
+from inputremapper.utils import get_device_hash
 
 
 class AxisSwitchHandler(MappingHandler):
@@ -48,12 +51,14 @@ class AxisSwitchHandler(MappingHandler):
     _active: bool  # whether the axis is on or off
     _last_value: int  # the value of the last axis event that arrived
     _axis_source: evdev.InputDevice  # the cached source of the axis input events
+    _forward_device: evdev.UInput  # the cached forward uinput
     _sub_handler: InputEventHandler
 
     def __init__(
         self,
         combination: InputCombination,
         mapping: Mapping,
+        context: ContextProtocol,
         **_,
     ):
         super().__init__(combination, mapping)
@@ -70,6 +75,9 @@ class AxisSwitchHandler(MappingHandler):
 
         self._last_value = 0
         self._axis_source = None
+        self._forward_device = None
+
+        self.context = context
 
     def __str__(self):
         return f"AxisSwitchHandler for {self._map_axis.type_and_code}"
@@ -148,8 +156,12 @@ class AxisSwitchHandler(MappingHandler):
 
         # do some caching so that we can generate the
         # recenter event and an initial abs event
-        if not self._forward_device:
+        if self._axis_source is None:
             self._axis_source = source
+
+        if self._forward_device is None:
+            device_hash = get_device_hash(source)
+            self._forward_device = self.context.get_forward_uinput(device_hash)
 
         # always cache the value
         self._last_value = event.value

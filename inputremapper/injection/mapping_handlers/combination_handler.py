@@ -158,8 +158,7 @@ class CombinationHandler(MappingHandler):
             forward_to = self._context.get_forward_uinput(origin_hash)
             logger.write(input_config, forward_to)
             forward_to.write(*input_config.type_and_code, 0)
-
-        forward_to.syn()
+            forward_to.syn()
 
     def needs_ranking(self) -> bool:
         return bool(self.input_configs)

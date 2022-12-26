@@ -39,6 +39,8 @@ from evdev.ecodes import (
     REL_Y,
     REL_WHEEL,
 )
+
+from inputremapper.injection.context import Context
 from inputremapper.injection.mapping_handlers.combination_handler import (
     CombinationHandler,
 )
@@ -103,6 +105,7 @@ class TestAxisSwitchHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
                 output_type=2,
                 output_code=1,
             ),
+            MagicMock()
         )
 
 
@@ -255,6 +258,7 @@ class TestCombinationHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
                 target_uinput="mouse",
                 output_symbol="BTN_LEFT",
             ),
+            MagicMock()
         )
 
 

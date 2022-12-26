@@ -74,7 +74,7 @@ class TestContext(unittest.TestCase):
                 "d",
             ),
         )
-        context = Context(preset)
+        context = Context(preset, {}, {})
 
         # expected callbacks and their lengths:
         callbacks = {

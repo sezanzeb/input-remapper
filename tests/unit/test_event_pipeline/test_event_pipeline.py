@@ -75,8 +75,8 @@ class EventPipelineTestBase(unittest.IsolatedAsyncioTestCase):
     """Test the event pipeline form event_reader to UInput."""
 
     def setUp(self):
-        # print("in setup")
-        # global_uinputs.prepare_all()
+        global_uinputs.is_service = True
+        global_uinputs.prepare_all()
         self.forward_uinput = evdev.UInput()
         self.stop_event = asyncio.Event()
 
@@ -98,11 +98,14 @@ class EventPipelineTestBase(unittest.IsolatedAsyncioTestCase):
         preset: Preset,
         source: Fixture,
     ) -> EventReader:
-        context = Context(preset)
+        context = Context(
+            preset,
+            source_devices={},
+            forward_devices={source.get_device_hash(): self.forward_uinput},
+        )
         reader = EventReader(
             context,
             evdev.InputDevice(source.path),
-            # self.forward_uinput,  # TODO
             self.stop_event,
         )
         asyncio.ensure_future(reader.run())
