@@ -68,7 +68,7 @@ class InputConfig(BaseModel):
 
     def __repr__(self):
         # TODO test?
-        return f"<InputConfig {str((self.type_and_code, self.analog_threshold))} at {id(self)}>"
+        return f"<InputConfig {str((self.type_and_code, self.analog_threshold))} at {hex(id(self))}>"
 
     @property
     def input_match_hash(self) -> Hashable:
@@ -297,7 +297,7 @@ class InputCombination(Tuple[InputConfig, ...]):
 
     def __repr__(self):
         combination = ", ".join(repr(event) for event in self)
-        return f"<InputCombination ({combination}) at {id(self)}>"
+        return f"<InputCombination ({combination}) at {hex(id(self))}>"
 
     @classmethod
     def __get_validators__(cls):

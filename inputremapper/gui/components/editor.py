@@ -267,7 +267,7 @@ class MappingSelectionLabel(Gtk.ListBoxRow):
         self.name_input.hide()
 
     def __repr__(self):
-        return f"<MappingSelectionLabel for {self.combination} as {self.name} at {id(self)}>"
+        return f"<MappingSelectionLabel for {self.combination} as {self.name} at {hex(id(self))}>"
 
     def _set_not_selected(self):
         self.edit_btn.hide()

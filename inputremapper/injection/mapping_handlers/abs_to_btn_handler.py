@@ -58,7 +58,7 @@ class AbsToBtnHandler(MappingHandler):
         return f'AbsToBtnHandler for "{name}" ' f"{self._input_config.type_and_code}"
 
     def __repr__(self):
-        return f"<{str(self)} at {id(self)}>"
+        return f"<{str(self)} at {hex(id(self))}>"
 
     @property
     def child(self):  # used for logging

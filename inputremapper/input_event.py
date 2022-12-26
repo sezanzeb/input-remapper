@@ -143,7 +143,7 @@ class InputEvent:
         return f"InputEvent for {self.event_tuple} {name}"
 
     def __repr__(self):
-        return f"<{str(self)} at {id(self)}>"
+        return f"<{str(self)} at {hex(id(self))}>"
 
     def timestamp(self):
         """Return the unix timestamp of when the event was seen."""

@@ -56,7 +56,7 @@ class MacroHandler(MappingHandler):
         return f"MacroHandler"
 
     def __repr__(self):
-        return f"<{str(self)} at {id(self)}>"
+        return f"<{str(self)} at {hex(id(self))}>"
 
     @property
     def child(self):  # used for logging

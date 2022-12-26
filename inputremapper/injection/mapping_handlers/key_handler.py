@@ -59,7 +59,7 @@ class KeyHandler(MappingHandler):
         return f"KeyHandler to {self._maps_to}"
 
     def __repr__(self):
-        return f"<{str(self)} at {id(self)}>"
+        return f"<{str(self)} at {hex(id(self))}>"
 
     @property
     def child(self):  # used for logging

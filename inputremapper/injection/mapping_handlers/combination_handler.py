@@ -76,7 +76,7 @@ class CombinationHandler(MappingHandler):
             f'CombinationHandler for "{repr(self.mapping.input_combination)}" '
             f"{tuple(t for t in self._pressed_keys.keys())}"
         )
-        return f"<{description} at {id(self)}>"
+        return f"<{description} at {hex(id(self))}>"
 
     @property
     def child(self):  # used for logging

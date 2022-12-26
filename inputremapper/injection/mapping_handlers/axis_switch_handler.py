@@ -75,7 +75,7 @@ class AxisSwitchHandler(MappingHandler):
         return f"AxisSwitchHandler for {self._map_axis.type_and_code}"
 
     def __repr__(self):
-        return f"<{str(self)} at {id(self)}>"
+        return f"<{str(self)} at {hex(id(self))}>"
 
     @property
     def child(self):
