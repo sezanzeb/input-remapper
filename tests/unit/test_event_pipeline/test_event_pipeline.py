@@ -904,9 +904,7 @@ class TestIdk(EventPipelineTestBase):
         )
 
         # stop it
-        await event_reader.handle(
-            InputEvent.abs(ABS_Y, MAX_ABS * 0.05)
-        )
+        await event_reader.handle(InputEvent.abs(ABS_Y, MAX_ABS * 0.05))
 
         await asyncio.sleep(0.2)  # wait a bit more for nothing to sum up
         if mouse_history[0].type == EV_ABS:
