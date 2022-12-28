@@ -17,11 +17,12 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
+
 from inputremapper.input_event import InputEvent
 from tests.test import is_service_running
 from tests.lib.logger import logger
 from tests.lib.cleanup import cleanup
-from tests.lib.fixtures import new_event, get_combination_config
+from tests.lib.fixtures import new_event, get_combination_config, Fixture
 from tests.lib.pipes import push_events, uinput_write_history_pipe
 from tests.lib.tmp import tmp
 from tests.lib.fixtures import fixtures, get_key_mapping
@@ -140,7 +141,10 @@ class TestDaemon(unittest.TestCase):
         """Injection 1"""
 
         # should forward the event unchanged
-        push_events(fixtures.gamepad, [InputEvent.key(BTN_B, 1)])
+        push_events(
+            fixtures.gamepad,
+            [InputEvent.key(BTN_B, 1, fixtures.gamepad.get_device_hash())],
+        )
 
         self.daemon = Daemon()
 
@@ -183,7 +187,10 @@ class TestDaemon(unittest.TestCase):
 
         time.sleep(0.1)
         # -1234 will be classified as -1 by the injector
-        push_events(fixtures.gamepad, [new_event(*ev, -1234)])
+        push_events(
+            fixtures.gamepad,
+            [new_event(*ev, -1234, fixtures.gamepad.get_device_hash())],
+        )
         time.sleep(0.1)
 
         self.assertTrue(uinput_write_history_pipe[0].poll())
@@ -245,13 +252,14 @@ class TestDaemon(unittest.TestCase):
         groups.refresh()
 
         # the daemon is supposed to find this device by calling refresh
-        fixtures[self.new_fixture_path] = {
-            "capabilities": {evdev.ecodes.EV_KEY: [ev[1]]},
-            "phys": "9876 phys",
-            "info": evdev.device.DeviceInfo(4, 5, 6, 7),
-            "name": group_name,
-        }
-        push_events(fixtures[self.new_fixture_path], [new_event(*ev, 1)])
+        fixture = Fixture(
+            capabilities={evdev.ecodes.EV_KEY: [ev[1]]},
+            phys="9876 phys",
+            info=evdev.device.DeviceInfo(4, 5, 6, 7),
+            name=group_name,
+        )
+        fixtures[self.new_fixture_path] = fixture
+        push_events(fixture, [new_event(*ev, 1, fixture.get_device_hash())])
         self.daemon.start_injecting(group_key, preset_name)
 
         # test if the injector called groups.refresh successfully
@@ -281,12 +289,12 @@ class TestDaemon(unittest.TestCase):
 
         self.daemon.refresh()
 
-        fixtures[self.new_fixture_path] = {
-            "capabilities": {evdev.ecodes.EV_KEY: [evdev.ecodes.KEY_A]},
-            "phys": "9876 phys",
-            "info": evdev.device.DeviceInfo(4, 5, 6, 7),
-            "name": device,
-        }
+        fixtures[self.new_fixture_path] = Fixture(
+            capabilities={evdev.ecodes.EV_KEY: [evdev.ecodes.KEY_A]},
+            phys="9876 phys",
+            info=evdev.device.DeviceInfo(4, 5, 6, 7),
+            name=device,
+        )
 
         self.daemon._autoload("25v7j9q4vtj")
         # this is unknown, so the daemon will scan the devices again
@@ -319,7 +327,10 @@ class TestDaemon(unittest.TestCase):
 
         system_mapping.clear()
 
-        push_events(fixtures.bar_device, [new_event(*event)])
+        push_events(
+            fixtures.bar_device,
+            [new_event(*event, fixtures.bar_device.get_device_hash())],
+        )
 
         # an existing config file is needed otherwise set_config_dir refuses
         # to use the directory

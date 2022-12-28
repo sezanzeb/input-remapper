@@ -44,6 +44,7 @@ from inputremapper.injection.context import Context
 from inputremapper.injection.event_reader import EventReader
 from inputremapper.injection.global_uinputs import global_uinputs
 from inputremapper.input_event import InputEvent
+from inputremapper.utils import get_device_hash
 from tests.lib.fixtures import (
     new_event,
     get_key_mapping,
@@ -141,14 +142,15 @@ class TestEventReader(unittest.IsolatedAsyncioTestCase):
 
         context, _ = await self.setup(self.gamepad_source, self.preset)
 
+        gamepad_hash = get_device_hash(self.gamepad_source)
         self.gamepad_source.push_events(
             [
-                InputEvent.key(trigger, 1),  # start the macro
-                InputEvent.abs(ABS_Y, 10),  # ignored
-                InputEvent.key(evdev.ecodes.BTN_B, 2),  # ignored
-                InputEvent.key(evdev.ecodes.BTN_B, 0),  # ignored
+                InputEvent.key(trigger, 1, gamepad_hash),  # start the macro
+                InputEvent.abs(ABS_Y, 10, gamepad_hash),  # ignored
+                InputEvent.key(evdev.ecodes.BTN_B, 2, gamepad_hash),  # ignored
+                InputEvent.key(evdev.ecodes.BTN_B, 0, gamepad_hash),  # ignored
                 # stop it, the only way to trigger `then`
-                InputEvent.key(trigger, 0),
+                InputEvent.key(trigger, 0, gamepad_hash),
             ]
         )
 

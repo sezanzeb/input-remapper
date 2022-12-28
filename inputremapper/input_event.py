@@ -114,7 +114,7 @@ class InputEvent:
         )
 
     @classmethod
-    def abs(cls, code: int, value: int, origin_hash: str):
+    def abs(cls, code: int, value: int, origin_hash: Optional[str] = None):
         """Create an abs event, like joystick movements."""
         return cls(
             0,
@@ -126,7 +126,7 @@ class InputEvent:
         )
 
     @classmethod
-    def rel(cls, code: int, value: int, origin_hash: str):
+    def rel(cls, code: int, value: int, origin_hash: Optional[str] = None):
         """Create a rel event, like mouse movements."""
         return cls(
             0,
@@ -138,7 +138,7 @@ class InputEvent:
         )
 
     @classmethod
-    def key(cls, code: int, value: Literal[0, 1], origin_hash: str):
+    def key(cls, code: int, value: Literal[0, 1], origin_hash: Optional[str] = None):
         """Create a key event, like keyboard keys or gamepad buttons.
 
         A value of 1 means "press", a value of 0 means "release".

@@ -59,7 +59,6 @@ from inputremapper.injection.context import Context
 from inputremapper.injection.event_reader import EventReader
 from inputremapper.injection.global_uinputs import global_uinputs
 from inputremapper.input_event import InputEvent
-from inputremapper.utils import get_device_hash
 from tests.lib.cleanup import cleanup
 from tests.lib.logger import logger
 from tests.lib.constants import MAX_ABS, MIN_ABS
@@ -238,14 +237,18 @@ class TestIdk(EventPipelineTestBase):
         """Make sure that macros and keys are releases when the stop event is set."""
         preset = Preset()
         input_cfg = InputCombination(InputConfig(type=EV_KEY, code=1)).to_config()
-        preset.add(get_key_mapping(input_combination=input_cfg, output_symbol="hold(a)"))
+        preset.add(
+            get_key_mapping(input_combination=input_cfg, output_symbol="hold(a)")
+        )
 
         input_cfg = InputCombination(InputConfig(type=EV_KEY, code=2)).to_config()
         preset.add(get_key_mapping(input_combination=input_cfg, output_symbol="b"))
 
         input_cfg = InputCombination(InputConfig(type=EV_KEY, code=3)).to_config()
         preset.add(
-            get_key_mapping(input_combination=input_cfg, output_symbol="modify(c,hold(d))"),
+            get_key_mapping(
+                input_combination=input_cfg, output_symbol="modify(c,hold(d))"
+            ),
         )
         event_reader = self.create_event_reader(preset, fixtures.foo_device_2_keyboard)
 

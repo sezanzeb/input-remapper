@@ -75,14 +75,14 @@ class TestGlobalUinputs(unittest.TestCase):
 
         keyboard = global_uinputs.get_uinput("keyboard")
 
-        global_uinputs.write(ev_1, "keyboard")
+        global_uinputs.write(ev_1.event_tuple, "keyboard")
         self.assertEqual(keyboard.write_count, 1)
 
         with self.assertRaises(EventNotHandled):
-            global_uinputs.write(ev_2, "keyboard")
+            global_uinputs.write(ev_2.event_tuple, "keyboard")
 
         with self.assertRaises(UinputNotAvailable):
-            global_uinputs.write(ev_1, "foo")
+            global_uinputs.write(ev_1.event_tuple, "foo")
 
     def test_creates_frontend_uinputs(self):
         frontend_uinputs = GlobalUInputs()
