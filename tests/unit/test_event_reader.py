@@ -43,6 +43,7 @@ from inputremapper.configs.input_config import InputCombination, InputConfig
 from inputremapper.injection.context import Context
 from inputremapper.injection.event_reader import EventReader
 from inputremapper.injection.global_uinputs import global_uinputs
+from inputremapper.input_event import InputEvent
 from tests.lib.fixtures import (
     new_event,
     get_key_mapping,

@@ -238,14 +238,14 @@ class TestIdk(EventPipelineTestBase):
         """Make sure that macros and keys are releases when the stop event is set."""
         preset = Preset()
         input_cfg = InputCombination(InputConfig(type=EV_KEY, code=1)).to_config()
-        preset.add(get_key_mapping(combination=input_cfg, output_symbol="hold(a)"))
+        preset.add(get_key_mapping(input_combination=input_cfg, output_symbol="hold(a)"))
 
         input_cfg = InputCombination(InputConfig(type=EV_KEY, code=2)).to_config()
-        preset.add(get_key_mapping(combination=input_cfg, output_symbol="b"))
+        preset.add(get_key_mapping(input_combination=input_cfg, output_symbol="b"))
 
         input_cfg = InputCombination(InputConfig(type=EV_KEY, code=3)).to_config()
         preset.add(
-            get_key_mapping(combination=input_cfg, output_symbol="modify(c,hold(d))"),
+            get_key_mapping(input_combination=input_cfg, output_symbol="modify(c,hold(d))"),
         )
         event_reader = self.create_event_reader(preset, fixtures.foo_device_2_keyboard)
 
@@ -785,13 +785,13 @@ class TestIdk(EventPipelineTestBase):
         ev_6 = InputEvent.from_tuple((EV_KEY, KEY_C, 0))
 
         mapping_1 = Mapping(
-            input_combination=InputCombination(get_combination_config(ev_2)),
+            input_combination=InputCombination(InputConfig.from_input_event(ev_2)),
             target_uinput="keyboard",
             output_type=EV_KEY,
             output_code=BTN_TL,
         )
         mapping_2 = Mapping(
-            input_combination=InputCombination(get_combination_config(ev_3)),
+            input_combination=InputCombination(InputConfig.from_input_event(ev_3)),
             target_uinput="keyboard",
             output_type=EV_KEY,
             output_code=KEY_A,
@@ -805,12 +805,12 @@ class TestIdk(EventPipelineTestBase):
         # send key-down and up
         await self.send_events(
             [
-                InputEvent.from_tuple(ev_1),
-                InputEvent.from_tuple(ev_2),
-                InputEvent.from_tuple(ev_3),
-                InputEvent.from_tuple(ev_4),
-                InputEvent.from_tuple(ev_5),
-                InputEvent.from_tuple(ev_6),
+                ev_1,
+                ev_2,
+                ev_3,
+                ev_4,
+                ev_5,
+                ev_6,
             ],
             event_reader,
         )

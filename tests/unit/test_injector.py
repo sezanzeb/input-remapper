@@ -127,7 +127,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         self.injector = Injector(groups.find(key="Foo Device 2"), preset)
         # this test needs to pass around all other constraints of
         # _grab_device
-        self.injector.context = Context(preset)
+        self.injector.context = Context(preset, {}, {})
         device = self.injector._grab_device(evdev.InputDevice(path))
         gamepad = classify(device) == DeviceType.GAMEPAD
         self.assertFalse(gamepad)
@@ -174,7 +174,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
             ),
         )
         self.initialize_injector(groups.find(name="gamepad"), preset)
-        self.injector.context = Context(preset)
+        self.injector.context = Context(preset, {}, {})
         self.injector.group.paths = [
             "/dev/input/event10",
             "/dev/input/event30",
@@ -197,7 +197,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
         )
 
         self.initialize_injector(groups.find(name="gamepad"), preset)
-        self.injector.context = Context(preset)
+        self.injector.context = Context(preset, {}, {})
 
         path = "/dev/input/event30"
         devices = self.injector._grab_devices()
@@ -217,7 +217,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
             )
         )
         self.initialize_injector(groups.find(key="Foo Device 2"), preset)
-        self.injector.context = Context(preset)
+        self.injector.context = Context(preset, {}, {})
 
         # grabs only one device even though the group has 4 devices
         devices = self.injector._grab_devices()
@@ -236,7 +236,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
 
         # skips a device because its capabilities are not used in the preset
         self.initialize_injector(groups.find(key="Foo Device 2"), preset)
-        self.injector.context = Context(preset)
+        self.injector.context = Context(preset, {}, {})
         devices = self.injector._grab_devices()
 
         # skips the device alltogether, so no grab attempts fail

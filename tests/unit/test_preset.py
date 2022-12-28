@@ -302,7 +302,7 @@ class TestPreset(unittest.TestCase):
         self.assertFalse(self.preset.has_unsaved_changes())
         self.assertEqual(len(self.preset), 0)
 
-        self.preset.add(get_key_mapping(combination=ev_1))
+        self.preset.add(get_key_mapping(input_combination=ev_1))
         self.assertEqual(len(self.preset), 1)
         self.preset.remove(ev_1)
         self.assertEqual(len(self.preset), 0)

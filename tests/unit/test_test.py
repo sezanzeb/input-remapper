@@ -20,6 +20,7 @@
 
 from evdev._ecodes import ABS_X, BTN_A
 
+from inputremapper.input_event import InputEvent
 from inputremapper.utils import get_device_hash
 
 from inputremapper.gui.messages.message_broker import MessageBroker

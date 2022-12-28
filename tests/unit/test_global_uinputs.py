@@ -17,8 +17,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with input-remapper.  If not, see <https://www.gnu.org/licenses/>.
-
-
+from inputremapper.input_event import InputEvent
 from tests.lib.cleanup import cleanup
 
 import sys
