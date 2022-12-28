@@ -23,7 +23,7 @@ import itertools
 from typing import Tuple, Iterable, Union, List, Dict, Optional, Hashable, TypeAlias
 
 from evdev import ecodes
-from evdev._ecodes import EV_ABS, EV_KEY
+from evdev._ecodes import EV_ABS, EV_KEY, EV_REL
 
 from inputremapper.input_event import InputEvent
 from pydantic import BaseModel, root_validator, validator
@@ -73,6 +73,8 @@ class InputConfig(BaseModel):
 
     @classmethod
     def abs(cls, code, analog_threshold, origin_hash):
+        """Create a new InputConfig object for an abs input like joysticks."""
+        # TODO analog_threshold default None and move to last param?
         return InputConfig(
             type=EV_ABS,
             code=code,
@@ -82,8 +84,18 @@ class InputConfig(BaseModel):
 
     @classmethod
     def key(cls, code, origin_hash):
+        """Create a new InputConfig object for a key input."""
         return InputConfig(
             type=EV_KEY,
+            code=code,
+            origin_hash=origin_hash,
+        )
+
+    @classmethod
+    def rel(cls, code, origin_hash):
+        """Create a new InputConfig object for a rel input like mouse movements."""
+        return InputConfig(
+            type=EV_REL,
             code=code,
             origin_hash=origin_hash,
         )
@@ -339,6 +351,16 @@ class InputCombination(Tuple[InputConfig, ...]):
         Useful for the UI to indicate that this combination is not set
         """
         return cls([{"type": 99, "code": 99, "analog_threshold": 99}])
+
+    @classmethod
+    def from_tuples(cls, *tuples):
+        """Construct an InputCombination from (type, code, value) tuples."""
+        return cls(
+            [
+                {"type": tuple_[0], "code": tuple_[1], "analog_threshold": tuple_[2]}
+                for tuple_ in tuples
+            ]
+        )
 
     def is_problematic(self) -> bool:
         """Is this combination going to work properly on all systems?"""

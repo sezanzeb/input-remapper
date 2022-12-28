@@ -141,7 +141,7 @@ class TestDaemon(unittest.TestCase):
         """Injection 1"""
 
         # should forward the event unchanged
-        push_events(fixtures.gamepad, [new_event(EV_KEY, BTN_B, 1)])
+        push_events(fixtures.gamepad, [InputEvent.key(BTN_B, 1)])
 
         self.daemon = Daemon()
 

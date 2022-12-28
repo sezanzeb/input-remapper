@@ -148,7 +148,7 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
 
         self.injector = Injector(groups.find(key="Foo Device 2"), preset)
         path = "/dev/input/event10"
-        self.injector.context = Context(preset)
+        self.injector.context = Context(preset, {}, {})
         device = self.injector._grab_device(evdev.InputDevice(path))
         self.assertIsNone(device)
         self.assertGreaterEqual(self.failed, 1)
@@ -416,10 +416,10 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
             fixtures.foo_device_2_keyboard,
             [
                 # should execute a macro...
-                new_event(EV_KEY, 8, 1),  # forwarded
-                new_event(EV_KEY, 9, 1),  # triggers macro
-                new_event(EV_KEY, 8, 0),  # releases macro
-                new_event(EV_KEY, 9, 0),  # forwarded
+                InputEvent.key(8, 1),  # forwarded
+                InputEvent.key(9, 1),  # triggers macro
+                InputEvent.key(8, 0),  # releases macro
+                InputEvent.key(9, 0),  # forwarded
             ],
         )
 
@@ -428,8 +428,8 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
             fixtures.foo_device_2_gamepad,
             [
                 # gamepad stuff. trigger a combination
-                new_event(EV_ABS, ABS_HAT0X, -1),
-                new_event(EV_ABS, ABS_HAT0X, 0),
+                InputEvent.abs(ABS_HAT0X, -1),
+                InputEvent.abs(ABS_HAT0X, 0),
             ],
         )
 
@@ -438,8 +438,8 @@ class TestInjector(unittest.IsolatedAsyncioTestCase):
             fixtures.foo_device_2_keyboard,
             [
                 # just pass those over without modifying
-                new_event(EV_KEY, 10, 1),
-                new_event(EV_KEY, 10, 0),
+                InputEvent.key(10, 1),
+                InputEvent.key(10, 0),
                 new_event(3124, 3564, 6542),
             ],
             force=True,

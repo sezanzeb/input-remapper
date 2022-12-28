@@ -19,6 +19,7 @@
 
 
 """Stores injection-process wide information."""
+
 from __future__ import annotations
 
 from collections import defaultdict
@@ -111,7 +112,13 @@ class Context:
         input_match_hash = input_event.input_match_hash
         callbacks = self._notify_callbacks[input_match_hash]
         if len(callbacks) == 0:
-            logger.warning("No NotifyCallbacks set for %s", input_match_hash)
+            logger.debug("No NotifyCallbacks set for %s", input_match_hash)
+
+        # TODO logs appearing when hitting forwarded keys
+        """
+        22:51:45.774591 68627 service WARNING context.py:114: No NotifyCallbacks set for (1, 16, 'cba0d7f555a960fabbad51fdb8f28b70')
+        22:51:45.774713 68627 service ERROR event_reader.py:127: No NotifyCallbacks set
+        """
 
         return callbacks
 

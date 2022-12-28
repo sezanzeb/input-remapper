@@ -312,6 +312,16 @@ def get_combination_config(
     *event_tuples: Tuple[int, int] | Tuple[int, int, int]
 ) -> Iterable[Dict[str, int]]:
     """Convenient function to get an iterable of dicts, InputEvent.event_tuples."""
+    # TODO replace usages of
+    #  get_key_mapping(
+    #     InputCombination(get_combination_config
+    # with
+    #              get_key_mapping(
+    #                 input_combination=InputCombination.from_tuples(*combi_1),
+    #                 output_symbol="b",
+    #             )
+    # ?
+    # TODO replace all tuples with proper objects
     for event in event_tuples:
         if len(event) == 3:
             yield {"type": event[0], "code": event[1], "analog_threshold": event[2]}
@@ -321,37 +331,40 @@ def get_combination_config(
             raise TypeError
 
 
-def get_ui_mapping(combination=None, target_uinput="keyboard", output_symbol="a"):
+def get_ui_mapping(input_combination=None, target_uinput="keyboard", output_symbol="a"):
     """Convenient function to get a valid mapping."""
     from inputremapper.configs.mapping import UIMapping
 
-    if not combination:
-        combination = get_combination_config((99, 99))
+    if not input_combination:
+        input_combination = get_combination_config((99, 99))
 
     return UIMapping(
-        input_combination=combination,
+        input_combination=input_combination,
         target_uinput=target_uinput,
         output_symbol=output_symbol,
     )
 
 
-def get_key_mapping(combination=None, target_uinput="keyboard", output_symbol="a"):
+def get_key_mapping(
+    input_combination=None, target_uinput="keyboard", output_symbol="a"
+):
     """Convenient function to get a valid mapping."""
     from inputremapper.configs.mapping import Mapping
 
-    if not combination:
-        combination = [{"type": 99, "code": 99, "analog_threshold": 99}]
+    if not input_combination:
+        input_combination = [{"type": 99, "code": 99, "analog_threshold": 99}]
 
     return Mapping(
-        input_combination=combination,
+        input_combination=input_combination,
         target_uinput=target_uinput,
         output_symbol=output_symbol,
     )
 
 
 def new_event(type, code, value, timestamp=None, offset=0):
-    """Create a new input_event."""
-    from tests.lib.patches import InputEvent
+    """Create a new InputEvent."""
+    # TODO probably deprecated with InputEvent.abs and InputEvent.key
+    from inputremapper.input_event import InputEvent
 
     if timestamp is None:
         timestamp = time.time() + offset
@@ -372,22 +385,25 @@ def prepare_presets():
 
     preset1 = Preset(get_preset_path("Foo Device", "preset1"))
     preset1.add(
-        get_key_mapping(combination=get_combination_config((1, 1)), output_symbol="b")
+        get_key_mapping(
+            input_combination=get_combination_config((1, 1)),
+            output_symbol="b",
+        )
     )
-    preset1.add(get_key_mapping(combination=get_combination_config((1, 2))))
+    preset1.add(get_key_mapping(input_combination=get_combination_config((1, 2))))
     preset1.save()
 
     time.sleep(0.1)
     preset2 = Preset(get_preset_path("Foo Device", "preset2"))
-    preset2.add(get_key_mapping(combination=get_combination_config((1, 3))))
-    preset2.add(get_key_mapping(combination=get_combination_config((1, 4))))
+    preset2.add(get_key_mapping(input_combination=get_combination_config((1, 3))))
+    preset2.add(get_key_mapping(input_combination=get_combination_config((1, 4))))
     preset2.save()
 
     # make sure the timestamp of preset 3 is the newest,
     # so that it will be automatically loaded by the GUI
     time.sleep(0.1)
     preset3 = Preset(get_preset_path("Foo Device", "preset3"))
-    preset3.add(get_key_mapping(combination=get_combination_config((1, 5))))
+    preset3.add(get_key_mapping(input_combination=get_combination_config((1, 5))))
     preset3.save()
 
     with open(get_config_path("config.json"), "w") as file:
@@ -395,4 +411,4 @@ def prepare_presets():
 
     global_config.load_config()
 
-    return preset1, preset2, preset3
+    return preset1, preset2, preset3b

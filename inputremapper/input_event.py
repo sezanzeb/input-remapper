@@ -21,7 +21,7 @@ from __future__ import annotations
 
 import enum
 from dataclasses import dataclass
-from typing import Tuple, Optional, Hashable
+from typing import Tuple, Optional, Hashable, Literal
 
 import evdev
 from evdev import ecodes
@@ -97,16 +97,58 @@ class InputEvent:
         cls, event_tuple: Tuple[int, int, int], origin_hash: Optional[str] = None
     ) -> InputEvent:
         """Create a InputEvent from a (type, code, value) tuple."""
+        # TODO use this as rarely as possible. Construct objects as early as possible
+        #  instead.
         if len(event_tuple) != 3:
             raise TypeError(
                 f"failed to create InputEvent {event_tuple = } must have length 3"
             )
+
         return cls(
             0,
             0,
             int(event_tuple[0]),
             int(event_tuple[1]),
             int(event_tuple[2]),
+            origin_hash=origin_hash,
+        )
+
+    @classmethod
+    def abs(cls, code: int, value: int, origin_hash: str):
+        """Create an abs event, like joystick movements."""
+        return cls(
+            0,
+            0,
+            ecodes.EV_ABS,
+            code,
+            value,
+            origin_hash=origin_hash,
+        )
+
+    @classmethod
+    def rel(cls, code: int, value: int, origin_hash: str):
+        """Create a rel event, like mouse movements."""
+        return cls(
+            0,
+            0,
+            ecodes.EV_REL,
+            code,
+            value,
+            origin_hash=origin_hash,
+        )
+
+    @classmethod
+    def key(cls, code: int, value: Literal[0, 1], origin_hash: str):
+        """Create a key event, like keyboard keys or gamepad buttons.
+
+        A value of 1 means "press", a value of 0 means "release".
+        """
+        return cls(
+            0,
+            0,
+            ecodes.EV_KEY,
+            code,
+            value,
             origin_hash=origin_hash,
         )
 

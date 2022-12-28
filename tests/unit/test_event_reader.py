@@ -45,7 +45,6 @@ from inputremapper.injection.event_reader import EventReader
 from inputremapper.injection.global_uinputs import global_uinputs
 from tests.lib.fixtures import (
     new_event,
-    get_combination_config,
     get_key_mapping,
     fixtures,
 )
@@ -63,7 +62,7 @@ class TestEventReader(unittest.IsolatedAsyncioTestCase):
 
     async def setup(self, source, mapping):
         """Set a EventReader up for the test and run it in the background."""
-        context = Context(mapping)
+        context = Context(mapping, {}, {})
         context.uinput = evdev.UInput()
         # TODO removed usage of forward_to, test that the forwardDummy is used?
         event_reader = EventReader(context, source, self.stop_event)
@@ -143,12 +142,12 @@ class TestEventReader(unittest.IsolatedAsyncioTestCase):
 
         self.gamepad_source.push_events(
             [
-                new_event(EV_KEY, trigger, 1),  # start the macro
-                new_event(EV_ABS, ABS_Y, 10),  # ignored
-                new_event(EV_KEY, evdev.ecodes.BTN_B, 2),  # ignored
-                new_event(EV_KEY, evdev.ecodes.BTN_B, 0),  # ignored
+                InputEvent.key(trigger, 1),  # start the macro
+                InputEvent.abs(ABS_Y, 10),  # ignored
+                InputEvent.key(evdev.ecodes.BTN_B, 2),  # ignored
+                InputEvent.key(evdev.ecodes.BTN_B, 0),  # ignored
                 # stop it, the only way to trigger `then`
-                new_event(EV_KEY, trigger, 0),
+                InputEvent.key(trigger, 0),
             ]
         )
 
@@ -200,9 +199,9 @@ class TestEventReader(unittest.IsolatedAsyncioTestCase):
 
         self.gamepad_source.push_events(
             [
-                new_event(EV_KEY, trigger, 1),  # start the macro
-                new_event(EV_ABS, ABS_Y, 1),  # ignored because value too low
-                new_event(EV_KEY, trigger, 0),  # stop, only way to trigger `then`
+                InputEvent.key(trigger, 1),  # start the macro
+                InputEvent.abs(ABS_Y, 1),  # ignored because value too low
+                InputEvent.key(trigger, 0),  # stop, only way to trigger `then`
             ]
         )
         await asyncio.sleep(0.1)

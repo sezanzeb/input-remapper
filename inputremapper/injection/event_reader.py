@@ -112,7 +112,10 @@ class EventReader:
                 yield event
 
     def send_to_handlers(self, event: InputEvent) -> bool:
-        """Send the event to callback."""
+        """Send the event to the NotifyCallbacks.
+
+        Return if anyone took care of the event.
+        """
         if event.type == evdev.ecodes.EV_MSC:
             return False
 
@@ -121,10 +124,6 @@ class EventReader:
 
         results = set()
         notify_callbacks = self.context.get_entry_points(event)
-
-        if len(notify_callbacks) == 0:
-            # There definitely has to be a handler if the mapping is not empty
-            logger.error("No NotifyCallbacks set")
 
         if notify_callbacks:
             for notify_callback in notify_callbacks:

@@ -116,7 +116,7 @@ class TestTest(unittest.TestCase):
         reader_client.start_recorder()
         time.sleep(START_READING_DELAY)
 
-        event = new_event(EV_KEY, 102, 1)
+        event = InputEvent.key(102, 1)
         push_events(fixtures.foo_device_2_keyboard, [event])
         wait_for_results()
         self.assertTrue(reader_client._results_pipe.poll())
@@ -126,7 +126,7 @@ class TestTest(unittest.TestCase):
 
         # can push more events to the reader-service that is inside a separate
         # process, which end up being sent to the reader
-        event = new_event(EV_KEY, 102, 0)
+        event = InputEvent.key(102, 0)
         logger.info("push_events")
         push_events(fixtures.foo_device_2_keyboard, [event])
         wait_for_results()

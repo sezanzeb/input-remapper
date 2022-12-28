@@ -423,11 +423,11 @@ class TestIdk(EventPipelineTestBase):
         await self.send_events(
             [
                 # forwarded
-                InputEvent.from_tuple((EV_KEY, BTN_A, 1), origin_hash),
+                InputEvent.key(BTN_A, 1, origin_hash),
                 # triggers b, releases BTN_A, ABS_X
-                InputEvent.from_tuple((EV_ABS, ABS_X, 1234), origin_hash),
+                InputEvent.abs(ABS_X, 1234, origin_hash),
                 # triggers c, releases BTN_A, ABS_X, BTN_B
-                InputEvent.from_tuple((EV_KEY, BTN_B, 1), origin_hash),
+                InputEvent.key(BTN_B, 1, origin_hash),
             ],
             event_reader,
         )
@@ -454,7 +454,7 @@ class TestIdk(EventPipelineTestBase):
 
         # release b and c)
         await self.send_events(
-            [InputEvent.from_tuple((EV_ABS, ABS_X, 0), origin_hash)],
+            [InputEvent.abs(ABS_X, 0, origin_hash)],
             event_reader,
         )
 
@@ -473,9 +473,9 @@ class TestIdk(EventPipelineTestBase):
         # the key-press, so input-remapper doesn't need to forward them. That
         # would cause duplicate events of those values otherwise.
         key = (EV_KEY, KEY_A)
-        ev_1 = (*key, 1)
-        ev_2 = (*key, 2)
-        ev_3 = (*key, 0)
+        ev_1 = InputEvent.from_tuple((*key, 1))
+        ev_2 = InputEvent.from_tuple((*key, 2))
+        ev_3 = InputEvent.from_tuple((*key, 0))
 
         preset = Preset()
         preset.add(
@@ -495,25 +495,24 @@ class TestIdk(EventPipelineTestBase):
             event_reader,
         )
 
-        keyboard_history = convert_to_internal_events(
-            global_uinputs.get_uinput("keyboard").write_history
-        )
-        forwarded_history = convert_to_internal_events(
-            self.forward_uinput.write_history
-        )
+        keyboard_history = global_uinputs.get_uinput("keyboard").write_history
+        forwarded_history = self.forward_uinput.write_history
         self.assertEqual(len(keyboard_history), 2)
         self.assertEqual(len(forwarded_history), 0)
         self.assertNotIn((EV_KEY, a, 2), keyboard_history)
 
     async def test_ignore_disabled(self):
-        ev_1 = (EV_ABS, ABS_HAT0Y, 1)
-        ev_2 = (EV_ABS, ABS_HAT0Y, 0)
+        origin = fixtures.gamepad
+        origin_hash = origin.get_device_hash()
 
-        ev_3 = (EV_ABS, ABS_HAT0X, 1)  # disabled
-        ev_4 = (EV_ABS, ABS_HAT0X, 0)
+        ev_1 = InputEvent.abs(ABS_HAT0Y, 1, origin_hash)
+        ev_2 = InputEvent.abs(ABS_HAT0Y, 0, origin_hash)
 
-        ev_5 = (EV_KEY, KEY_A, 1)
-        ev_6 = (EV_KEY, KEY_A, 0)
+        ev_3 = InputEvent.abs(ABS_HAT0X, 1, origin_hash)  # disabled
+        ev_4 = InputEvent.abs(ABS_HAT0X, 0, origin_hash)
+
+        ev_5 = InputEvent.key(KEY_A, 1, origin_hash)
+        ev_6 = InputEvent.key(KEY_A, 0, origin_hash)
 
         combi_1 = (ev_5, ev_3)
         combi_2 = (ev_3, ev_5)
@@ -521,22 +520,40 @@ class TestIdk(EventPipelineTestBase):
         preset = Preset()
         preset.add(
             get_key_mapping(
-                InputCombination(get_combination_config(ev_1)), output_symbol="a"
+                input_combination=InputCombination(
+                    InputConfig.from_input_event(ev_1),
+                ),
+                output_symbol="a",
             )
         )
         preset.add(
             get_key_mapping(
-                InputCombination(get_combination_config(ev_3)), output_symbol="disable"
+                input_combination=InputCombination(
+                    InputConfig.from_input_event(ev_3),
+                ),
+                output_symbol="disable",
             )
         )
         preset.add(
             get_key_mapping(
-                InputCombination(get_combination_config(*combi_1)), output_symbol="b"
+                input_combination=InputCombination(
+                    (
+                        InputConfig.from_input_event(combi_1[0]),
+                        InputConfig.from_input_event(combi_1[1]),
+                    )
+                ),
+                output_symbol="b",
             )
         )
         preset.add(
             get_key_mapping(
-                InputCombination(get_combination_config(*combi_2)), output_symbol="c"
+                input_combination=InputCombination(
+                    (
+                        InputConfig.from_input_event(combi_2[0]),
+                        InputConfig.from_input_event(combi_2[1]),
+                    )
+                ),
+                output_symbol="c",
             )
         )
 
@@ -544,24 +561,20 @@ class TestIdk(EventPipelineTestBase):
         b = system_mapping.get("b")
         c = system_mapping.get("c")
 
-        event_reader = self.create_event_reader(preset, fixtures.gamepad)
+        event_reader = self.create_event_reader(preset, origin)
 
         """Single keys"""
         await self.send_events(
             [
-                InputEvent.from_tuple(ev_1),  # press a
-                InputEvent.from_tuple(ev_3),  # disabled
-                InputEvent.from_tuple(ev_2),  # release a
-                InputEvent.from_tuple(ev_4),  # disabled
+                ev_1,  # press a
+                ev_3,  # disabled
+                ev_2,  # release a
+                ev_4,  # disabled
             ],
             event_reader,
         )
-        keyboard_history = convert_to_internal_events(
-            global_uinputs.get_uinput("keyboard").write_history
-        )
-        forwarded_history = convert_to_internal_events(
-            self.forward_uinput.write_history
-        )
+        keyboard_history = global_uinputs.get_uinput("keyboard").write_history
+        forwarded_history = self.forward_uinput.write_history
         self.assertIn((EV_KEY, a, 1), keyboard_history)
         self.assertIn((EV_KEY, a, 0), keyboard_history)
         self.assertEqual(len(keyboard_history), 2)
@@ -569,73 +582,45 @@ class TestIdk(EventPipelineTestBase):
 
         """A combination that ends in a disabled key"""
         # ev_5 should be forwarded and the combination triggered
-        await self.send_events(map(InputEvent.from_tuple, combi_1), event_reader)
-        keyboard_history = convert_to_internal_events(
-            global_uinputs.get_uinput("keyboard").write_history
-        )
-        forwarded_history = convert_to_internal_events(
-            self.forward_uinput.write_history
-        )
+        await self.send_events(combi_1, event_reader)
+        keyboard_history = global_uinputs.get_uinput("keyboard").write_history
+        forwarded_history = self.forward_uinput.write_history
         self.assertIn((EV_KEY, b, 1), keyboard_history)
         self.assertEqual(len(keyboard_history), 3)
         self.assertEqual(forwarded_history.count(ev_3), 0)
         self.assertEqual(forwarded_history.count(ev_5), 1)
-        self.assertTrue(forwarded_history.count((*ev_5[0:2], 0)) >= 1)
+        self.assertTrue(forwarded_history.count(ev_6) >= 1)
 
         # release what the combination maps to
-        await self.send_events(
-            [
-                InputEvent.from_tuple((*ev_3[0:2], 0)),
-                InputEvent.from_tuple((*ev_5[0:2], 0)),
-            ],
-            event_reader,
-        )
-        keyboard_history = convert_to_internal_events(
-            global_uinputs.get_uinput("keyboard").write_history
-        )
-        forwarded_history = convert_to_internal_events(
-            self.forward_uinput.write_history
-        )
+        await self.send_events([ev_4, ev_6], event_reader)
+        keyboard_history = global_uinputs.get_uinput("keyboard").write_history
+        forwarded_history = self.forward_uinput.write_history
         self.assertIn((EV_KEY, b, 0), keyboard_history)
         self.assertEqual(len(keyboard_history), 4)
         self.assertEqual(forwarded_history.count(ev_3), 0)
-        self.assertTrue(forwarded_history.count((*ev_5[0:2], 0)) >= 1)
+        self.assertTrue(forwarded_history.count(ev_6) >= 1)
 
         """A combination that starts with a disabled key"""
         # only the combination should get triggered
-        await self.send_events(map(InputEvent.from_tuple, combi_2), event_reader)
-        keyboard_history = convert_to_internal_events(
-            global_uinputs.get_uinput("keyboard").write_history
-        )
-        forwarded_history = convert_to_internal_events(
-            self.forward_uinput.write_history
-        )
+        await self.send_events(combi_2, event_reader)
+        keyboard_history = global_uinputs.get_uinput("keyboard").write_history
+        forwarded_history = self.forward_uinput.write_history
         self.assertIn((EV_KEY, c, 1), keyboard_history)
         self.assertEqual(len(keyboard_history), 5)
         self.assertEqual(forwarded_history.count(ev_3), 0)
         self.assertEqual(forwarded_history.count(ev_5), 1)
-        self.assertTrue(forwarded_history.count((*ev_5[0:2], 0)) >= 1)
+        self.assertTrue(forwarded_history.count(ev_6) >= 1)
 
         # release what the combination maps to
-        await self.send_events(
-            [
-                InputEvent.from_tuple((*ev_3[0:2], 0)),
-                InputEvent.from_tuple((*ev_5[0:2], 0)),
-            ],
-            event_reader,
-        )
-        keyboard_history = convert_to_internal_events(
-            global_uinputs.get_uinput("keyboard").write_history
-        )
-        forwarded_history = convert_to_internal_events(
-            self.forward_uinput.write_history
-        )
+        await self.send_events([ev_4, ev_6], event_reader)
+        keyboard_history = global_uinputs.get_uinput("keyboard").write_history
+        forwarded_history = self.forward_uinput.write_history
         for event in keyboard_history:
             print(event.event_tuple)
         self.assertIn((EV_KEY, c, 0), keyboard_history)
         self.assertEqual(len(keyboard_history), 6)
         self.assertEqual(forwarded_history.count(ev_3), 0)
-        self.assertTrue(forwarded_history.count((*ev_5[0:2], 0)) >= 1)
+        self.assertTrue(forwarded_history.count(ev_6) >= 1)
 
     async def test_combination_keycode_macro_mix(self):
         """Ev_1 triggers macro, ev_1 + ev_2 triggers key while the macro is
@@ -791,13 +776,13 @@ class TestIdk(EventPipelineTestBase):
 
     async def test_can_not_map(self):
         """Inject events to wrong or invalid uinput."""
-        ev_1 = (EV_KEY, KEY_A, 1)
-        ev_2 = (EV_KEY, KEY_B, 1)
-        ev_3 = (EV_KEY, KEY_C, 1)
+        ev_1 = InputEvent.from_tuple((EV_KEY, KEY_A, 1))
+        ev_2 = InputEvent.from_tuple((EV_KEY, KEY_B, 1))
+        ev_3 = InputEvent.from_tuple((EV_KEY, KEY_C, 1))
 
-        ev_4 = (EV_KEY, KEY_A, 0)
-        ev_5 = (EV_KEY, KEY_B, 0)
-        ev_6 = (EV_KEY, KEY_C, 0)
+        ev_4 = InputEvent.from_tuple((EV_KEY, KEY_A, 0))
+        ev_5 = InputEvent.from_tuple((EV_KEY, KEY_B, 0))
+        ev_6 = InputEvent.from_tuple((EV_KEY, KEY_C, 0))
 
         mapping_1 = Mapping(
             input_combination=InputCombination(get_combination_config(ev_2)),

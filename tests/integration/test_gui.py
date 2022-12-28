@@ -916,10 +916,10 @@ class TestGui(GuiTestBase):
         gtk_iteration()
 
         # it should be possible to add all of them
-        ev_1 = (EV_ABS, evdev.ecodes.ABS_HAT0X, -1)
-        ev_2 = (EV_ABS, evdev.ecodes.ABS_HAT0X, 1)
-        ev_3 = (EV_ABS, evdev.ecodes.ABS_HAT0Y, -1)
-        ev_4 = (EV_ABS, evdev.ecodes.ABS_HAT0Y, 1)
+        ev_1 = InputEvent.from_tuple((EV_ABS, evdev.ecodes.ABS_HAT0X, -1))
+        ev_2 = InputEvent.from_tuple((EV_ABS, evdev.ecodes.ABS_HAT0X, 1))
+        ev_3 = InputEvent.from_tuple((EV_ABS, evdev.ecodes.ABS_HAT0Y, -1))
+        ev_4 = InputEvent.from_tuple((EV_ABS, evdev.ecodes.ABS_HAT0Y, 1))
 
         def add_mapping(event_tuple, symbol) -> InputCombination:
             """adds mapping and returns the expected input combination"""
@@ -977,10 +977,10 @@ class TestGui(GuiTestBase):
         gtk_iteration()
 
         # it should be possible to write a combination
-        ev_1 = (EV_KEY, evdev.ecodes.KEY_A, 1)
-        ev_2 = (EV_ABS, evdev.ecodes.ABS_HAT0X, 1)
-        ev_3 = (EV_KEY, evdev.ecodes.KEY_C, 1)
-        ev_4 = (EV_ABS, evdev.ecodes.ABS_HAT0X, -1)
+        ev_1 = InputEvent.from_tuple((EV_KEY, evdev.ecodes.KEY_A, 1))
+        ev_2 = InputEvent.from_tuple((EV_ABS, evdev.ecodes.ABS_HAT0X, 1))
+        ev_3 = InputEvent.from_tuple((EV_KEY, evdev.ecodes.KEY_C, 1))
+        ev_4 = InputEvent.from_tuple((EV_ABS, evdev.ecodes.ABS_HAT0X, -1))
         combination_1 = (ev_1, ev_2, ev_3)
         combination_2 = (ev_2, ev_1, ev_3)
 

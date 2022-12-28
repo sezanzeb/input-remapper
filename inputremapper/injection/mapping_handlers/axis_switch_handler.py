@@ -122,7 +122,7 @@ class AxisSwitchHandler(MappingHandler):
         if self._map_axis.type == evdev.ecodes.EV_ABS:
             # send the last cached value so that the abs axis
             # is at the correct position
-            logger.debug("starting axis for", self.mapping.input_combination)
+            logger.debug("starting axis for %s", self.mapping.input_combination)
             event = InputEvent(
                 0,
                 0,

@@ -82,7 +82,7 @@ class MacroTestBase(unittest.IsolatedAsyncioTestCase):
             self.loop = asyncio.new_event_loop()
             asyncio.set_event_loop(self.loop)
 
-        self.context = Context(Preset())
+        self.context = Context(Preset(), source_devices={}, forward_devices={})
 
     def tearDown(self):
         self.result = []
@@ -1287,9 +1287,9 @@ class TestIfSingle(MacroTestBase):
         x = system_mapping.get("x")
         y = system_mapping.get("y")
 
-        await self.trigger_sequence(macro, new_event(EV_KEY, a, 1))
+        await self.trigger_sequence(macro, InputEvent.key(a, 1))
         await asyncio.sleep(0.1)
-        await self.release_sequence(macro, new_event(EV_KEY, a, 0))
+        await self.release_sequence(macro, InputEvent.key(a, 0))
         # the key that triggered the macro is released
         await asyncio.sleep(0.1)
 
@@ -1313,7 +1313,7 @@ class TestIfSingle(MacroTestBase):
         y = system_mapping.get("y")
 
         # pressing the macro key
-        await self.trigger_sequence(macro, new_event(EV_KEY, a, 1))
+        await self.trigger_sequence(macro, InputEvent.key(a, 1))
         await asyncio.sleep(0.05)
 
         # if_single only looks out for newly pressed keys,
@@ -1321,13 +1321,13 @@ class TestIfSingle(MacroTestBase):
         # pressed before if_single. This was decided because it is a lot
         # less tricky and more fluently to use if you type fast
         for listener in self.context.listeners:
-            asyncio.ensure_future(listener(new_event(EV_KEY, b, 0)))
+            asyncio.ensure_future(listener(InputEvent.key(b, 0)))
         await asyncio.sleep(0.05)
         self.assertListEqual(self.result, [])
 
         # releasing the actual key triggers if_single
         await asyncio.sleep(0.05)
-        await self.release_sequence(macro, new_event(EV_KEY, a, 0))
+        await self.release_sequence(macro, InputEvent.key(a, 0))
         await asyncio.sleep(0.05)
         self.assertListEqual(self.result, [(EV_KEY, x, 1), (EV_KEY, x, 0)])
         self.assertFalse(macro.running)
@@ -1351,11 +1351,11 @@ class TestIfSingle(MacroTestBase):
         y = system_mapping.get("y")
 
         # press the trigger key
-        await self.trigger_sequence(macro, new_event(EV_KEY, a, 1))
+        await self.trigger_sequence(macro, InputEvent.key(a, 1))
         await asyncio.sleep(0.1)
         # press another key
         for listener in self.context.listeners:
-            asyncio.ensure_future(listener(new_event(EV_KEY, b, 1)))
+            asyncio.ensure_future(listener(InputEvent.key(b, 1)))
         await asyncio.sleep(0.1)
 
         self.assertListEqual(self.result, [(EV_KEY, y, 1), (EV_KEY, y, 0)])
@@ -1371,11 +1371,11 @@ class TestIfSingle(MacroTestBase):
         x = system_mapping.get("x")
 
         # press trigger key
-        await self.trigger_sequence(macro, new_event(EV_KEY, a, 1))
+        await self.trigger_sequence(macro, InputEvent.key(a, 1))
         await asyncio.sleep(0.1)
         # press another key
         for listener in self.context.listeners:
-            asyncio.ensure_future(listener(new_event(EV_KEY, b, 1)))
+            asyncio.ensure_future(listener(InputEvent.key(b, 1)))
         await asyncio.sleep(0.1)
 
         self.assertListEqual(self.result, [])
@@ -1392,7 +1392,7 @@ class TestIfSingle(MacroTestBase):
         a = system_mapping.get("a")
         y = system_mapping.get("y")
 
-        await self.trigger_sequence(macro, new_event(EV_KEY, a, 1))
+        await self.trigger_sequence(macro, InputEvent.key(a, 1))
 
         # no timeout yet
         await asyncio.sleep(0.2)
@@ -1413,12 +1413,12 @@ class TestIfSingle(MacroTestBase):
         code_a = system_mapping.get("a")
         trigger = 1
 
-        await self.trigger_sequence(macro, new_event(EV_KEY, trigger, 1))
+        await self.trigger_sequence(macro, InputEvent.key(trigger, 1))
         await asyncio.sleep(0.1)
         for listener in self.context.listeners:
-            asyncio.ensure_future(listener(new_event(EV_ABS, ABS_Y, 10)))
+            asyncio.ensure_future(listener(InputEvent.abs(ABS_Y, 10)))
         await asyncio.sleep(0.1)
-        await self.release_sequence(macro, new_event(EV_KEY, trigger, 0))
+        await self.release_sequence(macro, InputEvent.key(trigger, 0))
         await asyncio.sleep(0.1)
         self.assertFalse(macro.running)
         self.assertListEqual(self.result, [(EV_KEY, code_a, 1), (EV_KEY, code_a, 0)])

@@ -71,8 +71,8 @@ class TestGlobalUinputs(unittest.TestCase):
 
         implicitly tests get_uinput and UInput.can_emit
         """
-        ev_1 = (EV_KEY, KEY_A, 1)
-        ev_2 = (EV_ABS, ABS_X, 10)
+        ev_1 = InputEvent.from_tuple((EV_KEY, KEY_A, 1))
+        ev_2 = InputEvent.from_tuple((EV_ABS, ABS_X, 10))
 
         keyboard = global_uinputs.get_uinput("keyboard")
 
