@@ -51,6 +51,7 @@ from inputremapper.gui.messages.message_data import CombinationRecorded
 from inputremapper.gui.messages.message_types import MessageType
 from inputremapper.gui.reader_client import ReaderClient
 from inputremapper.gui.reader_service import ReaderService
+from inputremapper.input_event import InputEvent
 from tests.lib.fixtures import new_event
 from tests.lib.cleanup import quick_cleanup
 from tests.lib.constants import (
