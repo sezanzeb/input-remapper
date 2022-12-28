@@ -411,4 +411,4 @@ def prepare_presets():
 
     global_config.load_config()
 
-    return preset1, preset2, preset3b
+    return preset1, preset2, preset3
