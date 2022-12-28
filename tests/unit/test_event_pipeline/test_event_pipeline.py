@@ -259,9 +259,9 @@ class TestIdk(EventPipelineTestBase):
 
         await self.send_events(
             [
-                InputEvent.from_tuple((EV_KEY, 1, 1)),
-                InputEvent.from_tuple((EV_KEY, 2, 1)),
-                InputEvent.from_tuple((EV_KEY, 3, 1)),
+                InputEvent.key(1, 1),
+                InputEvent.key(2, 1),
+                InputEvent.key(3, 1),
             ],
             event_reader,
         )
@@ -314,13 +314,13 @@ class TestIdk(EventPipelineTestBase):
         # should forward them unmodified
         await self.send_events(
             [
-                InputEvent.from_tuple((EV_ABS, ABS_X, 10)),
-                InputEvent.from_tuple((EV_ABS, ABS_Y, 20)),
-                InputEvent.from_tuple((EV_ABS, ABS_X, -30)),
-                InputEvent.from_tuple((EV_ABS, ABS_Y, -40)),
+                InputEvent.abs(ABS_X, 10),
+                InputEvent.abs(ABS_Y, 20),
+                InputEvent.abs(ABS_X, -30),
+                InputEvent.abs(ABS_Y, -40),
                 # send them to keyboard 77
-                InputEvent.from_tuple((EV_KEY, BTN_A, 1)),
-                InputEvent.from_tuple((EV_KEY, BTN_A, 0)),
+                InputEvent.key(BTN_A, 1),
+                InputEvent.key(BTN_A, 0),
             ],
             event_reader,
         )
@@ -355,13 +355,13 @@ class TestIdk(EventPipelineTestBase):
         # should forward them unmodified
         await self.send_events(
             [
-                InputEvent.from_tuple((EV_REL, REL_X, 10)),
-                InputEvent.from_tuple((EV_REL, REL_Y, 20)),
-                InputEvent.from_tuple((EV_REL, REL_X, -30)),
-                InputEvent.from_tuple((EV_REL, REL_Y, -40)),
+                InputEvent.rel(REL_X, 10),
+                InputEvent.rel(REL_Y, 20),
+                InputEvent.rel(REL_X, -30),
+                InputEvent.rel(REL_Y, -40),
                 # send them to keyboard 77
-                InputEvent.from_tuple((EV_KEY, BTN_LEFT, 1)),
-                InputEvent.from_tuple((EV_KEY, BTN_LEFT, 0)),
+                InputEvent.key(BTN_LEFT, 1),
+                InputEvent.key(BTN_LEFT, 0),
             ],
             event_reader,
         )
@@ -719,8 +719,8 @@ class TestIdk(EventPipelineTestBase):
 
         scroll = InputEvent.from_tuple((2, 8, -1))
         scroll_release = InputEvent.from_tuple((2, 8, 0))
-        btn_down = InputEvent.from_tuple((EV_KEY, 276, 1))
-        btn_up = InputEvent.from_tuple((EV_KEY, 276, 0))
+        btn_down = InputEvent.key(276, 1)
+        btn_up = InputEvent.key(276, 0)
         combination = InputCombination(get_combination_config((1, 276, 1), (2, 8, -1)))
 
         system_mapping.clear()
@@ -779,13 +779,13 @@ class TestIdk(EventPipelineTestBase):
 
     async def test_can_not_map(self):
         """Inject events to wrong or invalid uinput."""
-        ev_1 = InputEvent.from_tuple((EV_KEY, KEY_A, 1))
-        ev_2 = InputEvent.from_tuple((EV_KEY, KEY_B, 1))
-        ev_3 = InputEvent.from_tuple((EV_KEY, KEY_C, 1))
+        ev_1 = InputEvent.key(KEY_A, 1)
+        ev_2 = InputEvent.key(KEY_B, 1)
+        ev_3 = InputEvent.key(KEY_C, 1)
 
-        ev_4 = InputEvent.from_tuple((EV_KEY, KEY_A, 0))
-        ev_5 = InputEvent.from_tuple((EV_KEY, KEY_B, 0))
-        ev_6 = InputEvent.from_tuple((EV_KEY, KEY_C, 0))
+        ev_4 = InputEvent.key(KEY_A, 0)
+        ev_5 = InputEvent.key(KEY_B, 0)
+        ev_6 = InputEvent.key(KEY_C, 0)
 
         mapping_1 = Mapping(
             input_combination=InputCombination(InputConfig.from_input_event(ev_2)),
@@ -866,7 +866,7 @@ class TestIdk(EventPipelineTestBase):
         event_reader = self.create_event_reader(preset, fixtures.gamepad)
 
         # set ABS_X input to 100%
-        await event_reader.handle(InputEvent.from_tuple((EV_ABS, ABS_X, MAX_ABS)))
+        await event_reader.handle(InputEvent.abs(ABS_X, MAX_ABS))
 
         # wait a bit more for nothing to sum up, because ABS_Y is still 0
         await asyncio.sleep(0.2)
@@ -880,9 +880,9 @@ class TestIdk(EventPipelineTestBase):
         # move ABS_Y above 10%
         await self.send_events(
             (
-                InputEvent.from_tuple((EV_ABS, ABS_Y, MAX_ABS * 0.05)),
-                InputEvent.from_tuple((EV_ABS, ABS_Y, MAX_ABS * 0.11)),
-                InputEvent.from_tuple((EV_ABS, ABS_Y, MAX_ABS * 0.5)),
+                InputEvent.abs(ABS_Y, MAX_ABS * 0.05),
+                InputEvent.abs(ABS_Y, MAX_ABS * 0.11),
+                InputEvent.abs(ABS_Y, MAX_ABS * 0.5),
             ),
             event_reader,
         )
@@ -897,15 +897,15 @@ class TestIdk(EventPipelineTestBase):
         # send some more x events
         await self.send_events(
             (
-                InputEvent.from_tuple((EV_ABS, ABS_X, MAX_ABS)),
-                InputEvent.from_tuple((EV_ABS, ABS_X, MAX_ABS * 0.9)),
+                InputEvent.abs(ABS_X, MAX_ABS),
+                InputEvent.abs(ABS_X, MAX_ABS * 0.9),
             ),
             event_reader,
         )
 
         # stop it
         await event_reader.handle(
-            InputEvent.from_tuple((EV_ABS, ABS_Y, MAX_ABS * 0.05))
+            InputEvent.abs(ABS_Y, MAX_ABS * 0.05)
         )
 
         await asyncio.sleep(0.2)  # wait a bit more for nothing to sum up
@@ -952,8 +952,8 @@ class TestAbsToAbs(EventPipelineTestBase):
 
         await self.send_events(
             [
-                InputEvent.from_tuple((EV_ABS, ABS_X, -x)),
-                InputEvent.from_tuple((EV_ABS, ABS_Y, y)),
+                InputEvent.abs(ABS_X, -x),
+                InputEvent.abs(ABS_Y, y),
             ],
             event_reader,
         )
@@ -999,13 +999,13 @@ class TestAbsToAbs(EventPipelineTestBase):
 
         await self.send_events(
             [
-                InputEvent.from_tuple((EV_ABS, ABS_X, -x // 5)),  # will not map
-                InputEvent.from_tuple((EV_ABS, ABS_X, -x)),  # will map later
+                InputEvent.abs(ABS_X, -x // 5),  # will not map
+                InputEvent.abs(ABS_X, -x),  # will map later
                 # switch axis on sends initial position (previous event)
-                InputEvent.from_tuple((EV_ABS, ABS_Y, y)),
-                InputEvent.from_tuple((EV_ABS, ABS_X, x)),  # normally mapped
-                InputEvent.from_tuple((EV_ABS, ABS_Y, y // 15)),  # off, re-centers axis
-                InputEvent.from_tuple((EV_ABS, ABS_X, -x // 5)),  # will not map
+                InputEvent.abs(ABS_Y, y),
+                InputEvent.abs(ABS_X, x),  # normally mapped
+                InputEvent.abs(ABS_Y, y // 15),  # off, re-centers axis
+                InputEvent.abs(ABS_X, -x // 5),  # will not map
             ],
             event_reader,
         )
@@ -1202,8 +1202,8 @@ class TestAbsToRel(EventPipelineTestBase):
 
         await self.send_events(
             [
-                InputEvent.from_tuple((EV_ABS, ABS_X, -x)),
-                InputEvent.from_tuple((EV_ABS, ABS_Y, -y)),
+                InputEvent.abs(ABS_X, -x),
+                InputEvent.abs(ABS_Y, -y),
             ],
             event_reader,
         )
@@ -1213,8 +1213,8 @@ class TestAbsToRel(EventPipelineTestBase):
         # stop it
         await self.send_events(
             [
-                InputEvent.from_tuple((EV_ABS, ABS_X, 0)),
-                InputEvent.from_tuple((EV_ABS, ABS_Y, 0)),
+                InputEvent.abs(ABS_X, 0),
+                InputEvent.abs(ABS_Y, 0),
             ],
             event_reader,
         )
@@ -1278,8 +1278,8 @@ class TestAbsToRel(EventPipelineTestBase):
 
         await self.send_events(
             [
-                InputEvent.from_tuple((EV_ABS, ABS_X, x)),
-                InputEvent.from_tuple((EV_ABS, ABS_Y, -y)),
+                InputEvent.abs(ABS_X, x),
+                InputEvent.abs(ABS_Y, -y),
             ],
             event_reader,
         )
@@ -1289,8 +1289,8 @@ class TestAbsToRel(EventPipelineTestBase):
         # stop it
         await self.send_events(
             [
-                InputEvent.from_tuple((EV_ABS, ABS_X, 0)),
-                InputEvent.from_tuple((EV_ABS, ABS_Y, 0)),
+                InputEvent.abs(ABS_X, 0),
+                InputEvent.abs(ABS_Y, 0),
             ],
             event_reader,
         )
@@ -1406,10 +1406,10 @@ class TestRelToBtn(EventPipelineTestBase):
 
         await self.send_events(
             [
-                InputEvent.from_tuple((EV_REL, REL_X, -5)),  # forward
-                InputEvent.from_tuple((EV_REL, REL_X, 0)),  # forward
-                InputEvent.from_tuple((EV_REL, REL_X, 3)),  # forward
-                InputEvent.from_tuple((EV_REL, REL_X, 10)),  # trigger a
+                InputEvent.rel(REL_X, -5),  # forward
+                InputEvent.rel(REL_X, 0),  # forward
+                InputEvent.rel(REL_X, 3),  # forward
+                InputEvent.rel(REL_X, 10),  # trigger a
             ],
             event_reader,
         )
@@ -1425,9 +1425,9 @@ class TestRelToBtn(EventPipelineTestBase):
 
         await self.send_events(
             [
-                InputEvent.from_tuple((EV_REL, REL_X, 10)),  # trigger a
-                InputEvent.from_tuple((EV_REL, REL_X, 20)),  # trigger b
-                InputEvent.from_tuple((EV_REL, REL_X, 10)),  # release b
+                InputEvent.rel(REL_X, 10),  # trigger a
+                InputEvent.rel(REL_X, 20),  # trigger b
+                InputEvent.rel(REL_X, 10),  # release b
             ],
             event_reader,
         )
@@ -1479,13 +1479,13 @@ class TestAbsToBtn(EventPipelineTestBase):
         await self.send_events(
             [
                 # -10%, do nothing
-                InputEvent.from_tuple((EV_ABS, ABS_X, MIN_ABS // 10)),
+                InputEvent.abs(ABS_X, MIN_ABS // 10),
                 # 0%, do noting
-                InputEvent.from_tuple((EV_ABS, ABS_X, 0)),
+                InputEvent.abs(ABS_X, 0),
                 # 10%, do nothing
-                InputEvent.from_tuple((EV_ABS, ABS_X, MAX_ABS // 10)),
+                InputEvent.abs(ABS_X, MAX_ABS // 10),
                 # 50%, trigger a
-                InputEvent.from_tuple((EV_ABS, ABS_X, MAX_ABS // 2)),
+                InputEvent.abs(ABS_X, MAX_ABS // 2),
             ],
             event_reader,
         )
@@ -1500,8 +1500,8 @@ class TestAbsToBtn(EventPipelineTestBase):
         await self.send_events(
             [
                 # 80%, trigger b
-                InputEvent.from_tuple((EV_ABS, ABS_X, int(MAX_ABS * 0.8))),
-                InputEvent.from_tuple((EV_ABS, ABS_X, MAX_ABS // 2)),  # 50%, release b
+                InputEvent.abs(ABS_X, int(MAX_ABS * 0.8)),
+                InputEvent.abs(ABS_X, MAX_ABS // 2),  # 50%, release b
             ],
             event_reader,
         )
@@ -1514,7 +1514,7 @@ class TestAbsToBtn(EventPipelineTestBase):
         self.assertNotIn((EV_KEY, a, 0), keyboard_history)
 
         # 0% release a
-        await event_reader.handle(InputEvent.from_tuple((EV_ABS, ABS_X, 0)))
+        await event_reader.handle(InputEvent.abs(ABS_X, 0))
         keyboard_history = convert_to_internal_events(
             global_uinputs.get_uinput("keyboard").write_history
         )

@@ -304,14 +304,14 @@ class TestKeyHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
         history = convert_to_internal_events(
             global_uinputs.get_uinput("mouse").write_history
         )
-        self.assertEqual(history[0], InputEvent.from_tuple((EV_KEY, BTN_LEFT, 1)))
+        self.assertEqual(history[0], InputEvent.key(BTN_LEFT, 1))
         self.assertEqual(len(history), 1)
 
         self.handler.reset()
         history = convert_to_internal_events(
             global_uinputs.get_uinput("mouse").write_history
         )
-        self.assertEqual(history[1], InputEvent.from_tuple((EV_KEY, BTN_LEFT, 0)))
+        self.assertEqual(history[1], InputEvent.key(BTN_LEFT, 0))
         self.assertEqual(len(history), 2)
 
 
@@ -344,8 +344,8 @@ class TestMacroHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
         history = convert_to_internal_events(
             global_uinputs.get_uinput("mouse").write_history
         )
-        self.assertIn(InputEvent.from_tuple((EV_KEY, BTN_LEFT, 1)), history)
-        self.assertIn(InputEvent.from_tuple((EV_KEY, BTN_RIGHT, 1)), history)
+        self.assertIn(InputEvent.key(BTN_LEFT, 1), history)
+        self.assertIn(InputEvent.key(BTN_RIGHT, 1), history)
         self.assertEqual(len(history), 2)
 
         self.handler.reset()
@@ -353,8 +353,8 @@ class TestMacroHandler(BaseTests, unittest.IsolatedAsyncioTestCase):
         history = convert_to_internal_events(
             global_uinputs.get_uinput("mouse").write_history
         )
-        self.assertIn(InputEvent.from_tuple((EV_KEY, BTN_LEFT, 0)), history[-2:])
-        self.assertIn(InputEvent.from_tuple((EV_KEY, BTN_RIGHT, 0)), history[-2:])
+        self.assertIn(InputEvent.key(BTN_LEFT, 0), history[-2:])
+        self.assertIn(InputEvent.key(BTN_RIGHT, 0), history[-2:])
         self.assertEqual(len(history), 4)
 
 
